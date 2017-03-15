@@ -15,12 +15,14 @@ use dom::comment::Comment;
 use dom::document::Document;
 use dom::documenttype::DocumentType;
 use dom::element::{Element, ElementCreator};
+use dom::htmlformelement::{FormControlElementHelpers, HTMLFormElement};
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::htmltemplateelement::HTMLTemplateElement;
 use dom::node::Node;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::virtualmethods::vtable_for;
 use html5ever::Attribute;
+use html5ever::QualName;
 use html5ever::serialize::{AttrRef, Serializable, Serializer};
 use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
@@ -29,7 +31,6 @@ use html5ever::tokenizer::{Tokenizer as HtmlTokenizer, TokenizerOpts, TokenizerR
 use html5ever::tokenizer::buffer_queue::BufferQueue;
 use html5ever::tree_builder::{NodeOrText, QuirksMode};
 use html5ever::tree_builder::{Tracer as HtmlTracer, TreeBuilder, TreeBuilderOpts, TreeSink};
-use html5ever_atoms::QualName;
 use js::jsapi::JSTracer;
 use servo_url::ServoUrl;
 use std::borrow::Cow;
@@ -159,6 +160,13 @@ impl TreeSink for Sink {
         }
     }
 
+    fn same_tree(&self, x: JS<Node>, y: JS<Node>) -> bool {
+        let x = x.downcast::<Element>().expect("Element node expected");
+        let y = y.downcast::<Element>().expect("Element node expected");
+
+        x.is_in_same_home_subtree(y)
+    }
+
     fn create_element(&mut self, name: QualName, attrs: Vec<Attribute>)
             -> JS<Node> {
         let elem = Element::create(name, None, &*self.document,
@@ -176,17 +184,33 @@ impl TreeSink for Sink {
         JS::from_ref(comment.upcast())
     }
 
+    fn has_parent_node(&self, node: JS<Node>) -> bool {
+         node.GetParentNode().is_some()
+    }
+
+    fn associate_with_form(&mut self, target: JS<Node>, form: JS<Node>) {
+        let node = target;
+        let form = Root::downcast::<HTMLFormElement>(Root::from_ref(&*form))
+            .expect("Owner must be a form element");
+
+        let elem = node.downcast::<Element>();
+        let control = elem.as_ref().and_then(|e| e.as_maybe_form_control());
+
+        if let Some(control) = control {
+            control.set_form_owner_from_parser(&form);
+        } else {
+            // TODO remove this code when keygen is implemented.
+            assert!(node.NodeName() == "KEYGEN", "Unknown form-associatable element");
+        }
+    }
+
     fn append_before_sibling(&mut self,
             sibling: JS<Node>,
-            new_node: NodeOrText<JS<Node>>) -> Result<(), NodeOrText<JS<Node>>> {
-        // If there is no parent, return the node to the parser.
-        let parent = match sibling.GetParentNode() {
-            Some(p) => p,
-            None => return Err(new_node),
-        };
+            new_node: NodeOrText<JS<Node>>) {
+        let parent = sibling.GetParentNode()
+            .expect("append_before_sibling called on node without parent");
 
         super::insert(&parent, Some(&*sibling), new_node);
-        Ok(())
     }
 
     fn parse_error(&mut self, msg: Cow<'static, str>) {

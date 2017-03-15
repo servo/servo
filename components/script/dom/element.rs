@@ -19,6 +19,7 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::UnionTypes::NodeOrString;
+use dom::bindings::conversions::DerivedFrom;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::js::{JS, LayoutJS, MutNullableJS};
@@ -44,6 +45,7 @@ use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElement;
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlfontelement::{HTMLFontElement, HTMLFontElementLayoutHelpers};
+use dom::htmlformelement::FormControlElementHelpers;
 use dom::htmlhrelement::{HTMLHRElement, HTMLHRLayoutHelpers};
 use dom::htmliframeelement::{HTMLIFrameElement, HTMLIFrameElementLayoutMethods};
 use dom::htmlimageelement::{HTMLImageElement, LayoutHTMLImageElementHelpers};
@@ -1360,6 +1362,14 @@ impl Element {
         let document = document_from_node(self);
         document.get_allow_fullscreen()
     }
+
+    // https://html.spec.whatwg.org/multipage/#home-subtree
+    pub fn is_in_same_home_subtree<T>(&self, other: &T) -> bool
+        where T: DerivedFrom<Element> + DomObject
+    {
+        let other = other.upcast::<Element>();
+        self.root_element() == other.root_element()
+    }
 }
 
 impl ElementMethods for Element {
@@ -2240,6 +2250,10 @@ impl VirtualMethods for Element {
             s.bind_to_tree(tree_in_doc);
         }
 
+        if let Some(f) = self.as_maybe_form_control() {
+            f.bind_form_control_to_tree();
+        }
+
         if !tree_in_doc {
             return;
         }
@@ -2254,6 +2268,10 @@ impl VirtualMethods for Element {
 
     fn unbind_from_tree(&self, context: &UnbindContext) {
         self.super_type().unwrap().unbind_from_tree(context);
+
+        if let Some(f) = self.as_maybe_form_control() {
+            f.unbind_form_control_from_tree();
+        }
 
         if !context.tree_in_doc {
             return;

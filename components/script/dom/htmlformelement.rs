@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -11,15 +12,14 @@ use dom::bindings::codegen::Bindings::HTMLFormElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFormElementBinding::HTMLFormElementMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
-use dom::bindings::conversions::DerivedFrom;
 use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
-use dom::bindings::js::{MutNullableJS, Root};
+use dom::bindings::js::{JS, MutNullableJS, Root, RootedReference};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
 use dom::bindings::str::DOMString;
 use dom::blob::Blob;
 use dom::document::Document;
-use dom::element::Element;
+use dom::element::{AttributeMutation, Element};
 use dom::eventtarget::EventTarget;
 use dom::file::File;
 use dom::globalscope::GlobalScope;
@@ -29,12 +29,16 @@ use dom::htmldatalistelement::HTMLDataListElement;
 use dom::htmlelement::HTMLElement;
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlformcontrolscollection::HTMLFormControlsCollection;
+use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlinputelement::HTMLInputElement;
+use dom::htmllabelelement::HTMLLabelElement;
+use dom::htmllegendelement::HTMLLegendElement;
 use dom::htmlobjectelement::HTMLObjectElement;
 use dom::htmloutputelement::HTMLOutputElement;
 use dom::htmlselectelement::HTMLSelectElement;
 use dom::htmltextareaelement::HTMLTextAreaElement;
-use dom::node::{Node, document_from_node, window_from_node};
+use dom::node::{Node, PARSER_ASSOCIATED_FORM_OWNER, UnbindContext, VecPreOrderInsertionHelper};
+use dom::node::{document_from_node, window_from_node};
 use dom::validitystate::ValidationFlags;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
@@ -63,7 +67,8 @@ pub struct HTMLFormElement {
     htmlelement: HTMLElement,
     marked_for_reset: Cell<bool>,
     elements: MutNullableJS<HTMLFormControlsCollection>,
-    generation_id: Cell<GenerationId>
+    generation_id: Cell<GenerationId>,
+    controls: DOMRefCell<Vec<JS<Element>>>,
 }
 
 impl HTMLFormElement {
@@ -74,7 +79,8 @@ impl HTMLFormElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             marked_for_reset: Cell::new(false),
             elements: Default::default(),
-            generation_id: Cell::new(GenerationId(0))
+            generation_id: Cell::new(GenerationId(0)),
+            controls: DOMRefCell::new(Vec::new()),
         }
     }
 
@@ -504,16 +510,14 @@ impl HTMLFormElement {
     /// https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set
     /// Steps range from 1 to 3
     fn get_unclean_dataset(&self, submitter: Option<FormSubmitter>) -> Vec<FormDatum> {
-        let node = self.upcast::<Node>();
-        // FIXME(#3553): This is an incorrect way of getting controls owned
-        //               by the form, but good enough until html5ever lands
+        let controls = self.controls.borrow();
         let mut data_set = Vec::new();
-        for child in node.traverse_preorder() {
+        for child in controls.iter() {
             // Step 3.1: The field element is disabled.
-            match child.downcast::<Element>() {
-                Some(el) if !el.disabled_state() => (),
-                _ => continue,
+            if child.disabled_state() {
+                continue;
             }
+            let child = child.upcast::<Node>();
 
             // Step 3.1: The field element has a datalist element ancestor.
             if child.ancestors()
@@ -627,9 +631,10 @@ impl HTMLFormElement {
             return;
         }
 
-        // TODO: This is an incorrect way of getting controls owned
-        //       by the form, but good enough until html5ever lands
-        for child in self.upcast::<Node>().traverse_preorder() {
+        let controls = self.controls.borrow();
+        for child in controls.iter() {
+            let child = child.upcast::<Node>();
+
             match child.type_id() {
                 NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) => {
                     child.downcast::<HTMLInputElement>().unwrap().reset();
@@ -647,14 +652,27 @@ impl HTMLFormElement {
                 }
                 NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOutputElement)) => {
                     // Unimplemented
-                    {}
                 }
                 _ => {}
             }
-        };
+        }
         self.marked_for_reset.set(false);
     }
 
+    fn add_control<T: ?Sized + FormControl>(&self, control: &T) {
+        let root = self.upcast::<Element>().root_element();
+        let root = root.r().upcast::<Node>();
+
+        let mut controls = self.controls.borrow_mut();
+        controls.insert_pre_order(control.to_element(), root);
+    }
+
+    fn remove_control<T: ?Sized + FormControl>(&self, control: &T) {
+        let control = control.to_element();
+        let mut controls = self.controls.borrow_mut();
+        controls.iter().position(|c| c.r() == control)
+                       .map(|idx| controls.remove(idx));
+    }
 }
 
 #[derive(JSTraceable, HeapSizeOf, Clone)]
@@ -844,24 +862,139 @@ impl<'a> FormSubmitter<'a> {
     }
 }
 
-pub trait FormControl: DerivedFrom<Element> + DomObject {
-    // FIXME: This is wrong (https://github.com/servo/servo/issues/3553)
-    //        but we need html5ever to do it correctly
-    fn form_owner(&self) -> Option<Root<HTMLFormElement>> {
-        // https://html.spec.whatwg.org/multipage/#reset-the-form-owner
+pub trait FormControl: DomObject {
+    fn form_owner(&self) -> Option<Root<HTMLFormElement>>;
+
+    fn set_form_owner(&self, form: Option<&HTMLFormElement>);
+
+    fn to_element<'a>(&'a self) -> &'a Element;
+
+    fn is_listed(&self) -> bool {
+        true
+    }
+
+    // https://html.spec.whatwg.org/multipage/#create-an-element-for-the-token
+    // Part of step 12.
+    // '..suppress the running of the reset the form owner algorithm
+    // when the parser subsequently attempts to insert the element..'
+    fn set_form_owner_from_parser(&self, form: &HTMLFormElement) {
         let elem = self.to_element();
-        let owner = elem.get_string_attribute(&local_name!("form"));
-        if !owner.is_empty() {
-            let doc = document_from_node(elem);
-            let owner = doc.GetElementById(owner);
-            if let Some(ref o) = owner {
-                let maybe_form = o.downcast::<HTMLFormElement>();
-                if maybe_form.is_some() {
-                    return maybe_form.map(Root::from_ref);
-                }
+        let node = elem.upcast::<Node>();
+        node.set_flag(PARSER_ASSOCIATED_FORM_OWNER, true);
+        form.add_control(self);
+        self.set_form_owner(Some(form));
+    }
+
+    // https://html.spec.whatwg.org/multipage/#reset-the-form-owner
+    fn reset_form_owner(&self) {
+        let elem = self.to_element();
+        let node = elem.upcast::<Node>();
+        let old_owner = self.form_owner();
+        let has_form_id = elem.has_attribute(&local_name!("form"));
+        let nearest_form_ancestor = node.ancestors()
+                                        .filter_map(Root::downcast::<HTMLFormElement>)
+                                        .next();
+
+        // Step 1
+        if old_owner.is_some() && !(self.is_listed() && has_form_id) {
+            if nearest_form_ancestor == old_owner {
+                return;
             }
         }
-        elem.upcast::<Node>().ancestors().filter_map(Root::downcast).next()
+
+        let new_owner = if self.is_listed() && has_form_id && elem.is_connected() {
+            // Step 3
+            let doc = document_from_node(node);
+            let form_id = elem.get_string_attribute(&local_name!("form"));
+            doc.GetElementById(form_id).and_then(Root::downcast::<HTMLFormElement>)
+        } else {
+            // Step 4
+            nearest_form_ancestor
+        };
+
+        if old_owner != new_owner {
+            if let Some(o) = old_owner {
+                o.remove_control(self);
+            }
+            let new_owner = new_owner.as_ref().map(|o| {
+                o.add_control(self);
+                o.r()
+            });
+            self.set_form_owner(new_owner);
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#association-of-controls-and-forms
+    fn form_attribute_mutated(&self, mutation: AttributeMutation) {
+        match mutation {
+            AttributeMutation::Set(_) => {
+                self.register_if_necessary();
+            },
+            AttributeMutation::Removed => {
+                self.unregister_if_necessary();
+            },
+        }
+
+        self.reset_form_owner();
+    }
+
+    // https://html.spec.whatwg.org/multipage/#association-of-controls-and-forms
+    fn register_if_necessary(&self) {
+        let elem = self.to_element();
+        let form_id = elem.get_string_attribute(&local_name!("form"));
+        let node = elem.upcast::<Node>();
+
+        if self.is_listed() && !form_id.is_empty() && node.is_in_doc() {
+            let doc = document_from_node(node);
+            doc.register_form_id_listener(form_id, self);
+        }
+    }
+
+    fn unregister_if_necessary(&self) {
+        let elem = self.to_element();
+        let form_id = elem.get_string_attribute(&local_name!("form"));
+
+        if self.is_listed() && !form_id.is_empty() {
+            let doc = document_from_node(elem.upcast::<Node>());
+            doc.unregister_form_id_listener(form_id, self);
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#association-of-controls-and-forms
+    fn bind_form_control_to_tree(&self) {
+        let elem = self.to_element();
+        let node = elem.upcast::<Node>();
+
+        // https://html.spec.whatwg.org/multipage/#create-an-element-for-the-token
+        // Part of step 12.
+        // '..suppress the running of the reset the form owner algorithm
+        // when the parser subsequently attempts to insert the element..'
+        let must_skip_reset = node.get_flag(PARSER_ASSOCIATED_FORM_OWNER);
+        node.set_flag(PARSER_ASSOCIATED_FORM_OWNER, false);
+
+        if !must_skip_reset {
+            self.form_attribute_mutated(AttributeMutation::Set(None));
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#association-of-controls-and-forms
+    fn unbind_form_control_from_tree(&self) {
+        let elem = self.to_element();
+        let has_form_attr = elem.has_attribute(&local_name!("form"));
+        let same_subtree = self.form_owner().map_or(true, |form| {
+            elem.is_in_same_home_subtree(&*form)
+        });
+
+        self.unregister_if_necessary();
+
+        // Since this control has been unregistered from the id->listener map
+        // in the previous step, reset_form_owner will not be invoked on it
+        // when the form owner element is unbound (i.e it is in the same
+        // subtree) if it appears later in the tree order. Hence invoke
+        // reset from here if this control has the form attribute set.
+        if !same_subtree || (self.is_listed() && has_form_attr) {
+            self.reset_form_owner();
+        }
     }
 
     fn get_form_attribute<InputFn, OwnerFn>(&self,
@@ -870,7 +1003,7 @@ pub trait FormControl: DerivedFrom<Element> + DomObject {
                                             owner: OwnerFn)
                                             -> DOMString
         where InputFn: Fn(&Self) -> DOMString,
-              OwnerFn: Fn(&HTMLFormElement) -> DOMString
+              OwnerFn: Fn(&HTMLFormElement) -> DOMString, Self: Sized
     {
         if self.to_element().has_attribute(attr) {
             input(self)
@@ -885,17 +1018,13 @@ pub trait FormControl: DerivedFrom<Element> + DomObject {
                                             owner: OwnerFn)
                                             -> bool
         where InputFn: Fn(&Self) -> bool,
-              OwnerFn: Fn(&HTMLFormElement) -> bool
+              OwnerFn: Fn(&HTMLFormElement) -> bool, Self: Sized
     {
         if self.to_element().has_attribute(attr) {
             input(self)
         } else {
             self.form_owner().map_or(false, |t| owner(&t))
         }
-    }
-
-    fn to_element(&self) -> &Element {
-        self.upcast()
     }
 
     // XXXKiChjang: Implement these on inheritors
@@ -912,6 +1041,69 @@ impl VirtualMethods for HTMLFormElement {
         match name {
             &local_name!("name") => AttrValue::from_atomic(value.into()),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
+        }
+    }
+
+    fn unbind_from_tree(&self, context: &UnbindContext) {
+        self.super_type().unwrap().unbind_from_tree(context);
+
+        // Collect the controls to reset because reset_form_owner
+        // will mutably borrow self.controls
+        rooted_vec!(let mut to_reset);
+        to_reset.extend(self.controls.borrow().iter()
+                        .filter(|c| !c.is_in_same_home_subtree(self))
+                        .map(|c| c.clone()));
+
+        for control in to_reset.iter() {
+            control.as_maybe_form_control()
+                       .expect("Element must be a form control")
+                       .reset_form_owner();
+        }
+    }
+}
+
+pub trait FormControlElementHelpers {
+    fn as_maybe_form_control<'a>(&'a self) -> Option<&'a FormControl>;
+}
+
+impl FormControlElementHelpers for Element {
+    fn as_maybe_form_control<'a>(&'a self) -> Option<&'a FormControl> {
+        let node = self.upcast::<Node>();
+
+        match node.type_id() {
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) => {
+                Some(self.downcast::<HTMLButtonElement>().unwrap() as &FormControl)
+            },
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFieldSetElement)) => {
+                Some(self.downcast::<HTMLFieldSetElement>().unwrap() as &FormControl)
+            },
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLImageElement)) => {
+                Some(self.downcast::<HTMLImageElement>().unwrap() as &FormControl)
+            },
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) => {
+                Some(self.downcast::<HTMLInputElement>().unwrap() as &FormControl)
+            },
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLabelElement)) => {
+                Some(self.downcast::<HTMLLabelElement>().unwrap() as &FormControl)
+            },
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLegendElement)) => {
+                Some(self.downcast::<HTMLLegendElement>().unwrap() as &FormControl)
+            },
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLObjectElement)) => {
+                Some(self.downcast::<HTMLObjectElement>().unwrap() as &FormControl)
+            },
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOutputElement)) => {
+                Some(self.downcast::<HTMLOutputElement>().unwrap() as &FormControl)
+            },
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)) => {
+                Some(self.downcast::<HTMLSelectElement>().unwrap() as &FormControl)
+            },
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) => {
+                Some(self.downcast::<HTMLTextAreaElement>().unwrap() as &FormControl)
+            },
+            _ => {
+                None
+            }
         }
     }
 }

@@ -32,6 +32,7 @@ use dom::validitystate::{ValidityState, ValidationFlags};
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever_atoms::LocalName;
+use std::default::Default;
 use std::iter;
 use style::attr::AttrValue;
 use style::element_state::*;
@@ -61,6 +62,7 @@ impl CollectionFilter for OptionsFilter {
 pub struct HTMLSelectElement {
     htmlelement: HTMLElement,
     options: MutNullableJS<HTMLOptionsCollection>,
+    form_owner: MutNullableJS<HTMLFormElement>,
 }
 
 static DEFAULT_SELECT_SIZE: u32 = 0;
@@ -73,7 +75,8 @@ impl HTMLSelectElement {
             htmlelement:
                 HTMLElement::new_inherited_with_state(IN_ENABLED_STATE,
                                                       local_name, prefix, document),
-                options: Default::default()
+                options: Default::default(),
+                form_owner: Default::default(),
         }
     }
 
@@ -344,19 +347,25 @@ impl VirtualMethods for HTMLSelectElement {
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
-        if attr.local_name() == &local_name!("disabled") {
-            let el = self.upcast::<Element>();
-            match mutation {
-                AttributeMutation::Set(_) => {
-                    el.set_disabled_state(true);
-                    el.set_enabled_state(false);
-                },
-                AttributeMutation::Removed => {
-                    el.set_disabled_state(false);
-                    el.set_enabled_state(true);
-                    el.check_ancestors_disabled_state_for_form_control();
+        match attr.local_name() {
+            &local_name!("disabled") => {
+                let el = self.upcast::<Element>();
+                match mutation {
+                    AttributeMutation::Set(_) => {
+                        el.set_disabled_state(true);
+                        el.set_enabled_state(false);
+                    },
+                    AttributeMutation::Removed => {
+                        el.set_disabled_state(false);
+                        el.set_enabled_state(true);
+                        el.check_ancestors_disabled_state_for_form_control();
+                    }
                 }
-            }
+            },
+            &local_name!("form") => {
+                self.form_attribute_mutated(mutation);
+            },
+            _ => {},
         }
     }
 
@@ -388,7 +397,19 @@ impl VirtualMethods for HTMLSelectElement {
     }
 }
 
-impl FormControl for HTMLSelectElement {}
+impl FormControl for HTMLSelectElement {
+    fn form_owner(&self) -> Option<Root<HTMLFormElement>> {
+        self.form_owner.get()
+    }
+
+    fn set_form_owner(&self, form: Option<&HTMLFormElement>) {
+        self.form_owner.set(form);
+    }
+
+    fn to_element<'a>(&'a self) -> &'a Element {
+        self.upcast::<Element>()
+    }
+}
 
 impl Validatable for HTMLSelectElement {
     fn is_instance_validatable(&self) -> bool {

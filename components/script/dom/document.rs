@@ -56,7 +56,7 @@ use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use dom::htmlelement::HTMLElement;
 use dom::htmlembedelement::HTMLEmbedElement;
-use dom::htmlformelement::HTMLFormElement;
+use dom::htmlformelement::{FormControl, FormControlElementHelpers, HTMLFormElement};
 use dom::htmlheadelement::HTMLHeadElement;
 use dom::htmlhtmlelement::HTMLHtmlElement;
 use dom::htmliframeelement::HTMLIFrameElement;
@@ -68,6 +68,7 @@ use dom::location::Location;
 use dom::messageevent::MessageEvent;
 use dom::mouseevent::MouseEvent;
 use dom::node::{self, CloneChildrenFlag, Node, NodeDamage, window_from_node, IS_IN_DOC, LayoutNodeHelpers};
+use dom::node::VecPreOrderInsertionHelper;
 use dom::nodeiterator::NodeIterator;
 use dom::nodelist::NodeList;
 use dom::pagetransitionevent::PageTransitionEvent;
@@ -121,7 +122,7 @@ use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::{Cell, Ref, RefMut};
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::default::Default;
 use std::iter::once;
@@ -314,6 +315,12 @@ pub struct Document {
     dom_count: Cell<u32>,
     /// Entry node for fullscreen.
     fullscreen_element: MutNullableJS<Element>,
+    /// Map from ID to set of form control elements that have that ID as
+    /// their 'form' content attribute. Used to reset form controls
+    /// whenever any element with the same ID as the form attribute
+    /// is inserted or removed from the document.
+    /// See https://html.spec.whatwg.org/multipage/#form-owner
+    form_id_listener_map: DOMRefCell<HashMap<Atom, HashSet<JS<Element>>>>,
 }
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -577,20 +584,26 @@ impl Document {
                self,
                to_unregister,
                id);
-        let mut id_map = self.id_map.borrow_mut();
-        let is_empty = match id_map.get_mut(&id) {
-            None => false,
-            Some(elements) => {
-                let position = elements.iter()
-                                       .position(|element| &**element == to_unregister)
-                                       .expect("This element should be in registered.");
-                elements.remove(position);
-                elements.is_empty()
+        // Limit the scope of the borrow because id_map might be borrowed again by
+        // GetElementById through the following sequence of calls
+        // reset_form_owner_for_listeners -> reset_form_owner -> GetElementById
+        {
+            let mut id_map = self.id_map.borrow_mut();
+            let is_empty = match id_map.get_mut(&id) {
+                None => false,
+                Some(elements) => {
+                    let position = elements.iter()
+                                        .position(|element| &**element == to_unregister)
+                                        .expect("This element should be in registered.");
+                    elements.remove(position);
+                    elements.is_empty()
+                }
+            };
+            if is_empty {
+                id_map.remove(&id);
             }
-        };
-        if is_empty {
-            id_map.remove(&id);
         }
+        self.reset_form_owner_for_listeners(&id);
     }
 
     /// Associate an element present in this document with the provided id.
@@ -602,34 +615,34 @@ impl Document {
         assert!(element.upcast::<Node>().is_in_doc());
         assert!(!id.is_empty());
 
-        let mut id_map = self.id_map.borrow_mut();
-
         let root = self.GetDocumentElement()
                        .expect("The element is in the document, so there must be a document \
                                 element.");
 
-        match id_map.entry(id) {
-            Vacant(entry) => {
-                entry.insert(vec![JS::from_ref(element)]);
-            }
-            Occupied(entry) => {
-                let elements = entry.into_mut();
+        // Limit the scope of the borrow because id_map might be borrowed again by
+        // GetElementById through the following sequence of calls
+        // reset_form_owner_for_listeners -> reset_form_owner -> GetElementById
+        {
+            let mut id_map = self.id_map.borrow_mut();
+            let mut elements = id_map.entry(id.clone()).or_insert(Vec::new());
+            elements.insert_pre_order(element, root.r().upcast::<Node>());
+        }
+        self.reset_form_owner_for_listeners(&id);
+    }
 
-                let new_node = element.upcast::<Node>();
-                let mut head: usize = 0;
-                let root = root.upcast::<Node>();
-                for node in root.traverse_preorder() {
-                    if let Some(elem) = node.downcast() {
-                        if &*(*elements)[head] == elem {
-                            head += 1;
-                        }
-                        if new_node == &*node || head == elements.len() {
-                            break;
-                        }
-                    }
-                }
+    pub fn register_form_id_listener<T: ?Sized + FormControl>(&self, id: DOMString, listener: &T) {
+        let mut map = self.form_id_listener_map.borrow_mut();
+        let listener = listener.to_element();
+        let mut set = map.entry(Atom::from(id)).or_insert(HashSet::new());
+        set.insert(JS::from_ref(listener));
+    }
 
-                elements.insert(head, JS::from_ref(element));
+    pub fn unregister_form_id_listener<T: ?Sized + FormControl>(&self, id: DOMString, listener: &T) {
+        let mut map = self.form_id_listener_map.borrow_mut();
+        if let Occupied(mut entry) = map.entry(Atom::from(id)) {
+            entry.get_mut().remove(&JS::from_ref(listener.to_element()));
+            if entry.get().is_empty() {
+                entry.remove();
             }
         }
     }
@@ -2151,6 +2164,7 @@ impl Document {
             spurious_animation_frames: Cell::new(0),
             dom_count: Cell::new(1),
             fullscreen_element: MutNullableJS::new(None),
+            form_id_listener_map: Default::default(),
         }
     }
 
@@ -2461,6 +2475,17 @@ impl Document {
                     // Step 3
                     window.GetFrameElement().map_or(false, |el| el.has_attribute(&local_name!("allowfullscreen")))
                 }
+            }
+        }
+    }
+
+    fn reset_form_owner_for_listeners(&self, id: &Atom) {
+        let map = self.form_id_listener_map.borrow();
+        if let Some(listeners) = map.get(id) {
+            for listener in listeners {
+                listener.r().as_maybe_form_control()
+                        .expect("Element must be a form control")
+                        .reset_form_owner();
             }
         }
     }
