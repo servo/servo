@@ -15,7 +15,7 @@ extern crate parking_lot;
 extern crate rayon;
 extern crate selectors;
 extern crate servo_url;
-extern crate style;
+#[macro_use] extern crate style;
 extern crate style_traits;
 
 #[allow(non_snake_case)]

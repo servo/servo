@@ -34,6 +34,7 @@ use style::gecko_bindings::bindings::{RawGeckoKeyframeListBorrowed, RawGeckoKeyf
 use style::gecko_bindings::bindings::{RawServoDeclarationBlockBorrowed, RawServoDeclarationBlockStrong};
 use style::gecko_bindings::bindings::{RawServoMediaListBorrowed, RawServoMediaListStrong};
 use style::gecko_bindings::bindings::{RawServoMediaRule, RawServoMediaRuleBorrowed};
+use style::gecko_bindings::bindings::{RawServoNamespaceRule, RawServoNamespaceRuleBorrowed};
 use style::gecko_bindings::bindings::{RawServoStyleRule, RawServoStyleRuleBorrowed};
 use style::gecko_bindings::bindings::{RawServoStyleSetBorrowed, RawServoStyleSetOwned};
 use style::gecko_bindings::bindings::{RawServoStyleSheetBorrowed, ServoComputedValuesBorrowed};
@@ -76,7 +77,8 @@ use style::restyle_hints::{self, RestyleHint};
 use style::selector_parser::PseudoElementCascadeType;
 use style::sequential;
 use style::string_cache::Atom;
-use style::stylesheets::{CssRule, CssRules, ImportRule, MediaRule, Origin, Stylesheet, StyleRule};
+use style::stylesheets::{CssRule, CssRules, ImportRule, MediaRule, NamespaceRule};
+use style::stylesheets::{Origin, Stylesheet, StyleRule};
 use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
 use style::supports::parse_condition_or_declaration;
 use style::thread_state;
@@ -580,6 +582,12 @@ impl_basic_rule_funcs! { (Media, MediaRule, RawServoMediaRule),
     to_css: Servo_MediaRule_GetCssText,
 }
 
+impl_basic_rule_funcs! { (Namespace, NamespaceRule, RawServoNamespaceRule),
+    getter: Servo_CssRules_GetNamespaceRuleAt,
+    debug: Servo_NamespaceRule_Debug,
+    to_css: Servo_NamespaceRule_GetCssText,
+}
+
 #[no_mangle]
 pub extern "C" fn Servo_StyleRule_GetStyle(rule: RawServoStyleRuleBorrowed) -> RawServoDeclarationBlockStrong {
     let rule = RwLock::<StyleRule>::as_arc(&rule);
@@ -610,6 +618,18 @@ pub extern "C" fn Servo_MediaRule_GetMedia(rule: RawServoMediaRuleBorrowed) -> R
 pub extern "C" fn Servo_MediaRule_GetRules(rule: RawServoMediaRuleBorrowed) -> ServoCssRulesStrong {
     let rule = RwLock::<MediaRule>::as_arc(&rule);
     rule.read().rules.clone().into_strong()
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_NamespaceRule_GetPrefix(rule: RawServoNamespaceRuleBorrowed) -> *mut nsIAtom {
+    let rule = RwLock::<NamespaceRule>::as_arc(&rule);
+    rule.read().prefix.as_ref().unwrap_or(&atom!("")).as_ptr()
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_NamespaceRule_GetURI(rule: RawServoNamespaceRuleBorrowed) -> *mut nsIAtom {
+    let rule = RwLock::<NamespaceRule>::as_arc(&rule);
+    rule.read().url.0.as_ptr()
 }
 
 #[no_mangle]
