@@ -1992,7 +1992,7 @@ impl LayoutDocumentHelpers for LayoutJS<Document> {
 // https://html.spec.whatwg.org/multipage/#is-a-registrable-domain-suffix-of-or-is-equal-to
 // The spec says to return a bool, we actually return an Option<Host> containing
 // the parsed host in the successful case, to avoid having to re-parse the host.
-fn is_a_registrable_domain_suffix_of_or_is_equal_to(host_suffix_string: &str, original_host: Host) -> Option<Host> {
+fn get_registrable_domain_suffix_of_or_is_equal_to(host_suffix_string: &str, original_host: Host) -> Option<Host> {
     // Step 1
     if host_suffix_string.is_empty() {
         return None;
@@ -2557,7 +2557,7 @@ impl DocumentMethods for Document {
         };
 
         // Step 5
-        let host = match is_a_registrable_domain_suffix_of_or_is_equal_to(&*value, effective_domain) {
+        let host = match get_registrable_domain_suffix_of_or_is_equal_to(&*value, effective_domain) {
             None => return Err(Error::Security),
             Some(host) => host,
         };

@@ -148,10 +148,9 @@ pub fn is_reg_domain(domain: &str) -> bool {
 /// Leaves the host name alone if it is an IP address.
 pub fn reg_host(url: &ServoUrl) -> Option<Host> {
     match url.origin() {
-        ImmutableOrigin::Tuple(_, host, _) => if let Host::Domain(domain) = host {
-            Some(Host::Domain(String::from(reg_suffix(&*domain))))
-        } else {
-            Some(host)
+        ImmutableOrigin::Tuple(_, host, _) => match host {
+            Host::Domain(domain) => Some(Host::Domain(String::from(reg_suffix(&*domain)))),
+            _ => Some(host),
         },
         ImmutableOrigin::Opaque(_) => None,
     }
