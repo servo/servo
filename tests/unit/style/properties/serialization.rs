@@ -38,7 +38,7 @@ fn property_declaration_block_should_serialize_correctly() {
          Importance::Normal),
 
         (PropertyDeclaration::MinHeight(
-            DeclaredValue::Value(LengthOrPercentage::Length(NoCalcLength::from_px(20f32)))),
+            DeclaredValue::Value(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32)))),
          Importance::Normal),
 
         (PropertyDeclaration::Height(

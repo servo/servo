@@ -18,7 +18,7 @@ use flow::{INLINE_POSITION_IS_STATIC, IS_ABSOLUTELY_POSITIONED};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use layout_debug;
 use model::{IntrinsicISizes, MaybeAuto, SizeConstraint};
-use model::{specified_or_auto, specified_or_none};
+use model::specified_or_none;
 use std::cmp::{max, min};
 use std::ops::Range;
 use std::sync::Arc;
@@ -174,7 +174,9 @@ impl FlexItem {
                 self.base_size = basis.specified_or_default(content_size);
                 self.max_size = specified_or_none(block.fragment.style.max_inline_size(),
                                                   containing_length).unwrap_or(MAX_AU);
-                self.min_size = specified_or_auto(block.fragment.style.min_inline_size(), containing_length);
+                self.min_size =
+                    MaybeAuto::from_style(block.fragment.style.min_inline_size(), containing_length)
+                    .specified_or_zero();
             }
             Direction::Block => {
                 let basis = from_flex_basis(block.fragment.style.get_position().flex_basis,
@@ -186,7 +188,9 @@ impl FlexItem {
                 self.base_size = basis.specified_or_default(content_size);
                 self.max_size = specified_or_none(block.fragment.style.max_block_size(),
                                                   containing_length).unwrap_or(MAX_AU);
-                self.min_size = specified_or_auto(block.fragment.style.min_block_size(), containing_length);
+                self.min_size =
+                    MaybeAuto::from_style(block.fragment.style.min_block_size(), containing_length)
+                    .specified_or_zero();
             }
         }
     }

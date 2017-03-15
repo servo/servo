@@ -463,16 +463,6 @@ pub fn specified_or_none(length: LengthOrPercentageOrNone, containing_length: Au
     }
 }
 
-pub fn specified_or_auto(length: LengthOrPercentageOrAuto, containing_length: Au) -> Au {
-    match length {
-        LengthOrPercentageOrAuto::Length(length) => length,
-        LengthOrPercentageOrAuto::Percentage(p) => containing_length.scale_by(p),
-        LengthOrPercentageOrAuto::Calc(calc) =>
-            containing_length.scale_by(calc.percentage()) + calc.length(),
-        LengthOrPercentageOrAuto::Auto => Au(0),
-    }
-}
-
 pub fn specified(length: LengthOrPercentage, containing_length: Au) -> Au {
     match length {
         LengthOrPercentage::Length(length) => length,
@@ -547,16 +537,7 @@ impl SizeConstraint {
                min_size: LengthOrPercentageOrAuto,
                max_size: LengthOrPercentageOrNone,
                border: Option<Au>) -> SizeConstraint {
-        let mut min_size = match container_size {
-            Some(container_size) => specified_or_auto(min_size, container_size),
-            None => if let LengthOrPercentage::Length(length) = min_size {
-                length
-            } else {
-                Au(0)
-            }
-            LengthOrPercentageOrAuto::Auto => Au(0), // FIXME: auto min-size
-        };
-
+        let mut min_size = style_length(min_size, container_size).specified_or_zero();
         let mut max_size = match container_size {
             Some(container_size) => specified_or_none(max_size, container_size),
             None => if let LengthOrPercentageOrNone::Length(length) = max_size {
