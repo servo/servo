@@ -40,7 +40,7 @@ use euclid::rect::Rect;
 use euclid::size::Size2D;
 use ipc_channel::ipc::{self, IpcSender};
 use net_traits::image::base::PixelFormat;
-use net_traits::image_cache_thread::ImageResponse;
+use net_traits::image_cache::ImageResponse;
 use num_traits::ToPrimitive;
 use script_traits::ScriptMsg as ConstellationMsg;
 use servo_url::ServoUrl;
