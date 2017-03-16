@@ -17,6 +17,7 @@ use dom_struct::dom_struct;
 use js::conversions::ConversionResult;
 use js::jsapi::{JSContext, JSObject};
 use js::jsval::{ObjectValue, UndefinedValue};
+use servo_config::opts;
 use servo_config::prefs::PREFS;
 use std::rc::Rc;
 #[cfg(target_os = "linux")]
@@ -308,6 +309,9 @@ pub fn get_descriptor_permission_state(permission_name: PermissionName,
 
 #[cfg(target_os = "linux")]
 fn prompt_user(message: &str) -> PermissionState {
+    if opts::get().headless {
+        return PermissionState::Denied;
+    }
     match tinyfiledialogs::message_box_yes_no(DIALOG_TITLE,
                                               message,
                                               MessageBoxIcon::Question,
