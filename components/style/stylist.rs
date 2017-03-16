@@ -27,6 +27,7 @@ use selectors::matching::{AFFECTED_BY_ANIMATIONS, AFFECTED_BY_TRANSITIONS};
 use selectors::matching::{AFFECTED_BY_STYLE_ATTRIBUTE, AFFECTED_BY_PRESENTATIONAL_HINTS};
 use selectors::matching::{ElementSelectorFlags, StyleRelations, matches_complex_selector};
 use selectors::parser::{Selector, SimpleSelector, LocalName as LocalNameSelector, ComplexSelector};
+use selectors::parser::SelectorMethods;
 use sink::Push;
 use smallvec::VecLike;
 use std::borrow::Borrow;

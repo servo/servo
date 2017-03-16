@@ -86,7 +86,7 @@ use parking_lot::RwLock;
 use ref_filter_map::ref_filter_map;
 use script_layout_interface::message::ReflowQueryType;
 use script_thread::Runnable;
-use selectors::matching::{ElementSelectorFlags, matches};
+use selectors::matching::{ElementSelectorFlags, StyleRelations, matches};
 use selectors::matching::{HAS_EDGE_CHILD_SELECTOR, HAS_SLOW_SELECTOR, HAS_SLOW_SELECTOR_LATER_SIBLINGS};
 use selectors::parser::{AttrSelector, NamespaceConstraint};
 use servo_atoms::Atom;
@@ -2392,7 +2392,10 @@ impl<'a> ::selectors::Element for Root<Element> {
         self.namespace()
     }
 
-    fn match_non_ts_pseudo_class(&self, pseudo_class: &NonTSPseudoClass) -> bool {
+    fn match_non_ts_pseudo_class(&self,
+                                 pseudo_class: &NonTSPseudoClass,
+                                 _: &mut StyleRelations,
+                                 _: &mut ElementSelectorFlags) -> bool {
         match *pseudo_class {
             // https://github.com/servo/servo/issues/8718
             NonTSPseudoClass::Link |

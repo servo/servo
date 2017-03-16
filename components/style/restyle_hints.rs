@@ -269,14 +269,17 @@ impl<'a, E> MatchAttr for ElementWrapper<'a, E>
 impl<'a, E> Element for ElementWrapper<'a, E>
     where E: TElement,
 {
-    fn match_non_ts_pseudo_class(&self, pseudo_class: &NonTSPseudoClass) -> bool {
+    fn match_non_ts_pseudo_class(&self,
+                                 pseudo_class: &NonTSPseudoClass,
+                                 relations: &mut StyleRelations,
+                                 flags: &mut ElementSelectorFlags) -> bool {
         let flag = SelectorImpl::pseudo_class_state_flag(pseudo_class);
         if flag == ElementState::empty() {
-            self.element.match_non_ts_pseudo_class(pseudo_class)
+            self.element.match_non_ts_pseudo_class(pseudo_class, relations, flags)
         } else {
             match self.snapshot.and_then(|s| s.state()) {
                 Some(snapshot_state) => snapshot_state.contains(flag),
-                _   => self.element.match_non_ts_pseudo_class(pseudo_class)
+                _   => self.element.match_non_ts_pseudo_class(pseudo_class, relations, flags)
             }
         }
     }
@@ -345,6 +348,13 @@ impl<'a, E> Element for ElementWrapper<'a, E>
             _   => self.element.each_class(callback)
         }
     }
+}
+
+/// Returns the union of any `ElementState` flags for components of a `ComplexSelector`
+pub fn complex_selector_to_state(sel: &ComplexSelector<SelectorImpl>) -> ElementState {
+    sel.compound_selector.iter().fold(ElementState::empty(), |state, s| {
+        state | selector_to_state(s)
+    })
 }
 
 fn selector_to_state(sel: &SimpleSelector<SelectorImpl>) -> ElementState {
