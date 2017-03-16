@@ -43,7 +43,7 @@ use gecko_bindings::bindings::Gecko_SetNullImageValue;
 use gecko_bindings::bindings::ServoComputedValuesBorrowedOrNull;
 use gecko_bindings::bindings::{Gecko_ResetFilters, Gecko_CopyFiltersFrom};
 use gecko_bindings::bindings::RawGeckoPresContextBorrowed;
-use gecko_bindings::structs;
+use gecko_bindings::structs::{self, StyleComplexColor};
 use gecko_bindings::structs::nsStyleVariables;
 use gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordData, CoordDataMut};
 use gecko_bindings::sugar::ownership::HasArcFFI;
@@ -63,7 +63,6 @@ use std::cmp;
 use values::computed::ToComputedValue;
 use values::{Either, Auto};
 use computed_values::border_style;
-use gecko_bindings::structs::{nscolor, StyleComplexColor};
 
 pub mod style_structs {
     % for style_struct in data.style_structs:
@@ -3173,7 +3172,7 @@ clip-path
         }
     }
 
-    pub fn set_caret_color(&mut self, v: longhands::caret_color::computed_value::T){        
+    pub fn set_caret_color(&mut self, v: longhands::caret_color::computed_value::T){
         use values::Either;
 
         match v {
