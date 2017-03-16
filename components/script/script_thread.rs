@@ -1635,7 +1635,12 @@ impl ScriptThread {
     fn handle_frame_load_event(&self, parent_id: PipelineId, frame_id: FrameId, child_id: PipelineId) {
         let iframe = self.documents.borrow().find_iframe(parent_id, frame_id);
         match iframe {
-            Some(iframe) => iframe.iframe_load_event_steps(child_id),
+            Some(iframe) => {
+                // If the iframe has no "src" attribute, a load event will have already been fired
+                if iframe.upcast::<Element>().has_attribute(&local_name!("src")) {
+                    iframe.iframe_load_event_steps(child_id);
+                }
+            }
             None => warn!("Message sent to closed pipeline {}.", parent_id),
         }
     }
