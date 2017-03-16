@@ -17,7 +17,7 @@ gecko = ["nsstring_vendor", "rayon/unstable"]
 use_bindgen = ["bindgen", "regex"]
 servo = ["serde/unstable", "serde", "serde_derive", "heapsize_derive",
          "style_traits/servo", "servo_atoms", "html5ever-atoms",
-         "cssparser/heapsize", "cssparser/serde",
+         "cssparser/heapsize", "cssparser/serde", "encoding",
          "rayon/unstable", "servo_url/servo"]
 testing = []
 
@@ -27,7 +27,7 @@ atomic_refcell = "0.1"
 bitflags = "0.7"
 cfg-if = "0.1.0"
 cssparser = "0.12"
-encoding = "0.2"
+encoding = {version = "0.2", optional = true}
 euclid = "0.11"
 fnv = "1.0"
 heapsize = "0.3.0"

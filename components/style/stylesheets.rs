@@ -7,10 +7,9 @@
 #![deny(missing_docs)]
 
 use {Atom, Prefix, Namespace};
-use cssparser::{AtRuleParser, Parser, QualifiedRuleParser, stylesheet_encoding, EncodingSupport};
+use cssparser::{AtRuleParser, Parser, QualifiedRuleParser};
 use cssparser::{AtRuleType, RuleListParser, SourcePosition, Token, parse_one_rule};
 use cssparser::ToCss as ParserToCss;
-use encoding::{self, EncodingRef, DecoderTrap};
 use error_reporting::ParseErrorReporter;
 use font_face::{FontFaceRule, parse_font_face_block};
 use keyframes::{Keyframe, parse_keyframe_list};
@@ -24,7 +23,6 @@ use servo_config::prefs::PREFS;
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::fmt;
-use std::str;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use style_traits::ToCss;
@@ -540,78 +538,7 @@ impl ToCss for StyleRule {
     }
 }
 
-struct RustEncoding;
-
-impl EncodingSupport for RustEncoding {
-    type Encoding = EncodingRef;
-
-    fn utf8() -> Self::Encoding {
-        encoding::all::UTF_8
-    }
-
-    fn is_utf16_be_or_le(encoding: &Self::Encoding) -> bool {
-        matches!(encoding.name(), "utf-16be" | "utf-16le")
-    }
-
-    fn from_label(ascii_label: &[u8]) -> Option<Self::Encoding> {
-        str::from_utf8(ascii_label).ok().and_then(encoding::label::encoding_from_whatwg_label)
-    }
-}
-
-fn decode_stylesheet_bytes(css: &[u8], protocol_encoding_label: Option<&str>,
-                           environment_encoding: Option<EncodingRef>)
-                           -> (String, EncodingRef) {
-    let fallback_encoding = stylesheet_encoding::<RustEncoding>(
-        css, protocol_encoding_label.map(str::as_bytes), environment_encoding);
-    let (result, used_encoding) = encoding::decode(css, DecoderTrap::Replace, fallback_encoding);
-    (result.unwrap(), used_encoding)
-}
-
 impl Stylesheet {
-    /// Parse a stylesheet from a set of bytes, potentially received over the
-    /// network.
-    ///
-    /// Takes care of decoding the network bytes and forwards the resulting
-    /// string to `Stylesheet::from_str`.
-    pub fn from_bytes(bytes: &[u8],
-                      base_url: ServoUrl,
-                      protocol_encoding_label: Option<&str>,
-                      environment_encoding: Option<EncodingRef>,
-                      origin: Origin,
-                      media: MediaList,
-                      stylesheet_loader: Option<&StylesheetLoader>,
-                      error_reporter: &ParseErrorReporter,
-                      extra_data: ParserContextExtraData)
-                      -> Stylesheet {
-        let (string, _) = decode_stylesheet_bytes(
-            bytes, protocol_encoding_label, environment_encoding);
-        Stylesheet::from_str(&string,
-                             base_url,
-                             origin,
-                             media,
-                             stylesheet_loader,
-                             error_reporter,
-                             extra_data)
-    }
-
-    /// Updates an empty stylesheet with a set of bytes that reached over the
-    /// network.
-    pub fn update_from_bytes(existing: &Stylesheet,
-                             bytes: &[u8],
-                             protocol_encoding_label: Option<&str>,
-                             environment_encoding: Option<EncodingRef>,
-                             stylesheet_loader: Option<&StylesheetLoader>,
-                             error_reporter: &ParseErrorReporter,
-                             extra_data: ParserContextExtraData) {
-        let (string, _) = decode_stylesheet_bytes(
-            bytes, protocol_encoding_label, environment_encoding);
-        Self::update_from_str(existing,
-                              &string,
-                              stylesheet_loader,
-                              error_reporter,
-                              extra_data)
-    }
-
     /// Updates an empty stylesheet from a given string of text.
     pub fn update_from_str(existing: &Stylesheet,
                            css: &str,
