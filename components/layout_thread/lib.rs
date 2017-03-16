@@ -115,7 +115,7 @@ use style::logical_geometry::LogicalPoint;
 use style::media_queries::{Device, MediaType};
 use style::parser::ParserContextExtraData;
 use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, REPOSITION, STORE_OVERFLOW};
-use style::shared_lock::SharedRwLock;
+use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard};
 use style::stylesheets::{Origin, Stylesheet, UserAgentStylesheets};
 use style::stylist::Stylist;
 use style::thread_state;
@@ -345,13 +345,14 @@ impl<'a, 'b: 'a> RwData<'a, 'b> {
 }
 
 fn add_font_face_rules(stylesheet: &Stylesheet,
+                       guard: &SharedRwLockReadGuard,
                        device: &Device,
                        font_cache_thread: &FontCacheThread,
                        font_cache_sender: &IpcSender<()>,
                        outstanding_web_fonts_counter: &Arc<AtomicUsize>) {
     if opts::get().load_webfonts_synchronously {
         let (sender, receiver) = ipc::channel().unwrap();
-        stylesheet.effective_font_face_rules(&device, |font_face| {
+        stylesheet.effective_font_face_rules(&device, guard, |font_face| {
             let effective_sources = font_face.effective_sources();
             font_cache_thread.add_web_font(font_face.family.clone(),
                                            effective_sources,
@@ -359,7 +360,7 @@ fn add_font_face_rules(stylesheet: &Stylesheet,
             receiver.recv().unwrap();
         })
     } else {
-        stylesheet.effective_font_face_rules(&device, |font_face| {
+        stylesheet.effective_font_face_rules(&device, guard, |font_face| {
             let effective_sources = font_face.effective_sources();
             outstanding_web_fonts_counter.fetch_add(1, Ordering::SeqCst);
             font_cache_thread.add_web_font(font_face.family.clone(),
@@ -407,8 +408,11 @@ impl LayoutThread {
 
         let stylist = Arc::new(Stylist::new(device));
         let outstanding_web_fonts_counter = Arc::new(AtomicUsize::new(0));
-        for stylesheet in &*UA_STYLESHEETS.user_or_user_agent_stylesheets {
+        let ua_stylesheets = &*UA_STYLESHEETS;
+        let guard = ua_stylesheets.shared_lock.read();
+        for stylesheet in &ua_stylesheets.user_or_user_agent_stylesheets {
             add_font_face_rules(stylesheet,
+                                &guard,
                                 &stylist.device,
                                 &font_cache_thread,
                                 &ipc_font_cache_sender,
@@ -737,6 +741,7 @@ impl LayoutThread {
         let guard = stylesheet.shared_lock.read();
         if stylesheet.is_effective_for_device(&rw_data.stylist.device, &guard) {
             add_font_face_rules(&*stylesheet,
+                                &guard,
                                 &rw_data.stylist.device,
                                 &self.font_cache_thread,
                                 &self.font_cache_sender,
