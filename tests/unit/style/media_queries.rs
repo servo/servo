@@ -62,7 +62,7 @@ fn media_query_test(device: &Device, css: &str, expected_rule_count: usize) {
         None, &CSSErrorReporterTest,
         ParserContextExtraData::default());
     let mut rule_count = 0;
-    ss.effective_style_rules(device, |_| rule_count += 1);
+    ss.effective_style_rules(device, &ss.shared_lock.read(), |_| rule_count += 1);
     assert!(rule_count == expected_rule_count, css.to_owned());
 }
 
