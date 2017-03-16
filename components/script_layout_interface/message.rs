@@ -9,7 +9,7 @@ use euclid::rect::Rect;
 use gfx_traits::Epoch;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use msg::constellation_msg::PipelineId;
-use net_traits::image_cache_thread::ImageCacheThread;
+use net_traits::image_cache::ImageCache;
 use profile_traits::mem::ReportsChan;
 use rpc::LayoutRPC;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg};
@@ -143,7 +143,7 @@ pub struct NewLayoutThreadInfo {
     pub pipeline_port: IpcReceiver<LayoutControlMsg>,
     pub constellation_chan: IpcSender<ConstellationMsg>,
     pub script_chan: IpcSender<ConstellationControlMsg>,
-    pub image_cache_thread: ImageCacheThread,
+    pub image_cache: Arc<ImageCache>,
     pub content_process_shutdown_chan: Option<IpcSender<()>>,
     pub layout_threads: usize,
 }

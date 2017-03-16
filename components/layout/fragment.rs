@@ -27,7 +27,7 @@ use model::{self, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, SizeC
 use model::{style_length, ToGfxMatrix};
 use msg::constellation_msg::PipelineId;
 use net_traits::image::base::{Image, ImageMetadata};
-use net_traits::image_cache_thread::{ImageOrMetadataAvailable, UsePlaceholder};
+use net_traits::image_cache::{ImageOrMetadataAvailable, UsePlaceholder};
 use range::*;
 use script_layout_interface::HTMLCanvasData;
 use script_layout_interface::SVGSVGData;
