@@ -15,6 +15,7 @@ extern crate heapsize_derive;
 extern crate hyper;
 extern crate hyper_serde;
 extern crate image as piston_image;
+extern crate immeta;
 extern crate ipc_channel;
 #[macro_use]
 extern crate lazy_static;
@@ -52,7 +53,7 @@ use websocket::header;
 pub mod blob_url_store;
 pub mod filemanager_thread;
 pub mod hosts;
-pub mod image_cache_thread;
+pub mod image_cache;
 pub mod net_error_list;
 pub mod pub_domains;
 pub mod request;

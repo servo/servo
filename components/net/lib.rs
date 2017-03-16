@@ -4,8 +4,6 @@
 
 #![deny(unsafe_code)]
 #![feature(box_syntax)]
-#![feature(mpsc_select)]
-#![feature(step_by)]
 
 extern crate brotli;
 extern crate cookie as cookie_rs;
@@ -13,7 +11,6 @@ extern crate devtools_traits;
 extern crate flate2;
 extern crate hyper;
 extern crate hyper_serde;
-extern crate immeta;
 extern crate ipc_channel;
 #[macro_use] extern crate log;
 #[macro_use] #[no_link] extern crate matches;
@@ -32,14 +29,12 @@ extern crate serde_derive;
 extern crate serde_json;
 extern crate servo_config;
 extern crate servo_url;
-extern crate threadpool;
 extern crate time;
 #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
 extern crate tinyfiledialogs;
 extern crate unicase;
 extern crate url;
 extern crate uuid;
-extern crate webrender_traits;
 extern crate websocket;
 
 mod blob_loader;
@@ -51,7 +46,6 @@ mod data_loader;
 pub mod filemanager_thread;
 pub mod hsts;
 mod http_loader;
-pub mod image_cache_thread;
 pub mod mime_classifier;
 pub mod resource_thread;
 mod storage_thread;

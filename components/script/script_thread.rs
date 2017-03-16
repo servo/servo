@@ -73,7 +73,7 @@ use microtask::{MicrotaskQueue, Microtask};
 use msg::constellation_msg::{FrameId, FrameType, PipelineId, PipelineNamespace};
 use net_traits::{CoreResourceMsg, FetchMetadata, FetchResponseListener};
 use net_traits::{IpcSend, Metadata, ReferrerPolicy, ResourceThreads};
-use net_traits::image_cache_thread::{PendingImageResponse, ImageCacheThread};
+use net_traits::image_cache::{ImageCache, PendingImageResponse};
 use net_traits::request::{CredentialsMode, Destination, RequestInit};
 use net_traits::storage_thread::StorageType;
 use network_listener::NetworkListener;
@@ -233,7 +233,7 @@ enum MixedMessage {
     FromScript(MainThreadScriptMsg),
     FromDevtools(DevtoolScriptControlMsg),
     FromImageCache((PipelineId, PendingImageResponse)),
-    FromScheduler(TimerEvent)
+    FromScheduler(TimerEvent),
 }
 
 /// Messages used to control the script event loop
@@ -408,8 +408,8 @@ pub struct ScriptThread {
     registration_map: DOMRefCell<HashMap<ServoUrl, JS<ServiceWorkerRegistration>>>,
     /// A job queue for Service Workers keyed by their scope url
     job_queue_map: Rc<JobQueue>,
-    /// A handle to the image cache thread.
-    image_cache_thread: ImageCacheThread,
+    /// Image cache for this script thread.
+    image_cache: Arc<ImageCache>,
     /// A handle to the resource thread. This is an `Arc` to avoid running out of file descriptors if
     /// there are many iframes.
     resource_threads: ResourceThreads,
@@ -450,7 +450,6 @@ pub struct ScriptThread {
 
     /// The channel on which the image cache can send messages to ourself.
     image_cache_channel: Sender<ImageCacheMsg>,
-
     /// For providing contact with the time profiler.
     time_profiler_chan: time::ProfilerChan,
 
@@ -685,7 +684,7 @@ impl ScriptThread {
             registration_map: DOMRefCell::new(HashMap::new()),
             job_queue_map: Rc::new(JobQueue::new()),
 
-            image_cache_thread: state.image_cache_thread,
+            image_cache: state.image_cache.clone(),
             image_cache_channel: image_cache_channel,
             image_cache_port: image_cache_port,
 
@@ -1267,7 +1266,7 @@ impl ScriptThread {
             pipeline_port: pipeline_port,
             constellation_chan: self.layout_to_constellation_chan.clone(),
             script_chan: self.control_chan.clone(),
-            image_cache_thread: self.image_cache_thread.clone(),
+            image_cache: self.image_cache.clone(),
             content_process_shutdown_chan: content_process_shutdown_chan,
             layout_threads: layout_threads,
         });
@@ -1756,7 +1755,7 @@ impl ScriptThread {
                                  HistoryTraversalTaskSource(history_sender.clone()),
                                  self.file_reading_task_source.clone(),
                                  self.image_cache_channel.clone(),
-                                 self.image_cache_thread.clone(),
+                                 self.image_cache.clone(),
                                  self.resource_threads.clone(),
                                  self.bluetooth_thread.clone(),
                                  self.mem_profiler_chan.clone(),
