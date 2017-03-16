@@ -731,7 +731,8 @@ impl LayoutThread {
         // GWTODO: Need to handle unloading web fonts.
 
         let rw_data = possibly_locked_rw_data.lock();
-        if stylesheet.is_effective_for_device(&rw_data.stylist.device) {
+        let guard = stylesheet.shared_lock.read();
+        if stylesheet.is_effective_for_device(&rw_data.stylist.device, &guard) {
             add_font_face_rules(&*stylesheet,
                                 &rw_data.stylist.device,
                                 &self.font_cache_thread,
@@ -1057,9 +1058,11 @@ impl LayoutThread {
         }
 
         // If the entire flow tree is invalid, then it will be reflowed anyhow.
-        let needs_dirtying = Arc::get_mut(&mut rw_data.stylist).unwrap().update(&data.document_stylesheets,
-                                                                                 Some(&*UA_STYLESHEETS),
-                                                                                 data.stylesheets_changed);
+        let needs_dirtying = Arc::get_mut(&mut rw_data.stylist).unwrap().update(
+            &data.document_stylesheets,
+            &style_guard,
+            Some(&*UA_STYLESHEETS),
+            data.stylesheets_changed);
         let needs_reflow = viewport_size_changed && !needs_dirtying;
         if needs_dirtying {
             if let Some(mut d) = element.mutate_data() {
