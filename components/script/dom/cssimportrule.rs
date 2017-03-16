@@ -12,8 +12,8 @@ use dom::window::Window;
 use dom_struct::dom_struct;
 use parking_lot::RwLock;
 use std::sync::Arc;
+use style::shared_lock::ToCssWithGuard;
 use style::stylesheets::ImportRule;
-use style_traits::ToCss;
 
 #[dom_struct]
 pub struct CSSImportRule {
@@ -49,6 +49,7 @@ impl SpecificCSSRule for CSSImportRule {
     }
 
     fn get_css(&self) -> DOMString {
-        self.import_rule.read().to_css_string().into()
+        let guard = self.cssrule.shared_lock().read();
+        self.import_rule.read().to_css_string(&guard).into()
     }
 }
