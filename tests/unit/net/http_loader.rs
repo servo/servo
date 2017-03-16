@@ -744,6 +744,7 @@ fn test_load_sets_default_accept_to_html_xhtml_xml_and_then_anything_else() {
             qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
             qitem(Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_owned()), vec![])),
             QualityItem::new(Mime(TopLevel::Application, SubLevel::Xml, vec![]), Quality(900)),
+            QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), Quality(800)),
         ])));
         response.send(b"Yay!").unwrap();
     };
