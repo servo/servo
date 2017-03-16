@@ -54,20 +54,22 @@ macro_rules! try_parse_one {
                                     transition-delay"
                     spec="https://drafts.csswg.org/css-transitions/#propdef-transition">
     use parser::Parse;
-    use properties::longhands::{transition_delay, transition_duration, transition_property};
-    use properties::longhands::{transition_timing_function};
+    % for prop in "delay duration property timing_function".split():
+    use properties::longhands::transition_${prop};
+    % endfor
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         struct SingleTransition {
-            transition_property: transition_property::SingleSpecifiedValue,
-            transition_duration: transition_duration::SingleSpecifiedValue,
-            transition_timing_function: transition_timing_function::SingleSpecifiedValue,
-            transition_delay: transition_delay::SingleSpecifiedValue,
+            % for prop in "property duration timing_function delay".split():
+            transition_${prop}: transition_${prop}::SingleSpecifiedValue,
+            % endfor
         }
 
         fn parse_one_transition(context: &ParserContext, input: &mut Parser) -> Result<SingleTransition,()> {
-            let (mut property, mut duration) = (None, None);
-            let (mut timing_function, mut delay) = (None, None);
+            % for prop in "property duration timing_function delay".split():
+            let mut ${prop} = None;
+            % endfor
+
             loop {
                 try_parse_one!(input, property, transition_property);
                 try_parse_one!(context, input, duration, transition_duration);
@@ -80,38 +82,41 @@ macro_rules! try_parse_one {
             if let Some(property) = property {
                 Ok(SingleTransition {
                     transition_property: property,
-                    transition_duration:
-                        duration.unwrap_or_else(transition_duration::single_value::get_initial_value),
-                    transition_timing_function:
-                        timing_function.unwrap_or_else(transition_timing_function::single_value
+                    % for prop in "duration timing_function delay".split():
+                    transition_${prop}: ${prop}.unwrap_or_else(transition_${prop}::single_value
                                                                                  ::get_initial_specified_value),
-                    transition_delay:
-                        delay.unwrap_or_else(transition_delay::single_value::get_initial_value),
+                    % endfor
                 })
             } else {
                 Err(())
             }
         }
 
-        let (mut properties, mut durations) = (Vec::new(), Vec::new());
-        let (mut timing_functions, mut delays) = (Vec::new(), Vec::new());
+        % for prop in "property duration timing_function delay".split():
+        let mut ${prop}s = Vec::new();
+        % endfor
 
         if input.try(|input| input.expect_ident_matching("none")).is_err() {
             let results = try!(input.parse_comma_separated(|i| parse_one_transition(context, i)));
             for result in results {
-                properties.push(result.transition_property);
-                durations.push(result.transition_duration);
-                timing_functions.push(result.transition_timing_function);
-                delays.push(result.transition_delay);
+                % for prop in "property duration timing_function delay".split():
+                ${prop}s.push(result.transition_${prop});
+                % endfor
             }
+        } else {
+            // `transition: none` is a valid syntax, and we keep transition_property empty because |none| is not
+            // a valid TransitionProperty.
+            // durations, delays, and timing_functions are not allowed as empty, so before we convert them into
+            // longhand properties, we need to put initial values for none transition.
+            % for prop in "duration timing_function delay".split():
+            ${prop}s.push(transition_${prop}::single_value::get_initial_specified_value());
+            % endfor
         }
 
         Ok(Longhands {
-            transition_property: transition_property::SpecifiedValue(properties),
-            transition_duration: transition_duration::SpecifiedValue(durations),
-            transition_timing_function:
-                transition_timing_function::SpecifiedValue(timing_functions),
-            transition_delay: transition_delay::SpecifiedValue(delays),
+            % for prop in "property duration timing_function delay".split():
+            transition_${prop}: transition_${prop}::SpecifiedValue(${prop}s),
+            % endfor
         })
     }
 
