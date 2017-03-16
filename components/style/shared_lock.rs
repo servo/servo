@@ -164,3 +164,20 @@ mod compile_time_assert {
     impl<'a> Marker2 for SharedRwLockReadGuard<'a> {}  // Assert SharedRwLockReadGuard: !Copy
     impl<'a> Marker2 for SharedRwLockWriteGuard<'a> {}  // Assert SharedRwLockWriteGuard: !Copy
 }
+
+/// Like ToCss, but with a lock guard given by the caller.
+pub trait ToCssWithGuard {
+    /// Serialize `self` in CSS syntax, writing to `dest`, using the given lock guard.
+    fn to_css<W>(&self, guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
+    where W: fmt::Write;
+
+    /// Serialize `self` in CSS syntax using the given lock guard and return a string.
+    ///
+    /// (This is a convenience wrapper for `to_css` and probably should not be overridden.)
+    #[inline]
+    fn to_css_string(&self, guard: &SharedRwLockReadGuard) -> String {
+        let mut s = String::new();
+        self.to_css(guard, &mut s).unwrap();
+        s
+    }
+}

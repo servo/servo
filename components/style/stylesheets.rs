@@ -22,7 +22,7 @@ use selector_parser::{SelectorImpl, SelectorParser};
 use selectors::parser::SelectorList;
 use servo_config::prefs::PREFS;
 use servo_url::ServoUrl;
-use shared_lock::{SharedRwLock, Locked, SharedRwLockReadGuard};
+use shared_lock::{SharedRwLock, Locked, SharedRwLockReadGuard, ToCssWithGuard};
 use std::cell::Cell;
 use std::fmt;
 use std::str;
@@ -374,18 +374,19 @@ impl CssRule {
     }
 }
 
-impl ToCss for CssRule {
+impl ToCssWithGuard for CssRule {
     // https://drafts.csswg.org/cssom/#serialize-a-css-rule
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
+    where W: fmt::Write {
         match *self {
-            CssRule::Namespace(ref lock) => lock.read().to_css(dest),
-            CssRule::Import(ref lock) => lock.read().to_css(dest),
-            CssRule::Style(ref lock) => lock.read().to_css(dest),
-            CssRule::FontFace(ref lock) => lock.read().to_css(dest),
-            CssRule::Viewport(ref lock) => lock.read().to_css(dest),
-            CssRule::Keyframes(ref lock) => lock.read().to_css(dest),
-            CssRule::Media(ref lock) => lock.read().to_css(dest),
-            CssRule::Supports(ref lock) => lock.read().to_css(dest),
+            CssRule::Namespace(ref lock) => lock.read().to_css(guard, dest),
+            CssRule::Import(ref lock) => lock.read().to_css(guard, dest),
+            CssRule::Style(ref lock) => lock.read().to_css(guard, dest),
+            CssRule::FontFace(ref lock) => lock.read().to_css(guard, dest),
+            CssRule::Viewport(ref lock) => lock.read().to_css(guard, dest),
+            CssRule::Keyframes(ref lock) => lock.read().to_css(guard, dest),
+            CssRule::Media(ref lock) => lock.read().to_css(guard, dest),
+            CssRule::Supports(ref lock) => lock.read().to_css(guard, dest),
         }
     }
 }
@@ -398,9 +399,10 @@ pub struct NamespaceRule {
     pub url: Namespace,
 }
 
-impl ToCss for NamespaceRule {
+impl ToCssWithGuard for NamespaceRule {
     // https://drafts.csswg.org/cssom/#serialize-a-css-rule CSSNamespaceRule
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, _guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
+    where W: fmt::Write {
         try!(dest.write_str("@namespace "));
         if let Some(ref prefix) = self.prefix {
             try!(dest.write_str(&*prefix.to_string()));
@@ -428,12 +430,12 @@ pub struct ImportRule {
     pub stylesheet: Arc<Stylesheet>,
 }
 
-impl ToCss for ImportRule {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+impl ToCssWithGuard for ImportRule {
+    fn to_css<W>(&self, guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
+    where W: fmt::Write {
         try!(dest.write_str("@import "));
         try!(self.url.to_css(dest));
-        let guard = self.stylesheet.shared_lock.read();  // FIXME: have the caller pass this?
-        let media = self.stylesheet.media.read_with(&guard);
+        let media = self.stylesheet.media.read_with(guard);
         if !media.is_empty() {
             try!(dest.write_str(" "));
             try!(media.to_css(dest));
@@ -453,9 +455,10 @@ pub struct KeyframesRule {
     pub keyframes: Vec<Arc<RwLock<Keyframe>>>,
 }
 
-impl ToCss for KeyframesRule {
+impl ToCssWithGuard for KeyframesRule {
     // Serialization of KeyframesRule is not specced.
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, _guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
+    where W: fmt::Write {
         try!(dest.write_str("@keyframes "));
         try!(dest.write_str(&*self.name.to_string()));
         try!(dest.write_str(" { "));
@@ -480,16 +483,17 @@ pub struct MediaRule {
     pub rules: Arc<RwLock<CssRules>>,
 }
 
-impl ToCss for MediaRule {
+impl ToCssWithGuard for MediaRule {
     // Serialization of MediaRule is not specced.
     // https://drafts.csswg.org/cssom/#serialize-a-css-rule CSSMediaRule
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
+    where W: fmt::Write {
         try!(dest.write_str("@media "));
         try!(self.media_queries.read().to_css(dest));
         try!(dest.write_str(" {"));
         for rule in self.rules.read().0.iter() {
             try!(dest.write_str(" "));
-            try!(rule.to_css(dest));
+            try!(rule.to_css(guard, dest));
         }
         dest.write_str(" }")
     }
@@ -507,14 +511,15 @@ pub struct SupportsRule {
     pub enabled: bool,
 }
 
-impl ToCss for SupportsRule {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+impl ToCssWithGuard for SupportsRule {
+    fn to_css<W>(&self, guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
+    where W: fmt::Write {
         try!(dest.write_str("@supports "));
         try!(self.condition.to_css(dest));
         try!(dest.write_str(" {"));
         for rule in self.rules.read().0.iter() {
             try!(dest.write_str(" "));
-            try!(rule.to_css(dest));
+            try!(rule.to_css(guard, dest));
         }
         dest.write_str(" }")
     }
@@ -527,9 +532,10 @@ pub struct StyleRule {
     pub block: Arc<RwLock<PropertyDeclarationBlock>>,
 }
 
-impl ToCss for StyleRule {
+impl ToCssWithGuard for StyleRule {
     // https://drafts.csswg.org/cssom/#serialize-a-css-rule CSSStyleRule
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, _guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
+    where W: fmt::Write {
         // Step 1
         try!(self.selectors.to_css(dest));
         // Step 2

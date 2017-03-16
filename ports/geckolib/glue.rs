@@ -76,7 +76,7 @@ use style::properties::parse_one_declaration;
 use style::restyle_hints::{self, RestyleHint};
 use style::selector_parser::PseudoElementCascadeType;
 use style::sequential;
-use style::shared_lock::SharedRwLock;
+use style::shared_lock::{SharedRwLock, ToCssWithGuard};
 use style::string_cache::Atom;
 use style::stylesheets::{CssRule, CssRules, ImportRule, MediaRule, NamespaceRule};
 use style::stylesheets::{Origin, Stylesheet, StyleRule};
@@ -583,8 +583,10 @@ macro_rules! impl_basic_rule_funcs {
 
         #[no_mangle]
         pub extern "C" fn $to_css(rule: &$raw_type, result: *mut nsAString) {
+            let global_style_data = &*GLOBAL_STYLE_DATA;
+            let guard = global_style_data.shared_lock.read();
             let rule = RwLock::<$rule_type>::as_arc(&rule);
-            rule.read().to_css(unsafe { result.as_mut().unwrap() }).unwrap();
+            rule.read().to_css(&guard, unsafe { result.as_mut().unwrap() }).unwrap();
         }
     }
 }

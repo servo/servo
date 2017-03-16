@@ -14,8 +14,8 @@ use dom::window::Window;
 use dom_struct::dom_struct;
 use parking_lot::RwLock;
 use std::sync::Arc;
+use style::shared_lock::ToCssWithGuard;
 use style::stylesheets::StyleRule;
-use style_traits::ToCss;
 
 #[dom_struct]
 pub struct CSSStyleRule {
@@ -51,7 +51,8 @@ impl SpecificCSSRule for CSSStyleRule {
     }
 
     fn get_css(&self) -> DOMString {
-        self.stylerule.read().to_css_string().into()
+        let guard = self.cssrule.shared_lock().read();
+        self.stylerule.read().to_css_string(&guard).into()
     }
 }
 

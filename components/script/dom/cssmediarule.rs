@@ -17,12 +17,13 @@ use dom_struct::dom_struct;
 use parking_lot::RwLock;
 use std::sync::Arc;
 use style::media_queries::parse_media_query_list;
+use style::shared_lock::ToCssWithGuard;
 use style::stylesheets::MediaRule;
 use style_traits::ToCss;
 
 #[dom_struct]
 pub struct CSSMediaRule {
-    cssrule: CSSConditionRule,
+    cssconditionrule: CSSConditionRule,
     #[ignore_heap_size_of = "Arc"]
     mediarule: Arc<RwLock<MediaRule>>,
     medialist: MutNullableJS<MediaList>,
@@ -33,7 +34,7 @@ impl CSSMediaRule {
                      -> CSSMediaRule {
         let list = mediarule.read().rules.clone();
         CSSMediaRule {
-            cssrule: CSSConditionRule::new_inherited(parent_stylesheet, list),
+            cssconditionrule: CSSConditionRule::new_inherited(parent_stylesheet, list),
             mediarule: mediarule,
             medialist: MutNullableJS::new(None),
         }
@@ -76,7 +77,8 @@ impl SpecificCSSRule for CSSMediaRule {
     }
 
     fn get_css(&self) -> DOMString {
-        self.mediarule.read().to_css_string().into()
+        let guard = self.cssconditionrule.shared_lock().read();
+        self.mediarule.read().to_css_string(&guard).into()
     }
 }
 

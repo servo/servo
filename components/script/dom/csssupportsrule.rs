@@ -16,13 +16,14 @@ use dom_struct::dom_struct;
 use parking_lot::RwLock;
 use std::sync::Arc;
 use style::parser::ParserContext;
+use style::shared_lock::ToCssWithGuard;
 use style::stylesheets::SupportsRule;
 use style::supports::SupportsCondition;
 use style_traits::ToCss;
 
 #[dom_struct]
 pub struct CSSSupportsRule {
-    cssrule: CSSConditionRule,
+    cssconditionrule: CSSConditionRule,
     #[ignore_heap_size_of = "Arc"]
     supportsrule: Arc<RwLock<SupportsRule>>,
 }
@@ -32,7 +33,7 @@ impl CSSSupportsRule {
                      -> CSSSupportsRule {
         let list = supportsrule.read().rules.clone();
         CSSSupportsRule {
-            cssrule: CSSConditionRule::new_inherited(parent_stylesheet, list),
+            cssconditionrule: CSSConditionRule::new_inherited(parent_stylesheet, list),
             supportsrule: supportsrule,
         }
     }
@@ -75,6 +76,7 @@ impl SpecificCSSRule for CSSSupportsRule {
     }
 
     fn get_css(&self) -> DOMString {
-        self.supportsrule.read().to_css_string().into()
+        let guard = self.cssconditionrule.shared_lock().read();
+        self.supportsrule.read().to_css_string(&guard).into()
     }
 }
