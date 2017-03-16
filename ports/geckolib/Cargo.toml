@@ -11,6 +11,7 @@ crate-type = ["staticlib", "rlib"]
 
 [features]
 bindgen = ["style/use_bindgen"]
+testing = ["style/testing"]
 
 [dependencies]
 atomic_refcell = "0.1"

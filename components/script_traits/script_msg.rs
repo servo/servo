@@ -23,6 +23,7 @@ use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use net_traits::CoreResourceMsg;
 use net_traits::storage_thread::StorageType;
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
+use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
 use style_traits::CSSPixel;
 use style_traits::cursor::Cursor;
@@ -93,6 +94,8 @@ pub enum ScriptMsg {
     /// A new load has been requested, with an option to replace the current entry once loaded
     /// instead of adding a new entry.
     LoadUrl(PipelineId, LoadData, bool),
+    /// Post a message to the currently active window of a given browsing context.
+    PostMessage(FrameId, Option<ImmutableOrigin>, Vec<u8>),
     /// Dispatch a mozbrowser event to the parent of this pipeline.
     /// The first PipelineId is for the parent, the second is for the originating pipeline.
     MozBrowserEvent(PipelineId, PipelineId, MozBrowserEvent),

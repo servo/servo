@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use style::properties::{DeclaredValue, PropertyDeclaration};
+use style::properties::PropertyDeclaration;
 use style::properties::longhands::border_top_width;
 use style::values::HasViewportPercentage;
 use style::values::specified::{Length, NoCalcLength, ViewportPercentageLength};
@@ -12,16 +12,16 @@ use style::values::specified::{Length, NoCalcLength, ViewportPercentageLength};
 fn has_viewport_percentage_for_specified_value() {
     //TODO: test all specified value with a HasViewportPercentage impl
     let pvw = PropertyDeclaration::BorderTopWidth(
-        DeclaredValue::Value(border_top_width::SpecifiedValue::from_length(
+        border_top_width::SpecifiedValue::from_length(
             Length::NoCalc(NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vw(100.)))
-        ))
+        )
     );
     assert!(pvw.has_viewport_percentage());
 
     let pabs = PropertyDeclaration::BorderTopWidth(
-        DeclaredValue::Value(border_top_width::SpecifiedValue::from_length(
+        border_top_width::SpecifiedValue::from_length(
             Length::NoCalc(NoCalcLength::Absolute(Au(100)))
-        ))
+        )
     );
     assert!(!pabs.has_viewport_percentage());
 }

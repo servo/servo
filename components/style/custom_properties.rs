@@ -329,7 +329,7 @@ pub fn cascade<'a>(custom_properties: &mut Option<HashMap<&'a Name, BorrowedSpec
                    inherited: &'a Option<Arc<HashMap<Name, ComputedValue>>>,
                    seen: &mut HashSet<&'a Name>,
                    name: &'a Name,
-                   specified_value: &'a DeclaredValue<Box<SpecifiedValue>>) {
+                   specified_value: DeclaredValue<'a, Box<SpecifiedValue>>) {
     let was_already_present = !seen.insert(name);
     if was_already_present {
         return;
@@ -352,7 +352,7 @@ pub fn cascade<'a>(custom_properties: &mut Option<HashMap<&'a Name, BorrowedSpec
             custom_properties.as_mut().unwrap()
         }
     };
-    match *specified_value {
+    match specified_value {
         DeclaredValue::Value(ref specified_value) => {
             map.insert(name, BorrowedSpecifiedValue {
                 css: &specified_value.css,

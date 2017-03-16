@@ -777,7 +777,8 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                           spec="https://drafts.csswg.org/css-transitions/#propdef-transition-delay">
     pub use properties::longhands::transition_duration::single_value::SpecifiedValue;
     pub use properties::longhands::transition_duration::single_value::computed_value;
-    pub use properties::longhands::transition_duration::single_value::{get_initial_value, parse};
+    pub use properties::longhands::transition_duration::single_value::{get_initial_value, get_initial_specified_value};
+    pub use properties::longhands::transition_duration::single_value::parse;
 </%helpers:vector_longhand>
 
 <%helpers:vector_longhand name="animation-name"

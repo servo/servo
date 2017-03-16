@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title> postMessage to dissimilar-origin iframe </title>
+</head>
+<body>
+<script>
+  window.addEventListener("message", function(e) {
+    window.location.href = e.data;
+  });
+</script>
+</body>
+</html>

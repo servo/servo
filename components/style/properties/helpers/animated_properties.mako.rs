@@ -8,7 +8,7 @@ use app_units::Au;
 use cssparser::{Color as CSSParserColor, Parser, RGBA};
 use euclid::{Point2D, Size2D};
 #[cfg(feature = "gecko")] use gecko_bindings::structs::nsCSSPropertyID;
-use properties::{CSSWideKeyword, DeclaredValue, PropertyDeclaration};
+use properties::{CSSWideKeyword, PropertyDeclaration};
 use properties::longhands;
 use properties::longhands::background_size::computed_value::T as BackgroundSize;
 use properties::longhands::font_weight::computed_value::T as FontWeight;
@@ -278,18 +278,17 @@ impl AnimationValue {
     /// "Uncompute" this animation value in order to be used inside the CSS
     /// cascade.
     pub fn uncompute(&self) -> PropertyDeclaration {
-        use properties::{longhands, DeclaredValue};
+        use properties::longhands;
         match *self {
             % for prop in data.longhands:
                 % if prop.animatable:
                     AnimationValue::${prop.camel_case}(ref from) => {
                         PropertyDeclaration::${prop.camel_case}(
-                            DeclaredValue::Value(
-                                % if prop.boxed:
-                                    Box::new(longhands::${prop.ident}::SpecifiedValue::from_computed_value(from))))
-                                % else:
-                                    longhands::${prop.ident}::SpecifiedValue::from_computed_value(from)))
-                                % endif
+                            % if prop.boxed:
+                                Box::new(longhands::${prop.ident}::SpecifiedValue::from_computed_value(from)))
+                            % else:
+                                longhands::${prop.ident}::SpecifiedValue::from_computed_value(from))
+                            % endif
                     }
                 % endif
             % endfor
@@ -298,36 +297,54 @@ impl AnimationValue {
 
     /// Construct an AnimationValue from a property declaration
     pub fn from_declaration(decl: &PropertyDeclaration, context: &Context, initial: &ComputedValues) -> Option<Self> {
+        use properties::LonghandId;
         match *decl {
             % for prop in data.longhands:
-                % if prop.animatable:
-                    PropertyDeclaration::${prop.camel_case}(ref val) => {
-                        let computed = match *val {
-                            // https://bugzilla.mozilla.org/show_bug.cgi?id=1326131
-                            DeclaredValue::WithVariables(_) => unimplemented!(),
-                            DeclaredValue::Value(ref val) => val.to_computed_value(context),
-                            DeclaredValue::CSSWideKeyword(keyword) => match keyword {
-                                % if not prop.style_struct.inherited:
-                                    CSSWideKeyword::Unset |
-                                % endif
-                                CSSWideKeyword::Initial => {
-                                    let initial_struct = initial.get_${prop.style_struct.name_lower}();
-                                    initial_struct.clone_${prop.ident}()
-                                },
-                                % if prop.style_struct.inherited:
-                                    CSSWideKeyword::Unset |
-                                % endif
-                                CSSWideKeyword::Inherit => {
-                                    let inherit_struct = context.inherited_style
-                                                                .get_${prop.style_struct.name_lower}();
-                                    inherit_struct.clone_${prop.ident}()
-                                },
-                            }
+            % if prop.animatable:
+            PropertyDeclaration::${prop.camel_case}(ref val) => {
+                Some(AnimationValue::${prop.camel_case}(val.to_computed_value(context)))
+            },
+            % endif
+            % endfor
+            PropertyDeclaration::CSSWideKeyword(id, keyword) => {
+                match id {
+                    // We put all the animatable properties first in the hopes
+                    // that it might increase match locality.
+                    % for prop in data.longhands:
+                    % if prop.animatable:
+                    LonghandId::${prop.camel_case} => {
+                        let computed = match keyword {
+                            % if not prop.style_struct.inherited:
+                                CSSWideKeyword::Unset |
+                            % endif
+                            CSSWideKeyword::Initial => {
+                                let initial_struct = initial.get_${prop.style_struct.name_lower}();
+                                initial_struct.clone_${prop.ident}()
+                            },
+                            % if prop.style_struct.inherited:
+                                CSSWideKeyword::Unset |
+                            % endif
+                            CSSWideKeyword::Inherit => {
+                                let inherit_struct = context.inherited_style
+                                                            .get_${prop.style_struct.name_lower}();
+                                inherit_struct.clone_${prop.ident}()
+                            },
                         };
                         Some(AnimationValue::${prop.camel_case}(computed))
-                    }
-                % endif
-            % endfor
+                    },
+                    % endif
+                    % endfor
+                    % for prop in data.longhands:
+                    % if not prop.animatable:
+                    LonghandId::${prop.camel_case} => None,
+                    % endif
+                    % endfor
+                }
+            }
+            PropertyDeclaration::WithVariables(_, _) => {
+                // https://bugzilla.mozilla.org/show_bug.cgi?id=1326131
+                unimplemented!()
+            },
             _ => None // non animatable properties will get included because of shorthands. ignore.
         }
     }

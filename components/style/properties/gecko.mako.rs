@@ -53,7 +53,7 @@ use gecko::values::GeckoStyleCoordConvertible;
 use gecko::values::round_border_to_device_pixels;
 use logical_geometry::WritingMode;
 use properties::longhands;
-use properties::{DeclaredValue, Importance, LonghandId};
+use properties::{Importance, LonghandId};
 use properties::{PropertyDeclaration, PropertyDeclarationBlock, PropertyDeclarationId};
 use std::fmt::{self, Debug};
 use std::mem::{forget, transmute, zeroed};
@@ -169,7 +169,7 @@ impl ComputedValues {
                 % if prop.animatable:
                     PropertyDeclarationId::Longhand(LonghandId::${prop.camel_case}) => {
                          PropertyDeclarationBlock::with_one(
-                            PropertyDeclaration::${prop.camel_case}(DeclaredValue::Value(
+                            PropertyDeclaration::${prop.camel_case}(
                                 % if prop.boxed:
                                     Box::new(
                                 % endif
@@ -178,7 +178,7 @@ impl ComputedValues {
                                 % if prop.boxed:
                                     )
                                 % endif
-                            )),
+                            ),
                             Importance::Normal
                         )
                     },

@@ -11,6 +11,9 @@ name = "stylo_tests"
 path = "lib.rs"
 doctest = false
 
+[features]
+testing = ["style/testing"]
+
 [dependencies]
 app_units = "0.4"
 atomic_refcell = "0.1"

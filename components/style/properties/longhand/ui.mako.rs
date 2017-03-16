@@ -17,7 +17,7 @@ ${helpers.single_keyword("ime-mode", "auto normal active disabled inactive",
                          spec="https://drafts.csswg.org/css-ui/#input-method-editor")}
 
 ${helpers.single_keyword("-moz-user-select", "auto text none all element elements" +
-                            " toggle tri_state -moz-all -moz-none -moz-text",
+                            " toggle tri-state -moz-all -moz-none -moz-text",
                          products="gecko",
                          alias="-webkit-user-select",
                          gecko_ffi_name="mUserSelect",

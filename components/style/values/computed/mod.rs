@@ -132,6 +132,7 @@ impl ToComputedValue for specified::Color {
         let pres_context = unsafe { &*context.device.pres_context };
         match *self {
             specified::Color::RGBA(rgba) => rgba,
+            specified::Color::System(system) => to_rgba(system.to_computed_value(context)),
             specified::Color::CurrentColor => context.inherited_style.get_color().clone_color(),
             specified::Color::MozDefaultColor => to_rgba(pres_context.mDefaultColor),
             specified::Color::MozDefaultBackgroundColor => to_rgba(pres_context.mBackgroundColor),

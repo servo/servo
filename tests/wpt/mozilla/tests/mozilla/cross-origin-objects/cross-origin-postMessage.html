@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title> postMessage to dissimilar-origin iframe </title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id=log></div>
+<iframe id="child"></iframe>
+
+<script>
+  async_test(function(t) {
+    // child1 is a dissimilar-origin document
+    var childURL1 = new URL("cross-origin-postMessage-child1.html", document.location);
+    childURL1.hostname = "127.0.0.1";
+    // child2 is a same-origin document
+    var childURL2 = new URL("cross-origin-postMessage-child2.html", document.location);
+    // Load child1 into the iframe
+    var childIframe = document.getElementById("child");
+    childIframe.src = childURL1;
+    // Once child1 has loaded, post a message to it, asking it to navigate to child2
+    childIframe.addEventListener("load", t.step_func(function() {
+      childIframe.contentWindow.postMessage(childURL2.toString(), "*");
+    }));
+    // Wait for child2 to post an OK message back to us.
+    // (We don't yet have support for event.source or window.parent,
+    // so we have to wait for the child to become same-origin.)
+    window.addEventListener("message", t.step_func(function(e) {
+      assert_equals(e.data, "OK");
+      assert_equals(childIframe.contentWindow.location.href, childURL2.toString());
+      t.done();
+    }));
+  });
+</script>
+</body>
+</html>

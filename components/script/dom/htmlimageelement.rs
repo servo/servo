@@ -15,7 +15,7 @@ use dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{LayoutJS, Root};
+use dom::bindings::js::{LayoutJS, MutNullableJS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
 use dom::bindings::str::DOMString;
@@ -26,6 +26,7 @@ use dom::event::Event;
 use dom::eventtarget::EventTarget;
 use dom::htmlareaelement::HTMLAreaElement;
 use dom::htmlelement::HTMLElement;
+use dom::htmlformelement::{FormControl, HTMLFormElement};
 use dom::htmlmapelement::HTMLMapElement;
 use dom::mouseevent::MouseEvent;
 use dom::node::{Node, NodeDamage, document_from_node, window_from_node};
@@ -78,6 +79,7 @@ pub struct HTMLImageElement {
     htmlelement: HTMLElement,
     current_request: DOMRefCell<ImageRequest>,
     pending_request: DOMRefCell<ImageRequest>,
+    form_owner: MutNullableJS<HTMLFormElement>,
     generation: Cell<u32>,
 }
 
@@ -384,6 +386,7 @@ impl HTMLImageElement {
                 metadata: None,
                 blocker: None,
             }),
+            form_owner: Default::default(),
             generation: Default::default(),
         }
     }
@@ -686,6 +689,24 @@ impl VirtualMethods for HTMLImageElement {
                }
            }
        }
+    }
+}
+
+impl FormControl for HTMLImageElement {
+    fn form_owner(&self) -> Option<Root<HTMLFormElement>> {
+        self.form_owner.get()
+    }
+
+    fn set_form_owner(&self, form: Option<&HTMLFormElement>) {
+        self.form_owner.set(form);
+    }
+
+    fn to_element<'a>(&'a self) -> &'a Element {
+        self.upcast::<Element>()
+    }
+
+    fn is_listed(&self) -> bool {
+        false
     }
 }
 

@@ -100,6 +100,7 @@ pub struct HTMLInputElement {
     value_dirty: Cell<bool>,
 
     filelist: MutNullableJS<FileList>,
+    form_owner: MutNullableJS<HTMLFormElement>,
 }
 
 #[derive(JSTraceable)]
@@ -156,6 +157,7 @@ impl HTMLInputElement {
             activation_state: DOMRefCell::new(InputActivationState::new()),
             value_dirty: Cell::new(false),
             filelist: MutNullableJS::new(None),
+            form_owner: Default::default(),
         }
     }
 
@@ -1044,7 +1046,10 @@ impl VirtualMethods for HTMLInputElement {
                         el.set_read_write_state(!el.disabled_state());
                     }
                 }
-            }
+            },
+            &local_name!("form") => {
+                self.form_attribute_mutated(mutation);
+            },
             _ => {},
         }
     }
@@ -1163,7 +1168,19 @@ impl VirtualMethods for HTMLInputElement {
     }
 }
 
-impl FormControl for HTMLInputElement {}
+impl FormControl for HTMLInputElement {
+    fn form_owner(&self) -> Option<Root<HTMLFormElement>> {
+        self.form_owner.get()
+    }
+
+    fn set_form_owner(&self, form: Option<&HTMLFormElement>) {
+        self.form_owner.set(form);
+    }
+
+    fn to_element<'a>(&'a self) -> &'a Element {
+        self.upcast::<Element>()
+    }
+}
 
 impl Validatable for HTMLInputElement {
     fn is_instance_validatable(&self) -> bool {

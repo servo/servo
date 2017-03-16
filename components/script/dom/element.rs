@@ -19,6 +19,7 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::UnionTypes::NodeOrString;
+use dom::bindings::conversions::DerivedFrom;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::js::{JS, LayoutJS, MutNullableJS};
@@ -44,6 +45,7 @@ use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElement;
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlfontelement::{HTMLFontElement, HTMLFontElementLayoutHelpers};
+use dom::htmlformelement::FormControlElementHelpers;
 use dom::htmlhrelement::{HTMLHRElement, HTMLHRLayoutHelpers};
 use dom::htmliframeelement::{HTMLIFrameElement, HTMLIFrameElementLayoutMethods};
 use dom::htmlimageelement::{HTMLImageElement, LayoutHTMLImageElementHelpers};
@@ -101,8 +103,7 @@ use style::context::{QuirksMode, ReflowGoal};
 use style::element_state::*;
 use style::matching::{common_style_affecting_attributes, rare_style_affecting_attributes};
 use style::parser::ParserContextExtraData;
-use style::properties::{DeclaredValue, Importance};
-use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, parse_style_attribute};
+use style::properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock, parse_style_attribute};
 use style::properties::longhands::{self, background_image, border_spacing, font_family, font_size, overflow_x};
 use style::restyle_hints::RESTYLE_SELF;
 use style::rule_tree::CascadeLevel;
@@ -407,8 +408,8 @@ impl LayoutElementHelpers for LayoutJS<Element> {
 
         if let Some(color) = bgcolor {
             hints.push(from_declaration(
-                PropertyDeclaration::BackgroundColor(DeclaredValue::Value(
-                    CSSColor { parsed: Color::RGBA(color), authored: None }))));
+                PropertyDeclaration::BackgroundColor(
+                    CSSColor { parsed: Color::RGBA(color), authored: None })));
         }
 
         let background = if let Some(this) = self.downcast::<HTMLBodyElement>() {
@@ -419,12 +420,12 @@ impl LayoutElementHelpers for LayoutJS<Element> {
 
         if let Some(url) = background {
             hints.push(from_declaration(
-                PropertyDeclaration::BackgroundImage(DeclaredValue::Value(
+                PropertyDeclaration::BackgroundImage(
                     background_image::SpecifiedValue(vec![
                         background_image::single_value::SpecifiedValue(Some(
                             specified::Image::for_cascade(url.into(), specified::url::UrlExtraData { })
                         ))
-                    ])))));
+                    ]))));
         }
 
         let color = if let Some(this) = self.downcast::<HTMLFontElement>() {
@@ -441,12 +442,12 @@ impl LayoutElementHelpers for LayoutJS<Element> {
 
         if let Some(color) = color {
             hints.push(from_declaration(
-                PropertyDeclaration::Color(DeclaredValue::Value(
+                PropertyDeclaration::Color(
                     longhands::color::SpecifiedValue(CSSColor {
                         parsed: Color::RGBA(color),
                         authored: None,
                     })
-                ))
+                )
             ));
         }
 
@@ -459,19 +460,16 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         if let Some(font_family) = font_family {
             hints.push(from_declaration(
                 PropertyDeclaration::FontFamily(
-                    DeclaredValue::Value(
                         font_family::computed_value::T(vec![
                             font_family::computed_value::FontFamily::from_atom(
-                                font_family)])))));
+                                font_family)]))));
         }
 
         let font_size = self.downcast::<HTMLFontElement>().and_then(|this| this.get_size());
 
         if let Some(font_size) = font_size {
             hints.push(from_declaration(
-                PropertyDeclaration::FontSize(
-                    DeclaredValue::Value(
-                        font_size::SpecifiedValue(font_size.into())))))
+                PropertyDeclaration::FontSize(font_size::SpecifiedValue(font_size.into()))))
         }
 
         let cellspacing = if let Some(this) = self.downcast::<HTMLTableElement>() {
@@ -483,11 +481,11 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         if let Some(cellspacing) = cellspacing {
             let width_value = specified::Length::from_px(cellspacing as f32);
             hints.push(from_declaration(
-                PropertyDeclaration::BorderSpacing(DeclaredValue::Value(
+                PropertyDeclaration::BorderSpacing(
                     Box::new(border_spacing::SpecifiedValue {
                         horizontal: width_value.clone(),
                         vertical: width_value,
-                    })))));
+                    }))));
         }
 
 
@@ -516,8 +514,8 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         if let Some(size) = size {
             let value = specified::NoCalcLength::ServoCharacterWidth(specified::CharacterWidth(size));
             hints.push(from_declaration(
-                PropertyDeclaration::Width(DeclaredValue::Value(
-                    specified::LengthOrPercentageOrAuto::Length(value)))));
+                PropertyDeclaration::Width(
+                    specified::LengthOrPercentageOrAuto::Length(value))));
         }
 
         let width = if let Some(this) = self.downcast::<HTMLIFrameElement>() {
@@ -541,13 +539,13 @@ impl LayoutElementHelpers for LayoutJS<Element> {
                 let width_value =
                     specified::LengthOrPercentageOrAuto::Percentage(specified::Percentage(percentage));
                 hints.push(from_declaration(
-                    PropertyDeclaration::Width(DeclaredValue::Value(width_value))));
+                    PropertyDeclaration::Width(width_value)));
             }
             LengthOrPercentageOrAuto::Length(length) => {
                 let width_value = specified::LengthOrPercentageOrAuto::Length(
                     specified::NoCalcLength::Absolute(length));
                 hints.push(from_declaration(
-                    PropertyDeclaration::Width(DeclaredValue::Value(width_value))));
+                    PropertyDeclaration::Width(width_value)));
             }
         }
 
@@ -566,13 +564,13 @@ impl LayoutElementHelpers for LayoutJS<Element> {
                 let height_value =
                     specified::LengthOrPercentageOrAuto::Percentage(specified::Percentage(percentage));
                 hints.push(from_declaration(
-                    PropertyDeclaration::Height(DeclaredValue::Value(height_value))));
+                    PropertyDeclaration::Height(height_value)));
             }
             LengthOrPercentageOrAuto::Length(length) => {
                 let height_value = specified::LengthOrPercentageOrAuto::Length(
                     specified::NoCalcLength::Absolute(length));
                 hints.push(from_declaration(
-                    PropertyDeclaration::Height(DeclaredValue::Value(height_value))));
+                    PropertyDeclaration::Height(height_value)));
             }
         }
 
@@ -594,8 +592,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
             // https://html.spec.whatwg.org/multipage/#textarea-effective-width
             let value = specified::NoCalcLength::ServoCharacterWidth(specified::CharacterWidth(cols));
             hints.push(from_declaration(
-                PropertyDeclaration::Width(DeclaredValue::Value(
-                    specified::LengthOrPercentageOrAuto::Length(value)))));
+                PropertyDeclaration::Width(specified::LengthOrPercentageOrAuto::Length(value))));
         }
 
         let rows = if let Some(this) = self.downcast::<HTMLTextAreaElement>() {
@@ -613,8 +610,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
             // https://html.spec.whatwg.org/multipage/#textarea-effective-height
             let value = specified::NoCalcLength::FontRelative(specified::FontRelativeLength::Em(rows as CSSFloat));
             hints.push(from_declaration(
-                PropertyDeclaration::Height(DeclaredValue::Value(
-                        specified::LengthOrPercentageOrAuto::Length(value)))));
+                PropertyDeclaration::Height(specified::LengthOrPercentageOrAuto::Length(value))));
         }
 
 
@@ -627,13 +623,13 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         if let Some(border) = border {
             let width_value = specified::BorderWidth::from_length(specified::Length::from_px(border as f32));
             hints.push(from_declaration(
-                PropertyDeclaration::BorderTopWidth(DeclaredValue::Value(width_value.clone()))));
+                PropertyDeclaration::BorderTopWidth(width_value.clone())));
             hints.push(from_declaration(
-                PropertyDeclaration::BorderLeftWidth(DeclaredValue::Value(width_value.clone()))));
+                PropertyDeclaration::BorderLeftWidth(width_value.clone())));
             hints.push(from_declaration(
-                PropertyDeclaration::BorderBottomWidth(DeclaredValue::Value(width_value.clone()))));
+                PropertyDeclaration::BorderBottomWidth(width_value.clone())));
             hints.push(from_declaration(
-                PropertyDeclaration::BorderRightWidth(DeclaredValue::Value(width_value))));
+                PropertyDeclaration::BorderRightWidth(width_value)));
         }
     }
 
@@ -1359,6 +1355,14 @@ impl Element {
         }
         let document = document_from_node(self);
         document.get_allow_fullscreen()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#home-subtree
+    pub fn is_in_same_home_subtree<T>(&self, other: &T) -> bool
+        where T: DerivedFrom<Element> + DomObject
+    {
+        let other = other.upcast::<Element>();
+        self.root_element() == other.root_element()
     }
 }
 
@@ -2240,6 +2244,10 @@ impl VirtualMethods for Element {
             s.bind_to_tree(tree_in_doc);
         }
 
+        if let Some(f) = self.as_maybe_form_control() {
+            f.bind_form_control_to_tree();
+        }
+
         if !tree_in_doc {
             return;
         }
@@ -2254,6 +2262,10 @@ impl VirtualMethods for Element {
 
     fn unbind_from_tree(&self, context: &UnbindContext) {
         self.super_type().unwrap().unbind_from_tree(context);
+
+        if let Some(f) = self.as_maybe_form_control() {
+            f.unbind_form_control_from_tree();
+        }
 
         if !context.tree_in_doc {
             return;

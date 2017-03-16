@@ -81,7 +81,7 @@ partial /*sealed*/ interface Document {
   // resource metadata management
   [/*PutForwards=href, */Unforgeable]
   readonly attribute Location? location;
-  readonly attribute DOMString domain;
+  [SetterThrows] attribute DOMString domain;
   readonly attribute DOMString referrer;
   [Throws]
   attribute DOMString cookie;

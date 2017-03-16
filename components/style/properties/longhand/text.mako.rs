@@ -51,7 +51,7 @@
     }
     pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
         let first = try!(Side::parse(context, input));
-        let second = Side::parse(context, input).ok();
+        let second = input.try(|input| Side::parse(context, input)).ok();
         Ok(SpecifiedValue {
             first: first,
             second: second,

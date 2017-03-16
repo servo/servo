@@ -266,9 +266,7 @@ ${helpers.predefined_type("clip",
                     try!(dest.write_str(")"));
                 }
                 computed_value::Filter::Url(ref url) => {
-                    dest.write_str("url(")?;
                     url.to_css(dest)?;
-                    dest.write_str(")")?;
                 }
                 % endif
             }
@@ -311,9 +309,7 @@ ${helpers.predefined_type("clip",
                     try!(dest.write_str(")"));
                 }
                 SpecifiedFilter::Url(ref url) => {
-                    dest.write_str("url(")?;
                     url.to_css(dest)?;
-                    dest.write_str(")")?;
                 }
                 % endif
             }

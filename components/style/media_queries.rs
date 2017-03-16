@@ -243,19 +243,13 @@ pub fn parse_media_query_list(input: &mut Parser) -> MediaList {
     }
 
     let mut media_queries = vec![];
-    let mut found_invalid = false;
     loop {
         match input.parse_until_before(Delimiter::Comma, MediaQuery::parse) {
-            Ok(mq) => if !found_invalid {
+            Ok(mq) => {
                 media_queries.push(mq);
             },
-            Err(..) => if !found_invalid {
-                media_queries.clear();
+            Err(..) => {
                 media_queries.push(MediaQuery::never_matching());
-                // Consume the rest of the input as if they were valid
-                // expressions (they might be, they might not), but ignore the
-                // result, this allows correctly parsing invalid media queries.
-                found_invalid = true;
             },
         }
 
@@ -265,8 +259,6 @@ pub fn parse_media_query_list(input: &mut Parser) -> MediaList {
             Err(()) => break,
         }
     }
-
-    debug_assert!(!found_invalid || media_queries.len() == 1);
 
     MediaList {
         media_queries: media_queries,

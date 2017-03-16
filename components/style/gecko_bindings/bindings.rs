@@ -4,6 +4,11 @@ pub use nsstring::{nsACString, nsAString, nsString};
 type nsACString_internal = nsACString;
 type nsAString_internal = nsAString;
 use gecko_bindings::structs::mozilla::css::URLValue;
+pub type RawServoNamespaceRuleStrong = ::gecko_bindings::sugar::ownership::Strong<RawServoNamespaceRule>;
+pub type RawServoNamespaceRuleBorrowedOrNull<'a> = Option<&'a RawServoNamespaceRule>;
+pub type RawServoNamespaceRuleBorrowed<'a> = &'a RawServoNamespaceRule;
+enum RawServoNamespaceRuleVoid{ }
+pub struct RawServoNamespaceRule(RawServoNamespaceRuleVoid);
 use gecko_bindings::structs::RawGeckoDocument;
 use gecko_bindings::structs::RawGeckoElement;
 use gecko_bindings::structs::RawGeckoKeyframeList;
@@ -970,6 +975,12 @@ extern "C" {
     pub fn Gecko_GetMediaFeatures() -> *const nsMediaFeature;
 }
 extern "C" {
+    pub fn Gecko_GetLookAndFeelSystemColor(color_id: i32,
+                                           pres_context:
+                                               RawGeckoPresContextBorrowed)
+     -> nscolor;
+}
+extern "C" {
     pub fn Gecko_Construct_Default_nsStyleFont(ptr: *mut nsStyleFont,
                                                pres_context:
                                                    RawGeckoPresContextBorrowed);
@@ -1384,6 +1395,11 @@ extern "C" {
      -> RawServoMediaRuleStrong;
 }
 extern "C" {
+    pub fn Servo_CssRules_GetNamespaceRuleAt(rules: ServoCssRulesBorrowed,
+                                             index: u32)
+     -> RawServoNamespaceRuleStrong;
+}
+extern "C" {
     pub fn Servo_CssRules_InsertRule(rules: ServoCssRulesBorrowed,
                                      sheet: RawServoStyleSheetBorrowed,
                                      rule: *const nsACString_internal,
@@ -1430,6 +1446,14 @@ extern "C" {
 extern "C" {
     pub fn Servo_MediaRule_GetCssText(rule: RawServoMediaRuleBorrowed,
                                       result: *mut nsAString_internal);
+}
+extern "C" {
+    pub fn Servo_NamespaceRule_Debug(rule: RawServoNamespaceRuleBorrowed,
+                                     result: *mut nsACString_internal);
+}
+extern "C" {
+    pub fn Servo_NamespaceRule_GetCssText(rule: RawServoNamespaceRuleBorrowed,
+                                          result: *mut nsAString_internal);
 }
 extern "C" {
     pub fn Servo_ParseProperty(property: *const nsACString_internal,

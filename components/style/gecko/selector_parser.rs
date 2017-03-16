@@ -4,7 +4,7 @@
 
 //! Gecko-specific bits for selector-parsing.
 
-use cssparser::ToCss;
+use cssparser::{Parser, ToCss};
 use element_state::ElementState;
 use gecko_bindings::structs::CSSPseudoClassType;
 use gecko_bindings::structs::nsIAtom;
@@ -138,8 +138,9 @@ bitflags! {
     }
 }
 
-macro_rules! pseudo_class_list {
-    ($(($css:expr, $name:ident, $_gecko_type:tt, $_state:tt, $_flags:tt),)*) => {
+macro_rules! pseudo_class_name {
+    (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
+     string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*]) => {
         #[doc = "Our representation of a non tree-structural pseudo-class."]
         #[derive(Clone, Debug, PartialEq, Eq, Hash)]
         pub enum NonTSPseudoClass {
@@ -147,21 +148,30 @@ macro_rules! pseudo_class_list {
                 #[doc = $css]
                 $name,
             )*
+            $(
+                #[doc = $s_css]
+                $s_name(Box<str>),
+            )*
         }
     }
 }
-include!("non_ts_pseudo_class_list.rs");
+apply_non_ts_list!(pseudo_class_name);
 
 impl ToCss for NonTSPseudoClass {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        macro_rules! pseudo_class_list {
-            ($(($css:expr, $name:ident, $_gecko_type:tt, $_state:tt, $_flags:tt),)*) => {
+        macro_rules! pseudo_class_serialize {
+            (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
+             string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*]) => {
                 match *self {
                     $(NonTSPseudoClass::$name => concat!(":", $css),)*
+                    $(NonTSPseudoClass::$s_name(ref s) => {
+                        return dest.write_str(&format!(":{}({})", $s_css, s))
+                    }, )*
                 }
             }
         }
-        dest.write_str(include!("non_ts_pseudo_class_list.rs"))
+        let ser = apply_non_ts_list!(pseudo_class_serialize);
+        dest.write_str(ser)
     }
 }
 
@@ -173,14 +183,16 @@ impl NonTSPseudoClass {
             (_) => (false);
             ($flags:expr) => ($flags.contains(PSEUDO_CLASS_INTERNAL));
         }
-        macro_rules! pseudo_class_list {
-            ($(($_css:expr, $name:ident, $_gecko_type:tt, $_state:tt, $flags:tt),)*) => {
+        macro_rules! pseudo_class_check_internal {
+            (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
+            string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*]) => {
                 match *self {
                     $(NonTSPseudoClass::$name => check_flag!($flags),)*
+                    $(NonTSPseudoClass::$s_name(..) => check_flag!($s_flags),)*
                 }
             }
         }
-        include!("non_ts_pseudo_class_list.rs")
+        apply_non_ts_list!(pseudo_class_check_internal)
     }
 
     /// Get the state flag associated with a pseudo-class, if any.
@@ -189,14 +201,16 @@ impl NonTSPseudoClass {
             (_) => (ElementState::empty());
             ($state:ident) => (::element_state::$state);
         }
-        macro_rules! pseudo_class_list {
-            ($(($_css:expr, $name:ident, $_gecko_type:tt, $state:tt, $_flags:tt),)*) => {
+        macro_rules! pseudo_class_state {
+            (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
+            string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*]) => {
                 match *self {
                     $(NonTSPseudoClass::$name => flag!($state),)*
+                    $(NonTSPseudoClass::$s_name(..) => flag!($s_state),)*
                 }
             }
         }
-        include!("non_ts_pseudo_class_list.rs")
+        apply_non_ts_list!(pseudo_class_state)
     }
 
     /// Convert NonTSPseudoClass to Gecko's CSSPseudoClassType.
@@ -206,14 +220,16 @@ impl NonTSPseudoClass {
             ($gecko_type:ident) =>
                 (Some(::gecko_bindings::structs::CSSPseudoClassType::$gecko_type));
         }
-        macro_rules! pseudo_class_list {
-            ($(($_css:expr, $name:ident, $gecko_type:tt, $_state:tt, $_flags:tt),)*) => {
+        macro_rules! pseudo_class_geckotype {
+            (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
+            string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*]) => {
                 match *self {
                     $(NonTSPseudoClass::$name => gecko_type!($gecko_type),)*
+                    $(NonTSPseudoClass::$s_name(..) => gecko_type!($s_gecko_type),)*
                 }
             }
         }
-        include!("non_ts_pseudo_class_list.rs")
+        apply_non_ts_list!(pseudo_class_geckotype)
     }
 }
 
@@ -248,15 +264,40 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
     type Impl = SelectorImpl;
 
     fn parse_non_ts_pseudo_class(&self, name: Cow<str>) -> Result<NonTSPseudoClass, ()> {
-        macro_rules! pseudo_class_list {
-            ($(($css:expr, $name:ident, $_gecko_type:tt, $_state:tt, $_flags:tt),)*) => {
+        macro_rules! pseudo_class_parse {
+            (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
+             string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*]) => {
                 match_ignore_ascii_case! { &name,
                     $($css => NonTSPseudoClass::$name,)*
                     _ => return Err(())
                 }
             }
         }
-        let pseudo_class = include!("non_ts_pseudo_class_list.rs");
+        let pseudo_class = apply_non_ts_list!(pseudo_class_parse);
+        if !pseudo_class.is_internal() || self.in_user_agent_stylesheet() {
+            Ok(pseudo_class)
+        } else {
+            Err(())
+        }
+    }
+
+    fn parse_non_ts_functional_pseudo_class(&self,
+                                            name: Cow<str>,
+                                            parser: &mut Parser)
+                                            -> Result<NonTSPseudoClass, ()> {
+        macro_rules! pseudo_class_string_parse {
+            (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
+             string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*]) => {
+                match_ignore_ascii_case! { &name,
+                    $($s_css => {
+                        let name = String::from(parser.expect_ident_or_string()?).into_boxed_str();
+                        NonTSPseudoClass::$s_name(name)
+                    }, )*
+                    _ => return Err(())
+                }
+            }
+        }
+        let pseudo_class = apply_non_ts_list!(pseudo_class_string_parse);
         if !pseudo_class.is_internal() || self.in_user_agent_stylesheet() {
             Ok(pseudo_class)
         } else {

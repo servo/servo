@@ -6,7 +6,7 @@ use parking_lot::RwLock;
 use std::sync::Arc;
 use style::keyframes::{Keyframe, KeyframesAnimation, KeyframePercentage,  KeyframeSelector};
 use style::keyframes::{KeyframesStep, KeyframesStepValue};
-use style::properties::{DeclaredValue, PropertyDeclaration, PropertyDeclarationBlock, Importance};
+use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, Importance};
 use style::properties::animated_properties::TransitionProperty;
 use style::values::specified::{LengthOrPercentageOrAuto, NoCalcLength};
 
@@ -44,7 +44,7 @@ fn test_missing_property_in_initial_keyframe() {
     let declarations_on_initial_keyframe =
         Arc::new(RwLock::new(PropertyDeclarationBlock::with_one(
             PropertyDeclaration::Width(
-                DeclaredValue::Value(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32)))),
+                LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32))),
             Importance::Normal
         )));
 
@@ -53,12 +53,12 @@ fn test_missing_property_in_initial_keyframe() {
             let mut block = PropertyDeclarationBlock::new();
             block.push(
                 PropertyDeclaration::Width(
-                    DeclaredValue::Value(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32)))),
+                    LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32))),
                 Importance::Normal
             );
             block.push(
                 PropertyDeclaration::Height(
-                    DeclaredValue::Value(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32)))),
+                    LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32))),
                 Importance::Normal
             );
             block
@@ -102,12 +102,12 @@ fn test_missing_property_in_final_keyframe() {
             let mut block = PropertyDeclarationBlock::new();
             block.push(
                 PropertyDeclaration::Width(
-                    DeclaredValue::Value(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32)))),
+                    LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32))),
                 Importance::Normal
             );
             block.push(
                 PropertyDeclaration::Height(
-                    DeclaredValue::Value(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32)))),
+                    LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32))),
                 Importance::Normal
             );
             block
@@ -116,7 +116,7 @@ fn test_missing_property_in_final_keyframe() {
     let declarations_on_final_keyframe =
         Arc::new(RwLock::new(PropertyDeclarationBlock::with_one(
             PropertyDeclaration::Height(
-                DeclaredValue::Value(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32)))),
+                LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32))),
             Importance::Normal,
         )));
 
@@ -158,12 +158,12 @@ fn test_missing_keyframe_in_both_of_initial_and_final_keyframe() {
             let mut block = PropertyDeclarationBlock::new();
             block.push(
                 PropertyDeclaration::Width(
-                    DeclaredValue::Value(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32)))),
+                    LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32))),
                 Importance::Normal
             );
             block.push(
                 PropertyDeclaration::Height(
-                    DeclaredValue::Value(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32)))),
+                    LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32))),
                 Importance::Normal
             );
             block

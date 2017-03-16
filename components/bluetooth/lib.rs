@@ -7,6 +7,7 @@ extern crate bitflags;
 extern crate bluetooth_traits;
 extern crate device;
 extern crate ipc_channel;
+extern crate servo_config;
 extern crate servo_rand;
 #[cfg(target_os = "linux")]
 extern crate tinyfiledialogs;
@@ -22,6 +23,7 @@ use bluetooth_traits::scanfilter::{BluetoothScanfilter, BluetoothScanfilterSeque
 use device::bluetooth::{BluetoothAdapter, BluetoothDevice, BluetoothGATTCharacteristic};
 use device::bluetooth::{BluetoothGATTDescriptor, BluetoothGATTService};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use servo_config::opts;
 use servo_rand::Rng;
 use std::borrow::ToOwned;
 use std::collections::{HashMap, HashSet};
@@ -363,7 +365,7 @@ impl BluetoothManager {
 
     #[cfg(target_os = "linux")]
     fn select_device(&mut self, devices: Vec<BluetoothDevice>, adapter: &BluetoothAdapter) -> Option<String> {
-        if is_mock_adapter(adapter) {
+        if is_mock_adapter(adapter) || opts::get().headless {
             for device in devices {
                 if let Ok(address) = device.get_address() {
                     return Some(address);

@@ -7,7 +7,7 @@ use parking_lot::RwLock;
 use selectors::parser::LocalName as LocalNameSelector;
 use servo_atoms::Atom;
 use std::sync::Arc;
-use style::properties::{PropertyDeclarationBlock, PropertyDeclaration, DeclaredValue};
+use style::properties::{PropertyDeclarationBlock, PropertyDeclaration};
 use style::properties::{longhands, Importance};
 use style::rule_tree::CascadeLevel;
 use style::selector_parser::SelectorParser;
@@ -24,8 +24,8 @@ fn get_mock_rules(css_selectors: &[&str]) -> Vec<Vec<Rule>> {
         let rule = Arc::new(RwLock::new(StyleRule {
             selectors: selectors,
             block: Arc::new(RwLock::new(PropertyDeclarationBlock::with_one(
-                PropertyDeclaration::Display(DeclaredValue::Value(
-                    longhands::display::SpecifiedValue::block)),
+                PropertyDeclaration::Display(
+                    longhands::display::SpecifiedValue::block),
                 Importance::Normal
             ))),
         }));
