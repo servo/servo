@@ -84,6 +84,7 @@ pub struct HTMLIFrameElement {
     sandbox_allowance: Cell<Option<SandboxAllowance>>,
     load_blocker: DOMRefCell<Option<LoadBlocker>>,
     visibility: Cell<bool>,
+    cancel_initial_load_event: Cell<bool>,
 }
 
 impl HTMLIFrameElement {
@@ -170,6 +171,7 @@ impl HTMLIFrameElement {
 
             ScriptThread::process_attach_layout(new_layout_info, document.origin().clone());
         } else {
+            self.cancel_initial_load_event.set(true);
             let load_info = IFrameLoadInfoWithData {
                 info: load_info,
                 load_data: load_data,
@@ -251,6 +253,7 @@ impl HTMLIFrameElement {
             sandbox_allowance: Cell::new(None),
             load_blocker: DOMRefCell::new(None),
             visibility: Cell::new(true),
+            cancel_initial_load_event: Cell::new(false),
         }
     }
 
@@ -759,6 +762,8 @@ impl IFrameLoadEventSteps {
 impl Runnable for IFrameLoadEventSteps {
     fn handler(self: Box<IFrameLoadEventSteps>) {
         let this = self.frame_element.root();
-        this.iframe_load_event_steps(self.pipeline_id);
+        if !this.cancel_initial_load_event.get() {
+            this.iframe_load_event_steps(self.pipeline_id);
+        }
     }
 }
