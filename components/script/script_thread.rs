@@ -481,6 +481,9 @@ pub struct ScriptThread {
 
     microtask_queue: MicrotaskQueue,
 
+    /// a vector of MutationObserver objects
+    mutation_observers: Vec<MutationObserver>,
+
     /// A handle to the webvr thread, if available
     webvr_thread: Option<IpcSender<WebVRMsg>>,
 
@@ -714,6 +717,8 @@ impl ScriptThread {
             content_process_shutdown_chan: state.content_process_shutdown_chan,
 
             microtask_queue: MicrotaskQueue::default(),
+
+	    mutation_observers: Vec![],
 
             layout_to_constellation_chan: state.layout_to_constellation_chan,
 
