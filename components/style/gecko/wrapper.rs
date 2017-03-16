@@ -35,6 +35,7 @@ use gecko_bindings::bindings::Gecko_GetAnimationRule;
 use gecko_bindings::bindings::Gecko_GetHTMLPresentationAttrDeclarationBlock;
 use gecko_bindings::bindings::Gecko_GetStyleAttrDeclarationBlock;
 use gecko_bindings::bindings::Gecko_GetStyleContext;
+use gecko_bindings::bindings::Gecko_MatchStringArgPseudo;
 use gecko_bindings::bindings::Gecko_UpdateAnimations;
 use gecko_bindings::structs;
 use gecko_bindings::structs::{RawGeckoElement, RawGeckoNode};
@@ -702,9 +703,25 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::MozBrowserFrame => unsafe {
                 Gecko_MatchesElement(pseudo_class.to_gecko_pseudoclasstype().unwrap(), self.0)
             },
-            NonTSPseudoClass::MozSystemMetric(_) => false,
             NonTSPseudoClass::MozAny(ref sels) => {
                 sels.iter().any(|s| matches_complex_selector(s, self, None, relations, flags))
+            }
+            NonTSPseudoClass::MozSystemMetric(ref s) |
+            NonTSPseudoClass::MozLocaleDir(ref s) |
+            NonTSPseudoClass::MozEmptyExceptChildrenWithLocalname(ref s) |
+            NonTSPseudoClass::Dir(ref s) |
+            NonTSPseudoClass::Lang(ref s) => {
+                use selectors::matching::HAS_SLOW_SELECTOR;
+                unsafe {
+                    let mut set_slow_selector = false;
+                    let matches = Gecko_MatchStringArgPseudo(self.0,
+                                       pseudo_class.to_gecko_pseudoclasstype().unwrap(),
+                                       s.as_ptr(), &mut set_slow_selector);
+                    if set_slow_selector {
+                        *flags |= HAS_SLOW_SELECTOR;
+                    }
+                    matches
+                }
             }
         }
     }

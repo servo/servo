@@ -151,7 +151,7 @@ macro_rules! pseudo_class_name {
             )*
             $(
                 #[doc = $s_css]
-                $s_name(Box<str>),
+                $s_name(Box<[u16]>),
             )*
             /// The non-standard `:-moz-any` pseudo-class.
             MozAny(Vec<ComplexSelector<SelectorImpl>>),
@@ -162,13 +162,20 @@ apply_non_ts_list!(pseudo_class_name);
 
 impl ToCss for NonTSPseudoClass {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        use cssparser::CssStringWriter;
+        use fmt::Write;
         macro_rules! pseudo_class_serialize {
             (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
              string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*]) => {
                 match *self {
                     $(NonTSPseudoClass::$name => concat!(":", $css),)*
                     $(NonTSPseudoClass::$s_name(ref s) => {
-                        return dest.write_str(&format!(":{}({})", $s_css, s))
+                        write!(dest, ":{}(", $s_css)?;
+                        {
+                            let mut css = CssStringWriter::new(dest);
+                            css.write_str(&String::from_utf16(&s).unwrap())?;
+                        }
+                        return dest.write_str(")")
                     }, )*
                     NonTSPseudoClass::MozAny(ref selectors) => {
                         dest.write_str(":-moz-any(")?;
@@ -334,8 +341,11 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
              string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*]) => {
                 match_ignore_ascii_case! { &name,
                     $($s_css => {
-                        let name = String::from(parser.expect_ident_or_string()?).into_boxed_str();
-                        NonTSPseudoClass::$s_name(name)
+                        let name = parser.expect_ident_or_string()?;
+                        // convert to null terminated utf16 string
+                        // since that's what Gecko deals with
+                        let utf16: Vec<u16> = name.encode_utf16().chain(Some(0u16)).collect();
+                        NonTSPseudoClass::$s_name(utf16.into_boxed_slice())
                     }, )*
                     "-moz-any" => {
                         let selectors = parser.parse_comma_separated(|input| {

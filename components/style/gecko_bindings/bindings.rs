@@ -1004,6 +1004,12 @@ extern "C" {
      -> nscolor;
 }
 extern "C" {
+    pub fn Gecko_MatchStringArgPseudo(element: RawGeckoElementBorrowed,
+                                      type_: CSSPseudoClassType,
+                                      ident: *const u16,
+                                      set_slow_selector: *mut bool) -> bool;
+}
+extern "C" {
     pub fn Gecko_Construct_Default_nsStyleFont(ptr: *mut nsStyleFont,
                                                pres_context:
                                                    RawGeckoPresContextBorrowed);

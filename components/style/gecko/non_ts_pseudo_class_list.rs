@@ -67,6 +67,11 @@ macro_rules! apply_non_ts_list {
             ],
             string: [
                 ("-moz-system-metric", MozSystemMetric, mozSystemMetric, _, PSEUDO_CLASS_INTERNAL),
+                ("-moz-locale-dir", MozLocaleDir, mozLocaleDir, _, PSEUDO_CLASS_INTERNAL),
+                ("-moz-empty-except-children-with-localname", MozEmptyExceptChildrenWithLocalname,
+                 mozEmptyExceptChildrenWithLocalname, _, PSEUDO_CLASS_INTERNAL),
+                ("dir", Dir, dir, _, _),
+                ("lang", Lang, lang, _, _),
             ]
         }
     }
