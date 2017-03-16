@@ -204,7 +204,7 @@ fn traverse_subtree(element: GeckoElement, raw_data: RawServoStyleSetBorrowed,
     debug!("{:?}", ShowSubtreeData(element.as_node()));
 
     let shared_style_context = create_shared_context(&per_doc_data);
-    let ref global_style_data = *GLOBAL_STYLE_DATA;
+    let global_style_data = &*GLOBAL_STYLE_DATA;
 
     let traversal_driver = if global_style_data.style_thread_pool.is_none() {
         TraversalDriver::Sequential
@@ -335,6 +335,7 @@ pub extern "C" fn Servo_Element_ClearData(element: RawGeckoElementBorrowed) {
 
 #[no_mangle]
 pub extern "C" fn Servo_StyleSheet_Empty(mode: SheetParsingMode) -> RawServoStyleSheetStrong {
+    let global_style_data = &*GLOBAL_STYLE_DATA;
     let url = ServoUrl::parse("about:blank").unwrap();
     let extra_data = ParserContextExtraData::default();
     let origin = match mode {
@@ -342,7 +343,7 @@ pub extern "C" fn Servo_StyleSheet_Empty(mode: SheetParsingMode) -> RawServoStyl
         SheetParsingMode::eUserSheetFeatures => Origin::User,
         SheetParsingMode::eAgentSheetFeatures => Origin::UserAgent,
     };
-    let shared_lock = GLOBAL_STYLE_DATA.shared_lock.clone();
+    let shared_lock = global_style_data.shared_lock.clone();
     Arc::new(Stylesheet::from_str(
         "", url, origin, Default::default(), shared_lock, None,
         &StdoutErrorReporter, extra_data)
@@ -359,6 +360,7 @@ pub extern "C" fn Servo_StyleSheet_FromUTF8Bytes(loader: *mut Loader,
                                                  referrer: *mut ThreadSafeURIHolder,
                                                  principal: *mut ThreadSafePrincipalHolder)
                                                  -> RawServoStyleSheetStrong {
+    let global_style_data = &*GLOBAL_STYLE_DATA;
     let input = unsafe { data.as_ref().unwrap().as_str_unchecked() };
 
     let origin = match mode {
@@ -386,7 +388,7 @@ pub extern "C" fn Servo_StyleSheet_FromUTF8Bytes(loader: *mut Loader,
         Some(ref s) => Some(s),
     };
 
-    let shared_lock = GLOBAL_STYLE_DATA.shared_lock.clone();
+    let shared_lock = global_style_data.shared_lock.clone();
     Arc::new(Stylesheet::from_str(
         input, url, origin, Default::default(), shared_lock, loader,
         &StdoutErrorReporter, extra_data)
@@ -432,13 +434,15 @@ pub extern "C" fn Servo_StyleSheet_ClearAndUpdate(stylesheet: RawServoStyleSheet
 pub extern "C" fn Servo_StyleSet_AppendStyleSheet(raw_data: RawServoStyleSetBorrowed,
                                                   raw_sheet: RawServoStyleSheetBorrowed,
                                                   flush: bool) {
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
     let sheet = HasArcFFI::as_arc(&raw_sheet);
     data.stylesheets.retain(|x| !arc_ptr_eq(x, sheet));
     data.stylesheets.push(sheet.clone());
     data.stylesheets_changed = true;
     if flush {
-        data.flush_stylesheets();
+        data.flush_stylesheets(&guard);
     }
 }
 
@@ -446,13 +450,15 @@ pub extern "C" fn Servo_StyleSet_AppendStyleSheet(raw_data: RawServoStyleSetBorr
 pub extern "C" fn Servo_StyleSet_PrependStyleSheet(raw_data: RawServoStyleSetBorrowed,
                                                    raw_sheet: RawServoStyleSheetBorrowed,
                                                    flush: bool) {
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
     let sheet = HasArcFFI::as_arc(&raw_sheet);
     data.stylesheets.retain(|x| !arc_ptr_eq(x, sheet));
     data.stylesheets.insert(0, sheet.clone());
     data.stylesheets_changed = true;
     if flush {
-        data.flush_stylesheets();
+        data.flush_stylesheets(&guard);
     }
 }
 
@@ -461,6 +467,8 @@ pub extern "C" fn Servo_StyleSet_InsertStyleSheetBefore(raw_data: RawServoStyleS
                                                         raw_sheet: RawServoStyleSheetBorrowed,
                                                         raw_reference: RawServoStyleSheetBorrowed,
                                                         flush: bool) {
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
     let sheet = HasArcFFI::as_arc(&raw_sheet);
     let reference = HasArcFFI::as_arc(&raw_reference);
@@ -469,7 +477,7 @@ pub extern "C" fn Servo_StyleSet_InsertStyleSheetBefore(raw_data: RawServoStyleS
     data.stylesheets.insert(index, sheet.clone());
     data.stylesheets_changed = true;
     if flush {
-        data.flush_stylesheets();
+        data.flush_stylesheets(&guard);
     }
 }
 
@@ -477,19 +485,23 @@ pub extern "C" fn Servo_StyleSet_InsertStyleSheetBefore(raw_data: RawServoStyleS
 pub extern "C" fn Servo_StyleSet_RemoveStyleSheet(raw_data: RawServoStyleSetBorrowed,
                                                   raw_sheet: RawServoStyleSheetBorrowed,
                                                   flush: bool) {
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
     let sheet = HasArcFFI::as_arc(&raw_sheet);
     data.stylesheets.retain(|x| !arc_ptr_eq(x, sheet));
     data.stylesheets_changed = true;
     if flush {
-        data.flush_stylesheets();
+        data.flush_stylesheets(&guard);
     }
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_StyleSet_FlushStyleSheets(raw_data: RawServoStyleSetBorrowed) {
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
-    data.flush_stylesheets();
+    data.flush_stylesheets(&guard);
 }
 
 #[no_mangle]
@@ -734,8 +746,10 @@ pub extern "C" fn Servo_StyleSet_Init(pres_context: RawGeckoPresContextOwned)
 
 #[no_mangle]
 pub extern "C" fn Servo_StyleSet_RebuildData(raw_data: RawServoStyleSetBorrowed) {
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
-    data.reset_device();
+    data.reset_device(&guard);
 }
 
 #[no_mangle]

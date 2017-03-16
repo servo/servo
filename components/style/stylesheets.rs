@@ -722,9 +722,8 @@ impl Stylesheet {
     /// on the associated MediaList.
     ///
     /// Always true if no associated MediaList exists.
-    pub fn is_effective_for_device(&self, device: &Device) -> bool {
-        let guard = self.shared_lock.read();  // FIXME: have the caller pass this?
-        self.media.read_with(&guard).evaluate(device)
+    pub fn is_effective_for_device(&self, device: &Device, guard: &SharedRwLockReadGuard) -> bool {
+        self.media.read_with(guard).evaluate(device)
     }
 
     /// Return an iterator over the effective rules within the style-sheet, as
