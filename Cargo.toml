@@ -14,3 +14,7 @@ opt-level = 3
 # Uncomment to profile on Linux:
 # debug = true
 # lto = false
+
+[replace."ipc-channel:0.7.0"]
+git = "https://github.com/danlrobertson/ipc-channel"
+rev = "shmem"
