@@ -60,7 +60,9 @@ impl<T> PseudoElementType<T> {
 
     pub fn style_pseudo_element(&self) -> PseudoElement {
         match *self {
-            PseudoElementType::Normal => unreachable!("style_pseudo_element called with PseudoElementType::Normal"),
+            PseudoElementType::Normal => {
+                unreachable!("style_pseudo_element called with PseudoElementType::Normal")
+            }
             PseudoElementType::Before(_) => PseudoElement::Before,
             PseudoElementType::After(_) => PseudoElement::After,
             PseudoElementType::DetailsSummary(_) => PseudoElement::DetailsSummary,
