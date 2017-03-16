@@ -711,9 +711,6 @@ pub mod root {
     pub const NS_STYLE_TOUCH_ACTION_MANIPULATION: ::std::os::raw::c_uint = 16;
     pub const NS_STYLE_TOP_LAYER_NONE: ::std::os::raw::c_uint = 0;
     pub const NS_STYLE_TOP_LAYER_TOP: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_TRANSFORM_BOX_BORDER_BOX: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_TRANSFORM_BOX_FILL_BOX: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_TRANSFORM_BOX_VIEW_BOX: ::std::os::raw::c_uint = 2;
     pub const NS_STYLE_TRANSITION_TIMING_FUNCTION_EASE: ::std::os::raw::c_uint
               =
         0;
@@ -5804,13 +5801,13 @@ pub mod root {
         #[repr(u8)]
         #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
         pub enum StyleGeometryBox {
-            Content = 0,
-            Padding = 1,
-            Border = 2,
-            Margin = 3,
-            Fill = 4,
-            Stroke = 5,
-            View = 6,
+            ContentBox = 0,
+            PaddingBox = 1,
+            BorderBox = 2,
+            MarginBox = 3,
+            FillBox = 4,
+            StrokeBox = 5,
+            ViewBox = 6,
             NoClip = 7,
             Text = 8,
             NoBox = 9,
@@ -21016,7 +21013,7 @@ pub mod root {
         pub mScrollSnapCoordinate: root::nsTArray<root::mozilla::Position>,
         pub mBackfaceVisibility: u8,
         pub mTransformStyle: u8,
-        pub mTransformBox: u8,
+        pub mTransformBox: root::nsStyleDisplay_StyleGeometryBox,
         pub mSpecifiedTransform: root::RefPtr<root::nsCSSValueSharedList>,
         pub mTransformOrigin: [root::nsStyleCoord; 3usize],
         pub mChildPerspective: root::nsStyleCoord,
@@ -21038,6 +21035,8 @@ pub mod root {
         pub mAnimationIterationCountCount: u32,
         pub mShapeOutside: root::mozilla::StyleShapeSource,
     }
+    pub use self::super::root::mozilla::StyleGeometryBox as
+            nsStyleDisplay_StyleGeometryBox;
     #[test]
     fn bindgen_test_layout_nsStyleDisplay() {
         assert_eq!(::std::mem::size_of::<nsStyleDisplay>() , 416usize , concat
