@@ -10,7 +10,7 @@ use std::sync::Arc;
 use style::error_reporting::ParseErrorReporter;
 use style::media_queries::MediaList;
 use style::parser::ParserContextExtraData;
-use style::properties::{longhands, DeclaredValue, Importance, PropertyDeclaration, PropertyDeclarationBlock};
+use style::properties::{longhands, Importance, PropertyDeclaration, PropertyDeclarationBlock};
 use style::rule_tree::{CascadeLevel, RuleTree, StrongRuleNode, StyleSource};
 use style::stylesheets::{Origin, Stylesheet, CssRule};
 use test::{self, Bencher};
@@ -65,8 +65,8 @@ fn test_insertion(rule_tree: &RuleTree, rules: Vec<(StyleSource, CascadeLevel)>)
 fn test_insertion_style_attribute(rule_tree: &RuleTree, rules: &[(StyleSource, CascadeLevel)]) -> StrongRuleNode {
     let mut rules = rules.to_vec();
     rules.push((StyleSource::Declarations(Arc::new(RwLock::new(PropertyDeclarationBlock::with_one(
-        PropertyDeclaration::Display(DeclaredValue::Value(
-            longhands::display::SpecifiedValue::block)),
+        PropertyDeclaration::Display(
+            longhands::display::SpecifiedValue::block),
         Importance::Normal
     )))), CascadeLevel::UserNormal));
     test_insertion(rule_tree, rules)
