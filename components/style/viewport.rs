@@ -15,7 +15,7 @@ use cssparser::ToCss as ParserToCss;
 use euclid::size::TypedSize2D;
 use media_queries::Device;
 use parser::{ParserContext, log_css_error};
-use shared_lock::SharedRwLockReadGuard;
+use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
 use std::fmt;
@@ -505,9 +505,10 @@ impl ViewportRule {
     }
 }
 
-impl ToCss for ViewportRule {
+impl ToCssWithGuard for ViewportRule {
     // Serialization of ViewportRule is not specced.
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, _guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
+    where W: fmt::Write {
         try!(dest.write_str("@viewport { "));
         let mut iter = self.declarations.iter();
         try!(iter.next().unwrap().to_css(dest));

@@ -14,6 +14,7 @@ use dom::cssstylesheet::CSSStyleSheet;
 use dom_struct::dom_struct;
 use parking_lot::RwLock;
 use std::sync::Arc;
+use style::shared_lock::SharedRwLock;
 use style::stylesheets::CssRules as StyleCssRules;
 
 #[dom_struct]
@@ -39,6 +40,10 @@ impl CSSGroupingRule {
         self.rulelist.or_init(|| CSSRuleList::new(self.global().as_window(),
                                                   parent_stylesheet,
                                                   RulesSource::Rules(self.rules.clone())))
+    }
+
+    pub fn shared_lock(&self) -> &SharedRwLock {
+        self.cssrule.shared_lock()
     }
 }
 
