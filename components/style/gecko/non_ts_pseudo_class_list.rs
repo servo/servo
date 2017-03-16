@@ -44,6 +44,11 @@ macro_rules! apply_non_ts_list {
                 ("disabled", Disabled, disabled, IN_DISABLED_STATE, _),
                 ("checked", Checked, checked, IN_CHECKED_STATE, _),
                 ("indeterminate", Indeterminate, indeterminate, IN_INDETERMINATE_STATE, _),
+                ("placeholder-shown", PlaceholderShown, placeholderShown, IN_PLACEHOLDER_SHOWN_STATE, _),
+                ("target", Target, target, IN_TARGET_STATE, _),
+                ("valid", Valid, valid, IN_VALID_STATE, _),
+                ("invalid", Invalid, invalid, IN_INVALID_STATE, _),
+                ("-moz-ui-valid", MozUIValid, mozUIValid, IN_MOZ_UI_VALID_STATE, _),
                 ("read-write", ReadWrite, _, IN_READ_WRITE_STATE, _),
                 ("read-only", ReadOnly, _, IN_READ_WRITE_STATE, _),
 

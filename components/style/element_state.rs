@@ -37,7 +37,13 @@ bitflags! {
         const IN_TARGET_STATE = 0x100,
         #[doc = "https://fullscreen.spec.whatwg.org/#%3Afullscreen-pseudo-class"]
         const IN_FULLSCREEN_STATE = 0x200,
+        #[doc = "https://html.spec.whatwg.org/multipage/#selector-valid"]
+        const IN_VALID_STATE = 0x400,
+        #[doc = "https://html.spec.whatwg.org/multipage/#selector-invalid"]
+        const IN_INVALID_STATE = 0x800,
+        #[doc = "Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/:-moz-ui-valid"]
+        const IN_MOZ_UI_VALID_STATE = 0x1000,
         #[doc = "https://html.spec.whatwg.org/multipage/#selector-read-write"]
-        const IN_READ_WRITE_STATE = 0x400,
+        const IN_READ_WRITE_STATE = 0x2000,
     }
 }
