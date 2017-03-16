@@ -8,6 +8,8 @@ extern crate lazy_static;
 #[cfg(feature = "bindgen")]
 extern crate bindgen;
 #[cfg(feature = "bindgen")]
+extern crate log;
+#[cfg(feature = "bindgen")]
 extern crate regex;
 extern crate walkdir;
 
