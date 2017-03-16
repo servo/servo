@@ -3,6 +3,7 @@
   "dom.bluetooth.testing.enabled": false,
   "dom.forcetouch.enabled": false,
   "dom.mouseevent.which.enabled": false,
+  "dom.mutation_observer.enabled": false,
   "dom.mozbrowser.enabled": false,
   "dom.permissions.enabled": false,
   "dom.permissions.testing.allowed_in_nonsecure_contexts": false,

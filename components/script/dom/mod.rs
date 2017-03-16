@@ -378,6 +378,8 @@ pub mod messageevent;
 pub mod mimetype;
 pub mod mimetypearray;
 pub mod mouseevent;
+pub mod mutationobserver;
+pub mod mutationrecord;
 pub mod namednodemap;
 pub mod navigator;
 pub mod navigatorinfo;
