@@ -1051,7 +1051,7 @@ def run_lint_scripts(only_changed_files=False, progress=True, stylo=False):
 
 
 def check_commits(path='.'):
-    """Gets all commits since the last merge.."""
+    """Gets all commits since the last merge."""
     args = ['git', 'log', '-n1', '--merges', '--format=%H']
     last_merge = subprocess.check_output(args, cwd=path).strip()
     args = ['git', 'log', '{}..HEAD'.format(last_merge), '--format=%s']
@@ -1061,6 +1061,9 @@ def check_commits(path='.'):
         # .split() to only match entire words
         if 'wip' in commit.split():
             yield ('.', 0, 'no commits should contain WIP')
+
+    if len(commits) > 1:
+        yield ('.', 0, 'multiple commits should be squashed into one commit.')
 
     raise StopIteration
 
