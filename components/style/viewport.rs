@@ -15,6 +15,7 @@ use cssparser::ToCss as ParserToCss;
 use euclid::size::TypedSize2D;
 use media_queries::Device;
 use parser::{ParserContext, log_css_error};
+use shared_lock::SharedRwLockReadGuard;
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
 use std::fmt;
@@ -555,13 +556,14 @@ impl Cascade {
         }
     }
 
-    pub fn from_stylesheets<'a, I>(stylesheets: I, device: &Device) -> Self
+    pub fn from_stylesheets<'a, I>(stylesheets: I, guard: &SharedRwLockReadGuard,
+                                   device: &Device) -> Self
         where I: IntoIterator,
               I::Item: AsRef<Stylesheet>,
     {
         let mut cascade = Self::new();
         for stylesheet in stylesheets {
-            stylesheet.as_ref().effective_viewport_rules(device, |rule| {
+            stylesheet.as_ref().effective_viewport_rules(device, guard, |rule| {
                 for declaration in &rule.declarations {
                     cascade.add(Cow::Borrowed(declaration))
                 }
