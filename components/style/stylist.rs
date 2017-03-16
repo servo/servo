@@ -28,7 +28,7 @@ use selectors::matching::{AFFECTED_BY_STYLE_ATTRIBUTE, AFFECTED_BY_PRESENTATIONA
 use selectors::matching::{ElementSelectorFlags, StyleRelations, matches_complex_selector};
 use selectors::parser::{Selector, SimpleSelector, LocalName as LocalNameSelector, ComplexSelector};
 use selectors::parser::SelectorMethods;
-#[cfg(feature = "servo")] use shared_lock::SharedRwLockReadGuard;
+use shared_lock::SharedRwLockReadGuard;
 use sink::Push;
 use smallvec::VecLike;
 use std::borrow::Borrow;
@@ -159,6 +159,7 @@ impl Stylist {
     /// device is dirty, which means we need to re-evaluate media queries.
     pub fn update(&mut self,
                   doc_stylesheets: &[Arc<Stylesheet>],
+                  doc_guard: &SharedRwLockReadGuard,
                   ua_stylesheets: Option<&UserAgentStylesheets>,
                   stylesheets_changed: bool) -> bool {
         if !(self.is_device_dirty || stylesheets_changed) {
@@ -193,17 +194,18 @@ impl Stylist {
         self.non_common_style_affecting_attributes_selectors.clear();
 
         if let Some(ua_stylesheets) = ua_stylesheets {
+            let ua_guard = ua_stylesheets.shared_lock.read();
             for stylesheet in &ua_stylesheets.user_or_user_agent_stylesheets {
-                self.add_stylesheet(&stylesheet);
+                self.add_stylesheet(&stylesheet, &ua_guard);
             }
 
             if self.quirks_mode {
-                self.add_stylesheet(&ua_stylesheets.quirks_mode_stylesheet);
+                self.add_stylesheet(&ua_stylesheets.quirks_mode_stylesheet, &ua_guard);
             }
         }
 
         for ref stylesheet in doc_stylesheets.iter() {
-            self.add_stylesheet(stylesheet);
+            self.add_stylesheet(stylesheet, doc_guard);
         }
 
         debug!("Stylist stats:");
@@ -227,8 +229,8 @@ impl Stylist {
         true
     }
 
-    fn add_stylesheet(&mut self, stylesheet: &Stylesheet) {
-        if stylesheet.disabled() || !stylesheet.is_effective_for_device(&self.device) {
+    fn add_stylesheet(&mut self, stylesheet: &Stylesheet, guard: &SharedRwLockReadGuard) {
+        if stylesheet.disabled() || !stylesheet.is_effective_for_device(&self.device, guard) {
             return;
         }
 
@@ -271,7 +273,7 @@ impl Stylist {
                 }
                 CssRule::Import(ref import) => {
                     let import = import.read();
-                    self.add_stylesheet(&import.stylesheet)
+                    self.add_stylesheet(&import.stylesheet, guard)
                 }
                 CssRule::Keyframes(ref keyframes_rule) => {
                     let keyframes_rule = keyframes_rule.read();
