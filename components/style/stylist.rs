@@ -167,7 +167,9 @@ impl Stylist {
         }
 
         let cascaded_rule = ViewportRule {
-            declarations: viewport::Cascade::from_stylesheets(doc_stylesheets, &self.device).finish(),
+            declarations: viewport::Cascade::from_stylesheets(
+                doc_stylesheets, doc_guard, &self.device
+            ).finish(),
         };
 
         self.viewport_constraints =
@@ -237,7 +239,7 @@ impl Stylist {
         // Cheap `Arc` clone so that the closure below can borrow `&mut Stylist`.
         let device = self.device.clone();
 
-        stylesheet.effective_rules(&device, |rule| {
+        stylesheet.effective_rules(&device, guard, |rule| {
             match *rule {
                 CssRule::Style(ref style_rule) => {
                     let guard = style_rule.read();
@@ -467,7 +469,7 @@ impl Stylist {
     pub fn set_device(&mut self, mut device: Device, guard: &SharedRwLockReadGuard,
                       stylesheets: &[Arc<Stylesheet>]) {
         let cascaded_rule = ViewportRule {
-            declarations: viewport::Cascade::from_stylesheets(stylesheets, &device).finish(),
+            declarations: viewport::Cascade::from_stylesheets(stylesheets, guard, &device).finish(),
         };
 
         self.viewport_constraints =

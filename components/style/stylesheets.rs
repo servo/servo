@@ -733,9 +733,9 @@ impl Stylesheet {
     /// nested rules will be skipped. Use `rules` if all rules need to be
     /// examined.
     #[inline]
-    pub fn effective_rules<F>(&self, device: &Device, mut f: F) where F: FnMut(&CssRule) {
-        let guard = self.shared_lock.read();  // FIXME: have the caller pass this?
-        effective_rules(&self.rules.read().0, device, &guard, &mut f);
+    pub fn effective_rules<F>(&self, device: &Device, guard: &SharedRwLockReadGuard, mut f: F)
+    where F: FnMut(&CssRule) {
+        effective_rules(&self.rules.read().0, device, guard, &mut f);
     }
 
     /// Returns whether the stylesheet has been explicitly disabled through the
@@ -776,8 +776,9 @@ macro_rules! rule_filter {
         impl Stylesheet {
             $(
                 #[allow(missing_docs)]
-                pub fn $method<F>(&self, device: &Device, mut f: F) where F: FnMut(&$rule_type) {
-                    self.effective_rules(device, |rule| {
+                pub fn $method<F>(&self, device: &Device, guard: &SharedRwLockReadGuard, mut f: F)
+                where F: FnMut(&$rule_type) {
+                    self.effective_rules(device, guard, |rule| {
                         if let CssRule::$variant(ref lock) = *rule {
                             let rule = lock.read();
                             f(&rule)
