@@ -76,7 +76,7 @@ use style::properties::parse_one_declaration;
 use style::restyle_hints::{self, RestyleHint};
 use style::selector_parser::PseudoElementCascadeType;
 use style::sequential;
-use style::shared_lock::{SharedRwLock, ToCssWithGuard};
+use style::shared_lock::{SharedRwLock, ToCssWithGuard, Locked};
 use style::string_cache::Atom;
 use style::stylesheets::{CssRule, CssRules, ImportRule, MediaRule, NamespaceRule};
 use style::stylesheets::{Origin, Stylesheet, StyleRule};
@@ -964,29 +964,37 @@ pub extern "C" fn Servo_DeclarationBlock_RemovePropertyById(declarations: RawSer
 
 #[no_mangle]
 pub extern "C" fn Servo_MediaList_GetText(list: RawServoMediaListBorrowed, result: *mut nsAString) {
-    let list = RwLock::<MediaList>::as_arc(&list);
-    list.read().to_css(unsafe { result.as_mut().unwrap() }).unwrap();
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
+    let list = Locked::<MediaList>::as_arc(&list);
+    list.read_with(&guard).to_css(unsafe { result.as_mut().unwrap() }).unwrap();
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_MediaList_SetText(list: RawServoMediaListBorrowed, text: *const nsACString) {
-    let list = RwLock::<MediaList>::as_arc(&list);
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let mut guard = global_style_data.shared_lock.write();
+    let list = Locked::<MediaList>::as_arc(&list);
     let text = unsafe { text.as_ref().unwrap().as_str_unchecked() };
     let mut parser = Parser::new(&text);
-    *list.write() = parse_media_query_list(&mut parser);
+    *list.write_with(&mut guard) = parse_media_query_list(&mut parser);
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_MediaList_GetLength(list: RawServoMediaListBorrowed) -> u32 {
-    let list = RwLock::<MediaList>::as_arc(&list);
-    list.read().media_queries.len() as u32
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
+    let list = Locked::<MediaList>::as_arc(&list);
+    list.read_with(&guard).media_queries.len() as u32
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_MediaList_GetMediumAt(list: RawServoMediaListBorrowed, index: u32,
                                               result: *mut nsAString) -> bool {
-    let list = RwLock::<MediaList>::as_arc(&list);
-    if let Some(media_query) = list.read().media_queries.get(index as usize) {
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
+    let list = Locked::<MediaList>::as_arc(&list);
+    if let Some(media_query) = list.read_with(&guard).media_queries.get(index as usize) {
         media_query.to_css(unsafe { result.as_mut().unwrap() }).unwrap();
         true
     } else {
@@ -997,17 +1005,21 @@ pub extern "C" fn Servo_MediaList_GetMediumAt(list: RawServoMediaListBorrowed, i
 #[no_mangle]
 pub extern "C" fn Servo_MediaList_AppendMedium(list: RawServoMediaListBorrowed,
                                                new_medium: *const nsACString) {
-    let list = RwLock::<MediaList>::as_arc(&list);
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let mut guard = global_style_data.shared_lock.write();
+    let list = Locked::<MediaList>::as_arc(&list);
     let new_medium = unsafe { new_medium.as_ref().unwrap().as_str_unchecked() };
-    list.write().append_medium(new_medium);
+    list.write_with(&mut guard).append_medium(new_medium);
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_MediaList_DeleteMedium(list: RawServoMediaListBorrowed,
                                                old_medium: *const nsACString) -> bool {
-    let list = RwLock::<MediaList>::as_arc(&list);
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let mut guard = global_style_data.shared_lock.write();
+    let list = Locked::<MediaList>::as_arc(&list);
     let old_medium = unsafe { old_medium.as_ref().unwrap().as_str_unchecked() };
-    list.write().delete_medium(old_medium)
+    list.write_with(&mut guard).delete_medium(old_medium)
 }
 
 macro_rules! get_longhand_from_id {
