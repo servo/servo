@@ -1094,17 +1094,32 @@ impl PropertyDeclaration {
     /// Given a property declaration, return the property declaration id.
     pub fn id(&self) -> PropertyDeclarationId {
         match *self {
+            PropertyDeclaration::Custom(ref name, _) => {
+                return PropertyDeclarationId::Custom(name)
+            }
+            PropertyDeclaration::CSSWideKeyword(id, _) |
+            PropertyDeclaration::WithVariables(id, _) => {
+                return PropertyDeclarationId::Longhand(id)
+            }
+            _ => {}
+        }
+        let longhand_id = match *self {
             % for property in data.longhands:
                 PropertyDeclaration::${property.camel_case}(..) => {
-                    PropertyDeclarationId::Longhand(LonghandId::${property.camel_case})
+                    LonghandId::${property.camel_case}
                 }
             % endfor
-            PropertyDeclaration::CSSWideKeyword(id, _) => PropertyDeclarationId::Longhand(id),
-            PropertyDeclaration::WithVariables(id, _) => PropertyDeclarationId::Longhand(id),
-            PropertyDeclaration::Custom(ref name, _) => {
-                PropertyDeclarationId::Custom(name)
+            PropertyDeclaration::CSSWideKeyword(..) |
+            PropertyDeclaration::WithVariables(..) |
+            PropertyDeclaration::Custom(..) => {
+                debug_assert!(false, "unreachable");
+                // This value is never used, but having an expression of the same "shape"
+                // as for other variants helps the optimizer compile this `match` expression
+                // to a lookup table.
+                LonghandId::BackgroundColor
             }
-        }
+        };
+        PropertyDeclarationId::Longhand(longhand_id)
     }
 
     fn with_variables_from_shorthand(&self, shorthand: ShorthandId) -> Option< &str> {
