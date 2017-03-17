@@ -56,7 +56,6 @@ use style::gecko_bindings::structs::{ThreadSafePrincipalHolder, ThreadSafeURIHol
 use style::gecko_bindings::structs::{nsRestyleHint, nsChangeHint};
 use style::gecko_bindings::structs::Loader;
 use style::gecko_bindings::structs::RawGeckoPresContextOwned;
-use style::gecko_bindings::structs::RawServoAnimationValueBorrowedListBorrowed;
 use style::gecko_bindings::structs::ServoStyleSheet;
 use style::gecko_bindings::structs::nsCSSValueSharedList;
 use style::gecko_bindings::structs::nsTimingFunction;
@@ -258,20 +257,6 @@ pub extern "C" fn Servo_AnimationValueMap_Push(value_map: RawServoAnimationValue
     let value_map = RwLock::<AnimationValueMap>::as_arc(&value_map);
     let value = AnimationValue::as_arc(&value).as_ref();
     value_map.write().insert(property.into(), value.clone());
-}
-
-#[no_mangle]
-pub extern "C" fn Servo_AnimationValues_Uncompute(value: RawServoAnimationValueBorrowedListBorrowed)
-     -> RawServoDeclarationBlockStrong
-{
-    let value = unsafe { value.as_ref().unwrap() };
-    let mut block = PropertyDeclarationBlock::new();
-    for v in value.iter() {
-        let raw_anim = unsafe { v.as_ref().unwrap() };
-        let anim = AnimationValue::as_arc(&raw_anim);
-        block.push(anim.uncompute(), Importance::Normal);
-    }
-    Arc::new(RwLock::new(block)).into_strong()
 }
 
 macro_rules! get_property_id_from_nscsspropertyid {

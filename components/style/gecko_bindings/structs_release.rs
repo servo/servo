@@ -25194,10 +25194,10 @@ pub mod root {
     }
     #[repr(C)]
     #[derive(Debug, Copy, Clone)]
-    pub struct RawServoAnimationValue([u8; 0]);
+    pub struct RawServoStyleSet([u8; 0]);
     #[repr(C)]
     #[derive(Debug, Copy, Clone)]
-    pub struct RawServoStyleSet([u8; 0]);
+    pub struct RawServoAnimationValue([u8; 0]);
     #[repr(C)]
     #[derive(Debug, Copy, Clone)]
     pub struct RawServoAnimationValueMap([u8; 0]);
@@ -25210,8 +25210,6 @@ pub mod root {
         root::nsTArray<root::nsTArray<root::mozilla::PropertyStyleAnimationValuePair>>;
     pub type RawGeckoAnimationValueList =
         root::nsTArray<root::mozilla::PropertyStyleAnimationValuePair>;
-    pub type RawServoAnimationValueBorrowedList =
-        root::nsTArray<*const root::RawServoAnimationValue>;
     pub type RawGeckoStyleAnimationList =
         root::nsStyleAutoArray<root::mozilla::StyleAnimation>;
     pub type RawServoAnimationValueMapBorrowed =
@@ -25227,8 +25225,6 @@ pub mod root {
     pub type RawGeckoPresContextBorrowedMut = *mut root::RawGeckoPresContext;
     pub type RawGeckoAnimationValueListBorrowedMut =
         *mut root::RawGeckoAnimationValueList;
-    pub type RawServoAnimationValueBorrowedListBorrowed =
-        *const root::RawServoAnimationValueBorrowedList;
     pub type RawGeckoKeyframeListBorrowedMut =
         *mut root::RawGeckoKeyframeList;
     pub type RawGeckoKeyframeListBorrowed = *const root::RawGeckoKeyframeList;

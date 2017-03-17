@@ -175,7 +175,6 @@ use gecko_bindings::structs::nsresult;
 use gecko_bindings::structs::Loader;
 use gecko_bindings::structs::ServoStyleSheet;
 use gecko_bindings::structs::EffectCompositor_CascadeLevel;
-use gecko_bindings::structs::RawServoAnimationValueBorrowedListBorrowed;
 pub type nsTArrayBorrowed_uintptr_t<'a> = &'a mut ::gecko_bindings::structs::nsTArray<usize>;
 pub type ServoCssRulesStrong = ::gecko_bindings::sugar::ownership::Strong<ServoCssRules>;
 pub type ServoCssRulesBorrowed<'a> = &'a ServoCssRules;
@@ -1512,11 +1511,6 @@ extern "C" {
                                                  RawServoAnimationValueBorrowed,
                                              progress: f64)
      -> RawServoAnimationValueStrong;
-}
-extern "C" {
-    pub fn Servo_AnimationValues_Uncompute(value:
-                                               RawServoAnimationValueBorrowedListBorrowed)
-     -> RawServoDeclarationBlockStrong;
 }
 extern "C" {
     pub fn Servo_AnimationValue_Serialize(value:

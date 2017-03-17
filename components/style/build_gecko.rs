@@ -420,7 +420,6 @@ mod bindings {
             "mozilla::DefaultDelete",
             "mozilla::Side",
             "mozilla::binding_danger::AssertAndSuppressCleanupPolicy",
-            "RawServoAnimationValueBorrowedListBorrowed",
             "RawServoAnimationValueMapBorrowed",
         ];
         let opaque_types = [
@@ -622,7 +621,6 @@ mod bindings {
             "Loader",
             "ServoStyleSheet",
             "EffectCompositor_CascadeLevel",
-            "RawServoAnimationValueBorrowedListBorrowed",
         ];
         struct ArrayType {
             cpp_type: &'static str,
