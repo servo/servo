@@ -34,7 +34,6 @@ use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone
 use values::computed::{BorderRadiusSize, ClipRect, LengthOrNone};
 use values::computed::{CalcLengthOrPercentage, Context, LengthOrPercentage};
 use values::computed::{MaxLength, MinLength};
-use values::computed::ColorOrAuto;
 use values::computed::position::{HorizontalPosition, Position, VerticalPosition};
 use values::computed::ToComputedValue;
 use values::specified::Angle as SpecifiedAngle;
@@ -396,6 +395,13 @@ impl Interpolate for Au {
     #[inline]
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         Ok(Au((self.0 as f64 + (other.0 as f64 - self.0 as f64) * progress).round() as i32))
+    }
+}
+
+impl Interpolate for Auto {
+    #[inline]
+    fn interpolate(&self, _other: &Self, _progress: f64) -> Result<Self, ()> {
+        Ok(Auto)
     }
 }
 
@@ -1832,16 +1838,17 @@ impl Interpolate for TransformList {
     }
 }
 
-/// https://drafts.csswg.org/css-transitions-1/#animtype-color
-impl Interpolate for ColorOrAuto {
+impl<T, U> Interpolate for Either<T, U>
+        where T: Interpolate + Copy, U: Interpolate + Copy,
+{
     #[inline]
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         match (*self, *other) {
             (Either::First(ref this), Either::First(ref other)) => {
                 this.interpolate(&other, progress).map(Either::First)
             },
-            (Either::Second(Auto), Either::Second(Auto)) => {
-                Ok(Either::Second(Auto))
+            (Either::Second(ref this), Either::Second(ref other)) => {
+                this.interpolate(&other, progress).map(Either::Second)
             },
             _ => {
                 let interpolated = if progress < 0.5 { *self } else { *other };
