@@ -296,6 +296,11 @@ class CommandBase(object):
         if not self.config["tools"]["system-rust"]:
             self.config["tools"]["rust-root"] = path.join(
                 self.context.sharedir, "rust", self.rust_path())
+        if use_stable_rust:
+            # Cargo maintainer's position is that CARGO_INCREMENTAL is a nightly-only feature
+            # and should not be used on the stable channel.
+            # https://github.com/rust-lang/cargo/issues/3835
+            self.config["build"]["incremental"] = False
 
     def use_stable_rust(self):
         return self._use_stable_rust
