@@ -421,6 +421,7 @@ mod bindings {
             "mozilla::Side",
             "mozilla::binding_danger::AssertAndSuppressCleanupPolicy",
             "RawServoAnimationValueBorrowedListBorrowed",
+            "RawServoAnimationValueMapBorrowed",
         ];
         let opaque_types = [
             "std::pair__PCCP",
@@ -541,6 +542,7 @@ mod bindings {
             "RawGeckoNode",
             "RawGeckoAnimationValueList",
             "RawServoAnimationValue",
+            "RawServoAnimationValueMap",
             "RawServoDeclarationBlock",
             "RawGeckoPresContext",
             "RawGeckoPresContextOwned",

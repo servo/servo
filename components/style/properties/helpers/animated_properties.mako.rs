@@ -25,6 +25,7 @@ use properties::longhands::visibility::computed_value::T as Visibility;
 use properties::longhands::z_index::computed_value::T as ZIndex;
 #[cfg(feature = "gecko")] use properties::{PropertyDeclarationId, LonghandId};
 use std::cmp;
+#[cfg(feature = "gecko")] use std::collections::HashMap;
 use std::fmt;
 use style_traits::ToCss;
 use super::ComputedValues;
@@ -251,6 +252,12 @@ impl AnimatedProperty {
         }
     }
 }
+
+/// A collection of AnimationValue that were composed on an element.
+/// This HashMap stores the values that are the last AnimationValue to be
+/// composed for each TransitionProperty.
+#[cfg(feature = "gecko")]
+pub type AnimationValueMap = HashMap<TransitionProperty, AnimationValue>;
 
 /// An enum to represent a single computed value belonging to an animated
 /// property in order to be interpolated with another one. When interpolating,
