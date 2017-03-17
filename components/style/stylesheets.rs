@@ -316,7 +316,7 @@ impl CssRule {
             }
             CssRule::Media(ref lock) => {
                 let media_rule = lock.read();
-                let mq = media_rule.media_queries.read();
+                let mq = media_rule.media_queries.read_with(guard);
                 let rules = &media_rule.rules.read().0;
                 f(rules, Some(&mq))
             }
@@ -477,7 +477,7 @@ impl ToCssWithGuard for KeyframesRule {
 #[allow(missing_docs)]
 #[derive(Debug)]
 pub struct MediaRule {
-    pub media_queries: Arc<RwLock<MediaList>>,
+    pub media_queries: Arc<Locked<MediaList>>,
     pub rules: Arc<RwLock<CssRules>>,
 }
 
@@ -487,7 +487,7 @@ impl ToCssWithGuard for MediaRule {
     fn to_css<W>(&self, guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
     where W: fmt::Write {
         try!(dest.write_str("@media "));
-        try!(self.media_queries.read().to_css(dest));
+        try!(self.media_queries.read_with(guard).to_css(dest));
         try!(dest.write_str(" {"));
         for rule in self.rules.read().0.iter() {
             try!(dest.write_str(" "));
@@ -753,6 +753,7 @@ impl<'b> TopLevelRuleParser<'b> {
     fn nested<'a: 'b>(&'a self) -> NestedRuleParser<'a, 'b> {
         NestedRuleParser {
             stylesheet_origin: self.stylesheet_origin,
+            shared_lock: self.shared_lock,
             context: &self.context,
             namespaces: self.namespaces,
         }
@@ -774,7 +775,7 @@ enum AtRulePrelude {
     /// A @font-face rule prelude.
     FontFace,
     /// A @media rule prelude, with its media queries.
-    Media(Arc<RwLock<MediaList>>),
+    Media(Arc<Locked<MediaList>>),
     /// An @supports rule, with its conditional
     Supports(SupportsCondition),
     /// A @viewport rule prelude.
@@ -900,6 +901,7 @@ impl<'a> QualifiedRuleParser for TopLevelRuleParser<'a> {
 #[derive(Clone)]  // shallow, relatively cheap .clone
 struct NestedRuleParser<'a, 'b: 'a> {
     stylesheet_origin: Origin,
+    shared_lock: &'a SharedRwLock,
     context: &'a ParserContext<'b>,
     namespaces: &'b Namespaces,
 }
@@ -931,7 +933,8 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
         match_ignore_ascii_case! { name,
             "media" => {
                 let media_queries = parse_media_query_list(input);
-                Ok(AtRuleType::WithBlock(AtRulePrelude::Media(Arc::new(RwLock::new(media_queries)))))
+                let arc = Arc::new(self.shared_lock.wrap(media_queries));
+                Ok(AtRuleType::WithBlock(AtRulePrelude::Media(arc)))
             },
             "supports" => {
                 let cond = SupportsCondition::parse(input)?;
