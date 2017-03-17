@@ -34,7 +34,6 @@ use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone
 use values::computed::{BorderRadiusSize, ClipRect, LengthOrNone};
 use values::computed::{CalcLengthOrPercentage, Context, LengthOrPercentage};
 use values::computed::{MaxLength, MinLength};
-use values::computed::ColorOrAuto;
 use values::computed::position::{HorizontalPosition, Position, VerticalPosition};
 use values::computed::ToComputedValue;
 use values::specified::Angle as SpecifiedAngle;
@@ -1832,8 +1831,7 @@ impl Interpolate for TransformList {
     }
 }
 
-/// https://drafts.csswg.org/css-transitions-1/#animtype-color
-impl Interpolate for ColorOrAuto {
+impl<T> Interpolate for Either<T, Auto> where T: Interpolate + Copy {
     #[inline]
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         match (*self, *other) {
