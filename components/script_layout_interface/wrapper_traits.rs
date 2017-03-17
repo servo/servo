@@ -405,6 +405,7 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
                             let mut data = self.get_style_data().unwrap().borrow_mut();
                             let new_style =
                                 context.stylist.precomputed_values_for_pseudo(
+                                    &context.guards,
                                     &style_pseudo,
                                     Some(data.styles().primary.values()),
                                     CascadeFlags::empty());
@@ -421,6 +422,7 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
                             let new_style =
                                 context.stylist
                                        .lazily_compute_pseudo_element_style(
+                                           &context.guards,
                                            unsafe { &self.unsafe_get() },
                                            &style_pseudo,
                                            data.styles().primary.values());

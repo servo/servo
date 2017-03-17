@@ -81,7 +81,7 @@ fn test_parse_stylesheet() {
                 prefix: None,
                 url: NsAtom::from("http://www.w3.org/1999/xhtml")
             }))),
-            CssRule::Style(Arc::new(RwLock::new(StyleRule {
+            CssRule::Style(Arc::new(stylesheet.shared_lock.wrap(StyleRule {
                 selectors: SelectorList(vec![
                     Selector {
                         complex_selector: Arc::new(ComplexSelector {
@@ -117,7 +117,7 @@ fn test_parse_stylesheet() {
                      Importance::Important),
                 ]))),
             }))),
-            CssRule::Style(Arc::new(RwLock::new(StyleRule {
+            CssRule::Style(Arc::new(stylesheet.shared_lock.wrap(StyleRule {
                 selectors: SelectorList(vec![
                     Selector {
                         complex_selector: Arc::new(ComplexSelector {
@@ -159,7 +159,7 @@ fn test_parse_stylesheet() {
                      Importance::Normal),
                 ]))),
             }))),
-            CssRule::Style(Arc::new(RwLock::new(StyleRule {
+            CssRule::Style(Arc::new(stylesheet.shared_lock.wrap(StyleRule {
                 selectors: SelectorList(vec![
                     Selector {
                         complex_selector: Arc::new(ComplexSelector {

@@ -51,18 +51,7 @@ impl_arc_ffi!(ComputedValues => ServoComputedValues
 impl_arc_ffi!(RwLock<PropertyDeclarationBlock> => RawServoDeclarationBlock
               [Servo_DeclarationBlock_AddRef, Servo_DeclarationBlock_Release]);
 
-/// FIXME: Remove once StyleRule is actually in Locked<_>
-pub trait HackHackHack {
-    fn as_arc<'a>(ptr: &'a &RawServoStyleRule) -> &'a ::std::sync::Arc<RwLock<StyleRule>>;
-}
-
-impl HackHackHack for Locked<StyleRule> {
-    fn as_arc<'a>(ptr: &'a &RawServoStyleRule) -> &'a ::std::sync::Arc<RwLock<StyleRule>> {
-        RwLock::<StyleRule>::as_arc(ptr)
-    }
-}
-
-impl_arc_ffi!(RwLock<StyleRule> => RawServoStyleRule
+impl_arc_ffi!(Locked<StyleRule> => RawServoStyleRule
               [Servo_StyleRule_AddRef, Servo_StyleRule_Release]);
 
 impl_arc_ffi!(Locked<ImportRule> => RawServoImportRule

@@ -215,7 +215,7 @@ pub enum CssRule {
 
     Namespace(Arc<Locked<NamespaceRule>>),
     Import(Arc<Locked<ImportRule>>),
-    Style(Arc<RwLock<StyleRule>>),
+    Style(Arc<Locked<StyleRule>>),
     Media(Arc<Locked<MediaRule>>),
     FontFace(Arc<Locked<FontFaceRule>>),
     Viewport(Arc<Locked<ViewportRule>>),
@@ -380,7 +380,7 @@ impl ToCssWithGuard for CssRule {
         match *self {
             CssRule::Namespace(ref lock) => lock.read_with(guard).to_css(guard, dest),
             CssRule::Import(ref lock) => lock.read_with(guard).to_css(guard, dest),
-            CssRule::Style(ref lock) => lock.read().to_css(guard, dest),
+            CssRule::Style(ref lock) => lock.read_with(guard).to_css(guard, dest),
             CssRule::FontFace(ref lock) => lock.read_with(guard).to_css(guard, dest),
             CssRule::Viewport(ref lock) => lock.read_with(guard).to_css(guard, dest),
             CssRule::Keyframes(ref lock) => lock.read_with(guard).to_css(guard, dest),
@@ -736,18 +736,6 @@ rule_filter! {
     effective_supports_rules(Supports => SupportsRule),
 }
 
-/// FIXME: Remove once StyleRule is actually in Locked<_>
-pub trait RwLockStyleRulePretendLockedStyleRule<T> {
-    /// Pretend we’re Locked<_>
-    fn read_with(&self, guard: &SharedRwLockReadGuard) -> ::parking_lot::RwLockReadGuard<T>;
-}
-
-impl RwLockStyleRulePretendLockedStyleRule<StyleRule> for RwLock<StyleRule> {
-    fn read_with(&self, _: &SharedRwLockReadGuard) -> ::parking_lot::RwLockReadGuard<StyleRule> {
-        self.read()
-    }
-}
-
 /// The stylesheet loader is the abstraction used to trigger network requests
 /// for `@import` rules.
 pub trait StylesheetLoader {
@@ -1030,7 +1018,7 @@ impl<'a, 'b> QualifiedRuleParser for NestedRuleParser<'a, 'b> {
 
     fn parse_block(&mut self, prelude: SelectorList<SelectorImpl>, input: &mut Parser)
                    -> Result<CssRule, ()> {
-        Ok(CssRule::Style(Arc::new(RwLock::new(StyleRule {
+        Ok(CssRule::Style(Arc::new(self.shared_lock.wrap(StyleRule {
             selectors: prelude,
             block: Arc::new(RwLock::new(parse_property_declaration_list(self.context, input)))
         }))))
