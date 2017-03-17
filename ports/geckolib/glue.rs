@@ -23,7 +23,6 @@ use style::context::{ThreadLocalStyleContext, ThreadLocalStyleContextCreationInf
 use style::data::{ElementData, ElementStyles, RestyleData};
 use style::dom::{ShowSubtreeData, TElement, TNode};
 use style::error_reporting::StdoutErrorReporter;
-use style::gecko::arc_types::HackHackHack;
 use style::gecko::data::{PerDocumentStyleData, PerDocumentStyleDataImpl};
 use style::gecko::restyle_damage::GeckoRestyleDamage;
 use style::gecko::selector_parser::{SelectorImpl, PseudoElement};
@@ -77,12 +76,11 @@ use style::properties::parse_one_declaration;
 use style::restyle_hints::{self, RestyleHint};
 use style::selector_parser::PseudoElementCascadeType;
 use style::sequential;
-use style::shared_lock::{SharedRwLock, ToCssWithGuard, Locked};
+use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, ReadGuards, ToCssWithGuard, Locked};
 use style::string_cache::Atom;
 use style::stylesheets::{CssRule, CssRules, ImportRule, MediaRule, NamespaceRule};
 use style::stylesheets::{Origin, Stylesheet, StyleRule};
 use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
-use style::stylesheets::RwLockStyleRulePretendLockedStyleRule;
 use style::supports::parse_condition_or_declaration;
 use style::thread_state;
 use style::timer::Timer;
@@ -167,12 +165,14 @@ pub extern "C" fn Servo_Shutdown() {
     gecko_properties::shutdown();
 }
 
-fn create_shared_context(per_doc_data: &PerDocumentStyleDataImpl) -> SharedStyleContext {
+fn create_shared_context<'a>(guard: &'a SharedRwLockReadGuard,
+                             per_doc_data: &PerDocumentStyleDataImpl) -> SharedStyleContext<'a> {
     let local_context_data =
         ThreadLocalStyleContextCreationInfo::new(per_doc_data.new_animations_sender.clone());
 
     SharedStyleContext {
         stylist: per_doc_data.stylist.clone(),
+        guards: ReadGuards::same(guard),
         running_animations: per_doc_data.running_animations.clone(),
         expired_animations: per_doc_data.expired_animations.clone(),
         // FIXME(emilio): Stop boxing here.
@@ -205,8 +205,9 @@ fn traverse_subtree(element: GeckoElement, raw_data: RawServoStyleSetBorrowed,
     debug!("Traversing subtree:");
     debug!("{:?}", ShowSubtreeData(element.as_node()));
 
-    let shared_style_context = create_shared_context(&per_doc_data);
     let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
+    let shared_style_context = create_shared_context(&guard, &per_doc_data);
 
     let traversal_driver = if global_style_data.style_thread_pool.is_none() {
         TraversalDriver::Sequential
@@ -625,22 +626,28 @@ impl_basic_rule_funcs! { (Namespace, NamespaceRule, RawServoNamespaceRule),
 
 #[no_mangle]
 pub extern "C" fn Servo_StyleRule_GetStyle(rule: RawServoStyleRuleBorrowed) -> RawServoDeclarationBlockStrong {
-    let rule = RwLock::<StyleRule>::as_arc(&rule);
-    rule.read().block.clone().into_strong()
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
+    let rule = Locked::<StyleRule>::as_arc(&rule);
+    rule.read_with(&guard).block.clone().into_strong()
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_StyleRule_SetStyle(rule: RawServoStyleRuleBorrowed,
                                            declarations: RawServoDeclarationBlockBorrowed) {
-    let rule = RwLock::<StyleRule>::as_arc(&rule);
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let mut guard = global_style_data.shared_lock.write();
+    let rule = Locked::<StyleRule>::as_arc(&rule);
     let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
-    rule.write().block = declarations.clone();
+    rule.write_with(&mut guard).block = declarations.clone();
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_StyleRule_GetSelectorText(rule: RawServoStyleRuleBorrowed, result: *mut nsAString) {
-    let rule = RwLock::<StyleRule>::as_arc(&rule);
-    rule.read().selectors.to_css(unsafe { result.as_mut().unwrap() }).unwrap();
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
+    let rule = Locked::<StyleRule>::as_arc(&rule);
+    rule.read_with(&guard).selectors.to_css(unsafe { result.as_mut().unwrap() }).unwrap();
 }
 
 #[no_mangle]
@@ -681,6 +688,9 @@ pub extern "C" fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null: 
                                                           skip_display_fixup: bool,
                                                           raw_data: RawServoStyleSetBorrowed)
      -> ServoComputedValuesStrong {
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
+    let guards = ReadGuards::same(&guard);
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
     let atom = Atom::from(pseudo_tag);
     let pseudo = PseudoElement::from_atom_unchecked(atom, /* anon_box = */ true);
@@ -691,7 +701,7 @@ pub extern "C" fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null: 
     if skip_display_fixup {
         cascade_flags.insert(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP);
     }
-    data.stylist.precomputed_values_for_pseudo(&pseudo, maybe_parent,
+    data.stylist.precomputed_values_for_pseudo(&guards, &pseudo, maybe_parent,
                                                cascade_flags)
         .values.unwrap()
         .into_strong()
@@ -717,14 +727,16 @@ pub extern "C" fn Servo_ResolvePseudoStyle(element: RawGeckoElementBorrowed,
         };
     }
 
-    match get_pseudo_style(element, pseudo_tag, data.styles(), doc_data) {
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
+    match get_pseudo_style(&guard, element, pseudo_tag, data.styles(), doc_data) {
         Some(values) => values.into_strong(),
         None if !is_probe => data.styles().primary.values().clone().into_strong(),
         None => Strong::null(),
     }
 }
 
-fn get_pseudo_style(element: GeckoElement, pseudo_tag: *mut nsIAtom,
+fn get_pseudo_style(guard: &SharedRwLockReadGuard, element: GeckoElement, pseudo_tag: *mut nsIAtom,
                     styles: &ElementStyles, doc_data: &PerDocumentStyleData)
                     -> Option<Arc<ComputedValues>>
 {
@@ -735,7 +747,9 @@ fn get_pseudo_style(element: GeckoElement, pseudo_tag: *mut nsIAtom,
         PseudoElementCascadeType::Lazy => {
             let d = doc_data.borrow_mut();
             let base = styles.primary.values();
-            d.stylist.lazily_compute_pseudo_element_style(&element,
+            let guards = ReadGuards::same(guard);
+            d.stylist.lazily_compute_pseudo_element_style(&guards,
+                                                          &element,
                                                           &pseudo,
                                                           base)
                      .map(|s| s.values().clone())
@@ -1463,11 +1477,13 @@ pub extern "C" fn Servo_ResolveStyleLazily(element: RawGeckoElementBorrowed,
                                            raw_data: RawServoStyleSetBorrowed)
      -> ServoComputedValuesStrong
 {
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
     let element = GeckoElement(element);
     let doc_data = PerDocumentStyleData::from_ffi(raw_data);
     let finish = |styles: &ElementStyles| -> Arc<ComputedValues> {
         let maybe_pseudo = if !pseudo_tag.is_null() {
-            get_pseudo_style(element, pseudo_tag, styles, doc_data)
+            get_pseudo_style(&guard, element, pseudo_tag, styles, doc_data)
         } else {
             None
         };
@@ -1483,7 +1499,7 @@ pub extern "C" fn Servo_ResolveStyleLazily(element: RawGeckoElementBorrowed,
     }
 
     // We don't have the style ready. Go ahead and compute it as necessary.
-    let shared = create_shared_context(&mut doc_data.borrow_mut());
+    let shared = create_shared_context(&guard, &mut doc_data.borrow_mut());
     let mut tlc = ThreadLocalStyleContext::new(&shared);
     let mut context = StyleContext {
         shared: &shared,

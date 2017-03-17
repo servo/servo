@@ -9,3 +9,15 @@
 pub mod media_queries;
 pub mod restyle_damage;
 pub mod selector_parser;
+
+use shared_lock::SharedRwLock;
+
+lazy_static! {
+    /// Per-process shared lock for author-origin stylesheets
+    ///
+    /// FIXME(SimonSapin): I wanted this to be per-document (or per-pipeline?)
+    /// but couldn’t figure out a way to get references to the same lock in both
+    /// the Document node and the LayoutThread.
+    /// Giving up to unblock.
+    pub static ref AUTHOR_SHARED_LOCK: SharedRwLock = SharedRwLock::new();
+}

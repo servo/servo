@@ -550,7 +550,7 @@ unsafe impl JSTraceable for StyleLocked<NamespaceRule> {
     }
 }
 
-unsafe impl JSTraceable for RwLock<StyleRule> {
+unsafe impl JSTraceable for StyleLocked<StyleRule> {
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing.
     }

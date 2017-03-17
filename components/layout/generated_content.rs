@@ -97,7 +97,7 @@ static KATAKANA_IROHA: [char; 47] = [
 /// The generated content resolution traversal.
 pub struct ResolveGeneratedContent<'a> {
     /// The layout context.
-    layout_context: &'a LayoutContext,
+    layout_context: &'a LayoutContext<'a>,
     /// The counter representing an ordered list item.
     list_item: Counter,
     /// Named CSS counters.

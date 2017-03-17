@@ -121,7 +121,7 @@ fn get_cyclic<T>(arr: &[T], index: usize) -> &T {
 }
 
 pub struct DisplayListBuildState<'a> {
-    pub layout_context: &'a LayoutContext,
+    pub layout_context: &'a LayoutContext<'a>,
     pub root_stacking_context: StackingContext,
     pub items: HashMap<StackingContextId, Vec<DisplayItem>>,
     pub stacking_context_children: HashMap<StackingContextId, Vec<StackingContext>>,

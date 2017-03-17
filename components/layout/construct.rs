@@ -311,7 +311,7 @@ impl InlineFragmentsAccumulator {
 /// An object that knows how to create flows.
 pub struct FlowConstructor<'a, N: ThreadSafeLayoutNode> {
     /// The layout context.
-    pub layout_context: &'a LayoutContext,
+    pub layout_context: &'a LayoutContext<'a>,
     /// Satisfy the compiler about the unused parameters, which we use to improve the ergonomics of
     /// the ensuing impl {} by removing the need to parameterize all the methods individually.
     phantom2: PhantomData<N>,
@@ -320,7 +320,7 @@ pub struct FlowConstructor<'a, N: ThreadSafeLayoutNode> {
 impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
   FlowConstructor<'a, ConcreteThreadSafeLayoutNode> {
     /// Creates a new flow constructor.
-    pub fn new(layout_context: &'a LayoutContext) -> Self {
+    pub fn new(layout_context: &'a LayoutContext<'a>) -> Self {
         FlowConstructor {
             layout_context: layout_context,
             phantom2: PhantomData,
@@ -660,10 +660,9 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
 
             let mut style = node.style(self.style_context());
             if node_is_input_or_text_area {
-                style = self.style_context()
-                            .stylist
-                            .style_for_anonymous_box(&PseudoElement::ServoInputText,
-                                                     &style)
+                let context = self.style_context();
+                style = context.stylist.style_for_anonymous_box(
+                    &context.guards, &PseudoElement::ServoInputText, &style)
             }
 
             self.create_fragments_for_node_text_content(&mut initial_fragments, node, &style)
@@ -1096,11 +1095,14 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                             -> ConstructionResult {
         let mut legalizer = Legalizer::new();
 
-        let table_style = node.style(self.style_context());
-        let wrapper_style = self.style_context()
-                                .stylist
-                                .style_for_anonymous_box(&PseudoElement::ServoTableWrapper,
-                                                         &table_style);
+        let table_style;
+        let wrapper_style;
+        {
+            let context = self.style_context();
+            table_style = node.style(context);
+            wrapper_style = context.stylist.style_for_anonymous_box(
+                &context.guards, &PseudoElement::ServoTableWrapper, &table_style);
+        }
         let wrapper_fragment =
             Fragment::from_opaque_node_and_style(node.opaque(),
                                                  PseudoElementType::Normal,
@@ -2080,8 +2082,7 @@ impl Legalizer {
         let reference_block = reference.as_block();
         let mut new_style = reference_block.fragment.style.clone();
         for pseudo in pseudos {
-            new_style = context.stylist.style_for_anonymous_box(pseudo,
-                                                                &new_style)
+            new_style = context.stylist.style_for_anonymous_box(&context.guards, pseudo, &new_style)
         }
         let fragment = reference_block.fragment
                                       .create_similar_anonymous_fragment(new_style,
