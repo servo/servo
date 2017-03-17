@@ -10,9 +10,8 @@ use dom::cssmediarule::CSSMediaRule;
 use dom::cssstylesheet::CSSStyleSheet;
 use dom::csssupportsrule::CSSSupportsRule;
 use dom_struct::dom_struct;
-use parking_lot::RwLock;
 use std::sync::Arc;
-use style::shared_lock::SharedRwLock;
+use style::shared_lock::{SharedRwLock, Locked};
 use style::stylesheets::CssRules as StyleCssRules;
 
 #[dom_struct]
@@ -22,7 +21,7 @@ pub struct CSSConditionRule {
 
 impl CSSConditionRule {
     pub fn new_inherited(parent_stylesheet: &CSSStyleSheet,
-                         rules: Arc<RwLock<StyleCssRules>>) -> CSSConditionRule {
+                         rules: Arc<Locked<StyleCssRules>>) -> CSSConditionRule {
         CSSConditionRule {
             cssgroupingrule: CSSGroupingRule::new_inherited(parent_stylesheet, rules),
         }

@@ -402,6 +402,8 @@ pub extern "C" fn Servo_StyleSheet_ClearAndUpdate(stylesheet: RawServoStyleSheet
                                                   referrer: *mut ThreadSafeURIHolder,
                                                   principal: *mut ThreadSafePrincipalHolder)
 {
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let mut guard = global_style_data.shared_lock.write();
     let input = unsafe { data.as_ref().unwrap().as_str_unchecked() };
     let extra_data = unsafe { ParserContextExtraData {
         base: Some(GeckoArcURI::new(base)),
@@ -422,9 +424,9 @@ pub extern "C" fn Servo_StyleSheet_ClearAndUpdate(stylesheet: RawServoStyleSheet
     };
 
     let sheet = Stylesheet::as_arc(&stylesheet);
-    sheet.rules.write().0.clear();
+    sheet.rules.write_with(&mut guard).0.clear();
 
-    Stylesheet::update_from_str(&sheet, input, loader,
+    Stylesheet::update_from_str(&sheet, input, &mut guard, loader,
                                 &StdoutErrorReporter, extra_data);
 }
 
@@ -510,7 +512,9 @@ pub extern "C" fn Servo_StyleSet_NoteStyleSheetsChanged(raw_data: RawServoStyleS
 
 #[no_mangle]
 pub extern "C" fn Servo_StyleSheet_HasRules(raw_sheet: RawServoStyleSheetBorrowed) -> bool {
-    !Stylesheet::as_arc(&raw_sheet).rules.read().0.is_empty()
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
+    !Stylesheet::as_arc(&raw_sheet).rules.read_with(&guard).0.is_empty()
 }
 
 #[no_mangle]
@@ -521,7 +525,9 @@ pub extern "C" fn Servo_StyleSheet_GetRules(sheet: RawServoStyleSheetBorrowed) -
 #[no_mangle]
 pub extern "C" fn Servo_CssRules_ListTypes(rules: ServoCssRulesBorrowed,
                                            result: nsTArrayBorrowed_uintptr_t) {
-    let rules = RwLock::<CssRules>::as_arc(&rules).read();
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
+    let rules = Locked::<CssRules>::as_arc(&rules).read_with(&guard);
     let iter = rules.0.iter().map(|rule| rule.rule_type() as usize);
     let (size, upper) = iter.size_hint();
     debug_assert_eq!(size, upper.unwrap());
@@ -533,10 +539,12 @@ pub extern "C" fn Servo_CssRules_ListTypes(rules: ServoCssRulesBorrowed,
 pub extern "C" fn Servo_CssRules_InsertRule(rules: ServoCssRulesBorrowed, sheet: RawServoStyleSheetBorrowed,
                                             rule: *const nsACString, index: u32, nested: bool,
                                             rule_type: *mut u16) -> nsresult {
-    let rules = RwLock::<CssRules>::as_arc(&rules);
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let mut guard = global_style_data.shared_lock.write();
+    let rules = Locked::<CssRules>::as_arc(&rules);
     let sheet = Stylesheet::as_arc(&sheet);
     let rule = unsafe { rule.as_ref().unwrap().as_str_unchecked() };
-    match rules.write().insert_rule(rule, sheet, index as usize, nested) {
+    match rules.write_with(&mut guard).insert_rule(rule, sheet, index as usize, nested) {
         Ok(new_rule) => {
             *unsafe { rule_type.as_mut().unwrap() } = new_rule.rule_type() as u16;
             nsresult::NS_OK
@@ -547,8 +555,10 @@ pub extern "C" fn Servo_CssRules_InsertRule(rules: ServoCssRulesBorrowed, sheet:
 
 #[no_mangle]
 pub extern "C" fn Servo_CssRules_DeleteRule(rules: ServoCssRulesBorrowed, index: u32) -> nsresult {
-    let rules = RwLock::<CssRules>::as_arc(&rules);
-    match rules.write().remove_rule(index as usize) {
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let mut guard = global_style_data.shared_lock.write();
+    let rules = Locked::<CssRules>::as_arc(&rules);
+    match rules.write_with(&mut guard).remove_rule(index as usize) {
         Ok(_) => nsresult::NS_OK,
         Err(err) => err.into()
     }
@@ -562,7 +572,9 @@ macro_rules! impl_basic_rule_funcs {
     } => {
         #[no_mangle]
         pub extern "C" fn $getter(rules: ServoCssRulesBorrowed, index: u32) -> Strong<$raw_type> {
-            let rules = RwLock::<CssRules>::as_arc(&rules).read();
+            let global_style_data = &*GLOBAL_STYLE_DATA;
+            let guard = global_style_data.shared_lock.read();
+            let rules = Locked::<CssRules>::as_arc(&rules).read_with(&guard);
             match rules.0[index as usize] {
                 CssRule::$name(ref rule) => rule.clone().into_strong(),
                 _ => {

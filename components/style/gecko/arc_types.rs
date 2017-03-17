@@ -39,7 +39,7 @@ macro_rules! impl_arc_ffi {
     }
 }
 
-impl_arc_ffi!(RwLock<CssRules> => ServoCssRules
+impl_arc_ffi!(Locked<CssRules> => ServoCssRules
               [Servo_CssRules_AddRef, Servo_CssRules_Release]);
 
 impl_arc_ffi!(Stylesheet => RawServoStyleSheet

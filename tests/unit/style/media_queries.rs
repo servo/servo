@@ -35,7 +35,7 @@ fn test_media_rule<F>(css: &str, callback: F)
         ParserContextExtraData::default());
     let mut rule_count = 0;
     let guard = stylesheet.shared_lock.read();
-    media_queries(&guard, &stylesheet.rules.read().0, &mut |mq| {
+    media_queries(&guard, &stylesheet.rules.read_with(&guard).0, &mut |mq| {
         rule_count += 1;
         callback(mq, css);
     });
