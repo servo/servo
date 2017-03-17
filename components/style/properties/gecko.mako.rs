@@ -3334,7 +3334,7 @@ clip-path
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="XUL"
-                  skip_longhands="-moz-stack-sizing">
+                  skip_longhands="-moz-stack-sizing -moz-box-ordinal-group">
 
     #[allow(non_snake_case)]
     pub fn set__moz_stack_sizing(&mut self, v: longhands::_moz_stack_sizing::computed_value::T) {
@@ -3343,6 +3343,13 @@ clip-path
     }
 
     ${impl_simple_copy('_moz_stack_sizing', 'mStretchStack')}
+
+    #[allow(non_snake_case)]
+    pub fn set__moz_box_ordinal_group(&mut self, v: i32) {
+        self.gecko.mBoxOrdinal = v as u32;
+    }
+
+    ${impl_simple_copy("_moz_box_ordinal_group", "mBoxOrdinal")}
 </%self:impl_trait>
 
 <%def name="define_ffi_struct_accessor(style_struct)">
