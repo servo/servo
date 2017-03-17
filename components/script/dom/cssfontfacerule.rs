@@ -12,8 +12,8 @@ use dom::window::Window;
 use dom_struct::dom_struct;
 use parking_lot::RwLock;
 use std::sync::Arc;
-use style::shared_lock::ToCssWithGuard;
 use style::font_face::FontFaceRule;
+use style::shared_lock::ToCssWithGuard;
 
 #[dom_struct]
 pub struct CSSFontFaceRule {
