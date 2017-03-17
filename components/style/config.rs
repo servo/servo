@@ -2,10 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
- /* Ref: https://github.com/servo/servo/issues/15460 for more info for why it's needed. */
+ /*
+ * servo_config is a crate in components/config that pulls in a lot of random stuff. In gecko mode,
+ * most of this is unnecessary. However, we pull this in for Stylo because the style crate needs
+ * to check if certain options are set. This module exposes servo_config things in Servo mode, and
+ * exposes dummy functions that just return a constant boolean in Gecko mode. */
 
-// TODO: write docs for this mod
-use servo_config;
+#[cfg(feature = "servo")] use servo_config;
 
 // prefs functions
 #[cfg(feature = "servo")] #[allow(missing_docs)]

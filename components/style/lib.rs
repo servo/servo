@@ -108,7 +108,7 @@ pub mod restyle_hints;
 pub mod rule_tree;
 pub mod scoped_tls;
 pub mod selector_parser;
-#[allow(missing_docs)] pub mod servo_config_facade;
+#[allow(missing_docs)] pub mod config;
 pub mod stylist;
 #[cfg(feature = "servo")] #[allow(unsafe_code)] pub mod servo;
 pub mod sequential;
