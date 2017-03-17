@@ -150,11 +150,6 @@ impl SpecifiedUrl {
         }
     }
 
-    /// Check if it has a resolved URI
-    pub fn has_resolved(&self) -> bool {
-        self.resolved.is_some()
-    }
-
     /// Creates an already specified url value from an already resolved URL
     /// for insertion in the cascade.
     pub fn for_cascade(url: ServoUrl, extra_data: UrlExtraData) -> Self {
