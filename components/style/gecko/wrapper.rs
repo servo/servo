@@ -416,12 +416,20 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     fn get_animation_rules(&self, pseudo: Option<&PseudoElement>) -> AnimationRules {
+        AnimationRules(self.get_animation_rule(pseudo),
+                       self.get_transition_rule(pseudo))
+    }
+
+    fn get_animation_rule(&self, pseudo: Option<&PseudoElement>)
+                          -> Option<Arc<RwLock<PropertyDeclarationBlock>>> {
         let atom_ptr = PseudoElement::ns_atom_or_null_from_opt(pseudo);
-        unsafe {
-            AnimationRules(
-                Gecko_GetAnimationRule(self.0, atom_ptr, CascadeLevel::Animations).into_arc_opt(),
-                Gecko_GetAnimationRule(self.0, atom_ptr, CascadeLevel::Transitions).into_arc_opt())
-        }
+        unsafe { Gecko_GetAnimationRule(self.0, atom_ptr, CascadeLevel::Animations).into_arc_opt() }
+    }
+
+    fn get_transition_rule(&self, pseudo: Option<&PseudoElement>)
+                           -> Option<Arc<RwLock<PropertyDeclarationBlock>>> {
+        let atom_ptr = PseudoElement::ns_atom_or_null_from_opt(pseudo);
+        unsafe { Gecko_GetAnimationRule(self.0, atom_ptr, CascadeLevel::Transitions).into_arc_opt() }
     }
 
     fn get_state(&self) -> ElementState {
