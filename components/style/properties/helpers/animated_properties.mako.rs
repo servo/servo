@@ -429,7 +429,7 @@ impl Interpolate for f64 {
     }
 }
 
-/// https://drafts.csswg.org/css-transitions/#animtype-number
+/// https://drafts.csswg.org/css-transitions/#animtype-integer
 impl Interpolate for i32 {
     #[inline]
     fn interpolate(&self, other: &i32, progress: f64) -> Result<Self, ()> {

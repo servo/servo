@@ -66,6 +66,9 @@ pub mod specified;
 /// A CSS float value.
 pub type CSSFloat = f32;
 
+/// A CSS integer value.
+pub type CSSInteger = i32;
+
 /// The default font size.
 pub const FONT_MEDIUM_PX: i32 = 16;
 
