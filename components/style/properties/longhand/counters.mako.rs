@@ -6,7 +6,8 @@
 
 <% data.new_style_struct("Counters", inherited=False, gecko_name="Content") %>
 
-<%helpers:longhand name="content" animatable="False" spec="https://drafts.csswg.org/css-content/#propdef-content">
+<%helpers:longhand name="content" boxed="True" animatable="False"
+                   spec="https://drafts.csswg.org/css-content/#propdef-content">
     use cssparser::Token;
     use std::ascii::AsciiExt;
     use values::computed::ComputedValueAsSpecified;
