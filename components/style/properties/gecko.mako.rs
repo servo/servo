@@ -962,10 +962,9 @@ fn static_assert() {
     % endfor
 
     pub fn set_z_index(&mut self, v: longhands::z_index::computed_value::T) {
-        use properties::longhands::z_index::computed_value::T;
         match v {
-            T::Auto => self.gecko.mZIndex.set_value(CoordDataValue::Auto),
-            T::Number(n) => self.gecko.mZIndex.set_value(CoordDataValue::Integer(n)),
+            Either::First(n) => self.gecko.mZIndex.set_value(CoordDataValue::Integer(n)),
+            Either::Second(Auto) => self.gecko.mZIndex.set_value(CoordDataValue::Auto),
         }
     }
 
@@ -980,13 +979,12 @@ fn static_assert() {
     }
 
     pub fn clone_z_index(&self) -> longhands::z_index::computed_value::T {
-        use properties::longhands::z_index::computed_value::T;
         return match self.gecko.mZIndex.as_value() {
-            CoordDataValue::Auto => T::Auto,
-            CoordDataValue::Integer(n) => T::Number(n),
+            CoordDataValue::Integer(n) => Either::First(n),
+            CoordDataValue::Auto => Either::Second(Auto),
             _ => {
                 debug_assert!(false);
-                T::Number(0)
+                Either::First(0)
             }
         }
     }

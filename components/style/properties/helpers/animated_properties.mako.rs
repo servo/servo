@@ -22,7 +22,6 @@ use properties::longhands::transform::computed_value::ComputedOperation as Trans
 use properties::longhands::transform::computed_value::T as TransformList;
 use properties::longhands::vertical_align::computed_value::T as VerticalAlign;
 use properties::longhands::visibility::computed_value::T as Visibility;
-use properties::longhands::z_index::computed_value::T as ZIndex;
 #[cfg(feature = "gecko")] use properties::{PropertyDeclarationId, LonghandId};
 use std::cmp;
 use std::fmt;
@@ -466,20 +465,6 @@ impl Interpolate for Visibility {
                 } else {
                     *other
                 })
-            }
-            _ => Err(()),
-        }
-    }
-}
-
-/// https://drafts.csswg.org/css-transitions/#animtype-integer
-impl Interpolate for ZIndex {
-    #[inline]
-    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-        match (*self, *other) {
-            (ZIndex::Number(ref this),
-             ZIndex::Number(ref other)) => {
-                this.interpolate(other, progress).map(ZIndex::Number)
             }
             _ => Err(()),
         }
