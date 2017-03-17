@@ -11142,6 +11142,12 @@
      {}
     ]
    ],
+   "css/writing-mode_change_display.html": [
+    [
+     "/_mozilla/css/writing-mode_change_display.html",
+     {}
+    ]
+   ],
    "mozilla/DOMParser.html": [
     [
      "/_mozilla/mozilla/DOMParser.html",
@@ -24144,6 +24150,10 @@
   "css/word_break_ref.html": [
    "b16bf3e07cb3c45f7d630ca35bae1012d38d1b6b",
    "support"
+  ],
+  "css/writing-mode_change_display.html": [
+   "9ac1f9756a4cd44196242beb80621b9bc8cbe2ff",
+   "testharness"
   ],
   "mozilla/2x2.png": [
    "c67d3f646e86413722833d2308a9bfc793a916bf",
