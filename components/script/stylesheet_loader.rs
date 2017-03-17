@@ -175,10 +175,12 @@ impl FetchResponseListener for StylesheetContext {
                 }
                 StylesheetContextSource::Import(ref import) => {
                     let import = import.read();
+                    let mut guard = document.style_shared_lock().write();
                     Stylesheet::update_from_bytes(&import.stylesheet,
                                                   &data,
                                                   protocol_encoding_label,
                                                   Some(environment_encoding),
+                                                  &mut guard,
                                                   Some(&loader),
                                                   win.css_error_reporter(),
                                                   ParserContextExtraData::default());

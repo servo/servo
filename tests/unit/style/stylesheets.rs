@@ -263,7 +263,7 @@ fn test_parse_stylesheet() {
                 ]
             })))
 
-        ]),
+        ], &stylesheet.shared_lock),
     };
 
     assert_eq!(format!("{:#?}", stylesheet), format!("{:#?}", expected));

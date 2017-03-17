@@ -21,7 +21,8 @@ use selector_parser::{SelectorImpl, SelectorParser};
 use selectors::parser::SelectorList;
 use servo_config::prefs::PREFS;
 use servo_url::ServoUrl;
-use shared_lock::{SharedRwLock, Locked, SharedRwLockReadGuard, ToCssWithGuard};
+use shared_lock::{SharedRwLock, Locked, ToCssWithGuard};
+use shared_lock::{SharedRwLockReadGuard, SharedRwLockWriteGuard};
 use std::cell::Cell;
 use std::fmt;
 use std::sync::Arc;
@@ -87,8 +88,8 @@ impl From<SingleRuleParseError> for RulesMutateError {
 
 impl CssRules {
     #[allow(missing_docs)]
-    pub fn new(rules: Vec<CssRule>) -> Arc<RwLock<CssRules>> {
-        Arc::new(RwLock::new(CssRules(rules)))
+    pub fn new(rules: Vec<CssRule>, shared_lock: &SharedRwLock) -> Arc<Locked<CssRules>> {
+        Arc::new(shared_lock.wrap(CssRules(rules)))
     }
 
     fn only_ns_or_import(&self) -> bool {
@@ -174,7 +175,7 @@ impl CssRules {
 pub struct Stylesheet {
     /// List of rules in the order they were found (important for
     /// cascading order)
-    pub rules: Arc<RwLock<CssRules>>,
+    pub rules: Arc<Locked<CssRules>>,
     /// List of media associated with the Stylesheet.
     pub media: Arc<Locked<MediaList>>,
     /// The origin of this stylesheet.
@@ -302,7 +303,7 @@ impl CssRule {
             CssRule::Import(ref lock) => {
                 let rule = lock.read();
                 let media = rule.stylesheet.media.read_with(guard);
-                let rules = rule.stylesheet.rules.read();
+                let rules = rule.stylesheet.rules.read_with(guard);
                 // FIXME(emilio): Include the nested rules if the stylesheet is
                 // loaded.
                 f(&rules.0, Some(&media))
@@ -317,14 +318,14 @@ impl CssRule {
             CssRule::Media(ref lock) => {
                 let media_rule = lock.read();
                 let mq = media_rule.media_queries.read_with(guard);
-                let rules = &media_rule.rules.read().0;
+                let rules = &media_rule.rules.read_with(guard).0;
                 f(rules, Some(&mq))
             }
             CssRule::Supports(ref lock) => {
                 let supports_rule = lock.read();
                 let enabled = supports_rule.enabled;
                 if enabled {
-                    let rules = &supports_rule.rules.read().0;
+                    let rules = &supports_rule.rules.read_with(guard).0;
                     f(rules, None)
                 } else {
                     f(&[], None)
@@ -478,7 +479,7 @@ impl ToCssWithGuard for KeyframesRule {
 #[derive(Debug)]
 pub struct MediaRule {
     pub media_queries: Arc<Locked<MediaList>>,
-    pub rules: Arc<RwLock<CssRules>>,
+    pub rules: Arc<Locked<CssRules>>,
 }
 
 impl ToCssWithGuard for MediaRule {
@@ -489,7 +490,7 @@ impl ToCssWithGuard for MediaRule {
         try!(dest.write_str("@media "));
         try!(self.media_queries.read_with(guard).to_css(dest));
         try!(dest.write_str(" {"));
-        for rule in self.rules.read().0.iter() {
+        for rule in self.rules.read_with(guard).0.iter() {
             try!(dest.write_str(" "));
             try!(rule.to_css(guard, dest));
         }
@@ -504,7 +505,7 @@ pub struct SupportsRule {
     /// The parsed condition
     pub condition: SupportsCondition,
     /// Child rules
-    pub rules: Arc<RwLock<CssRules>>,
+    pub rules: Arc<Locked<CssRules>>,
     /// The result of evaluating the condition
     pub enabled: bool,
 }
@@ -515,7 +516,7 @@ impl ToCssWithGuard for SupportsRule {
         try!(dest.write_str("@supports "));
         try!(self.condition.to_css(dest));
         try!(dest.write_str(" {"));
-        for rule in self.rules.read().0.iter() {
+        for rule in self.rules.read_with(guard).0.iter() {
             try!(dest.write_str(" "));
             try!(rule.to_css(guard, dest));
         }
@@ -555,10 +556,11 @@ impl Stylesheet {
     /// Updates an empty stylesheet from a given string of text.
     pub fn update_from_str(existing: &Stylesheet,
                            css: &str,
+                           guard: &mut SharedRwLockWriteGuard,
                            stylesheet_loader: Option<&StylesheetLoader>,
                            error_reporter: &ParseErrorReporter,
                            extra_data: ParserContextExtraData) {
-        let mut rules = existing.rules.write();
+        let mut rules = existing.rules.write_with(guard);
         let mut namespaces = existing.namespaces.write();
 
         assert!(rules.is_empty());
@@ -613,18 +615,22 @@ impl Stylesheet {
             origin: origin,
             base_url: base_url,
             namespaces: RwLock::new(Namespaces::default()),
-            rules: CssRules::new(vec![]),
+            rules: CssRules::new(Vec::new(), &shared_lock),
             media: Arc::new(shared_lock.wrap(media)),
-            shared_lock: shared_lock.clone(),
+            shared_lock: shared_lock,
             dirty_on_viewport_size_change: AtomicBool::new(false),
             disabled: AtomicBool::new(false),
         };
 
-        Self::update_from_str(&s,
-                              css,
-                              stylesheet_loader,
-                              error_reporter,
-                              extra_data);
+        {
+            let mut guard = s.shared_lock.write();
+            Self::update_from_str(&s,
+                                  css,
+                                  &mut guard,
+                                  stylesheet_loader,
+                                  error_reporter,
+                                  extra_data);
+        }
 
         s
     }
@@ -666,7 +672,7 @@ impl Stylesheet {
     #[inline]
     pub fn effective_rules<F>(&self, device: &Device, guard: &SharedRwLockReadGuard, mut f: F)
     where F: FnMut(&CssRule) {
-        effective_rules(&self.rules.read().0, device, guard, &mut f);
+        effective_rules(&self.rules.read_with(guard).0, device, guard, &mut f);
     }
 
     /// Returns whether the stylesheet has been explicitly disabled through the
@@ -809,7 +815,7 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
                         ImportRule {
                             url: url,
                             stylesheet: Arc::new(Stylesheet {
-                                rules: Arc::new(RwLock::new(CssRules(vec![]))),
+                                rules: CssRules::new(Vec::new(), self.shared_lock),
                                 media: media,
                                 shared_lock: self.shared_lock.clone(),
                                 origin: self.context.stylesheet_origin,
@@ -907,7 +913,7 @@ struct NestedRuleParser<'a, 'b: 'a> {
 }
 
 impl<'a, 'b> NestedRuleParser<'a, 'b> {
-    fn parse_nested_rules(&self, input: &mut Parser) -> Arc<RwLock<CssRules>> {
+    fn parse_nested_rules(&self, input: &mut Parser) -> Arc<Locked<CssRules>> {
         let mut iter = RuleListParser::new_for_nested_rule(input, self.clone());
         let mut rules = Vec::new();
         while let Some(result) = iter.next() {
@@ -920,7 +926,7 @@ impl<'a, 'b> NestedRuleParser<'a, 'b> {
                 }
             }
         }
-        CssRules::new(rules)
+        CssRules::new(rules, self.shared_lock)
     }
 }
 

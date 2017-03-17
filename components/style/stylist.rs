@@ -502,7 +502,7 @@ impl Stylist {
                 return true
             }
 
-            mq_eval_changed(guard, &stylesheet.rules.read().0, &self.device, &device)
+            mq_eval_changed(guard, &stylesheet.rules.read_with(guard).0, &self.device, &device)
         });
 
         self.device = Arc::new(device);

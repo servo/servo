@@ -49,7 +49,8 @@ fn parse_rules(css: &str) -> Vec<(StyleSource, CascadeLevel)> {
                                  None,
                                  &ErrorringErrorReporter,
                                  ParserContextExtraData {});
-    let rules = s.rules.read();
+    let guard = s.shared_lock.read();
+    let rules = s.rules.read_with(&guard);
     rules.0.iter().filter_map(|rule| {
         match *rule {
             CssRule::Style(ref style_rule) => Some(style_rule),

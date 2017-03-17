@@ -101,8 +101,9 @@ impl HTMLMetaElement {
                 if let Some(translated_rule) = ViewportRule::from_meta(&**content) {
                     let document = self.upcast::<Node>().owner_doc();
                     let shared_lock = document.style_shared_lock();
+                    let rule = CssRule::Viewport(Arc::new(RwLock::new(translated_rule)));
                     *self.stylesheet.borrow_mut() = Some(Arc::new(Stylesheet {
-                        rules: CssRules::new(vec![CssRule::Viewport(Arc::new(RwLock::new(translated_rule)))]),
+                        rules: CssRules::new(vec![rule], shared_lock),
                         origin: Origin::Author,
                         shared_lock: shared_lock.clone(),
                         base_url: window_from_node(self).get_url(),

@@ -508,7 +508,7 @@ unsafe impl JSTraceable for RwLock<FontFaceRule> {
     }
 }
 
-unsafe impl JSTraceable for RwLock<CssRules> {
+unsafe impl JSTraceable for StyleLocked<CssRules> {
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing.
     }
