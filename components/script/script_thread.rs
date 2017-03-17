@@ -1650,6 +1650,77 @@ impl ScriptThread {
         }
     }
 
+    fn ask_constellation_for_frame_id(&self, pipeline_id: PipelineId) -> Option<FrameId> {
+        let (result_sender, result_receiver) = ipc::channel().unwrap();
+        let msg = ConstellationMsg::GetFrameId(pipeline_id, result_sender);
+        self.constellation_chan.send(msg).expect("Failed to send to constellation.");
+        result_receiver.recv().expect("Failed to get frame id from constellation.")
+    }
+
+    fn ask_constellation_for_parent_info(&self, pipeline_id: PipelineId) -> Option<(PipelineId, FrameType)> {
+        let (result_sender, result_receiver) = ipc::channel().unwrap();
+        let msg = ConstellationMsg::GetParentInfo(pipeline_id, result_sender);
+        self.constellation_chan.send(msg).expect("Failed to send to constellation.");
+        result_receiver.recv().expect("Failed to get frame id from constellation.")
+    }
+
+    // Get the browsing context for a pipeline that may exist in another
+    // script thread.  If the browsing context already exists in the
+    // `browsing_contexts` map, we return it, otherwise we recursively
+    // get the browsing context for the parent if there is one,
+    // construct a new dissimilar-origin browsing context, add it
+    // to the `browsing_contexts` map, and return it.
+    fn remote_browsing_context(&self,
+                               global_to_clone: &GlobalScope,
+                               pipeline_id: PipelineId)
+                               -> Option<Root<BrowsingContext>>
+    {
+        let frame_id = match self.ask_constellation_for_frame_id(pipeline_id) {
+            Some(frame_id) => frame_id,
+            None => return None,
+        };
+        if let Some(browsing_context) = self.browsing_contexts.borrow().get(&frame_id) {
+            return Some(Root::from_ref(browsing_context));
+        }
+        let parent = match self.ask_constellation_for_parent_info(pipeline_id) {
+            Some((parent_id, FrameType::IFrame)) => self.remote_browsing_context(global_to_clone, parent_id),
+            _ => None,
+        };
+        let browsing_context = BrowsingContext::new_dissimilar_origin(global_to_clone, frame_id, parent.r());
+        self.browsing_contexts.borrow_mut().insert(frame_id, JS::from_ref(&*browsing_context));
+        Some(browsing_context)
+    }
+
+    // Get the browsing context for a pipeline that exists in this
+    // script thread.  If the browsing context already exists in the
+    // `browsing_contexts` map, we return it, otherwise we recursively
+    // get the browsing context for the parent if there is one,
+    // construct a new similar-origin browsing context, add it
+    // to the `browsing_contexts` map, and return it.
+    fn local_browsing_context(&self,
+                              window: &Window,
+                              frame_id: FrameId,
+                              parent_info: Option<(PipelineId, FrameType)>)
+                              -> Root<BrowsingContext>
+    {
+        if let Some(browsing_context) = self.browsing_contexts.borrow().get(&frame_id) {
+            browsing_context.set_currently_active(&*window);
+            return Root::from_ref(browsing_context);
+        }
+        let iframe = match parent_info {
+            Some((parent_id, FrameType::IFrame)) => self.documents.borrow().find_iframe(parent_id, frame_id),
+            _ => None,
+        };
+        let parent = match (parent_info, iframe.as_ref()) {
+            (_, Some(iframe)) => Some(window_from_node(&**iframe).browsing_context()),
+            (Some((parent_id, FrameType::IFrame)), _) => self.remote_browsing_context(window.upcast(), parent_id),
+            _ => None,
+        };
+        let browsing_context = BrowsingContext::new(&window, frame_id, iframe.r().map(Castable::upcast), parent.r());
+        self.browsing_contexts.borrow_mut().insert(frame_id, JS::from_ref(&*browsing_context));
+        browsing_context
+    }
+
     /// The entry point to document loading. Defines bindings, sets up the window and document
     /// objects, parses HTML and CSS, and kicks off initial layout.
     fn load(&self, metadata: Metadata, incomplete: InProgressLoad) -> Root<ServoParser> {
@@ -1666,17 +1737,6 @@ impl ScriptThread {
                 .unwrap();
         }
         debug!("ScriptThread: loading {} on pipeline {:?}", incomplete.url, incomplete.pipeline_id);
-
-        let frame_element = incomplete.parent_info.and_then(|(parent_id, _)|
-            // In the case a parent id exists but the matching context
-            // cannot be found, this means the context exists in a different
-            // script thread (due to origin) so it shouldn't be returned.
-            // TODO: window.parent will continue to return self in that
-            // case, which is wrong. We should be returning an object that
-            // denies access to most properties (per
-            // https://github.com/servo/servo/issues/3939#issuecomment-62287025).
-            self.documents.borrow().find_iframe(parent_id, incomplete.frame_id)
-        );
 
         let MainThreadScriptChan(ref sender) = self.chan;
         let DOMManipulationTaskSource(ref dom_sender) = self.dom_manipulation_task_source;
@@ -1711,20 +1771,10 @@ impl ScriptThread {
                                  incomplete.parent_info,
                                  incomplete.window_size,
                                  self.webvr_thread.clone());
-        let frame_element = frame_element.r().map(Castable::upcast);
 
-        match self.browsing_contexts.borrow_mut().entry(incomplete.frame_id) {
-            hash_map::Entry::Vacant(entry) => {
-                let browsing_context = BrowsingContext::new(&window, incomplete.frame_id, frame_element);
-                entry.insert(JS::from_ref(&*browsing_context));
-                window.init_browsing_context(&browsing_context);
-            },
-            hash_map::Entry::Occupied(entry) => {
-                let browsing_context = entry.get();
-                browsing_context.set_currently_active(&*window);
-                window.init_browsing_context(browsing_context);
-            },
-        }
+        // Initialize the browsing context for the window.
+        let browsing_context = self.local_browsing_context(&window, incomplete.frame_id, incomplete.parent_info);
+        window.init_browsing_context(&browsing_context);
 
         let last_modified = metadata.headers.as_ref().and_then(|headers| {
             headers.get().map(|&LastModified(HttpDate(ref tm))| dom_last_modified(tm))
