@@ -514,7 +514,7 @@ unsafe impl JSTraceable for StyleLocked<CssRules> {
     }
 }
 
-unsafe impl JSTraceable for RwLock<Keyframe> {
+unsafe impl JSTraceable for StyleLocked<Keyframe> {
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing.
     }

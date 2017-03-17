@@ -15,6 +15,7 @@ use properties::{PropertyDeclarationId, LonghandId, ParsedDeclaration};
 use properties::LonghandIdSet;
 use properties::animated_properties::TransitionProperty;
 use properties::longhands::transition_timing_function::single_value::SpecifiedValue as SpecifiedTimingFunction;
+use shared_lock::{SharedRwLock, SharedRwLockReadGuard, Locked};
 use std::fmt;
 use std::sync::Arc;
 use style_traits::ToCss;
@@ -125,7 +126,7 @@ impl Keyframe {
     pub fn parse(css: &str,
                  parent_stylesheet: &Stylesheet,
                  extra_data: ParserContextExtraData)
-                 -> Result<Arc<RwLock<Self>>, ()> {
+                 -> Result<Arc<Locked<Self>>, ()> {
         let error_reporter = MemoryHoleReporter;
         let context = ParserContext::new_with_extra_data(parent_stylesheet.origin,
                                                          &parent_stylesheet.base_url,
@@ -135,6 +136,7 @@ impl Keyframe {
 
         let mut rule_parser = KeyframeListParser {
             context: &context,
+            shared_lock: &parent_stylesheet.shared_lock,
         };
         parse_one_rule(&mut input, &mut rule_parser)
     }
@@ -239,13 +241,14 @@ pub struct KeyframesAnimation {
 }
 
 /// Get all the animated properties in a keyframes animation.
-fn get_animated_properties(keyframes: &[Arc<RwLock<Keyframe>>]) -> Vec<TransitionProperty> {
+fn get_animated_properties(keyframes: &[Arc<Locked<Keyframe>>], guard: &SharedRwLockReadGuard)
+                           -> Vec<TransitionProperty> {
     let mut ret = vec![];
     let mut seen = LonghandIdSet::new();
     // NB: declarations are already deduplicated, so we don't have to check for
     // it here.
     for keyframe in keyframes {
-        let keyframe = keyframe.read();
+        let keyframe = keyframe.read_with(&guard);
         for &(ref declaration, importance) in keyframe.block.read().declarations().iter() {
             assert!(!importance.important());
 
@@ -270,7 +273,8 @@ impl KeyframesAnimation {
     ///
     /// Otherwise, this will compute and sort the steps used for the animation,
     /// and return the animation object.
-    pub fn from_keyframes(keyframes: &[Arc<RwLock<Keyframe>>]) -> Self {
+    pub fn from_keyframes(keyframes: &[Arc<Locked<Keyframe>>], guard: &SharedRwLockReadGuard)
+                          -> Self {
         let mut result = KeyframesAnimation {
             steps: vec![],
             properties_changed: vec![],
@@ -280,13 +284,13 @@ impl KeyframesAnimation {
             return result;
         }
 
-        result.properties_changed = get_animated_properties(keyframes);
+        result.properties_changed = get_animated_properties(keyframes, guard);
         if result.properties_changed.is_empty() {
             return result;
         }
 
         for keyframe in keyframes {
-            let keyframe = keyframe.read();
+            let keyframe = keyframe.read_with(&guard);
             for percentage in keyframe.selector.0.iter() {
                 result.steps.push(KeyframesStep::new(*percentage, KeyframesStepValue::Declarations {
                     block: keyframe.block.clone(),
@@ -322,24 +326,27 @@ impl KeyframesAnimation {
 /// }
 struct KeyframeListParser<'a> {
     context: &'a ParserContext<'a>,
+    shared_lock: &'a SharedRwLock,
 }
 
 /// Parses a keyframe list from CSS input.
-pub fn parse_keyframe_list(context: &ParserContext, input: &mut Parser) -> Vec<Arc<RwLock<Keyframe>>> {
-    RuleListParser::new_for_nested_rule(input, KeyframeListParser { context: context })
-        .filter_map(Result::ok)
-        .collect()
+pub fn parse_keyframe_list(context: &ParserContext, input: &mut Parser, shared_lock: &SharedRwLock)
+                           -> Vec<Arc<Locked<Keyframe>>> {
+    RuleListParser::new_for_nested_rule(input, KeyframeListParser {
+        context: context,
+        shared_lock: shared_lock,
+    }).filter_map(Result::ok).collect()
 }
 
 enum Void {}
 impl<'a> AtRuleParser for KeyframeListParser<'a> {
     type Prelude = Void;
-    type AtRule = Arc<RwLock<Keyframe>>;
+    type AtRule = Arc<Locked<Keyframe>>;
 }
 
 impl<'a> QualifiedRuleParser for KeyframeListParser<'a> {
     type Prelude = KeyframeSelector;
-    type QualifiedRule = Arc<RwLock<Keyframe>>;
+    type QualifiedRule = Arc<Locked<Keyframe>>;
 
     fn parse_prelude(&mut self, input: &mut Parser) -> Result<Self::Prelude, ()> {
         let start = input.position();
@@ -372,7 +379,7 @@ impl<'a> QualifiedRuleParser for KeyframeListParser<'a> {
             }
             // `parse_important` is not called here, `!important` is not allowed in keyframe blocks.
         }
-        Ok(Arc::new(RwLock::new(Keyframe {
+        Ok(Arc::new(self.shared_lock.wrap(Keyframe {
             selector: prelude,
             block: Arc::new(RwLock::new(block)),
         })))

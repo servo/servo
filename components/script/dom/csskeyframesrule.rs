@@ -67,7 +67,7 @@ impl CSSKeyframesRule {
             // because that's the rule that applies. Thus, rposition
             self.keyframesrule.read_with(&guard)
                 .keyframes.iter().rposition(|frame| {
-                    frame.read().selector == sel
+                    frame.read_with(&guard).selector == sel
                 })
         } else {
             None
