@@ -13,9 +13,9 @@ use dom::cssstylesheet::CSSStyleSheet;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use std::sync::Arc;
-use style::shared_lock::{SharedRwLock, Locked};
 use style::media_queries::{MediaQuery, parse_media_query_list};
 use style::media_queries::MediaList as StyleMediaList;
+use style::shared_lock::{SharedRwLock, Locked};
 use style_traits::ToCss;
 
 #[dom_struct]
