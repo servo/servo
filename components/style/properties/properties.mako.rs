@@ -2115,6 +2115,14 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
     }
 
     {
+        use computed_values::display::T as display;
+        if context.layout_parent_style.writing_mode != style.writing_mode &&
+           style.get_box().clone_display() == display::inline {
+               style.mutate_box().set_display(display::inline_block);
+           }
+    }
+
+    {
         use computed_values::overflow_x::T as overflow;
         use computed_values::overflow_y;
         match (style.get_box().clone_overflow_x() == longhands::overflow_x::computed_value::T::visible,
