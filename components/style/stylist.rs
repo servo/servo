@@ -280,7 +280,8 @@ impl Stylist {
                 CssRule::Keyframes(ref keyframes_rule) => {
                     let keyframes_rule = keyframes_rule.read_with(guard);
                     debug!("Found valid keyframes rule: {:?}", *keyframes_rule);
-                    let animation = KeyframesAnimation::from_keyframes(&keyframes_rule.keyframes);
+                    let animation = KeyframesAnimation::from_keyframes(
+                        &keyframes_rule.keyframes, guard);
                     debug!("Found valid keyframe animation: {:?}", animation);
                     self.animations.insert(keyframes_rule.name.clone(), animation);
                 }

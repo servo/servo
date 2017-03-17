@@ -238,7 +238,7 @@ fn test_parse_stylesheet() {
             CssRule::Keyframes(Arc::new(stylesheet.shared_lock.wrap(KeyframesRule {
                 name: "foo".into(),
                 keyframes: vec![
-                    Arc::new(RwLock::new(Keyframe {
+                    Arc::new(stylesheet.shared_lock.wrap(Keyframe {
                         selector: KeyframeSelector::new_for_unit_testing(
                                       vec![KeyframePercentage::new(0.)]),
                         block: Arc::new(RwLock::new(block_from(vec![
@@ -247,7 +247,7 @@ fn test_parse_stylesheet() {
                              Importance::Normal),
                         ])))
                     })),
-                    Arc::new(RwLock::new(Keyframe {
+                    Arc::new(stylesheet.shared_lock.wrap(Keyframe {
                         selector: KeyframeSelector::new_for_unit_testing(
                                       vec![KeyframePercentage::new(1.)]),
                         block: Arc::new(RwLock::new(block_from(vec![

@@ -451,12 +451,12 @@ pub struct KeyframesRule {
     /// The name of the current animation.
     pub name: Atom,
     /// The keyframes specified for this CSS rule.
-    pub keyframes: Vec<Arc<RwLock<Keyframe>>>,
+    pub keyframes: Vec<Arc<Locked<Keyframe>>>,
 }
 
 impl ToCssWithGuard for KeyframesRule {
     // Serialization of KeyframesRule is not specced.
-    fn to_css<W>(&self, _guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
+    fn to_css<W>(&self, guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
     where W: fmt::Write {
         try!(dest.write_str("@keyframes "));
         try!(dest.write_str(&*self.name.to_string()));
@@ -468,7 +468,7 @@ impl ToCssWithGuard for KeyframesRule {
                 try!(dest.write_str(" "));
             }
             first = false;
-            let keyframe = lock.read();
+            let keyframe = lock.read_with(&guard);
             try!(keyframe.to_css(dest));
         }
         dest.write_str(" }")
@@ -1009,7 +1009,7 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
             AtRulePrelude::Keyframes(name) => {
                 Ok(CssRule::Keyframes(Arc::new(self.shared_lock.wrap(KeyframesRule {
                     name: name,
-                    keyframes: parse_keyframe_list(&self.context, input),
+                    keyframes: parse_keyframe_list(&self.context, input, self.shared_lock),
                 }))))
             }
         }

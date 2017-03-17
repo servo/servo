@@ -8,12 +8,14 @@ use style::keyframes::{Keyframe, KeyframesAnimation, KeyframePercentage,  Keyfra
 use style::keyframes::{KeyframesStep, KeyframesStepValue};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, Importance};
 use style::properties::animated_properties::TransitionProperty;
+use style::shared_lock::SharedRwLock;
 use style::values::specified::{LengthOrPercentageOrAuto, NoCalcLength};
 
 #[test]
 fn test_empty_keyframe() {
+    let shared_lock = SharedRwLock::new();
     let keyframes = vec![];
-    let animation = KeyframesAnimation::from_keyframes(&keyframes);
+    let animation = KeyframesAnimation::from_keyframes(&keyframes, &shared_lock.read());
     let expected = KeyframesAnimation {
         steps: vec![],
         properties_changed: vec![],
@@ -24,13 +26,14 @@ fn test_empty_keyframe() {
 
 #[test]
 fn test_no_property_in_keyframe() {
+    let shared_lock = SharedRwLock::new();
     let keyframes = vec![
-        Arc::new(RwLock::new(Keyframe {
+        Arc::new(shared_lock.wrap(Keyframe {
             selector: KeyframeSelector::new_for_unit_testing(vec![KeyframePercentage::new(1.)]),
             block: Arc::new(RwLock::new(PropertyDeclarationBlock::new()))
         })),
     ];
-    let animation = KeyframesAnimation::from_keyframes(&keyframes);
+    let animation = KeyframesAnimation::from_keyframes(&keyframes, &shared_lock.read());
     let expected = KeyframesAnimation {
         steps: vec![],
         properties_changed: vec![],
@@ -41,6 +44,7 @@ fn test_no_property_in_keyframe() {
 
 #[test]
 fn test_missing_property_in_initial_keyframe() {
+    let shared_lock = SharedRwLock::new();
     let declarations_on_initial_keyframe =
         Arc::new(RwLock::new(PropertyDeclarationBlock::with_one(
             PropertyDeclaration::Width(
@@ -65,17 +69,17 @@ fn test_missing_property_in_initial_keyframe() {
         }));
 
     let keyframes = vec![
-        Arc::new(RwLock::new(Keyframe {
+        Arc::new(shared_lock.wrap(Keyframe {
             selector: KeyframeSelector::new_for_unit_testing(vec![KeyframePercentage::new(0.)]),
             block: declarations_on_initial_keyframe.clone(),
         })),
 
-        Arc::new(RwLock::new(Keyframe {
+        Arc::new(shared_lock.wrap(Keyframe {
             selector: KeyframeSelector::new_for_unit_testing(vec![KeyframePercentage::new(1.)]),
             block: declarations_on_final_keyframe.clone(),
         })),
     ];
-    let animation = KeyframesAnimation::from_keyframes(&keyframes);
+    let animation = KeyframesAnimation::from_keyframes(&keyframes, &shared_lock.read());
     let expected = KeyframesAnimation {
         steps: vec![
             KeyframesStep {
@@ -97,6 +101,7 @@ fn test_missing_property_in_initial_keyframe() {
 
 #[test]
 fn test_missing_property_in_final_keyframe() {
+    let shared_lock = SharedRwLock::new();
     let declarations_on_initial_keyframe =
         Arc::new(RwLock::new({
             let mut block = PropertyDeclarationBlock::new();
@@ -121,17 +126,17 @@ fn test_missing_property_in_final_keyframe() {
         )));
 
     let keyframes = vec![
-        Arc::new(RwLock::new(Keyframe {
+        Arc::new(shared_lock.wrap(Keyframe {
             selector: KeyframeSelector::new_for_unit_testing(vec![KeyframePercentage::new(0.)]),
             block: declarations_on_initial_keyframe.clone(),
         })),
 
-        Arc::new(RwLock::new(Keyframe {
+        Arc::new(shared_lock.wrap(Keyframe {
             selector: KeyframeSelector::new_for_unit_testing(vec![KeyframePercentage::new(1.)]),
             block: declarations_on_final_keyframe.clone(),
         })),
     ];
-    let animation = KeyframesAnimation::from_keyframes(&keyframes);
+    let animation = KeyframesAnimation::from_keyframes(&keyframes, &shared_lock.read());
     let expected = KeyframesAnimation {
         steps: vec![
             KeyframesStep {
@@ -153,6 +158,7 @@ fn test_missing_property_in_final_keyframe() {
 
 #[test]
 fn test_missing_keyframe_in_both_of_initial_and_final_keyframe() {
+    let shared_lock = SharedRwLock::new();
     let declarations =
         Arc::new(RwLock::new({
             let mut block = PropertyDeclarationBlock::new();
@@ -170,16 +176,16 @@ fn test_missing_keyframe_in_both_of_initial_and_final_keyframe() {
         }));
 
     let keyframes = vec![
-        Arc::new(RwLock::new(Keyframe {
+        Arc::new(shared_lock.wrap(Keyframe {
             selector: KeyframeSelector::new_for_unit_testing(vec![KeyframePercentage::new(0.)]),
             block: Arc::new(RwLock::new(PropertyDeclarationBlock::new()))
         })),
-        Arc::new(RwLock::new(Keyframe {
+        Arc::new(shared_lock.wrap(Keyframe {
             selector: KeyframeSelector::new_for_unit_testing(vec![KeyframePercentage::new(0.5)]),
             block: declarations.clone(),
         })),
     ];
-    let animation = KeyframesAnimation::from_keyframes(&keyframes);
+    let animation = KeyframesAnimation::from_keyframes(&keyframes, &shared_lock.read());
     let expected = KeyframesAnimation {
         steps: vec![
             KeyframesStep {
