@@ -50,22 +50,25 @@ impl CSSMediaRule {
 
     fn medialist(&self) -> Root<MediaList> {
         self.medialist.or_init(|| MediaList::new(self.global().as_window(),
+                                                 self.cssconditionrule.parent_stylesheet(),
                                                  self.mediarule.read().media_queries.clone()))
     }
 
     /// https://drafts.csswg.org/css-conditional-3/#the-cssmediarule-interface
     pub fn get_condition_text(&self) -> DOMString {
+        let guard = self.cssconditionrule.shared_lock().read();
         let rule = self.mediarule.read();
-        let list = rule.media_queries.read();
+        let list = rule.media_queries.read_with(&guard);
         list.to_css_string().into()
     }
 
     /// https://drafts.csswg.org/css-conditional-3/#the-cssmediarule-interface
     pub fn set_condition_text(&self, text: DOMString) {
+        let mut guard = self.cssconditionrule.shared_lock().write();
         let mut input = Parser::new(&text);
         let new_medialist = parse_media_query_list(&mut input);
         let rule = self.mediarule.read();
-        let mut list = rule.media_queries.write();
+        let mut list = rule.media_queries.write_with(&mut guard);
         *list = new_medialist;
     }
 }

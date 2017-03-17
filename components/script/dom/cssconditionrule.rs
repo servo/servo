@@ -28,6 +28,10 @@ impl CSSConditionRule {
         }
     }
 
+    pub fn parent_stylesheet(&self) -> &CSSStyleSheet {
+        self.cssgroupingrule.parent_stylesheet()
+    }
+
     pub fn shared_lock(&self) -> &SharedRwLock {
         self.cssgroupingrule.shared_lock()
     }
