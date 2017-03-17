@@ -36,7 +36,7 @@ ${helpers.gecko_keyword_conversion(Keyword('border-style',
                                    "none solid double dotted dashed hidden groove ridge inset outset"),
                                    type="::values::specified::BorderStyle")}
 % for side in ALL_SIDES:
-    <%helpers:longhand name="border-${side[0]}-width" animatable="True" logical="${side[1]}"
+    <%helpers:longhand name="border-${side[0]}-width" boxed="True" animatable="True" logical="${side[1]}"
                        alias="${maybe_moz_logical_alias(product, side, '-moz-border-%s-width')}"
                        spec="${maybe_logical_spec(side, 'width')}">
         use app_units::Au;
@@ -69,6 +69,7 @@ ${helpers.gecko_keyword_conversion(Keyword('border-style',
                               "computed::BorderRadiusSize::zero()",
                               "parse", extra_prefixes="webkit",
                               spec="https://drafts.csswg.org/css-backgrounds/#border-%s-radius" % corner,
+                              boxed=True,
                               animatable=True)}
 % endfor
 
@@ -556,7 +557,7 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="border-image-slice" animatable="False"
+<%helpers:longhand name="border-image-slice" boxed="True" animatable="False"
                    spec="https://drafts.csswg.org/css-backgrounds/#border-image-slice">
     use std::fmt;
     use style_traits::ToCss;
