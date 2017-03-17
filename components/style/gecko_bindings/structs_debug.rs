@@ -1444,6 +1444,192 @@ pub mod root {
             pub type LinkedListElementTraits_ConstRawType<T> = *mut T;
             pub type LinkedListElementTraits_ClientType<T> = *mut T;
             pub type LinkedListElementTraits_ConstClientType<T> = *mut T;
+            #[repr(C)]
+            #[derive(Debug, Copy)]
+            pub struct nsStringRepr {
+                pub mData: *mut root::mozilla::detail::nsStringRepr_char_type,
+                pub mLength: root::mozilla::detail::nsStringRepr_size_type,
+                pub mFlags: u32,
+            }
+            pub type nsStringRepr_fallible_t = root::mozilla::fallible_t;
+            pub type nsStringRepr_char_type = u16;
+            pub type nsStringRepr_self_type =
+                root::mozilla::detail::nsStringRepr;
+            pub type nsStringRepr_base_string_type =
+                root::mozilla::detail::nsStringRepr_self_type;
+            pub type nsStringRepr_substring_type = root::nsAString;
+            pub type nsStringRepr_substring_tuple_type =
+                root::nsSubstringTuple;
+            pub type nsStringRepr_string_type = ::nsstring::nsStringRepr;
+            pub type nsStringRepr_const_iterator =
+                root::nsReadingIterator<u16>;
+            pub type nsStringRepr_iterator = root::nsWritingIterator<u16>;
+            pub type nsStringRepr_comparator_type = root::nsStringComparator;
+            pub type nsStringRepr_char_iterator =
+                *mut root::mozilla::detail::nsStringRepr_char_type;
+            pub type nsStringRepr_const_char_iterator =
+                *const root::mozilla::detail::nsStringRepr_char_type;
+            pub type nsStringRepr_index_type = u32;
+            pub type nsStringRepr_size_type = u32;
+            pub const nsStringRepr_F_NONE:
+                      root::mozilla::detail::nsStringRepr__bindgen_ty_1 =
+                nsStringRepr__bindgen_ty_1::F_NONE;
+            pub const nsStringRepr_F_TERMINATED:
+                      root::mozilla::detail::nsStringRepr__bindgen_ty_1 =
+                nsStringRepr__bindgen_ty_1::F_TERMINATED;
+            pub const nsStringRepr_F_VOIDED:
+                      root::mozilla::detail::nsStringRepr__bindgen_ty_1 =
+                nsStringRepr__bindgen_ty_1::F_VOIDED;
+            pub const nsStringRepr_F_SHARED:
+                      root::mozilla::detail::nsStringRepr__bindgen_ty_1 =
+                nsStringRepr__bindgen_ty_1::F_SHARED;
+            pub const nsStringRepr_F_OWNED:
+                      root::mozilla::detail::nsStringRepr__bindgen_ty_1 =
+                nsStringRepr__bindgen_ty_1::F_OWNED;
+            pub const nsStringRepr_F_FIXED:
+                      root::mozilla::detail::nsStringRepr__bindgen_ty_1 =
+                nsStringRepr__bindgen_ty_1::F_FIXED;
+            pub const nsStringRepr_F_LITERAL:
+                      root::mozilla::detail::nsStringRepr__bindgen_ty_1 =
+                nsStringRepr__bindgen_ty_1::F_LITERAL;
+            pub const nsStringRepr_F_CLASS_FIXED:
+                      root::mozilla::detail::nsStringRepr__bindgen_ty_1 =
+                nsStringRepr__bindgen_ty_1::F_CLASS_FIXED;
+            #[repr(u32)]
+            #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+            pub enum nsStringRepr__bindgen_ty_1 {
+                F_NONE = 0,
+                F_TERMINATED = 1,
+                F_VOIDED = 2,
+                F_SHARED = 4,
+                F_OWNED = 8,
+                F_FIXED = 16,
+                F_LITERAL = 32,
+                F_CLASS_FIXED = 65536,
+            }
+            #[test]
+            fn bindgen_test_layout_nsStringRepr() {
+                assert_eq!(::std::mem::size_of::<nsStringRepr>() , 16usize ,
+                           concat ! (
+                           "Size of: " , stringify ! ( nsStringRepr ) ));
+                assert_eq! (::std::mem::align_of::<nsStringRepr>() , 8usize ,
+                            concat ! (
+                            "Alignment of " , stringify ! ( nsStringRepr ) ));
+                assert_eq! (unsafe {
+                            & ( * ( 0 as * const nsStringRepr ) ) . mData as *
+                            const _ as usize } , 0usize , concat ! (
+                            "Alignment of field: " , stringify ! (
+                            nsStringRepr ) , "::" , stringify ! ( mData ) ));
+                assert_eq! (unsafe {
+                            & ( * ( 0 as * const nsStringRepr ) ) . mLength as
+                            * const _ as usize } , 8usize , concat ! (
+                            "Alignment of field: " , stringify ! (
+                            nsStringRepr ) , "::" , stringify ! ( mLength )
+                            ));
+                assert_eq! (unsafe {
+                            & ( * ( 0 as * const nsStringRepr ) ) . mFlags as
+                            * const _ as usize } , 12usize , concat ! (
+                            "Alignment of field: " , stringify ! (
+                            nsStringRepr ) , "::" , stringify ! ( mFlags ) ));
+            }
+            impl Clone for nsStringRepr {
+                fn clone(&self) -> Self { *self }
+            }
+            #[repr(C)]
+            #[derive(Debug, Copy)]
+            pub struct nsCStringRepr {
+                pub mData: *mut root::mozilla::detail::nsCStringRepr_char_type,
+                pub mLength: root::mozilla::detail::nsCStringRepr_size_type,
+                pub mFlags: u32,
+            }
+            pub type nsCStringRepr_fallible_t = root::mozilla::fallible_t;
+            pub type nsCStringRepr_char_type = ::std::os::raw::c_char;
+            pub type nsCStringRepr_self_type =
+                root::mozilla::detail::nsCStringRepr;
+            pub type nsCStringRepr_base_string_type =
+                root::mozilla::detail::nsCStringRepr_self_type;
+            pub type nsCStringRepr_substring_type = root::nsACString;
+            pub type nsCStringRepr_substring_tuple_type =
+                root::nsCSubstringTuple;
+            pub type nsCStringRepr_string_type = root::nsCString;
+            pub type nsCStringRepr_const_iterator =
+                root::nsReadingIterator<::std::os::raw::c_char>;
+            pub type nsCStringRepr_iterator =
+                root::nsWritingIterator<::std::os::raw::c_char>;
+            pub type nsCStringRepr_comparator_type =
+                root::nsCStringComparator;
+            pub type nsCStringRepr_char_iterator =
+                *mut root::mozilla::detail::nsCStringRepr_char_type;
+            pub type nsCStringRepr_const_char_iterator =
+                *const root::mozilla::detail::nsCStringRepr_char_type;
+            pub type nsCStringRepr_index_type = u32;
+            pub type nsCStringRepr_size_type = u32;
+            pub const nsCStringRepr_F_NONE:
+                      root::mozilla::detail::nsCStringRepr__bindgen_ty_1 =
+                nsCStringRepr__bindgen_ty_1::F_NONE;
+            pub const nsCStringRepr_F_TERMINATED:
+                      root::mozilla::detail::nsCStringRepr__bindgen_ty_1 =
+                nsCStringRepr__bindgen_ty_1::F_TERMINATED;
+            pub const nsCStringRepr_F_VOIDED:
+                      root::mozilla::detail::nsCStringRepr__bindgen_ty_1 =
+                nsCStringRepr__bindgen_ty_1::F_VOIDED;
+            pub const nsCStringRepr_F_SHARED:
+                      root::mozilla::detail::nsCStringRepr__bindgen_ty_1 =
+                nsCStringRepr__bindgen_ty_1::F_SHARED;
+            pub const nsCStringRepr_F_OWNED:
+                      root::mozilla::detail::nsCStringRepr__bindgen_ty_1 =
+                nsCStringRepr__bindgen_ty_1::F_OWNED;
+            pub const nsCStringRepr_F_FIXED:
+                      root::mozilla::detail::nsCStringRepr__bindgen_ty_1 =
+                nsCStringRepr__bindgen_ty_1::F_FIXED;
+            pub const nsCStringRepr_F_LITERAL:
+                      root::mozilla::detail::nsCStringRepr__bindgen_ty_1 =
+                nsCStringRepr__bindgen_ty_1::F_LITERAL;
+            pub const nsCStringRepr_F_CLASS_FIXED:
+                      root::mozilla::detail::nsCStringRepr__bindgen_ty_1 =
+                nsCStringRepr__bindgen_ty_1::F_CLASS_FIXED;
+            #[repr(u32)]
+            #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+            pub enum nsCStringRepr__bindgen_ty_1 {
+                F_NONE = 0,
+                F_TERMINATED = 1,
+                F_VOIDED = 2,
+                F_SHARED = 4,
+                F_OWNED = 8,
+                F_FIXED = 16,
+                F_LITERAL = 32,
+                F_CLASS_FIXED = 65536,
+            }
+            #[test]
+            fn bindgen_test_layout_nsCStringRepr() {
+                assert_eq!(::std::mem::size_of::<nsCStringRepr>() , 16usize ,
+                           concat ! (
+                           "Size of: " , stringify ! ( nsCStringRepr ) ));
+                assert_eq! (::std::mem::align_of::<nsCStringRepr>() , 8usize ,
+                            concat ! (
+                            "Alignment of " , stringify ! ( nsCStringRepr )
+                            ));
+                assert_eq! (unsafe {
+                            & ( * ( 0 as * const nsCStringRepr ) ) . mData as
+                            * const _ as usize } , 0usize , concat ! (
+                            "Alignment of field: " , stringify ! (
+                            nsCStringRepr ) , "::" , stringify ! ( mData ) ));
+                assert_eq! (unsafe {
+                            & ( * ( 0 as * const nsCStringRepr ) ) . mLength
+                            as * const _ as usize } , 8usize , concat ! (
+                            "Alignment of field: " , stringify ! (
+                            nsCStringRepr ) , "::" , stringify ! ( mLength )
+                            ));
+                assert_eq! (unsafe {
+                            & ( * ( 0 as * const nsCStringRepr ) ) . mFlags as
+                            * const _ as usize } , 12usize , concat ! (
+                            "Alignment of field: " , stringify ! (
+                            nsCStringRepr ) , "::" , stringify ! ( mFlags )
+                            ));
+            }
+            impl Clone for nsCStringRepr {
+                fn clone(&self) -> Self { *self }
+            }
         }
         pub type MallocSizeOf =
             ::std::option::Option<unsafe extern "C" fn(p:
@@ -1991,10 +2177,10 @@ pub mod root {
                 }
                 #[repr(C)]
                 pub struct FakeString {
-                    pub mData: *mut root::nsAString_internal_char_type,
-                    pub mLength: root::nsAString_internal_size_type,
+                    pub mData: *mut root::mozilla::detail::nsStringRepr_char_type,
+                    pub mLength: root::mozilla::detail::nsStringRepr_size_type,
                     pub mFlags: u32,
-                    pub mInlineStorage: [root::nsAString_internal_char_type; 64usize],
+                    pub mInlineStorage: [root::mozilla::detail::nsStringRepr_char_type; 64usize],
                 }
                 #[repr(C)]
                 #[derive(Debug)]
@@ -2949,7 +3135,7 @@ pub mod root {
                 pub mPrefix: root::nsCOMPtr<root::nsIAtom>,
                 pub mNamespaceID: i32,
                 pub mNodeType: u16,
-                pub mNameString: *const root::nsAString_internal,
+                pub mNameString: *const root::nsAString,
                 pub mExtraName: root::nsCOMPtr<root::nsIAtom>,
             }
             #[test]
@@ -4113,6 +4299,7 @@ pub mod root {
                 pub mRootBounds: root::RefPtr<root::mozilla::dom::DOMRect>,
                 pub mBoundingClientRect: root::RefPtr<root::mozilla::dom::DOMRect>,
                 pub mIntersectionRect: root::RefPtr<root::mozilla::dom::DOMRect>,
+                pub mIsIntersecting: bool,
                 pub mTarget: root::RefPtr<root::mozilla::dom::Element>,
                 pub mIntersectionRatio: f64,
             }
@@ -4147,7 +4334,7 @@ pub mod root {
             #[test]
             fn bindgen_test_layout_DOMIntersectionObserverEntry() {
                 assert_eq!(::std::mem::size_of::<DOMIntersectionObserverEntry>()
-                           , 104usize , concat ! (
+                           , 112usize , concat ! (
                            "Size of: " , stringify ! (
                            DOMIntersectionObserverEntry ) ));
                 assert_eq! (::std::mem::align_of::<DOMIntersectionObserverEntry>()
@@ -8027,9 +8214,6 @@ pub mod root {
         }
         #[repr(C)]
         #[derive(Debug, Copy, Clone)]
-        pub struct ServoAnimationRule([u8; 0]);
-        #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
         pub struct AnimationPerformanceWarning([u8; 0]);
         pub type CSSPseudoClassTypeBase = u8;
         #[repr(u8)]
@@ -8169,12 +8353,6 @@ pub mod root {
         pub type pair_first_type<_T1> = _T1;
         pub type pair_second_type<_T2> = _T2;
         #[repr(C)]
-        pub struct atomic<_Tp> {
-            pub _base: (),
-            pub _phantom_0: ::std::marker::PhantomData<_Tp>,
-        }
-        pub type atomic___base = [u8; 0usize];
-        #[repr(C)]
         #[derive(Debug, Copy)]
         pub struct input_iterator_tag {
             pub _address: u8,
@@ -8193,62 +8371,6 @@ pub mod root {
             fn clone(&self) -> Self { *self }
         }
         #[repr(C)]
-        #[derive(Debug, Copy)]
-        pub struct forward_iterator_tag {
-            pub _address: u8,
-        }
-        #[test]
-        fn bindgen_test_layout_forward_iterator_tag() {
-            assert_eq!(::std::mem::size_of::<forward_iterator_tag>() , 1usize
-                       , concat ! (
-                       "Size of: " , stringify ! ( forward_iterator_tag ) ));
-            assert_eq! (::std::mem::align_of::<forward_iterator_tag>() ,
-                        1usize , concat ! (
-                        "Alignment of " , stringify ! ( forward_iterator_tag )
-                        ));
-        }
-        impl Clone for forward_iterator_tag {
-            fn clone(&self) -> Self { *self }
-        }
-        #[repr(C)]
-        #[derive(Debug, Copy)]
-        pub struct bidirectional_iterator_tag {
-            pub _address: u8,
-        }
-        #[test]
-        fn bindgen_test_layout_bidirectional_iterator_tag() {
-            assert_eq!(::std::mem::size_of::<bidirectional_iterator_tag>() ,
-                       1usize , concat ! (
-                       "Size of: " , stringify ! ( bidirectional_iterator_tag
-                       ) ));
-            assert_eq! (::std::mem::align_of::<bidirectional_iterator_tag>() ,
-                        1usize , concat ! (
-                        "Alignment of " , stringify ! (
-                        bidirectional_iterator_tag ) ));
-        }
-        impl Clone for bidirectional_iterator_tag {
-            fn clone(&self) -> Self { *self }
-        }
-        #[repr(C)]
-        #[derive(Debug, Copy)]
-        pub struct random_access_iterator_tag {
-            pub _address: u8,
-        }
-        #[test]
-        fn bindgen_test_layout_random_access_iterator_tag() {
-            assert_eq!(::std::mem::size_of::<random_access_iterator_tag>() ,
-                       1usize , concat ! (
-                       "Size of: " , stringify ! ( random_access_iterator_tag
-                       ) ));
-            assert_eq! (::std::mem::align_of::<random_access_iterator_tag>() ,
-                        1usize , concat ! (
-                        "Alignment of " , stringify ! (
-                        random_access_iterator_tag ) ));
-        }
-        impl Clone for random_access_iterator_tag {
-            fn clone(&self) -> Self { *self }
-        }
-        #[repr(C)]
         #[derive(Debug, Copy, Clone)]
         pub struct iterator<_Category, _Tp, _Distance, _Pointer, _Reference> {
             pub _address: u8,
@@ -8258,209 +8380,250 @@ pub mod root {
             pub _phantom_3: ::std::marker::PhantomData<_Pointer>,
             pub _phantom_4: ::std::marker::PhantomData<_Reference>,
         }
+        pub type iterator_iterator_category<_Category> = _Category;
         pub type iterator_value_type<_Tp> = _Tp;
         pub type iterator_difference_type<_Distance> = _Distance;
         pub type iterator_pointer<_Pointer> = _Pointer;
         pub type iterator_reference<_Reference> = _Reference;
-        pub type iterator_iterator_category<_Category> = _Category;
         #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
-        pub struct __bit_const_reference<_Cp> {
-            pub __seg_: root::std::__bit_const_reference___storage_pointer<_Cp>,
-            pub __mask_: root::std::__bit_const_reference___storage_type<_Cp>,
+        #[derive(Debug)]
+        pub struct atomic<_Tp> {
+            pub _M_i: _Tp,
         }
-        pub type __bit_const_reference___storage_type<_Cp> = _Cp;
-        pub type __bit_const_reference___storage_pointer<_Cp> = _Cp;
+        pub mod chrono {
+            #[allow(unused_imports)]
+            use self::super::super::super::root;
+        }
     }
-    pub type __int64_t = ::std::os::raw::c_longlong;
-    pub type __darwin_va_list = root::__builtin_va_list;
-    pub type __darwin_off_t = root::__int64_t;
-    pub type va_list = root::__darwin_va_list;
-    pub type fpos_t = root::__darwin_off_t;
+    pub mod __gnu_cxx {
+        #[allow(unused_imports)]
+        use self::super::super::root;
+    }
+    pub type __off_t = ::std::os::raw::c_long;
+    pub type __off64_t = ::std::os::raw::c_long;
     #[repr(C)]
     #[derive(Debug, Copy)]
-    pub struct __sbuf {
-        pub _base: *mut ::std::os::raw::c_uchar,
-        pub _size: ::std::os::raw::c_int,
+    pub struct _IO_FILE {
+        pub _flags: ::std::os::raw::c_int,
+        pub _IO_read_ptr: *mut ::std::os::raw::c_char,
+        pub _IO_read_end: *mut ::std::os::raw::c_char,
+        pub _IO_read_base: *mut ::std::os::raw::c_char,
+        pub _IO_write_base: *mut ::std::os::raw::c_char,
+        pub _IO_write_ptr: *mut ::std::os::raw::c_char,
+        pub _IO_write_end: *mut ::std::os::raw::c_char,
+        pub _IO_buf_base: *mut ::std::os::raw::c_char,
+        pub _IO_buf_end: *mut ::std::os::raw::c_char,
+        pub _IO_save_base: *mut ::std::os::raw::c_char,
+        pub _IO_backup_base: *mut ::std::os::raw::c_char,
+        pub _IO_save_end: *mut ::std::os::raw::c_char,
+        pub _markers: *mut root::_IO_marker,
+        pub _chain: *mut root::_IO_FILE,
+        pub _fileno: ::std::os::raw::c_int,
+        pub _flags2: ::std::os::raw::c_int,
+        pub _old_offset: root::__off_t,
+        pub _cur_column: ::std::os::raw::c_ushort,
+        pub _vtable_offset: ::std::os::raw::c_char,
+        pub _shortbuf: [::std::os::raw::c_char; 1usize],
+        pub _lock: *mut root::_IO_lock_t,
+        pub _offset: root::__off64_t,
+        pub __pad1: *mut ::std::os::raw::c_void,
+        pub __pad2: *mut ::std::os::raw::c_void,
+        pub __pad3: *mut ::std::os::raw::c_void,
+        pub __pad4: *mut ::std::os::raw::c_void,
+        pub __pad5: usize,
+        pub _mode: ::std::os::raw::c_int,
+        pub _unused2: [::std::os::raw::c_char; 20usize],
     }
     #[test]
-    fn bindgen_test_layout___sbuf() {
-        assert_eq!(::std::mem::size_of::<__sbuf>() , 16usize , concat ! (
-                   "Size of: " , stringify ! ( __sbuf ) ));
-        assert_eq! (::std::mem::align_of::<__sbuf>() , 8usize , concat ! (
-                    "Alignment of " , stringify ! ( __sbuf ) ));
+    fn bindgen_test_layout__IO_FILE() {
+        assert_eq!(::std::mem::size_of::<_IO_FILE>() , 216usize , concat ! (
+                   "Size of: " , stringify ! ( _IO_FILE ) ));
+        assert_eq! (::std::mem::align_of::<_IO_FILE>() , 8usize , concat ! (
+                    "Alignment of " , stringify ! ( _IO_FILE ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const __sbuf ) ) . _base as * const _ as
+                    & ( * ( 0 as * const _IO_FILE ) ) . _flags as * const _ as
                     usize } , 0usize , concat ! (
-                    "Alignment of field: " , stringify ! ( __sbuf ) , "::" ,
-                    stringify ! ( _base ) ));
-        assert_eq! (unsafe {
-                    & ( * ( 0 as * const __sbuf ) ) . _size as * const _ as
-                    usize } , 8usize , concat ! (
-                    "Alignment of field: " , stringify ! ( __sbuf ) , "::" ,
-                    stringify ! ( _size ) ));
-    }
-    impl Clone for __sbuf {
-        fn clone(&self) -> Self { *self }
-    }
-    #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
-    pub struct __sFILEX([u8; 0]);
-    #[repr(C)]
-    #[derive(Debug, Copy)]
-    pub struct __sFILE {
-        pub _p: *mut ::std::os::raw::c_uchar,
-        pub _r: ::std::os::raw::c_int,
-        pub _w: ::std::os::raw::c_int,
-        pub _flags: ::std::os::raw::c_short,
-        pub _file: ::std::os::raw::c_short,
-        pub _bf: root::__sbuf,
-        pub _lbfsize: ::std::os::raw::c_int,
-        pub _cookie: *mut ::std::os::raw::c_void,
-        pub _close: ::std::option::Option<unsafe extern "C" fn(arg1:
-                                                                   *mut ::std::os::raw::c_void)
-                                              -> ::std::os::raw::c_int>,
-        pub _read: ::std::option::Option<unsafe extern "C" fn(arg1:
-                                                                  *mut ::std::os::raw::c_void,
-                                                              arg2:
-                                                                  *mut ::std::os::raw::c_char,
-                                                              arg3:
-                                                                  ::std::os::raw::c_int)
-                                             -> ::std::os::raw::c_int>,
-        pub _seek: ::std::option::Option<unsafe extern "C" fn(arg1:
-                                                                  *mut ::std::os::raw::c_void,
-                                                              arg2:
-                                                                  root::fpos_t,
-                                                              arg3:
-                                                                  ::std::os::raw::c_int)
-                                             -> ::std::os::raw::c_longlong>,
-        pub _write: ::std::option::Option<unsafe extern "C" fn(arg1:
-                                                                   *mut ::std::os::raw::c_void,
-                                                               arg2:
-                                                                   *const ::std::os::raw::c_char,
-                                                               arg3:
-                                                                   ::std::os::raw::c_int)
-                                              -> ::std::os::raw::c_int>,
-        pub _ub: root::__sbuf,
-        pub _extra: *mut root::__sFILEX,
-        pub _ur: ::std::os::raw::c_int,
-        pub _ubuf: [::std::os::raw::c_uchar; 3usize],
-        pub _nbuf: [::std::os::raw::c_uchar; 1usize],
-        pub _lb: root::__sbuf,
-        pub _blksize: ::std::os::raw::c_int,
-        pub _offset: root::fpos_t,
-    }
-    #[test]
-    fn bindgen_test_layout___sFILE() {
-        assert_eq!(::std::mem::size_of::<__sFILE>() , 152usize , concat ! (
-                   "Size of: " , stringify ! ( __sFILE ) ));
-        assert_eq! (::std::mem::align_of::<__sFILE>() , 8usize , concat ! (
-                    "Alignment of " , stringify ! ( __sFILE ) ));
-        assert_eq! (unsafe {
-                    & ( * ( 0 as * const __sFILE ) ) . _p as * const _ as
-                    usize } , 0usize , concat ! (
-                    "Alignment of field: " , stringify ! ( __sFILE ) , "::" ,
-                    stringify ! ( _p ) ));
-        assert_eq! (unsafe {
-                    & ( * ( 0 as * const __sFILE ) ) . _r as * const _ as
-                    usize } , 8usize , concat ! (
-                    "Alignment of field: " , stringify ! ( __sFILE ) , "::" ,
-                    stringify ! ( _r ) ));
-        assert_eq! (unsafe {
-                    & ( * ( 0 as * const __sFILE ) ) . _w as * const _ as
-                    usize } , 12usize , concat ! (
-                    "Alignment of field: " , stringify ! ( __sFILE ) , "::" ,
-                    stringify ! ( _w ) ));
-        assert_eq! (unsafe {
-                    & ( * ( 0 as * const __sFILE ) ) . _flags as * const _ as
-                    usize } , 16usize , concat ! (
-                    "Alignment of field: " , stringify ! ( __sFILE ) , "::" ,
+                    "Alignment of field: " , stringify ! ( _IO_FILE ) , "::" ,
                     stringify ! ( _flags ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const __sFILE ) ) . _file as * const _ as
-                    usize } , 18usize , concat ! (
-                    "Alignment of field: " , stringify ! ( __sFILE ) , "::" ,
-                    stringify ! ( _file ) ));
+                    & ( * ( 0 as * const _IO_FILE ) ) . _IO_read_ptr as *
+                    const _ as usize } , 8usize , concat ! (
+                    "Alignment of field: " , stringify ! ( _IO_FILE ) , "::" ,
+                    stringify ! ( _IO_read_ptr ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const __sFILE ) ) . _bf as * const _ as
-                    usize } , 24usize , concat ! (
-                    "Alignment of field: " , stringify ! ( __sFILE ) , "::" ,
-                    stringify ! ( _bf ) ));
+                    & ( * ( 0 as * const _IO_FILE ) ) . _IO_read_end as *
+                    const _ as usize } , 16usize , concat ! (
+                    "Alignment of field: " , stringify ! ( _IO_FILE ) , "::" ,
+                    stringify ! ( _IO_read_end ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const __sFILE ) ) . _lbfsize as * const _
-                    as usize } , 40usize , concat ! (
-                    "Alignment of field: " , stringify ! ( __sFILE ) , "::" ,
-                    stringify ! ( _lbfsize ) ));
+                    & ( * ( 0 as * const _IO_FILE ) ) . _IO_read_base as *
+                    const _ as usize } , 24usize , concat ! (
+                    "Alignment of field: " , stringify ! ( _IO_FILE ) , "::" ,
+                    stringify ! ( _IO_read_base ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const __sFILE ) ) . _cookie as * const _ as
-                    usize } , 48usize , concat ! (
-                    "Alignment of field: " , stringify ! ( __sFILE ) , "::" ,
-                    stringify ! ( _cookie ) ));
+                    & ( * ( 0 as * const _IO_FILE ) ) . _IO_write_base as *
+                    const _ as usize } , 32usize , concat ! (
+                    "Alignment of field: " , stringify ! ( _IO_FILE ) , "::" ,
+                    stringify ! ( _IO_write_base ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const __sFILE ) ) . _close as * const _ as
-                    usize } , 56usize , concat ! (
-                    "Alignment of field: " , stringify ! ( __sFILE ) , "::" ,
-                    stringify ! ( _close ) ));
+                    & ( * ( 0 as * const _IO_FILE ) ) . _IO_write_ptr as *
+                    const _ as usize } , 40usize , concat ! (
+                    "Alignment of field: " , stringify ! ( _IO_FILE ) , "::" ,
+                    stringify ! ( _IO_write_ptr ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const __sFILE ) ) . _read as * const _ as
-                    usize } , 64usize , concat ! (
-                    "Alignment of field: " , stringify ! ( __sFILE ) , "::" ,
-                    stringify ! ( _read ) ));
+                    & ( * ( 0 as * const _IO_FILE ) ) . _IO_write_end as *
+                    const _ as usize } , 48usize , concat ! (
+                    "Alignment of field: " , stringify ! ( _IO_FILE ) , "::" ,
+                    stringify ! ( _IO_write_end ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const __sFILE ) ) . _seek as * const _ as
-                    usize } , 72usize , concat ! (
-                    "Alignment of field: " , stringify ! ( __sFILE ) , "::" ,
-                    stringify ! ( _seek ) ));
+                    & ( * ( 0 as * const _IO_FILE ) ) . _IO_buf_base as *
+                    const _ as usize } , 56usize , concat ! (
+                    "Alignment of field: " , stringify ! ( _IO_FILE ) , "::" ,
+                    stringify ! ( _IO_buf_base ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const __sFILE ) ) . _write as * const _ as
-                    usize } , 80usize , concat ! (
-                    "Alignment of field: " , stringify ! ( __sFILE ) , "::" ,
-                    stringify ! ( _write ) ));
+                    & ( * ( 0 as * const _IO_FILE ) ) . _IO_buf_end as * const
+                    _ as usize } , 64usize , concat ! (
+                    "Alignment of field: " , stringify ! ( _IO_FILE ) , "::" ,
+                    stringify ! ( _IO_buf_end ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const __sFILE ) ) . _ub as * const _ as
-                    usize } , 88usize , concat ! (
-                    "Alignment of field: " , stringify ! ( __sFILE ) , "::" ,
-                    stringify ! ( _ub ) ));
+                    & ( * ( 0 as * const _IO_FILE ) ) . _IO_save_base as *
+                    const _ as usize } , 72usize , concat ! (
+                    "Alignment of field: " , stringify ! ( _IO_FILE ) , "::" ,
+                    stringify ! ( _IO_save_base ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const __sFILE ) ) . _extra as * const _ as
+                    & ( * ( 0 as * const _IO_FILE ) ) . _IO_backup_base as *
+                    const _ as usize } , 80usize , concat ! (
+                    "Alignment of field: " , stringify ! ( _IO_FILE ) , "::" ,
+                    stringify ! ( _IO_backup_base ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const _IO_FILE ) ) . _IO_save_end as *
+                    const _ as usize } , 88usize , concat ! (
+                    "Alignment of field: " , stringify ! ( _IO_FILE ) , "::" ,
+                    stringify ! ( _IO_save_end ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const _IO_FILE ) ) . _markers as * const _
+                    as usize } , 96usize , concat ! (
+                    "Alignment of field: " , stringify ! ( _IO_FILE ) , "::" ,
+                    stringify ! ( _markers ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const _IO_FILE ) ) . _chain as * const _ as
                     usize } , 104usize , concat ! (
-                    "Alignment of field: " , stringify ! ( __sFILE ) , "::" ,
-                    stringify ! ( _extra ) ));
+                    "Alignment of field: " , stringify ! ( _IO_FILE ) , "::" ,
+                    stringify ! ( _chain ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const __sFILE ) ) . _ur as * const _ as
-                    usize } , 112usize , concat ! (
-                    "Alignment of field: " , stringify ! ( __sFILE ) , "::" ,
-                    stringify ! ( _ur ) ));
+                    & ( * ( 0 as * const _IO_FILE ) ) . _fileno as * const _
+                    as usize } , 112usize , concat ! (
+                    "Alignment of field: " , stringify ! ( _IO_FILE ) , "::" ,
+                    stringify ! ( _fileno ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const __sFILE ) ) . _ubuf as * const _ as
-                    usize } , 116usize , concat ! (
-                    "Alignment of field: " , stringify ! ( __sFILE ) , "::" ,
-                    stringify ! ( _ubuf ) ));
+                    & ( * ( 0 as * const _IO_FILE ) ) . _flags2 as * const _
+                    as usize } , 116usize , concat ! (
+                    "Alignment of field: " , stringify ! ( _IO_FILE ) , "::" ,
+                    stringify ! ( _flags2 ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const __sFILE ) ) . _nbuf as * const _ as
-                    usize } , 119usize , concat ! (
-                    "Alignment of field: " , stringify ! ( __sFILE ) , "::" ,
-                    stringify ! ( _nbuf ) ));
+                    & ( * ( 0 as * const _IO_FILE ) ) . _old_offset as * const
+                    _ as usize } , 120usize , concat ! (
+                    "Alignment of field: " , stringify ! ( _IO_FILE ) , "::" ,
+                    stringify ! ( _old_offset ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const __sFILE ) ) . _lb as * const _ as
-                    usize } , 120usize , concat ! (
-                    "Alignment of field: " , stringify ! ( __sFILE ) , "::" ,
-                    stringify ! ( _lb ) ));
+                    & ( * ( 0 as * const _IO_FILE ) ) . _cur_column as * const
+                    _ as usize } , 128usize , concat ! (
+                    "Alignment of field: " , stringify ! ( _IO_FILE ) , "::" ,
+                    stringify ! ( _cur_column ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const __sFILE ) ) . _blksize as * const _
-                    as usize } , 136usize , concat ! (
-                    "Alignment of field: " , stringify ! ( __sFILE ) , "::" ,
-                    stringify ! ( _blksize ) ));
+                    & ( * ( 0 as * const _IO_FILE ) ) . _vtable_offset as *
+                    const _ as usize } , 130usize , concat ! (
+                    "Alignment of field: " , stringify ! ( _IO_FILE ) , "::" ,
+                    stringify ! ( _vtable_offset ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const __sFILE ) ) . _offset as * const _ as
-                    usize } , 144usize , concat ! (
-                    "Alignment of field: " , stringify ! ( __sFILE ) , "::" ,
+                    & ( * ( 0 as * const _IO_FILE ) ) . _shortbuf as * const _
+                    as usize } , 131usize , concat ! (
+                    "Alignment of field: " , stringify ! ( _IO_FILE ) , "::" ,
+                    stringify ! ( _shortbuf ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const _IO_FILE ) ) . _lock as * const _ as
+                    usize } , 136usize , concat ! (
+                    "Alignment of field: " , stringify ! ( _IO_FILE ) , "::" ,
+                    stringify ! ( _lock ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const _IO_FILE ) ) . _offset as * const _
+                    as usize } , 144usize , concat ! (
+                    "Alignment of field: " , stringify ! ( _IO_FILE ) , "::" ,
                     stringify ! ( _offset ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const _IO_FILE ) ) . __pad1 as * const _ as
+                    usize } , 152usize , concat ! (
+                    "Alignment of field: " , stringify ! ( _IO_FILE ) , "::" ,
+                    stringify ! ( __pad1 ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const _IO_FILE ) ) . __pad2 as * const _ as
+                    usize } , 160usize , concat ! (
+                    "Alignment of field: " , stringify ! ( _IO_FILE ) , "::" ,
+                    stringify ! ( __pad2 ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const _IO_FILE ) ) . __pad3 as * const _ as
+                    usize } , 168usize , concat ! (
+                    "Alignment of field: " , stringify ! ( _IO_FILE ) , "::" ,
+                    stringify ! ( __pad3 ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const _IO_FILE ) ) . __pad4 as * const _ as
+                    usize } , 176usize , concat ! (
+                    "Alignment of field: " , stringify ! ( _IO_FILE ) , "::" ,
+                    stringify ! ( __pad4 ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const _IO_FILE ) ) . __pad5 as * const _ as
+                    usize } , 184usize , concat ! (
+                    "Alignment of field: " , stringify ! ( _IO_FILE ) , "::" ,
+                    stringify ! ( __pad5 ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const _IO_FILE ) ) . _mode as * const _ as
+                    usize } , 192usize , concat ! (
+                    "Alignment of field: " , stringify ! ( _IO_FILE ) , "::" ,
+                    stringify ! ( _mode ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const _IO_FILE ) ) . _unused2 as * const _
+                    as usize } , 196usize , concat ! (
+                    "Alignment of field: " , stringify ! ( _IO_FILE ) , "::" ,
+                    stringify ! ( _unused2 ) ));
     }
-    impl Clone for __sFILE {
+    impl Clone for _IO_FILE {
         fn clone(&self) -> Self { *self }
     }
-    pub type FILE = root::__sFILE;
+    pub type FILE = root::_IO_FILE;
+    pub type va_list = root::__builtin_va_list;
+    pub type _IO_lock_t = ::std::os::raw::c_void;
+    #[repr(C)]
+    #[derive(Debug, Copy)]
+    pub struct _IO_marker {
+        pub _next: *mut root::_IO_marker,
+        pub _sbuf: *mut root::_IO_FILE,
+        pub _pos: ::std::os::raw::c_int,
+    }
+    #[test]
+    fn bindgen_test_layout__IO_marker() {
+        assert_eq!(::std::mem::size_of::<_IO_marker>() , 24usize , concat ! (
+                   "Size of: " , stringify ! ( _IO_marker ) ));
+        assert_eq! (::std::mem::align_of::<_IO_marker>() , 8usize , concat ! (
+                    "Alignment of " , stringify ! ( _IO_marker ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const _IO_marker ) ) . _next as * const _
+                    as usize } , 0usize , concat ! (
+                    "Alignment of field: " , stringify ! ( _IO_marker ) , "::"
+                    , stringify ! ( _next ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const _IO_marker ) ) . _sbuf as * const _
+                    as usize } , 8usize , concat ! (
+                    "Alignment of field: " , stringify ! ( _IO_marker ) , "::"
+                    , stringify ! ( _sbuf ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const _IO_marker ) ) . _pos as * const _ as
+                    usize } , 16usize , concat ! (
+                    "Alignment of field: " , stringify ! ( _IO_marker ) , "::"
+                    , stringify ! ( _pos ) ));
+    }
+    impl Clone for _IO_marker {
+        fn clone(&self) -> Self { *self }
+    }
     /**
  * MozRefCountType is Mozilla's reference count type.
  *
@@ -9803,92 +9966,21 @@ pub mod root {
         JS_GENERIC_MAGIC = 16,
         JS_WHY_MAGIC_COUNT = 17,
     }
+    /**
+ * double-byte (char16_t) string types
+ */
     #[repr(C)]
     #[derive(Debug)]
-    pub struct nsAString_internal {
-        pub mData: *mut root::nsAString_internal_char_type,
-        pub mLength: root::nsAString_internal_size_type,
-        pub mFlags: u32,
+    pub struct nsAString {
+        pub _base: root::mozilla::detail::nsStringRepr,
     }
-    pub type nsAString_internal_fallible_t = root::mozilla::fallible_t;
-    pub type nsAString_internal_char_type = u16;
-    pub type nsAString_internal_self_type = root::nsAString_internal;
-    pub type nsAString_internal_abstract_string_type =
-        root::nsAString_internal_self_type;
-    pub type nsAString_internal_base_string_type =
-        root::nsAString_internal_self_type;
-    pub type nsAString_internal_substring_type =
-        root::nsAString_internal_self_type;
-    pub type nsAString_internal_substring_tuple_type = root::nsSubstringTuple;
-    pub type nsAString_internal_string_type = ::nsstring::nsStringRepr;
-    pub type nsAString_internal_const_iterator = root::nsReadingIterator<u16>;
-    pub type nsAString_internal_iterator = root::nsWritingIterator<u16>;
-    pub type nsAString_internal_comparator_type = root::nsStringComparator;
-    pub type nsAString_internal_char_iterator =
-        *mut root::nsAString_internal_char_type;
-    pub type nsAString_internal_const_char_iterator =
-        *const root::nsAString_internal_char_type;
-    pub type nsAString_internal_size_type = u32;
-    pub type nsAString_internal_index_type = u32;
-    pub const nsAString_internal_F_NONE:
-              root::nsAString_internal__bindgen_ty_1 =
-        nsAString_internal__bindgen_ty_1::F_NONE;
-    pub const nsAString_internal_F_TERMINATED:
-              root::nsAString_internal__bindgen_ty_1 =
-        nsAString_internal__bindgen_ty_1::F_TERMINATED;
-    pub const nsAString_internal_F_VOIDED:
-              root::nsAString_internal__bindgen_ty_1 =
-        nsAString_internal__bindgen_ty_1::F_VOIDED;
-    pub const nsAString_internal_F_SHARED:
-              root::nsAString_internal__bindgen_ty_1 =
-        nsAString_internal__bindgen_ty_1::F_SHARED;
-    pub const nsAString_internal_F_OWNED:
-              root::nsAString_internal__bindgen_ty_1 =
-        nsAString_internal__bindgen_ty_1::F_OWNED;
-    pub const nsAString_internal_F_FIXED:
-              root::nsAString_internal__bindgen_ty_1 =
-        nsAString_internal__bindgen_ty_1::F_FIXED;
-    pub const nsAString_internal_F_LITERAL:
-              root::nsAString_internal__bindgen_ty_1 =
-        nsAString_internal__bindgen_ty_1::F_LITERAL;
-    pub const nsAString_internal_F_CLASS_FIXED:
-              root::nsAString_internal__bindgen_ty_1 =
-        nsAString_internal__bindgen_ty_1::F_CLASS_FIXED;
-    #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-    pub enum nsAString_internal__bindgen_ty_1 {
-        F_NONE = 0,
-        F_TERMINATED = 1,
-        F_VOIDED = 2,
-        F_SHARED = 4,
-        F_OWNED = 8,
-        F_FIXED = 16,
-        F_LITERAL = 32,
-        F_CLASS_FIXED = 65536,
-    }
+    pub type nsAString_self_type = root::nsAString;
     #[test]
-    fn bindgen_test_layout_nsAString_internal() {
-        assert_eq!(::std::mem::size_of::<nsAString_internal>() , 16usize ,
-                   concat ! ( "Size of: " , stringify ! ( nsAString_internal )
-                   ));
-        assert_eq! (::std::mem::align_of::<nsAString_internal>() , 8usize ,
-                    concat ! (
-                    "Alignment of " , stringify ! ( nsAString_internal ) ));
-        assert_eq! (unsafe {
-                    & ( * ( 0 as * const nsAString_internal ) ) . mData as *
-                    const _ as usize } , 0usize , concat ! (
-                    "Alignment of field: " , stringify ! ( nsAString_internal
-                    ) , "::" , stringify ! ( mData ) ));
-        assert_eq! (unsafe {
-                    & ( * ( 0 as * const nsAString_internal ) ) . mLength as *
-                    const _ as usize } , 8usize , concat ! (
-                    "Alignment of field: " , stringify ! ( nsAString_internal
-                    ) , "::" , stringify ! ( mLength ) ));
-        assert_eq! (unsafe {
-                    & ( * ( 0 as * const nsAString_internal ) ) . mFlags as *
-                    const _ as usize } , 12usize , concat ! (
-                    "Alignment of field: " , stringify ! ( nsAString_internal
-                    ) , "::" , stringify ! ( mFlags ) ));
+    fn bindgen_test_layout_nsAString() {
+        assert_eq!(::std::mem::size_of::<nsAString>() , 16usize , concat ! (
+                   "Size of: " , stringify ! ( nsAString ) ));
+        assert_eq! (::std::mem::align_of::<nsAString>() , 8usize , concat ! (
+                    "Alignment of " , stringify ! ( nsAString ) ));
     }
     #[repr(C)]
     #[derive(Debug, Copy)]
@@ -9899,8 +9991,8 @@ pub mod root {
     }
     pub type nsSubstringTuple_char_type = u16;
     pub type nsSubstringTuple_self_type = root::nsSubstringTuple;
-    pub type nsSubstringTuple_substring_type = root::nsAString_internal;
-    pub type nsSubstringTuple_base_string_type = root::nsAString_internal;
+    pub type nsSubstringTuple_base_string_type =
+        root::mozilla::detail::nsStringRepr;
     pub type nsSubstringTuple_size_type = u32;
     #[test]
     fn bindgen_test_layout_nsSubstringTuple() {
@@ -9932,7 +10024,7 @@ pub mod root {
     #[repr(C)]
     pub struct nsAutoString {
         pub _base: root::nsFixedString,
-        pub mStorage: [root::nsAString_internal_char_type; 64usize],
+        pub mStorage: [root::mozilla::detail::nsStringRepr_char_type; 64usize],
     }
     pub type nsAutoString_self_type = root::nsAutoString;
     pub const nsAutoString_kDefaultStorageSize:
@@ -9956,7 +10048,7 @@ pub mod root {
     #[repr(C)]
     #[derive(Debug)]
     pub struct nsDependentSubstring {
-        pub _base: root::nsAString_internal,
+        pub _base: root::nsAString,
     }
     pub type nsDependentSubstring_self_type = root::nsDependentSubstring;
     #[test]
@@ -9989,95 +10081,21 @@ pub mod root {
     impl Clone for nsStringComparator {
         fn clone(&self) -> Self { *self }
     }
+    /**
+ * single-byte (char) string types
+ */
     #[repr(C)]
     #[derive(Debug)]
-    pub struct nsACString_internal {
-        pub mData: *mut root::nsACString_internal_char_type,
-        pub mLength: root::nsACString_internal_size_type,
-        pub mFlags: u32,
+    pub struct nsACString {
+        pub _base: root::mozilla::detail::nsCStringRepr,
     }
-    pub type nsACString_internal_fallible_t = root::mozilla::fallible_t;
-    pub type nsACString_internal_char_type = ::std::os::raw::c_char;
-    pub type nsACString_internal_self_type = root::nsACString_internal;
-    pub type nsACString_internal_abstract_string_type =
-        root::nsACString_internal_self_type;
-    pub type nsACString_internal_base_string_type =
-        root::nsACString_internal_self_type;
-    pub type nsACString_internal_substring_type =
-        root::nsACString_internal_self_type;
-    pub type nsACString_internal_substring_tuple_type =
-        root::nsCSubstringTuple;
-    pub type nsACString_internal_string_type = root::nsCString;
-    pub type nsACString_internal_const_iterator =
-        root::nsReadingIterator<::std::os::raw::c_char>;
-    pub type nsACString_internal_iterator =
-        root::nsWritingIterator<::std::os::raw::c_char>;
-    pub type nsACString_internal_comparator_type = root::nsCStringComparator;
-    pub type nsACString_internal_char_iterator =
-        *mut root::nsACString_internal_char_type;
-    pub type nsACString_internal_const_char_iterator =
-        *const root::nsACString_internal_char_type;
-    pub type nsACString_internal_size_type = u32;
-    pub type nsACString_internal_index_type = u32;
-    pub const nsACString_internal_F_NONE:
-              root::nsACString_internal__bindgen_ty_1 =
-        nsACString_internal__bindgen_ty_1::F_NONE;
-    pub const nsACString_internal_F_TERMINATED:
-              root::nsACString_internal__bindgen_ty_1 =
-        nsACString_internal__bindgen_ty_1::F_TERMINATED;
-    pub const nsACString_internal_F_VOIDED:
-              root::nsACString_internal__bindgen_ty_1 =
-        nsACString_internal__bindgen_ty_1::F_VOIDED;
-    pub const nsACString_internal_F_SHARED:
-              root::nsACString_internal__bindgen_ty_1 =
-        nsACString_internal__bindgen_ty_1::F_SHARED;
-    pub const nsACString_internal_F_OWNED:
-              root::nsACString_internal__bindgen_ty_1 =
-        nsACString_internal__bindgen_ty_1::F_OWNED;
-    pub const nsACString_internal_F_FIXED:
-              root::nsACString_internal__bindgen_ty_1 =
-        nsACString_internal__bindgen_ty_1::F_FIXED;
-    pub const nsACString_internal_F_LITERAL:
-              root::nsACString_internal__bindgen_ty_1 =
-        nsACString_internal__bindgen_ty_1::F_LITERAL;
-    pub const nsACString_internal_F_CLASS_FIXED:
-              root::nsACString_internal__bindgen_ty_1 =
-        nsACString_internal__bindgen_ty_1::F_CLASS_FIXED;
-    #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-    pub enum nsACString_internal__bindgen_ty_1 {
-        F_NONE = 0,
-        F_TERMINATED = 1,
-        F_VOIDED = 2,
-        F_SHARED = 4,
-        F_OWNED = 8,
-        F_FIXED = 16,
-        F_LITERAL = 32,
-        F_CLASS_FIXED = 65536,
-    }
+    pub type nsACString_self_type = root::nsACString;
     #[test]
-    fn bindgen_test_layout_nsACString_internal() {
-        assert_eq!(::std::mem::size_of::<nsACString_internal>() , 16usize ,
-                   concat ! (
-                   "Size of: " , stringify ! ( nsACString_internal ) ));
-        assert_eq! (::std::mem::align_of::<nsACString_internal>() , 8usize ,
-                    concat ! (
-                    "Alignment of " , stringify ! ( nsACString_internal ) ));
-        assert_eq! (unsafe {
-                    & ( * ( 0 as * const nsACString_internal ) ) . mData as *
-                    const _ as usize } , 0usize , concat ! (
-                    "Alignment of field: " , stringify ! ( nsACString_internal
-                    ) , "::" , stringify ! ( mData ) ));
-        assert_eq! (unsafe {
-                    & ( * ( 0 as * const nsACString_internal ) ) . mLength as
-                    * const _ as usize } , 8usize , concat ! (
-                    "Alignment of field: " , stringify ! ( nsACString_internal
-                    ) , "::" , stringify ! ( mLength ) ));
-        assert_eq! (unsafe {
-                    & ( * ( 0 as * const nsACString_internal ) ) . mFlags as *
-                    const _ as usize } , 12usize , concat ! (
-                    "Alignment of field: " , stringify ! ( nsACString_internal
-                    ) , "::" , stringify ! ( mFlags ) ));
+    fn bindgen_test_layout_nsACString() {
+        assert_eq!(::std::mem::size_of::<nsACString>() , 16usize , concat ! (
+                   "Size of: " , stringify ! ( nsACString ) ));
+        assert_eq! (::std::mem::align_of::<nsACString>() , 8usize , concat ! (
+                    "Alignment of " , stringify ! ( nsACString ) ));
     }
     #[repr(C)]
     #[derive(Debug, Copy)]
@@ -10088,8 +10106,8 @@ pub mod root {
     }
     pub type nsCSubstringTuple_char_type = ::std::os::raw::c_char;
     pub type nsCSubstringTuple_self_type = root::nsCSubstringTuple;
-    pub type nsCSubstringTuple_substring_type = root::nsACString_internal;
-    pub type nsCSubstringTuple_base_string_type = root::nsACString_internal;
+    pub type nsCSubstringTuple_base_string_type =
+        root::mozilla::detail::nsCStringRepr;
     pub type nsCSubstringTuple_size_type = u32;
     #[test]
     fn bindgen_test_layout_nsCSubstringTuple() {
@@ -10121,7 +10139,7 @@ pub mod root {
     #[repr(C)]
     #[derive(Debug)]
     pub struct nsCString {
-        pub _base: root::nsACString_internal,
+        pub _base: root::nsACString,
     }
     pub type nsCString_self_type = root::nsCString;
     #[repr(C)]
@@ -10162,7 +10180,7 @@ pub mod root {
     #[repr(C)]
     #[derive(Debug)]
     pub struct nsDependentCSubstring {
-        pub _base: root::nsACString_internal,
+        pub _base: root::nsACString,
     }
     pub type nsDependentCSubstring_self_type = root::nsDependentCSubstring;
     #[test]
@@ -10199,7 +10217,7 @@ pub mod root {
     /**
  * typedefs for backwards compatibility
  */
-    pub type nsSubstring = root::nsAString_internal;
+    pub type nsSubstring = root::nsAString;
     pub type nsAFlatCString = root::nsCString;
     #[repr(C)]
     pub struct nsISupports__bindgen_vtable {
@@ -10335,16 +10353,16 @@ pub mod root {
     #[repr(C)]
     #[derive(Debug)]
     pub struct nsSubstringSplitter {
-        pub mStr: *const root::nsAString_internal,
+        pub mStr: *const root::nsAString,
         pub mArray: root::mozilla::UniquePtr<[root::nsDependentSubstring; 0usize],
                                              root::mozilla::DefaultDelete<[root::nsDependentSubstring; 0usize]>>,
         pub mArraySize: root::nsSubstringSplitter_size_type,
         pub mDelim: root::nsSubstringSplitter_char_type,
     }
     pub type nsSubstringSplitter_size_type =
-        root::nsAString_internal_size_type;
+        root::mozilla::detail::nsStringRepr_size_type;
     pub type nsSubstringSplitter_char_type =
-        root::nsAString_internal_char_type;
+        root::mozilla::detail::nsStringRepr_char_type;
     #[repr(C)]
     #[derive(Debug, Copy)]
     pub struct nsSubstringSplitter_nsTSubstringSplit_Iter {
@@ -10413,16 +10431,16 @@ pub mod root {
     #[repr(C)]
     #[derive(Debug)]
     pub struct nsCSubstringSplitter {
-        pub mStr: *const root::nsACString_internal,
+        pub mStr: *const root::nsACString,
         pub mArray: root::mozilla::UniquePtr<[root::nsDependentCSubstring; 0usize],
                                              root::mozilla::DefaultDelete<[root::nsDependentCSubstring; 0usize]>>,
         pub mArraySize: root::nsCSubstringSplitter_size_type,
         pub mDelim: root::nsCSubstringSplitter_char_type,
     }
     pub type nsCSubstringSplitter_size_type =
-        root::nsACString_internal_size_type;
+        root::mozilla::detail::nsCStringRepr_size_type;
     pub type nsCSubstringSplitter_char_type =
-        root::nsACString_internal_char_type;
+        root::mozilla::detail::nsCStringRepr_char_type;
     #[repr(C)]
     #[derive(Debug, Copy)]
     pub struct nsCSubstringSplitter_nsTSubstringSplit_Iter {
@@ -10493,8 +10511,8 @@ pub mod root {
     #[derive(Debug)]
     pub struct nsFixedString {
         pub _base: ::nsstring::nsStringRepr,
-        pub mFixedCapacity: root::nsAString_internal_size_type,
-        pub mFixedBuf: *mut root::nsAString_internal_char_type,
+        pub mFixedCapacity: root::mozilla::detail::nsStringRepr_size_type,
+        pub mFixedBuf: *mut root::mozilla::detail::nsStringRepr_char_type,
     }
     pub type nsFixedString_self_type = root::nsFixedString;
     pub type nsFixedString_fixed_string_type = root::nsFixedString;
@@ -15620,63 +15638,63 @@ pub mod root {
     #[repr(C)]
     #[derive(Debug, Copy, Clone)]
     pub struct nsDOMMutationObserver([u8; 0]);
-    pub const NODE_HAS_LISTENERMANAGER: root::_bindgen_ty_28 =
-        _bindgen_ty_28::NODE_HAS_LISTENERMANAGER;
-    pub const NODE_HAS_PROPERTIES: root::_bindgen_ty_28 =
-        _bindgen_ty_28::NODE_HAS_PROPERTIES;
-    pub const NODE_IS_ANONYMOUS_ROOT: root::_bindgen_ty_28 =
-        _bindgen_ty_28::NODE_IS_ANONYMOUS_ROOT;
-    pub const NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE: root::_bindgen_ty_28 =
-        _bindgen_ty_28::NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE;
-    pub const NODE_IS_NATIVE_ANONYMOUS_ROOT: root::_bindgen_ty_28 =
-        _bindgen_ty_28::NODE_IS_NATIVE_ANONYMOUS_ROOT;
-    pub const NODE_FORCE_XBL_BINDINGS: root::_bindgen_ty_28 =
-        _bindgen_ty_28::NODE_FORCE_XBL_BINDINGS;
-    pub const NODE_MAY_BE_IN_BINDING_MNGR: root::_bindgen_ty_28 =
-        _bindgen_ty_28::NODE_MAY_BE_IN_BINDING_MNGR;
-    pub const NODE_IS_EDITABLE: root::_bindgen_ty_28 =
-        _bindgen_ty_28::NODE_IS_EDITABLE;
-    pub const NODE_IS_NATIVE_ANONYMOUS: root::_bindgen_ty_28 =
-        _bindgen_ty_28::NODE_IS_NATIVE_ANONYMOUS;
-    pub const NODE_IS_IN_SHADOW_TREE: root::_bindgen_ty_28 =
-        _bindgen_ty_28::NODE_IS_IN_SHADOW_TREE;
-    pub const NODE_HAS_EMPTY_SELECTOR: root::_bindgen_ty_28 =
-        _bindgen_ty_28::NODE_HAS_EMPTY_SELECTOR;
-    pub const NODE_HAS_SLOW_SELECTOR: root::_bindgen_ty_28 =
-        _bindgen_ty_28::NODE_HAS_SLOW_SELECTOR;
-    pub const NODE_HAS_EDGE_CHILD_SELECTOR: root::_bindgen_ty_28 =
-        _bindgen_ty_28::NODE_HAS_EDGE_CHILD_SELECTOR;
-    pub const NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS: root::_bindgen_ty_28 =
-        _bindgen_ty_28::NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS;
-    pub const NODE_ALL_SELECTOR_FLAGS: root::_bindgen_ty_28 =
-        _bindgen_ty_28::NODE_ALL_SELECTOR_FLAGS;
-    pub const NODE_NEEDS_FRAME: root::_bindgen_ty_28 =
-        _bindgen_ty_28::NODE_NEEDS_FRAME;
-    pub const NODE_DESCENDANTS_NEED_FRAMES: root::_bindgen_ty_28 =
-        _bindgen_ty_28::NODE_DESCENDANTS_NEED_FRAMES;
-    pub const NODE_HAS_ACCESSKEY: root::_bindgen_ty_28 =
-        _bindgen_ty_28::NODE_HAS_ACCESSKEY;
-    pub const NODE_HAS_DIRECTION_RTL: root::_bindgen_ty_28 =
-        _bindgen_ty_28::NODE_HAS_DIRECTION_RTL;
-    pub const NODE_HAS_DIRECTION_LTR: root::_bindgen_ty_28 =
-        _bindgen_ty_28::NODE_HAS_DIRECTION_LTR;
-    pub const NODE_ALL_DIRECTION_FLAGS: root::_bindgen_ty_28 =
-        _bindgen_ty_28::NODE_ALL_DIRECTION_FLAGS;
-    pub const NODE_CHROME_ONLY_ACCESS: root::_bindgen_ty_28 =
-        _bindgen_ty_28::NODE_CHROME_ONLY_ACCESS;
-    pub const NODE_IS_ROOT_OF_CHROME_ONLY_ACCESS: root::_bindgen_ty_28 =
-        _bindgen_ty_28::NODE_IS_ROOT_OF_CHROME_ONLY_ACCESS;
-    pub const NODE_SHARED_RESTYLE_BIT_1: root::_bindgen_ty_28 =
-        _bindgen_ty_28::NODE_SHARED_RESTYLE_BIT_1;
-    pub const NODE_SHARED_RESTYLE_BIT_2: root::_bindgen_ty_28 =
-        _bindgen_ty_28::NODE_SHARED_RESTYLE_BIT_2;
-    pub const NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO: root::_bindgen_ty_28 =
-        _bindgen_ty_28::NODE_SHARED_RESTYLE_BIT_1;
-    pub const NODE_TYPE_SPECIFIC_BITS_OFFSET: root::_bindgen_ty_28 =
-        _bindgen_ty_28::NODE_TYPE_SPECIFIC_BITS_OFFSET;
+    pub const NODE_HAS_LISTENERMANAGER: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_HAS_LISTENERMANAGER;
+    pub const NODE_HAS_PROPERTIES: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_HAS_PROPERTIES;
+    pub const NODE_IS_ANONYMOUS_ROOT: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_IS_ANONYMOUS_ROOT;
+    pub const NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE;
+    pub const NODE_IS_NATIVE_ANONYMOUS_ROOT: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_IS_NATIVE_ANONYMOUS_ROOT;
+    pub const NODE_FORCE_XBL_BINDINGS: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_FORCE_XBL_BINDINGS;
+    pub const NODE_MAY_BE_IN_BINDING_MNGR: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_MAY_BE_IN_BINDING_MNGR;
+    pub const NODE_IS_EDITABLE: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_IS_EDITABLE;
+    pub const NODE_IS_NATIVE_ANONYMOUS: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_IS_NATIVE_ANONYMOUS;
+    pub const NODE_IS_IN_SHADOW_TREE: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_IS_IN_SHADOW_TREE;
+    pub const NODE_HAS_EMPTY_SELECTOR: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_HAS_EMPTY_SELECTOR;
+    pub const NODE_HAS_SLOW_SELECTOR: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_HAS_SLOW_SELECTOR;
+    pub const NODE_HAS_EDGE_CHILD_SELECTOR: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_HAS_EDGE_CHILD_SELECTOR;
+    pub const NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS;
+    pub const NODE_ALL_SELECTOR_FLAGS: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_ALL_SELECTOR_FLAGS;
+    pub const NODE_NEEDS_FRAME: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_NEEDS_FRAME;
+    pub const NODE_DESCENDANTS_NEED_FRAMES: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_DESCENDANTS_NEED_FRAMES;
+    pub const NODE_HAS_ACCESSKEY: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_HAS_ACCESSKEY;
+    pub const NODE_HAS_DIRECTION_RTL: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_HAS_DIRECTION_RTL;
+    pub const NODE_HAS_DIRECTION_LTR: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_HAS_DIRECTION_LTR;
+    pub const NODE_ALL_DIRECTION_FLAGS: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_ALL_DIRECTION_FLAGS;
+    pub const NODE_CHROME_ONLY_ACCESS: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_CHROME_ONLY_ACCESS;
+    pub const NODE_IS_ROOT_OF_CHROME_ONLY_ACCESS: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_IS_ROOT_OF_CHROME_ONLY_ACCESS;
+    pub const NODE_SHARED_RESTYLE_BIT_1: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_SHARED_RESTYLE_BIT_1;
+    pub const NODE_SHARED_RESTYLE_BIT_2: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_SHARED_RESTYLE_BIT_2;
+    pub const NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_SHARED_RESTYLE_BIT_1;
+    pub const NODE_TYPE_SPECIFIC_BITS_OFFSET: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_TYPE_SPECIFIC_BITS_OFFSET;
     #[repr(u32)]
     #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-    pub enum _bindgen_ty_28 {
+    pub enum _bindgen_ty_118 {
         NODE_HAS_LISTENERMANAGER = 4,
         NODE_HAS_PROPERTIES = 8,
         NODE_IS_ANONYMOUS_ROOT = 16,
@@ -25818,10 +25836,13 @@ pub mod root {
     }
     #[repr(C)]
     #[derive(Debug, Copy, Clone)]
+    pub struct RawServoStyleSet([u8; 0]);
+    #[repr(C)]
+    #[derive(Debug, Copy, Clone)]
     pub struct RawServoAnimationValue([u8; 0]);
     #[repr(C)]
     #[derive(Debug, Copy, Clone)]
-    pub struct RawServoStyleSet([u8; 0]);
+    pub struct RawServoAnimationValueMap([u8; 0]);
     pub type RawGeckoNode = root::nsINode;
     pub type RawGeckoElement = root::mozilla::dom::Element;
     pub type RawGeckoDocument = root::nsIDocument;
@@ -25831,10 +25852,10 @@ pub mod root {
         root::nsTArray<root::nsTArray<root::mozilla::PropertyStyleAnimationValuePair>>;
     pub type RawGeckoAnimationValueList =
         root::nsTArray<root::mozilla::PropertyStyleAnimationValuePair>;
-    pub type RawServoAnimationValueBorrowedList =
-        root::nsTArray<*const root::RawServoAnimationValue>;
     pub type RawGeckoStyleAnimationList =
         root::nsStyleAutoArray<root::mozilla::StyleAnimation>;
+    pub type RawServoAnimationValueMapBorrowed =
+        *const root::RawServoAnimationValueMap;
     pub type RawGeckoNodeBorrowed = *const root::RawGeckoNode;
     pub type RawGeckoNodeBorrowedOrNull = *const root::RawGeckoNode;
     pub type RawGeckoElementBorrowed = *const root::RawGeckoElement;
@@ -25846,8 +25867,6 @@ pub mod root {
     pub type RawGeckoPresContextBorrowedMut = *mut root::RawGeckoPresContext;
     pub type RawGeckoAnimationValueListBorrowedMut =
         *mut root::RawGeckoAnimationValueList;
-    pub type RawServoAnimationValueBorrowedListBorrowed =
-        *const root::RawServoAnimationValueBorrowedList;
     pub type RawGeckoKeyframeListBorrowedMut =
         *mut root::RawGeckoKeyframeList;
     pub type RawGeckoKeyframeListBorrowed = *const root::RawGeckoKeyframeList;

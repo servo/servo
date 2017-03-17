@@ -46,6 +46,7 @@ use parking_lot::RwLock;
 use parser::ParserContextExtraData;
 use properties::{ComputedValues, parse_style_attribute};
 use properties::PropertyDeclarationBlock;
+use properties::animated_properties::AnimationValueMap;
 use rule_tree::CascadeLevel as ServoCascadeLevel;
 use selector_parser::{ElementExt, Snapshot};
 use selectors::Element;
@@ -403,6 +404,20 @@ fn selector_flags_to_node_flags(flags: ElementSelectorFlags) -> u32 {
     gecko_flags
 }
 
+fn get_animation_rule(element: &GeckoElement,
+                      pseudo: Option<&PseudoElement>,
+                      cascade_level: CascadeLevel)
+                      -> Option<Arc<RwLock<PropertyDeclarationBlock>>> {
+    let atom_ptr = PseudoElement::ns_atom_or_null_from_opt(pseudo);
+    let animation_values = Arc::new(RwLock::new(AnimationValueMap::new()));
+    if unsafe { Gecko_GetAnimationRule(element.0, atom_ptr, cascade_level,
+                                       HasArcFFI::arc_as_borrowed(&animation_values)) } {
+        Some(Arc::new(RwLock::new(PropertyDeclarationBlock::from_animation_value_map(&animation_values.read()))))
+    } else {
+        None
+    }
+}
+
 impl<'le> TElement for GeckoElement<'le> {
     type ConcreteNode = GeckoNode<'le>;
 
@@ -416,12 +431,18 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     fn get_animation_rules(&self, pseudo: Option<&PseudoElement>) -> AnimationRules {
-        let atom_ptr = PseudoElement::ns_atom_or_null_from_opt(pseudo);
-        unsafe {
-            AnimationRules(
-                Gecko_GetAnimationRule(self.0, atom_ptr, CascadeLevel::Animations).into_arc_opt(),
-                Gecko_GetAnimationRule(self.0, atom_ptr, CascadeLevel::Transitions).into_arc_opt())
-        }
+        AnimationRules(self.get_animation_rule(pseudo),
+                       self.get_transition_rule(pseudo))
+    }
+
+    fn get_animation_rule(&self, pseudo: Option<&PseudoElement>)
+                          -> Option<Arc<RwLock<PropertyDeclarationBlock>>> {
+        get_animation_rule(self, pseudo, CascadeLevel::Animations)
+    }
+
+    fn get_transition_rule(&self, pseudo: Option<&PseudoElement>)
+                           -> Option<Arc<RwLock<PropertyDeclarationBlock>>> {
+        get_animation_rule(self, pseudo, CascadeLevel::Transitions)
     }
 
     fn get_state(&self) -> ElementState {
