@@ -17,7 +17,7 @@ use std::f32::consts::PI;
 use std::fmt;
 use std::ops::Mul;
 use style_traits::ToCss;
-use super::{Auto, CSSFloat, HasViewportPercentage, Either, None_};
+use super::{Auto, CSSFloat, CSSInteger, HasViewportPercentage, Either, None_};
 use super::computed::{ComputedValueAsSpecified, Context};
 use super::computed::{Shadow as ComputedShadow, ToComputedValue};
 
@@ -167,7 +167,7 @@ impl<'a> Mul<CSSFloat> for &'a SimplifiedValueNode {
 }
 
 #[allow(missing_docs)]
-pub fn parse_integer(input: &mut Parser) -> Result<i32, ()> {
+pub fn parse_integer(input: &mut Parser) -> Result<CSSInteger, ()> {
     match try!(input.next()) {
         Token::Number(ref value) => value.int_value.ok_or(()),
         Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
@@ -178,7 +178,7 @@ pub fn parse_integer(input: &mut Parser) -> Result<i32, ()> {
             for ref node in ast.products {
                 match try!(CalcLengthOrPercentage::simplify_product(node)) {
                     SimplifiedValueNode::Number(val) =>
-                        result = Some(result.unwrap_or(0) + val as i32),
+                        result = Some(result.unwrap_or(0) + val as CSSInteger),
                     _ => unreachable!()
                 }
             }
@@ -573,6 +573,69 @@ impl ToComputedValue for Opacity {
 impl ToCss for Opacity {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         self.0.to_css(dest)
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
+pub struct Integer(pub CSSInteger);
+
+no_viewport_percentage!(Integer);
+
+impl Parse for Integer {
+    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        parse_integer(input).map(Integer)
+    }
+}
+
+impl Integer {
+    fn parse_with_minimum(input: &mut Parser, min: i32) -> Result<Integer, ()> {
+        match parse_integer(input) {
+            Ok(value) if value < min => Err(()),
+            value => value.map(Integer),
+        }
+    }
+
+    #[allow(missing_docs)]
+    pub fn parse_non_negative(input: &mut Parser) -> Result<Integer, ()> {
+        Integer::parse_with_minimum(input, 0)
+    }
+
+    #[allow(missing_docs)]
+    pub fn parse_positive(input: &mut Parser) -> Result<Integer, ()> {
+        Integer::parse_with_minimum(input, 1)
+    }
+}
+
+impl ToComputedValue for Integer {
+    type ComputedValue = i32;
+
+    #[inline]
+    fn to_computed_value(&self, _: &Context) -> i32 { self.0 }
+
+    #[inline]
+    fn from_computed_value(computed: &i32) -> Self {
+        Integer(*computed)
+    }
+}
+
+impl ToCss for Integer {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        write!(dest, "{}", self.0)
+    }
+}
+
+/// <integer> | auto
+pub type IntegerOrAuto = Either<Integer, Auto>;
+
+impl IntegerOrAuto {
+    #[allow(missing_docs)]
+    pub fn parse_positive(context: &ParserContext, input: &mut Parser) -> Result<IntegerOrAuto, ()> {
+        match IntegerOrAuto::parse(context, input) {
+            Ok(Either::First(Integer(value))) if value <= 0 => Err(()),
+            result => result,
+        }
     }
 }
 

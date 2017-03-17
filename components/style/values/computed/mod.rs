@@ -11,7 +11,7 @@ use media_queries::Device;
 use properties::ComputedValues;
 use std::fmt;
 use style_traits::ToCss;
-use super::{CSSFloat, RGBA, specified};
+use super::{CSSFloat, CSSInteger, RGBA, specified};
 use super::specified::grid::{TrackBreadth as GenericTrackBreadth, TrackSize as GenericTrackSize};
 
 pub use cssparser::Color as CSSColor;
@@ -266,6 +266,12 @@ pub type Number = CSSFloat;
 
 /// A type used for opacity.
 pub type Opacity = CSSFloat;
+
+/// A `<integer>` value.
+pub type Integer = CSSInteger;
+
+/// <integer> | auto
+pub type IntegerOrAuto = Either<CSSInteger, Auto>;
 
 
 /// An SVG paint value
