@@ -259,12 +259,7 @@ ${helpers.single_keyword("mask-composite",
             let image = try!(Image::parse(context, input));
             match image {
                 Image::Url(url_value) => {
-                    let has_valid_url = match url_value.url() {
-                        Some(url) => url.fragment().is_some(),
-                        None => false,
-                    };
-
-                    if has_valid_url {
+                    if url_value.is_fragment() {
                         Ok(SpecifiedValue::Url(url_value))
                     } else {
                         Ok(SpecifiedValue::Image(Image::Url(url_value)))

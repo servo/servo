@@ -17,5 +17,6 @@ pub mod selector_parser;
 pub mod snapshot;
 pub mod snapshot_helpers;
 pub mod traversal;
+pub mod url;
 pub mod values;
 pub mod wrapper;

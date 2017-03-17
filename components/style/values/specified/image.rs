@@ -9,12 +9,13 @@
 
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
+#[cfg(feature = "servo")]
 use servo_url::ServoUrl;
 use std::fmt;
 use style_traits::ToCss;
 use values::specified::{Angle, CSSColor, Length, LengthOrPercentage};
 use values::specified::position::Position;
-use values::specified::url::{SpecifiedUrl, UrlExtraData};
+use values::specified::url::SpecifiedUrl;
 
 /// Specified values for an image according to CSS-IMAGES.
 /// https://drafts.csswg.org/css-images/#image-values
@@ -48,8 +49,9 @@ impl Image {
 
     /// Creates an already specified image value from an already resolved URL
     /// for insertion in the cascade.
-    pub fn for_cascade(url: ServoUrl, extra_data: UrlExtraData) -> Self {
-        Image::Url(SpecifiedUrl::for_cascade(url, extra_data))
+    #[cfg(feature = "servo")]
+    pub fn for_cascade(url: ServoUrl) -> Self {
+        Image::Url(SpecifiedUrl::for_cascade(url))
     }
 }
 

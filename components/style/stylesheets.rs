@@ -839,8 +839,7 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
                     let media = parse_media_query_list(input);
 
                     let noop_loader = NoOpLoader;
-                    let is_valid_url = specified_url.url().is_some();
-                    let loader = if is_valid_url {
+                    let loader = if !specified_url.is_invalid() {
                         self.loader.expect("Expected a stylesheet loader for @import")
                     } else {
                         &noop_loader

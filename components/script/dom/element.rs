@@ -429,7 +429,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
                 PropertyDeclaration::BackgroundImage(
                     background_image::SpecifiedValue(vec![
                         background_image::single_value::SpecifiedValue(Some(
-                            specified::Image::for_cascade(url.into(), specified::url::UrlExtraData { })
+                            specified::Image::for_cascade(url.into())
                         ))
                     ]))));
         }
