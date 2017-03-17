@@ -46,10 +46,11 @@ use parking_lot::RwLock;
 use parser::ParserContextExtraData;
 use properties::{ComputedValues, parse_style_attribute};
 use properties::PropertyDeclarationBlock;
+use properties::animated_properties::AnimationValueMap;
 use rule_tree::CascadeLevel as ServoCascadeLevel;
 use selector_parser::{ElementExt, Snapshot};
 use selectors::Element;
-use selectors::matching::ElementSelectorFlags;
+use selectors::matching::{ElementSelectorFlags, StyleRelations, matches_complex_selector};
 use selectors::parser::{AttrSelector, NamespaceConstraint};
 use servo_url::ServoUrl;
 use sink::Push;
@@ -403,6 +404,20 @@ fn selector_flags_to_node_flags(flags: ElementSelectorFlags) -> u32 {
     gecko_flags
 }
 
+fn get_animation_rule(element: &GeckoElement,
+                      pseudo: Option<&PseudoElement>,
+                      cascade_level: CascadeLevel)
+                      -> Option<Arc<RwLock<PropertyDeclarationBlock>>> {
+    let atom_ptr = PseudoElement::ns_atom_or_null_from_opt(pseudo);
+    let animation_values = Arc::new(RwLock::new(AnimationValueMap::new()));
+    if unsafe { Gecko_GetAnimationRule(element.0, atom_ptr, cascade_level,
+                                       HasArcFFI::arc_as_borrowed(&animation_values)) } {
+        Some(Arc::new(RwLock::new(PropertyDeclarationBlock::from_animation_value_map(&animation_values.read()))))
+    } else {
+        None
+    }
+}
+
 impl<'le> TElement for GeckoElement<'le> {
     type ConcreteNode = GeckoNode<'le>;
 
@@ -416,12 +431,18 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     fn get_animation_rules(&self, pseudo: Option<&PseudoElement>) -> AnimationRules {
-        let atom_ptr = PseudoElement::ns_atom_or_null_from_opt(pseudo);
-        unsafe {
-            AnimationRules(
-                Gecko_GetAnimationRule(self.0, atom_ptr, CascadeLevel::Animations).into_arc_opt(),
-                Gecko_GetAnimationRule(self.0, atom_ptr, CascadeLevel::Transitions).into_arc_opt())
-        }
+        AnimationRules(self.get_animation_rule(pseudo),
+                       self.get_transition_rule(pseudo))
+    }
+
+    fn get_animation_rule(&self, pseudo: Option<&PseudoElement>)
+                          -> Option<Arc<RwLock<PropertyDeclarationBlock>>> {
+        get_animation_rule(self, pseudo, CascadeLevel::Animations)
+    }
+
+    fn get_transition_rule(&self, pseudo: Option<&PseudoElement>)
+                           -> Option<Arc<RwLock<PropertyDeclarationBlock>>> {
+        get_animation_rule(self, pseudo, CascadeLevel::Transitions)
     }
 
     fn get_state(&self) -> ElementState {
@@ -637,7 +658,10 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         }
     }
 
-    fn match_non_ts_pseudo_class(&self, pseudo_class: &NonTSPseudoClass) -> bool {
+    fn match_non_ts_pseudo_class(&self,
+                                 pseudo_class: &NonTSPseudoClass,
+                                 relations: &mut StyleRelations,
+                                 flags: &mut ElementSelectorFlags) -> bool {
         match *pseudo_class {
             // https://github.com/servo/servo/issues/8718
             NonTSPseudoClass::AnyLink => unsafe { Gecko_IsLink(self.0) },
@@ -667,7 +691,10 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::MozBrowserFrame => unsafe {
                 Gecko_MatchesElement(pseudo_class.to_gecko_pseudoclasstype().unwrap(), self.0)
             },
-            _ => false
+            NonTSPseudoClass::MozSystemMetric(_) => false,
+            NonTSPseudoClass::MozAny(ref sels) => {
+                sels.iter().any(|s| matches_complex_selector(s, self, None, relations, flags))
+            }
         }
     }
 
@@ -805,7 +832,9 @@ impl<'le> ::selectors::MatchAttr for GeckoElement<'le> {
 impl<'le> ElementExt for GeckoElement<'le> {
     #[inline]
     fn is_link(&self) -> bool {
-        self.match_non_ts_pseudo_class(&NonTSPseudoClass::AnyLink)
+        self.match_non_ts_pseudo_class(&NonTSPseudoClass::AnyLink,
+                                       &mut StyleRelations::empty(),
+                                       &mut ElementSelectorFlags::empty())
     }
 
     #[inline]

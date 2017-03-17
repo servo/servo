@@ -413,7 +413,7 @@ fn matches_simple_selector<E>(
             false
         }
         SimpleSelector::NonTSPseudoClass(ref pc) => {
-            relation_if!(element.match_non_ts_pseudo_class(pc),
+            relation_if!(element.match_non_ts_pseudo_class(pc, relations, flags),
                          AFFECTED_BY_STATE)
         }
         SimpleSelector::FirstChild => {

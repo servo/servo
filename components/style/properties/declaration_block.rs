@@ -15,6 +15,7 @@ use std::fmt;
 use style_traits::ToCss;
 use stylesheets::Origin;
 use super::*;
+#[cfg(feature = "gecko")] use properties::animated_properties::AnimationValueMap;
 
 /// A declaration [importance][importance].
 ///
@@ -339,6 +340,24 @@ impl PropertyDeclarationBlock {
                     _ => Ok(())
                 }
             }
+        }
+    }
+
+    /// Convert AnimationValueMap to PropertyDeclarationBlock.
+    #[cfg(feature = "gecko")]
+    pub fn from_animation_value_map(animation_value_map: &AnimationValueMap) -> Self {
+        let mut declarations = vec![];
+        let mut longhands = LonghandIdSet::new();
+
+        for (property, animation_value) in animation_value_map.iter() {
+          longhands.set_transition_property_bit(property);
+          declarations.push((animation_value.uncompute(), Importance::Normal));
+        }
+
+        PropertyDeclarationBlock {
+            declarations: declarations,
+            important_count: 0,
+            longhands: longhands,
         }
     }
 }

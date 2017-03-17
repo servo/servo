@@ -420,7 +420,7 @@ mod bindings {
             "mozilla::DefaultDelete",
             "mozilla::Side",
             "mozilla::binding_danger::AssertAndSuppressCleanupPolicy",
-            "RawServoAnimationValueBorrowedListBorrowed",
+            "RawServoAnimationValueMapBorrowed",
         ];
         let opaque_types = [
             "std::pair__PCCP",
@@ -541,6 +541,7 @@ mod bindings {
             "RawGeckoNode",
             "RawGeckoAnimationValueList",
             "RawServoAnimationValue",
+            "RawServoAnimationValueMap",
             "RawServoDeclarationBlock",
             "RawGeckoPresContext",
             "RawGeckoPresContextOwned",
@@ -620,7 +621,6 @@ mod bindings {
             "Loader",
             "ServoStyleSheet",
             "EffectCompositor_CascadeLevel",
-            "RawServoAnimationValueBorrowedListBorrowed",
         ];
         struct ArrayType {
             cpp_type: &'static str,

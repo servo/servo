@@ -14,7 +14,7 @@ use cache::{LRUCache, LRUCacheMutIterator};
 use cascade_info::CascadeInfo;
 use context::{SequentialTask, SharedStyleContext, StyleContext};
 use data::{ComputedStyle, ElementData, ElementStyles, RestyleData};
-use dom::{SendElement, TElement, TNode};
+use dom::{AnimationRules, SendElement, TElement, TNode};
 use properties::{CascadeFlags, ComputedValues, SHAREABLE, SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP, cascade};
 use properties::longhands::display::computed_value as display;
 use restyle_hints::{RESTYLE_STYLE_ATTRIBUTE, RestyleHint};
@@ -800,7 +800,11 @@ pub trait MatchMethods : TElement {
         SelectorImpl::each_eagerly_cascaded_pseudo_element(|pseudo| {
             let mut per_pseudo = &mut data.styles_mut().pseudos;
             debug_assert!(applicable_declarations.is_empty());
-            let pseudo_animation_rules = self.get_animation_rules(Some(&pseudo));
+            let pseudo_animation_rules = if <Self as MatchAttr>::Impl::pseudo_is_before_or_after(&pseudo) {
+                self.get_animation_rules(Some(&pseudo))
+            } else {
+                AnimationRules(None, None)
+            };
             stylist.push_applicable_declarations(self,
                                                  Some(context.thread_local.bloom_filter.filter()),
                                                  None, pseudo_animation_rules,

@@ -398,7 +398,7 @@ impl Document {
     #[inline]
     pub fn browsing_context(&self) -> Option<Root<BrowsingContext>> {
         if self.has_browsing_context {
-            Some(self.window.browsing_context())
+            self.window.maybe_browsing_context()
         } else {
             None
         }

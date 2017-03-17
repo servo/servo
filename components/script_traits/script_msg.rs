@@ -18,7 +18,7 @@ use euclid::point::Point2D;
 use euclid::size::{Size2D, TypedSize2D};
 use gfx_traits::ScrollRootId;
 use ipc_channel::ipc::IpcSender;
-use msg::constellation_msg::{FrameId, PipelineId, TraversalDirection};
+use msg::constellation_msg::{FrameId, FrameType, PipelineId, TraversalDirection};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use net_traits::CoreResourceMsg;
 use net_traits::storage_thread::StorageType;
@@ -86,6 +86,10 @@ pub enum ScriptMsg {
     ForwardEvent(PipelineId, CompositorEvent),
     /// Requests that the constellation retrieve the current contents of the clipboard
     GetClipboardContents(IpcSender<String>),
+    /// Get the frame id for a given pipeline.
+    GetFrameId(PipelineId, IpcSender<Option<FrameId>>),
+    /// Get the parent info for a given pipeline.
+    GetParentInfo(PipelineId, IpcSender<Option<(PipelineId, FrameType)>>),
     /// <head> tag finished parsing
     HeadParsed,
     /// All pending loads are complete, and the `load` event for this pipeline

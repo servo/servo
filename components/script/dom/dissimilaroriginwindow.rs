@@ -7,7 +7,6 @@ use dom::bindings::codegen::Bindings::DissimilarOriginWindowBinding::DissimilarO
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableJS, Root};
-use dom::bindings::reflector::DomObject;
 use dom::bindings::str::DOMString;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::browsingcontext::BrowsingContext;
@@ -45,19 +44,18 @@ pub struct DissimilarOriginWindow {
 
 impl DissimilarOriginWindow {
     #[allow(unsafe_code)]
-    pub fn new(browsing_context: &BrowsingContext) -> Root<DissimilarOriginWindow> {
-        let globalscope = browsing_context.global();
-        let cx = globalscope.get_cx();
+    pub fn new(global_to_clone_from: &GlobalScope, browsing_context: &BrowsingContext) -> Root<DissimilarOriginWindow> {
+        let cx = global_to_clone_from.get_cx();
         // Any timer events fired on this window are ignored.
         let (timer_event_chan, _) = ipc::channel().unwrap();
         let win = box DissimilarOriginWindow {
             globalscope: GlobalScope::new_inherited(PipelineId::new(),
-                                                    globalscope.devtools_chan().cloned(),
-                                                    globalscope.mem_profiler_chan().clone(),
-                                                    globalscope.time_profiler_chan().clone(),
-                                                    globalscope.constellation_chan().clone(),
-                                                    globalscope.scheduler_chan().clone(),
-                                                    globalscope.resource_threads().clone(),
+                                                    global_to_clone_from.devtools_chan().cloned(),
+                                                    global_to_clone_from.mem_profiler_chan().clone(),
+                                                    global_to_clone_from.time_profiler_chan().clone(),
+                                                    global_to_clone_from.constellation_chan().clone(),
+                                                    global_to_clone_from.scheduler_chan().clone(),
+                                                    global_to_clone_from.resource_threads().clone(),
                                                     timer_event_chan),
             browsing_context: JS::from_ref(browsing_context),
             location: MutNullableJS::new(None),
@@ -84,14 +82,26 @@ impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
 
     // https://html.spec.whatwg.org/multipage/#dom-parent
     fn GetParent(&self) -> Option<Root<BrowsingContext>> {
-        // TODO: implement window.parent correctly for x-origin windows.
+        // Steps 1-3.
+        if self.browsing_context.is_discarded() {
+            return None;
+        }
+        // Step 4.
+        if let Some(parent) = self.browsing_context.parent() {
+            return Some(Root::from_ref(parent));
+        }
+        // Step 5.
         Some(Root::from_ref(&*self.browsing_context))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-top
     fn GetTop(&self) -> Option<Root<BrowsingContext>> {
-        // TODO: implement window.top correctly for x-origin windows.
-        Some(Root::from_ref(&*self.browsing_context))
+        // Steps 1-3.
+        if self.browsing_context.is_discarded() {
+            return None;
+        }
+        // Steps 4-5.
+        Some(Root::from_ref(self.browsing_context.top()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-length

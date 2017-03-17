@@ -43,7 +43,7 @@ use gecko_bindings::bindings::Gecko_SetNullImageValue;
 use gecko_bindings::bindings::ServoComputedValuesBorrowedOrNull;
 use gecko_bindings::bindings::{Gecko_ResetFilters, Gecko_CopyFiltersFrom};
 use gecko_bindings::bindings::RawGeckoPresContextBorrowed;
-use gecko_bindings::structs;
+use gecko_bindings::structs::{self, StyleComplexColor};
 use gecko_bindings::structs::nsStyleVariables;
 use gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordData, CoordDataMut};
 use gecko_bindings::sugar::ownership::HasArcFFI;
@@ -2000,13 +2000,13 @@ fn static_assert() {
         use properties::longhands::${shorthand}_clip::single_value::computed_value::T;
 
         match servo {
-            T::border_box => StyleGeometryBox::Border,
-            T::padding_box => StyleGeometryBox::Padding,
-            T::content_box => StyleGeometryBox::Content,
+            T::border_box => StyleGeometryBox::BorderBox,
+            T::padding_box => StyleGeometryBox::PaddingBox,
+            T::content_box => StyleGeometryBox::ContentBox,
             % if shorthand == "mask":
-            T::fill_box => StyleGeometryBox::Fill,
-            T::stroke_box => StyleGeometryBox::Stroke,
-            T::view_box => StyleGeometryBox::View,
+            T::fill_box => StyleGeometryBox::FillBox,
+            T::stroke_box => StyleGeometryBox::StrokeBox,
+            T::view_box => StyleGeometryBox::ViewBox,
             T::no_clip => StyleGeometryBox::NoClip,
             % elif shorthand == "background":
             T::text => StyleGeometryBox::Text,
@@ -2019,13 +2019,13 @@ fn static_assert() {
         use properties::longhands::${shorthand}_origin::single_value::computed_value::T;
 
         match servo {
-            T::border_box => StyleGeometryBox::Border,
-            T::padding_box => StyleGeometryBox::Padding,
-            T::content_box => StyleGeometryBox::Content,
+            T::border_box => StyleGeometryBox::BorderBox,
+            T::padding_box => StyleGeometryBox::PaddingBox,
+            T::content_box => StyleGeometryBox::ContentBox,
             % if shorthand == "mask":
-            T::fill_box => StyleGeometryBox::Fill,
-            T::stroke_box => StyleGeometryBox::Stroke,
-            T::view_box => StyleGeometryBox::View,
+            T::fill_box => StyleGeometryBox::FillBox,
+            T::stroke_box => StyleGeometryBox::StrokeBox,
+            T::view_box => StyleGeometryBox::ViewBox,
             % endif
         }
     </%self:simple_image_array_property>
@@ -3095,7 +3095,7 @@ clip-path
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Pointing"
-                  skip_longhands="cursor">
+                  skip_longhands="cursor caret-color">
     pub fn set_cursor(&mut self, v: longhands::cursor::computed_value::T) {
         use properties::longhands::cursor::computed_value::Keyword;
         use style_traits::cursor::Cursor;
@@ -3162,6 +3162,26 @@ clip-path
             Gecko_CopyCursorArrayFrom(&mut self.gecko, &other.gecko);
         }
     }
+
+    pub fn set_caret_color(&mut self, v: longhands::caret_color::computed_value::T){
+        use values::Either;
+
+        match v {
+            Either::First(color) => {
+                self.gecko.mCaretColor = StyleComplexColor::from(color);
+            }
+            Either::Second(_auto) => {
+                self.gecko.mCaretColor = StyleComplexColor::auto();
+            }
+        }
+    }
+
+    pub fn copy_caret_color_from(&mut self, other: &Self){
+        self.gecko.mCaretColor = other.gecko.mCaretColor;
+    }
+
+    <%call expr="impl_color_clone('caret_color', 'mCaretColor')"></%call>
+
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Column"

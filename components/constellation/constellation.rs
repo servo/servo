@@ -1092,7 +1092,18 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             FromScriptMsg::TouchEventProcessed(result) => {
                 self.compositor_proxy.send(ToCompositorMsg::TouchEventProcessed(result))
             }
-
+            FromScriptMsg::GetFrameId(pipeline_id, sender) => {
+                let result = self.pipelines.get(&pipeline_id).map(|pipeline| pipeline.frame_id);
+                if let Err(e) = sender.send(result) {
+                    warn!("Sending reply to get frame id failed ({:?}).", e);
+                }
+            }
+            FromScriptMsg::GetParentInfo(pipeline_id, sender) => {
+                let result = self.pipelines.get(&pipeline_id).and_then(|pipeline| pipeline.parent_info);
+                if let Err(e) = sender.send(result) {
+                    warn!("Sending reply to get parent info failed ({:?}).", e);
+                }
+            }
             FromScriptMsg::RegisterServiceWorker(scope_things, scope) => {
                 debug!("constellation got store registration scope message");
                 self.handle_register_serviceworker(scope_things, scope);
