@@ -33,6 +33,7 @@ use html5ever::tree_builder::{NodeOrText, QuirksMode};
 use html5ever::tree_builder::{Tracer as HtmlTracer, TreeBuilder, TreeBuilderOpts, TreeSink};
 use js::jsapi::JSTracer;
 use servo_url::ServoUrl;
+use std::ascii::AsciiExt;
 use std::borrow::Cow;
 use std::io::{self, Write};
 use style::context::QuirksMode as ServoQuirksMode;
@@ -262,6 +263,16 @@ impl TreeSink for Sink {
         while let Some(ref child) = node.GetFirstChild() {
             new_parent.AppendChild(&child).unwrap();
         }
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#html-integration-point
+    /// Specifically, the <annotation-xml> cases.
+    fn is_mathml_annotation_xml_integration_point(&self, handle: JS<Node>) -> bool {
+        let elem = handle.downcast::<Element>().unwrap();
+        elem.get_attribute(&ns!(), &local_name!("encoding")).map_or(false, |attr| {
+            attr.value().eq_ignore_ascii_case("text/html")
+                || attr.value().eq_ignore_ascii_case("application/xhtml+xml")
+        })
     }
 
     fn set_current_line(&mut self, line_number: u64) {
