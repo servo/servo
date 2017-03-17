@@ -13,10 +13,9 @@ use dom::cssrule::SpecificCSSRule;
 use dom::cssstylesheet::CSSStyleSheet;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use parking_lot::RwLock;
 use std::sync::Arc;
 use style::parser::ParserContext;
-use style::shared_lock::ToCssWithGuard;
+use style::shared_lock::{Locked, ToCssWithGuard};
 use style::stylesheets::SupportsRule;
 use style::supports::SupportsCondition;
 use style_traits::ToCss;
@@ -25,13 +24,14 @@ use style_traits::ToCss;
 pub struct CSSSupportsRule {
     cssconditionrule: CSSConditionRule,
     #[ignore_heap_size_of = "Arc"]
-    supportsrule: Arc<RwLock<SupportsRule>>,
+    supportsrule: Arc<Locked<SupportsRule>>,
 }
 
 impl CSSSupportsRule {
-    fn new_inherited(parent_stylesheet: &CSSStyleSheet, supportsrule: Arc<RwLock<SupportsRule>>)
+    fn new_inherited(parent_stylesheet: &CSSStyleSheet, supportsrule: Arc<Locked<SupportsRule>>)
                      -> CSSSupportsRule {
-        let list = supportsrule.read().rules.clone();
+        let guard = parent_stylesheet.shared_lock().read();
+        let list = supportsrule.read_with(&guard).rules.clone();
         CSSSupportsRule {
             cssconditionrule: CSSConditionRule::new_inherited(parent_stylesheet, list),
             supportsrule: supportsrule,
@@ -40,7 +40,7 @@ impl CSSSupportsRule {
 
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
-               supportsrule: Arc<RwLock<SupportsRule>>) -> Root<CSSSupportsRule> {
+               supportsrule: Arc<Locked<SupportsRule>>) -> Root<CSSSupportsRule> {
         reflect_dom_object(box CSSSupportsRule::new_inherited(parent_stylesheet, supportsrule),
                            window,
                            CSSSupportsRuleBinding::Wrap)
@@ -48,7 +48,8 @@ impl CSSSupportsRule {
 
     /// https://drafts.csswg.org/css-conditional-3/#the-csssupportsrule-interface
     pub fn get_condition_text(&self) -> DOMString {
-        let rule = self.supportsrule.read();
+        let guard = self.cssconditionrule.shared_lock().read();
+        let rule = self.supportsrule.read_with(&guard);
         rule.condition.to_css_string().into()
     }
 
@@ -62,7 +63,8 @@ impl CSSSupportsRule {
             let url = win.Document().url();
             let context = ParserContext::new_for_cssom(&url, win.css_error_reporter());
             let enabled = cond.eval(&context);
-            let mut rule = self.supportsrule.write();
+            let mut guard = self.cssconditionrule.shared_lock().write();
+            let rule = self.supportsrule.write_with(&mut guard);
             rule.condition = cond;
             rule.enabled = enabled;
         }
@@ -77,6 +79,6 @@ impl SpecificCSSRule for CSSSupportsRule {
 
     fn get_css(&self) -> DOMString {
         let guard = self.cssconditionrule.shared_lock().read();
-        self.supportsrule.read().to_css_string(&guard).into()
+        self.supportsrule.read_with(&guard).to_css_string(&guard).into()
     }
 }

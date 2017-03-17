@@ -19,7 +19,6 @@ use dom::node::{Node, UnbindContext, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever_atoms::LocalName;
-use parking_lot::RwLock;
 use servo_config::prefs::PREFS;
 use std::ascii::AsciiExt;
 use std::sync::Arc;
@@ -101,7 +100,7 @@ impl HTMLMetaElement {
                 if let Some(translated_rule) = ViewportRule::from_meta(&**content) {
                     let document = self.upcast::<Node>().owner_doc();
                     let shared_lock = document.style_shared_lock();
-                    let rule = CssRule::Viewport(Arc::new(RwLock::new(translated_rule)));
+                    let rule = CssRule::Viewport(Arc::new(shared_lock.wrap(translated_rule)));
                     *self.stylesheet.borrow_mut() = Some(Arc::new(Stylesheet {
                         rules: CssRules::new(vec![rule], shared_lock),
                         origin: Origin::Author,

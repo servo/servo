@@ -22,13 +22,13 @@ use ipc_channel::router::ROUTER;
 use net_traits::{FetchResponseListener, FetchMetadata, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy};
 use net_traits::request::{CorsSettings, CredentialsMode, Destination, RequestInit, RequestMode, Type as RequestType};
 use network_listener::{NetworkListener, PreInvoke};
-use parking_lot::RwLock;
 use script_layout_interface::message::Msg;
 use servo_url::ServoUrl;
 use std::mem;
 use std::sync::{Arc, Mutex};
 use style::media_queries::MediaList;
 use style::parser::ParserContextExtraData;
+use style::shared_lock::Locked as StyleLocked;
 use style::stylesheets::{ImportRule, Stylesheet, Origin};
 use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
 
@@ -55,15 +55,16 @@ pub trait StylesheetOwner {
 pub enum StylesheetContextSource {
     // NB: `media` is just an option so we avoid cloning it.
     LinkElement { media: Option<MediaList>, url: ServoUrl },
-    Import(Arc<RwLock<ImportRule>>),
+    Import(Arc<StyleLocked<ImportRule>>),
 }
 
 impl StylesheetContextSource {
-    fn url(&self) -> ServoUrl {
+    fn url(&self, document: &Document) -> ServoUrl {
         match *self {
             StylesheetContextSource::LinkElement { ref url, .. } => url.clone(),
             StylesheetContextSource::Import(ref import) => {
-                let import = import.read();
+                let guard = document.style_shared_lock().read();
+                let import = import.read_with(&guard);
                 // Look at the parser in style::stylesheets, where we don't
                 // trigger a load if the url is invalid.
                 import.url.url()
@@ -174,9 +175,16 @@ impl FetchResponseListener for StylesheetContext {
                     }
                 }
                 StylesheetContextSource::Import(ref import) => {
-                    let import = import.read();
                     let mut guard = document.style_shared_lock().write();
-                    Stylesheet::update_from_bytes(&import.stylesheet,
+
+                    // Clone an Arc because we can’t borrow `guard` twice at the same time.
+
+                    // FIXME(SimonSapin): allow access to multiple objects with one write guard?
+                    // Would need a set of usize pointer addresses or something,
+                    // the same object is not accessed more than once.
+                    let stylesheet = Arc::clone(&import.write_with(&mut guard).stylesheet);
+
+                    Stylesheet::update_from_bytes(&stylesheet,
                                                   &data,
                                                   protocol_encoding_label,
                                                   Some(environment_encoding),
@@ -201,7 +209,7 @@ impl FetchResponseListener for StylesheetContext {
             document.decrement_script_blocking_stylesheet_count();
         }
 
-        let url = self.source.url();
+        let url = self.source.url(&document);
         document.finish_load(LoadType::Stylesheet(url));
 
         if let Some(any_failed) = owner.load_finished(successful) {
@@ -226,8 +234,8 @@ impl<'a> StylesheetLoader<'a> {
 impl<'a> StylesheetLoader<'a> {
     pub fn load(&self, source: StylesheetContextSource, cors_setting: Option<CorsSettings>,
                 integrity_metadata: String) {
-        let url = source.url();
         let document = document_from_node(self.elem);
+        let url = source.url(&document);
         let gen = self.elem.downcast::<HTMLLinkElement>()
                            .map(HTMLLinkElement::get_request_generation_id);
         let context = Arc::new(Mutex::new(StylesheetContext {
@@ -289,7 +297,7 @@ impl<'a> StylesheetLoader<'a> {
 }
 
 impl<'a> StyleStylesheetLoader for StylesheetLoader<'a> {
-    fn request_stylesheet(&self, import: &Arc<RwLock<ImportRule>>) {
+    fn request_stylesheet(&self, import: &Arc<StyleLocked<ImportRule>>) {
         //TODO (mrnayak) : Whether we should use the original loader's CORS setting?
         //Fix this when spec has more details.
         self.load(StylesheetContextSource::Import(import.clone()), None, "".to_owned())

@@ -77,7 +77,7 @@ fn test_parse_stylesheet() {
         dirty_on_viewport_size_change: AtomicBool::new(false),
         disabled: AtomicBool::new(false),
         rules: CssRules::new(vec![
-            CssRule::Namespace(Arc::new(RwLock::new(NamespaceRule {
+            CssRule::Namespace(Arc::new(stylesheet.shared_lock.wrap(NamespaceRule {
                 prefix: None,
                 url: NsAtom::from("http://www.w3.org/1999/xhtml")
             }))),
@@ -235,7 +235,7 @@ fn test_parse_stylesheet() {
                      Importance::Normal),
                 ]))),
             }))),
-            CssRule::Keyframes(Arc::new(RwLock::new(KeyframesRule {
+            CssRule::Keyframes(Arc::new(stylesheet.shared_lock.wrap(KeyframesRule {
                 name: "foo".into(),
                 keyframes: vec![
                     Arc::new(RwLock::new(Keyframe {

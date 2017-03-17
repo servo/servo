@@ -13,7 +13,6 @@ use dom::cssrule::CSSRule;
 use dom::cssstylesheet::CSSStyleSheet;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use parking_lot::RwLock;
 use std::sync::Arc;
 use style::shared_lock::Locked;
 use style::stylesheets::{CssRules, KeyframesRule, RulesMutateError};
@@ -45,19 +44,19 @@ pub struct CSSRuleList {
 
 pub enum RulesSource {
     Rules(Arc<Locked<CssRules>>),
-    Keyframes(Arc<RwLock<KeyframesRule>>),
+    Keyframes(Arc<Locked<KeyframesRule>>),
 }
 
 impl CSSRuleList {
     #[allow(unrooted_must_root)]
     pub fn new_inherited(parent_stylesheet: &CSSStyleSheet, rules: RulesSource) -> CSSRuleList {
+        let guard = parent_stylesheet.shared_lock().read();
         let dom_rules = match rules {
             RulesSource::Rules(ref rules) => {
-                let guard = parent_stylesheet.shared_lock().read();
                 rules.read_with(&guard).0.iter().map(|_| MutNullableJS::new(None)).collect()
             }
             RulesSource::Keyframes(ref rules) => {
-                rules.read().keyframes.iter().map(|_| MutNullableJS::new(None)).collect()
+                rules.read_with(&guard).keyframes.iter().map(|_| MutNullableJS::new(None)).collect()
             }
         };
 
@@ -104,10 +103,10 @@ impl CSSRuleList {
     // In case of a keyframe rule, index must be valid.
     pub fn remove_rule(&self, index: u32) -> ErrorResult {
         let index = index as usize;
+        let mut guard = self.parent_stylesheet.shared_lock().write();
 
         match self.rules {
             RulesSource::Rules(ref css_rules) => {
-                let mut guard = self.parent_stylesheet.shared_lock().write();
                 css_rules.write_with(&mut guard).remove_rule(index)?;
                 let mut dom_rules = self.dom_rules.borrow_mut();
                 dom_rules[index].get().map(|r| r.detach());
@@ -119,7 +118,7 @@ impl CSSRuleList {
                 let mut dom_rules = self.dom_rules.borrow_mut();
                 dom_rules[index].get().map(|r| r.detach());
                 dom_rules.remove(index);
-                kf.write().keyframes.remove(index);
+                kf.write_with(&mut guard).keyframes.remove(index);
                 Ok(())
             }
         }
@@ -136,9 +135,9 @@ impl CSSRuleList {
         self.dom_rules.borrow().get(idx as usize).map(|rule| {
             rule.or_init(|| {
                 let parent_stylesheet = &self.parent_stylesheet;
+                let guard = parent_stylesheet.shared_lock().read();
                 match self.rules {
                     RulesSource::Rules(ref rules) => {
-                        let guard = parent_stylesheet.shared_lock().read();
                         CSSRule::new_specific(self.global().as_window(),
                                              parent_stylesheet,
                                              rules.read_with(&guard).0[idx as usize].clone())
@@ -146,7 +145,7 @@ impl CSSRuleList {
                     RulesSource::Keyframes(ref rules) => {
                         Root::upcast(CSSKeyframeRule::new(self.global().as_window(),
                                                           parent_stylesheet,
-                                                          rules.read()
+                                                          rules.read_with(&guard)
                                                                 .keyframes[idx as usize]
                                                                 .clone()))
                     }
