@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use parking_lot::RwLock;
 use std::sync::Arc;
 use style::gecko_bindings::bindings::Gecko_LoadStyleSheet;
 use style::gecko_bindings::structs::{Loader, ServoStyleSheet};
 use style::gecko_bindings::sugar::ownership::HasArcFFI;
+use style::shared_lock::Locked;
 use style::stylesheets::{ImportRule, StylesheetLoader as StyleStylesheetLoader};
 use style_traits::ToCss;
 use super::glue::GLOBAL_STYLE_DATA;
@@ -20,10 +20,10 @@ impl StylesheetLoader {
 }
 
 impl StyleStylesheetLoader for StylesheetLoader {
-    fn request_stylesheet(&self, import_rule: &Arc<RwLock<ImportRule>>) {
+    fn request_stylesheet(&self, import_rule: &Arc<Locked<ImportRule>>) {
         let global_style_data = &*GLOBAL_STYLE_DATA;
         let guard = global_style_data.shared_lock.read();
-        let import = import_rule.read();
+        let import = import_rule.read_with(&guard);
         let (spec_bytes, spec_len) = import.url.as_slice_components()
             .expect("Import only loads valid URLs");
 

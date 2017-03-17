@@ -502,7 +502,7 @@ unsafe impl JSTraceable for Mutex<Option<SharedRt>> {
     }
 }
 
-unsafe impl JSTraceable for RwLock<FontFaceRule> {
+unsafe impl JSTraceable for StyleLocked<FontFaceRule> {
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing.
     }
@@ -520,31 +520,31 @@ unsafe impl JSTraceable for RwLock<Keyframe> {
     }
 }
 
-unsafe impl JSTraceable for RwLock<KeyframesRule> {
+unsafe impl JSTraceable for StyleLocked<KeyframesRule> {
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing.
     }
 }
 
-unsafe impl JSTraceable for RwLock<ImportRule> {
+unsafe impl JSTraceable for StyleLocked<ImportRule> {
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing.
     }
 }
 
-unsafe impl JSTraceable for RwLock<SupportsRule> {
+unsafe impl JSTraceable for StyleLocked<SupportsRule> {
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing.
     }
 }
 
-unsafe impl JSTraceable for RwLock<MediaRule> {
+unsafe impl JSTraceable for StyleLocked<MediaRule> {
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing.
     }
 }
 
-unsafe impl JSTraceable for RwLock<NamespaceRule> {
+unsafe impl JSTraceable for StyleLocked<NamespaceRule> {
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing.
     }
@@ -556,7 +556,7 @@ unsafe impl JSTraceable for RwLock<StyleRule> {
     }
 }
 
-unsafe impl JSTraceable for RwLock<ViewportRule> {
+unsafe impl JSTraceable for StyleLocked<ViewportRule> {
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing.
     }

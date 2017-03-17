@@ -274,11 +274,11 @@ impl Stylist {
                     }
                 }
                 CssRule::Import(ref import) => {
-                    let import = import.read();
+                    let import = import.read_with(guard);
                     self.add_stylesheet(&import.stylesheet, guard)
                 }
                 CssRule::Keyframes(ref keyframes_rule) => {
-                    let keyframes_rule = keyframes_rule.read();
+                    let keyframes_rule = keyframes_rule.read_with(guard);
                     debug!("Found valid keyframes rule: {:?}", *keyframes_rule);
                     let animation = KeyframesAnimation::from_keyframes(&keyframes_rule.keyframes);
                     debug!("Found valid keyframe animation: {:?}", animation);

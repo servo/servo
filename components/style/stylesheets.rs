@@ -213,14 +213,14 @@ pub enum CssRule {
     // No Charset here, CSSCharsetRule has been removed from CSSOM
     // https://drafts.csswg.org/cssom/#changes-from-5-december-2013
 
-    Namespace(Arc<RwLock<NamespaceRule>>),
-    Import(Arc<RwLock<ImportRule>>),
+    Namespace(Arc<Locked<NamespaceRule>>),
+    Import(Arc<Locked<ImportRule>>),
     Style(Arc<RwLock<StyleRule>>),
-    Media(Arc<RwLock<MediaRule>>),
-    FontFace(Arc<RwLock<FontFaceRule>>),
-    Viewport(Arc<RwLock<ViewportRule>>),
-    Keyframes(Arc<RwLock<KeyframesRule>>),
-    Supports(Arc<RwLock<SupportsRule>>),
+    Media(Arc<Locked<MediaRule>>),
+    FontFace(Arc<Locked<FontFaceRule>>),
+    Viewport(Arc<Locked<ViewportRule>>),
+    Keyframes(Arc<Locked<KeyframesRule>>),
+    Supports(Arc<Locked<SupportsRule>>),
 }
 
 #[allow(missing_docs)]
@@ -301,7 +301,7 @@ impl CssRule {
     where F: FnMut(&[CssRule], Option<&MediaList>) -> R {
         match *self {
             CssRule::Import(ref lock) => {
-                let rule = lock.read();
+                let rule = lock.read_with(guard);
                 let media = rule.stylesheet.media.read_with(guard);
                 let rules = rule.stylesheet.rules.read_with(guard);
                 // FIXME(emilio): Include the nested rules if the stylesheet is
@@ -316,13 +316,13 @@ impl CssRule {
                 f(&[], None)
             }
             CssRule::Media(ref lock) => {
-                let media_rule = lock.read();
+                let media_rule = lock.read_with(guard);
                 let mq = media_rule.media_queries.read_with(guard);
                 let rules = &media_rule.rules.read_with(guard).0;
                 f(rules, Some(&mq))
             }
             CssRule::Supports(ref lock) => {
-                let supports_rule = lock.read();
+                let supports_rule = lock.read_with(guard);
                 let enabled = supports_rule.enabled;
                 if enabled {
                     let rules = &supports_rule.rules.read_with(guard).0;
@@ -378,14 +378,14 @@ impl ToCssWithGuard for CssRule {
     fn to_css<W>(&self, guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
     where W: fmt::Write {
         match *self {
-            CssRule::Namespace(ref lock) => lock.read().to_css(guard, dest),
-            CssRule::Import(ref lock) => lock.read().to_css(guard, dest),
+            CssRule::Namespace(ref lock) => lock.read_with(guard).to_css(guard, dest),
+            CssRule::Import(ref lock) => lock.read_with(guard).to_css(guard, dest),
             CssRule::Style(ref lock) => lock.read().to_css(guard, dest),
-            CssRule::FontFace(ref lock) => lock.read().to_css(guard, dest),
-            CssRule::Viewport(ref lock) => lock.read().to_css(guard, dest),
-            CssRule::Keyframes(ref lock) => lock.read().to_css(guard, dest),
-            CssRule::Media(ref lock) => lock.read().to_css(guard, dest),
-            CssRule::Supports(ref lock) => lock.read().to_css(guard, dest),
+            CssRule::FontFace(ref lock) => lock.read_with(guard).to_css(guard, dest),
+            CssRule::Viewport(ref lock) => lock.read_with(guard).to_css(guard, dest),
+            CssRule::Keyframes(ref lock) => lock.read_with(guard).to_css(guard, dest),
+            CssRule::Media(ref lock) => lock.read_with(guard).to_css(guard, dest),
+            CssRule::Supports(ref lock) => lock.read_with(guard).to_css(guard, dest),
         }
     }
 }
@@ -717,7 +717,7 @@ macro_rules! rule_filter {
                 where F: FnMut(&$rule_type) {
                     self.effective_rules(device, guard, |rule| {
                         if let CssRule::$variant(ref lock) = *rule {
-                            let rule = lock.read();
+                            let rule = lock.read_with(guard);
                             f(&rule)
                         }
                     })
@@ -736,6 +736,18 @@ rule_filter! {
     effective_supports_rules(Supports => SupportsRule),
 }
 
+/// FIXME: Remove once StyleRule is actually in Locked<_>
+pub trait RwLockStyleRulePretendLockedStyleRule<T> {
+    /// Pretend we’re Locked<_>
+    fn read_with(&self, guard: &SharedRwLockReadGuard) -> ::parking_lot::RwLockReadGuard<T>;
+}
+
+impl RwLockStyleRulePretendLockedStyleRule<StyleRule> for RwLock<StyleRule> {
+    fn read_with(&self, _: &SharedRwLockReadGuard) -> ::parking_lot::RwLockReadGuard<StyleRule> {
+        self.read()
+    }
+}
+
 /// The stylesheet loader is the abstraction used to trigger network requests
 /// for `@import` rules.
 pub trait StylesheetLoader {
@@ -743,7 +755,7 @@ pub trait StylesheetLoader {
     ///
     /// The called code is responsible to update the `stylesheet` rules field
     /// when the sheet is done loading.
-    fn request_stylesheet(&self, import: &Arc<RwLock<ImportRule>>);
+    fn request_stylesheet(&self, import: &Arc<Locked<ImportRule>>);
 }
 
 struct TopLevelRuleParser<'a> {
@@ -811,7 +823,7 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
 
                     let is_valid_url = url.url().is_some();
 
-                    let import_rule = Arc::new(RwLock::new(
+                    let import_rule = Arc::new(self.shared_lock.wrap(
                         ImportRule {
                             url: url,
                             stylesheet: Arc::new(Stylesheet {
@@ -855,12 +867,12 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
                         None
                     };
 
-                    return Ok(AtRuleType::WithoutBlock(CssRule::Namespace(Arc::new(RwLock::new(
-                        NamespaceRule {
+                    return Ok(AtRuleType::WithoutBlock(CssRule::Namespace(Arc::new(
+                        self.shared_lock.wrap(NamespaceRule {
                             prefix: opt_prefix,
                             url: url,
-                        }
-                    )))))
+                        })
+                    ))))
                 } else {
                     self.state.set(State::Invalid);
                     return Err(())  // "@namespace must be before any rule but @charset and @import"
@@ -973,29 +985,29 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
     fn parse_block(&mut self, prelude: AtRulePrelude, input: &mut Parser) -> Result<CssRule, ()> {
         match prelude {
             AtRulePrelude::FontFace => {
-                Ok(CssRule::FontFace(Arc::new(RwLock::new(
+                Ok(CssRule::FontFace(Arc::new(self.shared_lock.wrap(
                     try!(parse_font_face_block(self.context, input))))))
             }
             AtRulePrelude::Media(media_queries) => {
-                Ok(CssRule::Media(Arc::new(RwLock::new(MediaRule {
+                Ok(CssRule::Media(Arc::new(self.shared_lock.wrap(MediaRule {
                     media_queries: media_queries,
                     rules: self.parse_nested_rules(input),
                 }))))
             }
             AtRulePrelude::Supports(cond) => {
                 let enabled = cond.eval(self.context);
-                Ok(CssRule::Supports(Arc::new(RwLock::new(SupportsRule {
+                Ok(CssRule::Supports(Arc::new(self.shared_lock.wrap(SupportsRule {
                     condition: cond,
                     rules: self.parse_nested_rules(input),
                     enabled: enabled,
                 }))))
             }
             AtRulePrelude::Viewport => {
-                Ok(CssRule::Viewport(Arc::new(RwLock::new(
+                Ok(CssRule::Viewport(Arc::new(self.shared_lock.wrap(
                     try!(ViewportRule::parse(input, self.context))))))
             }
             AtRulePrelude::Keyframes(name) => {
-                Ok(CssRule::Keyframes(Arc::new(RwLock::new(KeyframesRule {
+                Ok(CssRule::Keyframes(Arc::new(self.shared_lock.wrap(KeyframesRule {
                     name: name,
                     keyframes: parse_keyframe_list(&self.context, input),
                 }))))

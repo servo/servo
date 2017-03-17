@@ -23,6 +23,7 @@ use style::context::{ThreadLocalStyleContext, ThreadLocalStyleContextCreationInf
 use style::data::{ElementData, ElementStyles, RestyleData};
 use style::dom::{ShowSubtreeData, TElement, TNode};
 use style::error_reporting::StdoutErrorReporter;
+use style::gecko::arc_types::HackHackHack;
 use style::gecko::data::{PerDocumentStyleData, PerDocumentStyleDataImpl};
 use style::gecko::restyle_damage::GeckoRestyleDamage;
 use style::gecko::selector_parser::{SelectorImpl, PseudoElement};
@@ -81,6 +82,7 @@ use style::string_cache::Atom;
 use style::stylesheets::{CssRule, CssRules, ImportRule, MediaRule, NamespaceRule};
 use style::stylesheets::{Origin, Stylesheet, StyleRule};
 use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
+use style::stylesheets::RwLockStyleRulePretendLockedStyleRule;
 use style::supports::parse_condition_or_declaration;
 use style::thread_state;
 use style::timer::Timer;
@@ -586,17 +588,19 @@ macro_rules! impl_basic_rule_funcs {
 
         #[no_mangle]
         pub extern "C" fn $debug(rule: &$raw_type, result: *mut nsACString) {
-            let rule = RwLock::<$rule_type>::as_arc(&rule);
+            let global_style_data = &*GLOBAL_STYLE_DATA;
+            let guard = global_style_data.shared_lock.read();
+            let rule = Locked::<$rule_type>::as_arc(&rule);
             let result = unsafe { result.as_mut().unwrap() };
-            write!(result, "{:?}", *rule.read()).unwrap();
+            write!(result, "{:?}", *rule.read_with(&guard)).unwrap();
         }
 
         #[no_mangle]
         pub extern "C" fn $to_css(rule: &$raw_type, result: *mut nsAString) {
             let global_style_data = &*GLOBAL_STYLE_DATA;
             let guard = global_style_data.shared_lock.read();
-            let rule = RwLock::<$rule_type>::as_arc(&rule);
-            rule.read().to_css(&guard, unsafe { result.as_mut().unwrap() }).unwrap();
+            let rule = Locked::<$rule_type>::as_arc(&rule);
+            rule.read_with(&guard).to_css(&guard, unsafe { result.as_mut().unwrap() }).unwrap();
         }
     }
 }
@@ -641,26 +645,34 @@ pub extern "C" fn Servo_StyleRule_GetSelectorText(rule: RawServoStyleRuleBorrowe
 
 #[no_mangle]
 pub extern "C" fn Servo_MediaRule_GetMedia(rule: RawServoMediaRuleBorrowed) -> RawServoMediaListStrong {
-    let rule = RwLock::<MediaRule>::as_arc(&rule);
-    rule.read().media_queries.clone().into_strong()
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
+    let rule = Locked::<MediaRule>::as_arc(&rule);
+    rule.read_with(&guard).media_queries.clone().into_strong()
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_MediaRule_GetRules(rule: RawServoMediaRuleBorrowed) -> ServoCssRulesStrong {
-    let rule = RwLock::<MediaRule>::as_arc(&rule);
-    rule.read().rules.clone().into_strong()
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
+    let rule = Locked::<MediaRule>::as_arc(&rule);
+    rule.read_with(&guard).rules.clone().into_strong()
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_NamespaceRule_GetPrefix(rule: RawServoNamespaceRuleBorrowed) -> *mut nsIAtom {
-    let rule = RwLock::<NamespaceRule>::as_arc(&rule);
-    rule.read().prefix.as_ref().unwrap_or(&atom!("")).as_ptr()
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
+    let rule = Locked::<NamespaceRule>::as_arc(&rule);
+    rule.read_with(&guard).prefix.as_ref().unwrap_or(&atom!("")).as_ptr()
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_NamespaceRule_GetURI(rule: RawServoNamespaceRuleBorrowed) -> *mut nsIAtom {
-    let rule = RwLock::<NamespaceRule>::as_arc(&rule);
-    rule.read().url.0.as_ptr()
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
+    let rule = Locked::<NamespaceRule>::as_arc(&rule);
+    rule.read_with(&guard).url.0.as_ptr()
 }
 
 #[no_mangle]
@@ -1404,8 +1416,10 @@ pub extern "C" fn Servo_NoteExplicitHints(element: RawGeckoElementBorrowed,
 pub extern "C" fn Servo_ImportRule_GetSheet(import_rule:
                                             RawServoImportRuleBorrowed)
                                             -> RawServoStyleSheetStrong {
-    let import_rule = RwLock::<ImportRule>::as_arc(&import_rule);
-    import_rule.read().stylesheet.clone().into_strong()
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
+    let import_rule = Locked::<ImportRule>::as_arc(&import_rule);
+    import_rule.read_with(&guard).stylesheet.clone().into_strong()
 }
 
 #[no_mangle]

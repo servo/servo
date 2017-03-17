@@ -51,10 +51,21 @@ impl_arc_ffi!(ComputedValues => ServoComputedValues
 impl_arc_ffi!(RwLock<PropertyDeclarationBlock> => RawServoDeclarationBlock
               [Servo_DeclarationBlock_AddRef, Servo_DeclarationBlock_Release]);
 
+/// FIXME: Remove once StyleRule is actually in Locked<_>
+pub trait HackHackHack {
+    fn as_arc<'a>(ptr: &'a &RawServoStyleRule) -> &'a ::std::sync::Arc<RwLock<StyleRule>>;
+}
+
+impl HackHackHack for Locked<StyleRule> {
+    fn as_arc<'a>(ptr: &'a &RawServoStyleRule) -> &'a ::std::sync::Arc<RwLock<StyleRule>> {
+        RwLock::<StyleRule>::as_arc(ptr)
+    }
+}
+
 impl_arc_ffi!(RwLock<StyleRule> => RawServoStyleRule
               [Servo_StyleRule_AddRef, Servo_StyleRule_Release]);
 
-impl_arc_ffi!(RwLock<ImportRule> => RawServoImportRule
+impl_arc_ffi!(Locked<ImportRule> => RawServoImportRule
               [Servo_ImportRule_AddRef, Servo_ImportRule_Release]);
 
 impl_arc_ffi!(AnimationValue => RawServoAnimationValue
@@ -66,8 +77,8 @@ impl_arc_ffi!(RwLock<AnimationValueMap> => RawServoAnimationValueMap
 impl_arc_ffi!(Locked<MediaList> => RawServoMediaList
               [Servo_MediaList_AddRef, Servo_MediaList_Release]);
 
-impl_arc_ffi!(RwLock<MediaRule> => RawServoMediaRule
+impl_arc_ffi!(Locked<MediaRule> => RawServoMediaRule
               [Servo_MediaRule_AddRef, Servo_MediaRule_Release]);
 
-impl_arc_ffi!(RwLock<NamespaceRule> => RawServoNamespaceRule
+impl_arc_ffi!(Locked<NamespaceRule> => RawServoNamespaceRule
               [Servo_NamespaceRule_AddRef, Servo_NamespaceRule_Release]);
