@@ -23,54 +23,10 @@
                               animatable=True, logical=True)}
 % endfor
 
-<%helpers:longhand name="z-index" spec="https://www.w3.org/TR/CSS2/visuren.html#z-index" animatable="True">
-    use values::HasViewportPercentage;
-    use values::computed::ComputedValueAsSpecified;
-
-    impl ComputedValueAsSpecified for SpecifiedValue {}
-    no_viewport_percentage!(SpecifiedValue);
-    pub type SpecifiedValue = computed_value::T;
-    pub mod computed_value {
-        use std::fmt;
-        use style_traits::ToCss;
-
-        #[derive(PartialEq, Clone, Eq, Copy, Debug)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub enum T {
-            Auto,
-            Number(i32),
-        }
-
-        impl ToCss for T {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                match *self {
-                    T::Auto => dest.write_str("auto"),
-                    T::Number(number) => write!(dest, "{}", number),
-                }
-            }
-        }
-
-        impl T {
-            pub fn number_or_zero(self) -> i32 {
-                match self {
-                    T::Auto => 0,
-                    T::Number(value) => value,
-                }
-            }
-        }
-    }
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T::Auto
-    }
-    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
-            Ok(computed_value::T::Auto)
-        } else {
-            specified::parse_integer(input).map(computed_value::T::Number)
-        }
-    }
-</%helpers:longhand>
+${helpers.predefined_type("z-index", "IntegerOrAuto",
+                          "Either::Second(Auto)",
+                          spec="https://www.w3.org/TR/CSS2/visuren.html#z-index",
+                          animatable="True")}
 
 // CSS Flexible Box Layout Module Level 1
 // http://www.w3.org/TR/css3-flexbox/

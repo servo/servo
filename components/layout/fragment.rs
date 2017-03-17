@@ -42,14 +42,14 @@ use std::sync::{Arc, Mutex};
 use style::arc_ptr_eq;
 use style::computed_values::{border_collapse, box_sizing, clear, color, display, mix_blend_mode};
 use style::computed_values::{overflow_wrap, overflow_x, position, text_decoration_line, transform};
-use style::computed_values::{transform_style, vertical_align, white_space, word_break, z_index};
+use style::computed_values::{transform_style, vertical_align, white_space, word_break};
 use style::computed_values::content::ContentItem;
 use style::logical_geometry::{Direction, LogicalMargin, LogicalRect, LogicalSize, WritingMode};
 use style::properties::ServoComputedValues;
 use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::RECONSTRUCT_FLOW;
 use style::str::char_is_whitespace;
-use style::values::{self, Either};
+use style::values::{self, Either, Auto};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use text;
 use text::TextRunScanner;
@@ -2512,15 +2512,15 @@ impl Fragment {
                self.style().get_box().overflow_x,
                self.style().get_box().overflow_y.0) {
             (position::T::absolute,
-             z_index::T::Auto,
+             Either::Second(Auto),
              overflow_x::T::visible,
              overflow_x::T::visible) |
             (position::T::fixed,
-             z_index::T::Auto,
+             Either::Second(Auto),
              overflow_x::T::visible,
              overflow_x::T::visible) |
             (position::T::relative,
-             z_index::T::Auto,
+             Either::Second(Auto),
              overflow_x::T::visible,
              overflow_x::T::visible) => false,
             (position::T::absolute, _, _, _) |
@@ -2536,15 +2536,15 @@ impl Fragment {
     pub fn effective_z_index(&self) -> i32 {
         match self.style().get_box().position {
             position::T::static_ => {},
-            _ => return self.style().get_position().z_index.number_or_zero(),
+            _ => return self.style().get_position().z_index.integer_or(0),
         }
 
         if self.style().get_box().transform.0.is_some() {
-            return self.style().get_position().z_index.number_or_zero();
+            return self.style().get_position().z_index.integer_or(0);
         }
 
         match self.style().get_box().display {
-            display::T::flex => self.style().get_position().z_index.number_or_zero(),
+            display::T::flex => self.style().get_position().z_index.integer_or(0),
             _ => 0,
         }
     }

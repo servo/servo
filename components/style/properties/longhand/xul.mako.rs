@@ -49,3 +49,12 @@ ${helpers.single_keyword("-moz-stack-sizing", "stretch-to-fit ignore",
                          gecko_constant_prefix="NS_STYLE_STACK_SIZING",
                          animatable=False,
                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-stack-sizing)")}
+
+${helpers.predefined_type("-moz-box-ordinal-group", "Integer", "0",
+                          parse_method="parse_non_negative",
+                          needs_context=False,
+                          products="gecko",
+                          alias="-webkit-box-ordinal-group",
+                          gecko_ffi_name="mBoxOrdinal",
+                          animatable=False,
+                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-box-ordinal-group)")}

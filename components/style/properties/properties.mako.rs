@@ -1536,7 +1536,10 @@ impl ComputedValues {
         let style = self.get_column();
         match style.column_width {
             Either::First(_width) => true,
-            Either::Second(_auto) => style.column_count.0.is_some(),
+            Either::Second(_auto) => match style.column_count {
+                Either::First(_n) => true,
+                Either::Second(_auto) => false,
+            }
         }
     }
 
