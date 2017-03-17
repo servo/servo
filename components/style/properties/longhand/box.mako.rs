@@ -1807,6 +1807,7 @@ ${helpers.single_keyword("backface-visibility",
 
 ${helpers.single_keyword("transform-box",
                          "border-box fill-box view-box",
+                         gecko_enum_prefix="StyleGeometryBox",
                          products="gecko",
                          spec="https://drafts.csswg.org/css-transforms/#transform-box",
                          animatable=False)}

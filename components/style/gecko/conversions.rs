@@ -439,13 +439,13 @@ pub mod basic_shape {
         fn from(reference: GeometryBox) -> Self {
             use gecko_bindings::structs::StyleGeometryBox::*;
             match reference {
-                GeometryBox::ShapeBox(ShapeBox::Content) => Content,
-                GeometryBox::ShapeBox(ShapeBox::Padding) => Padding,
-                GeometryBox::ShapeBox(ShapeBox::Border) => Border,
-                GeometryBox::ShapeBox(ShapeBox::Margin) => Margin,
-                GeometryBox::Fill => Fill,
-                GeometryBox::Stroke => Stroke,
-                GeometryBox::View => View,
+                GeometryBox::ShapeBox(ShapeBox::ContentBox) => ContentBox,
+                GeometryBox::ShapeBox(ShapeBox::PaddingBox) => PaddingBox,
+                GeometryBox::ShapeBox(ShapeBox::BorderBox) => BorderBox,
+                GeometryBox::ShapeBox(ShapeBox::MarginBox) => MarginBox,
+                GeometryBox::FillBox => FillBox,
+                GeometryBox::StrokeBox => StrokeBox,
+                GeometryBox::ViewBox => ViewBox,
             }
         }
     }
@@ -457,13 +457,13 @@ pub mod basic_shape {
         fn from(reference: StyleGeometryBox) -> Self {
             use gecko_bindings::structs::StyleGeometryBox::*;
             match reference {
-                Content => GeometryBox::ShapeBox(ShapeBox::Content),
-                Padding => GeometryBox::ShapeBox(ShapeBox::Padding),
-                Border => GeometryBox::ShapeBox(ShapeBox::Border),
-                Margin => GeometryBox::ShapeBox(ShapeBox::Margin),
-                Fill => GeometryBox::Fill,
-                Stroke => GeometryBox::Stroke,
-                View => GeometryBox::View,
+                ContentBox => GeometryBox::ShapeBox(ShapeBox::ContentBox),
+                PaddingBox => GeometryBox::ShapeBox(ShapeBox::PaddingBox),
+                BorderBox => GeometryBox::ShapeBox(ShapeBox::BorderBox),
+                MarginBox => GeometryBox::ShapeBox(ShapeBox::MarginBox),
+                FillBox => GeometryBox::FillBox,
+                StrokeBox => GeometryBox::StrokeBox,
+                ViewBox => GeometryBox::ViewBox,
                 other => panic!("Unexpected StyleGeometryBox::{:?} while converting to GeometryBox", other),
             }
         }

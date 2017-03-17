@@ -2000,13 +2000,13 @@ fn static_assert() {
         use properties::longhands::${shorthand}_clip::single_value::computed_value::T;
 
         match servo {
-            T::border_box => StyleGeometryBox::Border,
-            T::padding_box => StyleGeometryBox::Padding,
-            T::content_box => StyleGeometryBox::Content,
+            T::border_box => StyleGeometryBox::BorderBox,
+            T::padding_box => StyleGeometryBox::PaddingBox,
+            T::content_box => StyleGeometryBox::ContentBox,
             % if shorthand == "mask":
-            T::fill_box => StyleGeometryBox::Fill,
-            T::stroke_box => StyleGeometryBox::Stroke,
-            T::view_box => StyleGeometryBox::View,
+            T::fill_box => StyleGeometryBox::FillBox,
+            T::stroke_box => StyleGeometryBox::StrokeBox,
+            T::view_box => StyleGeometryBox::ViewBox,
             T::no_clip => StyleGeometryBox::NoClip,
             % elif shorthand == "background":
             T::text => StyleGeometryBox::Text,
@@ -2019,13 +2019,13 @@ fn static_assert() {
         use properties::longhands::${shorthand}_origin::single_value::computed_value::T;
 
         match servo {
-            T::border_box => StyleGeometryBox::Border,
-            T::padding_box => StyleGeometryBox::Padding,
-            T::content_box => StyleGeometryBox::Content,
+            T::border_box => StyleGeometryBox::BorderBox,
+            T::padding_box => StyleGeometryBox::PaddingBox,
+            T::content_box => StyleGeometryBox::ContentBox,
             % if shorthand == "mask":
-            T::fill_box => StyleGeometryBox::Fill,
-            T::stroke_box => StyleGeometryBox::Stroke,
-            T::view_box => StyleGeometryBox::View,
+            T::fill_box => StyleGeometryBox::FillBox,
+            T::stroke_box => StyleGeometryBox::StrokeBox,
+            T::view_box => StyleGeometryBox::ViewBox,
             % endif
         }
     </%self:simple_image_array_property>
