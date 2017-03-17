@@ -87,7 +87,7 @@ impl BrowsingContext {
 
     #[allow(unsafe_code)]
     pub fn new(window: &Window,
-               frame_id: FrameId, 
+               frame_id: FrameId,
                frame_element: Option<&Element>,
                parent: Option<&BrowsingContext>)
                -> Root<BrowsingContext>
@@ -107,8 +107,8 @@ impl BrowsingContext {
             assert!(!window_proxy.is_null());
 
             // Create a new browsing context.
-            let currently_active = Some(window.global().pipeline_id());
-            let mut browsing_context = box BrowsingContext::new_inherited(frame_id, currently_active, frame_element, parent);
+            let current = Some(window.global().pipeline_id());
+            let mut browsing_context = box BrowsingContext::new_inherited(frame_id, current, frame_element, parent);
 
             // The window proxy owns the browsing context.
             // When we finalize the window proxy, it drops the browsing context it owns.

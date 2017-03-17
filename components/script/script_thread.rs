@@ -1664,6 +1664,12 @@ impl ScriptThread {
         result_receiver.recv().expect("Failed to get frame id from constellation.")
     }
 
+    // Get the browsing context for a pipeline that may exist in another
+    // script thread.  If the browsing context already exists in the
+    // `browsing_contexts` map, we return it, otherwise we recursively
+    // get the browsing context for the parent if there is one,
+    // construct a new dissimilar-origin browsing context, add it
+    // to the `browsing_contexts` map, and return it.
     fn remote_browsing_context(&self,
                                global_to_clone: &GlobalScope,
                                pipeline_id: PipelineId)
@@ -1685,6 +1691,12 @@ impl ScriptThread {
         Some(browsing_context)
     }
 
+    // Get the browsing context for a pipeline that exists in this
+    // script thread.  If the browsing context already exists in the
+    // `browsing_contexts` map, we return it, otherwise we recursively
+    // get the browsing context for the parent if there is one,
+    // construct a new similar-origin browsing context, add it
+    // to the `browsing_contexts` map, and return it.
     fn local_browsing_context(&self,
                               window: &Window,
                               frame_id: FrameId,
@@ -1695,16 +1707,16 @@ impl ScriptThread {
             browsing_context.set_currently_active(&*window);
             return Root::from_ref(browsing_context);
         }
-        let frame_element = match parent_info {
+        let iframe = match parent_info {
             Some((parent_id, FrameType::IFrame)) => self.documents.borrow().find_iframe(parent_id, frame_id),
             _ => None,
         };
-        let parent = match (parent_info, frame_element.as_ref()) {
-            (_, Some(frame_element)) => Some(window_from_node(&**frame_element).browsing_context()),
+        let parent = match (parent_info, iframe.as_ref()) {
+            (_, Some(iframe)) => Some(window_from_node(&**iframe).browsing_context()),
             (Some((parent_id, FrameType::IFrame)), _) => self.remote_browsing_context(window.upcast(), parent_id),
             _ => None,
         };
-        let browsing_context = BrowsingContext::new(&window, frame_id, frame_element.r().map(Castable::upcast), parent.r());
+        let browsing_context = BrowsingContext::new(&window, frame_id, iframe.r().map(Castable::upcast), parent.r());
         self.browsing_contexts.borrow_mut().insert(frame_id, JS::from_ref(&*browsing_context));
         browsing_context
     }
