@@ -657,7 +657,12 @@ fn insert(parent: &Node, reference_child: Option<&Node>, child: NodeOrText<JS<No
             parent.InsertBefore(&n, reference_child).unwrap();
         },
         NodeOrText::AppendText(t) => {
-            if let Some(text) = parent.GetLastChild().and_then(Root::downcast::<Text>) {
+            let text = reference_child
+                .and_then(Node::GetPreviousSibling)
+                .or_else(|| parent.GetLastChild())
+                .and_then(Root::downcast::<Text>);
+
+            if let Some(text) = text {
                 text.upcast::<CharacterData>().append_data(&t);
             } else {
                 let text = Text::new(String::from(t).into(), &parent.owner_doc());
