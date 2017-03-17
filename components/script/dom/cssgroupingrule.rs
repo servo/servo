@@ -42,6 +42,10 @@ impl CSSGroupingRule {
                                                   RulesSource::Rules(self.rules.clone())))
     }
 
+    pub fn parent_stylesheet(&self) -> &CSSStyleSheet {
+        self.cssrule.parent_stylesheet()
+    }
+
     pub fn shared_lock(&self) -> &SharedRwLock {
         self.cssrule.shared_lock()
     }

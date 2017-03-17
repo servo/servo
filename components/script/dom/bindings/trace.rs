@@ -99,7 +99,7 @@ use style::keyframes::Keyframe;
 use style::media_queries::MediaList;
 use style::properties::PropertyDeclarationBlock;
 use style::selector_parser::{PseudoElement, Snapshot};
-use style::shared_lock::SharedRwLock as StyleSharedRwLock;
+use style::shared_lock::{SharedRwLock as StyleSharedRwLock, Locked as StyleLocked};
 use style::stylesheets::{CssRules, KeyframesRule, MediaRule, NamespaceRule, StyleRule, ImportRule};
 use style::stylesheets::SupportsRule;
 use style::values::specified::Length;
@@ -574,7 +574,7 @@ unsafe impl JSTraceable for RwLock<SharedRt> {
     }
 }
 
-unsafe impl JSTraceable for RwLock<MediaList> {
+unsafe impl JSTraceable for StyleLocked<MediaList> {
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing.
     }

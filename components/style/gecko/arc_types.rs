@@ -17,6 +17,7 @@ use media_queries::MediaList;
 use parking_lot::RwLock;
 use properties::{ComputedValues, PropertyDeclarationBlock};
 use properties::animated_properties::AnimationValue;
+use shared_lock::Locked;
 use stylesheets::{CssRules, Stylesheet, StyleRule, ImportRule, MediaRule, NamespaceRule};
 
 macro_rules! impl_arc_ffi {
@@ -59,7 +60,7 @@ impl_arc_ffi!(RwLock<ImportRule> => RawServoImportRule
 impl_arc_ffi!(AnimationValue => RawServoAnimationValue
               [Servo_AnimationValue_AddRef, Servo_AnimationValue_Release]);
 
-impl_arc_ffi!(RwLock<MediaList> => RawServoMediaList
+impl_arc_ffi!(Locked<MediaList> => RawServoMediaList
               [Servo_MediaList_AddRef, Servo_MediaList_Release]);
 
 impl_arc_ffi!(RwLock<MediaRule> => RawServoMediaRule
