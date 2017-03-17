@@ -447,7 +447,7 @@ impl<'le> TElement for GeckoElement<'le> {
 
     fn get_state(&self) -> ElementState {
         unsafe {
-            ElementState::from_bits_truncate(Gecko_ElementState(self.0))
+            ElementState::from_bits_truncate(Gecko_ElementState(self.0) as u32)
         }
     }
 
@@ -680,7 +680,14 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::Target |
             NonTSPseudoClass::Valid |
             NonTSPseudoClass::Invalid |
-            NonTSPseudoClass::MozUIValid => {
+            NonTSPseudoClass::MozUIValid |
+            NonTSPseudoClass::MozBroken |
+            NonTSPseudoClass::MozUserDisabled |
+            NonTSPseudoClass::MozSuppressed |
+            NonTSPseudoClass::MozLoading |
+            NonTSPseudoClass::MozHandlerBlocked |
+            NonTSPseudoClass::MozHandlerDisabled |
+            NonTSPseudoClass::MozHandlerCrashed => {
                 self.get_state().contains(pseudo_class.state_flag())
             },
             NonTSPseudoClass::ReadOnly => {

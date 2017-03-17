@@ -9,7 +9,7 @@
 bitflags! {
     #[doc = "Event-based element states."]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub flags ElementState: u16 {
+    pub flags ElementState: u32 {
         #[doc = "The mouse is down on this element. \
                  https://html.spec.whatwg.org/multipage/#selector-active \
                  FIXME(#7333): set/unset this when appropriate"]
@@ -43,7 +43,21 @@ bitflags! {
         const IN_INVALID_STATE = 0x800,
         #[doc = "Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/:-moz-ui-valid"]
         const IN_MOZ_UI_VALID_STATE = 0x1000,
+        #[doc = "Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/:-moz-broken"]
+        const IN_BROKEN_STATE = 0x2000,
+        #[doc = "Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/:-moz-user-disabled"]
+        const IN_USER_DISABLED_STATE = 0x4000,
+        #[doc = "Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/:-moz-suppressed"]
+        const IN_SUPPRESSED_STATE = 0x8000,
+        #[doc = "Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/:-moz-loading"]
+        const IN_LOADING_STATE = 0x10000,
+        #[doc = "Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/:-moz-handler-blocked"]
+        const IN_HANDLER_BLOCKED_STATE = 0x20000,
+        #[doc = "Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/:-moz-handler-disabled"]
+        const IN_HANDLER_DISABLED_STATE = 0x40000,
+        #[doc = "Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/:-moz-handler-crashed"]
+        const IN_HANDLER_CRASHED_STATE = 0x80000,
         #[doc = "https://html.spec.whatwg.org/multipage/#selector-read-write"]
-        const IN_READ_WRITE_STATE = 0x2000,
+        const IN_READ_WRITE_STATE = 0x100000,
     }
 }
