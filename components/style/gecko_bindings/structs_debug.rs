@@ -8214,9 +8214,6 @@ pub mod root {
         }
         #[repr(C)]
         #[derive(Debug, Copy, Clone)]
-        pub struct ServoAnimationRule([u8; 0]);
-        #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
         pub struct AnimationPerformanceWarning([u8; 0]);
         pub type CSSPseudoClassTypeBase = u8;
         #[repr(u8)]

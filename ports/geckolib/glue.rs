@@ -45,6 +45,7 @@ use style::gecko_bindings::bindings::Gecko_AnimationAppendKeyframe;
 use style::gecko_bindings::bindings::RawGeckoComputedKeyframeValuesListBorrowedMut;
 use style::gecko_bindings::bindings::RawGeckoElementBorrowed;
 use style::gecko_bindings::bindings::RawServoAnimationValueBorrowed;
+use style::gecko_bindings::bindings::RawServoAnimationValueMapBorrowed;
 use style::gecko_bindings::bindings::RawServoAnimationValueStrong;
 use style::gecko_bindings::bindings::RawServoImportRuleBorrowed;
 use style::gecko_bindings::bindings::ServoComputedValuesBorrowedOrNull;
@@ -245,6 +246,18 @@ pub extern "C" fn Servo_AnimationValues_Interpolate(from: RawServoAnimationValue
     } else {
         RawServoAnimationValueStrong::null()
     }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_AnimationValueMap_Push(value_map: RawServoAnimationValueMapBorrowed,
+                                               property: nsCSSPropertyID,
+                                               value: RawServoAnimationValueBorrowed)
+{
+    use style::properties::animated_properties::AnimationValueMap;
+
+    let value_map = RwLock::<AnimationValueMap>::as_arc(&value_map);
+    let value = AnimationValue::as_arc(&value).as_ref();
+    value_map.write().insert(property.into(), value.clone());
 }
 
 #[no_mangle]

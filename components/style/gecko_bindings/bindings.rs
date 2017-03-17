@@ -582,8 +582,10 @@ extern "C" {
     pub fn Gecko_GetAnimationRule(aElement: RawGeckoElementBorrowed,
                                   aPseudoTag: *mut nsIAtom,
                                   aCascadeLevel:
-                                      EffectCompositor_CascadeLevel)
-     -> RawServoDeclarationBlockStrong;
+                                      EffectCompositor_CascadeLevel,
+                                  aAnimationValues:
+                                      RawServoAnimationValueMapBorrowed)
+     -> bool;
 }
 extern "C" {
     pub fn Gecko_StyleAnimationsEquals(arg1:
@@ -1495,6 +1497,13 @@ extern "C" {
                                            set: RawServoStyleSetBorrowed,
                                            result:
                                                RawGeckoComputedKeyframeValuesListBorrowedMut);
+}
+extern "C" {
+    pub fn Servo_AnimationValueMap_Push(arg1:
+                                            RawServoAnimationValueMapBorrowed,
+                                        property: nsCSSPropertyID,
+                                        value:
+                                            RawServoAnimationValueBorrowed);
 }
 extern "C" {
     pub fn Servo_AnimationValues_Interpolate(from:
