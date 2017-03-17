@@ -76,6 +76,7 @@ use style::properties::parse_one_declaration;
 use style::restyle_hints::{self, RestyleHint};
 use style::selector_parser::PseudoElementCascadeType;
 use style::sequential;
+use style::shared_lock::{SharedRwLock, ToCssWithGuard, Locked};
 use style::string_cache::Atom;
 use style::stylesheets::{CssRule, CssRules, ImportRule, MediaRule, NamespaceRule};
 use style::stylesheets::{Origin, Stylesheet, StyleRule};
@@ -85,7 +86,7 @@ use style::thread_state;
 use style::timer::Timer;
 use style::traversal::{resolve_style, DomTraversal, TraversalDriver};
 use style_traits::ToCss;
-use stylesheet_loader::StylesheetLoader;
+use super::stylesheet_loader::StylesheetLoader;
 
 /*
  * For Gecko->Servo function calls, we need to redeclare the same signature that was declared in
@@ -95,12 +96,15 @@ use stylesheet_loader::StylesheetLoader;
  * depend on but good enough for our purposes.
  */
 
-struct GlobalStyleData {
+pub struct GlobalStyleData {
     // How many threads parallel styling can use.
     pub num_threads: usize,
 
     // The parallel styling thread pool.
     pub style_thread_pool: Option<rayon::ThreadPool>,
+
+    // Shared RWLock for CSSOM objects
+    pub shared_lock: SharedRwLock,
 }
 
 impl GlobalStyleData {
@@ -124,12 +128,13 @@ impl GlobalStyleData {
         GlobalStyleData {
             num_threads: num_threads,
             style_thread_pool: pool,
+            shared_lock: SharedRwLock::new(),
         }
     }
 }
 
 lazy_static! {
-    static ref GLOBAL_STYLE_DATA: GlobalStyleData = {
+    pub static ref GLOBAL_STYLE_DATA: GlobalStyleData = {
         GlobalStyleData::new()
     };
 }
@@ -199,7 +204,7 @@ fn traverse_subtree(element: GeckoElement, raw_data: RawServoStyleSetBorrowed,
     debug!("{:?}", ShowSubtreeData(element.as_node()));
 
     let shared_style_context = create_shared_context(&per_doc_data);
-    let ref global_style_data = *GLOBAL_STYLE_DATA;
+    let global_style_data = &*GLOBAL_STYLE_DATA;
 
     let traversal_driver = if global_style_data.style_thread_pool.is_none() {
         TraversalDriver::Sequential
@@ -330,6 +335,7 @@ pub extern "C" fn Servo_Element_ClearData(element: RawGeckoElementBorrowed) {
 
 #[no_mangle]
 pub extern "C" fn Servo_StyleSheet_Empty(mode: SheetParsingMode) -> RawServoStyleSheetStrong {
+    let global_style_data = &*GLOBAL_STYLE_DATA;
     let url = ServoUrl::parse("about:blank").unwrap();
     let extra_data = ParserContextExtraData::default();
     let origin = match mode {
@@ -337,8 +343,9 @@ pub extern "C" fn Servo_StyleSheet_Empty(mode: SheetParsingMode) -> RawServoStyl
         SheetParsingMode::eUserSheetFeatures => Origin::User,
         SheetParsingMode::eAgentSheetFeatures => Origin::UserAgent,
     };
+    let shared_lock = global_style_data.shared_lock.clone();
     Arc::new(Stylesheet::from_str(
-        "", url, origin, Default::default(), None,
+        "", url, origin, Default::default(), shared_lock, None,
         &StdoutErrorReporter, extra_data)
     ).into_strong()
 }
@@ -353,6 +360,7 @@ pub extern "C" fn Servo_StyleSheet_FromUTF8Bytes(loader: *mut Loader,
                                                  referrer: *mut ThreadSafeURIHolder,
                                                  principal: *mut ThreadSafePrincipalHolder)
                                                  -> RawServoStyleSheetStrong {
+    let global_style_data = &*GLOBAL_STYLE_DATA;
     let input = unsafe { data.as_ref().unwrap().as_str_unchecked() };
 
     let origin = match mode {
@@ -380,8 +388,9 @@ pub extern "C" fn Servo_StyleSheet_FromUTF8Bytes(loader: *mut Loader,
         Some(ref s) => Some(s),
     };
 
+    let shared_lock = global_style_data.shared_lock.clone();
     Arc::new(Stylesheet::from_str(
-        input, url, origin, Default::default(), loader,
+        input, url, origin, Default::default(), shared_lock, loader,
         &StdoutErrorReporter, extra_data)
     ).into_strong()
 }
@@ -425,13 +434,15 @@ pub extern "C" fn Servo_StyleSheet_ClearAndUpdate(stylesheet: RawServoStyleSheet
 pub extern "C" fn Servo_StyleSet_AppendStyleSheet(raw_data: RawServoStyleSetBorrowed,
                                                   raw_sheet: RawServoStyleSheetBorrowed,
                                                   flush: bool) {
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
     let sheet = HasArcFFI::as_arc(&raw_sheet);
     data.stylesheets.retain(|x| !arc_ptr_eq(x, sheet));
     data.stylesheets.push(sheet.clone());
     data.stylesheets_changed = true;
     if flush {
-        data.flush_stylesheets();
+        data.flush_stylesheets(&guard);
     }
 }
 
@@ -439,13 +450,15 @@ pub extern "C" fn Servo_StyleSet_AppendStyleSheet(raw_data: RawServoStyleSetBorr
 pub extern "C" fn Servo_StyleSet_PrependStyleSheet(raw_data: RawServoStyleSetBorrowed,
                                                    raw_sheet: RawServoStyleSheetBorrowed,
                                                    flush: bool) {
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
     let sheet = HasArcFFI::as_arc(&raw_sheet);
     data.stylesheets.retain(|x| !arc_ptr_eq(x, sheet));
     data.stylesheets.insert(0, sheet.clone());
     data.stylesheets_changed = true;
     if flush {
-        data.flush_stylesheets();
+        data.flush_stylesheets(&guard);
     }
 }
 
@@ -454,6 +467,8 @@ pub extern "C" fn Servo_StyleSet_InsertStyleSheetBefore(raw_data: RawServoStyleS
                                                         raw_sheet: RawServoStyleSheetBorrowed,
                                                         raw_reference: RawServoStyleSheetBorrowed,
                                                         flush: bool) {
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
     let sheet = HasArcFFI::as_arc(&raw_sheet);
     let reference = HasArcFFI::as_arc(&raw_reference);
@@ -462,7 +477,7 @@ pub extern "C" fn Servo_StyleSet_InsertStyleSheetBefore(raw_data: RawServoStyleS
     data.stylesheets.insert(index, sheet.clone());
     data.stylesheets_changed = true;
     if flush {
-        data.flush_stylesheets();
+        data.flush_stylesheets(&guard);
     }
 }
 
@@ -470,19 +485,23 @@ pub extern "C" fn Servo_StyleSet_InsertStyleSheetBefore(raw_data: RawServoStyleS
 pub extern "C" fn Servo_StyleSet_RemoveStyleSheet(raw_data: RawServoStyleSetBorrowed,
                                                   raw_sheet: RawServoStyleSheetBorrowed,
                                                   flush: bool) {
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
     let sheet = HasArcFFI::as_arc(&raw_sheet);
     data.stylesheets.retain(|x| !arc_ptr_eq(x, sheet));
     data.stylesheets_changed = true;
     if flush {
-        data.flush_stylesheets();
+        data.flush_stylesheets(&guard);
     }
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_StyleSet_FlushStyleSheets(raw_data: RawServoStyleSetBorrowed) {
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
-    data.flush_stylesheets();
+    data.flush_stylesheets(&guard);
 }
 
 #[no_mangle]
@@ -564,8 +583,10 @@ macro_rules! impl_basic_rule_funcs {
 
         #[no_mangle]
         pub extern "C" fn $to_css(rule: &$raw_type, result: *mut nsAString) {
+            let global_style_data = &*GLOBAL_STYLE_DATA;
+            let guard = global_style_data.shared_lock.read();
             let rule = RwLock::<$rule_type>::as_arc(&rule);
-            rule.read().to_css(unsafe { result.as_mut().unwrap() }).unwrap();
+            rule.read().to_css(&guard, unsafe { result.as_mut().unwrap() }).unwrap();
         }
     }
 }
@@ -727,8 +748,10 @@ pub extern "C" fn Servo_StyleSet_Init(pres_context: RawGeckoPresContextOwned)
 
 #[no_mangle]
 pub extern "C" fn Servo_StyleSet_RebuildData(raw_data: RawServoStyleSetBorrowed) {
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
-    data.reset_device();
+    data.reset_device(&guard);
 }
 
 #[no_mangle]
@@ -943,29 +966,37 @@ pub extern "C" fn Servo_DeclarationBlock_RemovePropertyById(declarations: RawSer
 
 #[no_mangle]
 pub extern "C" fn Servo_MediaList_GetText(list: RawServoMediaListBorrowed, result: *mut nsAString) {
-    let list = RwLock::<MediaList>::as_arc(&list);
-    list.read().to_css(unsafe { result.as_mut().unwrap() }).unwrap();
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
+    let list = Locked::<MediaList>::as_arc(&list);
+    list.read_with(&guard).to_css(unsafe { result.as_mut().unwrap() }).unwrap();
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_MediaList_SetText(list: RawServoMediaListBorrowed, text: *const nsACString) {
-    let list = RwLock::<MediaList>::as_arc(&list);
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let mut guard = global_style_data.shared_lock.write();
+    let list = Locked::<MediaList>::as_arc(&list);
     let text = unsafe { text.as_ref().unwrap().as_str_unchecked() };
     let mut parser = Parser::new(&text);
-    *list.write() = parse_media_query_list(&mut parser);
+    *list.write_with(&mut guard) = parse_media_query_list(&mut parser);
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_MediaList_GetLength(list: RawServoMediaListBorrowed) -> u32 {
-    let list = RwLock::<MediaList>::as_arc(&list);
-    list.read().media_queries.len() as u32
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
+    let list = Locked::<MediaList>::as_arc(&list);
+    list.read_with(&guard).media_queries.len() as u32
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_MediaList_GetMediumAt(list: RawServoMediaListBorrowed, index: u32,
                                               result: *mut nsAString) -> bool {
-    let list = RwLock::<MediaList>::as_arc(&list);
-    if let Some(media_query) = list.read().media_queries.get(index as usize) {
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
+    let list = Locked::<MediaList>::as_arc(&list);
+    if let Some(media_query) = list.read_with(&guard).media_queries.get(index as usize) {
         media_query.to_css(unsafe { result.as_mut().unwrap() }).unwrap();
         true
     } else {
@@ -976,17 +1007,21 @@ pub extern "C" fn Servo_MediaList_GetMediumAt(list: RawServoMediaListBorrowed, i
 #[no_mangle]
 pub extern "C" fn Servo_MediaList_AppendMedium(list: RawServoMediaListBorrowed,
                                                new_medium: *const nsACString) {
-    let list = RwLock::<MediaList>::as_arc(&list);
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let mut guard = global_style_data.shared_lock.write();
+    let list = Locked::<MediaList>::as_arc(&list);
     let new_medium = unsafe { new_medium.as_ref().unwrap().as_str_unchecked() };
-    list.write().append_medium(new_medium);
+    list.write_with(&mut guard).append_medium(new_medium);
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_MediaList_DeleteMedium(list: RawServoMediaListBorrowed,
                                                old_medium: *const nsACString) -> bool {
-    let list = RwLock::<MediaList>::as_arc(&list);
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let mut guard = global_style_data.shared_lock.write();
+    let list = Locked::<MediaList>::as_arc(&list);
     let old_medium = unsafe { old_medium.as_ref().unwrap().as_str_unchecked() };
-    list.write().delete_medium(old_medium)
+    list.write_with(&mut guard).delete_medium(old_medium)
 }
 
 macro_rules! get_longhand_from_id {

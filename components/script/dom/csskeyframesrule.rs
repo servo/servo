@@ -21,8 +21,8 @@ use servo_atoms::Atom;
 use std::sync::Arc;
 use style::keyframes::{Keyframe, KeyframeSelector};
 use style::parser::ParserContextExtraData;
+use style::shared_lock::ToCssWithGuard;
 use style::stylesheets::KeyframesRule;
-use style_traits::ToCss;
 
 #[dom_struct]
 pub struct CSSKeyframesRule {
@@ -134,7 +134,8 @@ impl SpecificCSSRule for CSSKeyframesRule {
     }
 
     fn get_css(&self) -> DOMString {
-        self.keyframesrule.read().to_css_string().into()
+        let guard = self.cssrule.shared_lock().read();
+        self.keyframesrule.read().to_css_string(&guard).into()
     }
 
     fn deparent_children(&self) {

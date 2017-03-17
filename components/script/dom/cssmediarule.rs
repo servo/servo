@@ -17,12 +17,13 @@ use dom_struct::dom_struct;
 use parking_lot::RwLock;
 use std::sync::Arc;
 use style::media_queries::parse_media_query_list;
+use style::shared_lock::ToCssWithGuard;
 use style::stylesheets::MediaRule;
 use style_traits::ToCss;
 
 #[dom_struct]
 pub struct CSSMediaRule {
-    cssrule: CSSConditionRule,
+    cssconditionrule: CSSConditionRule,
     #[ignore_heap_size_of = "Arc"]
     mediarule: Arc<RwLock<MediaRule>>,
     medialist: MutNullableJS<MediaList>,
@@ -33,7 +34,7 @@ impl CSSMediaRule {
                      -> CSSMediaRule {
         let list = mediarule.read().rules.clone();
         CSSMediaRule {
-            cssrule: CSSConditionRule::new_inherited(parent_stylesheet, list),
+            cssconditionrule: CSSConditionRule::new_inherited(parent_stylesheet, list),
             mediarule: mediarule,
             medialist: MutNullableJS::new(None),
         }
@@ -49,22 +50,25 @@ impl CSSMediaRule {
 
     fn medialist(&self) -> Root<MediaList> {
         self.medialist.or_init(|| MediaList::new(self.global().as_window(),
+                                                 self.cssconditionrule.parent_stylesheet(),
                                                  self.mediarule.read().media_queries.clone()))
     }
 
     /// https://drafts.csswg.org/css-conditional-3/#the-cssmediarule-interface
     pub fn get_condition_text(&self) -> DOMString {
+        let guard = self.cssconditionrule.shared_lock().read();
         let rule = self.mediarule.read();
-        let list = rule.media_queries.read();
+        let list = rule.media_queries.read_with(&guard);
         list.to_css_string().into()
     }
 
     /// https://drafts.csswg.org/css-conditional-3/#the-cssmediarule-interface
     pub fn set_condition_text(&self, text: DOMString) {
+        let mut guard = self.cssconditionrule.shared_lock().write();
         let mut input = Parser::new(&text);
         let new_medialist = parse_media_query_list(&mut input);
         let rule = self.mediarule.read();
-        let mut list = rule.media_queries.write();
+        let mut list = rule.media_queries.write_with(&mut guard);
         *list = new_medialist;
     }
 }
@@ -76,7 +80,8 @@ impl SpecificCSSRule for CSSMediaRule {
     }
 
     fn get_css(&self) -> DOMString {
-        self.mediarule.read().to_css_string().into()
+        let guard = self.cssconditionrule.shared_lock().read();
+        self.mediarule.read().to_css_string(&guard).into()
     }
 }
 

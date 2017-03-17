@@ -12,6 +12,7 @@ use dom::csssupportsrule::CSSSupportsRule;
 use dom_struct::dom_struct;
 use parking_lot::RwLock;
 use std::sync::Arc;
+use style::shared_lock::SharedRwLock;
 use style::stylesheets::CssRules as StyleCssRules;
 
 #[dom_struct]
@@ -27,6 +28,13 @@ impl CSSConditionRule {
         }
     }
 
+    pub fn parent_stylesheet(&self) -> &CSSStyleSheet {
+        self.cssgroupingrule.parent_stylesheet()
+    }
+
+    pub fn shared_lock(&self) -> &SharedRwLock {
+        self.cssgroupingrule.shared_lock()
+    }
 }
 
 impl CSSConditionRuleMethods for CSSConditionRule {

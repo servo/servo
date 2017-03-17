@@ -152,12 +152,14 @@ impl FetchResponseListener for StylesheetContext {
                     let is_stylesheet_load_applicable =
                         self.request_generation_id.map_or(true, |gen| gen == link.get_request_generation_id());
                     if is_stylesheet_load_applicable {
+                        let shared_lock = document.style_shared_lock().clone();
                         let sheet =
                             Arc::new(Stylesheet::from_bytes(&data, final_url,
                                                             protocol_encoding_label,
                                                             Some(environment_encoding),
                                                             Origin::Author,
                                                             media.take().unwrap(),
+                                                            shared_lock,
                                                             Some(&loader),
                                                             win.css_error_reporter(),
                                                             ParserContextExtraData::default()));

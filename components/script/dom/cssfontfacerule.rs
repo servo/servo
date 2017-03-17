@@ -13,7 +13,7 @@ use dom_struct::dom_struct;
 use parking_lot::RwLock;
 use std::sync::Arc;
 use style::font_face::FontFaceRule;
-use style_traits::ToCss;
+use style::shared_lock::ToCssWithGuard;
 
 #[dom_struct]
 pub struct CSSFontFaceRule {
@@ -47,6 +47,7 @@ impl SpecificCSSRule for CSSFontFaceRule {
     }
 
     fn get_css(&self) -> DOMString {
-        self.fontfacerule.read().to_css_string().into()
+        let guard = self.cssrule.shared_lock().read();
+        self.fontfacerule.read().to_css_string(&guard).into()
     }
 }

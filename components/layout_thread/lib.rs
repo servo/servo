@@ -115,6 +115,7 @@ use style::logical_geometry::LogicalPoint;
 use style::media_queries::{Device, MediaType};
 use style::parser::ParserContextExtraData;
 use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, REPOSITION, STORE_OVERFLOW};
+use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard};
 use style::stylesheets::{Origin, Stylesheet, UserAgentStylesheets};
 use style::stylist::Stylist;
 use style::thread_state;
@@ -344,13 +345,14 @@ impl<'a, 'b: 'a> RwData<'a, 'b> {
 }
 
 fn add_font_face_rules(stylesheet: &Stylesheet,
+                       guard: &SharedRwLockReadGuard,
                        device: &Device,
                        font_cache_thread: &FontCacheThread,
                        font_cache_sender: &IpcSender<()>,
                        outstanding_web_fonts_counter: &Arc<AtomicUsize>) {
     if opts::get().load_webfonts_synchronously {
         let (sender, receiver) = ipc::channel().unwrap();
-        stylesheet.effective_font_face_rules(&device, |font_face| {
+        stylesheet.effective_font_face_rules(&device, guard, |font_face| {
             let effective_sources = font_face.effective_sources();
             font_cache_thread.add_web_font(font_face.family.clone(),
                                            effective_sources,
@@ -358,7 +360,7 @@ fn add_font_face_rules(stylesheet: &Stylesheet,
             receiver.recv().unwrap();
         })
     } else {
-        stylesheet.effective_font_face_rules(&device, |font_face| {
+        stylesheet.effective_font_face_rules(&device, guard, |font_face| {
             let effective_sources = font_face.effective_sources();
             outstanding_web_fonts_counter.fetch_add(1, Ordering::SeqCst);
             font_cache_thread.add_web_font(font_face.family.clone(),
@@ -406,8 +408,11 @@ impl LayoutThread {
 
         let stylist = Arc::new(Stylist::new(device));
         let outstanding_web_fonts_counter = Arc::new(AtomicUsize::new(0));
-        for stylesheet in &*UA_STYLESHEETS.user_or_user_agent_stylesheets {
+        let ua_stylesheets = &*UA_STYLESHEETS;
+        let guard = ua_stylesheets.shared_lock.read();
+        for stylesheet in &ua_stylesheets.user_or_user_agent_stylesheets {
             add_font_face_rules(stylesheet,
+                                &guard,
                                 &stylist.device,
                                 &font_cache_thread,
                                 &ipc_font_cache_sender,
@@ -733,8 +738,10 @@ impl LayoutThread {
         // GWTODO: Need to handle unloading web fonts.
 
         let rw_data = possibly_locked_rw_data.lock();
-        if stylesheet.is_effective_for_device(&rw_data.stylist.device) {
+        let guard = stylesheet.shared_lock.read();
+        if stylesheet.is_effective_for_device(&rw_data.stylist.device, &guard) {
             add_font_face_rules(&*stylesheet,
+                                &guard,
                                 &rw_data.stylist.device,
                                 &self.font_cache_thread,
                                 &self.font_cache_sender,
@@ -937,6 +944,7 @@ impl LayoutThread {
                              possibly_locked_rw_data: &mut RwData<'a, 'b>) {
         let document = unsafe { ServoLayoutNode::new(&data.document) };
         let document = document.as_document().unwrap();
+        let style_guard = document.style_shared_lock().read();
         self.quirks_mode = Some(document.quirks_mode());
 
         // FIXME(pcwalton): Combine `ReflowGoal` and `ReflowQueryType`. Then remove this assert.
@@ -1013,7 +1021,8 @@ impl LayoutThread {
 
         // Calculate the actual viewport as per DEVICE-ADAPT § 6
         let device = Device::new(MediaType::Screen, initial_viewport);
-        Arc::get_mut(&mut rw_data.stylist).unwrap().set_device(device, &data.document_stylesheets);
+        Arc::get_mut(&mut rw_data.stylist).unwrap()
+            .set_device(device, &style_guard, &data.document_stylesheets);
 
         self.viewport_size =
             rw_data.stylist.viewport_constraints().map_or(current_screen_size, |constraints| {
@@ -1057,9 +1066,11 @@ impl LayoutThread {
         }
 
         // If the entire flow tree is invalid, then it will be reflowed anyhow.
-        let needs_dirtying = Arc::get_mut(&mut rw_data.stylist).unwrap().update(&data.document_stylesheets,
-                                                                                 Some(&*UA_STYLESHEETS),
-                                                                                 data.stylesheets_changed);
+        let needs_dirtying = Arc::get_mut(&mut rw_data.stylist).unwrap().update(
+            &data.document_stylesheets,
+            &style_guard,
+            Some(&*UA_STYLESHEETS),
+            data.stylesheets_changed);
         let needs_reflow = viewport_size_changed && !needs_dirtying;
         if needs_dirtying {
             if let Some(mut d) = element.mutate_data() {
@@ -1553,7 +1564,8 @@ fn get_root_flow_background_color(flow: &mut Flow) -> webrender_traits::ColorF {
 }
 
 fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
-    fn parse_ua_stylesheet(filename: &'static str) -> Result<Stylesheet, &'static str> {
+    fn parse_ua_stylesheet(shared_lock: &SharedRwLock, filename: &'static str)
+                           -> Result<Stylesheet, &'static str> {
         let res = try!(read_resource_file(filename).map_err(|_| filename));
         Ok(Stylesheet::from_bytes(
             &res,
@@ -1562,26 +1574,29 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
             None,
             Origin::UserAgent,
             Default::default(),
+            shared_lock.clone(),
             None,
             &StdoutErrorReporter,
             ParserContextExtraData::default()))
     }
 
+    let shared_lock = SharedRwLock::new();
     let mut user_or_user_agent_stylesheets = vec!();
     // FIXME: presentational-hints.css should be at author origin with zero specificity.
     //        (Does it make a difference?)
     for &filename in &["user-agent.css", "servo.css", "presentational-hints.css"] {
-        user_or_user_agent_stylesheets.push(try!(parse_ua_stylesheet(filename)));
+        user_or_user_agent_stylesheets.push(try!(parse_ua_stylesheet(&shared_lock, filename)));
     }
     for &(ref contents, ref url) in &opts::get().user_stylesheets {
         user_or_user_agent_stylesheets.push(Stylesheet::from_bytes(
             &contents, url.clone(), None, None, Origin::User, Default::default(),
-            None, &StdoutErrorReporter, ParserContextExtraData::default()));
+            shared_lock.clone(), None, &StdoutErrorReporter, ParserContextExtraData::default()));
     }
 
-    let quirks_mode_stylesheet = try!(parse_ua_stylesheet("quirks-mode.css"));
+    let quirks_mode_stylesheet = try!(parse_ua_stylesheet(&shared_lock, "quirks-mode.css"));
 
     Ok(UserAgentStylesheets {
+        shared_lock: shared_lock,
         user_or_user_agent_stylesheets: user_or_user_agent_stylesheets,
         quirks_mode_stylesheet: quirks_mode_stylesheet,
     })

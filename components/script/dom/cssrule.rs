@@ -20,6 +20,7 @@ use dom::cssviewportrule::CSSViewportRule;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use std::cell::Cell;
+use style::shared_lock::SharedRwLock;
 use style::stylesheets::CssRule as StyleCssRule;
 
 
@@ -102,6 +103,10 @@ impl CSSRule {
 
     pub fn parent_stylesheet(&self) -> &CSSStyleSheet {
         &self.parent_stylesheet
+    }
+
+    pub fn shared_lock(&self) -> &SharedRwLock {
+        &self.parent_stylesheet.style_stylesheet().shared_lock
     }
 }
 

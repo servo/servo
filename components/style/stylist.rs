@@ -28,6 +28,7 @@ use selectors::matching::{AFFECTED_BY_STYLE_ATTRIBUTE, AFFECTED_BY_PRESENTATIONA
 use selectors::matching::{ElementSelectorFlags, StyleRelations, matches_complex_selector};
 use selectors::parser::{Selector, SimpleSelector, LocalName as LocalNameSelector, ComplexSelector};
 use selectors::parser::SelectorMethods;
+use shared_lock::SharedRwLockReadGuard;
 use sink::Push;
 use smallvec::VecLike;
 use std::borrow::Borrow;
@@ -158,6 +159,7 @@ impl Stylist {
     /// device is dirty, which means we need to re-evaluate media queries.
     pub fn update(&mut self,
                   doc_stylesheets: &[Arc<Stylesheet>],
+                  doc_guard: &SharedRwLockReadGuard,
                   ua_stylesheets: Option<&UserAgentStylesheets>,
                   stylesheets_changed: bool) -> bool {
         if !(self.is_device_dirty || stylesheets_changed) {
@@ -165,7 +167,9 @@ impl Stylist {
         }
 
         let cascaded_rule = ViewportRule {
-            declarations: viewport::Cascade::from_stylesheets(doc_stylesheets, &self.device).finish(),
+            declarations: viewport::Cascade::from_stylesheets(
+                doc_stylesheets, doc_guard, &self.device
+            ).finish(),
         };
 
         self.viewport_constraints =
@@ -192,17 +196,18 @@ impl Stylist {
         self.non_common_style_affecting_attributes_selectors.clear();
 
         if let Some(ua_stylesheets) = ua_stylesheets {
+            let ua_guard = ua_stylesheets.shared_lock.read();
             for stylesheet in &ua_stylesheets.user_or_user_agent_stylesheets {
-                self.add_stylesheet(&stylesheet);
+                self.add_stylesheet(&stylesheet, &ua_guard);
             }
 
             if self.quirks_mode {
-                self.add_stylesheet(&ua_stylesheets.quirks_mode_stylesheet);
+                self.add_stylesheet(&ua_stylesheets.quirks_mode_stylesheet, &ua_guard);
             }
         }
 
         for ref stylesheet in doc_stylesheets.iter() {
-            self.add_stylesheet(stylesheet);
+            self.add_stylesheet(stylesheet, doc_guard);
         }
 
         debug!("Stylist stats:");
@@ -226,15 +231,15 @@ impl Stylist {
         true
     }
 
-    fn add_stylesheet(&mut self, stylesheet: &Stylesheet) {
-        if stylesheet.disabled() || !stylesheet.is_effective_for_device(&self.device) {
+    fn add_stylesheet(&mut self, stylesheet: &Stylesheet, guard: &SharedRwLockReadGuard) {
+        if stylesheet.disabled() || !stylesheet.is_effective_for_device(&self.device, guard) {
             return;
         }
 
         // Cheap `Arc` clone so that the closure below can borrow `&mut Stylist`.
         let device = self.device.clone();
 
-        stylesheet.effective_rules(&device, |rule| {
+        stylesheet.effective_rules(&device, guard, |rule| {
             match *rule {
                 CssRule::Style(ref style_rule) => {
                     let guard = style_rule.read();
@@ -270,7 +275,7 @@ impl Stylist {
                 }
                 CssRule::Import(ref import) => {
                     let import = import.read();
-                    self.add_stylesheet(&import.stylesheet)
+                    self.add_stylesheet(&import.stylesheet, guard)
                 }
                 CssRule::Keyframes(ref keyframes_rule) => {
                     let keyframes_rule = keyframes_rule.read();
@@ -461,9 +466,10 @@ impl Stylist {
     /// FIXME(emilio): The semantics of the device for Servo and Gecko are
     /// different enough we may want to unify them.
     #[cfg(feature = "servo")]
-    pub fn set_device(&mut self, mut device: Device, stylesheets: &[Arc<Stylesheet>]) {
+    pub fn set_device(&mut self, mut device: Device, guard: &SharedRwLockReadGuard,
+                      stylesheets: &[Arc<Stylesheet>]) {
         let cascaded_rule = ViewportRule {
-            declarations: viewport::Cascade::from_stylesheets(stylesheets, &device).finish(),
+            declarations: viewport::Cascade::from_stylesheets(stylesheets, guard, &device).finish(),
         };
 
         self.viewport_constraints =
@@ -473,15 +479,16 @@ impl Stylist {
             device.account_for_viewport_rule(constraints);
         }
 
-        fn mq_eval_changed(rules: &[CssRule], before: &Device, after: &Device) -> bool {
+        fn mq_eval_changed(guard: &SharedRwLockReadGuard, rules: &[CssRule],
+                           before: &Device, after: &Device) -> bool {
             for rule in rules {
-                let changed = rule.with_nested_rules_and_mq(|rules, mq| {
+                let changed = rule.with_nested_rules_and_mq(guard, |rules, mq| {
                     if let Some(mq) = mq {
                         if mq.evaluate(before) != mq.evaluate(after) {
                             return true
                         }
                     }
-                    mq_eval_changed(rules, before, after)
+                    mq_eval_changed(guard, rules, before, after)
                 });
                 if changed {
                     return true
@@ -490,12 +497,12 @@ impl Stylist {
             false
         }
         self.is_device_dirty |= stylesheets.iter().any(|stylesheet| {
-            let mq = stylesheet.media.read();
+            let mq = stylesheet.media.read_with(guard);
             if mq.evaluate(&self.device) != mq.evaluate(&device) {
                 return true
             }
 
-            mq_eval_changed(&stylesheet.rules.read().0, &self.device, &device)
+            mq_eval_changed(guard, &stylesheet.rules.read().0, &self.device, &device)
         });
 
         self.device = Arc::new(device);
