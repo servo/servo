@@ -322,3 +322,79 @@ ${helpers.predefined_type("object-position",
                               products="gecko",
                               boxed=True)}
 % endfor
+
+<%helpers:longhand name="grid-auto-flow"
+        spec="https://drafts.csswg.org/css-grid/#propdef-grid-auto-flow"
+        products="none"
+        animatable="False">
+    use std::fmt;
+    use style_traits::ToCss;
+    use values::HasViewportPercentage;
+    use values::computed::ComputedValueAsSpecified;
+
+    pub type SpecifiedValue = computed_value::T;
+
+    pub mod computed_value {
+        #[derive(PartialEq, Clone, Eq, Copy, Debug)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        pub enum AutoFlow {
+            Row,
+            Column,
+        }
+
+        #[derive(PartialEq, Clone, Eq, Copy, Debug)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        pub struct T {
+            pub autoflow: AutoFlow,
+            pub dense: bool,
+        }
+    }
+
+    no_viewport_percentage!(SpecifiedValue);
+    impl ComputedValueAsSpecified for SpecifiedValue {}
+
+    impl ToCss for computed_value::T {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            dest.write_str(match self.autoflow {
+                computed_value::AutoFlow::Column => "column",
+                computed_value::AutoFlow::Row => "row"
+            })?;
+
+            if self.dense { dest.write_str(" dense")?; }
+            Ok(())
+        }
+    }
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T {
+            autoflow: computed_value::AutoFlow::Row,
+            dense: false
+        }
+    }
+
+    /// [ row | column ] || dense
+    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        let mut autoflow = false;
+        let mut value = get_initial_value();
+        loop {
+            match_ignore_ascii_case! { &try!(input.expect_ident()),
+                "row" => if autoflow { return Err(()) }
+                         else {
+                             autoflow = true;
+                             value.autoflow = computed_value::AutoFlow::Row;
+                         },
+                "column" => if autoflow { return Err(()) }
+                            else {
+                                autoflow = true;
+                                value.autoflow = computed_value::AutoFlow::Column;
+                            },
+                "dense" => if value.dense { return Err(()) }
+                           else { value.dense = true },
+                _ => return Err(())
+            }
+        }
+
+        if autoflow || value.dense { Ok(value) } else { Err(()) }
+    }
+</%helpers:longhand>
