@@ -11,10 +11,10 @@ use {Atom, Namespace, LocalName};
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use data::ElementData;
 use element_state::ElementState;
-use parking_lot::RwLock;
 use properties::{ComputedValues, PropertyDeclarationBlock};
 use selector_parser::{ElementExt, PreExistingComputedValues, PseudoElement};
 use selectors::matching::ElementSelectorFlags;
+use shared_lock::Locked;
 use sink::Push;
 use std::fmt;
 use std::fmt::Debug;
@@ -230,8 +230,8 @@ pub trait PresentationalHintsSynthetizer {
 
 /// The animation rules. The first one is for Animation cascade level, and the second one is for
 /// Transition cascade level.
-pub struct AnimationRules(pub Option<Arc<RwLock<PropertyDeclarationBlock>>>,
-                          pub Option<Arc<RwLock<PropertyDeclarationBlock>>>);
+pub struct AnimationRules(pub Option<Arc<Locked<PropertyDeclarationBlock>>>,
+                          pub Option<Arc<Locked<PropertyDeclarationBlock>>>);
 
 /// The element trait, the main abstraction the style crate acts over.
 pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + PresentationalHintsSynthetizer {
@@ -252,7 +252,7 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
     }
 
     /// Get this element's style attribute.
-    fn style_attribute(&self) -> Option<&Arc<RwLock<PropertyDeclarationBlock>>>;
+    fn style_attribute(&self) -> Option<&Arc<Locked<PropertyDeclarationBlock>>>;
 
     /// Get this element's animation rules.
     fn get_animation_rules(&self, _pseudo: Option<&PseudoElement>) -> AnimationRules {
@@ -261,13 +261,13 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
 
     /// Get this element's animation rule.
     fn get_animation_rule(&self, _pseudo: Option<&PseudoElement>)
-                          -> Option<Arc<RwLock<PropertyDeclarationBlock>>> {
+                          -> Option<Arc<Locked<PropertyDeclarationBlock>>> {
         None
     }
 
     /// Get this element's transition rule.
     fn get_transition_rule(&self, _pseudo: Option<&PseudoElement>)
-                           -> Option<Arc<RwLock<PropertyDeclarationBlock>>> {
+                           -> Option<Arc<Locked<PropertyDeclarationBlock>>> {
         None
     }
 

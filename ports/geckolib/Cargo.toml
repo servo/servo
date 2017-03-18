@@ -20,9 +20,7 @@ env_logger = {version = "0.4", default-features = false} # disable `regex` to re
 lazy_static = "0.2"
 libc = "0.2"
 log = {version = "0.3.5", features = ["release_max_level_info"]}
-num_cpus = "1.1.0"
 parking_lot = "0.3"
-rayon = "0.6"
 selectors = {path = "../../components/selectors"}
 servo_url = {path = "../../components/url"}
 style = {path = "../../components/style", features = ["gecko"]}

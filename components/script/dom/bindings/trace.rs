@@ -562,7 +562,7 @@ unsafe impl JSTraceable for StyleLocked<ViewportRule> {
     }
 }
 
-unsafe impl JSTraceable for RwLock<PropertyDeclarationBlock> {
+unsafe impl JSTraceable for StyleLocked<PropertyDeclarationBlock> {
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing.
     }

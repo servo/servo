@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::{Parser, SourcePosition};
-use parking_lot::RwLock;
 use rayon;
 use servo_url::ServoUrl;
 use std::sync::Arc;
@@ -65,9 +64,11 @@ fn test_insertion(rule_tree: &RuleTree, rules: Vec<(StyleSource, CascadeLevel)>)
     rule_tree.insert_ordered_rules(rules.into_iter())
 }
 
-fn test_insertion_style_attribute(rule_tree: &RuleTree, rules: &[(StyleSource, CascadeLevel)]) -> StrongRuleNode {
+fn test_insertion_style_attribute(rule_tree: &RuleTree, rules: &[(StyleSource, CascadeLevel)],
+                                  shared_lock: &SharedRwLock)
+                                  -> StrongRuleNode {
     let mut rules = rules.to_vec();
-    rules.push((StyleSource::Declarations(Arc::new(RwLock::new(PropertyDeclarationBlock::with_one(
+    rules.push((StyleSource::Declarations(Arc::new(shared_lock.wrap(PropertyDeclarationBlock::with_one(
         PropertyDeclaration::Display(
             longhands::display::SpecifiedValue::block),
         Importance::Normal
@@ -121,11 +122,12 @@ fn bench_expensive_insertion(b: &mut Bencher) {
          .bar { height: 500px; } \
          .baz { display: block; }");
 
+    let shared_lock = SharedRwLock::new();
     b.iter(|| {
         let _gc = AutoGCRuleTree::new(&r);
 
         for _ in 0..(4000 + 400) {
-            test::black_box(test_insertion_style_attribute(&r, &rules_matched));
+            test::black_box(test_insertion_style_attribute(&r, &rules_matched, &shared_lock));
         }
     });
 }
@@ -170,6 +172,7 @@ fn bench_expensive_insersion_parallel(b: &mut Bencher) {
          .bar { height: 500px; } \
          .baz { display: block; }");
 
+    let shared_lock = SharedRwLock::new();
     b.iter(|| {
         let _gc = AutoGCRuleTree::new(&r);
 
@@ -178,12 +181,14 @@ fn bench_expensive_insersion_parallel(b: &mut Bencher) {
                 s.spawn(|s| {
                     for _ in 0..1000 {
                         test::black_box(test_insertion_style_attribute(&r,
-                                                                       &rules_matched));
+                                                                       &rules_matched,
+                                                                       &shared_lock));
                     }
                     s.spawn(|_| {
                         for _ in 0..100 {
                             test::black_box(test_insertion_style_attribute(&r,
-                                                                           &rules_matched));
+                                                                           &rules_matched,
+                                                                           &shared_lock));
                         }
                     })
                 })

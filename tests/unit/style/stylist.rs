@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use html5ever_atoms::LocalName;
-use parking_lot::RwLock;
 use selectors::parser::LocalName as LocalNameSelector;
 use servo_atoms::Atom;
 use std::sync::Arc;
@@ -25,7 +24,7 @@ fn get_mock_rules(css_selectors: &[&str]) -> (Vec<Vec<Rule>>, SharedRwLock) {
 
         let locked = Arc::new(shared_lock.wrap(StyleRule {
             selectors: selectors,
-            block: Arc::new(RwLock::new(PropertyDeclarationBlock::with_one(
+            block: Arc::new(shared_lock.wrap(PropertyDeclarationBlock::with_one(
                 PropertyDeclaration::Display(
                     longhands::display::SpecifiedValue::block),
                 Importance::Normal

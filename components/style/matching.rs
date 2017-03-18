@@ -886,7 +886,8 @@ pub trait MatchMethods : TElement {
             let new_node = context.shared.stylist.rule_tree
                 .update_rule_at_level(CascadeLevel::StyleAttributeNormal,
                                       style_attribute,
-                                      primary_rules);
+                                      primary_rules,
+                                      &context.shared.guards);
             if let Some(n) = new_node {
                 *primary_rules = n;
                 rule_node_changed = true;
@@ -895,7 +896,8 @@ pub trait MatchMethods : TElement {
             let new_node = context.shared.stylist.rule_tree
                 .update_rule_at_level(CascadeLevel::StyleAttributeImportant,
                                       style_attribute,
-                                      primary_rules);
+                                      primary_rules,
+                                      &context.shared.guards);
             if let Some(n) = new_node {
                 *primary_rules = n;
                 rule_node_changed = true;

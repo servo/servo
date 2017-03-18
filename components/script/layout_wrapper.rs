@@ -44,7 +44,6 @@ use dom::text::Text;
 use gfx_traits::ByteIndex;
 use html5ever_atoms::{LocalName, Namespace};
 use msg::constellation_msg::PipelineId;
-use parking_lot::RwLock;
 use range::Range;
 use script_layout_interface::{HTMLCanvasData, LayoutNodeType, SVGSVGData, TrustedNodeAddress};
 use script_layout_interface::{OpaqueStyleAndLayoutData, PartialPersistentLayoutData};
@@ -69,7 +68,7 @@ use style::dom::UnsafeNode;
 use style::element_state::*;
 use style::properties::{ComputedValues, PropertyDeclarationBlock};
 use style::selector_parser::{NonTSPseudoClass, PseudoElement, SelectorImpl};
-use style::shared_lock::SharedRwLock as StyleSharedRwLock;
+use style::shared_lock::{SharedRwLock as StyleSharedRwLock, Locked as StyleLocked};
 use style::sink::Push;
 use style::str::is_whitespace;
 use style::stylist::ApplicableDeclarationBlock;
@@ -377,7 +376,7 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         ServoLayoutNode::from_layout_js(self.element.upcast())
     }
 
-    fn style_attribute(&self) -> Option<&Arc<RwLock<PropertyDeclarationBlock>>> {
+    fn style_attribute(&self) -> Option<&Arc<StyleLocked<PropertyDeclarationBlock>>> {
         unsafe {
             (*self.element.style_attribute()).as_ref()
         }
