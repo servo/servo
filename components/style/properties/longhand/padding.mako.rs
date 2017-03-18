@@ -13,11 +13,11 @@
             spec = "https://drafts.csswg.org/css-logical-props/#propdef-padding-%s" % side[1]
     %>
     ${helpers.predefined_type("padding-%s" % side[0], "LengthOrPercentage",
-                               "computed::LengthOrPercentage::Length(Au(0))",
-                               "parse_non_negative",
-                               alias=maybe_moz_logical_alias(product, side, "-moz-padding-%s"),
-                               needs_context=False,
-                               animatable=True,
-                               logical = side[1],
-                               spec = spec)}
+                              "computed::LengthOrPercentage::Length(Au(0))",
+                              "parse_non_negative",
+                              alias=maybe_moz_logical_alias(product, side, "-moz-padding-%s"),
+                              needs_context=False,
+                              animatable=True,
+                              logical = side[1],
+                              spec = spec)}
 % endfor
