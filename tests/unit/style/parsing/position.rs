@@ -142,3 +142,28 @@ fn test_vertical_position() {
     assert!(parse(VerticalPosition::parse, "left right").is_err());
     assert!(parse(VerticalPosition::parse, "20px 30px").is_err());
 }
+
+#[test]
+fn test_grid_auto_flow() {
+    use style::properties::longhands::grid_auto_flow;
+
+    assert_roundtrip_with_context!(grid_auto_flow::parse, "row dense", "row dense");
+    assert_roundtrip_with_context!(grid_auto_flow::parse, "dense row", "row dense");
+    assert_roundtrip_with_context!(grid_auto_flow::parse, "column dense", "column dense");
+    assert_roundtrip_with_context!(grid_auto_flow::parse, "dense column", "column dense");
+    assert_roundtrip_with_context!(grid_auto_flow::parse, "dense", "row dense");
+    assert_roundtrip_with_context!(grid_auto_flow::parse, "row", "row");
+    assert_roundtrip_with_context!(grid_auto_flow::parse, "column", "column");
+
+    // Neither row, column or dense can be repeated
+    assert!(parse(grid_auto_flow::parse, "dense dense").is_err());
+    assert!(parse(grid_auto_flow::parse, "row row").is_err());
+    assert!(parse(grid_auto_flow::parse, "column column").is_err());
+    assert!(parse(grid_auto_flow::parse, "row dense dense").is_err());
+    assert!(parse(grid_auto_flow::parse, "column dense dense").is_err());
+
+    // Only row, column, dense idents are allowed
+    assert!(parse(grid_auto_flow::parse, "dense 1").is_err());
+    assert!(parse(grid_auto_flow::parse, "column 'dense'").is_err());
+    assert!(parse(grid_auto_flow::parse, "column 2px dense").is_err());
+}
