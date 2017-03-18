@@ -276,38 +276,6 @@ impl Mul<CSSFloat> for NoCalcLength {
 }
 
 impl NoCalcLength {
-    /// https://drafts.csswg.org/css-fonts-3/#font-size-prop
-    pub fn from_str(s: &str) -> Option<NoCalcLength> {
-        Some(match_ignore_ascii_case! { s,
-            "xx-small" => NoCalcLength::Absolute(Au::from_px(FONT_MEDIUM_PX) * 3 / 5),
-            "x-small" => NoCalcLength::Absolute(Au::from_px(FONT_MEDIUM_PX) * 3 / 4),
-            "small" => NoCalcLength::Absolute(Au::from_px(FONT_MEDIUM_PX) * 8 / 9),
-            "medium" => NoCalcLength::Absolute(Au::from_px(FONT_MEDIUM_PX)),
-            "large" => NoCalcLength::Absolute(Au::from_px(FONT_MEDIUM_PX) * 6 / 5),
-            "x-large" => NoCalcLength::Absolute(Au::from_px(FONT_MEDIUM_PX) * 3 / 2),
-            "xx-large" => NoCalcLength::Absolute(Au::from_px(FONT_MEDIUM_PX) * 2),
-
-            // https://github.com/servo/servo/issues/3423#issuecomment-56321664
-            "smaller" => NoCalcLength::FontRelative(FontRelativeLength::Em(0.85)),
-            "larger" => NoCalcLength::FontRelative(FontRelativeLength::Em(1.2)),
-            _ => return None
-        })
-    }
-
-    /// https://drafts.csswg.org/css-fonts-3/#font-size-prop
-    pub fn from_font_size_int(i: u8) -> Self {
-        let au = match i {
-            0 | 1 => Au::from_px(FONT_MEDIUM_PX) * 3 / 4,
-            2 => Au::from_px(FONT_MEDIUM_PX) * 8 / 9,
-            3 => Au::from_px(FONT_MEDIUM_PX),
-            4 => Au::from_px(FONT_MEDIUM_PX) * 6 / 5,
-            5 => Au::from_px(FONT_MEDIUM_PX) * 3 / 2,
-            6 => Au::from_px(FONT_MEDIUM_PX) * 2,
-            _ => Au::from_px(FONT_MEDIUM_PX) * 3,
-        };
-        NoCalcLength::Absolute(au)
-    }
-
     /// Parse a given absolute or relative dimension.
     pub fn parse_dimension(value: CSSFloat, unit: &str) -> Result<NoCalcLength, ()> {
         match_ignore_ascii_case! { unit,
@@ -444,19 +412,9 @@ impl Length {
         Length::NoCalc(NoCalcLength::zero())
     }
 
-    /// https://drafts.csswg.org/css-fonts-3/#font-size-prop
-    pub fn from_str(s: &str) -> Option<Length> {
-        NoCalcLength::from_str(s).map(Length::NoCalc)
-    }
-
     /// Parse a given absolute or relative dimension.
     pub fn parse_dimension(value: CSSFloat, unit: &str) -> Result<Length, ()> {
         NoCalcLength::parse_dimension(value, unit).map(Length::NoCalc)
-    }
-
-    /// https://drafts.csswg.org/css-fonts-3/#font-size-prop
-    pub fn from_font_size_int(i: u8) -> Self {
-        Length::NoCalc(NoCalcLength::from_font_size_int(i))
     }
 
     #[inline]

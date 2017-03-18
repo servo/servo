@@ -1111,7 +1111,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetKeywordValue(declarations:
                                                          value: i32) {
     use style::properties::{PropertyDeclaration, LonghandId};
     use style::properties::longhands;
-    use style::values::specified::{BorderStyle, NoCalcLength};
+    use style::values::specified::BorderStyle;
 
     let declarations = Locked::<PropertyDeclarationBlock>::as_arc(&declarations);
     let long = get_longhand_from_id!(property);
@@ -1127,7 +1127,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetKeywordValue(declarations:
         Clear => longhands::clear::SpecifiedValue::from_gecko_keyword(value),
         FontSize => {
             // We rely on Gecko passing in font-size values (0...7) here.
-            longhands::font_size::SpecifiedValue(NoCalcLength::from_font_size_int(value as u8).into())
+            longhands::font_size::SpecifiedValue::from_html_size(value as u8)
         },
         ListStyleType => longhands::list_style_type::SpecifiedValue::from_gecko_keyword(value),
         WhiteSpace => longhands::white_space::SpecifiedValue::from_gecko_keyword(value),
