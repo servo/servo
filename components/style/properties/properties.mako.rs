@@ -2030,6 +2030,13 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
     // To improve i-cache behavior, we outline the individual functions and use
     // virtual dispatch instead.
     % for category_to_cascade_now in ["early", "other"]:
+        % if category_to_cascade_now == "early":
+            // Pull these out so that we can
+            // compute them in a specific order without
+            // introducing more iterations
+            let mut font_size = None;
+            let mut font_family = None;
+        % endif
         for declaration in iter_declarations() {
             let longhand_id = match declaration.id() {
                 PropertyDeclarationId::Longhand(id) => id,
@@ -2068,6 +2075,16 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
             {
                 continue
             }
+            % if category_to_cascade_now == "early":
+                if LonghandId::FontSize == longhand_id {
+                    font_size = Some(declaration);
+                    continue;
+                }
+                if LonghandId::FontFamily == longhand_id {
+                    font_family = Some(declaration);
+                    continue;
+                }
+            % endif
 
             <% maybe_to_physical = ".to_physical(writing_mode)" if category_to_cascade_now != "early" else "" %>
             let physical_longhand_id = longhand_id ${maybe_to_physical};
@@ -2088,6 +2105,37 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
         % if category_to_cascade_now == "early":
             let writing_mode = get_writing_mode(context.style.get_inheritedbox());
             context.style.writing_mode = writing_mode;
+            // It is important that font_size is computed before
+            // the late properties (for em units), but after font-family
+            // (for the base-font-size dependence for default and keyword font-sizes)
+            // Additionally, when we support system fonts they will have to be
+            // computed early, and *before* font_family, so I'm including
+            // font_family here preemptively instead of keeping it within
+            // the early properties.
+            //
+            // To avoid an extra iteration, we just pull out the property
+            // during the early iteration and cascade them in order
+            // after it.
+            if let Some(declaration) = font_family {
+                let discriminant = LonghandId::FontFamily as usize;
+                (CASCADE_PROPERTY[discriminant])(declaration,
+                                                 inherited_style,
+                                                 default_style,
+                                                 &mut context,
+                                                 &mut cacheable,
+                                                 &mut cascade_info,
+                                                 error_reporter);
+            }
+            if let Some(declaration) = font_size {
+                let discriminant = LonghandId::FontSize as usize;
+                (CASCADE_PROPERTY[discriminant])(declaration,
+                                                 inherited_style,
+                                                 default_style,
+                                                 &mut context,
+                                                 &mut cacheable,
+                                                 &mut cascade_info,
+                                                 error_reporter);
+            }
         % endif
     % endfor
 
