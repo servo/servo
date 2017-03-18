@@ -18,7 +18,6 @@ use html5ever_atoms::LocalName;
 use servo_atoms::Atom;
 use style::attr::AttrValue;
 use style::str::{HTML_SPACE_CHARACTERS, read_numbers};
-use style::values::specified;
 
 #[dom_struct]
 pub struct HTMLFontElement {
@@ -62,8 +61,12 @@ impl HTMLFontElementMethods for HTMLFontElement {
     // https://html.spec.whatwg.org/multipage/#dom-font-size
     fn SetSize(&self, value: DOMString) {
         let element = self.upcast::<Element>();
-        let length = parse_length(&value);
-        element.set_attribute(&local_name!("size"), AttrValue::Length(value.into(), length));
+        let size = parse_size(&value);
+        if let Some(size) = size {
+            element.set_attribute(&local_name!("size"), AttrValue::UInt(value.into(), size));
+        } else {
+            element.set_attribute(&local_name!("size"), AttrValue::String(value.into()));
+        }
     }
 }
 
@@ -77,8 +80,12 @@ impl VirtualMethods for HTMLFontElement {
             &local_name!("face") => AttrValue::from_atomic(value.into()),
             &local_name!("color") => AttrValue::from_legacy_color(value.into()),
             &local_name!("size") => {
-                let length = parse_length(&value);
-                AttrValue::Length(value.into(), length)
+                let size = parse_size(&value);
+                if let Some(size) = size {
+                    AttrValue::UInt(value.into(), size)
+                } else {
+                    AttrValue::String(value.into())
+                }
             },
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
@@ -88,7 +95,7 @@ impl VirtualMethods for HTMLFontElement {
 pub trait HTMLFontElementLayoutHelpers {
     fn get_color(&self) -> Option<RGBA>;
     fn get_face(&self) -> Option<Atom>;
-    fn get_size(&self) -> Option<specified::Length>;
+    fn get_size(&self) -> Option<u32>;
 }
 
 impl HTMLFontElementLayoutHelpers for LayoutJS<HTMLFontElement> {
@@ -113,18 +120,20 @@ impl HTMLFontElementLayoutHelpers for LayoutJS<HTMLFontElement> {
     }
 
     #[allow(unsafe_code)]
-    fn get_size(&self) -> Option<specified::Length> {
-        unsafe {
+    fn get_size(&self) -> Option<u32> {
+        let size = unsafe {
             (*self.upcast::<Element>().unsafe_get())
                 .get_attr_for_layout(&ns!(), &local_name!("size"))
-                .and_then(AttrValue::as_length)
-                .cloned()
+        };
+        match size {
+            Some(&AttrValue::UInt(_, s)) => Some(s),
+            _ => None,
         }
     }
 }
 
 /// https://html.spec.whatwg.org/multipage/#rules-for-parsing-a-legacy-font-size
-fn parse_length(mut input: &str) -> Option<specified::Length> {
+fn parse_size(mut input: &str) -> Option<u32> {
     // Steps 1 & 2 are not relevant
 
     // Step 3
@@ -166,5 +175,5 @@ fn parse_length(mut input: &str) -> Option<specified::Length> {
     }
 
     // Steps 10, 11, 12
-    Some(specified::Length::from_font_size_int(value as u8))
+    Some(value as u32)
 }
