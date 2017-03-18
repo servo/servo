@@ -3,13 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::sync::Arc;
+use style::gecko::global_style_data::GLOBAL_STYLE_DATA;
 use style::gecko_bindings::bindings::Gecko_LoadStyleSheet;
 use style::gecko_bindings::structs::{Loader, ServoStyleSheet};
 use style::gecko_bindings::sugar::ownership::HasArcFFI;
 use style::shared_lock::Locked;
 use style::stylesheets::{ImportRule, StylesheetLoader as StyleStylesheetLoader};
 use style_traits::ToCss;
-use super::glue::GLOBAL_STYLE_DATA;
 
 pub struct StylesheetLoader(*mut Loader, *mut ServoStyleSheet);
 

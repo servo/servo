@@ -20,6 +20,7 @@ use dom::{AnimationRules, LayoutIterator, NodeInfo, TElement, TNode, UnsafeNode}
 use dom::{OpaqueNode, PresentationalHintsSynthetizer};
 use element_state::ElementState;
 use error_reporting::StdoutErrorReporter;
+use gecko::global_style_data::GLOBAL_STYLE_DATA;
 use gecko::selector_parser::{SelectorImpl, NonTSPseudoClass, PseudoElement};
 use gecko::snapshot_helpers;
 use gecko_bindings::bindings;
@@ -53,6 +54,7 @@ use selectors::Element;
 use selectors::matching::{ElementSelectorFlags, StyleRelations, matches_complex_selector};
 use selectors::parser::{AttrSelector, NamespaceConstraint};
 use servo_url::ServoUrl;
+use shared_lock::Locked;
 use sink::Push;
 use std::fmt;
 use std::ptr;
@@ -407,12 +409,14 @@ fn selector_flags_to_node_flags(flags: ElementSelectorFlags) -> u32 {
 fn get_animation_rule(element: &GeckoElement,
                       pseudo: Option<&PseudoElement>,
                       cascade_level: CascadeLevel)
-                      -> Option<Arc<RwLock<PropertyDeclarationBlock>>> {
+                      -> Option<Arc<Locked<PropertyDeclarationBlock>>> {
     let atom_ptr = PseudoElement::ns_atom_or_null_from_opt(pseudo);
     let animation_values = Arc::new(RwLock::new(AnimationValueMap::new()));
     if unsafe { Gecko_GetAnimationRule(element.0, atom_ptr, cascade_level,
                                        HasArcFFI::arc_as_borrowed(&animation_values)) } {
-        Some(Arc::new(RwLock::new(PropertyDeclarationBlock::from_animation_value_map(&animation_values.read()))))
+        let shared_lock = &GLOBAL_STYLE_DATA.shared_lock;
+        Some(Arc::new(shared_lock.wrap(
+            PropertyDeclarationBlock::from_animation_value_map(&animation_values.read()))))
     } else {
         None
     }
@@ -425,7 +429,7 @@ impl<'le> TElement for GeckoElement<'le> {
         unsafe { GeckoNode(&*(self.0 as *const _ as *const RawGeckoNode)) }
     }
 
-    fn style_attribute(&self) -> Option<&Arc<RwLock<PropertyDeclarationBlock>>> {
+    fn style_attribute(&self) -> Option<&Arc<Locked<PropertyDeclarationBlock>>> {
         let declarations = unsafe { Gecko_GetStyleAttrDeclarationBlock(self.0) };
         declarations.map(|s| s.as_arc_opt()).unwrap_or(None)
     }
@@ -436,12 +440,12 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     fn get_animation_rule(&self, pseudo: Option<&PseudoElement>)
-                          -> Option<Arc<RwLock<PropertyDeclarationBlock>>> {
+                          -> Option<Arc<Locked<PropertyDeclarationBlock>>> {
         get_animation_rule(self, pseudo, CascadeLevel::Animations)
     }
 
     fn get_transition_rule(&self, pseudo: Option<&PseudoElement>)
-                           -> Option<Arc<RwLock<PropertyDeclarationBlock>>> {
+                           -> Option<Arc<Locked<PropertyDeclarationBlock>>> {
         get_animation_rule(self, pseudo, CascadeLevel::Transitions)
     }
 

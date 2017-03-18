@@ -14,8 +14,7 @@ use dom::window::Window;
 use dom_struct::dom_struct;
 use std::sync::Arc;
 use style::keyframes::Keyframe;
-use style::shared_lock::Locked;
-use style_traits::ToCss;
+use style::shared_lock::{Locked, ToCssWithGuard};
 
 #[dom_struct]
 pub struct CSSKeyframeRule {
@@ -70,6 +69,6 @@ impl SpecificCSSRule for CSSKeyframeRule {
 
     fn get_css(&self) -> DOMString {
         let guard = self.cssrule.shared_lock().read();
-        self.keyframerule.read_with(&guard).to_css_string().into()
+        self.keyframerule.read_with(&guard).to_css_string(&guard).into()
     }
 }

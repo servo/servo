@@ -109,7 +109,7 @@ fn test_parse_stylesheet() {
                         specificity: (0 << 20) + (1 << 10) + (1 << 0),
                     },
                 ]),
-                block: Arc::new(RwLock::new(block_from(vec![
+                block: Arc::new(stylesheet.shared_lock.wrap(block_from(vec![
                     (PropertyDeclaration::Display(longhands::display::SpecifiedValue::none),
                      Importance::Important),
                     (PropertyDeclaration::Custom(Atom::from("a"),
@@ -154,7 +154,7 @@ fn test_parse_stylesheet() {
                         specificity: (0 << 20) + (0 << 10) + (1 << 0),
                     },
                 ]),
-                block: Arc::new(RwLock::new(block_from(vec![
+                block: Arc::new(stylesheet.shared_lock.wrap(block_from(vec![
                     (PropertyDeclaration::Display(longhands::display::SpecifiedValue::block),
                      Importance::Normal),
                 ]))),
@@ -185,7 +185,7 @@ fn test_parse_stylesheet() {
                         specificity: (1 << 20) + (1 << 10) + (0 << 0),
                     },
                 ]),
-                block: Arc::new(RwLock::new(block_from(vec![
+                block: Arc::new(stylesheet.shared_lock.wrap(block_from(vec![
                     (PropertyDeclaration::BackgroundColor(
                         longhands::background_color::SpecifiedValue {
                             authored: Some("blue".to_owned().into_boxed_str()),
@@ -241,7 +241,7 @@ fn test_parse_stylesheet() {
                     Arc::new(stylesheet.shared_lock.wrap(Keyframe {
                         selector: KeyframeSelector::new_for_unit_testing(
                                       vec![KeyframePercentage::new(0.)]),
-                        block: Arc::new(RwLock::new(block_from(vec![
+                        block: Arc::new(stylesheet.shared_lock.wrap(block_from(vec![
                             (PropertyDeclaration::Width(
                                 LengthOrPercentageOrAuto::Percentage(Percentage(0.))),
                              Importance::Normal),
@@ -250,7 +250,7 @@ fn test_parse_stylesheet() {
                     Arc::new(stylesheet.shared_lock.wrap(Keyframe {
                         selector: KeyframeSelector::new_for_unit_testing(
                                       vec![KeyframePercentage::new(1.)]),
-                        block: Arc::new(RwLock::new(block_from(vec![
+                        block: Arc::new(stylesheet.shared_lock.wrap(block_from(vec![
                             (PropertyDeclaration::Width(
                                 LengthOrPercentageOrAuto::Percentage(Percentage(1.))),
                              Importance::Normal),

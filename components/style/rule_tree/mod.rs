@@ -10,7 +10,6 @@
 use arc_ptr_eq;
 #[cfg(feature = "servo")]
 use heapsize::HeapSizeOf;
-use parking_lot::{RwLock, RwLockReadGuard};
 use properties::{Importance, PropertyDeclarationBlock};
 use shared_lock::{Locked, ReadGuards, SharedRwLockReadGuard};
 use std::io::{self, Write};
@@ -54,7 +53,7 @@ pub enum StyleSource {
     /// A style rule stable pointer.
     Style(Arc<Locked<StyleRule>>),
     /// A declaration block stable pointer.
-    Declarations(Arc<RwLock<PropertyDeclarationBlock>>),
+    Declarations(Arc<Locked<PropertyDeclarationBlock>>),
 }
 
 impl StyleSource {
@@ -82,13 +81,12 @@ impl StyleSource {
     /// Read the style source guard, and obtain thus read access to the
     /// underlying property declaration block.
     #[inline]
-    pub fn read<'a>(&'a self, guard: &'a SharedRwLockReadGuard)
-                    -> RwLockReadGuard<'a, PropertyDeclarationBlock> {
+    pub fn read<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> &'a PropertyDeclarationBlock {
         let block = match *self {
             StyleSource::Style(ref rule) => &rule.read_with(guard).block,
             StyleSource::Declarations(ref block) => block,
         };
-        block.read()
+        block.read_with(guard)
     }
 }
 
@@ -162,8 +160,9 @@ impl RuleTree {
     /// the old path is still valid.
     pub fn update_rule_at_level(&self,
                                 level: CascadeLevel,
-                                pdb: Option<&Arc<RwLock<PropertyDeclarationBlock>>>,
-                                path: &StrongRuleNode)
+                                pdb: Option<&Arc<Locked<PropertyDeclarationBlock>>>,
+                                path: &StrongRuleNode,
+                                guards: &ReadGuards)
                                 -> Option<StrongRuleNode> {
         debug_assert!(level.is_unique_per_element());
         // TODO(emilio): Being smarter with lifetimes we could avoid a bit of
@@ -222,13 +221,13 @@ impl RuleTree {
         // pretty bad styling cases already.
         if let Some(pdb) = pdb {
             if level.is_important() {
-                if pdb.read().any_important() {
+                if pdb.read_with(level.guard(guards)).any_important() {
                     current = current.ensure_child(self.root.downgrade(),
                                                    StyleSource::Declarations(pdb.clone()),
                                                    level);
                 }
             } else {
-                if pdb.read().any_normal() {
+                if pdb.read_with(level.guard(guards)).any_normal() {
                     current = current.ensure_child(self.root.downgrade(),
                                                    StyleSource::Declarations(pdb.clone()),
                                                    level);

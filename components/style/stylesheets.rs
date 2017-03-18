@@ -469,7 +469,7 @@ impl ToCssWithGuard for KeyframesRule {
             }
             first = false;
             let keyframe = lock.read_with(&guard);
-            try!(keyframe.to_css(dest));
+            try!(keyframe.to_css(guard, dest));
         }
         dest.write_str(" }")
     }
@@ -528,19 +528,19 @@ impl ToCssWithGuard for SupportsRule {
 #[derive(Debug)]
 pub struct StyleRule {
     pub selectors: SelectorList<SelectorImpl>,
-    pub block: Arc<RwLock<PropertyDeclarationBlock>>,
+    pub block: Arc<Locked<PropertyDeclarationBlock>>,
 }
 
 impl ToCssWithGuard for StyleRule {
     // https://drafts.csswg.org/cssom/#serialize-a-css-rule CSSStyleRule
-    fn to_css<W>(&self, _guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
+    fn to_css<W>(&self, guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
     where W: fmt::Write {
         // Step 1
         try!(self.selectors.to_css(dest));
         // Step 2
         try!(dest.write_str(" { "));
         // Step 3
-        let declaration_block = self.block.read();
+        let declaration_block = self.block.read_with(guard);
         try!(declaration_block.to_css(dest));
         // Step 4
         if declaration_block.declarations().len() > 0 {
@@ -1018,9 +1018,10 @@ impl<'a, 'b> QualifiedRuleParser for NestedRuleParser<'a, 'b> {
 
     fn parse_block(&mut self, prelude: SelectorList<SelectorImpl>, input: &mut Parser)
                    -> Result<CssRule, ()> {
+        let declarations = parse_property_declaration_list(self.context, input);
         Ok(CssRule::Style(Arc::new(self.shared_lock.wrap(StyleRule {
             selectors: prelude,
-            block: Arc::new(RwLock::new(parse_property_declaration_list(self.context, input)))
+            block: Arc::new(self.shared_lock.wrap(declarations))
         }))))
     }
 }

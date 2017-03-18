@@ -48,7 +48,7 @@ impl_arc_ffi!(Stylesheet => RawServoStyleSheet
 impl_arc_ffi!(ComputedValues => ServoComputedValues
               [Servo_ComputedValues_AddRef, Servo_ComputedValues_Release]);
 
-impl_arc_ffi!(RwLock<PropertyDeclarationBlock> => RawServoDeclarationBlock
+impl_arc_ffi!(Locked<PropertyDeclarationBlock> => RawServoDeclarationBlock
               [Servo_DeclarationBlock_AddRef, Servo_DeclarationBlock_Release]);
 
 impl_arc_ffi!(Locked<StyleRule> => RawServoStyleRule

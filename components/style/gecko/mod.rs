@@ -10,6 +10,7 @@ mod non_ts_pseudo_class_list;
 pub mod arc_types;
 pub mod conversions;
 pub mod data;
+pub mod global_style_data;
 pub mod media_queries;
 pub mod restyle_damage;
 pub mod selector_parser;

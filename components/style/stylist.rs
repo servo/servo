@@ -12,7 +12,6 @@ use dom::{AnimationRules, PresentationalHintsSynthetizer, TElement};
 use error_reporting::StdoutErrorReporter;
 use keyframes::KeyframesAnimation;
 use media_queries::Device;
-use parking_lot::RwLock;
 use pdqsort::sort_by;
 use properties::{self, CascadeFlags, ComputedValues};
 #[cfg(feature = "servo")]
@@ -542,7 +541,7 @@ impl Stylist {
                                         &self,
                                         element: &E,
                                         parent_bf: Option<&BloomFilter>,
-                                        style_attribute: Option<&Arc<RwLock<PropertyDeclarationBlock>>>,
+                                        style_attribute: Option<&Arc<Locked<PropertyDeclarationBlock>>>,
                                         animation_rules: AnimationRules,
                                         pseudo_element: Option<&PseudoElement>,
                                         guards: &ReadGuards,
@@ -613,7 +612,7 @@ impl Stylist {
 
             // Step 4: Normal style attributes.
             if let Some(sa) = style_attribute {
-                if sa.read().any_normal() {
+                if sa.read_with(guards.author).any_normal() {
                     relations |= AFFECTED_BY_STYLE_ATTRIBUTE;
                     Push::push(
                         applicable_declarations,
@@ -649,7 +648,7 @@ impl Stylist {
 
             // Step 7: `!important` style attributes.
             if let Some(sa) = style_attribute {
-                if sa.read().any_important() {
+                if sa.read_with(guards.author).any_important() {
                     relations |= AFFECTED_BY_STYLE_ATTRIBUTE;
                     Push::push(
                         applicable_declarations,
@@ -1005,7 +1004,7 @@ impl SelectorMap {
             if rule.selector.compound_selector.is_empty() &&
                rule.selector.next.is_none() {
                 let style_rule = rule.style_rule.read_with(guard);
-                let block = style_rule.block.read();
+                let block = style_rule.block.read_with(guard);
                 if block.any_normal() {
                     matching_rules_list.push(
                         rule.to_applicable_declaration_block(cascade_level));
@@ -1069,7 +1068,7 @@ impl SelectorMap {
     {
         for rule in rules.iter() {
             let style_rule = rule.style_rule.read_with(guard);
-            let block = style_rule.block.read();
+            let block = style_rule.block.read_with(guard);
             let any_declaration_for_importance = if cascade_level.is_important() {
                 block.any_important()
             } else {
@@ -1208,7 +1207,7 @@ impl ApplicableDeclarationBlock {
     /// Constructs an applicable declaration block from a given property
     /// declaration block and importance.
     #[inline]
-    pub fn from_declarations(declarations: Arc<RwLock<PropertyDeclarationBlock>>,
+    pub fn from_declarations(declarations: Arc<Locked<PropertyDeclarationBlock>>,
                              level: CascadeLevel)
                              -> Self {
         ApplicableDeclarationBlock {
