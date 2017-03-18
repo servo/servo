@@ -517,6 +517,49 @@ mod bindings {
         write_binding_file(builder, structs_file(build_type), &fixups);
     }
 
+    pub fn setup_logging() {
+        use log;
+        use std::fs;
+
+        struct BuildLogger {
+            file: Option<Mutex<fs::File>>,
+            filter: String,
+        }
+
+        impl log::Log for BuildLogger {
+            fn enabled(&self, meta: &log::LogMetadata) -> bool {
+                self.file.is_some() && meta.target().contains(&self.filter)
+            }
+
+            fn log(&self, record: &log::LogRecord) {
+                if !self.enabled(record.metadata()) {
+                    return;
+                }
+
+                let mut file = self.file.as_ref().unwrap().lock().unwrap();
+                let _ =
+                    writeln!(file, "{} - {} - {} @ {}:{}",
+                             record.level(),
+                             record.target(),
+                             record.args(),
+                             record.location().file(),
+                             record.location().line());
+            }
+        }
+
+        log::set_logger(|log_level| {
+            log_level.set(log::LogLevelFilter::Debug);
+            Box::new(BuildLogger {
+                file: env::var("STYLO_BUILD_LOG").ok().and_then(|path| {
+                    fs::File::create(path).ok().map(Mutex::new)
+                }),
+                filter: env::var("STYLO_BUILD_FILTER").ok()
+                    .unwrap_or_else(|| "bindgen".to_owned()),
+            })
+        })
+        .expect("Failed to set logger.");
+    }
+
     pub fn generate_bindings() {
         let mut builder = Builder::get_initial_builder(BuildType::Release)
             .disable_name_namespacing()
@@ -711,6 +754,8 @@ mod bindings {
         static ref BINDINGS_PATH: PathBuf = Path::new(file!()).parent().unwrap().join("gecko_bindings");
     }
 
+    pub fn setup_logging() {}
+
     pub fn generate_structs(build_type: BuildType) {
         let file = structs_file(build_type);
         let source = BINDINGS_PATH.join(file);
@@ -731,6 +776,7 @@ pub fn generate() {
     use std::thread;
     println!("cargo:rerun-if-changed=build_gecko.rs");
     fs::create_dir_all(&*OUTDIR_PATH).unwrap();
+    bindings::setup_logging();
     let threads = vec![
         thread::spawn(|| bindings::generate_structs(BuildType::Debug)),
         thread::spawn(|| bindings::generate_structs(BuildType::Release)),

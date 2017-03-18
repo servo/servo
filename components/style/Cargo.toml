@@ -34,7 +34,7 @@ heapsize = "0.3.0"
 heapsize_derive = {version = "0.1", optional = true}
 html5ever-atoms = {version = "0.2", optional = true}
 lazy_static = "0.2"
-log = "0.3.5"
+log = "0.3"
 matches = "0.1"
 nsstring_vendor = {path = "gecko_bindings/nsstring_vendor", optional = true}
 num-integer = "0.1.32"
@@ -60,6 +60,7 @@ kernel32-sys = "0.2"
 
 [build-dependencies]
 lazy_static = "0.2"
+log = "0.3"
 bindgen = { version = "0.22", optional = true }
 regex = {version = "0.2", optional = true}
 walkdir = "1.0"
