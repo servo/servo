@@ -369,9 +369,6 @@ pub enum Length {
     /// A calc expression.
     ///
     /// https://drafts.csswg.org/css-values/#calc-notation
-    ///
-    /// TODO(emilio): We have more `Calc` variants around, we should only use
-    /// one.
     Calc(Box<CalcLengthOrPercentage>, AllowedNumericType),
 }
 
