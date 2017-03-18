@@ -55,7 +55,7 @@ pub trait StylesheetOwner {
 pub enum StylesheetContextSource {
     // NB: `media` is just an option so we avoid cloning it.
     LinkElement { media: Option<MediaList>, },
-    Import(Arc<StyleLocked<ImportRule>>),
+    Import(Arc<Stylesheet>),
 }
 
 /// The context required for asynchronously loading an external stylesheet.
@@ -158,15 +158,8 @@ impl FetchResponseListener for StylesheetContext {
                         win.layout_chan().send(Msg::AddStylesheet(sheet)).unwrap();
                     }
                 }
-                StylesheetContextSource::Import(ref import) => {
+                StylesheetContextSource::Import(ref stylesheet) => {
                     let mut guard = document.style_shared_lock().write();
-
-                    // Clone an Arc because we can’t borrow `guard` twice at the same time.
-
-                    // FIXME(SimonSapin): allow access to multiple objects with one write guard?
-                    // Would need a set of usize pointer addresses or something,
-                    // the same object is not accessed more than once.
-                    let stylesheet = Arc::clone(&import.write_with(&mut guard).stylesheet);
 
                     Stylesheet::update_from_bytes(&stylesheet,
                                                   &data,
@@ -289,12 +282,12 @@ impl<'a> StyleStylesheetLoader for StylesheetLoader<'a> {
     ) -> Arc<StyleLocked<ImportRule>> {
         let import = make_import(media);
         let url = import.url.url().expect("Invalid urls shouldn't enter the loader").clone();
-        let arc = make_arc(import);
 
         //TODO (mrnayak) : Whether we should use the original loader's CORS setting?
         //Fix this when spec has more details.
-        self.load(StylesheetContextSource::Import(arc.clone()), url, None, "".to_owned());
+        let source = StylesheetContextSource::Import(import.stylesheet.clone());
+        self.load(source, url, None, "".to_owned());
 
-        arc
+        make_arc(import)
     }
 }
