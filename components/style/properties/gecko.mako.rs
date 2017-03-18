@@ -194,6 +194,11 @@ impl ComputedValues {
 pub struct ${style_struct.gecko_struct_name} {
     gecko: ${style_struct.gecko_ffi_name},
 }
+impl ${style_struct.gecko_struct_name} {
+    pub fn gecko(&self) -> &${style_struct.gecko_ffi_name} {
+        &self.gecko
+    }
+}
 </%def>
 
 <%def name="impl_simple_setter(ident, gecko_ffi_name)">
@@ -1191,14 +1196,31 @@ fn static_assert() {
                     unsafe { Gecko_FontFamilyList_AppendNamed(list, name.0.as_ptr()); }
                 }
                 FontFamily::Generic(ref name) => {
-                    let family_type =
-                        if name == &atom!("serif") { FontFamilyType::eFamily_serif }
-                        else if name == &atom!("sans-serif") { FontFamilyType::eFamily_sans_serif }
-                        else if name == &atom!("cursive") { FontFamilyType::eFamily_cursive }
-                        else if name == &atom!("fantasy") { FontFamilyType::eFamily_fantasy }
-                        else if name == &atom!("monospace") { FontFamilyType::eFamily_monospace }
-                        else if name == &atom!("-moz-fixed") { FontFamilyType::eFamily_moz_fixed }
-                        else { panic!("Unknown generic font family") };
+                    let (family_type, generic) =
+                        if name == &atom!("serif") {
+                            (FontFamilyType::eFamily_serif,
+                             structs::kGenericFont_serif)
+                        } else if name == &atom!("sans-serif") {
+                            (FontFamilyType::eFamily_sans_serif,
+                             structs::kGenericFont_sans_serif)
+                        } else if name == &atom!("cursive") {
+                            (FontFamilyType::eFamily_cursive,
+                             structs::kGenericFont_cursive)
+                        } else if name == &atom!("fantasy") {
+                            (FontFamilyType::eFamily_fantasy,
+                             structs::kGenericFont_fantasy)
+                        } else if name == &atom!("monospace") {
+                            (FontFamilyType::eFamily_monospace,
+                             structs::kGenericFont_monospace)
+                        } else if name == &atom!("-moz-fixed") {
+                            (FontFamilyType::eFamily_moz_fixed,
+                             structs::kGenericFont_moz_fixed)
+                        } else {
+                            panic!("Unknown generic font family")
+                        };
+                    if v.0.len() == 1 {
+                        self.gecko.mGenericID = generic;
+                    }
                     unsafe { Gecko_FontFamilyList_AppendGeneric(list, family_type); }
                 }
             }
