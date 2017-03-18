@@ -34,32 +34,48 @@ enum StructuredCloneTags {
     Max = 0xFFFFFFFF,
 }
 
+unsafe fn write_length(w: *mut JSStructuredCloneWriter,
+                       length: usize) {
+  let high: u32 = (length >> 32) as u32;
+  let low: u32 = length as u32;
+  assert!(JS_WriteUint32Pair(w, high, low));
+}
+
+unsafe fn read_length(r: *mut JSStructuredCloneReader)
+                      -> usize {
+  let mut high: u32 = 0;
+  let mut low: u32 = 0;
+  assert!(JS_ReadUint32Pair(r, &mut high as *mut u32, &mut low as *mut u32));
+  return (low << high) as usize;
+}
+
 unsafe fn read_blob(cx: *mut JSContext,
-                               r: *mut JSStructuredCloneReader)
-                               -> *mut JSObject {
-    let mut high: u32 = 0;
-    let mut low: u32 = 0;
-    assert!(JS_ReadUint32Pair(r, &mut high as *mut u32, &mut low as *mut u32));
-    let length = (low << high) as usize;
-    let mut buffer = vec![0u8; length];
-    assert!(JS_ReadBytes(r, buffer.as_mut_ptr() as *mut raw::c_void, length));
+                    r: *mut JSStructuredCloneReader)
+                    -> *mut JSObject {
+    let blob_length = read_length(r);
+    let type_str_length = read_length(r);
+    let mut blob_buffer = vec![0u8; blob_length];
+    assert!(JS_ReadBytes(r, blob_buffer.as_mut_ptr() as *mut raw::c_void, blob_length));
+    let mut type_str_buffer = vec![0u8; type_str_length];
+    assert!(JS_ReadBytes(r, type_str_buffer.as_mut_ptr() as *mut raw::c_void, type_str_length));
+    let type_str = String::from_raw_parts(type_str_buffer.as_ptr() as *mut _, type_str_length, type_str_length);
     let target_global = GlobalScope::from_context(cx);
-    // NOTE: missing the content-type string here.
-    // Use JS_WriteString in write_callback? Make Blob.type_string pub?
-    let blob = Blob::new(&target_global, BlobImpl::new_from_bytes(buffer), "".to_string());
+    let blob = Blob::new(&target_global, BlobImpl::new_from_bytes(blob_buffer), type_str);
     return blob.reflector().get_jsobject().get()
 }
 
 unsafe fn write_blob(blob: Root<Blob>,
-                                w: *mut JSStructuredCloneWriter)
-                                -> bool {
+                     w: *mut JSStructuredCloneWriter)
+                     -> bool {
     if let Ok(blob_vec) = blob.get_bytes() {
-        let length = blob_vec.len();
-        let high: u32 = (length >> 32) as u32;
-        let low: u32 = length as u32;
+        let blob_length = blob_vec.len();
+        let type_string_bytes = blob.get_type_string();
+        let type_string_length = type_string_bytes.len();
         assert!(JS_WriteUint32Pair(w, StructuredCloneTags::DomBlob as u32, 0));
-        assert!(JS_WriteUint32Pair(w, high, low));
-        assert!(JS_WriteBytes(w, blob_vec.as_ptr() as *const raw::c_void, length));
+        write_length(w, blob_length);
+        write_length(w, type_string_length);
+        assert!(JS_WriteBytes(w, blob_vec.as_ptr() as *const raw::c_void, blob_length));
+        assert!(JS_WriteBytes(w, type_string_bytes.as_ptr() as *const raw::c_void, type_string_length));
         return true
     }
     return false
