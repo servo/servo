@@ -21,8 +21,7 @@ use selector_parser::{SelectorImpl, SelectorParser};
 use selectors::parser::SelectorList;
 use servo_config::prefs::PREFS;
 use servo_url::ServoUrl;
-use shared_lock::{SharedRwLock, Locked, ToCssWithGuard};
-use shared_lock::{SharedRwLockReadGuard, SharedRwLockWriteGuard};
+use shared_lock::{SharedRwLock, Locked, ToCssWithGuard, SharedRwLockReadGuard};
 use std::cell::Cell;
 use std::fmt;
 use std::sync::Arc;
@@ -556,23 +555,42 @@ impl Stylesheet {
     /// Updates an empty stylesheet from a given string of text.
     pub fn update_from_str(existing: &Stylesheet,
                            css: &str,
-                           guard: &mut SharedRwLockWriteGuard,
                            stylesheet_loader: Option<&StylesheetLoader>,
                            error_reporter: &ParseErrorReporter,
                            extra_data: ParserContextExtraData) {
-        let mut rules = existing.rules.write_with(guard);
-        let mut namespaces = existing.namespaces.write();
+        let mut namespaces = Namespaces::default();
+        let (rules, dirty_on_viewport_size_change) = Stylesheet::parse_rules(
+            css, &existing.base_url, existing.origin, &mut namespaces, &existing.shared_lock,
+            stylesheet_loader, error_reporter, extra_data,
+        );
 
-        assert!(rules.is_empty());
+        *existing.namespaces.write() = namespaces;
+        existing.dirty_on_viewport_size_change
+            .store(dirty_on_viewport_size_change, Ordering::Release);
 
+        // Acquire the lock *after* parsing, to minimize the exclusive section.
+        let mut guard = existing.shared_lock.write();
+        *existing.rules.write_with(&mut guard) = CssRules(rules);
+    }
+
+    fn parse_rules(css: &str,
+                   base_url: &ServoUrl,
+                   origin: Origin,
+                   namespaces: &mut Namespaces,
+                   shared_lock: &SharedRwLock,
+                   stylesheet_loader: Option<&StylesheetLoader>,
+                   error_reporter: &ParseErrorReporter,
+                   extra_data: ParserContextExtraData)
+                   -> (Vec<CssRule>, bool) {
+        let mut rules = Vec::new();
         let mut input = Parser::new(css);
         let rule_parser = TopLevelRuleParser {
-            stylesheet_origin: existing.origin,
-            namespaces: &mut namespaces,
-            shared_lock: &existing.shared_lock,
+            stylesheet_origin: origin,
+            namespaces: namespaces,
+            shared_lock: shared_lock,
             loader: stylesheet_loader,
-            context: ParserContext::new_with_extra_data(existing.origin,
-                                                        &existing.base_url,
+            context: ParserContext::new_with_extra_data(origin,
+                                                        base_url,
                                                         error_reporter,
                                                         extra_data),
             state: Cell::new(State::Start),
@@ -584,7 +602,7 @@ impl Stylesheet {
             let mut iter = RuleListParser::new_for_stylesheet(&mut input, rule_parser);
             while let Some(result) = iter.next() {
                 match result {
-                    Ok(rule) => rules.0.push(rule),
+                    Ok(rule) => rules.push(rule),
                     Err(range) => {
                         let pos = range.start;
                         let message = format!("Invalid rule: '{}'", iter.input.slice(range));
@@ -594,8 +612,7 @@ impl Stylesheet {
             }
         }
 
-        existing.dirty_on_viewport_size_change
-            .store(input.seen_viewport_percentages(), Ordering::Release);
+        (rules, input.seen_viewport_percentages())
     }
 
     /// Creates an empty stylesheet and parses it with a given base url, origin
@@ -611,28 +628,21 @@ impl Stylesheet {
                     stylesheet_loader: Option<&StylesheetLoader>,
                     error_reporter: &ParseErrorReporter,
                     extra_data: ParserContextExtraData) -> Stylesheet {
-        let s = Stylesheet {
+        let mut namespaces = Namespaces::default();
+        let (rules, dirty_on_viewport_size_change) = Stylesheet::parse_rules(
+            css, &base_url, origin, &mut namespaces, &shared_lock,
+            stylesheet_loader, error_reporter, extra_data,
+        );
+        Stylesheet {
             origin: origin,
             base_url: base_url,
-            namespaces: RwLock::new(Namespaces::default()),
-            rules: CssRules::new(Vec::new(), &shared_lock),
+            namespaces: RwLock::new(namespaces),
+            rules: CssRules::new(rules, &shared_lock),
             media: Arc::new(shared_lock.wrap(media)),
             shared_lock: shared_lock,
-            dirty_on_viewport_size_change: AtomicBool::new(false),
+            dirty_on_viewport_size_change: AtomicBool::new(dirty_on_viewport_size_change),
             disabled: AtomicBool::new(false),
-        };
-
-        {
-            let mut guard = s.shared_lock.write();
-            Self::update_from_str(&s,
-                                  css,
-                                  &mut guard,
-                                  stylesheet_loader,
-                                  error_reporter,
-                                  extra_data);
         }
-
-        s
     }
 
     /// Whether this stylesheet can be dirty on viewport size change.

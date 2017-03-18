@@ -12,7 +12,7 @@ use media_queries::MediaList;
 use parser::ParserContextExtraData;
 use self::encoding::{EncodingRef, DecoderTrap};
 use servo_url::ServoUrl;
-use shared_lock::{SharedRwLock, SharedRwLockWriteGuard};
+use shared_lock::SharedRwLock;
 use std::str;
 use stylesheets::{Stylesheet, StylesheetLoader, Origin};
 
@@ -78,7 +78,6 @@ impl Stylesheet {
                              bytes: &[u8],
                              protocol_encoding_label: Option<&str>,
                              environment_encoding: Option<EncodingRef>,
-                             guard: &mut SharedRwLockWriteGuard,
                              stylesheet_loader: Option<&StylesheetLoader>,
                              error_reporter: &ParseErrorReporter,
                              extra_data: ParserContextExtraData) {
@@ -86,7 +85,6 @@ impl Stylesheet {
             bytes, protocol_encoding_label, environment_encoding);
         Self::update_from_str(existing,
                               &string,
-                              guard,
                               stylesheet_loader,
                               error_reporter,
                               extra_data)

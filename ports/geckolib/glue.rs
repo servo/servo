@@ -362,8 +362,6 @@ pub extern "C" fn Servo_StyleSheet_ClearAndUpdate(stylesheet: RawServoStyleSheet
                                                   referrer: *mut ThreadSafeURIHolder,
                                                   principal: *mut ThreadSafePrincipalHolder)
 {
-    let global_style_data = &*GLOBAL_STYLE_DATA;
-    let mut guard = global_style_data.shared_lock.write();
     let input = unsafe { data.as_ref().unwrap().as_str_unchecked() };
     let extra_data = unsafe { ParserContextExtraData {
         base: Some(GeckoArcURI::new(base)),
@@ -384,10 +382,7 @@ pub extern "C" fn Servo_StyleSheet_ClearAndUpdate(stylesheet: RawServoStyleSheet
     };
 
     let sheet = Stylesheet::as_arc(&stylesheet);
-    sheet.rules.write_with(&mut guard).0.clear();
-
-    Stylesheet::update_from_str(&sheet, input, &mut guard, loader,
-                                &StdoutErrorReporter, extra_data);
+    Stylesheet::update_from_str(&sheet, input, loader, &StdoutErrorReporter, extra_data);
 }
 
 #[no_mangle]
