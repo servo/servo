@@ -34,7 +34,7 @@ enum StructuredCloneTags {
     Max = 0xFFFFFFFF,
 }
 
-unsafe extern "C" fn read_blob(cx: *mut JSContext,
+unsafe fn read_blob(cx: *mut JSContext,
                                r: *mut JSStructuredCloneReader)
                                -> *mut JSObject {
     let mut high: u32 = 0;
@@ -50,7 +50,7 @@ unsafe extern "C" fn read_blob(cx: *mut JSContext,
     return blob.reflector().get_jsobject().get()
 }
 
-unsafe extern "C" fn write_blob(blob: Root<Blob>,
+unsafe fn write_blob(blob: Root<Blob>,
                                 w: *mut JSStructuredCloneWriter)
                                 -> bool {
     if let Ok(blob_vec) = blob.get_bytes() {
