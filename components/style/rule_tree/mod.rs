@@ -11,7 +11,7 @@ use arc_ptr_eq;
 #[cfg(feature = "servo")]
 use heapsize::HeapSizeOf;
 use properties::{Importance, PropertyDeclarationBlock};
-use shared_lock::{Locked, ReadGuards, SharedRwLockReadGuard};
+use shared_lock::{Locked, StylesheetGuards, SharedRwLockReadGuard};
 use std::io::{self, Write};
 use std::ptr;
 use std::sync::Arc;
@@ -110,13 +110,13 @@ impl RuleTree {
         self.root.clone()
     }
 
-    fn dump<W: Write>(&self, guards: &ReadGuards, writer: &mut W) {
+    fn dump<W: Write>(&self, guards: &StylesheetGuards, writer: &mut W) {
         let _ = writeln!(writer, " + RuleTree");
         self.root.get().dump(guards, writer, 0);
     }
 
     /// Dump the rule tree to stdout.
-    pub fn dump_stdout(&self, guards: &ReadGuards) {
+    pub fn dump_stdout(&self, guards: &StylesheetGuards) {
         let mut stdout = io::stdout();
         self.dump(guards, &mut stdout);
     }
@@ -162,7 +162,7 @@ impl RuleTree {
                                 level: CascadeLevel,
                                 pdb: Option<&Arc<Locked<PropertyDeclarationBlock>>>,
                                 path: &StrongRuleNode,
-                                guards: &ReadGuards)
+                                guards: &StylesheetGuards)
                                 -> Option<StrongRuleNode> {
         debug_assert!(level.is_unique_per_element());
         // TODO(emilio): Being smarter with lifetimes we could avoid a bit of
@@ -282,7 +282,7 @@ pub enum CascadeLevel {
 
 impl CascadeLevel {
     /// Select a lock guard for this level
-    pub fn guard<'a>(&self, guards: &'a ReadGuards<'a>) -> &'a SharedRwLockReadGuard<'a> {
+    pub fn guard<'a>(&self, guards: &'a StylesheetGuards<'a>) -> &'a SharedRwLockReadGuard<'a> {
         match *self {
             CascadeLevel::UANormal |
             CascadeLevel::UserNormal |
@@ -435,7 +435,7 @@ impl RuleNode {
         }
     }
 
-    fn dump<W: Write>(&self, guards: &ReadGuards, writer: &mut W, indent: usize) {
+    fn dump<W: Write>(&self, guards: &StylesheetGuards, writer: &mut W, indent: usize) {
         const INDENT_INCREMENT: usize = 4;
 
         for _ in 0..indent {

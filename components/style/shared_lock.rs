@@ -180,7 +180,7 @@ pub trait ToCssWithGuard {
 
 /// Guards for a document
 #[derive(Clone)]
-pub struct ReadGuards<'a> {
+pub struct StylesheetGuards<'a> {
     /// For author-origin stylesheets
     pub author: &'a SharedRwLockReadGuard<'a>,
 
@@ -188,10 +188,10 @@ pub struct ReadGuards<'a> {
     pub ua_or_user: &'a SharedRwLockReadGuard<'a>,
 }
 
-impl<'a> ReadGuards<'a> {
+impl<'a> StylesheetGuards<'a> {
     /// Same guard for all origins
     pub fn same(guard: &'a SharedRwLockReadGuard<'a>) -> Self {
-        ReadGuards {
+        StylesheetGuards {
             author: guard,
             ua_or_user: guard,
         }

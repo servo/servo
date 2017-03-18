@@ -17,7 +17,7 @@ use parking_lot::RwLock;
 use selector_parser::PseudoElement;
 use selectors::matching::ElementSelectorFlags;
 use servo_config::opts;
-use shared_lock::ReadGuards;
+use shared_lock::StylesheetGuards;
 use std::collections::HashMap;
 use std::env;
 use std::fmt;
@@ -67,7 +67,7 @@ pub struct SharedStyleContext<'a> {
     pub stylist: Arc<Stylist>,
 
     /// Guards for pre-acquired locks
-    pub guards: ReadGuards<'a>,
+    pub guards: StylesheetGuards<'a>,
 
     /// The animations that are currently running.
     pub running_animations: Arc<RwLock<HashMap<OpaqueNode, Vec<Animation>>>>,

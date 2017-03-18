@@ -116,7 +116,7 @@ use style::media_queries::{Device, MediaType};
 use style::parser::ParserContextExtraData;
 use style::servo::AUTHOR_SHARED_LOCK;
 use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, REPOSITION, STORE_OVERFLOW};
-use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, ReadGuards};
+use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards};
 use style::stylesheets::{Origin, Stylesheet, UserAgentStylesheets};
 use style::stylist::Stylist;
 use style::thread_state;
@@ -500,7 +500,7 @@ impl LayoutThread {
 
     // Create a layout context for use in building display lists, hit testing, &c.
     fn build_layout_context<'a>(&self,
-                                guards: ReadGuards<'a>,
+                                guards: StylesheetGuards<'a>,
                                 rw_data: &LayoutThreadData,
                                 request_images: bool)
                                 -> LayoutContext<'a> {
@@ -1069,7 +1069,7 @@ impl LayoutThread {
         // If the entire flow tree is invalid, then it will be reflowed anyhow.
         let ua_stylesheets = &*UA_STYLESHEETS;
         let ua_or_user_guard = ua_stylesheets.shared_lock.read();
-        let guards = ReadGuards {
+        let guards = StylesheetGuards {
             author: &author_guard,
             ua_or_user: &ua_or_user_guard,
         };
@@ -1353,7 +1353,7 @@ impl LayoutThread {
 
         let author_guard = AUTHOR_SHARED_LOCK.read();
         let ua_or_user_guard = UA_STYLESHEETS.shared_lock.read();
-        let guards = ReadGuards {
+        let guards = StylesheetGuards {
             author: &author_guard,
             ua_or_user: &ua_or_user_guard,
         };

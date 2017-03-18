@@ -27,7 +27,7 @@ use selectors::matching::{AFFECTED_BY_STYLE_ATTRIBUTE, AFFECTED_BY_PRESENTATIONA
 use selectors::matching::{ElementSelectorFlags, StyleRelations, matches_complex_selector};
 use selectors::parser::{Selector, SimpleSelector, LocalName as LocalNameSelector, ComplexSelector};
 use selectors::parser::SelectorMethods;
-use shared_lock::{Locked, SharedRwLockReadGuard, ReadGuards};
+use shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
 use sink::Push;
 use smallvec::VecLike;
 use std::borrow::Borrow;
@@ -158,7 +158,7 @@ impl Stylist {
     /// device is dirty, which means we need to re-evaluate media queries.
     pub fn update(&mut self,
                   doc_stylesheets: &[Arc<Stylesheet>],
-                  guards: &ReadGuards,
+                  guards: &StylesheetGuards,
                   ua_stylesheets: Option<&UserAgentStylesheets>,
                   stylesheets_changed: bool) -> bool {
         if !(self.is_device_dirty || stylesheets_changed) {
@@ -299,7 +299,7 @@ impl Stylist {
     /// values. The flow constructor uses this flag when constructing anonymous
     /// flows.
     pub fn precomputed_values_for_pseudo(&self,
-                                         guards: &ReadGuards,
+                                         guards: &StylesheetGuards,
                                          pseudo: &PseudoElement,
                                          parent: Option<&Arc<ComputedValues>>,
                                          cascade_flags: CascadeFlags)
@@ -345,7 +345,7 @@ impl Stylist {
     /// Returns the style for an anonymous box of the given type.
     #[cfg(feature = "servo")]
     pub fn style_for_anonymous_box(&self,
-                                   guards: &ReadGuards,
+                                   guards: &StylesheetGuards,
                                    pseudo: &PseudoElement,
                                    parent_style: &Arc<ComputedValues>)
                                    -> Arc<ComputedValues> {
@@ -382,7 +382,7 @@ impl Stylist {
     /// Check the documentation on lazy pseudo-elements in
     /// docs/components/style.md
     pub fn lazily_compute_pseudo_element_style<E>(&self,
-                                                  guards: &ReadGuards,
+                                                  guards: &StylesheetGuards,
                                                   element: &E,
                                                   pseudo: &PseudoElement,
                                                   parent: &Arc<ComputedValues>)
@@ -544,7 +544,7 @@ impl Stylist {
                                         style_attribute: Option<&Arc<Locked<PropertyDeclarationBlock>>>,
                                         animation_rules: AnimationRules,
                                         pseudo_element: Option<&PseudoElement>,
-                                        guards: &ReadGuards,
+                                        guards: &StylesheetGuards,
                                         applicable_declarations: &mut V,
                                         flags: &mut ElementSelectorFlags) -> StyleRelations
         where E: TElement +
