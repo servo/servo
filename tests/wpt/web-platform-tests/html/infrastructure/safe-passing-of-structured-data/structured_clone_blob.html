@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title></title>
+<title>Safe passing of structured data - Blob</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 </head>
@@ -26,7 +26,7 @@ async_test(function(t) {
       reader.readAsText(blob);
   }), false);
   window.postMessage(blob, '*');
-}, "test cloning a Blob");
+}, "Cloning a Blob into the same realm");
 </script>
 </body>
 </html>
