@@ -84,6 +84,7 @@ use ipc_channel::router::ROUTER;
 use layout_traits::LayoutThreadFactory;
 use log::{Log, LogLevel, LogLevelFilter, LogMetadata, LogRecord};
 use msg::constellation_msg::{FrameId, FrameType, PipelineId};
+use msg::constellation_msg::{HistoryEntries, HistoryEntry};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, TraversalDirection};
 use net_traits::{self, IpcSend, ResourceThreads};
@@ -1368,7 +1369,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             load_data: load_data,
             replace_instant: None,
         });
-        self.compositor_proxy.send(ToCompositorMsg::ChangePageUrl(root_pipeline_id, url));
     }
 
     fn handle_frame_size_msg(&mut self,
@@ -1681,11 +1681,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
-    fn handle_load_start_msg(&mut self, pipeline_id: PipelineId) {
-        let frame_id = self.get_top_level_frame_for_pipeline(pipeline_id);
-        let forward = !self.joint_session_future_is_empty(frame_id);
-        let back = !self.joint_session_past_is_empty(frame_id);
-        self.compositor_proxy.send(ToCompositorMsg::LoadStart(back, forward));
+    fn handle_load_start_msg(&mut self, _pipeline_id: PipelineId) {
+        self.compositor_proxy.send(ToCompositorMsg::LoadStart);
     }
 
     fn handle_load_complete_msg(&mut self, pipeline_id: PipelineId) {
@@ -1700,11 +1697,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         if webdriver_reset {
             self.webdriver.load_channel = None;
         }
-        let frame_id = self.get_top_level_frame_for_pipeline(pipeline_id);
-        let forward = !self.joint_session_future_is_empty(frame_id);
-        let back = !self.joint_session_past_is_empty(frame_id);
-        let root = self.root_frame_id == frame_id;
-        self.compositor_proxy.send(ToCompositorMsg::LoadComplete(back, forward, root));
+        self.compositor_proxy.send(ToCompositorMsg::LoadComplete);
         self.handle_subframe_loaded(pipeline_id);
     }
 
@@ -2098,6 +2091,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             },
             None => return warn!("no frame to traverse"),
         };
+        self.notify_history_changed(frame_id);
 
         let parent_info = self.pipelines.get(&old_pipeline_id)
             .and_then(|pipeline| pipeline.parent_info);
@@ -2138,6 +2132,35 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             // If this is an iframe, send a mozbrowser location change event.
             // This is the result of a back/forward traversal.
             self.trigger_mozbrowserlocationchange(pipeline_id);
+        }
+    }
+
+    fn notify_history_changed(&self, frame_id: FrameId) {
+        if let Some(frame) = self.frames.get(&frame_id) {
+            if let Some(pipeline) = self.pipelines.get(&frame.pipeline_id) {
+                let parent_info = pipeline.parent_info;
+                if parent_info.is_none() {
+                    let mut history_entries = Vec::new();
+                    for state in &frame.prev {
+                        history_entries.push(HistoryEntry {
+                            url: state.load_data.url.clone()
+                        });
+                    }
+                    history_entries.push(HistoryEntry {
+                        url: frame.load_data.url.clone()
+                    });
+                    for state in &frame.next {
+                        history_entries.push(HistoryEntry {
+                            url: state.load_data.url.clone()
+                        });
+                    }
+                    let entries = HistoryEntries {
+                        entries: history_entries,
+                        current: frame.prev.len(),
+                    };
+                    self.compositor_proxy.send(ToCompositorMsg::HistoryChanged(entries));
+                }
+            }
         }
     }
 
@@ -2214,6 +2237,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         if new_frame {
             self.new_frame(frame_change.frame_id, frame_change.new_pipeline_id, frame_change.load_data);
             self.update_activity(frame_change.new_pipeline_id);
+            self.notify_history_changed(frame_change.frame_id);
         };
 
         if let Some(old_pipeline_id) = navigated {
@@ -2223,6 +2247,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             // Clear the joint session future
             let top_level_frame_id = self.get_top_level_frame_for_pipeline(frame_change.new_pipeline_id);
             self.clear_joint_session_future(top_level_frame_id);
+            self.notify_history_changed(frame_change.frame_id);
         }
 
         if location_changed {

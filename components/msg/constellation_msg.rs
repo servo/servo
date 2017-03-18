@@ -5,6 +5,7 @@
 //! The high-level interface from script to constellation. Using this abstract interface helps
 //! reduce coupling between these two components.
 
+use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::fmt;
 use webrender_traits;
@@ -160,6 +161,15 @@ bitflags! {
 pub enum TraversalDirection {
     Forward(usize),
     Back(usize),
+}
+
+pub struct HistoryEntry {
+    pub url: ServoUrl
+}
+
+pub struct HistoryEntries {
+    pub current: usize,
+    pub entries: Vec<HistoryEntry>
 }
 
 /// Each pipeline ID needs to be unique. However, it also needs to be possible to

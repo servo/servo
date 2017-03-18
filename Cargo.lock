@@ -1662,6 +1662,7 @@ dependencies = [
  "heapsize_derive 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.9.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 0.9.11 (registry+https://github.com/rust-lang/crates.io-index)",
+ "servo_url 0.0.1",
  "webrender_traits 0.25.0 (git+https://github.com/servo/webrender)",
 ]
 

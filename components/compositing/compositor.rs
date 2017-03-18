@@ -488,10 +488,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.change_page_title(pipeline_id, title);
             }
 
-            (Msg::ChangePageUrl(pipeline_id, url), ShutdownState::NotShuttingDown) => {
-                self.change_page_url(pipeline_id, url);
-            }
-
             (Msg::SetFrameTree(frame_tree, response_chan),
              ShutdownState::NotShuttingDown) => {
                 self.set_frame_tree(&frame_tree, response_chan);
@@ -526,11 +522,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.window.status(message);
             }
 
-            (Msg::LoadStart(back, forward), ShutdownState::NotShuttingDown) => {
-                self.window.load_start(back, forward);
+            (Msg::LoadStart, ShutdownState::NotShuttingDown) => {
+                self.window.load_start();
             }
 
-            (Msg::LoadComplete(back, forward, root), ShutdownState::NotShuttingDown) => {
+            (Msg::LoadComplete, ShutdownState::NotShuttingDown) => {
                 self.got_load_complete_message = true;
 
                 // If we're painting in headless mode, schedule a recomposite.
@@ -541,7 +537,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 // Inform the embedder that the load has finished.
                 //
                 // TODO(pcwalton): Specify which frame's load completed.
-                self.window.load_end(back, forward, root);
+                self.window.load_end();
             }
 
             (Msg::AllowNavigation(url, response_chan), ShutdownState::NotShuttingDown) => {
@@ -617,6 +613,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
             (Msg::HeadParsed, ShutdownState::NotShuttingDown) => {
                 self.window.head_parsed();
+            }
+
+            (Msg::HistoryChanged(history), ShutdownState::NotShuttingDown) => {
+                self.window.history_changed(history);
             }
 
             (Msg::PipelineVisibilityChanged(pipeline_id, visible), ShutdownState::NotShuttingDown) => {
@@ -712,10 +712,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         if set_title {
             self.window.set_page_title(title);
         }
-    }
-
-    fn change_page_url(&mut self, _: PipelineId, url: ServoUrl) {
-        self.window.set_page_url(url);
     }
 
     fn set_frame_tree(&mut self,
@@ -919,7 +915,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.got_load_complete_message = false;
         match ServoUrl::parse(&url_string) {
             Ok(url) => {
-                self.window.set_page_url(url.clone());
                 let msg = match self.root_pipeline {
                     Some(ref pipeline) => ConstellationMsg::LoadUrl(pipeline.id, LoadData::new(url, None, None)),
                     None => ConstellationMsg::InitLoadUrl(url)

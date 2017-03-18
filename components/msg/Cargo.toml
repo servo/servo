@@ -16,4 +16,5 @@ heapsize = "0.3.0"
 heapsize_derive = "0.1"
 serde = "0.9"
 serde_derive = "0.9"
+servo_url = {path = "../url"}
 webrender_traits = {git = "https://github.com/servo/webrender", features = ["ipc"]}
