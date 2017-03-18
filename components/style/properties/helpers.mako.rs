@@ -95,6 +95,19 @@
                             self.0.interpolate(&other.0, progress).map(T)
                         }
                     }
+
+                    use properties::animated_properties::ComputeDistance;
+                    impl ComputeDistance for T {
+                        #[inline]
+                        fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
+                            self.0.compute_distance(&other.0)
+                        }
+
+                        #[inline]
+                        fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
+                            self.0.compute_squared_distance(&other.0)
+                        }
+                    }
                 % endif
             }
 
@@ -780,6 +793,44 @@
                 },
                 (&T(None), &T(None)) => {
                     Ok(T(None))
+                },
+            }
+        }
+    }
+</%def>
+
+/// Macro for defining ComputeDistance trait for tuple struct which has Option<T>,
+/// e.g. struct T(pub Option<Au>).
+<%def name="impl_compute_distance_for_option_tuple(value_for_none)">
+    impl ComputeDistance for T {
+        #[inline]
+        fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
+            match (self, other) {
+                (&T(Some(ref this)), &T(Some(ref other))) => {
+                    this.compute_distance(other)
+                },
+                (&T(Some(ref value)), &T(None)) |
+                (&T(None), &T(Some(ref value)))=> {
+                    value.compute_distance(&${value_for_none})
+                },
+                (&T(None), &T(None)) => {
+                    Ok(0.0)
+                },
+            }
+        }
+
+        #[inline]
+        fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
+            match (self, other) {
+                (&T(Some(ref this)), &T(Some(ref other))) => {
+                    this.compute_squared_distance(other)
+                },
+                (&T(Some(ref value)), &T(None)) |
+                (&T(None), &T(Some(ref value))) => {
+                    value.compute_squared_distance(&${value_for_none})
+                },
+                (&T(None), &T(None)) => {
+                    Ok(0.0)
                 },
             }
         }

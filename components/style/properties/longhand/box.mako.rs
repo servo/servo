@@ -2197,7 +2197,7 @@ ${helpers.single_keyword("transform-style",
     use values::specified::{NoCalcLength, LengthOrPercentage, Percentage};
 
     pub mod computed_value {
-        use properties::animated_properties::Interpolate;
+        use properties::animated_properties::{ComputeDistance, Interpolate};
         use values::computed::{Length, LengthOrPercentage};
 
         #[derive(Clone, Copy, Debug, PartialEq)]
@@ -2209,12 +2209,27 @@ ${helpers.single_keyword("transform-style",
         }
 
         impl Interpolate for T {
+            #[inline]
             fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
                 Ok(T {
                     horizontal: try!(self.horizontal.interpolate(&other.horizontal, time)),
                     vertical: try!(self.vertical.interpolate(&other.vertical, time)),
                     depth: try!(self.depth.interpolate(&other.depth, time)),
                 })
+            }
+        }
+
+        impl ComputeDistance for T {
+            #[inline]
+            fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
+                self.compute_squared_distance(other).map(|sd| sd.sqrt())
+            }
+
+            #[inline]
+            fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
+                Ok(try!(self.horizontal.compute_squared_distance(&other.horizontal)) +
+                   try!(self.vertical.compute_squared_distance(&other.vertical)) +
+                   try!(self.depth.compute_squared_distance(&other.depth)))
             }
         }
     }
