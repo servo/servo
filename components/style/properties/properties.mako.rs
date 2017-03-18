@@ -2451,7 +2451,7 @@ macro_rules! longhand_properties_idents {
 pub fn test_size_of_property_declaration() {
     use std::mem::size_of;
 
-    let old = 40;
+    let old = 32;
     let new = size_of::<PropertyDeclaration>();
     if new < old {
         panic!("Your changes have decreased the stack size of PropertyDeclaration enum from {} to {}. \
@@ -2471,7 +2471,7 @@ pub fn test_size_of_property_declaration() {
 #[cfg(feature = "testing")]
 pub fn test_size_of_specified_values() {
     use std::mem::size_of;
-    let threshold = 32;
+    let threshold = 24;
 
     let mut longhands = vec![];
     % for property in data.longhands:

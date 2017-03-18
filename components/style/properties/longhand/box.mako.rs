@@ -1709,10 +1709,11 @@ ${helpers.predefined_type("perspective",
                           gecko_ffi_name="mChildPerspective",
                           spec="https://drafts.csswg.org/css-transforms/#perspective",
                           extra_prefixes="moz webkit",
+                          boxed=True,
                           animatable=True)}
 
 // FIXME: This prop should be animatable
-<%helpers:longhand name="perspective-origin" animatable="False" extra_prefixes="moz webkit"
+<%helpers:longhand name="perspective-origin" boxed="True" animatable="False" extra_prefixes="moz webkit"
                    spec="https://drafts.csswg.org/css-transforms/#perspective-origin-property">
     use std::fmt;
     use style_traits::ToCss;

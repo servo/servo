@@ -13,6 +13,7 @@ ${helpers.predefined_type("column-width",
                           initial_specified_value="Either::Second(Auto)",
                           parse_method="parse_non_negative_length",
                           extra_prefixes="moz",
+                          boxed=True,
                           animatable=False,
                           experimental=True,
                           spec="https://drafts.csswg.org/css-multicol/#propdef-column-width")}
@@ -35,6 +36,7 @@ ${helpers.predefined_type("column-gap",
                           parse_method='parse_non_negative_length',
                           extra_prefixes="moz",
                           experimental=True,
+                          boxed=True,
                           animatable=False,
                           spec="https://drafts.csswg.org/css-multicol/#propdef-column-gap")}
 
@@ -43,7 +45,7 @@ ${helpers.single_keyword("column-fill", "balance auto", extra_prefixes="moz",
                          spec="https://drafts.csswg.org/css-multicol/#propdef-column-fill")}
 
 // https://drafts.csswg.org/css-multicol-1/#propdef-column-rule-width
-<%helpers:longhand name="column-rule-width" products="gecko" animatable="True" extra_prefixes="moz"
+<%helpers:longhand name="column-rule-width" products="gecko" boxed="True" animatable="True" extra_prefixes="moz"
                    spec="https://drafts.csswg.org/css-multicol/#propdef-column-rule-width">
     use app_units::Au;
     use std::fmt;

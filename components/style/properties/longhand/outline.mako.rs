@@ -122,6 +122,7 @@ ${helpers.predefined_type("outline-color", "CSSColor", "computed::CSSColor::Curr
     ${helpers.predefined_type("-moz-outline-radius-" + corner, "BorderRadiusSize",
         "computed::BorderRadiusSize::zero()",
         "parse", products="gecko",
+        boxed=True,
         animatable=False,
         spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-outline-radius)")}
 % endfor
