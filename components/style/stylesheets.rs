@@ -743,8 +743,30 @@ pub trait StylesheetLoader {
     ///
     /// The called code is responsible to update the `stylesheet` rules field
     /// when the sheet is done loading.
-    fn request_stylesheet(&self, import: &Arc<Locked<ImportRule>>);
+    ///
+    /// The convoluted signature allows impls to look at MediaList and ImportRule
+    /// before they’re locked, while keeping the trait object-safe.
+    fn request_stylesheet(
+        &self,
+        media: MediaList,
+        make_import: &mut FnMut(MediaList) -> ImportRule,
+        make_arc: &mut FnMut(ImportRule) -> Arc<Locked<ImportRule>>,
+    ) -> Arc<Locked<ImportRule>>;
 }
+
+struct NoOpLoader;
+
+impl StylesheetLoader for NoOpLoader {
+    fn request_stylesheet(
+        &self,
+        media: MediaList,
+        make_import: &mut FnMut(MediaList) -> ImportRule,
+        make_arc: &mut FnMut(ImportRule) -> Arc<Locked<ImportRule>>,
+    ) -> Arc<Locked<ImportRule>> {
+        make_arc(make_import(media))
+    }
+}
+
 
 struct TopLevelRuleParser<'a> {
     stylesheet_origin: Origin,
@@ -801,22 +823,26 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
             "import" => {
                 if self.state.get() <= State::Imports {
                     self.state.set(State::Imports);
-                    let url = try!(input.expect_url_or_string());
-                    let url =
-                        try!(SpecifiedUrl::parse_from_string(url,
-                                                             &self.context));
+                    let url_string = input.expect_url_or_string()?;
+                    let specified_url = SpecifiedUrl::parse_from_string(url_string, &self.context)?;
 
-                    let media =
-                        Arc::new(self.shared_lock.wrap(parse_media_query_list(input)));
+                    let media = parse_media_query_list(input);
 
-                    let is_valid_url = url.url().is_some();
+                    let noop_loader = NoOpLoader;
+                    let is_valid_url = specified_url.url().is_some();
+                    let loader = if is_valid_url {
+                        self.loader.expect("Expected a stylesheet loader for @import")
+                    } else {
+                        &noop_loader
+                    };
 
-                    let import_rule = Arc::new(self.shared_lock.wrap(
+                    let mut specified_url = Some(specified_url);
+                    let arc = loader.request_stylesheet(media, &mut |media| {
                         ImportRule {
-                            url: url,
+                            url: specified_url.take().unwrap(),
                             stylesheet: Arc::new(Stylesheet {
                                 rules: CssRules::new(Vec::new(), self.shared_lock),
-                                media: media,
+                                media: Arc::new(self.shared_lock.wrap(media)),
                                 shared_lock: self.shared_lock.clone(),
                                 origin: self.context.stylesheet_origin,
                                 base_url: self.context.base_url.clone(),
@@ -825,15 +851,10 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
                                 disabled: AtomicBool::new(false),
                             })
                         }
-                    ));
-
-                    if is_valid_url {
-                        let loader = self.loader
-                            .expect("Expected a stylesheet loader for @import");
-                        loader.request_stylesheet(&import_rule);
-                    }
-
-                    return Ok(AtRuleType::WithoutBlock(CssRule::Import(import_rule)))
+                    }, &mut |import_rule| {
+                        Arc::new(self.shared_lock.wrap(import_rule))
+                    });
+                    return Ok(AtRuleType::WithoutBlock(CssRule::Import(arc)))
                 } else {
                     self.state.set(State::Invalid);
                     return Err(())  // "@import must be before any rule but @charset"

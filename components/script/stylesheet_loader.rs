@@ -54,25 +54,8 @@ pub trait StylesheetOwner {
 
 pub enum StylesheetContextSource {
     // NB: `media` is just an option so we avoid cloning it.
-    LinkElement { media: Option<MediaList>, url: ServoUrl },
+    LinkElement { media: Option<MediaList>, },
     Import(Arc<StyleLocked<ImportRule>>),
-}
-
-impl StylesheetContextSource {
-    fn url(&self, document: &Document) -> ServoUrl {
-        match *self {
-            StylesheetContextSource::LinkElement { ref url, .. } => url.clone(),
-            StylesheetContextSource::Import(ref import) => {
-                let guard = document.style_shared_lock().read();
-                let import = import.read_with(&guard);
-                // Look at the parser in style::stylesheets, where we don't
-                // trigger a load if the url is invalid.
-                import.url.url()
-                    .expect("Invalid urls shouldn't enter the loader")
-                    .clone()
-            }
-        }
-    }
 }
 
 /// The context required for asynchronously loading an external stylesheet.
@@ -80,6 +63,7 @@ pub struct StylesheetContext {
     /// The element that initiated the request.
     elem: Trusted<HTMLElement>,
     source: StylesheetContextSource,
+    url: ServoUrl,
     metadata: Option<Metadata>,
     /// The response body received to date.
     data: Vec<u8>,
@@ -146,7 +130,7 @@ impl FetchResponseListener for StylesheetContext {
 
             let loader = StylesheetLoader::for_element(&elem);
             match self.source {
-                StylesheetContextSource::LinkElement { ref mut media, .. } => {
+                StylesheetContextSource::LinkElement { ref mut media } => {
                     let link = elem.downcast::<HTMLLinkElement>().unwrap();
                     // We must first check whether the generations of the context and the element match up,
                     // else we risk applying the wrong stylesheet when responses come out-of-order.
@@ -209,8 +193,7 @@ impl FetchResponseListener for StylesheetContext {
             document.decrement_script_blocking_stylesheet_count();
         }
 
-        let url = self.source.url(&document);
-        document.finish_load(LoadType::Stylesheet(url));
+        document.finish_load(LoadType::Stylesheet(self.url.clone()));
 
         if let Some(any_failed) = owner.load_finished(successful) {
             let event = if any_failed { atom!("error") } else { atom!("load") };
@@ -232,15 +215,16 @@ impl<'a> StylesheetLoader<'a> {
 }
 
 impl<'a> StylesheetLoader<'a> {
-    pub fn load(&self, source: StylesheetContextSource, cors_setting: Option<CorsSettings>,
+    pub fn load(&self, source: StylesheetContextSource, url: ServoUrl,
+                cors_setting: Option<CorsSettings>,
                 integrity_metadata: String) {
         let document = document_from_node(self.elem);
-        let url = source.url(&document);
         let gen = self.elem.downcast::<HTMLLinkElement>()
                            .map(HTMLLinkElement::get_request_generation_id);
         let context = Arc::new(Mutex::new(StylesheetContext {
             elem: Trusted::new(&*self.elem),
             source: source,
+            url: url.clone(),
             metadata: None,
             data: vec![],
             document: Trusted::new(&*document),
@@ -297,9 +281,20 @@ impl<'a> StylesheetLoader<'a> {
 }
 
 impl<'a> StyleStylesheetLoader for StylesheetLoader<'a> {
-    fn request_stylesheet(&self, import: &Arc<StyleLocked<ImportRule>>) {
+    fn request_stylesheet(
+        &self,
+        media: MediaList,
+        make_import: &mut FnMut(MediaList) -> ImportRule,
+        make_arc: &mut FnMut(ImportRule) -> Arc<StyleLocked<ImportRule>>,
+    ) -> Arc<StyleLocked<ImportRule>> {
+        let import = make_import(media);
+        let url = import.url.url().expect("Invalid urls shouldn't enter the loader").clone();
+        let arc = make_arc(import);
+
         //TODO (mrnayak) : Whether we should use the original loader's CORS setting?
         //Fix this when spec has more details.
-        self.load(StylesheetContextSource::Import(import.clone()), None, "".to_owned())
+        self.load(StylesheetContextSource::Import(arc.clone()), url, None, "".to_owned());
+
+        arc
     }
 }
