@@ -71,7 +71,8 @@ unsafe extern "C" fn read_callback(cx: *mut JSContext,
                                    data: u32,
                                    _closure: *mut raw::c_void)
                                    -> *mut JSObject {
-    assert!(tag < StructuredCloneTags::Max as u32 && tag > StructuredCloneTags::Min as u32);
+    assert!(tag < StructuredCloneTags::Max as u32, "tag should be lower than StructuredCloneTags::Max");
+    assert!(tag > StructuredCloneTags::Min as u32, "tag should be higher than StructuredCloneTags::Min");
     if tag == StructuredCloneTags::DomBlob as u32 {
         return read_blob(cx, r, data)
     }
