@@ -1502,6 +1502,8 @@ pub struct ComputedValues {
     pub writing_mode: WritingMode,
     /// The root element's computed font size.
     pub root_font_size: Au,
+    /// The keyword behind the current font-size property, if any
+    pub font_size_keyword: Option<longhands::font_size::KeywordSize>,
 }
 
 #[cfg(feature = "servo")]
@@ -1511,6 +1513,7 @@ impl ComputedValues {
                shareable: bool,
                writing_mode: WritingMode,
                root_font_size: Au,
+               font_size_keyword: Option<longhands::font_size::KeywordSize>,
             % for style_struct in data.active_style_structs():
                ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
             % endfor
@@ -1520,6 +1523,7 @@ impl ComputedValues {
             shareable: shareable,
             writing_mode: writing_mode,
             root_font_size: root_font_size,
+            font_size_keyword: font_size_keyword,
         % for style_struct in data.active_style_structs():
             ${style_struct.ident}: ${style_struct.ident},
         % endfor
@@ -1843,6 +1847,7 @@ mod lazy_static_module {
             shareable: true,
             writing_mode: WritingMode::empty(),
             root_font_size: longhands::font_size::get_initial_value(),
+            font_size_keyword: Some(Default::default()),
         };
     }
 }
@@ -1985,6 +1990,7 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
                             flags.contains(SHAREABLE),
                             WritingMode::empty(),
                             inherited_style.root_font_size,
+                            inherited_style.font_size_keyword,
                             % for style_struct in data.active_style_structs():
                                 % if style_struct.inherited:
                                     inherited_style.clone_${style_struct.name_lower}(),
@@ -1998,6 +2004,7 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
                             flags.contains(SHAREABLE),
                             WritingMode::empty(),
                             inherited_style.root_font_size,
+                            inherited_style.font_size_keyword,
                             % for style_struct in data.active_style_structs():
                                 inherited_style.clone_${style_struct.name_lower}(),
                             % endfor
@@ -2075,6 +2082,14 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
             {
                 continue
             }
+
+            <% maybe_to_physical = ".to_physical(writing_mode)" if category_to_cascade_now != "early" else "" %>
+            let physical_longhand_id = longhand_id ${maybe_to_physical};
+            if seen.contains(physical_longhand_id) {
+                continue
+            }
+            seen.insert(physical_longhand_id);
+
             % if category_to_cascade_now == "early":
                 if LonghandId::FontSize == longhand_id {
                     font_size = Some(declaration);
@@ -2085,13 +2100,6 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
                     continue;
                 }
             % endif
-
-            <% maybe_to_physical = ".to_physical(writing_mode)" if category_to_cascade_now != "early" else "" %>
-            let physical_longhand_id = longhand_id ${maybe_to_physical};
-            if seen.contains(physical_longhand_id) {
-                continue
-            }
-            seen.insert(physical_longhand_id);
 
             let discriminant = longhand_id as usize;
             (CASCADE_PROPERTY[discriminant])(declaration,
@@ -2129,6 +2137,20 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
             if let Some(declaration) = font_size {
                 let discriminant = LonghandId::FontSize as usize;
                 (CASCADE_PROPERTY[discriminant])(declaration,
+                                                 inherited_style,
+                                                 default_style,
+                                                 &mut context,
+                                                 &mut cacheable,
+                                                 &mut cascade_info,
+                                                 error_reporter);
+            } else if let Some(kw) = inherited_style.font_size_keyword {
+                // Font size keywords will inherit as keywords and be recomputed
+                // each time.
+                let discriminant = LonghandId::FontSize as usize;
+                let size = PropertyDeclaration::FontSize(
+                    longhands::font_size::SpecifiedValue::Keyword(kw)
+                );
+                (CASCADE_PROPERTY[discriminant])(&size,
                                                  inherited_style,
                                                  default_style,
                                                  &mut context,
