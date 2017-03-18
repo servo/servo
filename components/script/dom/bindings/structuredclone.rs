@@ -26,7 +26,7 @@ use std::slice;
 // TODO: Should we add Min and Max const to https://github.com/servo/rust-mozjs/blob/master/src/consts.rs?
 // TODO: Determine for sure which value Min and Max should have.
 // NOTE: Current values found at https://dxr.mozilla.org/mozilla-central/
-// rev/ff04d410e74b69acfab17ef7e73e7397602d5a68/js/public/StructuredClone.h#323 
+// rev/ff04d410e74b69acfab17ef7e73e7397602d5a68/js/public/StructuredClone.h#323
 enum StructuredCloneTags {
     /// To support additional types, add new tags with values incremented from the last one before Max.
     Min = 0xFFFF8000,
@@ -35,8 +35,7 @@ enum StructuredCloneTags {
 }
 
 unsafe extern "C" fn read_blob(cx: *mut JSContext,
-                               r: *mut JSStructuredCloneReader,
-                               _data: u32)
+                               r: *mut JSStructuredCloneReader)
                                -> *mut JSObject {
     let mut high: u32 = 0;
     let mut low: u32 = 0;
@@ -69,13 +68,13 @@ unsafe extern "C" fn write_blob(blob: Root<Blob>,
 unsafe extern "C" fn read_callback(cx: *mut JSContext,
                                    r: *mut JSStructuredCloneReader,
                                    tag: u32,
-                                   data: u32,
+                                   _data: u32,
                                    _closure: *mut raw::c_void)
                                    -> *mut JSObject {
     assert!(tag < StructuredCloneTags::Max as u32, "tag should be lower than StructuredCloneTags::Max");
     assert!(tag > StructuredCloneTags::Min as u32, "tag should be higher than StructuredCloneTags::Min");
     if tag == StructuredCloneTags::DomBlob as u32 {
-        return read_blob(cx, r, data)
+        return read_blob(cx, r)
     }
     return ptr::null_mut()
 }
