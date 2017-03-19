@@ -11,20 +11,19 @@ use dom::cssrule::{CSSRule, SpecificCSSRule};
 use dom::cssstylesheet::CSSStyleSheet;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use parking_lot::RwLock;
 use std::sync::Arc;
+use style::shared_lock::{Locked, ToCssWithGuard};
 use style::stylesheets::NamespaceRule;
-use style_traits::ToCss;
 
 #[dom_struct]
 pub struct CSSNamespaceRule {
     cssrule: CSSRule,
     #[ignore_heap_size_of = "Arc"]
-    namespacerule: Arc<RwLock<NamespaceRule>>,
+    namespacerule: Arc<Locked<NamespaceRule>>,
 }
 
 impl CSSNamespaceRule {
-    fn new_inherited(parent_stylesheet: &CSSStyleSheet, namespacerule: Arc<RwLock<NamespaceRule>>)
+    fn new_inherited(parent_stylesheet: &CSSStyleSheet, namespacerule: Arc<Locked<NamespaceRule>>)
                      -> CSSNamespaceRule {
         CSSNamespaceRule {
             cssrule: CSSRule::new_inherited(parent_stylesheet),
@@ -34,7 +33,7 @@ impl CSSNamespaceRule {
 
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
-               namespacerule: Arc<RwLock<NamespaceRule>>) -> Root<CSSNamespaceRule> {
+               namespacerule: Arc<Locked<NamespaceRule>>) -> Root<CSSNamespaceRule> {
         reflect_dom_object(box CSSNamespaceRule::new_inherited(parent_stylesheet, namespacerule),
                            window,
                            CSSNamespaceRuleBinding::Wrap)
@@ -44,14 +43,16 @@ impl CSSNamespaceRule {
 impl CSSNamespaceRuleMethods for CSSNamespaceRule {
     // https://drafts.csswg.org/cssom/#dom-cssnamespacerule-prefix
     fn Prefix(&self) -> DOMString {
-        self.namespacerule.read().prefix
+        let guard = self.cssrule.shared_lock().read();
+        self.namespacerule.read_with(&guard).prefix
             .as_ref().map(|s| s.to_string().into())
             .unwrap_or(DOMString::new())
     }
 
     // https://drafts.csswg.org/cssom/#dom-cssnamespacerule-namespaceuri
     fn NamespaceURI(&self) -> DOMString {
-        (*self.namespacerule.read().url).into()
+        let guard = self.cssrule.shared_lock().read();
+        (*self.namespacerule.read_with(&guard).url).into()
     }
 }
 
@@ -62,6 +63,7 @@ impl SpecificCSSRule for CSSNamespaceRule {
     }
 
     fn get_css(&self) -> DOMString {
-        self.namespacerule.read().to_css_string().into()
+        let guard = self.cssrule.shared_lock().read();
+        self.namespacerule.read_with(&guard).to_css_string(&guard).into()
     }
 }

@@ -12,21 +12,21 @@ use dom::cssrule::CSSRule;
 use dom::cssrulelist::{CSSRuleList, RulesSource};
 use dom::cssstylesheet::CSSStyleSheet;
 use dom_struct::dom_struct;
-use parking_lot::RwLock;
 use std::sync::Arc;
+use style::shared_lock::{SharedRwLock, Locked};
 use style::stylesheets::CssRules as StyleCssRules;
 
 #[dom_struct]
 pub struct CSSGroupingRule {
     cssrule: CSSRule,
     #[ignore_heap_size_of = "Arc"]
-    rules: Arc<RwLock<StyleCssRules>>,
+    rules: Arc<Locked<StyleCssRules>>,
     rulelist: MutNullableJS<CSSRuleList>,
 }
 
 impl CSSGroupingRule {
     pub fn new_inherited(parent_stylesheet: &CSSStyleSheet,
-                         rules: Arc<RwLock<StyleCssRules>>) -> CSSGroupingRule {
+                         rules: Arc<Locked<StyleCssRules>>) -> CSSGroupingRule {
         CSSGroupingRule {
             cssrule: CSSRule::new_inherited(parent_stylesheet),
             rules: rules,
@@ -39,6 +39,14 @@ impl CSSGroupingRule {
         self.rulelist.or_init(|| CSSRuleList::new(self.global().as_window(),
                                                   parent_stylesheet,
                                                   RulesSource::Rules(self.rules.clone())))
+    }
+
+    pub fn parent_stylesheet(&self) -> &CSSStyleSheet {
+        self.cssrule.parent_stylesheet()
+    }
+
+    pub fn shared_lock(&self) -> &SharedRwLock {
+        self.cssrule.shared_lock()
     }
 }
 

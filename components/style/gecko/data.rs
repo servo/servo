@@ -13,6 +13,7 @@ use gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
 use media_queries::Device;
 use parking_lot::RwLock;
 use properties::ComputedValues;
+use shared_lock::{StylesheetGuards, SharedRwLockReadGuard};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, channel};
@@ -83,20 +84,20 @@ impl PerDocumentStyleDataImpl {
     /// Reset the device state because it may have changed.
     ///
     /// Implies also a stylesheet flush.
-    pub fn reset_device(&mut self) {
+    pub fn reset_device(&mut self, guard: &SharedRwLockReadGuard) {
         {
             let mut stylist = Arc::get_mut(&mut self.stylist).unwrap();
             Arc::get_mut(&mut stylist.device).unwrap().reset();
         }
         self.stylesheets_changed = true;
-        self.flush_stylesheets();
+        self.flush_stylesheets(guard);
     }
 
     /// Recreate the style data if the stylesheets have changed.
-    pub fn flush_stylesheets(&mut self) {
+    pub fn flush_stylesheets(&mut self, guard: &SharedRwLockReadGuard) {
         if self.stylesheets_changed {
             let mut stylist = Arc::get_mut(&mut self.stylist).unwrap();
-            stylist.update(&self.stylesheets, None, true);
+            stylist.update(&self.stylesheets, &StylesheetGuards::same(guard), None, true);
             self.stylesheets_changed = false;
         }
     }

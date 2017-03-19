@@ -446,7 +446,7 @@ fn translate_including_floats(cur_b: &mut Au, delta: Au, floats: &mut Floats) {
 ///
 /// Note that flows with position 'fixed' just form a flat list as they all
 /// have the Root flow as their CB.
-pub struct AbsoluteAssignBSizesTraversal<'a>(pub &'a SharedStyleContext);
+pub struct AbsoluteAssignBSizesTraversal<'a>(pub &'a SharedStyleContext<'a>);
 
 impl<'a> PreorderFlowTraversal for AbsoluteAssignBSizesTraversal<'a> {
     #[inline]

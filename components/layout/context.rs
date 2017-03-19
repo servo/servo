@@ -75,9 +75,9 @@ pub fn heap_size_of_persistent_local_context() -> usize {
 }
 
 /// Layout information shared among all workers. This must be thread-safe.
-pub struct LayoutContext {
+pub struct LayoutContext<'a> {
     /// Bits shared by the layout and style system.
-    pub style_context: SharedStyleContext,
+    pub style_context: SharedStyleContext<'a>,
 
     /// The shared image cache thread.
     pub image_cache_thread: Mutex<ImageCacheThread>,
@@ -95,7 +95,7 @@ pub struct LayoutContext {
     pub pending_images: Option<Mutex<Vec<PendingImage>>>
 }
 
-impl Drop for LayoutContext {
+impl<'a> Drop for LayoutContext<'a> {
     fn drop(&mut self) {
         if !thread::panicking() {
             if let Some(ref pending_images) = self.pending_images {
@@ -105,7 +105,7 @@ impl Drop for LayoutContext {
     }
 }
 
-impl LayoutContext {
+impl<'a> LayoutContext<'a> {
     #[inline(always)]
     pub fn shared_context(&self) -> &SharedStyleContext {
         &self.style_context

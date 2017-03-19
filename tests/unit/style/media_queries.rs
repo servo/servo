@@ -11,6 +11,7 @@ use style::error_reporting::ParseErrorReporter;
 use style::media_queries::*;
 use style::parser::ParserContextExtraData;
 use style::servo::media_queries::*;
+use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard};
 use style::stylesheets::{Stylesheet, Origin, CssRule};
 use style::values::specified;
 use style_traits::ToCss;
@@ -29,26 +30,27 @@ fn test_media_rule<F>(css: &str, callback: F)
     let url = ServoUrl::parse("http://localhost").unwrap();
     let css_str = css.to_owned();
     let stylesheet = Stylesheet::from_str(
-        css, url, Origin::Author, Default::default(),
+        css, url, Origin::Author, Default::default(), SharedRwLock::new(),
         None, &CSSErrorReporterTest,
         ParserContextExtraData::default());
     let mut rule_count = 0;
-    media_queries(&stylesheet.rules.read().0, &mut |mq| {
+    let guard = stylesheet.shared_lock.read();
+    media_queries(&guard, &stylesheet.rules.read_with(&guard).0, &mut |mq| {
         rule_count += 1;
         callback(mq, css);
     });
     assert!(rule_count > 0, css_str);
 }
 
-fn media_queries<F>(rules: &[CssRule], f: &mut F)
+fn media_queries<F>(guard: &SharedRwLockReadGuard, rules: &[CssRule], f: &mut F)
     where F: FnMut(&MediaList),
 {
     for rule in rules {
-        rule.with_nested_rules_and_mq(|rules, mq| {
+        rule.with_nested_rules_and_mq(guard, |rules, mq| {
             if let Some(mq) = mq {
                 f(mq)
             }
-            media_queries(rules, f)
+            media_queries(guard, rules, f)
         })
     }
 }
@@ -56,11 +58,11 @@ fn media_queries<F>(rules: &[CssRule], f: &mut F)
 fn media_query_test(device: &Device, css: &str, expected_rule_count: usize) {
     let url = ServoUrl::parse("http://localhost").unwrap();
     let ss = Stylesheet::from_str(
-        css, url, Origin::Author, Default::default(),
+        css, url, Origin::Author, Default::default(), SharedRwLock::new(),
         None, &CSSErrorReporterTest,
         ParserContextExtraData::default());
     let mut rule_count = 0;
-    ss.effective_style_rules(device, |_| rule_count += 1);
+    ss.effective_style_rules(device, &ss.shared_lock.read(), |_| rule_count += 1);
     assert!(rule_count == expected_rule_count, css.to_owned());
 }
 

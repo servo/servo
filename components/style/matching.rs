@@ -541,6 +541,7 @@ trait PrivateMatchMethods: TElement {
         let values =
             Arc::new(cascade(&shared_context.stylist.device,
                              rule_node,
+                             &shared_context.guards,
                              inherited_values,
                              layout_parent_style,
                              Some(&mut cascade_info),
@@ -784,6 +785,7 @@ pub trait MatchMethods : TElement {
                                                  style_attribute,
                                                  animation_rules,
                                                  None,
+                                                 &context.shared.guards,
                                                  &mut applicable_declarations,
                                                  &mut flags);
         let primary_rule_node = compute_rule_node(context, &mut applicable_declarations);
@@ -809,6 +811,7 @@ pub trait MatchMethods : TElement {
                                                  Some(context.thread_local.bloom_filter.filter()),
                                                  None, pseudo_animation_rules,
                                                  Some(&pseudo),
+                                                 &context.shared.guards,
                                                  &mut applicable_declarations,
                                                  &mut flags);
 
@@ -883,7 +886,8 @@ pub trait MatchMethods : TElement {
             let new_node = context.shared.stylist.rule_tree
                 .update_rule_at_level(CascadeLevel::StyleAttributeNormal,
                                       style_attribute,
-                                      primary_rules);
+                                      primary_rules,
+                                      &context.shared.guards);
             if let Some(n) = new_node {
                 *primary_rules = n;
                 rule_node_changed = true;
@@ -892,7 +896,8 @@ pub trait MatchMethods : TElement {
             let new_node = context.shared.stylist.rule_tree
                 .update_rule_at_level(CascadeLevel::StyleAttributeImportant,
                                       style_attribute,
-                                      primary_rules);
+                                      primary_rules,
+                                      &context.shared.guards);
             if let Some(n) = new_node {
                 *primary_rules = n;
                 rule_node_changed = true;

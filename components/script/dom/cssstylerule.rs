@@ -12,21 +12,20 @@ use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSSt
 use dom::cssstylesheet::CSSStyleSheet;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use parking_lot::RwLock;
 use std::sync::Arc;
+use style::shared_lock::{Locked, ToCssWithGuard};
 use style::stylesheets::StyleRule;
-use style_traits::ToCss;
 
 #[dom_struct]
 pub struct CSSStyleRule {
     cssrule: CSSRule,
     #[ignore_heap_size_of = "Arc"]
-    stylerule: Arc<RwLock<StyleRule>>,
+    stylerule: Arc<Locked<StyleRule>>,
     style_decl: MutNullableJS<CSSStyleDeclaration>,
 }
 
 impl CSSStyleRule {
-    fn new_inherited(parent_stylesheet: &CSSStyleSheet, stylerule: Arc<RwLock<StyleRule>>)
+    fn new_inherited(parent_stylesheet: &CSSStyleSheet, stylerule: Arc<Locked<StyleRule>>)
                      -> CSSStyleRule {
         CSSStyleRule {
             cssrule: CSSRule::new_inherited(parent_stylesheet),
@@ -37,7 +36,7 @@ impl CSSStyleRule {
 
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
-               stylerule: Arc<RwLock<StyleRule>>) -> Root<CSSStyleRule> {
+               stylerule: Arc<Locked<StyleRule>>) -> Root<CSSStyleRule> {
         reflect_dom_object(box CSSStyleRule::new_inherited(parent_stylesheet, stylerule),
                            window,
                            CSSStyleRuleBinding::Wrap)
@@ -51,7 +50,8 @@ impl SpecificCSSRule for CSSStyleRule {
     }
 
     fn get_css(&self) -> DOMString {
-        self.stylerule.read().to_css_string().into()
+        let guard = self.cssrule.shared_lock().read();
+        self.stylerule.read_with(&guard).to_css_string(&guard).into()
     }
 }
 
@@ -59,11 +59,16 @@ impl CSSStyleRuleMethods for CSSStyleRule {
     // https://drafts.csswg.org/cssom/#dom-cssstylerule-style
     fn Style(&self) -> Root<CSSStyleDeclaration> {
         self.style_decl.or_init(|| {
-            CSSStyleDeclaration::new(self.global().as_window(),
-                                     CSSStyleOwner::CSSRule(JS::from_ref(self.upcast()),
-                                                            self.stylerule.read().block.clone()),
-                                     None,
-                                     CSSModificationAccess::ReadWrite)
+            let guard = self.cssrule.shared_lock().read();
+            CSSStyleDeclaration::new(
+                self.global().as_window(),
+                CSSStyleOwner::CSSRule(
+                    JS::from_ref(self.upcast()),
+                    self.stylerule.read_with(&guard).block.clone()
+                ),
+                None,
+                CSSModificationAccess::ReadWrite
+            )
         })
     }
 }

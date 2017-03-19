@@ -82,7 +82,6 @@ use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
 use html5ever_atoms::{Prefix, LocalName, Namespace, QualName};
 use js::jsapi::{HandleValue, JSAutoCompartment};
 use net_traits::request::CorsSettings;
-use parking_lot::RwLock;
 use ref_filter_map::ref_filter_map;
 use script_layout_interface::message::ReflowQueryType;
 use script_thread::Runnable;
@@ -108,6 +107,7 @@ use style::properties::longhands::{self, background_image, border_spacing, font_
 use style::restyle_hints::RESTYLE_SELF;
 use style::rule_tree::CascadeLevel;
 use style::selector_parser::{NonTSPseudoClass, RestyleDamage, SelectorImpl, SelectorParser};
+use style::shared_lock::{SharedRwLock, Locked};
 use style::sink::Push;
 use style::stylist::ApplicableDeclarationBlock;
 use style::thread_state;
@@ -129,7 +129,7 @@ pub struct Element {
     attrs: DOMRefCell<Vec<JS<Attr>>>,
     id_attribute: DOMRefCell<Option<Atom>>,
     #[ignore_heap_size_of = "Arc"]
-    style_attribute: DOMRefCell<Option<Arc<RwLock<PropertyDeclarationBlock>>>>,
+    style_attribute: DOMRefCell<Option<Arc<Locked<PropertyDeclarationBlock>>>>,
     attr_list: MutNullableJS<NamedNodeMap>,
     class_list: MutNullableJS<DOMTokenList>,
     state: Cell<ElementState>,
@@ -352,7 +352,7 @@ pub trait LayoutElementHelpers {
     #[allow(unsafe_code)]
     unsafe fn html_element_in_html_document_for_layout(&self) -> bool;
     fn id_attribute(&self) -> *const Option<Atom>;
-    fn style_attribute(&self) -> *const Option<Arc<RwLock<PropertyDeclarationBlock>>>;
+    fn style_attribute(&self) -> *const Option<Arc<Locked<PropertyDeclarationBlock>>>;
     fn local_name(&self) -> &LocalName;
     fn namespace(&self) -> &Namespace;
     fn get_lang_for_layout(&self) -> String;
@@ -384,13 +384,17 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         where V: Push<ApplicableDeclarationBlock>
     {
         #[inline]
-        fn from_declaration(declaration: PropertyDeclaration) -> ApplicableDeclarationBlock {
+        fn from_declaration(shared_lock: &SharedRwLock, declaration: PropertyDeclaration)
+                            -> ApplicableDeclarationBlock {
             ApplicableDeclarationBlock::from_declarations(
-                Arc::new(RwLock::new(PropertyDeclarationBlock::with_one(
+                Arc::new(shared_lock.wrap(PropertyDeclarationBlock::with_one(
                     declaration, Importance::Normal
                 ))),
                 CascadeLevel::PresHints)
         }
+
+        let document = self.upcast::<Node>().owner_doc_for_layout();
+        let shared_lock = document.style_shared_lock();
 
         let bgcolor = if let Some(this) = self.downcast::<HTMLBodyElement>() {
             this.get_background_color()
@@ -408,6 +412,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
 
         if let Some(color) = bgcolor {
             hints.push(from_declaration(
+                shared_lock,
                 PropertyDeclaration::BackgroundColor(
                     CSSColor { parsed: Color::RGBA(color), authored: None })));
         }
@@ -420,6 +425,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
 
         if let Some(url) = background {
             hints.push(from_declaration(
+                shared_lock,
                 PropertyDeclaration::BackgroundImage(
                     background_image::SpecifiedValue(vec![
                         background_image::single_value::SpecifiedValue(Some(
@@ -442,6 +448,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
 
         if let Some(color) = color {
             hints.push(from_declaration(
+                shared_lock,
                 PropertyDeclaration::Color(
                     longhands::color::SpecifiedValue(CSSColor {
                         parsed: Color::RGBA(color),
@@ -459,6 +466,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
 
         if let Some(font_family) = font_family {
             hints.push(from_declaration(
+                shared_lock,
                 PropertyDeclaration::FontFamily(
                         font_family::computed_value::T(vec![
                             font_family::computed_value::FontFamily::from_atom(
@@ -469,6 +477,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
 
         if let Some(font_size) = font_size {
             hints.push(from_declaration(
+                shared_lock,
                 PropertyDeclaration::FontSize(font_size::SpecifiedValue(font_size.into()))))
         }
 
@@ -481,6 +490,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         if let Some(cellspacing) = cellspacing {
             let width_value = specified::Length::from_px(cellspacing as f32);
             hints.push(from_declaration(
+                shared_lock,
                 PropertyDeclaration::BorderSpacing(
                     Box::new(border_spacing::SpecifiedValue {
                         horizontal: width_value.clone(),
@@ -514,6 +524,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         if let Some(size) = size {
             let value = specified::NoCalcLength::ServoCharacterWidth(specified::CharacterWidth(size));
             hints.push(from_declaration(
+                shared_lock,
                 PropertyDeclaration::Width(
                     specified::LengthOrPercentageOrAuto::Length(value))));
         }
@@ -539,12 +550,14 @@ impl LayoutElementHelpers for LayoutJS<Element> {
                 let width_value =
                     specified::LengthOrPercentageOrAuto::Percentage(specified::Percentage(percentage));
                 hints.push(from_declaration(
+                    shared_lock,
                     PropertyDeclaration::Width(width_value)));
             }
             LengthOrPercentageOrAuto::Length(length) => {
                 let width_value = specified::LengthOrPercentageOrAuto::Length(
                     specified::NoCalcLength::Absolute(length));
                 hints.push(from_declaration(
+                    shared_lock,
                     PropertyDeclaration::Width(width_value)));
             }
         }
@@ -564,12 +577,14 @@ impl LayoutElementHelpers for LayoutJS<Element> {
                 let height_value =
                     specified::LengthOrPercentageOrAuto::Percentage(specified::Percentage(percentage));
                 hints.push(from_declaration(
+                    shared_lock,
                     PropertyDeclaration::Height(height_value)));
             }
             LengthOrPercentageOrAuto::Length(length) => {
                 let height_value = specified::LengthOrPercentageOrAuto::Length(
                     specified::NoCalcLength::Absolute(length));
                 hints.push(from_declaration(
+                    shared_lock,
                     PropertyDeclaration::Height(height_value)));
             }
         }
@@ -592,6 +607,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
             // https://html.spec.whatwg.org/multipage/#textarea-effective-width
             let value = specified::NoCalcLength::ServoCharacterWidth(specified::CharacterWidth(cols));
             hints.push(from_declaration(
+                shared_lock,
                 PropertyDeclaration::Width(specified::LengthOrPercentageOrAuto::Length(value))));
         }
 
@@ -610,6 +626,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
             // https://html.spec.whatwg.org/multipage/#textarea-effective-height
             let value = specified::NoCalcLength::FontRelative(specified::FontRelativeLength::Em(rows as CSSFloat));
             hints.push(from_declaration(
+                shared_lock,
                 PropertyDeclaration::Height(specified::LengthOrPercentageOrAuto::Length(value))));
         }
 
@@ -623,12 +640,16 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         if let Some(border) = border {
             let width_value = specified::BorderWidth::from_length(specified::Length::from_px(border as f32));
             hints.push(from_declaration(
+                shared_lock,
                 PropertyDeclaration::BorderTopWidth(Box::new(width_value.clone()))));
             hints.push(from_declaration(
+                shared_lock,
                 PropertyDeclaration::BorderLeftWidth(Box::new(width_value.clone()))));
             hints.push(from_declaration(
+                shared_lock,
                 PropertyDeclaration::BorderBottomWidth(Box::new(width_value.clone()))));
             hints.push(from_declaration(
+                shared_lock,
                 PropertyDeclaration::BorderRightWidth(Box::new(width_value))));
         }
     }
@@ -672,7 +693,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
     }
 
     #[allow(unsafe_code)]
-    fn style_attribute(&self) -> *const Option<Arc<RwLock<PropertyDeclarationBlock>>> {
+    fn style_attribute(&self) -> *const Option<Arc<Locked<PropertyDeclarationBlock>>> {
         unsafe {
             (*self.unsafe_get()).style_attribute.borrow_for_layout()
         }
@@ -835,7 +856,7 @@ impl Element {
         ns!()
     }
 
-    pub fn style_attribute(&self) -> &DOMRefCell<Option<Arc<RwLock<PropertyDeclarationBlock>>>> {
+    pub fn style_attribute(&self) -> &DOMRefCell<Option<Arc<Locked<PropertyDeclarationBlock>>>> {
         &self.style_attribute
     }
 
@@ -2170,7 +2191,7 @@ impl VirtualMethods for Element {
                             block
                         } else {
                             let win = window_from_node(self);
-                            Arc::new(RwLock::new(parse_style_attribute(
+                            Arc::new(doc.style_shared_lock().wrap(parse_style_attribute(
                                 &attr.value(),
                                 &doc.base_url(),
                                 win.css_error_reporter(),

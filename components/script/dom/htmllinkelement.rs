@@ -291,9 +291,8 @@ impl HTMLLinkElement {
         // doesn't match.
         let loader = StylesheetLoader::for_element(self.upcast());
         loader.load(StylesheetContextSource::LinkElement {
-            url: url,
             media: Some(media),
-        }, cors_setting, integrity_metadata.to_owned());
+        }, url, cors_setting, integrity_metadata.to_owned());
     }
 
     fn handle_favicon_url(&self, rel: &str, href: &str, sizes: &Option<String>) {

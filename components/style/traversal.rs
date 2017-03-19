@@ -312,7 +312,8 @@ pub trait DomTraversal<E: TElement> : Sync {
 }
 
 /// Helper for the function below.
-fn resolve_style_internal<E, F>(context: &mut StyleContext<E>, element: E, ensure_data: &F)
+fn resolve_style_internal<E, F>(context: &mut StyleContext<E>,
+                                element: E, ensure_data: &F)
                                 -> Option<E>
     where E: TElement,
           F: Fn(E),

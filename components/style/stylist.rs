@@ -12,7 +12,6 @@ use dom::{AnimationRules, PresentationalHintsSynthetizer, TElement};
 use error_reporting::StdoutErrorReporter;
 use keyframes::KeyframesAnimation;
 use media_queries::Device;
-use parking_lot::RwLock;
 use pdqsort::sort_by;
 use properties::{self, CascadeFlags, ComputedValues};
 #[cfg(feature = "servo")]
@@ -28,6 +27,7 @@ use selectors::matching::{AFFECTED_BY_STYLE_ATTRIBUTE, AFFECTED_BY_PRESENTATIONA
 use selectors::matching::{ElementSelectorFlags, StyleRelations, matches_complex_selector};
 use selectors::parser::{Selector, SimpleSelector, LocalName as LocalNameSelector, ComplexSelector};
 use selectors::parser::SelectorMethods;
+use shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
 use sink::Push;
 use smallvec::VecLike;
 use std::borrow::Borrow;
@@ -158,6 +158,7 @@ impl Stylist {
     /// device is dirty, which means we need to re-evaluate media queries.
     pub fn update(&mut self,
                   doc_stylesheets: &[Arc<Stylesheet>],
+                  guards: &StylesheetGuards,
                   ua_stylesheets: Option<&UserAgentStylesheets>,
                   stylesheets_changed: bool) -> bool {
         if !(self.is_device_dirty || stylesheets_changed) {
@@ -165,7 +166,9 @@ impl Stylist {
         }
 
         let cascaded_rule = ViewportRule {
-            declarations: viewport::Cascade::from_stylesheets(doc_stylesheets, &self.device).finish(),
+            declarations: viewport::Cascade::from_stylesheets(
+                doc_stylesheets, guards.author, &self.device
+            ).finish(),
         };
 
         self.viewport_constraints =
@@ -193,16 +196,16 @@ impl Stylist {
 
         if let Some(ua_stylesheets) = ua_stylesheets {
             for stylesheet in &ua_stylesheets.user_or_user_agent_stylesheets {
-                self.add_stylesheet(&stylesheet);
+                self.add_stylesheet(&stylesheet, guards.ua_or_user);
             }
 
             if self.quirks_mode {
-                self.add_stylesheet(&ua_stylesheets.quirks_mode_stylesheet);
+                self.add_stylesheet(&ua_stylesheets.quirks_mode_stylesheet, guards.ua_or_user);
             }
         }
 
         for ref stylesheet in doc_stylesheets.iter() {
-            self.add_stylesheet(stylesheet);
+            self.add_stylesheet(stylesheet, guards.author);
         }
 
         debug!("Stylist stats:");
@@ -216,8 +219,9 @@ impl Stylist {
         SelectorImpl::each_precomputed_pseudo_element(|pseudo| {
             if let Some(map) = self.pseudos_map.remove(&pseudo) {
                 let declarations =
-                    map.user_agent.get_universal_rules(CascadeLevel::UANormal,
-                                                       CascadeLevel::UAImportant);
+                    map.user_agent.get_universal_rules(
+                        guards.ua_or_user, CascadeLevel::UANormal, CascadeLevel::UAImportant
+                    );
                 self.precomputed_pseudo_element_decls.insert(pseudo, declarations);
             }
         });
@@ -226,19 +230,19 @@ impl Stylist {
         true
     }
 
-    fn add_stylesheet(&mut self, stylesheet: &Stylesheet) {
-        if stylesheet.disabled() || !stylesheet.is_effective_for_device(&self.device) {
+    fn add_stylesheet(&mut self, stylesheet: &Stylesheet, guard: &SharedRwLockReadGuard) {
+        if stylesheet.disabled() || !stylesheet.is_effective_for_device(&self.device, guard) {
             return;
         }
 
         // Cheap `Arc` clone so that the closure below can borrow `&mut Stylist`.
         let device = self.device.clone();
 
-        stylesheet.effective_rules(&device, |rule| {
+        stylesheet.effective_rules(&device, guard, |rule| {
             match *rule {
-                CssRule::Style(ref style_rule) => {
-                    let guard = style_rule.read();
-                    for selector in &guard.selectors.0 {
+                CssRule::Style(ref locked) => {
+                    let style_rule = locked.read_with(&guard);
+                    for selector in &style_rule.selectors.0 {
                         let map = if let Some(ref pseudo) = selector.pseudo_element {
                             self.pseudos_map
                                 .entry(pseudo.clone())
@@ -250,14 +254,14 @@ impl Stylist {
 
                         map.insert(Rule {
                             selector: selector.complex_selector.clone(),
-                            style_rule: style_rule.clone(),
+                            style_rule: locked.clone(),
                             specificity: selector.specificity,
                             source_order: self.rules_source_order,
                         });
                     }
                     self.rules_source_order += 1;
 
-                    for selector in &guard.selectors.0 {
+                    for selector in &style_rule.selectors.0 {
                         self.state_deps.note_selector(&selector.complex_selector);
                         if selector.affects_siblings() {
                             self.sibling_affecting_selectors.push(selector.clone());
@@ -269,13 +273,14 @@ impl Stylist {
                     }
                 }
                 CssRule::Import(ref import) => {
-                    let import = import.read();
-                    self.add_stylesheet(&import.stylesheet)
+                    let import = import.read_with(guard);
+                    self.add_stylesheet(&import.stylesheet, guard)
                 }
                 CssRule::Keyframes(ref keyframes_rule) => {
-                    let keyframes_rule = keyframes_rule.read();
+                    let keyframes_rule = keyframes_rule.read_with(guard);
                     debug!("Found valid keyframes rule: {:?}", *keyframes_rule);
-                    let animation = KeyframesAnimation::from_keyframes(&keyframes_rule.keyframes);
+                    let animation = KeyframesAnimation::from_keyframes(
+                        &keyframes_rule.keyframes, guard);
                     debug!("Found valid keyframe animation: {:?}", animation);
                     self.animations.insert(keyframes_rule.name.clone(), animation);
                 }
@@ -294,6 +299,7 @@ impl Stylist {
     /// values. The flow constructor uses this flag when constructing anonymous
     /// flows.
     pub fn precomputed_values_for_pseudo(&self,
+                                         guards: &StylesheetGuards,
                                          pseudo: &PseudoElement,
                                          parent: Option<&Arc<ComputedValues>>,
                                          cascade_flags: CascadeFlags)
@@ -327,6 +333,7 @@ impl Stylist {
         let computed =
             properties::cascade(&self.device,
                                 &rule_node,
+                                guards,
                                 parent.map(|p| &**p),
                                 parent.map(|p| &**p),
                                 None,
@@ -338,6 +345,7 @@ impl Stylist {
     /// Returns the style for an anonymous box of the given type.
     #[cfg(feature = "servo")]
     pub fn style_for_anonymous_box(&self,
+                                   guards: &StylesheetGuards,
                                    pseudo: &PseudoElement,
                                    parent_style: &Arc<ComputedValues>)
                                    -> Arc<ComputedValues> {
@@ -362,7 +370,7 @@ impl Stylist {
         if inherit_all {
             cascade_flags.insert(INHERIT_ALL);
         }
-        self.precomputed_values_for_pseudo(&pseudo, Some(parent_style), cascade_flags)
+        self.precomputed_values_for_pseudo(guards, &pseudo, Some(parent_style), cascade_flags)
             .values.unwrap()
     }
 
@@ -374,6 +382,7 @@ impl Stylist {
     /// Check the documentation on lazy pseudo-elements in
     /// docs/components/style.md
     pub fn lazily_compute_pseudo_element_style<E>(&self,
+                                                  guards: &StylesheetGuards,
                                                   element: &E,
                                                   pseudo: &PseudoElement,
                                                   parent: &Arc<ComputedValues>)
@@ -395,6 +404,7 @@ impl Stylist {
                                           None,
                                           AnimationRules(None, None),
                                           Some(pseudo),
+                                          guards,
                                           &mut declarations,
                                           &mut flags);
 
@@ -409,6 +419,7 @@ impl Stylist {
         let computed =
             properties::cascade(&self.device,
                                 &rule_node,
+                                guards,
                                 Some(&**parent),
                                 Some(&**parent),
                                 None,
@@ -461,9 +472,10 @@ impl Stylist {
     /// FIXME(emilio): The semantics of the device for Servo and Gecko are
     /// different enough we may want to unify them.
     #[cfg(feature = "servo")]
-    pub fn set_device(&mut self, mut device: Device, stylesheets: &[Arc<Stylesheet>]) {
+    pub fn set_device(&mut self, mut device: Device, guard: &SharedRwLockReadGuard,
+                      stylesheets: &[Arc<Stylesheet>]) {
         let cascaded_rule = ViewportRule {
-            declarations: viewport::Cascade::from_stylesheets(stylesheets, &device).finish(),
+            declarations: viewport::Cascade::from_stylesheets(stylesheets, guard, &device).finish(),
         };
 
         self.viewport_constraints =
@@ -473,15 +485,16 @@ impl Stylist {
             device.account_for_viewport_rule(constraints);
         }
 
-        fn mq_eval_changed(rules: &[CssRule], before: &Device, after: &Device) -> bool {
+        fn mq_eval_changed(guard: &SharedRwLockReadGuard, rules: &[CssRule],
+                           before: &Device, after: &Device) -> bool {
             for rule in rules {
-                let changed = rule.with_nested_rules_and_mq(|rules, mq| {
+                let changed = rule.with_nested_rules_and_mq(guard, |rules, mq| {
                     if let Some(mq) = mq {
                         if mq.evaluate(before) != mq.evaluate(after) {
                             return true
                         }
                     }
-                    mq_eval_changed(rules, before, after)
+                    mq_eval_changed(guard, rules, before, after)
                 });
                 if changed {
                     return true
@@ -490,12 +503,12 @@ impl Stylist {
             false
         }
         self.is_device_dirty |= stylesheets.iter().any(|stylesheet| {
-            let mq = stylesheet.media.read();
+            let mq = stylesheet.media.read_with(guard);
             if mq.evaluate(&self.device) != mq.evaluate(&device) {
                 return true
             }
 
-            mq_eval_changed(&stylesheet.rules.read().0, &self.device, &device)
+            mq_eval_changed(guard, &stylesheet.rules.read_with(guard).0, &self.device, &device)
         });
 
         self.device = Arc::new(device);
@@ -528,9 +541,10 @@ impl Stylist {
                                         &self,
                                         element: &E,
                                         parent_bf: Option<&BloomFilter>,
-                                        style_attribute: Option<&Arc<RwLock<PropertyDeclarationBlock>>>,
+                                        style_attribute: Option<&Arc<Locked<PropertyDeclarationBlock>>>,
                                         animation_rules: AnimationRules,
                                         pseudo_element: Option<&PseudoElement>,
+                                        guards: &StylesheetGuards,
                                         applicable_declarations: &mut V,
                                         flags: &mut ElementSelectorFlags) -> StyleRelations
         where E: TElement +
@@ -556,6 +570,7 @@ impl Stylist {
         // Step 1: Normal user-agent rules.
         map.user_agent.get_all_matching_rules(element,
                                               parent_bf,
+                                              guards.ua_or_user,
                                               applicable_declarations,
                                               &mut relations,
                                               flags,
@@ -580,6 +595,7 @@ impl Stylist {
             // Step 3: User and author normal rules.
             map.user.get_all_matching_rules(element,
                                             parent_bf,
+                                            guards.ua_or_user,
                                             applicable_declarations,
                                             &mut relations,
                                             flags,
@@ -587,6 +603,7 @@ impl Stylist {
             debug!("user normal: {:?}", relations);
             map.author.get_all_matching_rules(element,
                                               parent_bf,
+                                              guards.author,
                                               applicable_declarations,
                                               &mut relations,
                                               flags,
@@ -595,7 +612,7 @@ impl Stylist {
 
             // Step 4: Normal style attributes.
             if let Some(sa) = style_attribute {
-                if sa.read().any_normal() {
+                if sa.read_with(guards.author).any_normal() {
                     relations |= AFFECTED_BY_STYLE_ATTRIBUTE;
                     Push::push(
                         applicable_declarations,
@@ -621,6 +638,7 @@ impl Stylist {
             // Step 6: Author-supplied `!important` rules.
             map.author.get_all_matching_rules(element,
                                               parent_bf,
+                                              guards.author,
                                               applicable_declarations,
                                               &mut relations,
                                               flags,
@@ -630,7 +648,7 @@ impl Stylist {
 
             // Step 7: `!important` style attributes.
             if let Some(sa) = style_attribute {
-                if sa.read().any_important() {
+                if sa.read_with(guards.author).any_important() {
                     relations |= AFFECTED_BY_STYLE_ATTRIBUTE;
                     Push::push(
                         applicable_declarations,
@@ -644,6 +662,7 @@ impl Stylist {
             // Step 8: User `!important` rules.
             map.user.get_all_matching_rules(element,
                                             parent_bf,
+                                            guards.ua_or_user,
                                             applicable_declarations,
                                             &mut relations,
                                             flags,
@@ -657,6 +676,7 @@ impl Stylist {
         // Step 9: UA `!important` rules.
         map.user_agent.get_all_matching_rules(element,
                                               parent_bf,
+                                              guards.ua_or_user,
                                               applicable_declarations,
                                               &mut relations,
                                               flags,
@@ -895,6 +915,7 @@ impl SelectorMap {
     pub fn get_all_matching_rules<E, V>(&self,
                                         element: &E,
                                         parent_bf: Option<&BloomFilter>,
+                                        guard: &SharedRwLockReadGuard,
                                         matching_rules_list: &mut V,
                                         relations: &mut StyleRelations,
                                         flags: &mut ElementSelectorFlags,
@@ -913,6 +934,7 @@ impl SelectorMap {
                                                       parent_bf,
                                                       &self.id_hash,
                                                       &id,
+                                                      guard,
                                                       matching_rules_list,
                                                       relations,
                                                       flags,
@@ -924,6 +946,7 @@ impl SelectorMap {
                                                       parent_bf,
                                                       &self.class_hash,
                                                       class,
+                                                      guard,
                                                       matching_rules_list,
                                                       relations,
                                                       flags,
@@ -939,6 +962,7 @@ impl SelectorMap {
                                                   parent_bf,
                                                   local_name_hash,
                                                   element.get_local_name(),
+                                                  guard,
                                                   matching_rules_list,
                                                   relations,
                                                   flags,
@@ -947,6 +971,7 @@ impl SelectorMap {
         SelectorMap::get_matching_rules(element,
                                         parent_bf,
                                         &self.other_rules,
+                                        guard,
                                         matching_rules_list,
                                         relations,
                                         flags,
@@ -960,6 +985,7 @@ impl SelectorMap {
     /// Append to `rule_list` all universal Rules (rules with selector `*|*`) in
     /// `self` sorted by specificity and source order.
     pub fn get_universal_rules(&self,
+                               guard: &SharedRwLockReadGuard,
                                cascade_level: CascadeLevel,
                                important_cascade_level: CascadeLevel)
                                -> Vec<ApplicableDeclarationBlock> {
@@ -977,8 +1003,8 @@ impl SelectorMap {
         for rule in self.other_rules.iter() {
             if rule.selector.compound_selector.is_empty() &&
                rule.selector.next.is_none() {
-                let guard = rule.style_rule.read();
-                let block = guard.block.read();
+                let style_rule = rule.style_rule.read_with(guard);
+                let block = style_rule.block.read_with(guard);
                 if block.any_normal() {
                     matching_rules_list.push(
                         rule.to_applicable_declaration_block(cascade_level));
@@ -1006,6 +1032,7 @@ impl SelectorMap {
         parent_bf: Option<&BloomFilter>,
         hash: &FnvHashMap<Str, Vec<Rule>>,
         key: &BorrowedStr,
+        guard: &SharedRwLockReadGuard,
         matching_rules: &mut Vector,
         relations: &mut StyleRelations,
         flags: &mut ElementSelectorFlags,
@@ -1019,6 +1046,7 @@ impl SelectorMap {
             SelectorMap::get_matching_rules(element,
                                             parent_bf,
                                             rules,
+                                            guard,
                                             matching_rules,
                                             relations,
                                             flags,
@@ -1030,6 +1058,7 @@ impl SelectorMap {
     fn get_matching_rules<E, V>(element: &E,
                                 parent_bf: Option<&BloomFilter>,
                                 rules: &[Rule],
+                                guard: &SharedRwLockReadGuard,
                                 matching_rules: &mut V,
                                 relations: &mut StyleRelations,
                                 flags: &mut ElementSelectorFlags,
@@ -1038,8 +1067,8 @@ impl SelectorMap {
               V: VecLike<ApplicableDeclarationBlock>
     {
         for rule in rules.iter() {
-            let guard = rule.style_rule.read();
-            let block = guard.block.read();
+            let style_rule = rule.style_rule.read_with(guard);
+            let block = style_rule.block.read_with(guard);
             let any_declaration_for_importance = if cascade_level.is_important() {
                 block.any_important()
             } else {
@@ -1137,7 +1166,7 @@ pub struct Rule {
     pub selector: Arc<ComplexSelector<SelectorImpl>>,
     /// The actual style rule.
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
-    pub style_rule: Arc<RwLock<StyleRule>>,
+    pub style_rule: Arc<Locked<StyleRule>>,
     /// The source order this style rule appears in.
     pub source_order: usize,
     /// The specificity of the rule this selector represents.
@@ -1178,7 +1207,7 @@ impl ApplicableDeclarationBlock {
     /// Constructs an applicable declaration block from a given property
     /// declaration block and importance.
     #[inline]
-    pub fn from_declarations(declarations: Arc<RwLock<PropertyDeclarationBlock>>,
+    pub fn from_declarations(declarations: Arc<Locked<PropertyDeclarationBlock>>,
                              level: CascadeLevel)
                              -> Self {
         ApplicableDeclarationBlock {

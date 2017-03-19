@@ -415,7 +415,7 @@ fn compute_style_for_animation_step(context: &SharedStyleContext,
     match step.value {
         KeyframesStepValue::ComputedValues => style_from_cascade.clone(),
         KeyframesStepValue::Declarations { block: ref declarations } => {
-            let guard = declarations.read();
+            let guard = declarations.read_with(context.guards.author);
 
             // No !important in keyframes.
             debug_assert!(guard.declarations().iter()

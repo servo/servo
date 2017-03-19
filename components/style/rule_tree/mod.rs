@@ -10,9 +10,8 @@
 use arc_ptr_eq;
 #[cfg(feature = "servo")]
 use heapsize::HeapSizeOf;
-use owning_handle::OwningHandle;
-use parking_lot::{RwLock, RwLockReadGuard};
 use properties::{Importance, PropertyDeclarationBlock};
+use shared_lock::{Locked, StylesheetGuards, SharedRwLockReadGuard};
 use std::io::{self, Write};
 use std::ptr;
 use std::sync::Arc;
@@ -52,33 +51,9 @@ pub struct RuleTree {
 #[derive(Debug, Clone)]
 pub enum StyleSource {
     /// A style rule stable pointer.
-    Style(Arc<RwLock<StyleRule>>),
+    Style(Arc<Locked<StyleRule>>),
     /// A declaration block stable pointer.
-    Declarations(Arc<RwLock<PropertyDeclarationBlock>>),
-}
-
-type StyleSourceGuardHandle<'a> =
-    OwningHandle<
-        RwLockReadGuard<'a, StyleRule>,
-        RwLockReadGuard<'a, PropertyDeclarationBlock>>;
-
-/// A guard for a given style source.
-pub enum StyleSourceGuard<'a> {
-    /// A guard for a style rule.
-    Style(StyleSourceGuardHandle<'a>),
-    /// A guard for a declaration block.
-    Declarations(RwLockReadGuard<'a, PropertyDeclarationBlock>),
-}
-
-impl<'a> ::std::ops::Deref for StyleSourceGuard<'a> {
-    type Target = PropertyDeclarationBlock;
-
-    fn deref(&self) -> &Self::Target {
-        match *self {
-            StyleSourceGuard::Declarations(ref block) => &*block,
-            StyleSourceGuard::Style(ref handle) => &*handle,
-        }
-    }
+    Declarations(Arc<Locked<PropertyDeclarationBlock>>),
 }
 
 impl StyleSource {
@@ -92,28 +67,26 @@ impl StyleSource {
         }
     }
 
-    fn dump<W: Write>(&self, writer: &mut W) {
+    fn dump<W: Write>(&self, guard: &SharedRwLockReadGuard, writer: &mut W) {
         use self::StyleSource::*;
 
         if let Style(ref rule) = *self {
-            let _ = write!(writer, "{:?}", rule.read().selectors);
+            let rule = rule.read_with(guard);
+            let _ = write!(writer, "{:?}", rule.selectors);
         }
 
-        let _ = write!(writer, "  -> {:?}", self.read().declarations());
+        let _ = write!(writer, "  -> {:?}", self.read(guard).declarations());
     }
 
     /// Read the style source guard, and obtain thus read access to the
     /// underlying property declaration block.
     #[inline]
-    pub fn read<'a>(&'a self) -> StyleSourceGuard<'a> {
-        use self::StyleSource::*;
-        match *self {
-            Style(ref rule) => {
-                let owning_ref = OwningHandle::new(rule.read(), |r| unsafe { &*r }.block.read());
-                StyleSourceGuard::Style(owning_ref)
-            }
-            Declarations(ref block) => StyleSourceGuard::Declarations(block.read()),
-        }
+    pub fn read<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> &'a PropertyDeclarationBlock {
+        let block = match *self {
+            StyleSource::Style(ref rule) => &rule.read_with(guard).block,
+            StyleSource::Declarations(ref block) => block,
+        };
+        block.read_with(guard)
     }
 }
 
@@ -137,15 +110,15 @@ impl RuleTree {
         self.root.clone()
     }
 
-    fn dump<W: Write>(&self, writer: &mut W) {
+    fn dump<W: Write>(&self, guards: &StylesheetGuards, writer: &mut W) {
         let _ = writeln!(writer, " + RuleTree");
-        self.root.get().dump(writer, 0);
+        self.root.get().dump(guards, writer, 0);
     }
 
     /// Dump the rule tree to stdout.
-    pub fn dump_stdout(&self) {
+    pub fn dump_stdout(&self, guards: &StylesheetGuards) {
         let mut stdout = io::stdout();
-        self.dump(&mut stdout);
+        self.dump(guards, &mut stdout);
     }
 
     /// Insert the given rules, that must be in proper order by specifity, and
@@ -187,8 +160,9 @@ impl RuleTree {
     /// the old path is still valid.
     pub fn update_rule_at_level(&self,
                                 level: CascadeLevel,
-                                pdb: Option<&Arc<RwLock<PropertyDeclarationBlock>>>,
-                                path: &StrongRuleNode)
+                                pdb: Option<&Arc<Locked<PropertyDeclarationBlock>>>,
+                                path: &StrongRuleNode,
+                                guards: &StylesheetGuards)
                                 -> Option<StrongRuleNode> {
         debug_assert!(level.is_unique_per_element());
         // TODO(emilio): Being smarter with lifetimes we could avoid a bit of
@@ -247,13 +221,13 @@ impl RuleTree {
         // pretty bad styling cases already.
         if let Some(pdb) = pdb {
             if level.is_important() {
-                if pdb.read().any_important() {
+                if pdb.read_with(level.guard(guards)).any_important() {
                     current = current.ensure_child(self.root.downgrade(),
                                                    StyleSource::Declarations(pdb.clone()),
                                                    level);
                 }
             } else {
-                if pdb.read().any_normal() {
+                if pdb.read_with(level.guard(guards)).any_normal() {
                     current = current.ensure_child(self.root.downgrade(),
                                                    StyleSource::Declarations(pdb.clone()),
                                                    level);
@@ -307,6 +281,17 @@ pub enum CascadeLevel {
 }
 
 impl CascadeLevel {
+    /// Select a lock guard for this level
+    pub fn guard<'a>(&self, guards: &'a StylesheetGuards<'a>) -> &'a SharedRwLockReadGuard<'a> {
+        match *self {
+            CascadeLevel::UANormal |
+            CascadeLevel::UserNormal |
+            CascadeLevel::UserImportant |
+            CascadeLevel::UAImportant => guards.ua_or_user,
+            _ => guards.author,
+        }
+    }
+
     /// Returns whether this cascade level is unique per element, in which case
     /// we can replace the path in the cascade without fear.
     pub fn is_unique_per_element(&self) -> bool {
@@ -450,7 +435,7 @@ impl RuleNode {
         }
     }
 
-    fn dump<W: Write>(&self, writer: &mut W, indent: usize) {
+    fn dump<W: Write>(&self, guards: &StylesheetGuards, writer: &mut W, indent: usize) {
         const INDENT_INCREMENT: usize = 4;
 
         for _ in 0..indent {
@@ -467,7 +452,7 @@ impl RuleNode {
 
         match self.source {
             Some(ref source) => {
-                source.dump(writer);
+                source.dump(self.level.guard(guards), writer);
             }
             None => {
                 if indent != 0 {
@@ -479,7 +464,7 @@ impl RuleNode {
 
         let _ = write!(writer, "\n");
         for child in self.iter_children() {
-            child.get().dump(writer, indent + INDENT_INCREMENT);
+            child.get().dump(guards, writer, indent + INDENT_INCREMENT);
         }
     }
 
@@ -625,6 +610,11 @@ impl StrongRuleNode {
     /// rules.
     pub fn style_source(&self) -> Option<&StyleSource> {
         self.get().source.as_ref()
+    }
+
+    /// The cascade level for this node
+    pub fn cascade_level(&self) -> CascadeLevel {
+        self.get().level
     }
 
     /// Get the importance that this rule node represents.

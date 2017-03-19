@@ -11,9 +11,9 @@ use app_units::Au;
 use cssparser::{self, Color, RGBA};
 use euclid::num::Zero;
 use num_traits::ToPrimitive;
-use parking_lot::RwLock;
 use properties::PropertyDeclarationBlock;
 use servo_url::ServoUrl;
+use shared_lock::Locked;
 use std::ascii::AsciiExt;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -61,7 +61,7 @@ pub enum AttrValue {
     /// declarationblock for longer than needed.
     Declaration(String,
                 #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
-                Arc<RwLock<PropertyDeclarationBlock>>)
+                Arc<Locked<PropertyDeclarationBlock>>)
 }
 
 /// Shared implementation to parse an integer according to

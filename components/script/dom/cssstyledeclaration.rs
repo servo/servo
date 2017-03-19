@@ -11,10 +11,9 @@ use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::cssrule::CSSRule;
 use dom::element::Element;
-use dom::node::{Node, window_from_node};
+use dom::node::{Node, window_from_node, document_from_node};
 use dom::window::Window;
 use dom_struct::dom_struct;
-use parking_lot::RwLock;
 use servo_url::ServoUrl;
 use std::ascii::AsciiExt;
 use std::sync::Arc;
@@ -23,6 +22,7 @@ use style::parser::ParserContextExtraData;
 use style::properties::{Importance, PropertyDeclarationBlock, PropertyId, LonghandId, ShorthandId};
 use style::properties::{parse_one_declaration, parse_style_attribute};
 use style::selector_parser::PseudoElement;
+use style::shared_lock::Locked;
 use style_traits::ToCss;
 
 // http://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
@@ -40,7 +40,7 @@ pub enum CSSStyleOwner {
     Element(JS<Element>),
     CSSRule(JS<CSSRule>,
             #[ignore_heap_size_of = "Arc"]
-            Arc<RwLock<PropertyDeclarationBlock>>),
+            Arc<Locked<PropertyDeclarationBlock>>),
 }
 
 impl CSSStyleOwner {
@@ -55,10 +55,13 @@ impl CSSStyleOwner {
         let mut changed = true;
         match *self {
             CSSStyleOwner::Element(ref el) => {
+                let document = document_from_node(&**el);
+                let shared_lock = document.style_shared_lock();
                 let mut attr = el.style_attribute().borrow_mut().take();
                 let result = if attr.is_some() {
                     let lock = attr.as_ref().unwrap();
-                    let mut pdb = lock.write();
+                    let mut guard = shared_lock.write();
+                    let mut pdb = lock.write_with(&mut guard);
                     let result = f(&mut pdb, &mut changed);
                     result
                 } else {
@@ -69,7 +72,7 @@ impl CSSStyleOwner {
                     // exact conditions under it changes.
                     changed = !pdb.declarations().is_empty();
                     if changed {
-                        attr = Some(Arc::new(RwLock::new(pdb)));
+                        attr = Some(Arc::new(shared_lock.wrap(pdb)));
                     }
 
                     result
@@ -83,7 +86,8 @@ impl CSSStyleOwner {
                     //
                     // [1]: https://github.com/whatwg/html/issues/2306
                     if let Some(pdb) = attr {
-                        let serialization = pdb.read().to_css_string();
+                        let guard = shared_lock.read();
+                        let serialization = pdb.read_with(&guard).to_css_string();
                         el.set_attribute(&local_name!("style"),
                                          AttrValue::Declaration(serialization,
                                                                 pdb));
@@ -96,7 +100,10 @@ impl CSSStyleOwner {
                 result
             }
             CSSStyleOwner::CSSRule(ref rule, ref pdb) => {
-                let result = f(&mut *pdb.write(), &mut changed);
+                let result = {
+                    let mut guard = rule.shared_lock().write();
+                    f(&mut *pdb.write_with(&mut guard), &mut changed)
+                };
                 if changed {
                     rule.global().as_window().Document().invalidate_stylesheets();
                 }
@@ -111,15 +118,20 @@ impl CSSStyleOwner {
         match *self {
             CSSStyleOwner::Element(ref el) => {
                 match *el.style_attribute().borrow() {
-                    Some(ref pdb) => f(&pdb.read()),
+                    Some(ref pdb) => {
+                        let document = document_from_node(&**el);
+                        let guard = document.style_shared_lock().read();
+                        f(pdb.read_with(&guard))
+                    }
                     None => {
                         let pdb = PropertyDeclarationBlock::new();
                         f(&pdb)
                     }
                 }
             }
-            CSSStyleOwner::CSSRule(_, ref pdb) => {
-                f(&pdb.read())
+            CSSStyleOwner::CSSRule(ref rule, ref pdb) => {
+                let guard = rule.shared_lock().read();
+                f(pdb.read_with(&guard))
             }
         }
     }

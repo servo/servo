@@ -12,6 +12,7 @@ use media_queries::MediaList;
 use parser::ParserContextExtraData;
 use self::encoding::{EncodingRef, DecoderTrap};
 use servo_url::ServoUrl;
+use shared_lock::SharedRwLock;
 use std::str;
 use stylesheets::{Stylesheet, StylesheetLoader, Origin};
 
@@ -54,6 +55,7 @@ impl Stylesheet {
                       environment_encoding: Option<EncodingRef>,
                       origin: Origin,
                       media: MediaList,
+                      shared_lock: SharedRwLock,
                       stylesheet_loader: Option<&StylesheetLoader>,
                       error_reporter: &ParseErrorReporter,
                       extra_data: ParserContextExtraData)
@@ -64,6 +66,7 @@ impl Stylesheet {
                              base_url,
                              origin,
                              media,
+                             shared_lock,
                              stylesheet_loader,
                              error_reporter,
                              extra_data)
