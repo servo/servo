@@ -45,9 +45,6 @@ pub enum Msg {
     /// field is whether animations should be force-ticked.
     AdvanceClockMs(i32, bool),
 
-    /// Requests that the layout thread reflow with a newly-loaded Web font.
-    ReflowWithNewlyLoadedWebFont,
-
     /// Destroys layout data associated with a DOM node.
     ///
     /// TODO(pcwalton): Maybe think about batching to avoid message traffic.
