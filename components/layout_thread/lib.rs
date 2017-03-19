@@ -114,7 +114,6 @@ use style::error_reporting::StdoutErrorReporter;
 use style::logical_geometry::LogicalPoint;
 use style::media_queries::{Device, MediaType};
 use style::parser::ParserContextExtraData;
-use style::servo::AUTHOR_SHARED_LOCK;
 use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, REPOSITION, STORE_OVERFLOW};
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards};
 use style::stylesheets::{Origin, Stylesheet, UserAgentStylesheets};
@@ -189,6 +188,9 @@ pub struct LayoutThread {
 
     /// The root of the flow tree.
     root_flow: Option<FlowRef>,
+
+    /// The document-specific shared lock used for author-origin stylesheets
+    document_shared_lock: Option<SharedRwLock>,
 
     /// The list of currently-running animations.
     running_animations: Arc<RwLock<HashMap<OpaqueNode, Vec<Animation>>>>,
@@ -442,6 +444,7 @@ impl LayoutThread {
             new_animations_receiver: new_animations_receiver,
             outstanding_web_fonts: outstanding_web_fonts_counter,
             root_flow: None,
+            document_shared_lock: None,
             running_animations: Arc::new(RwLock::new(HashMap::new())),
             expired_animations: Arc::new(RwLock::new(HashMap::new())),
             epoch: Epoch(0),
@@ -1020,7 +1023,9 @@ impl LayoutThread {
 
         // Calculate the actual viewport as per DEVICE-ADAPT § 6
 
-        let author_guard = document.style_shared_lock().read();
+        let document_shared_lock = document.style_shared_lock();
+        self.document_shared_lock = Some(document_shared_lock.clone());
+        let author_guard = document_shared_lock.read();
         let device = Device::new(MediaType::Screen, initial_viewport);
         Arc::get_mut(&mut rw_data.stylist).unwrap()
             .set_device(device, &author_guard, &data.document_stylesheets);
@@ -1349,20 +1354,23 @@ impl LayoutThread {
             println!("**** pipeline={}\tForDisplay\tSpecial\tAnimationTick", self.id);
         }
 
-        let reflow_info = Reflow {
-            goal: ReflowGoal::ForDisplay,
-            page_clip_rect: max_rect(),
-        };
-
-        let author_guard = AUTHOR_SHARED_LOCK.read();
-        let ua_or_user_guard = UA_STYLESHEETS.shared_lock.read();
-        let guards = StylesheetGuards {
-            author: &author_guard,
-            ua_or_user: &ua_or_user_guard,
-        };
-        let mut layout_context = self.build_layout_context(guards, &*rw_data, false);
-
         if let Some(mut root_flow) = self.root_flow.clone() {
+            let reflow_info = Reflow {
+                goal: ReflowGoal::ForDisplay,
+                page_clip_rect: max_rect(),
+            };
+
+            // Unwrap here should not panic since self.root_flow is only ever set to Some(_)
+            // in handle_reflow() where self.document_shared_lock is as well.
+            let author_shared_lock = self.document_shared_lock.clone().unwrap();
+            let author_guard = author_shared_lock.read();
+            let ua_or_user_guard = UA_STYLESHEETS.shared_lock.read();
+            let guards = StylesheetGuards {
+                author: &author_guard,
+                ua_or_user: &ua_or_user_guard,
+            };
+            let mut layout_context = self.build_layout_context(guards, &*rw_data, false);
+
             {
                 // Perform an abbreviated style recalc that operates without access to the DOM.
                 let animations = self.running_animations.read();
@@ -1380,8 +1388,8 @@ impl LayoutThread {
                                                          None,
                                                          &mut *rw_data,
                                                          &mut layout_context);
+            assert!(layout_context.pending_images.is_none());
         }
-        assert!(layout_context.pending_images.is_none());
     }
 
     fn perform_post_style_recalc_layout_passes(&mut self,

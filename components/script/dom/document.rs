@@ -134,7 +134,6 @@ use style::attr::AttrValue;
 use style::context::{QuirksMode, ReflowGoal};
 use style::restyle_hints::{RestyleHint, RESTYLE_STYLE_ATTRIBUTE};
 use style::selector_parser::{RestyleDamage, Snapshot};
-use style::servo::AUTHOR_SHARED_LOCK;
 use style::shared_lock::SharedRwLock as StyleSharedRwLock;
 use style::str::{HTML_SPACE_CHARACTERS, split_html_space_chars, str_join};
 use style::stylesheets::Stylesheet;
@@ -2132,7 +2131,7 @@ impl Document {
             scripts: Default::default(),
             anchors: Default::default(),
             applets: Default::default(),
-            style_shared_lock: AUTHOR_SHARED_LOCK.clone(),
+            style_shared_lock: StyleSharedRwLock::new(),
             stylesheets: DOMRefCell::new(None),
             stylesheets_changed_since_reflow: Cell::new(false),
             stylesheet_list: MutNullableJS::new(None),
