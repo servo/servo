@@ -17,7 +17,6 @@ use dom_struct::dom_struct;
 use js::conversions::ConversionResult;
 use js::jsapi::{JSContext, JSObject};
 use js::jsval::{ObjectValue, UndefinedValue};
-use servo_config::opts;
 use servo_config::prefs::PREFS;
 use std::rc::Rc;
 #[cfg(target_os = "linux")]
