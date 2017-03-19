@@ -169,6 +169,13 @@ ${helpers.single_keyword("hyphens", "manual none auto",
                          products="gecko", animatable=False, extra_prefixes="moz",
                          spec="https://drafts.csswg.org/css-text/#propdef-hyphens")}
 
+// TODO: Support <percentage>
+${helpers.single_keyword("-moz-text-size-adjust", "auto none",
+                         gecko_constant_prefix="NS_STYLE_TEXT_SIZE_ADJUST",
+                         products="gecko", animatable=False,
+                         spec="https://drafts.csswg.org/css-size-adjust/#adjustment-control",
+                         alias="-webkit-text-size-adjust")}
+
 ${helpers.predefined_type("text-indent",
                           "LengthOrPercentage",
                           "computed::LengthOrPercentage::Length(Au(0))",
