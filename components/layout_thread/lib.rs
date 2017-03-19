@@ -1189,11 +1189,14 @@ impl LayoutThread {
         unsafe { layout_context.style_context.stylist.rule_tree.maybe_gc(); }
 
         // Perform post-style recalculation layout passes.
-        self.perform_post_style_recalc_layout_passes(&data.reflow_info,
-                                                     Some(&data.query_type),
-                                                     Some(&document),
-                                                     &mut rw_data,
-                                                     &mut layout_context);
+        if let Some(mut root_flow) = self.root_flow.clone() {
+            self.perform_post_style_recalc_layout_passes(&mut root_flow,
+                                                         &data.reflow_info,
+                                                         Some(&data.query_type),
+                                                         Some(&document),
+                                                         &mut rw_data,
+                                                         &mut layout_context);
+        }
 
         self.respond_to_query_if_necessary(&data.query_type,
                                            &mut *rw_data,
@@ -1360,109 +1363,108 @@ impl LayoutThread {
         let mut layout_context = self.build_layout_context(guards, &*rw_data, false);
 
         if let Some(mut root_flow) = self.root_flow.clone() {
-            // Perform an abbreviated style recalc that operates without access to the DOM.
-            let animations = self.running_animations.read();
-            profile(time::ProfilerCategory::LayoutStyleRecalc,
-                    self.profiler_metadata(),
-                    self.time_profiler_chan.clone(),
-                    || {
-                        animation::recalc_style_for_animations(&layout_context,
-                                                               FlowRef::deref_mut(&mut root_flow),
-                                                               &animations)
-                    });
+            {
+                // Perform an abbreviated style recalc that operates without access to the DOM.
+                let animations = self.running_animations.read();
+                profile(time::ProfilerCategory::LayoutStyleRecalc,
+                        self.profiler_metadata(),
+                        self.time_profiler_chan.clone(),
+                        || {
+                            animation::recalc_style_for_animations(
+                                &layout_context, FlowRef::deref_mut(&mut root_flow), &animations)
+                        });
+            }
+            self.perform_post_style_recalc_layout_passes(&mut root_flow,
+                                                         &reflow_info,
+                                                         None,
+                                                         None,
+                                                         &mut *rw_data,
+                                                         &mut layout_context);
         }
-
-        self.perform_post_style_recalc_layout_passes(&reflow_info,
-                                                     None,
-                                                     None,
-                                                     &mut *rw_data,
-                                                     &mut layout_context);
-
         assert!(layout_context.pending_images.is_none());
     }
 
     fn perform_post_style_recalc_layout_passes(&mut self,
+                                               root_flow: &mut FlowRef,
                                                data: &Reflow,
                                                query_type: Option<&ReflowQueryType>,
                                                document: Option<&ServoLayoutDocument>,
                                                rw_data: &mut LayoutThreadData,
                                                context: &mut LayoutContext) {
-        if let Some(mut root_flow) = self.root_flow.clone() {
-            // Kick off animations if any were triggered, expire completed ones.
-            animation::update_animation_state(&self.constellation_chan,
-                                              &self.script_chan,
-                                              &mut *self.running_animations.write(),
-                                              &mut *self.expired_animations.write(),
-                                              &self.new_animations_receiver,
-                                              self.id,
-                                              &self.timer);
+        // Kick off animations if any were triggered, expire completed ones.
+        animation::update_animation_state(&self.constellation_chan,
+                                          &self.script_chan,
+                                          &mut *self.running_animations.write(),
+                                          &mut *self.expired_animations.write(),
+                                          &self.new_animations_receiver,
+                                          self.id,
+                                          &self.timer);
 
-            profile(time::ProfilerCategory::LayoutRestyleDamagePropagation,
+        profile(time::ProfilerCategory::LayoutRestyleDamagePropagation,
+                self.profiler_metadata(),
+                self.time_profiler_chan.clone(),
+                || {
+            // Call `compute_layout_damage` even in non-incremental mode, because it sets flags
+            // that are needed in both incremental and non-incremental traversals.
+            let damage = FlowRef::deref_mut(root_flow).compute_layout_damage();
+
+            if opts::get().nonincremental_layout || damage.contains(REFLOW_ENTIRE_DOCUMENT) {
+                FlowRef::deref_mut(root_flow).reflow_entire_document()
+            }
+        });
+
+        if opts::get().trace_layout {
+            layout_debug::begin_trace(root_flow.clone());
+        }
+
+        // Resolve generated content.
+        profile(time::ProfilerCategory::LayoutGeneratedContent,
+                self.profiler_metadata(),
+                self.time_profiler_chan.clone(),
+                || sequential::resolve_generated_content(FlowRef::deref_mut(root_flow), &context));
+
+        // Guess float placement.
+        profile(time::ProfilerCategory::LayoutFloatPlacementSpeculation,
+                self.profiler_metadata(),
+                self.time_profiler_chan.clone(),
+                || sequential::guess_float_placement(FlowRef::deref_mut(root_flow)));
+
+        // Perform the primary layout passes over the flow tree to compute the locations of all
+        // the boxes.
+        if flow::base(&**root_flow).restyle_damage.intersects(REFLOW | REFLOW_OUT_OF_FLOW) {
+            profile(time::ProfilerCategory::LayoutMain,
                     self.profiler_metadata(),
                     self.time_profiler_chan.clone(),
                     || {
-                // Call `compute_layout_damage` even in non-incremental mode, because it sets flags
-                // that are needed in both incremental and non-incremental traversals.
-                let damage = FlowRef::deref_mut(&mut root_flow).compute_layout_damage();
+                let profiler_metadata = self.profiler_metadata();
 
-                if opts::get().nonincremental_layout || damage.contains(REFLOW_ENTIRE_DOCUMENT) {
-                    FlowRef::deref_mut(&mut root_flow).reflow_entire_document()
+                if let (true, Some(traversal)) = (self.parallel_flag, self.parallel_traversal.as_mut()) {
+                    // Parallel mode.
+                    LayoutThread::solve_constraints_parallel(traversal,
+                                                             FlowRef::deref_mut(root_flow),
+                                                             profiler_metadata,
+                                                             self.time_profiler_chan.clone(),
+                                                             &*context);
+                } else {
+                    //Sequential mode
+                    LayoutThread::solve_constraints(FlowRef::deref_mut(root_flow), &context)
                 }
             });
-
-            if opts::get().trace_layout {
-                layout_debug::begin_trace(root_flow.clone());
-            }
-
-            // Resolve generated content.
-            profile(time::ProfilerCategory::LayoutGeneratedContent,
-                    self.profiler_metadata(),
-                    self.time_profiler_chan.clone(),
-                    || sequential::resolve_generated_content(FlowRef::deref_mut(&mut root_flow), &context));
-
-            // Guess float placement.
-            profile(time::ProfilerCategory::LayoutFloatPlacementSpeculation,
-                    self.profiler_metadata(),
-                    self.time_profiler_chan.clone(),
-                    || sequential::guess_float_placement(FlowRef::deref_mut(&mut root_flow)));
-
-            // Perform the primary layout passes over the flow tree to compute the locations of all
-            // the boxes.
-            if flow::base(&*root_flow).restyle_damage.intersects(REFLOW | REFLOW_OUT_OF_FLOW) {
-                profile(time::ProfilerCategory::LayoutMain,
-                        self.profiler_metadata(),
-                        self.time_profiler_chan.clone(),
-                        || {
-                    let profiler_metadata = self.profiler_metadata();
-
-                    if let (true, Some(traversal)) = (self.parallel_flag, self.parallel_traversal.as_mut()) {
-                        // Parallel mode.
-                        LayoutThread::solve_constraints_parallel(traversal,
-                                                                 FlowRef::deref_mut(&mut root_flow),
-                                                                 profiler_metadata,
-                                                                 self.time_profiler_chan.clone(),
-                                                                 &*context);
-                    } else {
-                        //Sequential mode
-                        LayoutThread::solve_constraints(FlowRef::deref_mut(&mut root_flow), &context)
-                    }
-                });
-            }
-
-            profile(time::ProfilerCategory::LayoutStoreOverflow,
-                    self.profiler_metadata(),
-                    self.time_profiler_chan.clone(),
-                    || {
-                sequential::store_overflow(context,
-                                           FlowRef::deref_mut(&mut root_flow) as &mut Flow);
-            });
-
-            self.perform_post_main_layout_passes(data,
-                                                 query_type,
-                                                 document,
-                                                 rw_data,
-                                                 context);
         }
+
+        profile(time::ProfilerCategory::LayoutStoreOverflow,
+                self.profiler_metadata(),
+                self.time_profiler_chan.clone(),
+                || {
+            sequential::store_overflow(context,
+                                       FlowRef::deref_mut(root_flow) as &mut Flow);
+        });
+
+        self.perform_post_main_layout_passes(data,
+                                             query_type,
+                                             document,
+                                             rw_data,
+                                             context);
     }
 
     fn perform_post_main_layout_passes(&mut self,
