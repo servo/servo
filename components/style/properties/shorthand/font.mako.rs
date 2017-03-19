@@ -6,18 +6,18 @@
 
 <%helpers:shorthand name="font" sub_properties="font-style font-variant font-weight font-stretch
                                                 font-size line-height font-family
-                                                ${'font-size-adjust' if product == 'gecko' else ''}
-                                                ${'font-kerning' if product == 'gecko' else ''}
-                                                ${'font-variant-caps' if product == 'gecko' else ''}
-                                                ${'font-variant-position' if product == 'gecko' else ''}
-                                                ${'font-language-override' if product == 'none' else ''}"
+                                                ${'font-size-adjust' if product == 'gecko' or data.testing else ''}
+                                                ${'font-kerning' if product == 'gecko' or data.testing else ''}
+                                                ${'font-variant-caps' if product == 'gecko' or data.testing else ''}
+                                                ${'font-variant-position' if product == 'gecko' or data.testing else ''}
+                                                ${'font-language-override' if data.testing else ''}"
                     spec="https://drafts.csswg.org/css-fonts-3/#propdef-font">
     use properties::longhands::{font_style, font_variant, font_weight, font_stretch};
     use properties::longhands::{font_size, line_height};
-    % if product == "gecko":
+    % if product == "gecko" or data.testing:
     use properties::longhands::{font_size_adjust, font_kerning, font_variant_caps, font_variant_position};
     % endif
-    % if product == "none":
+    % if data.testing:
     use properties::longhands::font_language_override;
     % endif
     use properties::longhands::font_family::SpecifiedValue as FontFamily;
@@ -83,12 +83,12 @@
             % endfor
             line_height: unwrap_or_initial!(line_height),
             font_family: family,
-            % if product == "gecko":
+            % if product == "gecko" or data.testing:
                 % for name in "size_adjust kerning variant_caps variant_position".split():
                     font_${name}: font_${name}::get_initial_specified_value(),
                 % endfor
             % endif
-            % if product == "none":
+            % if data.testing:
                 font_language_override: font_language_override::get_initial_specified_value(),
             % endif
         })
@@ -97,16 +97,28 @@
     // This may be a bit off, unsure, possibly needs changes
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            self.font_style.to_css(dest)?;
+
+    % if product == "gecko" or data.testing:
+        % for name in "size_adjust kerning variant_caps variant_position".split():
+            if self.font_${name} != &font_${name}::get_initial_specified_value() {
+                return Ok(());
+            }
+        % endfor
+    % endif
+
+    % if data.testing:
+            if self.font_language_override != &font_language_override::get_initial_specified_value() {
+                return Ok(());
+            }
+    % endif
+
+    % for name in "style variant weight stretch".split():
+            self.font_${name}.to_css(dest)?;
             dest.write_str(" ")?;
-            self.font_variant.to_css(dest)?;
-            dest.write_str(" ")?;
-            self.font_weight.to_css(dest)?;
-            dest.write_str(" ")?;
-            self.font_stretch.to_css(dest)?;
-            dest.write_str(" ")?;
+    % endfor
 
             self.font_size.to_css(dest)?;
+
             match *self.line_height {
                 line_height::SpecifiedValue::Normal => {},
                 _ => {
@@ -116,7 +128,9 @@
             }
 
             dest.write_str(" ")?;
-            self.font_family.to_css(dest)
+            self.font_family.to_css(dest)?;
+
+            Ok(())
         }
     }
 </%helpers:shorthand>
