@@ -1702,6 +1702,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.shutdown_state != ShutdownState::FinishedShuttingDown
     }
 
+    pub fn set_webrender_profiler_enabled(&mut self, enabled: bool) {
+        self.webrender.set_profiler_enabled(enabled);
+        self.webrender_api.generate_frame(None);
+    }
+
     /// Repaints and recomposites synchronously. You must be careful when calling this, as if a
     /// paint is not scheduled the compositor will hang forever.
     ///
