@@ -596,9 +596,6 @@ impl LayoutThread {
                         || self.handle_reflow(&data, possibly_locked_rw_data));
             },
             Msg::TickAnimations => self.tick_all_animations(possibly_locked_rw_data),
-            Msg::ReflowWithNewlyLoadedWebFont => {
-                self.reflow_with_newly_loaded_web_font(possibly_locked_rw_data)
-            }
             Msg::SetStackingContextScrollStates(new_scroll_states) => {
                 self.set_stacking_context_scroll_states(new_scroll_states,
                                                         possibly_locked_rw_data);
@@ -1355,28 +1352,6 @@ impl LayoutThread {
                                                      &mut layout_context);
 
         assert!(layout_context.pending_images.is_none());
-    }
-
-    fn reflow_with_newly_loaded_web_font<'a, 'b>(&mut self, possibly_locked_rw_data: &mut RwData<'a, 'b>) {
-        let mut rw_data = possibly_locked_rw_data.lock();
-        font_context::invalidate_font_caches();
-
-        let reflow_info = Reflow {
-            goal: ReflowGoal::ForDisplay,
-            page_clip_rect: max_rect(),
-        };
-
-        let mut layout_context = self.build_layout_context(&*rw_data, false);
-
-        // No need to do a style recalc here.
-        if self.root_flow.is_none() {
-            return
-        }
-        self.perform_post_style_recalc_layout_passes(&reflow_info,
-                                                     None,
-                                                     None,
-                                                     &mut *rw_data,
-                                                     &mut layout_context);
     }
 
     fn perform_post_style_recalc_layout_passes(&mut self,
