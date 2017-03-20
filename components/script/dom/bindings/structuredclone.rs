@@ -66,19 +66,17 @@ unsafe fn read_blob(cx: *mut JSContext,
 
 unsafe fn write_blob(blob: Root<Blob>,
                      w: *mut JSStructuredCloneWriter)
-                     -> bool {
-    if let Ok(blob_vec) = blob.get_bytes() {
-        let blob_length = blob_vec.len();
-        let type_string_bytes = blob.get_type_string();
-        let type_string_length = type_string_bytes.len();
-        assert!(JS_WriteUint32Pair(w, StructuredCloneTags::DomBlob as u32, 0));
-        write_length(w, blob_length);
-        write_length(w, type_string_length);
-        assert!(JS_WriteBytes(w, blob_vec.as_ptr() as *const raw::c_void, blob_length));
-        assert!(JS_WriteBytes(w, type_string_bytes.as_ptr() as *const raw::c_void, type_string_length));
-        return true
-    }
-    return false
+                     -> Result<(), ()> {
+    let blob_vec = try!(blob.get_bytes());
+    let blob_length = blob_vec.len();
+    let type_string_bytes = blob.get_type_string();
+    let type_string_length = type_string_bytes.len();
+    assert!(JS_WriteUint32Pair(w, StructuredCloneTags::DomBlob as u32, 0));
+    write_length(w, blob_length);
+    write_length(w, type_string_length);
+    assert!(JS_WriteBytes(w, blob_vec.as_ptr() as *const raw::c_void, blob_length));
+    assert!(JS_WriteBytes(w, type_string_bytes.as_ptr() as *const raw::c_void, type_string_length));
+    return Ok(())
 }
 
 unsafe extern "C" fn read_callback(cx: *mut JSContext,
@@ -101,7 +99,7 @@ unsafe extern "C" fn write_callback(_cx: *mut JSContext,
                                     _closure: *mut raw::c_void)
                                     -> bool {
     if let Ok(blob) = root_from_handleobject::<Blob>(obj) {
-        return write_blob(blob, w)
+        return write_blob(blob, w).is_ok()
     }
     return false
 }
