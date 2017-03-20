@@ -602,20 +602,30 @@ fn should_block_nosniff(request: &Request, response: &Response) -> bool {
         javascript_mime_types.contains(mime_type)
     }
 
+    // Returns the same mime type with parameters like the charset.
+    #[inline]
+    fn paramless_mime_type(mime_type: &Mime) -> Mime {
+        match *mime_type {
+            Mime(ref top, ref sub, _) => {
+               Mime(top.clone(), sub.clone(), vec![])
+            }
+        }
+    }
+
     let text_css: Mime = mime!(Text / Css);
     // Assumes str::starts_with is equivalent to mime::TopLevel
     return match type_ {
         // Step 6
         Type::Script => {
             match content_type_header {
-                Some(&ContentType(ref mime_type)) => !is_javascript_mime_type(&mime_type),
+                Some(&ContentType(ref mime_type)) => !is_javascript_mime_type(&paramless_mime_type(&mime_type)),
                 None => true
             }
         }
         // Step 7
         Type::Style => {
             match content_type_header {
-                Some(&ContentType(ref mime_type)) => mime_type != &text_css,
+                Some(&ContentType(ref mime_type)) => paramless_mime_type(mime_type) != text_css,
                 None => true
             }
         }
