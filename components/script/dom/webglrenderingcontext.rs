@@ -84,9 +84,11 @@ macro_rules! handle_object_deletion {
             }
 
             if let Some(command) = $unbind_command {
-                $self_.ipc_renderer
+                if $self_.ipc_renderer
                     .send(CanvasMsg::WebGL(command))
-                    .unwrap();
+                    .is_err() {
+                        warn!("WebRenderer is unavailable!");
+                    }
             }
         }
     };
@@ -221,23 +223,34 @@ impl WebGLRenderingContext {
     }
 
     pub fn recreate(&self, size: Size2D<i32>) {
-        self.ipc_renderer.send(CanvasMsg::Common(CanvasCommonMsg::Recreate(size))).unwrap();
+        if self.ipc_renderer
+            .send(CanvasMsg::Common(CanvasCommonMsg::Recreate(size)))
+            .is_err() {
+                warn!("WebRenderer is unavailable!");
+                return;
+            }
 
         // ClearColor needs to be restored because after a resize the GLContext is recreated
         // and the framebuffer is cleared using the default black transparent color.
         let color = self.current_clear_color.get();
-        self.ipc_renderer
+        if self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::ClearColor(color.0, color.1, color.2, color.3)))
-            .unwrap();
+            .is_err() {
+                warn!("WebRenderer is unavailable!");
+                return;
+            }
 
         // WebGL Spec: Scissor rect must not change if the canvas is resized.
         // See: webgl/conformance-1.0.3/conformance/rendering/gl-scissor-canvas-dimensions.html
         // NativeContext handling library changes the scissor after a resize, so we need to reset the
         // default scissor when the canvas was created or the last scissor that the user set.
         let rect = self.current_scissor.get();
-        self.ipc_renderer
+        if self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::Scissor(rect.0, rect.1, rect.2, rect.3)))
-            .unwrap()
+            .is_err() {
+                warn!("WebRenderer is unavailable!");
+                return;
+            }
     }
 
     pub fn ipc_renderer(&self) -> IpcSender<CanvasMsg> {
@@ -313,9 +326,12 @@ impl WebGLRenderingContext {
             self.current_vertex_attrib_0.set((x, y, z, w))
         }
 
-        self.ipc_renderer
+        if self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::VertexAttrib(indx, x, y, z, w)))
-            .unwrap();
+            .is_err() {
+                warn!("WebRenderer is unavailable!");
+                return;
+            }
     }
 
     fn get_current_framebuffer_size(&self) -> Option<(i32, i32)> {
@@ -673,9 +689,12 @@ impl WebGLRenderingContext {
         // GL_UNPACK_ALIGNMENT, while for textures from images or
         // canvas (produced by rgba8_image_to_tex_image_data()), it
         // will be 1.
-        self.ipc_renderer
+        if self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::PixelStorei(constants::UNPACK_ALIGNMENT, unpacking_alignment as i32)))
-            .unwrap();
+            .is_err() {
+                warn!("WebRenderer is unavailable!");
+                return;
+            }
 
         // TODO(emilio): convert colorspace if requested
         let msg = WebGLCommand::TexImage2D(target.as_gl_constant(), level as i32,
@@ -684,9 +703,12 @@ impl WebGLRenderingContext {
                                            internal_format.as_gl_constant(),
                                            data_type.as_gl_constant(), pixels);
 
-        self.ipc_renderer
+        if self.ipc_renderer
             .send(CanvasMsg::WebGL(msg))
-            .unwrap();
+            .is_err() {
+                warn!("WebRenderer is unavailable!");
+                return;
+            }
 
         if let Some(fb) = self.bound_framebuffer.get() {
             fb.invalidate_texture(&*texture);
@@ -734,9 +756,12 @@ impl WebGLRenderingContext {
         // GL_UNPACK_ALIGNMENT, while for textures from images or
         // canvas (produced by rgba8_image_to_tex_image_data()), it
         // will be 1.
-        self.ipc_renderer
+        if self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::PixelStorei(constants::UNPACK_ALIGNMENT, unpacking_alignment as i32)))
-            .unwrap();
+            .is_err() {
+                warn!("WebRenderer is unavailable!");
+                return;
+            }
 
         // TODO(emilio): convert colorspace if requested
         let msg = WebGLCommand::TexSubImage2D(target.as_gl_constant(),
@@ -745,9 +770,13 @@ impl WebGLRenderingContext {
                                               format.as_gl_constant(),
                                               data_type.as_gl_constant(), pixels);
 
-        self.ipc_renderer
+        if self.ipc_renderer
             .send(CanvasMsg::WebGL(msg))
-            .unwrap()
+            .is_err() {
+                warn!("WebRenderer is unavailable!");
+                return;
+            }
+
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14
@@ -766,7 +795,10 @@ impl WebGLRenderingContext {
 
 impl Drop for WebGLRenderingContext {
     fn drop(&mut self) {
-        self.ipc_renderer.send(CanvasMsg::Common(CanvasCommonMsg::Close)).unwrap();
+        if self.ipc_renderer.send(CanvasMsg::Common(CanvasCommonMsg::Close)).is_err() {
+            warn!("WebRenderer is unavailable!");
+            return;
+        }
     }
 }
 
@@ -822,35 +854,47 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
     fn Flush(&self) {
-        self.ipc_renderer
+        if self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::Flush))
-            .unwrap();
+            .is_err() {
+                warn!("WebRenderer is unavailable!");
+                return;
+            }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
     fn Finish(&self) {
         let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
-        self.ipc_renderer
+        if self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::Finish(sender)))
-            .unwrap();
+            .is_err() {
+                warn!("WebRenderer is unavailable!");
+                return;
+            }
         receiver.recv().unwrap()
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.1
     fn DrawingBufferWidth(&self) -> i32 {
         let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
-        self.ipc_renderer
+        if self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::DrawingBufferWidth(sender)))
-            .unwrap();
+            .is_err() {
+                warn!("WebRenderer is unavailable!");
+                return 0;
+            }
         receiver.recv().unwrap()
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.1
     fn DrawingBufferHeight(&self) -> i32 {
         let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
-        self.ipc_renderer
+        if self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::DrawingBufferHeight(sender)))
-            .unwrap();
+            .is_err() {
+                warn!("WebRenderer is unavailable!");
+                return 0;
+            }
         receiver.recv().unwrap()
     }
 
@@ -858,9 +902,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     unsafe fn GetBufferParameter(&self, _cx: *mut JSContext, target: u32, parameter: u32) -> JSVal {
         let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
-        self.ipc_renderer
+        if self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::GetBufferParameter(target, parameter, sender)))
-            .unwrap();
+            .is_err() {
+                warn!("WebRenderer is unavailable!");
+                return UndefinedValue();
+            }
         match handle_potential_webgl_error!(self, receiver.recv().unwrap(), WebGLParameter::Invalid) {
             WebGLParameter::Int(val) => Int32Value(val),
             WebGLParameter::Bool(_) => panic!("Buffer parameter should not be bool"),
@@ -914,9 +961,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
 
         let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
-        self.ipc_renderer
+        if self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::GetParameter(parameter, sender)))
-            .unwrap();
+            .is_err() {
+                warn!("WebRenderer is unavailable!");
+                return UndefinedValue();
+            }
         match handle_potential_webgl_error!(self, receiver.recv().unwrap(), WebGLParameter::Invalid) {
             WebGLParameter::Int(val) => Int32Value(val),
             WebGLParameter::Bool(val) => BooleanValue(val),
@@ -986,12 +1036,18 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn ActiveTexture(&self, texture: u32) {
-        self.ipc_renderer.send(CanvasMsg::WebGL(WebGLCommand::ActiveTexture(texture))).unwrap();
+        if self.ipc_renderer.send(CanvasMsg::WebGL(WebGLCommand::ActiveTexture(texture))).is_err() {
+            warn!("WebRenderer is unavailable!");
+            return;
+        }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn BlendColor(&self, r: f32, g: f32, b: f32, a: f32) {
-        self.ipc_renderer.send(CanvasMsg::WebGL(WebGLCommand::BlendColor(r, g, b, a))).unwrap();
+        if self.ipc_renderer.send(CanvasMsg::WebGL(WebGLCommand::BlendColor(r, g, b, a))).is_err() {
+            warn!("WebRenderer is unavailable!");
+            return;
+        }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
@@ -1000,7 +1056,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidEnum);
         }
 
-        self.ipc_renderer.send(CanvasMsg::WebGL(WebGLCommand::BlendEquation(mode))).unwrap();
+        if self.ipc_renderer.send(CanvasMsg::WebGL(WebGLCommand::BlendEquation(mode))).is_err() {
+            warn!("WebRenderer is unavailable!");
+            return;
+        }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
@@ -1009,9 +1068,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidEnum);
         }
 
-        self.ipc_renderer
+        if self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::BlendEquationSeparate(mode_rgb, mode_alpha)))
-            .unwrap();
+            .is_err() {
+                warn!("WebRenderer is unavailable!");
+                return;
+            }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
@@ -1028,9 +1090,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidOperation);
         }
 
-        self.ipc_renderer
+        if self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::BlendFunc(src_factor, dest_factor)))
-            .unwrap();
+            .is_err() {
+                warn!("WebRenderer is unavailable!");
+                return;
+            }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
@@ -1047,8 +1112,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidOperation);
         }
 
-        self.ipc_renderer.send(
-            CanvasMsg::WebGL(WebGLCommand::BlendFuncSeparate(src_rgb, dest_rgb, src_alpha, dest_alpha))).unwrap();
+        if self.ipc_renderer.send(
+            CanvasMsg::WebGL(WebGLCommand::BlendFuncSeparate(src_rgb, dest_rgb, src_alpha, dest_alpha)))
+            .is_err() {
+                warn!("WebRenderer is unavailable!");
+                return;
+            }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
@@ -1094,9 +1163,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         } else {
             slot.set(None);
             // Unbind the current buffer
-            self.ipc_renderer
+            if self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::BindBuffer(target, None)))
-                .unwrap()
+                .is_err() {
+                    warn!("WebRenderer is unavailable!");
+                    return;
+                }
         }
     }
 
@@ -1121,7 +1193,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         } else {
             // Bind the default framebuffer
             let cmd = WebGLCommand::BindFramebuffer(target, WebGLFramebufferBindingRequest::Default);
-            self.ipc_renderer.send(CanvasMsg::WebGL(cmd)).unwrap();
+            if self.ipc_renderer.send(CanvasMsg::WebGL(cmd)).is_err() {
+                warn!("WebRenderer is unavailable!");
+                return;
+            }
             self.bound_framebuffer.set(framebuffer);
         }
     }
@@ -1143,9 +1218,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             _ => {
                 self.bound_renderbuffer.set(None);
                 // Unbind the currently bound renderbuffer
-                self.ipc_renderer
+                if self.ipc_renderer
                     .send(CanvasMsg::WebGL(WebGLCommand::BindRenderbuffer(target, None)))
-                    .unwrap()
+                    .is_err() {
+                        warn!("WebRenderer is unavailable!");
+                        return;
+                    }
             }
         }
     }
@@ -1166,9 +1244,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         } else {
             slot.set(None);
             // Unbind the currently bound texture
-            self.ipc_renderer
+            if self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::BindTexture(target, None)))
-                .unwrap()
+                .is_err() {
+                    warn!("WebRenderer is unavailable!");
+                    return;
+                }
         }
     }
 
@@ -1286,9 +1367,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if (offset as usize) + data_vec.len() > bound_buffer.capacity() {
             return Ok(self.webgl_error(InvalidValue));
         }
-        self.ipc_renderer
+        if self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::BufferSubData(target, offset as isize, data_vec)))
-            .unwrap();
+            .is_err() {
+                warn!("WebRenderer is unavailable!");
+                return Err(Error::InvalidState);
+            }
 
         Ok(())
     }
@@ -1371,7 +1455,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                                                width as i32, height as i32,
                                                border as i32);
 
-        self.ipc_renderer.send(CanvasMsg::WebGL(msg)).unwrap()
+        if self.ipc_renderer.send(CanvasMsg::WebGL(msg)).is_err() {
+            warn!("WebRenderer is unavailable!");
+            return;
+        }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
@@ -1415,7 +1502,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                                                   x, y,
                                                   width as i32, height as i32);
 
-        self.ipc_renderer.send(CanvasMsg::WebGL(msg)).unwrap();
+        if self.ipc_renderer.send(CanvasMsg::WebGL(msg)).is_err() {
+            warn!("WebRenderer is unavailable!");
+            return;
+        }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
@@ -1424,46 +1514,64 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return;
         }
 
-        self.ipc_renderer.send(CanvasMsg::WebGL(WebGLCommand::Clear(mask))).unwrap();
+        if self.ipc_renderer.send(CanvasMsg::WebGL(WebGLCommand::Clear(mask))).is_err() {
+            warn!("WebRenderer is unavailable!");
+            return;
+        }
         self.mark_as_dirty();
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn ClearColor(&self, red: f32, green: f32, blue: f32, alpha: f32) {
         self.current_clear_color.set((red, green, blue, alpha));
-        self.ipc_renderer
+        if self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::ClearColor(red, green, blue, alpha)))
-            .unwrap()
+            .is_err() {
+                warn!("WebRenderer is unavailable!");
+                return;
+            }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn ClearDepth(&self, depth: f32) {
-        self.ipc_renderer
+        if self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::ClearDepth(depth as f64)))
-            .unwrap()
+            .is_err() {
+                warn!("WebRenderer is unavailable!");
+                return;
+            }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn ClearStencil(&self, stencil: i32) {
-        self.ipc_renderer
+        if self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::ClearStencil(stencil)))
-            .unwrap()
+            .is_err() {
+                warn!("WebRenderer is unavailable!");
+                return;
+            }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn ColorMask(&self, r: bool, g: bool, b: bool, a: bool) {
-        self.ipc_renderer
+        if self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::ColorMask(r, g, b, a)))
-            .unwrap()
+            .is_err() {
+                warn!("WebRenderer is unavailable!");
+                return;
+            }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn CullFace(&self, mode: u32) {
         match mode {
             constants::FRONT | constants::BACK | constants::FRONT_AND_BACK =>
-                self.ipc_renderer
+                if self.ipc_renderer
                     .send(CanvasMsg::WebGL(WebGLCommand::CullFace(mode)))
-                    .unwrap(),
+                .is_err() {
+                    warn!("WebRenderer is unavailable!");
+                    return;
+                },
             _ => self.webgl_error(InvalidEnum),
         }
     }
@@ -1472,9 +1580,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn FrontFace(&self, mode: u32) {
         match mode {
             constants::CW | constants::CCW =>
-                self.ipc_renderer
+                if self.ipc_renderer
                     .send(CanvasMsg::WebGL(WebGLCommand::FrontFace(mode)))
-                    .unwrap(),
+                .is_err() {
+                    warn!("WebRenderer is unavailable!");
+                    return;
+                },
             _ => self.webgl_error(InvalidEnum),
         }
     }
@@ -1485,18 +1596,24 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             constants::EQUAL | constants::LEQUAL |
             constants::GREATER | constants::NOTEQUAL |
             constants::GEQUAL | constants::ALWAYS =>
-                self.ipc_renderer
+                if self.ipc_renderer
                     .send(CanvasMsg::WebGL(WebGLCommand::DepthFunc(func)))
-                    .unwrap(),
+                .is_err() {
+                    warn!("WebRenderer is unavailable!");
+                    return;
+                },
             _ => self.webgl_error(InvalidEnum),
         }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn DepthMask(&self, flag: bool) {
-        self.ipc_renderer
+        if self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::DepthMask(flag)))
-            .unwrap()
+            .is_err() {
+                warn!("WebRenderer is unavailable!");
+                return;
+            }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
@@ -1510,26 +1627,35 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidOperation);
         }
 
-        self.ipc_renderer
+        if self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::DepthRange(near as f64, far as f64)))
-            .unwrap()
+            .is_err() {
+                warn!("WebRenderer is unavailable!");
+                return;
+            }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn Enable(&self, cap: u32) {
         if self.validate_feature_enum(cap) {
-            self.ipc_renderer
+            if self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Enable(cap)))
-                .unwrap();
+                .is_err() {
+                    warn!("WebRenderer is unavailable!");
+                    return;
+                }
         }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn Disable(&self, cap: u32) {
         if self.validate_feature_enum(cap) {
-            self.ipc_renderer
+            if self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Disable(cap)))
-                .unwrap()
+                .is_err() {
+                    warn!("WebRenderer is unavailable!");
+                    return;
+                }
         }
     }
 
@@ -1683,9 +1809,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                     return;
                 }
 
-                self.ipc_renderer
+                if self.ipc_renderer
                     .send(CanvasMsg::WebGL(WebGLCommand::DrawArrays(mode, first, count)))
-                    .unwrap();
+                    .is_err() {
+                        warn!("WebRenderer is unavailable!");
+                        return;
+                    }
                 self.mark_as_dirty();
             },
             _ => self.webgl_error(InvalidEnum),
@@ -1749,9 +1878,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             constants::LINE_LOOP | constants::LINES |
             constants::TRIANGLE_STRIP | constants::TRIANGLE_FAN |
             constants::TRIANGLES => {
-                self.ipc_renderer
+                if self.ipc_renderer
                     .send(CanvasMsg::WebGL(WebGLCommand::DrawElements(mode, count, type_, offset)))
-                    .unwrap();
+                    .is_err() {
+                        warn!("WebRenderer is unavailable!");
+                        return;
+                    }
                 self.mark_as_dirty();
             },
             _ => self.webgl_error(InvalidEnum),
@@ -1764,9 +1896,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidValue);
         }
 
-        self.ipc_renderer
+        if self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::EnableVertexAttribArray(attrib_id)))
-            .unwrap()
+            .is_err() {
+                warn!("WebRenderer is unavailable!");
+                return;
+            }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -1775,9 +1910,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidValue);
         }
 
-        self.ipc_renderer
+        if self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::DisableVertexAttribArray(attrib_id)))
-            .unwrap()
+            .is_err() {
+                warn!("WebRenderer is unavailable!");
+                return;
+            }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -1924,7 +2062,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
 
         let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
-        self.ipc_renderer.send(CanvasMsg::WebGL(WebGLCommand::GetVertexAttrib(index, pname, sender))).unwrap();
+        if self.ipc_renderer
+            .send(CanvasMsg::WebGL(WebGLCommand::GetVertexAttrib(index, pname, sender)))
+            .is_err() {
+                warn!("WebRenderer is unavailable!");
+                return UndefinedValue();
+            }
 
         match handle_potential_webgl_error!(self, receiver.recv().unwrap(), WebGLParameter::Invalid) {
             WebGLParameter::Int(val) => Int32Value(val),
@@ -1954,9 +2097,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             _ => return self.webgl_error(InvalidEnum),
         }
 
-        self.ipc_renderer
+        if self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::Hint(target, mode)))
-            .unwrap()
+            .is_err() {
+                warn!("WebRenderer is unavailable!");
+                return;
+            }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
@@ -1969,9 +2115,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn IsEnabled(&self, cap: u32) -> bool {
         if self.validate_feature_enum(cap) {
             let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
-            self.ipc_renderer
+            if self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::IsEnabled(cap, sender)))
-                .unwrap();
+                .is_err() {
+                    warn!("WebRenderer is unavailable!");
+                    return false;
+                }
             return receiver.recv().unwrap();
         }
 
@@ -2009,9 +2158,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidValue);
         }
 
-        self.ipc_renderer
+        if self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::LineWidth(width)))
-            .unwrap()
+            .is_err() {
+                warn!("WebRenderer is unavailable!");
+                return;
+            }
     }
 
     // NOTE: Usage of this function could affect rendering while we keep using
@@ -2067,9 +2219,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn PolygonOffset(&self, factor: f32, units: f32) {
-        self.ipc_renderer
+        if self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::PolygonOffset(factor, units)))
-            .unwrap()
+            .is_err() {
+                warn!("WebRenderer is unavailable!");
+                return;
+            }
     }
 
     #[allow(unsafe_code)]
@@ -2170,9 +2325,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         };
 
         let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
-        self.ipc_renderer
+        if self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::ReadPixels(x, y, width, height, format, pixel_type, sender)))
-            .unwrap();
+            .is_err() {
+                warn!("WebRenderer is unavailable!");
+                return Err(Error::InvalidState);
+            }
 
         let result = receiver.recv().unwrap();
 
@@ -2188,7 +2346,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn SampleCoverage(&self, value: f32, invert: bool) {
-        self.ipc_renderer.send(CanvasMsg::WebGL(WebGLCommand::SampleCoverage(value, invert))).unwrap();
+        if self.ipc_renderer
+            .send(CanvasMsg::WebGL(WebGLCommand::SampleCoverage(value, invert)))
+            .is_err() {
+                warn!("WebRenderer is unavailable!");
+                return;
+            }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.4
@@ -2198,9 +2361,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
 
         self.current_scissor.set((x, y, width, height));
-        self.ipc_renderer
+        if self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::Scissor(x, y, width, height)))
-            .unwrap()
+            .is_err() {
+                warn!("WebRenderer is unavailable!");
+                return;
+            }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
@@ -2208,9 +2374,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         match func {
             constants::NEVER | constants::LESS | constants::EQUAL | constants::LEQUAL |
             constants::GREATER | constants::NOTEQUAL | constants::GEQUAL | constants::ALWAYS =>
-                self.ipc_renderer
+                if self.ipc_renderer
                     .send(CanvasMsg::WebGL(WebGLCommand::StencilFunc(func, ref_, mask)))
-                    .unwrap(),
+                .is_err() {
+                    warn!("WebRenderer is unavailable!");
+                    return;
+                },
             _ => self.webgl_error(InvalidEnum),
         }
     }
@@ -2225,27 +2394,36 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         match func {
             constants::NEVER | constants::LESS | constants::EQUAL | constants::LEQUAL |
             constants::GREATER | constants::NOTEQUAL | constants::GEQUAL | constants::ALWAYS =>
-                self.ipc_renderer
+                if self.ipc_renderer
                     .send(CanvasMsg::WebGL(WebGLCommand::StencilFuncSeparate(face, func, ref_, mask)))
-                    .unwrap(),
+                    .is_err() {
+                        warn!("WebRenderer is unavailable!");
+                        return;
+                    },
             _ => self.webgl_error(InvalidEnum),
         }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn StencilMask(&self, mask: u32) {
-        self.ipc_renderer
+        if self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::StencilMask(mask)))
-            .unwrap()
+            .is_err() {
+                warn!("WebRenderer is unavailable!");
+                return;
+            }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn StencilMaskSeparate(&self, face: u32, mask: u32) {
         match face {
             constants::FRONT | constants::BACK | constants::FRONT_AND_BACK =>
-                self.ipc_renderer
+                if self.ipc_renderer
                     .send(CanvasMsg::WebGL(WebGLCommand::StencilMaskSeparate(face, mask)))
-                    .unwrap(),
+                .is_err() {
+                    warn!("WebRenderer is unavailable!");
+                    return;
+                },
             _ => return self.webgl_error(InvalidEnum),
         }
     }
@@ -2254,9 +2432,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn StencilOp(&self, fail: u32, zfail: u32, zpass: u32) {
         if self.validate_stencil_actions(fail) && self.validate_stencil_actions(zfail) &&
            self.validate_stencil_actions(zpass) {
-                self.ipc_renderer
+                if self.ipc_renderer
                     .send(CanvasMsg::WebGL(WebGLCommand::StencilOp(fail, zfail, zpass)))
-                    .unwrap()
+                   .is_err() {
+                       warn!("WebRenderer is unavailable!");
+                       return;
+                   }
         } else {
             self.webgl_error(InvalidEnum)
         }
@@ -2271,9 +2452,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
         if self.validate_stencil_actions(fail) && self.validate_stencil_actions(zfail) &&
            self.validate_stencil_actions(zpass) {
-                self.ipc_renderer
+                if self.ipc_renderer
                     .send(CanvasMsg::WebGL(WebGLCommand::StencilOpSeparate(face, fail, zfail, zpass)))
-                    .unwrap()
+                    .is_err() {
+                       warn!("WebRenderer is unavailable!");
+                       return;
+                   }
         } else {
             self.webgl_error(InvalidEnum)
         }
@@ -2305,9 +2489,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                   uniform: Option<&WebGLUniformLocation>,
                   val: f32) {
         if self.validate_uniform_parameters(uniform, UniformSetterType::Float, &[val]) {
-            self.ipc_renderer
+            if self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform1f(uniform.unwrap().id(), val)))
-                .unwrap()
+                .is_err() {
+                    warn!("WebRenderer is unavailable!");
+                    return;
+                }
         }
     }
 
@@ -2316,9 +2503,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                   uniform: Option<&WebGLUniformLocation>,
                   val: i32) {
         if self.validate_uniform_parameters(uniform, UniformSetterType::Int, &[val]) {
-            self.ipc_renderer
+            if self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform1i(uniform.unwrap().id(), val)))
-                .unwrap()
+                .is_err() {
+                    warn!("WebRenderer is unavailable!");
+                    return;
+                }
         }
     }
 
@@ -2332,9 +2522,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         let data_vec = try!(typed_array_or_sequence_to_vec::<Int32>(cx, data, ConversionBehavior::Default));
 
         if self.validate_uniform_parameters(uniform, UniformSetterType::Int, &data_vec) {
-            self.ipc_renderer
+            if self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform1iv(uniform.unwrap().id(), data_vec)))
-                .unwrap()
+                .is_err() {
+                    warn!("WebRenderer is unavailable!");
+                    return Err(Error::InvalidState);
+                }
         }
 
         Ok(())
@@ -2350,9 +2543,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         let data_vec = try!(typed_array_or_sequence_to_vec::<Float32>(cx, data, ()));
 
         if self.validate_uniform_parameters(uniform, UniformSetterType::Float, &data_vec) {
-            self.ipc_renderer
+            if self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform1fv(uniform.unwrap().id(), data_vec)))
-                .unwrap()
+                .is_err() {
+                    warn!("WebRenderer is unavailable!");
+                    return Err(Error::InvalidState);
+                }
         }
 
         Ok(())
@@ -2363,9 +2559,13 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                   uniform: Option<&WebGLUniformLocation>,
                   x: f32, y: f32) {
         if self.validate_uniform_parameters(uniform, UniformSetterType::FloatVec2, &[x, y]) {
-            self.ipc_renderer
+            if self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform2f(uniform.unwrap().id(), x, y)))
-                .unwrap()
+                .is_err() {
+                    warn!("WebRenderer is unavailable!");
+                    return;
+                }
+
         }
     }
 
@@ -2381,9 +2581,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if self.validate_uniform_parameters(uniform,
                                             UniformSetterType::FloatVec2,
                                             &data_vec) {
-            self.ipc_renderer
+            if self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform2fv(uniform.unwrap().id(), data_vec)))
-                .unwrap()
+                .is_err() {
+                    warn!("WebRenderer is unavailable!");
+                    return Err(Error::InvalidState);
+                }
         }
 
         Ok(())
@@ -2396,9 +2599,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if self.validate_uniform_parameters(uniform,
                                             UniformSetterType::IntVec2,
                                             &[x, y]) {
-            self.ipc_renderer
+            if self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform2i(uniform.unwrap().id(), x, y)))
-                .unwrap()
+                .is_err() {
+                    warn!("WebRenderer is unavailable!");
+                    return;
+                }
         }
     }
 
@@ -2414,9 +2620,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if self.validate_uniform_parameters(uniform,
                                             UniformSetterType::IntVec2,
                                             &data_vec) {
-            self.ipc_renderer
+            if self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform2iv(uniform.unwrap().id(), data_vec)))
-                .unwrap()
+                .is_err() {
+                    warn!("WebRenderer is unavailable!");
+                    return Err(Error::InvalidState);
+                }
         }
 
         Ok(())
@@ -2429,9 +2638,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if self.validate_uniform_parameters(uniform,
                                             UniformSetterType::FloatVec3,
                                             &[x, y, z]) {
-            self.ipc_renderer
+            if self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform3f(uniform.unwrap().id(), x, y, z)))
-                .unwrap()
+                .is_err() {
+                    warn!("WebRenderer is unavailable!");
+                    return;
+                }
         }
     }
 
@@ -2447,9 +2659,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if self.validate_uniform_parameters(uniform,
                                             UniformSetterType::FloatVec3,
                                             &data_vec) {
-            self.ipc_renderer
+            if self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform3fv(uniform.unwrap().id(), data_vec)))
-                .unwrap()
+                .is_err() {
+                    warn!("WebRenderer is unavailable!");
+                    return Err(Error::InvalidState);
+                }
         }
 
         Ok(())
@@ -2462,9 +2677,13 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if self.validate_uniform_parameters(uniform,
                                             UniformSetterType::IntVec3,
                                             &[x, y, z]) {
-            self.ipc_renderer
+            if self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform3i(uniform.unwrap().id(), x, y, z)))
-                .unwrap()
+                .is_err() {
+                    warn!("WebRenderer is unavailable!");
+                    return;
+                }
+
         }
     }
 
@@ -2480,9 +2699,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if self.validate_uniform_parameters(uniform,
                                             UniformSetterType::IntVec3,
                                             &data_vec) {
-            self.ipc_renderer
+            if self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform3iv(uniform.unwrap().id(), data_vec)))
-                .unwrap()
+                .is_err() {
+                    warn!("WebRenderer is unavailable!");
+                    return Err(Error::InvalidState);
+                }
         }
 
         Ok(())
@@ -2495,9 +2717,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if self.validate_uniform_parameters(uniform,
                                             UniformSetterType::IntVec4,
                                             &[x, y, z, w]) {
-            self.ipc_renderer
+            if self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform4i(uniform.unwrap().id(), x, y, z, w)))
-                .unwrap()
+                .is_err() {
+                    warn!("WebRenderer is unavailable!");
+                    return;
+                }
         }
     }
 
@@ -2514,9 +2739,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if self.validate_uniform_parameters(uniform,
                                             UniformSetterType::IntVec4,
                                             &data_vec) {
-            self.ipc_renderer
+            if self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform4iv(uniform.unwrap().id(), data_vec)))
-                .unwrap()
+                .is_err() {
+                    warn!("WebRenderer is unavailable!");
+                    return Err(Error::InvalidState);
+                }
         }
 
         Ok(())
@@ -2529,9 +2757,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if self.validate_uniform_parameters(uniform,
                                             UniformSetterType::FloatVec4,
                                             &[x, y, z, w]) {
-            self.ipc_renderer
+            if self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform4f(uniform.unwrap().id(), x, y, z, w)))
-                .unwrap()
+                .is_err() {
+                    warn!("WebRenderer is unavailable!");
+                    return;
+                }
         }
     }
 
@@ -2547,9 +2778,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if self.validate_uniform_parameters(uniform,
                                             UniformSetterType::FloatVec4,
                                             &data_vec) {
-            self.ipc_renderer
+            if self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform4fv(uniform.unwrap().id(), data_vec)))
-                .unwrap()
+                .is_err() {
+                    warn!("WebRenderer is unavailable!");
+                    return Err(Error::InvalidState);
+                }
         }
 
         Ok(())
@@ -2567,9 +2801,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if self.validate_uniform_parameters(uniform,
                                             UniformSetterType::FloatMat2,
                                             &data_vec) {
-            self.ipc_renderer
+            if self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::UniformMatrix2fv(uniform.unwrap().id(), transpose, data_vec)))
-                .unwrap()
+                .is_err() {
+                    warn!("WebRenderer is unavailable!");
+                    return Err(Error::InvalidState);
+                }
         }
 
         Ok(())
@@ -2587,9 +2824,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if self.validate_uniform_parameters(uniform,
                                             UniformSetterType::FloatMat3,
                                             &data_vec) {
-            self.ipc_renderer
+            if self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::UniformMatrix3fv(uniform.unwrap().id(), transpose, data_vec)))
-                .unwrap()
+                .is_err() {
+                    warn!("WebRenderer is unavailable!");
+                    return Err(Error::InvalidState);
+                }
         }
 
         Ok(())
@@ -2607,9 +2847,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if self.validate_uniform_parameters(uniform,
                                             UniformSetterType::FloatMat4,
                                             &data_vec) {
-            self.ipc_renderer
+            if self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::UniformMatrix4fv(uniform.unwrap().id(), transpose, data_vec)))
-                .unwrap()
+                .is_err() {
+                    warn!("WebRenderer is unavailable!");
+                    return Err(Error::InvalidState);
+                }
         }
 
         Ok(())
@@ -2741,7 +2984,11 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
         let msg = CanvasMsg::WebGL(
                     WebGLCommand::VertexAttribPointer(attrib_id, size, data_type, normalized, stride, offset as u32));
-        self.ipc_renderer.send(msg).unwrap()
+        if self.ipc_renderer.send(msg).is_err() {
+            warn!("WebRenderer is unavailable!");
+            return;
+        }
+
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.4
@@ -2750,9 +2997,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidValue)
         }
 
-        self.ipc_renderer
+        if self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::Viewport(x, y, width, height)))
-            .unwrap()
+            .is_err() {
+                warn!("WebRenderer is unavailable!");
+                return;
+            }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
