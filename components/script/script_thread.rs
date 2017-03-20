@@ -46,6 +46,7 @@ use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::globalscope::GlobalScope;
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmliframeelement::HTMLIFrameElement;
+use dom::mutationobserver::MutationObserver;
 use dom::node::{Node, NodeDamage, window_from_node};
 use dom::serviceworker::TrustedServiceWorkerAddress;
 use dom::serviceworkerregistration::ServiceWorkerRegistration;
@@ -726,7 +727,7 @@ impl ScriptThread {
 
             microtask_queue: MicrotaskQueue::default(),
 
-	    mutation_observers: Vec![],
+            mutation_observers: vec![],
 
             layout_to_constellation_chan: state.layout_to_constellation_chan,
 
