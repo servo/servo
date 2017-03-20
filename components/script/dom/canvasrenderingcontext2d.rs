@@ -998,15 +998,15 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
 
         let sw = cmp::max(1, sw.abs().to_u32().unwrap());
         let sh = cmp::max(1, sh.abs().to_u32().unwrap());
-        Ok(ImageData::new(&self.global(), sw, sh, None))
+        ImageData::new(&self.global(), sw, sh, None)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createimagedata
     fn CreateImageData_(&self, imagedata: &ImageData) -> Fallible<Root<ImageData>> {
-        Ok(ImageData::new(&self.global(),
-                          imagedata.Width(),
-                          imagedata.Height(),
-                          None))
+        ImageData::new(&self.global(),
+                       imagedata.Width(),
+                       imagedata.Height(),
+                       None)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-getimagedata
@@ -1059,7 +1059,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
             chunk[2] = UNPREMULTIPLY_TABLE[256 * alpha + chunk[2] as usize];
         }
 
-        Ok(ImageData::new(&self.global(), sw, sh, Some(data)))
+        ImageData::new(&self.global(), sw, sh, Some(data))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
