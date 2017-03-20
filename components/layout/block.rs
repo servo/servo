@@ -2233,10 +2233,11 @@ impl Flow for BlockFlow {
 
     fn compute_overflow(&self) -> Overflow {
         let flow_size = self.base.position.size.to_physical(self.base.writing_mode);
-        self.fragment.compute_overflow(&flow_size,
+        let overflow = self.fragment.compute_overflow(&flow_size,
                                        &self.base
                                             .early_absolute_position_info
-                                            .relative_containing_block_size)
+                                            .relative_containing_block_size);
+        overflow
     }
 
     fn iterate_through_fragment_border_boxes(&self,

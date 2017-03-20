@@ -434,6 +434,7 @@ impl StackingContext {
     pub fn to_display_list_items(self) -> (DisplayItem, DisplayItem) {
         let mut base_item = BaseDisplayItem::empty();
         base_item.stacking_context_id = self.id;
+        base_item.scroll_root_id = self.parent_scroll_id;
 
         let pop_item = DisplayItem::PopStackingContext(Box::new(
             PopStackingContextItem {

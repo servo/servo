@@ -40,7 +40,7 @@ use style_traits::viewport::ViewportConstraints;
 use time::{precise_time_ns, precise_time_s};
 use touch::{TouchHandler, TouchAction};
 use webrender;
-use webrender_traits::{self, ScrollEventPhase, ServoScrollRootId, LayoutPoint, ScrollLocation};
+use webrender_traits::{self, LayoutPoint, ScrollEventPhase, ScrollLayerId, ScrollLocation};
 use windowing::{self, MouseWindowEvent, WindowEvent, WindowMethods, WindowNavigateMsg};
 
 #[derive(Debug, PartialEq)]
@@ -77,9 +77,9 @@ trait ConvertScrollRootIdFromWebRender {
     fn from_webrender(&self) -> ScrollRootId;
 }
 
-impl ConvertScrollRootIdFromWebRender for webrender_traits::ServoScrollRootId {
+impl ConvertScrollRootIdFromWebRender for usize {
     fn from_webrender(&self) -> ScrollRootId {
-        ScrollRootId(self.0)
+        ScrollRootId(*self)
     }
 }
 
@@ -791,10 +791,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                 pipeline_id: PipelineId,
                                 scroll_root_id: ScrollRootId,
                                 point: Point2D<f32>) {
-        self.webrender_api.scroll_layers_with_scroll_root_id(
-            LayoutPoint::from_untyped(&point),
-            pipeline_id.to_webrender(),
-            ServoScrollRootId(scroll_root_id.0));
+        let id = ScrollLayerId::new(scroll_root_id.0, pipeline_id.to_webrender());
+        self.webrender_api.scroll_layer_with_id(LayoutPoint::from_untyped(&point), id);
     }
 
     fn handle_window_message(&mut self, event: WindowEvent) {
@@ -1386,13 +1384,18 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn send_viewport_rects(&self) {
         let mut stacking_context_scroll_states_per_pipeline = HashMap::new();
         for scroll_layer_state in self.webrender_api.get_scroll_layer_state() {
+            let external_id = match scroll_layer_state.id.external_id() {
+                Some(id) => id,
+                None => continue,
+            };
+
             let stacking_context_scroll_state = StackingContextScrollState {
-                scroll_root_id: scroll_layer_state.scroll_root_id.from_webrender(),
+                scroll_root_id: external_id.from_webrender(),
                 scroll_offset: scroll_layer_state.scroll_offset.to_untyped(),
             };
-            let pipeline_id = scroll_layer_state.pipeline_id;
+
             stacking_context_scroll_states_per_pipeline
-                .entry(pipeline_id)
+                .entry(scroll_layer_state.id.pipeline_id())
                 .or_insert(vec![])
                 .push(stacking_context_scroll_state);
         }
