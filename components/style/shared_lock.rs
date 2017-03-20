@@ -4,18 +4,37 @@
 
 //! Different objects protected by the same lock
 
+#[cfg(feature = "gecko")]
+use atomic_refcell::{AtomicRefCell, AtomicRef, AtomicRefMut};
+#[cfg(feature = "servo")]
 use parking_lot::RwLock;
 use std::cell::UnsafeCell;
 use std::fmt;
 use std::sync::Arc;
 
 /// A shared read/write lock that can protect multiple objects.
+///
+/// In Gecko builds, we don't need the blocking behavior, just the safety. As
+/// such we implement this with an AtomicRefCell instead in Gecko builds,
+/// which is ~2x as fast, and panics (rather than deadlocking) when things go
+/// wrong (which is much easier to debug on CI).
+///
+/// Servo needs the blocking behavior for its unsynchronized animation setup,
+/// but that may not be web-compatible and may need to be changed (at which
+/// point Servo could use AtomicRefCell too).
 #[derive(Clone)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct SharedRwLock {
+    #[cfg(feature = "servo")]
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
     arc: Arc<RwLock<()>>,
+
+    #[cfg(feature = "gecko")]
+    cell: Arc<AtomicRefCell<SomethingZeroSizedButTyped>>,
 }
+
+#[cfg(feature = "gecko")]
+struct SomethingZeroSizedButTyped;
 
 impl fmt::Debug for SharedRwLock {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -24,10 +43,19 @@ impl fmt::Debug for SharedRwLock {
 }
 
 impl SharedRwLock {
-    /// Create a new shared lock
+    /// Create a new shared lock (servo).
+    #[cfg(feature = "servo")]
     pub fn new() -> Self {
         SharedRwLock {
             arc: Arc::new(RwLock::new(()))
+        }
+    }
+
+    /// Create a new shared lock (gecko).
+    #[cfg(feature = "gecko")]
+    pub fn new() -> Self {
+        SharedRwLock {
+            cell: Arc::new(AtomicRefCell::new(SomethingZeroSizedButTyped))
         }
     }
 
@@ -39,19 +67,63 @@ impl SharedRwLock {
         }
     }
 
-    /// Obtain the lock for reading
+    /// Obtain the lock for reading (servo).
+    #[cfg(feature = "servo")]
     pub fn read(&self) -> SharedRwLockReadGuard {
         self.arc.raw_read();
-        SharedRwLockReadGuard {
-            shared_lock: self
-        }
+        SharedRwLockReadGuard(self)
     }
 
-    /// Obtain the lock for writing
+    /// Obtain the lock for reading (gecko).
+    #[cfg(feature = "gecko")]
+    pub fn read(&self) -> SharedRwLockReadGuard {
+        SharedRwLockReadGuard(self.cell.borrow())
+    }
+
+    /// Obtain the lock for writing (servo).
+    #[cfg(feature = "servo")]
     pub fn write(&self) -> SharedRwLockWriteGuard {
         self.arc.raw_write();
-        SharedRwLockWriteGuard {
-            shared_lock: self
+        SharedRwLockWriteGuard(self)
+    }
+
+    /// Obtain the lock for writing (gecko).
+    #[cfg(feature = "gecko")]
+    pub fn write(&self) -> SharedRwLockWriteGuard {
+        SharedRwLockWriteGuard(self.cell.borrow_mut())
+    }
+}
+
+/// Proof that a shared lock was obtained for reading (servo).
+#[cfg(feature = "servo")]
+pub struct SharedRwLockReadGuard<'a>(&'a SharedRwLock);
+/// Proof that a shared lock was obtained for writing (gecko).
+#[cfg(feature = "gecko")]
+pub struct SharedRwLockReadGuard<'a>(AtomicRef<'a, SomethingZeroSizedButTyped>);
+#[cfg(feature = "servo")]
+impl<'a> Drop for SharedRwLockReadGuard<'a> {
+    fn drop(&mut self) {
+        // Unsafe: self.lock is private to this module, only ever set after `raw_read()`,
+        // and never copied or cloned (see `compile_time_assert` below).
+        unsafe {
+            self.0.arc.raw_unlock_read()
+        }
+    }
+}
+
+/// Proof that a shared lock was obtained for writing (servo).
+#[cfg(feature = "servo")]
+pub struct SharedRwLockWriteGuard<'a>(&'a SharedRwLock);
+/// Proof that a shared lock was obtained for writing (gecko).
+#[cfg(feature = "gecko")]
+pub struct SharedRwLockWriteGuard<'a>(AtomicRefMut<'a, SomethingZeroSizedButTyped>);
+#[cfg(feature = "servo")]
+impl<'a> Drop for SharedRwLockWriteGuard<'a> {
+    fn drop(&mut self) {
+        // Unsafe: self.lock is private to this module, only ever set after `raw_write()`,
+        // and never copied or cloned (see `compile_time_assert` below).
+        unsafe {
+            self.0.arc.raw_unlock_write()
         }
     }
 }
@@ -75,13 +147,19 @@ impl<T: fmt::Debug> fmt::Debug for Locked<T> {
 }
 
 impl<T> Locked<T> {
+    #[cfg(feature = "servo")]
     fn same_lock_as(&self, lock: &SharedRwLock) -> bool {
         ::arc_ptr_eq(&self.shared_lock.arc, &lock.arc)
     }
 
+    #[cfg(feature = "gecko")]
+    fn same_lock_as(&self, derefed_guard: &SomethingZeroSizedButTyped) -> bool {
+        ::ptr_eq(self.shared_lock.cell.as_ptr(), derefed_guard)
+    }
+
     /// Access the data for reading.
     pub fn read_with<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> &'a T {
-        assert!(self.same_lock_as(&guard.shared_lock),
+        assert!(self.same_lock_as(&guard.0),
                 "Locked::read_with called with a guard from an unrelated SharedRwLock");
         let ptr = self.data.get();
 
@@ -98,7 +176,7 @@ impl<T> Locked<T> {
 
     /// Access the data for writing.
     pub fn write_with<'a>(&'a self, guard: &'a mut SharedRwLockWriteGuard) -> &'a mut T {
-        assert!(self.same_lock_as(&guard.shared_lock),
+        assert!(self.same_lock_as(&guard.0),
                 "Locked::write_with called with a guard from an unrelated SharedRwLock");
         let ptr = self.data.get();
 
@@ -112,36 +190,6 @@ impl<T> Locked<T> {
         //   so that one write guard can only be used once at a time.
         unsafe {
             &mut *ptr
-        }
-    }
-}
-
-/// Proof that a shared lock was obtained for reading.
-pub struct SharedRwLockReadGuard<'a> {
-    shared_lock: &'a SharedRwLock,
-}
-
-/// Proof that a shared lock was obtained for writing.
-pub struct SharedRwLockWriteGuard<'a> {
-    shared_lock: &'a SharedRwLock,
-}
-
-impl<'a> Drop for SharedRwLockReadGuard<'a> {
-    fn drop(&mut self) {
-        // Unsafe: self.lock is private to this module, only ever set after `raw_read()`,
-        // and never copied or cloned (see `compile_time_assert` below).
-        unsafe {
-            self.shared_lock.arc.raw_unlock_read()
-        }
-    }
-}
-
-impl<'a> Drop for SharedRwLockWriteGuard<'a> {
-    fn drop(&mut self) {
-        // Unsafe: self.lock is private to this module, only ever set after `raw_write()`,
-        // and never copied or cloned (see `compile_time_assert` below).
-        unsafe {
-            self.shared_lock.arc.raw_unlock_write()
         }
     }
 }
