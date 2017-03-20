@@ -81,6 +81,7 @@ use gfx_traits::Epoch;
 use ipc_channel::{Error as IpcError};
 use ipc_channel::ipc::{self, IpcSender, IpcReceiver};
 use ipc_channel::router::ROUTER;
+use itertools::Itertools;
 use layout_traits::LayoutThreadFactory;
 use log::{Log, LogLevel, LogLevelFilter, LogMetadata, LogRecord};
 use msg::constellation_msg::{FrameId, FrameType, PipelineId};
@@ -109,6 +110,7 @@ use servo_rand::{Rng, SeedableRng, ServoRng, random};
 use servo_remutex::ReentrantMutex;
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use std::borrow::ToOwned;
+use std::cmp::Ordering;
 use std::collections::{HashMap, VecDeque};
 use std::iter::once;
 use std::marker::PhantomData;
@@ -117,7 +119,6 @@ use std::rc::{Rc, Weak};
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread;
-use std::time::Instant;
 use style_traits::CSSPixel;
 use style_traits::cursor::Cursor;
 use style_traits::viewport::ViewportConstraints;
@@ -703,15 +704,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
     /// The joint session future is the merge of the session future of every
     /// frame in the frame tree, sorted chronologically.
-    fn joint_session_future<'a>(&'a self, frame_id_root: FrameId) -> impl Iterator<Item=FrameState> {
-        let mut future: Vec<FrameState> = self.full_frame_tree_iter(frame_id_root)
-            .flat_map(|frame| frame.next.iter().cloned())
-            .collect();
-
-        // Sort the joint session future by the timestamp that the pipeline was navigated to
-        // in chronological order
-        future.sort_by(|a, b| a.instant.cmp(&b.instant));
-        future.into_iter()
+    fn joint_session_future<'a>(&'a self, frame_id_root: FrameId) -> impl Iterator<Item = &'a FrameState> + 'a {
+        self.full_frame_tree_iter(frame_id_root)
+            .map(|frame| frame.next.iter().rev())
+            .kmerge_by(|a, b| a.instant.cmp(&b.instant) == Ordering::Less)
     }
 
     /// Is the joint session future empty?
@@ -722,19 +718,15 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
     /// The joint session past is the merge of the session past of every
     /// frame in the frame tree, sorted reverse chronologically.
-    fn joint_session_past<'a>(&self, frame_id_root: FrameId) -> impl Iterator<Item=FrameState> {
-        let mut past: Vec<(Instant, FrameState)> = self.full_frame_tree_iter(frame_id_root)
-            .flat_map(|frame| frame.prev.iter().rev().scan(frame.instant, |prev_instant, entry| {
+    fn joint_session_past<'a>(&'a self, frame_id_root: FrameId) -> impl Iterator<Item = &'a FrameState> + 'a {
+        self.full_frame_tree_iter(frame_id_root)
+            .map(|frame| frame.prev.iter().rev().scan(frame.instant, |prev_instant, entry| {
                 let instant = *prev_instant;
                 *prev_instant = entry.instant;
-                Some((instant, entry.clone()))
+                Some((instant, entry))
             }))
-            .collect();
-
-        // Sort the joint session past by the timestamp that the pipeline was navigated from
-        // in reverse chronological order
-        past.sort_by(|a, b| b.0.cmp(&a.0));
-        past.into_iter().map(|(_, entry)| entry)
+            .kmerge_by(|a, b| a.0.cmp(&b.0) == Ordering::Greater)
+            .map(|(_, entry)| entry)
     }
 
     /// Is the joint session past empty?
@@ -1714,7 +1706,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             TraversalDirection::Forward(delta) => {
                 for entry in self.joint_session_future(top_level_frame_id).take(delta) {
                     size = size + 1;
-                    table.insert(entry.frame_id, entry);
+                    table.insert(entry.frame_id, entry.clone());
                 }
                 if size < delta {
                     return debug!("Traversing forward too much.");
@@ -1723,7 +1715,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             TraversalDirection::Back(delta) => {
                 for entry in self.joint_session_past(top_level_frame_id).take(delta) {
                     size = size + 1;
-                    table.insert(entry.frame_id, entry);
+                    table.insert(entry.frame_id, entry.clone());
                 }
                 if size < delta {
                     return debug!("Traversing back too much.");

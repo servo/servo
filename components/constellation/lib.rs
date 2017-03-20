@@ -20,6 +20,7 @@ extern crate gaol;
 extern crate gfx;
 extern crate gfx_traits;
 extern crate ipc_channel;
+extern crate itertools;
 extern crate layout_traits;
 #[macro_use]
 extern crate log;
