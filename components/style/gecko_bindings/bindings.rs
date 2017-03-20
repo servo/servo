@@ -443,7 +443,7 @@ extern "C" {
      -> RawGeckoNodeBorrowedOrNull;
 }
 extern "C" {
-    pub fn Gecko_ElementState(element: RawGeckoElementBorrowed) -> u16;
+    pub fn Gecko_ElementState(element: RawGeckoElementBorrowed) -> u64;
 }
 extern "C" {
     pub fn Gecko_IsLink(element: RawGeckoElementBorrowed) -> bool;
