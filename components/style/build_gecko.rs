@@ -772,17 +772,22 @@ mod bindings {
 
 pub fn generate() {
     use self::common::*;
-    use std::fs;
-    use std::thread;
+    use std::{env, fs, thread};
     println!("cargo:rerun-if-changed=build_gecko.rs");
     fs::create_dir_all(&*OUTDIR_PATH).unwrap();
     bindings::setup_logging();
-    let threads = vec![
-        thread::spawn(|| bindings::generate_structs(BuildType::Debug)),
-        thread::spawn(|| bindings::generate_structs(BuildType::Release)),
-        thread::spawn(|| bindings::generate_bindings()),
-    ];
-    for t in threads.into_iter() {
-        t.join().unwrap();
+    if env::var("STYLO_BUILD_LOG").is_ok() {
+        bindings::generate_structs(BuildType::Debug);
+        bindings::generate_structs(BuildType::Release);
+        bindings::generate_bindings();
+    } else {
+        let threads = vec![
+            thread::spawn(|| bindings::generate_structs(BuildType::Debug)),
+            thread::spawn(|| bindings::generate_structs(BuildType::Release)),
+            thread::spawn(|| bindings::generate_bindings()),
+        ];
+        for t in threads.into_iter() {
+            t.join().unwrap();
+        }
     }
 }
