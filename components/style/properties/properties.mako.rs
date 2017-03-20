@@ -2354,16 +2354,6 @@ pub fn modify_border_style_for_inline_sides(style: &mut Arc<ComputedValues>,
     }
 }
 
-/// Adjusts the `position` property as necessary for the outer fragment wrapper
-/// of an inline-block.
-#[cfg(feature = "servo")]
-#[inline]
-pub fn modify_style_for_outer_inline_block_fragment(style: &mut Arc<ComputedValues>) {
-    let mut style = Arc::make_mut(style);
-    let box_style = Arc::make_mut(&mut style.box_);
-    box_style.position = longhands::position::computed_value::T::static_
-}
-
 /// Adjusts the `position` and `padding` properties as necessary to account for
 /// text.
 ///

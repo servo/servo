@@ -950,13 +950,15 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             _ => unreachable!()
         };
 
-        let mut modified_style = node.style(self.style_context());
-        properties::modify_style_for_outer_inline_block_fragment(&mut modified_style);
+        let context = self.style_context();
+        let style = node.style(context);
+        let style = context.stylist.style_for_anonymous_box(
+            &context.guards, &PseudoElement::ServoInlineBlockWrapper, &style);
         let fragment_info = SpecificFragmentInfo::InlineBlock(InlineBlockFragmentInfo::new(
                 block_flow));
         let fragment = Fragment::from_opaque_node_and_style(node.opaque(),
                                                             node.get_pseudo_element_type().strip(),
-                                                            modified_style,
+                                                            style,
                                                             node.selected_style(),
                                                             node.restyle_damage(),
                                                             fragment_info);
