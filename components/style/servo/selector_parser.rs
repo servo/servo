@@ -39,6 +39,7 @@ pub enum PseudoElement {
     ServoAnonymousTableRow,
     ServoAnonymousTableCell,
     ServoAnonymousBlock,
+    ServoInlineBlockWrapper,
 }
 
 impl ToCss for PseudoElement {
@@ -57,6 +58,7 @@ impl ToCss for PseudoElement {
             ServoAnonymousTableRow => "::-servo-anonymous-table-row",
             ServoAnonymousTableCell => "::-servo-anonymous-table-cell",
             ServoAnonymousBlock => "::-servo-anonymous-block",
+            ServoInlineBlockWrapper => "::-servo-inline-block-wrapper",
         })
     }
 }
@@ -89,7 +91,8 @@ impl PseudoElement {
             PseudoElement::ServoAnonymousTable |
             PseudoElement::ServoAnonymousTableRow |
             PseudoElement::ServoAnonymousTableCell |
-            PseudoElement::ServoAnonymousBlock => PseudoElementCascadeType::Precomputed,
+            PseudoElement::ServoAnonymousBlock |
+            PseudoElement::ServoInlineBlockWrapper => PseudoElementCascadeType::Precomputed,
         }
     }
 }
@@ -319,6 +322,12 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
                     return Err(())
                 }
                 ServoAnonymousBlock
+            },
+            "-servo-inline-block-wrapper" => {
+                if !self.in_user_agent_stylesheet() {
+                    return Err(())
+                }
+                ServoInlineBlockWrapper
             },
             _ => return Err(())
         };
