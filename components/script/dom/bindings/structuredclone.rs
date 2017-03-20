@@ -58,7 +58,7 @@ unsafe fn read_blob(cx: *mut JSContext,
     assert!(JS_ReadBytes(r, blob_buffer.as_mut_ptr() as *mut raw::c_void, blob_length));
     let mut type_str_buffer = vec![0u8; type_str_length];
     assert!(JS_ReadBytes(r, type_str_buffer.as_mut_ptr() as *mut raw::c_void, type_str_length));
-    let type_str = String::from_raw_parts(type_str_buffer.as_ptr() as *mut _, type_str_length, type_str_length);
+    let type_str = String::from_utf8_unchecked(type_str_buffer);
     let target_global = GlobalScope::from_context(cx);
     let blob = Blob::new(&target_global, BlobImpl::new_from_bytes(blob_buffer), type_str);
     return blob.reflector().get_jsobject().get()
