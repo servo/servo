@@ -400,22 +400,127 @@ ${helpers.single_keyword("font-variant-caps",
 
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            self.0.to_css(dest)
+            match *self {
+                SpecifiedValue::Length(ref lop) => lop.to_css(dest),
+                SpecifiedValue::Keyword(kw) => kw.to_css(dest),
+                SpecifiedValue::Smaller => dest.write_str("smaller"),
+                SpecifiedValue::Larger => dest.write_str("larger"),
+            }
         }
     }
 
     impl HasViewportPercentage for SpecifiedValue {
         fn has_viewport_percentage(&self) -> bool {
-            return self.0.has_viewport_percentage()
+            match *self {
+                SpecifiedValue::Length(ref lop) => lop.has_viewport_percentage(),
+                _ => false
+            }
         }
     }
 
     #[derive(Debug, Clone, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub struct SpecifiedValue(pub specified::LengthOrPercentage);
+    pub enum SpecifiedValue {
+        Length(specified::LengthOrPercentage),
+        Keyword(KeywordSize),
+        Smaller,
+        Larger,
+    }
+
     pub mod computed_value {
         use app_units::Au;
         pub type T = Au;
+    }
+
+    /// CSS font keywords
+    #[derive(Debug, Copy, Clone, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub enum KeywordSize {
+        XXSmall = 0,
+        XSmall = 1,
+        Small = 2,
+        Medium = 3,
+        Large = 4,
+        XLarge = 5,
+        XXLarge = 6,
+        // This is not a real font keyword and will not parse
+        // HTML font-size 7 corresponds to this value
+        XXXLarge = 7,
+    }
+
+    pub use self::KeywordSize::*;
+
+    impl KeywordSize {
+        pub fn parse(input: &mut Parser) -> Result<Self, ()> {
+            Ok(match_ignore_ascii_case! {&*input.expect_ident()?,
+                "xx-small" => XXSmall,
+                "x-small" => XSmall,
+                "small" => Small,
+                "medium" => Medium,
+                "large" => Large,
+                "x-large" => XLarge,
+                "xx-large" => XXLarge,
+                _ => return Err(())
+            })
+        }
+    }
+
+    impl ToCss for KeywordSize {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            dest.write_str(match *self {
+                XXSmall => "xx-small",
+                XSmall => "x-small",
+                Small => "small",
+                Medium => "medium",
+                Large => "large",
+                XLarge => "x-large",
+                XXLarge => "xx-large",
+                XXXLarge => unreachable!("We should never serialize \
+                                          specified values set via
+                                          HTML presentation attributes"),
+            })
+        }
+    }
+
+    impl ToComputedValue for KeywordSize {
+        type ComputedValue = Au;
+        #[inline]
+        fn to_computed_value(&self, _: &Context) -> computed_value::T {
+            // https://drafts.csswg.org/css-fonts-3/#font-size-prop
+            use values::FONT_MEDIUM_PX;
+            match *self {
+                XXSmall => Au::from_px(FONT_MEDIUM_PX) * 3 / 5,
+                XSmall => Au::from_px(FONT_MEDIUM_PX) * 3 / 4,
+                Small => Au::from_px(FONT_MEDIUM_PX) * 8 / 9,
+                Medium => Au::from_px(FONT_MEDIUM_PX),
+                Large => Au::from_px(FONT_MEDIUM_PX) * 6 / 5,
+                XLarge => Au::from_px(FONT_MEDIUM_PX) * 3 / 2,
+                XXLarge => Au::from_px(FONT_MEDIUM_PX) * 2,
+                XXXLarge => Au::from_px(FONT_MEDIUM_PX) * 3,
+            }
+        }
+
+        #[inline]
+        fn from_computed_value(_: &computed_value::T) -> Self {
+            unreachable!()
+        }
+    }
+
+    impl SpecifiedValue {
+        /// https://html.spec.whatwg.org/multipage/#rules-for-parsing-a-legacy-font-size
+        pub fn from_html_size(size: u8) -> Self {
+            SpecifiedValue::Keyword(match size {
+                // If value is less than 1, let it be 1.
+                0 | 1 => XSmall,
+                2 => Small,
+                3 => Medium,
+                4 => Large,
+                5 => XLarge,
+                6 => XXLarge,
+                // If value is greater than 7, let it be 7.
+                _ => XXXLarge,
+            })
+        }
     }
 
     #[inline]
@@ -426,7 +531,7 @@ ${helpers.single_keyword("font-variant-caps",
 
     #[inline]
     pub fn get_initial_specified_value() -> SpecifiedValue {
-        SpecifiedValue(specified::LengthOrPercentage::Length(NoCalcLength::medium()))
+        SpecifiedValue::Keyword(Medium)
     }
 
     impl ToComputedValue for SpecifiedValue {
@@ -434,45 +539,61 @@ ${helpers.single_keyword("font-variant-caps",
 
         #[inline]
         fn to_computed_value(&self, context: &Context) -> computed_value::T {
-            match self.0 {
-                LengthOrPercentage::Length(NoCalcLength::FontRelative(value)) => {
+            use values::specified::length::FontRelativeLength;
+            match *self {
+                SpecifiedValue::Length(LengthOrPercentage::Length(
+                        NoCalcLength::FontRelative(value))) => {
                     value.to_computed_value(context, /* use inherited */ true)
                 }
-                LengthOrPercentage::Length(NoCalcLength::ServoCharacterWidth(value)) => {
+                SpecifiedValue::Length(LengthOrPercentage::Length(
+                        NoCalcLength::ServoCharacterWidth(value))) => {
                     value.to_computed_value(context.inherited_style().get_font().clone_font_size())
                 }
-                LengthOrPercentage::Length(ref l) => {
+                SpecifiedValue::Length(LengthOrPercentage::Length(ref l)) => {
                     l.to_computed_value(context)
                 }
-                LengthOrPercentage::Percentage(Percentage(value)) => {
+                SpecifiedValue::Length(LengthOrPercentage::Percentage(Percentage(value))) => {
                     context.inherited_style().get_font().clone_font_size().scale_by(value)
                 }
-                LengthOrPercentage::Calc(ref calc) => {
+                SpecifiedValue::Length(LengthOrPercentage::Calc(ref calc)) => {
                     let calc = calc.to_computed_value(context);
                     calc.length() + context.inherited_style().get_font().clone_font_size()
                                            .scale_by(calc.percentage())
+                }
+                SpecifiedValue::Keyword(ref key) => {
+                    key.to_computed_value(context)
+                }
+                SpecifiedValue::Smaller => {
+                    FontRelativeLength::Em(0.85).to_computed_value(context,
+                                                                   /* use_inherited */ true)
+                }
+                SpecifiedValue::Larger => {
+                    FontRelativeLength::Em(1.2).to_computed_value(context,
+                                                                   /* use_inherited */ true)
                 }
             }
         }
 
         #[inline]
         fn from_computed_value(computed: &computed_value::T) -> Self {
-                SpecifiedValue(LengthOrPercentage::Length(
+                SpecifiedValue::Length(LengthOrPercentage::Length(
                         ToComputedValue::from_computed_value(computed)
                 ))
         }
     }
     /// <length> | <percentage> | <absolute-size> | <relative-size>
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        use values::specified::{Length, LengthOrPercentage};
-
-        input.try(specified::LengthOrPercentage::parse_non_negative)
-        .or_else(|()| {
-            let ident = try!(input.expect_ident());
-            NoCalcLength::from_str(&ident as &str)
-                         .ok_or(())
-                         .map(specified::LengthOrPercentage::Length)
-        }).map(SpecifiedValue)
+    pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        if let Ok(lop) = input.try(specified::LengthOrPercentage::parse_non_negative) {
+            Ok(SpecifiedValue::Length(lop))
+        } else if let Ok(kw) = input.try(KeywordSize::parse) {
+            Ok(SpecifiedValue::Keyword(kw))
+        } else {
+            match_ignore_ascii_case! {&*input.expect_ident()?,
+                "smaller" => Ok(SpecifiedValue::Smaller),
+                "larger" => Ok(SpecifiedValue::Larger),
+                _ => Err(())
+            }
+        }
     }
 </%helpers:longhand>
 
