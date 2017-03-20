@@ -157,6 +157,11 @@ pub struct DisplayListBuildState<'a> {
     /// recursively building and processing the display list.
     pub current_scroll_root_id: ScrollRootId,
 
+    /// The scroll root id of the first ancestor which defines a containing block.
+    /// This is necessary because absolutely positioned items should be clipped
+    /// by their containing block's scroll root.
+    pub containing_block_scroll_root_id: ScrollRootId,
+
     /// Vector containing iframe sizes, used to inform the constellation about
     /// new iframe sizes
     pub iframe_sizes: Vec<(PipelineId, TypedSize2D<f32, CSSPixel>)>,
@@ -173,6 +178,7 @@ impl<'a> DisplayListBuildState<'a> {
             processing_scroll_root_element: false,
             current_stacking_context_id: StackingContextId::root(),
             current_scroll_root_id: ScrollRootId::root(),
+            containing_block_scroll_root_id: ScrollRootId::root(),
             iframe_sizes: Vec::new(),
         }
     }
@@ -1907,6 +1913,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         state.current_stacking_context_id = self.base.stacking_context_id;
 
         let original_scroll_root_id = state.current_scroll_root_id;
+        let original_containing_block_scroll_root = state.containing_block_scroll_root_id;
 
         // We are getting the id of the scroll root that contains us here, not the id of
         // any scroll root that we create. If we create a scroll root, its id will be
@@ -1931,12 +1938,19 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         }
 
         state.current_scroll_root_id = original_scroll_root_id;
+        state.containing_block_scroll_root_id = original_containing_block_scroll_root;
         state.current_stacking_context_id = parent_stacking_context_id;
     }
 
     fn setup_scroll_root_for_block(&mut self, state: &mut DisplayListBuildState) -> ScrollRootId {
-        let containing_scroll_root_id = state.current_scroll_root_id;
+        // If this block is absolutely positioned, we should be clipped and positioned by
+        // the scroll root of our nearest ancestor that establishes a containing block.
+        let containing_scroll_root_id = match self.positioning() {
+            position::T::absolute => state.containing_block_scroll_root_id,
+            _ => state.current_scroll_root_id,
+        };
         self.base.scroll_root_id = containing_scroll_root_id;
+        state.current_scroll_root_id = containing_scroll_root_id;
 
         if !self.style_permits_scrolling_overflow() {
             return containing_scroll_root_id;
@@ -1977,6 +1991,13 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
 
         self.base.scroll_root_id = new_scroll_root_id;
         state.current_scroll_root_id = new_scroll_root_id;
+
+        match self.positioning() {
+            position::T::absolute | position::T::relative | position::T::fixed =>
+                state.containing_block_scroll_root_id = new_scroll_root_id,
+            _ => {}
+        }
+
         containing_scroll_root_id
     }
 
