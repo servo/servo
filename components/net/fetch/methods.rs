@@ -599,10 +599,10 @@ fn should_block_nosniff(request: &Request, response: &Response) -> bool {
             mime!(Text / ("x-javascript")),
         ];
 
-        javascript_mime_types.contains(mime_type)
+        javascript_mime_types.iter()
+            .any(|mime| mime.0 == mime_type.0 && mime.1 == mime_type.1)
     }
 
-    let text_css: Mime = mime!(Text / Css);
     // Assumes str::starts_with is equivalent to mime::TopLevel
     return match type_ {
         // Step 6
@@ -615,8 +615,8 @@ fn should_block_nosniff(request: &Request, response: &Response) -> bool {
         // Step 7
         Type::Style => {
             match content_type_header {
-                Some(&ContentType(ref mime_type)) => mime_type != &text_css,
-                None => true
+                Some(&ContentType(Mime(TopLevel::Text, SubLevel::Css, _))) => false,
+                _ => true
             }
         }
         // Step 8

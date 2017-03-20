@@ -3,17 +3,25 @@
 <div id=log></div>
 <script>
   // Note: images get always sniffed, nosniff doesn't do anything
-  var passes = ["", "?type=", "?type=x", "?type=x/x", "?type=image/gif", "?type=image/png", "?type=image/png;blah"]
+  var passes = [null, "", "x", "x/x", "image/gif", "image/png", "image/png;blah"]
 
-  passes.forEach(function(urlpart) {
+  const get_url = (mime) => {
+    let url = "resources/image.py"
+    if (mime != null) {
+        url += "?type=" + encodeURIComponent(mime)
+    }
+    return url
+  }
+
+  passes.forEach(function(mime) {
     async_test(function(t) {
       var img = document.createElement("img")
       img.onerror = t.unreached_func("Unexpected error event")
       img.onload = t.step_func_done(function(){
         assert_equals(img.width, 96)
       })
-      img.src = "resources/image.py" + urlpart
+      img.src = get_url(mime)
       document.body.appendChild(img)
-    }, "URL query: " + urlpart)
+    }, "URL query: " + mime)
   })
 </script>
