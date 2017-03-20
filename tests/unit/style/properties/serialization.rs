@@ -1130,4 +1130,25 @@ mod shorthand_serialization {
             assert_eq!(serialization, block_text);
         }
     }
+
+    mod keywords {
+        pub use super::*;
+        #[test]
+        fn css_wide_keywords_should_be_parsed() {
+            let block_text = "--a:inherit;";
+            let block = parse_declaration_block(block_text);
+
+            let serialization = block.to_css_string();
+            assert_eq!(serialization, "--a: inherit;");
+        }
+
+        #[test]
+        fn non_keyword_custom_property_should_be_unparsed() {
+            let block_text = "--main-color: #06c;";
+            let block = parse_declaration_block(block_text);
+
+            let serialization = block.to_css_string();
+            assert_eq!(serialization, block_text);
+        }
+    }
 }
