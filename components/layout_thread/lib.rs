@@ -45,8 +45,7 @@ use euclid::rect::Rect;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::Size2D;
 use fnv::FnvHasher;
-use gfx::display_list::{ClippingRegion, OpaqueNode};
-use gfx::display_list::WebRenderImageInfo;
+use gfx::display_list::{OpaqueNode, WebRenderImageInfo};
 use gfx::font;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context;
@@ -854,8 +853,7 @@ impl LayoutThread {
                 LogicalPoint::zero(writing_mode).to_physical(writing_mode,
                                                              self.viewport_size);
 
-            flow::mut_base(layout_root).clip =
-                ClippingRegion::from_rect(&data.page_clip_rect);
+            flow::mut_base(layout_root).clip = data.page_clip_rect;
 
             if flow::base(layout_root).restyle_damage.contains(REPOSITION) {
                 layout_root.traverse_preorder(&ComputeAbsolutePositions {

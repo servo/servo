@@ -29,9 +29,9 @@
 
 use app_units::{Au, MAX_AU};
 use context::LayoutContext;
-use display_list_builder::{BorderPaintingMode, DisplayListBuildState, FragmentDisplayListBuilding};
+use display_list_builder::{BorderPaintingMode, DisplayListBuildState};
 use display_list_builder::BlockFlowDisplayListBuilding;
-use euclid::{Matrix4D, Point2D, Rect, Size2D};
+use euclid::{Point2D, Size2D};
 use floats::{ClearType, FloatKind, Floats, PlacementInfo};
 use flow::{self, BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, ForceNonfloatedFlag};
 use flow::{BLOCK_POSITION_IS_STATIC, CLEARS_LEFT, CLEARS_RIGHT};
@@ -42,13 +42,13 @@ use flow::IS_ABSOLUTELY_POSITIONED;
 use flow_list::FlowList;
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow};
 use fragment::{IS_INLINE_FLEX_ITEM, IS_BLOCK_FLEX_ITEM};
-use gfx::display_list::ClippingRegion;
 use gfx_traits::print_tree::PrintTree;
 use layout_debug;
 use model::{AdjoiningMargins, CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo, MaybeAuto};
 use model::{specified, specified_or_none};
 use sequential;
 use serde::{Serialize, Serializer};
+use servo_geometry::max_rect;
 use std::cmp::{max, min};
 use std::fmt;
 use std::sync::Arc;
@@ -1678,11 +1678,12 @@ impl BlockFlow {
         }
     }
 
-    pub fn style_permits_scrolling_overflow(&self) -> bool {
+    pub fn overflow_style_may_require_scroll_root(&self) -> bool {
         match (self.fragment.style().get_box().overflow_x,
                self.fragment.style().get_box().overflow_y.0) {
-            (overflow_x::T::auto, _) | (overflow_x::T::scroll, _) |
-            (_, overflow_x::T::auto) | (_, overflow_x::T::scroll) => true,
+            (overflow_x::T::auto, _) | (overflow_x::T::scroll, _) | (overflow_x::T::hidden, _) |
+            (_, overflow_x::T::auto) | (_, overflow_x::T::scroll) | (_, overflow_x::T::hidden) =>
+                true,
             (_, _) => false,
         }
     }
@@ -1774,65 +1775,6 @@ impl BlockFlow {
 
     pub fn is_block_flex_item(&self) -> bool {
         self.fragment.flags.contains(IS_BLOCK_FLEX_ITEM)
-    }
-
-    /// Changes this block's clipping region from its parent's coordinate system to its own
-    /// coordinate system if necessary (i.e. if this block is a stacking context).
-    ///
-    /// The clipping region is initially in each block's parent's coordinate system because the
-    /// parent of each block does not have enough information to determine what the child's
-    /// coordinate system is on its own. Specifically, if the child is absolutely positioned, the
-    /// parent does not know where the child's absolute position is at the time it assigns clipping
-    /// regions, because flows compute their own absolute positions.
-    fn switch_coordinate_system_if_necessary(&mut self) {
-        // Avoid overflows!
-        if self.base.clip.is_max() {
-            return
-        }
-
-        if !self.fragment.establishes_stacking_context() {
-            return
-        }
-
-        let stacking_relative_border_box =
-            self.fragment.stacking_relative_border_box(&self.base.stacking_relative_position,
-                                                       &self.base
-                                                            .early_absolute_position_info
-                                                            .relative_containing_block_size,
-                                                       self.base
-                                                           .early_absolute_position_info
-                                                           .relative_containing_block_mode,
-                                                       CoordinateSystem::Parent);
-        self.base.clip = self.base.clip.translate(&-stacking_relative_border_box.origin);
-
-        // Account for `transform`, if applicable.
-        if self.fragment.style.get_box().transform.0.is_none() {
-            return
-        }
-        let transform = match self.fragment
-                                  .transform_matrix(&stacking_relative_border_box)
-                                  .unwrap_or(Matrix4D::identity())
-                                  .inverse() {
-            Some(transform) => transform,
-            None => {
-                // Singular matrix. Ignore it.
-                return
-            }
-        };
-
-        // FIXME(pcwalton): This is inaccurate: not all transforms are 2D, and not all clips are
-        // axis-aligned.
-        let bounding_rect = self.base.clip.bounding_rect();
-        let bounding_rect = Rect::new(Point2D::new(bounding_rect.origin.x.to_f32_px(),
-                                                   bounding_rect.origin.y.to_f32_px()),
-                                      Size2D::new(bounding_rect.size.width.to_f32_px(),
-                                                  bounding_rect.size.height.to_f32_px()));
-        let clip_rect = transform.to_2d().transform_rect(&bounding_rect);
-        let clip_rect = Rect::new(Point2D::new(Au::from_f32_px(clip_rect.origin.x),
-                                               Au::from_f32_px(clip_rect.origin.y)),
-                                  Size2D::new(Au::from_f32_px(clip_rect.size.width),
-                                              Au::from_f32_px(clip_rect.size.height)));
-        self.base.clip = ClippingRegion::from_rect(&clip_rect)
     }
 
     pub fn mark_scrolling_overflow(&mut self, has_scrolling_overflow: bool) {
@@ -2006,7 +1948,7 @@ impl Flow for BlockFlow {
         let container_size = Size2D::new(self.base.block_container_inline_size, Au(0));
 
         if self.is_root() {
-            self.base.clip = ClippingRegion::max();
+            self.base.clip = max_rect();
         }
 
         if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
@@ -2107,28 +2049,6 @@ impl Flow for BlockFlow {
             self.base.stacking_relative_position + relative_offset
         };
 
-        let stacking_relative_border_box =
-            self.fragment
-                .stacking_relative_border_box(&self.base.stacking_relative_position,
-                                              &self.base
-                                                   .early_absolute_position_info
-                                                   .relative_containing_block_size,
-                                              self.base
-                                                  .early_absolute_position_info
-                                                  .relative_containing_block_mode,
-                                              CoordinateSystem::Own);
-
-        // Our parent set our `clip` field to the clipping region in its coordinate system. Change
-        // it to our coordinate system.
-        self.switch_coordinate_system_if_necessary();
-        self.fragment.adjust_clip_for_style(&mut self.base.clip, &stacking_relative_border_box);
-
-        // Compute the clipping region for children, taking our `overflow` properties and so forth
-        // into account.
-        let mut clip_for_children = self.base.clip.clone();
-        self.fragment.adjust_clipping_region_for_children(&mut clip_for_children,
-                                                          &stacking_relative_border_box);
-
         // Process children.
         for kid in self.base.child_iter_mut() {
             if flow::base(kid).flags.contains(INLINE_POSITION_IS_STATIC) ||
@@ -2161,16 +2081,6 @@ impl Flow for BlockFlow {
 
             flow::mut_base(kid).late_absolute_position_info =
                 late_absolute_position_info_for_children;
-
-            // This clipping region is in our coordinate system. The child will fix it up to be in
-            // its own coordinate system by itself if necessary.
-            //
-            // Rationale: If the child is absolutely positioned, it hasn't been positioned at this
-            // point (as absolutely-positioned flows position themselves in
-            // `compute_absolute_position()`). Therefore, we don't always know what the child's
-            // coordinate system is here. So we store the clipping region in our coordinate system
-            // for now; the child will move it later if needed.
-            flow::mut_base(kid).clip = clip_for_children.clone()
         }
 
         self.base.restyle_damage.remove(REPOSITION)
