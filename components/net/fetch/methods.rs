@@ -559,10 +559,10 @@ pub fn should_be_blocked_due_to_nosniff(request_type: Type, response_headers: &H
             mime!(Text / ("x-javascript")),
         ];
 
-        javascript_mime_types.contains(mime_type)
+        javascript_mime_types.iter()
+            .any(|mime| mime.0 == mime_type.0 && mime.1 == mime_type.1)
     }
 
-    let text_css: Mime = mime!(Text / Css);
     // Assumes str::starts_with is equivalent to mime::TopLevel
     return match request_type {
         // Step 6
@@ -575,8 +575,8 @@ pub fn should_be_blocked_due_to_nosniff(request_type: Type, response_headers: &H
         // Step 7
         Type::Style => {
             match content_type_header {
-                Some(&ContentType(ref mime_type)) => mime_type != &text_css,
-                None => true
+                Some(&ContentType(Mime(TopLevel::Text, SubLevel::Css, _))) => false,
+                _ => true
             }
         }
         // Step 8
