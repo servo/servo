@@ -9,13 +9,3 @@
 pub mod media_queries;
 pub mod restyle_damage;
 pub mod selector_parser;
-
-use shared_lock::SharedRwLock;
-
-lazy_static! {
-    /// Per-process shared lock for author-origin stylesheets
-    ///
-    /// FIXME: make it per-document or per-pipeline instead:
-    /// https://github.com/servo/servo/issues/16027
-    pub static ref AUTHOR_SHARED_LOCK: SharedRwLock = SharedRwLock::new();
-}
