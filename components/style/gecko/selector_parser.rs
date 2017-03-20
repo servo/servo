@@ -341,6 +341,10 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
                         let selectors = parser.parse_comma_separated(|input| {
                             ComplexSelector::parse(self, input)
                         })?;
+                        // Selectors inside `:-moz-any` may not include combinators.
+                        if selectors.iter().any(|s| s.next.is_some()) {
+                            return Err(())
+                        }
                         NonTSPseudoClass::MozAny(selectors)
                     }
                     _ => return Err(())
