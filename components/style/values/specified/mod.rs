@@ -195,7 +195,16 @@ pub fn parse_integer(input: &mut Parser) -> Result<CSSInteger, ()> {
 #[allow(missing_docs)]
 pub fn parse_number(input: &mut Parser) -> Result<f32, ()> {
     match try!(input.next()) {
-        Token::Number(ref value) => Ok(value.value),
+        Token::Number(ref value) => {
+            use std::f32;
+            if value.value.is_finite() {
+                Ok(value.value)
+            } else if value.value.is_sign_positive() {
+                Ok(f32::MAX)
+            } else {
+                Ok(f32::MIN)
+            }
+        },
         Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
             let ast = try!(input.parse_nested_block(|i| CalcLengthOrPercentage::parse_sum(i, CalcUnit::Number)));
 
