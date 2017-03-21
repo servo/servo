@@ -23,6 +23,16 @@ pub struct Namespace(pub Atom);
 #[derive(Hash)]
 pub struct WeakNamespace(WeakAtom);
 
+impl Deref for WeakNamespace {
+    type Target = WeakAtom;
+
+    #[inline]
+    fn deref(&self) -> &WeakAtom {
+        &self.0
+    }
+}
+
+
 impl Deref for Namespace {
     type Target = WeakNamespace;
 
