@@ -172,9 +172,15 @@ longhand_properties_idents!(reexport_computed_values);
 /// FIXME: Remove this and use Arc::ptr_eq once we require Rust 1.17
 #[inline]
 pub fn arc_ptr_eq<T: 'static>(a: &Arc<T>, b: &Arc<T>) -> bool {
-    let a: &T = &**a;
-    let b: &T = &**b;
-    (a as *const T) == (b as *const T)
+    ptr_eq::<T>(&**a, &**b)
+}
+
+/// Pointer equality
+///
+/// FIXME: Remove this and use std::ptr::eq once we require Rust 1.17
+#[inline]
+pub fn ptr_eq<T: ?Sized>(a: *const T, b: *const T) -> bool {
+    a == b
 }
 
 /// Serializes as CSS a comma-separated list of any `T` that supports being
