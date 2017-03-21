@@ -24,6 +24,7 @@ ipc-channel = "0.7"
 layout_traits = {path = "../layout_traits"}
 log = "0.3.5"
 msg = {path = "../msg"}
+net = {path = "../net"}
 net_traits = {path = "../net_traits"}
 offscreen_gl_context = "0.8"
 profile_traits = {path = "../profile_traits"}
