@@ -127,6 +127,19 @@ pub enum TrackBreadth<L> {
     Keyword(TrackKeyword),
 }
 
+impl<L> TrackBreadth<L> {
+    /// Check whether this is a `<fixed-breadth>` (i.e., it only has `<length-percentage>`)
+    ///
+    /// https://drafts.csswg.org/css-grid/#typedef-fixed-breadth
+    #[inline]
+    pub fn is_fixed(&self) -> bool {
+        match *self {
+            TrackBreadth::Breadth(ref _lop) => true,
+            _ => false,
+        }
+    }
+}
+
 /// Parse a single flexible length.
 pub fn parse_flex(input: &mut Parser) -> Result<CSSFloat, ()> {
     match try!(input.next()) {
@@ -212,6 +225,32 @@ pub enum TrackSize<L> {
     ///
     /// https://drafts.csswg.org/css-grid/#valdef-grid-template-columns-fit-content
     FitContent(L),
+}
+
+impl<L> TrackSize<L> {
+    /// Check whether this is a `<fixed-size>`
+    ///
+    /// https://drafts.csswg.org/css-grid/#typedef-fixed-size
+    pub fn is_fixed(&self) -> bool {
+        match *self {
+            TrackSize::Breadth(ref breadth) => breadth.is_fixed(),
+            // For minmax function, it could be either
+            // minmax(<fixed-breadth>, <track-breadth>) or minmax(<inflexible-breadth>, <fixed-breadth>),
+            // and since both variants are a subset of minmax(<inflexible-breadth>, <track-breadth>), we only
+            // need to make sure that they're fixed. So, we don't have to modify the parsing function.
+            TrackSize::MinMax(ref breadth_1, ref breadth_2) => {
+                if breadth_1.is_fixed() {
+                    return true     // the second value is always a <track-breadth>
+                }
+
+                match *breadth_1 {
+                    TrackBreadth::Flex(_) => false,     // should be <inflexible-breadth> at this point
+                    _ => breadth_2.is_fixed(),
+                }
+            },
+            TrackSize::FitContent(_) => false,
+        }
+    }
 }
 
 impl<L> Default for TrackSize<L> {
