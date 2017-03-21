@@ -1394,7 +1394,7 @@ extern "C" {
     pub fn Servo_StyleSet_FillKeyframesForName(set: RawServoStyleSetBorrowed,
                                                property: *const nsACString,
                                                timing_function:
-                                                   *const nsTimingFunction,
+                                                   nsTimingFunctionBorrowed,
                                                computed_values:
                                                    ServoComputedValuesBorrowed,
                                                keyframe_list:
