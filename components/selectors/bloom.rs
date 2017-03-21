@@ -164,16 +164,16 @@ impl BloomFilter {
     }
 }
 
-fn hash<T: Hash>(element: &T) -> u32 {
-    let mut hasher = FnvHasher::default();
-    element.hash(&mut hasher);
-    let hash: u64 = hasher.finish();
-    (hash >> 32) as u32 ^ (hash as u32)
-}
-
 #[inline]
 fn full(slot: &u8) -> bool {
     *slot == 0xff
+}
+
+fn hash<T: Hash>(elem: &T) -> u32 {
+    let mut hasher = FnvHasher::default();
+    elem.hash(&mut hasher);
+    let hash: u64 = hasher.finish();
+    (hash >> 32) as u32 ^ (hash as u32)
 }
 
 #[inline]
