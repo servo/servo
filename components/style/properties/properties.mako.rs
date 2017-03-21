@@ -2392,17 +2392,6 @@ pub fn modify_style_for_text(style: &mut Arc<ComputedValues>) {
     }
 }
 
-/// Adjusts the `clip` property so that an inline absolute hypothetical fragment
-/// doesn't clip its children.
-#[cfg(feature = "servo")]
-pub fn modify_style_for_inline_absolute_hypothetical_fragment(style: &mut Arc<ComputedValues>) {
-    if !style.get_effects().clip.is_auto() {
-        let mut style = Arc::make_mut(style);
-        let effects_style = Arc::make_mut(&mut style.effects);
-        effects_style.clip = Either::auto()
-    }
-}
-
 #[macro_export]
 macro_rules! css_properties_accessors {
     ($macro_name: ident) => {

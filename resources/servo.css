@@ -222,3 +222,11 @@ svg > * {
     padding: 0;
     margin: 0;
 }
+
+/* The outer fragment wrapper of an inline absolute hypothetical fragment. */
+*|*::-servo-inline-absolute {
+    clip: auto;
+    border: none;
+    padding: 0;
+    margin: 0;
+}

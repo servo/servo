@@ -40,6 +40,7 @@ pub enum PseudoElement {
     ServoAnonymousTableCell,
     ServoAnonymousBlock,
     ServoInlineBlockWrapper,
+    ServoInlineAbsolute,
 }
 
 impl ToCss for PseudoElement {
@@ -59,6 +60,7 @@ impl ToCss for PseudoElement {
             ServoAnonymousTableCell => "::-servo-anonymous-table-cell",
             ServoAnonymousBlock => "::-servo-anonymous-block",
             ServoInlineBlockWrapper => "::-servo-inline-block-wrapper",
+            ServoInlineAbsolute => "::-servo-inline-absolute",
         })
     }
 }
@@ -92,7 +94,8 @@ impl PseudoElement {
             PseudoElement::ServoAnonymousTableRow |
             PseudoElement::ServoAnonymousTableCell |
             PseudoElement::ServoAnonymousBlock |
-            PseudoElement::ServoInlineBlockWrapper => PseudoElementCascadeType::Precomputed,
+            PseudoElement::ServoInlineBlockWrapper |
+            PseudoElement::ServoInlineAbsolute => PseudoElementCascadeType::Precomputed,
         }
     }
 }
@@ -329,6 +332,12 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
                 }
                 ServoInlineBlockWrapper
             },
+            "-servo-input-absolute" => {
+                if !self.in_user_agent_stylesheet() {
+                    return Err(())
+                }
+                ServoInlineAbsolute
+            },
             _ => return Err(())
         };
 
@@ -368,6 +377,8 @@ impl SelectorImpl {
         fun(PseudoElement::ServoAnonymousTableRow);
         fun(PseudoElement::ServoAnonymousTableCell);
         fun(PseudoElement::ServoAnonymousBlock);
+        fun(PseudoElement::ServoInlineBlockWrapper);
+        fun(PseudoElement::ServoInlineAbsolute);
     }
 
     /// Returns the pseudo-class state flag for selector matching.

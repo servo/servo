@@ -358,7 +358,8 @@ impl Stylist {
             PseudoElement::ServoAnonymousTableRow |
             PseudoElement::ServoAnonymousTableWrapper |
             PseudoElement::ServoTableWrapper |
-            PseudoElement::ServoInlineBlockWrapper => true,
+            PseudoElement::ServoInlineBlockWrapper |
+            PseudoElement::ServoInlineAbsolute => true,
             PseudoElement::Before |
             PseudoElement::After |
             PseudoElement::Selection |
