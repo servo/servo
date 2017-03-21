@@ -9,7 +9,7 @@ use parser::{Parse, ParserContext};
 use std::ascii::AsciiExt;
 use std::fmt;
 use style_traits::ToCss;
-use values::{CSSFloat, HasViewportPercentage};
+use values::{CSSFloat, Either, HasViewportPercentage};
 use values::computed::{ComputedValueAsSpecified, Context, ToComputedValue};
 use values::specified::LengthOrPercentage;
 
@@ -547,6 +547,168 @@ impl<L: ToComputedValue> ToComputedValue for TrackRepeat<L> {
             count: computed.count,
             repeat_variants: computed.repeat_variants.iter().map(|&(ref names, ref size)| {
                 (names.clone(), ToComputedValue::from_computed_value(size))
+            }).collect(),
+            line_names_last: computed.line_names_last.clone(),
+        }
+    }
+}
+
+/// The type of a `<track-list>`
+///
+/// https://drafts.csswg.org/css-grid/#typedef-track-list
+#[derive(Clone, Copy, PartialEq, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum TrackListType {
+    /// [`<auto-track-list>`](https://drafts.csswg.org/css-grid/#typedef-auto-track-list)
+    ///
+    /// If it exists, the value at this index in `TrackList`, is the `<line-names>?`
+    /// along with `<auto-repeat>`, subsequently followed by the `<line-names>?` and
+    /// `<fixed-size> | <fixed-repeat>` values.
+    Auto(u32),
+    /// [`<track-list>`](https://drafts.csswg.org/css-grid/#typedef-track-list)
+    Normal,
+    /// [`<explicit-track-list>`](https://drafts.csswg.org/css-grid/#typedef-explicit-track-list)
+    Explicit,
+}
+
+/// A grid `<track-list>` type.
+///
+/// https://drafts.csswg.org/css-grid/#typedef-track-list
+#[derive(Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub struct TrackList<L> {
+    /// The type of this `<track-list>` (auto, explicit or general).
+    ///
+    /// In order to avoid parsing the same value multiple times, this does a single traversal
+    /// and arrives at the type of value it has parsed (or bails out gracefully with an error).
+    pub list_type: TrackListType,
+    /// The list of values parsed into a vector of 2-tuples of `<line-names>` and
+    /// `<track-size> | <track-repeat>`
+    ///
+    /// Note that this may also contain `<auto-repeat>` at an index. If it exists, it's
+    /// given by the index in `TrackListType::Auto`
+    pub values_list: Vec<(Vec<String>, Either<TrackSize<L>, TrackRepeat<L>>)>,
+    /// The final set of `<line-names>` for any kind of `<track-list>`
+    pub line_names_last: Vec<String>,
+}
+
+impl Parse for TrackList<LengthOrPercentage> {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        let mut current_names;
+        let mut values = vec![];
+
+        let mut list_type = TrackListType::Explicit;    // assume it's the simplest case
+        // marker to check whether we've already encountered <auto-repeat> along the way
+        let mut is_auto = false;
+        // assume that everything is <fixed-size>. This flag is useful when we encounter <auto-repeat>
+        let mut atleast_one_not_fixed = false;
+
+        loop {
+            current_names = input.try(parse_line_names).unwrap_or(vec![]);
+            if let Ok(track_size) = input.try(|i| TrackSize::parse(context, i)) {
+                if !track_size.is_fixed() {
+                    atleast_one_not_fixed = true;
+                    if is_auto {
+                        return Err(())      // <auto-track-list> only accepts <fixed-size> and <fixed-repeat>
+                    }
+                }
+
+                values.push((current_names, Either::First(track_size)));
+            } else if let Ok((repeat, type_)) = input.try(|i| TrackRepeat::parse_with_repeat_type(context, i)) {
+                if list_type == TrackListType::Explicit {
+                    list_type = TrackListType::Normal;      // <explicit-track-list> doesn't contain repeat()
+                }
+
+                match type_ {
+                    RepeatType::Normal => {
+                        atleast_one_not_fixed = true;
+                        if is_auto {            // only <fixed-repeat>
+                            return Err(())
+                        }
+                    },
+                    RepeatType::Auto => {
+                        if is_auto || atleast_one_not_fixed {
+                            // We've either seen <auto-repeat> earlier, or there's at least one non-fixed value
+                            return Err(())
+                        }
+
+                        is_auto = true;
+                        list_type = TrackListType::Auto(values.len() as u32);
+                    },
+                    RepeatType::Fixed => (),
+                }
+
+                values.push((current_names, Either::Second(repeat)));
+            } else {
+                if values.is_empty() {
+                    return Err(())
+                }
+
+                break
+            }
+        }
+
+        Ok(TrackList {
+            list_type: list_type,
+            values_list: values,
+            line_names_last: current_names,
+        })
+    }
+}
+
+impl<L: ToCss> ToCss for TrackList<L> {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        for (i, &(ref names, ref value)) in self.values_list.iter().enumerate() {
+            if i > 0 {
+                dest.write_str(" ")?;
+            }
+
+            if !names.is_empty() {
+                dest.write_str("[")?;
+                dest.write_str(&names.join(" "))?;
+                dest.write_str("] ")?;
+            }
+
+            value.to_css(dest)?;
+        }
+
+        if !self.line_names_last.is_empty() {
+            dest.write_str(" [")?;
+            dest.write_str(&self.line_names_last.join(" "))?;
+            dest.write_str("]")?;
+        }
+
+        Ok(())
+    }
+}
+
+impl HasViewportPercentage for TrackList<LengthOrPercentage> {
+    #[inline]
+    fn has_viewport_percentage(&self) -> bool {
+        self.values_list.iter().any(|&(_, ref v)| v.has_viewport_percentage())
+    }
+}
+
+impl<L: ToComputedValue> ToComputedValue for TrackList<L> {
+    type ComputedValue = TrackList<L::ComputedValue>;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        TrackList {
+            list_type: self.list_type,
+            values_list: self.values_list.iter().map(|&(ref names, ref value)| {
+                (names.clone(), value.to_computed_value(context))
+            }).collect(),
+            line_names_last: self.line_names_last.clone(),
+        }
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        TrackList {
+            list_type: computed.list_type,
+            values_list: computed.values_list.iter().map(|&(ref names, ref value)| {
+                (names.clone(), ToComputedValue::from_computed_value(value))
             }).collect(),
             line_names_last: computed.line_names_last.clone(),
         }
