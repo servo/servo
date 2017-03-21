@@ -106,7 +106,7 @@ impl BloomFilter {
     }
 
     #[inline]
-    fn insert_hash(&mut self, hash: u32) {
+    pub fn insert_hash(&mut self, hash: u32) {
         {
             let slot1 = self.first_mut_slot(hash);
             if !full(slot1) {
@@ -125,11 +125,10 @@ impl BloomFilter {
     #[inline]
     pub fn insert<T: Hash>(&mut self, elem: &T) {
         self.insert_hash(hash(elem))
-
     }
 
     #[inline]
-    fn remove_hash(&mut self, hash: u32) {
+    pub fn remove_hash(&mut self, hash: u32) {
         {
             let slot1 = self.first_mut_slot(hash);
             if !full(slot1) {
@@ -151,7 +150,7 @@ impl BloomFilter {
     }
 
     #[inline]
-    fn might_contain_hash(&self, hash: u32) -> bool {
+    pub fn might_contain_hash(&self, hash: u32) -> bool {
         *self.first_slot(hash) != 0 && *self.second_slot(hash) != 0
     }
 
@@ -165,17 +164,16 @@ impl BloomFilter {
     }
 }
 
-#[inline]
-fn full(slot: &u8) -> bool {
-    *slot == 0xff
+fn hash<T: Hash>(element: &T) -> u32 {
+    let mut hasher = FnvHasher::default();
+    element.hash(&mut hasher);
+    let hash: u64 = hasher.finish();
+    (hash >> 32) as u32 ^ (hash as u32)
 }
 
 #[inline]
-fn hash<T: Hash>(elem: &T) -> u32 {
-    let mut hasher = FnvHasher::default();
-    elem.hash(&mut hasher);
-    let hash: u64 = hasher.finish();
-    (hash >> 32) as u32 ^ (hash as u32)
+fn full(slot: &u8) -> bool {
+    *slot == 0xff
 }
 
 #[inline]
