@@ -1,4 +1,4 @@
-use core::ptr::null;
+use core::ptr;
 use dom_struct::dom_struct;
 use dom::bindings::codegen::Bindings::MutationRecordBinding::MutationRecordBinding::MutationRecordMethods;
 use dom::bindings::js::{JS, Root};
@@ -7,6 +7,7 @@ use dom::bindings::reflector::Reflector;
 use dom::node::Node;
 use dom::nodelist::NodeList;
 use dom::window::Window;
+use std::default::Default;
 
 #[dom_struct]
 pub struct MutationRecord {
@@ -45,18 +46,18 @@ pub struct MutationRecord {
 }
 
 impl MutationRecord {
-    fn new(window: &Window, record_type: DOMString, target: Root<Node>) -> Root<MutationRecord> {
+    fn new(window: &Window, record_type: DOMString, target: Root<Node>) -> MutationRecord {
         MutationRecord {
             reflector_: Reflector::new(),
             record_type: record_type,
             target: target,
             addedNodes: NodeList::empty(window),
             removedNodes: NodeList::empty(window),
-            previousSibling: None,
-            nextSibling: None,
-            attributeName: None,
-            attributeNamespace: None,
-            oldValue: None,
+            previousSibling: Root::from_ref(&*ptr::null()),
+            nextSibling: Root::from_ref(&*ptr::null()),
+            attributeName: Default::default(),
+            attributeNamespace: Default::default(),
+            oldValue: Default::default(),
         }
     }
 }
@@ -82,43 +83,53 @@ impl MutationRecordMethods for MutationRecord {
   }
 
   fn GetPreviousSibling(&self) -> Option<Root<Node>> {
-      if self.previousSibling.is_null() {
-          return None;
-      } else {
-          return Some(self.previousSibling);
-      }
+      Some(self.previousSibling)
+
+    //   if self.previousSibling.is_null() {
+    //       return None;
+    //   } else {
+    //       return Some(self.previousSibling);
+    //   }
   }
 
   fn GetNextSibling(&self) -> Option<Root<Node>> {
-      if self.nextSibling.is_null() {
-          return None;
-      } else {
-          return Some(self.nextSibling);
-      }
+      Some(self.nextSibling)
+
+    //   if self.nextSibling.is_null() {
+    //       return None;
+    //   } else {
+    //       return Some(self.nextSibling);
+    //   }
   }
 
   fn GetAttributeName(&self) -> Option<DOMString> {
-      if self.attributeName.is_null() {
-          return None;
-      } else {
-          return Some(self.attributeName);
-      }
+      Some(self.attributeName)
+
+    //   if self.attributeName.is_null() {
+    //       return None;
+    //   } else {
+    //       return Some(self.attributeName);
+    //   }
   }
 
   fn GetAttributeNamespace(&self) -> Option<DOMString> {
-      if self.attributeNamespace.is_null() {
-          return None;
-      } else {
-          return Some(self.attributeNamespace);
-      }
+      Some(self.attributeNamespace)
+
+    //   if self.attributeNamespace.is_null() {
+    //       return None;
+    //   } else {
+    //       return Some(self.attributeNamespace);
+    //   }
   }
 
   fn GetOldValue(&self) -> Option<DOMString> {
-      if self.oldValue.is_null() {
-          return None;
-      } else {
-          return Some(self.oldValue);
-      }
+      Some(self.oldValue)
+
+    //   if self.oldValue.is_null() {
+    //       return None;
+    //   } else {
+    //       return Some(self.oldValue);
+    //   }
   }
 
 }

@@ -16,5 +16,3 @@ dictionary MutationObserverInit {
   boolean characterDataOldValue;
   sequence<DOMString> attributeFilter;
 };
-
-
