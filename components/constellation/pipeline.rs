@@ -16,6 +16,7 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout_traits::LayoutThreadFactory;
 use msg::constellation_msg::{FrameId, FrameType, PipelineId, PipelineNamespaceId};
+use net::image_cache::ImageCacheImpl;
 use net_traits::{IpcSend, ResourceThreads};
 use net_traits::image_cache::ImageCache;
 use profile_traits::mem as profile_mem;
@@ -34,6 +35,7 @@ use std::env;
 use std::ffi::OsStr;
 use std::process;
 use std::rc::Rc;
+use std::sync::Arc;
 use std::sync::mpsc::Sender;
 use style_traits::CSSPixel;
 use webrender_traits;
@@ -472,7 +474,7 @@ impl UnprivilegedPipelineContent {
         where LTF: LayoutThreadFactory<Message=Message>,
               STF: ScriptThreadFactory<Message=Message>
     {
-        let image_cache = ImageCache::new(self.webrender_api_sender.create_api());
+        let image_cache = Arc::new(ImageCacheImpl::new(self.webrender_api_sender.create_api()));
         let layout_pair = STF::create(InitialScriptState {
             id: self.id,
             frame_id: self.frame_id,

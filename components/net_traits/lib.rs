@@ -15,7 +15,6 @@ extern crate heapsize_derive;
 extern crate hyper;
 extern crate hyper_serde;
 extern crate image as piston_image;
-extern crate immeta;
 extern crate ipc_channel;
 #[macro_use]
 extern crate lazy_static;
