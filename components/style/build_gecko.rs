@@ -691,6 +691,7 @@ mod bindings {
         ];
         let servo_borrow_types = [
             "nsCSSValue",
+            "nsTimingFunction",
             "RawGeckoAnimationValueList",
             "RawGeckoKeyframeList",
             "RawGeckoComputedKeyframeValuesList",
