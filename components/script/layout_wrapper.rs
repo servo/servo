@@ -933,11 +933,12 @@ impl<ConcreteNode> Iterator for ThreadSafeLayoutNodeChildrenIterator<ConcreteNod
                 let mut current_node = self.current_node.clone();
                 loop {
                     let next_node = if let Some(ref node) = current_node {
-                        if node.is_element() &&
-                           node.as_element().unwrap().get_local_name() == &local_name!("summary") &&
-                           node.as_element().unwrap().get_namespace() == &ns!(html) {
-                            self.current_node = None;
-                            return Some(node.clone());
+                        if let Some(element) = node.as_element() {
+                            if element.get_local_name() == &local_name!("summary") &&
+                               element.get_namespace() == &ns!(html) {
+                                self.current_node = None;
+                                return Some(node.clone());
+                            }
                         }
                         unsafe { node.dangerous_next_sibling() }
                     } else {
