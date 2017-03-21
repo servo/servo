@@ -363,3 +363,48 @@ pub fn parse_line_names(input: &mut Parser) -> Result<Vec<String>, ()> {
         Ok(values)
     })
 }
+
+/// The initial argument of the `repeat` function.
+///
+/// https://drafts.csswg.org/css-grid/#typedef-track-repeat
+#[derive(Clone, Copy, PartialEq, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum RepeatCount {
+    /// A positive integer. This is allowed only for `<track-repeat>` and `<fixed-repeat>`
+    Number(u32),
+    /// An `<auto-fill>` keyword allowed only for `<auto-repeat>`
+    AutoFill,
+    /// An `<auto-fit>` keyword allowed only for `<auto-repeat>`
+    AutoFit,
+}
+
+impl Parse for RepeatCount {
+    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        if let Ok(i) = input.try(|i| i.expect_integer()) {
+            if i > 0 {      // only positive integers are allowed
+                Ok(RepeatCount::Number(i as u32))
+            } else {
+                Err(())
+            }
+        } else {
+            match_ignore_ascii_case! { &input.expect_ident()?,
+                "auto-fill" => Ok(RepeatCount::AutoFill),
+                "auto-fit" => Ok(RepeatCount::AutoFit),
+                _ => Err(()),
+            }
+        }
+    }
+}
+
+impl ToCss for RepeatCount {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            RepeatCount::Number(ref c) => c.to_css(dest),
+            RepeatCount::AutoFill => dest.write_str("auto-fill"),
+            RepeatCount::AutoFit => dest.write_str("auto-fit"),
+        }
+    }
+}
+
+impl ComputedValueAsSpecified for RepeatCount {}
+no_viewport_percentage!(RepeatCount);
