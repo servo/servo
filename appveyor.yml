@@ -30,6 +30,11 @@ environment:
     C:\\Program Files\\AppVeyor\\BuildAgent;"
   matrix:
   - TARGET: nightly-x86_64-pc-windows-msvc
+    LLVM_VERSION: 3.9.0
+    CLANG_VERSION: clang_3_9
+
+install:
+  - .\ci\install.bat
 
 branches:
   only:
