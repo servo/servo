@@ -48,6 +48,8 @@ use style::gecko_bindings::bindings::RawServoAnimationValueStrong;
 use style::gecko_bindings::bindings::RawServoImportRuleBorrowed;
 use style::gecko_bindings::bindings::ServoComputedValuesBorrowedOrNull;
 use style::gecko_bindings::bindings::nsTArrayBorrowed_uintptr_t;
+use style::gecko_bindings::bindings::nsTimingFunctionBorrowed;
+use style::gecko_bindings::bindings::nsTimingFunctionBorrowedMut;
 use style::gecko_bindings::structs;
 use style::gecko_bindings::structs::{SheetParsingMode, nsIAtom, nsCSSPropertyID};
 use style::gecko_bindings::structs::{ThreadSafePrincipalHolder, ThreadSafeURIHolder};
@@ -56,7 +58,6 @@ use style::gecko_bindings::structs::Loader;
 use style::gecko_bindings::structs::RawGeckoPresContextOwned;
 use style::gecko_bindings::structs::ServoStyleSheet;
 use style::gecko_bindings::structs::nsCSSValueSharedList;
-use style::gecko_bindings::structs::nsTimingFunction;
 use style::gecko_bindings::structs::nsresult;
 use style::gecko_bindings::sugar::ownership::{FFIArcHelpers, HasArcFFI, HasBoxFFI};
 use style::gecko_bindings::sugar::ownership::{HasSimpleFFI, Strong};
@@ -787,6 +788,27 @@ pub extern "C" fn Servo_ParseProperty(property: *const nsACString, value: *const
             Arc::new(global_style_data.shared_lock.wrap(block)).into_strong()
         }
         Err(_) => RawServoDeclarationBlockStrong::null()
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_ParseEasing(easing: *const nsAString,
+                                    base: *const nsACString,
+                                    data: *const structs::GeckoParserExtraData,
+                                    output: nsTimingFunctionBorrowedMut)
+                                    -> bool {
+    use style::properties::longhands::transition_timing_function;
+
+    make_context!((base, data) => (base_url, extra_data));
+    let reporter = StdoutErrorReporter;
+    let context = ParserContext::new_with_extra_data(Origin::Author, &base_url, &reporter, extra_data);
+    let easing = unsafe { (*easing).to_string() };
+    match transition_timing_function::single_value::parse(&context, &mut Parser::new(&easing)) {
+        Ok(parsed_easing) => {
+            *output = parsed_easing.into();
+            true
+        },
+        Err(_) => false
     }
 }
 
@@ -1617,7 +1639,7 @@ pub extern "C" fn Servo_AssertTreeIsClean(root: RawGeckoElementBorrowed) {
 #[no_mangle]
 pub extern "C" fn Servo_StyleSet_FillKeyframesForName(raw_data: RawServoStyleSetBorrowed,
                                                       name: *const nsACString,
-                                                      timing_function: *const nsTimingFunction,
+                                                      timing_function: nsTimingFunctionBorrowed,
                                                       style: ServoComputedValuesBorrowed,
                                                       keyframes: RawGeckoKeyframeListBorrowedMut) -> bool {
     use style::gecko_bindings::structs::Keyframe;
@@ -1626,7 +1648,6 @@ pub extern "C" fn Servo_StyleSet_FillKeyframesForName(raw_data: RawServoStyleSet
 
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
     let name = unsafe { Atom::from(name.as_ref().unwrap().as_str_unchecked()) };
-    let style_timing_function = unsafe { timing_function.as_ref().unwrap() };
     let style = ComputedValues::as_arc(&style);
 
     if let Some(ref animation) = data.stylist.animations().get(&name) {
@@ -1637,13 +1658,13 @@ pub extern "C" fn Servo_StyleSet_FillKeyframesForName(raw_data: RawServoStyleSet
           let timing_function = if let Some(val) = step.get_animation_timing_function(&guard) {
               val.into()
           } else {
-              *style_timing_function
+              *timing_function
           };
 
           let keyframe = unsafe {
-                Gecko_AnimationAppendKeyframe(keyframes,
-                                              step.start_percentage.0 as f32,
-                                              &timing_function)
+              Gecko_AnimationAppendKeyframe(keyframes,
+                                            step.start_percentage.0 as f32,
+                                            &timing_function)
           };
 
           fn add_computed_property_value(keyframe: *mut Keyframe,

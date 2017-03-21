@@ -263,6 +263,10 @@ pub type nsCSSValueBorrowed<'a> = &'a nsCSSValue;
 pub type nsCSSValueBorrowedOrNull<'a> = Option<&'a nsCSSValue>;
 pub type nsCSSValueBorrowedMut<'a> = &'a mut nsCSSValue;
 pub type nsCSSValueBorrowedMutOrNull<'a> = Option<&'a mut nsCSSValue>;
+pub type nsTimingFunctionBorrowed<'a> = &'a nsTimingFunction;
+pub type nsTimingFunctionBorrowedOrNull<'a> = Option<&'a nsTimingFunction>;
+pub type nsTimingFunctionBorrowedMut<'a> = &'a mut nsTimingFunction;
+pub type nsTimingFunctionBorrowedMutOrNull<'a> = Option<&'a mut nsTimingFunction>;
 pub type RawGeckoAnimationValueListBorrowed<'a> = &'a RawGeckoAnimationValueList;
 pub type RawGeckoAnimationValueListBorrowedOrNull<'a> = Option<&'a RawGeckoAnimationValueList>;
 pub type RawGeckoAnimationValueListBorrowedMut<'a> = &'a mut RawGeckoAnimationValueList;
@@ -1390,7 +1394,7 @@ extern "C" {
     pub fn Servo_StyleSet_FillKeyframesForName(set: RawServoStyleSetBorrowed,
                                                property: *const nsACString,
                                                timing_function:
-                                                   *const nsTimingFunction,
+                                                   nsTimingFunctionBorrowed,
                                                computed_values:
                                                    ServoComputedValuesBorrowed,
                                                keyframe_list:
@@ -1486,6 +1490,12 @@ extern "C" {
                                base: *const nsACString,
                                data: *const GeckoParserExtraData)
      -> RawServoDeclarationBlockStrong;
+}
+extern "C" {
+    pub fn Servo_ParseEasing(easing: *const nsAString,
+                             base: *const nsACString,
+                             data: *const GeckoParserExtraData,
+                             output: nsTimingFunctionBorrowedMut) -> bool;
 }
 extern "C" {
     pub fn Servo_GetComputedKeyframeValues(keyframes:
