@@ -18,7 +18,6 @@ use values::specified::LengthOrPercentage;
 /// A `<grid-line>` type.
 ///
 /// https://drafts.csswg.org/css-grid/#typedef-grid-row-start-grid-line
-#[allow(missing_docs)]
 pub struct GridLine {
     /// Flag to check whether it's a `span` keyword.
     pub is_span: bool,
@@ -305,4 +304,27 @@ impl<L: ToComputedValue> ToComputedValue for TrackSize<L> {
                 TrackSize::FitContent(ToComputedValue::from_computed_value(lop)),
         }
     }
+}
+
+/// Parse the grid line names into a vector of owned strings.
+///
+/// https://drafts.csswg.org/css-grid/#typedef-line-names
+pub fn parse_line_names(input: &mut Parser) -> Result<Vec<String>, ()> {
+    input.expect_square_bracket_block()?;
+    input.parse_nested_block(|input| {
+        let mut values = vec![];
+        loop {
+            let ident = input.expect_ident()?;
+            if ident.eq_ignore_ascii_case("span") {
+                return Err(())
+            }
+
+            values.push(ident.into_owned());
+            if input.try(|i| i.expect_whitespace()).is_err() {
+                break
+            }
+        }
+
+        Ok(values)
+    })
 }
