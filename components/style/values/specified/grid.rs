@@ -290,7 +290,7 @@ impl<L: ToCss> ToCss for TrackSize<L> {
             TrackSize::MinMax(ref infexible, ref flexible) => {
                 try!(dest.write_str("minmax("));
                 try!(infexible.to_css(dest));
-                try!(dest.write_str(","));
+                try!(dest.write_str(", "));
                 try!(flexible.to_css(dest));
                 dest.write_str(")")
             },
@@ -408,3 +408,150 @@ impl ToCss for TrackRepeatFirst {
 
 impl ComputedValueAsSpecified for TrackRepeatFirst {}
 no_viewport_percentage!(TrackRepeatFirst);
+
+/// The type of `repeat` function.
+///
+/// https://drafts.csswg.org/css-grid/#typedef-track-repeat
+#[derive(Clone, Copy, PartialEq, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum TrackRepeatType {
+    /// [`<track-repeat>`](https://drafts.csswg.org/css-grid/#typedef-track-repeat)
+    Auto,
+    /// [`<auto-repeat>`](https://drafts.csswg.org/css-grid/#typedef-auto-repeat)
+    Normal,
+    /// [`<fixed-repeat>`](https://drafts.csswg.org/css-grid/#typedef-fixed-repeat)
+    Fixed,
+}
+
+/// The structure corresponding to the various `repeat` functions.
+///
+/// https://drafts.csswg.org/css-grid/#typedef-track-repeat
+#[derive(Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub struct TrackRepeat<L> {
+    /// The type of `repeat` (based on the values we encountered in parsing)
+    pub repeat_type: TrackRepeatType,
+    /// The number of times for the value to be repeated. Also indicates
+    /// whether this is `auto-fit` or `auto-fill`
+    pub count: TrackRepeatFirst,
+    /// `[ <line-names>? <track-size> ]+` in the form of a vector of 2-tuples.
+    pub repeat_variants: Vec<(Vec<String>, TrackSize<L>)>,
+    /// Final `<line-names>`
+    pub line_names_last: Vec<String>,
+}
+
+impl Parse for TrackRepeat<LengthOrPercentage> {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        input.try(|i| i.expect_function_matching("repeat")).and_then(|_| {
+            input.parse_nested_block(|input| {
+                let count = TrackRepeatFirst::parse(context, input)?;
+                let is_auto = count == TrackRepeatFirst::AutoFit || count == TrackRepeatFirst::AutoFill;
+                let mut repeat_type = if is_auto {
+                    TrackRepeatType::Auto
+                } else {    // <fixed-size> is a subset of <track_size>, so it should work for both
+                    TrackRepeatType::Fixed
+                };
+
+                let mut variants = vec![];
+                input.expect_comma()?;
+
+                let mut current_names;
+
+                loop {
+                    current_names = input.try(parse_line_names).unwrap_or(vec![]);
+                    if let Ok(track_size) = input.try(|i| TrackSize::parse(context, i)) {
+                        if !track_size.is_fixed() {
+                            if is_auto {
+                                return Err(())      // should be <fixed-size> for <auto-repeat>
+                            }
+
+                            if repeat_type == TrackRepeatType::Fixed {
+                                repeat_type = TrackRepeatType::Normal       // <track-size> for sure
+                            }
+                        }
+
+                        variants.push((current_names, track_size));
+                    } else {
+                        if variants.is_empty() {
+                            return Err(())      // expecting at least one <track-size>
+                        }
+
+                        break       // no more <track-size>, breaking
+                    }
+                }
+
+                Ok(TrackRepeat {
+                    repeat_type: repeat_type,
+                    count: count,
+                    repeat_variants: variants,
+                    line_names_last: current_names,    // last set of <line-names>
+                })
+            })
+        })
+    }
+}
+
+impl<L: ToCss> ToCss for TrackRepeat<L> {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        dest.write_str("repeat(")?;
+        self.count.to_css(dest)?;
+        dest.write_str(", ")?;
+
+        let total = self.repeat_variants.len();
+        for (i, &(ref names, ref size)) in self.repeat_variants.iter().enumerate() {
+            if !names.is_empty() {
+                dest.write_str("[")?;
+                dest.write_str(&names.join(" "))?;
+                dest.write_str("] ")?;
+            }
+
+            size.to_css(dest)?;
+            if i < total - 1 {
+                dest.write_str(" ")?;
+            }
+        }
+
+        if !self.line_names_last.is_empty() {
+            dest.write_str(" [")?;
+            dest.write_str(&self.line_names_last.join(" "))?;
+            dest.write_str("]")?;
+        }
+
+        dest.write_str(")")
+    }
+}
+
+impl HasViewportPercentage for TrackRepeat<LengthOrPercentage> {
+    #[inline]
+    fn has_viewport_percentage(&self) -> bool {
+        self.repeat_variants.iter().any(|&(_, ref v)| v.has_viewport_percentage())
+    }
+}
+
+impl<L: ToComputedValue> ToComputedValue for TrackRepeat<L> {
+    type ComputedValue = TrackRepeat<L::ComputedValue>;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        TrackRepeat {
+            repeat_type: self.repeat_type,
+            count: self.count,
+            repeat_variants: self.repeat_variants.iter().map(|&(ref names, ref size)| {
+                (names.clone(), size.to_computed_value(context))
+            }).collect(),
+            line_names_last: self.line_names_last.clone(),
+        }
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        TrackRepeat {
+            repeat_type: computed.repeat_type,
+            count: computed.count,
+            repeat_variants: computed.repeat_variants.iter().map(|&(ref names, ref size)| {
+                (names.clone(), ToComputedValue::from_computed_value(size))
+            }).collect(),
+            line_names_last: computed.line_names_last.clone(),
+        }
+    }
+}
