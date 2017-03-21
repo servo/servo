@@ -121,6 +121,7 @@
 
 use std::ops::{Deref, DerefMut};
 use std::marker::PhantomData;
+use std::borrow;
 use std::slice;
 use std::ptr;
 use std::mem;
@@ -149,11 +150,20 @@ const F_CLASS_FIXED: u32 = 1 << 16; // indicates that |this| is of type nsTFixed
 macro_rules! define_string_types {
     {
         char_t = $char_t: ty;
+
         AString = $AString: ident;
         String = $String: ident;
         FixedString = $FixedString: ident;
 
+        StringLike = $StringLike: ident;
+        StringAdapter = $StringAdapter: ident;
+
         StringRepr = $StringRepr: ident;
+
+        drop = $drop: ident;
+        assign = $assign: ident, $fallible_assign: ident;
+        append = $append: ident, $fallible_append: ident;
+        set_length = $set_length: ident, $fallible_set_length: ident;
     } => {
         /// The representation of a ns[C]String type in C++. This type is
         /// used internally by our definition of ns[C]String to ensure layout
@@ -206,6 +216,72 @@ macro_rules! define_string_types {
         #[repr(C)]
         pub struct $AString {
             _prohibit_constructor: [u8; 0],
+        }
+
+        impl $AString {
+            /// Assign the value of `other` into self, overwriting any value
+            /// currently stored. Performs an optimized assignment when possible
+            /// if `other` is a `nsA[C]String`.
+            pub fn assign<T: $StringLike + ?Sized>(&mut self, other: &T) {
+                unsafe { $assign(self, other.adapt().as_ptr()) };
+            }
+
+            /// Assign the value of `other` into self, overwriting any value
+            /// currently stored. Performs an optimized assignment when possible
+            /// if `other` is a `nsA[C]String`.
+            ///
+            /// Returns Ok(()) on success, and Err(()) if the allocation failed.
+            pub fn fallible_assign<T: $StringLike + ?Sized>(&mut self, other: &T) -> Result<(), ()> {
+                if unsafe { $fallible_assign(self, other.adapt().as_ptr()) } {
+                    Ok(())
+                } else {
+                    Err(())
+                }
+            }
+
+            /// Append the value of `other` into self.
+            pub fn append<T: $StringLike + ?Sized>(&mut self, other: &T) {
+                unsafe { $append(self, other.adapt().as_ptr()) };
+            }
+
+            /// Append the value of `other` into self.
+            ///
+            /// Returns Ok(()) on success, and Err(()) if the allocation failed.
+            pub fn fallible_append<T: $StringLike + ?Sized>(&mut self, other: &T) -> Result<(), ()> {
+                if unsafe { $fallible_append(self, other.adapt().as_ptr()) } {
+                    Ok(())
+                } else {
+                    Err(())
+                }
+            }
+
+            /// Set the length of the string to the passed-in length, and expand
+            /// the backing capacity to match. This method is unsafe as it can
+            /// expose uninitialized memory when len is greater than the current
+            /// length of the string.
+            pub unsafe fn set_length(&mut self, len: u32) {
+                $set_length(self, len);
+            }
+
+            /// Set the length of the string to the passed-in length, and expand
+            /// the backing capacity to match. This method is unsafe as it can
+            /// expose uninitialized memory when len is greater than the current
+            /// length of the string.
+            ///
+            /// Returns Ok(()) on success, and Err(()) if the allocation failed.
+            pub unsafe fn fallible_set_length(&mut self, len: u32) -> Result<(), ()> {
+                if $fallible_set_length(self, len) {
+                    Ok(())
+                } else {
+                    Err(())
+                }
+            }
+
+            pub fn truncate(&mut self) {
+                unsafe {
+                    self.set_length(0);
+                }
+            }
         }
 
         impl Deref for $AString {
@@ -277,6 +353,14 @@ macro_rules! define_string_types {
             }
         }
 
+        impl<'a> Drop for $String<'a> {
+            fn drop(&mut self) {
+                unsafe {
+                    $drop(&mut **self);
+                }
+            }
+        }
+
         impl<'a> Deref for $String<'a> {
             type Target = $AString;
             fn deref(&self) -> &$AString {
@@ -313,7 +397,7 @@ macro_rules! define_string_types {
                 assert!(s.len() < (u32::MAX as usize));
                 $String {
                     hdr: $StringRepr {
-                        data: if s.is_empty() { ptr::null() } else { s.as_ptr()},
+                        data: if s.is_empty() { ptr::null() } else { s.as_ptr() },
                         length: s.len() as u32,
                         flags: F_NONE,
                     },
@@ -325,7 +409,6 @@ macro_rules! define_string_types {
         impl From<Box<[$char_t]>> for $String<'static> {
             fn from(s: Box<[$char_t]>) -> $String<'static> {
                 assert!(s.len() < (u32::MAX as usize));
-
                 if s.is_empty() {
                     return $String::new();
                 }
@@ -512,6 +595,93 @@ macro_rules! define_string_types {
                 $AString::eq(self, *other)
             }
         }
+
+        /// An adapter type to allow for passing both types which coerce to
+        /// &[$char_type], and &$AString to a function, while still performing
+        /// optimized operations when passed the $AString.
+        pub enum $StringAdapter<'a> {
+            Borrowed($String<'a>),
+            Abstract(&'a $AString),
+        }
+
+        impl<'a> $StringAdapter<'a> {
+            fn as_ptr(&self) -> *const $AString {
+                &**self
+            }
+        }
+
+        impl<'a> Deref for $StringAdapter<'a> {
+            type Target = $AString;
+
+            fn deref(&self) -> &$AString {
+                match *self {
+                    $StringAdapter::Borrowed(ref s) => s,
+                    $StringAdapter::Abstract(ref s) => s,
+                }
+            }
+        }
+
+        /// This trait is implemented on types which are `ns[C]String`-like, in
+        /// that they can at very low cost be converted to a borrowed
+        /// `&nsA[C]String`. Unfortunately, the intermediate type
+        /// `ns[C]StringAdapter` is required as well due to types like `&[u8]`
+        /// needing to be (cheaply) wrapped in a `nsCString` on the stack to
+        /// create the `&nsACString`.
+        ///
+        /// This trait is used to DWIM when calling the methods on
+        /// `nsA[C]String`.
+        pub trait $StringLike {
+            fn adapt(&self) -> $StringAdapter;
+        }
+
+        impl<'a, T: $StringLike + ?Sized> $StringLike for &'a T {
+            fn adapt(&self) -> $StringAdapter {
+                <T as $StringLike>::adapt(*self)
+            }
+        }
+
+        impl<'a, T> $StringLike for borrow::Cow<'a, T>
+            where T: $StringLike + borrow::ToOwned + ?Sized {
+            fn adapt(&self) -> $StringAdapter {
+                <T as $StringLike>::adapt(self.as_ref())
+            }
+        }
+
+        impl $StringLike for $AString {
+            fn adapt(&self) -> $StringAdapter {
+                $StringAdapter::Abstract(self)
+            }
+        }
+
+        impl<'a> $StringLike for $String<'a> {
+            fn adapt(&self) -> $StringAdapter {
+                $StringAdapter::Abstract(self)
+            }
+        }
+
+        impl<'a> $StringLike for $FixedString<'a> {
+            fn adapt(&self) -> $StringAdapter {
+                $StringAdapter::Abstract(self)
+            }
+        }
+
+        impl $StringLike for [$char_t] {
+            fn adapt(&self) -> $StringAdapter {
+                $StringAdapter::Borrowed($String::from(self))
+            }
+        }
+
+        impl $StringLike for Vec<$char_t> {
+            fn adapt(&self) -> $StringAdapter {
+                $StringAdapter::Borrowed($String::from(&self[..]))
+            }
+        }
+
+        impl $StringLike for Box<[$char_t]> {
+            fn adapt(&self) -> $StringAdapter {
+                $StringAdapter::Borrowed($String::from(&self[..]))
+            }
+        }
     }
 }
 
@@ -526,52 +696,44 @@ define_string_types! {
     String = nsCString;
     FixedString = nsFixedCString;
 
+    StringLike = nsCStringLike;
+    StringAdapter = nsCStringAdapter;
+
     StringRepr = nsCStringRepr;
+
+    drop = Gecko_FinalizeCString;
+    assign = Gecko_AssignCString, Gecko_FallibleAssignCString;
+    append = Gecko_AppendCString, Gecko_FallibleAppendCString;
+    set_length = Gecko_SetLengthCString, Gecko_FallibleSetLengthCString;
 }
 
 impl nsACString {
-    pub fn assign<T: AsRef<[u8]> + ?Sized>(&mut self, other: &T) {
-        let s = nsCString::from(other.as_ref());
-        unsafe {
-            Gecko_AssignCString(self, &*s);
-        }
-    }
-
-    pub fn assign_utf16<T: AsRef<[u16]> + ?Sized>(&mut self, other: &T) {
-        self.assign(&[]);
+    pub fn assign_utf16<T: nsStringLike + ?Sized>(&mut self, other: &T) {
+        self.truncate();
         self.append_utf16(other);
     }
 
-    pub fn append<T: AsRef<[u8]> + ?Sized>(&mut self, other: &T) {
-        let s = nsCString::from(other.as_ref());
+    pub fn fallible_assign_utf16<T: nsStringLike + ?Sized>(&mut self, other: &T) -> Result<(), ()> {
+        self.truncate();
+        self.fallible_append_utf16(other)
+    }
+
+    pub fn append_utf16<T: nsStringLike + ?Sized>(&mut self, other: &T) {
         unsafe {
-            Gecko_AppendCString(self, &*s);
+            Gecko_AppendUTF16toCString(self, other.adapt().as_ptr());
         }
     }
 
-    pub fn append_utf16<T: AsRef<[u16]> + ?Sized>(&mut self, other: &T) {
-        let s = nsString::from(other.as_ref());
-        unsafe {
-            Gecko_AppendUTF16toCString(self, &*s);
+    pub fn fallible_append_utf16<T: nsStringLike + ?Sized>(&mut self, other: &T) -> Result<(), ()> {
+        if unsafe { Gecko_FallibleAppendUTF16toCString(self, other.adapt().as_ptr()) } {
+            Ok(())
+        } else {
+            Err(())
         }
     }
 
     pub unsafe fn as_str_unchecked(&self) -> &str {
         str::from_utf8_unchecked(self)
-    }
-
-    pub fn truncate(&mut self) {
-        unsafe {
-            Gecko_TruncateCString(self);
-        }
-    }
-}
-
-impl<'a> Drop for nsCString<'a> {
-    fn drop(&mut self) {
-        unsafe {
-            Gecko_FinalizeCString(&mut **self);
-        }
     }
 }
 
@@ -619,6 +781,24 @@ impl cmp::PartialEq<str> for nsACString {
     }
 }
 
+impl nsCStringLike for str {
+    fn adapt(&self) -> nsCStringAdapter {
+        nsCStringAdapter::Borrowed(nsCString::from(self))
+    }
+}
+
+impl nsCStringLike for String {
+    fn adapt(&self) -> nsCStringAdapter {
+        nsCStringAdapter::Borrowed(nsCString::from(&self[..]))
+    }
+}
+
+impl nsCStringLike for Box<str> {
+    fn adapt(&self) -> nsCStringAdapter {
+        nsCStringAdapter::Borrowed(nsCString::from(&self[..]))
+    }
+}
+
 #[macro_export]
 macro_rules! ns_auto_cstring {
     ($name:ident) => {
@@ -638,47 +818,39 @@ define_string_types! {
     String = nsString;
     FixedString = nsFixedString;
 
+    StringLike = nsStringLike;
+    StringAdapter = nsStringAdapter;
+
     StringRepr = nsStringRepr;
+
+    drop = Gecko_FinalizeString;
+    assign = Gecko_AssignString, Gecko_FallibleAssignString;
+    append = Gecko_AppendString, Gecko_FallibleAppendString;
+    set_length = Gecko_SetLengthString, Gecko_FallibleSetLengthString;
 }
 
 impl nsAString {
-    pub fn assign<T: AsRef<[u16]> + ?Sized>(&mut self, other: &T) {
-        let s = nsString::from(other.as_ref());
-        unsafe {
-            Gecko_AssignString(self, &*s);
-        }
-    }
-
-    pub fn assign_utf8<T: AsRef<[u8]> + ?Sized>(&mut self, other: &T) {
-        self.assign(&[]);
+    pub fn assign_utf8<T: nsCStringLike + ?Sized>(&mut self, other: &T) {
+        self.truncate();
         self.append_utf8(other);
     }
 
-    pub fn append<T: AsRef<[u16]> + ?Sized>(&mut self, other: &T) {
-        let s = nsString::from(other.as_ref());
+    pub fn fallible_assign_utf8<T: nsCStringLike + ?Sized>(&mut self, other: &T) -> Result<(), ()> {
+        self.truncate();
+        self.fallible_append_utf8(other)
+    }
+
+    pub fn append_utf8<T: nsCStringLike + ?Sized>(&mut self, other: &T) {
         unsafe {
-            Gecko_AppendString(self, &*s);
+            Gecko_AppendUTF8toString(self, other.adapt().as_ptr());
         }
     }
 
-    pub fn append_utf8<T: AsRef<[u8]> + ?Sized>(&mut self, other: &T) {
-        let s = nsCString::from(other.as_ref());
-        unsafe {
-            Gecko_AppendUTF8toString(self, &*s);
-        }
-    }
-
-    pub fn truncate(&mut self) {
-        unsafe {
-            Gecko_TruncateString(self);
-        }
-    }
-}
-
-impl<'a> Drop for nsString<'a> {
-    fn drop(&mut self) {
-        unsafe {
-            Gecko_FinalizeString(&mut **self);
+    pub fn fallible_append_utf8<T: nsCStringLike + ?Sized>(&mut self, other: &T) -> Result<(), ()> {
+        if unsafe { Gecko_FallibleAppendUTF8toString(self, other.adapt().as_ptr()) } {
+            Ok(())
+        } else {
+            Err(())
         }
     }
 }
@@ -731,24 +903,32 @@ macro_rules! ns_auto_string {
 #[allow(non_snake_case)]
 unsafe fn Gecko_IncrementStringAdoptCount(_: *mut c_void) {}
 
-// NOTE: These bindings currently only expose infallible operations. Perhaps
-// consider allowing for fallible methods?
 extern "C" {
     #[cfg(debug_assertions)]
     fn Gecko_IncrementStringAdoptCount(data: *mut c_void);
 
     // Gecko implementation in nsSubstring.cpp
     fn Gecko_FinalizeCString(this: *mut nsACString);
+
     fn Gecko_AssignCString(this: *mut nsACString, other: *const nsACString);
     fn Gecko_AppendCString(this: *mut nsACString, other: *const nsACString);
-    fn Gecko_TruncateCString(this: *mut nsACString);
+    fn Gecko_SetLengthCString(this: *mut nsACString, length: u32);
+    fn Gecko_FallibleAssignCString(this: *mut nsACString, other: *const nsACString) -> bool;
+    fn Gecko_FallibleAppendCString(this: *mut nsACString, other: *const nsACString) -> bool;
+    fn Gecko_FallibleSetLengthCString(this: *mut nsACString, length: u32) -> bool;
 
     fn Gecko_FinalizeString(this: *mut nsAString);
+
     fn Gecko_AssignString(this: *mut nsAString, other: *const nsAString);
     fn Gecko_AppendString(this: *mut nsAString, other: *const nsAString);
-    fn Gecko_TruncateString(this: *mut nsAString);
+    fn Gecko_SetLengthString(this: *mut nsAString, length: u32);
+    fn Gecko_FallibleAssignString(this: *mut nsAString, other: *const nsAString) -> bool;
+    fn Gecko_FallibleAppendString(this: *mut nsAString, other: *const nsAString) -> bool;
+    fn Gecko_FallibleSetLengthString(this: *mut nsAString, length: u32) -> bool;
 
     // Gecko implementation in nsReadableUtils.cpp
     fn Gecko_AppendUTF16toCString(this: *mut nsACString, other: *const nsAString);
     fn Gecko_AppendUTF8toString(this: *mut nsAString, other: *const nsACString);
+    fn Gecko_FallibleAppendUTF16toCString(this: *mut nsACString, other: *const nsAString) -> bool;
+    fn Gecko_FallibleAppendUTF8toString(this: *mut nsAString, other: *const nsACString) -> bool;
 }
