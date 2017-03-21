@@ -12884,6 +12884,12 @@
      {}
     ]
    ],
+   "mozilla/htmlimageelement.html": [
+    [
+     "/_mozilla/mozilla/htmlimageelement.html",
+     {}
+    ]
+   ],
    "mozilla/htmllabel-activation.html": [
     [
      "/_mozilla/mozilla/htmllabel-activation.html",
@@ -25379,6 +25385,10 @@
   ],
   "mozilla/htmlfontelement_size_attribute.html": [
    "54fe6bbc1a7a35ceb14a3bf33f81ebed55beaf72",
+   "testharness"
+  ],
+  "mozilla/htmlimageelement.html": [
+   "f1857a8f413f444b34464f0a3bc6b46af13c1a5a",
    "testharness"
   ],
   "mozilla/htmllabel-activation.html": [
