@@ -2058,6 +2058,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "precomputed-hash"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "procedural-masquerade"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2392,6 +2397,7 @@ dependencies = [
  "cssparser 0.12.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "matches 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "precomputed-hash 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -2701,15 +2707,30 @@ dependencies = [
 [[package]]
 name = "string_cache"
 version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "debug_unreachable 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "phf_shared 0.7.21 (registry+https://github.com/rust-lang/crates.io-index)",
+ "precomputed-hash 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.9.11 (registry+https://github.com/rust-lang/crates.io-index)",
- "string_cache_codegen 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "string_cache_shared 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "string_cache_codegen 0.3.1",
+ "string_cache_shared 0.3.0",
+]
+
+[[package]]
+name = "string_cache"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+replace = "string_cache 0.4.0"
+
+[[package]]
+name = "string_cache_codegen"
+version = "0.3.1"
+dependencies = [
+ "phf_generator 0.7.21 (registry+https://github.com/rust-lang/crates.io-index)",
+ "quote 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
+ "string_cache_shared 0.3.0",
 ]
 
 [[package]]
@@ -2720,6 +2741,10 @@ dependencies = [
  "phf_generator 0.7.21 (registry+https://github.com/rust-lang/crates.io-index)",
  "string_cache_shared 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "string_cache_shared"
+version = "0.3.0"
 
 [[package]]
 name = "string_cache_shared"
@@ -2758,6 +2783,7 @@ dependencies = [
  "ordered-float 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "parking_lot 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "pdqsort 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "precomputed-hash 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rayon 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "selectors 0.18.0",
@@ -3495,6 +3521,7 @@ dependencies = [
 "checksum pkg-config 0.3.9 (registry+https://github.com/rust-lang/crates.io-index)" = "3a8b4c6b8165cd1a1cd4b9b120978131389f64bdaf456435caa41e630edba903"
 "checksum pnacl-build-helper 1.4.10 (registry+https://github.com/rust-lang/crates.io-index)" = "61c9231d31aea845007443d62fcbb58bb6949ab9c18081ee1e09920e0cf1118b"
 "checksum png 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)" = "3cb773e9a557edb568ce9935cf783e3cdcabe06a9449d41b3e5506d88e582c82"
+"checksum precomputed-hash 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "cdf1fc3616b3ef726a847f2cd2388c646ef6a1f1ba4835c2629004da48184150"
 "checksum procedural-masquerade 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "9f566249236c6ca4340f7ca78968271f0ed2b0f234007a61b66f9ecd0af09260"
 "checksum quasi 0.29.0 (registry+https://github.com/rust-lang/crates.io-index)" = "dcbf815446dc6a0afbc72d88f9a8aa71b608d10b168e09437c80c0fd6fd410c9"
 "checksum quasi_codegen 0.29.0 (registry+https://github.com/rust-lang/crates.io-index)" = "b06172e92ab0099427609854ffb1512c377be5fc4beaf572ae5d5a01b8359596"

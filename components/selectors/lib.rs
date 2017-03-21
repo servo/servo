@@ -5,6 +5,7 @@
 #[macro_use] extern crate bitflags;
 #[macro_use] extern crate cssparser;
 #[macro_use] extern crate matches;
+extern crate precomputed_hash;
 extern crate fnv;
 
 pub mod bloom;

@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::{Token, Parser as CssParser, parse_nth, ToCss, serialize_identifier, CssStringWriter};
+use precomputed_hash::PrecomputedHash;
 use std::ascii::AsciiExt;
 use std::borrow::{Borrow, Cow};
 use std::cmp;
@@ -39,10 +40,10 @@ macro_rules! with_all_bounds {
         /// of pseudo-classes/elements
         pub trait SelectorImpl: Sized {
             type AttrValue: $($InSelector)*;
-            type Identifier: $($InSelector)*;
-            type ClassName: $($InSelector)*;
-            type LocalName: $($InSelector)* + Borrow<Self::BorrowedLocalName>;
-            type NamespaceUrl: $($CommonBounds)* + Default + Borrow<Self::BorrowedNamespaceUrl>;
+            type Identifier: $($InSelector)* + PrecomputedHash;
+            type ClassName: $($InSelector)* + PrecomputedHash;
+            type LocalName: $($InSelector)* + Borrow<Self::BorrowedLocalName> + PrecomputedHash;
+            type NamespaceUrl: $($CommonBounds)* + Default + Borrow<Self::BorrowedNamespaceUrl> + PrecomputedHash;
             type NamespacePrefix: $($InSelector)* + Default;
             type BorrowedNamespaceUrl: ?Sized + Eq;
             type BorrowedLocalName: ?Sized + Eq + Hash;

@@ -11,6 +11,7 @@ use gecko_bindings::bindings::Gecko_Atomize;
 use gecko_bindings::bindings::Gecko_ReleaseAtom;
 use gecko_bindings::structs::nsIAtom;
 use heapsize::HeapSizeOf;
+use precomputed_hash::PrecomputedHash;
 use std::borrow::{Cow, Borrow};
 use std::char::{self, DecodeUtf16};
 use std::fmt::{self, Write};
@@ -54,6 +55,13 @@ impl Deref for Atom {
         unsafe {
             &*self.0
         }
+    }
+}
+
+impl PrecomputedHash for Atom {
+    #[inline]
+    fn precomputed_hash(&self) -> u32 {
+        self.get_hash()
     }
 }
 
