@@ -356,6 +356,13 @@ impl FontHandleMethods for FontHandle {
         let au_from_du = |du| -> Au { Au::from_f32_px(du as f32 * self.du_to_px) };
         let au_from_du_s = |du| -> Au { Au:: from_f32_px(du as f32 * self.scaled_du_to_px) };
 
+        // For some reason the line gap is 0 on Windows.
+        // This cause rendering issues on some site like Reddit for example.
+        let line_gap = match dm.lineGap {
+            0 => au_from_em(1 as f64),
+            _ => au_from_du(dm.lineGap as i32),
+        };
+
         // anything that we calculate and don't just pull out of self.face.metrics
         // is pulled out here for clarity
         let leading = dm.ascent - dm.capHeight;
@@ -372,7 +379,7 @@ impl FontHandleMethods for FontHandle {
             descent:          au_from_du_s(dm.descent as i32),
             max_advance:      au_from_pt(0.0), // FIXME
             average_advance:  au_from_pt(0.0), // FIXME
-            line_gap:         au_from_du(dm.lineGap as i32),
+            line_gap:         line_gap,
         };
         debug!("Font metrics (@{} pt): {:?}", self.em_size * 12., metrics);
         metrics
