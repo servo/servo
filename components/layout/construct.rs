@@ -989,8 +989,9 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         let fragment_info = SpecificFragmentInfo::InlineAbsoluteHypothetical(
             InlineAbsoluteHypotheticalFragmentInfo::new(block_flow));
         let style_context = self.style_context();
-        let mut style = node.style(style_context);
-        properties::modify_style_for_inline_absolute_hypothetical_fragment(&mut style);
+        let style = node.style(style_context);
+        let style = style_context.stylist.style_for_anonymous_box(
+            &style_context.guards, &PseudoElement::ServoInlineAbsolute, &style);
         let fragment = Fragment::from_opaque_node_and_style(node.opaque(),
                                                             PseudoElementType::Normal,
                                                             style,
