@@ -48,6 +48,7 @@ use style::gecko_bindings::bindings::RawServoAnimationValueStrong;
 use style::gecko_bindings::bindings::RawServoImportRuleBorrowed;
 use style::gecko_bindings::bindings::ServoComputedValuesBorrowedOrNull;
 use style::gecko_bindings::bindings::nsTArrayBorrowed_uintptr_t;
+use style::gecko_bindings::bindings::nsTimingFunctionBorrowedMut;
 use style::gecko_bindings::structs;
 use style::gecko_bindings::structs::{SheetParsingMode, nsIAtom, nsCSSPropertyID};
 use style::gecko_bindings::structs::{ThreadSafePrincipalHolder, ThreadSafeURIHolder};
@@ -787,6 +788,27 @@ pub extern "C" fn Servo_ParseProperty(property: *const nsACString, value: *const
             Arc::new(global_style_data.shared_lock.wrap(block)).into_strong()
         }
         Err(_) => RawServoDeclarationBlockStrong::null()
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_ParseEasing(easing: *const nsAString,
+                                    base: *const nsACString,
+                                    data: *const structs::GeckoParserExtraData,
+                                    output: nsTimingFunctionBorrowedMut)
+                                    -> bool {
+    use style::properties::longhands::transition_timing_function;
+
+    make_context!((base, data) => (base_url, extra_data));
+    let reporter = StdoutErrorReporter;
+    let context = ParserContext::new_with_extra_data(Origin::Author, &base_url, &reporter, extra_data);
+    let easing = unsafe { (*easing).to_string() };
+    match transition_timing_function::single_value::parse(&context, &mut Parser::new(&easing)) {
+        Ok(parsed_easing) => {
+            *output = parsed_easing.into();
+            true
+        },
+        Err(_) => false
     }
 }
 
