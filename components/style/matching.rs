@@ -1175,23 +1175,30 @@ pub trait MatchMethods : TElement {
     /// Therefore, each node must have its matching selectors inserted _after_
     /// its own selector matching and _before_ its children start.
     fn insert_into_bloom_filter(&self, bf: &mut BloomFilter) {
-        bf.insert(&*self.get_local_name());
-        bf.insert(&*self.get_namespace());
-        self.get_id().map(|id| bf.insert(&id));
-
+        bf.insert_hash(self.get_local_name().get_hash());
+        bf.insert_hash(self.get_namespace().get_hash());
+        if let Some(id) = self.get_id() {
+            bf.insert_hash(id.get_hash());
+        }
         // TODO: case-sensitivity depends on the document type and quirks mode
-        self.each_class(|class| bf.insert(class));
+        self.each_class(|class| {
+            bf.insert_hash(class.get_hash())
+        });
     }
 
     /// After all the children are done css selector matching, this must be
     /// called to reset the bloom filter after an `insert`.
     fn remove_from_bloom_filter(&self, bf: &mut BloomFilter) {
-        bf.remove(&*self.get_local_name());
-        bf.remove(&*self.get_namespace());
-        self.get_id().map(|id| bf.remove(&id));
+        bf.remove_hash(self.get_local_name().get_hash());
+        bf.remove_hash(self.get_namespace().get_hash());
+        if let Some(id) = self.get_id() {
+            bf.remove_hash(id.get_hash());
+        }
 
         // TODO: case-sensitivity depends on the document type and quirks mode
-        self.each_class(|class| bf.remove(class));
+        self.each_class(|class| {
+            bf.remove_hash(class.get_hash())
+        });
     }
 
     /// Given the old and new style of this element, and whether it's a

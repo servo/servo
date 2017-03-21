@@ -66,6 +66,7 @@ extern crate num_traits;
 extern crate ordered_float;
 extern crate parking_lot;
 extern crate pdqsort;
+#[cfg(feature = "gecko")] extern crate precomputed_hash;
 extern crate rayon;
 extern crate selectors;
 #[cfg(feature = "servo")] #[macro_use] extern crate serde_derive;

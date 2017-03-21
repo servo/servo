@@ -4,6 +4,7 @@
 use bloom::BloomFilter;
 use parser::{CaseSensitivity, Combinator, ComplexSelector, LocalName};
 use parser::{SimpleSelector, Selector, SelectorImpl};
+use precomputed_hash::PrecomputedHash;
 use std::borrow::Borrow;
 use tree::Element;
 
@@ -135,23 +136,23 @@ fn may_match<E>(mut selector: &ComplexSelector<E::Impl>,
         for ss in selector.compound_selector.iter() {
             match *ss {
                 SimpleSelector::LocalName(LocalName { ref name, ref lower_name })  => {
-                    if !bf.might_contain(name) &&
-                       !bf.might_contain(lower_name) {
+                    if !bf.might_contain_hash(name.precomputed_hash()) &&
+                       !bf.might_contain_hash(lower_name.precomputed_hash()) {
                        return false
                     }
                 },
                 SimpleSelector::Namespace(ref namespace) => {
-                    if !bf.might_contain(&namespace.url) {
+                    if !bf.might_contain_hash(namespace.url.precomputed_hash()) {
                         return false
                     }
                 },
                 SimpleSelector::ID(ref id) => {
-                    if !bf.might_contain(id) {
+                    if !bf.might_contain_hash(id.precomputed_hash()) {
                         return false
                     }
                 },
                 SimpleSelector::Class(ref class) => {
-                    if !bf.might_contain(class) {
+                    if !bf.might_contain_hash(class.precomputed_hash()) {
                         return false
                     }
                 },

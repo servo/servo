@@ -44,6 +44,7 @@ num-traits = "0.1.32"
 ordered-float = "0.4"
 parking_lot = "0.3.3"
 pdqsort = "0.1.0"
+precomputed-hash = "0.1"
 rayon = "0.6"
 selectors = { path = "../selectors" }
 serde = {version = "0.9", optional = true}
