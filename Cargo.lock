@@ -267,8 +267,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "bytes"
-version = "0.3.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "byteorder 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "iovec 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "canvas"
@@ -3239,9 +3243,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "ws"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+source = "git+https://github.com/nox/ws-rs.git?rev=empty-reason#95eb619cdc7cf676999a583ce855e6acc787c5be"
 dependencies = [
- "bytes 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "byteorder 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bytes 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "httparse 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.21 (registry+https://github.com/rust-lang/crates.io-index)",
  "libz-sys 1.0.13 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3253,6 +3258,12 @@ dependencies = [
  "slab 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "ws"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+replace = "ws 0.6.0 (git+https://github.com/nox/ws-rs.git?rev=empty-reason)"
 
 [[package]]
 name = "ws2_32-sys"
@@ -3344,7 +3355,7 @@ dependencies = [
 "checksum brotli 1.0.7 (registry+https://github.com/rust-lang/crates.io-index)" = "53c6bf6d5a852a221369ffb01ea08fdaf89d5cbd6e12a4b8802cdb322a93c6cd"
 "checksum browserhtml 0.1.17 (git+https://github.com/browserhtml/browserhtml?branch=crate)" = "<none>"
 "checksum byteorder 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "c40977b0ee6b9885c9013cd41d9feffdd22deb3bb4dc3a71d901cc7a77de18c8"
-"checksum bytes 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "c129aff112dcc562970abb69e2508b40850dd24c274761bb50fb8a0067ba6c27"
+"checksum bytes 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)" = "46112a0060ae15e3a3f9a445428a53e082b91215b744fa27a1948842f4a64b96"
 "checksum caseless 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)" = "8950b075cff75cdabadee97148a8b5816c7cf62e5948a6005b5255d564b42fe7"
 "checksum cexpr 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "393a5f0088efbe41f9d1fcd062f24e83c278608420e62109feb2c8abee07de7d"
 "checksum cfg-if 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "de1e760d7b6535af4241fca8bd8adf68e2e7edacc6b29f5d399050c5e48cf88c"
@@ -3570,6 +3581,7 @@ dependencies = [
 "checksum webrender_traits 0.25.0 (git+https://github.com/servo/webrender)" = "<none>"
 "checksum winapi 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)" = "167dc9d6949a9b857f3451275e911c3f44255842c1f7a76f33c55103a909087a"
 "checksum winapi-build 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "2d315eee3b34aca4797b2da6b13ed88266e6d612562a0c46390af8299fc699bc"
+"checksum ws 0.6.0 (git+https://github.com/nox/ws-rs.git?rev=empty-reason)" = "<none>"
 "checksum ws 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)" = "04614a58714f3fd4a8b1da4bcae9f031c532d35988c3d39627619248113f8be8"
 "checksum ws2_32-sys 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "d59cefebd0c892fa2dd6de581e937301d8552cb44489cdff035c6187cb63fa5e"
 "checksum x11 2.12.1 (registry+https://github.com/rust-lang/crates.io-index)" = "124eb405bf0262a54e1a982d4ffe4cd1c24261bdb306e49996e2ce7d492284a8"
