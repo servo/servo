@@ -27,6 +27,7 @@ use std::slice;
 // TODO: Determine for sure which value Min and Max should have.
 // NOTE: Current values found at https://dxr.mozilla.org/mozilla-central/
 // rev/ff04d410e74b69acfab17ef7e73e7397602d5a68/js/public/StructuredClone.h#323
+#[cfg(target_pointer_width = "64")]
 enum StructuredCloneTags {
     /// To support additional types, add new tags with values incremented from the last one before Max.
     Min = 0xFFFF8000,
@@ -34,6 +35,14 @@ enum StructuredCloneTags {
     Max = 0xFFFFFFFF,
 }
 
+#[cfg(target_pointer_width = "32")]
+enum StructuredCloneTags {
+    Min = 0x7FFFC000,
+    DomBlob = 0x7FFFC001,
+    Max = 0x7FFFFFFF,
+}
+
+#[cfg(target_pointer_width = "64")]
 unsafe fn write_length(w: *mut JSStructuredCloneWriter,
                        length: usize) {
   let high: u32 = (length >> 32) as u32;
@@ -41,12 +50,28 @@ unsafe fn write_length(w: *mut JSStructuredCloneWriter,
   assert!(JS_WriteUint32Pair(w, high, low));
 }
 
+#[cfg(target_pointer_width = "32")]
+unsafe fn write_length(w: *mut JSStructuredCloneWriter,
+                       length: usize) {
+  assert!(JS_WriteUint32Pair(w, length as u32, 0));
+}
+
+#[cfg(target_pointer_width = "64")]
 unsafe fn read_length(r: *mut JSStructuredCloneReader)
                       -> usize {
   let mut high: u32 = 0;
   let mut low: u32 = 0;
   assert!(JS_ReadUint32Pair(r, &mut high as *mut u32, &mut low as *mut u32));
   return (low << high) as usize;
+}
+
+#[cfg(target_pointer_width = "32")]
+unsafe fn read_length(r: *mut JSStructuredCloneReader)
+                      -> usize {
+  let mut length: u32 = 0;
+  let mut zero: u32 = 0;
+  assert!(JS_ReadUint32Pair(r, &mut length as *mut u32, &mut zero as *mut u32));
+  return length as usize;
 }
 
 unsafe fn read_blob(cx: *mut JSContext,
