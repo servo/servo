@@ -663,10 +663,13 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         }
     }
 
-    fn match_non_ts_pseudo_class(&self,
-                                 pseudo_class: &NonTSPseudoClass,
-                                 relations: &mut StyleRelations,
-                                 flags: &mut ElementSelectorFlags) -> bool {
+    fn match_non_ts_pseudo_class<F>(&self,
+                                    pseudo_class: &NonTSPseudoClass,
+                                    relations: &mut StyleRelations,
+                                    flags_setter: &mut F)
+                                    -> bool
+        where F: FnMut(&Self, ElementSelectorFlags),
+    {
         match *pseudo_class {
             // https://github.com/servo/servo/issues/8718
             NonTSPseudoClass::AnyLink => unsafe { Gecko_IsLink(self.0) },
@@ -704,7 +707,13 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
                 Gecko_MatchesElement(pseudo_class.to_gecko_pseudoclasstype().unwrap(), self.0)
             },
             NonTSPseudoClass::MozAny(ref sels) => {
-                sels.iter().any(|s| matches_complex_selector(s, self, None, relations, flags))
+                sels.iter().any(|s| {
+                    matches_complex_selector(s,
+                                             self,
+                                             None,
+                                             relations,
+                                             flags_setter)
+                })
             }
             NonTSPseudoClass::MozSystemMetric(ref s) |
             NonTSPseudoClass::MozLocaleDir(ref s) |
@@ -718,7 +727,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
                                        pseudo_class.to_gecko_pseudoclasstype().unwrap(),
                                        s.as_ptr(), &mut set_slow_selector);
                     if set_slow_selector {
-                        *flags |= HAS_SLOW_SELECTOR;
+                        flags_setter(self, HAS_SLOW_SELECTOR);
                     }
                     matches
                 }
@@ -862,7 +871,7 @@ impl<'le> ElementExt for GeckoElement<'le> {
     fn is_link(&self) -> bool {
         self.match_non_ts_pseudo_class(&NonTSPseudoClass::AnyLink,
                                        &mut StyleRelations::empty(),
-                                       &mut ElementSelectorFlags::empty())
+                                       &mut |_, _| {})
     }
 
     #[inline]
