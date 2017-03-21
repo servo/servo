@@ -442,6 +442,7 @@ dependencies = [
  "layout_traits 0.0.1",
  "log 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
+ "net 0.0.1",
  "net_traits 0.0.1",
  "offscreen_gl_context 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "profile_traits 0.0.1",
