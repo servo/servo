@@ -1201,6 +1201,8 @@ pub mod tests {
         type PseudoElement = PseudoElement;
     }
 
+    type ShutUpTidy = String;
+
     impl Parser for DummyParser {
         type Impl = DummySelectorImpl;
 
@@ -1234,7 +1236,7 @@ pub mod tests {
             self.default_ns.clone()
         }
 
-        fn namespace_for_prefix(&self, prefix: &str) -> Option<String> {
+        fn namespace_for_prefix(&self, prefix: &ShutUpTidy) -> Option<String> {
             self.ns_prefixes.get(prefix).cloned()
         }
     }
