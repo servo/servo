@@ -4,7 +4,7 @@
 
 //! Necessary types for [grid](https://drafts.csswg.org/css-grid/).
 
-use cssparser::{Parser, Token};
+use cssparser::{Parser, Token, serialize_identifier};
 use parser::{Parse, ParserContext};
 use std::ascii::AsciiExt;
 use std::fmt;
@@ -294,7 +294,7 @@ impl<L: ToCss> ToCss for TrackSize<L> {
             TrackSize::MinMax(ref infexible, ref flexible) => {
                 try!(dest.write_str("minmax("));
                 try!(infexible.to_css(dest));
-                try!(dest.write_str(","));
+                try!(dest.write_str(", "));
                 try!(flexible.to_css(dest));
                 dest.write_str(")")
             },
@@ -368,6 +368,20 @@ pub fn parse_line_names(input: &mut Parser) -> Result<Vec<String>, ()> {
     })
 }
 
+fn concat_serialize_idents<W>(slice: &[String], sep: &str, dest: &mut W) -> fmt::Result
+    where W: fmt::Write
+{
+    if let Some((ref first, rest)) = slice.split_first() {
+        serialize_identifier(first, dest)?;
+        for thing in rest {
+            dest.write_str(sep)?;
+            serialize_identifier(thing, dest)?;
+        }
+    }
+
+    Ok(())
+}
+
 /// The initial argument of the `repeat` function.
 ///
 /// https://drafts.csswg.org/css-grid/#typedef-track-repeat
@@ -380,6 +394,12 @@ pub enum RepeatCount {
     AutoFill,
     /// An `<auto-fit>` keyword allowed only for `<auto-repeat>`
     AutoFit,
+    /// Variant to represent the computed value of `repeat()` function.
+    ///
+    /// For example, `repeat(2, [b] 100px [c])` expands to `[b] 100px [c b] 100px [c]`
+    /// (with the intermediate line names merged), which is what we need for the
+    /// computed value.
+    None,
 }
 
 impl Parse for RepeatCount {
@@ -406,9 +426,147 @@ impl ToCss for RepeatCount {
             RepeatCount::Number(ref c) => c.to_css(dest),
             RepeatCount::AutoFill => dest.write_str("auto-fill"),
             RepeatCount::AutoFit => dest.write_str("auto-fit"),
+            RepeatCount::None => unreachable!(),        // it's set manually
         }
     }
 }
 
 impl ComputedValueAsSpecified for RepeatCount {}
 no_viewport_percentage!(RepeatCount);
+
+/// The type of `repeat` function (only used in parsing).
+///
+/// https://drafts.csswg.org/css-grid/#typedef-track-repeat
+#[derive(Clone, Copy, PartialEq, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+enum RepeatType {
+    /// [`<track-repeat>`](https://drafts.csswg.org/css-grid/#typedef-track-repeat)
+    Auto,
+    /// [`<auto-repeat>`](https://drafts.csswg.org/css-grid/#typedef-auto-repeat)
+    Normal,
+    /// [`<fixed-repeat>`](https://drafts.csswg.org/css-grid/#typedef-fixed-repeat)
+    Fixed,
+}
+
+/// The structure containing `<line-names>` and `<track-size>` values.
+///
+/// It can also hold `repeat()` function parameters, which expands into the respective
+/// values in its computed form.
+#[derive(Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub struct TrackRepeat<L> {
+    /// The number of times for the value to be repeated (could also be `auto-fit` or `auto-fill`)
+    pub count: RepeatCount,
+    /// `<line-names>` accompanying `<track_size>` values.
+    ///
+    /// If there's no `<line-names>`, then it's represented by an empty vector.
+    /// For N `<track-size>` values, there will be N+1 `<line-names>`, and so this vector's
+    /// length is always one value more than that of the `<track-size>`.
+    pub line_names: Vec<Vec<String>>,
+    /// `<track-size>` values.
+    pub track_sizes: Vec<TrackSize<L>>,
+}
+
+impl TrackRepeat<LengthOrPercentage> {
+    fn parse_with_repeat_type(context: &ParserContext, input: &mut Parser)
+                              -> Result<(TrackRepeat<LengthOrPercentage>, RepeatType), ()> {
+        input.try(|i| i.expect_function_matching("repeat")).and_then(|_| {
+            input.parse_nested_block(|input| {
+                let count = RepeatCount::parse(context, input)?;
+                input.expect_comma()?;
+
+                let is_auto = count == RepeatCount::AutoFit || count == RepeatCount::AutoFill;
+                let mut repeat_type = if is_auto {
+                    RepeatType::Auto
+                } else {    // <fixed-size> is a subset of <track_size>, so it should work for both
+                    RepeatType::Fixed
+                };
+
+                let mut names = vec![];
+                let mut values = vec![];
+                let mut current_names;
+
+                loop {
+                    current_names = input.try(parse_line_names).unwrap_or(vec![]);
+                    if let Ok(track_size) = input.try(|i| TrackSize::parse(context, i)) {
+                        if !track_size.is_fixed() {
+                            if is_auto {
+                                return Err(())      // should be <fixed-size> for <auto-repeat>
+                            }
+
+                            if repeat_type == RepeatType::Fixed {
+                                repeat_type = RepeatType::Normal       // <track-size> for sure
+                            }
+                        }
+
+                        values.push(track_size);
+                        names.push(current_names);
+                    } else {
+                        if values.is_empty() {
+                            return Err(())      // expecting at least one <track-size>
+                        }
+
+                        names.push(current_names);      // final `<line-names>`
+                        break       // no more <track-size>, breaking
+                    }
+                }
+
+                let repeat = TrackRepeat {
+                    count: count,
+                    track_sizes: values,
+                    line_names: names,
+                };
+
+                Ok((repeat, repeat_type))
+            })
+        })
+    }
+}
+
+impl<L: ToCss> ToCss for TrackRepeat<L> {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        if self.count != RepeatCount::None {
+            dest.write_str("repeat(")?;
+            self.count.to_css(dest)?;
+            dest.write_str(", ")?;
+        }
+
+        let total = self.track_sizes.len();
+        let mut line_names_iter = self.line_names.iter();
+
+        for (i, (ref size, ref names)) in self.track_sizes.iter()
+                                              .zip(&mut line_names_iter).enumerate() {
+            if !names.is_empty() {
+                dest.write_str("[")?;
+                concat_serialize_idents(names, " ", dest)?;
+                dest.write_str("] ")?;
+            }
+
+            size.to_css(dest)?;
+            if i < total - 1 {
+                dest.write_str(" ")?;
+            }
+        }
+
+        if let Some(line_names_last) = line_names_iter.next() {
+            if !line_names_last.is_empty() {
+                dest.write_str(" [")?;
+                concat_serialize_idents(line_names_last, " ", dest)?;
+                dest.write_str("]")?;
+            }
+        }
+
+        if self.count != RepeatCount::None {
+            dest.write_str(")")?;
+        }
+
+        Ok(())
+    }
+}
+
+impl HasViewportPercentage for TrackRepeat<LengthOrPercentage> {
+    #[inline]
+    fn has_viewport_percentage(&self) -> bool {
+        self.track_sizes.iter().any(|ref v| v.has_viewport_percentage())
+    }
+}
