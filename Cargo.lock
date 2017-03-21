@@ -2707,30 +2707,15 @@ dependencies = [
 [[package]]
 name = "string_cache"
 version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "debug_unreachable 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "phf_shared 0.7.21 (registry+https://github.com/rust-lang/crates.io-index)",
- "precomputed-hash 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.9.11 (registry+https://github.com/rust-lang/crates.io-index)",
- "string_cache_codegen 0.3.1",
- "string_cache_shared 0.3.0",
-]
-
-[[package]]
-name = "string_cache"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-replace = "string_cache 0.4.0"
-
-[[package]]
-name = "string_cache_codegen"
-version = "0.3.1"
-dependencies = [
- "phf_generator 0.7.21 (registry+https://github.com/rust-lang/crates.io-index)",
- "quote 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
- "string_cache_shared 0.3.0",
+ "string_cache_codegen 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "string_cache_shared 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -2741,10 +2726,6 @@ dependencies = [
  "phf_generator 0.7.21 (registry+https://github.com/rust-lang/crates.io-index)",
  "string_cache_shared 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
-
-[[package]]
-name = "string_cache_shared"
-version = "0.3.0"
 
 [[package]]
 name = "string_cache_shared"
