@@ -48,4 +48,4 @@ pub trait LayoutThreadFactory {
               content_process_shutdown_chan: Option<IpcSender<()>>,
               webrender_api_sender: webrender_traits::RenderApiSender,
               layout_threads: usize);
-    }
+}
