@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
+<% from data import SYSTEM_FONT_LONGHANDS %>
 
 <%helpers:shorthand name="font"
                     sub_properties="font-style font-variant-caps font-weight font-stretch
@@ -42,11 +43,13 @@
         % if product == "gecko":
             if let Ok(sys) = input.try(SystemFont::parse) {
                 return Ok(Longhands {
-                     % for name in "family size".split():
-                         font_${name}: font_${name}::SpecifiedValue::system_font(sys),
+                     % for name in SYSTEM_FONT_LONGHANDS:
+                         ${name}: ${name}::SpecifiedValue::system_font(sys),
                      % endfor
-                     % for name in "style weight stretch variant_caps".split() + gecko_sub_properties:
-                        font_${name}: font_${name}::get_initial_specified_value(),
+                     % for name in gecko_sub_properties + "weight variant_caps stretch".split():
+                        % if "font_" + name not in SYSTEM_FONT_LONGHANDS:
+                            font_${name}: font_${name}::get_initial_specified_value(),
+                        % endif
                      % endfor
                      line_height: line_height::get_initial_specified_value(),
                  })
