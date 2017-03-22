@@ -561,6 +561,44 @@
     }
 </%def>
 
+<%def name="gecko_bitflags_conversion(bit_map, gecko_bit_prefix, type, kw_type='u8')">
+    #[cfg(feature = "gecko")]
+    impl ${type} {
+        /// Obtain a specified value from a Gecko keyword value
+        ///
+        /// Intended for use with presentation attributes, not style structs
+        pub fn from_gecko_keyword(kw: ${kw_type}) -> Self {
+            % for gecko_bit in bit_map.values():
+            use gecko_bindings::structs::${gecko_bit_prefix}${gecko_bit};
+            % endfor
+
+            let mut bits = ${type}::empty();
+            % for servo_bit, gecko_bit in bit_map.iteritems():
+                if kw & (${gecko_bit_prefix}${gecko_bit} as ${kw_type}) != 0 {
+                    bits |= ${servo_bit};
+                }
+            % endfor
+            bits
+        }
+
+        pub fn to_gecko_keyword(self) -> ${kw_type} {
+            % for gecko_bit in bit_map.values():
+            use gecko_bindings::structs::${gecko_bit_prefix}${gecko_bit};
+            % endfor
+
+            let mut bits: ${kw_type} = 0;
+            // FIXME: if we ensure that the Servo bitflags storage is the same
+            // as Gecko's one, we can just copy it.
+            % for servo_bit, gecko_bit in bit_map.iteritems():
+                if self.contains(${servo_bit}) {
+                    bits |= ${gecko_bit_prefix}${gecko_bit} as ${kw_type};
+                }
+            % endfor
+            bits
+        }
+    }
+</%def>
+
 <%def name="single_keyword_computed(name, values, vector=False,
             extra_specified=None, needs_conversion=False, **kwargs)">
     <%

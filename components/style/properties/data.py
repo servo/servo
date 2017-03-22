@@ -15,7 +15,10 @@ ALL_SIZES = [(size, False) for size in PHYSICAL_SIZES] + [(size, True) for size 
 
 SYSTEM_FONT_LONGHANDS = """font_family font_size font_style
                            font_variant_caps font_stretch font_kerning
-                           font_variant_position font_weight font_size_adjust""".split()
+                           font_variant_position font_weight
+                           font_size_adjust font_variant_alternates
+                           font_variant_ligatures font_variant_east_asian
+                           font_variant_numeric font_language_override""".split()
 
 def maybe_moz_logical_alias(product, side, prop):
     if product == "gecko" and side[1]:

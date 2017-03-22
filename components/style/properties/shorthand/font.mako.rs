@@ -46,11 +46,7 @@
                      % for name in SYSTEM_FONT_LONGHANDS:
                          ${name}: ${name}::SpecifiedValue::system_font(sys),
                      % endfor
-                     % for name in gecko_sub_properties + "variant_caps stretch".split():
-                        % if "font_" + name not in SYSTEM_FONT_LONGHANDS:
-                            font_${name}: font_${name}::get_initial_specified_value(),
-                        % endif
-                     % endfor
+                     // line-height is just reset to initial
                      line_height: line_height::get_initial_specified_value(),
                  })
             }

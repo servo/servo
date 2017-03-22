@@ -298,27 +298,6 @@ def set_gecko_property(ffi_name, expr):
     }
 </%def>
 
-<%def name="impl_bitflags_setter(ident, gecko_ffi_name, bit_map, gecko_bit_prefix, cast_type='u8')">
-    #[allow(non_snake_case)]
-    pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
-        % for gecko_bit in bit_map.values():
-        use gecko_bindings::structs::${gecko_bit_prefix}${gecko_bit};
-        % endfor
-
-        let mut bits: ${cast_type} = 0;
-        // FIXME: if we ensure that the Servo bitflags storage is the same
-        // as Gecko's one, we can just copy it.
-        % for servo_bit, gecko_bit in bit_map.iteritems():
-        if v.contains(longhands::${ident}::${servo_bit}) {
-            bits |= ${gecko_bit_prefix}${gecko_bit} as ${cast_type};
-        }
-        % endfor
-
-        self.gecko.${gecko_ffi_name} = bits as ${cast_type};
-    }
-</%def>
-
-
 /// Convert a Servo color into an nscolor; with currentColor as 0
 ///
 /// Call sites will need to be updated after https://bugzilla.mozilla.org/show_bug.cgi?id=760345
@@ -1530,7 +1509,10 @@ fn static_assert() {
     ${impl_simple_copy('font_weight', 'mFont.weight')}
 
     pub fn clone_font_weight(&self) -> longhands::font_weight::computed_value::T {
-        unsafe { longhands::font_weight::computed_value::T::from_gecko_weight(self.gecko.mFont.weight) }
+        debug_assert!(self.gecko.mFont.weight >= 100);
+        debug_assert!(self.gecko.mFont.weight <= 900);
+        debug_assert!(self.gecko.mFont.weight % 10 == 0);
+        unsafe { transmute(self.gecko.mFont.weight) }
     }
 
     pub fn set_font_synthesis(&mut self, v: longhands::font_synthesis::computed_value::T) {
@@ -1564,7 +1546,10 @@ fn static_assert() {
     pub fn clone_font_size_adjust(&self) -> longhands::font_size_adjust::computed_value::T {
         use properties::longhands::font_size_adjust::computed_value::T;
 
-        T::from_gecko_adjust(self.gecko.mFont.sizeAdjust)
+        match self.gecko.mFont.sizeAdjust {
+            -1.0 => T::None,
+            _ => T::Number(self.gecko.mFont.sizeAdjust),
+        }
     }
 
     #[allow(non_snake_case)]
@@ -1588,20 +1573,10 @@ fn static_assert() {
     }
     ${impl_simple_copy('font_language_override', 'mFont.languageOverride')}
 
-    <% font_variant_alternates_map = { "HISTORICAL_FORMS": "HISTORICAL",
-                                       "STYLISTIC": "STYLISTIC",
-                                       "STYLESET": "STYLESET",
-                                       "CHARACTER_VARIANT": "CHARACTER_VARIANT",
-                                       "SWASH": "SWASH",
-                                       "ORNAMENTS": "ORNAMENTS",
-                                       "ANNOTATION": "ANNOTATION" } %>
-    // FIXME: Set alternateValues as well.
-    // self.gecko.mFont.alternateValues = xxx;
-    ${impl_bitflags_setter('font_variant_alternates',
-                           'mFont.variantAlternates',
-                           font_variant_alternates_map,
-                           'NS_FONT_VARIANT_ALTERNATES_',
-                           cast_type='u16')}
+    pub fn set_font_variant_alternates(&mut self, v: longhands::font_variant_alternates::computed_value::T) {
+        self.gecko.mFont.variantAlternates = v.to_gecko_keyword()
+    }
+
     #[allow(non_snake_case)]
     pub fn copy_font_variant_alternates_from(&mut self, other: &Self) {
         self.gecko.mFont.variantAlternates = other.gecko.mFont.variantAlternates;
@@ -1609,53 +1584,22 @@ fn static_assert() {
         // self.gecko.mFont.alternateValues = other.gecko.mFont.alternateValues;
     }
 
-    //                                 servo_bit: gecko_bit
-    <% font_variant_ligatures_map = { "NONE": "NONE",
-                                      "COMMON_LIGATURES": "COMMON",
-                                      "NO_COMMON_LIGATURES": "NO_COMMON",
-                                      "DISCRETIONARY_LIGATURES": "DISCRETIONARY",
-                                      "NO_DISCRETIONARY_LIGATURES": "NO_DISCRETIONARY",
-                                      "HISTORICAL_LIGATURES": "HISTORICAL",
-                                      "NO_HISTORICAL_LIGATURES": "NO_HISTORICAL",
-                                      "CONTEXTUAL": "CONTEXTUAL",
-                                      "NO_CONTEXTUAL": "NO_CONTEXTUAL" } %>
-    ${impl_bitflags_setter('font_variant_ligatures',
-                           'mFont.variantLigatures',
-                           font_variant_ligatures_map,
-                           'NS_FONT_VARIANT_LIGATURES_',
-                           cast_type='u16')}
+    pub fn set_font_variant_ligatures(&mut self, v: longhands::font_variant_ligatures::computed_value::T) {
+        self.gecko.mFont.variantLigatures = v.to_gecko_keyword()
+    }
+
     ${impl_simple_copy('font_variant_ligatures', 'mFont.variantLigatures')}
 
-    //                                 servo_bit: gecko_bit
-    <% font_variant_east_asian_map = { "JIS78": "JIS78",
-                                       "JIS83": "JIS83",
-                                       "JIS90": "JIS90",
-                                       "JIS04": "JIS04",
-                                       "SIMPLIFIED": "SIMPLIFIED",
-                                       "TRADITIONAL": "TRADITIONAL",
-                                       "FULL_WIDTH": "FULL_WIDTH",
-                                       "PROPORTIONAL_WIDTH": "PROP_WIDTH",
-                                       "RUBY": "RUBY" } %>
-    ${impl_bitflags_setter('font_variant_east_asian',
-                           'mFont.variantEastAsian',
-                           font_variant_east_asian_map,
-                           'NS_FONT_VARIANT_EAST_ASIAN_',
-                           cast_type='u16')}
+    pub fn set_font_variant_east_asian(&mut self, v: longhands::font_variant_east_asian::computed_value::T) {
+        self.gecko.mFont.variantEastAsian = v.to_gecko_keyword()
+    }
+
     ${impl_simple_copy('font_variant_east_asian', 'mFont.variantEastAsian')}
 
-    //                              servo_bit: gecko_bit
-    <% font_variant_numeric_map = { "LINING_NUMS": "LINING",
-                                    "OLDSTYLE_NUMS": "OLDSTYLE",
-                                    "PROPORTIONAL_NUMS": "PROPORTIONAL",
-                                    "TABULAR_NUMS": "TABULAR",
-                                    "DIAGONAL_FRACTIONS": "DIAGONAL_FRACTIONS",
-                                    "STACKED_FRACTIONS": "STACKED_FRACTIONS",
-                                    "SLASHED_ZERO": "SLASHZERO",
-                                    "ORDINAL": "ORDINAL" } %>
-    ${impl_bitflags_setter('font_variant_numeric',
-                           'mFont.variantNumeric',
-                           font_variant_numeric_map,
-                           'NS_FONT_VARIANT_NUMERIC_')}
+    pub fn set_font_variant_numeric(&mut self, v: longhands::font_variant_numeric::computed_value::T) {
+        self.gecko.mFont.variantNumeric = v.to_gecko_keyword()
+    }
+
     ${impl_simple_copy('font_variant_numeric', 'mFont.variantNumeric')}
 </%self:impl_trait>
 

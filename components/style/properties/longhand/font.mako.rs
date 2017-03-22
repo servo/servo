@@ -16,6 +16,52 @@
     %endif
 </%def>
 
+// Define ToComputedValue, ToCss, and other boilerplate for a specified value
+// which is of the form `enum SpecifiedValue {Value(..), System(SystemFont)}`
+<%def name="simple_system_boilerplate(name)">
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match *self {
+                SpecifiedValue::Value(v) => v.to_css(dest),
+                SpecifiedValue::System(_) => Ok(())
+            }
+        }
+    }
+
+
+    impl SpecifiedValue {
+        pub fn system_font(f: SystemFont) -> Self {
+            SpecifiedValue::System(f)
+        }
+        pub fn get_system(&self) -> Option<SystemFont> {
+            if let SpecifiedValue::System(s) = *self {
+                Some(s)
+            } else {
+                None
+            }
+        }
+    }
+
+    impl ToComputedValue for SpecifiedValue {
+        type ComputedValue = computed_value::T;
+
+        fn to_computed_value(&self, context: &Context) -> computed_value::T {
+            match *self {
+                SpecifiedValue::Value(v) => v,
+                SpecifiedValue::System(_) => {
+                    <%self:nongecko_unreachable>
+                        context.style.cached_system_font.as_ref().unwrap().${name}
+                    </%self:nongecko_unreachable>
+                }
+            }
+        }
+
+        fn from_computed_value(other: &computed_value::T) -> Self {
+            SpecifiedValue::Value(*other)
+        }
+    }
+</%def>
+
 <%helpers:longhand name="font-family" animation_type="none" need_index="True"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-family">
     use properties::longhands::system_font::SystemFont;
@@ -1116,17 +1162,16 @@ ${helpers.single_keyword_system("font-kerning",
 /// https://github.com/servo/servo/issues/15957
 <%helpers:longhand name="font-variant-alternates" products="gecko" animation_type="none"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-alternates">
+    use properties::longhands::system_font::SystemFont;
     use std::fmt;
     use style_traits::ToCss;
     use values::HasViewportPercentage;
-    use values::computed::ComputedValueAsSpecified;
 
-    impl ComputedValueAsSpecified for SpecifiedValue {}
     no_viewport_percentage!(SpecifiedValue);
 
     bitflags! {
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub flags SpecifiedValue: u8 {
+        pub flags VariantAlternates: u8 {
             const NORMAL = 0,
             const HISTORICAL_FORMS = 0x01,
             const STYLISTIC = 0x02,
@@ -1138,7 +1183,25 @@ ${helpers.single_keyword_system("font-kerning",
         }
     }
 
-    impl ToCss for SpecifiedValue {
+    #[derive(Debug, Clone, PartialEq)]
+    pub enum SpecifiedValue {
+        Value(VariantAlternates),
+        System(SystemFont)
+    }
+
+    <%self:simple_system_boilerplate name="font_variant_alternates"></%self:simple_system_boilerplate>
+
+    <% font_variant_alternates_map = { "HISTORICAL_FORMS": "HISTORICAL",
+                                       "STYLISTIC": "STYLISTIC",
+                                       "STYLESET": "STYLESET",
+                                       "CHARACTER_VARIANT": "CHARACTER_VARIANT",
+                                       "SWASH": "SWASH",
+                                       "ORNAMENTS": "ORNAMENTS",
+                                       "ANNOTATION": "ANNOTATION" } %>
+    ${helpers.gecko_bitflags_conversion(font_variant_alternates_map, 'NS_FONT_VARIANT_ALTERNATES_',
+                                        'VariantAlternates', kw_type='u16')}
+
+    impl ToCss for VariantAlternates {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             if self.is_empty() {
                 return dest.write_str("normal")
@@ -1172,7 +1235,7 @@ ${helpers.single_keyword_system("font-kerning",
     }
 
     pub mod computed_value {
-        pub type T = super::SpecifiedValue;
+        pub type T = super::VariantAlternates;
     }
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
@@ -1180,7 +1243,7 @@ ${helpers.single_keyword_system("font-kerning",
     }
     #[inline]
     pub fn get_initial_specified_value() -> SpecifiedValue {
-        SpecifiedValue::empty()
+        SpecifiedValue::Value(VariantAlternates::empty())
     }
 
     /// normal |
@@ -1192,10 +1255,10 @@ ${helpers.single_keyword_system("font-kerning",
     ///    ornaments(<feature-value-name>)           ||
     ///    annotation(<feature-value-name>) ]
     pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        let mut result = SpecifiedValue::empty();
+        let mut result = VariantAlternates::empty();
 
         if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
-            return Ok(result)
+            return Ok(SpecifiedValue::Value(result))
         }
 
         while let Ok(ident) = input.try(|input| input.expect_ident()) {
@@ -1216,7 +1279,7 @@ ${helpers.single_keyword_system("font-kerning",
         }
 
         if !result.is_empty() {
-            Ok(result)
+            Ok(SpecifiedValue::Value(result))
         } else {
             Err(())
         }
@@ -1235,17 +1298,16 @@ macro_rules! exclusive_value {
 
 <%helpers:longhand name="font-variant-east-asian" products="gecko" animation_type="none"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-east-asian">
+    use properties::longhands::system_font::SystemFont;
     use std::fmt;
     use style_traits::ToCss;
     use values::HasViewportPercentage;
-    use values::computed::ComputedValueAsSpecified;
 
-    impl ComputedValueAsSpecified for SpecifiedValue {}
     no_viewport_percentage!(SpecifiedValue);
 
     bitflags! {
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub flags SpecifiedValue: u16 {
+        pub flags VariantEastAsian: u16 {
             const NORMAL = 0,
             const JIS78 = 0x01,
             const JIS83 = 0x02,
@@ -1259,7 +1321,31 @@ macro_rules! exclusive_value {
         }
     }
 
-    impl ToCss for SpecifiedValue {
+
+    #[derive(Debug, Clone, PartialEq)]
+    pub enum SpecifiedValue {
+        Value(VariantEastAsian),
+        System(SystemFont)
+    }
+
+    <%self:simple_system_boilerplate name="font_variant_east_asian"></%self:simple_system_boilerplate>
+
+    //                                 servo_bit: gecko_bit
+    <% font_variant_east_asian_map = { "JIS78": "JIS78",
+                                       "JIS83": "JIS83",
+                                       "JIS90": "JIS90",
+                                       "JIS04": "JIS04",
+                                       "SIMPLIFIED": "SIMPLIFIED",
+                                       "TRADITIONAL": "TRADITIONAL",
+                                       "FULL_WIDTH": "FULL_WIDTH",
+                                       "PROPORTIONAL_WIDTH": "PROP_WIDTH",
+                                       "RUBY": "RUBY" } %>
+
+    ${helpers.gecko_bitflags_conversion(font_variant_east_asian_map, 'NS_FONT_VARIANT_EAST_ASIAN_',
+                                        'VariantEastAsian', kw_type='u16')}
+
+
+    impl ToCss for VariantEastAsian {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             if self.is_empty() {
                 return dest.write_str("normal")
@@ -1295,7 +1381,7 @@ macro_rules! exclusive_value {
     }
 
     pub mod computed_value {
-        pub type T = super::SpecifiedValue;
+        pub type T = super::VariantEastAsian;
     }
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
@@ -1303,7 +1389,7 @@ macro_rules! exclusive_value {
     }
     #[inline]
     pub fn get_initial_specified_value() -> SpecifiedValue {
-        SpecifiedValue::empty()
+        SpecifiedValue::Value(VariantEastAsian::empty())
     }
 
     /// normal | [ <east-asian-variant-values> || <east-asian-width-values> || ruby ]
@@ -1312,10 +1398,10 @@ macro_rules! exclusive_value {
     <% east_asian_variant_values = "JIS78 | JIS83 | JIS90 | JIS04 | SIMPLIFIED | TRADITIONAL" %>
     <% east_asian_width_values = "FULL_WIDTH | PROPORTIONAL_WIDTH" %>
     pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        let mut result = SpecifiedValue::empty();
+        let mut result = VariantEastAsian::empty();
 
         if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
-            return Ok(result)
+            return Ok(SpecifiedValue::Value(result))
         }
 
         while let Ok(ident) = input.try(|input| input.expect_ident()) {
@@ -1344,7 +1430,7 @@ macro_rules! exclusive_value {
         }
 
         if !result.is_empty() {
-            Ok(result)
+            Ok(SpecifiedValue::Value(result))
         } else {
             Err(())
         }
@@ -1353,17 +1439,16 @@ macro_rules! exclusive_value {
 
 <%helpers:longhand name="font-variant-ligatures" products="gecko" animation_type="none"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-ligatures">
+    use properties::longhands::system_font::SystemFont;
     use std::fmt;
     use style_traits::ToCss;
     use values::HasViewportPercentage;
-    use values::computed::ComputedValueAsSpecified;
 
-    impl ComputedValueAsSpecified for SpecifiedValue {}
     no_viewport_percentage!(SpecifiedValue);
 
     bitflags! {
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub flags SpecifiedValue: u16 {
+        pub flags VariantLigatures: u16 {
             const NORMAL = 0,
             const NONE = 0x01,
             const COMMON_LIGATURES = 0x02,
@@ -1377,7 +1462,30 @@ macro_rules! exclusive_value {
         }
     }
 
-    impl ToCss for SpecifiedValue {
+
+    #[derive(Debug, Clone, PartialEq)]
+    pub enum SpecifiedValue {
+        Value(VariantLigatures),
+        System(SystemFont)
+    }
+
+    <%self:simple_system_boilerplate name="font_variant_ligatures"></%self:simple_system_boilerplate>
+
+    //                                 servo_bit: gecko_bit
+    <% font_variant_ligatures_map = { "NONE": "NONE",
+                                      "COMMON_LIGATURES": "COMMON",
+                                      "NO_COMMON_LIGATURES": "NO_COMMON",
+                                      "DISCRETIONARY_LIGATURES": "DISCRETIONARY",
+                                      "NO_DISCRETIONARY_LIGATURES": "NO_DISCRETIONARY",
+                                      "HISTORICAL_LIGATURES": "HISTORICAL",
+                                      "NO_HISTORICAL_LIGATURES": "NO_HISTORICAL",
+                                      "CONTEXTUAL": "CONTEXTUAL",
+                                      "NO_CONTEXTUAL": "NO_CONTEXTUAL" } %>
+
+    ${helpers.gecko_bitflags_conversion(font_variant_ligatures_map, 'NS_FONT_VARIANT_LIGATURES_',
+                                        'VariantLigatures', kw_type='u16')}
+
+    impl ToCss for VariantLigatures {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             if self.is_empty() {
                 return dest.write_str("normal")
@@ -1415,7 +1523,7 @@ macro_rules! exclusive_value {
     }
 
     pub mod computed_value {
-        pub type T = super::SpecifiedValue;
+        pub type T = super::VariantLigatures;
     }
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
@@ -1423,7 +1531,7 @@ macro_rules! exclusive_value {
     }
     #[inline]
     pub fn get_initial_specified_value() -> SpecifiedValue {
-        SpecifiedValue::empty()
+        SpecifiedValue::Value(VariantLigatures::empty())
     }
 
     /// normal | none |
@@ -1440,13 +1548,13 @@ macro_rules! exclusive_value {
     <% historical_lig_values = "HISTORICAL_LIGATURES | NO_HISTORICAL_LIGATURES" %>
     <% contextual_alt_values = "CONTEXTUAL | NO_CONTEXTUAL" %>
     pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        let mut result = SpecifiedValue::empty();
+        let mut result = VariantLigatures::empty();
 
         if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
-            return Ok(result)
+            return Ok(SpecifiedValue::Value(result))
         }
         if input.try(|input| input.expect_ident_matching("none")).is_ok() {
-            return Ok(NONE)
+            return Ok(SpecifiedValue::Value(NONE))
         }
 
         while let Ok(ident) = input.try(|input| input.expect_ident()) {
@@ -1473,7 +1581,7 @@ macro_rules! exclusive_value {
         }
 
         if !result.is_empty() {
-            Ok(result)
+            Ok(SpecifiedValue::Value(result))
         } else {
             Err(())
         }
@@ -1482,17 +1590,16 @@ macro_rules! exclusive_value {
 
 <%helpers:longhand name="font-variant-numeric" products="gecko" animation_type="none"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-numeric">
+    use properties::longhands::system_font::SystemFont;
     use std::fmt;
     use style_traits::ToCss;
     use values::HasViewportPercentage;
-    use values::computed::ComputedValueAsSpecified;
 
-    impl ComputedValueAsSpecified for SpecifiedValue {}
     no_viewport_percentage!(SpecifiedValue);
 
     bitflags! {
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub flags SpecifiedValue: u8 {
+        pub flags VariantNumeric: u8 {
             const NORMAL = 0,
             const LINING_NUMS = 0x01,
             const OLDSTYLE_NUMS = 0x02,
@@ -1505,7 +1612,31 @@ macro_rules! exclusive_value {
         }
     }
 
-    impl ToCss for SpecifiedValue {
+
+
+    #[derive(Debug, Clone, PartialEq)]
+    pub enum SpecifiedValue {
+        Value(VariantNumeric),
+        System(SystemFont)
+    }
+
+    <%self:simple_system_boilerplate name="font_variant_numeric"></%self:simple_system_boilerplate>
+
+
+    //                              servo_bit: gecko_bit
+    <% font_variant_numeric_map = { "LINING_NUMS": "LINING",
+                                    "OLDSTYLE_NUMS": "OLDSTYLE",
+                                    "PROPORTIONAL_NUMS": "PROPORTIONAL",
+                                    "TABULAR_NUMS": "TABULAR",
+                                    "DIAGONAL_FRACTIONS": "DIAGONAL_FRACTIONS",
+                                    "STACKED_FRACTIONS": "STACKED_FRACTIONS",
+                                    "SLASHED_ZERO": "SLASHZERO",
+                                    "ORDINAL": "ORDINAL" } %>
+
+    ${helpers.gecko_bitflags_conversion(font_variant_numeric_map, 'NS_FONT_VARIANT_NUMERIC_',
+                                        'VariantNumeric')}
+
+    impl ToCss for VariantNumeric {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             if self.is_empty() {
                 return dest.write_str("normal")
@@ -1540,7 +1671,7 @@ macro_rules! exclusive_value {
     }
 
     pub mod computed_value {
-        pub type T = super::SpecifiedValue;
+        pub type T = super::VariantNumeric;
     }
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
@@ -1548,7 +1679,7 @@ macro_rules! exclusive_value {
     }
     #[inline]
     pub fn get_initial_specified_value() -> SpecifiedValue {
-        SpecifiedValue::empty()
+        SpecifiedValue::Value(VariantNumeric::empty())
     }
 
     /// normal |
@@ -1564,10 +1695,10 @@ macro_rules! exclusive_value {
     <% numeric_spacing_values = "PROPORTIONAL_NUMS | TABULAR_NUMS" %>
     <% numeric_fraction_values = "DIAGONAL_FRACTIONS | STACKED_FRACTIONS" %>
     pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        let mut result = SpecifiedValue::empty();
+        let mut result = VariantNumeric::empty();
 
         if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
-            return Ok(result)
+            return Ok(SpecifiedValue::Value(result))
         }
 
         while let Ok(ident) = input.try(|input| input.expect_ident()) {
@@ -1594,7 +1725,7 @@ macro_rules! exclusive_value {
         }
 
         if !result.is_empty() {
-            Ok(result)
+            Ok(SpecifiedValue::Value(result))
         } else {
             Err(())
         }
@@ -1721,6 +1852,7 @@ ${helpers.single_keyword_system("font-variant-position",
 
 <%helpers:longhand name="font-language-override" products="gecko" animation_type="none" extra_prefixes="moz"
                    spec="https://drafts.csswg.org/css-fonts-3/#propdef-font-language-override">
+    use properties::longhands::system_font::SystemFont;
     use std::fmt;
     use style_traits::ToCss;
     use byteorder::{BigEndian, ByteOrder};
@@ -1732,6 +1864,7 @@ ${helpers.single_keyword_system("font-variant-position",
     pub enum SpecifiedValue {
         Normal,
         Override(String),
+        System(SystemFont)
     }
 
     impl ToCss for SpecifiedValue {
@@ -1741,6 +1874,20 @@ ${helpers.single_keyword_system("font-variant-position",
                 SpecifiedValue::Normal => dest.write_str("normal"),
                 SpecifiedValue::Override(ref lang) =>
                     cssparser::serialize_string(lang, dest),
+                SpecifiedValue::System(_) => Ok(())
+            }
+        }
+    }
+
+    impl SpecifiedValue {
+        pub fn system_font(f: SystemFont) -> Self {
+            SpecifiedValue::System(f)
+        }
+        pub fn get_system(&self) -> Option<SystemFont> {
+            if let SpecifiedValue::System(s) = *self {
+                Some(s)
+            } else {
+                None
             }
         }
     }
@@ -1791,7 +1938,7 @@ ${helpers.single_keyword_system("font-variant-position",
         type ComputedValue = computed_value::T;
 
         #[inline]
-        fn to_computed_value(&self, _: &Context) -> computed_value::T {
+        fn to_computed_value(&self, context: &Context) -> computed_value::T {
             use std::ascii::AsciiExt;
             match *self {
                 SpecifiedValue::Normal => computed_value::T(0),
@@ -1805,6 +1952,11 @@ ${helpers.single_keyword_system("font-variant-position",
                     }
                     let bytes = computed_lang.into_bytes();
                     computed_value::T(BigEndian::read_u32(&bytes))
+                }
+                SpecifiedValue::System(_) => {
+                    <%self:nongecko_unreachable>
+                        context.style.cached_system_font.as_ref().unwrap().font_language_override
+                    </%self:nongecko_unreachable>
                 }
             }
         }
@@ -2039,7 +2191,11 @@ ${helpers.single_keyword("-moz-math-variant",
                               -moz-info -moz-dialog -moz-button -moz-pull-down-menu
                               -moz-list -moz-field""".split()
             kw_font_props = """font_style font_variant_caps font_stretch
-                               font_kerning font_variant_position""".split()
+                               font_kerning font_variant_position font_variant_alternates
+                               font_variant_ligatures font_variant_east_asian
+                               font_variant_numeric""".split()
+            kw_cast = """font_style font_variant_caps font_stretch
+                         font_kerning font_variant_position""".split()
         %>
         #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
         pub enum SystemFont {
@@ -2105,9 +2261,13 @@ ${helpers.single_keyword("-moz-math-variant",
                     font_size_adjust: longhands::font_size_adjust::computed_value::T::from_gecko_adjust(system.sizeAdjust),
                     % for kwprop in kw_font_props:
                         ${kwprop}: longhands::${kwprop}::computed_value::T::from_gecko_keyword(
-                            system.${to_camel_case_lower(kwprop.replace('font_', ''))} as u32
+                            system.${to_camel_case_lower(kwprop.replace('font_', ''))}
+                            % if kwprop in kw_cast:
+                                as u32
+                            % endif
                         ),
                     % endfor
+                    font_language_override: longhands::font_language_override::computed_value::T(system.languageOverride),
                     system_font: *self,
                 };
                 unsafe { bindings::Gecko_nsFont_Destroy(&mut system); }
