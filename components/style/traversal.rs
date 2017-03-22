@@ -567,6 +567,7 @@ fn preprocess_children<E, D>(traversal: &D,
     where E: TElement,
           D: DomTraversal<E>
 {
+    trace!("preprocess_children: {:?}", element);
     // Loop over all the children.
     for child in element.as_node().children() {
         // FIXME(bholley): Add TElement::element_children instead of this.
@@ -599,6 +600,8 @@ fn preprocess_children<E, D>(traversal: &D,
         // Handle element snapshots and sibling restyle hints.
         let stylist = &traversal.shared_context().stylist;
         let later_siblings = restyle_data.compute_final_hint(child, stylist);
+        trace!(" > {:?} -> {:?}, later_siblings: {:?}",
+               child, restyle_data.hint, later_siblings);
         if later_siblings {
             propagated_hint.insert(&(RESTYLE_SELF | RESTYLE_DESCENDANTS).into());
         }
