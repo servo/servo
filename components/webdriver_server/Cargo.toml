@@ -10,7 +10,7 @@ name = "webdriver_server"
 path = "lib.rs"
 
 [dependencies]
-cookie = "0.2.5"
+cookie = "0.7.3"
 euclid = "0.11"
 hyper = "0.9.9"
 image = "0.12"
@@ -25,4 +25,4 @@ servo_config = {path = "../config", features = ["servo"]}
 servo_url = {path = "../url", features = ["servo"]}
 url = {version = "1.2", features = ["heap_size"]}
 uuid = {version = "0.4", features = ["v4"]}
-webdriver = "0.20"
+webdriver = "0.23.1"

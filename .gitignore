@@ -27,3 +27,6 @@ Servo.app
 
 # VSCode
 .vscode
+
+# Servo Dependency Tool
+/servo-dependency-tool

@@ -10,7 +10,7 @@ name = "msg"
 path = "lib.rs"
 
 [dependencies]
-bitflags = "0.7"
+bitflags = "0.8.0"
 cssparser = "0.12"
 heapsize = "0.3.0"
 heapsize_derive = "0.1"
