@@ -326,7 +326,7 @@ ${helpers.predefined_type("object-position",
 
 <%helpers:longhand name="grid-auto-flow"
         spec="https://drafts.csswg.org/css-grid/#propdef-grid-auto-flow"
-        products="none"
+        products="gecko"
         animatable="False">
     use std::fmt;
     use style_traits::ToCss;
