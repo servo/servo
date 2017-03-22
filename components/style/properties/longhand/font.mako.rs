@@ -310,6 +310,7 @@ ${helpers.single_keyword_system("font-variant-caps",
     use std::fmt;
     use style_traits::ToCss;
     use values::HasViewportPercentage;
+    use properties::longhands::system_font::SystemFont;
 
     no_viewport_percentage!(SpecifiedValue);
 
@@ -323,6 +324,7 @@ ${helpers.single_keyword_system("font-variant-caps",
         % for weight in range(100, 901, 100):
             Weight${weight},
         % endfor
+        System(SystemFont),
     }
 
     impl ToCss for SpecifiedValue {
@@ -335,9 +337,11 @@ ${helpers.single_keyword_system("font-variant-caps",
                 % for weight in range(100, 901, 100):
                     SpecifiedValue::Weight${weight} => dest.write_str("${weight}"),
                 % endfor
+                SpecifiedValue::System(_) => Ok(())
             }
         }
     }
+
     /// normal | bold | bolder | lighter | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900
     pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
         input.try(|input| {
@@ -369,6 +373,19 @@ ${helpers.single_keyword_system("font-variant-caps",
         }
     }
 
+    impl SpecifiedValue {
+        pub fn system_font(f: SystemFont) -> Self {
+            SpecifiedValue::System(f)
+        }
+        pub fn get_system(&self) -> Option<SystemFont> {
+            if let SpecifiedValue::System(s) = *self {
+                Some(s)
+            } else {
+                None
+            }
+        }
+    }
+
     /// Used in @font-face, where relative keywords are not allowed.
     impl Parse for computed_value::T {
         fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
@@ -379,7 +396,8 @@ ${helpers.single_keyword_system("font-variant-caps",
                 SpecifiedValue::Normal => Ok(computed_value::T::Weight400),
                 SpecifiedValue::Bold => Ok(computed_value::T::Weight700),
                 SpecifiedValue::Bolder |
-                SpecifiedValue::Lighter => Err(())
+                SpecifiedValue::Lighter => Err(()),
+                SpecifiedValue::System(..) => unreachable!(),
             }
         }
     }
@@ -402,6 +420,15 @@ ${helpers.single_keyword_system("font-variant-caps",
                     T::Weight700 | T::Weight600 => true,
                     _ => false
                 }
+            }
+
+            /// Obtain a Servo computed value from a Gecko computed font-weight
+            pub unsafe fn from_gecko_weight(weight: u16) -> Self {
+                use std::mem::transmute;
+                debug_assert!(weight >= 100);
+                debug_assert!(weight <= 900);
+                debug_assert!(weight % 10 == 0);
+                transmute(weight)
             }
         }
     }
@@ -457,6 +484,11 @@ ${helpers.single_keyword_system("font-variant-caps",
                     computed_value::T::Weight800 => computed_value::T::Weight700,
                     computed_value::T::Weight900 => computed_value::T::Weight700,
                 },
+                SpecifiedValue::System(_) => {
+                    <%self:nongecko_unreachable>
+                        context.style.cached_system_font.as_ref().unwrap().font_weight.clone()
+                    </%self:nongecko_unreachable>
+                }
             }
         }
 
@@ -1934,9 +1966,13 @@ ${helpers.single_keyword("-moz-math-variant",
                         quoted: true
                     })
                 }).collect::<Vec<_>>();
+                let weight = unsafe {
+                    longhands::font_weight::computed_value::T::from_gecko_weight(system.weight)
+                };
                 let ret = ComputedSystemFont {
                     font_family: longhands::font_family::computed_value::T(family),
                     font_size: Au(system.size),
+                    font_weight: weight,
                     % for kwprop in kw_font_props:
                         ${kwprop}: longhands::${kwprop}::computed_value::T::from_gecko_keyword(
                             system.${to_camel_case_lower(kwprop.replace('font_', ''))} as u32
