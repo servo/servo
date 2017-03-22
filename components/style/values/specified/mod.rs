@@ -13,6 +13,7 @@ use euclid::size::Size2D;
 use itoa;
 use parser::{ParserContext, Parse};
 use self::grid::{TrackBreadth as GenericTrackBreadth, TrackSize as GenericTrackSize};
+use self::grid::{TrackList as GenericTrackList, TrackSizeOrRepeat};
 use self::url::SpecifiedUrl;
 use std::ascii::AsciiExt;
 use std::f32;
@@ -941,6 +942,13 @@ pub type TrackBreadth = GenericTrackBreadth<LengthOrPercentage>;
 
 /// The specified value of a grid `<track-size>`
 pub type TrackSize = GenericTrackSize<LengthOrPercentage>;
+
+/// The specified value of a grid `<track-list>`
+/// (could also be `<auto-track-list>` or `<explicit-track-list>`)
+pub type TrackList = GenericTrackList<TrackSizeOrRepeat>;
+
+/// `<track-list> | none`
+pub type TrackListOrNone = Either<TrackList, None_>;
 
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
