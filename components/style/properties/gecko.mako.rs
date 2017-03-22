@@ -953,7 +953,7 @@ fn static_assert() {
 <%self:impl_trait style_struct_name="Position"
                   skip_longhands="${skip_position_longhands} z-index box-sizing order align-content
                                   justify-content align-self justify-self align-items
-                                  justify-items grid-auto-rows grid-auto-columns">
+                                  justify-items grid-auto-rows grid-auto-columns grid-auto-flow">
     % for side in SIDES:
     <% impl_split_style_coord("%s" % side.ident,
                               "mOffset",
@@ -1103,6 +1103,27 @@ fn static_assert() {
     }
     % endfor
 
+    pub fn set_grid_auto_flow(&mut self, v: longhands::grid_auto_flow::computed_value::T) {
+        use gecko_bindings::structs::NS_STYLE_GRID_AUTO_FLOW_ROW;
+        use gecko_bindings::structs::NS_STYLE_GRID_AUTO_FLOW_COLUMN;
+        use gecko_bindings::structs::NS_STYLE_GRID_AUTO_FLOW_DENSE;
+        use properties::longhands::grid_auto_flow::computed_value::AutoFlow::{Row, Column};
+
+        self.gecko.mGridAutoFlow = 0;
+
+        let value = match v.autoflow {
+            Row => NS_STYLE_GRID_AUTO_FLOW_ROW,
+            Column => NS_STYLE_GRID_AUTO_FLOW_COLUMN,
+        };
+
+        self.gecko.mGridAutoFlow |= value as u8;
+
+        if v.dense {
+            self.gecko.mGridAutoFlow |= NS_STYLE_GRID_AUTO_FLOW_DENSE as u8;
+        }
+    }
+
+    ${impl_simple_copy('grid_auto_flow', 'mGridAutoFlow')}
 </%self:impl_trait>
 
 <% skip_outline_longhands = " ".join("outline-style outline-width".split() +
