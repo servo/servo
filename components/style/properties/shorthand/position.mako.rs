@@ -144,9 +144,13 @@
 
   impl<'a> ToCss for LonghandsToSerialize<'a>  {
       fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-          self.grid_row_gap.to_css(dest)?;
-          dest.write_str(" ")?;
-          self.grid_column_gap.to_css(dest)
+          if self.grid_row_gap == self.grid_column_gap {
+            self.grid_row_gap.to_css(dest)
+          } else {
+            self.grid_row_gap.to_css(dest)?;
+            dest.write_str(" ")?;
+            self.grid_column_gap.to_css(dest)
+          }
       }
   }
 
