@@ -29,13 +29,13 @@ ${helpers.predefined_type("opacity",
             if self.inset {
                 try!(dest.write_str("inset "));
             }
-            try!(self.blur_radius.to_css(dest));
-            try!(dest.write_str(" "));
-            try!(self.spread_radius.to_css(dest));
-            try!(dest.write_str(" "));
             try!(self.offset_x.to_css(dest));
             try!(dest.write_str(" "));
             try!(self.offset_y.to_css(dest));
+            try!(dest.write_str(" "));
+            try!(self.blur_radius.to_css(dest));
+            try!(dest.write_str(" "));
+            try!(self.spread_radius.to_css(dest));
 
             if let Some(ref color) = self.color {
                 try!(dest.write_str(" "));
