@@ -114,9 +114,51 @@
         })
     }
 
+    enum CheckSystemResult {
+        AllSystem(SystemFont),
+        SomeSystem,
+        None
+    }
+
+    % if product == "gecko":
+        impl<'a> LonghandsToSerialize<'a> {
+            /// Check if some or all members are system fonts
+            fn check_system(&self) -> CheckSystemResult {
+                let mut sys = None;
+                let mut all = true;
+
+                % for prop in SYSTEM_FONT_LONGHANDS:
+                    if let Some(s) = self.${prop}.get_system() {
+                        debug_assert!(sys.is_none() || s == sys.unwrap());
+                        sys = Some(s);
+                    } else {
+                        all = false;
+                    }
+                % endfor
+                if self.line_height != &line_height::get_initial_specified_value() {
+                    all = false
+                }
+                if all {
+                    CheckSystemResult::AllSystem(sys.unwrap())
+                } else if sys.is_some() {
+                    CheckSystemResult::SomeSystem
+                } else {
+                    CheckSystemResult::None
+                }
+            }
+        }
+    % endif
+
     // This may be a bit off, unsure, possibly needs changes
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            % if product == "gecko":
+                match self.check_system() {
+                    CheckSystemResult::AllSystem(sys) => return sys.to_css(dest),
+                    CheckSystemResult::SomeSystem => return Ok(()),
+                    CheckSystemResult::None => ()
+                }
+            % endif
 
     % if product == "gecko" or data.testing:
         % for name in gecko_sub_properties:
