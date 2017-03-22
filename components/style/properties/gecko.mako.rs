@@ -1423,7 +1423,7 @@ fn static_assert() {
                           page-break-before page-break-after
                           scroll-snap-points-x scroll-snap-points-y transform
                           scroll-snap-type-y scroll-snap-coordinate
-                          perspective-origin transform-origin -moz-binding""" %>
+                          perspective-origin transform-origin -moz-binding will-change""" %>
 <%self:impl_trait style_struct_name="Box" skip_longhands="${skip_box_longhands}">
 
     // We manually-implement the |display| property until we get general
@@ -1916,6 +1916,92 @@ fn static_assert() {
                 .expect("clone for LengthOrPercentage failed"),
             depth: Au::from_gecko_style_coord(&self.gecko.mTransformOrigin[2])
                 .expect("clone for Length failed"),
+        }
+    }
+
+    pub fn set_will_change(&mut self, v: longhands::will_change::computed_value::T) {
+        use gecko_bindings::bindings::{Gecko_AppendWillChange, Gecko_ClearWillChange};
+        use gecko_bindings::structs::NS_STYLE_WILL_CHANGE_OPACITY;
+        use gecko_bindings::structs::NS_STYLE_WILL_CHANGE_SCROLL;
+        use gecko_bindings::structs::NS_STYLE_WILL_CHANGE_TRANSFORM;
+        use properties::PropertyId;
+        use properties::longhands::will_change::computed_value::T;
+
+        fn will_change_bitfield_from_prop_flags(prop: &LonghandId) -> u8 {
+            use properties::{ABSPOS_CB, CREATES_STACKING_CONTEXT, FIXPOS_CB};
+            use gecko_bindings::structs::NS_STYLE_WILL_CHANGE_ABSPOS_CB;
+            use gecko_bindings::structs::NS_STYLE_WILL_CHANGE_FIXPOS_CB;
+            use gecko_bindings::structs::NS_STYLE_WILL_CHANGE_STACKING_CONTEXT;
+            let servo_flags = prop.flags();
+            let mut bitfield = 0;
+
+            if servo_flags.contains(CREATES_STACKING_CONTEXT) {
+                bitfield |= NS_STYLE_WILL_CHANGE_STACKING_CONTEXT;
+            }
+            if servo_flags.contains(FIXPOS_CB) {
+                bitfield |= NS_STYLE_WILL_CHANGE_FIXPOS_CB;
+            }
+            if servo_flags.contains(ABSPOS_CB) {
+                bitfield |= NS_STYLE_WILL_CHANGE_ABSPOS_CB;
+            }
+
+            bitfield as u8
+        }
+
+        self.gecko.mWillChangeBitField = 0;
+
+        match v {
+            T::AnimateableFeatures(features) => {
+                unsafe {
+                    Gecko_ClearWillChange(&mut self.gecko, features.len());
+                }
+
+                for feature in features.iter() {
+                    if feature == &atom!("scroll-position") {
+                        self.gecko.mWillChangeBitField |= NS_STYLE_WILL_CHANGE_SCROLL as u8;
+                    } else if feature == &atom!("opacity") {
+                        self.gecko.mWillChangeBitField |= NS_STYLE_WILL_CHANGE_OPACITY as u8;
+                    } else if feature == &atom!("transform") {
+                        self.gecko.mWillChangeBitField |= NS_STYLE_WILL_CHANGE_TRANSFORM as u8;
+                    }
+
+                    unsafe {
+                        Gecko_AppendWillChange(&mut self.gecko, feature.as_ptr());
+                    }
+
+                    if let Ok(prop_id) = PropertyId::parse(feature.to_string().into()) {
+                        match prop_id.as_shorthand() {
+                            Ok(shorthand) => {
+                                for longhand in shorthand.longhands() {
+                                    self.gecko.mWillChangeBitField |=
+                                        will_change_bitfield_from_prop_flags(longhand);
+                                }
+                            },
+                            Err(longhand_or_custom) => {
+                                if let PropertyDeclarationId::Longhand(longhand)
+                                    = longhand_or_custom {
+                                    self.gecko.mWillChangeBitField |=
+                                        will_change_bitfield_from_prop_flags(&longhand);
+                                }
+                            },
+                        }
+                    }
+                }
+            },
+            T::Auto => {
+                unsafe {
+                    Gecko_ClearWillChange(&mut self.gecko, 0);
+                }
+            },
+        };
+    }
+
+    pub fn copy_will_change_from(&mut self, other: &Self) {
+        use gecko_bindings::bindings::Gecko_CopyWillChangeFrom;
+
+        self.gecko.mWillChangeBitField = other.gecko.mWillChangeBitField;
+        unsafe {
+            Gecko_CopyWillChangeFrom(&mut self.gecko, &other.gecko as *const _ as *mut _);
         }
     }
 </%self:impl_trait>

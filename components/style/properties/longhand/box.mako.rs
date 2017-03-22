@@ -108,6 +108,8 @@ ${helpers.single_keyword("-moz-top-layer", "none top",
                                   need_clone="True"
                                   extra_gecko_values="sticky"
                                   animatable="False"
+                                  creates_stacking_context="True"
+                                  abspos_cb="True"
                                   spec="https://drafts.csswg.org/css-position/#position-property">
     impl SpecifiedValue {
         pub fn is_absolutely_positioned_style(&self) -> bool {
@@ -1116,6 +1118,8 @@ ${helpers.predefined_type("scroll-snap-coordinate",
 
 <%helpers:longhand name="transform" products="gecko servo" extra_prefixes="webkit"
                    animatable="True"
+                   creates_stacking_context="True"
+                   fixpos_cb="True"
                    spec="https://drafts.csswg.org/css-transforms/#propdef-transform">
     use app_units::Au;
     use style_traits::ToCss;
@@ -1672,6 +1676,7 @@ ${helpers.single_keyword("isolation",
                          "auto isolate",
                          products="gecko",
                          spec="https://drafts.fxtf.org/compositing/#isolation",
+                         creates_stacking_context=True,
                          animatable=False)}
 
 // TODO add support for logical values recto and verso
@@ -1710,6 +1715,8 @@ ${helpers.predefined_type("perspective",
                           spec="https://drafts.csswg.org/css-transforms/#perspective",
                           extra_prefixes="moz webkit",
                           boxed=True,
+                          creates_stacking_context=True,
+                          fixpos_cb=True,
                           animatable=True)}
 
 // FIXME: This prop should be animatable
@@ -1819,6 +1826,8 @@ ${helpers.single_keyword("transform-style",
                          "flat preserve-3d",
                          spec="https://drafts.csswg.org/css-transforms/#transform-style-property",
                          extra_prefixes="moz webkit",
+                         creates_stacking_context=True,
+                         fixpos_cb=True,
                          animatable=False)}
 
 <%helpers:longhand name="transform-origin" animatable="True" extra_prefixes="moz webkit" boxed="True"
@@ -1973,3 +1982,67 @@ ${helpers.single_keyword("-moz-orient",
                           gecko_enum_prefix="StyleOrient",
                           spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-orient)",
                           animatable=False)}
+
+<%helpers:longhand name="will-change" products="gecko" animatable="False"
+                   spec="https://drafts.csswg.org/css-will-change/#will-change">
+    use cssparser::serialize_identifier;
+    use std::fmt;
+    use style_traits::ToCss;
+    use values::HasViewportPercentage;
+    use values::computed::ComputedValueAsSpecified;
+
+    impl ComputedValueAsSpecified for SpecifiedValue {}
+    no_viewport_percentage!(SpecifiedValue);
+
+    pub mod computed_value {
+        pub use super::SpecifiedValue as T;
+    }
+
+    #[derive(Debug, Clone, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub enum SpecifiedValue {
+        Auto,
+        AnimateableFeatures(Vec<Atom>),
+    }
+
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match *self {
+                SpecifiedValue::Auto => dest.write_str("auto"),
+                SpecifiedValue::AnimateableFeatures(ref features) => {
+                    let (first, rest) = features.split_first().unwrap();
+                    // handle head element
+                    serialize_identifier(&*first.to_string(), dest)?;
+                    // handle tail, precede each with a delimiter
+                    for feature in rest {
+                        dest.write_str(", ")?;
+                        serialize_identifier(&*feature.to_string(), dest)?;
+                    }
+                    Ok(())
+                }
+            }
+        }
+    }
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T::Auto
+    }
+
+    /// auto | <animateable-feature>#
+    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
+            Ok(computed_value::T::Auto)
+        } else {
+            input.parse_comma_separated(|i| {
+                let ident = i.expect_ident()?;
+                match_ignore_ascii_case! { &ident,
+                    "will-change" | "none" | "all" | "auto" |
+                    "initial" | "inherit" | "unset" | "default" => return Err(()),
+                    _ => {},
+                }
+                Ok((Atom::from(ident)))
+            }).map(SpecifiedValue::AnimateableFeatures)
+        }
+    }
+</%helpers:longhand>

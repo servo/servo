@@ -782,6 +782,17 @@ extern "C" {
                                                   len: usize);
 }
 extern "C" {
+    pub fn Gecko_ClearWillChange(display: *mut nsStyleDisplay, length: usize);
+}
+extern "C" {
+    pub fn Gecko_AppendWillChange(display: *mut nsStyleDisplay,
+                                  atom: *mut nsIAtom);
+}
+extern "C" {
+    pub fn Gecko_CopyWillChangeFrom(dest: *mut nsStyleDisplay,
+                                    src: *mut nsStyleDisplay);
+}
+extern "C" {
     pub fn Gecko_AnimationAppendKeyframe(keyframes:
                                              RawGeckoKeyframeListBorrowedMut,
                                          offset: f32,

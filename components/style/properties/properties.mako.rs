@@ -420,6 +420,20 @@ impl Parse for CSSWideKeyword {
     }
 }
 
+bitflags! {
+    /// A set of flags for properties.
+    pub flags PropertyFlags: u8 {
+        /// This property requires a stacking context.
+        const CREATES_STACKING_CONTEXT = 0x01,
+        /// This property has values that can establish a containing block for
+        /// fixed positioned and absolutely positioned elements.
+        const FIXPOS_CB = 0x02,
+        /// This property has values that can establish a containing block for
+        /// absolutely positioned elements.
+        const ABSPOS_CB = 0x04,
+    }
+}
+
 /// An identifier for a given longhand property.
 #[derive(Clone, Copy, Eq, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -456,6 +470,25 @@ impl LonghandId {
                 % endif
             % endfor
             _ => *self
+        }
+    }
+
+    /// Returns PropertyFlags for given property.
+    pub fn flags(&self) -> PropertyFlags {
+        match *self {
+            % for property in data.longhands:
+                LonghandId::${property.camel_case} =>
+                    %if property.creates_stacking_context:
+                        CREATES_STACKING_CONTEXT |
+                    %endif
+                    %if property.fixpos_cb:
+                        FIXPOS_CB |
+                    %endif
+                    %if property.abspos_cb:
+                        ABSPOS_CB |
+                    %endif
+                    PropertyFlags::empty(),
+            % endfor
         }
     }
 }
