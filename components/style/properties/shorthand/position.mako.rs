@@ -134,7 +134,7 @@
 
   pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
       let row_gap = grid_row_gap::parse(context, input)?;
-      let column_gap = grid_column_gap::parse(context, input).unwrap_or(row_gap.clone());
+      let column_gap = input.try(|input| grid_column_gap::parse(context, input)).unwrap_or(row_gap.clone());
 
       Ok(Longhands {
         grid_row_gap: row_gap,
