@@ -62,6 +62,10 @@ macro_rules! apply_non_ts_list {
                 ("read-write", ReadWrite, _, IN_READ_WRITE_STATE, _),
                 ("read-only", ReadOnly, _, IN_READ_WRITE_STATE, _),
 
+                ("-moz-first-node", MozFirstNode, firstNode, _, _),
+                ("-moz-last-node", MozLastNode, lastNode, _, _),
+                ("-moz-only-whitespace", MozOnlyWhitespace, mozOnlyWhitespace, _, _),
+
                 ("-moz-browser-frame", MozBrowserFrame, mozBrowserFrame, _, PSEUDO_CLASS_INTERNAL),
                 ("-moz-table-border-nonzero", MozTableBorderNonzero, mozTableBorderNonzero, _, PSEUDO_CLASS_INTERNAL),
             ],
