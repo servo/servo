@@ -49,7 +49,7 @@ serde = {version = "0.9", optional = true}
 serde_derive = {version = "0.9", optional = true}
 servo_atoms = {path = "../atoms", optional = true}
 servo_config = {path = "../config"}
-smallvec = "0.1"
+smallvec = "0.3"
 style_traits = {path = "../style_traits"}
 servo_url = {path = "../url"}
 time = "0.1"
