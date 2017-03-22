@@ -24,17 +24,19 @@ use dom::messageevent::MessageEvent;
 use dom::urlhelper::UrlHelper;
 use dom_struct::dom_struct;
 use hyper;
+use hyper::header::Headers;
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use js::jsapi::JSAutoCompartment;
 use js::jsval::UndefinedValue;
 use js::typedarray::{ArrayBuffer, CreateWith};
-use net_traits::{WebSocketCommunicate, WebSocketConnectData, WebSocketDomAction, WebSocketNetworkEvent};
+use net_traits::{WebSocketCommunicate, WebSocketConnectData, WebSocketDomAction};
+use net_traits::{WebSocketNetworkEvent, WebSocketProtocol};
+use net_traits::{parse_url, unwrap_websocket_protocol};
 use net_traits::CookieSource::HTTP;
 use net_traits::CoreResourceMsg::{SetCookiesForUrl, WebsocketConnect};
 use net_traits::MessageData;
 use net_traits::hosts::replace_hosts;
-use net_traits::unwrap_websocket_protocol;
 use script_runtime::CommonScriptMsg;
 use script_runtime::ScriptThreadEventCategory::WebSocketEvent;
 use script_thread::{Runnable, RunnableWrapper};
@@ -46,8 +48,6 @@ use std::ptr;
 use std::thread;
 use task_source::TaskSource;
 use task_source::networking::NetworkingTaskSource;
-use websocket::header::{Headers, WebSocketProtocol};
-use websocket::ws::util::url::parse_url;
 
 #[derive(JSTraceable, PartialEq, Copy, Clone, Debug, HeapSizeOf)]
 enum WebSocketRequestState {
@@ -283,7 +283,7 @@ impl WebSocket {
                     WebSocketNetworkEvent::ConnectionEstablished(headers, protocols) => {
                         let open_thread = box ConnectionEstablishedTask {
                             address: moved_address.clone(),
-                            headers: headers,
+                            headers: headers.as_hyper_headers(),
                             protocols: protocols,
                         };
                         task_source.queue_with_wrapper(open_thread, &wrapper).unwrap();

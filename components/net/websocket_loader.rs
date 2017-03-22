@@ -3,63 +3,101 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cookie_storage::CookieStorage;
-use http_loader;
+use http_loader::set_request_cookies;
 use hyper::header::Host;
-use net_traits::{WebSocketCommunicate, WebSocketConnectData, WebSocketDomAction, WebSocketNetworkEvent};
+use ipc_channel::ipc::IpcSender;
+use net_traits::{WebSocketCommunicate, WebSocketConnectData, WebSocketDomAction};
+use net_traits::{WebSocketHeaders, WebSocketNetworkEvent};
 use net_traits::MessageData;
 use net_traits::hosts::replace_hosts;
-use net_traits::unwrap_websocket_protocol;
+use net_traits::parse_url;
 use servo_url::ServoUrl;
-use std::ascii::AsciiExt;
-use std::sync::{Arc, Mutex, RwLock};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::error::Error;
+use std::sync::{Arc, RwLock};
 use std::thread;
-use websocket::{Client, Message};
-use websocket::header::{Headers, Origin, WebSocketProtocol};
-use websocket::message::Type;
-use websocket::receiver::Receiver;
-use websocket::result::{WebSocketError, WebSocketResult};
-use websocket::sender::Sender;
-use websocket::stream::WebSocketStream;
-use websocket::ws::receiver::Receiver as WSReceiver;
-use websocket::ws::sender::Sender as Sender_Object;
-use websocket::ws::util::url::parse_url;
+use url::Url;
+use ws::{CloseCode, Factory, Handler, Handshake, Message, Request, Response, Sender, WebSocket};
+use ws::{Error as WebSocketError, ErrorKind as WebSocketErrorKind, Result as WebSocketResult};
 
-/// *Establish a WebSocket Connection* as defined in RFC 6455.
-fn establish_a_websocket_connection(resource_url: &ServoUrl, net_url: (Host, String, bool),
-                                    origin: String, protocols: Vec<String>,
-                                    cookie_jar: Arc<RwLock<CookieStorage>>)
-    -> WebSocketResult<(Headers, Sender<WebSocketStream>, Receiver<WebSocketStream>)> {
-    let host = Host {
-        hostname: resource_url.host_str().unwrap().to_owned(),
-        port: resource_url.port_or_known_default(),
-    };
+/// A client for connecting to a websocket server
+#[derive(Clone, Copy)]
+struct Client<'a> {
+    origin: &'a str,
+    host: &'a Host,
+    protocols: &'a [String],
+    cookie_jar: &'a Arc<RwLock<CookieStorage>>,
+    resource_url: &'a ServoUrl,
+    event_sender: &'a IpcSender<WebSocketNetworkEvent>,
+}
 
-    let mut request = try!(Client::connect(net_url));
-    request.headers.set(Origin(origin));
-    request.headers.set(host);
-    if !protocols.is_empty() {
-        request.headers.set(WebSocketProtocol(protocols.clone()));
-    };
+impl<'a> Factory for Client<'a> {
+    type Handler = Self;
 
-    http_loader::set_request_cookies(&resource_url, &mut request.headers, &cookie_jar);
-
-    let response = try!(request.send());
-    try!(response.validate());
-
-    {
-       let protocol_in_use = unwrap_websocket_protocol(response.protocol());
-        if let Some(protocol_name) = protocol_in_use {
-                if !protocols.is_empty() && !protocols.iter().any(|p| (&**p).eq_ignore_ascii_case(protocol_name)) {
-                    return Err(WebSocketError::ProtocolError("Protocol in Use not in client-supplied protocol list"));
-            };
-        };
+    fn connection_made(&mut self, _: Sender) -> Self::Handler {
+        *self
     }
 
-    let headers = response.headers.clone();
-    let (sender, receiver) = response.begin().split();
-    Ok((headers, sender, receiver))
+    fn connection_lost(&mut self, _: Self::Handler) {
+        let _ = self.event_sender.send(WebSocketNetworkEvent::Fail);
+    }
+}
 
+impl<'a> Handler for Client<'a> {
+    fn build_request(&mut self, url: &Url) -> WebSocketResult<Request> {
+        debug!("Handler is building request from {}.", url);
+        try!(parse_url(url).map_err(|e| WebSocketError::new(WebSocketErrorKind::Protocol, e.description().to_owned())));
+        let mut req = try!(Request::from_url(url));
+        req.headers_mut().push(("Origin".to_string(), self.origin.as_bytes().to_owned()));
+        req.headers_mut().push(("Host".to_string(), format!("{}", self.host).as_bytes().to_owned()));
+        for protocol in self.protocols {
+            req.add_protocol(protocol);
+        };
+        let mut headers = WebSocketHeaders::new(req.headers().clone()).as_hyper_headers();
+        set_request_cookies(self.resource_url, &mut headers, self.cookie_jar);
+        if let Some(cookie) = headers.get_raw("Cookie") {
+            req.headers_mut().push(("Cookie".to_string(), cookie[0].to_owned()));
+        }
+        Ok(req)
+    }
+
+    fn on_open(&mut self, shake: Handshake) -> WebSocketResult<()> {
+        let headers = WebSocketHeaders::new(shake.response.headers().clone());
+        let _ = self.event_sender.send(
+            WebSocketNetworkEvent::ConnectionEstablished(headers, self.protocols.to_owned()));
+        Ok(())
+    }
+
+    fn on_message(&mut self, message: Message) -> WebSocketResult<()> {
+        let message = match message {
+            Message::Text(message) => MessageData::Text(message),
+            Message::Binary(message) => MessageData::Binary(message),
+        };
+        let _ = self.event_sender.send(WebSocketNetworkEvent::MessageReceived(message));
+        Ok(())
+    }
+
+    fn on_error(&mut self, err: WebSocketError) {
+        debug!("Error in WebSocket communication: {:?}", err);
+        let _ = self.event_sender.send(WebSocketNetworkEvent::Fail);
+    }
+
+    fn on_response(&mut self, res: &Response) -> WebSocketResult<()> {
+        let protocol_in_use = try!(res.protocol());
+        if let Some(protocol_name) = protocol_in_use {
+            let protocol_name = protocol_name.to_lowercase();
+            if !self.protocols.is_empty() && !self.protocols.iter().any(|p| protocol_name == (*p).to_lowercase()) {
+                let error = WebSocketError::new(WebSocketErrorKind::Protocol,
+                                                "Protocol in Use not in client-supplied protocol list");
+                return Err(error);
+            }
+        }
+        Ok(())
+    }
+
+    fn on_close(&mut self, code: CloseCode, reason: &str) {
+        debug!("Connection closing due to ({:?}) {}", code, reason);
+        let _ = self.event_sender.send(WebSocketNetworkEvent::Close(Some(code.into()), reason.to_owned()));
+    }
 }
 
 pub fn init(connect: WebSocketCommunicate, connect_data: WebSocketConnectData, cookie_jar: Arc<RwLock<CookieStorage>>) {
@@ -70,96 +108,52 @@ pub fn init(connect: WebSocketCommunicate, connect_data: WebSocketConnectData, c
 
         // URL that we actually fetch from the network, after applying the replacements
         // specified in the hosts file.
-        let net_url_result = parse_url(replace_hosts(&connect_data.resource_url).as_url().unwrap());
-        let net_url = match net_url_result {
-            Ok(net_url) => net_url,
-            Err(e) => {
-                debug!("Failed to establish a WebSocket connection: {:?}", e);
-                let _ = connect.event_sender.send(WebSocketNetworkEvent::Fail);
-                return;
-            }
-        };
-        let channel = establish_a_websocket_connection(&connect_data.resource_url,
-                                                       net_url,
-                                                       connect_data.origin,
-                                                       connect_data.protocols.clone(),
-                                                       cookie_jar);
-        let (_, ws_sender, mut receiver) = match channel {
-            Ok(channel) => {
-                let _ = connect.event_sender.send(WebSocketNetworkEvent::ConnectionEstablished(channel.0.clone(),
-                                                                                               connect_data.protocols));
-                channel
-            },
-            Err(e) => {
-                debug!("Failed to establish a WebSocket connection: {:?}", e);
-                let _ = connect.event_sender.send(WebSocketNetworkEvent::Fail);
-                return;
-            }
+        let net_url = replace_hosts(&connect_data.resource_url).into_url().unwrap();
 
+        let host = Host {
+            hostname: connect_data.resource_url.host_str().unwrap().to_owned(),
+            port: connect_data.resource_url.port_or_known_default(),
         };
 
-        let initiated_close = Arc::new(AtomicBool::new(false));
-        let ws_sender = Arc::new(Mutex::new(ws_sender));
+        let protocols = connect_data.protocols.iter().map(|x| x.to_lowercase()).collect::<Vec<String>>();
 
-        let initiated_close_incoming = initiated_close.clone();
-        let ws_sender_incoming = ws_sender.clone();
-        let resource_event_sender = connect.event_sender;
+        let client = Client {
+            origin: &connect_data.origin,
+            host: &host,
+            protocols: &protocols,
+            cookie_jar: &cookie_jar,
+            resource_url: &connect_data.resource_url,
+            event_sender: &connect.event_sender,
+        };
+        let mut ws = WebSocket::new(client).unwrap();
+        if let Err(e) = ws.connect(net_url) {
+            debug!("Failed to establish a WebSocket connection: {:?}", e);
+            let _ = connect.event_sender.send(WebSocketNetworkEvent::Fail);
+            return;
+        };
+        let sender = ws.broadcaster();
+        let action_receiver = connect.action_receiver;
         thread::spawn(move || {
-            for message in receiver.incoming_messages() {
-                let message: Message = match message {
-                    Ok(m) => m,
-                    Err(e) => {
-                        debug!("Error receiving incoming WebSocket message: {:?}", e);
-                        let _ = resource_event_sender.send(WebSocketNetworkEvent::Fail);
-                        break;
-                    }
-                };
-                let message = match message.opcode {
-                    Type::Text => MessageData::Text(String::from_utf8_lossy(&message.payload).into_owned()),
-                    Type::Binary => MessageData::Binary(message.payload.into_owned()),
-                    Type::Ping => {
-                        let pong = Message::pong(message.payload);
-                        ws_sender_incoming.lock().unwrap().send_message(&pong).unwrap();
-                        continue;
-                    },
-                    Type::Pong => continue,
-                    Type::Close => {
-                        if !initiated_close_incoming.fetch_or(true, Ordering::SeqCst) {
-                            ws_sender_incoming.lock().unwrap().send_message(&message).unwrap();
-                        }
-                        let code = message.cd_status_code;
-                        let reason = String::from_utf8_lossy(&message.payload).into_owned();
-                        let _ = resource_event_sender.send(WebSocketNetworkEvent::Close(code, reason));
-                        break;
-                    },
-                };
-                let _ = resource_event_sender.send(WebSocketNetworkEvent::MessageReceived(message));
-            }
-        });
-
-        let initiated_close_outgoing = initiated_close.clone();
-        let ws_sender_outgoing = ws_sender.clone();
-        let resource_action_receiver = connect.action_receiver;
-        thread::spawn(move || {
-            while let Ok(dom_action) = resource_action_receiver.recv() {
-                match dom_action {
+            while let Ok(dom_action) = action_receiver.recv() {
+                let _ = match dom_action {
                     WebSocketDomAction::SendMessage(MessageData::Text(data)) => {
-                        ws_sender_outgoing.lock().unwrap().send_message(&Message::text(data)).unwrap();
+                        sender.send(Message::text(data))
                     },
                     WebSocketDomAction::SendMessage(MessageData::Binary(data)) => {
-                        ws_sender_outgoing.lock().unwrap().send_message(&Message::binary(data)).unwrap();
+                        sender.send(Message::binary(data))
                     },
-                    WebSocketDomAction::Close(code, reason) => {
-                        if !initiated_close_outgoing.fetch_or(true, Ordering::SeqCst) {
-                            let message = match code {
-                                Some(code) => Message::close_because(code, reason.unwrap_or("".to_owned())),
-                                None => Message::close()
-                            };
-                            ws_sender_outgoing.lock().unwrap().send_message(&message).unwrap();
-                        }
+                    WebSocketDomAction::Close(Some(code), reason) => {
+                        sender.close_with_reason(CloseCode::from(code), reason.unwrap_or("".to_owned()))
                     },
-                }
+                    WebSocketDomAction::Close(None, reason) => {
+                        sender.close_with_reason(CloseCode::Status, reason.unwrap_or("".to_owned()))
+                    },
+                };
             }
         });
+        if let Err(e) = ws.run() {
+            debug!("Failed to run WebSocket: {:?}", e);
+            let _ = connect.event_sender.send(WebSocketNetworkEvent::Fail);
+        };
     }).expect("Thread spawning failed");
 }

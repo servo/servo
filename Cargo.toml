@@ -14,3 +14,7 @@ opt-level = 3
 # Uncomment to profile on Linux:
 # debug = true
 # lto = false
+
+[replace."ws:0.6.0"]
+git = "https://github.com/nox/ws-rs.git"
+rev = "empty-reason"
