@@ -177,7 +177,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
             let framebuffer_size = webrender_traits::DeviceUintSize::new(framebuffer_size.width,
                                                                          framebuffer_size.height);
 
-            webrender::Renderer::new(webrender::RendererOptions {
+            webrender::Renderer::new(window.gl(), webrender::RendererOptions {
                 device_pixel_ratio: device_pixel_ratio,
                 resource_override_path: Some(resource_path),
                 enable_aa: opts.enable_text_antialiasing,
