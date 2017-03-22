@@ -24,7 +24,7 @@ testing = []
 [dependencies]
 app_units = "0.4"
 atomic_refcell = "0.1"
-bitflags = "0.7"
+bitflags = "0.8.0"
 cfg-if = "0.1.0"
 cssparser = "0.12"
 encoding = {version = "0.2", optional = true}
@@ -32,7 +32,7 @@ euclid = "0.11"
 fnv = "1.0"
 heapsize = "0.3.0"
 heapsize_derive = {version = "0.1", optional = true}
-html5ever-atoms = {version = "0.2", optional = true}
+html5ever-atoms = {version = "0.2.2", optional = true}
 lazy_static = "0.2"
 log = "0.3"
 matches = "0.1"
@@ -41,7 +41,7 @@ num_cpus = {version = "1.1.0", optional = true}
 num-integer = "0.1.32"
 num-traits = "0.1.32"
 ordered-float = "0.4"
-parking_lot = "0.3.3"
+parking_lot = "0.4.0"
 pdqsort = "0.1.0"
 rayon = "0.6"
 selectors = { path = "../selectors" }
@@ -49,7 +49,7 @@ serde = {version = "0.9", optional = true}
 serde_derive = {version = "0.9", optional = true}
 servo_atoms = {path = "../atoms", optional = true}
 servo_config = {path = "../config"}
-smallvec = "0.1"
+smallvec = "0.3.1"
 style_traits = {path = "../style_traits"}
 servo_url = {path = "../url"}
 time = "0.1"
@@ -61,6 +61,6 @@ kernel32-sys = "0.2"
 [build-dependencies]
 lazy_static = "0.2"
 log = "0.3"
-bindgen = { version = "0.22", optional = true }
+bindgen = { version = "0.22.1", optional = true }
 regex = {version = "0.2", optional = true}
 walkdir = "1.0"
