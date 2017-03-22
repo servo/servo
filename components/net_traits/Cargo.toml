@@ -10,11 +10,11 @@ name = "net_traits"
 path = "lib.rs"
 
 [dependencies]
-cookie = "0.2.5"
+cookie = "0.7.3"
 heapsize = "0.3.0"
 heapsize_derive = "0.1"
-hyper = "0.9.9"
-hyper_serde = "0.5"
+hyper = "0.10.5"
+hyper_serde = "0.6.2"
 image = "0.12"
 ipc-channel = "0.7"
 lazy_static = "0.2"
@@ -26,7 +26,7 @@ serde = "0.9"
 serde_derive = "0.9"
 servo_config = {path = "../config", features = ["servo"]}
 servo_url = {path = "../url", features = ["servo"]}
-servo-websocket = "0.18"
+servo-websocket = "0.19.1"
 url = {version = "1.2", features = ["heap_size"]}
 uuid = {version = "0.4", features = ["v4", "serde"]}
 webrender_traits = {git = "https://github.com/servo/webrender", features = ["ipc"]}

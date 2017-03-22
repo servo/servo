@@ -16,7 +16,7 @@ name = "selectors"
 path = "lib.rs"
 
 [dependencies]
-bitflags = "0.7"
+bitflags = "0.8.0"
 matches = "0.1"
 cssparser = "0.12"
 fnv = "1.0"
