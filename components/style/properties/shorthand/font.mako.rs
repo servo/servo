@@ -16,8 +16,9 @@
                                     ${'font-variant-position' if product == 'gecko' or data.testing else ''}
                                     ${'font-language-override' if product == 'gecko' or data.testing else ''}"
                     spec="https://drafts.csswg.org/css-fonts-3/#propdef-font">
-    use properties::longhands::{font_style, font_variant_caps, font_weight, font_stretch};
-    use properties::longhands::{font_size, line_height};
+    use properties::longhands::{font_family, font_style, font_weight, font_stretch};
+    use properties::longhands::{font_size, line_height, font_variant_caps};
+    use properties::longhands::system_font::SystemFont;
     <%
         gecko_sub_properties = "kerning language_override size_adjust \
                                 variant_alternates variant_east_asian \
@@ -38,6 +39,19 @@
         let mut weight = None;
         let mut stretch = None;
         let size;
+        % if product == "gecko":
+            if let Ok(sys) = input.try(SystemFont::parse) {
+                return Ok(Longhands {
+                     % for name in "family size".split():
+                         font_${name}: font_${name}::SpecifiedValue::system_font(sys),
+                     % endfor
+                     % for name in "style weight stretch variant_caps".split() + gecko_sub_properties:
+                        font_${name}: font_${name}::get_initial_specified_value(),
+                     % endfor
+                     line_height: line_height::get_initial_specified_value(),
+                 })
+            }
+        % endif
         loop {
             // Special-case 'normal' because it is valid in each of
             // font-style, font-weight, font-variant and font-stretch.
@@ -88,7 +102,7 @@
         };
         let family = FontFamily::parse(input)?;
         Ok(Longhands {
-            % for name in "style variant_caps weight stretch size".split():
+            % for name in "style weight stretch size variant_caps".split():
                 font_${name}: unwrap_or_initial!(font_${name}, ${name}),
             % endfor
             line_height: unwrap_or_initial!(line_height),

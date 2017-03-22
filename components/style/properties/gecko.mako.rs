@@ -95,6 +95,7 @@ pub struct ComputedValues {
     /// When this is Some, we compute font sizes by computing the keyword against
     /// the generic font, and then multiplying it by the ratio.
     pub font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
+    pub cached_system_font: Option<longhands::system_font::ComputedSystemFont>,
 }
 
 impl ComputedValues {
@@ -104,6 +105,7 @@ impl ComputedValues {
             writing_mode: parent.writing_mode,
             root_font_size: parent.root_font_size,
             font_size_keyword: parent.font_size_keyword,
+            cached_system_font: None,
             % for style_struct in data.style_structs:
             % if style_struct.inherited:
             ${style_struct.ident}: parent.${style_struct.ident}.clone(),
@@ -126,6 +128,7 @@ impl ComputedValues {
             custom_properties: custom_properties,
             writing_mode: writing_mode,
             root_font_size: root_font_size,
+            cached_system_font: None,
             font_size_keyword: font_size_keyword,
             % for style_struct in data.style_structs:
             ${style_struct.ident}: ${style_struct.ident},
@@ -139,6 +142,7 @@ impl ComputedValues {
             writing_mode: WritingMode::empty(), // FIXME(bz): This seems dubious
             root_font_size: longhands::font_size::get_initial_value(), // FIXME(bz): Also seems dubious?
             font_size_keyword: Some((Default::default(), 1.)),
+            cached_system_font: None,
             % for style_struct in data.style_structs:
                 ${style_struct.ident}: style_structs::${style_struct.name}::default(pres_context),
             % endfor

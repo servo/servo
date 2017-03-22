@@ -278,6 +278,11 @@
                         <% maybe_wm = ", wm" if property.logical else "" %>
                         match *value {
                             DeclaredValue::Value(ref specified_value) => {
+                                % if property.ident in "font_size font_family".split() and product == "gecko":
+                                    if let Some(sf) = specified_value.get_system() {
+                                        longhands::system_font::resolve_system_font(sf, context);
+                                    }
+                                % endif
                                 let computed = specified_value.to_computed_value(context);
                                 % if property.ident == "font_size":
                                     longhands::font_size::cascade_specified_font_size(context,
