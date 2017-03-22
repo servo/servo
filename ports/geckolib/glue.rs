@@ -1928,7 +1928,7 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
     let default_values = data.default_computed_values();
     let metrics = get_metrics_provider_for_product();
 
-    let context = Context {
+    let mut context = Context {
         is_root_element: false,
         device: &data.stylist.device,
         inherited_style: parent_style.unwrap_or(default_values),
@@ -1956,7 +1956,7 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
                             .filter_map(|&(ref decl, imp)| {
                                 if imp == Importance::Normal {
                                     let property = TransitionProperty::from_declaration(decl);
-                                    let animation = AnimationValue::from_declaration(decl, &context, default_values);
+                                    let animation = AnimationValue::from_declaration(decl, &mut context, default_values);
                                     debug_assert!(property.is_none() == animation.is_none(),
                                                   "The failure condition of TransitionProperty::from_declaration \
                                                    and AnimationValue::from_declaration should be the same");
