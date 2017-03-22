@@ -890,6 +890,7 @@ ${helpers.single_keyword_system("font-variant-caps",
 
 <%helpers:longhand products="gecko" name="font-size-adjust" animation_type="normal"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-size-adjust">
+    use properties::longhands::system_font::SystemFont;
     use std::fmt;
     use style_traits::ToCss;
     use values::HasViewportPercentage;
@@ -901,6 +902,7 @@ ${helpers.single_keyword_system("font-variant-caps",
     pub enum SpecifiedValue {
         None,
         Number(specified::Number),
+        System(SystemFont),
     }
 
     impl ToCss for SpecifiedValue {
@@ -910,6 +912,7 @@ ${helpers.single_keyword_system("font-variant-caps",
             match *self {
                 SpecifiedValue::None => dest.write_str("none"),
                 SpecifiedValue::Number(number) => number.to_css(dest),
+                SpecifiedValue::System(_) => Ok(()),
             }
         }
     }
@@ -921,6 +924,11 @@ ${helpers.single_keyword_system("font-variant-caps",
             match *self {
                 SpecifiedValue::None => computed_value::T::None,
                 SpecifiedValue::Number(ref n) => computed_value::T::Number(n.to_computed_value(context)),
+                SpecifiedValue::System(_) => {
+                    <%self:nongecko_unreachable>
+                        context.style.cached_system_font.as_ref().unwrap().font_size_adjust
+                    </%self:nongecko_unreachable>
+                }
             }
         }
 
@@ -928,6 +936,19 @@ ${helpers.single_keyword_system("font-variant-caps",
             match *computed {
                 computed_value::T::None => SpecifiedValue::None,
                 computed_value::T::Number(ref v) => SpecifiedValue::Number(specified::Number::from_computed_value(v)),
+            }
+        }
+    }
+
+    impl SpecifiedValue {
+        pub fn system_font(f: SystemFont) -> Self {
+            SpecifiedValue::System(f)
+        }
+        pub fn get_system(&self) -> Option<SystemFont> {
+            if let SpecifiedValue::System(s) = *self {
+                Some(s)
+            } else {
+                None
             }
         }
     }
@@ -952,6 +973,15 @@ ${helpers.single_keyword_system("font-variant-caps",
                 match *self {
                     T::None => dest.write_str("none"),
                     T::Number(number) => number.to_css(dest),
+                }
+            }
+        }
+
+        impl T {
+            pub fn from_gecko_adjust(gecko: f32) -> Self {
+                match gecko {
+                    -1.0 => T::None,
+                    _ => T::Number(gecko),
                 }
             }
         }
@@ -2001,6 +2031,7 @@ ${helpers.single_keyword("-moz-math-variant",
         use app_units::Au;
         use cssparser::Parser;
         use properties::longhands;
+        use std::hash::{Hash, Hasher};
         use values::computed::{ToComputedValue, Context};
         <%
             system_fonts = """caption icon menu message-box small-caption status-bar
@@ -2015,6 +2046,24 @@ ${helpers.single_keyword("-moz-math-variant",
             % for font in system_fonts:
                 ${to_camel_case(font)},
             % endfor
+        }
+
+        // ComputedValues are compared at times
+        // so we need these impls. We don't want to
+        // add Eq to Number (which contains a float)
+        // so instead we have an eq impl which skips the
+        // cached values
+        impl PartialEq for ComputedSystemFont {
+            fn eq(&self, other: &Self) -> bool {
+                self.system_font == other.system_font
+            }
+        }
+        impl Eq for ComputedSystemFont {}
+
+        impl Hash for ComputedSystemFont {
+            fn hash<H: Hasher>(&self, hasher: &mut H) {
+                self.system_font.hash(hasher)
+            }
         }
 
         impl ToComputedValue for SystemFont {
@@ -2053,6 +2102,7 @@ ${helpers.single_keyword("-moz-math-variant",
                     font_family: longhands::font_family::computed_value::T(family),
                     font_size: Au(system.size),
                     font_weight: weight,
+                    font_size_adjust: longhands::font_size_adjust::computed_value::T::from_gecko_adjust(system.sizeAdjust),
                     % for kwprop in kw_font_props:
                         ${kwprop}: longhands::${kwprop}::computed_value::T::from_gecko_keyword(
                             system.${to_camel_case_lower(kwprop.replace('font_', ''))} as u32
@@ -2082,7 +2132,7 @@ ${helpers.single_keyword("-moz-math-variant",
             debug_assert!(system == context.style.cached_system_font.as_ref().unwrap().system_font)
         }
 
-        #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+        #[derive(Clone, Debug)]
         pub struct ComputedSystemFont {
             % for name in SYSTEM_FONT_LONGHANDS:
                 pub ${name}: longhands::${name}::computed_value::T,
