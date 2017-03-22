@@ -31,8 +31,8 @@ macro_rules! check_enum_value_non_static {
 // similar, because we'd need the foreign atom symbols to link.
 #[test]
 fn assert_basic_pseudo_elements() {
-    let mut saw_before = false;
-    let mut saw_after = false;
+    let saw_before;
+    let saw_after;
 
     macro_rules! pseudo_element {
         (":before", $atom:expr, false) => {
