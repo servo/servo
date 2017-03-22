@@ -46,15 +46,15 @@ impl ToCss for GridLine {
         }
 
         if self.is_span {
-            try!(dest.write_str("span"));
+            dest.write_str("span")?;
         }
 
         if let Some(i) = self.integer {
-            try!(write!(dest, " {}", i));
+            write!(dest, " {}", i)?;
         }
 
         if let Some(ref s) = self.ident {
-            try!(write!(dest, " {}", s));
+            write!(dest, " {}", s)?;
         }
 
         Ok(())
@@ -142,7 +142,7 @@ impl<L> TrackBreadth<L> {
 
 /// Parse a single flexible length.
 pub fn parse_flex(input: &mut Parser) -> Result<CSSFloat, ()> {
-    match try!(input.next()) {
+    match input.next()? {
         Token::Dimension(ref value, ref unit) if unit.to_lowercase() == "fr" && value.value.is_sign_positive()
             => Ok(value.value),
         _ => Err(()),
@@ -265,19 +265,19 @@ impl Parse for TrackSize<LengthOrPercentage> {
             Ok(TrackSize::Breadth(b))
         } else {
             if input.try(|i| i.expect_function_matching("minmax")).is_ok() {
-                Ok(try!(input.parse_nested_block(|input| {
+                input.parse_nested_block(|input| {
                     let inflexible_breadth = if let Ok(lop) = input.try(LengthOrPercentage::parse_non_negative) {
                         Ok(TrackBreadth::Breadth(lop))
                     } else {
                         TrackKeyword::parse(input).map(TrackBreadth::Keyword)
                     };
 
-                    try!(input.expect_comma());
-                    Ok(TrackSize::MinMax(try!(inflexible_breadth), try!(TrackBreadth::parse(context, input))))
-                })))
+                    input.expect_comma()?;
+                    Ok(TrackSize::MinMax(inflexible_breadth?, TrackBreadth::parse(context, input)?))
+                })
             } else {
-                try!(input.expect_function_matching("fit-content"));
-                Ok(try!(LengthOrPercentage::parse(context, input).map(TrackSize::FitContent)))
+                input.expect_function_matching("fit-content")?;
+                input.parse_nested_block(|i| LengthOrPercentage::parse(context, i).map(TrackSize::FitContent))
             }
         }
     }
@@ -288,15 +288,15 @@ impl<L: ToCss> ToCss for TrackSize<L> {
         match *self {
             TrackSize::Breadth(ref b) => b.to_css(dest),
             TrackSize::MinMax(ref infexible, ref flexible) => {
-                try!(dest.write_str("minmax("));
-                try!(infexible.to_css(dest));
-                try!(dest.write_str(", "));
-                try!(flexible.to_css(dest));
+                dest.write_str("minmax(")?;
+                infexible.to_css(dest)?;
+                dest.write_str(", ")?;
+                flexible.to_css(dest)?;
                 dest.write_str(")")
             },
             TrackSize::FitContent(ref lop) => {
-                try!(dest.write_str("fit-content("));
-                try!(lop.to_css(dest));
+                dest.write_str("fit-content(")?;
+                lop.to_css(dest)?;
                 dest.write_str(")")
             },
         }
