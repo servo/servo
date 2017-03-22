@@ -2183,7 +2183,9 @@ ${helpers.single_keyword("-moz-math-variant",
         use app_units::Au;
         use cssparser::Parser;
         use properties::longhands;
+        use std::fmt;
         use std::hash::{Hash, Hasher};
+        use style_traits::ToCss;
         use values::computed::{ToComputedValue, Context};
         <%
             system_fonts = """caption icon menu message-box small-caption status-bar
@@ -2202,6 +2204,16 @@ ${helpers.single_keyword("-moz-math-variant",
             % for font in system_fonts:
                 ${to_camel_case(font)},
             % endfor
+        }
+
+        impl ToCss for SystemFont {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                dest.write_str(match *self {
+                    % for font in system_fonts:
+                        SystemFont::${to_camel_case(font)} => "${font}",
+                    % endfor
+                })
+            }
         }
 
         // ComputedValues are compared at times
