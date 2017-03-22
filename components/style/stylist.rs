@@ -398,7 +398,31 @@ impl Stylist {
 
         let mut declarations = vec![];
 
-        let mut flags = ElementSelectorFlags::empty();
+        // Apply the selector flags. We should be in sequential mode
+        // already, so we can directly apply the parent flags.
+        let mut set_selector_flags = |element: &E, flags: ElementSelectorFlags| {
+            if cfg!(feature = "servo") {
+                // Servo calls this function from the worker, but only for internal
+                // pseudos, so we should never generate selector flags here.
+                unreachable!("internal pseudo generated slow selector flags?");
+            }
+
+            // Gecko calls this from sequential mode, so we can directly apply
+            // the flags.
+            debug_assert!(thread_state::get() == thread_state::LAYOUT);
+            let self_flags = flags.for_self();
+            if !self_flags.is_empty() {
+                unsafe { element.set_selector_flags(self_flags); }
+            }
+            let parent_flags = flags.for_parent();
+            if !parent_flags.is_empty() {
+                if let Some(p) = element.parent_element() {
+                    unsafe { p.set_selector_flags(parent_flags); }
+                }
+            }
+        };
+
+
         self.push_applicable_declarations(element,
                                           None,
                                           None,
@@ -406,7 +430,7 @@ impl Stylist {
                                           Some(pseudo),
                                           guards,
                                           &mut declarations,
-                                          &mut flags);
+                                          &mut set_selector_flags);
 
         let rule_node =
             self.rule_tree.insert_ordered_rules(
@@ -425,28 +449,6 @@ impl Stylist {
                                 None,
                                 &StdoutErrorReporter,
                                 CascadeFlags::empty());
-
-        // Apply the selector flags. We should be in sequential mode already,
-        // so we can directly apply the parent flags.
-        if cfg!(feature = "servo") {
-            // Servo calls this function from the worker, but only for internal
-            // pseudos, so we should never generate selector flags here.
-            debug_assert!(flags.is_empty());
-        } else {
-            // Gecko calls this from sequential mode, so we can directly apply
-            // the flags.
-            debug_assert!(thread_state::get() == thread_state::LAYOUT);
-            let self_flags = flags.for_self();
-            if !self_flags.is_empty() {
-                unsafe { element.set_selector_flags(self_flags); }
-            }
-            let parent_flags = flags.for_parent();
-            if !parent_flags.is_empty() {
-                if let Some(p) = element.parent_element() {
-                    unsafe { p.set_selector_flags(parent_flags); }
-                }
-            }
-        }
 
         Some(ComputedStyle::new(rule_node, Arc::new(computed)))
     }
@@ -537,7 +539,7 @@ impl Stylist {
     ///
     /// The returned `StyleRelations` indicate hints about which kind of rules
     /// have matched.
-    pub fn push_applicable_declarations<E, V>(
+    pub fn push_applicable_declarations<E, V, F>(
                                         &self,
                                         element: &E,
                                         parent_bf: Option<&BloomFilter>,
@@ -546,11 +548,13 @@ impl Stylist {
                                         pseudo_element: Option<&PseudoElement>,
                                         guards: &StylesheetGuards,
                                         applicable_declarations: &mut V,
-                                        flags: &mut ElementSelectorFlags) -> StyleRelations
+                                        flags_setter: &mut F)
+                                        -> StyleRelations
         where E: TElement +
                  fmt::Debug +
                  PresentationalHintsSynthetizer,
-              V: Push<ApplicableDeclarationBlock> + VecLike<ApplicableDeclarationBlock>
+              V: Push<ApplicableDeclarationBlock> + VecLike<ApplicableDeclarationBlock>,
+              F: FnMut(&E, ElementSelectorFlags),
     {
         debug_assert!(!self.is_device_dirty);
         debug_assert!(style_attribute.is_none() || pseudo_element.is_none(),
@@ -573,7 +577,7 @@ impl Stylist {
                                               guards.ua_or_user,
                                               applicable_declarations,
                                               &mut relations,
-                                              flags,
+                                              flags_setter,
                                               CascadeLevel::UANormal);
         debug!("UA normal: {:?}", relations);
 
@@ -598,7 +602,7 @@ impl Stylist {
                                             guards.ua_or_user,
                                             applicable_declarations,
                                             &mut relations,
-                                            flags,
+                                            flags_setter,
                                             CascadeLevel::UserNormal);
             debug!("user normal: {:?}", relations);
             map.author.get_all_matching_rules(element,
@@ -606,7 +610,7 @@ impl Stylist {
                                               guards.author,
                                               applicable_declarations,
                                               &mut relations,
-                                              flags,
+                                              flags_setter,
                                               CascadeLevel::AuthorNormal);
             debug!("author normal: {:?}", relations);
 
@@ -641,7 +645,7 @@ impl Stylist {
                                               guards.author,
                                               applicable_declarations,
                                               &mut relations,
-                                              flags,
+                                              flags_setter,
                                               CascadeLevel::AuthorImportant);
 
             debug!("author important: {:?}", relations);
@@ -665,7 +669,7 @@ impl Stylist {
                                             guards.ua_or_user,
                                             applicable_declarations,
                                             &mut relations,
-                                            flags,
+                                            flags_setter,
                                             CascadeLevel::UserImportant);
 
             debug!("user important: {:?}", relations);
@@ -679,7 +683,7 @@ impl Stylist {
                                               guards.ua_or_user,
                                               applicable_declarations,
                                               &mut relations,
-                                              flags,
+                                              flags_setter,
                                               CascadeLevel::UAImportant);
 
         debug!("UA important: {:?}", relations);
@@ -735,11 +739,11 @@ impl Stylist {
             let element_matches =
                 matches_complex_selector(&selector.complex_selector, element,
                                          None, &mut StyleRelations::empty(),
-                                         &mut ElementSelectorFlags::empty());
+                                         &mut |_, _| {});
             let candidate_matches =
                 matches_complex_selector(&selector.complex_selector, candidate,
                                          None, &mut StyleRelations::empty(),
-                                         &mut ElementSelectorFlags::empty());
+                                         &mut |_, _| {});
 
             if element_matches != candidate_matches {
                 return false;
@@ -774,12 +778,12 @@ impl Stylist {
             let element_matches =
                 matches_complex_selector(&selector.complex_selector, element,
                                          None, &mut StyleRelations::empty(),
-                                         &mut ElementSelectorFlags::empty());
+                                         &mut |_, _| {});
 
             let candidate_matches =
                 matches_complex_selector(&selector.complex_selector, candidate,
                                          None, &mut StyleRelations::empty(),
-                                         &mut ElementSelectorFlags::empty());
+                                         &mut |_, _| {});
 
             if element_matches != candidate_matches {
                 debug!("match_same_sibling_affecting_rules: Failure due to {:?}",
@@ -912,16 +916,17 @@ impl SelectorMap {
     ///
     /// Extract matching rules as per element's ID, classes, tag name, etc..
     /// Sort the Rules at the end to maintain cascading order.
-    pub fn get_all_matching_rules<E, V>(&self,
-                                        element: &E,
-                                        parent_bf: Option<&BloomFilter>,
-                                        guard: &SharedRwLockReadGuard,
-                                        matching_rules_list: &mut V,
-                                        relations: &mut StyleRelations,
-                                        flags: &mut ElementSelectorFlags,
-                                        cascade_level: CascadeLevel)
+    pub fn get_all_matching_rules<E, V, F>(&self,
+                                           element: &E,
+                                           parent_bf: Option<&BloomFilter>,
+                                           guard: &SharedRwLockReadGuard,
+                                           matching_rules_list: &mut V,
+                                           relations: &mut StyleRelations,
+                                           flags_setter: &mut F,
+                                           cascade_level: CascadeLevel)
         where E: Element<Impl=SelectorImpl>,
-              V: VecLike<ApplicableDeclarationBlock>
+              V: VecLike<ApplicableDeclarationBlock>,
+              F: FnMut(&E, ElementSelectorFlags),
     {
         if self.empty {
             return
@@ -937,7 +942,7 @@ impl SelectorMap {
                                                       guard,
                                                       matching_rules_list,
                                                       relations,
-                                                      flags,
+                                                      flags_setter,
                                                       cascade_level)
         }
 
@@ -949,7 +954,7 @@ impl SelectorMap {
                                                       guard,
                                                       matching_rules_list,
                                                       relations,
-                                                      flags,
+                                                      flags_setter,
                                                       cascade_level);
         });
 
@@ -965,7 +970,7 @@ impl SelectorMap {
                                                   guard,
                                                   matching_rules_list,
                                                   relations,
-                                                  flags,
+                                                  flags_setter,
                                                   cascade_level);
 
         SelectorMap::get_matching_rules(element,
@@ -974,7 +979,7 @@ impl SelectorMap {
                                         guard,
                                         matching_rules_list,
                                         relations,
-                                        flags,
+                                        flags_setter,
                                         cascade_level);
 
         // Sort only the rules we just added.
@@ -1027,7 +1032,7 @@ impl SelectorMap {
         matching_rules_list
     }
 
-    fn get_matching_rules_from_hash<E, Str, BorrowedStr: ?Sized, Vector>(
+    fn get_matching_rules_from_hash<E, Str, BorrowedStr: ?Sized, Vector, F>(
         element: &E,
         parent_bf: Option<&BloomFilter>,
         hash: &FnvHashMap<Str, Vec<Rule>>,
@@ -1035,12 +1040,13 @@ impl SelectorMap {
         guard: &SharedRwLockReadGuard,
         matching_rules: &mut Vector,
         relations: &mut StyleRelations,
-        flags: &mut ElementSelectorFlags,
+        flags_setter: &mut F,
         cascade_level: CascadeLevel)
         where E: Element<Impl=SelectorImpl>,
               Str: Borrow<BorrowedStr> + Eq + Hash,
               BorrowedStr: Eq + Hash,
-              Vector: VecLike<ApplicableDeclarationBlock>
+              Vector: VecLike<ApplicableDeclarationBlock>,
+              F: FnMut(&E, ElementSelectorFlags),
     {
         if let Some(rules) = hash.get(key) {
             SelectorMap::get_matching_rules(element,
@@ -1049,22 +1055,23 @@ impl SelectorMap {
                                             guard,
                                             matching_rules,
                                             relations,
-                                            flags,
+                                            flags_setter,
                                             cascade_level)
         }
     }
 
     /// Adds rules in `rules` that match `element` to the `matching_rules` list.
-    fn get_matching_rules<E, V>(element: &E,
-                                parent_bf: Option<&BloomFilter>,
-                                rules: &[Rule],
-                                guard: &SharedRwLockReadGuard,
-                                matching_rules: &mut V,
-                                relations: &mut StyleRelations,
-                                flags: &mut ElementSelectorFlags,
-                                cascade_level: CascadeLevel)
+    fn get_matching_rules<E, V, F>(element: &E,
+                                   parent_bf: Option<&BloomFilter>,
+                                   rules: &[Rule],
+                                   guard: &SharedRwLockReadGuard,
+                                   matching_rules: &mut V,
+                                   relations: &mut StyleRelations,
+                                   flags_setter: &mut F,
+                                   cascade_level: CascadeLevel)
         where E: Element<Impl=SelectorImpl>,
-              V: VecLike<ApplicableDeclarationBlock>
+              V: VecLike<ApplicableDeclarationBlock>,
+              F: FnMut(&E, ElementSelectorFlags),
     {
         for rule in rules.iter() {
             let style_rule = rule.style_rule.read_with(guard);
@@ -1076,7 +1083,7 @@ impl SelectorMap {
             };
             if any_declaration_for_importance &&
                matches_complex_selector(&*rule.selector, element, parent_bf,
-                                        relations, flags) {
+                                        relations, flags_setter) {
                 matching_rules.push(
                     rule.to_applicable_declaration_block(cascade_level));
             }

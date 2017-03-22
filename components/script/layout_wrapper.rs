@@ -615,10 +615,13 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
         self.element.namespace()
     }
 
-    fn match_non_ts_pseudo_class(&self,
-                                 pseudo_class: &NonTSPseudoClass,
-                                 _: &mut StyleRelations,
-                                 _: &mut ElementSelectorFlags) -> bool {
+    fn match_non_ts_pseudo_class<F>(&self,
+                                    pseudo_class: &NonTSPseudoClass,
+                                    _: &mut StyleRelations,
+                                    _: &mut F)
+                                    -> bool
+        where F: FnMut(&Self, ElementSelectorFlags),
+    {
         match *pseudo_class {
             // https://github.com/servo/servo/issues/8718
             NonTSPseudoClass::Link |
@@ -1114,10 +1117,13 @@ impl<'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
         self.element.get_namespace()
     }
 
-    fn match_non_ts_pseudo_class(&self,
-                                 _: &NonTSPseudoClass,
-                                 _: &mut StyleRelations,
-                                 _: &mut ElementSelectorFlags) -> bool {
+    fn match_non_ts_pseudo_class<F>(&self,
+                                    _: &NonTSPseudoClass,
+                                    _: &mut StyleRelations,
+                                    _: &mut F)
+                                    -> bool
+        where F: FnMut(&Self, ElementSelectorFlags),
+    {
         // NB: This could maybe be implemented
         warn!("ServoThreadSafeLayoutElement::match_non_ts_pseudo_class called");
         false

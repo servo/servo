@@ -269,17 +269,25 @@ impl<'a, E> MatchAttr for ElementWrapper<'a, E>
 impl<'a, E> Element for ElementWrapper<'a, E>
     where E: TElement,
 {
-    fn match_non_ts_pseudo_class(&self,
-                                 pseudo_class: &NonTSPseudoClass,
-                                 relations: &mut StyleRelations,
-                                 flags: &mut ElementSelectorFlags) -> bool {
+    fn match_non_ts_pseudo_class<F>(&self,
+                                    pseudo_class: &NonTSPseudoClass,
+                                    relations: &mut StyleRelations,
+                                    _: &mut F)
+                                    -> bool
+        where F: FnMut(&Self, ElementSelectorFlags),
+    {
         let flag = SelectorImpl::pseudo_class_state_flag(pseudo_class);
-        if flag == ElementState::empty() {
-            self.element.match_non_ts_pseudo_class(pseudo_class, relations, flags)
-        } else {
-            match self.snapshot.and_then(|s| s.state()) {
-                Some(snapshot_state) => snapshot_state.contains(flag),
-                _   => self.element.match_non_ts_pseudo_class(pseudo_class, relations, flags)
+        if flag.is_empty() {
+            return self.element.match_non_ts_pseudo_class(pseudo_class,
+                                                          relations,
+                                                          &mut |_, _| {})
+        }
+        match self.snapshot.and_then(|s| s.state()) {
+            Some(snapshot_state) => snapshot_state.contains(flag),
+            None => {
+                self.element.match_non_ts_pseudo_class(pseudo_class,
+                                                       relations,
+                                                       &mut |_, _| {})
             }
         }
     }
@@ -581,11 +589,11 @@ impl DependencySet {
                 let matched_then =
                     matches_complex_selector(&dep.selector, snapshot, None,
                                              &mut StyleRelations::empty(),
-                                             &mut ElementSelectorFlags::empty());
+                                             &mut |_, _| {});
                 let matches_now =
                     matches_complex_selector(&dep.selector, element, None,
                                              &mut StyleRelations::empty(),
-                                             &mut ElementSelectorFlags::empty());
+                                             &mut |_, _| {});
                 if matched_then != matches_now {
                     hint.insert(dep.hint);
                 }
