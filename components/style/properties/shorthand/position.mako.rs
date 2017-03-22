@@ -129,7 +129,8 @@
 </%helpers:shorthand>
 
 <%helpers:shorthand name="grid-gap" sub_properties="grid-row-gap grid-column-gap"
-                    spec="https://drafts.csswg.org/css-grid/#propdef-grid-gap">
+                    spec="https://drafts.csswg.org/css-grid/#propdef-grid-gap"
+                    products="gecko">
   use properties::longhands::{grid_row_gap, grid_column_gap};
 
   pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
