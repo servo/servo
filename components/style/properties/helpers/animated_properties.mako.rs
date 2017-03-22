@@ -4,6 +4,8 @@
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
+<% from data import SYSTEM_FONT_LONGHANDS %>
+
 use app_units::Au;
 use cssparser::{Color as CSSParserColor, Parser, RGBA};
 use euclid::{Point2D, Size2D};
@@ -418,11 +420,11 @@ impl AnimationValue {
             % for prop in data.longhands:
             % if prop.animatable:
             PropertyDeclaration::${prop.camel_case}(ref val) => {
-                % if prop.ident in "font_size font_family".split() and product == "gecko":
-                    if let Some(sf) = val.get_system() {
-                        longhands::system_font::resolve_system_font(sf, context);
-                    }
-                % endif
+            % if prop.ident in SYSTEM_FONT_LONGHANDS and product == "gecko":
+                if let Some(sf) = val.get_system() {
+                    longhands::system_font::resolve_system_font(sf, context);
+                }
+            % endif
                 Some(AnimationValue::${prop.camel_case}(val.to_computed_value(context)))
             },
             % endif

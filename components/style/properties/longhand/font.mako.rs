@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
-<% from data import Method, to_camel_case, to_rust_ident %>
+<% from data import Method, to_camel_case, to_rust_ident, to_camel_case_lower, SYSTEM_FONT_LONGHANDS %>
 
 <% data.new_style_struct("Font",
                          inherited=True) %>
@@ -282,14 +282,12 @@
     }
 </%helpers:longhand>
 
-
-${helpers.single_keyword("font-style",
-                         "normal italic oblique",
-                         gecko_constant_prefix="NS_FONT_STYLE",
-                         gecko_ffi_name="mFont.style",
-                         spec="https://drafts.csswg.org/css-fonts/#propdef-font-style",
-                         animation_type="none",
-                         needs_conversion=True)}
+${helpers.single_keyword_system("font-style",
+                                "normal italic oblique",
+                                gecko_constant_prefix="NS_FONT_STYLE",
+                                gecko_ffi_name="mFont.style",
+                                spec="https://drafts.csswg.org/css-fonts/#propdef-font-style",
+                                animation_type="none")}
 
 
 <% font_variant_caps_custom_consts= { "small-caps": "SMALLCAPS",
@@ -298,14 +296,14 @@ ${helpers.single_keyword("font-style",
                                       "all-petite": "ALLPETITE",
                                       "titling-caps": "TITLING" } %>
 
-${helpers.single_keyword("font-variant-caps",
-                         "normal small-caps",
-                         extra_gecko_values="all-small petite-caps unicase titling-caps",
-                         gecko_constant_prefix="NS_FONT_VARIANT_CAPS",
-                         gecko_ffi_name="mFont.variantCaps",
-                         spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-caps",
-                         custom_consts=font_variant_caps_custom_consts,
-                         animation_type="none")}
+${helpers.single_keyword_system("font-variant-caps",
+                               "normal small-caps",
+                               extra_gecko_values="all-small petite-caps unicase titling-caps",
+                               gecko_constant_prefix="NS_FONT_VARIANT_CAPS",
+                               gecko_ffi_name="mFont.variantCaps",
+                               spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-caps",
+                               custom_consts=font_variant_caps_custom_consts,
+                               animation_type="none")}
 
 <%helpers:longhand name="font-weight" need_clone="True" animation_type="normal"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-weight">
@@ -1034,23 +1032,23 @@ ${helpers.single_keyword("font-variant-caps",
 </%helpers:longhand>
 
 // FIXME: This prop should be animatable
-${helpers.single_keyword("font-stretch",
-                         "normal ultra-condensed extra-condensed condensed \
-                          semi-condensed semi-expanded expanded extra-expanded \
-                          ultra-expanded",
-                         gecko_ffi_name="mFont.stretch",
-                         gecko_constant_prefix="NS_FONT_STRETCH",
-                         cast_type='i16',
-                         spec="https://drafts.csswg.org/css-fonts/#propdef-font-stretch",
-                         animation_type="none")}
+${helpers.single_keyword_system("font-stretch",
+                                "normal ultra-condensed extra-condensed condensed \
+                                 semi-condensed semi-expanded expanded extra-expanded \
+                                 ultra-expanded",
+                                gecko_ffi_name="mFont.stretch",
+                                gecko_constant_prefix="NS_FONT_STRETCH",
+                                cast_type='i16',
+                                spec="https://drafts.csswg.org/css-fonts/#propdef-font-stretch",
+                                animation_type="none")}
 
-${helpers.single_keyword("font-kerning",
-                         "auto none normal",
-                         products="gecko",
-                         gecko_ffi_name="mFont.kerning",
-                         gecko_constant_prefix="NS_FONT_KERNING",
-                         spec="https://drafts.csswg.org/css-fonts/#propdef-font-stretch",
-                         animation_type="none")}
+${helpers.single_keyword_system("font-kerning",
+                                "auto none normal",
+                                products="gecko",
+                                gecko_ffi_name="mFont.kerning",
+                                gecko_constant_prefix="NS_FONT_KERNING",
+                                spec="https://drafts.csswg.org/css-fonts/#propdef-font-stretch",
+                                animation_type="none")}
 
 /// FIXME: Implement proper handling of each values.
 /// https://github.com/servo/servo/issues/15957
@@ -1541,13 +1539,13 @@ macro_rules! exclusive_value {
     }
 </%helpers:longhand>
 
-${helpers.single_keyword("font-variant-position",
-                         "normal sub super",
-                         products="gecko",
-                         gecko_ffi_name="mFont.variantPosition",
-                         gecko_constant_prefix="NS_FONT_VARIANT_POSITION",
-                         spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-position",
-                         animation_type="none")}
+${helpers.single_keyword_system("font-variant-position",
+                                "normal sub super",
+                                products="gecko",
+                                gecko_ffi_name="mFont.variantPosition",
+                                gecko_constant_prefix="NS_FONT_VARIANT_POSITION",
+                                spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-position",
+                                animation_type="none")}
 
 <%helpers:longhand name="font-feature-settings" products="none" animation_type="none" extra_prefixes="moz"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-feature-settings">
@@ -1977,6 +1975,8 @@ ${helpers.single_keyword("-moz-math-variant",
                               -moz-window -moz-document -moz-workspace -moz-desktop
                               -moz-info -moz-dialog -moz-button -moz-pull-down-menu
                               -moz-list -moz-field""".split()
+            kw_font_props = """font_style font_variant_caps font_stretch
+                               font_kerning font_variant_position""".split()
         %>
         #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
         pub enum SystemFont {
@@ -2017,6 +2017,11 @@ ${helpers.single_keyword("-moz-math-variant",
                 let ret = ComputedSystemFont {
                     font_family: longhands::font_family::computed_value::T(family),
                     font_size: Au(system.size),
+                    % for kwprop in kw_font_props:
+                        ${kwprop}: longhands::${kwprop}::computed_value::T::from_gecko_keyword(
+                            system.${to_camel_case_lower(kwprop.replace('font_', ''))} as u32
+                        ),
+                    % endfor
                     system_font: *self,
                 };
                 unsafe { bindings::Gecko_nsFont_Destroy(&mut system); }
@@ -2043,8 +2048,9 @@ ${helpers.single_keyword("-moz-math-variant",
 
         #[derive(Clone, Debug, PartialEq, Eq, Hash)]
         pub struct ComputedSystemFont {
-            pub font_family: longhands::font_family::computed_value::T,
-            pub font_size: longhands::font_size::computed_value::T,
+            % for name in SYSTEM_FONT_LONGHANDS:
+                pub ${name}: longhands::${name}::computed_value::T,
+            % endfor
             pub system_font: SystemFont,
         }
 

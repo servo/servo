@@ -93,7 +93,8 @@
     % endif
 
     ${helpers.gecko_keyword_conversion(Keyword('display', ' '.join(values),
-                                               gecko_enum_prefix='StyleDisplay'))}
+                                               gecko_enum_prefix='StyleDisplay',
+                                               gecko_strip_moz_prefix=False))}
 
 </%helpers:longhand>
 
