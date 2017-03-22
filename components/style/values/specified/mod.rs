@@ -11,6 +11,7 @@ use cssparser::{self, Parser, Token};
 use euclid::size::Size2D;
 use parser::{ParserContext, Parse};
 use self::grid::{TrackBreadth as GenericTrackBreadth, TrackSize as GenericTrackSize};
+use self::grid::TrackList as GenericTrackList;
 use self::url::SpecifiedUrl;
 use std::ascii::AsciiExt;
 use std::f32::consts::PI;
@@ -682,6 +683,13 @@ pub type TrackBreadth = GenericTrackBreadth<LengthOrPercentage>;
 
 /// The specified value of a grid `<track-size>`
 pub type TrackSize = GenericTrackSize<LengthOrPercentage>;
+
+/// The specified value of a grid `<track-list>`
+/// (could also be `<auto-track-list>` or `<explicit-track-list>`)
+pub type TrackList = GenericTrackList<LengthOrPercentage>;
+
+/// `<track-list> | none`
+pub type TrackListOrNone = Either<GenericTrackList<LengthOrPercentage>, None_>;
 
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
