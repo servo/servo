@@ -11,7 +11,7 @@ path = "lib.rs"
 
 [dependencies]
 brotli = "1.0.6"
-cookie = "0.2.5"
+cookie = "0.7.3"
 devtools_traits = {path = "../devtools_traits"}
 flate2 = "0.2.0"
 hyper = "0.9.9"
@@ -24,8 +24,8 @@ mime = "0.2.1"
 mime_guess = "1.8.0"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
-openssl = "0.7.6"
-openssl-verify = "0.1"
+openssl = "0.9.9"
+openssl-verify = "0.2.0"
 profile_traits = {path = "../profile_traits"}
 rustc-serialize = "0.3"
 serde = "0.9"
@@ -33,7 +33,7 @@ serde_derive = "0.9"
 serde_json = "0.9"
 servo_config = {path = "../config"}
 servo_url = {path = "../url"}
-servo-websocket = "0.18"
+servo-websocket = "0.19.1"
 threadpool = "1.0"
 time = "0.1.17"
 unicase = "1.4.0"
