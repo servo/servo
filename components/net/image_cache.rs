@@ -16,7 +16,6 @@ use std::fs::File;
 use std::io::{self, Read};
 use std::mem;
 use std::sync::{Arc, Mutex};
-use std::sync::mpsc::channel;
 use std::thread;
 use webrender_traits;
 
@@ -310,26 +309,24 @@ impl PendingLoad {
 // ======================================================================
 // Image cache implementation.
 // ======================================================================
-
-pub struct ImageCacheImpl {
+struct ImageCacheStore {
     // Images that are loading over network, or decoding.
-    pending_loads: Mutex<AllPendingLoads>,
+    pending_loads: AllPendingLoads,
 
     // Images that have finished loading (successful or not)
-    completed_loads: Mutex<HashMap<ServoUrl, CompletedLoad>>,
+    completed_loads: HashMap<ServoUrl, CompletedLoad>,
 
     // The placeholder image used when an image fails to load
     placeholder_image: Option<Arc<Image>>,
 
     // Webrender API instance.
-    webrender_api: Mutex<webrender_traits::RenderApi>,
+    webrender_api: webrender_traits::RenderApi,
 }
 
-impl ImageCacheImpl {
+impl ImageCacheStore {
     // Change state of a url from pending -> loaded.
-    fn complete_load(&self, key: LoadKey, mut load_result: LoadResult) {
-        let mut pending_loads = self.pending_loads.lock().unwrap();
-        let pending_load = match pending_loads.remove(&key) {
+    fn complete_load(&mut self, key: LoadKey, mut load_result: LoadResult) {
+        let pending_load = match self.pending_loads.remove(&key) {
             Some(load) => load,
             None => return,
         };
@@ -351,9 +348,8 @@ impl ImageCacheImpl {
                     is_opaque: is_image_opaque(format, &bytes),
                 };
                 let data = webrender_traits::ImageData::new(bytes);
-                let webrender_api = self.webrender_api.lock().unwrap();
-                let image_key = webrender_api.generate_image_key();
-                webrender_api.add_image(image_key, descriptor, data, None);
+                let image_key = self.webrender_api.generate_image_key();
+                self.webrender_api.add_image(image_key, descriptor, data, None);
                 image.id = Some(image_key);
             }
             LoadResult::PlaceholderLoaded(..) | LoadResult::None => {}
@@ -366,7 +362,7 @@ impl ImageCacheImpl {
         };
 
         let completed_load = CompletedLoad::new(image_response.clone(), key);
-        self.completed_loads.lock().unwrap().insert(pending_load.url.into(), completed_load);
+        self.completed_loads.insert(pending_load.url.into(), completed_load);
 
         for listener in pending_load.listeners {
             listener.respond(image_response.clone());
@@ -379,7 +375,7 @@ impl ImageCacheImpl {
                                         url: &ServoUrl,
                                         placeholder: UsePlaceholder)
                                         -> Option<Result<ImageOrMetadataAvailable, ImageState>> {
-        self.completed_loads.lock().unwrap().get(url).map(|completed_load| {
+        self.completed_loads.get(url).map(|completed_load| {
             match (&completed_load.image_response, placeholder) {
                 (&ImageResponse::Loaded(ref image), _) |
                 (&ImageResponse::PlaceholderLoaded(ref image), UsePlaceholder::Yes) => {
@@ -396,7 +392,7 @@ impl ImageCacheImpl {
 
     /// Handle a message from one of the decoder worker threads or from a sync
     /// decoding operation.
-    fn handle_decoder(&self, msg: DecoderMsg) {
+    fn handle_decoder(&mut self, msg: DecoderMsg) {
         let image = match msg.image {
             None => LoadResult::None,
             Some(image) => LoadResult::Loaded(image),
@@ -405,14 +401,39 @@ impl ImageCacheImpl {
     }
 }
 
+struct ImageDecoderRunnable {
+    store: Arc<Mutex<ImageCacheStore>>,
+    key: PendingImageId,
+    bytes: Arc<Vec<u8>>,
+}
+
+impl ImageDecoderRunnable {
+    fn run(&self) {
+        let local_store = self.store.clone();
+        let bytes = self.bytes.clone();
+        let key = self.key.clone();
+        thread::spawn(move || {
+            let msg = decode_bytes_sync(key, &*bytes);
+            debug!("Image decoded");
+            local_store.lock().unwrap().handle_decoder(msg);
+        });
+    }
+}
+
+pub struct ImageCacheImpl {
+    store: Arc<Mutex<ImageCacheStore>>,
+}
+
 impl ImageCache for ImageCacheImpl {
     fn new(webrender_api: webrender_traits::RenderApi) -> ImageCacheImpl {
         debug!("New image cache");
         ImageCacheImpl {
-            pending_loads: Mutex::new(AllPendingLoads::new()),
-            completed_loads: Mutex::new(HashMap::new()),
-            placeholder_image: get_placeholder_image(&webrender_api).ok(),
-            webrender_api: Mutex::new(webrender_api),
+            store: Arc::new(Mutex::new(ImageCacheStore {
+                pending_loads: AllPendingLoads::new(),
+                completed_loads: HashMap::new(),
+                placeholder_image: get_placeholder_image(&webrender_api).ok(),
+                webrender_api: webrender_api,
+            }))
         }
     }
 
@@ -425,14 +446,14 @@ impl ImageCache for ImageCacheImpl {
                               can_request: CanRequestImages)
                               -> Result<ImageOrMetadataAvailable, ImageState> {
         debug!("Find image or metadata for {}", url);
-        if let Some(result) = self.get_completed_image_if_available(&url, use_placeholder) {
+        let mut store = self.store.lock().unwrap();
+        if let Some(result) = store.get_completed_image_if_available(&url, use_placeholder) {
             debug!("{} is available", url);
             return result;
         }
 
         let decoded = {
-            let mut pending_loads = self.pending_loads.lock().unwrap();
-            let result = pending_loads.get_cached(url.clone(), can_request);
+            let result = store.pending_loads.get_cached(url.clone(), can_request);
             match result {
                 CacheResult::Hit(key, pl) => match (&pl.result, &pl.metadata) {
                     (&Some(Ok(_)), _) => {
@@ -463,8 +484,8 @@ impl ImageCache for ImageCacheImpl {
         // have the full response available, we decode the bytes synchronously
         // and ignore the async decode when it finishes later.
         // TODO: make this behaviour configurable according to the caller's needs.
-        self.handle_decoder(decoded);
-        match self.get_completed_image_if_available(&url, use_placeholder) {
+        store.handle_decoder(decoded);
+        match store.get_completed_image_if_available(&url, use_placeholder) {
             Some(result) => result,
             None => Err(ImageState::LoadError),
         }
@@ -473,14 +494,15 @@ impl ImageCache for ImageCacheImpl {
     /// Add a new listener for the given pending image id. If the image is already present,
     /// the responder will still receive the expected response.
     fn add_listener(&self, id: PendingImageId, listener: ImageResponder) {
-        if let Some(load) = self.pending_loads.lock().unwrap().get_by_key_mut(&id) {
+        let mut store = self.store.lock().unwrap();
+        if let Some(load) = store.pending_loads.get_by_key_mut(&id) {
             if let Some(ref metadata) = load.metadata {
                 listener.respond(ImageResponse::MetadataLoaded(metadata.clone()));
             }
             load.add_listener(listener);
             return;
         }
-        if let Some(load) = self.completed_loads.lock().unwrap().values().find(|l| l.id == id) {
+        if let Some(load) = store.completed_loads.values().find(|l| l.id == id) {
             listener.respond(load.image_response.clone());
             return;
         }
@@ -495,8 +517,8 @@ impl ImageCache for ImageCacheImpl {
             (FetchResponseMsg::ProcessResponse(_response), _) => {}
             (FetchResponseMsg::ProcessResponseChunk(data), _) => {
                 debug!("Got some data for {:?}", id);
-                let mut pending_loads = self.pending_loads.lock().unwrap();
-                let pending_load = pending_loads.get_by_key_mut(&id).unwrap();
+                let mut store = self.store.lock().unwrap();
+                let pending_load = store.pending_loads.get_by_key_mut(&id).unwrap();
                 pending_load.bytes.extend_from_slice(&data);
                 //jmr0 TODO: possibly move to another task?
                 if let None = pending_load.metadata {
@@ -516,33 +538,29 @@ impl ImageCache for ImageCacheImpl {
                 match result {
                     Ok(()) => {
                         let bytes = {
-                            let mut pending_loads = self.pending_loads.lock().unwrap();
-                            let pending_load = pending_loads.get_by_key_mut(&id).unwrap();
+                            let mut store = self.store.lock().unwrap();
+                            let pending_load = store.pending_loads.get_by_key_mut(&id).unwrap();
                             pending_load.result = Some(result);
                             debug!("Async decoding {} ({:?})", pending_load.url, key);
                             pending_load.bytes.mark_complete()
                         };
 
-                        let (tx, rx) = channel();
-                        thread::Builder::new().name(
-                            "Image decoding async operation".to_owned()).spawn(move || {
-                            let msg = decode_bytes_sync(key, &*bytes);
-                            tx.send(msg).unwrap();
-                        }).expect("Thread spawning failed");
-
-                        if let Some(msg) = rx.recv().ok() {
-                            debug!("Image decoded {:?}", key);
-                            self.handle_decoder(msg);
+                        let image_decoder_runnable = ImageDecoderRunnable {
+                            store: self.store.clone(),
+                            key: key,
+                            bytes: bytes.clone(),
                         };
+                        image_decoder_runnable.run();
                     }
                     Err(_) => {
                         debug!("Processing error for {:?}", key);
-                        match self.placeholder_image.clone() {
+                        let mut store = self.store.lock().unwrap();
+                        match store.placeholder_image.clone() {
                             Some(placeholder_image) => {
-                                self.complete_load(id, LoadResult::PlaceholderLoaded(
-                                        placeholder_image))
+                                store.complete_load(
+                                    id, LoadResult::PlaceholderLoaded(placeholder_image))
                             }
-                            None => self.complete_load(id, LoadResult::None),
+                            None => store.complete_load(id, LoadResult::None),
                         }
                     }
                 }
