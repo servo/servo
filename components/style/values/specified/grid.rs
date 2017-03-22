@@ -26,7 +26,14 @@ pub struct GridLine {
     /// https://drafts.csswg.org/css-grid/#grid-placement-slot
     pub ident: Option<String>,
     /// Denotes the nth grid line from grid item's placement.
-    pub integer: Option<i32>,
+    pub line_num: Option<Integer>,
+}
+
+impl GridLine {
+    /// Check whether this `<grid-line>` represents an `auto` value.
+    pub fn is_auto(&self) -> bool {
+        self.ident.is_none() && self.line_num.is_none() && !self.is_span
+    }
 }
 
 impl Default for GridLine {
@@ -34,27 +41,28 @@ impl Default for GridLine {
         GridLine {
             is_span: false,
             ident: None,
-            integer: None,
+            line_num: None,
         }
     }
 }
 
 impl ToCss for GridLine {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        if !self.is_span && self.ident.is_none() && self.integer.is_none() {
+        if self.is_auto() {
             return dest.write_str("auto")
         }
 
         if self.is_span {
-            try!(dest.write_str("span"));
+            dest.write_str("span")?;
         }
 
-        if let Some(i) = self.integer {
-            try!(write!(dest, " {}", i));
+        if let Some(i) = self.line_num {
+            write!(dest, " {}", i.value)?;
         }
 
         if let Some(ref s) = self.ident {
-            try!(write!(dest, " {}", s));
+            dest.write_str(" ")?;
+            serialize_identifier(s, dest)?;
         }
 
         Ok(())
@@ -62,7 +70,7 @@ impl ToCss for GridLine {
 }
 
 impl Parse for GridLine {
-    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         let mut grid_line = Default::default();
         if input.try(|i| i.expect_ident_matching("auto")).is_ok() {
             return Ok(grid_line)
@@ -70,17 +78,17 @@ impl Parse for GridLine {
 
         for _ in 0..3 {     // Maximum possible entities for <grid-line>
             if input.try(|i| i.expect_ident_matching("span")).is_ok() {
-                if grid_line.is_span {
+                if grid_line.is_span || grid_line.line_num.is_some() || grid_line.ident.is_some() {
+                    return Err(())      // span (if specified) should be first
+                }
+                grid_line.is_span = true;       // span (if specified) should be first
+            } else if let Ok(i) = input.try(|i| Integer::parse(context, i)) {
+                if i.value == 0 || grid_line.line_num.is_some() {
                     return Err(())
                 }
-                grid_line.is_span = true;
-            } else if let Ok(i) = input.try(|i| i.expect_integer()) {
-                if i == 0 || grid_line.integer.is_some() {
-                    return Err(())
-                }
-                grid_line.integer = Some(i);
+                grid_line.line_num = Some(i);
             } else if let Ok(name) = input.try(|i| i.expect_ident()) {
-                if grid_line.ident.is_some() {
+                if grid_line.ident.is_some() || CustomIdent::from_ident((&*name).into(), &[]).is_err() {
                     return Err(())
                 }
                 grid_line.ident = Some(name.into_owned());
@@ -89,13 +97,19 @@ impl Parse for GridLine {
             }
         }
 
+        if grid_line.is_auto() {
+            return Err(())
+        }
+
         if grid_line.is_span {
-            if let Some(i) = grid_line.integer {
-                if i < 0 {      // disallow negative integers for grid spans
+            if let Some(i) = grid_line.line_num {
+                if i.value <= 0 {       // disallow negative integers for grid spans
                     return Err(())
                 }
+            } else if grid_line.ident.is_some() {       // integer could be omitted
+                grid_line.line_num = Some(Integer::new(1));
             } else {
-                grid_line.integer = Some(1);
+                return Err(())
             }
         }
 
@@ -142,7 +156,7 @@ impl<L> TrackBreadth<L> {
 
 /// Parse a single flexible length.
 pub fn parse_flex(input: &mut Parser) -> Result<CSSFloat, ()> {
-    match try!(input.next()) {
+    match input.next()? {
         Token::Dimension(ref value, ref unit) if unit.eq_ignore_ascii_case("fr") && value.value.is_sign_positive()
             => Ok(value.value),
         _ => Err(()),
@@ -271,19 +285,19 @@ impl Parse for TrackSize<LengthOrPercentage> {
                     match input.try(|i| LengthOrPercentage::parse_non_negative(context, i)) {
                         Ok(lop) => TrackBreadth::Breadth(lop),
                         Err(..) => {
-                            let keyword = try!(TrackKeyword::parse(input));
+                            let keyword = TrackKeyword::parse(input)?;
                             TrackBreadth::Keyword(keyword)
                         }
                     };
 
-                try!(input.expect_comma());
-                Ok(TrackSize::MinMax(inflexible_breadth, try!(TrackBreadth::parse(context, input))))
+                input.expect_comma()?;
+                Ok(TrackSize::MinMax(inflexible_breadth, TrackBreadth::parse(context, input)?))
             });
         }
 
-        try!(input.expect_function_matching("fit-content"));
-        // FIXME(emilio): This needs a parse_nested_block, doesn't it?
-        Ok(try!(LengthOrPercentage::parse(context, input).map(TrackSize::FitContent)))
+        input.expect_function_matching("fit-content")?;
+        let lop = input.parse_nested_block(|i| LengthOrPercentage::parse_non_negative(context, i))?;
+        Ok(TrackSize::FitContent(lop))
     }
 }
 
@@ -292,15 +306,15 @@ impl<L: ToCss> ToCss for TrackSize<L> {
         match *self {
             TrackSize::Breadth(ref b) => b.to_css(dest),
             TrackSize::MinMax(ref infexible, ref flexible) => {
-                try!(dest.write_str("minmax("));
-                try!(infexible.to_css(dest));
-                try!(dest.write_str(", "));
-                try!(flexible.to_css(dest));
+                dest.write_str("minmax(")?;
+                infexible.to_css(dest)?;
+                dest.write_str(", ")?;
+                flexible.to_css(dest)?;
                 dest.write_str(")")
             },
             TrackSize::FitContent(ref lop) => {
-                try!(dest.write_str("fit-content("));
-                try!(lop.to_css(dest));
+                dest.write_str("fit-content(")?;
+                lop.to_css(dest)?;
                 dest.write_str(")")
             },
         }
@@ -324,7 +338,13 @@ impl<L: ToComputedValue> ToComputedValue for TrackSize<L> {
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
         match *self {
-            TrackSize::Breadth(ref b) => TrackSize::Breadth(b.to_computed_value(context)),
+            TrackSize::Breadth(ref b) => match *b {
+                // <flex> outside `minmax()` expands to `mimmax(auto, <flex>)`
+                // https://drafts.csswg.org/css-grid/#valdef-grid-template-columns-flex
+                TrackBreadth::Flex(f) =>
+                    TrackSize::MinMax(TrackBreadth::Keyword(TrackKeyword::Auto), TrackBreadth::Flex(f)),
+                _ => TrackSize::Breadth(b.to_computed_value(context)),
+            },
             TrackSize::MinMax(ref b_1, ref b_2) =>
                 TrackSize::MinMax(b_1.to_computed_value(context), b_2.to_computed_value(context)),
             TrackSize::FitContent(ref lop) => TrackSize::FitContent(lop.to_computed_value(context)),
