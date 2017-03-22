@@ -14,7 +14,6 @@ use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
 use gfx_traits::{Epoch, ScrollRootId};
 use gleam::gl;
-use gleam::gl::types::{GLint, GLsizei};
 use image::{DynamicImage, ImageFormat, RgbImage};
 use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, CONTROL};
@@ -208,6 +207,9 @@ pub struct IOCompositor<Window: WindowMethods> {
 
     /// The webrender interface, if enabled.
     webrender_api: webrender_traits::RenderApi,
+
+    /// GL functions interface (may be GL or GLES)
+    gl: Rc<gl::Gl>,
 }
 
 #[derive(Copy, Clone)]
@@ -291,34 +293,34 @@ impl RenderTargetInfo {
     }
 }
 
-fn initialize_png(width: usize, height: usize) -> RenderTargetInfo {
-    let framebuffer_ids = gl::gen_framebuffers(1);
-    gl::bind_framebuffer(gl::FRAMEBUFFER, framebuffer_ids[0]);
+fn initialize_png(gl: &gl::Gl, width: usize, height: usize) -> RenderTargetInfo {
+    let framebuffer_ids = gl.gen_framebuffers(1);
+    gl.bind_framebuffer(gl::FRAMEBUFFER, framebuffer_ids[0]);
 
-    let texture_ids = gl::gen_textures(1);
-    gl::bind_texture(gl::TEXTURE_2D, texture_ids[0]);
+    let texture_ids = gl.gen_textures(1);
+    gl.bind_texture(gl::TEXTURE_2D, texture_ids[0]);
 
-    gl::tex_image_2d(gl::TEXTURE_2D, 0, gl::RGB as GLint, width as GLsizei,
-                     height as GLsizei, 0, gl::RGB, gl::UNSIGNED_BYTE, None);
-    gl::tex_parameter_i(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as GLint);
-    gl::tex_parameter_i(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as GLint);
+    gl.tex_image_2d(gl::TEXTURE_2D, 0, gl::RGB as gl::GLint, width as gl::GLsizei,
+                    height as gl::GLsizei, 0, gl::RGB, gl::UNSIGNED_BYTE, None);
+    gl.tex_parameter_i(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as gl::GLint);
+    gl.tex_parameter_i(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as gl::GLint);
 
-    gl::framebuffer_texture_2d(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT0, gl::TEXTURE_2D,
-                               texture_ids[0], 0);
+    gl.framebuffer_texture_2d(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT0, gl::TEXTURE_2D,
+                              texture_ids[0], 0);
 
-    gl::bind_texture(gl::TEXTURE_2D, 0);
+    gl.bind_texture(gl::TEXTURE_2D, 0);
 
-    let renderbuffer_ids = gl::gen_renderbuffers(1);
+    let renderbuffer_ids = gl.gen_renderbuffers(1);
     let depth_rb = renderbuffer_ids[0];
-    gl::bind_renderbuffer(gl::RENDERBUFFER, depth_rb);
-    gl::renderbuffer_storage(gl::RENDERBUFFER,
-                             gl::DEPTH_COMPONENT24,
-                             width as gl::GLsizei,
-                             height as gl::GLsizei);
-    gl::framebuffer_renderbuffer(gl::FRAMEBUFFER,
-                                 gl::DEPTH_ATTACHMENT,
-                                 gl::RENDERBUFFER,
-                                 depth_rb);
+    gl.bind_renderbuffer(gl::RENDERBUFFER, depth_rb);
+    gl.renderbuffer_storage(gl::RENDERBUFFER,
+                            gl::DEPTH_COMPONENT24,
+                            width as gl::GLsizei,
+                            height as gl::GLsizei);
+    gl.framebuffer_renderbuffer(gl::FRAMEBUFFER,
+                                gl::DEPTH_ATTACHMENT,
+                                gl::RENDERBUFFER,
+                                depth_rb);
 
     RenderTargetInfo {
         framebuffer_ids: framebuffer_ids,
@@ -373,6 +375,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         };
 
         IOCompositor {
+            gl: window.gl(),
             window: window,
             port: state.receiver,
             root_pipeline: None,
@@ -1532,7 +1535,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
         let render_target_info = match target {
             CompositeTarget::Window => RenderTargetInfo::empty(),
-            _ => initialize_png(width, height)
+            _ => initialize_png(&*self.gl, width, height)
         };
 
         profile(ProfilerCategory::Compositing, None, self.time_profiler_chan.clone(), || {
@@ -1596,16 +1599,16 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 width: usize,
                 height: usize)
                 -> RgbImage {
-        let mut pixels = gl::read_pixels(0, 0,
-                                         width as gl::GLsizei,
-                                         height as gl::GLsizei,
-                                         gl::RGB, gl::UNSIGNED_BYTE);
+        let mut pixels = self.gl.read_pixels(0, 0,
+                                             width as gl::GLsizei,
+                                             height as gl::GLsizei,
+                                             gl::RGB, gl::UNSIGNED_BYTE);
 
-        gl::bind_framebuffer(gl::FRAMEBUFFER, 0);
+        self.gl.bind_framebuffer(gl::FRAMEBUFFER, 0);
 
-        gl::delete_buffers(&render_target_info.texture_ids);
-        gl::delete_renderbuffers(&render_target_info.renderbuffer_ids);
-        gl::delete_frame_buffers(&render_target_info.framebuffer_ids);
+        self.gl.delete_buffers(&render_target_info.texture_ids);
+        self.gl.delete_renderbuffers(&render_target_info.renderbuffer_ids);
+        self.gl.delete_framebuffers(&render_target_info.framebuffer_ids);
 
         // flip image vertically (texture is upside down)
         let orig_pixels = pixels.clone();

@@ -48,47 +48,49 @@ pub static mut DISPLAY: *mut c_void = 0 as *mut c_void;
 #[derive(Clone)]
 pub struct Window {
     cef_browser: RefCell<Option<CefBrowser>>,
-    size: TypedSize2D<u32, DevicePixel>
+    size: TypedSize2D<u32, DevicePixel>,
+    gl: Rc<gl::Gl>,
 }
 
 #[cfg(target_os="macos")]
-fn load_gl() {
+fn load_gl() -> Rc<gl::Gl> {
     const RTLD_DEFAULT: *mut c_void = (-2isize) as usize as *mut c_void;
 
     extern {
         fn dlsym(handle: *mut c_void, symbol: *const c_char) -> *mut c_void;
     }
 
-    gl::load_with(|s| {
-        unsafe {
+    unsafe {
+        gl::GlFns::load_with(|s| {
             let c_str = CString::new(s).unwrap();
             dlsym(RTLD_DEFAULT, c_str.as_ptr()) as *const c_void
-        }
-    });
+        })
+    }
 }
 
 #[cfg(target_os="linux")]
-fn load_gl() {
+fn load_gl() -> Rc<gl::Gl> {
     extern {
         fn glXGetProcAddress(symbol: *const c_char) -> *mut c_void;
     }
 
-    gl::load_with(|s| {
-        unsafe {
+    unsafe {
+        gl::GlFns::load_with(|s| {
             let c_str = CString::new(s).unwrap();
             glXGetProcAddress(c_str.as_ptr()) as *const c_void
-        }
-    });
+        })
+    }
 }
 
 impl Window {
     /// Creates a new window.
     pub fn new(width: u32, height: u32) -> Rc<Window> {
-        load_gl();
+        let gl = load_gl();
 
         Rc::new(Window {
             cef_browser: RefCell::new(None),
-            size: TypedSize2D::new(width, height)
+            size: TypedSize2D::new(width, height),
+            gl: gl,
         })
     }
 
@@ -170,6 +172,10 @@ impl Window {
 }
 
 impl WindowMethods for Window {
+    fn gl(&self) -> Rc<gl::Gl> {
+        self.gl.clone()
+    }
+
     fn framebuffer_size(&self) -> TypedSize2D<u32, DevicePixel> {
         let browser = self.cef_browser.borrow();
         match *browser {
