@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-
 use app_units::{Au, AU_PER_PX};
 use document_loader::{LoadType, LoadBlocker};
 use dom::activation::Activatable;
@@ -19,6 +18,7 @@ use dom::bindings::js::{LayoutJS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
 use dom::bindings::str::DOMString;
+use dom::bindings::trace::JSTraceable;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use dom::element::{reflect_cross_origin_attribute, set_cross_origin_attribute};
@@ -53,6 +53,7 @@ use std::i32;
 use std::sync::{Arc, Mutex};
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use task_source::TaskSource;
+use url::Origin;
 
 #[derive(JSTraceable, HeapSizeOf)]
 #[allow(dead_code)]
@@ -72,6 +73,7 @@ struct ImageRequest {
     #[ignore_heap_size_of = "Arc"]
     image: Option<Arc<Image>>,
     metadata: Option<ImageMetadata>,
+    origin: Option<Origin>,
 }
 #[dom_struct]
 pub struct HTMLImageElement {
@@ -79,6 +81,7 @@ pub struct HTMLImageElement {
     current_request: DOMRefCell<ImageRequest>,
     pending_request: DOMRefCell<ImageRequest>,
     generation: Cell<u32>,
+    actual_origin: Option<Origin>,
 }
 
 impl HTMLImageElement {
@@ -177,6 +180,7 @@ impl HTMLImageElement {
             let mut current_request = self.current_request.borrow_mut();
             current_request.parsed_url = Some(img_url.clone());
             current_request.source_url = Some(src);
+            self.actual_origin = Some(img_url.origin());
 
             LoadBlocker::terminate(&mut current_request.blocker);
             let document = document_from_node(self);
@@ -269,20 +273,23 @@ impl HTMLImageElement {
     }
 
     fn process_image_response(&self, image: ImageResponse) {
-        let (image, metadata, trigger_image_load, trigger_image_error) = match image {
+        let (image, metadata, final_url, trigger_image_load, trigger_image_error) = match image {
             ImageResponse::Loaded(image) | ImageResponse::PlaceholderLoaded(image) => {
                 (Some(image.clone()),
                  Some(ImageMetadata { height: image.height, width: image.width }),
+                 None,
                  true,
                  false)
             }
             ImageResponse::MetadataLoaded(meta) => {
-                (None, Some(meta), false, false)
+                (None, Some(meta), None, false, false)
             }
-            ImageResponse::None => (None, None, false, true)
+            ImageResponse::None => (None, None, None, false, true)
         };
         self.current_request.borrow_mut().image = image;
         self.current_request.borrow_mut().metadata = metadata;
+
+        self.current_request.borrow_mut().origin = final_url.origin();
 
         // Mark the node dirty
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
@@ -375,6 +382,7 @@ impl HTMLImageElement {
                 image: None,
                 metadata: None,
                 blocker: None,
+                origin: None,
             }),
             pending_request: DOMRefCell::new(ImageRequest {
                 state: State::Unavailable,
@@ -383,6 +391,7 @@ impl HTMLImageElement {
                 image: None,
                 metadata: None,
                 blocker: None,
+                origin: None,
             }),
             generation: Default::default(),
         }
@@ -443,6 +452,11 @@ impl HTMLImageElement {
                       .collect();
         Some(elements)
     }
+
+    pub fn origin(&self) -> Option<Origin> {
+       self.current_request.origin
+    }
+
 }
 
 pub trait LayoutHTMLImageElementHelpers {

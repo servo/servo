@@ -5,7 +5,7 @@
 use immeta::load_from_buf;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
-use net_traits::{NetworkError, FetchResponseMsg};
+use net_traits::{FetchMetadata, NetworkError, FetchResponseMsg};
 use net_traits::image::base::{Image, ImageMetadata, PixelFormat, load_from_memory};
 use net_traits::image_cache_thread::{ImageCacheCommand, ImageCacheThread, ImageState};
 use net_traits::image_cache_thread::{ImageOrMetadataAvailable, ImageResponse, UsePlaceholder};
@@ -258,6 +258,8 @@ struct ImageCache {
     // Images that are loading over network, or decoding.
     pending_loads: AllPendingLoads,
 
+    final_url: Option<ServoUrl>,
+
     // Images that have finished loading (successful or not)
     completed_loads: HashMap<ServoUrl, CompletedLoad>,
 
@@ -353,6 +355,7 @@ impl ImageCache {
             completed_loads: HashMap::new(),
             placeholder_image: placeholder_image,
             webrender_api: webrender_api,
+            final_url: None
         };
 
         let receivers = Receivers {
@@ -415,7 +418,20 @@ impl ImageCache {
         match (msg.action, msg.key) {
             (FetchResponseMsg::ProcessRequestBody, _) |
             (FetchResponseMsg::ProcessRequestEOF, _) => return,
-            (FetchResponseMsg::ProcessResponse(_response), _) => {}
+            (FetchResponseMsg::ProcessResponse(_response), _) => {
+                match _response {
+                    Ok(metadata) => {
+                       let meta = match metadata {
+                            FetchMetadata::Unfiltered(m) => m,
+                            FetchMetadata::Filtered { unsafe_, .. } => unsafe_
+                        };
+                        self.final_url = meta.referrer;
+                    },
+                    _ => {
+                        self.final_url = None
+                    }
+                }
+            }
             (FetchResponseMsg::ProcessResponseChunk(data), _) => {
                 debug!("got some data for {:?}", msg.key);
                 let pending_load = self.pending_loads.get_by_key_mut(&msg.key).unwrap();

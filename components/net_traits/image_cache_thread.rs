@@ -16,6 +16,7 @@ use std::sync::Arc;
 pub struct ImageResponder {
     id: PendingImageId,
     sender: IpcSender<PendingImageResponse>,
+    final_url: Option<ServoUrl>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -29,6 +30,7 @@ impl ImageResponder {
         ImageResponder {
             sender: sender,
             id: id,
+            final_url: None,
         }
     }
 
