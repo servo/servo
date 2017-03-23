@@ -350,8 +350,7 @@ pub enum WebSocketDomAction {
 pub enum WebSocketNetworkEvent {
     ConnectionEstablished(#[serde(deserialize_with = "::hyper_serde::deserialize",
                                   serialize_with = "::hyper_serde::serialize")]
-                          header::Headers,
-                          Vec<String>),
+                          header::Headers),
     MessageReceived(MessageData),
     Close(Option<u16>, String),
     Fail,
