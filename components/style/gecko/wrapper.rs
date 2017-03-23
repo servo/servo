@@ -707,7 +707,9 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::MozLoading |
             NonTSPseudoClass::MozHandlerBlocked |
             NonTSPseudoClass::MozHandlerDisabled |
-            NonTSPseudoClass::MozHandlerCrashed => {
+            NonTSPseudoClass::MozHandlerCrashed |
+            NonTSPseudoClass::Required |
+            NonTSPseudoClass::Optional => {
                 self.get_state().contains(pseudo_class.state_flag())
             },
             NonTSPseudoClass::ReadOnly => {

@@ -57,7 +57,11 @@ bitflags! {
         const IN_HANDLER_DISABLED_STATE = 1 << 18,
         #[doc = "Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/:-moz-handler-crashed"]
         const IN_HANDLER_CRASHED_STATE = 1 << 19,
+        #[doc = "https://html.spec.whatwg.org/multipage/#selector-required"]
+        const IN_REQUIRED_STATE = 1 << 20,
+        #[doc = "https://html.spec.whatwg.org/multipage/#selector-optional"]
+        const IN_OPTIONAL_STATE = 1 << 21,
         #[doc = "https://html.spec.whatwg.org/multipage/#selector-read-write"]
-        const IN_READ_WRITE_STATE = 1 << 20,
+        const IN_READ_WRITE_STATE = 1 << 22,
     }
 }
