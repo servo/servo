@@ -168,6 +168,12 @@ svg > * {
   display: none;
 }
 
+/* style for text node. */
+*|*::-servo-text {
+    margin: 0;
+}
+
+/* style for text in input elements. */
 *|*::-servo-input-text {
     margin: 0;
 }

@@ -385,13 +385,14 @@ impl Stylist {
 
     /// Returns the style for an anonymous box of the given type.
     #[cfg(feature = "servo")]
-    pub fn style_for_anonymous_box(&self,
-                                   guards: &StylesheetGuards,
-                                   pseudo: &PseudoElement,
-                                   parent_style: &Arc<ComputedValues>)
-                                   -> Arc<ComputedValues> {
+    pub fn style_for_anonymous(&self,
+                               guards: &StylesheetGuards,
+                               pseudo: &PseudoElement,
+                               parent_style: &Arc<ComputedValues>)
+                               -> Arc<ComputedValues> {
         // For most (but not all) pseudo-elements, we inherit all values from the parent.
         let inherit_all = match *pseudo {
+            PseudoElement::ServoText |
             PseudoElement::ServoInputText => false,
             PseudoElement::ServoAnonymousBlock |
             PseudoElement::ServoAnonymousTable |

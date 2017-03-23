@@ -1173,14 +1173,13 @@ impl Fragment {
             _ => self.style().logical_border_width(),
         };
 
-        match self.inline_context {
-            None => style_border_width,
+        // NOTE: We can have nodes with different writing mode inside
+        // the inline fragment context, so we need to overwrite the
+        // writing mode to compute the child logical sizes.
+        let writing_mode = self.style.writing_mode;
+        let context_border = match self.inline_context {
+            None => LogicalMargin::zero(writing_mode),
             Some(ref inline_fragment_context) => {
-                // NOTE: We can have nodes with different writing mode inside
-                // the inline fragment context, so we need to overwrite the
-                // writing mode to compute the child logical sizes.
-                let writing_mode = self.style.writing_mode;
-
                 inline_fragment_context.nodes.iter().fold(style_border_width, |accumulator, node| {
                     let mut this_border_width =
                         node.style.border_width_for_writing_mode(writing_mode);
@@ -1193,7 +1192,8 @@ impl Fragment {
                     accumulator + this_border_width
                 })
             }
-        }
+        };
+        style_border_width + context_border
     }
 
     /// Returns the border width in given direction if this fragment has property
@@ -1216,32 +1216,13 @@ impl Fragment {
     /// Do not use this method if the inline direction margins are to be computed some other way
     /// (for example, via constraint solving for blocks).
     pub fn compute_inline_direction_margins(&mut self, containing_block_inline_size: Au) {
-        match self.specific {
-            SpecificFragmentInfo::Table |
-            SpecificFragmentInfo::TableCell |
-            SpecificFragmentInfo::TableRow |
-            SpecificFragmentInfo::TableColumn(_) |
-            SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => {
-                self.margin.inline_start = Au(0);
-                self.margin.inline_end = Au(0);
-                return
-            }
-            SpecificFragmentInfo::InlineBlock(_) => {
-                // Inline-blocks do not take self margins into account but do account for margins
-                // from outer inline contexts.
-                self.margin.inline_start = Au(0);
-                self.margin.inline_end = Au(0);
-            }
-            _ => {
-                let margin = self.style().logical_margin();
-                self.margin.inline_start =
-                    MaybeAuto::from_style(margin.inline_start,
-                                          containing_block_inline_size).specified_or_zero();
-                self.margin.inline_end =
-                    MaybeAuto::from_style(margin.inline_end,
-                                          containing_block_inline_size).specified_or_zero();
-            }
-        }
+        let margin = self.style().logical_margin();
+        self.margin.inline_start =
+            MaybeAuto::from_style(margin.inline_start,
+                                  containing_block_inline_size).specified_or_zero();
+        self.margin.inline_end =
+            MaybeAuto::from_style(margin.inline_end,
+                                  containing_block_inline_size).specified_or_zero();
 
         if let Some(ref inline_context) = self.inline_context {
             for node in &inline_context.nodes {
