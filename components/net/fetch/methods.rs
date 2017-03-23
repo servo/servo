@@ -617,7 +617,7 @@ fn should_block_nosniff(request: &Request, response: &Response) -> bool {
 }
 
 /// https://fetch.spec.whatwg.org/#block-bad-port
-fn should_be_blocked_due_to_bad_port(url: &ServoUrl) -> bool {
+pub fn should_be_blocked_due_to_bad_port(url: &ServoUrl) -> bool {
     // Step 1 is not applicable, this function just takes the URL directly.
 
     // Step 2.
