@@ -138,7 +138,7 @@ impl ::selectors::MatchAttr for GeckoElementSnapshot {
 impl ElementSnapshot for GeckoElementSnapshot {
     fn state(&self) -> Option<ElementState> {
         if self.has_any(Flags::State) {
-            Some(ElementState::from_bits_truncate(unsafe { (*self.0).mState as u32 }))
+            Some(ElementState::from_bits_truncate(unsafe { (*self.0).mState }))
         } else {
             None
         }
