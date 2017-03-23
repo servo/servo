@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<title></title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<iframe id="blank_iframe"></iframe>
+
+<script>
+  var iframe_loads = 0;
+  function iframeOnLoad(t) {
+    iframe_loads++;
+
+    setTimeout(function() {
+      t.step(function() {
+        assert_true(iframe_loads === 1, "iframe.onload should be called exactly once.");
+      });
+      t.done();
+    }, 100);
+  }
+
+  async_test(function(t) {
+    t.step(function() {
+      document.getElementById("blank_iframe").onload = function() {
+        iframeOnLoad(t);
+      }
+    });
+  }, "IFrameSingleOnLoad");
+  document.getElementById('blank_iframe').contentWindow.location.reload();
+</script>
+
+<body>
+</body>
+</html>

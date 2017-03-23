@@ -1637,6 +1637,7 @@ impl ScriptThread {
         match iframe {
             Some(iframe) => {
                 // If the iframe has no "src" attribute, a load event will have already been fired
+                // when binding the iframe to the tree.
                 if iframe.upcast::<Element>().has_attribute(&local_name!("src")) {
                     iframe.iframe_load_event_steps(child_id);
                 }

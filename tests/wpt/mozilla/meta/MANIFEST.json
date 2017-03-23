@@ -7023,6 +7023,11 @@
      {}
     ]
    ],
+   "css/border_collapse_simple_ref.html2": [
+    [
+     {}
+    ]
+   ],
    "css/border_inline_split_ref.html": [
     [
      {}
@@ -8908,12 +8913,22 @@
      {}
     ]
    ],
+   "css/table_margin_a.html.bak": [
+    [
+     {}
+    ]
+   ],
    "css/table_margin_auto_ref.html": [
     [
      {}
     ]
    ],
    "css/table_margin_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/table_margin_ref.html.bak": [
     [
      {}
     ]
@@ -9579,6 +9594,11 @@
     ]
    ],
    "mozilla/referrer-policy/generic/subresource/mozresource.py": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/referrer-policy/generic/subresource/mozresource.pyc": [
     [
      {}
     ]
@@ -20385,6 +20405,10 @@
    "00c9c85a861dacec7b34f019a43e347c11098ab0",
    "support"
   ],
+  "css/border_collapse_simple_ref.html2": [
+   "67e6541ab747d9467be4be3444c502abff095954",
+   "support"
+  ],
   "css/border_inline_split.html": [
    "3b06be993f21db07244bae309e796e602dc1221d",
    "reftest"
@@ -23413,6 +23437,10 @@
    "0617c8de92ec1a283ac429dbbb073805e6bad28c",
    "reftest"
   ],
+  "css/table_margin_a.html.bak": [
+   "660062b77e01beac79c92a9e800ccb53936124f4",
+   "support"
+  ],
   "css/table_margin_auto_a.html": [
    "71cb1cad147014215bf6ac275e54a716efd6801b",
    "reftest"
@@ -23423,6 +23451,10 @@
   ],
   "css/table_margin_ref.html": [
    "d2ccfd91d67914e7e6653e1ce86deeebf5cd5977",
+   "support"
+  ],
+  "css/table_margin_ref.html.bak": [
+   "6d22a2077df1bfacd9a02c73e4984c403f312be6",
    "support"
   ],
   "css/table_overflow.html": [
@@ -25735,6 +25767,10 @@
   ],
   "mozilla/referrer-policy/generic/subresource/mozresource.py": [
    "333a80e3d4aec4a8be5566605fae5675a821085b",
+   "support"
+  ],
+  "mozilla/referrer-policy/generic/subresource/mozresource.pyc": [
+   "979687564ea258147517c63eddfe6c8b403c9696",
    "support"
   ],
   "mozilla/referrer-policy/generic/subresource/stash.py": [
