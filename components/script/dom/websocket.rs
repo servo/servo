@@ -274,7 +274,6 @@ impl WebSocket {
 
         *ws.sender.borrow_mut() = Some(dom_action_sender);
 
-        let moved_address = address.clone();
         let task_source = global.networking_task_source();
         let wrapper = global.get_runnable_wrapper();
         thread::spawn(move || {
@@ -282,7 +281,7 @@ impl WebSocket {
                 match event {
                     WebSocketNetworkEvent::ConnectionEstablished(headers, protocols) => {
                         let open_thread = box ConnectionEstablishedTask {
-                            address: moved_address.clone(),
+                            address: address.clone(),
                             headers: headers,
                             protocols: protocols,
                         };
@@ -290,22 +289,23 @@ impl WebSocket {
                     },
                     WebSocketNetworkEvent::MessageReceived(message) => {
                         let message_thread = box MessageReceivedTask {
-                            address: moved_address.clone(),
+                            address: address.clone(),
                             message: message,
                         };
                         task_source.queue_with_wrapper(message_thread, &wrapper).unwrap();
                     },
                     WebSocketNetworkEvent::Fail => {
-                        fail_the_websocket_connection(moved_address.clone(),
+                        fail_the_websocket_connection(address.clone(),
                             &task_source, &wrapper);
                     },
                     WebSocketNetworkEvent::Close(code, reason) => {
-                        close_the_websocket_connection(moved_address.clone(),
+                        close_the_websocket_connection(address.clone(),
                             &task_source, &wrapper, code, reason);
                     },
                 }
             }
         });
+
         // Step 7.
         Ok(ws)
     }
