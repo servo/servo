@@ -60,7 +60,7 @@ mime_guess = "1.8.0"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 num-traits = "0.1.32"
-offscreen_gl_context = "0.6"
+offscreen_gl_context = "0.8"
 open = "1.1.1"
 parking_lot = "0.3"
 phf = "0.7.18"
