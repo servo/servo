@@ -1151,4 +1151,23 @@ mod shorthand_serialization {
             assert_eq!(serialization, block_text);
         }
     }
+
+    mod effects {
+        pub use super::*;
+        pub use style::properties::longhands::box_shadow::SpecifiedValue as BoxShadow;
+        pub use style::values::specified::Shadow;
+
+        #[test]
+        fn box_shadow_should_serialize_correctly() {
+            let mut properties = Vec::new();
+            let shadow_val = Shadow { offset_x: Length::from_px(1f32), offset_y: Length::from_px(2f32),
+            blur_radius: Length::from_px(3f32), spread_radius: Length::from_px(4f32), color: None, inset: false };
+            let shadow_decl = BoxShadow(vec![shadow_val]);
+            properties.push(PropertyDeclaration:: BoxShadow(shadow_decl));
+            let shadow_css = "box-shadow: 1px 2px 3px 4px;";
+            let shadow  =  parse_declaration_block(shadow_css);
+
+            assert_eq!(shadow.to_css_string(), shadow_css);
+        }
+    }
 }
