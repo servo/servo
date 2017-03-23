@@ -40,6 +40,7 @@ use gecko_bindings::structs::nsChangeHint;
 use gecko_bindings::structs::nsCursorImage;
 use gecko_bindings::structs::nsFont;
 use gecko_bindings::structs::nsIAtom;
+use gecko_bindings::structs::nsIURI;
 use gecko_bindings::structs::nsMediaFeature;
 use gecko_bindings::structs::nsRestyleHint;
 use gecko_bindings::structs::nsStyleBackground;
@@ -437,8 +438,9 @@ extern "C" {
     pub fn Gecko_LoadStyleSheet(loader: *mut Loader,
                                 parent: *mut ServoStyleSheet,
                                 import_rule: RawServoImportRuleBorrowed,
-                                url_bytes: *const u8, url_length: u32,
-                                media_bytes: *const u8, media_length: u32);
+                                base_uri: *mut nsIURI, url_bytes: *const u8,
+                                url_length: u32, media_bytes: *const u8,
+                                media_length: u32);
 }
 extern "C" {
     pub fn Gecko_MaybeCreateStyleChildrenIterator(node: RawGeckoNodeBorrowed)

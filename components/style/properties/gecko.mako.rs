@@ -156,7 +156,7 @@ impl ComputedValues {
 
     #[allow(non_snake_case)]
     pub fn has_moz_binding(&self) -> bool {
-        !self.get_box().gecko.mBinding.mRawPtr.is_null()
+        !self.get_box().gecko.mBinding.mPtr.mRawPtr.is_null()
     }
 
     // FIXME(bholley): Implement this properly.
@@ -507,20 +507,13 @@ fn color_to_nscolor_zero_currentcolor(color: Color) -> structs::nscolor {
     % endif
 </%def>
 
-<%def name="impl_css_url(ident, gecko_ffi_name, need_clone=False, only_resolved=False)">
+<%def name="impl_css_url(ident, gecko_ffi_name, need_clone=False)">
     #[allow(non_snake_case)]
     pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
         use gecko_bindings::sugar::refptr::RefPtr;
         match v {
             Either::First(url) => {
                 let refptr = unsafe {
-                    % if only_resolved:
-                        // -moz-binding can't handle relative URIs
-                        if !url.has_resolved() {
-                            self.gecko.${gecko_ffi_name}.clear();
-                            return;
-                        }
-                    % endif
                     let ptr = bindings::Gecko_NewURLValue(url.for_ffi());
                     if ptr.is_null() {
                         self.gecko.${gecko_ffi_name}.clear();
@@ -1632,7 +1625,7 @@ fn static_assert() {
         longhands::scroll_snap_coordinate::computed_value::T(vec)
     }
 
-    ${impl_css_url('_moz_binding', 'mBinding', only_resolved=True)}
+    ${impl_css_url('_moz_binding', 'mBinding.mPtr')}
 
     <%def name="transform_function_arm(name, keyword, items)">
         <%
