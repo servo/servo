@@ -70,7 +70,7 @@ pub fn init(connect: WebSocketCommunicate, connect_data: WebSocketConnectData, c
 
         // URL that we actually fetch from the network, after applying the replacements
         // specified in the hosts file.
-        let net_url_result = parse_url(replace_hosts(&connect_data.resource_url).as_url().unwrap());
+        let net_url_result = parse_url(replace_hosts(&connect_data.resource_url).as_url());
         let net_url = match net_url_result {
             Ok(net_url) => net_url,
             Err(e) => {

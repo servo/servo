@@ -210,7 +210,7 @@ impl WebSocket {
         let resource_url = try!(ServoUrl::parse(&url).map_err(|_| Error::Syntax));
         // Although we do this replace and parse operation again in the resource thread,
         // we try here to be able to immediately throw a syntax error on failure.
-        let _ = try!(parse_url(&replace_hosts(&resource_url).as_url().unwrap()).map_err(|_| Error::Syntax));
+        let _ = try!(parse_url(&replace_hosts(&resource_url).as_url()).map_err(|_| Error::Syntax));
         // Step 2: Disallow https -> ws connections.
 
         // Step 3: Potentially block access to some ports.

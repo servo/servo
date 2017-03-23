@@ -53,8 +53,8 @@ impl ServoUrl {
         Some(Arc::try_unwrap(self.0).unwrap_or_else(|s| (*s).clone()))
     }
 
-    pub fn as_url(&self) -> Option<&Arc<Url>> {
-        Some(&self.0)
+    pub fn as_url(&self) -> &Url {
+        &self.0
     }
 
     pub fn parse(input: &str) -> Result<Self, url::ParseError> {

@@ -1496,8 +1496,8 @@ impl Window {
         let referrer_policy = referrer_policy.or(doc.get_referrer_policy());
 
         // https://html.spec.whatwg.org/multipage/#navigating-across-documents
-        if !force_reload && url.as_url().unwrap()[..Position::AfterQuery] ==
-            doc.url().as_url().unwrap()[..Position::AfterQuery] {
+        if !force_reload && url.as_url()[..Position::AfterQuery] ==
+            doc.url().as_url()[..Position::AfterQuery] {
                 // Step 5
                 if let Some(fragment) = url.fragment() {
                     doc.check_and_scroll_fragment(fragment);

@@ -12,37 +12,37 @@ pub struct UrlHelper;
 
 impl UrlHelper {
     pub fn Origin(url: &ServoUrl) -> USVString {
-        USVString(quirks::origin(url.as_url().unwrap()).to_owned())
+        USVString(quirks::origin(url.as_url()).to_owned())
     }
     pub fn Href(url: &ServoUrl) -> USVString {
-        USVString(quirks::href(url.as_url().unwrap()).to_owned())
+        USVString(quirks::href(url.as_url()).to_owned())
     }
     pub fn Hash(url: &ServoUrl) -> USVString {
-        USVString(quirks::hash(url.as_url().unwrap()).to_owned())
+        USVString(quirks::hash(url.as_url()).to_owned())
     }
     pub fn Host(url: &ServoUrl) -> USVString {
-        USVString(quirks::host(url.as_url().unwrap()).to_owned())
+        USVString(quirks::host(url.as_url()).to_owned())
     }
     pub fn Port(url: &ServoUrl) -> USVString {
-        USVString(quirks::port(url.as_url().unwrap()).to_owned())
+        USVString(quirks::port(url.as_url()).to_owned())
     }
     pub fn Search(url: &ServoUrl) -> USVString {
-        USVString(quirks::search(url.as_url().unwrap()).to_owned())
+        USVString(quirks::search(url.as_url()).to_owned())
     }
     pub fn Hostname(url: &ServoUrl) -> USVString {
-        USVString(quirks::hostname(url.as_url().unwrap()).to_owned())
+        USVString(quirks::hostname(url.as_url()).to_owned())
     }
     pub fn Password(url: &ServoUrl) -> USVString {
-        USVString(quirks::password(url.as_url().unwrap()).to_owned())
+        USVString(quirks::password(url.as_url()).to_owned())
     }
     pub fn Pathname(url: &ServoUrl) -> USVString {
-        USVString(quirks::pathname(url.as_url().unwrap()).to_owned())
+        USVString(quirks::pathname(url.as_url()).to_owned())
     }
     pub fn Protocol(url: &ServoUrl) -> USVString {
-        USVString(quirks::protocol(url.as_url().unwrap()).to_owned())
+        USVString(quirks::protocol(url.as_url()).to_owned())
     }
     pub fn Username(url: &ServoUrl) -> USVString {
-        USVString(quirks::username(url.as_url().unwrap()).to_owned())
+        USVString(quirks::username(url.as_url()).to_owned())
     }
     pub fn SetHash(url: &mut ServoUrl, value: USVString) {
         if let Some(ref mut url) = url.as_mut_url() {
