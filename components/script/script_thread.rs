@@ -583,6 +583,16 @@ impl ScriptThread {
         })
     }
 
+    pub fn notify_document_loaded(frame: FrameId, parent: PipelineId, child: PipelineId) {
+        SCRIPT_THREAD_ROOT.with(|root| {
+            let script_thread = unsafe { &*root.get().unwrap() };
+            let _ = script_thread.control_chan.send(
+                ConstellationControlMsg::DispatchFrameLoadEvent {
+                    target: frame, parent: parent, child: child
+                });
+        })
+    }
+
     pub fn mark_document_with_no_blocked_loads(doc: &Document) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
