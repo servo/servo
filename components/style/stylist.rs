@@ -351,7 +351,7 @@ impl Stylist {
                                    -> Arc<ComputedValues> {
         // For most (but not all) pseudo-elements, we inherit all values from the parent.
         let inherit_all = match *pseudo {
-            PseudoElement::ServoInputText => false,
+            PseudoElement::ServoText => false,
             PseudoElement::ServoAnonymousBlock |
             PseudoElement::ServoAnonymousTable |
             PseudoElement::ServoAnonymousTableCell |

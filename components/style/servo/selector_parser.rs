@@ -32,7 +32,7 @@ pub enum PseudoElement {
     Selection,
     DetailsSummary,
     DetailsContent,
-    ServoInputText,
+    ServoText,
     ServoTableWrapper,
     ServoAnonymousTableWrapper,
     ServoAnonymousTable,
@@ -52,7 +52,7 @@ impl ToCss for PseudoElement {
             Selection => "::selection",
             DetailsSummary => "::-servo-details-summary",
             DetailsContent => "::-servo-details-content",
-            ServoInputText => "::-servo-input-text",
+            ServoText => "::-servo-text",
             ServoTableWrapper => "::-servo-table-wrapper",
             ServoAnonymousTableWrapper => "::-servo-anonymous-table-wrapper",
             ServoAnonymousTable => "::-servo-anonymous-table",
@@ -87,7 +87,7 @@ impl PseudoElement {
             PseudoElement::Selection => PseudoElementCascadeType::Eager,
             PseudoElement::DetailsSummary => PseudoElementCascadeType::Lazy,
             PseudoElement::DetailsContent |
-            PseudoElement::ServoInputText |
+            PseudoElement::ServoText |
             PseudoElement::ServoTableWrapper |
             PseudoElement::ServoAnonymousTableWrapper |
             PseudoElement::ServoAnonymousTable |
@@ -284,11 +284,11 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
                 }
                 DetailsContent
             },
-            "-servo-input-text" => {
+            "-servo-text" => {
                 if !self.in_user_agent_stylesheet() {
                     return Err(())
                 }
-                ServoInputText
+                ServoText
             },
             "-servo-table-wrapper" => {
                 if !self.in_user_agent_stylesheet() {
@@ -370,7 +370,7 @@ impl SelectorImpl {
         fun(PseudoElement::DetailsContent);
         fun(PseudoElement::DetailsSummary);
         fun(PseudoElement::Selection);
-        fun(PseudoElement::ServoInputText);
+        fun(PseudoElement::ServoText);
         fun(PseudoElement::ServoTableWrapper);
         fun(PseudoElement::ServoAnonymousTableWrapper);
         fun(PseudoElement::ServoAnonymousTable);

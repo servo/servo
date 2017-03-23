@@ -168,7 +168,7 @@ svg > * {
   display: none;
 }
 
-*|*::-servo-input-text {
+*|*::-servo-text {
     margin: 0;
 }
 
