@@ -1167,11 +1167,7 @@ impl Fragment {
     /// can be expensive to compute, so if possible use the `border_padding` field instead.
     #[inline]
     pub fn border_width(&self) -> LogicalMargin<Au> {
-        let style_border_width = match self.specific {
-            SpecificFragmentInfo::ScannedText(_) |
-            SpecificFragmentInfo::InlineBlock(_) => LogicalMargin::zero(self.style.writing_mode),
-            _ => self.style().logical_border_width(),
-        };
+        let style_border_width = self.style().logical_border_width();
 
         // NOTE: We can have nodes with different writing mode inside
         // the inline fragment context, so we need to overwrite the
@@ -1216,13 +1212,26 @@ impl Fragment {
     /// Do not use this method if the inline direction margins are to be computed some other way
     /// (for example, via constraint solving for blocks).
     pub fn compute_inline_direction_margins(&mut self, containing_block_inline_size: Au) {
-        let margin = self.style().logical_margin();
-        self.margin.inline_start =
-            MaybeAuto::from_style(margin.inline_start,
-                                  containing_block_inline_size).specified_or_zero();
-        self.margin.inline_end =
-            MaybeAuto::from_style(margin.inline_end,
-                                  containing_block_inline_size).specified_or_zero();
+        match self.specific {
+            SpecificFragmentInfo::Table |
+            SpecificFragmentInfo::TableCell |
+            SpecificFragmentInfo::TableRow |
+            SpecificFragmentInfo::TableColumn(_) |
+            SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => {
+                self.margin.inline_start = Au(0);
+                self.margin.inline_end = Au(0);
+                return
+            }
+            _ => {
+                let margin = self.style().logical_margin();
+                self.margin.inline_start =
+                    MaybeAuto::from_style(margin.inline_start,
+                                          containing_block_inline_size).specified_or_zero();
+                self.margin.inline_end =
+                    MaybeAuto::from_style(margin.inline_end,
+                                          containing_block_inline_size).specified_or_zero();
+            }
+        }
 
         if let Some(ref inline_context) = self.inline_context {
             for node in &inline_context.nodes {
@@ -1240,8 +1249,8 @@ impl Fragment {
                                           containing_block_inline_size).specified_or_zero()
                 };
 
-                self.margin.inline_start = self.margin.inline_start + this_inline_start_margin;
-                self.margin.inline_end = self.margin.inline_end + this_inline_end_margin;
+                self.margin.inline_start += this_inline_start_margin;
+                self.margin.inline_end += this_inline_end_margin;
             }
         }
     }
@@ -1290,14 +1299,10 @@ impl Fragment {
         };
 
         // Compute padding from the fragment's style.
-        //
-        // This is zero in the case of `inline-block` because that padding is applied to the
-        // wrapped block, not the fragment.
         let padding_from_style = match self.specific {
             SpecificFragmentInfo::TableColumn(_) |
             SpecificFragmentInfo::TableRow |
-            SpecificFragmentInfo::TableWrapper |
-            SpecificFragmentInfo::InlineBlock(_) => LogicalMargin::zero(self.style.writing_mode),
+            SpecificFragmentInfo::TableWrapper => LogicalMargin::zero(self.style.writing_mode),
             _ => model::padding_from_style(self.style(), containing_block_inline_size, self.style().writing_mode),
         };
 
