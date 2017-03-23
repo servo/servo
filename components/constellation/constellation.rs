@@ -951,9 +951,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 self.handle_load_url_msg(source_id, load_data, replace);
             }
             // A page loaded has completed all parsing, script, and reflow messages have been sent.
-            FromScriptMsg::LoadComplete(pipeline_id) => {
+            FromScriptMsg::LoadComplete(pipeline_id, parent_notified) => {
                 debug!("constellation got load complete message");
-                self.handle_load_complete_msg(pipeline_id)
+                self.handle_load_complete_msg(pipeline_id, parent_notified)
             }
             // Handle a forward or back request
             FromScriptMsg::TraverseHistory(pipeline_id, direction) => {
@@ -1688,7 +1688,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         self.compositor_proxy.send(ToCompositorMsg::LoadStart(back, forward));
     }
 
-    fn handle_load_complete_msg(&mut self, pipeline_id: PipelineId) {
+    fn handle_load_complete_msg(&mut self, pipeline_id: PipelineId, parent_notified: bool) {
         let mut webdriver_reset = false;
         if let Some((expected_pipeline_id, ref reply_chan)) = self.webdriver.load_channel {
             debug!("Sending load to WebDriver");
@@ -1705,7 +1705,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         let back = !self.joint_session_past_is_empty(frame_id);
         let root = self.root_frame_id == frame_id;
         self.compositor_proxy.send(ToCompositorMsg::LoadComplete(back, forward, root));
-        self.handle_subframe_loaded(pipeline_id);
+        if !parent_notified {
+            self.handle_subframe_loaded(pipeline_id);
+        } else {
+            debug!("Not notifying parent about {:?} completion.", pipeline_id);
+        }
     }
 
     fn handle_traverse_history_msg(&mut self,

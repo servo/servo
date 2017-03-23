@@ -1860,10 +1860,10 @@ impl Document {
         }
     }
 
-    pub fn notify_constellation_load(&self) {
+    pub fn notify_constellation_load(&self, parent_notified: bool) {
         let global_scope = self.window.upcast::<GlobalScope>();
         let pipeline_id = global_scope.pipeline_id();
-        let load_event = ConstellationMsg::LoadComplete(pipeline_id);
+        let load_event = ConstellationMsg::LoadComplete(pipeline_id, parent_notified);
         global_scope.constellation_chan().send(load_event).unwrap();
     }
 
@@ -3815,7 +3815,25 @@ impl DocumentProgressHandler {
                       ReflowQueryType::NoQuery,
                       ReflowReason::DocumentLoaded);
 
-        document.notify_constellation_load();
+        let mut parent_notified = false;
+        // If we can synchronously reach the parent document, we can notify it more efficiently
+        // that its child document has loaded. Otherwise, we leave it up to the constellation.
+        if let Some(browsing_context) = document.browsing_context() {
+            if let Some(pipeline) = browsing_context.currently_active() {
+                if pipeline == document.global().pipeline_id() {
+                    let iframe = browsing_context.frame_element().and_then(|e| e.downcast::<HTMLIFrameElement>());
+                    if let Some(iframe) = iframe {
+                        let frame_id = iframe.frame_id();
+                        let parent_global = iframe.global();
+                        let parent_pipeline = parent_global.pipeline_id();
+                        ScriptThread::notify_document_loaded(frame_id, parent_pipeline, pipeline);
+                        parent_notified = true;
+                    }
+                }
+            }
+        }
+
+        document.notify_constellation_load(parent_notified);
     }
 }
 
