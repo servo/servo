@@ -168,6 +168,10 @@ svg > * {
   display: none;
 }
 
+*|*::-servo-text {
+    margin: 0;
+}
+
 *|*::-servo-input-text {
     margin: 0;
 }

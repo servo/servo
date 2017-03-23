@@ -176,7 +176,7 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Debug + GetLayoutData + NodeInfo 
     /// it can be used to reach siblings and cousins. A simple immutable borrow
     /// of the parent data is fine, since the bottom-up traversal will not process
     /// the parent until all the children have been processed.
-    fn style_for_text_node(&self) -> Arc<ServoComputedValues>;
+    fn parent_style(&self) -> Arc<ServoComputedValues>;
 
     #[inline]
     fn is_element_or_elements_pseudo(&self) -> bool {
@@ -223,7 +223,9 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Debug + GetLayoutData + NodeInfo 
             el.style(context)
         } else {
             debug_assert!(self.is_text_node());
-            self.style_for_text_node()
+            let parent_style = self.parent_style();
+            context.stylist.style_for_anonymous_box(
+                &context.guards, &PseudoElement::ServoText, &parent_style)
         }
     }
 
@@ -232,7 +234,7 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Debug + GetLayoutData + NodeInfo 
             el.selected_style()
         } else {
             debug_assert!(self.is_text_node());
-            self.style_for_text_node()
+            self.parent_style()
         }
     }
 
