@@ -1950,6 +1950,7 @@ pub fn cascade(device: &Device,
 
 /// NOTE: This function expects the declaration with more priority to appear
 /// first.
+#[allow(unused_mut)] // conditionally compiled code for "position"
 pub fn apply_declarations<'a, F, I>(device: &Device,
                                     is_root_element: bool,
                                     iter_declarations: F,
@@ -2050,8 +2051,6 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
                 LonghandId::FontSize |
                 LonghandId::FontFamily |
                 LonghandId::Color |
-                LonghandId::Position |
-                LonghandId::Float |
                 LonghandId::TextDecorationLine |
                 LonghandId::WritingMode |
                 LonghandId::Direction
@@ -2094,9 +2093,24 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
 
     let mut style = context.style;
 
-    let positioned = matches!(style.get_box().clone_position(),
+    let mut positioned = matches!(style.get_box().clone_position(),
         longhands::position::SpecifiedValue::absolute |
         longhands::position::SpecifiedValue::fixed);
+
+    // https://fullscreen.spec.whatwg.org/#new-stacking-layer
+    // Any position value other than 'absolute' and 'fixed' are
+    // computed to 'absolute' if the element is in a top layer.
+    % if product == "gecko":
+        if !positioned &&
+            matches!(style.get_box().clone__moz_top_layer(),
+                     longhands::_moz_top_layer::SpecifiedValue::top) {
+            positioned = true;
+            style.mutate_box().set_position(longhands::position::computed_value::T::absolute);
+        }
+    % endif
+
+    let positioned = positioned; // To ensure it's not mutated further.
+
     let floated = style.get_box().clone_float() != longhands::float::computed_value::T::none;
     let is_item = matches!(context.layout_parent_style.get_box().clone_display(),
         % if product == "gecko":
