@@ -540,7 +540,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.adjust_horizontal(shift_increment, select);
     }
 
-    pub fn adjust_horizontal_to_end(&mut self, direction: Direction, select: Selection) {
+    pub fn adjust_horizontal_to_line_end(&mut self, direction: Direction, select: Selection) {
         if self.adjust_selection_for_horizontal_change(direction, select) {
             return
         }
@@ -556,6 +556,22 @@ impl<T: ClipboardProvider> TextInput<T> {
             }
         };
         self.perform_horizontal_adjustment(shift, select);
+    }
+
+    pub fn adjust_horizontal_to_limit(&mut self, direction: Direction, select: Selection) {
+        if self.adjust_selection_for_horizontal_change(direction, select) {
+            return
+        }
+        match direction {
+            Direction::Backward => {
+                self.edit_point.line = 0;
+                self.edit_point.index = 0;
+            },
+            Direction::Forward => {
+                self.edit_point.line = &self.lines.len() - 1;
+                self.edit_point.index = (&self.lines[&self.lines.len() - 1]).len();
+            }
+        }
     }
 
     /// Process a given `KeyboardEvent` and return an action for the caller to execute.
@@ -582,11 +598,21 @@ impl<T: ClipboardProvider> TextInput<T> {
                 KeyReaction::RedrawSelection
             },
             (_, Key::A) if mods.contains(CONTROL | ALT) => {
-                self.adjust_horizontal_to_end(Direction::Backward, maybe_select);
+                self.adjust_horizontal_to_line_end(Direction::Backward, maybe_select);
                 KeyReaction::RedrawSelection
             },
             (_, Key::E) if mods.contains(CONTROL | ALT) => {
-                self.adjust_horizontal_to_end(Direction::Forward, maybe_select);
+                self.adjust_horizontal_to_line_end(Direction::Forward, maybe_select);
+                KeyReaction::RedrawSelection
+            },
+            #[cfg(target_os = "macos")]
+            (None, Key::A) if mods == CONTROL => {
+                self.adjust_horizontal_to_line_end(Direction::Backward, maybe_select);
+                KeyReaction::RedrawSelection
+            },
+            #[cfg(target_os = "macos")]
+            (None, Key::E) if mods == CONTROL => {
+                self.adjust_horizontal_to_line_end(Direction::Forward, maybe_select);
                 KeyReaction::RedrawSelection
             },
             (Some('a'), _) if is_control_key(mods) => {
@@ -608,6 +634,14 @@ impl<T: ClipboardProvider> TextInput<T> {
                 self.insert_char(c);
                 KeyReaction::DispatchInput
             },
+            #[cfg(target_os = "macos")]
+            (None, Key::Home) => {
+                KeyReaction::RedrawSelection
+            },
+            #[cfg(target_os = "macos")]
+            (None, Key::End) => {
+                KeyReaction::RedrawSelection
+            },
             (None, Key::Delete) => {
                 self.delete_char(Direction::Forward);
                 KeyReaction::DispatchInput
@@ -618,12 +652,22 @@ impl<T: ClipboardProvider> TextInput<T> {
             },
             #[cfg(target_os = "macos")]
             (None, Key::Left) if mods.contains(SUPER) => {
-                self.adjust_horizontal_to_end(Direction::Backward, maybe_select);
+                self.adjust_horizontal_to_line_end(Direction::Backward, maybe_select);
                 KeyReaction::RedrawSelection
             },
             #[cfg(target_os = "macos")]
             (None, Key::Right) if mods.contains(SUPER) => {
-                self.adjust_horizontal_to_end(Direction::Forward, maybe_select);
+                self.adjust_horizontal_to_line_end(Direction::Forward, maybe_select);
+                KeyReaction::RedrawSelection
+            },
+            #[cfg(target_os = "macos")]
+            (None, Key::Up) if mods.contains(SUPER) => {
+                self.adjust_horizontal_to_limit(Direction::Backward, maybe_select);
+                KeyReaction::RedrawSelection
+            },
+            #[cfg(target_os = "macos")]
+            (None, Key::Down) if mods.contains(SUPER) => {
+                self.adjust_horizontal_to_limit(Direction::Forward, maybe_select);
                 KeyReaction::RedrawSelection
             },
             (None, Key::Left) if mods.contains(ALT) => {
