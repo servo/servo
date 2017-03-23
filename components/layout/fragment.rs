@@ -1167,11 +1167,7 @@ impl Fragment {
     /// can be expensive to compute, so if possible use the `border_padding` field instead.
     #[inline]
     pub fn border_width(&self) -> LogicalMargin<Au> {
-        let style_border_width = match self.specific {
-            SpecificFragmentInfo::ScannedText(_) |
-            SpecificFragmentInfo::InlineBlock(_) => LogicalMargin::zero(self.style.writing_mode),
-            _ => self.style().logical_border_width(),
-        };
+        let style_border_width = self.style().logical_border_width();
 
         match self.inline_context {
             None => style_border_width,
@@ -1226,12 +1222,6 @@ impl Fragment {
                 self.margin.inline_end = Au(0);
                 return
             }
-            SpecificFragmentInfo::InlineBlock(_) => {
-                // Inline-blocks do not take self margins into account but do account for margins
-                // from outer inline contexts.
-                self.margin.inline_start = Au(0);
-                self.margin.inline_end = Au(0);
-            }
             _ => {
                 let margin = self.style().logical_margin();
                 self.margin.inline_start =
@@ -1259,8 +1249,8 @@ impl Fragment {
                                           containing_block_inline_size).specified_or_zero()
                 };
 
-                self.margin.inline_start = self.margin.inline_start + this_inline_start_margin;
-                self.margin.inline_end = self.margin.inline_end + this_inline_end_margin;
+                self.margin.inline_start += this_inline_start_margin;
+                self.margin.inline_end += this_inline_end_margin;
             }
         }
     }
@@ -1309,14 +1299,10 @@ impl Fragment {
         };
 
         // Compute padding from the fragment's style.
-        //
-        // This is zero in the case of `inline-block` because that padding is applied to the
-        // wrapped block, not the fragment.
         let padding_from_style = match self.specific {
             SpecificFragmentInfo::TableColumn(_) |
             SpecificFragmentInfo::TableRow |
-            SpecificFragmentInfo::TableWrapper |
-            SpecificFragmentInfo::InlineBlock(_) => LogicalMargin::zero(self.style.writing_mode),
+            SpecificFragmentInfo::TableWrapper => LogicalMargin::zero(self.style.writing_mode),
             _ => model::padding_from_style(self.style(), containing_block_inline_size, self.style().writing_mode),
         };
 
