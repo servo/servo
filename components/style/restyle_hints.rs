@@ -358,7 +358,8 @@ impl<'a, E> Element for ElementWrapper<'a, E>
     }
 }
 
-/// Returns the union of any `ElementState` flags for components of a `ComplexSelector`
+/// Returns the union of any `ElementState` flags for components of a
+/// `ComplexSelector`.
 pub fn complex_selector_to_state(sel: &ComplexSelector<SelectorImpl>) -> ElementState {
     sel.compound_selector.iter().fold(ElementState::empty(), |state, s| {
         state | selector_to_state(s)
@@ -368,6 +369,11 @@ pub fn complex_selector_to_state(sel: &ComplexSelector<SelectorImpl>) -> Element
 fn selector_to_state(sel: &SimpleSelector<SelectorImpl>) -> ElementState {
     match *sel {
         SimpleSelector::NonTSPseudoClass(ref pc) => SelectorImpl::pseudo_class_state_flag(pc),
+        SimpleSelector::Negation(ref negated) => {
+            negated.iter().fold(ElementState::empty(), |state, s| {
+                state | complex_selector_to_state(s)
+            })
+        }
         _ => ElementState::empty(),
     }
 }
@@ -502,6 +508,15 @@ impl DependencySet {
                 if !sensitivities.attrs {
                     sensitivities.attrs = is_attr_selector(s);
                 }
+
+                // NOTE(emilio): I haven't thought this thoroughly, but we may
+                // not need to do anything for combinators inside negations.
+                //
+                // Or maybe we do, and need to call note_selector recursively
+                // here to account for them correctly, but keep the
+                // sensitivities of the parent?
+                //
+                // In any case, perhaps we should just drop it, see bug 1348802.
             }
             if !sensitivities.is_empty() {
                 self.add_dependency(Dependency {

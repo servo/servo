@@ -154,6 +154,9 @@ macro_rules! pseudo_class_name {
                 $s_name(Box<[u16]>),
             )*
             /// The non-standard `:-moz-any` pseudo-class.
+            ///
+            /// TODO(emilio): We disallow combinators and pseudos here, so we
+            /// should use SimpleSelector instead
             MozAny(Vec<ComplexSelector<SelectorImpl>>),
         }
     }
