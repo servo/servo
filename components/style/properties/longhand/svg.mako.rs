@@ -94,15 +94,24 @@ ${helpers.single_keyword("mask-mode",
                          animatable=False,
                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-mode")}
 
-// TODO implement all of repeat-style for background and mask
-// https://drafts.csswg.org/css-backgrounds-3/#repeat-style
-${helpers.single_keyword("mask-repeat",
-                         "repeat repeat-x repeat-y space round no-repeat",
-                         vector=True,
-                         products="gecko",
-                         extra_prefixes="webkit",
-                         animatable=False,
-                         spec="https://drafts.fxtf.org/css-masking/#propdef-mask-repeat")}
+<%helpers:vector_longhand name="mask-repeat" products="gecko" animatable="False" extra_prefixes="webkit"
+                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-repeat">
+    pub use properties::longhands::background_repeat::single_value::parse;
+    pub use properties::longhands::background_repeat::single_value::SpecifiedValue;
+    pub use properties::longhands::background_repeat::single_value::computed_value;
+    pub use properties::longhands::background_repeat::single_value::RepeatKeyword;
+    use properties::longhands::background_repeat::single_value;
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T(RepeatKeyword::NoRepeat, RepeatKeyword::NoRepeat)
+    }
+
+    #[inline]
+    pub fn get_initial_specified_value() -> SpecifiedValue {
+        SpecifiedValue::Other(RepeatKeyword::NoRepeat, None)
+    }
+</%helpers:vector_longhand>
 
 <%helpers:vector_longhand name="mask-position-x" products="gecko" animatable="True" extra_prefixes="webkit"
                           spec="https://drafts.fxtf.org/css-masking/#propdef-mask-position">

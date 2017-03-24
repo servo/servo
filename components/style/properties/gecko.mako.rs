@@ -2084,27 +2084,24 @@ fn static_assert() {
     %>
 
     <%self:simple_image_array_property name="repeat" shorthand="${shorthand}" field_name="mRepeat">
-        use properties::longhands::${shorthand}_repeat::single_value::computed_value::T;
+        use properties::longhands::${shorthand}_repeat::single_value::computed_value::RepeatKeyword;
         use gecko_bindings::structs::nsStyleImageLayers_Repeat;
         use gecko_bindings::structs::NS_STYLE_IMAGELAYER_REPEAT_REPEAT;
         use gecko_bindings::structs::NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT;
         use gecko_bindings::structs::NS_STYLE_IMAGELAYER_REPEAT_SPACE;
         use gecko_bindings::structs::NS_STYLE_IMAGELAYER_REPEAT_ROUND;
 
-        let (repeat_x, repeat_y) = match servo {
-          T::repeat_x => (NS_STYLE_IMAGELAYER_REPEAT_REPEAT,
-                          NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT),
-          T::repeat_y => (NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT,
-                          NS_STYLE_IMAGELAYER_REPEAT_REPEAT),
-          T::repeat  => (NS_STYLE_IMAGELAYER_REPEAT_REPEAT,
-                         NS_STYLE_IMAGELAYER_REPEAT_REPEAT),
-          T::space => (NS_STYLE_IMAGELAYER_REPEAT_SPACE,
-                       NS_STYLE_IMAGELAYER_REPEAT_SPACE),
-          T::round => (NS_STYLE_IMAGELAYER_REPEAT_ROUND,
-                       NS_STYLE_IMAGELAYER_REPEAT_ROUND),
-          T::no_repeat => (NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT,
-                           NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT),
-        };
+        fn to_ns(repeat: RepeatKeyword) -> u32 {
+            match repeat {
+                RepeatKeyword::Repeat => NS_STYLE_IMAGELAYER_REPEAT_REPEAT,
+                RepeatKeyword::Space => NS_STYLE_IMAGELAYER_REPEAT_SPACE,
+                RepeatKeyword::Round => NS_STYLE_IMAGELAYER_REPEAT_ROUND,
+                RepeatKeyword::NoRepeat => NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT,
+            }
+        }
+
+        let repeat_x = to_ns(servo.0);
+        let repeat_y = to_ns(servo.1);
         nsStyleImageLayers_Repeat {
               mXRepeat: repeat_x as u8,
               mYRepeat: repeat_y as u8,
