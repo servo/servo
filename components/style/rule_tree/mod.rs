@@ -239,6 +239,16 @@ impl RuleTree {
         // necessary.
         Some(self.insert_ordered_rules_from(current, children.into_iter().rev()))
     }
+
+    /// Returns new rule nodes without Transitions level rule.
+    pub fn remove_transition_rule_if_applicable(&self, path: &StrongRuleNode) -> StrongRuleNode {
+        // Return a clone if there is no transition level.
+        if path.cascade_level() != CascadeLevel::Transitions {
+            return path.clone();
+        }
+
+        path.parent().unwrap().clone()
+    }
 }
 
 /// The number of RuleNodes added to the free list before we will consider
