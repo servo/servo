@@ -567,7 +567,8 @@ impl<'a> CanvasPaintThread<'a> {
                                                 offset: 0,
                                                 is_opaque: false,
                                             },
-                                            element.into());
+                                            element.into(),
+                                            None);
 
             let data = CanvasImageData {
                 image_key: self.webrender_image_key,
