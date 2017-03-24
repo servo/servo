@@ -2002,13 +2002,23 @@ ${helpers.single_keyword("transform-style",
     }
 </%helpers:longhand>
 
+${helpers.single_keyword("appearance",
+                         "auto none",
+                         gecko_ffi_name="mAppearance",
+                         gecko_constant_prefix="NS_THEME",
+                         products="gecko",
+                         spec="https://drafts.csswg.org/css-ui-4/#appearance-switching",
+                         alias="-webkit-appearance",
+                         animatable=False)}
+
 // Non-standard
 ${helpers.single_keyword("-moz-appearance",
                          """none button button-arrow-down button-arrow-next button-arrow-previous button-arrow-up
                             button-bevel button-focus caret checkbox checkbox-container checkbox-label checkmenuitem
                             dualbutton groupbox listbox listitem menuarrow menubar menucheckbox menuimage menuitem
                             menuitemtext menulist menulist-button menulist-text menulist-textfield menupopup menuradio
-                            menuseparator meterbar meterchunk progressbar progressbar-vertical progresschunk
+                            menuseparator meterbar meterchunk number-input progressbar progressbar-vertical
+                            progresschunk
                             progresschunk-vertical radio radio-container radio-label radiomenuitem range range-thumb
                             resizer resizerpanel scale-horizontal scalethumbend scalethumb-horizontal scalethumbstart
                             scalethumbtick scalethumb-vertical scale-vertical scrollbarbutton-down scrollbarbutton-left
@@ -2025,7 +2035,7 @@ ${helpers.single_keyword("-moz-appearance",
                             -moz-window-frame-bottom -moz-window-frame-left -moz-window-frame-right -moz-window-titlebar
                             -moz-window-titlebar-maximized
                          """,
-                         gecko_ffi_name="mAppearance",
+                         gecko_ffi_name="mMozAppearance",
                          gecko_constant_prefix="NS_THEME",
                          products="gecko",
                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-appearance)",
