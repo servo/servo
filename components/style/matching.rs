@@ -605,6 +605,33 @@ trait PrivateMatchMethods: TElement {
     }
 
     #[cfg(feature = "gecko")]
+    fn get_after_change_style(&self,
+                              context: &mut StyleContext<Self>,
+                              primary_style: &ComputedStyle,
+                              pseudo_style: &Option<(&PseudoElement, &mut ComputedStyle)>)
+                              -> Arc<ComputedValues> {
+        let style = &pseudo_style.as_ref().map_or(primary_style, |p| &*p.1);
+        let rule_node = &style.rules;
+        let without_transition_rules =
+            context.shared.stylist.rule_tree.remove_transition_rule_if_applicable(rule_node);
+        if without_transition_rules == *rule_node {
+            // Note that unwrapping here is fine, because the style is
+            // only incomplete during the styling process.
+            return style.values.as_ref().unwrap().clone();
+        }
+
+        let mut cascade_flags = CascadeFlags::empty();
+        if self.skip_root_and_item_based_display_fixup() {
+            cascade_flags.insert(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP)
+        }
+        self.cascade_with_rules(context,
+                                &without_transition_rules,
+                                primary_style,
+                                &pseudo_style,
+                                cascade_flags)
+    }
+
+    #[cfg(feature = "gecko")]
     fn process_animations(&self,
                           context: &mut StyleContext<Self>,
                           old_values: &mut Option<Arc<ComputedValues>>,
