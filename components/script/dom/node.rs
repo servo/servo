@@ -746,6 +746,9 @@ impl Node {
     }
 
     pub fn set_owner_doc(&self, document: &Document) {
+        if let Some(element) = self.downcast::<Element>() {
+            element.rebind_locked_style_attributes(document.style_shared_lock());
+        }
         self.owner_doc.set(Some(document));
     }
 

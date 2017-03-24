@@ -1388,6 +1388,15 @@ impl Element {
         let other = other.upcast::<Element>();
         self.root_element() == other.root_element()
     }
+
+    pub fn rebind_locked_style_attributes(&self, lock: &SharedRwLock) {
+        let mut maybe_attribute = self.style_attribute.borrow_mut();
+        if let Some(ref mut attribute) = *maybe_attribute {
+            let document = document_from_node(self);
+            let guard = document.style_shared_lock().read();
+            *attribute = Arc::new(lock.wrap(attribute.read_with(&guard).clone()));
+        }
+    }
 }
 
 impl ElementMethods for Element {
