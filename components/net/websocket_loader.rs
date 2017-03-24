@@ -161,29 +161,24 @@ pub fn init(connect: WebSocketCommunicate, connect_data: WebSocketConnectData, c
             }
         });
 
-        let initiated_close_outgoing = initiated_close.clone();
-        let ws_sender_outgoing = ws_sender.clone();
-        let resource_action_receiver = connect.action_receiver;
-        thread::spawn(move || {
-            while let Ok(dom_action) = resource_action_receiver.recv() {
-                match dom_action {
-                    WebSocketDomAction::SendMessage(MessageData::Text(data)) => {
-                        ws_sender_outgoing.lock().unwrap().send_message(&Message::text(data)).unwrap();
-                    },
-                    WebSocketDomAction::SendMessage(MessageData::Binary(data)) => {
-                        ws_sender_outgoing.lock().unwrap().send_message(&Message::binary(data)).unwrap();
-                    },
-                    WebSocketDomAction::Close(code, reason) => {
-                        if !initiated_close_outgoing.fetch_or(true, Ordering::SeqCst) {
-                            let message = match code {
-                                Some(code) => Message::close_because(code, reason.unwrap_or("".to_owned())),
-                                None => Message::close()
-                            };
-                            ws_sender_outgoing.lock().unwrap().send_message(&message).unwrap();
-                        }
-                    },
-                }
+        while let Ok(dom_action) = connect.action_receiver.recv() {
+            match dom_action {
+                WebSocketDomAction::SendMessage(MessageData::Text(data)) => {
+                    ws_sender.lock().unwrap().send_message(&Message::text(data)).unwrap();
+                },
+                WebSocketDomAction::SendMessage(MessageData::Binary(data)) => {
+                    ws_sender.lock().unwrap().send_message(&Message::binary(data)).unwrap();
+                },
+                WebSocketDomAction::Close(code, reason) => {
+                    if !initiated_close.fetch_or(true, Ordering::SeqCst) {
+                        let message = match code {
+                            Some(code) => Message::close_because(code, reason.unwrap_or("".to_owned())),
+                            None => Message::close()
+                        };
+                        ws_sender.lock().unwrap().send_message(&message).unwrap();
+                    }
+                },
             }
-        });
+        }
     }).expect("Thread spawning failed");
 }

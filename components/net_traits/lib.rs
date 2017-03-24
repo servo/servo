@@ -31,7 +31,6 @@ extern crate servo_url;
 extern crate url;
 extern crate uuid;
 extern crate webrender_traits;
-extern crate websocket;
 
 use cookie_rs::Cookie;
 use filemanager_thread::FileManagerThreadMsg;
@@ -47,7 +46,6 @@ use request::{Request, RequestInit};
 use response::{HttpsState, Response};
 use servo_url::ServoUrl;
 use storage_thread::StorageThreadMsg;
-use websocket::header;
 
 pub mod blob_url_store;
 pub mod filemanager_thread;

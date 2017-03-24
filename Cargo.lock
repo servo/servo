@@ -1755,7 +1755,6 @@ dependencies = [
  "parse-hosts 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.9.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 0.9.11 (registry+https://github.com/rust-lang/crates.io-index)",
- "servo-websocket 0.18.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_config 0.0.1",
  "servo_url 0.0.1",
  "url 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
