@@ -397,31 +397,31 @@ fn test_textinput_adjust_horizontal_by_word() {
 }
 
 #[test]
-fn test_textinput_adjust_horizontal_to_end() {
+fn test_textinput_adjust_horizontal_to_line_end() {
     // Test standard case of movement to end based on UAX#29 rules
     let mut textinput = text_input(Lines::Single, "abc def");
-    textinput.adjust_horizontal_to_end(Direction::Forward, Selection::NotSelected);
+    textinput.adjust_horizontal_to_line_end(Direction::Forward, Selection::NotSelected);
     assert_eq!(textinput.edit_point.line, 0);
     assert_eq!(textinput.edit_point.index, 7);
 
     // Test new line case of movement to end based on UAX#29 rules
     let mut textinput_2 = text_input(Lines::Multiple, "abc\ndef");
-    textinput_2.adjust_horizontal_to_end(Direction::Forward, Selection::NotSelected);
+    textinput_2.adjust_horizontal_to_line_end(Direction::Forward, Selection::NotSelected);
     assert_eq!(textinput_2.edit_point.line, 0);
     assert_eq!(textinput_2.edit_point.index, 3);
-    textinput_2.adjust_horizontal_to_end(Direction::Forward, Selection::NotSelected);
+    textinput_2.adjust_horizontal_to_line_end(Direction::Forward, Selection::NotSelected);
     assert_eq!(textinput_2.edit_point.line, 0);
     assert_eq!(textinput_2.edit_point.index, 3);
-    textinput_2.adjust_horizontal_to_end(Direction::Backward, Selection::NotSelected);
+    textinput_2.adjust_horizontal_to_line_end(Direction::Backward, Selection::NotSelected);
     assert_eq!(textinput_2.edit_point.line, 0);
     assert_eq!(textinput_2.edit_point.index, 0);
 
     // Test non-standard sized characters case of movement to end based on UAX#29 rules
     let mut textinput_3 = text_input(Lines::Single, "áéc d🌠bc");
-    textinput_3.adjust_horizontal_to_end(Direction::Forward, Selection::NotSelected);
+    textinput_3.adjust_horizontal_to_line_end(Direction::Forward, Selection::NotSelected);
     assert_eq!(textinput_3.edit_point.line, 0);
     assert_eq!(textinput_3.edit_point.index, 13);
-    textinput_3.adjust_horizontal_to_end(Direction::Backward, Selection::NotSelected);
+    textinput_3.adjust_horizontal_to_line_end(Direction::Backward, Selection::NotSelected);
     assert_eq!(textinput_3.edit_point.line, 0);
     assert_eq!(textinput_3.edit_point.index, 0);
 }
