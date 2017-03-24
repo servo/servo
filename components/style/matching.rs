@@ -469,24 +469,15 @@ trait PrivateMatchMethods: TElement {
         }
     }
 
-    fn cascade_internal(&self,
-                        context: &StyleContext<Self>,
-                        primary_style: &ComputedStyle,
-                        pseudo_style: &Option<(&PseudoElement, &mut ComputedStyle)>,
-                        booleans: &CascadeBooleans)
-                        -> Arc<ComputedValues> {
+    fn cascade_with_rules(&self,
+                          context: &StyleContext<Self>,
+                          rule_node: &StrongRuleNode,
+                          primary_style: &ComputedStyle,
+                          pseudo_style: &Option<(&PseudoElement, &mut ComputedStyle)>,
+                          cascade_flags: CascadeFlags)
+                          -> Arc<ComputedValues> {
         let shared_context = context.shared;
         let mut cascade_info = CascadeInfo::new();
-        let mut cascade_flags = CascadeFlags::empty();
-        if booleans.shareable {
-            cascade_flags.insert(SHAREABLE)
-        }
-        if self.skip_root_and_item_based_display_fixup() {
-            cascade_flags.insert(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP)
-        }
-
-        // Grab the rule node.
-        let rule_node = &pseudo_style.as_ref().map_or(primary_style, |p| &*p.1).rules;
 
         // Grab the inherited values.
         let parent_el;
@@ -550,6 +541,25 @@ trait PrivateMatchMethods: TElement {
 
         cascade_info.finish(&self.as_node());
         values
+    }
+
+    fn cascade_internal(&self,
+                        context: &StyleContext<Self>,
+                        primary_style: &ComputedStyle,
+                        pseudo_style: &Option<(&PseudoElement, &mut ComputedStyle)>,
+                        booleans: &CascadeBooleans)
+                        -> Arc<ComputedValues> {
+        let mut cascade_flags = CascadeFlags::empty();
+        if booleans.shareable {
+            cascade_flags.insert(SHAREABLE)
+        }
+        if self.skip_root_and_item_based_display_fixup() {
+            cascade_flags.insert(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP)
+        }
+
+        // Grab the rule node.
+        let rule_node = &pseudo_style.as_ref().map_or(primary_style, |p| &*p.1).rules;
+        self.cascade_with_rules(context, rule_node, primary_style, pseudo_style, cascade_flags)
     }
 
     /// Computes values and damage for the primary or pseudo style of an element,
