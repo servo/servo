@@ -10,14 +10,13 @@ use hyper::header::{Host, SetCookie};
 use net_traits::{CookieSource, MessageData, WebSocketCommunicate};
 use net_traits::{WebSocketConnectData, WebSocketDomAction, WebSocketNetworkEvent};
 use net_traits::hosts::replace_hosts;
-use net_traits::unwrap_websocket_protocol;
 use servo_url::ServoUrl;
 use std::ascii::AsciiExt;
 use std::sync::{Arc, Mutex, RwLock};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use websocket::{Client, Message};
-use websocket::header::{Headers, Origin, WebSocketProtocol};
+use websocket::header::{Origin, WebSocketProtocol};
 use websocket::message::Type;
 use websocket::receiver::Receiver;
 use websocket::result::{WebSocketError, WebSocketResult};
@@ -31,7 +30,9 @@ fn establish_a_websocket_connection(resource_url: &ServoUrl,
                                     origin: String,
                                     protocols: Vec<String>,
                                     cookie_jar: Arc<RwLock<CookieStorage>>)
-                                    -> WebSocketResult<(Headers, Sender<WebSocketStream>, Receiver<WebSocketStream>)> {
+                                    -> WebSocketResult<(Option<String>,
+                                                        Sender<WebSocketStream>,
+                                                        Receiver<WebSocketStream>)> {
     // Steps 1-2 are not really applicable here, given we don't exactly go
     // through the same infrastructure as the Fetch spec.
 
@@ -77,9 +78,13 @@ fn establish_a_websocket_connection(resource_url: &ServoUrl,
 
     // Step 13 and transitive subset of step 14.
     // See step 6 of http://tools.ietf.org/html/rfc6455#section-4.1.
-    if let Some(protocol_name) = unwrap_websocket_protocol(response.protocol()) {
-            if !protocols.is_empty() && !protocols.iter().any(|p| (&**p).eq_ignore_ascii_case(protocol_name)) {
-                return Err(WebSocketError::ProtocolError("Protocol in Use not in client-supplied protocol list"));
+    let protocol_in_use = response.protocol().and_then(|header| {
+        // https://github.com/whatwg/fetch/issues/515
+        header.first().cloned()
+    });
+    if let Some(ref protocol_name) = protocol_in_use {
+        if !protocols.is_empty() && !protocols.iter().any(|p| (&**p).eq_ignore_ascii_case(protocol_name)) {
+            return Err(WebSocketError::ProtocolError("Protocol in Use not in client-supplied protocol list"));
         };
     };
 
@@ -94,9 +99,8 @@ fn establish_a_websocket_connection(resource_url: &ServoUrl,
         }
     }
 
-    let headers = response.headers.clone();
     let (sender, receiver) = response.begin().split();
-    Ok((headers, sender, receiver))
+    Ok((protocol_in_use, sender, receiver))
 }
 
 pub fn init(connect: WebSocketCommunicate, connect_data: WebSocketConnectData, cookie_jar: Arc<RwLock<CookieStorage>>) {
@@ -106,8 +110,8 @@ pub fn init(connect: WebSocketCommunicate, connect_data: WebSocketConnectData, c
                                                        connect_data.protocols,
                                                        cookie_jar);
         let (ws_sender, mut receiver) = match channel {
-            Ok((headers, sender, receiver)) => {
-                let _ = connect.event_sender.send(WebSocketNetworkEvent::ConnectionEstablished(headers));
+            Ok((protocol_in_use, sender, receiver)) => {
+                let _ = connect.event_sender.send(WebSocketNetworkEvent::ConnectionEstablished { protocol_in_use });
                 (sender, receiver)
             },
             Err(e) => {

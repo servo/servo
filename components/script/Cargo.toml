@@ -79,8 +79,7 @@ servo_atoms = {path = "../atoms"}
 servo_config = {path = "../config", features = ["servo"] }
 servo_geometry = {path = "../geometry" }
 servo_rand = {path = "../rand"}
-servo_url = {path = "../url", features = ["servo"] }
-servo-websocket = "0.18"
+servo_url = {path = "../url", features = ["servo"]}
 smallvec = "0.3"
 style = {path = "../style"}
 style_traits = {path = "../style_traits"}
