@@ -219,8 +219,6 @@
         use properties::{DeclaredValue, LonghandId, LonghandIdSet};
         use properties::{CSSWideKeyword, ComputedValues, PropertyDeclaration};
         use properties::style_structs;
-        use std::boxed::Box as StdBox;
-        use std::collections::HashMap;
         use std::sync::Arc;
         use values::computed::{Context, ToComputedValue};
         use values::{computed, specified};
