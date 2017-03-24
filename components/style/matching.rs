@@ -472,7 +472,7 @@ trait PrivateMatchMethods: TElement {
     fn cascade_internal(&self,
                         context: &StyleContext<Self>,
                         primary_style: &ComputedStyle,
-                        pseudo_style: &mut Option<(&PseudoElement, &mut ComputedStyle)>,
+                        pseudo_style: &Option<(&PseudoElement, &mut ComputedStyle)>,
                         booleans: &CascadeBooleans)
                         -> Arc<ComputedValues> {
         let shared_context = context.shared;
@@ -570,7 +570,7 @@ trait PrivateMatchMethods: TElement {
 
         // Compute the new values.
         let mut new_values = self.cascade_internal(context, primary_style,
-                                                   &mut pseudo_style, &booleans);
+                                                   &pseudo_style, &booleans);
 
         // Handle animations.
         if booleans.animate {
