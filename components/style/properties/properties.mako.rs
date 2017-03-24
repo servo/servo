@@ -2178,7 +2178,9 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
         //
         // www-style mail regarding above spec: https://lists.w3.org/Archives/Public/www-style/2017Mar/0045.html
         // See https://github.com/servo/servo/issues/15754
-        if context.layout_parent_style.writing_mode != style.writing_mode &&
+        let our_writing_mode = style.get_inheritedbox().clone_writing_mode();
+        let parent_writing_mode = context.layout_parent_style.get_inheritedbox().clone_writing_mode();
+        if our_writing_mode != parent_writing_mode &&
            style.get_box().clone_display() == display::inline {
             style.mutate_box().set_display(display::inline_block);
         }
