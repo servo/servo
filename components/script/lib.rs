@@ -98,7 +98,6 @@ extern crate tinyfiledialogs;
 extern crate url;
 extern crate uuid;
 extern crate webrender_traits;
-extern crate websocket;
 extern crate webvr_traits;
 extern crate xml5ever;
 
