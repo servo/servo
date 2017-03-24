@@ -465,6 +465,12 @@ ${helpers.single_keyword("font-variant-caps",
         }
     }
 
+    impl Default for KeywordSize {
+        fn default() -> Self {
+            Medium
+        }
+    }
+
     impl ToCss for KeywordSize {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             dest.write_str(match *self {
@@ -482,29 +488,79 @@ ${helpers.single_keyword("font-variant-caps",
         }
     }
 
-    impl ToComputedValue for KeywordSize {
-        type ComputedValue = Au;
-        #[inline]
-        fn to_computed_value(&self, _: &Context) -> computed_value::T {
-            // https://drafts.csswg.org/css-fonts-3/#font-size-prop
-            use values::FONT_MEDIUM_PX;
-            match *self {
-                XXSmall => Au::from_px(FONT_MEDIUM_PX) * 3 / 5,
-                XSmall => Au::from_px(FONT_MEDIUM_PX) * 3 / 4,
-                Small => Au::from_px(FONT_MEDIUM_PX) * 8 / 9,
-                Medium => Au::from_px(FONT_MEDIUM_PX),
-                Large => Au::from_px(FONT_MEDIUM_PX) * 6 / 5,
-                XLarge => Au::from_px(FONT_MEDIUM_PX) * 3 / 2,
-                XXLarge => Au::from_px(FONT_MEDIUM_PX) * 2,
-                XXXLarge => Au::from_px(FONT_MEDIUM_PX) * 3,
+    % if product == "servo":
+        impl ToComputedValue for KeywordSize {
+            type ComputedValue = Au;
+            #[inline]
+            fn to_computed_value(&self, _: &Context) -> computed_value::T {
+                // https://drafts.csswg.org/css-fonts-3/#font-size-prop
+                use values::FONT_MEDIUM_PX;
+                match *self {
+                    XXSmall => Au::from_px(FONT_MEDIUM_PX) * 3 / 5,
+                    XSmall => Au::from_px(FONT_MEDIUM_PX) * 3 / 4,
+                    Small => Au::from_px(FONT_MEDIUM_PX) * 8 / 9,
+                    Medium => Au::from_px(FONT_MEDIUM_PX),
+                    Large => Au::from_px(FONT_MEDIUM_PX) * 6 / 5,
+                    XLarge => Au::from_px(FONT_MEDIUM_PX) * 3 / 2,
+                    XXLarge => Au::from_px(FONT_MEDIUM_PX) * 2,
+                    XXXLarge => Au::from_px(FONT_MEDIUM_PX) * 3,
+                }
+            }
+
+            #[inline]
+            fn from_computed_value(_: &computed_value::T) -> Self {
+                unreachable!()
             }
         }
+    % else:
+        impl ToComputedValue for KeywordSize {
+            type ComputedValue = Au;
+            #[inline]
+            fn to_computed_value(&self, cx: &Context) -> computed_value::T {
+                use gecko_bindings::bindings::Gecko_nsStyleFont_GetBaseSize;
+                use values::specified::length::au_to_int_px;
+                // Data from nsRuleNode.cpp in Gecko
+                // Mapping from base size and HTML size to pixels
+                // The first index is (base_size - 9), the second is the
+                // HTML size. "0" is CSS keyword xx-small, not HTML size 0,
+                // since HTML size 0 is the same as 1.
+                //
+                //  xxs   xs      s      m     l      xl     xxl   -
+                //  -     0/1     2      3     4      5      6     7
+                static FONT_SIZE_MAPPING: [[i32; 8]; 8] = [
+                    [9,    9,     9,     9,    11,    14,    18,    27],
+                    [9,    9,     9,    10,    12,    15,    20,    30],
+                    [9,    9,    10,    11,    13,    17,    22,    33],
+                    [9,    9,    10,    12,    14,    18,    24,    36],
+                    [9,   10,    12,    13,    16,    20,    26,    39],
+                    [9,   10,    12,    14,    17,    21,    28,    42],
+                    [9,   10,    13,    15,    18,    23,    30,    45],
+                    [9,   10,    13,    16,    18,    24,    32,    48]
+                ];
 
-        #[inline]
-        fn from_computed_value(_: &computed_value::T) -> Self {
-            unreachable!()
+                static FONT_SIZE_FACTORS: [i32; 8] = [60, 75, 89, 100, 120, 150, 200, 300];
+
+                // XXXManishearth handle quirks mode
+
+                let base_size = unsafe {
+                    Gecko_nsStyleFont_GetBaseSize(cx.style().get_font().gecko(),
+                                                  &*cx.device.pres_context)
+                };
+                let base_size_px = au_to_int_px(base_size as f32);
+                let html_size = *self as usize;
+                if base_size_px >= 9 && base_size_px <= 16 {
+                    Au::from_px(FONT_SIZE_MAPPING[(base_size_px - 9) as usize][html_size])
+                } else {
+                    Au(FONT_SIZE_FACTORS[html_size] * base_size / 100)
+                }
+            }
+
+            #[inline]
+            fn from_computed_value(_: &computed_value::T) -> Self {
+                unreachable!()
+            }
         }
-    }
+    % endif
 
     impl SpecifiedValue {
         /// https://html.spec.whatwg.org/multipage/#rules-for-parsing-a-legacy-font-size

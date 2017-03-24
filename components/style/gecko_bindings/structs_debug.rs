@@ -19097,6 +19097,14 @@ pub mod root {
     #[repr(C)]
     #[derive(Debug, Copy, Clone)]
     pub struct gfxFontStyle([u8; 0]);
+    pub const kGenericFont_NONE: u8 = 0;
+    pub const kGenericFont_moz_variable: u8 = 0;
+    pub const kGenericFont_moz_fixed: u8 = 1;
+    pub const kGenericFont_serif: u8 = 2;
+    pub const kGenericFont_sans_serif: u8 = 4;
+    pub const kGenericFont_monospace: u8 = 8;
+    pub const kGenericFont_cursive: u8 = 16;
+    pub const kGenericFont_fantasy: u8 = 32;
     #[repr(C)]
     #[derive(Debug)]
     pub struct nsFont {

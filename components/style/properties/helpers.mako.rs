@@ -266,6 +266,13 @@
                         match *value {
                             DeclaredValue::Value(ref specified_value) => {
                                 let computed = specified_value.to_computed_value(context);
+                                % if property.ident == "font_size":
+                                    if let longhands::font_size::SpecifiedValue::Keyword(kw) = **specified_value {
+                                        context.mutate_style().font_size_keyword = Some(kw);
+                                    } else {
+                                        context.mutate_style().font_size_keyword = None;
+                                    }
+                                % endif
                                 % if property.has_uncacheable_values:
                                 context.mutate_style().mutate_${data.current_style_struct.name_lower}()
                                                       .set_${property.ident}(computed, cacheable ${maybe_wm});
@@ -280,12 +287,22 @@
                                 CSSWideKeyword::Unset |
                                 % endif
                                 CSSWideKeyword::Initial => {
-                                    // We assume that it's faster to use copy_*_from rather than
-                                    // set_*(get_initial_value());
-                                    let initial_struct = default_style
-                                                        .get_${data.current_style_struct.name_lower}();
-                                    context.mutate_style().mutate_${data.current_style_struct.name_lower}()
-                                                        .copy_${property.ident}_from(initial_struct ${maybe_wm});
+                                    % if property.ident == "font_size":
+                                        // font-size's default ("medium") does not always
+                                        // compute to the same value and depends on the font
+                                        let computed = longhands::font_size::get_initial_specified_value()
+                                                            .to_computed_value(context);
+                                        context.mutate_style().mutate_${data.current_style_struct.name_lower}()
+                                               .set_font_size(computed);
+                                        context.mutate_style().font_size_keyword = Some(Default::default());
+                                    % else:
+                                        // We assume that it's faster to use copy_*_from rather than
+                                        // set_*(get_initial_value());
+                                        let initial_struct = default_style
+                                                            .get_${data.current_style_struct.name_lower}();
+                                        context.mutate_style().mutate_${data.current_style_struct.name_lower}()
+                                                            .copy_${property.ident}_from(initial_struct ${maybe_wm});
+                                    % endif
                                 },
                                 % if data.current_style_struct.inherited:
                                 CSSWideKeyword::Unset |
@@ -300,6 +317,10 @@
                                         inherited_style.get_${data.current_style_struct.name_lower}();
                                     context.mutate_style().mutate_${data.current_style_struct.name_lower}()
                                         .copy_${property.ident}_from(inherited_struct ${maybe_wm});
+                                    % if property.ident == "font_size":
+                                        context.mutate_style().font_size_keyword =
+                                            context.inherited_style.font_size_keyword;
+                                    % endif
                                 }
                             }
                         }

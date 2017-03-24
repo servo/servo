@@ -293,6 +293,7 @@ mod bindings {
             "BORDER_STYLE_.*",
             "mozilla::SERVO_PREF_.*",
             "kNameSpaceID_.*",
+            "kGenericFont_.*",
         ];
         let whitelist = [
             "RawGecko.*",

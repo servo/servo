@@ -80,6 +80,7 @@ pub struct ComputedValues {
     shareable: bool,
     pub writing_mode: WritingMode,
     pub root_font_size: Au,
+    pub font_size_keyword: Option<longhands::font_size::KeywordSize>,
 }
 
 impl ComputedValues {
@@ -89,6 +90,7 @@ impl ComputedValues {
             shareable: parent.shareable,
             writing_mode: parent.writing_mode,
             root_font_size: parent.root_font_size,
+            font_size_keyword: parent.font_size_keyword,
             % for style_struct in data.style_structs:
             % if style_struct.inherited:
             ${style_struct.ident}: parent.${style_struct.ident}.clone(),
@@ -103,6 +105,7 @@ impl ComputedValues {
            shareable: bool,
            writing_mode: WritingMode,
            root_font_size: Au,
+           font_size_keyword: Option<longhands::font_size::KeywordSize>,
             % for style_struct in data.style_structs:
            ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
             % endfor
@@ -112,6 +115,7 @@ impl ComputedValues {
             shareable: shareable,
             writing_mode: writing_mode,
             root_font_size: root_font_size,
+            font_size_keyword: font_size_keyword,
             % for style_struct in data.style_structs:
             ${style_struct.ident}: ${style_struct.ident},
             % endfor
@@ -124,6 +128,7 @@ impl ComputedValues {
             shareable: true,
             writing_mode: WritingMode::empty(), // FIXME(bz): This seems dubious
             root_font_size: longhands::font_size::get_initial_value(), // FIXME(bz): Also seems dubious?
+            font_size_keyword: Some(Default::default()),
             % for style_struct in data.style_structs:
                 ${style_struct.ident}: style_structs::${style_struct.name}::default(pres_context),
             % endfor
@@ -193,6 +198,11 @@ impl ComputedValues {
 <%def name="declare_style_struct(style_struct)">
 pub struct ${style_struct.gecko_struct_name} {
     gecko: ${style_struct.gecko_ffi_name},
+}
+impl ${style_struct.gecko_struct_name} {
+    pub fn gecko(&self) -> &${style_struct.gecko_ffi_name} {
+        &self.gecko
+    }
 }
 </%def>
 
@@ -1191,14 +1201,31 @@ fn static_assert() {
                     unsafe { Gecko_FontFamilyList_AppendNamed(list, name.0.as_ptr()); }
                 }
                 FontFamily::Generic(ref name) => {
-                    let family_type =
-                        if name == &atom!("serif") { FontFamilyType::eFamily_serif }
-                        else if name == &atom!("sans-serif") { FontFamilyType::eFamily_sans_serif }
-                        else if name == &atom!("cursive") { FontFamilyType::eFamily_cursive }
-                        else if name == &atom!("fantasy") { FontFamilyType::eFamily_fantasy }
-                        else if name == &atom!("monospace") { FontFamilyType::eFamily_monospace }
-                        else if name == &atom!("-moz-fixed") { FontFamilyType::eFamily_moz_fixed }
-                        else { panic!("Unknown generic font family") };
+                    let (family_type, generic) =
+                        if name == &atom!("serif") {
+                            (FontFamilyType::eFamily_serif,
+                             structs::kGenericFont_serif)
+                        } else if name == &atom!("sans-serif") {
+                            (FontFamilyType::eFamily_sans_serif,
+                             structs::kGenericFont_sans_serif)
+                        } else if name == &atom!("cursive") {
+                            (FontFamilyType::eFamily_cursive,
+                             structs::kGenericFont_cursive)
+                        } else if name == &atom!("fantasy") {
+                            (FontFamilyType::eFamily_fantasy,
+                             structs::kGenericFont_fantasy)
+                        } else if name == &atom!("monospace") {
+                            (FontFamilyType::eFamily_monospace,
+                             structs::kGenericFont_monospace)
+                        } else if name == &atom!("-moz-fixed") {
+                            (FontFamilyType::eFamily_moz_fixed,
+                             structs::kGenericFont_moz_fixed)
+                        } else {
+                            panic!("Unknown generic font family")
+                        };
+                    if v.0.len() == 1 {
+                        self.gecko.mGenericID = generic;
+                    }
                     unsafe { Gecko_FontFamilyList_AppendGeneric(list, family_type); }
                 }
             }

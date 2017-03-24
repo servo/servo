@@ -1013,6 +1013,12 @@ extern "C" {
                                           aSource: *const nsStyleFont);
 }
 extern "C" {
+    pub fn Gecko_nsStyleFont_GetBaseSize(font: *const nsStyleFont,
+                                         pres_context:
+                                             RawGeckoPresContextBorrowed)
+     -> nscoord;
+}
+extern "C" {
     pub fn Gecko_GetMediaFeatures() -> *const nsMediaFeature;
 }
 extern "C" {
