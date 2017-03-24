@@ -13,7 +13,7 @@ use parser::{Parse, ParserContext};
 use servo_url::ServoUrl;
 use std::fmt;
 use style_traits::ToCss;
-use values::specified::{Angle, CSSColor, Length, LengthOrPercentage};
+use values::specified::{Angle, CSSColor, Length, LengthOrPercentage, NumberOrPercentage};
 use values::specified::position::Position;
 use values::specified::url::SpecifiedUrl;
 
@@ -26,6 +26,8 @@ pub enum Image {
     Url(SpecifiedUrl),
     /// A `<gradient>` image.
     Gradient(Gradient),
+    /// A `-moz-image-rect` image
+    ImageRect(ImageRect),
 }
 
 impl ToCss for Image {
@@ -33,6 +35,7 @@ impl ToCss for Image {
         match *self {
             Image::Url(ref url_value) => url_value.to_css(dest),
             Image::Gradient(ref gradient) => gradient.to_css(dest),
+            Image::ImageRect(ref image_rect) => image_rect.to_css(dest),
         }
     }
 }
@@ -43,8 +46,11 @@ impl Image {
         if let Ok(url) = input.try(|input| SpecifiedUrl::parse(context, input)) {
             return Ok(Image::Url(url));
         }
+        if let Ok(gradient) = input.try(|input| Gradient::parse_function(context, input)) {
+            return Ok(Image::Gradient(gradient));
+        }
 
-        Ok(Image::Gradient(try!(Gradient::parse_function(context, input))))
+        Ok(Image::ImageRect(ImageRect::parse(context, input)?))
     }
 
     /// Creates an already specified image value from an already resolved URL
@@ -233,6 +239,64 @@ impl GradientKind {
         }
 
         Ok(GradientKind::Radial(shape, position))
+    }
+}
+
+/// Specified values for `moz-image-rect`
+/// -moz-image-rect(<uri>, top, right, bottom, left);
+#[derive(Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
+pub struct ImageRect {
+    pub url: SpecifiedUrl,
+    pub top: NumberOrPercentage,
+    pub bottom: NumberOrPercentage,
+    pub right: NumberOrPercentage,
+    pub left: NumberOrPercentage,
+}
+
+impl ToCss for ImageRect {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        dest.write_str("-moz-image-rect(")?;
+        self.url.to_css(dest)?;
+        dest.write_str(", ")?;
+        self.top.to_css(dest)?;
+        dest.write_str(", ")?;
+        self.right.to_css(dest)?;
+        dest.write_str(", ")?;
+        self.bottom.to_css(dest)?;
+        dest.write_str(", ")?;
+        self.left.to_css(dest)?;
+        dest.write_str(")")
+    }
+}
+
+impl Parse for ImageRect {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        match_ignore_ascii_case! { &try!(input.expect_function()),
+            "-moz-image-rect" => {
+                input.parse_nested_block(|input| {
+                    let url = SpecifiedUrl::parse(context, input)?;
+                    input.expect_comma()?;
+                    let top = NumberOrPercentage::parse(context, input)?;
+                    input.expect_comma()?;
+                    let right = NumberOrPercentage::parse(context, input)?;
+                    input.expect_comma()?;
+                    let bottom = NumberOrPercentage::parse(context, input)?;
+                    input.expect_comma()?;
+                    let left = NumberOrPercentage::parse(context, input)?;
+
+                    Ok(ImageRect {
+                        url: url,
+                        top: top,
+                        right: right,
+                        bottom: bottom,
+                        left: left,
+                    })
+                })
+            }
+            _ => Err(())
+        }
     }
 }
 

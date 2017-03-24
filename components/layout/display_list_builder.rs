@@ -611,6 +611,9 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                      i);
                     }
                 }
+                Some(computed::Image::ImageRect(_)) => {
+                    // TODO: Implement `-moz-image-rect`
+                }
             }
         }
     }
@@ -1075,6 +1078,9 @@ impl FragmentDisplayListBuilding for Fragment {
             }
             Some(computed::Image::Gradient(..)) => {
                 // TODO(gw): Handle border-image with gradient.
+            }
+            Some(computed::Image::ImageRect(..)) => {
+                // TODO: Handle border-image with `-moz-image-rect`.
             }
             Some(computed::Image::Url(ref image_url)) => {
                 if let Some(url) = image_url.url() {

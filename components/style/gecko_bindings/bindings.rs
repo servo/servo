@@ -679,6 +679,9 @@ extern "C" {
                                     other: *const nsStyleImage);
 }
 extern "C" {
+    pub fn Gecko_InitializeImageCropRect(image: *mut nsStyleImage);
+}
+extern "C" {
     pub fn Gecko_CreateGradient(shape: u8, size: u8, repeating: bool,
                                 legacy_syntax: bool, stops: u32)
      -> *mut nsStyleGradient;
