@@ -2170,6 +2170,21 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
     }
 
     {
+        use computed_values::display::T as display;
+        // CSS writing modes spec (https://drafts.csswg.org/css-writing-modes-3/#block-flow):
+        //
+        //  If a box has a different writing-mode value than its containing block:
+        //  - If the box has a specified display of inline, its display computes to inline-block. [CSS21]
+        //
+        // www-style mail regarding above spec: https://lists.w3.org/Archives/Public/www-style/2017Mar/0045.html
+        // See https://github.com/servo/servo/issues/15754
+        if context.layout_parent_style.writing_mode != style.writing_mode &&
+           style.get_box().clone_display() == display::inline {
+            style.mutate_box().set_display(display::inline_block);
+        }
+    }
+
+    {
         use computed_values::overflow_x::T as overflow;
         use computed_values::overflow_y;
         match (style.get_box().clone_overflow_x() == longhands::overflow_x::computed_value::T::visible,
