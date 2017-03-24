@@ -239,6 +239,37 @@ impl RuleTree {
         // necessary.
         Some(self.insert_ordered_rules_from(current, children.into_iter().rev()))
     }
+
+    /// Returns new rule nodes without Transitions level rule.
+    pub fn remove_transition_rule_if_applicable(&self, path: &StrongRuleNode) -> StrongRuleNode {
+        // Return a clone if there is no transition level.
+        if path.cascade_level() != CascadeLevel::Transitions {
+            return path.clone();
+        }
+
+        path.parent().unwrap().clone()
+    }
+
+    /// Returns new rule node without Animations and Transitions level rules.
+    pub fn remove_animation_and_transition_rules(&self, path: &StrongRuleNode) -> StrongRuleNode {
+        // Return a clone if there is neither animation nor transition level.
+        if !path.has_animation_or_transition_rules() {
+            return path.clone();
+        }
+
+        let iter = path.self_and_ancestors().take_while(|node| node.cascade_level() >= CascadeLevel::Animations);
+        let mut last = path;
+        let mut children = vec![];
+        for node in iter {
+            if node.cascade_level() != CascadeLevel::Animations &&
+               node.cascade_level() != CascadeLevel::Transitions {
+                children.push((node.get().source.clone().unwrap(), node.cascade_level()));
+            }
+            last = node;
+        }
+
+        self.insert_ordered_rules_from(last.parent().unwrap().clone(), children.into_iter().rev())
+    }
 }
 
 /// The number of RuleNodes added to the free list before we will consider
@@ -727,6 +758,13 @@ impl StrongRuleNode {
         if self.get().free_count.load(Ordering::SeqCst) > RULE_TREE_GC_INTERVAL {
             self.gc();
         }
+    }
+
+    /// Returns true if there is either animation or transition level rule.
+    pub fn has_animation_or_transition_rules(&self) -> bool {
+        self.self_and_ancestors()
+            .take_while(|node| node.cascade_level() >= CascadeLevel::Animations)
+            .any(|node| matches!(node.cascade_level(), CascadeLevel::Animations | CascadeLevel::Transitions))
     }
 }
 

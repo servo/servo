@@ -469,24 +469,15 @@ trait PrivateMatchMethods: TElement {
         }
     }
 
-    fn cascade_internal(&self,
-                        context: &StyleContext<Self>,
-                        primary_style: &ComputedStyle,
-                        pseudo_style: &mut Option<(&PseudoElement, &mut ComputedStyle)>,
-                        booleans: &CascadeBooleans)
-                        -> Arc<ComputedValues> {
+    fn cascade_with_rules(&self,
+                          context: &StyleContext<Self>,
+                          rule_node: &StrongRuleNode,
+                          primary_style: &ComputedStyle,
+                          pseudo_style: &Option<(&PseudoElement, &mut ComputedStyle)>,
+                          cascade_flags: CascadeFlags)
+                          -> Arc<ComputedValues> {
         let shared_context = context.shared;
         let mut cascade_info = CascadeInfo::new();
-        let mut cascade_flags = CascadeFlags::empty();
-        if booleans.shareable {
-            cascade_flags.insert(SHAREABLE)
-        }
-        if self.skip_root_and_item_based_display_fixup() {
-            cascade_flags.insert(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP)
-        }
-
-        // Grab the rule node.
-        let rule_node = &pseudo_style.as_ref().map_or(primary_style, |p| &*p.1).rules;
 
         // Grab the inherited values.
         let parent_el;
@@ -552,6 +543,25 @@ trait PrivateMatchMethods: TElement {
         values
     }
 
+    fn cascade_internal(&self,
+                        context: &StyleContext<Self>,
+                        primary_style: &ComputedStyle,
+                        pseudo_style: &Option<(&PseudoElement, &mut ComputedStyle)>,
+                        booleans: &CascadeBooleans)
+                        -> Arc<ComputedValues> {
+        let mut cascade_flags = CascadeFlags::empty();
+        if booleans.shareable {
+            cascade_flags.insert(SHAREABLE)
+        }
+        if self.skip_root_and_item_based_display_fixup() {
+            cascade_flags.insert(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP)
+        }
+
+        // Grab the rule node.
+        let rule_node = &pseudo_style.as_ref().map_or(primary_style, |p| &*p.1).rules;
+        self.cascade_with_rules(context, rule_node, primary_style, pseudo_style, cascade_flags)
+    }
+
     /// Computes values and damage for the primary or pseudo style of an element,
     /// setting them on the ElementData.
     fn cascade_primary_or_pseudo<'a>(&self,
@@ -570,7 +580,7 @@ trait PrivateMatchMethods: TElement {
 
         // Compute the new values.
         let mut new_values = self.cascade_internal(context, primary_style,
-                                                   &mut pseudo_style, &booleans);
+                                                   &pseudo_style, &booleans);
 
         // Handle animations.
         if booleans.animate {
@@ -592,6 +602,33 @@ trait PrivateMatchMethods: TElement {
         } else {
             primary_style.values = Some(new_values);
         }
+    }
+
+    #[cfg(feature = "gecko")]
+    fn get_after_change_style(&self,
+                              context: &mut StyleContext<Self>,
+                              primary_style: &ComputedStyle,
+                              pseudo_style: &Option<(&PseudoElement, &mut ComputedStyle)>)
+                              -> Arc<ComputedValues> {
+        let style = &pseudo_style.as_ref().map_or(primary_style, |p| &*p.1);
+        let rule_node = &style.rules;
+        let without_transition_rules =
+            context.shared.stylist.rule_tree.remove_transition_rule_if_applicable(rule_node);
+        if without_transition_rules == *rule_node {
+            // Note that unwrapping here is fine, because the style is
+            // only incomplete during the styling process.
+            return style.values.as_ref().unwrap().clone();
+        }
+
+        let mut cascade_flags = CascadeFlags::empty();
+        if self.skip_root_and_item_based_display_fixup() {
+            cascade_flags.insert(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP)
+        }
+        self.cascade_with_rules(context,
+                                &without_transition_rules,
+                                primary_style,
+                                &pseudo_style,
+                                cascade_flags)
     }
 
     #[cfg(feature = "gecko")]
