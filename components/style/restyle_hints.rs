@@ -50,7 +50,7 @@ bitflags! {
         /// Don't re-run selector-matching on the element, only the style
         /// attribute has changed, and this change didn't have any other
         /// dependencies.
-        const RESTYLE_STYLE_ATTRIBUTE = 0x80,
+        const RESTYLE_STYLE_ATTRIBUTE = 0x40,
     }
 }
 
