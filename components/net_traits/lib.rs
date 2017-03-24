@@ -348,9 +348,9 @@ pub enum WebSocketDomAction {
 
 #[derive(Deserialize, Serialize)]
 pub enum WebSocketNetworkEvent {
-    ConnectionEstablished(#[serde(deserialize_with = "::hyper_serde::deserialize",
-                                  serialize_with = "::hyper_serde::serialize")]
-                          header::Headers),
+    ConnectionEstablished {
+        protocol_in_use: Option<String>,
+    },
     MessageReceived(MessageData),
     Close(Option<u16>, String),
     Fail,
@@ -512,11 +512,6 @@ pub fn load_whole_resource(request: RequestInit,
             FetchResponseMsg::ProcessResponseEOF(Err(e)) => return Err(e),
         }
     }
-}
-
-/// Defensively unwraps the protocol string from the response object's protocol
-pub fn unwrap_websocket_protocol(wsp: Option<&header::WebSocketProtocol>) -> Option<&str> {
-    wsp.and_then(|protocol_list| protocol_list.get(0).map(|protocol| protocol.as_ref()))
 }
 
 /// An unique identifier to keep track of each load message in the resource handler

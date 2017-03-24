@@ -30,7 +30,6 @@ use js::typedarray::{ArrayBuffer, CreateWith};
 use net_traits::{WebSocketCommunicate, WebSocketConnectData, WebSocketDomAction, WebSocketNetworkEvent};
 use net_traits::CoreResourceMsg::WebsocketConnect;
 use net_traits::MessageData;
-use net_traits::unwrap_websocket_protocol;
 use script_runtime::CommonScriptMsg;
 use script_runtime::ScriptThreadEventCategory::WebSocketEvent;
 use script_thread::{Runnable, RunnableWrapper};
@@ -42,7 +41,6 @@ use std::ptr;
 use std::thread;
 use task_source::TaskSource;
 use task_source::networking::NetworkingTaskSource;
-use websocket::header::{Headers, WebSocketProtocol};
 
 #[derive(JSTraceable, PartialEq, Copy, Clone, Debug, HeapSizeOf)]
 enum WebSocketRequestState {
@@ -204,10 +202,10 @@ impl WebSocket {
         thread::spawn(move || {
             while let Ok(event) = dom_event_receiver.recv() {
                 match event {
-                    WebSocketNetworkEvent::ConnectionEstablished(headers) => {
+                    WebSocketNetworkEvent::ConnectionEstablished { protocol_in_use } => {
                         let open_thread = box ConnectionEstablishedTask {
                             address: address.clone(),
-                            headers: headers,
+                            protocol_in_use,
                         };
                         task_source.queue_with_wrapper(open_thread, &wrapper).unwrap();
                     },
@@ -393,7 +391,7 @@ impl WebSocketMethods for WebSocket {
 /// https://html.spec.whatwg.org/multipage/#feedback-from-the-protocol:concept-websocket-established
 struct ConnectionEstablishedTask {
     address: Trusted<WebSocket>,
-    headers: Headers,
+    protocol_in_use: Option<String>,
 }
 
 impl Runnable for ConnectionEstablishedTask {
@@ -410,8 +408,8 @@ impl Runnable for ConnectionEstablishedTask {
         // TODO: Set extensions to extensions in use.
 
         // Step 3.
-        if let Some(protocol_name) = unwrap_websocket_protocol(self.headers.get::<WebSocketProtocol>()) {
-            *ws.protocol.borrow_mut() = protocol_name.to_owned();
+        if let Some(protocol_name) = self.protocol_in_use {
+            *ws.protocol.borrow_mut() = protocol_name;
         };
 
         // Step 4.

@@ -2293,7 +2293,6 @@ dependencies = [
  "selectors 0.18.0",
  "serde 0.9.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 0.9.9 (registry+https://github.com/rust-lang/crates.io-index)",
- "servo-websocket 0.18.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_atoms 0.0.1",
  "servo_config 0.0.1",
  "servo_geometry 0.0.1",
