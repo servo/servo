@@ -12,10 +12,11 @@ use gecko_bindings::structs::{nsStyleCoord, StyleGridTrackBreadth, StyleShapeRad
 use gecko_bindings::sugar::ns_style_coord::{CoordData, CoordDataMut, CoordDataValue};
 use std::cmp::max;
 use values::{Auto, Either, ExtremumLength, None_, Normal};
-use values::computed::{Angle, LengthOrPercentageOrNone, Number};
-use values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
+use values::computed::{Angle, LengthOrPercentage, LengthOrPercentageOrAuto};
+use values::computed::{LengthOrPercentageOrNone, Number, NumberOrPercentage};
 use values::computed::{MaxLength, MinLength};
 use values::computed::basic_shape::ShapeRadius;
+use values::specified::Percentage;
 use values::specified::grid::{TrackBreadth, TrackKeyword};
 
 /// A trait that defines an interface to convert from and to `nsStyleCoord`s.
@@ -57,6 +58,38 @@ impl GeckoStyleCoordConvertible for Number {
     fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
         match coord.as_value() {
             CoordDataValue::Factor(f) => Some(f),
+            _ => None,
+        }
+    }
+}
+
+impl GeckoStyleCoordConvertible for Percentage {
+    fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
+        coord.set_value(CoordDataValue::Percent(self.0));
+    }
+
+    fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
+        match coord.as_value() {
+            CoordDataValue::Percent(p) => Some(Percentage(p)),
+            _ => None,
+        }
+    }
+}
+
+impl GeckoStyleCoordConvertible for NumberOrPercentage {
+    fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
+        match *self {
+            NumberOrPercentage::Number(ref n) => n.to_gecko_style_coord(coord),
+            NumberOrPercentage::Percentage(ref p) => p.to_gecko_style_coord(coord),
+        }
+    }
+
+    fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
+        match coord.as_value() {
+            CoordDataValue::Factor(f) => Some(NumberOrPercentage::Number(f)),
+            CoordDataValue::Percent(p) => {
+                Some(NumberOrPercentage::Percentage(Percentage(p)))
+            },
             _ => None,
         }
     }

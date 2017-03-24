@@ -572,6 +572,38 @@ impl ToCss for Number {
     }
 }
 
+/// <number-percentage>
+/// Accepts only non-negative numbers.
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
+pub enum NumberOrPercentage {
+    Percentage(Percentage),
+    Number(Number),
+}
+
+no_viewport_percentage!(NumberOrPercentage);
+
+impl Parse for NumberOrPercentage {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        if let Ok(per) = input.try(|input| Percentage::parse(context, input)) {
+            return Ok(NumberOrPercentage::Percentage(per));
+        }
+
+        let num = try!(Number::parse_non_negative(input));
+        Ok(NumberOrPercentage::Number(num))
+    }
+}
+
+impl ToCss for NumberOrPercentage {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            NumberOrPercentage::Percentage(percentage) => percentage.to_css(dest),
+            NumberOrPercentage::Number(number) => number.to_css(dest),
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
