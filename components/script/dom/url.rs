@@ -48,7 +48,7 @@ impl URL {
     }
 
     pub fn query_pairs(&self) -> Vec<(String, String)> {
-        self.url.borrow().as_url().unwrap().query_pairs().into_owned().collect()
+        self.url.borrow().as_url().query_pairs().into_owned().collect()
     }
 
     pub fn set_query_pairs(&self, pairs: &[(String, String)]) {
