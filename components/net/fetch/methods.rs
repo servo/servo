@@ -186,6 +186,9 @@ pub fn main_fetch(request: Rc<Request>,
     }
 
     // Step 9
+    // TODO
+
+    // Step 10
     if !request.current_url().is_secure_scheme() && request.current_url().domain().is_some() {
         if context.state
             .hsts_list
@@ -196,10 +199,10 @@ pub fn main_fetch(request: Rc<Request>,
         }
     }
 
-    // Step 10
+    // Step 11
     // this step is obsoleted by fetch_async
 
-    // Step 11
+    // Step 12
     let response = match response {
         Some(response) => response,
         None => {
@@ -246,12 +249,12 @@ pub fn main_fetch(request: Rc<Request>,
         }
     };
 
-    // Step 12
+    // Step 13
     if recursive_flag {
         return response;
     }
 
-    // Step 13
+    // Step 14
     // no need to check if response is a network error, since the type would not be `Default`
     let response = if response.response_type == ResponseType::Default {
         let response_type = match request.response_tainting.get() {
@@ -265,7 +268,7 @@ pub fn main_fetch(request: Rc<Request>,
     };
 
     let internal_error = { // Inner scope to reborrow response
-        // Step 14
+        // Step 15
         let network_error_response;
         let internal_response = if let Some(error) = response.get_network_error() {
             network_error_response = Response::network_error(error.clone());
@@ -274,15 +277,17 @@ pub fn main_fetch(request: Rc<Request>,
             response.actual_response()
         };
 
-        // Step 15
+        // Step 16
         if internal_response.url_list.borrow().is_empty() {
             *internal_response.url_list.borrow_mut() = request.url_list.borrow().clone();
         }
 
-        // Step 16
-        // TODO Blocking for CSP, mixed content, MIME type
+        // Step 17
+        // TODO Blocking for CSP, mixed content.
         let blocked_error_response;
-        let internal_response = if !response.is_network_error() && should_block_nosniff(&request, &response) {
+        let internal_response = if !response.is_network_error() &&
+                                   (should_block_nosniff(&request, &response) ||
+                                    should_block_mime_type(&request, &response)) {
             // Defer rebinding result
             blocked_error_response = Response::network_error(NetworkError::Internal("Blocked by nosniff".into()));
             &blocked_error_response
@@ -290,7 +295,7 @@ pub fn main_fetch(request: Rc<Request>,
             internal_response
         };
 
-        // Step 17
+        // Step 18
         // We check `internal_response` since we did not mutate `response` in the previous step.
         let not_network_error = !response.is_network_error() && !internal_response.is_network_error();
         if not_network_error && (is_null_body_status(&internal_response.status) ||
@@ -313,7 +318,7 @@ pub fn main_fetch(request: Rc<Request>,
         response
     };
 
-    // Step 18
+    // Step 19
     let mut response_loaded = false;
     let response = if !response.is_network_error() && *request.integrity_metadata.borrow() != "" {
         // Substep 1
@@ -332,7 +337,7 @@ pub fn main_fetch(request: Rc<Request>,
         response
     };
 
-    // Step 19
+    // Step 20
     if request.synchronous {
         // process_response is not supposed to be used
         // by sync fetch, but we overload it here for simplicity
@@ -345,7 +350,7 @@ pub fn main_fetch(request: Rc<Request>,
         return response;
     }
 
-    // Step 20
+    // Step 21
     if request.body.borrow().is_some() && matches!(request.current_url().scheme(), "http" | "https") {
         // XXXManishearth: We actually should be calling process_request
         // in http_network_fetch. However, we can't yet follow the request
@@ -355,10 +360,10 @@ pub fn main_fetch(request: Rc<Request>,
         target.process_request_eof(&request);
     }
 
-    // Step 21
+    // Step 22
     target.process_response(&response);
 
-    // Step 22
+    // Step 23
     if !response_loaded {
        wait_for_response(&response, target, done_chan);
     }
@@ -614,6 +619,18 @@ fn should_block_nosniff(request: &Request, response: &Response) -> bool {
         // Step 8
         _ => false
     };
+}
+
+/// https://fetch.spec.whatwg.org/#should-response-to-request-be-blocked-due-to-mime-type?
+fn should_block_mime_type(request: &Request, response: &Response) -> bool {
+    let mime_type = response.headers.get::<ContentType>();
+    let csv: Mime = "text/csv".parse().unwrap();
+    request.type_ == Type::Script && mime_type.is_some() && match *mime_type.unwrap() {
+        ContentType(Mime(TopLevel::Audio, _, _)) |
+        ContentType(Mime(TopLevel::Video, _, _)) |
+        ContentType(Mime(TopLevel::Image, _, _)) => true,
+        ContentType(ref m_type) => *m_type == csv
+    }
 }
 
 /// https://fetch.spec.whatwg.org/#block-bad-port

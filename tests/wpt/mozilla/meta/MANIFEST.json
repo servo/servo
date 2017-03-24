@@ -10868,6 +10868,11 @@
      {}
     ]
    ],
+   "mozilla/resources/script-with-header.py": [
+    [
+     {}
+    ]
+   ],
    "mozilla/resources/ssl.https.html": [
     [
      {}
@@ -11199,6 +11204,12 @@
    "mozilla/binding_keyword.html": [
     [
      "/_mozilla/mozilla/binding_keyword.html",
+     {}
+    ]
+   ],
+   "mozilla/block-mime-as-script.html": [
+    [
+     "/_mozilla/mozilla/block-mime-as-script.html",
      {}
     ]
    ],
@@ -24217,6 +24228,10 @@
    "92a0f1008d008fd8f90adb3b2f209dfeacf322b5",
    "support"
   ],
+  "mozilla/block-mime-as-script.html": [
+   "3010059d3baa9450ae1552b2f3ebc9d5328a9024",
+   "testharness"
+  ],
   "mozilla/bluetooth/advertisingEvent/watchAdvertisements-succeeds.html": [
    "002dd42a6f814e43d8e3c7c3a51cc25dc8bf5722",
    "testharness"
@@ -31019,6 +31034,10 @@
   ],
   "mozilla/resources/origin_helpers.js": [
    "688b6b88574a4b69677e4d7f404294bb9bf1ed35",
+   "support"
+  ],
+  "mozilla/resources/script-with-header.py": [
+   "ef53f06bec3cfde097e215251657e1e98464ad7d",
    "support"
   ],
   "mozilla/resources/ssl.https.html": [
