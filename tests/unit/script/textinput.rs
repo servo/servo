@@ -9,8 +9,6 @@
 
 use msg::constellation_msg::{ALT, CONTROL, SUPER};
 use msg::constellation_msg::{Key, KeyModifiers};
-#[cfg(not(target_os = "macos"))]
-use msg::constellation_msg::CONTROL;
 #[cfg(target_os = "macos")]
 use script::clipboard_provider::DummyClipboardContext;
 use script::test::DOMString;
