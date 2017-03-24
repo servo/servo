@@ -828,7 +828,7 @@ mod shorthand_serialization {
                 )
             );
 
-            let repeat = single_vec_keyword_value!(repeat, repeat_x);
+            let repeat = single_vec_keyword_value!(repeat, RepeatX);
             let origin = single_vec_keyword_value!(origin, padding_box);
             let clip = single_vec_keyword_value!(clip, border_box);
             let composite = single_vec_keyword_value!(composite, subtract);
@@ -884,7 +884,7 @@ mod shorthand_serialization {
                 )
             );
 
-            let repeat = single_vec_keyword_value!(repeat, repeat_x);
+            let repeat = single_vec_keyword_value!(repeat, RepeatX);
             let origin = single_vec_keyword_value!(origin, padding_box);
             let clip = single_vec_keyword_value!(clip, padding_box);
             let composite = single_vec_keyword_value!(composite, subtract);

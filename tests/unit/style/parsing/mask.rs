@@ -121,3 +121,70 @@ fn mask_shorthand_should_parse_mode_everywhere() {
     let mut parser = Parser::new("alpha");
     assert!(mask::parse_value(&context, &mut parser).is_ok());
 }
+
+#[test]
+fn mask_repeat_should_parse_shorthand_correctly() {
+    use style::properties::longhands::mask_repeat::single_value::{RepeatKeyword, SpecifiedValue};
+
+    let repeat_x = parse_longhand!(mask_repeat, "repeat-x");
+    assert_eq!(repeat_x, mask_repeat::SpecifiedValue(vec![SpecifiedValue::RepeatX]));
+
+    let repeat_y = parse_longhand!(mask_repeat, "repeat-y");
+    assert_eq!(repeat_y, mask_repeat::SpecifiedValue(vec![SpecifiedValue::RepeatY]));
+
+    let repeat = parse_longhand!(mask_repeat, "repeat");
+    assert_eq!(repeat,
+               mask_repeat::SpecifiedValue(vec![SpecifiedValue::Other(RepeatKeyword::Repeat, None)]));
+
+    let space = parse_longhand!(mask_repeat, "space");
+    assert_eq!(space,
+               mask_repeat::SpecifiedValue(vec![SpecifiedValue::Other(RepeatKeyword::Space, None)]));
+
+    let round = parse_longhand!(mask_repeat, "round");
+    assert_eq!(round,
+               mask_repeat::SpecifiedValue(vec![SpecifiedValue::Other(RepeatKeyword::Round, None)]));
+
+    let no_repeat = parse_longhand!(mask_repeat, "no-repeat");
+    assert_eq!(no_repeat,
+               mask_repeat::SpecifiedValue(vec![SpecifiedValue::Other(RepeatKeyword::NoRepeat, None)]));
+}
+
+#[test]
+fn mask_repeat_should_parse_longhand_correctly() {
+    use style::properties::longhands::mask_repeat::single_value::{RepeatKeyword, SpecifiedValue};
+
+    let url = ServoUrl::parse("http://localhost").unwrap();
+    let reporter = CSSErrorReporterTest;
+    let context = ParserContext::new(Origin::Author, &url, &reporter);
+
+    // repeat-x is not available in longhand form.
+    let mut parser = Parser::new("repeat-x no-repeat");
+    assert!(mask_repeat::parse(&context, &mut parser).is_err());
+
+    let mut parser = Parser::new("no-repeat repeat-x");
+    assert!(mask_repeat::parse(&context, &mut parser).is_err());
+
+    // repeat-y is not available in longhand form.
+    let mut parser = Parser::new("repeat-y no-repeat");
+    assert!(mask_repeat::parse(&context, &mut parser).is_err());
+
+    let mut parser = Parser::new("no-repeat repeat-y");
+    assert!(mask_repeat::parse(&context, &mut parser).is_err());
+
+    // Longhand form supports two directions.
+    let no_repeat_and_round = parse_longhand!(mask_repeat, "no-repeat round");
+    assert_eq!(no_repeat_and_round,
+               mask_repeat::SpecifiedValue(vec![SpecifiedValue::Other(RepeatKeyword::NoRepeat,
+                                                                      Some(RepeatKeyword::Round))]));
+
+    // Not three directions.
+    let mut parser = Parser::new("repeat no-repeat round");
+    assert!(mask_repeat::parse(&context, &mut parser).is_err());
+
+    // Multiple values with mixed shortform and longform should parse.
+    let multiple = parse_longhand!(mask_repeat, "repeat, no-repeat round");
+    assert_eq!(multiple,
+               mask_repeat::SpecifiedValue(vec![SpecifiedValue::Other(RepeatKeyword::Repeat, None),
+                                                SpecifiedValue::Other(RepeatKeyword::NoRepeat,
+                                                                      Some(RepeatKeyword::Round))]));
+}
