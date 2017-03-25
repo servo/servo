@@ -12,6 +12,14 @@
  <body>
 
 <div data-expect="no match">
+ <img src="/images/threecolors.png" usemap="&#x1F4A9;"/>
+ <object data="/images/threecolors.png" usemap="&#x1F4A9;"></object>
+ <map name="&#x1F4A9;">
+  <area shape="rect" coords="0,0,99,50" href="#area-&#x1F4A9;"/>
+ </map>
+</div>
+
+<div data-expect="no match">
  <img src="/images/threecolors.png" usemap="no-hash-name"/>
  <object data="/images/threecolors.png" usemap="no-hash-name"></object>
  <map name="no-hash-name">

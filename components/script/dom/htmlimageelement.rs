@@ -422,16 +422,17 @@ impl HTMLImageElement {
         };
 
         let value = usemap_attr.value();
-        let (first, last) = value.split_at(1);
 
-        if first != "#" || last.len() == 0 {
+        if value.len() <= 1 || value.bytes()[0] != b'#' {
             return None
         }
+
+        let value = &value[1..];
 
         let map = self.upcast::<Node>()
                       .following_siblings()
                       .filter_map(Root::downcast::<HTMLMapElement>)
-                      .find(|n| n.upcast::<Element>().get_string_attribute(&LocalName::from("name")) == last);
+                      .find(|n| n.upcast::<Element>().get_string_attribute(&LocalName::from("name")) == value);
 
         let elements: Vec<Root<HTMLAreaElement>> = map.unwrap().upcast::<Node>()
                       .children()
