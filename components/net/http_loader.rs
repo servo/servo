@@ -907,7 +907,7 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
         let headers = &mut *http_request.headers.borrow_mut();
         let host = Host {
             hostname: current_url.host_str().unwrap().to_owned(),
-            port: current_url.port_or_known_default()
+            port: current_url.port()
         };
         headers.set(host);
         // unlike http_loader, we should not set the accept header
