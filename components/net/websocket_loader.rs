@@ -9,7 +9,7 @@ use http_loader;
 use hyper::header::{Host, SetCookie};
 use net_traits::{CookieSource, MessageData, WebSocketCommunicate};
 use net_traits::{WebSocketConnectData, WebSocketDomAction, WebSocketNetworkEvent};
-use net_traits::hosts::replace_hosts;
+use net_traits::hosts::replace_host_in_url;
 use servo_url::ServoUrl;
 use std::ascii::AsciiExt;
 use std::sync::{Arc, Mutex, RwLock};
@@ -44,7 +44,7 @@ fn establish_a_websocket_connection(resource_url: &ServoUrl,
     }
 
     // Steps 3-7.
-    let net_url = replace_hosts(resource_url);
+    let net_url = replace_host_in_url(resource_url.clone());
     let mut request = try!(Client::connect(net_url.as_url()));
 
     // Client::connect sets the Host header to the host of the URL that is

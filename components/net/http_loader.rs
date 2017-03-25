@@ -30,7 +30,7 @@ use hyper_serde::Serde;
 use log;
 use msg::constellation_msg::PipelineId;
 use net_traits::{CookieSource, FetchMetadata, NetworkError, ReferrerPolicy};
-use net_traits::hosts::replace_hosts;
+use net_traits::hosts::replace_host_in_url;
 use net_traits::request::{CacheMode, CredentialsMode, Destination, Origin};
 use net_traits::request::{RedirectMode, Referrer, Request, RequestMode, ResponseTainting};
 use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
@@ -408,7 +408,7 @@ fn obtain_response(request_factory: &NetworkHttpRequestFactory,
                    is_xhr: bool)
                    -> Result<(WrappedHttpResponse, Option<ChromeToDevtoolsControlMsg>), NetworkError> {
     let null_data = None;
-    let connection_url = replace_hosts(&url);
+    let connection_url = replace_host_in_url(url.clone());
 
     // loop trying connections in connection pool
     // they may have grown stale (disconnected), in which case we'll get
