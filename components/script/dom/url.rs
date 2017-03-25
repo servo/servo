@@ -52,9 +52,8 @@ impl URL {
     }
 
     pub fn set_query_pairs(&self, pairs: &[(String, String)]) {
-        if let Some(ref mut url) = self.url.borrow_mut().as_mut_url() {
-            url.query_pairs_mut().clear().extend_pairs(pairs);
-        }
+        let mut url = self.url.borrow_mut();
+        url.as_mut_url().query_pairs_mut().clear().extend_pairs(pairs);
     }
 }
 

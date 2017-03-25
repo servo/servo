@@ -192,7 +192,7 @@ pub fn main_fetch(request: Rc<Request>,
             .read()
             .unwrap()
             .is_host_secure(request.current_url().domain().unwrap()) {
-           request.url_list.borrow_mut().last_mut().unwrap().as_mut_url().unwrap().set_scheme("https").unwrap();
+           request.url_list.borrow_mut().last_mut().unwrap().as_mut_url().set_scheme("https").unwrap();
         }
     }
 
