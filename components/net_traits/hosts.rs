@@ -4,6 +4,7 @@
 
 use parse_hosts::HostsFile;
 use servo_url::ServoUrl;
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::env;
 use std::fs::File;
@@ -54,6 +55,12 @@ pub fn parse_hostsfile(hostsfile_content: &str) -> HashMap<String, IpAddr> {
     }
 
     host_table
+}
+
+pub fn replace_host(host: &str) -> Cow<str> {
+    HOST_TABLE.lock().unwrap().as_ref()
+        .and_then(|table| table.get(host))
+        .map_or(host.into(), |replaced_host| replaced_host.to_string().into())
 }
 
 pub fn replace_host_in_url(url: ServoUrl) -> ServoUrl {
