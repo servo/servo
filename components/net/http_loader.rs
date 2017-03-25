@@ -129,7 +129,7 @@ impl NetworkHttpRequestFactory {
     fn create(&self, url: ServoUrl, method: Method, headers: Headers)
               -> Result<HyperRequest<Fresh>, NetworkError> {
         let connection = HyperRequest::with_connector(method,
-                                                      url.clone().into_url().unwrap(),
+                                                      url.clone().into_url(),
                                                       &*self.connector);
 
         if let Err(HttpError::Ssl(ref error)) = connection {
@@ -222,7 +222,7 @@ fn strict_origin_when_cross_origin(referrer_url: ServoUrl, url: ServoUrl) -> Opt
 fn strip_url(mut referrer_url: ServoUrl, origin_only: bool) -> Option<ServoUrl> {
     if referrer_url.scheme() == "https" || referrer_url.scheme() == "http" {
         {
-            let referrer = referrer_url.as_mut_url().unwrap();
+            let referrer = referrer_url.as_mut_url();
             referrer.set_username("").unwrap();
             referrer.set_password(None).unwrap();
             referrer.set_fragment(None);
