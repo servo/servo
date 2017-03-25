@@ -19,7 +19,7 @@ use style_traits::values::specified::AllowedNumericType;
 use super::{Angle, Number, SimplifiedValueNode, SimplifiedSumNode, Time};
 use values::{Auto, CSSFloat, Either, FONT_MEDIUM_PX, HasViewportPercentage, None_, Normal};
 use values::ExtremumLength;
-use values::computed::Context;
+use values::computed::{ComputedValueAsSpecified, Context};
 
 pub use super::image::{AngleOrCorner, ColorStop, EndingShape as GradientEndingShape, Gradient};
 pub use super::image::{GradientKind, HorizontalDirection, Image, LengthOrKeyword, LengthOrPercentageOrKeyword};
@@ -920,6 +920,8 @@ impl Parse for Percentage {
         }
     }
 }
+
+impl ComputedValueAsSpecified for Percentage {}
 
 /// A length or a percentage value.
 ///

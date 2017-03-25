@@ -11,7 +11,7 @@ use cssparser::Color as CSSColor;
 use std::f32::consts::PI;
 use std::fmt;
 use style_traits::ToCss;
-use values::computed::{Angle, Context, Length, LengthOrPercentage, ToComputedValue};
+use values::computed::{Angle, Context, Length, LengthOrPercentage, NumberOrPercentage, ToComputedValue};
 use values::computed::position::Position;
 use values::specified::{self, HorizontalDirection, SizeKeyword, VerticalDirection};
 use values::specified::url::SpecifiedUrl;
@@ -28,6 +28,9 @@ impl ToComputedValue for specified::Image {
             },
             specified::Image::Gradient(ref gradient) => {
                 Image::Gradient(gradient.to_computed_value(context))
+            },
+            specified::Image::ImageRect(ref image_rect) => {
+                Image::ImageRect(image_rect.to_computed_value(context))
             }
         }
     }
@@ -42,7 +45,12 @@ impl ToComputedValue for specified::Image {
                 specified::Image::Gradient(
                     ToComputedValue::from_computed_value(linear_gradient)
                 )
-            }
+            },
+            Image::ImageRect(ref image_rect) => {
+                specified::Image::ImageRect(
+                    ToComputedValue::from_computed_value(image_rect)
+                )
+            },
         }
     }
 }
@@ -55,6 +63,7 @@ impl ToComputedValue for specified::Image {
 pub enum Image {
     Url(SpecifiedUrl),
     Gradient(Gradient),
+    ImageRect(ImageRect),
 }
 
 impl fmt::Debug for Image {
@@ -70,6 +79,7 @@ impl fmt::Debug for Image {
                     GradientKind::Radial(_, _) => write!(f, "radial-gradient({:?})", grad),
                 }
             },
+            Image::ImageRect(ref image_rect) => write!(f, "{:?}", image_rect),
         }
     }
 }
@@ -78,7 +88,8 @@ impl ToCss for Image {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
             Image::Url(ref url) => url.to_css(dest),
-            Image::Gradient(ref gradient) => gradient.to_css(dest)
+            Image::Gradient(ref gradient) => gradient.to_css(dest),
+            Image::ImageRect(ref image_rect) => image_rect.to_css(dest),
         }
     }
 }
@@ -332,6 +343,59 @@ impl ToComputedValue for specified::GradientEndingShape {
             EndingShape::Ellipse(ref length) => {
                 specified::GradientEndingShape::Ellipse(ToComputedValue::from_computed_value(length))
             },
+        }
+    }
+}
+
+/// Computed values for ImageRect
+#[derive(Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
+pub struct ImageRect {
+    pub url: SpecifiedUrl,
+    pub top: NumberOrPercentage,
+    pub bottom: NumberOrPercentage,
+    pub right: NumberOrPercentage,
+    pub left: NumberOrPercentage,
+}
+
+impl ToCss for ImageRect {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        dest.write_str("-moz-image-rect(")?;
+        self.url.to_css(dest)?;
+        dest.write_str(", ")?;
+        self.top.to_css(dest)?;
+        dest.write_str(", ")?;
+        self.right.to_css(dest)?;
+        dest.write_str(", ")?;
+        self.bottom.to_css(dest)?;
+        dest.write_str(", ")?;
+        self.left.to_css(dest)?;
+        dest.write_str(")")
+    }
+}
+
+impl ToComputedValue for specified::ImageRect {
+    type ComputedValue = ImageRect;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> ImageRect {
+        ImageRect {
+            url: self.url.to_computed_value(context),
+            top: self.top.to_computed_value(context),
+            right: self.right.to_computed_value(context),
+            bottom: self.bottom.to_computed_value(context),
+            left: self.left.to_computed_value(context),
+        }
+    }
+    #[inline]
+    fn from_computed_value(computed: &ImageRect) -> Self {
+        specified::ImageRect {
+            url: ToComputedValue::from_computed_value(&computed.url),
+            top: ToComputedValue::from_computed_value(&computed.top),
+            right: ToComputedValue::from_computed_value(&computed.right),
+            bottom: ToComputedValue::from_computed_value(&computed.bottom),
+            left: ToComputedValue::from_computed_value(&computed.left),
         }
     }
 }

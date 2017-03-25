@@ -15,12 +15,12 @@ use super::{CSSFloat, CSSInteger, RGBA, specified};
 use super::specified::grid::{TrackBreadth as GenericTrackBreadth, TrackSize as GenericTrackSize};
 
 pub use cssparser::Color as CSSColor;
-pub use self::image::{AngleOrCorner, EndingShape as GradientShape, Gradient, GradientKind, Image};
+pub use self::image::{AngleOrCorner, EndingShape as GradientShape, Gradient, GradientKind, Image, ImageRect};
 pub use self::image::{LengthOrKeyword, LengthOrPercentageOrKeyword};
 pub use super::{Auto, Either, None_};
 #[cfg(feature = "gecko")]
 pub use super::specified::{AlignItems, AlignJustifyContent, AlignJustifySelf, JustifyItems};
-pub use super::specified::{Angle, BorderStyle, GridLine, Time, UrlOrNone};
+pub use super::specified::{Angle, BorderStyle, GridLine, Percentage, Time, UrlOrNone};
 pub use super::specified::url::SpecifiedUrl;
 pub use self::length::{CalcLengthOrPercentage, Length, LengthOrNumber, LengthOrPercentage, LengthOrPercentageOrAuto};
 pub use self::length::{LengthOrPercentageOrAutoOrContent, LengthOrPercentageOrNone, LengthOrNone};
@@ -263,6 +263,46 @@ pub struct Shadow {
 
 /// A `<number>` value.
 pub type Number = CSSFloat;
+
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
+pub enum NumberOrPercentage {
+    Percentage(Percentage),
+    Number(Number),
+}
+
+impl ToComputedValue for specified::NumberOrPercentage {
+    type ComputedValue = NumberOrPercentage;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> NumberOrPercentage {
+        match *self {
+            specified::NumberOrPercentage::Percentage(percentage) =>
+                NumberOrPercentage::Percentage(percentage.to_computed_value(context)),
+            specified::NumberOrPercentage::Number(number) =>
+                NumberOrPercentage::Number(number.to_computed_value(context)),
+        }
+    }
+    #[inline]
+    fn from_computed_value(computed: &NumberOrPercentage) -> Self {
+        match *computed {
+            NumberOrPercentage::Percentage(percentage) =>
+                specified::NumberOrPercentage::Percentage(ToComputedValue::from_computed_value(&percentage)),
+            NumberOrPercentage::Number(number) =>
+                specified::NumberOrPercentage::Number(ToComputedValue::from_computed_value(&number)),
+        }
+    }
+}
+
+impl ToCss for NumberOrPercentage {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            NumberOrPercentage::Percentage(percentage) => percentage.to_css(dest),
+            NumberOrPercentage::Number(number) => number.to_css(dest),
+        }
+    }
+}
 
 /// A type used for opacity.
 pub type Opacity = CSSFloat;

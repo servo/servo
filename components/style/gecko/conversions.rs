@@ -9,8 +9,9 @@
 #![allow(unsafe_code)]
 
 use app_units::Au;
-use gecko::values::convert_rgba_to_nscolor;
+use gecko::values::{convert_rgba_to_nscolor, GeckoStyleCoordConvertible};
 use gecko_bindings::bindings::{Gecko_CreateGradient, Gecko_SetGradientImageValue, Gecko_SetUrlImageValue};
+use gecko_bindings::bindings::Gecko_InitializeImageCropRect;
 use gecko_bindings::structs::{nsStyleCoord_CalcValue, nsStyleImage};
 use gecko_bindings::structs::nsresult;
 use gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordDataMut};
@@ -118,6 +119,28 @@ impl nsStyleImage {
                     *cacheable = false;
                 }
             },
+            Image::ImageRect(ref image_rect) if with_url => {
+                unsafe {
+                    Gecko_SetUrlImageValue(self, image_rect.url.for_ffi());
+                    Gecko_InitializeImageCropRect(self);
+
+                    // We unfortunately must make any url() value uncacheable, since
+                    // the applicable declarations cache is not per document, but
+                    // global, and the imgRequestProxy objects we store in the style
+                    // structs don't like to be tracked by more than one document.
+                    //
+                    // FIXME(emilio): With the scoped TLS thing this is no longer
+                    // true, remove this line in a follow-up!
+                    *cacheable = false;
+
+                    // Set CropRect
+                    let ref mut rect = *self.mCropRect.mPtr;
+                    image_rect.top.to_gecko_style_coord(&mut rect.data_at_mut(0));
+                    image_rect.right.to_gecko_style_coord(&mut rect.data_at_mut(1));
+                    image_rect.bottom.to_gecko_style_coord(&mut rect.data_at_mut(2));
+                    image_rect.left.to_gecko_style_coord(&mut rect.data_at_mut(3));
+                }
+            }
             _ => (),
         }
     }

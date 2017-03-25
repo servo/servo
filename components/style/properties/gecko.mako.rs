@@ -898,17 +898,9 @@ fn static_assert() {
 
     pub fn set_border_image_slice(&mut self, v: longhands::border_image_slice::computed_value::T) {
         use gecko_bindings::structs::{NS_STYLE_BORDER_IMAGE_SLICE_NOFILL, NS_STYLE_BORDER_IMAGE_SLICE_FILL};
-        use properties::longhands::border_image_slice::computed_value::PercentageOrNumber;
 
         for (i, corner) in v.corners.iter().enumerate() {
-            match *corner {
-                PercentageOrNumber::Percentage(p) => {
-                    self.gecko.mBorderImageSlice.data_at_mut(i).set_value(CoordDataValue::Percent(p.0))
-                },
-                PercentageOrNumber::Number(n) => {
-                    self.gecko.mBorderImageSlice.data_at_mut(i).set_value(CoordDataValue::Factor(n))
-                },
-            }
+            corner.to_gecko_style_coord(&mut self.gecko.mBorderImageSlice.data_at_mut(i));
         }
 
         let fill = if v.fill {

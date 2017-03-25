@@ -26,8 +26,8 @@ pub use self::align::{AlignItems, AlignJustifyContent, AlignJustifySelf, Justify
 pub use self::color::Color;
 pub use self::grid::{GridLine, TrackKeyword};
 pub use self::image::{AngleOrCorner, ColorStop, EndingShape as GradientEndingShape, Gradient};
-pub use self::image::{GradientKind, HorizontalDirection, Image, LengthOrKeyword, LengthOrPercentageOrKeyword};
-pub use self::image::{SizeKeyword, VerticalDirection};
+pub use self::image::{GradientKind, HorizontalDirection, Image, ImageRect, LengthOrKeyword};
+pub use self::image::{LengthOrPercentageOrKeyword, SizeKeyword, VerticalDirection};
 pub use self::length::{FontRelativeLength, ViewportPercentageLength, CharacterWidth, Length, CalcLengthOrPercentage};
 pub use self::length::{Percentage, LengthOrNone, LengthOrNumber, LengthOrPercentage, LengthOrPercentageOrAuto};
 pub use self::length::{LengthOrPercentageOrNone, LengthOrPercentageOrAutoOrContent, NoCalcLength, CalcUnit};
@@ -569,6 +569,38 @@ impl ToComputedValue for Number {
 impl ToCss for Number {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         self.0.to_css(dest)
+    }
+}
+
+/// <number-percentage>
+/// Accepts only non-negative numbers.
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
+pub enum NumberOrPercentage {
+    Percentage(Percentage),
+    Number(Number),
+}
+
+no_viewport_percentage!(NumberOrPercentage);
+
+impl Parse for NumberOrPercentage {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        if let Ok(per) = input.try(|input| Percentage::parse(context, input)) {
+            return Ok(NumberOrPercentage::Percentage(per));
+        }
+
+        let num = try!(Number::parse_non_negative(input));
+        Ok(NumberOrPercentage::Number(num))
+    }
+}
+
+impl ToCss for NumberOrPercentage {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            NumberOrPercentage::Percentage(percentage) => percentage.to_css(dest),
+            NumberOrPercentage::Number(number) => number.to_css(dest),
+        }
     }
 }
 

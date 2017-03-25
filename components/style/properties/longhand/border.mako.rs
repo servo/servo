@@ -562,32 +562,25 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
     use std::fmt;
     use style_traits::ToCss;
     use values::HasViewportPercentage;
-    use values::specified::{Number, Percentage};
+    use values::computed::NumberOrPercentage as ComputedNumberOrPercentage;
+    use values::specified::{NumberOrPercentage, Percentage};
 
     no_viewport_percentage!(SpecifiedValue);
 
     pub mod computed_value {
-        use values::computed::Number;
-        use values::specified::Percentage;
+        use values::computed::NumberOrPercentage;
         #[derive(Debug, Clone, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T {
-            pub corners: Vec<PercentageOrNumber>,
+            pub corners: Vec<NumberOrPercentage>,
             pub fill: bool,
-        }
-
-        #[derive(Debug, Clone, PartialEq)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub enum PercentageOrNumber {
-            Percentage(Percentage),
-            Number(Number),
         }
     }
 
     #[derive(Debug, Clone, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue {
-        pub corners: Vec<PercentageOrNumber>,
+        pub corners: Vec<NumberOrPercentage>,
         pub fill: bool,
     }
 
@@ -622,60 +615,13 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
         }
     }
 
-    #[derive(Debug, Clone, PartialEq)]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub enum PercentageOrNumber {
-        Percentage(Percentage),
-        Number(Number),
-    }
-
-    impl ToCss for computed_value::PercentageOrNumber {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self {
-                computed_value::PercentageOrNumber::Percentage(percentage) => percentage.to_css(dest),
-                computed_value::PercentageOrNumber::Number(number) => number.to_css(dest),
-            }
-        }
-    }
-    impl ToCss for PercentageOrNumber {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self {
-                PercentageOrNumber::Percentage(percentage) => percentage.to_css(dest),
-                PercentageOrNumber::Number(number) => number.to_css(dest),
-            }
-        }
-    }
-
-    impl ToComputedValue for PercentageOrNumber {
-        type ComputedValue = computed_value::PercentageOrNumber;
-
-        #[inline]
-        fn to_computed_value(&self, context: &Context) -> computed_value::PercentageOrNumber {
-            match *self {
-                PercentageOrNumber::Percentage(percentage) =>
-                    computed_value::PercentageOrNumber::Percentage(percentage),
-                PercentageOrNumber::Number(number) =>
-                    computed_value::PercentageOrNumber::Number(number.to_computed_value(context)),
-            }
-        }
-        #[inline]
-        fn from_computed_value(computed: &computed_value::PercentageOrNumber) -> Self {
-            match *computed {
-                computed_value::PercentageOrNumber::Percentage(percentage) =>
-                    PercentageOrNumber::Percentage(percentage),
-                computed_value::PercentageOrNumber::Number(number) =>
-                    PercentageOrNumber::Number(ToComputedValue::from_computed_value(&number)),
-            }
-        }
-    }
-
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
         computed_value::T {
-            corners: vec![computed_value::PercentageOrNumber::Percentage(Percentage(1.0)),
-                          computed_value::PercentageOrNumber::Percentage(Percentage(1.0)),
-                          computed_value::PercentageOrNumber::Percentage(Percentage(1.0)),
-                          computed_value::PercentageOrNumber::Percentage(Percentage(1.0))],
+            corners: vec![ComputedNumberOrPercentage::Percentage(Percentage(1.0)),
+                          ComputedNumberOrPercentage::Percentage(Percentage(1.0)),
+                          ComputedNumberOrPercentage::Percentage(Percentage(1.0)),
+                          ComputedNumberOrPercentage::Percentage(Percentage(1.0))],
             fill: false,
         }
     }
@@ -683,7 +629,7 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
     #[inline]
     pub fn get_initial_specified_value() -> SpecifiedValue {
         SpecifiedValue {
-            corners: vec![PercentageOrNumber::Percentage(Percentage(1.0))],
+            corners: vec![NumberOrPercentage::Percentage(Percentage(1.0))],
             fill: false,
         }
     }
@@ -730,23 +676,12 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
         }
     }
 
-    impl Parse for PercentageOrNumber {
-        fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-            if let Ok(per) = input.try(|input| Percentage::parse(context, input)) {
-                return Ok(PercentageOrNumber::Percentage(per));
-            }
-
-            let num = try!(Number::parse_non_negative(input));
-            Ok(PercentageOrNumber::Number(num))
-        }
-    }
-
     pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
         let mut fill = input.try(|input| input.expect_ident_matching("fill")).is_ok();
 
         let mut values = vec![];
         for _ in 0..4 {
-            let value = input.try(|input| PercentageOrNumber::parse(context, input));
+            let value = input.try(|input| NumberOrPercentage::parse(context, input));
             match value {
                 Ok(val) => values.push(val),
                 Err(_) => break,

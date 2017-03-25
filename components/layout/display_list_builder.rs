@@ -46,7 +46,7 @@ use std::mem;
 use std::sync::Arc;
 use style::computed_values::{background_attachment, background_clip, background_origin};
 use style::computed_values::{background_repeat, background_size, border_style};
-use style::computed_values::{cursor, image_rendering, overflow_x, border_image_slice};
+use style::computed_values::{cursor, image_rendering, overflow_x};
 use style::computed_values::{pointer_events, position, transform_style, visibility};
 use style::computed_values::_servo_overflow_clip_box as overflow_clip_box;
 use style::computed_values::filter::Filter;
@@ -58,6 +58,7 @@ use style::properties::style_structs;
 use style::servo::restyle_damage::REPAINT;
 use style::values::{RGBA, computed};
 use style::values::computed::{AngleOrCorner, Gradient, GradientKind, LengthOrPercentage, LengthOrPercentageOrAuto};
+use style::values::computed::NumberOrPercentage;
 use style::values::specified::{HorizontalDirection, VerticalDirection};
 use style_traits::CSSPixel;
 use style_traits::cursor::Cursor;
@@ -68,13 +69,13 @@ trait ResolvePercentage {
     fn resolve(&self, length: u32) -> u32;
 }
 
-impl ResolvePercentage for border_image_slice::PercentageOrNumber {
+impl ResolvePercentage for NumberOrPercentage {
     fn resolve(&self, length: u32) -> u32 {
         match *self {
-            border_image_slice::PercentageOrNumber::Percentage(p) => {
+            NumberOrPercentage::Percentage(p) => {
                 (p.0 * length as f32).round() as u32
             }
-            border_image_slice::PercentageOrNumber::Number(n) => {
+            NumberOrPercentage::Number(n) => {
                 n.round() as u32
             }
         }
@@ -610,6 +611,9 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                      i);
                     }
                 }
+                Some(computed::Image::ImageRect(_)) => {
+                    // TODO: Implement `-moz-image-rect`
+                }
             }
         }
     }
@@ -1074,6 +1078,9 @@ impl FragmentDisplayListBuilding for Fragment {
             }
             Some(computed::Image::Gradient(..)) => {
                 // TODO(gw): Handle border-image with gradient.
+            }
+            Some(computed::Image::ImageRect(..)) => {
+                // TODO: Handle border-image with `-moz-image-rect`.
             }
             Some(computed::Image::Url(ref image_url)) => {
                 if let Some(url) = image_url.url() {
