@@ -886,10 +886,7 @@ pub struct IframeDisplayItem {
 
 /// Paints a gradient.
 #[derive(Clone, Deserialize, HeapSizeOf, Serialize)]
-pub struct GradientDisplayItem {
-    /// Fields common to all display items.
-    pub base: BaseDisplayItem,
-
+pub struct Gradient {
     /// The start point of the gradient (computed during display list construction).
     pub start_point: Point2D<Au>,
 
@@ -898,6 +895,15 @@ pub struct GradientDisplayItem {
 
     /// A list of color stops.
     pub stops: Vec<GradientStop>,
+}
+
+#[derive(Clone, Deserialize, HeapSizeOf, Serialize)]
+pub struct GradientDisplayItem {
+    /// Fields common to all display item.
+    pub base: BaseDisplayItem,
+
+    /// Contains all gradient data. Included start, end point and color stops.
+    pub gradient: Gradient,
 }
 
 /// A normal border, supporting CSS border styles.
@@ -939,11 +945,22 @@ pub struct ImageBorder {
     pub repeat_vertical: webrender_traits::RepeatMode,
 }
 
+/// A border that is made of linear gradient
+#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
+pub struct GradientBorder {
+    /// The gradient info that this border uses, border-image-source.
+    pub gradient: Gradient,
+
+    /// Outsets for the border, as per border-image-outset.
+    pub outset: SideOffsets2D<f32>,
+}
+
 /// Specifies the type of border
 #[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
 pub enum BorderDetails {
     Normal(NormalBorder),
     Image(ImageBorder),
+    Gradient(GradientBorder),
 }
 
 /// Paints a border.

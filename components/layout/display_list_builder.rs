@@ -20,6 +20,7 @@ use flow::{BaseFlow, Flow, IS_ABSOLUTELY_POSITIONED};
 use flow_ref::FlowRef;
 use fragment::{CoordinateSystem, Fragment, ImageFragmentInfo, ScannedTextFragmentInfo};
 use fragment::{SpecificFragmentInfo, TruncatedFragmentInfo};
+use gfx::display_list;
 use gfx::display_list::{BLUR_INFLATION_FACTOR, BaseDisplayItem, BorderDetails};
 use gfx::display_list::{BorderDisplayItem, ImageBorder, NormalBorder};
 use gfx::display_list::{BorderRadii, BoxShadowClipMode, BoxShadowDisplayItem, ClippingRegion};
@@ -349,6 +350,12 @@ pub trait FragmentDisplayListBuilding {
                                                clip: &ClippingRegion,
                                                image_url: &ServoUrl,
                                                background_index: usize);
+
+    fn convert_gradient(&self,
+                        absolute_bounds: &Rect<Au>,
+                        gradient: &Gradient,
+                        style: &ServoComputedValues)
+                        -> Option<display_list::Gradient>;
 
     /// Adds the display items necessary to paint the background linear gradient of this fragment
     /// to the appropriate section of the display list.
@@ -831,20 +838,13 @@ impl FragmentDisplayListBuilding for Fragment {
         }
     }
 
-    fn build_display_list_for_background_gradient(&self,
-                                                  state: &mut DisplayListBuildState,
-                                                  display_list_section: DisplayListSection,
-                                                  absolute_bounds: &Rect<Au>,
-                                                  clip: &ClippingRegion,
-                                                  gradient: &Gradient,
-                                                  style: &ServoComputedValues) {
-        let mut clip = clip.clone();
-        clip.intersect_rect(absolute_bounds);
-
-
+    fn convert_gradient(&self,
+                        absolute_bounds: &Rect<Au>,
+                        gradient: &Gradient,
+                        style: &ServoComputedValues) -> Option<display_list::Gradient> {
         // FIXME: Repeating gradients aren't implemented yet.
         if gradient.repeating {
-          return;
+          return None;
         }
         let angle = if let GradientKind::Linear(angle_or_corner) = gradient.gradient_kind {
             match angle_or_corner {
@@ -869,7 +869,7 @@ impl FragmentDisplayListBuilding for Fragment {
             }
         } else {
             // FIXME: Radial gradients aren't implemented yet.
-            return;
+            return None;
         };
 
         // Get correct gradient line length, based on:
@@ -953,19 +953,39 @@ impl FragmentDisplayListBuilding for Fragment {
         let center = Point2D::new(absolute_bounds.origin.x + absolute_bounds.size.width / 2,
                                   absolute_bounds.origin.y + absolute_bounds.size.height / 2);
 
-        let base = state.create_base_display_item(absolute_bounds,
-                                                  &clip,
-                                                  self.node,
-                                                  style.get_cursor(Cursor::Default),
-                                                  display_list_section);
-        let gradient_display_item = DisplayItem::Gradient(box GradientDisplayItem {
-            base: base,
+        Some(display_list::Gradient {
             start_point: center - delta,
             end_point: center + delta,
             stops: stops,
-        });
+        })
+    }
 
-        state.add_display_item(gradient_display_item);
+    fn build_display_list_for_background_gradient(&self,
+                                                  state: &mut DisplayListBuildState,
+                                                  display_list_section: DisplayListSection,
+                                                  absolute_bounds: &Rect<Au>,
+                                                  clip: &ClippingRegion,
+                                                  gradient: &Gradient,
+                                                  style: &ServoComputedValues) {
+        let mut clip = clip.clone();
+        clip.intersect_rect(absolute_bounds);
+
+        let grad = self.convert_gradient(absolute_bounds, gradient, style);
+
+        if let Some(x) = grad {
+            let base = state.create_base_display_item(absolute_bounds,
+                                                      &clip,
+                                                      self.node,
+                                                      style.get_cursor(Cursor::Default),
+                                                      display_list_section);
+
+            let gradient_display_item = DisplayItem::Gradient(box GradientDisplayItem {
+                base: base,
+                gradient: x,
+            });
+
+            state.add_display_item(gradient_display_item);
+        }
     }
 
     fn build_display_list_for_box_shadow_if_applicable(&self,
@@ -1076,8 +1096,28 @@ impl FragmentDisplayListBuilding for Fragment {
                     }),
                 }));
             }
-            Some(computed::Image::Gradient(..)) => {
-                // TODO(gw): Handle border-image with gradient.
+            Some(computed::Image::Gradient(ref gradient)) => {
+                match gradient.gradient_kind {
+                    GradientKind::Linear(_) => {
+                        let grad = self.convert_gradient(&bounds, gradient, style);
+
+                        if let Some(x) = grad {
+                            state.add_display_item(DisplayItem::Border(box BorderDisplayItem {
+                                base: base,
+                                border_widths: border.to_physical(style.writing_mode),
+                                details: BorderDetails::Gradient(display_list::GradientBorder {
+                                    gradient: x,
+
+                                    // TODO(gw): Support border-image-outset
+                                    outset: SideOffsets2D::zero(),
+                                }),
+                            }));
+                        }
+                    }
+                    GradientKind::Radial(_, _) => {
+                        // TODO(gw): Handle border-image with radial gradient.
+                    }
+                }
             }
             Some(computed::Image::ImageRect(..)) => {
                 // TODO: Handle border-image with `-moz-image-rect`.

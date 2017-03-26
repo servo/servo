@@ -351,20 +351,30 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                             }
                         }
                     }
+                    BorderDetails::Gradient(ref gradient) => {
+                        webrender_traits::BorderDetails::Gradient(webrender_traits::GradientBorder {
+                            gradient: builder.create_gradient(
+                                          gradient.gradient.start_point.to_pointf(),
+                                          gradient.gradient.end_point.to_pointf(),
+                                          gradient.gradient.stops.clone(),
+                                          ExtendMode::Clamp),
+                            outset: gradient.outset,
+                        })
+                    }
                 };
 
                 builder.push_border(rect, clip, widths, details);
             }
             DisplayItem::Gradient(ref item) => {
                 let rect = item.base.bounds.to_rectf();
-                let start_point = item.start_point.to_pointf();
-                let end_point = item.end_point.to_pointf();
+                let start_point = item.gradient.start_point.to_pointf();
+                let end_point = item.gradient.end_point.to_pointf();
                 let clip = item.base.clip.to_clip_region(builder);
                 builder.push_gradient(rect,
                                       clip,
                                       start_point,
                                       end_point,
-                                      item.stops.clone(),
+                                      item.gradient.stops.clone(),
                                       ExtendMode::Clamp);
             }
             DisplayItem::Line(..) => {
