@@ -538,8 +538,8 @@ impl Parse for Number {
 impl Number {
     fn parse_with_minimum(input: &mut Parser, min: CSSFloat) -> Result<Number, ()> {
         match parse_number(input) {
-            Ok(value) if value < min => Err(()),
-            value => value.map(Number),
+            Ok(value) if value >= min => Ok(Number(value)),
+            _ => Err(()),
         }
     }
 
