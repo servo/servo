@@ -270,18 +270,20 @@
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             if self.0.is_empty() {
-                try!(write!(dest, "none"));
-            } else {
-                let mut first = true;
-                for pair in &self.0 {
-                    if !first {
-                        try!(dest.write_str(" "));
-                    }
-                    first = false;
-                    try!(serialize_identifier(&pair.0, dest));
-                    try!(write!(dest, " {}", pair.1));
-                }
+                try!(dest.write_str("none"));
+                Ok(())
             }
+
+            let mut first = true;
+            for pair in &self.0 {
+                if !first {
+                    try!(dest.write_str(" "));
+                }
+                first = false;
+                try!(serialize_identifier(&pair.0, dest));
+                try!(write!(dest, " {}", pair.1));
+            }
+
             Ok(())
         }
     }
