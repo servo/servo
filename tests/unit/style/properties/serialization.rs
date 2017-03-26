@@ -1170,4 +1170,30 @@ mod shorthand_serialization {
             assert_eq!(shadow.to_css_string(), shadow_css);
         }
     }
+
+    mod counter_increment {
+        pub use super::*;
+        pub use style::properties::longhands::counter_increment::SpecifiedValue as CounterIncrement;
+
+        #[test]
+        fn counter_increment_with_properties_should_serialize_correctly() {
+            let mut properties = Vec::new();
+
+            properties.push(("counter1".to_owned(), 1));
+            properties.push(("counter2".to_owned(), -4));
+
+            let counter_increment = CounterIncrement(properties);
+            let counter_increment_css = "counter1 1 counter2 -4";
+
+            assert_eq!(counter_increment.to_css_string(), counter_increment_css);
+        }
+
+        #[test]
+        fn counter_increment_without_properties_should_serialize_correctly() {
+            let counter_increment = CounterIncrement(Vec::new());
+            let counter_increment_css = "none";
+
+            assert_eq!(counter_increment.to_css_string(), counter_increment_css);
+        }
+    }
 }
