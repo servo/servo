@@ -31,6 +31,28 @@ pub struct PerLevelTraversalData {
     pub current_dom_depth: Option<usize>,
 }
 
+bitflags! {
+    /// Represents that target elements of the traversal.
+    pub flags TraversalFlags: u8 {
+        /// Traverse only unstyled children.
+        const UNSTYLED_CHILDREN_ONLY = 0x01,
+        /// Traverse only elements for animation restyles
+        const ANIMATION_ONLY = 0x02,
+    }
+}
+
+impl TraversalFlags {
+    /// Returns true if the traversal is for animation-only restyles.
+    pub fn for_animation_only(&self) -> bool {
+        self.contains(ANIMATION_ONLY)
+    }
+
+    /// Returns true if the traversal is for unstyled children.
+    pub fn for_unstyled_children_only(&self) -> bool {
+        self.contains(UNSTYLED_CHILDREN_ONLY)
+    }
+}
+
 /// This structure exists to enforce that callers invoke pre_traverse, and also
 /// to pass information from the pre-traversal into the primary traversal.
 pub struct PreTraverseToken {
@@ -109,12 +131,13 @@ pub trait DomTraversal<E: TElement> : Sync {
     /// a traversal is needed. Returns a token that allows the caller to prove
     /// that the call happened.
     ///
-    /// The unstyled_children_only parameter is used in Gecko to style newly-
+    /// The traversal_flag is used in Gecko.
+    /// If traversal_flag::UNSTYLED_CHILDREN_ONLY is specified, style newly-
     /// appended children without restyling the parent.
-    fn pre_traverse(root: E, stylist: &Stylist, unstyled_children_only: bool)
+    fn pre_traverse(root: E, stylist: &Stylist, traversal_flags: TraversalFlags)
                     -> PreTraverseToken
     {
-        if unstyled_children_only {
+        if traversal_flags.for_unstyled_children_only() {
             return PreTraverseToken {
                 traverse: true,
                 unstyled_children_only: true,

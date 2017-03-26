@@ -83,7 +83,8 @@ use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
 use style::supports::parse_condition_or_declaration;
 use style::thread_state;
 use style::timer::Timer;
-use style::traversal::{resolve_style, DomTraversal, TraversalDriver};
+use style::traversal::{resolve_style, DomTraversal, TraversalDriver, TraversalFlags};
+use style::traversal::UNSTYLED_CHILDREN_ONLY;
 use style_traits::ToCss;
 use super::stylesheet_loader::StylesheetLoader;
 
@@ -143,7 +144,7 @@ fn create_shared_context<'a>(guard: &'a SharedRwLockReadGuard,
 }
 
 fn traverse_subtree(element: GeckoElement, raw_data: RawServoStyleSetBorrowed,
-                    unstyled_children_only: bool) {
+                    traversal_flags: TraversalFlags) {
     // When new content is inserted in a display:none subtree, we will call into
     // servo to try to style it. Detect that here and bail out.
     if let Some(parent) = element.parent_element() {
@@ -155,7 +156,7 @@ fn traverse_subtree(element: GeckoElement, raw_data: RawServoStyleSetBorrowed,
 
     let per_doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow();
 
-    let token = RecalcStyleOnly::pre_traverse(element, &per_doc_data.stylist, unstyled_children_only);
+    let token = RecalcStyleOnly::pre_traverse(element, &per_doc_data.stylist, traversal_flags);
     if !token.should_traverse() {
         return;
     }
@@ -192,8 +193,13 @@ pub extern "C" fn Servo_TraverseSubtree(root: RawGeckoElementBorrowed,
                                         behavior: structs::TraversalRootBehavior) -> bool {
     let element = GeckoElement(root);
     debug!("Servo_TraverseSubtree: {:?}", element);
-    traverse_subtree(element, raw_data,
-                     behavior == structs::TraversalRootBehavior::UnstyledChildrenOnly);
+
+    let traversal_flags = match behavior {
+        structs::TraversalRootBehavior::UnstyledChildrenOnly => UNSTYLED_CHILDREN_ONLY,
+        _ => TraversalFlags::empty(),
+    };
+
+    traverse_subtree(element, raw_data, traversal_flags);
 
     element.has_dirty_descendants() || element.mutate_data().unwrap().has_restyle()
 }

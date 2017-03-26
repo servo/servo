@@ -120,7 +120,7 @@ use style::stylesheets::{Origin, Stylesheet, UserAgentStylesheets};
 use style::stylist::Stylist;
 use style::thread_state;
 use style::timer::Timer;
-use style::traversal::{DomTraversal, TraversalDriver};
+use style::traversal::{DomTraversal, TraversalDriver, TraversalFlags};
 
 /// Information needed by the layout thread.
 pub struct LayoutThread {
@@ -1143,7 +1143,7 @@ impl LayoutThread {
             let stylist = &<RecalcStyleAndConstructFlows as
                             DomTraversal<ServoLayoutElement>>::shared_context(&traversal).stylist;
             <RecalcStyleAndConstructFlows as
-             DomTraversal<ServoLayoutElement>>::pre_traverse(element, stylist, /* skip_root = */ false)
+             DomTraversal<ServoLayoutElement>>::pre_traverse(element, stylist, TraversalFlags::empty())
         };
 
         if token.should_traverse() {
