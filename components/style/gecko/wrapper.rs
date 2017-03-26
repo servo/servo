@@ -626,6 +626,7 @@ impl<'le> PresentationalHintsSynthetizer for GeckoElement<'le> {
     {
         use properties::longhands::text_align::SpecifiedValue as SpecifiedTextAlign;
         use properties::longhands::color::SpecifiedValue as SpecifiedColor;
+        use properties::longhands::_x_lang::SpecifiedValue as SpecifiedLang;
         use values::specified::color::Color;
         lazy_static! {
             static ref TH_RULE: ApplicableDeclarationBlock = {
@@ -646,15 +647,29 @@ impl<'le> PresentationalHintsSynthetizer for GeckoElement<'le> {
                 let arc = Arc::new(global_style_data.shared_lock.wrap(pdb));
                 ApplicableDeclarationBlock::from_declarations(arc, ServoCascadeLevel::PresHints)
             };
+            static ref MATHML_LANG_RULE: ApplicableDeclarationBlock = {
+                let global_style_data = &*GLOBAL_STYLE_DATA;
+                let pdb = PropertyDeclarationBlock::with_one(
+                    PropertyDeclaration::XLang(SpecifiedLang(atom!("x-math"))),
+                    Importance::Normal
+                );
+                let arc = Arc::new(global_style_data.shared_lock.wrap(pdb));
+                ApplicableDeclarationBlock::from_declarations(arc, ServoCascadeLevel::PresHints)
+            };
         };
 
+        let ns = self.get_namespace();
         // <th> elements get a default MozCenterOrInherit which may get overridden
-        if self.get_namespace() == &*Namespace(atom!("http://www.w3.org/1999/xhtml")) {
+        if ns == &*Namespace(atom!("http://www.w3.org/1999/xhtml")) {
             if self.get_local_name().as_ptr() == atom!("th").as_ptr() {
                 hints.push(TH_RULE.clone());
             } else if self.get_local_name().as_ptr() == atom!("table").as_ptr() &&
                       self.as_node().owner_doc().mCompatMode == structs::nsCompatibility::eCompatibility_NavQuirks {
                 hints.push(TABLE_COLOR_RULE.clone());
+            }
+        } else if ns == &*Namespace(atom!("http://www.w3.org/1998/Math/MathML")) {
+            if self.get_local_name().as_ptr() == atom!("math").as_ptr() {
+                hints.push(MATHML_LANG_RULE.clone());
             }
         }
         let declarations = unsafe { Gecko_GetHTMLPresentationAttrDeclarationBlock(self.0) };
