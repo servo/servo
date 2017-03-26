@@ -909,15 +909,26 @@ impl ToCss for Percentage {
     }
 }
 
+impl Percentage {
+    fn parse_internal(input: &mut Parser, context: AllowedNumericType) -> Result<Self, ()> {
+        match try!(input.next()) {
+            Token::Percentage(ref value) if context.is_ok(value.unit_value) => {
+                Ok(Percentage(value.unit_value))
+            }
+            _ => Err(())
+        }
+    }
+
+    /// Parses a percentage token, but rejects it if it's negative.
+    pub fn parse_non_negative(input: &mut Parser) -> Result<Self, ()> {
+        Self::parse_internal(input, AllowedNumericType::NonNegative)
+    }
+}
+
 impl Parse for Percentage {
     #[inline]
     fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        let context = AllowedNumericType::All;
-        match try!(input.next()) {
-            Token::Percentage(ref value) if context.is_ok(value.unit_value) =>
-                Ok(Percentage(value.unit_value)),
-            _ => Err(())
-        }
+        Self::parse_internal(input, AllowedNumericType::All)
     }
 }
 
