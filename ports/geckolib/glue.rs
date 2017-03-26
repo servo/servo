@@ -1359,7 +1359,9 @@ pub extern "C" fn Servo_CSSSupports(cond: *const nsACString) -> bool {
 
 /// Only safe to call on the main thread, with exclusive access to the element and
 /// its ancestors.
-unsafe fn maybe_restyle<'a>(data: &'a mut AtomicRefMut<ElementData>, element: GeckoElement)
+unsafe fn maybe_restyle<'a>(data: &'a mut AtomicRefMut<ElementData>,
+                            element: GeckoElement,
+                            animation_only: bool)
     -> Option<&'a mut RestyleData>
 {
     // Don't generate a useless RestyleData if the element hasn't been styled.
@@ -1371,8 +1373,13 @@ unsafe fn maybe_restyle<'a>(data: &'a mut AtomicRefMut<ElementData>, element: Ge
     let mut curr = element;
     while let Some(parent) = curr.parent_element() {
         curr = parent;
-        if curr.has_dirty_descendants() { break; }
-        curr.set_dirty_descendants();
+        if animation_only {
+            if curr.has_animation_only_dirty_descendants() { break; }
+            curr.set_animation_only_dirty_descendants();
+        } else {
+            if curr.has_dirty_descendants() { break; }
+            curr.set_dirty_descendants();
+        }
     }
     bindings::Gecko_SetOwnerDocumentNeedsStyleFlush(element.0);
 
@@ -1387,7 +1394,7 @@ pub extern "C" fn Servo_Element_GetSnapshot(element: RawGeckoElementBorrowed) ->
     let snapshot = match element.mutate_data() {
         None => ptr::null_mut(),
         Some(mut data) => {
-            if let Some(restyle_data) = unsafe { maybe_restyle(&mut data, element) } {
+            if let Some(restyle_data) = unsafe { maybe_restyle(&mut data, element, false) } {
                 restyle_data.snapshot.ensure(|| element.create_snapshot()).borrow_mut_raw()
             } else {
                 ptr::null_mut()
@@ -1407,10 +1414,14 @@ pub extern "C" fn Servo_NoteExplicitHints(element: RawGeckoElementBorrowed,
     let damage = GeckoRestyleDamage::new(change_hint);
     debug!("Servo_NoteExplicitHints: {:?}, restyle_hint={:?}, change_hint={:?}",
            element, restyle_hint, change_hint);
+    debug_assert!(restyle_hint == structs::nsRestyleHint_eRestyle_CSSAnimations ||
+                  (restyle_hint.0 & structs::nsRestyleHint_eRestyle_CSSAnimations.0) == 0,
+                  "eRestyle_CSSAnimations should only appear by itself");
 
     let mut maybe_data = element.mutate_data();
-    let maybe_restyle_data =
-        maybe_data.as_mut().and_then(|d| unsafe { maybe_restyle(d, element) });
+    let maybe_restyle_data = maybe_data.as_mut().and_then(|d| unsafe {
+        maybe_restyle(d, element, restyle_hint == structs::nsRestyleHint_eRestyle_CSSAnimations)
+    });
     if let Some(restyle_data) = maybe_restyle_data {
         let restyle_hint: RestyleHint = restyle_hint.into();
         restyle_data.hint.insert(&restyle_hint.into());
