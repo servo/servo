@@ -180,9 +180,9 @@ pub enum AdjacentPosition {
 }
 
 impl<'a> TryFrom<&'a str> for AdjacentPosition {
-    type Err = Error;
+    type Error = Error;
 
-    fn try_from(position: &'a str) -> Result<AdjacentPosition, Self::Err> {
+    fn try_from(position: &'a str) -> Result<AdjacentPosition, Self::Error> {
         match_ignore_ascii_case! { &*position,
             "beforebegin" => Ok(AdjacentPosition::BeforeBegin),
             "afterbegin"  => Ok(AdjacentPosition::AfterBegin),
