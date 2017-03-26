@@ -83,8 +83,8 @@ use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
 use style::supports::parse_condition_or_declaration;
 use style::thread_state;
 use style::timer::Timer;
+use style::traversal::{ANIMATION_ONLY, UNSTYLED_CHILDREN_ONLY};
 use style::traversal::{resolve_style, DomTraversal, TraversalDriver, TraversalFlags};
-use style::traversal::UNSTYLED_CHILDREN_ONLY;
 use style_traits::ToCss;
 use super::stylesheet_loader::StylesheetLoader;
 
@@ -201,6 +201,11 @@ pub extern "C" fn Servo_TraverseSubtree(root: RawGeckoElementBorrowed,
         structs::TraversalRootBehavior::UnstyledChildrenOnly => UNSTYLED_CHILDREN_ONLY,
         _ => TraversalFlags::empty(),
     };
+
+    if element.has_animation_only_dirty_descendants() ||
+       element.has_animation_restyle_hints() {
+        traverse_subtree(element, raw_data, traversal_flags | ANIMATION_ONLY);
+    }
 
     traverse_subtree(element, raw_data, traversal_flags);
 
@@ -1612,7 +1617,7 @@ pub extern "C" fn Servo_AssertTreeIsClean(root: RawGeckoElementBorrowed) {
 
     let root = GeckoElement(root);
     fn assert_subtree_is_clean<'le>(el: GeckoElement<'le>) {
-        debug_assert!(!el.has_dirty_descendants());
+        debug_assert!(!el.has_dirty_descendants() && !el.has_animation_only_dirty_descendants());
         for child in el.as_node().children() {
             if let Some(child) = child.as_element() {
                 assert_subtree_is_clean(child);
