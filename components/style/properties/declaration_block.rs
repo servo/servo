@@ -411,11 +411,13 @@ impl ToCss for PropertyDeclarationBlock {
                         }
                     }
 
-                    // Substep 1
-                    /* Assuming that the PropertyDeclarationBlock contains no duplicate entries,
-                    if the current_longhands length is equal to the properties length, it means
-                    that the properties that map to shorthand are present in longhands */
-                    if current_longhands.is_empty() || current_longhands.len() != properties.len() {
+                    // Substep 1:
+                    //
+                    // Assuming that the PropertyDeclarationBlock contains no
+                    // duplicate entries, if the current_longhands length is
+                    // equal to the properties length, it means that the
+                    // properties that map to shorthand are present in longhands
+                    if current_longhands.len() != properties.len() {
                         continue;
                     }
 
@@ -488,12 +490,12 @@ impl ToCss for PropertyDeclarationBlock {
             // "error: unable to infer enough type information about `_`;
             //  type annotations or generic parameter binding required [E0282]"
             // Use the same type as earlier call to reuse generated code.
-            try!(append_serialization::<W, Cloned<slice::Iter< &PropertyDeclaration>>, _>(
+            append_serialization::<_, Cloned<slice::Iter<_>>, _>(
                 dest,
                 &property,
                 AppendableValue::Declaration(declaration),
                 importance,
-                &mut is_first_serialization));
+                &mut is_first_serialization)?;
 
             // Step 3.3.8
             already_serialized.push(property);
@@ -597,10 +599,10 @@ pub fn append_serialization<'a, W, I, N>(dest: &mut W,
     try!(append_declaration_value(dest, appendable_value));
 
     if importance.important() {
-        try!(write!(dest, " !important"));
+        try!(dest.write_str(" !important"));
     }
 
-    write!(dest, ";")
+    dest.write_char(';')
 }
 
 /// A helper to parse the style attribute of an element, in order for this to be
