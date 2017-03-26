@@ -211,8 +211,8 @@ impl ToComputedValue for specified::Color {
             specified::Color::MozVisitedHyperlinktext => to_rgba(pres_context.mVisitedLinkColor),
             specified::Color::InheritFromBodyQuirk => {
                 use dom::TElement;
-                use gecko_bindings::bindings::Gecko_GetBody;
                 use gecko::wrapper::GeckoElement;
+                use gecko_bindings::bindings::Gecko_GetBody;
                 let body = unsafe {
                     Gecko_GetBody(pres_context)
                 };

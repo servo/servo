@@ -480,6 +480,10 @@ extern "C" {
      -> *mut nsIAtom;
 }
 extern "C" {
+    pub fn Gecko_GetXMLLangValue(element: RawGeckoElementBorrowed)
+     -> *mut nsIAtom;
+}
+extern "C" {
     pub fn Gecko_AtomAttrValue(element: RawGeckoElementBorrowed,
                                attribute: *mut nsIAtom) -> *mut nsIAtom;
 }

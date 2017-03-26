@@ -624,9 +624,9 @@ impl<'le> PresentationalHintsSynthetizer for GeckoElement<'le> {
     fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
         where V: Push<ApplicableDeclarationBlock>,
     {
-        use properties::longhands::text_align::SpecifiedValue as SpecifiedTextAlign;
-        use properties::longhands::color::SpecifiedValue as SpecifiedColor;
         use properties::longhands::_x_lang::SpecifiedValue as SpecifiedLang;
+        use properties::longhands::color::SpecifiedValue as SpecifiedColor;
+        use properties::longhands::text_align::SpecifiedValue as SpecifiedTextAlign;
         use values::specified::color::Color;
         lazy_static! {
             static ref TH_RULE: ApplicableDeclarationBlock = {
@@ -667,10 +667,6 @@ impl<'le> PresentationalHintsSynthetizer for GeckoElement<'le> {
                       self.as_node().owner_doc().mCompatMode == structs::nsCompatibility::eCompatibility_NavQuirks {
                 hints.push(TABLE_COLOR_RULE.clone());
             }
-        } else if ns == &*Namespace(atom!("http://www.w3.org/1998/Math/MathML")) {
-            if self.get_local_name().as_ptr() == atom!("math").as_ptr() {
-                hints.push(MATHML_LANG_RULE.clone());
-            }
         }
         let declarations = unsafe { Gecko_GetHTMLPresentationAttrDeclarationBlock(self.0) };
         let declarations = declarations.and_then(|s| s.as_arc_opt());
@@ -685,6 +681,30 @@ impl<'le> PresentationalHintsSynthetizer for GeckoElement<'le> {
             hints.push(
                 ApplicableDeclarationBlock::from_declarations(Clone::clone(decl), ServoCascadeLevel::PresHints)
             );
+        }
+
+        // xml:lang has precedence over lang, which can be
+        // set by Gecko_GetHTMLPresentationAttrDeclarationBlock
+        //
+        // http://www.whatwg.org/specs/web-apps/current-work/multipage/elements.html#language
+        let ptr = unsafe {
+            bindings::Gecko_GetXMLLangValue(self.0)
+        };
+        if !ptr.is_null() {
+            let global_style_data = &*GLOBAL_STYLE_DATA;
+
+            let pdb = PropertyDeclarationBlock::with_one(
+                PropertyDeclaration::XLang(SpecifiedLang(Atom::from(ptr))),
+                Importance::Normal
+            );
+            let arc = Arc::new(global_style_data.shared_lock.wrap(pdb));
+            hints.push(ApplicableDeclarationBlock::from_declarations(arc, ServoCascadeLevel::PresHints))
+        }
+        // MathML's default lang has precedence over both `lang` and `xml:lang`
+        if ns == &*Namespace(atom!("http://www.w3.org/1998/Math/MathML")) {
+            if self.get_local_name().as_ptr() == atom!("math").as_ptr() {
+                hints.push(MATHML_LANG_RULE.clone());
+            }
         }
     }
 }
