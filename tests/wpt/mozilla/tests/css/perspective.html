@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>CSS Test: parsing perspective property</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+
+<body>
+    <div id="perspective0px" style="perspective: 0px"></div>
+    <div id="perspective100px" style="perspective: 100px"></div>
+    <div id="perspectiveNegative" style="perspective: -100px"></div>
+    <div id="perspective200PX" style="perspective: 200PX"></div>
+
+    <script>
+        test(function () {
+            var perspective0px = document.getElementById('perspective0px');
+            var perspective100px = document.getElementById('perspective100px')
+            var perspectiveNegative = document.getElementById('perspectiveNegative')
+            var perspective200PX = document.getElementById('perspective200PX')
+
+            assert_equals(perspective0px.style.perspective, '0px');
+            assert_equals(perspective100px.style.perspective, '100px');
+            assert_equals(perspectiveNegative.style.perspective, '');
+            assert_equals(perspective200PX.style.perspective, '200px');
+        });
+    </script>
+</body>
+
+</html>

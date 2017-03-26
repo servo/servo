@@ -458,6 +458,17 @@ impl Parse for Length {
     }
 }
 
+impl Either<Length, None_> {
+    #[inline]
+    #[allow(missing_docs)]
+    pub fn parse_non_negative_length(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        if input.try(|input| None_::parse(context, input)).is_ok() {
+            return Ok(Either::Second(None_));
+        }
+        Length::parse_internal(input, AllowedNumericType::NonNegative).map(Either::First)
+    }
+}
+
 impl Either<Length, Normal> {
     #[inline]
     #[allow(missing_docs)]
