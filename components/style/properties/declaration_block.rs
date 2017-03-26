@@ -411,11 +411,13 @@ impl ToCss for PropertyDeclarationBlock {
                         }
                     }
 
-                    // Substep 1
-                    /* Assuming that the PropertyDeclarationBlock contains no duplicate entries,
-                    if the current_longhands length is equal to the properties length, it means
-                    that the properties that map to shorthand are present in longhands */
-                    if current_longhands.is_empty() || current_longhands.len() != properties.len() {
+                    // Substep 1:
+                    //
+                    // Assuming that the PropertyDeclarationBlock contains no
+                    // duplicate entries, if the current_longhands length is
+                    // equal to the properties length, it means that the
+                    // properties that map to shorthand are present in longhands
+                    if current_longhands.len() != properties.len() {
                         continue;
                     }
 
@@ -432,41 +434,50 @@ impl ToCss for PropertyDeclarationBlock {
 
                     // Substep 5 - Let value be the result of invoking serialize
                     // a CSS value of current longhands.
-                    let mut value = String::new();
-                    let has_variables = {
-                        let appendable_value =
-                            match shorthand.get_shorthand_appendable_value(current_longhands.iter().cloned()) {
-                                None => continue,
-                                Some(appendable_value) => appendable_value,
-                            };
-
-                        let has_variables = match appendable_value {
-                            AppendableValue::Css { with_variables, .. } => with_variables,
-                            _ => false,
+                    let appendable_value =
+                        match shorthand.get_shorthand_appendable_value(current_longhands.iter().cloned()) {
+                            None => continue,
+                            Some(appendable_value) => appendable_value,
                         };
 
-                        append_declaration_value(&mut value, appendable_value)?;
+                    // We avoid re-serializing if we're already an
+                    // AppendableValue::Css.
+                    let mut value = String::new();
+                    let value = match appendable_value {
+                        AppendableValue::Css { css, with_variables } => {
+                            debug_assert!(!css.is_empty());
+                            AppendableValue::Css {
+                                css: css,
+                                with_variables: with_variables,
+                            }
+                        }
+                        other @ _ => {
+                            append_declaration_value(&mut value, other)?;
 
-                        has_variables
+                            // Substep 6
+                            if value.is_empty() {
+                                continue;
+                            }
+
+                            AppendableValue::Css {
+                                css: &value,
+                                with_variables: false,
+                            }
+                        }
                     };
-
-                    // Substep 6
-                    if value.is_empty() {
-                        continue
-                    }
 
                     // Substeps 7 and 8
                     append_serialization::<_, Cloned<slice::Iter< _>>, _>(
                          dest,
                          &shorthand,
-                         AppendableValue::Css { css: &value, with_variables: has_variables },
+                         value,
                          importance,
                          &mut is_first_serialization)?;
 
-                    for current_longhand in current_longhands {
+                    for current_longhand in &current_longhands {
                         // Substep 9
                         already_serialized.push(current_longhand.id());
-                        let index_to_remove = longhands.iter().position(|l| l.0 == *current_longhand);
+                        let index_to_remove = longhands.iter().position(|l| l.0 == **current_longhand);
                         if let Some(index) = index_to_remove {
                             // Substep 10
                             longhands.remove(index);
@@ -488,12 +499,12 @@ impl ToCss for PropertyDeclarationBlock {
             // "error: unable to infer enough type information about `_`;
             //  type annotations or generic parameter binding required [E0282]"
             // Use the same type as earlier call to reuse generated code.
-            try!(append_serialization::<W, Cloned<slice::Iter< &PropertyDeclaration>>, _>(
+            append_serialization::<_, Cloned<slice::Iter<_>>, _>(
                 dest,
                 &property,
                 AppendableValue::Declaration(declaration),
                 importance,
-                &mut is_first_serialization));
+                &mut is_first_serialization)?;
 
             // Step 3.3.8
             already_serialized.push(property);
@@ -597,10 +608,10 @@ pub fn append_serialization<'a, W, I, N>(dest: &mut W,
     try!(append_declaration_value(dest, appendable_value));
 
     if importance.important() {
-        try!(write!(dest, " !important"));
+        try!(dest.write_str(" !important"));
     }
 
-    write!(dest, ";")
+    dest.write_char(';')
 }
 
 /// A helper to parse the style attribute of an element, in order for this to be

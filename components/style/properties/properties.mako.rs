@@ -1197,10 +1197,10 @@ impl PropertyDeclaration {
     /// the longhand declarations.
     pub fn may_serialize_as_part_of_shorthand(&self) -> bool {
         match *self {
-            PropertyDeclaration::CSSWideKeyword(..) => false,
+            PropertyDeclaration::CSSWideKeyword(..) |
             PropertyDeclaration::WithVariables(..) => false,
             PropertyDeclaration::Custom(..) =>
-                unreachable!("Serialize a custom property as part of shorthand?"),
+                unreachable!("Serializing a custom property as part of shorthand?"),
             _ => true,
         }
     }
