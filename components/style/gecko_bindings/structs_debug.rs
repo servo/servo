@@ -15654,6 +15654,9 @@ pub mod root {
         _bindgen_ty_118::NODE_SHARED_RESTYLE_BIT_2;
     pub const NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO: root::_bindgen_ty_118 =
         _bindgen_ty_118::NODE_SHARED_RESTYLE_BIT_1;
+    pub const NODE_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO:
+              root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_SHARED_RESTYLE_BIT_2;
     pub const NODE_TYPE_SPECIFIC_BITS_OFFSET: root::_bindgen_ty_118 =
         _bindgen_ty_118::NODE_TYPE_SPECIFIC_BITS_OFFSET;
     #[repr(u32)]

@@ -309,6 +309,24 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
     /// Only safe to call with exclusive access to the element.
     unsafe fn unset_dirty_descendants(&self);
 
+    /// Similar to the dirty_descendants but for representing a descendant of
+    /// the element needs to be updated in animation-only traversal.
+    fn has_animation_only_dirty_descendants(&self) -> bool {
+        false
+    }
+
+    /// Flag that this element has a descendant for animation-only restyle processing.
+    ///
+    /// Only safe to call with exclusive access to the element.
+    unsafe fn set_animation_only_dirty_descendants(&self) {
+    }
+
+    /// Flag that this element has no descendant for animation-only restyle processing.
+    ///
+    /// Only safe to call with exclusive access to the element.
+    unsafe fn unset_animation_only_dirty_descendants(&self) {
+    }
+
     /// Atomically stores the number of children of this node that we will
     /// need to process during bottom-up traversal.
     fn store_children_to_process(&self, n: isize);
