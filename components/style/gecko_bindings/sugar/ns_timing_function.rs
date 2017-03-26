@@ -65,7 +65,8 @@ impl From<SpecifiedTimingFunction> for nsTimingFunction {
                 tf.set_as_step(nsTimingFunction_Type::StepEnd, steps);
             },
             SpecifiedTimingFunction::CubicBezier(p1, p2) => {
-                tf.set_as_cubic_bezier(p1, p2);
+                tf.set_as_cubic_bezier(Point2D::new(p1.x.value, p1.y.value),
+                                       Point2D::new(p2.x.value, p2.y.value));
             },
             SpecifiedTimingFunction::Keyword(keyword) => {
                 match keyword {

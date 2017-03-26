@@ -219,17 +219,15 @@ pub fn parse_integer(input: &mut Parser) -> Result<CSSInteger, ()> {
 }
 
 #[allow(missing_docs)]
-pub fn parse_number(input: &mut Parser) -> Result<f32, ()> {
+pub fn parse_number(input: &mut Parser) -> Result<Number, ()> {
+    use std::f32;
+
     match try!(input.next()) {
         Token::Number(ref value) => {
-            use std::f32;
-            if value.value.is_finite() {
-                Ok(value.value)
-            } else if value.value.is_sign_positive() {
-                Ok(f32::MAX)
-            } else {
-                Ok(f32::MIN)
-            }
+            Ok(Number {
+                value: value.value.min(f32::MAX).max(f32::MIN),
+                was_calc: false,
+            })
         },
         Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
             let ast = try!(input.parse_nested_block(|i| CalcLengthOrPercentage::parse_sum(i, CalcUnit::Number)));
@@ -245,7 +243,12 @@ pub fn parse_number(input: &mut Parser) -> Result<f32, ()> {
             }
 
             match result {
-                Some(result) => Ok(result),
+                Some(result) => {
+                    Ok(Number {
+                        value: result.min(f32::MAX).max(f32::MIN),
+                        was_calc: true,
+                    })
+                },
                 _ => Err(())
             }
         }
@@ -525,21 +528,36 @@ impl ToCss for Time {
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
-pub struct Number(pub CSSFloat);
+pub struct Number {
+    /// The numeric value itself.
+    pub value: CSSFloat,
+    /// Whether this came from a `calc()` expression. This is needed for
+    /// serialization purposes, since `calc(1)` should still serialize to
+    /// `calc(1)`, not just `1`.
+    was_calc: bool,
+}
 
 no_viewport_percentage!(Number);
 
 impl Parse for Number {
     fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        parse_number(input).map(Number)
+        parse_number(input)
     }
 }
 
 impl Number {
     fn parse_with_minimum(input: &mut Parser, min: CSSFloat) -> Result<Number, ()> {
         match parse_number(input) {
-            Ok(value) if value >= min => Ok(Number(value)),
+            Ok(value) if value.value >= min => Ok(value),
             _ => Err(()),
+        }
+    }
+
+    /// Returns a new number with the value `val`.
+    pub fn new(val: CSSFloat) -> Self {
+        Number {
+            value: val,
+            was_calc: false,
         }
     }
 
@@ -558,17 +576,27 @@ impl ToComputedValue for Number {
     type ComputedValue = CSSFloat;
 
     #[inline]
-    fn to_computed_value(&self, _: &Context) -> CSSFloat { self.0 }
+    fn to_computed_value(&self, _: &Context) -> CSSFloat { self.value }
 
     #[inline]
     fn from_computed_value(computed: &CSSFloat) -> Self {
-        Number(*computed)
+        Number {
+            value: *computed,
+            was_calc: false,
+        }
     }
 }
 
 impl ToCss for Number {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        self.0.to_css(dest)
+        if self.was_calc {
+            dest.write_str("calc(")?;
+        }
+        self.value.to_css(dest)?;
+        if self.was_calc {
+            dest.write_str(")")?;
+        }
+        Ok(())
     }
 }
 
@@ -606,7 +634,7 @@ impl ToCss for NumberOrPercentage {
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
-pub struct Opacity(pub CSSFloat);
+pub struct Opacity(Number);
 
 no_viewport_percentage!(Opacity);
 
@@ -620,19 +648,13 @@ impl ToComputedValue for Opacity {
     type ComputedValue = CSSFloat;
 
     #[inline]
-    fn to_computed_value(&self, _: &Context) -> CSSFloat {
-        if self.0 < 0.0 {
-            0.0
-        } else if self.0 > 1.0 {
-            1.0
-        } else {
-            self.0
-        }
+    fn to_computed_value(&self, context: &Context) -> CSSFloat {
+        self.0.to_computed_value(context).min(1.0).max(0.0)
     }
 
     #[inline]
     fn from_computed_value(computed: &CSSFloat) -> Self {
-        Opacity(*computed)
+        Opacity(Number::from_computed_value(computed))
     }
 }
 

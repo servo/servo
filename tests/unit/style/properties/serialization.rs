@@ -573,15 +573,14 @@ mod shorthand_serialization {
 
     #[test]
     fn flex_should_serialize_all_available_properties() {
-        use style::values::specified::Number as NumberContainer;
-        use style::values::specified::Percentage as PercentageContainer;
+        use style::values::specified::{Number, Percentage};
 
         let mut properties = Vec::new();
 
-        let grow = NumberContainer(2f32);
-        let shrink = NumberContainer(3f32);
+        let grow = Number::new(2f32);
+        let shrink = Number::new(3f32);
         let basis =
-            LengthOrPercentageOrAutoOrContent::Percentage(PercentageContainer(0.5f32));
+            LengthOrPercentageOrAutoOrContent::Percentage(Percentage(0.5f32));
 
         properties.push(PropertyDeclaration::FlexGrow(grow));
         properties.push(PropertyDeclaration::FlexShrink(shrink));

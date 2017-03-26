@@ -70,8 +70,8 @@
 
         if input.try(|input| input.expect_ident_matching("none")).is_ok() {
             return Ok(Longhands {
-                flex_grow: Number(0.0),
-                flex_shrink: Number(0.0),
+                flex_grow: Number::new(0.0),
+                flex_shrink: Number::new(0.0),
                 % if product == "gecko":
                     flex_basis: LengthOrPercentageOrAuto::Auto
                 % else:
@@ -105,8 +105,8 @@
             return Err(())
         }
         Ok(Longhands {
-            flex_grow: grow.unwrap_or(Number(1.0)),
-            flex_shrink: shrink.unwrap_or(Number(1.0)),
+            flex_grow: grow.unwrap_or(Number::new(1.0)),
+            flex_shrink: shrink.unwrap_or(Number::new(1.0)),
             % if product == "gecko":
                 flex_basis: basis.unwrap_or(LengthOrPercentageOrAuto::Length(NoCalcLength::zero()))
             % else:

@@ -10,7 +10,7 @@
                    spec="https://drafts.csswg.org/css2/visudet.html#propdef-line-height">
     use std::fmt;
     use style_traits::ToCss;
-    use values::{CSSFloat, HasViewportPercentage};
+    use values::HasViewportPercentage;
 
     impl HasViewportPercentage for SpecifiedValue {
         fn has_viewport_percentage(&self) -> bool {
@@ -28,7 +28,7 @@
         % if product == "gecko":
             MozBlockHeight,
         % endif
-        Number(CSSFloat),
+        Number(specified::Number),
         LengthOrPercentage(specified::LengthOrPercentage),
     }
 
@@ -40,7 +40,7 @@
                     SpecifiedValue::MozBlockHeight => dest.write_str("-moz-block-height"),
                 % endif
                 SpecifiedValue::LengthOrPercentage(ref value) => value.to_css(dest),
-                SpecifiedValue::Number(number) => write!(dest, "{}", number),
+                SpecifiedValue::Number(number) => number.to_css(dest),
             }
         }
     }
@@ -52,24 +52,24 @@
         // parsed as a plain Number rather than a Length (0px); this matches the behaviour
         // of all major browsers
         input.try(specified::Number::parse_non_negative)
-        .map(|n| SpecifiedValue::Number(n.0))
-        .or_else(|()| {
-            input.try(specified::LengthOrPercentage::parse_non_negative)
-            .map(SpecifiedValue::LengthOrPercentage)
+            .map(SpecifiedValue::Number)
             .or_else(|()| {
-                match try!(input.next()) {
-                    Token::Ident(ref value) if value.eq_ignore_ascii_case("normal") => {
-                        Ok(SpecifiedValue::Normal)
+                input.try(specified::LengthOrPercentage::parse_non_negative)
+                .map(SpecifiedValue::LengthOrPercentage)
+                .or_else(|()| {
+                    match try!(input.next()) {
+                        Token::Ident(ref value) if value.eq_ignore_ascii_case("normal") => {
+                            Ok(SpecifiedValue::Normal)
+                        }
+                        % if product == "gecko":
+                        Token::Ident(ref value) if value.eq_ignore_ascii_case("-moz-block-height") => {
+                            Ok(SpecifiedValue::MozBlockHeight)
+                        }
+                        % endif
+                        _ => Err(()),
                     }
-                    % if product == "gecko":
-                    Token::Ident(ref value) if value.eq_ignore_ascii_case("-moz-block-height") => {
-                        Ok(SpecifiedValue::MozBlockHeight)
-                    }
-                    % endif
-                    _ => Err(()),
-                }
+                })
             })
-        })
     }
     pub mod computed_value {
         use app_units::Au;
@@ -116,7 +116,7 @@
                 % if product == "gecko":
                     SpecifiedValue::MozBlockHeight => computed_value::T::MozBlockHeight,
                 % endif
-                SpecifiedValue::Number(value) => computed_value::T::Number(value),
+                SpecifiedValue::Number(value) => computed_value::T::Number(value.to_computed_value(context)),
                 SpecifiedValue::LengthOrPercentage(ref value) => {
                     match *value {
                         specified::LengthOrPercentage::Length(ref value) =>
@@ -144,7 +144,9 @@
                 % if product == "gecko":
                     computed_value::T::MozBlockHeight => SpecifiedValue::MozBlockHeight,
                 % endif
-                computed_value::T::Number(value) => SpecifiedValue::Number(value),
+                computed_value::T::Number(ref value) => {
+                    SpecifiedValue::Number(specified::Number::from_computed_value(value))
+                },
                 computed_value::T::Length(au) => {
                     SpecifiedValue::LengthOrPercentage(specified::LengthOrPercentage::Length(
                         ToComputedValue::from_computed_value(&au)

@@ -1283,7 +1283,7 @@ fn static_assert() {
         use properties::longhands::font_size_adjust::computed_value::T;
         match v {
             T::None => self.gecko.mFont.sizeAdjust = -1.0 as f32,
-            T::Number(n) => self.gecko.mFont.sizeAdjust = n.0 as f32,
+            T::Number(n) => self.gecko.mFont.sizeAdjust = n,
         }
     }
 
@@ -1293,11 +1293,10 @@ fn static_assert() {
 
     pub fn clone_font_size_adjust(&self) -> longhands::font_size_adjust::computed_value::T {
         use properties::longhands::font_size_adjust::computed_value::T;
-        use values::specified::Number;
 
         match self.gecko.mFont.sizeAdjust {
             -1.0 => T::None,
-            _ => T::Number(Number(self.gecko.mFont.sizeAdjust)),
+            _ => T::Number(self.gecko.mFont.sizeAdjust),
         }
     }
 
