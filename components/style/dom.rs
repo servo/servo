@@ -372,6 +372,16 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
 
     /// Returns true if the element has a CSS animation.
     fn has_css_animations(&self, _pseudo: Option<&PseudoElement>) -> bool;
+
+    /// Returns true if the element has animation restyle hints.
+    fn has_animation_restyle_hints(&self) -> bool {
+        let data = match self.borrow_data() {
+            Some(d) => d,
+            None => return false,
+        };
+        return data.get_restyle()
+                   .map_or(false, |r| r.hint.has_animation_hint());
+    }
 }
 
 /// TNode and TElement aren't Send because we want to be careful and explicit

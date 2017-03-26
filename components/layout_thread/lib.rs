@@ -520,6 +520,7 @@ impl LayoutThread {
                 local_context_creation_data: Mutex::new(thread_local_style_context_creation_data),
                 timer: self.timer.clone(),
                 quirks_mode: self.quirks_mode.unwrap(),
+                animation_only_restyle: false,
             },
             image_cache_thread: Mutex::new(self.image_cache_thread.clone()),
             font_cache_thread: Mutex::new(self.font_cache_thread.clone()),
