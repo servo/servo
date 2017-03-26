@@ -404,10 +404,6 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 let stacking_context = &item.stacking_context;
                 debug_assert!(stacking_context.context_type == StackingContextType::Real);
 
-                let clip = builder.new_clip_region(&stacking_context.overflow.to_rectf(),
-                                                   vec![],
-                                                   None);
-
                 let transform = stacking_context.transform.map(|transform| {
                     LayoutTransform::from_untyped(&transform).into()
                 });
@@ -417,7 +413,6 @@ impl WebRenderDisplayItemConverter for DisplayItem {
 
                 builder.push_stacking_context(stacking_context.scroll_policy,
                                               stacking_context.bounds.to_rectf(),
-                                              clip,
                                               stacking_context.z_index,
                                               transform,
                                               perspective,

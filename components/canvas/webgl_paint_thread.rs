@@ -261,7 +261,8 @@ impl WebGLPaintThread {
                                                offset: 0,
                                                is_opaque: false,
                                            },
-                                           pixels.clone());
+                                           pixels.clone(),
+                                           None);
 
                 let image_data = CanvasImageData {
                     image_key: image_key,
