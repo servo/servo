@@ -125,7 +125,7 @@ var numberProperties = [
 numberProperties.forEach(function(prop) {
     test(function() {
         div.style.setProperty(prop, 'calc(1)');
-        assert_equals(div.style.getPropertyValue(prop), '1');
+        assert_equals(div.style.getPropertyValue(prop), 'calc(1)');
     }, 'calc for ' + prop);
 });
 
