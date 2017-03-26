@@ -954,30 +954,32 @@ pub trait MatchMethods : TElement {
                                  context: &StyleContext<Self>,
                                  data: &mut AtomicRefMut<ElementData>)
                                  -> bool {
+        use properties::PropertyDeclarationBlock;
+        use shared_lock::Locked;
+
         let primary_rules = &mut data.styles_mut().primary.rules;
         let mut rule_node_changed = false;
 
-        if hint.contains(RESTYLE_STYLE_ATTRIBUTE) {
-            let style_attribute = self.style_attribute();
+        {
+            let mut replace_rule_node = |level: CascadeLevel,
+                                         pdb: Option<&Arc<Locked<PropertyDeclarationBlock>>>,
+                                         path: &mut StrongRuleNode| {
+                let new_node = context.shared.stylist.rule_tree
+                    .update_rule_at_level(level, pdb, path, &context.shared.guards);
+                if let Some(n) = new_node {
+                    *path = n;
+                    rule_node_changed = true;
+                }
+            };
 
-            let new_node = context.shared.stylist.rule_tree
-                .update_rule_at_level(CascadeLevel::StyleAttributeNormal,
-                                      style_attribute,
-                                      primary_rules,
-                                      &context.shared.guards);
-            if let Some(n) = new_node {
-                *primary_rules = n;
-                rule_node_changed = true;
-            }
-
-            let new_node = context.shared.stylist.rule_tree
-                .update_rule_at_level(CascadeLevel::StyleAttributeImportant,
-                                      style_attribute,
-                                      primary_rules,
-                                      &context.shared.guards);
-            if let Some(n) = new_node {
-                *primary_rules = n;
-                rule_node_changed = true;
+            if hint.contains(RESTYLE_STYLE_ATTRIBUTE) {
+                let style_attribute = self.style_attribute();
+                replace_rule_node(CascadeLevel::StyleAttributeNormal,
+                                  style_attribute,
+                                  primary_rules);
+                replace_rule_node(CascadeLevel::StyleAttributeImportant,
+                                  style_attribute,
+                                  primary_rules);
             }
         }
 
