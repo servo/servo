@@ -17,7 +17,7 @@ use data::{ComputedStyle, ElementData, ElementStyles, RestyleData};
 use dom::{AnimationRules, SendElement, TElement, TNode};
 use properties::{CascadeFlags, ComputedValues, SHAREABLE, SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP, cascade};
 use properties::longhands::display::computed_value as display;
-use restyle_hints::{RESTYLE_STYLE_ATTRIBUTE, RestyleHint};
+use restyle_hints::{RESTYLE_STYLE_ATTRIBUTE, RESTYLE_CSS_ANIMATIONS, RestyleHint};
 use rule_tree::{CascadeLevel, RuleTree, StrongRuleNode};
 use selector_parser::{PseudoElement, RestyleDamage, SelectorImpl};
 use selectors::MatchAttr;
@@ -957,7 +957,8 @@ pub trait MatchMethods : TElement {
         use properties::PropertyDeclarationBlock;
         use shared_lock::Locked;
 
-        let primary_rules = &mut data.styles_mut().primary.rules;
+        let element_styles = &mut data.styles_mut();
+        let primary_rules = &mut element_styles.primary.rules;
         let mut rule_node_changed = false;
 
         {
@@ -972,7 +973,27 @@ pub trait MatchMethods : TElement {
                 }
             };
 
-            if hint.contains(RESTYLE_STYLE_ATTRIBUTE) {
+            // RESTYLE_CSS_ANIMATIONS is processed prior to other restyle hints
+            // in the name of animation-only traversal. Rest of restyle hints
+            // will be processed in a subsequent normal traversal.
+            if hint.contains(RESTYLE_CSS_ANIMATIONS) {
+                debug_assert!(context.shared.animation_only_restyle);
+
+                let animation_rule = self.get_animation_rule(None);
+                replace_rule_node(CascadeLevel::Animations,
+                                  animation_rule.as_ref(),
+                                  primary_rules);
+
+                let iter = element_styles.pseudos.iter_mut().filter(|&(p, _)|
+                    <Self as MatchAttr>::Impl::pseudo_is_before_or_after(p));
+                for (pseudo, ref mut computed) in iter {
+                    let animation_rule = self.get_animation_rule(Some(pseudo));
+                    let pseudo_rules = &mut computed.rules;
+                    replace_rule_node(CascadeLevel::Animations,
+                                      animation_rule.as_ref(),
+                                      pseudo_rules);
+                }
+            } else if hint.contains(RESTYLE_STYLE_ATTRIBUTE) {
                 let style_attribute = self.style_attribute();
                 replace_rule_node(CascadeLevel::StyleAttributeNormal,
                                   style_attribute,
@@ -980,6 +1001,7 @@ pub trait MatchMethods : TElement {
                 replace_rule_node(CascadeLevel::StyleAttributeImportant,
                                   style_attribute,
                                   primary_rules);
+                // The per-pseudo rule nodes never change in this path.
             }
         }
 

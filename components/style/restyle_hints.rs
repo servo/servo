@@ -47,6 +47,11 @@ bitflags! {
         /// of their descendants.
         const RESTYLE_LATER_SIBLINGS = 0x08,
 
+        /// Replace the style data coming from CSS animations without updating
+        /// any other style data. This hint is only processed in animation-only
+        /// traversal which is prior to normal traversal.
+        const RESTYLE_CSS_ANIMATIONS = 0x20,
+
         /// Don't re-run selector-matching on the element, only the style
         /// attribute has changed, and this change didn't have any other
         /// dependencies.
@@ -81,6 +86,7 @@ pub fn assert_restyle_hints_match() {
         // (RESTYLE_SELF | RESTYLE_DESCENDANTS).
         nsRestyleHint_eRestyle_Subtree => RESTYLE_DESCENDANTS,
         nsRestyleHint_eRestyle_LaterSiblings => RESTYLE_LATER_SIBLINGS,
+        nsRestyleHint_eRestyle_CSSAnimations => RESTYLE_CSS_ANIMATIONS,
         nsRestyleHint_eRestyle_StyleAttribute => RESTYLE_STYLE_ATTRIBUTE,
     }
 }
@@ -89,7 +95,7 @@ impl RestyleHint {
     /// The subset hints that affect the styling of a single element during the
     /// traversal.
     pub fn for_self() -> Self {
-        RESTYLE_SELF | RESTYLE_STYLE_ATTRIBUTE
+        RESTYLE_SELF | RESTYLE_STYLE_ATTRIBUTE | RESTYLE_CSS_ANIMATIONS
     }
 }
 
