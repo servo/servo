@@ -18,7 +18,7 @@ use std::fmt;
 use std::ops::Mul;
 use style_traits::ToCss;
 use super::{Auto, CSSFloat, CSSInteger, HasViewportPercentage, Either, None_};
-use super::computed::{ComputedValueAsSpecified, Context};
+use super::computed::{self, Context};
 use super::computed::{Shadow as ComputedShadow, ToComputedValue};
 
 #[cfg(feature = "gecko")]
@@ -166,8 +166,8 @@ impl<'a> Mul<CSSFloat> for &'a SimplifiedSumNode {
 #[allow(missing_docs)]
 pub enum SimplifiedValueNode {
     Length(NoCalcLength),
-    Angle(Angle),
-    Time(Time),
+    Angle(CSSFloat),
+    Time(CSSFloat),
     Percentage(CSSFloat),
     Number(CSSFloat),
     Sum(Box<SimplifiedSumNode>),
@@ -179,21 +179,31 @@ impl<'a> Mul<CSSFloat> for &'a SimplifiedValueNode {
     #[inline]
     fn mul(self, scalar: CSSFloat) -> SimplifiedValueNode {
         match *self {
-            SimplifiedValueNode::Length(ref l) => SimplifiedValueNode::Length(l.clone() * scalar),
-            SimplifiedValueNode::Percentage(p) => SimplifiedValueNode::Percentage(p * scalar),
-            SimplifiedValueNode::Angle(Angle(a)) => SimplifiedValueNode::Angle(Angle(a * scalar)),
-            SimplifiedValueNode::Time(Time(t)) => SimplifiedValueNode::Time(Time(t * scalar)),
-            SimplifiedValueNode::Number(n) => SimplifiedValueNode::Number(n * scalar),
+            SimplifiedValueNode::Length(ref l) => {
+                SimplifiedValueNode::Length(l.clone() * scalar)
+            },
+            SimplifiedValueNode::Percentage(p) => {
+                SimplifiedValueNode::Percentage(p * scalar)
+            },
+            SimplifiedValueNode::Angle(a) => {
+                SimplifiedValueNode::Angle(a * scalar)
+            },
+            SimplifiedValueNode::Time(t) => {
+                SimplifiedValueNode::Time(t * scalar)
+            },
+            SimplifiedValueNode::Number(n) => {
+                SimplifiedValueNode::Number(n * scalar)
+            },
             SimplifiedValueNode::Sum(ref s) => {
                 let sum = &**s * scalar;
                 SimplifiedValueNode::Sum(Box::new(sum))
-            }
+            },
         }
     }
 }
 
 #[allow(missing_docs)]
-pub fn parse_integer(input: &mut Parser) -> Result<CSSInteger, ()> {
+pub fn parse_integer(input: &mut Parser) -> Result<i32, ()> {
     match try!(input.next()) {
         Token::Number(ref value) => value.int_value.ok_or(()),
         Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
@@ -302,11 +312,36 @@ impl ToCss for BorderRadiusSize {
 #[derive(Clone, PartialEq, PartialOrd, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
 /// An angle, normalized to radians.
-pub struct Angle(pub CSSFloat);
+pub struct Angle {
+    radians: CSSFloat,
+    was_calc: bool,
+}
 
 impl ToCss for Angle {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        write!(dest, "{}rad", self.0)
+        if self.was_calc {
+            dest.write_str("calc(")?;
+        }
+        write!(dest, "{}rad", self.radians)?;
+        if self.was_calc {
+            dest.write_str(")")?;
+        }
+        Ok(())
+    }
+}
+
+impl ToComputedValue for Angle {
+    type ComputedValue = computed::Angle;
+
+    fn to_computed_value(&self, _context: &Context) -> Self::ComputedValue {
+        computed::Angle::from_radians(self.radians())
+    }
+
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        Angle {
+            radians: computed.radians(),
+            was_calc: false,
+        }
     }
 }
 
@@ -314,13 +349,29 @@ impl Angle {
     #[inline]
     #[allow(missing_docs)]
     pub fn radians(self) -> f32 {
-        self.0
+        self.radians
+    }
+
+    /// Returns an angle value that represents zero radians.
+    pub fn zero() -> Self {
+        Self::from_radians(0.0)
     }
 
     #[inline]
     #[allow(missing_docs)]
     pub fn from_radians(r: f32) -> Self {
-        Angle(r)
+        Angle {
+            radians: r,
+            was_calc: false,
+        }
+    }
+
+    /// Returns an `Angle` parsed from a `calc()` expression.
+    pub fn from_calc(radians: CSSFloat) -> Self {
+        Angle {
+            radians: radians,
+            was_calc: true,
+        }
     }
 }
 
@@ -333,7 +384,7 @@ impl Parse for Angle {
     fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         match try!(input.next()) {
             Token::Dimension(ref value, ref unit) => Angle::parse_dimension(value.value, unit),
-            Token::Number(ref value) if value.value == 0. => Ok(Angle(0.)),
+            Token::Number(ref value) if value.value == 0. => Ok(Angle::zero()),
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
                 input.parse_nested_block(CalcLengthOrPercentage::parse_angle)
             },
@@ -345,13 +396,18 @@ impl Parse for Angle {
 impl Angle {
     #[allow(missing_docs)]
     pub fn parse_dimension(value: CSSFloat, unit: &str) -> Result<Angle, ()> {
-        match_ignore_ascii_case! { unit,
-            "deg" => Ok(Angle(value * RAD_PER_DEG)),
-            "grad" => Ok(Angle(value * RAD_PER_GRAD)),
-            "turn" => Ok(Angle(value * RAD_PER_TURN)),
-            "rad" => Ok(Angle(value)),
-             _ => Err(())
-        }
+        let radians = match_ignore_ascii_case! { unit,
+            "deg" => value * RAD_PER_DEG,
+            "grad" => value * RAD_PER_GRAD,
+            "turn" => value * RAD_PER_TURN,
+            "rad" => value,
+             _ => return Err(())
+        };
+
+        Ok(Angle {
+            radians: radians,
+            was_calc: false,
+        })
     }
 }
 
@@ -482,28 +538,67 @@ impl BorderStyle {
 /// A time in seconds according to CSS-VALUES § 6.2.
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub struct Time(pub CSSFloat);
+pub struct Time {
+    seconds: CSSFloat,
+    was_calc: bool,
+}
 
 impl Time {
+    /// Return a `<time>` value that represents `seconds` seconds.
+    pub fn from_seconds(seconds: CSSFloat) -> Self {
+        Time {
+            seconds: seconds,
+            was_calc: false,
+        }
+    }
+
+    /// Returns a time that represents a duration of zero.
+    pub fn zero() -> Self {
+        Self::from_seconds(0.0)
+    }
+
     /// Returns the time in fractional seconds.
-    pub fn seconds(self) -> f32 {
-        let Time(seconds) = self;
-        seconds
+    pub fn seconds(self) -> CSSFloat {
+        self.seconds
     }
 
     /// Parses a time according to CSS-VALUES § 6.2.
     fn parse_dimension(value: CSSFloat, unit: &str) -> Result<Time, ()> {
-        if unit.eq_ignore_ascii_case("s") {
-            Ok(Time(value))
-        } else if unit.eq_ignore_ascii_case("ms") {
-            Ok(Time(value / 1000.0))
-        } else {
-            Err(())
+        let seconds = match_ignore_ascii_case! { unit,
+            "s" => value,
+            "ms" => value / 1000.0,
+            _ => return Err(()),
+        };
+
+        Ok(Time {
+            seconds: seconds,
+            was_calc: false,
+        })
+    }
+
+    /// Returns a `Time` value from a CSS `calc()` expression.
+    pub fn from_calc(seconds: CSSFloat) -> Self {
+        Time {
+            seconds: seconds,
+            was_calc: true,
         }
     }
 }
 
-impl ComputedValueAsSpecified for Time {}
+impl ToComputedValue for Time {
+    type ComputedValue = computed::Time;
+
+    fn to_computed_value(&self, _context: &Context) -> Self::ComputedValue {
+        computed::Time::from_seconds(self.seconds())
+    }
+
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        Time {
+            seconds: computed.seconds(),
+            was_calc: false,
+        }
+    }
+}
 
 impl Parse for Time {
     fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
@@ -521,7 +616,14 @@ impl Parse for Time {
 
 impl ToCss for Time {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        write!(dest, "{}s", self.0)
+        if self.was_calc {
+            dest.write_str("calc(")?;
+        }
+        write!(dest, "{}s", self.seconds)?;
+        if self.was_calc {
+            dest.write_str(")")?;
+        }
+        Ok(())
     }
 }
 
@@ -588,7 +690,9 @@ impl ToComputedValue for Number {
 }
 
 impl ToCss for Number {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+        where W: fmt::Write,
+    {
         if self.was_calc {
             dest.write_str("calc(")?;
         }
