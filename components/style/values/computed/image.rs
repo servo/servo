@@ -537,27 +537,27 @@ impl ToComputedValue for specified::AngleOrCorner {
     type ComputedValue = AngleOrCorner;
 
     #[inline]
-    fn to_computed_value(&self, _: &Context) -> AngleOrCorner {
+    fn to_computed_value(&self, context: &Context) -> AngleOrCorner {
         match *self {
             specified::AngleOrCorner::None => {
-                AngleOrCorner::Angle(Angle(PI))
+                AngleOrCorner::Angle(Angle::from_radians(PI))
             },
             specified::AngleOrCorner::Angle(angle) => {
-                AngleOrCorner::Angle(angle)
+                AngleOrCorner::Angle(angle.to_computed_value(context))
             },
             specified::AngleOrCorner::Corner(horizontal, vertical) => {
                 match (horizontal, vertical) {
                     (None, Some(VerticalDirection::Top)) => {
-                        AngleOrCorner::Angle(Angle(0.0))
+                        AngleOrCorner::Angle(Angle::from_radians(0.0))
                     },
                     (Some(HorizontalDirection::Right), None) => {
-                        AngleOrCorner::Angle(Angle(PI * 0.5))
+                        AngleOrCorner::Angle(Angle::from_radians(PI * 0.5))
                     },
                     (None, Some(VerticalDirection::Bottom)) => {
-                        AngleOrCorner::Angle(Angle(PI))
+                        AngleOrCorner::Angle(Angle::from_radians(PI))
                     },
                     (Some(HorizontalDirection::Left), None) => {
-                        AngleOrCorner::Angle(Angle(PI * 1.5))
+                        AngleOrCorner::Angle(Angle::from_radians(PI * 1.5))
                     },
                     (Some(horizontal), Some(vertical)) => {
                         AngleOrCorner::Corner(horizontal, vertical)
@@ -573,8 +573,8 @@ impl ToComputedValue for specified::AngleOrCorner {
     #[inline]
     fn from_computed_value(computed: &AngleOrCorner) -> Self {
         match *computed {
-            AngleOrCorner::Angle(angle) => {
-                specified::AngleOrCorner::Angle(angle)
+            AngleOrCorner::Angle(ref angle) => {
+                specified::AngleOrCorner::Angle(specified::Angle::from_computed_value(angle))
             },
             AngleOrCorner::Corner(horizontal, vertical) => {
                 specified::AngleOrCorner::Corner(Some(horizontal), Some(vertical))

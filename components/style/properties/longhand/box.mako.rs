@@ -419,13 +419,13 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     }
 
     #[inline]
-    pub fn get_initial_value() -> Time {
-        Time(0.0)
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T::zero()
     }
 
     #[inline]
     pub fn get_initial_specified_value() -> SpecifiedValue {
-        SpecifiedValue(0.0)
+        Time::zero()
     }
 
     pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
@@ -1221,7 +1221,7 @@ ${helpers.predefined_type("scroll-snap-coordinate",
         let second = input.try(|input| {
             try!(input.expect_comma());
             specified::Angle::parse(context, input)
-        }).unwrap_or(specified::Angle(0.0));
+        }).unwrap_or(specified::Angle::zero());
         Ok((first, second))
     }
 
@@ -1581,14 +1581,14 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                 "skewx" => {
                     try!(input.parse_nested_block(|input| {
                         let theta_x = try!(specified::Angle::parse(context,input));
-                        result.push(SpecifiedOperation::Skew(theta_x, specified::Angle(0.0)));
+                        result.push(SpecifiedOperation::Skew(theta_x, specified::Angle::zero()));
                         Ok(())
                     }))
                 },
                 "skewy" => {
                     try!(input.parse_nested_block(|input| {
                         let theta_y = try!(specified::Angle::parse(context,input));
-                        result.push(SpecifiedOperation::Skew(specified::Angle(0.0), theta_y));
+                        result.push(SpecifiedOperation::Skew(specified::Angle::zero(), theta_y));
                         Ok(())
                     }))
                 },
@@ -1640,11 +1640,13 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                         let ax = ax.to_computed_value(context);
                         let ay = ay.to_computed_value(context);
                         let az = az.to_computed_value(context);
+                        let theta = theta.to_computed_value(context);
                         let len = (ax * ax + ay * ay + az * az).sqrt();
                         result.push(computed_value::ComputedOperation::Rotate(ax / len, ay / len, az / len, theta));
                     }
                     SpecifiedOperation::Skew(theta_x, theta_y) => {
-                        result.push(computed_value::ComputedOperation::Skew(theta_x, theta_y));
+                        result.push(computed_value::ComputedOperation::Skew(theta_x.to_computed_value(context),
+                                                                            theta_y.to_computed_value(context)));
                     }
                     SpecifiedOperation::Perspective(ref d) => {
                         result.push(computed_value::ComputedOperation::Perspective(d.to_computed_value(context)));
@@ -1658,7 +1660,7 @@ ${helpers.predefined_type("scroll-snap-coordinate",
         #[inline]
         fn from_computed_value(computed: &computed_value::T) -> Self {
             SpecifiedValue(computed.0.as_ref().map(|computed| {
-                let mut result = vec!();
+                let mut result = vec![];
                 for operation in computed {
                     match *operation {
                         computed_value::ComputedOperation::Matrix(ref matrix) => {
@@ -1678,15 +1680,17 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                                     Number::from_computed_value(sy),
                                     Number::from_computed_value(sz)));
                         }
-                        computed_value::ComputedOperation::Rotate(ref ax, ref ay, ref az, theta) => {
+                        computed_value::ComputedOperation::Rotate(ref ax, ref ay, ref az, ref theta) => {
                             result.push(SpecifiedOperation::Rotate(
                                     Number::from_computed_value(ax),
                                     Number::from_computed_value(ay),
                                     Number::from_computed_value(az),
-                                    theta));
+                                    specified::Angle::from_computed_value(theta)));
                         }
-                        computed_value::ComputedOperation::Skew(theta_x, theta_y) => {
-                            result.push(SpecifiedOperation::Skew(theta_x, theta_y));
+                        computed_value::ComputedOperation::Skew(ref theta_x, ref theta_y) => {
+                            result.push(SpecifiedOperation::Skew(
+                                    specified::Angle::from_computed_value(theta_x),
+                                    specified::Angle::from_computed_value(theta_y)))
                         }
                         computed_value::ComputedOperation::Perspective(ref d) => {
                             result.push(SpecifiedOperation::Perspective(
