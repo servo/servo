@@ -624,12 +624,23 @@ impl<'le> PresentationalHintsSynthetizer for GeckoElement<'le> {
     fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
         where V: Push<ApplicableDeclarationBlock>,
     {
-        use properties::longhands::text_align::SpecifiedValue;
+        use properties::longhands::text_align::SpecifiedValue as SpecifiedTextAlign;
+        use properties::longhands::color::SpecifiedValue as SpecifiedColor;
+        use values::specified::color::Color;
         lazy_static! {
             static ref TH_RULE: ApplicableDeclarationBlock = {
                 let global_style_data = &*GLOBAL_STYLE_DATA;
                 let pdb = PropertyDeclarationBlock::with_one(
-                    PropertyDeclaration::TextAlign(SpecifiedValue::MozCenterOrInherit),
+                    PropertyDeclaration::TextAlign(SpecifiedTextAlign::MozCenterOrInherit),
+                    Importance::Normal
+                );
+                let arc = Arc::new(global_style_data.shared_lock.wrap(pdb));
+                ApplicableDeclarationBlock::from_declarations(arc, ServoCascadeLevel::PresHints)
+            };
+            static ref TABLE_COLOR_RULE: ApplicableDeclarationBlock = {
+                let global_style_data = &*GLOBAL_STYLE_DATA;
+                let pdb = PropertyDeclarationBlock::with_one(
+                    PropertyDeclaration::Color(SpecifiedColor(Color::InheritFromBodyQuirk.into())),
                     Importance::Normal
                 );
                 let arc = Arc::new(global_style_data.shared_lock.wrap(pdb));
@@ -638,9 +649,13 @@ impl<'le> PresentationalHintsSynthetizer for GeckoElement<'le> {
         };
 
         // <th> elements get a default MozCenterOrInherit which may get overridden
-        if self.get_namespace() == &*Namespace(atom!("http://www.w3.org/1999/xhtml")) &&
-          self.get_local_name().as_ptr() == atom!("th").as_ptr() {
-            hints.push(TH_RULE.clone());
+        if self.get_namespace() == &*Namespace(atom!("http://www.w3.org/1999/xhtml")) {
+            if self.get_local_name().as_ptr() == atom!("th").as_ptr() {
+                hints.push(TH_RULE.clone());
+            } else if self.get_local_name().as_ptr() == atom!("table").as_ptr() &&
+                      self.as_node().owner_doc().mCompatMode == structs::nsCompatibility::eCompatibility_NavQuirks {
+                hints.push(TABLE_COLOR_RULE.clone());
+            }
         }
         let declarations = unsafe { Gecko_GetHTMLPresentationAttrDeclarationBlock(self.0) };
         let declarations = declarations.and_then(|s| s.as_arc_opt());
