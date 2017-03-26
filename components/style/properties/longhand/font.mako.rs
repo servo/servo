@@ -954,40 +954,67 @@ ${helpers.single_keyword("font-variant-position",
     }
 </%helpers:longhand>
 
-// https://www.w3.org/TR/css-fonts-3/#propdef-font-language-override
-<%helpers:longhand name="font-language-override" products="none" animatable="False" extra_prefixes="moz"
+<%helpers:longhand name="font-language-override" products="gecko" animatable="False" extra_prefixes="moz"
                    spec="https://drafts.csswg.org/css-fonts-3/#propdef-font-language-override">
+    use std::fmt;
+    use style_traits::ToCss;
+    use byteorder::{BigEndian, ByteOrder};
     use values::HasViewportPercentage;
-    use values::computed::ComputedValueAsSpecified;
-    pub use self::computed_value::T as SpecifiedValue;
-
-    impl ComputedValueAsSpecified for SpecifiedValue {}
     no_viewport_percentage!(SpecifiedValue);
 
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub enum SpecifiedValue {
+        Normal,
+        Override(String),
+    }
+
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            use cssparser;
+            match *self {
+                SpecifiedValue::Normal => dest.write_str("normal"),
+                SpecifiedValue::Override(ref lang) =>
+                    cssparser::serialize_string(lang, dest),
+            }
+        }
+    }
+
     pub mod computed_value {
-        use std::fmt;
+        use std::{fmt, str};
         use style_traits::ToCss;
+        use byteorder::{BigEndian, ByteOrder};
+        use cssparser;
 
         impl ToCss for T {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                match *self {
-                    T::Normal => dest.write_str("normal"),
-                    T::Override(ref lang) => write!(dest, "\"{}\"", lang),
+                if self.0 == 0 {
+                    return dest.write_str("normal")
                 }
+                let mut buf = [0; 4];
+                BigEndian::write_u32(&mut buf, self.0);
+                // Safe because we ensure it's ASCII during computing
+                let slice = if cfg!(debug_assertions) {
+                    str::from_utf8(&buf).unwrap()
+                } else {
+                    unsafe { str::from_utf8_unchecked(&buf) }
+                };
+                cssparser::serialize_string(slice.trim_right(), dest)
             }
         }
 
-        #[derive(Clone, Debug, PartialEq)]
+        // font-language-override can only have a single three-letter
+        // OpenType "language system" tag, so we should be able to compute
+        // it and store it as a 32-bit integer
+        // (see http://www.microsoft.com/typography/otspec/languagetags.htm).
+        #[derive(PartialEq, Clone, Copy, Debug)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub enum T {
-            Normal,
-            Override(String),
-        }
+        pub struct T(pub u32);
     }
 
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
-        computed_value::T::Normal
+        computed_value::T(0)
     }
 
     #[inline]
@@ -995,6 +1022,45 @@ ${helpers.single_keyword("font-variant-position",
         SpecifiedValue::Normal
     }
 
+    impl ToComputedValue for SpecifiedValue {
+        type ComputedValue = computed_value::T;
+
+        #[inline]
+        fn to_computed_value(&self, _: &Context) -> computed_value::T {
+            use std::ascii::AsciiExt;
+            match *self {
+                SpecifiedValue::Normal => computed_value::T(0),
+                SpecifiedValue::Override(ref lang) => {
+                    if lang.is_empty() || lang.len() > 4 || !lang.is_ascii() {
+                        return computed_value::T(0)
+                    }
+                    let mut computed_lang = lang.clone();
+                    while computed_lang.len() < 4 {
+                        computed_lang.push(' ');
+                    }
+                    let bytes = computed_lang.into_bytes();
+                    computed_value::T(BigEndian::read_u32(&bytes))
+                }
+            }
+        }
+        #[inline]
+        fn from_computed_value(computed: &computed_value::T) -> Self {
+            if computed.0 == 0 {
+                return SpecifiedValue::Normal
+            }
+            let mut buf = [0; 4];
+            BigEndian::write_u32(&mut buf, computed.0);
+            SpecifiedValue::Override(
+                if cfg!(debug_assertions) {
+                    String::from_utf8(buf.to_vec()).unwrap()
+                } else {
+                    unsafe { String::from_utf8_unchecked(buf.to_vec()) }
+                }
+            )
+        }
+    }
+
+    /// normal | <string>
     pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
         if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
             Ok(SpecifiedValue::Normal)
