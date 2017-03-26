@@ -47,10 +47,8 @@ impl ServoUrl {
         Arc::try_unwrap(self.0).unwrap_or_else(|s| (*s).clone()).into_string()
     }
 
-    // NOTE: These methods return options that are always true temporarily until
-    // we special-case some urls to avoid going through rust-url.
-    pub fn into_url(self) -> Option<Url> {
-        Some(Arc::try_unwrap(self.0).unwrap_or_else(|s| (*s).clone()))
+    pub fn into_url(self) -> Url {
+        Arc::try_unwrap(self.0).unwrap_or_else(|s| (*s).clone())
     }
 
     pub fn as_url(&self) -> &Url {
@@ -94,24 +92,24 @@ impl ServoUrl {
         self.0.as_str()
     }
 
-    pub fn as_mut_url(&mut self) -> Option<&mut Url> {
-        Some(Arc::make_mut(&mut self.0))
+    pub fn as_mut_url(&mut self) -> &mut Url {
+        Arc::make_mut(&mut self.0)
     }
 
     pub fn set_username(&mut self, user: &str) -> Result<(), ()> {
-        Arc::make_mut(&mut self.0).set_username(user)
+        self.as_mut_url().set_username(user)
     }
 
     pub fn set_ip_host(&mut self, addr: IpAddr) -> Result<(), ()> {
-        Arc::make_mut(&mut self.0).set_ip_host(addr)
+        self.as_mut_url().set_ip_host(addr)
     }
 
     pub fn set_password(&mut self, pass: Option<&str>) -> Result<(), ()> {
-        Arc::make_mut(&mut self.0).set_password(pass)
+        self.as_mut_url().set_password(pass)
     }
 
     pub fn set_fragment(&mut self, fragment: Option<&str>) {
-        Arc::make_mut(&mut self.0).set_fragment(fragment)
+        self.as_mut_url().set_fragment(fragment)
     }
 
     pub fn username(&self) -> &str {

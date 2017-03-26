@@ -15,6 +15,7 @@ use hsts::HstsList;
 use hyper::Error as HttpError;
 use hyper::LanguageTag;
 use hyper::client::{Pool, Request as HyperRequest, Response as HyperResponse};
+use hyper::client::pool::PooledStream;
 use hyper::header::{AcceptEncoding, AcceptLanguage, AccessControlAllowCredentials};
 use hyper::header::{AccessControlAllowOrigin, AccessControlAllowHeaders, AccessControlAllowMethods};
 use hyper::header::{AccessControlRequestHeaders, AccessControlMaxAge, AccessControlRequestMethod};
@@ -24,17 +25,18 @@ use hyper::header::{IfUnmodifiedSince, IfModifiedSince, IfNoneMatch, Location, P
 use hyper::header::{QualityItem, Referer, SetCookie, UserAgent, qitem};
 use hyper::header::Origin as HyperOrigin;
 use hyper::method::Method;
-use hyper::net::Fresh;
+use hyper::net::{Fresh, HttpStream, HttpsStream, NetworkConnector};
 use hyper::status::StatusCode;
 use hyper_serde::Serde;
 use log;
 use msg::constellation_msg::PipelineId;
 use net_traits::{CookieSource, FetchMetadata, NetworkError, ReferrerPolicy};
-use net_traits::hosts::replace_hosts;
+use net_traits::hosts::replace_host;
 use net_traits::request::{CacheMode, CredentialsMode, Destination, Origin};
 use net_traits::request::{RedirectMode, Referrer, Request, RequestMode, ResponseTainting};
 use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
 use openssl;
+use openssl::ssl::SslStream;
 use openssl::ssl::error::{OpensslError, SslError};
 use resource_thread::AuthCache;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -125,12 +127,18 @@ struct NetworkHttpRequestFactory {
     pub connector: Arc<Pool<Connector>>,
 }
 
+impl NetworkConnector for NetworkHttpRequestFactory {
+    type Stream = PooledStream<HttpsStream<SslStream<HttpStream>>>;
+
+    fn connect(&self, host: &str, port: u16, scheme: &str) -> Result<Self::Stream, HttpError> {
+        self.connector.connect(&replace_host(host), port, scheme)
+    }
+}
+
 impl NetworkHttpRequestFactory {
     fn create(&self, url: ServoUrl, method: Method, headers: Headers)
               -> Result<HyperRequest<Fresh>, NetworkError> {
-        let connection = HyperRequest::with_connector(method,
-                                                      url.clone().into_url().unwrap(),
-                                                      &*self.connector);
+        let connection = HyperRequest::with_connector(method, url.clone().into_url(), self);
 
         if let Err(HttpError::Ssl(ref error)) = connection {
             let error: &(Error + Send + 'static) = &**error;
@@ -222,7 +230,7 @@ fn strict_origin_when_cross_origin(referrer_url: ServoUrl, url: ServoUrl) -> Opt
 fn strip_url(mut referrer_url: ServoUrl, origin_only: bool) -> Option<ServoUrl> {
     if referrer_url.scheme() == "https" || referrer_url.scheme() == "http" {
         {
-            let referrer = referrer_url.as_mut_url().unwrap();
+            let referrer = referrer_url.as_mut_url();
             referrer.set_username("").unwrap();
             referrer.set_password(None).unwrap();
             referrer.set_fragment(None);
@@ -408,7 +416,6 @@ fn obtain_response(request_factory: &NetworkHttpRequestFactory,
                    is_xhr: bool)
                    -> Result<(WrappedHttpResponse, Option<ChromeToDevtoolsControlMsg>), NetworkError> {
     let null_data = None;
-    let connection_url = replace_hosts(&url);
 
     // loop trying connections in connection pool
     // they may have grown stale (disconnected), in which case we'll get
@@ -439,7 +446,7 @@ fn obtain_response(request_factory: &NetworkHttpRequestFactory,
         }
 
         if log_enabled!(log::LogLevel::Info) {
-            info!("{} {}", method, connection_url);
+            info!("{} {}", method, url);
             for header in headers.iter() {
                 info!(" - {}", header);
             }
@@ -448,7 +455,7 @@ fn obtain_response(request_factory: &NetworkHttpRequestFactory,
 
         let connect_start = precise_time_ms();
 
-        let request = try!(request_factory.create(connection_url.clone(), method.clone(),
+        let request = try!(request_factory.create(url.clone(), method.clone(),
                                                   headers.clone()));
 
         let connect_end = precise_time_ms();
@@ -900,7 +907,7 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
         let headers = &mut *http_request.headers.borrow_mut();
         let host = Host {
             hostname: current_url.host_str().unwrap().to_owned(),
-            port: current_url.port_or_known_default()
+            port: current_url.port()
         };
         headers.set(host);
         // unlike http_loader, we should not set the accept header

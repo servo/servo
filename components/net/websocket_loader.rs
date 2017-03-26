@@ -9,7 +9,7 @@ use http_loader;
 use hyper::header::{Host, SetCookie};
 use net_traits::{CookieSource, MessageData, WebSocketCommunicate};
 use net_traits::{WebSocketConnectData, WebSocketDomAction, WebSocketNetworkEvent};
-use net_traits::hosts::replace_hosts;
+use net_traits::hosts::replace_host_in_url;
 use servo_url::ServoUrl;
 use std::ascii::AsciiExt;
 use std::sync::{Arc, Mutex, RwLock};
@@ -24,84 +24,6 @@ use websocket::sender::Sender;
 use websocket::stream::WebSocketStream;
 use websocket::ws::receiver::Receiver as WSReceiver;
 use websocket::ws::sender::Sender as Sender_Object;
-
-// https://fetch.spec.whatwg.org/#concept-websocket-establish
-fn establish_a_websocket_connection(resource_url: &ServoUrl,
-                                    origin: String,
-                                    protocols: Vec<String>,
-                                    cookie_jar: Arc<RwLock<CookieStorage>>)
-                                    -> WebSocketResult<(Option<String>,
-                                                        Sender<WebSocketStream>,
-                                                        Receiver<WebSocketStream>)> {
-    // Steps 1-2 are not really applicable here, given we don't exactly go
-    // through the same infrastructure as the Fetch spec.
-
-    if should_be_blocked_due_to_bad_port(resource_url) {
-        // Subset of steps 11-12, we inline the bad port check here from the
-        // main fetch algorithm for the same reason steps 1-2 are not
-        // applicable.
-        return Err(WebSocketError::RequestError("Request should be blocked due to bad port."));
-    }
-
-    // Steps 3-7.
-    let net_url = replace_hosts(resource_url);
-    let mut request = try!(Client::connect(net_url.as_url()));
-
-    // Client::connect sets the Host header to the host of the URL that is
-    // passed to it, so we need to reset it afterwards to the correct one.
-    request.headers.set(Host {
-        hostname: resource_url.host_str().unwrap().to_owned(),
-        port: resource_url.port(),
-    });
-
-    // Step 8.
-    if !protocols.is_empty() {
-        request.headers.set(WebSocketProtocol(protocols.clone()));
-    }
-
-    // Steps 9-10.
-    // TODO: support for permessage-deflate extension.
-
-    // Subset of step 11.
-    // See step 2 of https://fetch.spec.whatwg.org/#concept-fetch.
-    request.headers.set(Origin(origin));
-
-    // Transitive subset of step 11.
-    // See step 17.1 of https://fetch.spec.whatwg.org/#concept-http-network-or-cache-fetch.
-    http_loader::set_request_cookies(&resource_url, &mut request.headers, &cookie_jar);
-
-    // Step 11, somewhat.
-    let response = try!(request.send());
-
-    // Step 12, 14.
-    try!(response.validate());
-
-    // Step 13 and transitive subset of step 14.
-    // See step 6 of http://tools.ietf.org/html/rfc6455#section-4.1.
-    let protocol_in_use = response.protocol().and_then(|header| {
-        // https://github.com/whatwg/fetch/issues/515
-        header.first().cloned()
-    });
-    if let Some(ref protocol_name) = protocol_in_use {
-        if !protocols.is_empty() && !protocols.iter().any(|p| (&**p).eq_ignore_ascii_case(protocol_name)) {
-            return Err(WebSocketError::ProtocolError("Protocol in Use not in client-supplied protocol list"));
-        };
-    };
-
-    // Transitive subset of step 11.
-    // See step 15 of https://fetch.spec.whatwg.org/#http-network-fetch.
-    if let Some(cookies) = response.headers.get::<SetCookie>() {
-        let mut jar = cookie_jar.write().unwrap();
-        for cookie in &**cookies {
-            if let Some(cookie) = Cookie::new_wrapped(cookie.clone(), resource_url, CookieSource::HTTP) {
-                jar.push(cookie, resource_url, CookieSource::HTTP);
-            }
-        }
-    }
-
-    let (sender, receiver) = response.begin().split();
-    Ok((protocol_in_use, sender, receiver))
-}
 
 pub fn init(connect: WebSocketCommunicate, connect_data: WebSocketConnectData, cookie_jar: Arc<RwLock<CookieStorage>>) {
     thread::Builder::new().name(format!("WebSocket connection to {}", connect_data.resource_url)).spawn(move || {
@@ -181,4 +103,82 @@ pub fn init(connect: WebSocketCommunicate, connect_data: WebSocketConnectData, c
             }
         }
     }).expect("Thread spawning failed");
+}
+
+// https://fetch.spec.whatwg.org/#concept-websocket-establish
+fn establish_a_websocket_connection(resource_url: &ServoUrl,
+                                    origin: String,
+                                    protocols: Vec<String>,
+                                    cookie_jar: Arc<RwLock<CookieStorage>>)
+                                    -> WebSocketResult<(Option<String>,
+                                                        Sender<WebSocketStream>,
+                                                        Receiver<WebSocketStream>)> {
+    // Steps 1-2 are not really applicable here, given we don't exactly go
+    // through the same infrastructure as the Fetch spec.
+
+    if should_be_blocked_due_to_bad_port(resource_url) {
+        // Subset of steps 11-12, we inline the bad port check here from the
+        // main fetch algorithm for the same reason steps 1-2 are not
+        // applicable.
+        return Err(WebSocketError::RequestError("Request should be blocked due to bad port."));
+    }
+
+    // Steps 3-7.
+    let net_url = replace_host_in_url(resource_url.clone());
+    let mut request = try!(Client::connect(net_url.as_url()));
+
+    // Client::connect sets the Host header to the host of the URL that is
+    // passed to it, so we need to reset it afterwards to the correct one.
+    request.headers.set(Host {
+        hostname: resource_url.host_str().unwrap().to_owned(),
+        port: resource_url.port(),
+    });
+
+    // Step 8.
+    if !protocols.is_empty() {
+        request.headers.set(WebSocketProtocol(protocols.clone()));
+    }
+
+    // Steps 9-10.
+    // TODO: support for permessage-deflate extension.
+
+    // Subset of step 11.
+    // See step 2 of https://fetch.spec.whatwg.org/#concept-fetch.
+    request.headers.set(Origin(origin));
+
+    // Transitive subset of step 11.
+    // See step 17.1 of https://fetch.spec.whatwg.org/#concept-http-network-or-cache-fetch.
+    http_loader::set_request_cookies(&resource_url, &mut request.headers, &cookie_jar);
+
+    // Step 11, somewhat.
+    let response = try!(request.send());
+
+    // Step 12, 14.
+    try!(response.validate());
+
+    // Step 13 and transitive subset of step 14.
+    // See step 6 of http://tools.ietf.org/html/rfc6455#section-4.1.
+    let protocol_in_use = response.protocol().and_then(|header| {
+        // https://github.com/whatwg/fetch/issues/515
+        header.first().cloned()
+    });
+    if let Some(ref protocol_name) = protocol_in_use {
+        if !protocols.is_empty() && !protocols.iter().any(|p| (&**p).eq_ignore_ascii_case(protocol_name)) {
+            return Err(WebSocketError::ProtocolError("Protocol in Use not in client-supplied protocol list"));
+        };
+    };
+
+    // Transitive subset of step 11.
+    // See step 15 of https://fetch.spec.whatwg.org/#http-network-fetch.
+    if let Some(cookies) = response.headers.get::<SetCookie>() {
+        let mut jar = cookie_jar.write().unwrap();
+        for cookie in &**cookies {
+            if let Some(cookie) = Cookie::new_wrapped(cookie.clone(), resource_url, CookieSource::HTTP) {
+                jar.push(cookie, resource_url, CookieSource::HTTP);
+            }
+        }
+    }
+
+    let (sender, receiver) = response.begin().split();
+    Ok((protocol_in_use, sender, receiver))
 }
