@@ -7,6 +7,7 @@
 
 #![deny(unsafe_code)]
 
+extern crate base64;
 extern crate cookie as cookie_rs;
 extern crate euclid;
 extern crate hyper;
@@ -34,7 +35,6 @@ use keys::keycodes_to_keys;
 use msg::constellation_msg::{FrameId, PipelineId, TraversalDirection};
 use net_traits::image::base::PixelFormat;
 use regex::Captures;
-use rustc_serialize::base64::{CharacterSet, Config, Newline, ToBase64};
 use rustc_serialize::json::{Json, ToJson};
 use script_traits::{ConstellationMsg, LoadData, WebDriverCommandMsg};
 use script_traits::webdriver_msg::{LoadStatus, WebDriverCookieError, WebDriverFrameId};
@@ -831,13 +831,7 @@ impl Handler {
         let mut png_data = Vec::new();
         DynamicImage::ImageRgb8(rgb).save(&mut png_data, ImageFormat::PNG).unwrap();
 
-        let config = Config {
-            char_set: CharacterSet::Standard,
-            newline: Newline::LF,
-            pad: true,
-            line_length: None
-        };
-        let encoded = png_data.to_base64(config);
+        let encoded = base64::encode(&png_data);
         Ok(WebDriverResponse::Generic(ValueResponse::new(encoded.to_json())))
     }
 

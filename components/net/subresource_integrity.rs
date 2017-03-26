@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use base64;
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use openssl::crypto::hash::{hash, Type as MessageDigest};
-use rustc_serialize::base64::{STANDARD, ToBase64};
 use std::iter::Filter;
 use std::str::Split;
 use std::sync::MutexGuard;
@@ -120,7 +120,7 @@ fn apply_algorithm_to_response(body: MutexGuard<ResponseBody>,
                                -> String {
     if let ResponseBody::Done(ref vec) = *body {
         let response_digest = hash(message_digest, vec);
-        response_digest.to_base64(STANDARD)
+        base64::encode(&response_digest)
     } else {
         unreachable!("Tried to calculate digest of incomplete response body")
     }

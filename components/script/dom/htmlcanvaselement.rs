@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use base64;
 use canvas_traits::{CanvasMsg, FromScriptMsg};
 use dom::attr::Attr;
 use dom::bindings::cell::DOMRefCell;
@@ -33,7 +34,6 @@ use ipc_channel::ipc::{self, IpcSender};
 use js::error::throw_type_error;
 use js::jsapi::{HandleValue, JSContext};
 use offscreen_gl_context::GLContextAttributes;
-use rustc_serialize::base64::{STANDARD, ToBase64};
 use script_layout_interface::HTMLCanvasData;
 use std::iter::repeat;
 use style::attr::AttrValue;
@@ -296,7 +296,7 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
             encoder.encode(&raw_data, self.Width(), self.Height(), ColorType::RGBA(8)).unwrap();
         }
 
-        let encoded = encoded.to_base64(STANDARD);
+        let encoded = base64::encode(&encoded);
         Ok(DOMString::from(format!("data:{};base64,{}", mime_type, encoded)))
     }
 }

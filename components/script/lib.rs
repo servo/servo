@@ -28,6 +28,7 @@ extern crate angle;
 extern crate app_units;
 extern crate atomic_refcell;
 extern crate audio_video_metadata;
+extern crate base64;
 #[macro_use]
 extern crate bitflags;
 extern crate bluetooth_traits;
@@ -78,7 +79,6 @@ extern crate range;
 extern crate ref_filter_map;
 extern crate ref_slice;
 extern crate regex;
-extern crate rustc_serialize;
 extern crate script_layout_interface;
 extern crate script_traits;
 extern crate selectors;
