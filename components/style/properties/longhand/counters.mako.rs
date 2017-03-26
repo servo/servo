@@ -269,7 +269,7 @@
 
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            if (&self.0).is_empty() {
+            if self.0.is_empty() {
                 try!(write!(dest, "none"));
             } else {
                 let mut first = true;
