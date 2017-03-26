@@ -51,7 +51,7 @@ use gecko_bindings::structs::NODE_IS_NATIVE_ANONYMOUS;
 use gecko_bindings::sugar::ownership::HasArcFFI;
 use parking_lot::RwLock;
 use properties::{ComputedValues, parse_style_attribute};
-use properties::PropertyDeclarationBlock;
+use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock};
 use properties::animated_properties::AnimationValueMap;
 use rule_tree::CascadeLevel as ServoCascadeLevel;
 use selector_parser::{ElementExt, Snapshot};
@@ -624,6 +624,24 @@ impl<'le> PresentationalHintsSynthetizer for GeckoElement<'le> {
     fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
         where V: Push<ApplicableDeclarationBlock>,
     {
+        use properties::longhands::text_align::SpecifiedValue;
+        lazy_static! {
+            static ref TH_RULE: ApplicableDeclarationBlock = {
+                let global_style_data = &*GLOBAL_STYLE_DATA;
+                let pdb = PropertyDeclarationBlock::with_one(
+                    PropertyDeclaration::TextAlign(SpecifiedValue::MozCenterOrInherit),
+                    Importance::Normal
+                );
+                let arc = Arc::new(global_style_data.shared_lock.wrap(pdb));
+                ApplicableDeclarationBlock::from_declarations(arc, ServoCascadeLevel::PresHints)
+            };
+        };
+
+        // <th> elements get a default MozCenterOrInherit which may get overridden
+        if self.get_namespace() == &*Namespace(atom!("http://www.w3.org/1999/xhtml")) &&
+          self.get_local_name().as_ptr() == atom!("th").as_ptr() {
+            hints.push(TH_RULE.clone());
+        }
         let declarations = unsafe { Gecko_GetHTMLPresentationAttrDeclarationBlock(self.0) };
         let declarations = declarations.and_then(|s| s.as_arc_opt());
         if let Some(decl) = declarations {
