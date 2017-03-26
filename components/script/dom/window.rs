@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
+use base64;
 use bluetooth_traits::BluetoothRequest;
 use cssparser::Parser;
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
@@ -68,7 +69,6 @@ use num_traits::ToPrimitive;
 use open;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
-use rustc_serialize::base64::{FromBase64, STANDARD, ToBase64};
 use script_layout_interface::{TrustedNodeAddress, PendingImageState};
 use script_layout_interface::message::{Msg, Reflow, ReflowQueryType, ScriptReflow};
 use script_layout_interface::reporter::CSSErrorReporter;
@@ -410,16 +410,13 @@ pub fn base64_btoa(input: DOMString) -> Fallible<DOMString> {
 
         // "and then must apply the base64 algorithm to that sequence of
         //  octets, and return the result. [RFC4648]"
-        Ok(DOMString::from(octets.to_base64(STANDARD)))
+        Ok(DOMString::from(base64::encode(&octets)))
     }
 }
 
 // https://html.spec.whatwg.org/multipage/#atob
 pub fn base64_atob(input: DOMString) -> Fallible<DOMString> {
     // "Remove all space characters from input."
-    // serialize::base64::from_base64 ignores \r and \n,
-    // but it treats the other space characters as
-    // invalid input.
     fn is_html_space(c: char) -> bool {
         HTML_SPACE_CHARACTERS.iter().any(|&m| m == c)
     }
@@ -456,7 +453,7 @@ pub fn base64_atob(input: DOMString) -> Fallible<DOMString> {
         return Err(Error::InvalidCharacter)
     }
 
-    match input.from_base64() {
+    match base64::decode(&input) {
         Ok(data) => Ok(DOMString::from(data.iter().map(|&b| b as char).collect::<String>())),
         Err(..) => Err(Error::InvalidCharacter)
     }

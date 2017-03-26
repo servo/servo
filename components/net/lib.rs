@@ -7,6 +7,7 @@
 #![feature(mpsc_select)]
 #![feature(step_by)]
 
+extern crate base64;
 extern crate brotli;
 extern crate cookie as cookie_rs;
 extern crate devtools_traits;
@@ -25,7 +26,6 @@ extern crate net_traits;
 extern crate openssl;
 extern crate openssl_verify;
 extern crate profile_traits;
-extern crate rustc_serialize;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;

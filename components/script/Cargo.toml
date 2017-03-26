@@ -28,6 +28,7 @@ angle = {git = "https://github.com/servo/angle", branch = "servo"}
 app_units = "0.4"
 audio-video-metadata = "0.1.2"
 atomic_refcell = "0.1"
+base64 = "0.4.1"
 bitflags = "0.7"
 bluetooth_traits = {path = "../bluetooth_traits"}
 byteorder = "1.0"
@@ -69,7 +70,6 @@ range = {path = "../range"}
 ref_filter_map = "1.0.1"
 ref_slice = "1.0"
 regex = "0.2"
-rustc-serialize = "0.3"
 script_layout_interface = {path = "../script_layout_interface"}
 script_plugins = {path = "../script_plugins"}
 script_traits = {path = "../script_traits"}
