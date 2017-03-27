@@ -910,12 +910,24 @@ impl ToCss for CalcLengthOrPercentage {
 /// A percentage value.
 ///
 /// [0 .. 100%] maps to [0.0 .. 1.0]
+///
+/// FIXME(emilio): There's no standard property that requires a `<percentage>`
+/// without requiring also a `<length>`. If such a property existed, we'd need
+/// to add special handling for `calc()` and percentages in here in the same way
+/// as for `Angle` and `Time`, but the lack of this this is otherwise
+/// undistinguishable (we handle it correctly from `CalcLengthOrPercentage`).
+///
+/// As of today, only `-moz-image-rect` supports percentages without length.
+/// This is not a regression, and that's a non-standard extension anyway, so I'm
+/// not implementing it for now.
 #[derive(Clone, PartialEq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct Percentage(pub CSSFloat);
 
 impl ToCss for Percentage {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+        where W: fmt::Write,
+    {
         write!(dest, "{}%", self.0 * 100.)
     }
 }
