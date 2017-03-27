@@ -638,11 +638,15 @@ trait PrivateMatchMethods: TElement {
                           new_values: &mut Arc<ComputedValues>,
                           pseudo: Option<&PseudoElement>,
                           _possibly_expired_animations: &mut Vec<PropertyAnimation>) {
+        use context::{CSS_ANIMATIONS, EFFECT_PROPERTIES};
+        use context::UpdateAnimationsTasks;
+
         let ref new_box_style = new_values.get_box();
         let has_new_animation_style = new_box_style.animation_name_count() >= 1 &&
                                       new_box_style.animation_name_at(0).0.len() != 0;
         let has_animations = self.has_css_animations(pseudo);
 
+        let mut tasks = UpdateAnimationsTasks::empty();
         let needs_update_animations =
             old_values.as_ref().map_or(has_new_animation_style, |ref old| {
                 let ref old_box_style = old.get_box();
@@ -658,8 +662,15 @@ trait PrivateMatchMethods: TElement {
                   has_animations)
             });
         if needs_update_animations {
+            tasks.insert(CSS_ANIMATIONS);
+        }
+        if self.has_animations(pseudo) {
+            tasks.insert(EFFECT_PROPERTIES);
+        }
+        if !tasks.is_empty() {
             let task = SequentialTask::update_animations(self.as_node().as_element().unwrap(),
-                                                         pseudo.cloned());
+                                                         pseudo.cloned(),
+                                                         tasks);
             context.thread_local.tasks.push(task);
         }
     }

@@ -282,7 +282,8 @@ mod bindings {
             .raw_line("use data::ElementData;")
             .hide_type("nsString")
             .bitfield_enum("nsChangeHint")
-            .bitfield_enum("nsRestyleHint");
+            .bitfield_enum("nsRestyleHint")
+            .constified_enum("UpdateAnimationsTasks");
         let whitelist_vars = [
             "NS_THEME_.*",
             "NODE_.*",
@@ -306,6 +307,7 @@ mod bindings {
             "mozilla::TraversalRootBehavior",
             "mozilla::StyleShapeRadius",
             "mozilla::StyleGrid.*",
+            "mozilla::UpdateAnimationsTasks",
             "mozilla::LookAndFeel",
             ".*ThreadSafe.*Holder",
             "AnonymousContent",
@@ -667,6 +669,7 @@ mod bindings {
             "Loader",
             "ServoStyleSheet",
             "EffectCompositor_CascadeLevel",
+            "UpdateAnimationsTasks",
         ];
         struct ArrayType {
             cpp_type: &'static str,

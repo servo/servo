@@ -12,9 +12,10 @@ use data::ElementData;
 use dom::{OpaqueNode, TNode, TElement, SendElement};
 use error_reporting::ParseErrorReporter;
 use euclid::Size2D;
+#[cfg(feature = "gecko")] use gecko_bindings::structs;
 use matching::StyleSharingCandidateCache;
 use parking_lot::RwLock;
-use selector_parser::PseudoElement;
+#[cfg(feature = "gecko")] use selector_parser::PseudoElement;
 use selectors::matching::ElementSelectorFlags;
 use servo_config::opts;
 use shared_lock::StylesheetGuards;
@@ -194,6 +195,22 @@ impl TraversalStatistics {
     }
 }
 
+#[cfg(feature = "gecko")]
+bitflags! {
+    /// Represents which tasks are performed in a SequentialTask of UpdateAnimations.
+    pub flags UpdateAnimationsTasks: u8 {
+        /// Update CSS Animations.
+        const CSS_ANIMATIONS = structs::UpdateAnimationsTasks_CSSAnimations,
+        /// Update CSS Transitions.
+        const CSS_TRANSITIONS = structs::UpdateAnimationsTasks_CSSTransitions,
+        /// Update effect properties.
+        const EFFECT_PROPERTIES = structs::UpdateAnimationsTasks_EffectProperties,
+        /// Update animation cacade results for animations running on the compositor.
+        const CASCADE_RESULTS = structs::UpdateAnimationsTasks_CascadeResults,
+    }
+}
+
+
 /// A task to be run in sequential mode on the parent (non-worker) thread. This
 /// is used by the style system to queue up work which is not safe to do during
 /// the parallel traversal.
@@ -202,9 +219,10 @@ pub enum SequentialTask<E: TElement> {
     /// element that we don't have exclusive access to (i.e. the parent).
     SetSelectorFlags(SendElement<E>, ElementSelectorFlags),
 
-    /// Marks that we need to create/remove/update CSS animations after the
-    /// first traversal.
-    UpdateAnimations(SendElement<E>, Option<PseudoElement>),
+    #[cfg(feature = "gecko")]
+    /// Marks that we need to update CSS animations, update effect properties of
+    /// any type of animations after the normal traversal.
+    UpdateAnimations(SendElement<E>, Option<PseudoElement>, UpdateAnimationsTasks),
 }
 
 impl<E: TElement> SequentialTask<E> {
@@ -216,8 +234,9 @@ impl<E: TElement> SequentialTask<E> {
             SetSelectorFlags(el, flags) => {
                 unsafe { el.set_selector_flags(flags) };
             }
-            UpdateAnimations(el, pseudo) => {
-                unsafe { el.update_animations(pseudo.as_ref()) };
+            #[cfg(feature = "gecko")]
+            UpdateAnimations(el, pseudo, tasks) => {
+                unsafe { el.update_animations(pseudo.as_ref(), tasks) };
             }
         }
     }
@@ -228,10 +247,12 @@ impl<E: TElement> SequentialTask<E> {
         SetSelectorFlags(unsafe { SendElement::new(el) }, flags)
     }
 
-    /// Creates a task to update CSS Animations on a given (pseudo-)element.
-    pub fn update_animations(el: E, pseudo: Option<PseudoElement>) -> Self {
+    #[cfg(feature = "gecko")]
+    /// Creates a task to update various animation state on a given (pseudo-)element.
+    pub fn update_animations(el: E, pseudo: Option<PseudoElement>,
+                             tasks: UpdateAnimationsTasks) -> Self {
         use self::SequentialTask::*;
-        UpdateAnimations(unsafe { SendElement::new(el) }, pseudo)
+        UpdateAnimations(unsafe { SendElement::new(el) }, pseudo, tasks)
     }
 }
 

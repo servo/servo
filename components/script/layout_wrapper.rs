@@ -451,7 +451,7 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         self.element.has_selector_flags(flags)
     }
 
-    fn update_animations(&self, _pseudo: Option<&PseudoElement>) {
+    fn has_animations(&self, _pseudo: Option<&PseudoElement>) -> bool {
         panic!("this should be only called on gecko");
     }
 
