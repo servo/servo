@@ -289,19 +289,15 @@
         type ComputedValue = computed_value::T;
 
         fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-            let mut ret = Vec::with_capacity(self.0.len());
-            for entry in &self.0 {
-                ret.push((entry.0.clone(), entry.1.to_computed_value(context)));
-            }
-            computed_value::T(ret)
+            computed_value::T(self.0.iter().map(|entry| {
+                (entry.0.clone(), entry.1.to_computed_value(context))
+            }).collect::<Vec<_>>())
         }
 
         fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-            let mut ret = Vec::with_capacity(computed.0.len());
-            for entry in &computed.0 {
-                ret.push((entry.0.clone(), specified::Integer::from_computed_value(&entry.1)));
-            }
-            SpecifiedValue(ret)
+            SpecifiedValue(computed.0.iter().map(|entry| {
+                (entry.0.clone(), specified::Integer::from_computed_value(&entry.1))
+            }).collect::<Vec<_>>())
         }
     }
 
