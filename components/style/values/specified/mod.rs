@@ -203,11 +203,13 @@ impl<'a> Mul<CSSFloat> for &'a SimplifiedValueNode {
 }
 
 #[allow(missing_docs)]
-pub fn parse_integer(input: &mut Parser) -> Result<i32, ()> {
+pub fn parse_integer(input: &mut Parser) -> Result<Integer, ()> {
     match try!(input.next()) {
-        Token::Number(ref value) => value.int_value.ok_or(()),
+        Token::Number(ref value) => value.int_value.ok_or(()).map(Integer::new),
         Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-            let ast = try!(input.parse_nested_block(|i| CalcLengthOrPercentage::parse_sum(i, CalcUnit::Integer)));
+            let ast = try!(input.parse_nested_block(|i| {
+                CalcLengthOrPercentage::parse_sum(i, CalcUnit::Integer)
+            }));
 
             let mut result = None;
 
@@ -220,7 +222,7 @@ pub fn parse_integer(input: &mut Parser) -> Result<i32, ()> {
             }
 
             match result {
-                Some(result) => Ok(result),
+                Some(result) => Ok(Integer::from_calc(result)),
                 _ => Err(())
             }
         }
@@ -771,21 +773,47 @@ impl ToCss for Opacity {
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
-pub struct Integer(pub CSSInteger);
+pub struct Integer {
+    value: CSSInteger,
+    was_calc: bool,
+}
+
+impl Integer {
+    /// Trivially constructs a new `Integer` value.
+    pub fn new(val: CSSInteger) -> Self {
+        Integer {
+            value: val,
+            was_calc: false,
+        }
+    }
+
+    /// Returns the integer value associated with this value.
+    pub fn value(&self) -> CSSInteger {
+        self.value
+    }
+
+    /// Trivially constructs a new integer value from a `calc()` expression.
+    pub fn from_calc(val: CSSInteger) -> Self {
+        Integer {
+            value: val,
+            was_calc: true,
+        }
+    }
+}
 
 no_viewport_percentage!(Integer);
 
 impl Parse for Integer {
     fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        parse_integer(input).map(Integer)
+        parse_integer(input)
     }
 }
 
 impl Integer {
     fn parse_with_minimum(input: &mut Parser, min: i32) -> Result<Integer, ()> {
         match parse_integer(input) {
-            Ok(value) if value < min => Err(()),
-            value => value.map(Integer),
+            Ok(value) if value.value() >= min => Ok(value),
+            _ => Err(()),
         }
     }
 
@@ -804,17 +832,26 @@ impl ToComputedValue for Integer {
     type ComputedValue = i32;
 
     #[inline]
-    fn to_computed_value(&self, _: &Context) -> i32 { self.0 }
+    fn to_computed_value(&self, _: &Context) -> i32 { self.value }
 
     #[inline]
     fn from_computed_value(computed: &i32) -> Self {
-        Integer(*computed)
+        Integer::new(*computed)
     }
 }
 
 impl ToCss for Integer {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        write!(dest, "{}", self.0)
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+        where W: fmt::Write,
+    {
+        if self.was_calc {
+            dest.write_str("calc(")?;
+        }
+        write!(dest, "{}", self.value)?;
+        if self.was_calc {
+            dest.write_str(")")?;
+        }
+        Ok(())
     }
 }
 
@@ -823,9 +860,11 @@ pub type IntegerOrAuto = Either<Integer, Auto>;
 
 impl IntegerOrAuto {
     #[allow(missing_docs)]
-    pub fn parse_positive(context: &ParserContext, input: &mut Parser) -> Result<IntegerOrAuto, ()> {
+    pub fn parse_positive(context: &ParserContext,
+                          input: &mut Parser)
+                          -> Result<IntegerOrAuto, ()> {
         match IntegerOrAuto::parse(context, input) {
-            Ok(Either::First(Integer(value))) if value <= 0 => Err(()),
+            Ok(Either::First(integer)) if integer.value() <= 0 => Err(()),
             result => result,
         }
     }

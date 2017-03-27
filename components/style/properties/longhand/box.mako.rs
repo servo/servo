@@ -487,6 +487,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         use parser::{Parse, ParserContext};
         use std::fmt;
         use style_traits::ToCss;
+        use values::specified;
 
         pub use super::parse;
 
@@ -498,7 +499,9 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         }
 
         impl ToCss for T {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+                where W: fmt::Write,
+            {
                 match *self {
                     T::CubicBezier(p1, p2) => {
                         try!(dest.write_str("cubic-bezier("));
@@ -512,7 +515,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                         dest.write_str(")")
                     }
                     T::Steps(steps, start_end) => {
-                        super::serialize_steps(dest, steps, start_end)
+                        super::serialize_steps(dest, specified::Integer::new(steps as i32), start_end)
                     }
                 }
             }
@@ -526,7 +529,9 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         }
 
         impl ToCss for StartEnd {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+                where W: fmt::Write,
+            {
                 match *self {
                     StartEnd::Start => dest.write_str("start"),
                     StartEnd::End => dest.write_str("end"),
@@ -548,7 +553,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedValue {
         CubicBezier(Point2D<Number>, Point2D<Number>),
-        Steps(u32, StartEnd),
+        Steps(specified::Integer, StartEnd),
         Keyword(FunctionKeyword),
     }
 
@@ -578,10 +583,10 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                         Ok(SpecifiedValue::CubicBezier(p1, p2))
                     },
                     "steps" => {
-                        let (mut step_count, mut start_end) = (0, StartEnd::End);
+                        let (mut step_count, mut start_end) = (specified::Integer::new(0), StartEnd::End);
                         try!(input.parse_nested_block(|input| {
                             step_count = try!(specified::parse_integer(input));
-                            if step_count < 1 {
+                            if step_count.value() < 1 {
                                 return Err(())
                             }
 
@@ -595,7 +600,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                             }
                             Ok(())
                         }));
-                        Ok(SpecifiedValue::Steps(step_count as u32, start_end))
+                        Ok(SpecifiedValue::Steps(step_count, start_end))
                     },
                     _ => Err(())
                 }
@@ -604,8 +609,11 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         }
     }
 
-    fn serialize_steps<W>(dest: &mut W, steps: u32,
-                          start_end: StartEnd) -> fmt::Result where W: fmt::Write {
+    fn serialize_steps<W>(dest: &mut W,
+                          steps: specified::Integer,
+                          start_end: StartEnd) -> fmt::Result
+        where W: fmt::Write,
+    {
         try!(dest.write_str("steps("));
         try!(steps.to_css(dest));
         if let StartEnd::Start = start_end {
@@ -635,10 +643,10 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                 SpecifiedValue::Keyword(keyword) => {
                     match keyword {
                         FunctionKeyword::StepStart => {
-                            serialize_steps(dest, 1, StartEnd::Start)
+                            serialize_steps(dest, specified::Integer::new(1), StartEnd::Start)
                         },
                         FunctionKeyword::StepEnd => {
-                            serialize_steps(dest, 1, StartEnd::End)
+                            serialize_steps(dest, specified::Integer::new(1), StartEnd::End)
                         },
                         _ => {
                             keyword.to_css(dest)
@@ -661,7 +669,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                         Point2D::new(p2.x.to_computed_value(context), p2.y.to_computed_value(context)))
                 },
                 SpecifiedValue::Steps(count, start_end) => {
-                    computed_value::T::Steps(count, start_end)
+                    computed_value::T::Steps(count.to_computed_value(context) as u32, start_end)
                 },
                 SpecifiedValue::Keyword(keyword) => {
                     match keyword {
@@ -687,7 +695,8 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                                      Number::from_computed_value(&p2.y)))
                 },
                 computed_value::T::Steps(count, start_end) => {
-                    SpecifiedValue::Steps(count, start_end)
+                    let int_count = count as i32;
+                    SpecifiedValue::Steps(specified::Integer::from_computed_value(&int_count), start_end)
                 },
             }
         }
