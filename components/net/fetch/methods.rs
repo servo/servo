@@ -11,7 +11,8 @@ use http_loader::{HttpState, determine_request_referrer, http_fetch, set_default
 use hyper::Error;
 use hyper::error::Result as HyperResult;
 use hyper::header::{Accept, AcceptLanguage, ContentLanguage, ContentType};
-use hyper::header::{Header, HeaderFormat, HeaderView, QualityItem, Referer as RefererHeader, q, qitem};
+use hyper::header::{Header, HeaderFormat, HeaderView, Headers, QualityItem};
+use hyper::header::{Referer as RefererHeader, q, qitem};
 use hyper::method::Method;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper::status::StatusCode;
@@ -282,13 +283,14 @@ pub fn main_fetch(request: Rc<Request>,
         // Step 16
         // TODO Blocking for CSP, mixed content, MIME type
         let blocked_error_response;
-        let internal_response = if !response.is_network_error() && should_block_nosniff(&request, &response) {
-            // Defer rebinding result
-            blocked_error_response = Response::network_error(NetworkError::Internal("Blocked by nosniff".into()));
-            &blocked_error_response
-        } else {
-            internal_response
-        };
+        let internal_response =
+            if !response.is_network_error() && should_be_blocked_due_to_nosniff(request.type_, &response.headers) {
+                // Defer rebinding result
+                blocked_error_response = Response::network_error(NetworkError::Internal("Blocked by nosniff".into()));
+                &blocked_error_response
+            } else {
+                internal_response
+            };
 
         // Step 17
         // We check `internal_response` since we did not mutate `response` in the previous step.
@@ -525,7 +527,7 @@ fn is_null_body_status(status: &Option<StatusCode>) -> bool {
 }
 
 /// https://fetch.spec.whatwg.org/#should-response-to-request-be-blocked-due-to-nosniff?
-fn should_block_nosniff(request: &Request, response: &Response) -> bool {
+fn should_be_blocked_due_to_nosniff(request_type: Type, response_headers: &Headers) -> bool {
     /// https://fetch.spec.whatwg.org/#x-content-type-options-header
     /// This is needed to parse `X-Content-Type-Options` according to spec,
     /// which requires that we inspect only the first value.
@@ -533,7 +535,7 @@ fn should_block_nosniff(request: &Request, response: &Response) -> bool {
     /// A [unit-like struct](https://doc.rust-lang.org/book/structs.html#unit-like-structs)
     /// is sufficient since a valid header implies that we use `nosniff`.
     #[derive(Debug, Clone, Copy)]
-    struct XContentTypeOptions();
+    struct XContentTypeOptions;
 
     impl Header for XContentTypeOptions {
         fn header_name() -> &'static str {
@@ -545,7 +547,7 @@ fn should_block_nosniff(request: &Request, response: &Response) -> bool {
             raw.first()
                 .and_then(|v| str::from_utf8(v).ok())
                 .and_then(|s| match s.trim().to_lowercase().as_str() {
-                    "nosniff" => Some(XContentTypeOptions()),
+                    "nosniff" => Some(XContentTypeOptions),
                     _ => None
                 })
                 .ok_or(Error::Header)
@@ -558,16 +560,14 @@ fn should_block_nosniff(request: &Request, response: &Response) -> bool {
         }
     }
 
-    match response.headers.get::<XContentTypeOptions>() {
-        None => return false, // Step 1
-        _ => () // Step 2 & 3 are implemented by the XContentTypeOptions struct
-    };
+    // Steps 1-3.
+    if response_headers.get::<XContentTypeOptions>().is_none() {
+        return false;
+    }
 
     // Step 4
     // Note: an invalid MIME type will produce a `None`.
-    let content_type_header = response.headers.get::<ContentType>();
-    // Step 5
-    let type_ = request.type_;
+    let content_type_header = response_headers.get::<ContentType>();
 
     /// https://html.spec.whatwg.org/multipage/#scriptingLanguages
     #[inline]
@@ -596,7 +596,7 @@ fn should_block_nosniff(request: &Request, response: &Response) -> bool {
 
     let text_css: Mime = mime!(Text / Css);
     // Assumes str::starts_with is equivalent to mime::TopLevel
-    return match type_ {
+    return match request_type {
         // Step 6
         Type::Script => {
             match content_type_header {
