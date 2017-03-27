@@ -200,7 +200,7 @@ impl ToFilterOps for filter::T {
                 Filter::Brightness(amount) => result.push(webrender_traits::FilterOp::Brightness(amount)),
                 Filter::Contrast(amount) => result.push(webrender_traits::FilterOp::Contrast(amount)),
                 Filter::Grayscale(amount) => result.push(webrender_traits::FilterOp::Grayscale(amount)),
-                Filter::HueRotate(angle) => result.push(webrender_traits::FilterOp::HueRotate(angle.0)),
+                Filter::HueRotate(angle) => result.push(webrender_traits::FilterOp::HueRotate(angle.radians())),
                 Filter::Invert(amount) => result.push(webrender_traits::FilterOp::Invert(amount)),
                 Filter::Opacity(amount) => result.push(webrender_traits::FilterOp::Opacity(amount.into())),
                 Filter::Saturate(amount) => result.push(webrender_traits::FilterOp::Saturate(amount)),
