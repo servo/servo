@@ -401,25 +401,6 @@ impl ImageCacheStore {
     }
 }
 
-struct ImageDecoderRunnable {
-    store: Arc<Mutex<ImageCacheStore>>,
-    key: PendingImageId,
-    bytes: Arc<Vec<u8>>,
-}
-
-impl ImageDecoderRunnable {
-    fn run(&self) {
-        let local_store = self.store.clone();
-        let bytes = self.bytes.clone();
-        let key = self.key.clone();
-        thread::spawn(move || {
-            let msg = decode_bytes_sync(key, &*bytes);
-            debug!("Image decoded");
-            local_store.lock().unwrap().handle_decoder(msg);
-        });
-    }
-}
-
 pub struct ImageCacheImpl {
     store: Arc<Mutex<ImageCacheStore>>,
 }
@@ -545,12 +526,12 @@ impl ImageCache for ImageCacheImpl {
                             pending_load.bytes.mark_complete()
                         };
 
-                        let image_decoder_runnable = ImageDecoderRunnable {
-                            store: self.store.clone(),
-                            key: key,
-                            bytes: bytes.clone(),
-                        };
-                        image_decoder_runnable.run();
+                        let local_store = self.store.clone();
+                        thread::spawn(move || {
+                            let msg = decode_bytes_sync(key, &*bytes);
+                            debug!("Image decoded");
+                            local_store.lock().unwrap().handle_decoder(msg);
+                        });
                     }
                     Err(_) => {
                         debug!("Processing error for {:?}", key);
