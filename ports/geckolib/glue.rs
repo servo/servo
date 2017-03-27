@@ -1202,7 +1202,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetPixelValue(declarations:
         BorderSpacing => Box::new(
             BorderSpacing {
                 horizontal: nocalc.into(),
-                vertical: nocalc.into(),
+                vertical: None,
             }
         ),
     };

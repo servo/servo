@@ -1283,7 +1283,7 @@ fn static_assert() {
         use properties::longhands::font_size_adjust::computed_value::T;
         match v {
             T::None => self.gecko.mFont.sizeAdjust = -1.0 as f32,
-            T::Number(n) => self.gecko.mFont.sizeAdjust = n.0 as f32,
+            T::Number(n) => self.gecko.mFont.sizeAdjust = n,
         }
     }
 
@@ -1293,11 +1293,10 @@ fn static_assert() {
 
     pub fn clone_font_size_adjust(&self) -> longhands::font_size_adjust::computed_value::T {
         use properties::longhands::font_size_adjust::computed_value::T;
-        use values::specified::Number;
 
         match self.gecko.mFont.sizeAdjust {
             -1.0 => T::None,
-            _ => T::Number(Number(self.gecko.mFont.sizeAdjust)),
+            _ => T::Number(self.gecko.mFont.sizeAdjust),
         }
     }
 
@@ -1356,8 +1355,8 @@ fn static_assert() {
     #[allow(non_snake_case)]
     pub fn ${type}_${ident}_at(&self, index: usize)
         -> longhands::${type}_${ident}::computed_value::SingleComputedValue {
-        use values::specified::Time;
-        Time(self.gecko.m${type.capitalize()}s[index].m${gecko_ffi_name} / 1000.)
+        use values::computed::Time;
+        Time::from_seconds(self.gecko.m${type.capitalize()}s[index].m${gecko_ffi_name} / 1000.)
     }
     ${impl_animation_or_transition_count(type, ident, gecko_ffi_name)}
     ${impl_copy_animation_or_transition_value(type, ident, gecko_ffi_name)}
@@ -1665,7 +1664,7 @@ fn static_assert() {
                 "length" : "bindings::Gecko_CSSValue_SetAbsoluteLength(%s, %s.0)",
                 "percentage" : "bindings::Gecko_CSSValue_SetPercentage(%s, %s)",
                 "lop" : "%s.set_lop(%s)",
-                "angle" : "bindings::Gecko_CSSValue_SetAngle(%s, %s.0)",
+                "angle" : "bindings::Gecko_CSSValue_SetAngle(%s, %s.radians())",
                 "number" : "bindings::Gecko_CSSValue_SetNumber(%s, %s)",
             }
         %>
@@ -1739,7 +1738,7 @@ fn static_assert() {
             css_value_getters = {
                 "length" : "Au(bindings::Gecko_CSSValue_GetAbsoluteLength(%s))",
                 "lop" : "%s.get_lop()",
-                "angle" : "Angle(bindings::Gecko_CSSValue_GetAngle(%s))",
+                "angle" : "Angle::from_radians(bindings::Gecko_CSSValue_GetAngle(%s))",
                 "number" : "bindings::Gecko_CSSValue_GetNumber(%s)",
             }
         %>

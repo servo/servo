@@ -59,13 +59,16 @@ impl From<SpecifiedTimingFunction> for nsTimingFunction {
 
         match function {
             SpecifiedTimingFunction::Steps(steps, StartEnd::Start) => {
-                tf.set_as_step(nsTimingFunction_Type::StepStart, steps);
+                debug_assert!(steps.value() >= 0);
+                tf.set_as_step(nsTimingFunction_Type::StepStart, steps.value() as u32);
             },
             SpecifiedTimingFunction::Steps(steps, StartEnd::End) => {
-                tf.set_as_step(nsTimingFunction_Type::StepEnd, steps);
+                debug_assert!(steps.value() >= 0);
+                tf.set_as_step(nsTimingFunction_Type::StepEnd, steps.value() as u32);
             },
             SpecifiedTimingFunction::CubicBezier(p1, p2) => {
-                tf.set_as_cubic_bezier(p1, p2);
+                tf.set_as_cubic_bezier(Point2D::new(p1.x.value, p1.y.value),
+                                       Point2D::new(p2.x.value, p2.y.value));
             },
             SpecifiedTimingFunction::Keyword(keyword) => {
                 match keyword {

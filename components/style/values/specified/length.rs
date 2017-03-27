@@ -507,8 +507,8 @@ pub struct CalcProductNode {
 #[allow(missing_docs)]
 pub enum CalcValueNode {
     Length(NoCalcLength),
-    Angle(Angle),
-    Time(Time),
+    Angle(CSSFloat),
+    Time(CSSFloat),
     Percentage(CSSFloat),
     Number(CSSFloat),
     Sum(Box<CalcSumNode>),
@@ -615,10 +615,14 @@ impl CalcLengthOrPercentage {
                 NoCalcLength::parse_dimension(value.value, unit).map(CalcValueNode::Length)
             }
             (Token::Dimension(ref value, ref unit), CalcUnit::Angle) => {
-                Angle::parse_dimension(value.value, unit).map(CalcValueNode::Angle)
+                Angle::parse_dimension(value.value, unit).map(|angle| {
+                    CalcValueNode::Angle(angle.radians())
+                })
             }
             (Token::Dimension(ref value, ref unit), CalcUnit::Time) => {
-                Time::parse_dimension(value.value, unit).map(CalcValueNode::Time)
+                Time::parse_dimension(value.value, unit).map(|time| {
+                    CalcValueNode::Time(time.seconds())
+                })
             }
             (Token::Percentage(ref value), CalcUnit::LengthOrPercentage) =>
                 Ok(CalcValueNode::Percentage(value.unit_value)),
@@ -802,14 +806,14 @@ impl CalcLengthOrPercentage {
 
         for value in simplified {
             match value {
-                SimplifiedValueNode::Time(Time(val)) =>
+                SimplifiedValueNode::Time(val) =>
                     time = Some(time.unwrap_or(0.) + val),
                 _ => return Err(()),
             }
         }
 
         match time {
-            Some(time) => Ok(Time(time)),
+            Some(time) => Ok(Time::from_calc(time)),
             _ => Err(())
         }
     }
@@ -831,16 +835,23 @@ impl CalcLengthOrPercentage {
 
         for value in simplified {
             match value {
-                SimplifiedValueNode::Angle(Angle(val)) =>
-                    angle = Some(angle.unwrap_or(0.) + val),
-                SimplifiedValueNode::Number(val) => number = Some(number.unwrap_or(0.) + val),
+                SimplifiedValueNode::Angle(val) => {
+                    angle = Some(angle.unwrap_or(0.) + val)
+                }
+                // TODO(emilio): This `Number` logic looks fishy.
+                //
+                // In particular, this allows calc(2 - 2) to parse as an
+                // `Angle`, which doesn't seem desired to me.
+                SimplifiedValueNode::Number(val) => {
+                    number = Some(number.unwrap_or(0.) + val)
+                }
                 _ => unreachable!()
             }
         }
 
         match (angle, number) {
-            (Some(angle), None) => Ok(Angle(angle)),
-            (None, Some(value)) if value == 0. => Ok(Angle(0.)),
+            (Some(angle), None) => Ok(Angle::from_calc(angle)),
+            (None, Some(value)) if value == 0. => Ok(Angle::from_calc(0.)),
             _ => Err(())
         }
     }
@@ -899,12 +910,24 @@ impl ToCss for CalcLengthOrPercentage {
 /// A percentage value.
 ///
 /// [0 .. 100%] maps to [0.0 .. 1.0]
+///
+/// FIXME(emilio): There's no standard property that requires a `<percentage>`
+/// without requiring also a `<length>`. If such a property existed, we'd need
+/// to add special handling for `calc()` and percentages in here in the same way
+/// as for `Angle` and `Time`, but the lack of this this is otherwise
+/// undistinguishable (we handle it correctly from `CalcLengthOrPercentage`).
+///
+/// As of today, only `-moz-image-rect` supports percentages without length.
+/// This is not a regression, and that's a non-standard extension anyway, so I'm
+/// not implementing it for now.
 #[derive(Clone, PartialEq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct Percentage(pub CSSFloat);
 
 impl ToCss for Percentage {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+        where W: fmt::Write,
+    {
         write!(dest, "{}%", self.0 * 100.)
     }
 }

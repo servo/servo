@@ -496,8 +496,8 @@ impl LayoutElementHelpers for LayoutJS<Element> {
                 shared_lock,
                 PropertyDeclaration::BorderSpacing(
                     Box::new(border_spacing::SpecifiedValue {
-                        horizontal: width_value.clone(),
-                        vertical: width_value,
+                        horizontal: width_value,
+                        vertical: None,
                     }))));
         }
 

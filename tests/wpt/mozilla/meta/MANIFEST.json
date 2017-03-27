@@ -11057,6 +11057,12 @@
      {}
     ]
    ],
+   "css/calc-number-serialization.html": [
+    [
+     "/_mozilla/css/calc-number-serialization.html",
+     {}
+    ]
+   ],
    "css/empty-keyframes.html": [
     [
      "/_mozilla/css/empty-keyframes.html",
@@ -20700,6 +20706,10 @@
    "94dc4aac4c546a74add074be0d3e604c8b196888",
    "reftest"
   ],
+  "css/calc-number-serialization.html": [
+   "b9e77c824d0c96e51d51fb8f1e923d3ab67be027",
+   "testharness"
+  ],
   "css/canvas_as_block_element_a.html": [
    "668d93da2dab9722998cc7c5785c20e2ab9a1ced",
    "reftest"
@@ -25113,7 +25123,7 @@
    "testharness"
   ],
   "mozilla/calc.html": [
-   "c333be7c567aebd1ed2f763d0ed644165ae8bd3b",
+   "c239c441c90e4d4ed94458eae5b2defabb47e984",
    "testharness"
   ],
   "mozilla/canvas.initial.reset.2dstate.html": [

@@ -223,7 +223,7 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
 
     #[inline]
     pub fn get_initial_specified_value() -> SpecifiedValue {
-        SpecifiedValue(vec![Either::Second(Number(0.0))])
+        SpecifiedValue(vec![Either::Second(Number::new(0.0))])
     }
 
     impl ToComputedValue for SpecifiedValue {
@@ -486,7 +486,7 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
 
     #[inline]
     pub fn get_initial_specified_value() -> SpecifiedValue {
-        SpecifiedValue(vec![SingleSpecifiedValue::Number(Number(1.0))])
+        SpecifiedValue(vec![SingleSpecifiedValue::Number(Number::new(1.0))])
     }
 
     impl ToComputedValue for SpecifiedValue {

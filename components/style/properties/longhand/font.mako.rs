@@ -655,30 +655,65 @@ ${helpers.single_keyword("font-variant-caps",
 
 <%helpers:longhand products="gecko" name="font-size-adjust" animatable="True"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-size-adjust">
+    use std::fmt;
+    use style_traits::ToCss;
     use values::HasViewportPercentage;
-    use values::computed::ComputedValueAsSpecified;
-    use values::specified::Number;
 
-    impl ComputedValueAsSpecified for SpecifiedValue {}
     no_viewport_percentage!(SpecifiedValue);
 
     #[derive(Copy, Clone, Debug, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedValue {
         None,
-        Number(Number),
+        Number(specified::Number),
+    }
+
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+            where W: fmt::Write,
+        {
+            match *self {
+                SpecifiedValue::None => dest.write_str("none"),
+                SpecifiedValue::Number(number) => number.to_css(dest),
+            }
+        }
+    }
+
+    impl ToComputedValue for SpecifiedValue {
+        type ComputedValue = computed_value::T;
+
+        fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+            match *self {
+                SpecifiedValue::None => computed_value::T::None,
+                SpecifiedValue::Number(ref n) => computed_value::T::Number(n.to_computed_value(context)),
+            }
+        }
+
+        fn from_computed_value(computed: &computed_value::T) -> Self {
+            match *computed {
+                computed_value::T::None => SpecifiedValue::None,
+                computed_value::T::Number(ref v) => SpecifiedValue::Number(specified::Number::from_computed_value(v)),
+            }
+        }
     }
 
     pub mod computed_value {
-        use style_traits::ToCss;
-        use std::fmt;
         use properties::animated_properties::Interpolate;
-        use values::specified::Number;
+        use std::fmt;
+        use style_traits::ToCss;
+        use values::CSSFloat;
 
-        pub use super::SpecifiedValue as T;
+        #[derive(Copy, Clone, Debug, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        pub enum T {
+            None,
+            Number(CSSFloat),
+        }
 
         impl ToCss for T {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+                where W: fmt::Write,
+            {
                 match *self {
                     T::None => dest.write_str("none"),
                     T::Number(number) => number.to_css(dest),
@@ -690,14 +725,15 @@ ${helpers.single_keyword("font-variant-caps",
             fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
                 match (*self, *other) {
                     (T::Number(ref number), T::Number(ref other)) =>
-                        Ok(T::Number(Number(try!(number.0.interpolate(&other.0, time))))),
+                        Ok(T::Number(try!(number.interpolate(other, time)))),
                     _ => Err(()),
                 }
             }
         }
     }
 
-    #[inline] pub fn get_initial_value() -> computed_value::T {
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
         computed_value::T::None
     }
 

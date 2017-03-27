@@ -246,17 +246,59 @@
     use style_traits::ToCss;
     use super::content;
     use values::HasViewportPercentage;
-    use values::computed::ComputedValueAsSpecified;
 
     use cssparser::{Token, serialize_identifier};
     use std::borrow::{Cow, ToOwned};
 
-    pub use self::computed_value::T as SpecifiedValue;
+    #[derive(Debug, Clone, PartialEq)]
+    pub struct SpecifiedValue(pub Vec<(String, specified::Integer)>);
 
     pub mod computed_value {
+        use std::fmt;
+        use style_traits::ToCss;
+
         #[derive(Debug, Clone, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct T(pub Vec<(String,i32)>);
+        pub struct T(pub Vec<(String, i32)>);
+
+        impl ToCss for T {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+                where W: fmt::Write,
+            {
+                use cssparser::serialize_identifier;
+                if self.0.is_empty() {
+                    return dest.write_str("none")
+                }
+
+                let mut first = true;
+                for pair in &self.0 {
+                    if !first {
+                        try!(dest.write_str(" "));
+                    }
+                    first = false;
+                    try!(serialize_identifier(&pair.0, dest));
+                    try!(dest.write_str(" "));
+                    try!(pair.1.to_css(dest));
+                }
+                Ok(())
+            }
+        }
+    }
+
+    impl ToComputedValue for SpecifiedValue {
+        type ComputedValue = computed_value::T;
+
+        fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+            computed_value::T(self.0.iter().map(|entry| {
+                (entry.0.clone(), entry.1.to_computed_value(context))
+            }).collect::<Vec<_>>())
+        }
+
+        fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+            SpecifiedValue(computed.0.iter().map(|entry| {
+                (entry.0.clone(), specified::Integer::from_computed_value(&entry.1))
+            }).collect::<Vec<_>>())
+        }
     }
 
     #[inline]
@@ -264,15 +306,15 @@
         computed_value::T(Vec::new())
     }
 
-    impl ComputedValueAsSpecified for SpecifiedValue {}
     no_viewport_percentage!(SpecifiedValue);
 
     impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+            where W: fmt::Write,
+        {
             if self.0.is_empty() {
                 return dest.write_str("none");
             }
-
             let mut first = true;
             for pair in &self.0 {
                 if !first {
@@ -280,18 +322,19 @@
                 }
                 first = false;
                 try!(serialize_identifier(&pair.0, dest));
-                try!(write!(dest, " {}", pair.1));
+                try!(dest.write_str(" "));
+                try!(pair.1.to_css(dest));
             }
 
             Ok(())
         }
     }
 
-    pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+    pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
         parse_common(1, input)
     }
 
-    pub fn parse_common(default_value: i32, input: &mut Parser) -> Result<SpecifiedValue,()> {
+    pub fn parse_common(default_value: i32, input: &mut Parser) -> Result<SpecifiedValue, ()> {
         if input.try(|input| input.expect_ident_matching("none")).is_ok() {
             return Ok(SpecifiedValue(Vec::new()))
         }
@@ -307,7 +350,7 @@
                 return Err(())
             }
             let counter_delta =
-                input.try(|input| specified::parse_integer(input)).unwrap_or(default_value);
+                input.try(|input| specified::parse_integer(input)).unwrap_or(specified::Integer::new(default_value));
             counters.push((counter_name, counter_delta))
         }
 
@@ -322,7 +365,7 @@
 <%helpers:longhand name="counter-reset" animatable="False"
                    spec="https://drafts.csswg.org/css-lists-3/#propdef-counter-reset">
     pub use super::counter_increment::{SpecifiedValue, computed_value, get_initial_value};
-    use super::counter_increment::{parse_common};
+    use super::counter_increment::parse_common;
 
     pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
         parse_common(0, input)
