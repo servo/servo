@@ -135,13 +135,20 @@ pub struct StoredRestyleHint(RestyleHint);
 
 impl StoredRestyleHint {
     /// Propagates this restyle hint to a child element.
-    pub fn propagate(&self) -> Self {
-        // If we have RESTYLE_CSS_ANIMATIONS restyle hint, it means we are in the
-        // middle of an animation only restyle.  In that case, we don't need to
-        // propagate any restyle hints.
-        StoredRestyleHint(if self.0.contains(RESTYLE_CSS_ANIMATIONS) {
-            RestyleHint::empty()
-        } else if self.0.contains(RESTYLE_DESCENDANTS) {
+    pub fn propagate(&mut self) -> Self {
+        use std::mem;
+
+        // If we have RESTYLE_CSS_ANIMATIONS restyle hint, it means we are in
+        // the middle of an animation only restyle. In that case, we don't need
+        // to propagate any restyle hints, and we need to remove ourselves.
+        if self.0.contains(RESTYLE_CSS_ANIMATIONS) {
+            self.0.remove(RESTYLE_CSS_ANIMATIONS);
+            return Self::empty();
+        }
+
+        // Else we should clear ourselves, and return the propagated hint.
+        let hint = mem::replace(&mut self.0, RestyleHint::empty());
+        StoredRestyleHint(if hint.contains(RESTYLE_DESCENDANTS) {
             RESTYLE_SELF | RESTYLE_DESCENDANTS
         } else {
             RestyleHint::empty()
@@ -178,11 +185,6 @@ impl StoredRestyleHint {
     /// Insert another restyle hint, effectively resulting in the union of both.
     pub fn insert(&mut self, other: &Self) {
         self.0 |= other.0
-    }
-
-    /// Remove animation restyle hint.
-    pub fn remove_animation_hint(&mut self) {
-        self.0.remove(RESTYLE_CSS_ANIMATIONS)
     }
 
     /// Returns true if the hint has animation-only restyle.
