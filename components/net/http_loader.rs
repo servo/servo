@@ -629,11 +629,7 @@ pub fn http_fetch(request: Rc<Request>,
     // Step 5
     match response.actual_response().status {
         // Code 301, 302, 303, 307, 308
-        Some(StatusCode::MovedPermanently) |
-        Some(StatusCode::Found) |
-        Some(StatusCode::SeeOther) |
-        Some(StatusCode::TemporaryRedirect) |
-        Some(StatusCode::PermanentRedirect) => {
+        status if status.map_or(false, is_redirect_status) => {
             response = match request.redirect_mode.get() {
                 RedirectMode::Error => Response::network_error(NetworkError::Internal("Redirect mode error".into())),
                 RedirectMode::Manual => {
@@ -1417,4 +1413,16 @@ fn is_no_store_cache(headers: &Headers) -> bool {
 fn response_needs_revalidation(_response: &Response) -> bool {
     // TODO this function
     false
+}
+
+/// https://fetch.spec.whatwg.org/#redirect-status
+fn is_redirect_status(status: StatusCode) -> bool {
+    match status {
+        StatusCode::MovedPermanently |
+        StatusCode::Found |
+        StatusCode::SeeOther |
+        StatusCode::TemporaryRedirect |
+        StatusCode::PermanentRedirect => true,
+        _ => false,
+    }
 }
