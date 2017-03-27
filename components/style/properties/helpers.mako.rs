@@ -19,8 +19,10 @@
         #[inline] pub fn get_initial_specified_value() -> SpecifiedValue { ${initial_specified_value} }
         % endif
         #[allow(unused_variables)]
-        #[inline] pub fn parse(context: &ParserContext, input: &mut Parser)
-                               -> Result<SpecifiedValue, ()> {
+        #[inline]
+        pub fn parse(context: &ParserContext,
+                     input: &mut Parser)
+                     -> Result<SpecifiedValue, ()> {
             % if needs_context:
             specified::${type}::${parse_method}(context, input)
             % else:
