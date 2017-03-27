@@ -87,6 +87,9 @@ pub struct SharedStyleContext<'a> {
 
     /// The QuirksMode state which the document needs to be rendered with
     pub quirks_mode: QuirksMode,
+
+    /// True if the traversal is processing only animation restyles.
+    pub animation_only_restyle: bool,
 }
 
 impl<'a> SharedStyleContext<'a> {
