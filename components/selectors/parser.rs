@@ -376,13 +376,30 @@ impl<Impl: SelectorImpl> ToCss for Selector<Impl> {
 
 impl<Impl: SelectorImpl> ToCss for ComplexSelector<Impl> {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        if let Some((ref next, ref combinator)) = self.next {
-            next.to_css(dest)?;
-            combinator.to_css(dest)?;
+        use smallvec::SmallVec;
+        let mut current = self;
+        let mut nodes = SmallVec::<[Arc<ComplexSelector<Impl>>; 8]>::new();
+        loop{
+            match current.next{
+                None => break,
+                Some((ref next, ref combinator)) => {
+                    current = &**next;
+                    combinator.to_css(dest)?;
+                    nodes.push((*next).clone());
+                }
+            }
         }
-        for simple in &self.compound_selector {
-            simple.to_css(dest)?;
+
+        for simp in &self.compound_selector{
+            simp.to_css(dest)?;
         }
+
+        for node in nodes {
+            for simple in &node.compound_selector {
+                simple.to_css(dest)?;
+            }
+        }
+
         Ok(())
     }
 }
@@ -1133,6 +1150,9 @@ fn parse_simple_pseudo_class<P, Impl>(parser: &P, name: Cow<str>) -> Result<Simp
 // NB: pub module in order to access the DummyParser
 #[cfg(test)]
 pub mod tests {
+
+
+
     use cssparser::{Parser as CssParser, ToCss, serialize_identifier};
     use std::borrow::Cow;
     use std::collections::HashMap;

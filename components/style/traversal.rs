@@ -15,7 +15,6 @@ use restyle_hints::{RESTYLE_DESCENDANTS, RESTYLE_SELF};
 use selector_parser::RestyleDamage;
 use servo_config::opts;
 use std::borrow::BorrowMut;
-use std::mem;
 use stylist::Stylist;
 
 /// A per-traversal-level chunk of data. This is sent down by the traversal, and
@@ -484,37 +483,46 @@ pub fn recalc_style_at<E, D>(traversal: &D,
 
     // Now that matching and cascading is done, clear the bits corresponding to
     // those operations and compute the propagated restyle hint.
-    let empty_hint = StoredRestyleHint::empty();
     let propagated_hint = match data.get_restyle_mut() {
-        None => empty_hint,
+        None => StoredRestyleHint::empty(),
         Some(r) => {
+            debug_assert!(context.shared.animation_only_restyle ||
+                          !r.hint.has_animation_hint(),
+                          "animation restyle hint should be handled during \
+                           animation-only restyles");
             r.recascade = false;
-            if r.hint.has_animation_hint() {
-                debug_assert!(context.shared.animation_only_restyle,
-                              "animation restyle hint should be handled during animation-only restyles");
-                // Drop animation restyle hint.
-                let propagated_hint = r.hint.propagate();
-                r.hint.remove_animation_hint();
-                propagated_hint
-            } else {
-                mem::replace(&mut r.hint, empty_hint).propagate()
-            }
+            r.hint.propagate()
         },
     };
     debug_assert!(data.has_current_styles() || context.shared.animation_only_restyle,
                   "Should have computed style or haven't yet valid computed style in case of animation-only restyle");
-    trace!("propagated_hint={:?}, inherited_style_changed={:?}", propagated_hint, inherited_style_changed);
+    trace!("propagated_hint={:?}, inherited_style_changed={:?}",
+           propagated_hint, inherited_style_changed);
+
+    let has_dirty_descendants_for_this_restyle =
+        if context.shared.animation_only_restyle {
+            element.has_animation_only_dirty_descendants()
+        } else {
+            element.has_dirty_descendants()
+        };
 
     // Preprocess children, propagating restyle hints and handling sibling relationships.
-    if traversal.should_traverse_children(&mut context.thread_local, element, &data, DontLog) &&
-       ((!context.shared.animation_only_restyle && element.has_dirty_descendants()) ||
-        (context.shared.animation_only_restyle && element.has_animation_only_dirty_descendants()) ||
-        !propagated_hint.is_empty() ||
-        inherited_style_changed) {
+    if traversal.should_traverse_children(&mut context.thread_local,
+                                          element,
+                                          &data,
+                                          DontLog) &&
+        (has_dirty_descendants_for_this_restyle ||
+         !propagated_hint.is_empty() ||
+         inherited_style_changed) {
         let damage_handled = data.get_restyle().map_or(RestyleDamage::empty(), |r| {
             r.damage_handled() | r.damage.handled_for_descendants()
         });
-        preprocess_children(traversal, element, propagated_hint, damage_handled, inherited_style_changed);
+
+        preprocess_children(traversal,
+                            element,
+                            propagated_hint,
+                            damage_handled,
+                            inherited_style_changed);
     }
 
     if context.shared.animation_only_restyle {
