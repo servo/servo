@@ -277,6 +277,7 @@
                     }
                     first = false;
                     try!(serialize_identifier(&pair.0, dest));
+                    try!(dest.write_str(" "));
                     try!(pair.1.to_css(dest));
                 }
                 Ok(())
@@ -325,6 +326,7 @@
                 }
                 first = false;
                 try!(serialize_identifier(&pair.0, dest));
+                try!(dest.write_str(" "));
                 try!(pair.1.to_css(dest));
             }
 
