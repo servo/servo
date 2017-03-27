@@ -130,27 +130,9 @@ ${helpers.predefined_type("flex-shrink", "Number",
 % endif
 
 // https://drafts.csswg.org/css-flexbox/#propdef-order
-<%helpers:longhand name="order" animatable="True" extra_prefixes="webkit"
-                   spec="https://drafts.csswg.org/css-flexbox/#order-property">
-    use values::computed::ComputedValueAsSpecified;
-
-    impl ComputedValueAsSpecified for SpecifiedValue {}
-
-    pub type SpecifiedValue = computed_value::T;
-
-    pub mod computed_value {
-        pub type T = i32;
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        0
-    }
-
-    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        specified::parse_integer(input)
-    }
-</%helpers:longhand>
+${helpers.predefined_type("order", "Integer", "0",
+                          animatable=True,
+                          spec="https://drafts.csswg.org/css-flexbox/#order-property")}
 
 // FIXME: Gecko doesn't support content value yet.
 // FIXME: This property should be animatable.
