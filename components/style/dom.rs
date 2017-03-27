@@ -370,6 +370,11 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
     /// Note: Gecko only.
     fn update_animations(&self, _pseudo: Option<&PseudoElement>);
 
+    /// Returns true if the element has relevant animations. Relevant
+    /// animations are those animations that are affecting the element's style
+    /// or are scheduled to do so in the future.
+    fn has_animations(&self, _pseudo: Option<&PseudoElement>) -> bool;
+
     /// Returns true if the element has a CSS animation.
     fn has_css_animations(&self, _pseudo: Option<&PseudoElement>) -> bool;
 

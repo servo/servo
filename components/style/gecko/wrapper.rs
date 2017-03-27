@@ -30,6 +30,7 @@ use gecko_bindings::bindings::{Gecko_IsLink, Gecko_IsRootElement, Gecko_MatchesE
 use gecko_bindings::bindings::{Gecko_IsUnvisitedLink, Gecko_IsVisitedLink, Gecko_Namespace};
 use gecko_bindings::bindings::{Gecko_SetNodeFlags, Gecko_UnsetNodeFlags};
 use gecko_bindings::bindings::Gecko_ClassOrClassList;
+use gecko_bindings::bindings::Gecko_ElementHasAnimations;
 use gecko_bindings::bindings::Gecko_ElementHasCSSAnimations;
 use gecko_bindings::bindings::Gecko_GetAnimationRule;
 use gecko_bindings::bindings::Gecko_GetHTMLPresentationAttrDeclarationBlock;
@@ -585,6 +586,11 @@ impl<'le> TElement for GeckoElement<'le> {
                                    computed_values_opt,
                                    parent_values_opt);
         }
+    }
+
+    fn has_animations(&self, pseudo: Option<&PseudoElement>) -> bool {
+        let atom_ptr = PseudoElement::ns_atom_or_null_from_opt(pseudo);
+        unsafe { Gecko_ElementHasAnimations(self.0, atom_ptr) }
     }
 
     fn has_css_animations(&self, pseudo: Option<&PseudoElement>) -> bool {

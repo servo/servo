@@ -613,6 +613,10 @@ extern "C" {
                                       ServoComputedValuesBorrowedOrNull);
 }
 extern "C" {
+    pub fn Gecko_ElementHasAnimations(aElement: RawGeckoElementBorrowed,
+                                      aPseudoTagOrNull: *mut nsIAtom) -> bool;
+}
+extern "C" {
     pub fn Gecko_ElementHasCSSAnimations(aElement: RawGeckoElementBorrowed,
                                          aPseudoTagOrNull: *mut nsIAtom)
      -> bool;

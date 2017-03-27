@@ -455,6 +455,10 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         panic!("this should be only called on gecko");
     }
 
+    fn has_animations(&self, _pseudo: Option<&PseudoElement>) -> bool {
+        panic!("this should be only called on gecko");
+    }
+
     fn has_css_animations(&self, _pseudo: Option<&PseudoElement>) -> bool {
         panic!("this should be only called on gecko");
     }
