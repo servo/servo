@@ -230,3 +230,72 @@ ${helpers.predefined_type(
     products="gecko",
     animatable=True,
     spec="https://drafts.csswg.org/css-text-decor/#propdef-text-decoration-color")}
+
+<%helpers:longhand name="initial-letter"
+                   animatable="False"
+                   products="none"
+                   spec="https://drafts.csswg.org/css-inline/#sizing-drop-initials">
+    use std::fmt;
+    use style_traits::ToCss;
+    use values::HasViewportPercentage;
+    use values::computed::ComputedValueAsSpecified;
+    use values::specified::{Number, Integer};
+
+    impl ComputedValueAsSpecified for SpecifiedValue {}
+    no_viewport_percentage!(SpecifiedValue);
+
+    #[derive(PartialEq, Clone, Debug)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub enum SpecifiedValue {
+        Normal,
+        Specified(Number, Integer),
+    }
+
+    pub mod computed_value {
+        pub use super::SpecifiedValue as T; 
+    }
+
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match *self {
+                SpecifiedValue::Normal => dest.write_str("normal"),
+                SpecifiedValue::Specified(size, sink) => try!(write!(dest, "{} {}", size.to_css_string(), sink.to_css_string())),
+            }
+        }
+    }
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T::Normal
+    }
+
+    #[inline]
+    pub fn get_initial_specified_value() -> SpecifiedValue {
+        SpecifiedValue::Normal
+    }
+ 
+    /// normal | <number> <integer>?
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
+            return Ok(SpecifiedValue::Normal);
+        }
+
+        let size;
+
+        if let Ok(value) = Number::parse_at_least_one(input) {
+            size = value;
+        } else {
+            return Err(());
+        }
+
+        if let Ok(value) = Integer::parse(context, input) {
+            if value.0 < 1 {
+                return Err(());
+            }
+
+            return Ok(SpecifiedValue::Specified(size, value));
+        }
+
+        Ok(SpecifiedValue::Specified(size, Integer(size.0.floor() as i32)))
+    }
+</%helpers:longhand>
