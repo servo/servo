@@ -15,6 +15,7 @@
 //! the separation between the style system implementation and everything else.
 
 use atomic_refcell::AtomicRefCell;
+use context::UpdateAnimationsTasks;
 use data::ElementData;
 use dom::{AnimationRules, LayoutIterator, NodeInfo, TElement, TNode, UnsafeNode};
 use dom::{OpaqueNode, PresentationalHintsSynthetizer};
@@ -555,7 +556,8 @@ impl<'le> TElement for GeckoElement<'le> {
         (self.flags() & node_flags) == node_flags
     }
 
-    fn update_animations(&self, pseudo: Option<&PseudoElement>) {
+    fn update_animations(&self, pseudo: Option<&PseudoElement>,
+                         tasks: UpdateAnimationsTasks) {
         // We have to update animations even if the element has no computed style
         // since it means the element is in a display:none subtree, we should destroy
         // all CSS animations in display:none subtree.
@@ -584,7 +586,8 @@ impl<'le> TElement for GeckoElement<'le> {
         unsafe {
             Gecko_UpdateAnimations(self.0, atom_ptr,
                                    computed_values_opt,
-                                   parent_values_opt);
+                                   parent_values_opt,
+                                   tasks.bits());
         }
     }
 

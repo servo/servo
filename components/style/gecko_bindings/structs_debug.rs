@@ -6151,6 +6151,19 @@ pub mod root {
             Normal = 0,
             UnstyledChildrenOnly = 1,
         }
+        pub const UpdateAnimationsTasks_CSSAnimations:
+                  root::mozilla::UpdateAnimationsTasks =
+            1;
+        pub const UpdateAnimationsTasks_CSSTransitions:
+                  root::mozilla::UpdateAnimationsTasks =
+            2;
+        pub const UpdateAnimationsTasks_EffectProperties:
+                  root::mozilla::UpdateAnimationsTasks =
+            4;
+        pub const UpdateAnimationsTasks_CascadeResults:
+                  root::mozilla::UpdateAnimationsTasks =
+            8;
+        pub type UpdateAnimationsTasks = u8;
         pub type CSSPseudoElementTypeBase = u8;
         pub const CSSPseudoElementType_InheritingAnonBox:
                   root::mozilla::CSSPseudoElementType =
