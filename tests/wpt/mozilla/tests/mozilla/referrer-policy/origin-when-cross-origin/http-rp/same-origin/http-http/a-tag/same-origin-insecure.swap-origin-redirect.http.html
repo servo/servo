@@ -4,7 +4,7 @@
   <head>
     <title>Referrer-Policy: Referrer Policy is set to 'origin-when-cross-origin'</title>
     <meta name="description" content="Check that cross-origin subresources get the origin portion of the referrer URL and same-origin get the stripped referrer URL.">
-    <!-- No meta: Referrer policy delivered via HTTP headers. -->
+    <!-- No meta: Referrer policy delivered via HTTP headers. --><meta name="http-referrer-policy" content="origin-when-cross-origin">
     <link rel="author" title="Kristijan Burnik" href="burnik@chromium.org">
     <link rel="help" href="https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-origin-when-cross-origin">
     <meta name="assert" content="The referrer URL is origin when a
@@ -29,7 +29,7 @@
           "source_protocol": "http",
           "target_protocol": "http",
           "subresource": "a-tag",
-          "subresource_path": "/_mozilla/mozilla/referrer-policy/generic/subresource/a-tag.html",
+          "subresource_path": "/_mozilla/mozilla/referrer-policy/generic/subresource/a-tag.py",
           "referrer_url": "origin"
         },
         document.querySelector("meta[name=assert]").content,
