@@ -251,7 +251,7 @@
     use std::borrow::{Cow, ToOwned};
 
     #[derive(Debug, Clone, PartialEq)]
-    pub struct SpecifiedValue(Vec<(String, specified::Integer)>);
+    pub struct SpecifiedValue(pub Vec<(String, specified::Integer)>);
 
     pub mod computed_value {
         use std::fmt;

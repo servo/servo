@@ -1173,13 +1173,14 @@ mod shorthand_serialization {
     mod counter_increment {
         pub use super::*;
         pub use style::properties::longhands::counter_increment::SpecifiedValue as CounterIncrement;
+        use style::values::specified::Integer;
 
         #[test]
         fn counter_increment_with_properties_should_serialize_correctly() {
             let mut properties = Vec::new();
 
-            properties.push(("counter1".to_owned(), 1));
-            properties.push(("counter2".to_owned(), -4));
+            properties.push(("counter1".to_owned(), Integer::new(1)));
+            properties.push(("counter2".to_owned(), Integer::new(-4)));
 
             let counter_increment = CounterIncrement(properties);
             let counter_increment_css = "counter1 1 counter2 -4";
