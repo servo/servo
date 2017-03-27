@@ -21,6 +21,7 @@ use net_traits::{CustomResponseMediator, ResourceId};
 use net_traits::{ResourceThreads, WebSocketCommunicate, WebSocketConnectData};
 use net_traits::request::{Request, RequestInit};
 use net_traits::storage_thread::StorageThreadMsg;
+use openssl::ssl::SslContext;
 use profile_traits::time::ProfilerChan;
 use serde::{Deserialize, Serialize};
 use serde_json;
@@ -46,6 +47,7 @@ pub struct ResourceGroup {
     cookie_jar: Arc<RwLock<CookieStorage>>,
     auth_cache: Arc<RwLock<AuthCache>>,
     hsts_list: Arc<RwLock<HstsList>>,
+    ssl_context: Arc<SslContext>,
     connector: Arc<Pool<Connector>>,
 }
 
@@ -109,12 +111,14 @@ fn create_resource_groups(config_dir: Option<&Path>)
         cookie_jar: Arc::new(RwLock::new(cookie_jar)),
         auth_cache: Arc::new(RwLock::new(auth_cache)),
         hsts_list: Arc::new(RwLock::new(hsts_list.clone())),
+        ssl_context: ssl_context.clone(),
         connector: create_http_connector(ssl_context.clone()),
     };
     let private_resource_group = ResourceGroup {
         cookie_jar: Arc::new(RwLock::new(CookieStorage::new(150))),
         auth_cache: Arc::new(RwLock::new(AuthCache::new())),
         hsts_list: Arc::new(RwLock::new(HstsList::new())),
+        ssl_context: ssl_context.clone(),
         connector: create_http_connector(ssl_context),
     };
     (resource_group, private_resource_group)
@@ -320,13 +324,12 @@ impl CoreResourceManager {
              init: RequestInit,
              mut sender: IpcSender<FetchResponseMsg>,
              group: &ResourceGroup) {
-        let ssl_context = create_ssl_context("certs");
         let http_state = HttpState {
             hsts_list: group.hsts_list.clone(),
             cookie_jar: group.cookie_jar.clone(),
             auth_cache: group.auth_cache.clone(),
             // FIXME(#15694): use group.connector.clone() instead.
-            connector_pool: create_http_connector(ssl_context),
+            connector_pool: create_http_connector(group.ssl_context.clone()),
         };
         let ua = self.user_agent.clone();
         let dc = self.devtools_chan.clone();
