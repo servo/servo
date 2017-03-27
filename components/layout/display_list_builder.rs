@@ -36,7 +36,7 @@ use list_item::ListItemFlow;
 use model::{self, MaybeAuto};
 use msg::constellation_msg::PipelineId;
 use net_traits::image::base::PixelFormat;
-use net_traits::image_cache_thread::UsePlaceholder;
+use net_traits::image_cache::UsePlaceholder;
 use range::Range;
 use servo_config::opts;
 use servo_url::ServoUrl;

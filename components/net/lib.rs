@@ -4,7 +4,6 @@
 
 #![deny(unsafe_code)]
 #![feature(box_syntax)]
-#![feature(mpsc_select)]
 #![feature(step_by)]
 
 extern crate base64;
@@ -32,7 +31,6 @@ extern crate serde_derive;
 extern crate serde_json;
 extern crate servo_config;
 extern crate servo_url;
-extern crate threadpool;
 extern crate time;
 #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
 extern crate tinyfiledialogs;
@@ -51,7 +49,7 @@ mod data_loader;
 pub mod filemanager_thread;
 pub mod hsts;
 mod http_loader;
-pub mod image_cache_thread;
+pub mod image_cache;
 pub mod mime_classifier;
 pub mod resource_thread;
 mod storage_thread;

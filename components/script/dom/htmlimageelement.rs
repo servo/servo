@@ -40,9 +40,9 @@ use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use net_traits::{FetchResponseListener, FetchMetadata, NetworkError, FetchResponseMsg};
 use net_traits::image::base::{Image, ImageMetadata};
-use net_traits::image_cache_thread::{ImageResponder, ImageResponse, PendingImageId, ImageState};
-use net_traits::image_cache_thread::{UsePlaceholder, ImageOrMetadataAvailable, CanRequestImages};
-use net_traits::image_cache_thread::ImageCacheThread;
+use net_traits::image_cache::{CanRequestImages, ImageCache, ImageOrMetadataAvailable};
+use net_traits::image_cache::{ImageResponder, ImageResponse, ImageState, PendingImageId};
+use net_traits::image_cache::UsePlaceholder;
 use net_traits::request::{RequestInit, Type as RequestType};
 use network_listener::{NetworkListener, PreInvoke};
 use num_traits::ToPrimitive;
@@ -120,8 +120,8 @@ impl Runnable for ImageResponseHandlerRunnable {
 
 /// The context required for asynchronously loading an external image.
 struct ImageContext {
-    /// A handle with which to communicate with the image cache.
-    image_cache: ImageCacheThread,
+    /// Reference to the script thread image cache.
+    image_cache: Arc<ImageCache>,
     /// Indicates whether the request failed, and why
     status: Result<(), NetworkError>,
     /// The cache ID for this request.
@@ -186,7 +186,7 @@ impl HTMLImageElement {
                 Some(LoadBlocker::new(&*document, LoadType::Image(img_url.clone())));
         }
 
-        fn add_cache_listener_for_element(image_cache: &ImageCacheThread,
+        fn add_cache_listener_for_element(image_cache: Arc<ImageCache>,
                                           id: PendingImageId,
                                           elem: &HTMLImageElement) {
             let trusted_node = Trusted::new(elem);
@@ -197,8 +197,9 @@ impl HTMLImageElement {
             let wrapper = window.get_runnable_wrapper();
             let generation = elem.generation.get();
             ROUTER.add_route(responder_receiver.to_opaque(), box move |message| {
-                // Return the image via a message to the script thread, which marks the element
-                // as dirty and triggers a reflow.
+                debug!("Got image {:?}", message);
+                // Return the image via a message to the script thread, which marks
+                // the element as dirty and triggers a reflow.
                 let runnable = ImageResponseHandlerRunnable::new(
                     trusted_node.clone(), message.to().unwrap(), generation);
                 let _ = task_source.queue_with_wrapper(box runnable, &wrapper);
@@ -208,7 +209,7 @@ impl HTMLImageElement {
         }
 
         let window = window_from_node(self);
-        let image_cache = window.image_cache_thread();
+        let image_cache = window.image_cache();
         let response =
             image_cache.find_image_or_metadata(img_url.clone().into(),
                                                UsePlaceholder::Yes,
@@ -223,7 +224,7 @@ impl HTMLImageElement {
             }
 
             Err(ImageState::Pending(id)) => {
-                add_cache_listener_for_element(image_cache, id, self);
+                add_cache_listener_for_element(image_cache.clone(), id, self);
             }
 
             Err(ImageState::LoadError) => {
@@ -242,7 +243,7 @@ impl HTMLImageElement {
         let window = window_from_node(self);
 
         let context = Arc::new(Mutex::new(ImageContext {
-            image_cache: window.image_cache_thread().clone(),
+            image_cache: window.image_cache(),
             status: Ok(()),
             id: id,
         }));

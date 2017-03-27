@@ -338,12 +338,12 @@ impl<'a> From<&'a WebGLContextAttributes> for GLContextAttributes {
 
 pub mod utils {
     use dom::window::Window;
-    use net_traits::image_cache_thread::{ImageResponse, UsePlaceholder, ImageOrMetadataAvailable};
-    use net_traits::image_cache_thread::CanRequestImages;
+    use net_traits::image_cache::{ImageResponse, UsePlaceholder, ImageOrMetadataAvailable};
+    use net_traits::image_cache::CanRequestImages;
     use servo_url::ServoUrl;
 
     pub fn request_image_from_cache(window: &Window, url: ServoUrl) -> ImageResponse {
-        let image_cache = window.image_cache_thread();
+        let image_cache = window.image_cache();
         let response =
             image_cache.find_image_or_metadata(url.into(),
                                                UsePlaceholder::No,

@@ -62,8 +62,8 @@ use js::rust::Runtime;
 use layout_image::fetch_image_for_layout;
 use msg::constellation_msg::{FrameType, PipelineId};
 use net_traits::{ResourceThreads, ReferrerPolicy};
-use net_traits::image_cache_thread::{ImageResponder, ImageResponse};
-use net_traits::image_cache_thread::{PendingImageResponse, ImageCacheThread, PendingImageId};
+use net_traits::image_cache::{ImageCache, ImageResponder, ImageResponse};
+use net_traits::image_cache::{PendingImageId, PendingImageResponse};
 use net_traits::storage_thread::StorageType;
 use num_traits::ToPrimitive;
 use open;
@@ -167,8 +167,8 @@ pub struct Window {
     #[ignore_heap_size_of = "task sources are hard"]
     file_reading_task_source: FileReadingTaskSource,
     navigator: MutNullableJS<Navigator>,
-    #[ignore_heap_size_of = "channels are hard"]
-    image_cache_thread: ImageCacheThread,
+    #[ignore_heap_size_of = "Arc"]
+    image_cache: Arc<ImageCache>,
     #[ignore_heap_size_of = "channels are hard"]
     image_cache_chan: Sender<ImageCacheMsg>,
     browsing_context: MutNullableJS<BrowsingContext>,
@@ -315,8 +315,8 @@ impl Window {
         (box SendableMainThreadScriptChan(tx), box rx)
     }
 
-    pub fn image_cache_thread(&self) -> &ImageCacheThread {
-        &self.image_cache_thread
+    pub fn image_cache(&self) -> Arc<ImageCache> {
+        self.image_cache.clone()
     }
 
     /// This can panic if it is called after the browsing context has been discarded
@@ -1227,7 +1227,7 @@ impl Window {
             let node = from_untrusted_node_address(js_runtime.rt(), image.node);
 
             if let PendingImageState::Unrequested(ref url) = image.state {
-                fetch_image_for_layout(url.clone(), &*node, id, self.image_cache_thread.clone());
+                fetch_image_for_layout(url.clone(), &*node, id, self.image_cache.clone());
             }
 
             let mut images = self.pending_layout_images.borrow_mut();
@@ -1239,7 +1239,7 @@ impl Window {
                 ROUTER.add_route(responder_listener.to_opaque(), box move |message| {
                     let _ = image_cache_chan.send((pipeline, message.to().unwrap()));
                 });
-                self.image_cache_thread.add_listener(id, ImageResponder::new(responder, id));
+                self.image_cache.add_listener(id, ImageResponder::new(responder, id));
                 nodes.push(JS::from_ref(&*node));
             }
         }
@@ -1703,7 +1703,7 @@ impl Window {
                history_task_source: HistoryTraversalTaskSource,
                file_task_source: FileReadingTaskSource,
                image_cache_chan: Sender<ImageCacheMsg>,
-               image_cache_thread: ImageCacheThread,
+               image_cache: Arc<ImageCache>,
                resource_threads: ResourceThreads,
                bluetooth_thread: IpcSender<BluetoothRequest>,
                mem_profiler_chan: MemProfilerChan,
@@ -1747,8 +1747,8 @@ impl Window {
             history_traversal_task_source: history_task_source,
             file_reading_task_source: file_task_source,
             image_cache_chan: image_cache_chan,
+            image_cache: image_cache.clone(),
             navigator: Default::default(),
-            image_cache_thread: image_cache_thread,
             history: Default::default(),
             browsing_context: Default::default(),
             document: Default::default(),

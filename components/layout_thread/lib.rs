@@ -76,8 +76,7 @@ use layout::wrapper::LayoutNodeLayoutData;
 use layout::wrapper::drop_style_and_layout_data;
 use layout_traits::LayoutThreadFactory;
 use msg::constellation_msg::{FrameId, PipelineId};
-use net_traits::image_cache_thread::ImageCacheThread;
-use net_traits::image_cache_thread::UsePlaceholder;
+use net_traits::image_cache::{ImageCache, UsePlaceholder};
 use parking_lot::RwLock;
 use profile_traits::mem::{self, Report, ReportKind, ReportsChan};
 use profile_traits::time::{self, TimerMetadata, profile};
@@ -157,8 +156,8 @@ pub struct LayoutThread {
     /// The channel on which messages can be sent to the memory profiler.
     mem_profiler_chan: mem::ProfilerChan,
 
-    /// The channel on which messages can be sent to the image cache.
-    image_cache_thread: ImageCacheThread,
+    /// Reference to the script thread image cache.
+    image_cache: Arc<ImageCache>,
 
     /// Public interface to the font cache thread.
     font_cache_thread: FontCacheThread,
@@ -245,7 +244,7 @@ impl LayoutThreadFactory for LayoutThread {
               pipeline_port: IpcReceiver<LayoutControlMsg>,
               constellation_chan: IpcSender<ConstellationMsg>,
               script_chan: IpcSender<ConstellationControlMsg>,
-              image_cache_thread: ImageCacheThread,
+              image_cache: Arc<ImageCache>,
               font_cache_thread: FontCacheThread,
               time_profiler_chan: time::ProfilerChan,
               mem_profiler_chan: mem::ProfilerChan,
@@ -268,7 +267,7 @@ impl LayoutThreadFactory for LayoutThread {
                                                pipeline_port,
                                                constellation_chan,
                                                script_chan,
-                                               image_cache_thread,
+                                               image_cache.clone(),
                                                font_cache_thread,
                                                time_profiler_chan,
                                                mem_profiler_chan.clone(),
@@ -382,7 +381,7 @@ impl LayoutThread {
            pipeline_port: IpcReceiver<LayoutControlMsg>,
            constellation_chan: IpcSender<ConstellationMsg>,
            script_chan: IpcSender<ConstellationControlMsg>,
-           image_cache_thread: ImageCacheThread,
+           image_cache: Arc<ImageCache>,
            font_cache_thread: FontCacheThread,
            time_profiler_chan: time::ProfilerChan,
            mem_profiler_chan: mem::ProfilerChan,
@@ -432,7 +431,7 @@ impl LayoutThread {
             constellation_chan: constellation_chan.clone(),
             time_profiler_chan: time_profiler_chan,
             mem_profiler_chan: mem_profiler_chan,
-            image_cache_thread: image_cache_thread,
+            image_cache: image_cache.clone(),
             font_cache_thread: font_cache_thread,
             first_reflow: true,
             font_cache_receiver: font_cache_receiver,
@@ -522,7 +521,7 @@ impl LayoutThread {
                 quirks_mode: self.quirks_mode.unwrap(),
                 animation_only_restyle: false,
             },
-            image_cache_thread: Mutex::new(self.image_cache_thread.clone()),
+            image_cache: self.image_cache.clone(),
             font_cache_thread: Mutex::new(self.font_cache_thread.clone()),
             webrender_image_cache: self.webrender_image_cache.clone(),
             pending_images: if request_images { Some(Mutex::new(vec![])) } else { None },
@@ -693,7 +692,7 @@ impl LayoutThread {
                              info.pipeline_port,
                              info.constellation_chan,
                              info.script_chan.clone(),
-                             self.image_cache_thread.clone(),
+                             info.image_cache.clone(),
                              self.font_cache_thread.clone(),
                              self.time_profiler_chan.clone(),
                              self.mem_profiler_chan.clone(),
