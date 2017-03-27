@@ -131,6 +131,7 @@ ${helpers.predefined_type("flex-shrink", "Number",
 
 // https://drafts.csswg.org/css-flexbox/#propdef-order
 ${helpers.predefined_type("order", "Integer", "0",
+                          extra_prefixes="webkit",
                           animatable=True,
                           spec="https://drafts.csswg.org/css-flexbox/#order-property")}
 
