@@ -282,7 +282,10 @@ macro_rules! font_face_descriptors {
 font_face_descriptors! {
     mandatory descriptors = [
         /// The name of this font face
-        "font-family" family: FamilyName = FamilyName(atom!("")),
+        "font-family" family: FamilyName = FamilyName {
+            name: atom!(""),
+            quoted: true,
+        },
 
         /// The alternative sources for this font face.
         "src" sources: Vec<Source> = Vec::new(),
@@ -308,7 +311,10 @@ font_face_descriptors! {
 font_face_descriptors! {
     mandatory descriptors = [
         /// The name of this font face
-        "font-family" family: FamilyName = FamilyName(atom!("")),
+        "font-family" family: FamilyName = FamilyName {
+            name: atom!(""),
+            quoted: true,
+        },
 
         /// The alternative sources for this font face.
         "src" sources: Vec<Source> = Vec::new(),

@@ -18,7 +18,7 @@
     no_viewport_percentage!(SpecifiedValue);
 
     pub mod computed_value {
-        use cssparser::{CssStringWriter, Parser};
+        use cssparser::{CssStringWriter, Parser, serialize_identifier};
         use std::fmt::{self, Write};
         use Atom;
         use style_traits::ToCss;
@@ -33,13 +33,16 @@
 
         #[derive(Debug, PartialEq, Eq, Clone, Hash)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
-        pub struct FamilyName(pub Atom);
+        pub struct FamilyName {
+            pub name: Atom,
+            pub quoted: bool,
+        }
 
         impl FontFamily {
             #[inline]
             pub fn atom(&self) -> &Atom {
                 match *self {
-                    FontFamily::FamilyName(ref name) => &name.0,
+                    FontFamily::FamilyName(ref family_name) => &family_name.name,
                     FontFamily::Generic(ref name) => name,
                 }
             }
@@ -70,13 +73,22 @@
                     "monospace" => return FontFamily::Generic(atom!("monospace")),
                     _ => {}
                 }
-                FontFamily::FamilyName(FamilyName(input))
+
+                // We don't know if it's quoted or not. So we set it to
+                // quoted by default.
+                FontFamily::FamilyName(FamilyName {
+                    name: input,
+                    quoted: true,
+                })
             }
 
             /// Parse a font-family value
             pub fn parse(input: &mut Parser) -> Result<Self, ()> {
                 if let Ok(value) = input.try(|input| input.expect_string()) {
-                    return Ok(FontFamily::FamilyName(FamilyName(Atom::from(&*value))))
+                    return Ok(FontFamily::FamilyName(FamilyName {
+                        name: Atom::from(&*value),
+                        quoted: true,
+                    }))
                 }
                 let first_ident = try!(input.expect_ident());
 
@@ -120,15 +132,22 @@
                     value.push_str(" ");
                     value.push_str(&ident);
                 }
-                Ok(FontFamily::FamilyName(FamilyName(Atom::from(value))))
+                Ok(FontFamily::FamilyName(FamilyName {
+                    name: Atom::from(value),
+                    quoted: false,
+                }))
             }
         }
 
         impl ToCss for FamilyName {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                dest.write_char('"')?;
-                write!(CssStringWriter::new(dest), "{}", self.0)?;
-                dest.write_char('"')
+                if self.quoted {
+                    dest.write_char('"')?;
+                    write!(CssStringWriter::new(dest), "{}", self.name)?;
+                    dest.write_char('"')
+                } else {
+                    serialize_identifier(&*self.name.to_string(), dest)
+                }
             }
         }
 
