@@ -4,9 +4,9 @@
 
 use cssparser::Parser;
 use media_queries::CSSErrorReporterTest;
+use style::parser::ParserContext;
 use style::stylesheets::Origin;
 use style_traits::ToCss;
-use style::parser::ParserContext;
 
 #[test]
 fn initial_letter_should_be_parsed_correctly() {

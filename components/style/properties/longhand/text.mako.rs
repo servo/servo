@@ -252,14 +252,15 @@ ${helpers.predefined_type(
     }
 
     pub mod computed_value {
-        pub use super::SpecifiedValue as T; 
+        pub use super::SpecifiedValue as T;
     }
 
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match *self {
                 SpecifiedValue::Normal => try!(dest.write_str("normal")),
-                SpecifiedValue::Specified(size, Some(sink)) => try!(write!(dest, "{} {}", size.to_css_string(), sink.to_css_string())),
+                SpecifiedValue::Specified(size, Some(sink)) =>
+                    try!(write!(dest, "{} {}", size.to_css_string(), sink.to_css_string())),
                 SpecifiedValue::Specified(size, None) => try!(write!(dest, "{}", size.to_css_string()))
             };
 
@@ -276,7 +277,7 @@ ${helpers.predefined_type(
     pub fn get_initial_specified_value() -> SpecifiedValue {
         SpecifiedValue::Normal
     }
- 
+
     /// normal | <number> <integer>?
     pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
         if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
