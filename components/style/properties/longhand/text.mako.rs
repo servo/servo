@@ -259,9 +259,13 @@ ${helpers.predefined_type(
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match *self {
                 SpecifiedValue::Normal => try!(dest.write_str("normal")),
-                SpecifiedValue::Specified(size, Some(sink)) =>
-                    try!(write!(dest, "{} {}", size.to_css_string(), sink.to_css_string())),
-                SpecifiedValue::Specified(size, None) => try!(write!(dest, "{}", size.to_css_string()))
+                SpecifiedValue::Specified(size, sink) => {
+                    try!(size.to_css(dest));
+                    if let Some(sink) = sink {
+                        try!(dest.write_str(" "));
+                        try!(sink.to_css(dest));
+                    }
+                }
             };
 
             Ok(())
@@ -284,22 +288,16 @@ ${helpers.predefined_type(
             return Ok(SpecifiedValue::Normal);
         }
 
-        let size;
+        let size = try!(Number::parse_at_least_one(input));
 
-        if let Ok(value) = Number::parse_at_least_one(input) {
-            size = value;
-        } else {
-            return Err(());
-        }
-
-        if let Ok(value) = Integer::parse(context, input) {
-            if value.0 < 1 {
-                return Err(());
+        match input.try(|input| Integer::parse(context, input)) {
+            Ok(number) => {
+                if number.0 < 1 {
+                    return Err(());
+                }
+                Ok(SpecifiedValue::Specified(size, Some(number)))
             }
-
-            return Ok(SpecifiedValue::Specified(size, Some(value)));
-        } else {
-            return Ok(SpecifiedValue::Specified(size, None));
+            Err(()) => Ok(SpecifiedValue::Specified(size, None)),
         }
     }
 </%helpers:longhand>
