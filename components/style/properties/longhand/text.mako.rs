@@ -292,7 +292,7 @@ ${helpers.predefined_type(
 
         match input.try(|input| Integer::parse(context, input)) {
             Ok(number) => {
-                if number.0 < 1 {
+                if number.value() < 1 {
                     return Err(());
                 }
                 Ok(SpecifiedValue::Specified(size, Some(number)))
