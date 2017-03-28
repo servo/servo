@@ -248,7 +248,7 @@ ${helpers.predefined_type(
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedValue {
         Normal,
-        Specified(Number, Integer),
+        Specified(Number, Option<Integer>)
     }
 
     pub mod computed_value {
@@ -258,9 +258,12 @@ ${helpers.predefined_type(
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match *self {
-                SpecifiedValue::Normal => dest.write_str("normal"),
-                SpecifiedValue::Specified(size, sink) => try!(write!(dest, "{} {}", size.to_css_string(), sink.to_css_string())),
-            }
+                SpecifiedValue::Normal => try!(dest.write_str("normal")),
+                SpecifiedValue::Specified(size, Some(sink)) => try!(write!(dest, "{} {}", size.to_css_string(), sink.to_css_string())),
+                SpecifiedValue::Specified(size, None) => try!(write!(dest, "{}", size.to_css_string()))
+            };
+
+            Ok(())
         }
     }
 
@@ -293,9 +296,9 @@ ${helpers.predefined_type(
                 return Err(());
             }
 
-            return Ok(SpecifiedValue::Specified(size, value));
+            return Ok(SpecifiedValue::Specified(size, Some(value)));
+        } else {
+            return Ok(SpecifiedValue::Specified(size, None));
         }
-
-        Ok(SpecifiedValue::Specified(size, Integer(size.0.floor() as i32)))
     }
 </%helpers:longhand>
