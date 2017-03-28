@@ -1177,7 +1177,7 @@ fn static_assert() {
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Font"
-    skip_longhands="font-family font-size font-size-adjust font-weight font-synthesis -x-lang"
+    skip_longhands="font-family font-size font-size-adjust font-weight font-synthesis -x-lang font-language-override"
     skip_additionals="*">
 
     pub fn set_font_family(&mut self, v: longhands::font_family::computed_value::T) {
@@ -1315,6 +1315,11 @@ fn static_assert() {
             Gecko_nsStyleFont_CopyLangFrom(&mut self.gecko, &other.gecko);
         }
     }
+
+    pub fn set_font_language_override(&mut self, v: longhands::font_language_override::computed_value::T) {
+        self.gecko.mFont.languageOverride = v.0;
+    }
+    ${impl_simple_copy('font_language_override', 'mFont.languageOverride')}
 </%self:impl_trait>
 
 <%def name="impl_copy_animation_or_transition_value(type, ident, gecko_ffi_name)">

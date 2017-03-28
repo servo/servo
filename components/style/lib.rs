@@ -41,6 +41,7 @@ extern crate app_units;
 extern crate atomic_refcell;
 #[macro_use]
 extern crate bitflags;
+#[allow(unused_extern_crates)] extern crate byteorder;
 #[cfg(feature = "gecko")] #[macro_use] #[no_link] extern crate cfg_if;
 #[macro_use] extern crate cssparser;
 extern crate euclid;
