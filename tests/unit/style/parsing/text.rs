@@ -4,6 +4,7 @@
 
 use cssparser::Parser;
 use media_queries::CSSErrorReporterTest;
+use parsing::parse;
 use style::parser::ParserContext;
 use style::stylesheets::Origin;
 use style_traits::ToCss;
@@ -15,4 +16,11 @@ fn initial_letter_should_be_parsed_correctly() {
     assert_roundtrip_with_context!(initial_letter::parse, "1.5");
     assert_roundtrip_with_context!(initial_letter::parse, "1.5 3");
     assert_roundtrip_with_context!(initial_letter::parse, "normal");
+}
+
+#[test]
+fn initial_letter_doesnt_parse_invalid_input() {
+    use style::properties::longhands::initial_letter;
+
+    assert!(parse(initial_letter::parse, "1.5x 5").is_err());
 }
