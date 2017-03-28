@@ -8193,6 +8193,7 @@ pub mod root {
         }
         pub type pair_first_type<_T1> = _T1;
         pub type pair_second_type<_T2> = _T2;
+        pub type pair__PCCP = [u8; 0usize];
         #[repr(C)]
         #[derive(Debug, Copy)]
         pub struct input_iterator_tag {
@@ -15076,66 +15077,66 @@ pub mod root {
     #[repr(C)]
     #[derive(Debug, Copy, Clone)]
     pub struct nsDOMMutationObserver([u8; 0]);
-    pub const NODE_HAS_LISTENERMANAGER: root::_bindgen_ty_105 =
-        _bindgen_ty_105::NODE_HAS_LISTENERMANAGER;
-    pub const NODE_HAS_PROPERTIES: root::_bindgen_ty_105 =
-        _bindgen_ty_105::NODE_HAS_PROPERTIES;
-    pub const NODE_IS_ANONYMOUS_ROOT: root::_bindgen_ty_105 =
-        _bindgen_ty_105::NODE_IS_ANONYMOUS_ROOT;
-    pub const NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE: root::_bindgen_ty_105 =
-        _bindgen_ty_105::NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE;
-    pub const NODE_IS_NATIVE_ANONYMOUS_ROOT: root::_bindgen_ty_105 =
-        _bindgen_ty_105::NODE_IS_NATIVE_ANONYMOUS_ROOT;
-    pub const NODE_FORCE_XBL_BINDINGS: root::_bindgen_ty_105 =
-        _bindgen_ty_105::NODE_FORCE_XBL_BINDINGS;
-    pub const NODE_MAY_BE_IN_BINDING_MNGR: root::_bindgen_ty_105 =
-        _bindgen_ty_105::NODE_MAY_BE_IN_BINDING_MNGR;
-    pub const NODE_IS_EDITABLE: root::_bindgen_ty_105 =
-        _bindgen_ty_105::NODE_IS_EDITABLE;
-    pub const NODE_IS_NATIVE_ANONYMOUS: root::_bindgen_ty_105 =
-        _bindgen_ty_105::NODE_IS_NATIVE_ANONYMOUS;
-    pub const NODE_IS_IN_SHADOW_TREE: root::_bindgen_ty_105 =
-        _bindgen_ty_105::NODE_IS_IN_SHADOW_TREE;
-    pub const NODE_HAS_EMPTY_SELECTOR: root::_bindgen_ty_105 =
-        _bindgen_ty_105::NODE_HAS_EMPTY_SELECTOR;
-    pub const NODE_HAS_SLOW_SELECTOR: root::_bindgen_ty_105 =
-        _bindgen_ty_105::NODE_HAS_SLOW_SELECTOR;
-    pub const NODE_HAS_EDGE_CHILD_SELECTOR: root::_bindgen_ty_105 =
-        _bindgen_ty_105::NODE_HAS_EDGE_CHILD_SELECTOR;
-    pub const NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS: root::_bindgen_ty_105 =
-        _bindgen_ty_105::NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS;
-    pub const NODE_ALL_SELECTOR_FLAGS: root::_bindgen_ty_105 =
-        _bindgen_ty_105::NODE_ALL_SELECTOR_FLAGS;
-    pub const NODE_NEEDS_FRAME: root::_bindgen_ty_105 =
-        _bindgen_ty_105::NODE_NEEDS_FRAME;
-    pub const NODE_DESCENDANTS_NEED_FRAMES: root::_bindgen_ty_105 =
-        _bindgen_ty_105::NODE_DESCENDANTS_NEED_FRAMES;
-    pub const NODE_HAS_ACCESSKEY: root::_bindgen_ty_105 =
-        _bindgen_ty_105::NODE_HAS_ACCESSKEY;
-    pub const NODE_HAS_DIRECTION_RTL: root::_bindgen_ty_105 =
-        _bindgen_ty_105::NODE_HAS_DIRECTION_RTL;
-    pub const NODE_HAS_DIRECTION_LTR: root::_bindgen_ty_105 =
-        _bindgen_ty_105::NODE_HAS_DIRECTION_LTR;
-    pub const NODE_ALL_DIRECTION_FLAGS: root::_bindgen_ty_105 =
-        _bindgen_ty_105::NODE_ALL_DIRECTION_FLAGS;
-    pub const NODE_CHROME_ONLY_ACCESS: root::_bindgen_ty_105 =
-        _bindgen_ty_105::NODE_CHROME_ONLY_ACCESS;
-    pub const NODE_IS_ROOT_OF_CHROME_ONLY_ACCESS: root::_bindgen_ty_105 =
-        _bindgen_ty_105::NODE_IS_ROOT_OF_CHROME_ONLY_ACCESS;
-    pub const NODE_SHARED_RESTYLE_BIT_1: root::_bindgen_ty_105 =
-        _bindgen_ty_105::NODE_SHARED_RESTYLE_BIT_1;
-    pub const NODE_SHARED_RESTYLE_BIT_2: root::_bindgen_ty_105 =
-        _bindgen_ty_105::NODE_SHARED_RESTYLE_BIT_2;
-    pub const NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO: root::_bindgen_ty_105 =
-        _bindgen_ty_105::NODE_SHARED_RESTYLE_BIT_1;
+    pub const NODE_HAS_LISTENERMANAGER: root::_bindgen_ty_91 =
+        _bindgen_ty_91::NODE_HAS_LISTENERMANAGER;
+    pub const NODE_HAS_PROPERTIES: root::_bindgen_ty_91 =
+        _bindgen_ty_91::NODE_HAS_PROPERTIES;
+    pub const NODE_IS_ANONYMOUS_ROOT: root::_bindgen_ty_91 =
+        _bindgen_ty_91::NODE_IS_ANONYMOUS_ROOT;
+    pub const NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE: root::_bindgen_ty_91 =
+        _bindgen_ty_91::NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE;
+    pub const NODE_IS_NATIVE_ANONYMOUS_ROOT: root::_bindgen_ty_91 =
+        _bindgen_ty_91::NODE_IS_NATIVE_ANONYMOUS_ROOT;
+    pub const NODE_FORCE_XBL_BINDINGS: root::_bindgen_ty_91 =
+        _bindgen_ty_91::NODE_FORCE_XBL_BINDINGS;
+    pub const NODE_MAY_BE_IN_BINDING_MNGR: root::_bindgen_ty_91 =
+        _bindgen_ty_91::NODE_MAY_BE_IN_BINDING_MNGR;
+    pub const NODE_IS_EDITABLE: root::_bindgen_ty_91 =
+        _bindgen_ty_91::NODE_IS_EDITABLE;
+    pub const NODE_IS_NATIVE_ANONYMOUS: root::_bindgen_ty_91 =
+        _bindgen_ty_91::NODE_IS_NATIVE_ANONYMOUS;
+    pub const NODE_IS_IN_SHADOW_TREE: root::_bindgen_ty_91 =
+        _bindgen_ty_91::NODE_IS_IN_SHADOW_TREE;
+    pub const NODE_HAS_EMPTY_SELECTOR: root::_bindgen_ty_91 =
+        _bindgen_ty_91::NODE_HAS_EMPTY_SELECTOR;
+    pub const NODE_HAS_SLOW_SELECTOR: root::_bindgen_ty_91 =
+        _bindgen_ty_91::NODE_HAS_SLOW_SELECTOR;
+    pub const NODE_HAS_EDGE_CHILD_SELECTOR: root::_bindgen_ty_91 =
+        _bindgen_ty_91::NODE_HAS_EDGE_CHILD_SELECTOR;
+    pub const NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS: root::_bindgen_ty_91 =
+        _bindgen_ty_91::NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS;
+    pub const NODE_ALL_SELECTOR_FLAGS: root::_bindgen_ty_91 =
+        _bindgen_ty_91::NODE_ALL_SELECTOR_FLAGS;
+    pub const NODE_NEEDS_FRAME: root::_bindgen_ty_91 =
+        _bindgen_ty_91::NODE_NEEDS_FRAME;
+    pub const NODE_DESCENDANTS_NEED_FRAMES: root::_bindgen_ty_91 =
+        _bindgen_ty_91::NODE_DESCENDANTS_NEED_FRAMES;
+    pub const NODE_HAS_ACCESSKEY: root::_bindgen_ty_91 =
+        _bindgen_ty_91::NODE_HAS_ACCESSKEY;
+    pub const NODE_HAS_DIRECTION_RTL: root::_bindgen_ty_91 =
+        _bindgen_ty_91::NODE_HAS_DIRECTION_RTL;
+    pub const NODE_HAS_DIRECTION_LTR: root::_bindgen_ty_91 =
+        _bindgen_ty_91::NODE_HAS_DIRECTION_LTR;
+    pub const NODE_ALL_DIRECTION_FLAGS: root::_bindgen_ty_91 =
+        _bindgen_ty_91::NODE_ALL_DIRECTION_FLAGS;
+    pub const NODE_CHROME_ONLY_ACCESS: root::_bindgen_ty_91 =
+        _bindgen_ty_91::NODE_CHROME_ONLY_ACCESS;
+    pub const NODE_IS_ROOT_OF_CHROME_ONLY_ACCESS: root::_bindgen_ty_91 =
+        _bindgen_ty_91::NODE_IS_ROOT_OF_CHROME_ONLY_ACCESS;
+    pub const NODE_SHARED_RESTYLE_BIT_1: root::_bindgen_ty_91 =
+        _bindgen_ty_91::NODE_SHARED_RESTYLE_BIT_1;
+    pub const NODE_SHARED_RESTYLE_BIT_2: root::_bindgen_ty_91 =
+        _bindgen_ty_91::NODE_SHARED_RESTYLE_BIT_2;
+    pub const NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO: root::_bindgen_ty_91 =
+        _bindgen_ty_91::NODE_SHARED_RESTYLE_BIT_1;
     pub const NODE_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO:
-              root::_bindgen_ty_105 =
-        _bindgen_ty_105::NODE_SHARED_RESTYLE_BIT_2;
-    pub const NODE_TYPE_SPECIFIC_BITS_OFFSET: root::_bindgen_ty_105 =
-        _bindgen_ty_105::NODE_TYPE_SPECIFIC_BITS_OFFSET;
+              root::_bindgen_ty_91 =
+        _bindgen_ty_91::NODE_SHARED_RESTYLE_BIT_2;
+    pub const NODE_TYPE_SPECIFIC_BITS_OFFSET: root::_bindgen_ty_91 =
+        _bindgen_ty_91::NODE_TYPE_SPECIFIC_BITS_OFFSET;
     #[repr(u32)]
     #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-    pub enum _bindgen_ty_105 {
+    pub enum _bindgen_ty_91 {
         NODE_HAS_LISTENERMANAGER = 4,
         NODE_HAS_PROPERTIES = 8,
         NODE_IS_ANONYMOUS_ROOT = 16,
@@ -18966,9 +18967,9 @@ pub mod root {
         eCSSUnit_Local_Font = 15,
         eCSSUnit_Font_Format = 16,
         eCSSUnit_Element = 17,
-        eCSSUnit_Counter = 20,
-        eCSSUnit_Counters = 21,
-        eCSSUnit_Array = 22,
+        eCSSUnit_Array = 20,
+        eCSSUnit_Counter = 21,
+        eCSSUnit_Counters = 22,
         eCSSUnit_Cubic_Bezier = 23,
         eCSSUnit_Steps = 24,
         eCSSUnit_Symbols = 25,
@@ -19542,11 +19543,11 @@ pub mod root {
     #[repr(C)]
     #[derive(Debug)]
     pub struct nsCSSValue_Array {
-        pub mRefCnt: root::nsAutoRefCnt,
+        pub mRefCnt: root::mozilla::ThreadSafeAutoRefCnt,
         pub mCount: usize,
         pub mArray: [root::nsCSSValue; 1usize],
     }
-    pub type nsCSSValue_Array_HasThreadSafeRefCnt = root::mozilla::FalseType;
+    pub type nsCSSValue_Array_HasThreadSafeRefCnt = root::mozilla::TrueType;
     #[test]
     fn bindgen_test_layout_nsCSSValue_Array() {
         assert_eq!(::std::mem::size_of::<nsCSSValue_Array>() , 32usize ,
@@ -19571,44 +19572,6 @@ pub mod root {
                     "Alignment of field: " , stringify ! ( nsCSSValue_Array )
                     , "::" , stringify ! ( mArray ) ));
     }
-    #[repr(C)]
-    #[derive(Debug)]
-    pub struct nsCSSValue_ThreadSafeArray {
-        pub mRefCnt: root::mozilla::ThreadSafeAutoRefCnt,
-        pub mCount: usize,
-        pub mArray: [root::nsCSSValue; 1usize],
-    }
-    pub type nsCSSValue_ThreadSafeArray_HasThreadSafeRefCnt =
-        root::mozilla::TrueType;
-    #[test]
-    fn bindgen_test_layout_nsCSSValue_ThreadSafeArray() {
-        assert_eq!(::std::mem::size_of::<nsCSSValue_ThreadSafeArray>() ,
-                   32usize , concat ! (
-                   "Size of: " , stringify ! ( nsCSSValue_ThreadSafeArray )
-                   ));
-        assert_eq! (::std::mem::align_of::<nsCSSValue_ThreadSafeArray>() ,
-                    8usize , concat ! (
-                    "Alignment of " , stringify ! ( nsCSSValue_ThreadSafeArray
-                    ) ));
-        assert_eq! (unsafe {
-                    & ( * ( 0 as * const nsCSSValue_ThreadSafeArray ) ) .
-                    mRefCnt as * const _ as usize } , 0usize , concat ! (
-                    "Alignment of field: " , stringify ! (
-                    nsCSSValue_ThreadSafeArray ) , "::" , stringify ! (
-                    mRefCnt ) ));
-        assert_eq! (unsafe {
-                    & ( * ( 0 as * const nsCSSValue_ThreadSafeArray ) ) .
-                    mCount as * const _ as usize } , 8usize , concat ! (
-                    "Alignment of field: " , stringify ! (
-                    nsCSSValue_ThreadSafeArray ) , "::" , stringify ! ( mCount
-                    ) ));
-        assert_eq! (unsafe {
-                    & ( * ( 0 as * const nsCSSValue_ThreadSafeArray ) ) .
-                    mArray as * const _ as usize } , 16usize , concat ! (
-                    "Alignment of field: " , stringify ! (
-                    nsCSSValue_ThreadSafeArray ) , "::" , stringify ! ( mArray
-                    ) ));
-    }
     #[repr(u32)]
     #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
     pub enum nsCSSValue_Serialization {
@@ -19624,7 +19587,6 @@ pub mod root {
         pub mColor: root::__BindgenUnionField<root::nscolor>,
         pub mAtom: root::__BindgenUnionField<*mut root::nsIAtom>,
         pub mArray: root::__BindgenUnionField<*mut root::nsCSSValue_Array>,
-        pub mThreadSafeArray: root::__BindgenUnionField<*mut root::nsCSSValue_ThreadSafeArray>,
         pub mURL: root::__BindgenUnionField<*mut root::mozilla::css::URLValue>,
         pub mImage: root::__BindgenUnionField<*mut root::mozilla::css::ImageValue>,
         pub mGridTemplateAreas: root::__BindgenUnionField<*mut root::mozilla::css::GridTemplateAreasValue>,
@@ -19688,13 +19650,6 @@ pub mod root {
                     "Alignment of field: " , stringify ! (
                     nsCSSValue__bindgen_ty_1 ) , "::" , stringify ! ( mArray )
                     ));
-        assert_eq! (unsafe {
-                    & ( * ( 0 as * const nsCSSValue__bindgen_ty_1 ) ) .
-                    mThreadSafeArray as * const _ as usize } , 0usize , concat
-                    ! (
-                    "Alignment of field: " , stringify ! (
-                    nsCSSValue__bindgen_ty_1 ) , "::" , stringify ! (
-                    mThreadSafeArray ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsCSSValue__bindgen_ty_1 ) ) . mURL
                     as * const _ as usize } , 0usize , concat ! (
@@ -24304,7 +24259,7 @@ pub mod root {
     pub struct nsStyleContentData__bindgen_ty_1 {
         pub mString: root::__BindgenUnionField<*mut u16>,
         pub mImage: root::__BindgenUnionField<*mut root::nsStyleImageRequest>,
-        pub mCounters: root::__BindgenUnionField<*mut root::nsCSSValue_ThreadSafeArray>,
+        pub mCounters: root::__BindgenUnionField<*mut root::nsCSSValue_Array>,
         pub bindgen_union_field: u64,
     }
     #[test]
