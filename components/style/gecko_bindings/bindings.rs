@@ -1812,7 +1812,8 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_ResolveStyle(element: RawGeckoElementBorrowed,
-                              set: RawServoStyleSetBorrowed)
+                              set: RawServoStyleSetBorrowed,
+                              allow_stale: bool)
      -> ServoComputedValuesStrong;
 }
 extern "C" {
