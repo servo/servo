@@ -1,0 +1,18 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+use cssparser::Parser;
+use media_queries::CSSErrorReporterTest;
+use style::stylesheets::Origin;
+use style_traits::ToCss;
+use style::parser::ParserContext;
+
+#[test]
+fn initial_letter_should_be_parsed_correctly() {
+    use style::properties::longhands::initial_letter;
+
+    assert_roundtrip_with_context!(initial_letter::parse, "1.5");
+    assert_roundtrip_with_context!(initial_letter::parse, "1.5 3");
+    assert_roundtrip_with_context!(initial_letter::parse, "normal");
+}
