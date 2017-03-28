@@ -13,12 +13,12 @@
 // https://html.spec.whatwg.org/multipage/#htmlanchorelement
 interface HTMLAnchorElement : HTMLElement {
   attribute DOMString target;
-  //         attribute DOMString download;
-  //         attribute USVString ping;
-  //         attribute DOMString rel;
+  //       attribute DOMString download;
+  //       attribute USVString ping;
+           attribute DOMString rel;
   readonly attribute DOMTokenList relList;
-  //         attribute DOMString hreflang;
-  //         attribute DOMString type;
+  //       attribute DOMString hreflang;
+  //       attribute DOMString type;
 
   [Pure]
            attribute DOMString text;
