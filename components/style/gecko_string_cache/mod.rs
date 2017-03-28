@@ -10,7 +10,6 @@ use gecko_bindings::bindings::Gecko_AddRefAtom;
 use gecko_bindings::bindings::Gecko_Atomize;
 use gecko_bindings::bindings::Gecko_ReleaseAtom;
 use gecko_bindings::structs::nsIAtom;
-use heapsize::HeapSizeOf;
 use std::borrow::{Cow, Borrow};
 use std::char::{self, DecodeUtf16};
 use std::fmt::{self, Write};
@@ -234,12 +233,6 @@ impl Default for Atom {
     #[inline]
     fn default() -> Self {
         atom!("")
-    }
-}
-
-impl HeapSizeOf for Atom {
-    fn heap_size_of_children(&self) -> usize {
-        0
     }
 }
 
