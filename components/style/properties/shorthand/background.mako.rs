@@ -234,6 +234,9 @@
                 self.background_position_x.0[i].to_css(dest)?;
                 dest.write_str(" ")?;
                 self.background_position_y.0[i].to_css(dest)?;
+                if i < len - 1 {
+                    dest.write_str(", ")?;
+                }
             }
             Ok(())
         }
