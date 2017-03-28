@@ -192,11 +192,117 @@ ${helpers.predefined_type("background-color", "CSSColor",
     }
 </%helpers:vector_longhand>
 
-${helpers.single_keyword("background-repeat",
-                         "repeat repeat-x repeat-y space round no-repeat",
-                         vector=True,
-                         spec="https://drafts.csswg.org/css-backgrounds/#the-background-repeat",
-                         animatable=False)}
+<%helpers:vector_longhand name="background-repeat" animatable="False"
+                          spec="https://drafts.csswg.org/css-backgrounds/#the-background-repeat">
+    use std::fmt;
+    use style_traits::ToCss;
+    use values::HasViewportPercentage;
+
+    define_css_keyword_enum!(RepeatKeyword:
+                             "repeat" => Repeat,
+                             "space" => Space,
+                             "round" => Round,
+                             "no-repeat" => NoRepeat);
+
+    #[derive(Debug, Clone, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub enum SpecifiedValue {
+        RepeatX,
+        RepeatY,
+        Other(RepeatKeyword, Option<RepeatKeyword>),
+    }
+
+    pub mod computed_value {
+        pub use super::RepeatKeyword;
+
+        #[derive(Debug, Clone, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        pub struct T(pub RepeatKeyword, pub RepeatKeyword);
+    }
+
+    no_viewport_percentage!(SpecifiedValue);
+
+    impl ToCss for computed_value::T {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match (self.0, self.1) {
+                (RepeatKeyword::Repeat, RepeatKeyword::NoRepeat) => dest.write_str("repeat-x"),
+                (RepeatKeyword::NoRepeat, RepeatKeyword::Repeat) => dest.write_str("repeat-y"),
+                (horizontal, vertical) => {
+                    try!(horizontal.to_css(dest));
+                    if horizontal != vertical {
+                        try!(dest.write_str(" "));
+                        try!(vertical.to_css(dest));
+                    }
+                    Ok(())
+                },
+            }
+        }
+    }
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match *self {
+                SpecifiedValue::RepeatX => dest.write_str("repeat-x"),
+                SpecifiedValue::RepeatY => dest.write_str("repeat-y"),
+                SpecifiedValue::Other(horizontal, vertical) => {
+                    try!(horizontal.to_css(dest));
+                    if let Some(vertical) = vertical {
+                        try!(dest.write_str(" "));
+                        try!(vertical.to_css(dest));
+                    }
+                    Ok(())
+                }
+            }
+        }
+    }
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T(RepeatKeyword::Repeat, RepeatKeyword::Repeat)
+    }
+
+    #[inline]
+    pub fn get_initial_specified_value() -> SpecifiedValue {
+        SpecifiedValue::Other(RepeatKeyword::Repeat, None)
+    }
+
+    impl ToComputedValue for SpecifiedValue {
+        type ComputedValue = computed_value::T;
+
+        #[inline]
+        fn to_computed_value(&self, _context: &Context) -> computed_value::T {
+            match *self {
+                SpecifiedValue::RepeatX =>
+                    computed_value::T(RepeatKeyword::Repeat, RepeatKeyword::NoRepeat),
+                SpecifiedValue::RepeatY =>
+                    computed_value::T(RepeatKeyword::NoRepeat, RepeatKeyword::Repeat),
+                SpecifiedValue::Other(horizontal, vertical) =>
+                    computed_value::T(horizontal, vertical.unwrap_or(horizontal))
+            }
+        }
+
+        #[inline]
+        fn from_computed_value(computed: &computed_value::T) -> Self {
+            match (computed.0, computed.1) {
+                (RepeatKeyword::Repeat, RepeatKeyword::NoRepeat) => SpecifiedValue::RepeatX,
+                (RepeatKeyword::NoRepeat, RepeatKeyword::Repeat) => SpecifiedValue::RepeatY,
+                (horizontal, vertical) => SpecifiedValue::Other(horizontal, Some(vertical)),
+            }
+        }
+    }
+
+    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        let ident = input.expect_ident()?;
+        match_ignore_ascii_case! { &ident,
+            "repeat-x" => Ok(SpecifiedValue::RepeatX),
+            "repeat-y" => Ok(SpecifiedValue::RepeatY),
+            _ => {
+                let horizontal = try!(RepeatKeyword::from_ident(&ident));
+                let vertical = input.try(RepeatKeyword::parse).ok();
+                Ok(SpecifiedValue::Other(horizontal, vertical))
+            }
+        }
+    }
+</%helpers:vector_longhand>
 
 ${helpers.single_keyword("background-attachment",
                          "scroll fixed" + (" local" if product == "gecko" else ""),

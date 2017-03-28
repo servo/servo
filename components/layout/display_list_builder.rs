@@ -768,45 +768,45 @@ impl FragmentDisplayListBuilding for Fragment {
             let mut stretch_size = image_size;
 
             // Adjust origin and size based on background-repeat
-            match *get_cyclic(&background.background_repeat.0, index) {
-                background_repeat::single_value::T::no_repeat => {
+            let background_repeat = get_cyclic(&background.background_repeat.0, index);
+            match background_repeat.0 {
+                background_repeat::single_value::RepeatKeyword::NoRepeat => {
                     bounds.origin.x = anchor_origin_x;
-                    bounds.origin.y = anchor_origin_y;
                     bounds.size.width = image_size.width;
-                    bounds.size.height = image_size.height;
                 }
-                background_repeat::single_value::T::repeat_x => {
-                    bounds.origin.y = anchor_origin_y;
-                    bounds.size.height = image_size.height;
+                background_repeat::single_value::RepeatKeyword::Repeat => {
                     ImageFragmentInfo::tile_image(&mut bounds.origin.x,
                                                   &mut bounds.size.width,
                                                   anchor_origin_x,
                                                   image_size.width);
                 }
-                background_repeat::single_value::T::repeat_y => {
-                    bounds.origin.x = anchor_origin_x;
-                    bounds.size.width = image_size.width;
-                    ImageFragmentInfo::tile_image(&mut bounds.origin.y,
-                                                  &mut bounds.size.height,
-                                                  anchor_origin_y,
-                                                  image_size.height);
-                }
-                background_repeat::single_value::T::repeat => {
-                    ImageFragmentInfo::tile_image(&mut bounds.origin.x,
-                                                  &mut bounds.size.width,
-                                                  anchor_origin_x,
-                                                  image_size.width);
-                    ImageFragmentInfo::tile_image(&mut bounds.origin.y,
-                                                  &mut bounds.size.height,
-                                                  anchor_origin_y,
-                                                  image_size.height);
-                }
-                background_repeat::single_value::T::space => {
+                background_repeat::single_value::RepeatKeyword::Space => {
                     ImageFragmentInfo::tile_image_spaced(&mut bounds.origin.x,
                                                          &mut bounds.size.width,
                                                          &mut tile_spacing.width,
                                                          anchor_origin_x,
                                                          image_size.width);
+
+                }
+                background_repeat::single_value::RepeatKeyword::Round => {
+                    ImageFragmentInfo::tile_image_round(&mut bounds.origin.x,
+                                                        &mut bounds.size.width,
+                                                        anchor_origin_x,
+                                                        &mut stretch_size.width);
+                }
+            };
+            match background_repeat.1 {
+                background_repeat::single_value::RepeatKeyword::NoRepeat => {
+                    bounds.origin.y = anchor_origin_y;
+                    bounds.size.height = image_size.height;
+                }
+                background_repeat::single_value::RepeatKeyword::Repeat => {
+                    ImageFragmentInfo::tile_image(&mut bounds.origin.y,
+                                                  &mut bounds.size.height,
+                                                  anchor_origin_y,
+                                                  image_size.height);
+                }
+                background_repeat::single_value::RepeatKeyword::Space => {
                     ImageFragmentInfo::tile_image_spaced(&mut bounds.origin.y,
                                                          &mut bounds.size.height,
                                                          &mut tile_spacing.height,
@@ -814,11 +814,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                          image_size.height);
 
                 }
-                background_repeat::single_value::T::round => {
-                    ImageFragmentInfo::tile_image_round(&mut bounds.origin.x,
-                                                        &mut bounds.size.width,
-                                                        anchor_origin_x,
-                                                        &mut stretch_size.width);
+                background_repeat::single_value::RepeatKeyword::Round => {
                     ImageFragmentInfo::tile_image_round(&mut bounds.origin.y,
                                                         &mut bounds.size.height,
                                                         anchor_origin_y,
