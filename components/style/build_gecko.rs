@@ -271,6 +271,7 @@ mod bindings {
             .include(add_include("mozilla/dom/NameSpaceConstants.h"))
             .include(add_include("mozilla/LookAndFeel.h"))
             .include(add_include("mozilla/ServoBindings.h"))
+            .include(add_include("nsCSSFontFaceRule.h"))
             .include(add_include("nsMediaFeatures.h"))
             .include(add_include("nsMediaList.h"))
             // FIXME(emilio): Incrementally remove these "pub use"s. Probably
@@ -337,6 +338,7 @@ mod bindings {
             "nsBorderColors",
             "nscolor",
             "nsChangeHint",
+            "nsCSSFontFaceRule",
             "nsCSSKeyword",
             "nsCSSPropertyID",
             "nsCSSProps",
@@ -609,6 +611,7 @@ mod bindings {
             "StyleBasicShape",
             "StyleBasicShapeType",
             "StyleShapeSource",
+            "nsCSSFontFaceRule",
             "nsCSSKeyword",
             "nsCSSPropertyID",
             "nsCSSShadowArray",
