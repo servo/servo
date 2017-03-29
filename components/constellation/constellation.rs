@@ -1389,9 +1389,17 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
     fn handle_subframe_loaded(&mut self, pipeline_id: PipelineId) {
         let (frame_id, parent_id) = match self.pipelines.get(&pipeline_id) {
-            Some(pipeline) => match pipeline.parent_info {
-                Some((parent_id, _)) => (pipeline.frame_id, parent_id),
-                None => return warn!("Pipeline {} has no parent.", pipeline_id),
+            Some(pipeline) => {
+                match self.frames.get(&pipeline.frame_id) {
+                    Some(frame) => if frame.pipeline_id != pipeline_id {
+                        return warn!("Non-active pipeline {} attempted to trigger load event.", pipeline_id)
+                    },
+                    None => return warn!("Pipeline {} loaded after frame {} closed.", pipeline_id, pipeline.frame_id),
+                }
+                match pipeline.parent_info {
+                    Some((parent_id, _)) => (pipeline.frame_id, parent_id),
+                    None => return warn!("Pipeline {} has no parent.", pipeline_id),
+                }
             },
             None => return warn!("Pipeline {} loaded after closure.", pipeline_id),
         };
