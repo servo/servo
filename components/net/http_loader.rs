@@ -1359,7 +1359,7 @@ fn response_needs_revalidation(_response: &Response) -> bool {
 }
 
 /// https://fetch.spec.whatwg.org/#redirect-status
-fn is_redirect_status(status: StatusCode) -> bool {
+pub fn is_redirect_status(status: StatusCode) -> bool {
     match status {
         StatusCode::MovedPermanently |
         StatusCode::Found |

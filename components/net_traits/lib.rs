@@ -540,7 +540,7 @@ impl NetworkError {
         NetworkError::Internal(error.description().to_owned())
     }
 
-    fn from_ssl_error(url: &ServoUrl, error: &SslError) -> Self {
+    pub fn from_ssl_error(url: &ServoUrl, error: &SslError) -> Self {
         if let SslError::OpenSslErrors(ref errors) = *error {
             if errors.iter().any(is_cert_verify_error) {
                 let mut error_report = vec![format!("ssl error ({}):", openssl::version::version())];
