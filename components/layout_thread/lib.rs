@@ -98,6 +98,7 @@ use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
+use std::marker::PhantomData;
 use std::mem as std_mem;
 use std::ops::{Deref, DerefMut};
 use std::process;
@@ -116,7 +117,7 @@ use style::parser::ParserContextExtraData;
 use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, REPOSITION, STORE_OVERFLOW};
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards};
 use style::stylesheets::{Origin, Stylesheet, UserAgentStylesheets};
-use style::stylist::Stylist;
+use style::stylist::{ExtraStyleData, Stylist};
 use style::thread_state;
 use style::timer::Timer;
 use style::traversal::{DomTraversal, TraversalDriver, TraversalFlags};
@@ -1078,11 +1079,15 @@ impl LayoutThread {
             author: &author_guard,
             ua_or_user: &ua_or_user_guard,
         };
+        let mut extra_data = ExtraStyleData {
+            marker: PhantomData,
+        };
         let needs_dirtying = Arc::get_mut(&mut rw_data.stylist).unwrap().update(
             &data.document_stylesheets,
             &guards,
             Some(ua_stylesheets),
-            data.stylesheets_changed);
+            data.stylesheets_changed,
+            &mut extra_data);
         let needs_reflow = viewport_size_changed && !needs_dirtying;
         if needs_dirtying {
             if let Some(mut d) = element.mutate_data() {
