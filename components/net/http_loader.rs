@@ -35,9 +35,7 @@ use net_traits::hosts::replace_host;
 use net_traits::request::{CacheMode, CredentialsMode, Destination, Origin};
 use net_traits::request::{RedirectMode, Referrer, Request, RequestMode, ResponseTainting};
 use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
-use openssl;
 use openssl::ssl::SslStream;
-use openssl::ssl::error::{OpensslError, SslError};
 use resource_thread::AuthCache;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use std::collections::HashSet;
@@ -140,34 +138,7 @@ impl NetworkHttpRequestFactory {
     fn create(&self, url: ServoUrl, method: Method, headers: Headers)
               -> Result<HyperRequest<Fresh>, NetworkError> {
         let connection = HyperRequest::with_connector(method, url.clone().into_url(), self);
-
-        if let Err(HttpError::Ssl(ref error)) = connection {
-            let error: &(Error + Send + 'static) = &**error;
-            if let Some(&SslError::OpenSslErrors(ref errors)) = error.downcast_ref::<SslError>() {
-                if errors.iter().any(is_cert_verify_error) {
-                    let mut error_report = vec![format!("ssl error ({}):", openssl::version::version())];
-                    let mut suggestion = None;
-                    for err in errors {
-                        if is_unknown_message_digest_err(err) {
-                            suggestion = Some("<b>Servo recommends upgrading to a newer OpenSSL version.</b>");
-                        }
-                        error_report.push(format_ssl_error(err));
-                    }
-
-                    if let Some(suggestion) = suggestion {
-                        error_report.push(suggestion.to_owned());
-                    }
-
-                    let error_report = error_report.join("<br>\n");
-                    return Err(NetworkError::SslValidation(url, error_report));
-                }
-            }
-        }
-
-        let mut request = match connection {
-            Ok(req) => req,
-            Err(e) => return Err(NetworkError::Internal(e.description().to_owned())),
-        };
+        let mut request = connection.map_err(|e| NetworkError::from_hyper_error(&url, e))?;
         *request.headers_mut() = headers;
 
         Ok(request)
@@ -502,35 +473,6 @@ fn obtain_response(request_factory: &NetworkHttpRequestFactory,
         };
 
         return Ok((WrappedHttpResponse { response: response }, msg));
-    }
-}
-
-// FIXME: This incredibly hacky. Make it more robust, and at least test it.
-fn is_cert_verify_error(error: &OpensslError) -> bool {
-    match error {
-        &OpensslError::UnknownError { ref library, ref function, ref reason } => {
-            library == "SSL routines" &&
-            function.to_uppercase() == "SSL3_GET_SERVER_CERTIFICATE" &&
-            reason == "certificate verify failed"
-        }
-    }
-}
-
-fn is_unknown_message_digest_err(error: &OpensslError) -> bool {
-    match error {
-        &OpensslError::UnknownError { ref library, ref function, ref reason } => {
-            library == "asn1 encoding routines" &&
-            function == "ASN1_item_verify" &&
-            reason == "unknown message digest algorithm"
-        }
-    }
-}
-
-fn format_ssl_error(error: &OpensslError) -> String {
-    match error {
-        &OpensslError::UnknownError { ref library, ref function, ref reason } => {
-            format!("{}: {} - {}", library, function, reason)
-        }
     }
 }
 
@@ -1417,7 +1359,7 @@ fn response_needs_revalidation(_response: &Response) -> bool {
 }
 
 /// https://fetch.spec.whatwg.org/#redirect-status
-fn is_redirect_status(status: StatusCode) -> bool {
+pub fn is_redirect_status(status: StatusCode) -> bool {
     match status {
         StatusCode::MovedPermanently |
         StatusCode::Found |
