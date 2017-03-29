@@ -250,7 +250,7 @@ def set_gecko_property(ffi_name, expr):
     return "self.gecko.%s = %s;" % (ffi_name, expr)
 %>
 
-<%def name="impl_keyword_setter(ident, gecko_ffi_name, keyword, cast_type='u8')">
+<%def name="impl_keyword_setter(ident, gecko_ffi_name, keyword, cast_type='u8', on_set=None)">
     #[allow(non_snake_case)]
     pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
         use properties::longhands::${ident}::computed_value::T as Keyword;
@@ -262,6 +262,9 @@ def set_gecko_property(ffi_name, expr):
             % endfor
         };
         ${set_gecko_property(gecko_ffi_name, "result")}
+        % if on_set:
+        self.${on_set}();
+        % endif
     }
 </%def>
 
@@ -431,17 +434,39 @@ fn color_to_nscolor_zero_currentcolor(color: Color) -> structs::nscolor {
     }
 </%def>
 
-<%def name="impl_app_units(ident, gecko_ffi_name, need_clone, round_to_pixels=False)">
+<%def name="impl_app_units(ident, gecko_ffi_name, need_clone, inherit_from=None, round_to_pixels=False)">
     #[allow(non_snake_case)]
     pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
-        % if round_to_pixels:
-        let au_per_device_px = Au(self.gecko.mTwipsPerPixel);
-        self.gecko.${gecko_ffi_name} = round_border_to_device_pixels(v, au_per_device_px).0;
+        let value = {
+            % if round_to_pixels:
+            let au_per_device_px = Au(self.gecko.mTwipsPerPixel);
+            round_border_to_device_pixels(v, au_per_device_px).0
+            % else:
+            v.0
+            % endif
+        };
+
+        % if inherit_from:
+        self.gecko.${inherit_from} = value;
+        % endif
+        self.gecko.${gecko_ffi_name} = value;
+    }
+
+    #[allow(non_snake_case)]
+    pub fn copy_${ident}_from(&mut self, other: &Self) {
+        % if inherit_from:
+        self.gecko.${inherit_from} = other.gecko.${inherit_from};
+        // NOTE: This is needed to easily handle the `unset` and `initial`
+        // keywords, which are implemented calling this function.
+        //
+        // In practice, this means that we may have an incorrect value here, but
+        // we'll adjust that properly in the style fixup phase.
+        self.gecko.${gecko_ffi_name} = other.gecko.${inherit_from};
         % else:
-        self.gecko.${gecko_ffi_name} = v.0;
+        self.gecko.${gecko_ffi_name} = other.gecko.${gecko_ffi_name};
         % endif
     }
-<%call expr="impl_simple_copy(ident, gecko_ffi_name)"></%call>
+
 %if need_clone:
     #[allow(non_snake_case)]
     pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
@@ -794,12 +819,48 @@ fn static_assert() {
                   skip_additionals="*">
 
     % for side in SIDES:
-    <% impl_keyword("border_%s_style" % side.ident, "mBorderStyle[%s]" % side.index, border_style_keyword,
+    <% impl_keyword("border_%s_style" % side.ident,
+                    "mBorderStyle[%s]" % side.index,
+                    border_style_keyword,
+                    on_set="update_border_%s" % side.ident,
                     need_clone=True) %>
+
+    // This is needed because the initial mComputedBorder value is set to zero.
+    //
+    // In order to compute stuff, we start from the initial struct, and keep
+    // going down the tree applying properties.
+    //
+    // That means, effectively, that when we set border-style to something
+    // non-hidden, we should use the initial border instead.
+    //
+    // Servo stores the initial border-width in the initial struct, and then
+    // adjusts as needed in the fixup phase. This means that the initial struct
+    // is technically not valid without fixups, and that you lose pretty much
+    // any sharing of the initial struct, which is kind of unfortunate.
+    //
+    // Gecko has two fields for this, one that stores the "specified" border,
+    // and other that stores the actual computed one. That means that when we
+    // set border-style, border-width may change and we need to sync back to the
+    // specified one. This is what this function does.
+    //
+    // Note that this doesn't impose any dependency in the order of computation
+    // of the properties. This is only relevant if border-style is specified,
+    // but border-width isn't. If border-width is specified at some point, the
+    // two mBorder and mComputedBorder fields would be the same already.
+    //
+    // Once we're here, we know that we'll run style fixups, so it's fine to
+    // just copy the specified border here, we'll adjust it if it's incorrect
+    // later.
+    fn update_border_${side.ident}(&mut self) {
+        self.gecko.mComputedBorder.${side.ident} = self.gecko.mBorder.${side.ident};
+    }
 
     <% impl_color("border_%s_color" % side.ident, "(mBorderColor)[%s]" % side.index, need_clone=True) %>
 
-    <% impl_app_units("border_%s_width" % side.ident, "mComputedBorder.%s" % side.ident, need_clone=True,
+    <% impl_app_units("border_%s_width" % side.ident,
+                      "mComputedBorder.%s" % side.ident,
+                      inherit_from="mBorder.%s" % side.ident,
+                      need_clone=True,
                       round_to_pixels=True) %>
 
     pub fn border_${side.ident}_has_nonzero_width(&self) -> bool {
@@ -1130,7 +1191,8 @@ fn static_assert() {
 
     #[allow(non_snake_case)]
     pub fn set_outline_style(&mut self, v: longhands::outline_style::computed_value::T) {
-        // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
+        // FIXME(bholley): Align binary representations and ditch |match| for
+        // cast + static_asserts
         let result = match v {
             % for value in border_style_keyword.values_for('gecko'):
                 Either::Second(border_style::T::${to_rust_ident(value)}) =>
@@ -1140,6 +1202,11 @@ fn static_assert() {
                     structs::${border_style_keyword.gecko_constant('auto')} ${border_style_keyword.maybe_cast("u8")},
         };
         ${set_gecko_property("mOutlineStyle", "result")}
+
+        // NB: This is needed to correctly handling the initial value of
+        // outline-width when outline-style changes, see the
+        // update_border_${side} comment for more details.
+        self.gecko.mActualOutlineWidth = self.gecko.mOutlineWidth;
     }
 
     #[allow(non_snake_case)]
@@ -1161,8 +1228,9 @@ fn static_assert() {
         }
     }
 
-    <% impl_app_units("outline_width", "mActualOutlineWidth", need_clone=True,
-                      round_to_pixels=True) %>
+    <% impl_app_units("outline_width", "mActualOutlineWidth",
+                      inherit_from="mOutlineWidth",
+                      need_clone=True, round_to_pixels=True) %>
 
     % for corner in CORNERS:
     <% impl_corner_style_coord("_moz_outline_radius_%s" % corner.ident.replace("_", ""),
