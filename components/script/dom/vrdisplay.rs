@@ -161,7 +161,7 @@ impl VRDisplayMethods for VRDisplay {
 
     // https://w3c.github.io/webvr/#dom-vrdisplay-displayid
     fn DisplayId(&self) -> u32 {
-        self.display.borrow().display_id as u32
+        self.display.borrow().display_id
     }
 
     // https://w3c.github.io/webvr/#dom-vrdisplay-displayname
@@ -188,7 +188,7 @@ impl VRDisplayMethods for VRDisplay {
         // If not presenting we fetch inmediante VRFrameData
         let (sender, receiver) = ipc::channel().unwrap();
         self.webvr_thread().send(WebVRMsg::GetFrameData(self.global().pipeline_id(),
-                                                        self.get_display_id(),
+                                                        self.DisplayId(),
                                                         self.depth_near.get(),
                                                         self.depth_far.get(),
                                                         sender)).unwrap();
@@ -213,7 +213,7 @@ impl VRDisplayMethods for VRDisplay {
     fn ResetPose(&self) {
         let (sender, receiver) = ipc::channel().unwrap();
         self.webvr_thread().send(WebVRMsg::ResetPose(self.global().pipeline_id(),
-                                                     self.get_display_id(),
+                                                     self.DisplayId(),
                                                      sender)).unwrap();
         if let Ok(data) = receiver.recv().unwrap() {
             // Some VRDisplay data might change after calling ResetPose()
@@ -378,7 +378,7 @@ impl VRDisplayMethods for VRDisplay {
         }
 
         let api_sender = self.layer_ctx.get().unwrap().ipc_renderer();
-        let display_id = self.display.borrow().display_id;
+        let display_id = self.display.borrow().display_id as u64;
         let layer = self.layer.borrow();
         let msg = VRCompositorCommand::SubmitFrame(display_id, layer.left_bounds, layer.right_bounds);
         api_sender.send(CanvasMsg::WebVR(msg)).unwrap();
@@ -388,10 +388,6 @@ impl VRDisplayMethods for VRDisplay {
 impl VRDisplay {
     fn webvr_thread(&self) -> IpcSender<WebVRMsg> {
         self.global().as_window().webvr_thread().expect("Shouldn't arrive here with WebVR disabled")
-    }
-
-    pub fn get_display_id(&self) -> u64 {
-        self.display.borrow().display_id
     }
 
     pub fn update_display(&self, display: &WebVRDisplayData) {
@@ -447,7 +443,7 @@ impl VRDisplay {
         let (sync_sender, sync_receiver) = ipc::channel().unwrap();
         *self.frame_data_receiver.borrow_mut() = Some(sync_receiver);
 
-        let display_id = self.display.borrow().display_id;
+        let display_id = self.display.borrow().display_id as u64;
         let api_sender = self.layer_ctx.get().unwrap().ipc_renderer();
         let js_sender = self.global().script_chan();
         let address = Trusted::new(&*self);
@@ -497,7 +493,7 @@ impl VRDisplay {
         *self.frame_data_receiver.borrow_mut() = None;
 
         let api_sender = self.layer_ctx.get().unwrap().ipc_renderer();
-        let display_id = self.display.borrow().display_id;
+        let display_id = self.display.borrow().display_id as u64;
         let msg = VRCompositorCommand::Release(display_id);
         api_sender.send(CanvasMsg::WebVR(msg)).unwrap();
     }
