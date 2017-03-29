@@ -355,6 +355,9 @@ impl CoreResourceManager {
                          connect: WebSocketCommunicate,
                          connect_data: WebSocketConnectData,
                          resource_grp: &ResourceGroup) {
-        websocket_loader::init(connect, connect_data, resource_grp.cookie_jar.clone());
+        websocket_loader::init(connect,
+                               connect_data,
+                               resource_grp.cookie_jar.clone(),
+                               resource_grp.ssl_context.clone());
     }
 }

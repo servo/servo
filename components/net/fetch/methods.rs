@@ -527,7 +527,7 @@ fn is_null_body_status(status: &Option<StatusCode>) -> bool {
 }
 
 /// https://fetch.spec.whatwg.org/#should-response-to-request-be-blocked-due-to-nosniff?
-fn should_be_blocked_due_to_nosniff(request_type: Type, response_headers: &Headers) -> bool {
+pub fn should_be_blocked_due_to_nosniff(request_type: Type, response_headers: &Headers) -> bool {
     /// https://fetch.spec.whatwg.org/#x-content-type-options-header
     /// This is needed to parse `X-Content-Type-Options` according to spec,
     /// which requires that we inspect only the first value.
