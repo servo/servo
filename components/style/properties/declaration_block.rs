@@ -697,7 +697,9 @@ pub fn parse_property_declaration_list(context: &ParserContext,
     let mut iter = DeclarationListParser::new(input, parser);
     while let Some(declaration) = iter.next() {
         match declaration {
-            Ok((parsed, importance)) => parsed.expand(|d| block.push(d, importance)),
+            Ok((parsed, importance)) => {
+                parsed.expand_into(&mut block, importance)
+            },
             Err(range) => {
                 let pos = range.start;
                 let message = format!("Unsupported property declaration: '{}'",
