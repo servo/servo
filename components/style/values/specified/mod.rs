@@ -13,6 +13,7 @@ use parser::{ParserContext, Parse};
 use self::grid::{TrackBreadth as GenericTrackBreadth, TrackSize as GenericTrackSize};
 use self::url::SpecifiedUrl;
 use std::ascii::AsciiExt;
+use std::f32;
 use std::f32::consts::PI;
 use std::fmt;
 use std::ops::Mul;
@@ -232,8 +233,6 @@ pub fn parse_integer(input: &mut Parser) -> Result<Integer, ()> {
 
 #[allow(missing_docs)]
 pub fn parse_number(input: &mut Parser) -> Result<Number, ()> {
-    use std::f32;
-
     match try!(input.next()) {
         Token::Number(ref value) => {
             Ok(Number {
@@ -363,7 +362,7 @@ impl Angle {
     #[allow(missing_docs)]
     pub fn from_radians(r: f32) -> Self {
         Angle {
-            radians: r,
+            radians: r.min(f32::MAX).max(f32::MIN),
             was_calc: false,
         }
     }
@@ -371,7 +370,7 @@ impl Angle {
     /// Returns an `Angle` parsed from a `calc()` expression.
     pub fn from_calc(radians: CSSFloat) -> Self {
         Angle {
-            radians: radians,
+            radians: radians.min(f32::MAX).max(f32::MIN),
             was_calc: true,
         }
     }
@@ -406,10 +405,7 @@ impl Angle {
              _ => return Err(())
         };
 
-        Ok(Angle {
-            radians: radians,
-            was_calc: false,
-        })
+        Ok(Angle::from_radians(radians))
     }
 }
 
