@@ -43,6 +43,7 @@ use style::gecko_bindings::bindings::{nsACString, nsAString};
 use style::gecko_bindings::bindings::Gecko_AnimationAppendKeyframe;
 use style::gecko_bindings::bindings::RawGeckoComputedKeyframeValuesListBorrowedMut;
 use style::gecko_bindings::bindings::RawGeckoElementBorrowed;
+use style::gecko_bindings::bindings::RawGeckoFontFaceRuleListBorrowedMut;
 use style::gecko_bindings::bindings::RawServoAnimationValueBorrowed;
 use style::gecko_bindings::bindings::RawServoAnimationValueMapBorrowed;
 use style::gecko_bindings::bindings::RawServoAnimationValueStrong;
@@ -1743,3 +1744,18 @@ pub extern "C" fn Servo_StyleSet_FillKeyframesForName(raw_data: RawServoStyleSet
     false
 }
 
+#[no_mangle]
+pub extern "C" fn Servo_StyleSet_GetFontFaceRules(raw_data: RawServoStyleSetBorrowed,
+                                                  rules: RawGeckoFontFaceRuleListBorrowedMut) {
+    let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
+    debug_assert!(rules.len() == 0);
+
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
+
+    unsafe { rules.set_len(data.font_faces.len() as u32) };
+    for (src, dest) in data.font_faces.iter().zip(rules.iter_mut()) {
+        dest.mRule = src.0.read_with(&guard).clone().forget();
+        dest.mSheetType = src.1.into();
+    }
+}

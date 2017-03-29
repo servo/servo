@@ -588,6 +588,7 @@ mod bindings {
             "RawGeckoElement",
             "RawGeckoKeyframeList",
             "RawGeckoComputedKeyframeValuesList",
+            "RawGeckoFontFaceRuleList",
             "RawGeckoNode",
             "RawGeckoAnimationValueList",
             "RawServoAnimationValue",
@@ -706,6 +707,7 @@ mod bindings {
             "RawGeckoAnimationValueList",
             "RawGeckoKeyframeList",
             "RawGeckoComputedKeyframeValuesList",
+            "RawGeckoFontFaceRuleList",
         ];
         for &ty in structs_types.iter() {
             builder = builder.hide_type(ty)
