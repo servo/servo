@@ -374,7 +374,7 @@ impl<'a> QualifiedRuleParser for KeyframeListParser<'a> {
         let mut block = PropertyDeclarationBlock::new();
         while let Some(declaration) = iter.next() {
             match declaration {
-                Ok(parsed) => parsed.expand(|d| block.push(d, Importance::Normal)),
+                Ok(parsed) => parsed.expand_push_into(&mut block, Importance::Normal),
                 Err(range) => {
                     let pos = range.start;
                     let message = format!("Unsupported keyframe property declaration: '{}'",

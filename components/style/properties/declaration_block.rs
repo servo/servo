@@ -88,7 +88,7 @@ impl PropertyDeclarationBlock {
         &self.declarations
     }
 
-    /// Returns wheather this block contains any declaration with `!important`.
+    /// Returns whether this block contains any declaration with `!important`.
     ///
     /// This is based on the `important_count` counter,
     /// which should be maintained whenever `declarations` is changed.
@@ -97,7 +97,7 @@ impl PropertyDeclarationBlock {
         self.important_count > 0
     }
 
-    /// Returns wheather this block contains any declaration without `!important`.
+    /// Returns whether this block contains any declaration without `!important`.
     ///
     /// This is based on the `important_count` counter,
     /// which should be maintained whenever `declarations` is changed.
@@ -202,16 +202,9 @@ impl PropertyDeclarationBlock {
         self.push_common(declaration, importance, false);
     }
 
-    /// Adds or overrides the declaration for a given property in this block,
-    /// Returns whether the declaration block is actually changed.
-    pub fn set_parsed_declaration(&mut self,
-                                  declaration: PropertyDeclaration,
-                                  importance: Importance) -> bool {
-        self.push_common(declaration, importance, true)
-    }
-
-    fn push_common(&mut self, declaration: PropertyDeclaration, importance: Importance,
-                   overwrite_more_important: bool) -> bool {
+    /// Implementation detail of push and ParsedDeclaration::expand*
+    pub fn push_common(&mut self, declaration: PropertyDeclaration, importance: Importance,
+                       overwrite_more_important: bool) -> bool {
         let definitely_new = if let PropertyDeclarationId::Longhand(id) = declaration.id() {
             !self.longhands.contains(id)
         } else {
@@ -697,7 +690,7 @@ pub fn parse_property_declaration_list(context: &ParserContext,
     let mut iter = DeclarationListParser::new(input, parser);
     while let Some(declaration) = iter.next() {
         match declaration {
-            Ok((parsed, importance)) => parsed.expand(|d| block.push(d, importance)),
+            Ok((parsed, importance)) => parsed.expand_push_into(&mut block, importance),
             Err(range) => {
                 let pos = range.start;
                 let message = format!("Unsupported property declaration: '{}'",
