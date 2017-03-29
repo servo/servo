@@ -272,10 +272,7 @@ impl CSSStyleDeclaration {
 
             // Step 8
             // Step 9
-            *changed = false;
-            parsed.expand(|declaration| {
-                *changed |= pdb.set_parsed_declaration(declaration, importance);
-            });
+            *changed = parsed.expand_set_into(pdb, importance);
 
             Ok(())
         })
