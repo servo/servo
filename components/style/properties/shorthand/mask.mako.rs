@@ -226,7 +226,11 @@
 
             for i in 0..len {
                 self.mask_position_x.0[i].to_css(dest)?;
+                dest.write_str(" ")?;
                 self.mask_position_y.0[i].to_css(dest)?;
+                if i < len - 1 {
+                    dest.write_str(", ")?;
+                }
             }
 
             Ok(())
