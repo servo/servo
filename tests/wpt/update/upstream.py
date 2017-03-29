@@ -39,15 +39,19 @@ def rewrite_patch(patch, strip_dir):
 
     assert new_diff != patch
 
-    return Patch(patch.author, patch.email, rewrite_message(patch), new_diff)
+    return Patch(patch.author, patch.email, rewrite_message(patch), None, new_diff)
 
 def rewrite_message(patch):
-    if patch.message.bug is not None:
+    if patch.merge_message and patch.merge_message.bug:
+        bug = patch.merge_message.bug
+    else:
+        bug = patch.message.bug
+    if bug is not None:
         return "\n".join([patch.message.summary,
                           patch.message.body,
                           "",
-                          "Upstreamed from https://bugzilla.mozilla.org/show_bug.cgi?id=%s [ci skip]" %
-                          patch.message.bug])
+                          "Upstreamed from https://github.com/servo/servo/pull/%s [ci skip]" %
+                          bug])
 
     return "\n".join([patch.message.full_summary, "%s\n[ci skip]\n" % patch.message.body])
 
@@ -141,7 +145,7 @@ class LoadCommits(Step):
         state.source_commits = state.local_tree.log(state.last_sync_commit,
                                                     state.tests_path)
 
-        update_regexp = re.compile("Bug \d+ - Update web-platform-tests to revision [0-9a-f]{40}")
+        update_regexp = re.compile("Update web-platform-tests to revision [0-9a-f]{40}")
 
         for i, commit in enumerate(state.source_commits[:]):
             if update_regexp.match(commit.message.text):
@@ -153,7 +157,7 @@ class LoadCommits(Step):
                 #TODO: Add support for collapsing backouts
                 raise NotImplementedError("Need to get the Git->Hg commits for backouts and remove the backed out patch")
 
-            if not commit.message.bug:
+            if not commit.message.bug and not (commit.merge and commit.merge.message.bug):
                 self.logger.error("Commit %i (%s) doesn't have an associated bug number." %
                              (i + 1, commit.sha1))
                 return exit_unclean
@@ -176,6 +180,8 @@ class SelectCommits(Step):
             remove_idx = set()
             invalid = False
             for item in remove.split(" "):
+                if not item:
+                    continue
                 try:
                     item = int(item)
                 except:
