@@ -57,7 +57,7 @@ class GitTree(wptupdate.tree.GitTree):
         :base_param commit: Commit object for the base commit from which to log
         :param path: Path that the commits must touch
         """
-        args = ["--pretty=format:%H", "--reverse", "-z"]
+        args = ["--pretty=format:%H", "--reverse", "-z", "--no-merges"]
         if base_commit is not None:
             args.append("%s.." % base_commit.sha1)
         if path is not None:
@@ -115,9 +115,10 @@ class GitTree(wptupdate.tree.GitTree):
         return get_unique_name(branches, prefix)
 
 class Patch(object):
-    def __init__(self, author, email, message, diff):
+    def __init__(self, author, email, message, merge_message, diff):
         self.author = author
         self.email = email
+        self.merge_message = merge_message
         if isinstance(message, CommitMessage):
             self.message = message
         else:
@@ -147,6 +148,7 @@ class GeckoCommitMessage(CommitMessage):
 
     _bug_re = re.compile("^Bug (\d+)[^\w]*(?:Part \d+[^\w]*)?(.*?)\s*(?:r=(\w*))?$",
                          re.IGNORECASE)
+    _merge_re = re.compile("^Auto merge of #(\d+) - [^:]+:[^,]+, r=(.+)$", re.IGNORECASE)
 
     _backout_re = re.compile("^(?:Back(?:ing|ed)\s+out)|Backout|(?:Revert|(?:ed|ing))",
                              re.IGNORECASE)
@@ -160,15 +162,27 @@ class GeckoCommitMessage(CommitMessage):
         else:
             self.backouts = []
 
-        m = self._bug_re.match(self.full_summary)
+        m = self._merge_re.match(self.full_summary)
         if m is not None:
-            self.bug, self.summary, self.reviewer = m.groups()
+            self.bug, self.reviewer = m.groups()
+            self.summary = self.full_summary
         else:
-            self.bug, self.summary, self.reviewer = None, self.full_summary, None
+            m = self._bug_re.match(self.full_summary)
+            if m is not None:
+                self.bug, self.summary, self.reviewer = m.groups()
+            else:
+                self.bug, self.summary, self.reviewer = None, self.full_summary, None
 
 
 class GeckoCommit(Commit):
     msg_cls = GeckoCommitMessage
+
+    def __init__(self, tree, sha1, is_merge=False):
+        Commit.__init__(self, tree, sha1)
+        if not is_merge:
+            args = ["-c", sha1]
+            merge_rev = self.git("when-merged", *args).strip()
+            self.merge = GeckoCommit(tree, merge_rev, True)
 
     def export_patch(self, path=None):
         """Convert a commit in the tree to a Patch with the bug number and
@@ -180,5 +194,5 @@ class GeckoCommit(Commit):
 
         diff = self.git("show", *args)
 
-        return Patch(self.author, self.email, self.message, diff)
+        return Patch(self.author, self.email, self.message, self.merge.message, diff)
 
