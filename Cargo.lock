@@ -4,7 +4,7 @@ version = "0.0.1"
 dependencies = [
  "ipc-channel 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
- "rust-webvr 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rust-webvr 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.9.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 0.9.11 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -2193,9 +2193,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "rust-webvr"
-version = "0.2.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
+ "gl_generator 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "libloading 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.9.11 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3495,7 +3496,7 @@ dependencies = [
 "checksum ref_slice 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "825740057197b7d43025e7faf6477eaabc03434e153233da02d1f44602f71527"
 "checksum regex 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "4278c17d0f6d62dfef0ab00028feb45bd7d2102843f80763474eeb1be8a10c01"
 "checksum regex-syntax 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "2f9191b1f57603095f105d317e375d19b1c9c5c3185ea9633a99a6dcbed04457"
-"checksum rust-webvr 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "4ae0560bf176cd49f08d3df2784f9bfe74df6f6346b71b98ca3358160316e271"
+"checksum rust-webvr 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)" = "454fc4c3a786029ab82c5528c14f01bf965f60f61b3f9b1ed51b4646223eab59"
 "checksum rustc-demangle 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)" = "3058a43ada2c2d0b92b3ae38007a2d0fa5e9db971be260e0171408a4ff471c95"
 "checksum rustc-serialize 0.3.23 (registry+https://github.com/rust-lang/crates.io-index)" = "684ce48436d6465300c9ea783b6b14c4361d6b8dcbb1375b486a69cc19e2dfb0"
 "checksum rustc_version 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)" = "c5f5376ea5e30ce23c03eb77cbe4962b988deead10910c372b226388b594c084"

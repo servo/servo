@@ -71,7 +71,7 @@ use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender};
 use style_traits::{CSSPixel, UnsafeNode};
 use webdriver_msg::{LoadStatus, WebDriverScriptCommand};
-use webvr_traits::{WebVRDisplayEvent, WebVRMsg};
+use webvr_traits::{WebVREvent, WebVRMsg};
 
 pub use script_msg::{LayoutMsg, ScriptMsg, EventResult, LogEntry};
 pub use script_msg::{ServiceWorkerMsg, ScopeThings, SWManagerMsg, SWManagerSenders, DOMMessage};
@@ -280,8 +280,8 @@ pub enum ConstellationControlMsg {
     ReportCSSError(PipelineId, String, usize, usize, String),
     /// Reload the given page.
     Reload(PipelineId),
-    /// Notifies the script thread of a WebVR device event
-    WebVREvent(PipelineId, WebVREventMsg)
+    /// Notifies the script thread of WebVR events.
+    WebVREvents(PipelineId, Vec<WebVREvent>)
 }
 
 impl fmt::Debug for ConstellationControlMsg {
@@ -314,7 +314,7 @@ impl fmt::Debug for ConstellationControlMsg {
             FramedContentChanged(..) => "FramedContentChanged",
             ReportCSSError(..) => "ReportCSSError",
             Reload(..) => "Reload",
-            WebVREvent(..) => "WebVREvent",
+            WebVREvents(..) => "WebVREvents",
         };
         write!(formatter, "ConstellationMsg::{}", variant)
     }
@@ -751,16 +751,8 @@ pub enum ConstellationMsg {
     LogEntry(Option<FrameId>, Option<String>, LogEntry),
     /// Set the WebVR thread channel.
     SetWebVRThread(IpcSender<WebVRMsg>),
-    /// Dispatch a WebVR event to the subscribed script threads.
-    WebVREvent(Vec<PipelineId>, WebVREventMsg),
-}
-
-/// Messages to the constellation originating from the WebVR thread.
-/// Used to dispatch VR Headset state events: connected, unconnected, and more.
-#[derive(Deserialize, Serialize, Clone)]
-pub enum WebVREventMsg {
-    /// Inform the constellation of a VR display event.
-    DisplayEvent(WebVRDisplayEvent)
+    /// Dispatch WebVR events to the subscribed script threads.
+    WebVREvents(Vec<PipelineId>, Vec<WebVREvent>),
 }
 
 /// Resources required by workerglobalscopes
