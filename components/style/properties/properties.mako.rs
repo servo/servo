@@ -886,6 +886,14 @@ pub enum ParsedDeclaration {
 }
 
 impl ParsedDeclaration {
+    /// Expand this declaration into a sequence of property declarations, and
+    /// add them to `block`, with a given importance.
+    pub fn expand_into(self,
+                       block: &mut PropertyDeclarationBlock,
+                       importance: Importance) {
+        self.expand(|d| block.push(d, importance));
+    }
+
     /// Transform this ParsedDeclaration into a sequence of PropertyDeclaration
     /// by expanding shorthand declarations into their corresponding longhands
     pub fn expand<F>(self, mut push: F) where F: FnMut(PropertyDeclaration) {

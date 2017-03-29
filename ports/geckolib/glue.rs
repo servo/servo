@@ -800,7 +800,7 @@ pub extern "C" fn Servo_ParseProperty(property: *const nsACString, value: *const
         Ok(parsed) => {
             let global_style_data = &*GLOBAL_STYLE_DATA;
             let mut block = PropertyDeclarationBlock::new();
-            parsed.expand(|d| block.push(d, Importance::Normal));
+            parsed.expand_into(&mut block, Importance::Normal));
             Arc::new(global_style_data.shared_lock.wrap(block)).into_strong()
         }
         Err(_) => RawServoDeclarationBlockStrong::null()
