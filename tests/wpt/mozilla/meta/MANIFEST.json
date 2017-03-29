@@ -11123,6 +11123,12 @@
      {}
     ]
    ],
+   "css/perspective.html": [
+    [
+     "/_mozilla/css/perspective.html",
+     {}
+    ]
+   ],
    "css/stylesheet_media_queries.html": [
     [
      "/_mozilla/css/stylesheet_media_queries.html",
@@ -22781,6 +22787,10 @@
   "css/percentage_width_inline_block_ref.html": [
    "001acfd664f89e45ab321bf549803ca24d44e098",
    "support"
+  ],
+  "css/perspective.html": [
+   "6d455ef4b9c815d89917f496999268d7410cfa62",
+   "testharness"
   ],
   "css/perspective_zero.html": [
    "bcb877f51808e896d8024877f945ce289dbc6b36",
