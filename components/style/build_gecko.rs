@@ -258,6 +258,7 @@ mod bindings {
                 vars: true,
                 ..CodegenConfig::nothing()
             })
+            .include(add_include("nsCSSPseudoClasses.h"))   // servo/rust-bindgen#599
             .header(add_include("nsStyleStruct.h"))
             .include(add_include("mozilla/ServoPropPrefList.h"))
             .header(add_include("mozilla/StyleAnimationValue.h"))
