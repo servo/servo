@@ -13,6 +13,7 @@ pub mod data;
 pub mod global_style_data;
 pub mod media_queries;
 pub mod restyle_damage;
+pub mod rules;
 pub mod selector_parser;
 pub mod snapshot;
 pub mod snapshot_helpers;
