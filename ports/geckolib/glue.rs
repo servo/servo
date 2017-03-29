@@ -800,7 +800,7 @@ pub extern "C" fn Servo_ParseProperty(property: *const nsACString, value: *const
         Ok(parsed) => {
             let global_style_data = &*GLOBAL_STYLE_DATA;
             let mut block = PropertyDeclarationBlock::new();
-            parsed.expand(|d| block.push(d, Importance::Normal));
+            parsed.expand_push_into(&mut block, Importance::Normal);
             Arc::new(global_style_data.shared_lock.wrap(block)).into_strong()
         }
         Err(_) => RawServoDeclarationBlockStrong::null()
@@ -958,13 +958,9 @@ fn set_property(declarations: RawServoDeclarationBlockBorrowed, property_id: Pro
     if let Ok(parsed) = parse_one_declaration(property_id, value, &base_url,
                                               &StdoutErrorReporter, extra_data) {
         let importance = if is_important { Importance::Important } else { Importance::Normal };
-        let mut changed = false;
         write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
-            parsed.expand(|decl| {
-                changed |= decls.set_parsed_declaration(decl, importance);
-            });
-        });
-        changed
+            parsed.expand_set_into(decls, importance)
+        })
     } else {
         false
     }
