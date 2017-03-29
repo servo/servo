@@ -151,26 +151,19 @@
                 position_x.to_css(dest)?;
                 dest.write_str(" ")?;
                 position_y.to_css(dest)?;
-                dest.write_str(" / ")?;
-                size.to_css(dest)?;
+                if *size != mask_size::single_value::get_initial_specified_value() {
+                    dest.write_str(" / ")?;
+                    size.to_css(dest)?;
+                }
                 dest.write_str(" ")?;
                 repeat.to_css(dest)?;
-                dest.write_str(" ")?;
 
-                match (origin, clip) {
-                    (&Origin::padding_box, &Clip::padding_box) => {
-                        try!(origin.to_css(dest));
-                    },
-                    (&Origin::border_box, &Clip::border_box) => {
-                        try!(origin.to_css(dest));
-                    },
-                    (&Origin::content_box, &Clip::content_box) => {
-                        try!(origin.to_css(dest));
-                    },
-                    _ => {
-                        try!(origin.to_css(dest));
-                        try!(write!(dest, " "));
-                        try!(clip.to_css(dest));
+                if *origin != Origin::border_box || *clip != Clip::border_box {
+                    dest.write_str(" ")?;
+                    origin.to_css(dest)?;
+                    if *clip != From::from(*origin) {
+                        dest.write_str(" ")?;
+                        clip.to_css(dest)?;
                     }
                 }
 

@@ -158,31 +158,25 @@
                     try!(write!(dest, " "));
                 }
 
-                % for name in "image repeat attachment position_x position_y".split():
-                    try!(${name}.to_css(dest));
+                try!(image.to_css(dest));
+                % for name in "repeat attachment position_x position_y".split():
                     try!(write!(dest, " "));
+                    try!(${name}.to_css(dest));
                 % endfor
 
-                try!(write!(dest, "/ "));
-                try!(size.to_css(dest));
-                try!(write!(dest, " "));
+                if *size != background_size::single_value::get_initial_specified_value() {
+                    try!(write!(dest, " / "));
+                    try!(size.to_css(dest));
+                }
 
-                match (origin, clip) {
-                    (&Origin::padding_box, &Clip::padding_box) => {
-                        try!(origin.to_css(dest));
-                    },
-                    (&Origin::border_box, &Clip::border_box) => {
-                        try!(origin.to_css(dest));
-                    },
-                    (&Origin::content_box, &Clip::content_box) => {
-                        try!(origin.to_css(dest));
-                    },
-                    _ => {
-                        try!(origin.to_css(dest));
+                if *origin != Origin::padding_box || *clip != Clip::border_box {
+                    try!(write!(dest, " "));
+                    try!(origin.to_css(dest));
+                    if *clip != From::from(*origin) {
                         try!(write!(dest, " "));
                         try!(clip.to_css(dest));
                     }
-                };
+                }
             }
 
             Ok(())
