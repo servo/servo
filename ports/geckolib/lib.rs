@@ -7,12 +7,9 @@
 extern crate atomic_refcell;
 extern crate cssparser;
 extern crate env_logger;
-#[macro_use] extern crate lazy_static;
 extern crate libc;
 #[macro_use] extern crate log;
-extern crate num_cpus;
 extern crate parking_lot;
-extern crate rayon;
 extern crate selectors;
 extern crate servo_url;
 #[macro_use] extern crate style;

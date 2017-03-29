@@ -6,7 +6,8 @@
 
 use app_units::Au;
 use gecko_bindings::bindings;
-use gecko_bindings::structs::{nsCSSValue, nsCSSUnit, nsCSSValue_Array, nscolor};
+use gecko_bindings::structs::{nsCSSValue, nsCSSUnit};
+use gecko_bindings::structs::{nsCSSValue_Array, nscolor};
 use std::mem;
 use std::ops::{Index, IndexMut};
 use std::slice;
@@ -165,4 +166,3 @@ impl IndexMut<usize> for nsCSSValue_Array {
         &mut self.as_mut_slice()[i]
     }
 }
-

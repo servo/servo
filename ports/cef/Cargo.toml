@@ -21,7 +21,7 @@ debugmozjs = ["libservo/debugmozjs"]
 compositing = {path = "../../components/compositing"}
 devtools = {path = "../../components/devtools"}
 euclid = "0.11"
-gleam = "0.2.8"
+gleam = "0.4"
 glutin_app = {path = "../glutin"}
 libc = "0.2"
 libservo = {path = "../../components/servo"}

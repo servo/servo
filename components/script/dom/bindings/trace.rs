@@ -62,7 +62,7 @@ use msg::constellation_msg::{FrameId, FrameType, PipelineId};
 use net_traits::{Metadata, NetworkError, ReferrerPolicy, ResourceThreads};
 use net_traits::filemanager_thread::RelativePos;
 use net_traits::image::base::{Image, ImageMetadata};
-use net_traits::image_cache_thread::{ImageCacheThread, PendingImageId};
+use net_traits::image_cache::{ImageCache, PendingImageId};
 use net_traits::request::{Request, RequestInit};
 use net_traits::response::{Response, ResponseBody};
 use net_traits::response::HttpsState;
@@ -99,6 +99,7 @@ use style::keyframes::Keyframe;
 use style::media_queries::MediaList;
 use style::properties::PropertyDeclarationBlock;
 use style::selector_parser::{PseudoElement, Snapshot};
+use style::shared_lock::{SharedRwLock as StyleSharedRwLock, Locked as StyleLocked};
 use style::stylesheets::{CssRules, KeyframesRule, MediaRule, NamespaceRule, StyleRule, ImportRule};
 use style::stylesheets::SupportsRule;
 use style::values::specified::Length;
@@ -320,7 +321,7 @@ unsafe_no_jsmanaged_fields!(bool, f32, f64, String, AtomicBool, AtomicUsize, Uui
 unsafe_no_jsmanaged_fields!(usize, u8, u16, u32, u64);
 unsafe_no_jsmanaged_fields!(isize, i8, i16, i32, i64);
 unsafe_no_jsmanaged_fields!(ServoUrl, ImmutableOrigin, MutableOrigin);
-unsafe_no_jsmanaged_fields!(Image, ImageMetadata, ImageCacheThread, PendingImageId);
+unsafe_no_jsmanaged_fields!(Image, ImageMetadata, ImageCache, PendingImageId);
 unsafe_no_jsmanaged_fields!(Metadata);
 unsafe_no_jsmanaged_fields!(NetworkError);
 unsafe_no_jsmanaged_fields!(Atom, Prefix, LocalName, Namespace, QualName);
@@ -360,6 +361,7 @@ unsafe_no_jsmanaged_fields!(HttpsState);
 unsafe_no_jsmanaged_fields!(Request);
 unsafe_no_jsmanaged_fields!(RequestInit);
 unsafe_no_jsmanaged_fields!(SharedRt);
+unsafe_no_jsmanaged_fields!(StyleSharedRwLock);
 unsafe_no_jsmanaged_fields!(TouchpadPressurePhase);
 unsafe_no_jsmanaged_fields!(USVString);
 unsafe_no_jsmanaged_fields!(ReferrerPolicy);
@@ -500,67 +502,67 @@ unsafe impl JSTraceable for Mutex<Option<SharedRt>> {
     }
 }
 
-unsafe impl JSTraceable for RwLock<FontFaceRule> {
+unsafe impl JSTraceable for StyleLocked<FontFaceRule> {
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing.
     }
 }
 
-unsafe impl JSTraceable for RwLock<CssRules> {
+unsafe impl JSTraceable for StyleLocked<CssRules> {
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing.
     }
 }
 
-unsafe impl JSTraceable for RwLock<Keyframe> {
+unsafe impl JSTraceable for StyleLocked<Keyframe> {
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing.
     }
 }
 
-unsafe impl JSTraceable for RwLock<KeyframesRule> {
+unsafe impl JSTraceable for StyleLocked<KeyframesRule> {
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing.
     }
 }
 
-unsafe impl JSTraceable for RwLock<ImportRule> {
+unsafe impl JSTraceable for StyleLocked<ImportRule> {
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing.
     }
 }
 
-unsafe impl JSTraceable for RwLock<SupportsRule> {
+unsafe impl JSTraceable for StyleLocked<SupportsRule> {
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing.
     }
 }
 
-unsafe impl JSTraceable for RwLock<MediaRule> {
+unsafe impl JSTraceable for StyleLocked<MediaRule> {
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing.
     }
 }
 
-unsafe impl JSTraceable for RwLock<NamespaceRule> {
+unsafe impl JSTraceable for StyleLocked<NamespaceRule> {
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing.
     }
 }
 
-unsafe impl JSTraceable for RwLock<StyleRule> {
+unsafe impl JSTraceable for StyleLocked<StyleRule> {
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing.
     }
 }
 
-unsafe impl JSTraceable for RwLock<ViewportRule> {
+unsafe impl JSTraceable for StyleLocked<ViewportRule> {
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing.
     }
 }
 
-unsafe impl JSTraceable for RwLock<PropertyDeclarationBlock> {
+unsafe impl JSTraceable for StyleLocked<PropertyDeclarationBlock> {
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing.
     }
@@ -572,7 +574,7 @@ unsafe impl JSTraceable for RwLock<SharedRt> {
     }
 }
 
-unsafe impl JSTraceable for RwLock<MediaList> {
+unsafe impl JSTraceable for StyleLocked<MediaList> {
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing.
     }

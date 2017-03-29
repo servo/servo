@@ -22,6 +22,7 @@ extern crate lazy_static;
 extern crate log;
 extern crate msg;
 extern crate num_traits;
+extern crate openssl;
 extern crate parse_hosts;
 extern crate serde;
 #[macro_use]
@@ -31,28 +32,29 @@ extern crate servo_url;
 extern crate url;
 extern crate uuid;
 extern crate webrender_traits;
-extern crate websocket;
 
 use cookie_rs::Cookie;
 use filemanager_thread::FileManagerThreadMsg;
 use heapsize::HeapSizeOf;
+use hyper::Error as HyperError;
 use hyper::header::{ContentType, Headers, ReferrerPolicy as ReferrerPolicyHeader};
 use hyper::http::RawStatus;
 use hyper::mime::{Attr, Mime};
 use hyper_serde::Serde;
-use ipc_channel::Error;
+use ipc_channel::Error as IpcError;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
+use openssl::ssl::error::{OpensslError, SslError};
 use request::{Request, RequestInit};
 use response::{HttpsState, Response};
 use servo_url::ServoUrl;
+use std::error::Error;
 use storage_thread::StorageThreadMsg;
-use websocket::header;
 
 pub mod blob_url_store;
 pub mod filemanager_thread;
 pub mod hosts;
-pub mod image_cache_thread;
+pub mod image_cache;
 pub mod net_error_list;
 pub mod pub_domains;
 pub mod request;
@@ -267,7 +269,7 @@ impl<T: FetchResponseListener> Action<T> for FetchResponseMsg {
 /// Handle to a resource thread
 pub type CoreResourceThread = IpcSender<CoreResourceMsg>;
 
-pub type IpcSendResult = Result<(), Error>;
+pub type IpcSendResult = Result<(), IpcError>;
 
 /// Abstraction of the ability to send a particular type of message,
 /// used by net_traits::ResourceThreads to ease the use its IpcSender sub-fields
@@ -348,10 +350,9 @@ pub enum WebSocketDomAction {
 
 #[derive(Deserialize, Serialize)]
 pub enum WebSocketNetworkEvent {
-    ConnectionEstablished(#[serde(deserialize_with = "::hyper_serde::deserialize",
-                                  serialize_with = "::hyper_serde::serialize")]
-                          header::Headers,
-                          Vec<String>),
+    ConnectionEstablished {
+        protocol_in_use: Option<String>,
+    },
     MessageReceived(MessageData),
     Close(Option<u16>, String),
     Fail,
@@ -515,11 +516,6 @@ pub fn load_whole_resource(request: RequestInit,
     }
 }
 
-/// Defensively unwraps the protocol string from the response object's protocol
-pub fn unwrap_websocket_protocol(wsp: Option<&header::WebSocketProtocol>) -> Option<&str> {
-    wsp.and_then(|protocol_list| protocol_list.get(0).map(|protocol| protocol.as_ref()))
-}
-
 /// An unique identifier to keep track of each load message in the resource handler
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
 pub struct ResourceId(pub u32);
@@ -532,6 +528,69 @@ pub enum NetworkError {
     LoadCancelled,
     /// SSL validation error that has to be handled in the HTML parser
     SslValidation(ServoUrl, String),
+}
+
+impl NetworkError {
+    pub fn from_hyper_error(url: &ServoUrl, error: HyperError) -> Self {
+        if let HyperError::Ssl(ref ssl_error) = error {
+            if let Some(ssl_error) = ssl_error.downcast_ref::<SslError>() {
+                return NetworkError::from_ssl_error(url, ssl_error);
+            }
+        }
+        NetworkError::Internal(error.description().to_owned())
+    }
+
+    pub fn from_ssl_error(url: &ServoUrl, error: &SslError) -> Self {
+        if let SslError::OpenSslErrors(ref errors) = *error {
+            if errors.iter().any(is_cert_verify_error) {
+                let mut error_report = vec![format!("ssl error ({}):", openssl::version::version())];
+                let mut suggestion = None;
+                for err in errors {
+                    if is_unknown_message_digest_err(err) {
+                        suggestion = Some("<b>Servo recommends upgrading to a newer OpenSSL version.</b>");
+                    }
+                    error_report.push(format_ssl_error(err));
+                }
+
+                if let Some(suggestion) = suggestion {
+                    error_report.push(suggestion.to_owned());
+                }
+
+                let error_report = error_report.join("<br>\n");
+                return NetworkError::SslValidation(url.clone(), error_report);
+            }
+        }
+        NetworkError::Internal(error.description().to_owned())
+    }
+}
+
+fn format_ssl_error(error: &OpensslError) -> String {
+    match error {
+        &OpensslError::UnknownError { ref library, ref function, ref reason } => {
+            format!("{}: {} - {}", library, function, reason)
+        }
+    }
+}
+
+// FIXME: This incredibly hacky. Make it more robust, and at least test it.
+fn is_cert_verify_error(error: &OpensslError) -> bool {
+    match error {
+        &OpensslError::UnknownError { ref library, ref function, ref reason } => {
+            library == "SSL routines" &&
+            function.to_uppercase() == "SSL3_GET_SERVER_CERTIFICATE" &&
+            reason == "certificate verify failed"
+        }
+    }
+}
+
+fn is_unknown_message_digest_err(error: &OpensslError) -> bool {
+    match error {
+        &OpensslError::UnknownError { ref library, ref function, ref reason } => {
+            library == "asn1 encoding routines" &&
+            function == "ASN1_item_verify" &&
+            reason == "unknown message digest algorithm"
+        }
+    }
 }
 
 /// Normalize `slice`, as defined by

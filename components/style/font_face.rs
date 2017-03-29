@@ -14,6 +14,7 @@ use computed_values::font_family::FamilyName;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
 #[cfg(feature = "gecko")] use cssparser::UnicodeRange;
 use parser::{ParserContext, log_css_error, Parse};
+use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt;
 use std::iter;
 use style_traits::{ToCss, OneOrMoreCommaSeparated};
@@ -230,11 +231,10 @@ macro_rules! font_face_descriptors {
             }
         }
 
-        impl ToCss for FontFaceRule {
+        impl ToCssWithGuard for FontFaceRule {
             // Serialization of FontFaceRule is not specced.
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-                where W: fmt::Write,
-            {
+            fn to_css<W>(&self, _guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
+            where W: fmt::Write {
                 dest.write_str("@font-face {\n")?;
                 $(
                     dest.write_str(concat!("  ", $m_name, ": "))?;

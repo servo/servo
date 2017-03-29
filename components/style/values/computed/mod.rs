@@ -11,17 +11,17 @@ use media_queries::Device;
 use properties::ComputedValues;
 use std::fmt;
 use style_traits::ToCss;
-use super::{CSSFloat, RGBA, specified};
+use super::{CSSFloat, CSSInteger, RGBA, specified};
 use super::specified::grid::{TrackBreadth as GenericTrackBreadth, TrackSize as GenericTrackSize};
 
 pub use cssparser::Color as CSSColor;
-pub use self::image::{AngleOrCorner, EndingShape as GradientShape, Gradient, GradientKind, Image};
+pub use self::image::{AngleOrCorner, EndingShape as GradientShape, Gradient, GradientKind, Image, ImageRect};
 pub use self::image::{LengthOrKeyword, LengthOrPercentageOrKeyword};
 pub use super::{Auto, Either, None_};
 #[cfg(feature = "gecko")]
 pub use super::specified::{AlignItems, AlignJustifyContent, AlignJustifySelf, JustifyItems};
-pub use super::specified::{Angle, BorderStyle, GridLine, Time, UrlOrNone};
-pub use super::specified::url::{SpecifiedUrl, UrlExtraData};
+pub use super::specified::{BorderStyle, GridLine, Percentage, UrlOrNone};
+pub use super::specified::url::SpecifiedUrl;
 pub use self::length::{CalcLengthOrPercentage, Length, LengthOrNumber, LengthOrPercentage, LengthOrPercentageOrAuto};
 pub use self::length::{LengthOrPercentageOrAutoOrContent, LengthOrPercentageOrNone, LengthOrNone};
 pub use self::length::{MaxLength, MinLength};
@@ -111,6 +111,76 @@ impl<T> ToComputedValue for T
     #[inline]
     fn from_computed_value(computed: &T) -> Self {
         computed.clone()
+    }
+}
+
+/// A computed `<angle>` value.
+#[derive(Clone, PartialEq, PartialOrd, Copy, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
+pub struct Angle {
+    radians: CSSFloat,
+}
+
+impl Angle {
+    /// Construct a computed `Angle` value from a radian amount.
+    pub fn from_radians(radians: CSSFloat) -> Self {
+        Angle {
+            radians: radians,
+        }
+    }
+
+    /// Return the amount of radians this angle represents.
+    #[inline]
+    pub fn radians(&self) -> CSSFloat {
+        self.radians
+    }
+
+    /// Returns an angle that represents a rotation of zero radians.
+    pub fn zero() -> Self {
+        Self::from_radians(0.0)
+    }
+}
+
+impl ToCss for Angle {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+        where W: fmt::Write,
+    {
+        write!(dest, "{}rad", self.radians())
+    }
+}
+
+/// A computed `<time>` value.
+#[derive(Clone, PartialEq, PartialOrd, Copy, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
+pub struct Time {
+    seconds: CSSFloat,
+}
+
+impl Time {
+    /// Construct a computed `Time` value from a seconds amount.
+    pub fn from_seconds(seconds: CSSFloat) -> Self {
+        Time {
+            seconds: seconds,
+        }
+    }
+
+    /// Construct a computed `Time` value that represents zero seconds.
+    pub fn zero() -> Self {
+        Self::from_seconds(0.0)
+    }
+
+    /// Return the amount of seconds this time represents.
+    #[inline]
+    pub fn seconds(&self) -> CSSFloat {
+        self.seconds
+    }
+}
+
+impl ToCss for Time {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+        where W: fmt::Write,
+    {
+        write!(dest, "{}s", self.seconds())
     }
 }
 
@@ -264,8 +334,65 @@ pub struct Shadow {
 /// A `<number>` value.
 pub type Number = CSSFloat;
 
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
+pub enum NumberOrPercentage {
+    Percentage(Percentage),
+    Number(Number),
+}
+
+impl ToComputedValue for specified::NumberOrPercentage {
+    type ComputedValue = NumberOrPercentage;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> NumberOrPercentage {
+        match *self {
+            specified::NumberOrPercentage::Percentage(percentage) =>
+                NumberOrPercentage::Percentage(percentage.to_computed_value(context)),
+            specified::NumberOrPercentage::Number(number) =>
+                NumberOrPercentage::Number(number.to_computed_value(context)),
+        }
+    }
+    #[inline]
+    fn from_computed_value(computed: &NumberOrPercentage) -> Self {
+        match *computed {
+            NumberOrPercentage::Percentage(percentage) =>
+                specified::NumberOrPercentage::Percentage(ToComputedValue::from_computed_value(&percentage)),
+            NumberOrPercentage::Number(number) =>
+                specified::NumberOrPercentage::Number(ToComputedValue::from_computed_value(&number)),
+        }
+    }
+}
+
+impl ToCss for NumberOrPercentage {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            NumberOrPercentage::Percentage(percentage) => percentage.to_css(dest),
+            NumberOrPercentage::Number(number) => number.to_css(dest),
+        }
+    }
+}
+
 /// A type used for opacity.
 pub type Opacity = CSSFloat;
+
+/// A `<integer>` value.
+pub type Integer = CSSInteger;
+
+/// <integer> | auto
+pub type IntegerOrAuto = Either<CSSInteger, Auto>;
+
+impl IntegerOrAuto {
+    /// Returns the integer value if it is an integer, otherwise return
+    /// the given value.
+    pub fn integer_or(&self, auto_value: CSSInteger) -> CSSInteger {
+        match *self {
+            Either::First(n) => n,
+            Either::Second(Auto) => auto_value,
+        }
+    }
+}
 
 
 /// An SVG paint value
@@ -343,7 +470,7 @@ impl ToCss for SVGPaint {
 }
 
 /// <length> | <percentage> | <number>
-pub type LoPOrNumber = Either<LengthOrPercentage, Number>;
+pub type LengthOrPercentageOrNumber = Either<LengthOrPercentage, Number>;
 
 #[derive(Clone, PartialEq, Eq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]

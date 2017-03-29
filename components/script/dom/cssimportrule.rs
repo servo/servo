@@ -10,21 +10,20 @@ use dom::cssrule::{CSSRule, SpecificCSSRule};
 use dom::cssstylesheet::CSSStyleSheet;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use parking_lot::RwLock;
 use std::sync::Arc;
+use style::shared_lock::{Locked, ToCssWithGuard};
 use style::stylesheets::ImportRule;
-use style_traits::ToCss;
 
 #[dom_struct]
 pub struct CSSImportRule {
     cssrule: CSSRule,
     #[ignore_heap_size_of = "Arc"]
-    import_rule: Arc<RwLock<ImportRule>>,
+    import_rule: Arc<Locked<ImportRule>>,
 }
 
 impl CSSImportRule {
     fn new_inherited(parent_stylesheet: &CSSStyleSheet,
-                     import_rule: Arc<RwLock<ImportRule>>)
+                     import_rule: Arc<Locked<ImportRule>>)
                      -> Self {
         CSSImportRule {
             cssrule: CSSRule::new_inherited(parent_stylesheet),
@@ -35,7 +34,7 @@ impl CSSImportRule {
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window,
                parent_stylesheet: &CSSStyleSheet,
-               import_rule: Arc<RwLock<ImportRule>>) -> Root<Self> {
+               import_rule: Arc<Locked<ImportRule>>) -> Root<Self> {
         reflect_dom_object(box Self::new_inherited(parent_stylesheet, import_rule),
                            window,
                            CSSImportRuleBinding::Wrap)
@@ -49,6 +48,7 @@ impl SpecificCSSRule for CSSImportRule {
     }
 
     fn get_css(&self) -> DOMString {
-        self.import_rule.read().to_css_string().into()
+        let guard = self.cssrule.shared_lock().read();
+        self.import_rule.read_with(&guard).to_css_string(&guard).into()
     }
 }

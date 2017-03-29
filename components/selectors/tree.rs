@@ -139,10 +139,11 @@ pub trait Element: MatchAttr + Sized {
     fn get_local_name(&self) -> &<Self::Impl as SelectorImpl>::BorrowedLocalName;
     fn get_namespace(&self) -> &<Self::Impl as SelectorImpl>::BorrowedNamespaceUrl;
 
-    fn match_non_ts_pseudo_class(&self,
-                                 pc: &<Self::Impl as SelectorImpl>::NonTSPseudoClass,
-                                 relations: &mut StyleRelations,
-                                 flags: &mut ElementSelectorFlags) -> bool;
+    fn match_non_ts_pseudo_class<F>(&self,
+                                    pc: &<Self::Impl as SelectorImpl>::NonTSPseudoClass,
+                                    relations: &mut StyleRelations,
+                                    flags_setter: &mut F) -> bool
+        where F: FnMut(&Self, ElementSelectorFlags);
 
     fn get_id(&self) -> Option<<Self::Impl as SelectorImpl>::Identifier>;
     fn has_class(&self, name: &<Self::Impl as SelectorImpl>::ClassName) -> bool;

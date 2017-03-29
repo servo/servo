@@ -151,11 +151,11 @@ fn test_replace_hosts() {
     host_table.insert("servo.test.server".to_owned(), ip("127.0.0.2"));
 
     let url = ServoUrl::parse("http://foo.bar.com:8000/foo").unwrap();
-    assert_eq!(host_replacement(&host_table, &url).host_str().unwrap(), "127.0.0.1");
+    assert_eq!(host_replacement(&host_table, url).host_str().unwrap(), "127.0.0.1");
 
     let url = ServoUrl::parse("http://servo.test.server").unwrap();
-    assert_eq!(host_replacement(&host_table, &url).host_str().unwrap(), "127.0.0.2");
+    assert_eq!(host_replacement(&host_table, url).host_str().unwrap(), "127.0.0.2");
 
     let url = ServoUrl::parse("http://a.foo.bar.com").unwrap();
-    assert_eq!(host_replacement(&host_table, &url).host_str().unwrap(), "a.foo.bar.com");
+    assert_eq!(host_replacement(&host_table, url).host_str().unwrap(), "a.foo.bar.com");
 }

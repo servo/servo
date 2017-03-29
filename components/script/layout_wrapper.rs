@@ -44,7 +44,6 @@ use dom::text::Text;
 use gfx_traits::ByteIndex;
 use html5ever_atoms::{LocalName, Namespace};
 use msg::constellation_msg::PipelineId;
-use parking_lot::RwLock;
 use range::Range;
 use script_layout_interface::{HTMLCanvasData, LayoutNodeType, SVGSVGData, TrustedNodeAddress};
 use script_layout_interface::{OpaqueStyleAndLayoutData, PartialPersistentLayoutData};
@@ -64,11 +63,13 @@ use style::attr::AttrValue;
 use style::computed_values::display;
 use style::context::{QuirksMode, SharedStyleContext};
 use style::data::ElementData;
-use style::dom::{LayoutIterator, NodeInfo, OpaqueNode, PresentationalHintsSynthetizer, TElement, TNode};
+use style::dom::{DirtyDescendants, LayoutIterator, NodeInfo, OpaqueNode, PresentationalHintsSynthetizer};
+use style::dom::{TElement, TNode};
 use style::dom::UnsafeNode;
 use style::element_state::*;
 use style::properties::{ComputedValues, PropertyDeclarationBlock};
 use style::selector_parser::{NonTSPseudoClass, PseudoElement, SelectorImpl};
+use style::shared_lock::{SharedRwLock as StyleSharedRwLock, Locked as StyleLocked};
 use style::sink::Push;
 use style::str::is_whitespace;
 use style::stylist::ApplicableDeclarationBlock;
@@ -330,6 +331,10 @@ impl<'ld> ServoLayoutDocument<'ld> {
         unsafe { self.document.quirks_mode() }
     }
 
+    pub fn style_shared_lock(&self) -> &StyleSharedRwLock {
+        unsafe { self.document.style_shared_lock() }
+    }
+
     pub fn from_layout_js(doc: LayoutJS<Document>) -> ServoLayoutDocument<'ld> {
         ServoLayoutDocument {
             document: doc,
@@ -372,7 +377,7 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         ServoLayoutNode::from_layout_js(self.element.upcast())
     }
 
-    fn style_attribute(&self) -> Option<&Arc<RwLock<PropertyDeclarationBlock>>> {
+    fn style_attribute(&self) -> Option<&Arc<StyleLocked<PropertyDeclarationBlock>>> {
         unsafe {
             (*self.element.style_attribute()).as_ref()
         }
@@ -447,7 +452,7 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         self.element.has_selector_flags(flags)
     }
 
-    fn update_animations(&self, _pseudo: Option<&PseudoElement>) {
+    fn has_animations(&self, _pseudo: Option<&PseudoElement>) -> bool {
         panic!("this should be only called on gecko");
     }
 
@@ -483,6 +488,9 @@ impl<'le> ServoLayoutElement<'le> {
         }
     }
 
+    // FIXME(bholley): This should be merged with TElement::note_dirty_descendants,
+    // but that requires re-testing and possibly fixing the broken callers given
+    // the FIXME below, which I don't have time to do right now.
     pub unsafe fn note_dirty_descendant(&self) {
         use ::selectors::Element;
 
@@ -497,19 +505,7 @@ impl<'le> ServoLayoutElement<'le> {
             current = el.parent_element();
         }
 
-        debug_assert!(self.dirty_descendants_bit_is_propagated());
-    }
-
-    fn dirty_descendants_bit_is_propagated(&self) -> bool {
-        use ::selectors::Element;
-
-        let mut current = Some(*self);
-        while let Some(el) = current {
-            if !el.has_dirty_descendants() { return false; }
-            current = el.parent_element();
-        }
-
-        true
+        debug_assert!(self.descendants_bit_is_propagated::<DirtyDescendants>());
     }
 }
 
@@ -611,10 +607,13 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
         self.element.namespace()
     }
 
-    fn match_non_ts_pseudo_class(&self,
-                                 pseudo_class: &NonTSPseudoClass,
-                                 _: &mut StyleRelations,
-                                 _: &mut ElementSelectorFlags) -> bool {
+    fn match_non_ts_pseudo_class<F>(&self,
+                                    pseudo_class: &NonTSPseudoClass,
+                                    _: &mut StyleRelations,
+                                    _: &mut F)
+                                    -> bool
+        where F: FnMut(&Self, ElementSelectorFlags),
+    {
         match *pseudo_class {
             // https://github.com/servo/servo/issues/8718
             NonTSPseudoClass::Link |
@@ -929,11 +928,12 @@ impl<ConcreteNode> Iterator for ThreadSafeLayoutNodeChildrenIterator<ConcreteNod
                 let mut current_node = self.current_node.clone();
                 loop {
                     let next_node = if let Some(ref node) = current_node {
-                        if node.is_element() &&
-                           node.as_element().unwrap().get_local_name() == &local_name!("summary") &&
-                           node.as_element().unwrap().get_namespace() == &ns!(html) {
-                            self.current_node = None;
-                            return Some(node.clone());
+                        if let Some(element) = node.as_element() {
+                            if element.get_local_name() == &local_name!("summary") &&
+                               element.get_namespace() == &ns!(html) {
+                                self.current_node = None;
+                                return Some(node.clone());
+                            }
                         }
                         unsafe { node.dangerous_next_sibling() }
                     } else {
@@ -1109,10 +1109,13 @@ impl<'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
         self.element.get_namespace()
     }
 
-    fn match_non_ts_pseudo_class(&self,
-                                 _: &NonTSPseudoClass,
-                                 _: &mut StyleRelations,
-                                 _: &mut ElementSelectorFlags) -> bool {
+    fn match_non_ts_pseudo_class<F>(&self,
+                                    _: &NonTSPseudoClass,
+                                    _: &mut StyleRelations,
+                                    _: &mut F)
+                                    -> bool
+        where F: FnMut(&Self, ElementSelectorFlags),
+    {
         // NB: This could maybe be implemented
         warn!("ServoThreadSafeLayoutElement::match_non_ts_pseudo_class called");
         false

@@ -1,0 +1,28 @@
+<!doctype html>
+
+<meta charset="utf-8">
+<title>CSS Test: parsing perspective property</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="test"></div>
+
+<script>
+    test(function () {
+        var test = document.getElementById('test');
+        var tests = [
+            ["none",   "none"],
+            ["0px",    "0px"],
+            ["100px",  "100px"],
+            ["-200px", ""],
+            ["300PX",  "300px"],
+        ];
+        for (var i = 0; i < tests.length; ++i) {
+            var specified = tests[i][0];
+            var expected = tests[i][1];
+            test.style.perspective = specified;
+            assert_equals(test.style.perspective, expected);
+            test.style.perspective = '';
+        }
+    }, "Parsing of the perspective property");
+</script>

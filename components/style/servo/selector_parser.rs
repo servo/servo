@@ -14,7 +14,7 @@ use restyle_hints::ElementSnapshot;
 use selector_parser::{ElementExt, PseudoElementCascadeType, SelectorParser};
 use selector_parser::{attr_equals_selector_is_shareable, attr_exists_selector_is_shareable};
 use selectors::{Element, MatchAttrGeneric};
-use selectors::matching::{ElementSelectorFlags, StyleRelations};
+use selectors::matching::StyleRelations;
 use selectors::parser::{AttrSelector, SelectorMethods};
 use std::borrow::Cow;
 use std::fmt;
@@ -459,7 +459,7 @@ impl<E: Element<Impl=SelectorImpl> + Debug> ElementExt for E {
     fn is_link(&self) -> bool {
         self.match_non_ts_pseudo_class(&NonTSPseudoClass::AnyLink,
                                        &mut StyleRelations::empty(),
-                                       &mut ElementSelectorFlags::empty())
+                                       &mut |_, _| {})
     }
 
     #[inline]

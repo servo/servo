@@ -23,54 +23,11 @@
                               animatable=True, logical=True)}
 % endfor
 
-<%helpers:longhand name="z-index" spec="https://www.w3.org/TR/CSS2/visuren.html#z-index" animatable="True">
-    use values::HasViewportPercentage;
-    use values::computed::ComputedValueAsSpecified;
-
-    impl ComputedValueAsSpecified for SpecifiedValue {}
-    no_viewport_percentage!(SpecifiedValue);
-    pub type SpecifiedValue = computed_value::T;
-    pub mod computed_value {
-        use std::fmt;
-        use style_traits::ToCss;
-
-        #[derive(PartialEq, Clone, Eq, Copy, Debug)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub enum T {
-            Auto,
-            Number(i32),
-        }
-
-        impl ToCss for T {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                match *self {
-                    T::Auto => dest.write_str("auto"),
-                    T::Number(number) => write!(dest, "{}", number),
-                }
-            }
-        }
-
-        impl T {
-            pub fn number_or_zero(self) -> i32 {
-                match self {
-                    T::Auto => 0,
-                    T::Number(value) => value,
-                }
-            }
-        }
-    }
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T::Auto
-    }
-    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
-            Ok(computed_value::T::Auto)
-        } else {
-            specified::parse_integer(input).map(computed_value::T::Number)
-        }
-    }
-</%helpers:longhand>
+${helpers.predefined_type("z-index", "IntegerOrAuto",
+                          "Either::Second(Auto)",
+                          spec="https://www.w3.org/TR/CSS2/visuren.html#z-index",
+                          creates_stacking_context=True,
+                          animatable="True")}
 
 // CSS Flexible Box Layout Module Level 1
 // http://www.w3.org/TR/css3-flexbox/
@@ -173,27 +130,10 @@ ${helpers.predefined_type("flex-shrink", "Number",
 % endif
 
 // https://drafts.csswg.org/css-flexbox/#propdef-order
-<%helpers:longhand name="order" animatable="True" extra_prefixes="webkit"
-                   spec="https://drafts.csswg.org/css-flexbox/#order-property">
-    use values::computed::ComputedValueAsSpecified;
-
-    impl ComputedValueAsSpecified for SpecifiedValue {}
-
-    pub type SpecifiedValue = computed_value::T;
-
-    pub mod computed_value {
-        pub type T = i32;
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        0
-    }
-
-    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        specified::parse_integer(input)
-    }
-</%helpers:longhand>
+${helpers.predefined_type("order", "Integer", "0",
+                          extra_prefixes="webkit",
+                          animatable=True,
+                          spec="https://drafts.csswg.org/css-flexbox/#order-property")}
 
 // FIXME: Gecko doesn't support content value yet.
 // FIXME: This property should be animatable.
@@ -366,3 +306,89 @@ ${helpers.predefined_type("object-position",
                               products="gecko",
                               boxed=True)}
 % endfor
+
+<%helpers:longhand name="grid-auto-flow"
+        spec="https://drafts.csswg.org/css-grid/#propdef-grid-auto-flow"
+        products="gecko"
+        animatable="False">
+    use std::fmt;
+    use style_traits::ToCss;
+    use values::HasViewportPercentage;
+    use values::computed::ComputedValueAsSpecified;
+
+    pub type SpecifiedValue = computed_value::T;
+
+    pub mod computed_value {
+        #[derive(PartialEq, Clone, Eq, Copy, Debug)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        pub enum AutoFlow {
+            Row,
+            Column,
+        }
+
+        #[derive(PartialEq, Clone, Eq, Copy, Debug)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        pub struct T {
+            pub autoflow: AutoFlow,
+            pub dense: bool,
+        }
+    }
+
+    no_viewport_percentage!(SpecifiedValue);
+    impl ComputedValueAsSpecified for SpecifiedValue {}
+
+    impl ToCss for computed_value::T {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            dest.write_str(match self.autoflow {
+                computed_value::AutoFlow::Column => "column",
+                computed_value::AutoFlow::Row => "row"
+            })?;
+
+            if self.dense { dest.write_str(" dense")?; }
+            Ok(())
+        }
+    }
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T {
+            autoflow: computed_value::AutoFlow::Row,
+            dense: false
+        }
+    }
+
+    /// [ row | column ] || dense
+    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        use self::computed_value::AutoFlow;
+
+        let mut value = None;
+        let mut dense = false;
+
+        while !input.is_exhausted() {
+            match_ignore_ascii_case! { &input.expect_ident()?,
+                "row" if value.is_none() => {
+                    value = Some(AutoFlow::Row);
+                    continue
+                },
+                "column" if value.is_none() => {
+                    value = Some(AutoFlow::Column);
+                    continue
+                },
+                "dense" if !dense => {
+                    dense = true;
+                    continue
+                },
+                _ => return Err(())
+            }
+        }
+
+        if value.is_some() || dense {
+            Ok(computed_value::T {
+                autoflow: value.unwrap_or(AutoFlow::Row),
+                dense: dense,
+            })
+        } else {
+            Err(())
+        }
+    }
+</%helpers:longhand>

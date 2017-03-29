@@ -9,8 +9,8 @@ use gfx::display_list::{WebRenderImageInfo, OpaqueNode};
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context::FontContext;
 use heapsize::HeapSizeOf;
-use net_traits::image_cache_thread::{ImageCacheThread, ImageState, CanRequestImages};
-use net_traits::image_cache_thread::{ImageOrMetadataAvailable, UsePlaceholder};
+use net_traits::image_cache::{CanRequestImages, ImageCache, ImageState};
+use net_traits::image_cache::{ImageOrMetadataAvailable, UsePlaceholder};
 use opaque_node::OpaqueNodeMethods;
 use parking_lot::RwLock;
 use script_layout_interface::{PendingImage, PendingImageState};
@@ -75,12 +75,12 @@ pub fn heap_size_of_persistent_local_context() -> usize {
 }
 
 /// Layout information shared among all workers. This must be thread-safe.
-pub struct LayoutContext {
+pub struct LayoutContext<'a> {
     /// Bits shared by the layout and style system.
-    pub style_context: SharedStyleContext,
+    pub style_context: SharedStyleContext<'a>,
 
-    /// The shared image cache thread.
-    pub image_cache_thread: Mutex<ImageCacheThread>,
+    /// Reference to the script thread image cache.
+    pub image_cache: Arc<ImageCache>,
 
     /// Interface to the font cache thread.
     pub font_cache_thread: Mutex<FontCacheThread>,
@@ -95,7 +95,7 @@ pub struct LayoutContext {
     pub pending_images: Option<Mutex<Vec<PendingImage>>>
 }
 
-impl Drop for LayoutContext {
+impl<'a> Drop for LayoutContext<'a> {
     fn drop(&mut self) {
         if !thread::panicking() {
             if let Some(ref pending_images) = self.pending_images {
@@ -105,7 +105,7 @@ impl Drop for LayoutContext {
     }
 }
 
-impl LayoutContext {
+impl<'a> LayoutContext<'a> {
     #[inline(always)]
     pub fn shared_context(&self) -> &SharedStyleContext {
         &self.style_context
@@ -126,10 +126,9 @@ impl LayoutContext {
         };
 
         // See if the image is already available
-        let result = self.image_cache_thread.lock().unwrap()
-                                            .find_image_or_metadata(url.clone(),
-                                                                    use_placeholder,
-                                                                    can_request);
+        let result = self.image_cache.find_image_or_metadata(url.clone(),
+                                                             use_placeholder,
+                                                             can_request);
         match result {
             Ok(image_or_metadata) => Some(image_or_metadata),
             // Image failed to load, so just return nothing

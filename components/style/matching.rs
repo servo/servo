@@ -17,8 +17,8 @@ use data::{ComputedStyle, ElementData, ElementStyles, RestyleData};
 use dom::{AnimationRules, SendElement, TElement, TNode};
 use properties::{CascadeFlags, ComputedValues, SHAREABLE, SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP, cascade};
 use properties::longhands::display::computed_value as display;
-use restyle_hints::{RESTYLE_STYLE_ATTRIBUTE, RestyleHint};
-use rule_tree::{CascadeLevel, StrongRuleNode};
+use restyle_hints::{RESTYLE_STYLE_ATTRIBUTE, RESTYLE_CSS_ANIMATIONS, RestyleHint};
+use rule_tree::{CascadeLevel, RuleTree, StrongRuleNode};
 use selector_parser::{PseudoElement, RestyleDamage, SelectorImpl};
 use selectors::MatchAttr;
 use selectors::bloom::BloomFilter;
@@ -469,24 +469,15 @@ trait PrivateMatchMethods: TElement {
         }
     }
 
-    fn cascade_internal(&self,
-                        context: &StyleContext<Self>,
-                        primary_style: &ComputedStyle,
-                        pseudo_style: &mut Option<(&PseudoElement, &mut ComputedStyle)>,
-                        booleans: &CascadeBooleans)
-                        -> Arc<ComputedValues> {
+    fn cascade_with_rules(&self,
+                          context: &StyleContext<Self>,
+                          rule_node: &StrongRuleNode,
+                          primary_style: &ComputedStyle,
+                          pseudo_style: &Option<(&PseudoElement, &mut ComputedStyle)>,
+                          cascade_flags: CascadeFlags)
+                          -> Arc<ComputedValues> {
         let shared_context = context.shared;
         let mut cascade_info = CascadeInfo::new();
-        let mut cascade_flags = CascadeFlags::empty();
-        if booleans.shareable {
-            cascade_flags.insert(SHAREABLE)
-        }
-        if self.skip_root_and_item_based_display_fixup() {
-            cascade_flags.insert(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP)
-        }
-
-        // Grab the rule node.
-        let rule_node = &pseudo_style.as_ref().map_or(primary_style, |p| &*p.1).rules;
 
         // Grab the inherited values.
         let parent_el;
@@ -541,6 +532,7 @@ trait PrivateMatchMethods: TElement {
         let values =
             Arc::new(cascade(&shared_context.stylist.device,
                              rule_node,
+                             &shared_context.guards,
                              inherited_values,
                              layout_parent_style,
                              Some(&mut cascade_info),
@@ -549,6 +541,25 @@ trait PrivateMatchMethods: TElement {
 
         cascade_info.finish(&self.as_node());
         values
+    }
+
+    fn cascade_internal(&self,
+                        context: &StyleContext<Self>,
+                        primary_style: &ComputedStyle,
+                        pseudo_style: &Option<(&PseudoElement, &mut ComputedStyle)>,
+                        booleans: &CascadeBooleans)
+                        -> Arc<ComputedValues> {
+        let mut cascade_flags = CascadeFlags::empty();
+        if booleans.shareable {
+            cascade_flags.insert(SHAREABLE)
+        }
+        if self.skip_root_and_item_based_display_fixup() {
+            cascade_flags.insert(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP)
+        }
+
+        // Grab the rule node.
+        let rule_node = &pseudo_style.as_ref().map_or(primary_style, |p| &*p.1).rules;
+        self.cascade_with_rules(context, rule_node, primary_style, pseudo_style, cascade_flags)
     }
 
     /// Computes values and damage for the primary or pseudo style of an element,
@@ -569,7 +580,7 @@ trait PrivateMatchMethods: TElement {
 
         // Compute the new values.
         let mut new_values = self.cascade_internal(context, primary_style,
-                                                   &mut pseudo_style, &booleans);
+                                                   &pseudo_style, &booleans);
 
         // Handle animations.
         if booleans.animate {
@@ -594,17 +605,48 @@ trait PrivateMatchMethods: TElement {
     }
 
     #[cfg(feature = "gecko")]
+    fn get_after_change_style(&self,
+                              context: &mut StyleContext<Self>,
+                              primary_style: &ComputedStyle,
+                              pseudo_style: &Option<(&PseudoElement, &mut ComputedStyle)>)
+                              -> Arc<ComputedValues> {
+        let style = &pseudo_style.as_ref().map_or(primary_style, |p| &*p.1);
+        let rule_node = &style.rules;
+        let without_transition_rules =
+            context.shared.stylist.rule_tree.remove_transition_rule_if_applicable(rule_node);
+        if without_transition_rules == *rule_node {
+            // Note that unwrapping here is fine, because the style is
+            // only incomplete during the styling process.
+            return style.values.as_ref().unwrap().clone();
+        }
+
+        let mut cascade_flags = CascadeFlags::empty();
+        if self.skip_root_and_item_based_display_fixup() {
+            cascade_flags.insert(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP)
+        }
+        self.cascade_with_rules(context,
+                                &without_transition_rules,
+                                primary_style,
+                                &pseudo_style,
+                                cascade_flags)
+    }
+
+    #[cfg(feature = "gecko")]
     fn process_animations(&self,
                           context: &mut StyleContext<Self>,
                           old_values: &mut Option<Arc<ComputedValues>>,
                           new_values: &mut Arc<ComputedValues>,
                           pseudo: Option<&PseudoElement>,
                           _possibly_expired_animations: &mut Vec<PropertyAnimation>) {
+        use context::{CSS_ANIMATIONS, EFFECT_PROPERTIES};
+        use context::UpdateAnimationsTasks;
+
         let ref new_box_style = new_values.get_box();
         let has_new_animation_style = new_box_style.animation_name_count() >= 1 &&
                                       new_box_style.animation_name_at(0).0.len() != 0;
         let has_animations = self.has_css_animations(pseudo);
 
+        let mut tasks = UpdateAnimationsTasks::empty();
         let needs_update_animations =
             old_values.as_ref().map_or(has_new_animation_style, |ref old| {
                 let ref old_box_style = old.get_box();
@@ -620,8 +662,15 @@ trait PrivateMatchMethods: TElement {
                   has_animations)
             });
         if needs_update_animations {
+            tasks.insert(CSS_ANIMATIONS);
+        }
+        if self.has_animations(pseudo) {
+            tasks.insert(EFFECT_PROPERTIES);
+        }
+        if !tasks.is_empty() {
             let task = SequentialTask::update_animations(self.as_node().as_element().unwrap(),
-                                                         pseudo.cloned());
+                                                         pseudo.cloned(),
+                                                         tasks);
             context.thread_local.tasks.push(task);
         }
     }
@@ -749,12 +798,12 @@ trait PrivateMatchMethods: TElement {
     }
 }
 
-fn compute_rule_node<E: TElement>(context: &StyleContext<E>,
+fn compute_rule_node<E: TElement>(rule_tree: &RuleTree,
                                   applicable_declarations: &mut Vec<ApplicableDeclarationBlock>)
                                   -> StrongRuleNode
 {
     let rules = applicable_declarations.drain(..).map(|d| (d.source, d.level));
-    let rule_node = context.shared.stylist.rule_tree.insert_ordered_rules(rules);
+    let rule_node = rule_tree.insert_ordered_rules(rules);
     rule_node
 }
 
@@ -774,19 +823,75 @@ pub trait MatchMethods : TElement {
         let stylist = &context.shared.stylist;
         let style_attribute = self.style_attribute();
         let animation_rules = self.get_animation_rules(None);
-        let mut flags = ElementSelectorFlags::empty();
         let mut rule_nodes_changed = false;
+
+        // TODO(emilio): This is somewhat inefficient, because of a variety of
+        // reasons:
+        //
+        //  * It doesn't coalesce flags.
+        //  * It doesn't look at flags already sent in a task for the main
+        //    thread to process.
+        //  * It doesn't take advantage of us knowing that the traversal is
+        //    sequential.
+        //
+        // I suspect (need to measure!) that we don't use to set flags on
+        // a lot of different elements, but we could end up posting the same
+        // flag over and over with this approach.
+        //
+        // If the number of elements is low, perhaps a small cache with the
+        // flags already sent would be appropriate.
+        //
+        // The sequential task business for this is kind of sad :(.
+        //
+        // Anyway, let's do the obvious thing for now.
+        let tasks = &mut context.thread_local.tasks;
+        let mut set_selector_flags = |element: &Self, flags: ElementSelectorFlags| {
+            // Apply the selector flags.
+            let self_flags = flags.for_self();
+            if !self_flags.is_empty() {
+                if element == self {
+                    unsafe { element.set_selector_flags(self_flags); }
+                } else {
+                    if !element.has_selector_flags(self_flags) {
+                        let task =
+                            SequentialTask::set_selector_flags(element.clone(),
+                                                               self_flags);
+                        tasks.push(task);
+                    }
+                }
+            }
+            let parent_flags = flags.for_parent();
+            if !parent_flags.is_empty() {
+                if let Some(p) = element.parent_element() {
+                    // Avoid the overhead of the SequentialTask if the flags are
+                    // already set.
+                    if !p.has_selector_flags(parent_flags) {
+                        let task = SequentialTask::set_selector_flags(p, parent_flags);
+                        tasks.push(task);
+                    }
+                }
+            }
+        };
+
+        // Borrow the stuff we need here so the borrow checker doesn't get mad
+        // at us later in the closure.
+        let guards = &context.shared.guards;
+        let rule_tree = &context.shared.stylist.rule_tree;
+        let bloom_filter = context.thread_local.bloom_filter.filter();
 
         // Compute the primary rule node.
         let mut primary_relations =
             stylist.push_applicable_declarations(self,
-                                                 Some(context.thread_local.bloom_filter.filter()),
+                                                 Some(bloom_filter),
                                                  style_attribute,
                                                  animation_rules,
                                                  None,
+                                                 guards,
                                                  &mut applicable_declarations,
-                                                 &mut flags);
-        let primary_rule_node = compute_rule_node(context, &mut applicable_declarations);
+                                                 &mut set_selector_flags);
+
+        let primary_rule_node =
+            compute_rule_node::<Self>(rule_tree, &mut applicable_declarations);
         if !data.has_styles() {
             data.set_styles(ElementStyles::new(ComputedStyle::new_partial(primary_rule_node)));
             rule_nodes_changed = true;
@@ -806,14 +911,16 @@ pub trait MatchMethods : TElement {
                 AnimationRules(None, None)
             };
             stylist.push_applicable_declarations(self,
-                                                 Some(context.thread_local.bloom_filter.filter()),
+                                                 Some(bloom_filter),
                                                  None, pseudo_animation_rules,
                                                  Some(&pseudo),
+                                                 &guards,
                                                  &mut applicable_declarations,
-                                                 &mut flags);
+                                                 &mut set_selector_flags);
 
             if !applicable_declarations.is_empty() {
-                let new_rules = compute_rule_node(context, &mut applicable_declarations);
+                let new_rules =
+                    compute_rule_node::<Self>(rule_tree, &mut applicable_declarations);
                 match per_pseudo.entry(pseudo) {
                     Entry::Occupied(mut e) => {
                         if e.get().rules != new_rules {
@@ -845,22 +952,6 @@ pub trait MatchMethods : TElement {
             primary_relations |= AFFECTED_BY_PSEUDO_ELEMENTS;
         }
 
-        // Apply the selector flags.
-        let self_flags = flags.for_self();
-        if !self_flags.is_empty() {
-            unsafe { self.set_selector_flags(self_flags); }
-        }
-        let parent_flags = flags.for_parent();
-        if !parent_flags.is_empty() {
-            if let Some(p) = self.parent_element() {
-                // Avoid the overhead of the SequentialTask if the flags are already set.
-                if !p.has_selector_flags(parent_flags) {
-                    let task = SequentialTask::set_selector_flags(p, parent_flags);
-                    context.thread_local.tasks.push(task);
-                }
-            }
-        }
-
         MatchResults {
             primary_relations: Some(primary_relations),
             rule_nodes_changed: rule_nodes_changed,
@@ -874,28 +965,54 @@ pub trait MatchMethods : TElement {
                                  context: &StyleContext<Self>,
                                  data: &mut AtomicRefMut<ElementData>)
                                  -> bool {
-        let primary_rules = &mut data.styles_mut().primary.rules;
+        use properties::PropertyDeclarationBlock;
+        use shared_lock::Locked;
+
+        let element_styles = &mut data.styles_mut();
+        let primary_rules = &mut element_styles.primary.rules;
         let mut rule_node_changed = false;
 
-        if hint.contains(RESTYLE_STYLE_ATTRIBUTE) {
-            let style_attribute = self.style_attribute();
+        {
+            let mut replace_rule_node = |level: CascadeLevel,
+                                         pdb: Option<&Arc<Locked<PropertyDeclarationBlock>>>,
+                                         path: &mut StrongRuleNode| {
+                let new_node = context.shared.stylist.rule_tree
+                    .update_rule_at_level(level, pdb, path, &context.shared.guards);
+                if let Some(n) = new_node {
+                    *path = n;
+                    rule_node_changed = true;
+                }
+            };
 
-            let new_node = context.shared.stylist.rule_tree
-                .update_rule_at_level(CascadeLevel::StyleAttributeNormal,
-                                      style_attribute,
-                                      primary_rules);
-            if let Some(n) = new_node {
-                *primary_rules = n;
-                rule_node_changed = true;
-            }
+            // RESTYLE_CSS_ANIMATIONS is processed prior to other restyle hints
+            // in the name of animation-only traversal. Rest of restyle hints
+            // will be processed in a subsequent normal traversal.
+            if hint.contains(RESTYLE_CSS_ANIMATIONS) {
+                debug_assert!(context.shared.animation_only_restyle);
 
-            let new_node = context.shared.stylist.rule_tree
-                .update_rule_at_level(CascadeLevel::StyleAttributeImportant,
-                                      style_attribute,
-                                      primary_rules);
-            if let Some(n) = new_node {
-                *primary_rules = n;
-                rule_node_changed = true;
+                let animation_rule = self.get_animation_rule(None);
+                replace_rule_node(CascadeLevel::Animations,
+                                  animation_rule.as_ref(),
+                                  primary_rules);
+
+                let iter = element_styles.pseudos.iter_mut().filter(|&(p, _)|
+                    <Self as MatchAttr>::Impl::pseudo_is_before_or_after(p));
+                for (pseudo, ref mut computed) in iter {
+                    let animation_rule = self.get_animation_rule(Some(pseudo));
+                    let pseudo_rules = &mut computed.rules;
+                    replace_rule_node(CascadeLevel::Animations,
+                                      animation_rule.as_ref(),
+                                      pseudo_rules);
+                }
+            } else if hint.contains(RESTYLE_STYLE_ATTRIBUTE) {
+                let style_attribute = self.style_attribute();
+                replace_rule_node(CascadeLevel::StyleAttributeNormal,
+                                  style_attribute,
+                                  primary_rules);
+                replace_rule_node(CascadeLevel::StyleAttributeImportant,
+                                  style_attribute,
+                                  primary_rules);
+                // The per-pseudo rule nodes never change in this path.
             }
         }
 

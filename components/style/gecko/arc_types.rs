@@ -17,6 +17,7 @@ use media_queries::MediaList;
 use parking_lot::RwLock;
 use properties::{ComputedValues, PropertyDeclarationBlock};
 use properties::animated_properties::{AnimationValue, AnimationValueMap};
+use shared_lock::Locked;
 use stylesheets::{CssRules, Stylesheet, StyleRule, ImportRule, MediaRule, NamespaceRule};
 
 macro_rules! impl_arc_ffi {
@@ -38,7 +39,7 @@ macro_rules! impl_arc_ffi {
     }
 }
 
-impl_arc_ffi!(RwLock<CssRules> => ServoCssRules
+impl_arc_ffi!(Locked<CssRules> => ServoCssRules
               [Servo_CssRules_AddRef, Servo_CssRules_Release]);
 
 impl_arc_ffi!(Stylesheet => RawServoStyleSheet
@@ -47,13 +48,13 @@ impl_arc_ffi!(Stylesheet => RawServoStyleSheet
 impl_arc_ffi!(ComputedValues => ServoComputedValues
               [Servo_ComputedValues_AddRef, Servo_ComputedValues_Release]);
 
-impl_arc_ffi!(RwLock<PropertyDeclarationBlock> => RawServoDeclarationBlock
+impl_arc_ffi!(Locked<PropertyDeclarationBlock> => RawServoDeclarationBlock
               [Servo_DeclarationBlock_AddRef, Servo_DeclarationBlock_Release]);
 
-impl_arc_ffi!(RwLock<StyleRule> => RawServoStyleRule
+impl_arc_ffi!(Locked<StyleRule> => RawServoStyleRule
               [Servo_StyleRule_AddRef, Servo_StyleRule_Release]);
 
-impl_arc_ffi!(RwLock<ImportRule> => RawServoImportRule
+impl_arc_ffi!(Locked<ImportRule> => RawServoImportRule
               [Servo_ImportRule_AddRef, Servo_ImportRule_Release]);
 
 impl_arc_ffi!(AnimationValue => RawServoAnimationValue
@@ -62,11 +63,11 @@ impl_arc_ffi!(AnimationValue => RawServoAnimationValue
 impl_arc_ffi!(RwLock<AnimationValueMap> => RawServoAnimationValueMap
               [Servo_AnimationValueMap_AddRef, Servo_AnimationValueMap_Release]);
 
-impl_arc_ffi!(RwLock<MediaList> => RawServoMediaList
+impl_arc_ffi!(Locked<MediaList> => RawServoMediaList
               [Servo_MediaList_AddRef, Servo_MediaList_Release]);
 
-impl_arc_ffi!(RwLock<MediaRule> => RawServoMediaRule
+impl_arc_ffi!(Locked<MediaRule> => RawServoMediaRule
               [Servo_MediaRule_AddRef, Servo_MediaRule_Release]);
 
-impl_arc_ffi!(RwLock<NamespaceRule> => RawServoNamespaceRule
+impl_arc_ffi!(Locked<NamespaceRule> => RawServoNamespaceRule
               [Servo_NamespaceRule_AddRef, Servo_NamespaceRule_Release]);

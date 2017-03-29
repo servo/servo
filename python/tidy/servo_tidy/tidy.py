@@ -111,11 +111,11 @@ def progress_wrapper(iterator):
 
 
 class FileList(object):
-    def __init__(self, directory, only_changed_files=False, exclude_dirs=[], progress=True, stylo=False):
+    def __init__(self, directory, only_changed_files=False, exclude_dirs=[], progress=True):
         self.directory = directory
         self.excluded = exclude_dirs
         iterator = self._filter_excluded() if exclude_dirs else self._default_walk()
-        if only_changed_files and not stylo:
+        if only_changed_files:
             try:
                 # Fall back if git doesn't work
                 newiter = self._git_changed_files()
@@ -168,10 +168,9 @@ def filter_file(file_name):
     return True
 
 
-def filter_files(start_dir, only_changed_files, progress, stylo):
+def filter_files(start_dir, only_changed_files, progress):
     file_iter = FileList(start_dir, only_changed_files=only_changed_files,
-                         exclude_dirs=config["ignore"]["directories"], progress=progress,
-                         stylo=stylo)
+                         exclude_dirs=config["ignore"]["directories"], progress=progress)
     for file_name in file_iter:
         base_name = os.path.basename(file_name)
         if not any(fnmatch.fnmatch(base_name, pattern) for pattern in FILE_PATTERNS_TO_CHECK):
@@ -1018,20 +1017,22 @@ class LintRunner(object):
         dir_name, filename = os.path.split(self.path)
         sys.path.append(dir_name)
         module = imp.load_source(filename[:-3], self.path)
-        if hasattr(module, 'Lint'):
-            if issubclass(module.Lint, LintRunner):
-                lint = module.Lint(self.path, self.only_changed_files,
-                                   self.exclude_dirs, self.progress, stylo=self.stylo)
-                for error in lint.run():
-                    if not hasattr(error, '__iter__'):
-                        yield (self.path, 1, "errors should be a tuple of (path, line, reason)")
-                        return
-                    yield error
-            else:
-                yield (self.path, 1, "class 'Lint' should inherit from 'LintRunner'")
-        else:
-            yield (self.path, 1, "script should contain a class named 'Lint'")
         sys.path.remove(dir_name)
+        if not hasattr(module, 'Lint'):
+            yield (self.path, 1, "script should contain a class named 'Lint'")
+            return
+
+        if not issubclass(module.Lint, LintRunner):
+            yield (self.path, 1, "class 'Lint' should inherit from 'LintRunner'")
+            return
+
+        lint = module.Lint(self.path, self.only_changed_files,
+                           self.exclude_dirs, self.progress, stylo=self.stylo)
+        for error in lint.run():
+            if type(error) is not tuple or (type(error) is tuple and len(error) != 3):
+                yield (self.path, 1, "errors should be a tuple of (path, line, reason)")
+                return
+            yield error
 
     def get_files(self, path, **kwargs):
         args = ['only_changed_files', 'exclude_dirs', 'progress']
@@ -1071,7 +1072,7 @@ def scan(only_changed_files=False, progress=True, stylo=False):
     # check directories contain expected files
     directory_errors = check_directory_files(config['check_ext'])
     # standard checks
-    files_to_check = filter_files('.', only_changed_files, progress, stylo)
+    files_to_check = filter_files('.', only_changed_files and not stylo, progress)
     checking_functions = (check_flake8, check_lock, check_webidl_spec, check_json, check_yaml)
     line_checking_functions = (check_license, check_by_line, check_toml, check_shell,
                                check_rust, check_spec, check_modeline)

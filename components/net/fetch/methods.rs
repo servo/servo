@@ -11,7 +11,8 @@ use http_loader::{HttpState, determine_request_referrer, http_fetch, set_default
 use hyper::Error;
 use hyper::error::Result as HyperResult;
 use hyper::header::{Accept, AcceptLanguage, ContentLanguage, ContentType};
-use hyper::header::{Header, HeaderFormat, HeaderView, QualityItem, Referer as RefererHeader, q, qitem};
+use hyper::header::{Header, HeaderFormat, HeaderView, Headers, QualityItem};
+use hyper::header::{Referer as RefererHeader, q, qitem};
 use hyper::method::Method;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper::status::StatusCode;
@@ -20,6 +21,7 @@ use net_traits::{FetchTaskTarget, NetworkError, ReferrerPolicy};
 use net_traits::request::{Referrer, Request, RequestMode, ResponseTainting};
 use net_traits::request::{Type, Origin, Window};
 use net_traits::response::{Response, ResponseBody, ResponseType};
+use servo_url::ServoUrl;
 use std::borrow::Cow;
 use std::fmt;
 use std::fs::File;
@@ -148,17 +150,8 @@ pub fn main_fetch(request: Rc<Request>,
 
     // Step 5
     // TODO this step (CSP port/content blocking)
-    if let Some(port) = request.url().port() {
-        let is_ftp = request.url().scheme() == "ftp" && (port == 20 || port == 21);
-        static BAD_PORTS: [u16; 64] = [1, 7, 9, 11, 13, 15, 17, 19, 20, 21, 22, 23, 25, 37, 42,
-                                       43, 53, 77, 79, 87, 95, 101, 102, 103, 104, 109, 110, 111,
-                                       113, 115, 117, 119, 123, 135, 139, 143, 179, 389, 465, 512,
-                                       513, 514, 515, 526, 530, 531, 532, 540, 556, 563, 587, 601,
-                                       636, 993, 995, 2049, 3659, 4045, 6000, 6665, 6666, 6667,
-                                       6668, 6669];
-        if !is_ftp && BAD_PORTS.binary_search(&port).is_ok() {
-            response = Some(Response::network_error(NetworkError::Internal("Request attempted on bad port".into())));
-        }
+    if should_be_blocked_due_to_bad_port(&request.url()) {
+        response = Some(Response::network_error(NetworkError::Internal("Request attempted on bad port".into())));
     }
 
     // Step 6
@@ -200,7 +193,7 @@ pub fn main_fetch(request: Rc<Request>,
             .read()
             .unwrap()
             .is_host_secure(request.current_url().domain().unwrap()) {
-           request.url_list.borrow_mut().last_mut().unwrap().as_mut_url().unwrap().set_scheme("https").unwrap();
+           request.url_list.borrow_mut().last_mut().unwrap().as_mut_url().set_scheme("https").unwrap();
         }
     }
 
@@ -290,13 +283,14 @@ pub fn main_fetch(request: Rc<Request>,
         // Step 16
         // TODO Blocking for CSP, mixed content, MIME type
         let blocked_error_response;
-        let internal_response = if !response.is_network_error() && should_block_nosniff(&request, &response) {
-            // Defer rebinding result
-            blocked_error_response = Response::network_error(NetworkError::Internal("Blocked by nosniff".into()));
-            &blocked_error_response
-        } else {
-            internal_response
-        };
+        let internal_response =
+            if !response.is_network_error() && should_be_blocked_due_to_nosniff(request.type_, &response.headers) {
+                // Defer rebinding result
+                blocked_error_response = Response::network_error(NetworkError::Internal("Blocked by nosniff".into()));
+                &blocked_error_response
+            } else {
+                internal_response
+            };
 
         // Step 17
         // We check `internal_response` since we did not mutate `response` in the previous step.
@@ -533,7 +527,7 @@ fn is_null_body_status(status: &Option<StatusCode>) -> bool {
 }
 
 /// https://fetch.spec.whatwg.org/#should-response-to-request-be-blocked-due-to-nosniff?
-fn should_block_nosniff(request: &Request, response: &Response) -> bool {
+pub fn should_be_blocked_due_to_nosniff(request_type: Type, response_headers: &Headers) -> bool {
     /// https://fetch.spec.whatwg.org/#x-content-type-options-header
     /// This is needed to parse `X-Content-Type-Options` according to spec,
     /// which requires that we inspect only the first value.
@@ -541,7 +535,7 @@ fn should_block_nosniff(request: &Request, response: &Response) -> bool {
     /// A [unit-like struct](https://doc.rust-lang.org/book/structs.html#unit-like-structs)
     /// is sufficient since a valid header implies that we use `nosniff`.
     #[derive(Debug, Clone, Copy)]
-    struct XContentTypeOptions();
+    struct XContentTypeOptions;
 
     impl Header for XContentTypeOptions {
         fn header_name() -> &'static str {
@@ -553,7 +547,7 @@ fn should_block_nosniff(request: &Request, response: &Response) -> bool {
             raw.first()
                 .and_then(|v| str::from_utf8(v).ok())
                 .and_then(|s| match s.trim().to_lowercase().as_str() {
-                    "nosniff" => Some(XContentTypeOptions()),
+                    "nosniff" => Some(XContentTypeOptions),
                     _ => None
                 })
                 .ok_or(Error::Header)
@@ -566,16 +560,14 @@ fn should_block_nosniff(request: &Request, response: &Response) -> bool {
         }
     }
 
-    match response.headers.get::<XContentTypeOptions>() {
-        None => return false, // Step 1
-        _ => () // Step 2 & 3 are implemented by the XContentTypeOptions struct
-    };
+    // Steps 1-3.
+    if response_headers.get::<XContentTypeOptions>().is_none() {
+        return false;
+    }
 
     // Step 4
     // Note: an invalid MIME type will produce a `None`.
-    let content_type_header = response.headers.get::<ContentType>();
-    // Step 5
-    let type_ = request.type_;
+    let content_type_header = response_headers.get::<ContentType>();
 
     /// https://html.spec.whatwg.org/multipage/#scriptingLanguages
     #[inline]
@@ -604,7 +596,7 @@ fn should_block_nosniff(request: &Request, response: &Response) -> bool {
 
     let text_css: Mime = mime!(Text / Css);
     // Assumes str::starts_with is equivalent to mime::TopLevel
-    return match type_ {
+    return match request_type {
         // Step 6
         Type::Script => {
             match content_type_header {
@@ -622,4 +614,51 @@ fn should_block_nosniff(request: &Request, response: &Response) -> bool {
         // Step 8
         _ => false
     };
+}
+
+/// https://fetch.spec.whatwg.org/#block-bad-port
+pub fn should_be_blocked_due_to_bad_port(url: &ServoUrl) -> bool {
+    // Step 1 is not applicable, this function just takes the URL directly.
+
+    // Step 2.
+    let scheme = url.scheme();
+
+    // Step 3.
+    // If there is no explicit port, this means the default one is used for
+    // the given scheme, and thus this means the request should not be blocked
+    // due to a bad port.
+    let port = if let Some(port) = url.port() { port } else { return false };
+
+    // Step 4.
+    if scheme == "ftp" && (port == 20 || port == 21) {
+        return false;
+    }
+
+
+    // Step 5.
+    if is_network_scheme(scheme) && is_bad_port(port) {
+        return true;
+    }
+
+    // Step 6.
+    false
+}
+
+/// https://fetch.spec.whatwg.org/#network-scheme
+fn is_network_scheme(scheme: &str) -> bool {
+    scheme == "ftp" || scheme == "http" || scheme == "https"
+}
+
+/// https://fetch.spec.whatwg.org/#bad-port
+fn is_bad_port(port: u16) -> bool {
+    static BAD_PORTS: [u16; 64] = [
+        1, 7, 9, 11, 13, 15, 17, 19, 20, 21, 22, 23, 25, 37, 42,
+        43, 53, 77, 79, 87, 95, 101, 102, 103, 104, 109, 110, 111,
+        113, 115, 117, 119, 123, 135, 139, 143, 179, 389, 465, 512,
+        513, 514, 515, 526, 530, 531, 532, 540, 556, 563, 587, 601,
+        636, 993, 995, 2049, 3659, 4045, 6000, 6665, 6666, 6667,
+        6668, 6669
+    ];
+
+    BAD_PORTS.binary_search(&port).is_ok()
 }

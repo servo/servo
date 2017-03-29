@@ -43,7 +43,7 @@ use canvas_traits::CanvasMsg;
 use core::nonzero::NonZero;
 use ipc_channel::ipc::IpcSender;
 use libc::c_void;
-use net_traits::image_cache_thread::PendingImageId;
+use net_traits::image_cache::PendingImageId;
 use script_traits::UntrustedNodeAddress;
 use servo_url::ServoUrl;
 use std::sync::atomic::AtomicIsize;

@@ -10,6 +10,7 @@ name = "webdriver_server"
 path = "lib.rs"
 
 [dependencies]
+base64 = "0.4.1"
 cookie = "0.2.5"
 euclid = "0.11"
 hyper = "0.9.9"

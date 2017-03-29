@@ -9,18 +9,20 @@
 
 use {Atom, Namespace, LocalName};
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
+#[cfg(feature = "gecko")] use context::UpdateAnimationsTasks;
 use data::ElementData;
 use element_state::ElementState;
-use parking_lot::RwLock;
 use properties::{ComputedValues, PropertyDeclarationBlock};
 use selector_parser::{ElementExt, PreExistingComputedValues, PseudoElement};
 use selectors::matching::ElementSelectorFlags;
+use shared_lock::Locked;
 use sink::Push;
 use std::fmt;
 use std::fmt::Debug;
 use std::ops::Deref;
 use std::sync::Arc;
 use stylist::ApplicableDeclarationBlock;
+use thread_state;
 
 pub use style_traits::UnsafeNode;
 
@@ -230,8 +232,8 @@ pub trait PresentationalHintsSynthetizer {
 
 /// The animation rules. The first one is for Animation cascade level, and the second one is for
 /// Transition cascade level.
-pub struct AnimationRules(pub Option<Arc<RwLock<PropertyDeclarationBlock>>>,
-                          pub Option<Arc<RwLock<PropertyDeclarationBlock>>>);
+pub struct AnimationRules(pub Option<Arc<Locked<PropertyDeclarationBlock>>>,
+                          pub Option<Arc<Locked<PropertyDeclarationBlock>>>);
 
 /// The element trait, the main abstraction the style crate acts over.
 pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + PresentationalHintsSynthetizer {
@@ -252,7 +254,7 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
     }
 
     /// Get this element's style attribute.
-    fn style_attribute(&self) -> Option<&Arc<RwLock<PropertyDeclarationBlock>>>;
+    fn style_attribute(&self) -> Option<&Arc<Locked<PropertyDeclarationBlock>>>;
 
     /// Get this element's animation rules.
     fn get_animation_rules(&self, _pseudo: Option<&PseudoElement>) -> AnimationRules {
@@ -261,13 +263,13 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
 
     /// Get this element's animation rule.
     fn get_animation_rule(&self, _pseudo: Option<&PseudoElement>)
-                          -> Option<Arc<RwLock<PropertyDeclarationBlock>>> {
+                          -> Option<Arc<Locked<PropertyDeclarationBlock>>> {
         None
     }
 
     /// Get this element's transition rule.
     fn get_transition_rule(&self, _pseudo: Option<&PseudoElement>)
-                           -> Option<Arc<RwLock<PropertyDeclarationBlock>>> {
+                           -> Option<Arc<Locked<PropertyDeclarationBlock>>> {
         None
     }
 
@@ -304,10 +306,58 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
     /// Only safe to call with exclusive access to the element.
     unsafe fn set_dirty_descendants(&self);
 
+    /// Flag that this element has a descendant for style processing, propagating
+    /// the bit up to the root as needed.
+    ///
+    /// This is _not_ safe to call during the parallel traversal.
+    unsafe fn note_descendants<B: DescendantsBit<Self>>(&self) {
+        debug_assert!(!thread_state::get().is_worker());
+        let mut curr = Some(*self);
+        while curr.is_some() && !B::has(curr.unwrap()) {
+            B::set(curr.unwrap());
+            curr = curr.unwrap().parent_element();
+        }
+
+        // Note: We disable this assertion on servo because of bugs. See the
+        // comment around note_dirty_descendant in layout/wrapper.rs.
+        if cfg!(feature = "gecko") {
+            debug_assert!(self.descendants_bit_is_propagated::<B>());
+        }
+    }
+
+    /// Debug helper to be sure the bit is propagated.
+    fn descendants_bit_is_propagated<B: DescendantsBit<Self>>(&self) -> bool {
+        let mut current = Some(*self);
+        while let Some(el) = current {
+            if !B::has(el) { return false; }
+            current = el.parent_element();
+        }
+
+        true
+    }
+
     /// Flag that this element has no descendant for style processing.
     ///
     /// Only safe to call with exclusive access to the element.
     unsafe fn unset_dirty_descendants(&self);
+
+    /// Similar to the dirty_descendants but for representing a descendant of
+    /// the element needs to be updated in animation-only traversal.
+    fn has_animation_only_dirty_descendants(&self) -> bool {
+        false
+    }
+
+    /// Flag that this element has a descendant for animation-only restyle processing.
+    ///
+    /// Only safe to call with exclusive access to the element.
+    unsafe fn set_animation_only_dirty_descendants(&self) {
+    }
+
+    /// Flag that this element has no descendant for animation-only restyle processing.
+    ///
+    /// Only safe to call with exclusive access to the element.
+    unsafe fn unset_animation_only_dirty_descendants(&self) {
+    }
 
     /// Atomically stores the number of children of this node that we will
     /// need to process during bottom-up traversal.
@@ -348,12 +398,50 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
     /// Returns true if the element has all the specified selector flags.
     fn has_selector_flags(&self, flags: ElementSelectorFlags) -> bool;
 
-    /// Creates a task to update CSS Animations on a given (pseudo-)element.
-    /// Note: Gecko only.
-    fn update_animations(&self, _pseudo: Option<&PseudoElement>);
+    /// Creates a task to update various animation state on a given (pseudo-)element.
+    #[cfg(feature = "gecko")]
+    fn update_animations(&self, _pseudo: Option<&PseudoElement>,
+                         tasks: UpdateAnimationsTasks);
+
+    /// Returns true if the element has relevant animations. Relevant
+    /// animations are those animations that are affecting the element's style
+    /// or are scheduled to do so in the future.
+    fn has_animations(&self, _pseudo: Option<&PseudoElement>) -> bool;
 
     /// Returns true if the element has a CSS animation.
     fn has_css_animations(&self, _pseudo: Option<&PseudoElement>) -> bool;
+
+    /// Returns true if the element has animation restyle hints.
+    fn has_animation_restyle_hints(&self) -> bool {
+        let data = match self.borrow_data() {
+            Some(d) => d,
+            None => return false,
+        };
+        return data.get_restyle()
+                   .map_or(false, |r| r.hint.has_animation_hint());
+    }
+}
+
+/// Trait abstracting over different kinds of dirty-descendants bits.
+pub trait DescendantsBit<E: TElement> {
+    /// Returns true if the Element has the bit.
+    fn has(el: E) -> bool;
+    /// Sets the bit on the Element.
+    unsafe fn set(el: E);
+}
+
+/// Implementation of DescendantsBit for the regular dirty descendants bit.
+pub struct DirtyDescendants;
+impl<E: TElement> DescendantsBit<E> for DirtyDescendants {
+    fn has(el: E) -> bool { el.has_dirty_descendants() }
+    unsafe fn set(el: E) { el.set_dirty_descendants(); }
+}
+
+/// Implementation of DescendantsBit for the animation-only dirty descendants bit.
+pub struct AnimationOnlyDirtyDescendants;
+impl<E: TElement> DescendantsBit<E> for AnimationOnlyDirtyDescendants {
+    fn has(el: E) -> bool { el.has_animation_only_dirty_descendants() }
+    unsafe fn set(el: E) { el.set_animation_only_dirty_descendants(); }
 }
 
 /// TNode and TElement aren't Send because we want to be careful and explicit

@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use html5ever_atoms::LocalName;
-use parking_lot::RwLock;
 use selectors::parser::LocalName as LocalNameSelector;
 use servo_atoms::Atom;
 use std::sync::Arc;
@@ -11,40 +10,43 @@ use style::properties::{PropertyDeclarationBlock, PropertyDeclaration};
 use style::properties::{longhands, Importance};
 use style::rule_tree::CascadeLevel;
 use style::selector_parser::SelectorParser;
+use style::shared_lock::SharedRwLock;
 use style::stylesheets::StyleRule;
 use style::stylist::{Rule, SelectorMap};
 use style::thread_state;
 
 /// Helper method to get some Rules from selector strings.
 /// Each sublist of the result contains the Rules for one StyleRule.
-fn get_mock_rules(css_selectors: &[&str]) -> Vec<Vec<Rule>> {
-    css_selectors.iter().enumerate().map(|(i, selectors)| {
+fn get_mock_rules(css_selectors: &[&str]) -> (Vec<Vec<Rule>>, SharedRwLock) {
+    let shared_lock = SharedRwLock::new();
+    (css_selectors.iter().enumerate().map(|(i, selectors)| {
         let selectors = SelectorParser::parse_author_origin_no_namespace(selectors).unwrap();
 
-        let rule = Arc::new(RwLock::new(StyleRule {
+        let locked = Arc::new(shared_lock.wrap(StyleRule {
             selectors: selectors,
-            block: Arc::new(RwLock::new(PropertyDeclarationBlock::with_one(
+            block: Arc::new(shared_lock.wrap(PropertyDeclarationBlock::with_one(
                 PropertyDeclaration::Display(
                     longhands::display::SpecifiedValue::block),
                 Importance::Normal
             ))),
         }));
 
-        let guard = rule.read();
-        guard.selectors.0.iter().map(|s| {
+        let guard = shared_lock.read();
+        let rule = locked.read_with(&guard);
+        rule.selectors.0.iter().map(|s| {
             Rule {
                 selector: s.complex_selector.clone(),
-                style_rule: rule.clone(),
+                style_rule: locked.clone(),
                 specificity: s.specificity,
                 source_order: i,
             }
         }).collect()
-    }).collect()
+    }).collect(), shared_lock)
 }
 
-fn get_mock_map(selectors: &[&str]) -> SelectorMap {
+fn get_mock_map(selectors: &[&str]) -> (SelectorMap, SharedRwLock) {
     let mut map = SelectorMap::new();
-    let selector_rules = get_mock_rules(selectors);
+    let (selector_rules, shared_lock) = get_mock_rules(selectors);
 
     for rules in selector_rules.into_iter() {
         for rule in rules.into_iter() {
@@ -52,12 +54,12 @@ fn get_mock_map(selectors: &[&str]) -> SelectorMap {
         }
     }
 
-    map
+    (map, shared_lock)
 }
 
 #[test]
 fn test_rule_ordering_same_specificity() {
-    let rules_list = get_mock_rules(&["a.intro", "img.sidebar"]);
+    let (rules_list, _) = get_mock_rules(&["a.intro", "img.sidebar"]);
     let a = &rules_list[0][0];
     let b = &rules_list[1][0];
     assert!((a.specificity, a.source_order) < ((b.specificity, b.source_order)),
@@ -67,21 +69,21 @@ fn test_rule_ordering_same_specificity() {
 
 #[test]
 fn test_get_id_name() {
-    let rules_list = get_mock_rules(&[".intro", "#top"]);
+    let (rules_list, _) = get_mock_rules(&[".intro", "#top"]);
     assert_eq!(SelectorMap::get_id_name(&rules_list[0][0]), None);
     assert_eq!(SelectorMap::get_id_name(&rules_list[1][0]), Some(Atom::from("top")));
 }
 
 #[test]
 fn test_get_class_name() {
-    let rules_list = get_mock_rules(&[".intro.foo", "#top"]);
+    let (rules_list, _) = get_mock_rules(&[".intro.foo", "#top"]);
     assert_eq!(SelectorMap::get_class_name(&rules_list[0][0]), Some(Atom::from("intro")));
     assert_eq!(SelectorMap::get_class_name(&rules_list[1][0]), None);
 }
 
 #[test]
 fn test_get_local_name() {
-    let rules_list = get_mock_rules(&["img.foo", "#top", "IMG", "ImG"]);
+    let (rules_list, _) = get_mock_rules(&["img.foo", "#top", "IMG", "ImG"]);
     let check = |i: usize, names: Option<(&str, &str)>| {
         assert!(SelectorMap::get_local_name(&rules_list[i][0])
                 == names.map(|(name, lower_name)| LocalNameSelector {
@@ -96,7 +98,7 @@ fn test_get_local_name() {
 
 #[test]
 fn test_insert() {
-    let rules_list = get_mock_rules(&[".intro.foo", "#top"]);
+    let (rules_list, _) = get_mock_rules(&[".intro.foo", "#top"]);
     let mut selector_map = SelectorMap::new();
     selector_map.insert(rules_list[1][0].clone());
     assert_eq!(1, selector_map.id_hash.get(&Atom::from("top")).unwrap()[0].source_order);
@@ -108,10 +110,11 @@ fn test_insert() {
 #[test]
 fn test_get_universal_rules() {
     thread_state::initialize(thread_state::LAYOUT);
-    let map = get_mock_map(&["*|*", "#foo > *|*", ".klass", "#id"]);
+    let (map, shared_lock) = get_mock_map(&["*|*", "#foo > *|*", ".klass", "#id"]);
 
-    let decls = map.get_universal_rules(CascadeLevel::UserNormal,
-                                        CascadeLevel::UserImportant);
+    let guard = shared_lock.read();
+    let decls = map.get_universal_rules(
+        &guard, CascadeLevel::UserNormal, CascadeLevel::UserImportant);
 
     assert_eq!(decls.len(), 1);
 }

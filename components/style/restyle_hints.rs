@@ -47,10 +47,15 @@ bitflags! {
         /// of their descendants.
         const RESTYLE_LATER_SIBLINGS = 0x08,
 
+        /// Replace the style data coming from CSS animations without updating
+        /// any other style data. This hint is only processed in animation-only
+        /// traversal which is prior to normal traversal.
+        const RESTYLE_CSS_ANIMATIONS = 0x20,
+
         /// Don't re-run selector-matching on the element, only the style
         /// attribute has changed, and this change didn't have any other
         /// dependencies.
-        const RESTYLE_STYLE_ATTRIBUTE = 0x80,
+        const RESTYLE_STYLE_ATTRIBUTE = 0x40,
     }
 }
 
@@ -81,6 +86,7 @@ pub fn assert_restyle_hints_match() {
         // (RESTYLE_SELF | RESTYLE_DESCENDANTS).
         nsRestyleHint_eRestyle_Subtree => RESTYLE_DESCENDANTS,
         nsRestyleHint_eRestyle_LaterSiblings => RESTYLE_LATER_SIBLINGS,
+        nsRestyleHint_eRestyle_CSSAnimations => RESTYLE_CSS_ANIMATIONS,
         nsRestyleHint_eRestyle_StyleAttribute => RESTYLE_STYLE_ATTRIBUTE,
     }
 }
@@ -89,7 +95,7 @@ impl RestyleHint {
     /// The subset hints that affect the styling of a single element during the
     /// traversal.
     pub fn for_self() -> Self {
-        RESTYLE_SELF | RESTYLE_STYLE_ATTRIBUTE
+        RESTYLE_SELF | RESTYLE_STYLE_ATTRIBUTE | RESTYLE_CSS_ANIMATIONS
     }
 }
 
@@ -269,17 +275,25 @@ impl<'a, E> MatchAttr for ElementWrapper<'a, E>
 impl<'a, E> Element for ElementWrapper<'a, E>
     where E: TElement,
 {
-    fn match_non_ts_pseudo_class(&self,
-                                 pseudo_class: &NonTSPseudoClass,
-                                 relations: &mut StyleRelations,
-                                 flags: &mut ElementSelectorFlags) -> bool {
+    fn match_non_ts_pseudo_class<F>(&self,
+                                    pseudo_class: &NonTSPseudoClass,
+                                    relations: &mut StyleRelations,
+                                    _: &mut F)
+                                    -> bool
+        where F: FnMut(&Self, ElementSelectorFlags),
+    {
         let flag = SelectorImpl::pseudo_class_state_flag(pseudo_class);
-        if flag == ElementState::empty() {
-            self.element.match_non_ts_pseudo_class(pseudo_class, relations, flags)
-        } else {
-            match self.snapshot.and_then(|s| s.state()) {
-                Some(snapshot_state) => snapshot_state.contains(flag),
-                _   => self.element.match_non_ts_pseudo_class(pseudo_class, relations, flags)
+        if flag.is_empty() {
+            return self.element.match_non_ts_pseudo_class(pseudo_class,
+                                                          relations,
+                                                          &mut |_, _| {})
+        }
+        match self.snapshot.and_then(|s| s.state()) {
+            Some(snapshot_state) => snapshot_state.contains(flag),
+            None => {
+                self.element.match_non_ts_pseudo_class(pseudo_class,
+                                                       relations,
+                                                       &mut |_, _| {})
             }
         }
     }
@@ -350,7 +364,8 @@ impl<'a, E> Element for ElementWrapper<'a, E>
     }
 }
 
-/// Returns the union of any `ElementState` flags for components of a `ComplexSelector`
+/// Returns the union of any `ElementState` flags for components of a
+/// `ComplexSelector`.
 pub fn complex_selector_to_state(sel: &ComplexSelector<SelectorImpl>) -> ElementState {
     sel.compound_selector.iter().fold(ElementState::empty(), |state, s| {
         state | selector_to_state(s)
@@ -360,6 +375,11 @@ pub fn complex_selector_to_state(sel: &ComplexSelector<SelectorImpl>) -> Element
 fn selector_to_state(sel: &SimpleSelector<SelectorImpl>) -> ElementState {
     match *sel {
         SimpleSelector::NonTSPseudoClass(ref pc) => SelectorImpl::pseudo_class_state_flag(pc),
+        SimpleSelector::Negation(ref negated) => {
+            negated.iter().fold(ElementState::empty(), |state, s| {
+                state | complex_selector_to_state(s)
+            })
+        }
         _ => ElementState::empty(),
     }
 }
@@ -494,6 +514,15 @@ impl DependencySet {
                 if !sensitivities.attrs {
                     sensitivities.attrs = is_attr_selector(s);
                 }
+
+                // NOTE(emilio): I haven't thought this thoroughly, but we may
+                // not need to do anything for combinators inside negations.
+                //
+                // Or maybe we do, and need to call note_selector recursively
+                // here to account for them correctly, but keep the
+                // sensitivities of the parent?
+                //
+                // In any case, perhaps we should just drop it, see bug 1348802.
             }
             if !sensitivities.is_empty() {
                 self.add_dependency(Dependency {
@@ -581,11 +610,11 @@ impl DependencySet {
                 let matched_then =
                     matches_complex_selector(&dep.selector, snapshot, None,
                                              &mut StyleRelations::empty(),
-                                             &mut ElementSelectorFlags::empty());
+                                             &mut |_, _| {});
                 let matches_now =
                     matches_complex_selector(&dep.selector, element, None,
                                              &mut StyleRelations::empty(),
-                                             &mut ElementSelectorFlags::empty());
+                                             &mut |_, _| {});
                 if matched_then != matches_now {
                     hint.insert(dep.hint);
                 }

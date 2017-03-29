@@ -55,7 +55,7 @@ fn test_linear_gradient() {
         font_metrics_provider: None,
     };
     assert_eq!(specified::AngleOrCorner::None.to_computed_value(&specified_context),
-               computed::AngleOrCorner::Angle(Angle(PI)));
+               computed::AngleOrCorner::Angle(Angle::from_radians(PI)));
 }
 
 #[test]

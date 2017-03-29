@@ -28,7 +28,11 @@ pub struct ImageData {
 
 impl ImageData {
     #[allow(unsafe_code)]
-    pub fn new(global: &GlobalScope, width: u32, height: u32, mut data: Option<Vec<u8>>) -> Root<ImageData> {
+    pub fn new(global: &GlobalScope,
+               width: u32,
+               height: u32,
+               mut data: Option<Vec<u8>>)
+               -> Fallible<Root<ImageData>> {
         let len = width * height * 4;
         unsafe {
             let cx = global.get_cx();
@@ -41,7 +45,7 @@ impl ImageData {
                 None => CreateWith::Length(len),
             };
             Uint8ClampedArray::create(cx, data, js_object.handle_mut()).unwrap();
-            Self::new_with_jsobject(global, width, Some(height), Some(js_object.get())).unwrap()
+            Self::new_with_jsobject(global, width, Some(height), Some(js_object.get()))
         }
     }
 

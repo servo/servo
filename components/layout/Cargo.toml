@@ -40,7 +40,7 @@ servo_geometry = {path = "../geometry"}
 serde_json = "0.9"
 servo_config = {path = "../config"}
 servo_url = {path = "../url"}
-smallvec = "0.1"
+smallvec = "0.3"
 style = {path = "../style"}
 style_traits = {path = "../style_traits"}
 unicode-bidi = "0.2"

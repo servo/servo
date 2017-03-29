@@ -10,7 +10,7 @@
                    spec="https://drafts.csswg.org/css2/visudet.html#propdef-line-height">
     use std::fmt;
     use style_traits::ToCss;
-    use values::{CSSFloat, HasViewportPercentage};
+    use values::HasViewportPercentage;
 
     impl HasViewportPercentage for SpecifiedValue {
         fn has_viewport_percentage(&self) -> bool {
@@ -28,7 +28,7 @@
         % if product == "gecko":
             MozBlockHeight,
         % endif
-        Number(CSSFloat),
+        Number(specified::Number),
         LengthOrPercentage(specified::LengthOrPercentage),
     }
 
@@ -40,7 +40,7 @@
                     SpecifiedValue::MozBlockHeight => dest.write_str("-moz-block-height"),
                 % endif
                 SpecifiedValue::LengthOrPercentage(ref value) => value.to_css(dest),
-                SpecifiedValue::Number(number) => write!(dest, "{}", number),
+                SpecifiedValue::Number(number) => number.to_css(dest),
             }
         }
     }
@@ -52,24 +52,24 @@
         // parsed as a plain Number rather than a Length (0px); this matches the behaviour
         // of all major browsers
         input.try(specified::Number::parse_non_negative)
-        .map(|n| SpecifiedValue::Number(n.0))
-        .or_else(|()| {
-            input.try(specified::LengthOrPercentage::parse_non_negative)
-            .map(SpecifiedValue::LengthOrPercentage)
+            .map(SpecifiedValue::Number)
             .or_else(|()| {
-                match try!(input.next()) {
-                    Token::Ident(ref value) if value.eq_ignore_ascii_case("normal") => {
-                        Ok(SpecifiedValue::Normal)
+                input.try(specified::LengthOrPercentage::parse_non_negative)
+                .map(SpecifiedValue::LengthOrPercentage)
+                .or_else(|()| {
+                    match try!(input.next()) {
+                        Token::Ident(ref value) if value.eq_ignore_ascii_case("normal") => {
+                            Ok(SpecifiedValue::Normal)
+                        }
+                        % if product == "gecko":
+                        Token::Ident(ref value) if value.eq_ignore_ascii_case("-moz-block-height") => {
+                            Ok(SpecifiedValue::MozBlockHeight)
+                        }
+                        % endif
+                        _ => Err(()),
                     }
-                    % if product == "gecko":
-                    Token::Ident(ref value) if value.eq_ignore_ascii_case("-moz-block-height") => {
-                        Ok(SpecifiedValue::MozBlockHeight)
-                    }
-                    % endif
-                    _ => Err(()),
-                }
+                })
             })
-        })
     }
     pub mod computed_value {
         use app_units::Au;
@@ -116,7 +116,7 @@
                 % if product == "gecko":
                     SpecifiedValue::MozBlockHeight => computed_value::T::MozBlockHeight,
                 % endif
-                SpecifiedValue::Number(value) => computed_value::T::Number(value),
+                SpecifiedValue::Number(value) => computed_value::T::Number(value.to_computed_value(context)),
                 SpecifiedValue::LengthOrPercentage(ref value) => {
                     match *value {
                         specified::LengthOrPercentage::Length(ref value) =>
@@ -144,7 +144,9 @@
                 % if product == "gecko":
                     computed_value::T::MozBlockHeight => SpecifiedValue::MozBlockHeight,
                 % endif
-                computed_value::T::Number(value) => SpecifiedValue::Number(value),
+                computed_value::T::Number(ref value) => {
+                    SpecifiedValue::Number(specified::Number::from_computed_value(value))
+                },
                 computed_value::T::Length(au) => {
                     SpecifiedValue::LengthOrPercentage(specified::LengthOrPercentage::Length(
                         ToComputedValue::from_computed_value(&au)
@@ -168,6 +170,13 @@ ${helpers.single_keyword("hyphens", "manual none auto",
                          gecko_enum_prefix="StyleHyphens",
                          products="gecko", animatable=False, extra_prefixes="moz",
                          spec="https://drafts.csswg.org/css-text/#propdef-hyphens")}
+
+// TODO: Support <percentage>
+${helpers.single_keyword("-moz-text-size-adjust", "auto none",
+                         gecko_constant_prefix="NS_STYLE_TEXT_SIZE_ADJUST",
+                         products="gecko", animatable=False,
+                         spec="https://drafts.csswg.org/css-size-adjust/#adjustment-control",
+                         alias="-webkit-text-size-adjust")}
 
 ${helpers.predefined_type("text-indent",
                           "LengthOrPercentage",
@@ -308,7 +317,7 @@ ${helpers.single_keyword("text-align-last",
 </%helpers:longhand>
 
 // FIXME: This prop should be animatable.
-<%helpers:longhand name="letter-spacing" animatable="False"
+<%helpers:longhand name="letter-spacing" boxed="True" animatable="False"
                    spec="https://drafts.csswg.org/css-text/#propdef-letter-spacing">
     use std::fmt;
     use style_traits::ToCss;
@@ -811,7 +820,7 @@ ${helpers.single_keyword("text-align-last",
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="text-emphasis-style" products="gecko" need_clone="True" animatable="False"
+<%helpers:longhand name="text-emphasis-style" products="gecko" need_clone="True" boxed="True" animatable="False"
                    spec="https://drafts.csswg.org/css-text-decor/#propdef-text-emphasis-style">
     use computed_values::writing_mode::T as writing_mode;
     use std::fmt;
@@ -1081,7 +1090,7 @@ ${helpers.predefined_type(
     "-moz-tab-size", "LengthOrNumber",
     "::values::Either::Second(8.0)",
     "parse_non_negative",
-    products="gecko", animatable=False,
+    products="gecko", boxed=True, animatable=False,
     spec="https://drafts.csswg.org/css-text-3/#tab-size-property")}
 
 
@@ -1102,7 +1111,7 @@ ${helpers.predefined_type(
     complex_color=True, need_clone=True,
     spec="https://compat.spec.whatwg.org/#the-webkit-text-stroke-color")}
 
-<%helpers:longhand products="gecko" name="-webkit-text-stroke-width" animatable="False"
+<%helpers:longhand products="gecko" name="-webkit-text-stroke-width" boxed="True" animatable="False"
                    spec="https://compat.spec.whatwg.org/#the-webkit-text-stroke-width">
     use app_units::Au;
     use std::fmt;

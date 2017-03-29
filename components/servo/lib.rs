@@ -82,7 +82,6 @@ use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
 use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::ipc::{self, IpcSender};
 use log::{Log, LogMetadata, LogRecord};
-use net::image_cache_thread::new_image_cache_thread;
 use net::resource_thread::new_resource_threads;
 use net_traits::IpcSend;
 use profile::mem as profile_mem;
@@ -177,7 +176,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
             let framebuffer_size = webrender_traits::DeviceUintSize::new(framebuffer_size.width,
                                                                          framebuffer_size.height);
 
-            webrender::Renderer::new(webrender::RendererOptions {
+            webrender::Renderer::new(window.gl(), webrender::RendererOptions {
                 device_pixel_ratio: device_pixel_ratio,
                 resource_override_path: Some(resource_path),
                 enable_aa: opts.enable_text_antialiasing,
@@ -242,6 +241,10 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
         self.compositor.handle_events(events)
     }
 
+    pub fn set_webrender_profiler_enabled(&mut self, enabled: bool) {
+        self.compositor.set_webrender_profiler_enabled(enabled);
+    }
+
     pub fn repaint_synchronously(&mut self) {
         self.compositor.repaint_synchronously()
     }
@@ -286,7 +289,6 @@ fn create_constellation(user_agent: Cow<'static, str>,
                              devtools_chan.clone(),
                              time_profiler_chan.clone(),
                              config_dir);
-    let image_cache_thread = new_image_cache_thread(webrender_api_sender.create_api());
     let font_cache_thread = FontCacheThread::new(public_resource_threads.sender(),
                                                  Some(webrender_api_sender.create_api()));
 
@@ -297,7 +299,6 @@ fn create_constellation(user_agent: Cow<'static, str>,
         debugger_chan: debugger_chan,
         devtools_chan: devtools_chan,
         bluetooth_thread: bluetooth_thread,
-        image_cache_thread: image_cache_thread,
         font_cache_thread: font_cache_thread,
         public_resource_threads: public_resource_threads,
         private_resource_threads: private_resource_threads,

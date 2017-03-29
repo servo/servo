@@ -446,7 +446,7 @@ fn translate_including_floats(cur_b: &mut Au, delta: Au, floats: &mut Floats) {
 ///
 /// Note that flows with position 'fixed' just form a flat list as they all
 /// have the Root flow as their CB.
-pub struct AbsoluteAssignBSizesTraversal<'a>(pub &'a SharedStyleContext);
+pub struct AbsoluteAssignBSizesTraversal<'a>(pub &'a SharedStyleContext<'a>);
 
 impl<'a> PreorderFlowTraversal for AbsoluteAssignBSizesTraversal<'a> {
     #[inline]
@@ -2233,10 +2233,11 @@ impl Flow for BlockFlow {
 
     fn compute_overflow(&self) -> Overflow {
         let flow_size = self.base.position.size.to_physical(self.base.writing_mode);
-        self.fragment.compute_overflow(&flow_size,
+        let overflow = self.fragment.compute_overflow(&flow_size,
                                        &self.base
                                             .early_absolute_position_info
-                                            .relative_containing_block_size)
+                                            .relative_containing_block_size);
+        overflow
     }
 
     fn iterate_through_fragment_border_boxes(&self,

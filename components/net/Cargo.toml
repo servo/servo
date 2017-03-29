@@ -10,6 +10,7 @@ name = "net"
 path = "lib.rs"
 
 [dependencies]
+base64 = "0.4.1"
 brotli = "1.0.6"
 cookie = "0.2.5"
 devtools_traits = {path = "../devtools_traits"}
@@ -27,7 +28,6 @@ net_traits = {path = "../net_traits"}
 openssl = "0.7.6"
 openssl-verify = "0.1"
 profile_traits = {path = "../profile_traits"}
-rustc-serialize = "0.3"
 serde = "0.9"
 serde_derive = "0.9"
 serde_json = "0.9"

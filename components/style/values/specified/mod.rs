@@ -13,12 +13,13 @@ use parser::{ParserContext, Parse};
 use self::grid::{TrackBreadth as GenericTrackBreadth, TrackSize as GenericTrackSize};
 use self::url::SpecifiedUrl;
 use std::ascii::AsciiExt;
+use std::f32;
 use std::f32::consts::PI;
 use std::fmt;
 use std::ops::Mul;
 use style_traits::ToCss;
-use super::{Auto, CSSFloat, HasViewportPercentage, Either, None_};
-use super::computed::{ComputedValueAsSpecified, Context};
+use super::{Auto, CSSFloat, CSSInteger, HasViewportPercentage, Either, None_};
+use super::computed::{self, Context};
 use super::computed::{Shadow as ComputedShadow, ToComputedValue};
 
 #[cfg(feature = "gecko")]
@@ -26,8 +27,8 @@ pub use self::align::{AlignItems, AlignJustifyContent, AlignJustifySelf, Justify
 pub use self::color::Color;
 pub use self::grid::{GridLine, TrackKeyword};
 pub use self::image::{AngleOrCorner, ColorStop, EndingShape as GradientEndingShape, Gradient};
-pub use self::image::{GradientKind, HorizontalDirection, Image, LengthOrKeyword, LengthOrPercentageOrKeyword};
-pub use self::image::{SizeKeyword, VerticalDirection};
+pub use self::image::{GradientKind, HorizontalDirection, Image, ImageRect, LengthOrKeyword};
+pub use self::image::{LengthOrPercentageOrKeyword, SizeKeyword, VerticalDirection};
 pub use self::length::{FontRelativeLength, ViewportPercentageLength, CharacterWidth, Length, CalcLengthOrPercentage};
 pub use self::length::{Percentage, LengthOrNone, LengthOrNumber, LengthOrPercentage, LengthOrPercentageOrAuto};
 pub use self::length::{LengthOrPercentageOrNone, LengthOrPercentageOrAutoOrContent, NoCalcLength, CalcUnit};
@@ -42,7 +43,33 @@ pub mod grid;
 pub mod image;
 pub mod length;
 pub mod position;
-pub mod url;
+
+/// Common handling for the specified value CSS url() values.
+pub mod url {
+use cssparser::Parser;
+use parser::{Parse, ParserContext};
+use values::HasViewportPercentage;
+use values::computed::ComputedValueAsSpecified;
+
+#[cfg(feature = "servo")]
+pub use ::servo::url::*;
+#[cfg(feature = "gecko")]
+pub use ::gecko::url::*;
+
+impl Parse for SpecifiedUrl {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        let url = try!(input.expect_url());
+        Self::parse_from_string(url, context)
+    }
+}
+
+impl Eq for SpecifiedUrl {}
+
+// TODO(emilio): Maybe consider ComputedUrl to save a word in style structs?
+impl ComputedValueAsSpecified for SpecifiedUrl {}
+
+no_viewport_percentage!(SpecifiedUrl);
+}
 
 no_viewport_percentage!(i32);  // For PropertyDeclaration::Order
 
@@ -140,8 +167,8 @@ impl<'a> Mul<CSSFloat> for &'a SimplifiedSumNode {
 #[allow(missing_docs)]
 pub enum SimplifiedValueNode {
     Length(NoCalcLength),
-    Angle(Angle),
-    Time(Time),
+    Angle(CSSFloat),
+    Time(CSSFloat),
     Percentage(CSSFloat),
     Number(CSSFloat),
     Sum(Box<SimplifiedSumNode>),
@@ -153,38 +180,50 @@ impl<'a> Mul<CSSFloat> for &'a SimplifiedValueNode {
     #[inline]
     fn mul(self, scalar: CSSFloat) -> SimplifiedValueNode {
         match *self {
-            SimplifiedValueNode::Length(ref l) => SimplifiedValueNode::Length(l.clone() * scalar),
-            SimplifiedValueNode::Percentage(p) => SimplifiedValueNode::Percentage(p * scalar),
-            SimplifiedValueNode::Angle(Angle(a)) => SimplifiedValueNode::Angle(Angle(a * scalar)),
-            SimplifiedValueNode::Time(Time(t)) => SimplifiedValueNode::Time(Time(t * scalar)),
-            SimplifiedValueNode::Number(n) => SimplifiedValueNode::Number(n * scalar),
+            SimplifiedValueNode::Length(ref l) => {
+                SimplifiedValueNode::Length(l.clone() * scalar)
+            },
+            SimplifiedValueNode::Percentage(p) => {
+                SimplifiedValueNode::Percentage(p * scalar)
+            },
+            SimplifiedValueNode::Angle(a) => {
+                SimplifiedValueNode::Angle(a * scalar)
+            },
+            SimplifiedValueNode::Time(t) => {
+                SimplifiedValueNode::Time(t * scalar)
+            },
+            SimplifiedValueNode::Number(n) => {
+                SimplifiedValueNode::Number(n * scalar)
+            },
             SimplifiedValueNode::Sum(ref s) => {
                 let sum = &**s * scalar;
                 SimplifiedValueNode::Sum(Box::new(sum))
-            }
+            },
         }
     }
 }
 
 #[allow(missing_docs)]
-pub fn parse_integer(input: &mut Parser) -> Result<i32, ()> {
+pub fn parse_integer(input: &mut Parser) -> Result<Integer, ()> {
     match try!(input.next()) {
-        Token::Number(ref value) => value.int_value.ok_or(()),
+        Token::Number(ref value) => value.int_value.ok_or(()).map(Integer::new),
         Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-            let ast = try!(input.parse_nested_block(|i| CalcLengthOrPercentage::parse_sum(i, CalcUnit::Integer)));
+            let ast = try!(input.parse_nested_block(|i| {
+                CalcLengthOrPercentage::parse_sum(i, CalcUnit::Integer)
+            }));
 
             let mut result = None;
 
             for ref node in ast.products {
                 match try!(CalcLengthOrPercentage::simplify_product(node)) {
                     SimplifiedValueNode::Number(val) =>
-                        result = Some(result.unwrap_or(0) + val as i32),
+                        result = Some(result.unwrap_or(0) + val as CSSInteger),
                     _ => unreachable!()
                 }
             }
 
             match result {
-                Some(result) => Ok(result),
+                Some(result) => Ok(Integer::from_calc(result)),
                 _ => Err(())
             }
         }
@@ -193,9 +232,14 @@ pub fn parse_integer(input: &mut Parser) -> Result<i32, ()> {
 }
 
 #[allow(missing_docs)]
-pub fn parse_number(input: &mut Parser) -> Result<f32, ()> {
+pub fn parse_number(input: &mut Parser) -> Result<Number, ()> {
     match try!(input.next()) {
-        Token::Number(ref value) => Ok(value.value),
+        Token::Number(ref value) => {
+            Ok(Number {
+                value: value.value.min(f32::MAX).max(f32::MIN),
+                was_calc: false,
+            })
+        },
         Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
             let ast = try!(input.parse_nested_block(|i| CalcLengthOrPercentage::parse_sum(i, CalcUnit::Number)));
 
@@ -210,7 +254,12 @@ pub fn parse_number(input: &mut Parser) -> Result<f32, ()> {
             }
 
             match result {
-                Some(result) => Ok(result),
+                Some(result) => {
+                    Ok(Number {
+                        value: result.min(f32::MAX).max(f32::MIN),
+                        was_calc: true,
+                    })
+                },
                 _ => Err(())
             }
         }
@@ -264,11 +313,36 @@ impl ToCss for BorderRadiusSize {
 #[derive(Clone, PartialEq, PartialOrd, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
 /// An angle, normalized to radians.
-pub struct Angle(pub CSSFloat);
+pub struct Angle {
+    radians: CSSFloat,
+    was_calc: bool,
+}
 
 impl ToCss for Angle {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        write!(dest, "{}rad", self.0)
+        if self.was_calc {
+            dest.write_str("calc(")?;
+        }
+        write!(dest, "{}rad", self.radians)?;
+        if self.was_calc {
+            dest.write_str(")")?;
+        }
+        Ok(())
+    }
+}
+
+impl ToComputedValue for Angle {
+    type ComputedValue = computed::Angle;
+
+    fn to_computed_value(&self, _context: &Context) -> Self::ComputedValue {
+        computed::Angle::from_radians(self.radians())
+    }
+
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        Angle {
+            radians: computed.radians(),
+            was_calc: false,
+        }
     }
 }
 
@@ -276,13 +350,29 @@ impl Angle {
     #[inline]
     #[allow(missing_docs)]
     pub fn radians(self) -> f32 {
-        self.0
+        self.radians
+    }
+
+    /// Returns an angle value that represents zero radians.
+    pub fn zero() -> Self {
+        Self::from_radians(0.0)
     }
 
     #[inline]
     #[allow(missing_docs)]
     pub fn from_radians(r: f32) -> Self {
-        Angle(r)
+        Angle {
+            radians: r.min(f32::MAX).max(f32::MIN),
+            was_calc: false,
+        }
+    }
+
+    /// Returns an `Angle` parsed from a `calc()` expression.
+    pub fn from_calc(radians: CSSFloat) -> Self {
+        Angle {
+            radians: radians.min(f32::MAX).max(f32::MIN),
+            was_calc: true,
+        }
     }
 }
 
@@ -295,7 +385,7 @@ impl Parse for Angle {
     fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         match try!(input.next()) {
             Token::Dimension(ref value, ref unit) => Angle::parse_dimension(value.value, unit),
-            Token::Number(ref value) if value.value == 0. => Ok(Angle(0.)),
+            Token::Number(ref value) if value.value == 0. => Ok(Angle::zero()),
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
                 input.parse_nested_block(CalcLengthOrPercentage::parse_angle)
             },
@@ -307,13 +397,15 @@ impl Parse for Angle {
 impl Angle {
     #[allow(missing_docs)]
     pub fn parse_dimension(value: CSSFloat, unit: &str) -> Result<Angle, ()> {
-        match_ignore_ascii_case! { unit,
-            "deg" => Ok(Angle(value * RAD_PER_DEG)),
-            "grad" => Ok(Angle(value * RAD_PER_GRAD)),
-            "turn" => Ok(Angle(value * RAD_PER_TURN)),
-            "rad" => Ok(Angle(value)),
-             _ => Err(())
-        }
+        let radians = match_ignore_ascii_case! { unit,
+            "deg" => value * RAD_PER_DEG,
+            "grad" => value * RAD_PER_GRAD,
+            "turn" => value * RAD_PER_TURN,
+            "rad" => value,
+             _ => return Err(())
+        };
+
+        Ok(Angle::from_radians(radians))
     }
 }
 
@@ -444,28 +536,67 @@ impl BorderStyle {
 /// A time in seconds according to CSS-VALUES § 6.2.
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub struct Time(pub CSSFloat);
+pub struct Time {
+    seconds: CSSFloat,
+    was_calc: bool,
+}
 
 impl Time {
+    /// Return a `<time>` value that represents `seconds` seconds.
+    pub fn from_seconds(seconds: CSSFloat) -> Self {
+        Time {
+            seconds: seconds,
+            was_calc: false,
+        }
+    }
+
+    /// Returns a time that represents a duration of zero.
+    pub fn zero() -> Self {
+        Self::from_seconds(0.0)
+    }
+
     /// Returns the time in fractional seconds.
-    pub fn seconds(self) -> f32 {
-        let Time(seconds) = self;
-        seconds
+    pub fn seconds(self) -> CSSFloat {
+        self.seconds
     }
 
     /// Parses a time according to CSS-VALUES § 6.2.
     fn parse_dimension(value: CSSFloat, unit: &str) -> Result<Time, ()> {
-        if unit.eq_ignore_ascii_case("s") {
-            Ok(Time(value))
-        } else if unit.eq_ignore_ascii_case("ms") {
-            Ok(Time(value / 1000.0))
-        } else {
-            Err(())
+        let seconds = match_ignore_ascii_case! { unit,
+            "s" => value,
+            "ms" => value / 1000.0,
+            _ => return Err(()),
+        };
+
+        Ok(Time {
+            seconds: seconds,
+            was_calc: false,
+        })
+    }
+
+    /// Returns a `Time` value from a CSS `calc()` expression.
+    pub fn from_calc(seconds: CSSFloat) -> Self {
+        Time {
+            seconds: seconds,
+            was_calc: true,
         }
     }
 }
 
-impl ComputedValueAsSpecified for Time {}
+impl ToComputedValue for Time {
+    type ComputedValue = computed::Time;
+
+    fn to_computed_value(&self, _context: &Context) -> Self::ComputedValue {
+        computed::Time::from_seconds(self.seconds())
+    }
+
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        Time {
+            seconds: computed.seconds(),
+            was_calc: false,
+        }
+    }
+}
 
 impl Parse for Time {
     fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
@@ -483,28 +614,50 @@ impl Parse for Time {
 
 impl ToCss for Time {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        write!(dest, "{}s", self.0)
+        if self.was_calc {
+            dest.write_str("calc(")?;
+        }
+        write!(dest, "{}s", self.seconds)?;
+        if self.was_calc {
+            dest.write_str(")")?;
+        }
+        Ok(())
     }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
-pub struct Number(pub CSSFloat);
+pub struct Number {
+    /// The numeric value itself.
+    pub value: CSSFloat,
+    /// Whether this came from a `calc()` expression. This is needed for
+    /// serialization purposes, since `calc(1)` should still serialize to
+    /// `calc(1)`, not just `1`.
+    was_calc: bool,
+}
 
 no_viewport_percentage!(Number);
 
 impl Parse for Number {
     fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        parse_number(input).map(Number)
+        parse_number(input)
     }
 }
 
 impl Number {
     fn parse_with_minimum(input: &mut Parser, min: CSSFloat) -> Result<Number, ()> {
         match parse_number(input) {
-            Ok(value) if value < min => Err(()),
-            value => value.map(Number),
+            Ok(value) if value.value >= min => Ok(value),
+            _ => Err(()),
+        }
+    }
+
+    /// Returns a new number with the value `val`.
+    pub fn new(val: CSSFloat) -> Self {
+        Number {
+            value: val,
+            was_calc: false,
         }
     }
 
@@ -523,24 +676,67 @@ impl ToComputedValue for Number {
     type ComputedValue = CSSFloat;
 
     #[inline]
-    fn to_computed_value(&self, _: &Context) -> CSSFloat { self.0 }
+    fn to_computed_value(&self, _: &Context) -> CSSFloat { self.value }
 
     #[inline]
     fn from_computed_value(computed: &CSSFloat) -> Self {
-        Number(*computed)
+        Number {
+            value: *computed,
+            was_calc: false,
+        }
     }
 }
 
 impl ToCss for Number {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+        where W: fmt::Write,
+    {
+        if self.was_calc {
+            dest.write_str("calc(")?;
+        }
+        self.value.to_css(dest)?;
+        if self.was_calc {
+            dest.write_str(")")?;
+        }
+        Ok(())
+    }
+}
+
+/// <number-percentage>
+/// Accepts only non-negative numbers.
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
+pub enum NumberOrPercentage {
+    Percentage(Percentage),
+    Number(Number),
+}
+
+no_viewport_percentage!(NumberOrPercentage);
+
+impl Parse for NumberOrPercentage {
+    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        if let Ok(per) = input.try(Percentage::parse_non_negative) {
+            return Ok(NumberOrPercentage::Percentage(per));
+        }
+
+        Number::parse_non_negative(input).map(NumberOrPercentage::Number)
+    }
+}
+
+impl ToCss for NumberOrPercentage {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        self.0.to_css(dest)
+        match *self {
+            NumberOrPercentage::Percentage(percentage) => percentage.to_css(dest),
+            NumberOrPercentage::Number(number) => number.to_css(dest),
+        }
     }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
-pub struct Opacity(pub CSSFloat);
+pub struct Opacity(Number);
 
 no_viewport_percentage!(Opacity);
 
@@ -554,25 +750,119 @@ impl ToComputedValue for Opacity {
     type ComputedValue = CSSFloat;
 
     #[inline]
-    fn to_computed_value(&self, _: &Context) -> CSSFloat {
-        if self.0 < 0.0 {
-            0.0
-        } else if self.0 > 1.0 {
-            1.0
-        } else {
-            self.0
-        }
+    fn to_computed_value(&self, context: &Context) -> CSSFloat {
+        self.0.to_computed_value(context).min(1.0).max(0.0)
     }
 
     #[inline]
     fn from_computed_value(computed: &CSSFloat) -> Self {
-        Opacity(*computed)
+        Opacity(Number::from_computed_value(computed))
     }
 }
 
 impl ToCss for Opacity {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         self.0.to_css(dest)
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
+pub struct Integer {
+    value: CSSInteger,
+    was_calc: bool,
+}
+
+impl Integer {
+    /// Trivially constructs a new `Integer` value.
+    pub fn new(val: CSSInteger) -> Self {
+        Integer {
+            value: val,
+            was_calc: false,
+        }
+    }
+
+    /// Returns the integer value associated with this value.
+    pub fn value(&self) -> CSSInteger {
+        self.value
+    }
+
+    /// Trivially constructs a new integer value from a `calc()` expression.
+    pub fn from_calc(val: CSSInteger) -> Self {
+        Integer {
+            value: val,
+            was_calc: true,
+        }
+    }
+}
+
+no_viewport_percentage!(Integer);
+
+impl Parse for Integer {
+    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        parse_integer(input)
+    }
+}
+
+impl Integer {
+    fn parse_with_minimum(input: &mut Parser, min: i32) -> Result<Integer, ()> {
+        match parse_integer(input) {
+            Ok(value) if value.value() >= min => Ok(value),
+            _ => Err(()),
+        }
+    }
+
+    #[allow(missing_docs)]
+    pub fn parse_non_negative(input: &mut Parser) -> Result<Integer, ()> {
+        Integer::parse_with_minimum(input, 0)
+    }
+
+    #[allow(missing_docs)]
+    pub fn parse_positive(input: &mut Parser) -> Result<Integer, ()> {
+        Integer::parse_with_minimum(input, 1)
+    }
+}
+
+impl ToComputedValue for Integer {
+    type ComputedValue = i32;
+
+    #[inline]
+    fn to_computed_value(&self, _: &Context) -> i32 { self.value }
+
+    #[inline]
+    fn from_computed_value(computed: &i32) -> Self {
+        Integer::new(*computed)
+    }
+}
+
+impl ToCss for Integer {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+        where W: fmt::Write,
+    {
+        if self.was_calc {
+            dest.write_str("calc(")?;
+        }
+        write!(dest, "{}", self.value)?;
+        if self.was_calc {
+            dest.write_str(")")?;
+        }
+        Ok(())
+    }
+}
+
+/// <integer> | auto
+pub type IntegerOrAuto = Either<Integer, Auto>;
+
+impl IntegerOrAuto {
+    #[allow(missing_docs)]
+    pub fn parse_positive(context: &ParserContext,
+                          input: &mut Parser)
+                          -> Result<IntegerOrAuto, ()> {
+        match IntegerOrAuto::parse(context, input) {
+            Ok(Either::First(integer)) if integer.value() <= 0 => Err(()),
+            result => result,
+        }
     }
 }
 
@@ -850,18 +1140,18 @@ impl ToComputedValue for SVGPaintKind {
 }
 
 /// <length> | <percentage> | <number>
-pub type LoPOrNumber = Either<LengthOrPercentage, Number>;
+pub type LengthOrPercentageOrNumber = Either<LengthOrPercentage, Number>;
 
-impl LoPOrNumber {
+impl LengthOrPercentageOrNumber {
     /// parse a <length-percentage> | <number> enforcing that the contents aren't negative
     pub fn parse_non_negative(_: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        if let Ok(lop) = input.try(LengthOrPercentage::parse_non_negative) {
-            Ok(Either::First(lop))
-        } else if let Ok(num) = input.try(Number::parse_non_negative) {
-            Ok(Either::Second(num))
-        } else {
-            Err(())
+        // NB: Parse numbers before Lengths so we are consistent about how to
+        // recognize and serialize "0".
+        if let Ok(num) = input.try(Number::parse_non_negative) {
+            return Ok(Either::Second(num))
         }
+
+        LengthOrPercentage::parse_non_negative(input).map(Either::First)
     }
 }
 

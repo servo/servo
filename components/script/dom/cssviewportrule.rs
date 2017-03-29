@@ -10,20 +10,19 @@ use dom::cssrule::{CSSRule, SpecificCSSRule};
 use dom::cssstylesheet::CSSStyleSheet;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use parking_lot::RwLock;
 use std::sync::Arc;
+use style::shared_lock::{Locked, ToCssWithGuard};
 use style::viewport::ViewportRule;
-use style_traits::ToCss;
 
 #[dom_struct]
 pub struct CSSViewportRule {
     cssrule: CSSRule,
     #[ignore_heap_size_of = "Arc"]
-    viewportrule: Arc<RwLock<ViewportRule>>,
+    viewportrule: Arc<Locked<ViewportRule>>,
 }
 
 impl CSSViewportRule {
-    fn new_inherited(parent_stylesheet: &CSSStyleSheet, viewportrule: Arc<RwLock<ViewportRule>>) -> CSSViewportRule {
+    fn new_inherited(parent_stylesheet: &CSSStyleSheet, viewportrule: Arc<Locked<ViewportRule>>) -> CSSViewportRule {
         CSSViewportRule {
             cssrule: CSSRule::new_inherited(parent_stylesheet),
             viewportrule: viewportrule,
@@ -32,7 +31,7 @@ impl CSSViewportRule {
 
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
-               viewportrule: Arc<RwLock<ViewportRule>>) -> Root<CSSViewportRule> {
+               viewportrule: Arc<Locked<ViewportRule>>) -> Root<CSSViewportRule> {
         reflect_dom_object(box CSSViewportRule::new_inherited(parent_stylesheet, viewportrule),
                            window,
                            CSSViewportRuleBinding::Wrap)
@@ -46,6 +45,7 @@ impl SpecificCSSRule for CSSViewportRule {
     }
 
     fn get_css(&self) -> DOMString {
-        self.viewportrule.read().to_css_string().into()
+        let guard = self.cssrule.shared_lock().read();
+        self.viewportrule.read_with(&guard).to_css_string(&guard).into()
     }
 }

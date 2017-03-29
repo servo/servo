@@ -92,7 +92,9 @@ ${helpers.predefined_type("stroke-opacity", "Opacity", "1.0",
                           products="gecko", animatable=False,
                           spec="https://www.w3.org/TR/SVG11/painting.html#StrokeOpacityProperty")}
 
-${helpers.predefined_type("stroke-dasharray", "LoPOrNumber", "Either::Second(0.0)",
+${helpers.predefined_type("stroke-dasharray",
+                          "LengthOrPercentageOrNumber",
+                          "Either::Second(0.0)",
                           "parse_non_negative",
                           vector="True",
                           products="gecko",

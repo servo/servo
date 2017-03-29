@@ -15,6 +15,7 @@ use cssparser::ToCss as ParserToCss;
 use euclid::size::TypedSize2D;
 use media_queries::Device;
 use parser::{ParserContext, log_css_error};
+use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
 use std::fmt;
@@ -504,9 +505,10 @@ impl ViewportRule {
     }
 }
 
-impl ToCss for ViewportRule {
+impl ToCssWithGuard for ViewportRule {
     // Serialization of ViewportRule is not specced.
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, _guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
+    where W: fmt::Write {
         try!(dest.write_str("@viewport { "));
         let mut iter = self.declarations.iter();
         try!(iter.next().unwrap().to_css(dest));
@@ -555,13 +557,14 @@ impl Cascade {
         }
     }
 
-    pub fn from_stylesheets<'a, I>(stylesheets: I, device: &Device) -> Self
+    pub fn from_stylesheets<'a, I>(stylesheets: I, guard: &SharedRwLockReadGuard,
+                                   device: &Device) -> Self
         where I: IntoIterator,
               I::Item: AsRef<Stylesheet>,
     {
         let mut cascade = Self::new();
         for stylesheet in stylesheets {
-            stylesheet.as_ref().effective_viewport_rules(device, |rule| {
+            stylesheet.as_ref().effective_viewport_rules(device, guard, |rule| {
                 for declaration in &rule.declarations {
                     cascade.add(Cow::Borrowed(declaration))
                 }

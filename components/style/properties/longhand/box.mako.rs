@@ -103,46 +103,13 @@ ${helpers.single_keyword("-moz-top-layer", "none top",
                          products="gecko", animatable=False, internal=True,
                          spec="Internal (not web-exposed)")}
 
-<%helpers:single_keyword_computed name="position"
-                                  values="static absolute relative fixed"
-                                  need_clone="True"
-                                  extra_gecko_values="sticky"
-                                  animatable="False"
-                                  spec="https://drafts.csswg.org/css-position/#position-property">
-    impl SpecifiedValue {
-        pub fn is_absolutely_positioned_style(&self) -> bool {
-            matches!(*self, SpecifiedValue::absolute | SpecifiedValue::fixed)
-        }
-    }
-
-    use values::HasViewportPercentage;
-    no_viewport_percentage!(SpecifiedValue);
-    impl ToComputedValue for SpecifiedValue {
-        type ComputedValue = computed_value::T;
-
-        #[inline]
-        fn to_computed_value(&self, _context: &Context) -> computed_value::T {
-            % if product == "gecko":
-                // https://fullscreen.spec.whatwg.org/#new-stacking-layer
-                // Any position value other than 'absolute' and 'fixed' are
-                // computed to 'absolute' if the element is in a top layer.
-                if !self.is_absolutely_positioned_style() &&
-                   matches!(_context.style().get_box().clone__moz_top_layer(),
-                            longhands::_moz_top_layer::SpecifiedValue::top) {
-                    SpecifiedValue::absolute
-                } else {
-                    *self
-                }
-            % else:
-                *self
-            % endif
-        }
-        #[inline]
-        fn from_computed_value(computed: &computed_value::T) -> SpecifiedValue {
-            *computed
-        }
-    }
-</%helpers:single_keyword_computed>
+${helpers.single_keyword("position", "static absolute relative fixed",
+                         need_clone="True",
+                         extra_gecko_values="sticky",
+                         animatable="False",
+                         creates_stacking_context="True",
+                         abspos_cb="True",
+                         spec="https://drafts.csswg.org/css-position/#position-property")}
 
 <%helpers:single_keyword_computed name="float"
                                   values="none left right"
@@ -162,20 +129,16 @@ ${helpers.single_keyword("-moz-top-layer", "none top",
 
         #[inline]
         fn to_computed_value(&self, context: &Context) -> computed_value::T {
-            if context.style().get_box().clone_position().is_absolutely_positioned_style() {
-                computed_value::T::none
-            } else {
-                let ltr = context.style().writing_mode.is_bidi_ltr();
-                // https://drafts.csswg.org/css-logical-props/#float-clear
-                match *self {
-                    SpecifiedValue::inline_start if ltr => computed_value::T::left,
-                    SpecifiedValue::inline_start => computed_value::T::right,
-                    SpecifiedValue::inline_end if ltr => computed_value::T::right,
-                    SpecifiedValue::inline_end => computed_value::T::left,
-                    % for value in "none left right".split():
-                        SpecifiedValue::${value} => computed_value::T::${value},
-                    % endfor
-                }
+            let ltr = context.style().writing_mode.is_bidi_ltr();
+            // https://drafts.csswg.org/css-logical-props/#float-clear
+            match *self {
+                SpecifiedValue::inline_start if ltr => computed_value::T::left,
+                SpecifiedValue::inline_start => computed_value::T::right,
+                SpecifiedValue::inline_end if ltr => computed_value::T::right,
+                SpecifiedValue::inline_end => computed_value::T::left,
+                % for value in "none left right".split():
+                    SpecifiedValue::${value} => computed_value::T::${value},
+                % endfor
             }
         }
         #[inline]
@@ -456,13 +419,13 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     }
 
     #[inline]
-    pub fn get_initial_value() -> Time {
-        Time(0.0)
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T::zero()
     }
 
     #[inline]
     pub fn get_initial_specified_value() -> SpecifiedValue {
-        SpecifiedValue(0.0)
+        Time::zero()
     }
 
     pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
@@ -477,7 +440,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                           extra_prefixes="moz webkit"
                           spec="https://drafts.csswg.org/css-transitions/#propdef-transition-timing-function">
     use self::computed_value::StartEnd;
-
+    use values::specified::Number;
     use euclid::point::{Point2D, TypedPoint2D};
     use std::fmt;
     use std::marker::PhantomData;
@@ -487,31 +450,31 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     #[inline(always)]
     fn ease() -> computed_value::T {
         computed_value::T::CubicBezier(TypedPoint2D::new(0.25, 0.1),
-                                              TypedPoint2D::new(0.25, 1.0))
+                                       TypedPoint2D::new(0.25, 1.0))
     }
 
     #[inline(always)]
     fn linear() -> computed_value::T {
         computed_value::T::CubicBezier(TypedPoint2D::new(0.0, 0.0),
-                                              TypedPoint2D::new(1.0, 1.0))
+                                       TypedPoint2D::new(1.0, 1.0))
     }
 
     #[inline(always)]
     fn ease_in() -> computed_value::T {
         computed_value::T::CubicBezier(TypedPoint2D::new(0.42, 0.0),
-                                              TypedPoint2D::new(1.0, 1.0))
+                                       TypedPoint2D::new(1.0, 1.0))
     }
 
     #[inline(always)]
     fn ease_out() -> computed_value::T {
         computed_value::T::CubicBezier(TypedPoint2D::new(0.0, 0.0),
-                                              TypedPoint2D::new(0.58, 1.0))
+                                       TypedPoint2D::new(0.58, 1.0))
     }
 
     #[inline(always)]
     fn ease_in_out() -> computed_value::T {
         computed_value::T::CubicBezier(TypedPoint2D::new(0.42, 0.0),
-                                              TypedPoint2D::new(0.58, 1.0))
+                                       TypedPoint2D::new(0.58, 1.0))
     }
 
     static STEP_START: computed_value::T =
@@ -524,6 +487,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         use parser::{Parse, ParserContext};
         use std::fmt;
         use style_traits::ToCss;
+        use values::specified;
 
         pub use super::parse;
 
@@ -535,7 +499,9 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         }
 
         impl ToCss for T {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+                where W: fmt::Write,
+            {
                 match *self {
                     T::CubicBezier(p1, p2) => {
                         try!(dest.write_str("cubic-bezier("));
@@ -549,7 +515,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                         dest.write_str(")")
                     }
                     T::Steps(steps, start_end) => {
-                        super::serialize_steps(dest, steps, start_end)
+                        super::serialize_steps(dest, specified::Integer::new(steps as i32), start_end)
                     }
                 }
             }
@@ -563,7 +529,9 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         }
 
         impl ToCss for StartEnd {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+                where W: fmt::Write,
+            {
                 match *self {
                     StartEnd::Start => dest.write_str("start"),
                     StartEnd::End => dest.write_str("end"),
@@ -584,8 +552,8 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     #[derive(Copy, Clone, Debug, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedValue {
-        CubicBezier(Point2D<f32>, Point2D<f32>),
-        Steps(u32, StartEnd),
+        CubicBezier(Point2D<Number>, Point2D<Number>),
+        Steps(specified::Integer, StartEnd),
         Keyword(FunctionKeyword),
     }
 
@@ -594,7 +562,8 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
             if let Ok(function_name) = input.try(|input| input.expect_function()) {
                 return match_ignore_ascii_case! { &function_name,
                     "cubic-bezier" => {
-                        let (mut p1x, mut p1y, mut p2x, mut p2y) = (0.0, 0.0, 0.0, 0.0);
+                        let (mut p1x, mut p1y, mut p2x, mut p2y) =
+                            (Number::new(0.0), Number::new(0.0), Number::new(0.0), Number::new(0.0));
                         try!(input.parse_nested_block(|input| {
                             p1x = try!(specified::parse_number(input));
                             try!(input.expect_comma());
@@ -605,7 +574,8 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                             p2y = try!(specified::parse_number(input));
                             Ok(())
                         }));
-                        if p1x < 0.0 || p1x > 1.0 || p2x < 0.0 || p2x > 1.0 {
+                        if p1x.value < 0.0 || p1x.value > 1.0 ||
+                           p2x.value < 0.0 || p2x.value > 1.0 {
                             return Err(())
                         }
 
@@ -613,10 +583,10 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                         Ok(SpecifiedValue::CubicBezier(p1, p2))
                     },
                     "steps" => {
-                        let (mut step_count, mut start_end) = (0, StartEnd::End);
+                        let (mut step_count, mut start_end) = (specified::Integer::new(0), StartEnd::End);
                         try!(input.parse_nested_block(|input| {
                             step_count = try!(specified::parse_integer(input));
-                            if step_count < 1 {
+                            if step_count.value() < 1 {
                                 return Err(())
                             }
 
@@ -630,7 +600,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                             }
                             Ok(())
                         }));
-                        Ok(SpecifiedValue::Steps(step_count as u32, start_end))
+                        Ok(SpecifiedValue::Steps(step_count, start_end))
                     },
                     _ => Err(())
                 }
@@ -639,8 +609,11 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         }
     }
 
-    fn serialize_steps<W>(dest: &mut W, steps: u32,
-                          start_end: StartEnd) -> fmt::Result where W: fmt::Write {
+    fn serialize_steps<W>(dest: &mut W,
+                          steps: specified::Integer,
+                          start_end: StartEnd) -> fmt::Result
+        where W: fmt::Write,
+    {
         try!(dest.write_str("steps("));
         try!(steps.to_css(dest));
         if let StartEnd::Start = start_end {
@@ -670,10 +643,10 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                 SpecifiedValue::Keyword(keyword) => {
                     match keyword {
                         FunctionKeyword::StepStart => {
-                            serialize_steps(dest, 1, StartEnd::Start)
+                            serialize_steps(dest, specified::Integer::new(1), StartEnd::Start)
                         },
                         FunctionKeyword::StepEnd => {
-                            serialize_steps(dest, 1, StartEnd::End)
+                            serialize_steps(dest, specified::Integer::new(1), StartEnd::End)
                         },
                         _ => {
                             keyword.to_css(dest)
@@ -688,13 +661,15 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         type ComputedValue = computed_value::T;
 
         #[inline]
-        fn to_computed_value(&self, _context: &Context) -> computed_value::T {
+        fn to_computed_value(&self, context: &Context) -> computed_value::T {
             match *self {
                 SpecifiedValue::CubicBezier(p1, p2) => {
-                    computed_value::T::CubicBezier(p1, p2)
+                    computed_value::T::CubicBezier(
+                        Point2D::new(p1.x.to_computed_value(context), p1.y.to_computed_value(context)),
+                        Point2D::new(p2.x.to_computed_value(context), p2.y.to_computed_value(context)))
                 },
                 SpecifiedValue::Steps(count, start_end) => {
-                    computed_value::T::Steps(count, start_end)
+                    computed_value::T::Steps(count.to_computed_value(context) as u32, start_end)
                 },
                 SpecifiedValue::Keyword(keyword) => {
                     match keyword {
@@ -713,10 +688,15 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         fn from_computed_value(computed: &computed_value::T) -> Self {
             match *computed {
                 computed_value::T::CubicBezier(p1, p2) => {
-                    SpecifiedValue::CubicBezier(p1, p2)
+                    SpecifiedValue::CubicBezier(
+                        Point2D::new(Number::from_computed_value(&p1.x),
+                                     Number::from_computed_value(&p1.y)),
+                        Point2D::new(Number::from_computed_value(&p2.x),
+                                     Number::from_computed_value(&p2.y)))
                 },
                 computed_value::T::Steps(count, start_end) => {
-                    SpecifiedValue::Steps(count, start_end)
+                    let int_count = count as i32;
+                    SpecifiedValue::Steps(specified::Integer::from_computed_value(&int_count), start_end)
                 },
             }
         }
@@ -1116,8 +1096,11 @@ ${helpers.predefined_type("scroll-snap-coordinate",
 
 <%helpers:longhand name="transform" products="gecko servo" extra_prefixes="webkit"
                    animatable="True"
+                   creates_stacking_context="True"
+                   fixpos_cb="True"
                    spec="https://drafts.csswg.org/css-transforms/#propdef-transform">
     use app_units::Au;
+    use values::specified::Number;
     use style_traits::ToCss;
     use values::CSSFloat;
     use values::HasViewportPercentage;
@@ -1166,7 +1149,60 @@ ${helpers.predefined_type("scroll-snap-coordinate",
         pub struct T(pub Option<Vec<ComputedOperation>>);
     }
 
-    pub use self::computed_value::ComputedMatrix as SpecifiedMatrix;
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    #[derive(Copy, Clone, Debug, PartialEq)]
+    pub struct SpecifiedMatrix {
+        pub m11: Number, pub m12: Number, pub m13: Number, pub m14: Number,
+        pub m21: Number, pub m22: Number, pub m23: Number, pub m24: Number,
+        pub m31: Number, pub m32: Number, pub m33: Number, pub m34: Number,
+        pub m41: Number, pub m42: Number, pub m43: Number, pub m44: Number,
+    }
+
+    impl ToComputedValue for SpecifiedMatrix {
+        type ComputedValue = computed_value::ComputedMatrix;
+
+        fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+            computed_value::ComputedMatrix {
+                m11: self.m11.to_computed_value(context),
+                m12: self.m12.to_computed_value(context),
+                m13: self.m13.to_computed_value(context),
+                m14: self.m14.to_computed_value(context),
+                m21: self.m21.to_computed_value(context),
+                m22: self.m22.to_computed_value(context),
+                m23: self.m23.to_computed_value(context),
+                m24: self.m24.to_computed_value(context),
+                m31: self.m31.to_computed_value(context),
+                m32: self.m32.to_computed_value(context),
+                m33: self.m33.to_computed_value(context),
+                m34: self.m34.to_computed_value(context),
+                m41: self.m41.to_computed_value(context),
+                m42: self.m42.to_computed_value(context),
+                m43: self.m43.to_computed_value(context),
+                m44: self.m44.to_computed_value(context),
+            }
+        }
+
+        fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+            SpecifiedMatrix {
+                m11: Number::from_computed_value(&computed.m11),
+                m12: Number::from_computed_value(&computed.m12),
+                m13: Number::from_computed_value(&computed.m13),
+                m14: Number::from_computed_value(&computed.m14),
+                m21: Number::from_computed_value(&computed.m21),
+                m22: Number::from_computed_value(&computed.m22),
+                m23: Number::from_computed_value(&computed.m23),
+                m24: Number::from_computed_value(&computed.m24),
+                m31: Number::from_computed_value(&computed.m31),
+                m32: Number::from_computed_value(&computed.m32),
+                m33: Number::from_computed_value(&computed.m33),
+                m34: Number::from_computed_value(&computed.m34),
+                m41: Number::from_computed_value(&computed.m41),
+                m42: Number::from_computed_value(&computed.m42),
+                m43: Number::from_computed_value(&computed.m43),
+                m44: Number::from_computed_value(&computed.m44),
+            }
+        }
+    }
 
     fn parse_two_lengths_or_percentages(context: &ParserContext, input: &mut Parser)
                                         -> Result<(specified::LengthOrPercentage,
@@ -1179,7 +1215,7 @@ ${helpers.predefined_type("scroll-snap-coordinate",
         Ok((first, second))
     }
 
-    fn parse_two_floats(input: &mut Parser) -> Result<(CSSFloat,CSSFloat),()> {
+    fn parse_two_numbers(input: &mut Parser) -> Result<(Number, Number), ()> {
         let first = try!(specified::parse_number(input));
         let second = input.try(|input| {
             try!(input.expect_comma());
@@ -1194,7 +1230,7 @@ ${helpers.predefined_type("scroll-snap-coordinate",
         let second = input.try(|input| {
             try!(input.expect_comma());
             specified::Angle::parse(context, input)
-        }).unwrap_or(specified::Angle(0.0));
+        }).unwrap_or(specified::Angle::zero());
         Ok((first, second))
     }
 
@@ -1217,8 +1253,8 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                   specified::LengthOrPercentage,
                   specified::LengthOrPercentage,
                   specified::Length),
-        Scale(CSSFloat, CSSFloat, CSSFloat),
-        Rotate(CSSFloat, CSSFloat, CSSFloat, specified::Angle),
+        Scale(Number, Number, Number),
+        Rotate(Number, Number, Number, specified::Angle),
         Perspective(specified::Length),
     }
 
@@ -1358,31 +1394,29 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                         if values.len() != 6 {
                             return Err(())
                         }
-                        result.push(SpecifiedOperation::Matrix(
-                                SpecifiedMatrix {
-                                    m11: values[0], m12: values[1], m13: 0.0, m14: 0.0,
-                                    m21: values[2], m22: values[3], m23: 0.0, m24: 0.0,
-                                    m31:       0.0, m32:       0.0, m33: 1.0, m34: 0.0,
-                                    m41: values[4], m42: values[5], m43: 0.0, m44: 1.0
-                                }));
+                        let matrix = SpecifiedMatrix {
+                            m11: values[0],        m12: values[1],        m13: Number::new(0.0), m14: Number::new(0.0),
+                            m21: values[2],        m22: values[3],        m23: Number::new(0.0), m24: Number::new(0.0),
+                            m31: Number::new(0.0), m32: Number::new(0.0), m33: Number::new(1.0), m34: Number::new(0.0),
+                            m41: values[4],        m42: values[5],        m43: Number::new(0.0), m44: Number::new(1.0),
+                        };
+                        result.push(SpecifiedOperation::Matrix(matrix));
                         Ok(())
                     }))
                 },
                 "matrix3d" => {
                     try!(input.parse_nested_block(|input| {
-                        let values = try!(input.parse_comma_separated(|input| {
-                            specified::parse_number(input)
-                        }));
+                        let values = try!(input.parse_comma_separated(specified::parse_number));
                         if values.len() != 16 {
                             return Err(())
                         }
                         result.push(SpecifiedOperation::Matrix(
-                                SpecifiedMatrix {
-                                    m11: values[ 0], m12: values[ 1], m13: values[ 2], m14: values[ 3],
-                                    m21: values[ 4], m22: values[ 5], m23: values[ 6], m24: values[ 7],
-                                    m31: values[ 8], m32: values[ 9], m33: values[10], m34: values[11],
-                                    m41: values[12], m42: values[13], m43: values[14], m44: values[15]
-                                }));
+                            SpecifiedMatrix {
+                                m11: values[ 0], m12: values[ 1], m13: values[ 2], m14: values[ 3],
+                                m21: values[ 4], m22: values[ 5], m23: values[ 6], m24: values[ 7],
+                                m31: values[ 8], m32: values[ 9], m33: values[10], m34: values[11],
+                                m41: values[12], m42: values[13], m43: values[14], m44: values[15]
+                            }));
                         Ok(())
                     }))
                 },
@@ -1447,29 +1481,37 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                 },
                 "scale" => {
                     try!(input.parse_nested_block(|input| {
-                        let (sx, sy) = try!(parse_two_floats(input));
-                        result.push(SpecifiedOperation::Scale(sx, sy, 1.0));
+                        let (sx, sy) = try!(parse_two_numbers(input));
+                        result.push(SpecifiedOperation::Scale(sx,
+                                                              sy,
+                                                              Number::new(1.0)));
                         Ok(())
                     }))
                 },
                 "scalex" => {
                     try!(input.parse_nested_block(|input| {
                         let sx = try!(specified::parse_number(input));
-                        result.push(SpecifiedOperation::Scale(sx, 1.0, 1.0));
+                        result.push(SpecifiedOperation::Scale(sx,
+                                                              Number::new(1.0),
+                                                              Number::new(1.0)));
                         Ok(())
                     }))
                 },
                 "scaley" => {
                     try!(input.parse_nested_block(|input| {
                         let sy = try!(specified::parse_number(input));
-                        result.push(SpecifiedOperation::Scale(1.0, sy, 1.0));
+                        result.push(SpecifiedOperation::Scale(Number::new(1.0),
+                                                              sy,
+                                                              Number::new(1.0)));
                         Ok(())
                     }))
                 },
                 "scalez" => {
                     try!(input.parse_nested_block(|input| {
                         let sz = try!(specified::parse_number(input));
-                        result.push(SpecifiedOperation::Scale(1.0, 1.0, sz));
+                        result.push(SpecifiedOperation::Scale(Number::new(1.0),
+                                                              Number::new(1.0),
+                                                              sz));
                         Ok(())
                     }))
                 },
@@ -1487,28 +1529,40 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                 "rotate" => {
                     try!(input.parse_nested_block(|input| {
                         let theta = try!(specified::Angle::parse(context,input));
-                        result.push(SpecifiedOperation::Rotate(0.0, 0.0, 1.0, theta));
+                        result.push(SpecifiedOperation::Rotate(Number::new(0.0),
+                                                               Number::new(0.0),
+                                                               Number::new(1.0),
+                                                               theta));
                         Ok(())
                     }))
                 },
                 "rotatex" => {
                     try!(input.parse_nested_block(|input| {
                         let theta = try!(specified::Angle::parse(context,input));
-                        result.push(SpecifiedOperation::Rotate(1.0, 0.0, 0.0, theta));
+                        result.push(SpecifiedOperation::Rotate(Number::new(1.0),
+                                                               Number::new(0.0),
+                                                               Number::new(0.0),
+                                                               theta));
                         Ok(())
                     }))
                 },
                 "rotatey" => {
                     try!(input.parse_nested_block(|input| {
                         let theta = try!(specified::Angle::parse(context,input));
-                        result.push(SpecifiedOperation::Rotate(0.0, 1.0, 0.0, theta));
+                        result.push(SpecifiedOperation::Rotate(Number::new(0.0),
+                                                               Number::new(1.0),
+                                                               Number::new(0.0),
+                                                               theta));
                         Ok(())
                     }))
                 },
                 "rotatez" => {
                     try!(input.parse_nested_block(|input| {
                         let theta = try!(specified::Angle::parse(context,input));
-                        result.push(SpecifiedOperation::Rotate(0.0, 0.0, 1.0, theta));
+                        result.push(SpecifiedOperation::Rotate(Number::new(0.0),
+                                                               Number::new(0.0),
+                                                               Number::new(1.0),
+                                                               theta));
                         Ok(())
                     }))
                 },
@@ -1536,14 +1590,14 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                 "skewx" => {
                     try!(input.parse_nested_block(|input| {
                         let theta_x = try!(specified::Angle::parse(context,input));
-                        result.push(SpecifiedOperation::Skew(theta_x, specified::Angle(0.0)));
+                        result.push(SpecifiedOperation::Skew(theta_x, specified::Angle::zero()));
                         Ok(())
                     }))
                 },
                 "skewy" => {
                     try!(input.parse_nested_block(|input| {
                         let theta_y = try!(specified::Angle::parse(context,input));
-                        result.push(SpecifiedOperation::Skew(specified::Angle(0.0), theta_y));
+                        result.push(SpecifiedOperation::Skew(specified::Angle::zero(), theta_y));
                         Ok(())
                     }))
                 },
@@ -1578,7 +1632,7 @@ ${helpers.predefined_type("scroll-snap-coordinate",
             for operation in &self.0 {
                 match *operation {
                     SpecifiedOperation::Matrix(ref matrix) => {
-                        result.push(computed_value::ComputedOperation::Matrix(*matrix));
+                        result.push(computed_value::ComputedOperation::Matrix(matrix.to_computed_value(context)));
                     }
                     SpecifiedOperation::Translate(_, ref tx, ref ty, ref tz) => {
                         result.push(computed_value::ComputedOperation::Translate(tx.to_computed_value(context),
@@ -1586,14 +1640,22 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                                                                                  tz.to_computed_value(context)));
                     }
                     SpecifiedOperation::Scale(sx, sy, sz) => {
+                        let sx = sx.to_computed_value(context);
+                        let sy = sy.to_computed_value(context);
+                        let sz = sz.to_computed_value(context);
                         result.push(computed_value::ComputedOperation::Scale(sx, sy, sz));
                     }
                     SpecifiedOperation::Rotate(ax, ay, az, theta) => {
+                        let ax = ax.to_computed_value(context);
+                        let ay = ay.to_computed_value(context);
+                        let az = az.to_computed_value(context);
+                        let theta = theta.to_computed_value(context);
                         let len = (ax * ax + ay * ay + az * az).sqrt();
                         result.push(computed_value::ComputedOperation::Rotate(ax / len, ay / len, az / len, theta));
                     }
                     SpecifiedOperation::Skew(theta_x, theta_y) => {
-                        result.push(computed_value::ComputedOperation::Skew(theta_x, theta_y));
+                        result.push(computed_value::ComputedOperation::Skew(theta_x.to_computed_value(context),
+                                                                            theta_y.to_computed_value(context)));
                     }
                     SpecifiedOperation::Perspective(ref d) => {
                         result.push(computed_value::ComputedOperation::Perspective(d.to_computed_value(context)));
@@ -1607,11 +1669,11 @@ ${helpers.predefined_type("scroll-snap-coordinate",
         #[inline]
         fn from_computed_value(computed: &computed_value::T) -> Self {
             SpecifiedValue(computed.0.as_ref().map(|computed| {
-                let mut result = vec!();
+                let mut result = vec![];
                 for operation in computed {
                     match *operation {
                         computed_value::ComputedOperation::Matrix(ref matrix) => {
-                            result.push(SpecifiedOperation::Matrix(*matrix));
+                            result.push(SpecifiedOperation::Matrix(SpecifiedMatrix::from_computed_value(matrix)));
                         }
                         computed_value::ComputedOperation::Translate(ref tx, ref ty, ref tz) => {
                             // XXXManishearth we lose information here; perhaps we should try to
@@ -1621,14 +1683,23 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                                               ToComputedValue::from_computed_value(ty),
                                               ToComputedValue::from_computed_value(tz)));
                         }
-                        computed_value::ComputedOperation::Scale(sx, sy, sz) => {
-                            result.push(SpecifiedOperation::Scale(sx, sy, sz));
+                        computed_value::ComputedOperation::Scale(ref sx, ref sy, ref sz) => {
+                            result.push(SpecifiedOperation::Scale(
+                                    Number::from_computed_value(sx),
+                                    Number::from_computed_value(sy),
+                                    Number::from_computed_value(sz)));
                         }
-                        computed_value::ComputedOperation::Rotate(ax, ay, az, theta) => {
-                            result.push(SpecifiedOperation::Rotate(ax, ay, az, theta));
+                        computed_value::ComputedOperation::Rotate(ref ax, ref ay, ref az, ref theta) => {
+                            result.push(SpecifiedOperation::Rotate(
+                                    Number::from_computed_value(ax),
+                                    Number::from_computed_value(ay),
+                                    Number::from_computed_value(az),
+                                    specified::Angle::from_computed_value(theta)));
                         }
-                        computed_value::ComputedOperation::Skew(theta_x, theta_y) => {
-                            result.push(SpecifiedOperation::Skew(theta_x, theta_y));
+                        computed_value::ComputedOperation::Skew(ref theta_x, ref theta_y) => {
+                            result.push(SpecifiedOperation::Skew(
+                                    specified::Angle::from_computed_value(theta_x),
+                                    specified::Angle::from_computed_value(theta_y)))
                         }
                         computed_value::ComputedOperation::Perspective(ref d) => {
                             result.push(SpecifiedOperation::Perspective(
@@ -1672,6 +1743,7 @@ ${helpers.single_keyword("isolation",
                          "auto isolate",
                          products="gecko",
                          spec="https://drafts.fxtf.org/compositing/#isolation",
+                         creates_stacking_context=True,
                          animatable=False)}
 
 // TODO add support for logical values recto and verso
@@ -1706,13 +1778,17 @@ ${helpers.single_keyword("resize",
 ${helpers.predefined_type("perspective",
                           "LengthOrNone",
                           "Either::Second(None_)",
+                          "parse_non_negative_length",
                           gecko_ffi_name="mChildPerspective",
                           spec="https://drafts.csswg.org/css-transforms/#perspective",
                           extra_prefixes="moz webkit",
+                          boxed=True,
+                          creates_stacking_context=True,
+                          fixpos_cb=True,
                           animatable=True)}
 
 // FIXME: This prop should be animatable
-<%helpers:longhand name="perspective-origin" animatable="False" extra_prefixes="moz webkit"
+<%helpers:longhand name="perspective-origin" boxed="True" animatable="False" extra_prefixes="moz webkit"
                    spec="https://drafts.csswg.org/css-transforms/#perspective-origin-property">
     use std::fmt;
     use style_traits::ToCss;
@@ -1818,6 +1894,8 @@ ${helpers.single_keyword("transform-style",
                          "flat preserve-3d",
                          spec="https://drafts.csswg.org/css-transforms/#transform-style-property",
                          extra_prefixes="moz webkit",
+                         creates_stacking_context=True,
+                         fixpos_cb=True,
                          animatable=False)}
 
 <%helpers:longhand name="transform-origin" animatable="True" extra_prefixes="moz webkit" boxed="True"
@@ -1928,13 +2006,126 @@ ${helpers.single_keyword("transform-style",
     }
 </%helpers:longhand>
 
+<%helpers:longhand name="contain" animatable="False" products="none"
+                   spec="https://drafts.csswg.org/css-contain/#contain-property">
+    use std::fmt;
+    use style_traits::ToCss;
+    use values::HasViewportPercentage;
+    use values::computed::ComputedValueAsSpecified;
+
+    impl ComputedValueAsSpecified for SpecifiedValue {}
+    no_viewport_percentage!(SpecifiedValue);
+
+    pub mod computed_value {
+        pub type T = super::SpecifiedValue;
+    }
+
+    bitflags! {
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        pub flags SpecifiedValue: u8 {
+            const SIZE = 0x01,
+            const LAYOUT = 0x02,
+            const STYLE = 0x04,
+            const PAINT = 0x08,
+            const STRICT = SIZE.bits | LAYOUT.bits | STYLE.bits | PAINT.bits,
+            const CONTENT = LAYOUT.bits | STYLE.bits | PAINT.bits,
+        }
+    }
+
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            if self.is_empty() {
+                return dest.write_str("none")
+            }
+            if self.contains(STRICT) {
+                return dest.write_str("strict")
+            }
+            if self.contains(CONTENT) {
+                return dest.write_str("content")
+            }
+
+            let mut has_any = false;
+            macro_rules! maybe_write_value {
+                ($ident:ident => $str:expr) => {
+                    if self.contains($ident) {
+                        if has_any {
+                            try!(dest.write_str(" "));
+                        }
+                        has_any = true;
+                        try!(dest.write_str($str));
+                    }
+                }
+            }
+            maybe_write_value!(SIZE => "size");
+            maybe_write_value!(LAYOUT => "layout");
+            maybe_write_value!(STYLE => "style");
+            maybe_write_value!(PAINT => "paint");
+
+            debug_assert!(has_any);
+            Ok(())
+        }
+    }
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T::empty()
+    }
+
+    /// none | strict | content | [ size || layout || style || paint ]
+    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        let mut result = SpecifiedValue::empty();
+
+        if input.try(|input| input.expect_ident_matching("none")).is_ok() {
+            return Ok(result)
+        }
+        if input.try(|input| input.expect_ident_matching("strict")).is_ok() {
+            result.insert(STRICT);
+            return Ok(result)
+        }
+        if input.try(|input| input.expect_ident_matching("content")).is_ok() {
+            result.insert(CONTENT);
+            return Ok(result)
+        }
+
+        while let Ok(name) = input.try(|input| input.expect_ident()) {
+            let flag = match_ignore_ascii_case! { &name,
+                "size" => SIZE,
+                "layout" => LAYOUT,
+                "style" => STYLE,
+                "paint" => PAINT,
+                _ => return Err(())
+            };
+            if result.contains(flag) {
+                return Err(())
+            }
+            result.insert(flag);
+        }
+
+        if !result.is_empty() {
+            Ok(result)
+        } else {
+            Err(())
+        }
+    }
+</%helpers:longhand>
+
+${helpers.single_keyword("appearance",
+                         "auto none",
+                         gecko_ffi_name="mAppearance",
+                         gecko_constant_prefix="NS_THEME",
+                         products="gecko",
+                         spec="https://drafts.csswg.org/css-ui-4/#appearance-switching",
+                         alias="-webkit-appearance",
+                         animatable=False)}
+
 // Non-standard
 ${helpers.single_keyword("-moz-appearance",
                          """none button button-arrow-down button-arrow-next button-arrow-previous button-arrow-up
                             button-bevel button-focus caret checkbox checkbox-container checkbox-label checkmenuitem
                             dualbutton groupbox listbox listitem menuarrow menubar menucheckbox menuimage menuitem
                             menuitemtext menulist menulist-button menulist-text menulist-textfield menupopup menuradio
-                            menuseparator meterbar meterchunk progressbar progressbar-vertical progresschunk
+                            menuseparator meterbar meterchunk number-input progressbar progressbar-vertical
+                            progresschunk
                             progresschunk-vertical radio radio-container radio-label radiomenuitem range range-thumb
                             resizer resizerpanel scale-horizontal scalethumbend scalethumb-horizontal scalethumbstart
                             scalethumbtick scalethumb-vertical scale-vertical scrollbarbutton-down scrollbarbutton-left
@@ -1951,7 +2142,7 @@ ${helpers.single_keyword("-moz-appearance",
                             -moz-window-frame-bottom -moz-window-frame-left -moz-window-frame-right -moz-window-titlebar
                             -moz-window-titlebar-maximized
                          """,
-                         gecko_ffi_name="mAppearance",
+                         gecko_ffi_name="mMozAppearance",
                          gecko_constant_prefix="NS_THEME",
                          products="gecko",
                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-appearance)",
@@ -1972,3 +2163,67 @@ ${helpers.single_keyword("-moz-orient",
                           gecko_enum_prefix="StyleOrient",
                           spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-orient)",
                           animatable=False)}
+
+<%helpers:longhand name="will-change" products="gecko" animatable="False"
+                   spec="https://drafts.csswg.org/css-will-change/#will-change">
+    use cssparser::serialize_identifier;
+    use std::fmt;
+    use style_traits::ToCss;
+    use values::HasViewportPercentage;
+    use values::computed::ComputedValueAsSpecified;
+
+    impl ComputedValueAsSpecified for SpecifiedValue {}
+    no_viewport_percentage!(SpecifiedValue);
+
+    pub mod computed_value {
+        pub use super::SpecifiedValue as T;
+    }
+
+    #[derive(Debug, Clone, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub enum SpecifiedValue {
+        Auto,
+        AnimateableFeatures(Vec<Atom>),
+    }
+
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match *self {
+                SpecifiedValue::Auto => dest.write_str("auto"),
+                SpecifiedValue::AnimateableFeatures(ref features) => {
+                    let (first, rest) = features.split_first().unwrap();
+                    // handle head element
+                    serialize_identifier(&*first.to_string(), dest)?;
+                    // handle tail, precede each with a delimiter
+                    for feature in rest {
+                        dest.write_str(", ")?;
+                        serialize_identifier(&*feature.to_string(), dest)?;
+                    }
+                    Ok(())
+                }
+            }
+        }
+    }
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T::Auto
+    }
+
+    /// auto | <animateable-feature>#
+    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
+            Ok(computed_value::T::Auto)
+        } else {
+            input.parse_comma_separated(|i| {
+                let ident = i.expect_ident()?;
+                match_ignore_ascii_case! { &ident,
+                    "will-change" | "none" | "all" | "auto" |
+                    "initial" | "inherit" | "unset" | "default" => return Err(()),
+                    _ => {},
+                }
+                Ok((Atom::from(ident)))
+            }).map(SpecifiedValue::AnimateableFeatures)
+        }
+    }
+</%helpers:longhand>

@@ -4,6 +4,7 @@
 
 use parse_hosts::HostsFile;
 use servo_url::ServoUrl;
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::env;
 use std::fs::File;
@@ -56,19 +57,24 @@ pub fn parse_hostsfile(hostsfile_content: &str) -> HashMap<String, IpAddr> {
     host_table
 }
 
-pub fn replace_hosts(url: &ServoUrl) -> ServoUrl {
-    HOST_TABLE.lock().unwrap().as_ref().map_or_else(|| url.clone(),
-                                                    |host_table| host_replacement(host_table, url))
+pub fn replace_host(host: &str) -> Cow<str> {
+    HOST_TABLE.lock().unwrap().as_ref()
+        .and_then(|table| table.get(host))
+        .map_or(host.into(), |replaced_host| replaced_host.to_string().into())
 }
 
-pub fn host_replacement(host_table: &HashMap<String, IpAddr>, url: &ServoUrl) -> ServoUrl {
-    url.domain()
-        .and_then(|domain| {
-            host_table.get(domain).map(|ip| {
-                let mut new_url = url.clone();
-                new_url.set_ip_host(*ip).unwrap();
-                new_url
-            })
-        })
-        .unwrap_or_else(|| url.clone())
+pub fn replace_host_in_url(url: ServoUrl) -> ServoUrl {
+    if let Some(table) = HOST_TABLE.lock().unwrap().as_ref() {
+        host_replacement(table, url)
+    } else {
+        url
+    }
+}
+
+pub fn host_replacement(host_table: &HashMap<String, IpAddr>, mut url: ServoUrl) -> ServoUrl {
+    let replacement = url.domain().and_then(|domain| host_table.get(domain));
+    if let Some(ip) = replacement {
+        url.set_ip_host(*ip).unwrap();
+    }
+    url
 }

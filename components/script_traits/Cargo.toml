@@ -25,7 +25,7 @@ ipc-channel = "0.7"
 libc = "0.2"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
-offscreen_gl_context = "0.6"
+offscreen_gl_context = "0.8"
 profile_traits = {path = "../profile_traits"}
 rustc-serialize = "0.3.4"
 serde = "0.9"

@@ -343,7 +343,7 @@ impl PropertyAnimation {
 
     #[inline]
     fn does_animate(&self) -> bool {
-        self.property.does_animate() && self.duration != Time(0.0)
+        self.property.does_animate() && self.duration.seconds() != 0.0
     }
 
     /// Whether this animation has the same end value as another one.
@@ -415,7 +415,7 @@ fn compute_style_for_animation_step(context: &SharedStyleContext,
     match step.value {
         KeyframesStepValue::ComputedValues => style_from_cascade.clone(),
         KeyframesStepValue::Declarations { block: ref declarations } => {
-            let guard = declarations.read();
+            let guard = declarations.read_with(context.guards.author);
 
             // No !important in keyframes.
             debug_assert!(guard.declarations().iter()
@@ -681,7 +681,7 @@ pub fn update_style_for_animation(context: &SharedStyleContext,
                        transition_property, name);
                 match PropertyAnimation::from_transition_property(*transition_property,
                                                                   timing_function,
-                                                                  Time(relative_duration as f32),
+                                                                  Time::from_seconds(relative_duration as f32),
                                                                   &from_style,
                                                                   &target_style) {
                     Some(property_animation) => {

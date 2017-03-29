@@ -12,11 +12,13 @@ use data::ElementData;
 use dom::{OpaqueNode, TNode, TElement, SendElement};
 use error_reporting::ParseErrorReporter;
 use euclid::Size2D;
+#[cfg(feature = "gecko")] use gecko_bindings::structs;
 use matching::StyleSharingCandidateCache;
 use parking_lot::RwLock;
-use selector_parser::PseudoElement;
+#[cfg(feature = "gecko")] use selector_parser::PseudoElement;
 use selectors::matching::ElementSelectorFlags;
 use servo_config::opts;
+use shared_lock::StylesheetGuards;
 use std::collections::HashMap;
 use std::env;
 use std::fmt;
@@ -61,9 +63,12 @@ pub enum QuirksMode {
 ///
 /// There's exactly one of these during a given restyle traversal, and it's
 /// shared among the worker threads.
-pub struct SharedStyleContext {
+pub struct SharedStyleContext<'a> {
     /// The CSS selector stylist.
     pub stylist: Arc<Stylist>,
+
+    /// Guards for pre-acquired locks
+    pub guards: StylesheetGuards<'a>,
 
     /// The animations that are currently running.
     pub running_animations: Arc<RwLock<HashMap<OpaqueNode, Vec<Animation>>>>,
@@ -83,9 +88,12 @@ pub struct SharedStyleContext {
 
     /// The QuirksMode state which the document needs to be rendered with
     pub quirks_mode: QuirksMode,
+
+    /// True if the traversal is processing only animation restyles.
+    pub animation_only_restyle: bool,
 }
 
-impl SharedStyleContext {
+impl<'a> SharedStyleContext<'a> {
     /// Return a suitable viewport size in order to be used for viewport units.
     pub fn viewport_size(&self) -> Size2D<Au> {
         self.stylist.device.au_viewport_size()
@@ -187,6 +195,22 @@ impl TraversalStatistics {
     }
 }
 
+#[cfg(feature = "gecko")]
+bitflags! {
+    /// Represents which tasks are performed in a SequentialTask of UpdateAnimations.
+    pub flags UpdateAnimationsTasks: u8 {
+        /// Update CSS Animations.
+        const CSS_ANIMATIONS = structs::UpdateAnimationsTasks_CSSAnimations,
+        /// Update CSS Transitions.
+        const CSS_TRANSITIONS = structs::UpdateAnimationsTasks_CSSTransitions,
+        /// Update effect properties.
+        const EFFECT_PROPERTIES = structs::UpdateAnimationsTasks_EffectProperties,
+        /// Update animation cacade results for animations running on the compositor.
+        const CASCADE_RESULTS = structs::UpdateAnimationsTasks_CascadeResults,
+    }
+}
+
+
 /// A task to be run in sequential mode on the parent (non-worker) thread. This
 /// is used by the style system to queue up work which is not safe to do during
 /// the parallel traversal.
@@ -195,9 +219,10 @@ pub enum SequentialTask<E: TElement> {
     /// element that we don't have exclusive access to (i.e. the parent).
     SetSelectorFlags(SendElement<E>, ElementSelectorFlags),
 
-    /// Marks that we need to create/remove/update CSS animations after the
-    /// first traversal.
-    UpdateAnimations(SendElement<E>, Option<PseudoElement>),
+    #[cfg(feature = "gecko")]
+    /// Marks that we need to update CSS animations, update effect properties of
+    /// any type of animations after the normal traversal.
+    UpdateAnimations(SendElement<E>, Option<PseudoElement>, UpdateAnimationsTasks),
 }
 
 impl<E: TElement> SequentialTask<E> {
@@ -209,8 +234,9 @@ impl<E: TElement> SequentialTask<E> {
             SetSelectorFlags(el, flags) => {
                 unsafe { el.set_selector_flags(flags) };
             }
-            UpdateAnimations(el, pseudo) => {
-                unsafe { el.update_animations(pseudo.as_ref()) };
+            #[cfg(feature = "gecko")]
+            UpdateAnimations(el, pseudo, tasks) => {
+                unsafe { el.update_animations(pseudo.as_ref(), tasks) };
             }
         }
     }
@@ -221,10 +247,12 @@ impl<E: TElement> SequentialTask<E> {
         SetSelectorFlags(unsafe { SendElement::new(el) }, flags)
     }
 
-    /// Creates a task to update CSS Animations on a given (pseudo-)element.
-    pub fn update_animations(el: E, pseudo: Option<PseudoElement>) -> Self {
+    #[cfg(feature = "gecko")]
+    /// Creates a task to update various animation state on a given (pseudo-)element.
+    pub fn update_animations(el: E, pseudo: Option<PseudoElement>,
+                             tasks: UpdateAnimationsTasks) -> Self {
         use self::SequentialTask::*;
-        UpdateAnimations(unsafe { SendElement::new(el) }, pseudo)
+        UpdateAnimations(unsafe { SendElement::new(el) }, pseudo, tasks)
     }
 }
 
@@ -306,7 +334,7 @@ impl<E: TElement> Drop for ThreadLocalStyleContext<E> {
 /// shared style context, and a mutable reference to a local one.
 pub struct StyleContext<'a, E: TElement + 'a> {
     /// The shared style context reference.
-    pub shared: &'a SharedStyleContext,
+    pub shared: &'a SharedStyleContext<'a>,
     /// The thread-local style context (mutable) reference.
     pub thread_local: &'a mut ThreadLocalStyleContext<E>,
 }

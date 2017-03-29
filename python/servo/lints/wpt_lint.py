@@ -8,7 +8,7 @@
 # except according to those terms.
 
 import os
-import site
+import sys
 
 from servo_tidy.tidy import LintRunner, filter_file
 
@@ -28,11 +28,13 @@ class Lint(LintRunner):
     def run(self):
         if self.stylo:
             return
+
         wpt_working_dir = os.path.abspath(os.path.join(WPT_PATH, "web-platform-tests"))
         for suite in SUITES:
             files = self._get_wpt_files(suite)
-            site.addsitedir(wpt_working_dir)
+            sys.path.insert(0, wpt_working_dir)
             from tools.lint import lint
+            sys.path.remove(wpt_working_dir)
             file_dir = os.path.abspath(os.path.join(WPT_PATH, suite))
             returncode = lint.lint(file_dir, files, output_json=False, css_mode=False)
             if returncode:

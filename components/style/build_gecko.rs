@@ -282,7 +282,8 @@ mod bindings {
             .raw_line("use data::ElementData;")
             .hide_type("nsString")
             .bitfield_enum("nsChangeHint")
-            .bitfield_enum("nsRestyleHint");
+            .bitfield_enum("nsRestyleHint")
+            .constified_enum("UpdateAnimationsTasks");
         let whitelist_vars = [
             "NS_THEME_.*",
             "NODE_.*",
@@ -293,6 +294,7 @@ mod bindings {
             "BORDER_STYLE_.*",
             "mozilla::SERVO_PREF_.*",
             "kNameSpaceID_.*",
+            "kGenericFont_.*",
         ];
         let whitelist = [
             "RawGecko.*",
@@ -305,6 +307,7 @@ mod bindings {
             "mozilla::TraversalRootBehavior",
             "mozilla::StyleShapeRadius",
             "mozilla::StyleGrid.*",
+            "mozilla::UpdateAnimationsTasks",
             "mozilla::LookAndFeel",
             ".*ThreadSafe.*Holder",
             "AnonymousContent",
@@ -353,6 +356,7 @@ mod bindings {
             "nsCursorImage",
             "nsFont",
             "nsIAtom",
+            "nsIURI",
             "nsMainThreadPtrHandle",
             "nsMainThreadPtrHolder",
             "nsMargin",
@@ -517,6 +521,49 @@ mod bindings {
         write_binding_file(builder, structs_file(build_type), &fixups);
     }
 
+    pub fn setup_logging() {
+        use log;
+        use std::fs;
+
+        struct BuildLogger {
+            file: Option<Mutex<fs::File>>,
+            filter: String,
+        }
+
+        impl log::Log for BuildLogger {
+            fn enabled(&self, meta: &log::LogMetadata) -> bool {
+                self.file.is_some() && meta.target().contains(&self.filter)
+            }
+
+            fn log(&self, record: &log::LogRecord) {
+                if !self.enabled(record.metadata()) {
+                    return;
+                }
+
+                let mut file = self.file.as_ref().unwrap().lock().unwrap();
+                let _ =
+                    writeln!(file, "{} - {} - {} @ {}:{}",
+                             record.level(),
+                             record.target(),
+                             record.args(),
+                             record.location().file(),
+                             record.location().line());
+            }
+        }
+
+        log::set_logger(|log_level| {
+            log_level.set(log::LogLevelFilter::Debug);
+            Box::new(BuildLogger {
+                file: env::var("STYLO_BUILD_LOG").ok().and_then(|path| {
+                    fs::File::create(path).ok().map(Mutex::new)
+                }),
+                filter: env::var("STYLO_BUILD_FILTER").ok()
+                    .unwrap_or_else(|| "bindgen".to_owned()),
+            })
+        })
+        .expect("Failed to set logger.");
+    }
+
     pub fn generate_bindings() {
         let mut builder = Builder::get_initial_builder(BuildType::Release)
             .disable_name_namespacing()
@@ -570,6 +617,7 @@ mod bindings {
             "nsCursorImage",
             "nsFont",
             "nsIAtom",
+            "nsIURI",
             "nsMediaFeature",
             "nsRestyleHint",
             "nsStyleBackground",
@@ -621,6 +669,7 @@ mod bindings {
             "Loader",
             "ServoStyleSheet",
             "EffectCompositor_CascadeLevel",
+            "UpdateAnimationsTasks",
         ];
         struct ArrayType {
             cpp_type: &'static str,
@@ -648,6 +697,7 @@ mod bindings {
         ];
         let servo_borrow_types = [
             "nsCSSValue",
+            "nsTimingFunction",
             "RawGeckoAnimationValueList",
             "RawGeckoKeyframeList",
             "RawGeckoComputedKeyframeValuesList",
@@ -711,6 +761,8 @@ mod bindings {
         static ref BINDINGS_PATH: PathBuf = Path::new(file!()).parent().unwrap().join("gecko_bindings");
     }
 
+    pub fn setup_logging() {}
+
     pub fn generate_structs(build_type: BuildType) {
         let file = structs_file(build_type);
         let source = BINDINGS_PATH.join(file);
@@ -727,16 +779,22 @@ mod bindings {
 
 pub fn generate() {
     use self::common::*;
-    use std::fs;
-    use std::thread;
+    use std::{env, fs, thread};
     println!("cargo:rerun-if-changed=build_gecko.rs");
     fs::create_dir_all(&*OUTDIR_PATH).unwrap();
-    let threads = vec![
-        thread::spawn(|| bindings::generate_structs(BuildType::Debug)),
-        thread::spawn(|| bindings::generate_structs(BuildType::Release)),
-        thread::spawn(|| bindings::generate_bindings()),
-    ];
-    for t in threads.into_iter() {
-        t.join().unwrap();
+    bindings::setup_logging();
+    if env::var("STYLO_BUILD_LOG").is_ok() {
+        bindings::generate_structs(BuildType::Debug);
+        bindings::generate_structs(BuildType::Release);
+        bindings::generate_bindings();
+    } else {
+        let threads = vec![
+            thread::spawn(|| bindings::generate_structs(BuildType::Debug)),
+            thread::spawn(|| bindings::generate_structs(BuildType::Release)),
+            thread::spawn(|| bindings::generate_bindings()),
+        ];
+        for t in threads.into_iter() {
+            t.join().unwrap();
+        }
     }
 }

@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use brotli::Decompressor;
-use connector::{Connector, create_http_connector};
+use connector::{Connector, create_http_connector, create_ssl_context};
 use cookie;
 use cookie_storage::CookieStorage;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest};
@@ -15,6 +15,7 @@ use hsts::HstsList;
 use hyper::Error as HttpError;
 use hyper::LanguageTag;
 use hyper::client::{Pool, Request as HyperRequest, Response as HyperResponse};
+use hyper::client::pool::PooledStream;
 use hyper::header::{AcceptEncoding, AcceptLanguage, AccessControlAllowCredentials};
 use hyper::header::{AccessControlAllowOrigin, AccessControlAllowHeaders, AccessControlAllowMethods};
 use hyper::header::{AccessControlRequestHeaders, AccessControlMaxAge, AccessControlRequestMethod};
@@ -24,18 +25,17 @@ use hyper::header::{IfUnmodifiedSince, IfModifiedSince, IfNoneMatch, Location, P
 use hyper::header::{QualityItem, Referer, SetCookie, UserAgent, qitem};
 use hyper::header::Origin as HyperOrigin;
 use hyper::method::Method;
-use hyper::net::Fresh;
+use hyper::net::{Fresh, HttpStream, HttpsStream, NetworkConnector};
 use hyper::status::StatusCode;
 use hyper_serde::Serde;
 use log;
 use msg::constellation_msg::PipelineId;
 use net_traits::{CookieSource, FetchMetadata, NetworkError, ReferrerPolicy};
-use net_traits::hosts::replace_hosts;
+use net_traits::hosts::replace_host;
 use net_traits::request::{CacheMode, CredentialsMode, Destination, Origin};
 use net_traits::request::{RedirectMode, Referrer, Request, RequestMode, ResponseTainting};
 use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
-use openssl;
-use openssl::ssl::error::{OpensslError, SslError};
+use openssl::ssl::SslStream;
 use resource_thread::AuthCache;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use std::collections::HashSet;
@@ -75,11 +75,12 @@ pub struct HttpState {
 
 impl HttpState {
     pub fn new(certificate_path: &str) -> HttpState {
+        let ssl_context = create_ssl_context(certificate_path);
         HttpState {
             hsts_list: Arc::new(RwLock::new(HstsList::new())),
             cookie_jar: Arc::new(RwLock::new(CookieStorage::new(150))),
             auth_cache: Arc::new(RwLock::new(AuthCache::new())),
-            connector_pool: create_http_connector(certificate_path),
+            connector_pool: create_http_connector(ssl_context),
         }
     }
 }
@@ -125,40 +126,19 @@ struct NetworkHttpRequestFactory {
     pub connector: Arc<Pool<Connector>>,
 }
 
+impl NetworkConnector for NetworkHttpRequestFactory {
+    type Stream = PooledStream<HttpsStream<SslStream<HttpStream>>>;
+
+    fn connect(&self, host: &str, port: u16, scheme: &str) -> Result<Self::Stream, HttpError> {
+        self.connector.connect(&replace_host(host), port, scheme)
+    }
+}
+
 impl NetworkHttpRequestFactory {
     fn create(&self, url: ServoUrl, method: Method, headers: Headers)
               -> Result<HyperRequest<Fresh>, NetworkError> {
-        let connection = HyperRequest::with_connector(method,
-                                                      url.clone().into_url().unwrap(),
-                                                      &*self.connector);
-
-        if let Err(HttpError::Ssl(ref error)) = connection {
-            let error: &(Error + Send + 'static) = &**error;
-            if let Some(&SslError::OpenSslErrors(ref errors)) = error.downcast_ref::<SslError>() {
-                if errors.iter().any(is_cert_verify_error) {
-                    let mut error_report = vec![format!("ssl error ({}):", openssl::version::version())];
-                    let mut suggestion = None;
-                    for err in errors {
-                        if is_unknown_message_digest_err(err) {
-                            suggestion = Some("<b>Servo recommends upgrading to a newer OpenSSL version.</b>");
-                        }
-                        error_report.push(format_ssl_error(err));
-                    }
-
-                    if let Some(suggestion) = suggestion {
-                        error_report.push(suggestion.to_owned());
-                    }
-
-                    let error_report = error_report.join("<br>\n");
-                    return Err(NetworkError::SslValidation(url, error_report));
-                }
-            }
-        }
-
-        let mut request = match connection {
-            Ok(req) => req,
-            Err(e) => return Err(NetworkError::Internal(e.description().to_owned())),
-        };
+        let connection = HyperRequest::with_connector(method, url.clone().into_url(), self);
+        let mut request = connection.map_err(|e| NetworkError::from_hyper_error(&url, e))?;
         *request.headers_mut() = headers;
 
         Ok(request)
@@ -222,7 +202,7 @@ fn strict_origin_when_cross_origin(referrer_url: ServoUrl, url: ServoUrl) -> Opt
 fn strip_url(mut referrer_url: ServoUrl, origin_only: bool) -> Option<ServoUrl> {
     if referrer_url.scheme() == "https" || referrer_url.scheme() == "http" {
         {
-            let referrer = referrer_url.as_mut_url().unwrap();
+            let referrer = referrer_url.as_mut_url();
             referrer.set_username("").unwrap();
             referrer.set_password(None).unwrap();
             referrer.set_fragment(None);
@@ -408,7 +388,6 @@ fn obtain_response(request_factory: &NetworkHttpRequestFactory,
                    is_xhr: bool)
                    -> Result<(WrappedHttpResponse, Option<ChromeToDevtoolsControlMsg>), NetworkError> {
     let null_data = None;
-    let connection_url = replace_hosts(&url);
 
     // loop trying connections in connection pool
     // they may have grown stale (disconnected), in which case we'll get
@@ -439,7 +418,7 @@ fn obtain_response(request_factory: &NetworkHttpRequestFactory,
         }
 
         if log_enabled!(log::LogLevel::Info) {
-            info!("{} {}", method, connection_url);
+            info!("{} {}", method, url);
             for header in headers.iter() {
                 info!(" - {}", header);
             }
@@ -448,7 +427,7 @@ fn obtain_response(request_factory: &NetworkHttpRequestFactory,
 
         let connect_start = precise_time_ms();
 
-        let request = try!(request_factory.create(connection_url.clone(), method.clone(),
+        let request = try!(request_factory.create(url.clone(), method.clone(),
                                                   headers.clone()));
 
         let connect_end = precise_time_ms();
@@ -494,35 +473,6 @@ fn obtain_response(request_factory: &NetworkHttpRequestFactory,
         };
 
         return Ok((WrappedHttpResponse { response: response }, msg));
-    }
-}
-
-// FIXME: This incredibly hacky. Make it more robust, and at least test it.
-fn is_cert_verify_error(error: &OpensslError) -> bool {
-    match error {
-        &OpensslError::UnknownError { ref library, ref function, ref reason } => {
-            library == "SSL routines" &&
-            function.to_uppercase() == "SSL3_GET_SERVER_CERTIFICATE" &&
-            reason == "certificate verify failed"
-        }
-    }
-}
-
-fn is_unknown_message_digest_err(error: &OpensslError) -> bool {
-    match error {
-        &OpensslError::UnknownError { ref library, ref function, ref reason } => {
-            library == "asn1 encoding routines" &&
-            function == "ASN1_item_verify" &&
-            reason == "unknown message digest algorithm"
-        }
-    }
-}
-
-fn format_ssl_error(error: &OpensslError) -> String {
-    match error {
-        &OpensslError::UnknownError { ref library, ref function, ref reason } => {
-            format!("{}: {} - {}", library, function, reason)
-        }
     }
 }
 
@@ -622,11 +572,7 @@ pub fn http_fetch(request: Rc<Request>,
     // Step 5
     match response.actual_response().status {
         // Code 301, 302, 303, 307, 308
-        Some(StatusCode::MovedPermanently) |
-        Some(StatusCode::Found) |
-        Some(StatusCode::SeeOther) |
-        Some(StatusCode::TemporaryRedirect) |
-        Some(StatusCode::PermanentRedirect) => {
+        status if status.map_or(false, is_redirect_status) => {
             response = match request.redirect_mode.get() {
                 RedirectMode::Error => Response::network_error(NetworkError::Internal("Redirect mode error".into())),
                 RedirectMode::Manual => {
@@ -900,7 +846,7 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
         let headers = &mut *http_request.headers.borrow_mut();
         let host = Host {
             hostname: current_url.host_str().unwrap().to_owned(),
-            port: current_url.port_or_known_default()
+            port: current_url.port()
         };
         headers.set(host);
         // unlike http_loader, we should not set the accept header
@@ -1410,4 +1356,16 @@ fn is_no_store_cache(headers: &Headers) -> bool {
 fn response_needs_revalidation(_response: &Response) -> bool {
     // TODO this function
     false
+}
+
+/// https://fetch.spec.whatwg.org/#redirect-status
+pub fn is_redirect_status(status: StatusCode) -> bool {
+    match status {
+        StatusCode::MovedPermanently |
+        StatusCode::Found |
+        StatusCode::SeeOther |
+        StatusCode::TemporaryRedirect |
+        StatusCode::PermanentRedirect => true,
+        _ => false,
+    }
 }
