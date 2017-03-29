@@ -1473,15 +1473,22 @@ pub extern "C" fn Servo_TakeChangeHint(element: RawGeckoElementBorrowed) -> nsCh
 
 #[no_mangle]
 pub extern "C" fn Servo_ResolveStyle(element: RawGeckoElementBorrowed,
-                                     raw_data: RawServoStyleSetBorrowed)
+                                     raw_data: RawServoStyleSetBorrowed,
+                                     allow_stale: bool)
                                      -> ServoComputedValuesStrong
 {
     let element = GeckoElement(element);
     debug!("Servo_ResolveStyle: {:?}", element);
     let data = unsafe { element.ensure_data() }.borrow_mut();
 
-    if !data.has_current_styles() {
-        warn!("Resolving style on unstyled element with lazy computation forbidden.");
+    let valid_styles = if allow_stale {
+      data.has_styles()
+    } else {
+      data.has_current_styles()
+    };
+
+    if !valid_styles {
+        warn!("Resolving style on element without current styles with lazy computation forbidden.");
         let per_doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow();
         return per_doc_data.default_computed_values().clone().into_strong();
     }
