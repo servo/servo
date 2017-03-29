@@ -393,6 +393,7 @@ pub mod permissions;
 pub mod permissionstatus;
 pub mod plugin;
 pub mod pluginarray;
+pub mod pointerevent;
 pub mod popstateevent;
 pub mod processinginstruction;
 pub mod progressevent;

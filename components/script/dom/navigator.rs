@@ -16,6 +16,7 @@ use dom::serviceworkercontainer::ServiceWorkerContainer;
 use dom::vr::VR;
 use dom::window::Window;
 use dom_struct::dom_struct;
+use std::cell::Cell;
 use script_traits::WebVREventMsg;
 
 #[dom_struct]
@@ -27,6 +28,7 @@ pub struct Navigator {
     service_worker: MutNullableJS<ServiceWorkerContainer>,
     vr: MutNullableJS<VR>,
     permissions: MutNullableJS<Permissions>,
+    max_touch_points: Cell<i32>
 }
 
 impl Navigator {
@@ -39,6 +41,7 @@ impl Navigator {
             service_worker: Default::default(),
             vr: Default::default(),
             permissions: Default::default(),
+            max_touch_points: Cell::new(0)
         }
     }
 
@@ -131,6 +134,11 @@ impl NavigatorMethods for Navigator {
     // https://w3c.github.io/permissions/#navigator-and-workernavigator-extension
     fn Permissions(&self) -> Root<Permissions> {
         self.permissions.or_init(|| Permissions::new(&self.global()))
+    }
+
+    // https://www.w3.org/TR/pointerevents/#extensions-to-the-navigator-interface
+    fn MaxTouchPoints(&self) -> i32 {
+        self.max_touch_points.get()
     }
 }
 

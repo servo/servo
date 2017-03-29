@@ -833,6 +833,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.on_mouse_window_move_event_class(cursor);
             }
 
+            WindowEvent::PointerWindowEventClass(pointer_window_event) => {
+                unimplemented!()
+            }
+
             WindowEvent::Touch(event_type, identifier, location) => {
                 match event_type {
                     TouchEventType::Down => self.on_touch_down(identifier, location),
