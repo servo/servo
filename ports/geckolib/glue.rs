@@ -18,6 +18,7 @@ use style::arc_ptr_eq;
 use style::context::{QuirksMode, SharedStyleContext, StyleContext};
 use style::context::{ThreadLocalStyleContext, ThreadLocalStyleContextCreationInfo};
 use style::data::{ElementData, ElementStyles, RestyleData};
+use style::dom::{AnimationOnlyDirtyDescendants, DirtyDescendants};
 use style::dom::{ShowSubtreeData, TElement, TNode};
 use style::error_reporting::StdoutErrorReporter;
 use style::gecko::data::{PerDocumentStyleData, PerDocumentStyleDataImpl};
@@ -1384,17 +1385,12 @@ unsafe fn maybe_restyle<'a>(data: &'a mut AtomicRefMut<ElementData>,
     }
 
     // Propagate the bit up the chain.
-    let mut curr = element;
-    while let Some(parent) = curr.parent_element() {
-        curr = parent;
-        if animation_only {
-            if curr.has_animation_only_dirty_descendants() { break; }
-            curr.set_animation_only_dirty_descendants();
-        } else {
-            if curr.has_dirty_descendants() { break; }
-            curr.set_dirty_descendants();
-        }
-    }
+    if animation_only {
+        element.parent_element().map(|p| p.note_descendants::<AnimationOnlyDirtyDescendants>());
+    } else  {
+        element.parent_element().map(|p| p.note_descendants::<DirtyDescendants>());
+    };
+
     bindings::Gecko_SetOwnerDocumentNeedsStyleFlush(element.0);
 
     // Ensure and return the RestyleData.
