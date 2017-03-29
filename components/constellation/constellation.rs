@@ -905,9 +905,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 assert!(self.webvr_thread.is_none());
                 self.webvr_thread = Some(webvr_thread)
             }
-            FromCompositorMsg::WebVREvent(pipeline_ids, event) => {
-                debug!("constellation got WebVR event");
-                self.handle_webvr_event(pipeline_ids, event);
+            FromCompositorMsg::WebVREvent(pipeline_ids, events) => {
+                debug!("constellation got {:?} WebVR events", events.len());
+                self.handle_webvr_events(pipeline_ids, events);
             }
         }
     }
@@ -1334,12 +1334,12 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
-    fn handle_webvr_event(&mut self, ids: Vec<PipelineId>, event: WebVREventMsg) {
+    fn handle_webvr_events(&mut self, ids: Vec<PipelineId>, events: Vec<WebVREventMsg>) {
         for id in ids {
             match self.pipelines.get_mut(&id) {
                 Some(ref pipeline) => {
                     // Notify script thread
-                    let _ = pipeline.event_loop.send(ConstellationControlMsg::WebVREvent(id, event.clone()));
+                    let _ = pipeline.event_loop.send(ConstellationControlMsg::WebVREvent(id, events.clone()));
                 },
                 None => warn!("constellation got webvr event for dead pipeline")
             }

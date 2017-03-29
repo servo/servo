@@ -74,6 +74,7 @@ WEBIDL_STANDARDS = [
     "//url.spec.whatwg.org",
     "//xhr.spec.whatwg.org",
     "//w3c.github.io",
+    "//www.w3.org",
     "//heycam.github.io/webidl",
     "//webbluetoothcg.github.io/web-bluetooth/",
     "//svgwg.org/svg2-draft",

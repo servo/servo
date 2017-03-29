@@ -108,6 +108,9 @@ impl WebVRThread {
                 WebVRMsg::CreateCompositor(display_id) => {
                     self.handle_create_compositor(display_id);
                 },
+                WebVRMsg::GetGamepads(synced_ids, sender) => {
+                    self.handle_get_gamepads(synced_ids, sender);
+                }
                 WebVRMsg::Exit => {
                     break
                 },
@@ -182,7 +185,7 @@ impl WebVRThread {
                 self.presenting.insert(display_id, pipeline);
                 let data = display.borrow().data();
                 sender.send(Ok(())).unwrap();
-                self.notify_event(VRDisplayEvent::PresentChange(data, true));
+                self.notify_event(VRDisplayEvent::PresentChange(data, true).into());
             },
             Err(msg) => {
                 sender.send(Err(msg.into())).unwrap();
@@ -201,7 +204,7 @@ impl WebVRThread {
                     sender.send(Ok(())).unwrap();
                 }
                 let data = display.borrow().data();
-                self.notify_event(VRDisplayEvent::PresentChange(data, false));
+                self.notify_event(VRDisplayEvent::PresentChange(data, false).into());
             },
             Err(msg) => {
                 if let Some(sender) = sender {
@@ -214,6 +217,23 @@ impl WebVRThread {
     fn handle_create_compositor(&mut self, display_id: u64) {
         let compositor = self.service.get_display(display_id).map(|d| WebVRCompositor(d.as_ptr()));
         self.vr_compositor_chan.send(compositor).unwrap();
+    }
+
+    fn handle_get_gamepads(&mut self,
+                           synced_ids: Vec<u64>,
+                           sender: IpcSender<WebVRResult<Vec<(Option<VRGamepadData>, VRGamepadState)>>>) {
+        let gamepads = self.service.get_gamepads();
+        let data = gamepads.iter().map(|g| {
+            let g = g.borrow();
+            // Optimization, don't fetch and send gamepad static data when the gamepad is already synced.
+            let data = if synced_ids.iter().any(|v| *v == g.id()) {
+                None
+            } else {
+                Some(g.data())
+            };
+            (data, g.state())
+        }).collect();
+        sender.send(Ok(data)).unwrap();
     }
 
     fn poll_events(&mut self, sender: IpcSender<bool>) {
@@ -230,16 +250,20 @@ impl WebVRThread {
         sender.send(self.polling_events).unwrap();
     }
 
-    fn notify_events(&self, events: Vec<VRDisplayEvent>) {
+    fn notify_events(&self, mut events: Vec<VREvent>) {
         let pipeline_ids: Vec<PipelineId> = self.contexts.iter().map(|c| *c).collect();
-        for event in events {
-            let event = WebVREventMsg::DisplayEvent(event);
-            self.constellation_chan.send(ConstellationMsg::WebVREvent(pipeline_ids.clone(), event)).unwrap();
-        }
+        let events = events.drain(0..).map(|ev| {
+            match ev {
+                VREvent::Display(ev) => WebVREventMsg::DisplayEvent(ev),
+                VREvent::Gamepad(ev) => WebVREventMsg::GamepadEvent(ev),
+            }
+        }).collect();
+
+        self.constellation_chan.send(ConstellationMsg::WebVREvent(pipeline_ids.clone(), events)).unwrap();
     }
 
     #[inline]
-    fn notify_event(&self, event: VRDisplayEvent) {
+    fn notify_event(&self, event: VREvent) {
         self.notify_events(vec![event]);
     }
 
@@ -334,7 +358,8 @@ impl webrender_traits::VRCompositorHandler for WebVRCompositorHandler {
                         let layer = VRLayer {
                             texture_id: texture_id,
                             left_bounds: left_bounds,
-                            right_bounds: right_bounds
+                            right_bounds: right_bounds,
+                            texture_size: None
                         };
                         unsafe {
                             (*compositor.0).submit_frame(&layer);

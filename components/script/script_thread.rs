@@ -1055,8 +1055,8 @@ impl ScriptThread {
                 self.handle_reload(pipeline_id),
             ConstellationControlMsg::ExitPipeline(pipeline_id, discard_browsing_context) =>
                 self.handle_exit_pipeline_msg(pipeline_id, discard_browsing_context),
-            ConstellationControlMsg::WebVREvent(pipeline_id, event) =>
-                self.handle_webvr_event(pipeline_id, event),
+            ConstellationControlMsg::WebVREvent(pipeline_id, events) =>
+                self.handle_webvr_events(pipeline_id, events),
             msg @ ConstellationControlMsg::AttachLayout(..) |
             msg @ ConstellationControlMsg::Viewport(..) |
             msg @ ConstellationControlMsg::SetScrollState(..) |
@@ -2171,11 +2171,11 @@ impl ScriptThread {
         }
     }
 
-    fn handle_webvr_event(&self, pipeline_id: PipelineId, event: WebVREventMsg) {
+    fn handle_webvr_events(&self, pipeline_id: PipelineId, events: Vec<WebVREventMsg>) {
         let window = self.documents.borrow().find_window(pipeline_id);
         if let Some(window) = window {
             let navigator = window.Navigator();
-            navigator.handle_webvr_event(event);
+            navigator.handle_webvr_events(events);
         }
     }
 

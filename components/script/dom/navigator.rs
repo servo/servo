@@ -8,6 +8,7 @@ use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::reflector::{Reflector, DomObject, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::bluetooth::Bluetooth;
+use dom::gamepadlist::GamepadList;
 use dom::mimetypearray::MimeTypeArray;
 use dom::navigatorinfo;
 use dom::permissions::Permissions;
@@ -26,6 +27,7 @@ pub struct Navigator {
     mime_types: MutNullableJS<MimeTypeArray>,
     service_worker: MutNullableJS<ServiceWorkerContainer>,
     vr: MutNullableJS<VR>,
+    gamepads: MutNullableJS<GamepadList>,
     permissions: MutNullableJS<Permissions>,
 }
 
@@ -38,6 +40,7 @@ impl Navigator {
             mime_types: Default::default(),
             service_worker: Default::default(),
             vr: Default::default(),
+            gamepads: Default::default(),
             permissions: Default::default(),
         }
     }
@@ -128,6 +131,17 @@ impl NavigatorMethods for Navigator {
         self.vr.or_init(|| VR::new(&self.global()))
     }
 
+    // https://www.w3.org/TR/gamepad/#navigator-interface-extension
+    fn GetGamepads(&self) -> Root<GamepadList> {
+        let root = self.gamepads.or_init(|| {
+            GamepadList::new(&self.global(), Vec::new())
+        });
+
+        let vr_gamepads = self.Vr().get_gamepads();
+        root.sync(&vr_gamepads);
+        // TODO: Add not VR related gamepads
+        root
+    }
     // https://w3c.github.io/permissions/#navigator-and-workernavigator-extension
     fn Permissions(&self) -> Root<Permissions> {
         self.permissions.or_init(|| Permissions::new(&self.global()))
@@ -135,8 +149,8 @@ impl NavigatorMethods for Navigator {
 }
 
 impl Navigator {
-     pub fn handle_webvr_event(&self, event: WebVREventMsg) {
+     pub fn handle_webvr_events(&self, events: Vec<WebVREventMsg>) {
          self.vr.get().expect("Shouldn't arrive here with an empty VR instance")
-                      .handle_webvr_event(event);
+                      .handle_webvr_events(events);
      }
 }
