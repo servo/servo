@@ -96,7 +96,7 @@ use profile_traits::time;
 use script_traits::{AnimationState, AnimationTickType, CompositorEvent};
 use script_traits::{ConstellationControlMsg, ConstellationMsg as FromCompositorMsg, DiscardBrowsingContext};
 use script_traits::{DocumentActivity, DocumentState, LayoutControlMsg, LoadData};
-use script_traits::{IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSandboxState, TimerEventRequest};
+use script_traits::{IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSandboxState, TimerSchedulerMsg};
 use script_traits::{LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg, ScriptThreadFactory};
 use script_traits::{LogEntry, ServiceWorkerMsg, webdriver_msg};
 use script_traits::{MozBrowserErrorType, MozBrowserEvent, WebDriverCommandMsg, WindowSizeData};
@@ -214,7 +214,7 @@ pub struct Constellation<Message, LTF, STF> {
 
     /// A channel for the constellation to send messages to the
     /// timer thread.
-    scheduler_chan: IpcSender<TimerEventRequest>,
+    scheduler_chan: IpcSender<TimerSchedulerMsg>,
 
     /// A channel for the constellation to send messages to the
     /// Webrender thread.
@@ -1239,6 +1239,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             if let Err(e) = chan.send(WebVRMsg::Exit) {
                 warn!("Exit WebVR thread failed ({})", e);
             }
+        }
+
+        debug!("Exiting timer scheduler.");
+        if let Err(e) = self.scheduler_chan.send(TimerSchedulerMsg::Exit) {
+            warn!("Exit timer scheduler failed ({})", e);
         }
 
         debug!("Exiting font cache thread.");

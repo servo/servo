@@ -25,7 +25,7 @@ use script_traits::{ConstellationControlMsg, DevicePixel, DiscardBrowsingContext
 use script_traits::{DocumentActivity, InitialScriptState};
 use script_traits::{LayoutControlMsg, LayoutMsg, LoadData, MozBrowserEvent};
 use script_traits::{NewLayoutInfo, SWManagerMsg, SWManagerSenders, ScriptMsg};
-use script_traits::{ScriptThreadFactory, TimerEventRequest, WindowSizeData};
+use script_traits::{ScriptThreadFactory, TimerSchedulerMsg, WindowSizeData};
 use servo_config::opts::{self, Opts};
 use servo_config::prefs::{PREFS, Pref};
 use servo_url::ServoUrl;
@@ -121,7 +121,7 @@ pub struct InitialPipelineState {
     pub layout_to_constellation_chan: IpcSender<LayoutMsg>,
 
     /// A channel to schedule timer events.
-    pub scheduler_chan: IpcSender<TimerEventRequest>,
+    pub scheduler_chan: IpcSender<TimerSchedulerMsg>,
 
     /// A channel to the compositor.
     pub compositor_proxy: Box<CompositorProxy + 'static + Send>,
@@ -445,7 +445,7 @@ pub struct UnprivilegedPipelineContent {
     parent_info: Option<(PipelineId, FrameType)>,
     constellation_chan: IpcSender<ScriptMsg>,
     layout_to_constellation_chan: IpcSender<LayoutMsg>,
-    scheduler_chan: IpcSender<TimerEventRequest>,
+    scheduler_chan: IpcSender<TimerSchedulerMsg>,
     devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     bluetooth_thread: IpcSender<BluetoothRequest>,
     swmanager_thread: IpcSender<SWManagerMsg>,

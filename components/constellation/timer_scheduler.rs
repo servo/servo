@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use ipc_channel::ipc::{self, IpcSender};
-use script_traits::{TimerEvent, TimerEventRequest};
+use script_traits::{TimerEvent, TimerEventRequest, TimerSchedulerMsg};
 use std::cmp::{self, Ord};
 use std::collections::BinaryHeap;
 use std::sync::mpsc;
@@ -38,7 +38,7 @@ impl PartialEq for ScheduledEvent {
 }
 
 impl TimerScheduler {
-    pub fn start() -> IpcSender<TimerEventRequest> {
+    pub fn start() -> IpcSender<TimerSchedulerMsg> {
         let (req_ipc_sender, req_ipc_receiver) = ipc::channel().expect("Channel creation failed.");
         let (req_sender, req_receiver) = mpsc::sync_channel(1);
 
@@ -72,7 +72,7 @@ impl TimerScheduler {
                     // Look to see if there are any incoming events
                     match req_receiver.try_recv() {
                         // If there is an event, add it to the priority queue
-                        Ok(req) => {
+                        Ok(TimerSchedulerMsg::Request(req)) => {
                             let TimerEventRequest(_, _, _, delay) = req;
                             let schedule = Instant::now() + Duration::from_millis(delay.get());
                             let event = ScheduledEvent { request: req, for_time: schedule };
@@ -85,7 +85,8 @@ impl TimerScheduler {
                             None => thread::park(),
                             Some(event) => thread::park_timeout(event.for_time - now),
                         },
-                        // If the channel is closed, we are done.
+                        // If the channel is closed or we are shutting down, we are done.
+                        Ok(TimerSchedulerMsg::Exit) |
                         Err(Disconnected) => break,
                     }
                 }
@@ -105,8 +106,16 @@ impl TimerScheduler {
             .name(String::from("TimerProxy"))
             .spawn(move || {
                 while let Ok(req) = req_ipc_receiver.recv() {
+                    let mut shutting_down = false;
+                    match req {
+                        TimerSchedulerMsg::Exit => shutting_down = true,
+                        _ => {}
+                    }
                     let _ = req_sender.send(req);
                     timeout_thread.unpark();
+                    if shutting_down {
+                        break;
+                    }
                 }
                 // This thread can terminate if the req_ipc_sender is dropped.
                 warn!("TimerProxy thread terminated.");

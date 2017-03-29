@@ -86,7 +86,7 @@ use script_traits::{CompositorEvent, ConstellationControlMsg};
 use script_traits::{DocumentActivity, DiscardBrowsingContext, EventResult};
 use script_traits::{InitialScriptState, LayoutMsg, LoadData, MouseButton, MouseEventType, MozBrowserEvent};
 use script_traits::{NewLayoutInfo, ScriptMsg as ConstellationMsg};
-use script_traits::{ScriptThreadFactory, TimerEvent, TimerEventRequest, TimerSource};
+use script_traits::{ScriptThreadFactory, TimerEvent, TimerSchedulerMsg, TimerSource};
 use script_traits::{TouchEventType, TouchId, UntrustedNodeAddress, WindowSizeData, WindowSizeType};
 use script_traits::CompositorEvent::{KeyEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent};
 use script_traits::CompositorEvent::{TouchEvent, TouchpadPressureEvent};
@@ -472,7 +472,7 @@ pub struct ScriptThread {
     /// List of pipelines that have been owned and closed by this script thread.
     closed_pipelines: DOMRefCell<HashSet<PipelineId>>,
 
-    scheduler_chan: IpcSender<TimerEventRequest>,
+    scheduler_chan: IpcSender<TimerSchedulerMsg>,
     timer_event_chan: Sender<TimerEvent>,
     timer_event_port: Receiver<TimerEvent>,
 

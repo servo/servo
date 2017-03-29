@@ -37,7 +37,7 @@ use profile_traits::{mem, time};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
 use script_thread::{MainThreadScriptChan, RunnableWrapper, ScriptThread};
 use script_traits::{MsDuration, ScriptMsg as ConstellationMsg, TimerEvent};
-use script_traits::{TimerEventId, TimerEventRequest, TimerSource};
+use script_traits::{TimerEventId, TimerSchedulerMsg, TimerSource};
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::collections::HashMap;
@@ -82,7 +82,7 @@ pub struct GlobalScope {
     constellation_chan: IpcSender<ConstellationMsg>,
 
     #[ignore_heap_size_of = "channels are hard"]
-    scheduler_chan: IpcSender<TimerEventRequest>,
+    scheduler_chan: IpcSender<TimerSchedulerMsg>,
 
     /// https://html.spec.whatwg.org/multipage/#in-error-reporting-mode
     in_error_reporting_mode: Cell<bool>,
@@ -101,7 +101,7 @@ impl GlobalScope {
             mem_profiler_chan: mem::ProfilerChan,
             time_profiler_chan: time::ProfilerChan,
             constellation_chan: IpcSender<ConstellationMsg>,
-            scheduler_chan: IpcSender<TimerEventRequest>,
+            scheduler_chan: IpcSender<TimerSchedulerMsg>,
             resource_threads: ResourceThreads,
             timer_event_chan: IpcSender<TimerEvent>)
             -> Self {
@@ -229,7 +229,7 @@ impl GlobalScope {
         &self.constellation_chan
     }
 
-    pub fn scheduler_chan(&self) -> &IpcSender<TimerEventRequest> {
+    pub fn scheduler_chan(&self) -> &IpcSender<TimerSchedulerMsg> {
         &self.scheduler_chan
     }
 
