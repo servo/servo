@@ -80,7 +80,7 @@ use script_thread::{MainThreadScriptChan, MainThreadScriptMsg, Runnable, Runnabl
 use script_thread::{SendableMainThreadScriptChan, ImageCacheMsg};
 use script_traits::{ConstellationControlMsg, LoadData, MozBrowserEvent, UntrustedNodeAddress};
 use script_traits::{DocumentState, TimerEvent, TimerEventId};
-use script_traits::{ScriptMsg as ConstellationMsg, TimerEventRequest, WindowSizeData, WindowSizeType};
+use script_traits::{ScriptMsg as ConstellationMsg, TimerSchedulerMsg, WindowSizeData, WindowSizeType};
 use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use servo_atoms::Atom;
 use servo_config::opts;
@@ -1711,7 +1711,7 @@ impl Window {
                devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
                constellation_chan: IpcSender<ConstellationMsg>,
                control_chan: IpcSender<ConstellationControlMsg>,
-               scheduler_chan: IpcSender<TimerEventRequest>,
+               scheduler_chan: IpcSender<TimerSchedulerMsg>,
                timer_event_chan: IpcSender<TimerEvent>,
                layout_chan: Sender<Msg>,
                id: PipelineId,
