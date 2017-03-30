@@ -30,11 +30,8 @@ impl MutationObserver {
 
   pub fn Constructor(global: &dom::bindings::js::Root<dom::window::Window>, callback: Rc<MutationCallback>) -> Result<Root<MutationObserver>, Error> {
   	let observer = MutationObserver::new(global, &callback);
-	match observer {
-		None => Err(Error::new()),
-  		Some(_) => Ok(dom::bindings::js::Root<MutationObserver::new(global, callback)>),
-	}
-    }
+    ScriptThread.set_mutation_observer(observer)
+  }
 
 }
 
