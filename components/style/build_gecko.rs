@@ -615,6 +615,7 @@ mod bindings {
             "nsCSSKeyword",
             "nsCSSPropertyID",
             "nsCSSShadowArray",
+            "nsCSSUnit",
             "nsCSSValue",
             "nsCSSValueSharedList",
             "nsChangeHint",

@@ -8,6 +8,7 @@ use app_units::Au;
 use gecko_bindings::bindings;
 use gecko_bindings::structs::{nsCSSValue, nsCSSUnit};
 use gecko_bindings::structs::{nsCSSValue_Array, nscolor};
+use gecko_string_cache::Atom;
 use std::mem;
 use std::ops::{Index, IndexMut};
 use std::slice;
@@ -100,14 +101,56 @@ impl nsCSSValue {
         }
     }
 
+    /// Set to a normal value
+    pub fn set_normal(&mut self) {
+        unsafe { bindings::Gecko_CSSValue_SetNormal(self) }
+    }
+
+    fn set_string_internal(&mut self, s: &str, unit: nsCSSUnit) {
+        unsafe { bindings::Gecko_CSSValue_SetString(self, s.as_ptr(), s.len() as u32, unit) }
+    }
+
+    fn set_string_from_atom_internal(&mut self, s: &Atom, unit: nsCSSUnit) {
+        unsafe { bindings::Gecko_CSSValue_SetStringFromAtom(self, s.as_ptr(), unit) }
+    }
+
     /// Set to a string value
     pub fn set_string(&mut self, s: &str) {
-        unsafe { bindings::Gecko_CSSValue_SetString(self, s.as_ptr(), s.len() as u32) }
+        self.set_string_internal(s, nsCSSUnit::eCSSUnit_String)
+    }
+
+    /// Set to a string value from the given atom
+    pub fn set_string_from_atom(&mut self, s: &Atom) {
+        self.set_string_from_atom_internal(s, nsCSSUnit::eCSSUnit_String)
     }
 
     /// Set to an identifier value
     pub fn set_ident(&mut self, s: &str) {
-        unsafe { bindings::Gecko_CSSValue_SetIdent(self, s.as_ptr(), s.len() as u32) }
+        self.set_string_internal(s, nsCSSUnit::eCSSUnit_Ident)
+    }
+
+    /// Set to a font format
+    pub fn set_font_format(&mut self, s: &str) {
+        self.set_string_internal(s, nsCSSUnit::eCSSUnit_Font_Format);
+    }
+
+    /// Set to a local font value
+    pub fn set_local_font(&mut self, s: &Atom) {
+        self.set_string_from_atom_internal(s, nsCSSUnit::eCSSUnit_Local_Font);
+    }
+
+    fn set_int_internal(&mut self, value: i32, unit: nsCSSUnit) {
+        unsafe { bindings::Gecko_CSSValue_SetInt(self, value, unit) }
+    }
+
+    /// Set to an integer value
+    pub fn set_integer(&mut self, value: i32) {
+        self.set_int_internal(value, nsCSSUnit::eCSSUnit_Integer)
+    }
+
+    /// Set to an enumerated value
+    pub fn set_enum<T: Into<i32>>(&mut self, value: T) {
+        self.set_int_internal(value.into(), nsCSSUnit::eCSSUnit_Enumerated);
     }
 
     /// Set to a url value
@@ -116,8 +159,9 @@ impl nsCSSValue {
     }
 
     /// Set to an array of given length
-    pub fn set_array(&mut self, len: i32) {
+    pub fn set_array(&mut self, len: i32) -> &mut nsCSSValue_Array {
         unsafe { bindings::Gecko_CSSValue_SetArray(self, len) }
+        unsafe { self.mValue.mArray.as_mut().as_mut() }.unwrap()
     }
 }
 
