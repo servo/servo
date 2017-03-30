@@ -153,7 +153,7 @@ fn traverse_subtree(element: GeckoElement, raw_data: RawServoStyleSetBorrowed,
     // servo to try to style it. Detect that here and bail out.
     if let Some(parent) = element.parent_element() {
         if parent.borrow_data().map_or(true, |d| d.styles().is_display_none()) {
-            debug!("{:?} has unstyled parent - ignoring call to traverse_subtree", parent);
+            debug!("{:?} has unstyled parent {:?} - ignoring call to traverse_subtree", element, parent);
             return;
         }
     }
