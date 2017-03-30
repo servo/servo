@@ -34,9 +34,11 @@ use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::fmt;
 use std::hash::Hash;
+#[cfg(feature = "servo")]
+use std::marker::PhantomData;
 use std::sync::Arc;
 use style_traits::viewport::ViewportConstraints;
-use stylesheets::{CssRule, Origin, StyleRule, Stylesheet, UserAgentStylesheets};
+use stylesheets::{CssRule, FontFaceRule, Origin, StyleRule, Stylesheet, UserAgentStylesheets};
 use thread_state;
 use viewport::{self, MaybeNew, ViewportRule};
 
@@ -118,6 +120,37 @@ pub struct Stylist {
     non_common_style_affecting_attributes_selectors: Vec<Selector<SelectorImpl>>,
 }
 
+/// This struct holds data which user of Stylist may want to extract
+/// from stylesheets which can be done at the same time as updating.
+pub struct ExtraStyleData<'a> {
+    /// A list of effective font-face rules and their origin.
+    #[cfg(feature = "gecko")]
+    pub font_faces: &'a mut Vec<(Arc<Locked<FontFaceRule>>, Origin)>,
+
+    #[allow(missing_docs)]
+    #[cfg(feature = "servo")]
+    pub marker: PhantomData<&'a usize>,
+}
+
+#[cfg(feature = "gecko")]
+impl<'a> ExtraStyleData<'a> {
+    /// Clear the internal @font-face rule list.
+    fn clear_font_faces(&mut self) {
+        self.font_faces.clear();
+    }
+
+    /// Add the given @font-face rule.
+    fn add_font_face(&mut self, rule: &Arc<Locked<FontFaceRule>>, origin: Origin) {
+        self.font_faces.push((rule.clone(), origin));
+    }
+}
+
+#[cfg(feature = "servo")]
+impl<'a> ExtraStyleData<'a> {
+    fn clear_font_faces(&mut self) {}
+    fn add_font_face(&mut self, _: &Arc<Locked<FontFaceRule>>, _: Origin) {}
+}
+
 impl Stylist {
     /// Construct a new `Stylist`, using a given `Device`.
     #[inline]
@@ -156,11 +189,12 @@ impl Stylist {
     /// This method resets all the style data each time the stylesheets change
     /// (which is indicated by the `stylesheets_changed` parameter), or the
     /// device is dirty, which means we need to re-evaluate media queries.
-    pub fn update(&mut self,
-                  doc_stylesheets: &[Arc<Stylesheet>],
-                  guards: &StylesheetGuards,
-                  ua_stylesheets: Option<&UserAgentStylesheets>,
-                  stylesheets_changed: bool) -> bool {
+    pub fn update<'a>(&mut self,
+                      doc_stylesheets: &[Arc<Stylesheet>],
+                      guards: &StylesheetGuards,
+                      ua_stylesheets: Option<&UserAgentStylesheets>,
+                      stylesheets_changed: bool,
+                      extra_data: &mut ExtraStyleData<'a>) -> bool {
         if !(self.is_device_dirty || stylesheets_changed) {
             return false;
         }
@@ -194,18 +228,21 @@ impl Stylist {
         self.sibling_affecting_selectors.clear();
         self.non_common_style_affecting_attributes_selectors.clear();
 
+        extra_data.clear_font_faces();
+
         if let Some(ua_stylesheets) = ua_stylesheets {
             for stylesheet in &ua_stylesheets.user_or_user_agent_stylesheets {
-                self.add_stylesheet(&stylesheet, guards.ua_or_user);
+                self.add_stylesheet(&stylesheet, guards.ua_or_user, extra_data);
             }
 
             if self.quirks_mode {
-                self.add_stylesheet(&ua_stylesheets.quirks_mode_stylesheet, guards.ua_or_user);
+                self.add_stylesheet(&ua_stylesheets.quirks_mode_stylesheet,
+                                    guards.ua_or_user, extra_data);
             }
         }
 
         for ref stylesheet in doc_stylesheets.iter() {
-            self.add_stylesheet(stylesheet, guards.author);
+            self.add_stylesheet(stylesheet, guards.author, extra_data);
         }
 
         debug!("Stylist stats:");
@@ -230,7 +267,8 @@ impl Stylist {
         true
     }
 
-    fn add_stylesheet(&mut self, stylesheet: &Stylesheet, guard: &SharedRwLockReadGuard) {
+    fn add_stylesheet<'a>(&mut self, stylesheet: &Stylesheet, guard: &SharedRwLockReadGuard,
+                          extra_data: &mut ExtraStyleData<'a>) {
         if stylesheet.disabled() || !stylesheet.is_effective_for_device(&self.device, guard) {
             return;
         }
@@ -274,7 +312,7 @@ impl Stylist {
                 }
                 CssRule::Import(ref import) => {
                     let import = import.read_with(guard);
-                    self.add_stylesheet(&import.stylesheet, guard)
+                    self.add_stylesheet(&import.stylesheet, guard, extra_data)
                 }
                 CssRule::Keyframes(ref keyframes_rule) => {
                     let keyframes_rule = keyframes_rule.read_with(guard);
@@ -283,6 +321,9 @@ impl Stylist {
                         &keyframes_rule.keyframes, guard);
                     debug!("Found valid keyframe animation: {:?}", animation);
                     self.animations.insert(keyframes_rule.name.clone(), animation);
+                }
+                CssRule::FontFace(ref rule) => {
+                    extra_data.add_font_face(&rule, stylesheet.origin);
                 }
                 // We don't care about any other rule.
                 _ => {}

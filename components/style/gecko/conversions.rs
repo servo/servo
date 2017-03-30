@@ -13,9 +13,9 @@ use gecko::values::{convert_rgba_to_nscolor, GeckoStyleCoordConvertible};
 use gecko_bindings::bindings::{Gecko_CreateGradient, Gecko_SetGradientImageValue, Gecko_SetUrlImageValue};
 use gecko_bindings::bindings::Gecko_InitializeImageCropRect;
 use gecko_bindings::structs::{nsStyleCoord_CalcValue, nsStyleImage};
-use gecko_bindings::structs::nsresult;
+use gecko_bindings::structs::{nsresult, SheetType};
 use gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordDataMut};
-use stylesheets::RulesMutateError;
+use stylesheets::{Origin, RulesMutateError};
 use values::computed::{CalcLengthOrPercentage, Gradient, Image, LengthOrPercentage, LengthOrPercentageOrAuto};
 
 impl From<CalcLengthOrPercentage> for nsStyleCoord_CalcValue {
@@ -500,6 +500,16 @@ impl From<RulesMutateError> for nsresult {
             RulesMutateError::IndexSize => nsresult::NS_ERROR_DOM_INDEX_SIZE_ERR,
             RulesMutateError::HierarchyRequest => nsresult::NS_ERROR_DOM_HIERARCHY_REQUEST_ERR,
             RulesMutateError::InvalidState => nsresult::NS_ERROR_DOM_INVALID_STATE_ERR,
+        }
+    }
+}
+
+impl From<Origin> for SheetType {
+    fn from(other: Origin) -> Self {
+        match other {
+            Origin::UserAgent => SheetType::Agent,
+            Origin::Author => SheetType::Doc,
+            Origin::User => SheetType::User,
         }
     }
 }
