@@ -306,7 +306,7 @@ impl Window {
             mouse_pos: Cell::new(Point2D::new(0, 0)),
             key_modifiers: Cell::new(KeyModifiers::empty()),
             current_url: RefCell::new(None),
-   
+
             pending_key_event_char: Cell::new(None),
             pressed_key_map: RefCell::new(vec![]),
             gl: gl.clone(),
@@ -406,7 +406,7 @@ impl Window {
                 {
                     let ch = match element_state {
                         ElementState::Pressed => {
-                            // Retrieve any previosly stored ReceivedCharacter value.
+                            // Retrieve any previously stored ReceivedCharacter value.
                             // Store the association between the scan code and the actual
                             // character value, if there is one.
                             let ch = self.pending_key_event_char
