@@ -11,8 +11,8 @@ use dom::cssstylesheet::CSSStyleSheet;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use std::sync::Arc;
-use style::font_face::FontFaceRule;
 use style::shared_lock::{Locked, ToCssWithGuard};
+use style::stylesheets::FontFaceRule;
 
 #[dom_struct]
 pub struct CSSFontFaceRule {
