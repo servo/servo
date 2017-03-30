@@ -325,6 +325,7 @@ impl Window {
          
             last_pressed_key: Cell::new(None),
             pressed_key_map: RefCell::new(vec![]),
+            gl: gl.clone(),
         };
 
         gl::clear_color(0.6, 0.6, 0.6, 1.0);
