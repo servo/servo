@@ -1558,6 +1558,10 @@ impl Document {
         }
     }
 
+    pub fn has_animation_callbacks(&self) -> bool {
+        !self.animation_frame_list.borrow().is_empty()
+    }
+
     /// https://html.spec.whatwg.org/multipage/#run-the-animation-frame-callbacks
     pub fn run_the_animation_frame_callbacks(&self) {
         rooted_vec!(let mut animation_frame_list);
@@ -1590,7 +1594,7 @@ impl Document {
         // constellation to stop giving us video refresh callbacks, to save energy. (A spurious
         // animation frame is one in which the callback did not mutate the DOM—that is, an
         // animation frame that wasn't actually used for animation.)
-        if self.animation_frame_list.borrow().is_empty() ||
+        if !self.has_animation_callbacks() ||
                 (!was_faking_animation_frames && self.is_faking_animation_frames()) {
             mem::swap(&mut *self.animation_frame_list.borrow_mut(),
                       &mut *animation_frame_list);
