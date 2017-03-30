@@ -87,6 +87,7 @@ mod basic_shape;
 mod border;
 mod box_;
 mod column;
+mod containment;
 mod effects;
 mod font;
 mod image;

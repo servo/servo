@@ -6,6 +6,10 @@
 #outer {
     width: 1000px;
 }
+#inner {
+    border-style: solid; /* So used border == computed border */
+    outline-style: solid; /* So used outline-width == computed outline-width */
+}
 </style>
 </head>
 <body>
@@ -76,7 +80,9 @@ var lengthProperties = [
 lengthProperties.forEach(function(prop) {
     test(function() {
         div.style.setProperty(prop, 'calc(1px)');
-        assert_equals(div.style.getPropertyValue(prop), 'calc(1px)');
+        assert_equals(div.style.getPropertyValue(prop), 'calc(1px)', div.style.getPropertyValue(prop));
+        let computed = getComputedStyle(div).getPropertyValue(prop);
+        assert_equals(computed, '1px', prop + ': expected 1px, got ' + computed);
     }, 'calc for ' + prop);
 });
 
@@ -112,12 +118,14 @@ var timeProperties = [
 timeProperties.forEach(function(prop) {
     test(function() {
         div.style.setProperty(prop, 'calc(1s)');
-        assert_equals(div.style.getPropertyValue(prop), '1s');
+        assert_equals(div.style.getPropertyValue(prop), 'calc(1s)');
+        assert_equals(getComputedStyle(div).getPropertyValue(prop), '1s');
     }, 'calc for ' + prop);
 });
 
 var numberProperties = [
   'z-index',
+  'order',
   'column-count',
   'opacity',
 ];
@@ -125,13 +133,14 @@ var numberProperties = [
 numberProperties.forEach(function(prop) {
     test(function() {
         div.style.setProperty(prop, 'calc(1)');
-        assert_equals(div.style.getPropertyValue(prop), '1');
+        assert_equals(div.style.getPropertyValue(prop), 'calc(1)');
+        assert_equals(getComputedStyle(div).getPropertyValue(prop), '1');
     }, 'calc for ' + prop);
 });
 
 var otherProperties = [
-  ['border-width', 'calc(1px)', '1px 1px 1px 1px'],
-  ['border-spacing', 'calc(1px)', 'calc(1px) calc(1px)'],
+  ['border-width', 'calc(1px)', 'calc(1px)'],
+  ['border-spacing', 'calc(1px)', 'calc(1px)'],
   ['transform-origin', 'calc(1px + 0%)', 'calc(1px + 0%) 50% 0px'],
   ['perspective-origin', 'calc(1px + 0%)', 'calc(1px + 0%) 50%'],
   ['background-size', 'calc(1px + 0%)', 'calc(1px + 0%) auto'],
@@ -140,6 +149,7 @@ var otherProperties = [
   ['border-bottom-left-radius', 'calc(1px + 0%)', 'calc(1px + 0%) calc(1px + 0%)'],
   ['border-top-right-radius', 'calc(1px + 0%)', 'calc(1px + 0%) calc(1px + 0%)'],
   ['border-bottom-right-radius', 'calc(1px + 0%)', 'calc(1px + 0%) calc(1px + 0%)'],
+  ['counter-increment', 'foo calc(1 + 1)', 'foo calc(2)'],
 ];
 
 otherProperties.forEach(function(testcase) {
@@ -150,7 +160,7 @@ otherProperties.forEach(function(testcase) {
 });
 
 /* TODO: test these:
-  counter-increment, counter-reset,
+  counter-reset,
   color, box-shadow, clip, text-shadow, transform
   transition-timing-function
   angles

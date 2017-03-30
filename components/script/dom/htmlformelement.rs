@@ -384,12 +384,12 @@ impl HTMLFormElement {
     fn mutate_action_url(&self, form_data: &mut Vec<FormDatum>, mut load_data: LoadData, encoding: EncodingRef) {
         let charset = &*encoding.whatwg_name().unwrap();
 
-        if let Some(ref mut url) = load_data.url.as_mut_url() {
-            url.query_pairs_mut().clear()
-               .encoding_override(Some(self.pick_encoding()))
-               .extend_pairs(form_data.into_iter()
-                                      .map(|field| (field.name.clone(), field.replace_value(charset))));
-        }
+        load_data.url
+            .as_mut_url()
+            .query_pairs_mut().clear()
+            .encoding_override(Some(self.pick_encoding()))
+            .extend_pairs(form_data.into_iter()
+                                    .map(|field| (field.name.clone(), field.replace_value(charset))));
 
         self.plan_to_navigate(load_data);
     }
@@ -403,13 +403,12 @@ impl HTMLFormElement {
                 let charset = &*encoding.whatwg_name().unwrap();
                 load_data.headers.set(ContentType::form_url_encoded());
 
-
-                if let Some(ref mut url) = load_data.url.as_mut_url() {
-                    url.query_pairs_mut().clear()
-                       .encoding_override(Some(self.pick_encoding()))
-                       .extend_pairs(form_data.into_iter()
-                       .map(|field| (field.name.clone(), field.replace_value(charset))));
-                }
+                load_data.url
+                    .as_mut_url()
+                    .query_pairs_mut().clear()
+                    .encoding_override(Some(self.pick_encoding()))
+                    .extend_pairs(form_data.into_iter()
+                    .map(|field| (field.name.clone(), field.replace_value(charset))));
 
                 load_data.url.query().unwrap_or("").to_string().into_bytes()
             }

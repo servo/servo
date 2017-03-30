@@ -10,12 +10,14 @@ use euclid::point::TypedPoint2D;
 use euclid::rect::TypedRect;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
+use gleam::gl;
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use net_traits::net_error_list::NetError;
 use script_traits::{DevicePixel, MouseButton, TouchEventType, TouchId, TouchpadPressurePhase};
 use servo_geometry::DeviceIndependentPixel;
 use servo_url::ServoUrl;
 use std::fmt::{Debug, Error, Formatter};
+use std::rc::Rc;
 use style_traits::cursor::Cursor;
 use webrender_traits::ScrollLocation;
 
@@ -168,4 +170,7 @@ pub trait WindowMethods {
 
     /// Add a favicon
     fn set_favicon(&self, url: ServoUrl);
+
+    /// Return the GL function pointer trait.
+    fn gl(&self) -> Rc<gl::Gl>;
 }

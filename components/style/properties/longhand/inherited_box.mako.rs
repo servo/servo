@@ -96,7 +96,7 @@ ${helpers.single_keyword("image-rendering",
 
     use std::f32::consts::PI;
     use values::CSSFloat;
-    const TWO_PI: CSSFloat = 2.0*PI;
+    const TWO_PI: CSSFloat = 2.0 * PI;
 
     #[derive(Clone, PartialEq, Copy, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -125,7 +125,7 @@ ${helpers.single_keyword("image-rendering",
     }
 
     pub mod computed_value {
-        use values::specified::Angle;
+        use values::computed::Angle;
 
         #[derive(Clone, PartialEq, Copy, Debug)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -135,36 +135,35 @@ ${helpers.single_keyword("image-rendering",
         }
     }
 
-    const INITIAL_ANGLE: Angle = Angle(0.0);
-
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
-        computed_value::T::AngleWithFlipped(INITIAL_ANGLE, false)
+        computed_value::T::AngleWithFlipped(computed::Angle::zero(), false)
     }
 
     // According to CSS Content Module Level 3:
     // The computed value of the property is calculated by rounding the specified angle
     // to the nearest quarter-turn, rounding away from 0, then moduloing the value by 1 turn.
     #[inline]
-    fn normalize_angle(angle: &Angle) -> Angle {
+    fn normalize_angle(angle: &computed::Angle) -> computed::Angle {
         let radians = angle.radians();
         let rounded_quarter_turns = (4.0 * radians / TWO_PI).round();
         let normalized_quarter_turns = (rounded_quarter_turns % 4.0 + 4.0) % 4.0;
         let normalized_radians = normalized_quarter_turns/4.0 * TWO_PI;
-        Angle::from_radians(normalized_radians)
+        computed::Angle::from_radians(normalized_radians)
     }
 
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
 
         #[inline]
-        fn to_computed_value(&self, _: &Context) -> computed_value::T {
+        fn to_computed_value(&self, context: &Context) -> computed_value::T {
             if let Some(ref angle) = self.angle {
-                let normalized_angle = normalize_angle(angle);
+                let angle = angle.to_computed_value(context);
+                let normalized_angle = normalize_angle(&angle);
                 computed_value::T::AngleWithFlipped(normalized_angle, self.flipped)
             } else {
                 if self.flipped {
-                    computed_value::T::AngleWithFlipped(INITIAL_ANGLE, true)
+                    computed_value::T::AngleWithFlipped(computed::Angle::zero(), true)
                 } else {
                     computed_value::T::FromImage
                 }
@@ -175,8 +174,12 @@ ${helpers.single_keyword("image-rendering",
         fn from_computed_value(computed: &computed_value::T) -> Self {
             match *computed {
                 computed_value::T::FromImage => SpecifiedValue { angle: None, flipped: false },
-                computed_value::T::AngleWithFlipped(angle, flipped) =>
-                    SpecifiedValue { angle: Some(angle), flipped: flipped },
+                computed_value::T::AngleWithFlipped(ref angle, flipped) => {
+                    SpecifiedValue {
+                        angle: Some(Angle::from_computed_value(angle)),
+                        flipped: flipped,
+                    }
+                }
             }
         }
     }
@@ -205,7 +208,7 @@ ${helpers.single_keyword("image-rendering",
             let angle = input.try(|input| Angle::parse(context, input)).ok();
             let flipped = input.try(|input| input.expect_ident_matching("flip")).is_ok();
             let explicit_angle = if angle.is_none() && !flipped {
-                Some(INITIAL_ANGLE)
+                Some(Angle::zero())
             } else {
                 angle
             };

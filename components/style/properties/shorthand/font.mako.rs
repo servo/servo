@@ -4,21 +4,20 @@
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
-<%helpers:shorthand name="font" sub_properties="font-style font-variant font-weight font-stretch
-                                                font-size line-height font-family
-                                                ${'font-size-adjust' if product == 'gecko' or data.testing else ''}
-                                                ${'font-kerning' if product == 'gecko' or data.testing else ''}
-                                                ${'font-variant-caps' if product == 'gecko' or data.testing else ''}
-                                                ${'font-variant-position' if product == 'gecko' or data.testing else ''}
-                                                ${'font-language-override' if data.testing else ''}"
+<%helpers:shorthand name="font"
+                    sub_properties="font-style font-variant font-weight font-stretch
+                                    font-size line-height font-family
+                                    ${'font-size-adjust' if product == 'gecko' or data.testing else ''}
+                                    ${'font-kerning' if product == 'gecko' or data.testing else ''}
+                                    ${'font-variant-caps' if product == 'gecko' or data.testing else ''}
+                                    ${'font-variant-position' if product == 'gecko' or data.testing else ''}
+                                    ${'font-language-override' if product == 'gecko' or data.testing else ''}"
                     spec="https://drafts.csswg.org/css-fonts-3/#propdef-font">
     use properties::longhands::{font_style, font_variant, font_weight, font_stretch};
     use properties::longhands::{font_size, line_height};
     % if product == "gecko" or data.testing:
-    use properties::longhands::{font_size_adjust, font_kerning, font_variant_caps, font_variant_position};
-    % endif
-    % if data.testing:
-    use properties::longhands::font_language_override;
+    use properties::longhands::{font_size_adjust, font_kerning, font_variant_caps, font_variant_position,
+                                font_language_override};
     % endif
     use properties::longhands::font_family::SpecifiedValue as FontFamily;
 
@@ -84,12 +83,9 @@
             line_height: unwrap_or_initial!(line_height),
             font_family: family,
             % if product == "gecko" or data.testing:
-                % for name in "size_adjust kerning variant_caps variant_position".split():
+                % for name in "size_adjust kerning variant_caps variant_position language_override".split():
                     font_${name}: font_${name}::get_initial_specified_value(),
                 % endfor
-            % endif
-            % if data.testing:
-                font_language_override: font_language_override::get_initial_specified_value(),
             % endif
         })
     }
@@ -99,17 +95,11 @@
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
 
     % if product == "gecko" or data.testing:
-        % for name in "size_adjust kerning variant_caps variant_position".split():
+        % for name in "size_adjust kerning variant_caps variant_position language_override".split():
             if self.font_${name} != &font_${name}::get_initial_specified_value() {
                 return Ok(());
             }
         % endfor
-    % endif
-
-    % if data.testing:
-            if self.font_language_override != &font_language_override::get_initial_specified_value() {
-                return Ok(());
-            }
     % endif
 
     % for name in "style variant weight stretch".split():

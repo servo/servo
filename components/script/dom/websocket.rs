@@ -23,18 +23,13 @@ use dom::globalscope::GlobalScope;
 use dom::messageevent::MessageEvent;
 use dom::urlhelper::UrlHelper;
 use dom_struct::dom_struct;
-use hyper;
-use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use js::jsapi::JSAutoCompartment;
 use js::jsval::UndefinedValue;
 use js::typedarray::{ArrayBuffer, CreateWith};
 use net_traits::{WebSocketCommunicate, WebSocketConnectData, WebSocketDomAction, WebSocketNetworkEvent};
-use net_traits::CookieSource::HTTP;
-use net_traits::CoreResourceMsg::{SetCookiesForUrl, WebsocketConnect};
+use net_traits::CoreResourceMsg::WebsocketConnect;
 use net_traits::MessageData;
-use net_traits::hosts::replace_hosts;
-use net_traits::unwrap_websocket_protocol;
 use script_runtime::CommonScriptMsg;
 use script_runtime::ScriptThreadEventCategory::WebSocketEvent;
 use script_thread::{Runnable, RunnableWrapper};
@@ -46,8 +41,6 @@ use std::ptr;
 use std::thread;
 use task_source::TaskSource;
 use task_source::networking::NetworkingTaskSource;
-use websocket::header::{Headers, WebSocketProtocol};
-use websocket::ws::util::url::parse_url;
 
 #[derive(JSTraceable, PartialEq, Copy, Clone, Debug, HeapSizeOf)]
 enum WebSocketRequestState {
@@ -56,75 +49,6 @@ enum WebSocketRequestState {
     Closing = 2,
     Closed = 3,
 }
-
-// list of bad ports according to
-// https://fetch.spec.whatwg.org/#port-blocking
-const BLOCKED_PORTS_LIST: &'static [u16] = &[
-    1,    // tcpmux
-    7,    // echo
-    9,    // discard
-    11,   // systat
-    13,   // daytime
-    15,   // netstat
-    17,   // qotd
-    19,   // chargen
-    20,   // ftp-data
-    21,   // ftp
-    22,   // ssh
-    23,   // telnet
-    25,   // smtp
-    37,   // time
-    42,   // name
-    43,   // nicname
-    53,   // domain
-    77,   // priv-rjs
-    79,   // finger
-    87,   // ttylink
-    95,   // supdup
-    101,  // hostriame
-    102,  // iso-tsap
-    103,  // gppitnp
-    104,  // acr-nema
-    109,  // pop2
-    110,  // pop3
-    111,  // sunrpc
-    113,  // auth
-    115,  // sftp
-    117,  // uucp-path
-    119,  // nntp
-    123,  // ntp
-    135,  // loc-srv / epmap
-    139,  // netbios
-    143,  // imap2
-    179,  // bgp
-    389,  // ldap
-    465,  // smtp+ssl
-    512,  // print / exec
-    513,  // login
-    514,  // shell
-    515,  // printer
-    526,  // tempo
-    530,  // courier
-    531,  // chat
-    532,  // netnews
-    540,  // uucp
-    556,  // remotefs
-    563,  // nntp+ssl
-    587,  // smtp
-    601,  // syslog-conn
-    636,  // ldap+ssl
-    993,  // imap+ssl
-    995,  // pop3+ssl
-    2049, // nfs
-    3659, // apple-sasl
-    4045, // lockd
-    6000, // x11
-    6665, // irc (alternate)
-    6666, // irc (alternate)
-    6667, // irc (default)
-    6668, // irc (alternate)
-    6669, // irc (alternate)
-];
 
 // Close codes defined in https://tools.ietf.org/html/rfc6455#section-7.4.1
 // Names are from https://github.com/mozilla/gecko-dev/blob/master/netwerk/protocol/websocket/nsIWebSocketChannel.idl
@@ -202,34 +126,36 @@ impl WebSocket {
                            global, WebSocketBinding::Wrap)
     }
 
+    /// https://html.spec.whatwg.org/multipage/#dom-websocket
     pub fn Constructor(global: &GlobalScope,
                        url: DOMString,
                        protocols: Option<StringOrStringSequence>)
                        -> Fallible<Root<WebSocket>> {
-        // Step 1.
-        let resource_url = try!(ServoUrl::parse(&url).map_err(|_| Error::Syntax));
-        // Although we do this replace and parse operation again in the resource thread,
-        // we try here to be able to immediately throw a syntax error on failure.
-        let _ = try!(parse_url(&replace_hosts(&resource_url).as_url().unwrap()).map_err(|_| Error::Syntax));
-        // Step 2: Disallow https -> ws connections.
+        // Steps 1-2.
+        let url_record = ServoUrl::parse(&url).or(Err(Error::Syntax))?;
 
-        // Step 3: Potentially block access to some ports.
-        let port: u16 = resource_url.port_or_known_default().unwrap();
-
-        if BLOCKED_PORTS_LIST.iter().any(|&p| p == port) {
-            return Err(Error::Security);
+        // Step 3.
+        match url_record.scheme() {
+            "ws" | "wss" => {},
+            _ => return Err(Error::Syntax),
         }
 
         // Step 4.
-        let protocols = match protocols {
-            Some(StringOrStringSequence::String(string)) => vec![String::from(string)],
-            Some(StringOrStringSequence::StringSequence(sequence)) => {
-                sequence.into_iter().map(String::from).collect()
-            },
-            _ => Vec::new(),
-        };
+        if url_record.fragment().is_some() {
+            return Err(Error::Syntax);
+        }
 
         // Step 5.
+        let protocols = protocols.map_or(vec![], |p| {
+            match p {
+                StringOrStringSequence::String(string) => vec![string.into()],
+                StringOrStringSequence::StringSequence(seq) => {
+                    seq.into_iter().map(String::from).collect()
+                },
+            }
+        });
+
+        // Step 6.
         for (i, protocol) in protocols.iter().enumerate() {
             // https://tools.ietf.org/html/rfc6455#section-4.1
             // Handshake requirements, step 10
@@ -244,16 +170,12 @@ impl WebSocket {
             }
         }
 
-        // Step 6: Origin.
-        let origin = UrlHelper::Origin(&global.get_url()).0;
-
-        // Step 7.
-        let ws = WebSocket::new(global, resource_url.clone());
+        let ws = WebSocket::new(global, url_record.clone());
         let address = Trusted::new(&*ws);
 
         let connect_data = WebSocketConnectData {
-            resource_url: resource_url.clone(),
-            origin: origin,
+            resource_url: url_record,
+            origin: UrlHelper::Origin(&global.get_url()).0,
             protocols: protocols,
         };
 
@@ -270,42 +192,42 @@ impl WebSocket {
             action_receiver: resource_action_receiver,
         };
 
+        // Step 8.
         let _ = global.core_resource_thread().send(WebsocketConnect(connect, connect_data));
 
         *ws.sender.borrow_mut() = Some(dom_action_sender);
 
-        let moved_address = address.clone();
         let task_source = global.networking_task_source();
         let wrapper = global.get_runnable_wrapper();
         thread::spawn(move || {
             while let Ok(event) = dom_event_receiver.recv() {
                 match event {
-                    WebSocketNetworkEvent::ConnectionEstablished(headers, protocols) => {
+                    WebSocketNetworkEvent::ConnectionEstablished { protocol_in_use } => {
                         let open_thread = box ConnectionEstablishedTask {
-                            address: moved_address.clone(),
-                            headers: headers,
-                            protocols: protocols,
+                            address: address.clone(),
+                            protocol_in_use,
                         };
                         task_source.queue_with_wrapper(open_thread, &wrapper).unwrap();
                     },
                     WebSocketNetworkEvent::MessageReceived(message) => {
                         let message_thread = box MessageReceivedTask {
-                            address: moved_address.clone(),
+                            address: address.clone(),
                             message: message,
                         };
                         task_source.queue_with_wrapper(message_thread, &wrapper).unwrap();
                     },
                     WebSocketNetworkEvent::Fail => {
-                        fail_the_websocket_connection(moved_address.clone(),
+                        fail_the_websocket_connection(address.clone(),
                             &task_source, &wrapper);
                     },
                     WebSocketNetworkEvent::Close(code, reason) => {
-                        close_the_websocket_connection(moved_address.clone(),
+                        close_the_websocket_connection(address.clone(),
                             &task_source, &wrapper, code, reason);
                     },
                 }
             }
         });
+
         // Step 7.
         Ok(ws)
     }
@@ -466,45 +388,31 @@ impl WebSocketMethods for WebSocket {
 
 
 /// Task queued when *the WebSocket connection is established*.
+/// https://html.spec.whatwg.org/multipage/#feedback-from-the-protocol:concept-websocket-established
 struct ConnectionEstablishedTask {
     address: Trusted<WebSocket>,
-    protocols: Vec<String>,
-    headers: Headers,
+    protocol_in_use: Option<String>,
 }
 
 impl Runnable for ConnectionEstablishedTask {
     fn name(&self) -> &'static str { "ConnectionEstablishedTask" }
 
+    /// https://html.spec.whatwg.org/multipage/#feedback-from-the-protocol:concept-websocket-established
     fn handler(self: Box<Self>) {
         let ws = self.address.root();
 
-        // Step 1: Protocols.
-        if !self.protocols.is_empty() && self.headers.get::<WebSocketProtocol>().is_none() {
-            let task_source = ws.global().networking_task_source();
-            fail_the_websocket_connection(self.address, &task_source, &ws.global().get_runnable_wrapper());
-            return;
-        }
-
-        // Step 2.
+        // Step 1.
         ws.ready_state.set(WebSocketRequestState::Open);
 
-        // Step 3: Extensions.
-        //TODO: Set extensions to extensions in use
+        // Step 2: Extensions.
+        // TODO: Set extensions to extensions in use.
 
-        // Step 4: Protocols.
-        let protocol_in_use = unwrap_websocket_protocol(self.headers.get::<WebSocketProtocol>());
-        if let Some(protocol_name) = protocol_in_use {
-            *ws.protocol.borrow_mut() = protocol_name.to_owned();
+        // Step 3.
+        if let Some(protocol_name) = self.protocol_in_use {
+            *ws.protocol.borrow_mut() = protocol_name;
         };
 
-        // Step 5: Cookies.
-        if let Some(cookies) = self.headers.get::<hyper::header::SetCookie>() {
-            let cookies = cookies.iter().map(|c| Serde(c.clone())).collect();
-            let _ = ws.global().core_resource_thread().send(
-                SetCookiesForUrl(ws.url.clone(), cookies, HTTP));
-        }
-
-        // Step 6.
+        // Step 4.
         ws.upcast().fire_event(atom!("open"));
     }
 }

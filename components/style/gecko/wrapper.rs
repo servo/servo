@@ -15,6 +15,7 @@
 //! the separation between the style system implementation and everything else.
 
 use atomic_refcell::AtomicRefCell;
+use context::UpdateAnimationsTasks;
 use data::ElementData;
 use dom::{AnimationRules, LayoutIterator, NodeInfo, TElement, TNode, UnsafeNode};
 use dom::{OpaqueNode, PresentationalHintsSynthetizer};
@@ -26,21 +27,23 @@ use gecko::snapshot_helpers;
 use gecko_bindings::bindings;
 use gecko_bindings::bindings::{Gecko_DropStyleChildrenIterator, Gecko_MaybeCreateStyleChildrenIterator};
 use gecko_bindings::bindings::{Gecko_ElementState, Gecko_GetLastChild, Gecko_GetNextStyleChild};
-use gecko_bindings::bindings::{Gecko_IsLink, Gecko_IsRootElement, Gecko_MatchesElement};
-use gecko_bindings::bindings::{Gecko_IsUnvisitedLink, Gecko_IsVisitedLink, Gecko_Namespace};
+use gecko_bindings::bindings::{Gecko_IsRootElement, Gecko_MatchesElement, Gecko_Namespace};
 use gecko_bindings::bindings::{Gecko_SetNodeFlags, Gecko_UnsetNodeFlags};
 use gecko_bindings::bindings::Gecko_ClassOrClassList;
+use gecko_bindings::bindings::Gecko_ElementHasAnimations;
 use gecko_bindings::bindings::Gecko_ElementHasCSSAnimations;
 use gecko_bindings::bindings::Gecko_GetAnimationRule;
 use gecko_bindings::bindings::Gecko_GetHTMLPresentationAttrDeclarationBlock;
 use gecko_bindings::bindings::Gecko_GetStyleAttrDeclarationBlock;
 use gecko_bindings::bindings::Gecko_GetStyleContext;
+use gecko_bindings::bindings::Gecko_IsSignificantChild;
 use gecko_bindings::bindings::Gecko_MatchStringArgPseudo;
 use gecko_bindings::bindings::Gecko_UpdateAnimations;
 use gecko_bindings::structs;
 use gecko_bindings::structs::{RawGeckoElement, RawGeckoNode};
 use gecko_bindings::structs::{nsIAtom, nsIContent, nsStyleContext};
 use gecko_bindings::structs::EffectCompositor_CascadeLevel as CascadeLevel;
+use gecko_bindings::structs::NODE_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO;
 use gecko_bindings::structs::NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO;
 use gecko_bindings::structs::NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE;
 use gecko_bindings::sugar::ownership::HasArcFFI;
@@ -52,7 +55,7 @@ use properties::animated_properties::AnimationValueMap;
 use rule_tree::CascadeLevel as ServoCascadeLevel;
 use selector_parser::{ElementExt, Snapshot};
 use selectors::Element;
-use selectors::matching::{ElementSelectorFlags, StyleRelations, matches_complex_selector};
+use selectors::matching::{ElementSelectorFlags, StyleRelations};
 use selectors::parser::{AttrSelector, NamespaceConstraint};
 use servo_url::ServoUrl;
 use shared_lock::Locked;
@@ -123,6 +126,12 @@ impl<'ln> GeckoNode<'ln> {
         unsafe { self.0.mNextSibling.as_ref().map(GeckoNode::from_content) }
     }
 
+    /// Simple iterator over all this node's children.  Unlike `.children()`, this iterator does
+    /// not filter out nodes that don't need layout.
+    fn dom_children(self) -> GeckoChildrenIterator<'ln> {
+        GeckoChildrenIterator::Current(self.first_child())
+    }
+
     /// WARNING: This logic is duplicated in Gecko's FlattenedTreeParentIsParent.
     /// Make sure to mirror any modifications in both places.
     fn flattened_tree_parent_is_parent(&self) -> bool {
@@ -148,6 +157,9 @@ impl<'ln> GeckoNode<'ln> {
         true
     }
 
+    fn contains_non_whitespace_content(&self) -> bool {
+        unsafe { Gecko_IsSignificantChild(self.0, true, false) }
+    }
 }
 
 impl<'ln> NodeInfo for GeckoNode<'ln> {
@@ -452,7 +464,7 @@ impl<'le> TElement for GeckoElement<'le> {
 
     fn get_state(&self) -> ElementState {
         unsafe {
-            ElementState::from_bits_truncate(Gecko_ElementState(self.0) as u32)
+            ElementState::from_bits_truncate(Gecko_ElementState(self.0))
         }
     }
 
@@ -500,6 +512,18 @@ impl<'le> TElement for GeckoElement<'le> {
         self.unset_flags(NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO as u32)
     }
 
+    fn has_animation_only_dirty_descendants(&self) -> bool {
+        self.flags() & (NODE_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO as u32) != 0
+    }
+
+    unsafe fn set_animation_only_dirty_descendants(&self) {
+        self.set_flags(NODE_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO as u32)
+    }
+
+    unsafe fn unset_animation_only_dirty_descendants(&self) {
+        self.unset_flags(NODE_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO as u32)
+    }
+
     fn store_children_to_process(&self, _: isize) {
         // This is only used for bottom-up traversal, and is thus a no-op for Gecko.
     }
@@ -531,7 +555,8 @@ impl<'le> TElement for GeckoElement<'le> {
         (self.flags() & node_flags) == node_flags
     }
 
-    fn update_animations(&self, pseudo: Option<&PseudoElement>) {
+    fn update_animations(&self, pseudo: Option<&PseudoElement>,
+                         tasks: UpdateAnimationsTasks) {
         // We have to update animations even if the element has no computed style
         // since it means the element is in a display:none subtree, we should destroy
         // all CSS animations in display:none subtree.
@@ -560,8 +585,14 @@ impl<'le> TElement for GeckoElement<'le> {
         unsafe {
             Gecko_UpdateAnimations(self.0, atom_ptr,
                                    computed_values_opt,
-                                   parent_values_opt);
+                                   parent_values_opt,
+                                   tasks.bits());
         }
+    }
+
+    fn has_animations(&self, pseudo: Option<&PseudoElement>) -> bool {
+        let atom_ptr = PseudoElement::ns_atom_or_null_from_opt(pseudo);
+        unsafe { Gecko_ElementHasAnimations(self.0, atom_ptr) }
     }
 
     fn has_css_animations(&self, pseudo: Option<&PseudoElement>) -> bool {
@@ -647,8 +678,9 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
     }
 
     fn is_empty(&self) -> bool {
-        // XXX(emilio): Implement this properly.
-        false
+        !self.as_node().dom_children().any(|child| unsafe {
+            Gecko_IsSignificantChild(child.0, true, true)
+        })
     }
 
     fn get_local_name(&self) -> &WeakAtom {
@@ -670,18 +702,17 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
                                     -> bool
         where F: FnMut(&Self, ElementSelectorFlags),
     {
+        use selectors::matching::*;
         match *pseudo_class {
-            // https://github.com/servo/servo/issues/8718
-            NonTSPseudoClass::AnyLink => unsafe { Gecko_IsLink(self.0) },
-            NonTSPseudoClass::Link => unsafe { Gecko_IsUnvisitedLink(self.0) },
-            NonTSPseudoClass::Visited => unsafe { Gecko_IsVisitedLink(self.0) },
+            NonTSPseudoClass::AnyLink |
+            NonTSPseudoClass::Link |
+            NonTSPseudoClass::Visited |
             NonTSPseudoClass::Active |
             NonTSPseudoClass::Focus |
             NonTSPseudoClass::Hover |
             NonTSPseudoClass::Enabled |
             NonTSPseudoClass::Disabled |
             NonTSPseudoClass::Checked |
-            NonTSPseudoClass::ReadWrite |
             NonTSPseudoClass::Fullscreen |
             NonTSPseudoClass::Indeterminate |
             NonTSPseudoClass::PlaceholderShown |
@@ -695,13 +726,65 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::MozLoading |
             NonTSPseudoClass::MozHandlerBlocked |
             NonTSPseudoClass::MozHandlerDisabled |
-            NonTSPseudoClass::MozHandlerCrashed => {
-                self.get_state().contains(pseudo_class.state_flag())
+            NonTSPseudoClass::MozHandlerCrashed |
+            NonTSPseudoClass::Required |
+            NonTSPseudoClass::Optional |
+            NonTSPseudoClass::MozReadOnly |
+            NonTSPseudoClass::MozReadWrite |
+            NonTSPseudoClass::Unresolved |
+            NonTSPseudoClass::FocusWithin |
+            NonTSPseudoClass::MozDragOver |
+            NonTSPseudoClass::MozDevtoolsHighlighted |
+            NonTSPseudoClass::MozStyleeditorTransitioning |
+            NonTSPseudoClass::MozFocusRing |
+            NonTSPseudoClass::MozHandlerClickToPlay |
+            NonTSPseudoClass::MozHandlerVulnerableUpdatable |
+            NonTSPseudoClass::MozHandlerVulnerableNoUpdate |
+            NonTSPseudoClass::MozMathIncrementScriptLevel |
+            NonTSPseudoClass::InRange |
+            NonTSPseudoClass::OutOfRange |
+            NonTSPseudoClass::Default |
+            NonTSPseudoClass::MozSubmitInvalid |
+            NonTSPseudoClass::MozUIInvalid |
+            NonTSPseudoClass::MozMeterOptimum |
+            NonTSPseudoClass::MozMeterSubOptimum |
+            NonTSPseudoClass::MozMeterSubSubOptimum => {
+                // NB: It's important to use `intersect` instead of `contains`
+                // here, to handle `:any-link` correctly.
+                self.get_state().intersects(pseudo_class.state_flag())
             },
-            NonTSPseudoClass::ReadOnly => {
-                !self.get_state().contains(pseudo_class.state_flag())
+            NonTSPseudoClass::MozFirstNode => {
+                flags_setter(self, HAS_EDGE_CHILD_SELECTOR);
+                let mut elem = self.as_node();
+                while let Some(prev) = elem.prev_sibling() {
+                    if prev.contains_non_whitespace_content() {
+                        return false
+                    }
+                    elem = prev;
+                }
+                relations.insert(AFFECTED_BY_CHILD_INDEX);
+                true
             }
-
+            NonTSPseudoClass::MozLastNode => {
+                flags_setter(self, HAS_EDGE_CHILD_SELECTOR);
+                let mut elem = self.as_node();
+                while let Some(next) = elem.next_sibling() {
+                    if next.contains_non_whitespace_content() {
+                        return false
+                    }
+                    elem = next;
+                }
+                relations.insert(AFFECTED_BY_CHILD_INDEX);
+                true
+            }
+            NonTSPseudoClass::MozOnlyWhitespace => {
+                flags_setter(self, HAS_EMPTY_SELECTOR);
+                if self.as_node().dom_children().any(|c| c.contains_non_whitespace_content()) {
+                    return false
+                }
+                relations.insert(AFFECTED_BY_EMPTY);
+                true
+            }
             NonTSPseudoClass::MozTableBorderNonzero |
             NonTSPseudoClass::MozBrowserFrame => unsafe {
                 Gecko_MatchesElement(pseudo_class.to_gecko_pseudoclasstype().unwrap(), self.0)
@@ -720,7 +803,6 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::MozEmptyExceptChildrenWithLocalname(ref s) |
             NonTSPseudoClass::Dir(ref s) |
             NonTSPseudoClass::Lang(ref s) => {
-                use selectors::matching::HAS_SLOW_SELECTOR;
                 unsafe {
                     let mut set_slow_selector = false;
                     let matches = Gecko_MatchStringArgPseudo(self.0,

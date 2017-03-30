@@ -42,14 +42,15 @@ impl StyleStylesheetLoader for StylesheetLoader {
         // and so the Arc<Url> pointer inside will also move,
         // but the Url it points to or the allocating backing the String inside that Url won’t,
         // so this raw pointer will still be valid.
-        let (spec_bytes, spec_len): (*const u8, usize) = import.url.as_slice_components()
-            .expect("Import only loads valid URLs");
+        let (spec_bytes, spec_len): (*const u8, usize) = import.url.as_slice_components();
 
+        let base_uri = import.url.base.mRawPtr;
         let arc = make_arc(import);
         unsafe {
             Gecko_LoadStyleSheet(self.0,
                                  self.1,
                                  HasArcFFI::arc_as_borrowed(&arc),
+                                 base_uri,
                                  spec_bytes,
                                  spec_len as u32,
                                  media_string.as_bytes().as_ptr(),

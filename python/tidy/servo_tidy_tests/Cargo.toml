@@ -6,3 +6,6 @@ publish = false
 
 [dependencies]
 test-package = { version = "*" }
+
+[lib]
+path = "lib.rs"

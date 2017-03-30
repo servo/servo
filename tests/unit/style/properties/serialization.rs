@@ -573,15 +573,14 @@ mod shorthand_serialization {
 
     #[test]
     fn flex_should_serialize_all_available_properties() {
-        use style::values::specified::Number as NumberContainer;
-        use style::values::specified::Percentage as PercentageContainer;
+        use style::values::specified::{Number, Percentage};
 
         let mut properties = Vec::new();
 
-        let grow = NumberContainer(2f32);
-        let shrink = NumberContainer(3f32);
+        let grow = Number::new(2f32);
+        let shrink = Number::new(3f32);
         let basis =
-            LengthOrPercentageOrAutoOrContent::Percentage(PercentageContainer(0.5f32));
+            LengthOrPercentageOrAutoOrContent::Percentage(Percentage(0.5f32));
 
         properties.push(PropertyDeclaration::FlexGrow(grow));
         properties.push(PropertyDeclaration::FlexShrink(shrink));
@@ -742,14 +741,14 @@ mod shorthand_serialization {
             // https://github.com/servo/servo/issues/15398 )
             // With background, the color is one exception as it should only appear once for
             // multiple backgrounds.
-            // Below, background-position and background-origin only have one value.
+            // Below background-origin only has one value.
             let block_text = "\
                 background-color: rgb(0, 0, 255); \
                 background-image: url(\"http://servo/test.png\"), none; \
                 background-repeat: repeat-x, repeat-y; \
                 background-attachment: scroll, scroll; \
                 background-size: 70px 50px, 20px 30px; \
-                background-position: 7px 4px; \
+                background-position: 7px 4px, 5px 6px; \
                 background-origin: border-box; \
                 background-clip: padding-box, padding-box;";
             let block = parse_declaration_block(block_text);
@@ -828,7 +827,7 @@ mod shorthand_serialization {
                 )
             );
 
-            let repeat = single_vec_keyword_value!(repeat, repeat_x);
+            let repeat = single_vec_keyword_value!(repeat, RepeatX);
             let origin = single_vec_keyword_value!(origin, padding_box);
             let clip = single_vec_keyword_value!(clip, border_box);
             let composite = single_vec_keyword_value!(composite, subtract);
@@ -884,7 +883,7 @@ mod shorthand_serialization {
                 )
             );
 
-            let repeat = single_vec_keyword_value!(repeat, repeat_x);
+            let repeat = single_vec_keyword_value!(repeat, RepeatX);
             let origin = single_vec_keyword_value!(origin, padding_box);
             let clip = single_vec_keyword_value!(clip, padding_box);
             let composite = single_vec_keyword_value!(composite, subtract);
@@ -905,6 +904,14 @@ mod shorthand_serialization {
                 "mask: url(\"http://servo/test.png\") luminance 7px 4px / 70px 50px \
                 repeat-x padding-box subtract;"
             );
+        }
+
+        #[test]
+        fn serialize_mask_position_with_multiple_values() {
+            let block_text = "mask-position: 1px 2px, 4px 3px;";
+            let block = parse_declaration_block(block_text);
+            let serialization = block.to_css_string();
+            assert_eq!(serialization, block_text);
         }
     }
 
@@ -1149,6 +1156,52 @@ mod shorthand_serialization {
 
             let serialization = block.to_css_string();
             assert_eq!(serialization, block_text);
+        }
+    }
+
+    mod effects {
+        pub use super::*;
+        pub use style::properties::longhands::box_shadow::SpecifiedValue as BoxShadow;
+        pub use style::values::specified::Shadow;
+
+        #[test]
+        fn box_shadow_should_serialize_correctly() {
+            let mut properties = Vec::new();
+            let shadow_val = Shadow { offset_x: Length::from_px(1f32), offset_y: Length::from_px(2f32),
+            blur_radius: Length::from_px(3f32), spread_radius: Length::from_px(4f32), color: None, inset: false };
+            let shadow_decl = BoxShadow(vec![shadow_val]);
+            properties.push(PropertyDeclaration:: BoxShadow(shadow_decl));
+            let shadow_css = "box-shadow: 1px 2px 3px 4px;";
+            let shadow  =  parse_declaration_block(shadow_css);
+
+            assert_eq!(shadow.to_css_string(), shadow_css);
+        }
+    }
+
+    mod counter_increment {
+        pub use super::*;
+        pub use style::properties::longhands::counter_increment::SpecifiedValue as CounterIncrement;
+        use style::values::specified::Integer;
+
+        #[test]
+        fn counter_increment_with_properties_should_serialize_correctly() {
+            let mut properties = Vec::new();
+
+            properties.push(("counter1".to_owned(), Integer::new(1)));
+            properties.push(("counter2".to_owned(), Integer::new(-4)));
+
+            let counter_increment = CounterIncrement(properties);
+            let counter_increment_css = "counter1 1 counter2 -4";
+
+            assert_eq!(counter_increment.to_css_string(), counter_increment_css);
+        }
+
+        #[test]
+        fn counter_increment_without_properties_should_serialize_correctly() {
+            let counter_increment = CounterIncrement(Vec::new());
+            let counter_increment_css = "none";
+
+            assert_eq!(counter_increment.to_css_string(), counter_increment_css);
         }
     }
 }

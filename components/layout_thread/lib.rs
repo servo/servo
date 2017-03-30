@@ -76,8 +76,7 @@ use layout::wrapper::LayoutNodeLayoutData;
 use layout::wrapper::drop_style_and_layout_data;
 use layout_traits::LayoutThreadFactory;
 use msg::constellation_msg::{FrameId, PipelineId};
-use net_traits::image_cache_thread::ImageCacheThread;
-use net_traits::image_cache_thread::UsePlaceholder;
+use net_traits::image_cache::{ImageCache, UsePlaceholder};
 use parking_lot::RwLock;
 use profile_traits::mem::{self, Report, ReportKind, ReportsChan};
 use profile_traits::time::{self, TimerMetadata, profile};
@@ -99,6 +98,7 @@ use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
+use std::marker::PhantomData;
 use std::mem as std_mem;
 use std::ops::{Deref, DerefMut};
 use std::process;
@@ -117,10 +117,10 @@ use style::parser::ParserContextExtraData;
 use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, REPOSITION, STORE_OVERFLOW};
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards};
 use style::stylesheets::{Origin, Stylesheet, UserAgentStylesheets};
-use style::stylist::Stylist;
+use style::stylist::{ExtraStyleData, Stylist};
 use style::thread_state;
 use style::timer::Timer;
-use style::traversal::{DomTraversal, TraversalDriver};
+use style::traversal::{DomTraversal, TraversalDriver, TraversalFlags};
 
 /// Information needed by the layout thread.
 pub struct LayoutThread {
@@ -157,8 +157,8 @@ pub struct LayoutThread {
     /// The channel on which messages can be sent to the memory profiler.
     mem_profiler_chan: mem::ProfilerChan,
 
-    /// The channel on which messages can be sent to the image cache.
-    image_cache_thread: ImageCacheThread,
+    /// Reference to the script thread image cache.
+    image_cache: Arc<ImageCache>,
 
     /// Public interface to the font cache thread.
     font_cache_thread: FontCacheThread,
@@ -245,7 +245,7 @@ impl LayoutThreadFactory for LayoutThread {
               pipeline_port: IpcReceiver<LayoutControlMsg>,
               constellation_chan: IpcSender<ConstellationMsg>,
               script_chan: IpcSender<ConstellationControlMsg>,
-              image_cache_thread: ImageCacheThread,
+              image_cache: Arc<ImageCache>,
               font_cache_thread: FontCacheThread,
               time_profiler_chan: time::ProfilerChan,
               mem_profiler_chan: mem::ProfilerChan,
@@ -268,7 +268,7 @@ impl LayoutThreadFactory for LayoutThread {
                                                pipeline_port,
                                                constellation_chan,
                                                script_chan,
-                                               image_cache_thread,
+                                               image_cache.clone(),
                                                font_cache_thread,
                                                time_profiler_chan,
                                                mem_profiler_chan.clone(),
@@ -382,7 +382,7 @@ impl LayoutThread {
            pipeline_port: IpcReceiver<LayoutControlMsg>,
            constellation_chan: IpcSender<ConstellationMsg>,
            script_chan: IpcSender<ConstellationControlMsg>,
-           image_cache_thread: ImageCacheThread,
+           image_cache: Arc<ImageCache>,
            font_cache_thread: FontCacheThread,
            time_profiler_chan: time::ProfilerChan,
            mem_profiler_chan: mem::ProfilerChan,
@@ -432,7 +432,7 @@ impl LayoutThread {
             constellation_chan: constellation_chan.clone(),
             time_profiler_chan: time_profiler_chan,
             mem_profiler_chan: mem_profiler_chan,
-            image_cache_thread: image_cache_thread,
+            image_cache: image_cache.clone(),
             font_cache_thread: font_cache_thread,
             first_reflow: true,
             font_cache_receiver: font_cache_receiver,
@@ -520,8 +520,9 @@ impl LayoutThread {
                 local_context_creation_data: Mutex::new(thread_local_style_context_creation_data),
                 timer: self.timer.clone(),
                 quirks_mode: self.quirks_mode.unwrap(),
+                animation_only_restyle: false,
             },
-            image_cache_thread: Mutex::new(self.image_cache_thread.clone()),
+            image_cache: self.image_cache.clone(),
             font_cache_thread: Mutex::new(self.font_cache_thread.clone()),
             webrender_image_cache: self.webrender_image_cache.clone(),
             pending_images: if request_images { Some(Mutex::new(vec![])) } else { None },
@@ -692,7 +693,7 @@ impl LayoutThread {
                              info.pipeline_port,
                              info.constellation_chan,
                              info.script_chan.clone(),
-                             self.image_cache_thread.clone(),
+                             info.image_cache.clone(),
                              self.font_cache_thread.clone(),
                              self.time_profiler_chan.clone(),
                              self.mem_profiler_chan.clone(),
@@ -1078,11 +1079,15 @@ impl LayoutThread {
             author: &author_guard,
             ua_or_user: &ua_or_user_guard,
         };
+        let mut extra_data = ExtraStyleData {
+            marker: PhantomData,
+        };
         let needs_dirtying = Arc::get_mut(&mut rw_data.stylist).unwrap().update(
             &data.document_stylesheets,
             &guards,
             Some(ua_stylesheets),
-            data.stylesheets_changed);
+            data.stylesheets_changed,
+            &mut extra_data);
         let needs_reflow = viewport_size_changed && !needs_dirtying;
         if needs_dirtying {
             if let Some(mut d) = element.mutate_data() {
@@ -1143,7 +1148,7 @@ impl LayoutThread {
             let stylist = &<RecalcStyleAndConstructFlows as
                             DomTraversal<ServoLayoutElement>>::shared_context(&traversal).stylist;
             <RecalcStyleAndConstructFlows as
-             DomTraversal<ServoLayoutElement>>::pre_traverse(element, stylist, /* skip_root = */ false)
+             DomTraversal<ServoLayoutElement>>::pre_traverse(element, stylist, TraversalFlags::empty())
         };
 
         if token.should_traverse() {

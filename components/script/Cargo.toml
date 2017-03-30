@@ -28,6 +28,7 @@ angle = {git = "https://github.com/servo/angle", branch = "servo"}
 app_units = "0.4"
 audio-video-metadata = "0.1.2"
 atomic_refcell = "0.1"
+base64 = "0.4.1"
 bitflags = "0.7"
 bluetooth_traits = {path = "../bluetooth_traits"}
 byteorder = "1.0"
@@ -60,7 +61,7 @@ mime_guess = "1.8.0"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 num-traits = "0.1.32"
-offscreen_gl_context = "0.6"
+offscreen_gl_context = "0.8"
 open = "1.1.1"
 parking_lot = "0.3"
 phf = "0.7.18"
@@ -69,7 +70,6 @@ range = {path = "../range"}
 ref_filter_map = "1.0.1"
 ref_slice = "1.0"
 regex = "0.2"
-rustc-serialize = "0.3"
 script_layout_interface = {path = "../script_layout_interface"}
 script_plugins = {path = "../script_plugins"}
 script_traits = {path = "../script_traits"}
@@ -79,9 +79,8 @@ servo_atoms = {path = "../atoms"}
 servo_config = {path = "../config", features = ["servo"] }
 servo_geometry = {path = "../geometry" }
 servo_rand = {path = "../rand"}
-servo_url = {path = "../url", features = ["servo"] }
-servo-websocket = "0.18"
-smallvec = "0.1"
+servo_url = {path = "../url", features = ["servo"]}
+smallvec = "0.3"
 style = {path = "../style"}
 style_traits = {path = "../style_traits"}
 time = "0.1.12"

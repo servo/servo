@@ -465,6 +465,12 @@ ${helpers.single_keyword("font-variant-caps",
         }
     }
 
+    impl Default for KeywordSize {
+        fn default() -> Self {
+            Medium
+        }
+    }
+
     impl ToCss for KeywordSize {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             dest.write_str(match *self {
@@ -482,29 +488,79 @@ ${helpers.single_keyword("font-variant-caps",
         }
     }
 
-    impl ToComputedValue for KeywordSize {
-        type ComputedValue = Au;
-        #[inline]
-        fn to_computed_value(&self, _: &Context) -> computed_value::T {
-            // https://drafts.csswg.org/css-fonts-3/#font-size-prop
-            use values::FONT_MEDIUM_PX;
-            match *self {
-                XXSmall => Au::from_px(FONT_MEDIUM_PX) * 3 / 5,
-                XSmall => Au::from_px(FONT_MEDIUM_PX) * 3 / 4,
-                Small => Au::from_px(FONT_MEDIUM_PX) * 8 / 9,
-                Medium => Au::from_px(FONT_MEDIUM_PX),
-                Large => Au::from_px(FONT_MEDIUM_PX) * 6 / 5,
-                XLarge => Au::from_px(FONT_MEDIUM_PX) * 3 / 2,
-                XXLarge => Au::from_px(FONT_MEDIUM_PX) * 2,
-                XXXLarge => Au::from_px(FONT_MEDIUM_PX) * 3,
+    % if product == "servo":
+        impl ToComputedValue for KeywordSize {
+            type ComputedValue = Au;
+            #[inline]
+            fn to_computed_value(&self, _: &Context) -> computed_value::T {
+                // https://drafts.csswg.org/css-fonts-3/#font-size-prop
+                use values::FONT_MEDIUM_PX;
+                match *self {
+                    XXSmall => Au::from_px(FONT_MEDIUM_PX) * 3 / 5,
+                    XSmall => Au::from_px(FONT_MEDIUM_PX) * 3 / 4,
+                    Small => Au::from_px(FONT_MEDIUM_PX) * 8 / 9,
+                    Medium => Au::from_px(FONT_MEDIUM_PX),
+                    Large => Au::from_px(FONT_MEDIUM_PX) * 6 / 5,
+                    XLarge => Au::from_px(FONT_MEDIUM_PX) * 3 / 2,
+                    XXLarge => Au::from_px(FONT_MEDIUM_PX) * 2,
+                    XXXLarge => Au::from_px(FONT_MEDIUM_PX) * 3,
+                }
+            }
+
+            #[inline]
+            fn from_computed_value(_: &computed_value::T) -> Self {
+                unreachable!()
             }
         }
+    % else:
+        impl ToComputedValue for KeywordSize {
+            type ComputedValue = Au;
+            #[inline]
+            fn to_computed_value(&self, cx: &Context) -> computed_value::T {
+                use gecko_bindings::bindings::Gecko_nsStyleFont_GetBaseSize;
+                use values::specified::length::au_to_int_px;
+                // Data from nsRuleNode.cpp in Gecko
+                // Mapping from base size and HTML size to pixels
+                // The first index is (base_size - 9), the second is the
+                // HTML size. "0" is CSS keyword xx-small, not HTML size 0,
+                // since HTML size 0 is the same as 1.
+                //
+                //  xxs   xs      s      m     l      xl     xxl   -
+                //  -     0/1     2      3     4      5      6     7
+                static FONT_SIZE_MAPPING: [[i32; 8]; 8] = [
+                    [9,    9,     9,     9,    11,    14,    18,    27],
+                    [9,    9,     9,    10,    12,    15,    20,    30],
+                    [9,    9,    10,    11,    13,    17,    22,    33],
+                    [9,    9,    10,    12,    14,    18,    24,    36],
+                    [9,   10,    12,    13,    16,    20,    26,    39],
+                    [9,   10,    12,    14,    17,    21,    28,    42],
+                    [9,   10,    13,    15,    18,    23,    30,    45],
+                    [9,   10,    13,    16,    18,    24,    32,    48]
+                ];
 
-        #[inline]
-        fn from_computed_value(_: &computed_value::T) -> Self {
-            unreachable!()
+                static FONT_SIZE_FACTORS: [i32; 8] = [60, 75, 89, 100, 120, 150, 200, 300];
+
+                // XXXManishearth handle quirks mode
+
+                let base_size = unsafe {
+                    Gecko_nsStyleFont_GetBaseSize(cx.style().get_font().gecko(),
+                                                  &*cx.device.pres_context)
+                };
+                let base_size_px = au_to_int_px(base_size as f32);
+                let html_size = *self as usize;
+                if base_size_px >= 9 && base_size_px <= 16 {
+                    Au::from_px(FONT_SIZE_MAPPING[(base_size_px - 9) as usize][html_size])
+                } else {
+                    Au(FONT_SIZE_FACTORS[html_size] * base_size / 100)
+                }
+            }
+
+            #[inline]
+            fn from_computed_value(_: &computed_value::T) -> Self {
+                unreachable!()
+            }
         }
-    }
+    % endif
 
     impl SpecifiedValue {
         /// https://html.spec.whatwg.org/multipage/#rules-for-parsing-a-legacy-font-size
@@ -599,30 +655,65 @@ ${helpers.single_keyword("font-variant-caps",
 
 <%helpers:longhand products="gecko" name="font-size-adjust" animatable="True"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-size-adjust">
+    use std::fmt;
+    use style_traits::ToCss;
     use values::HasViewportPercentage;
-    use values::computed::ComputedValueAsSpecified;
-    use values::specified::Number;
 
-    impl ComputedValueAsSpecified for SpecifiedValue {}
     no_viewport_percentage!(SpecifiedValue);
 
     #[derive(Copy, Clone, Debug, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedValue {
         None,
-        Number(Number),
+        Number(specified::Number),
+    }
+
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+            where W: fmt::Write,
+        {
+            match *self {
+                SpecifiedValue::None => dest.write_str("none"),
+                SpecifiedValue::Number(number) => number.to_css(dest),
+            }
+        }
+    }
+
+    impl ToComputedValue for SpecifiedValue {
+        type ComputedValue = computed_value::T;
+
+        fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+            match *self {
+                SpecifiedValue::None => computed_value::T::None,
+                SpecifiedValue::Number(ref n) => computed_value::T::Number(n.to_computed_value(context)),
+            }
+        }
+
+        fn from_computed_value(computed: &computed_value::T) -> Self {
+            match *computed {
+                computed_value::T::None => SpecifiedValue::None,
+                computed_value::T::Number(ref v) => SpecifiedValue::Number(specified::Number::from_computed_value(v)),
+            }
+        }
     }
 
     pub mod computed_value {
-        use style_traits::ToCss;
-        use std::fmt;
         use properties::animated_properties::Interpolate;
-        use values::specified::Number;
+        use std::fmt;
+        use style_traits::ToCss;
+        use values::CSSFloat;
 
-        pub use super::SpecifiedValue as T;
+        #[derive(Copy, Clone, Debug, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        pub enum T {
+            None,
+            Number(CSSFloat),
+        }
 
         impl ToCss for T {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+                where W: fmt::Write,
+            {
                 match *self {
                     T::None => dest.write_str("none"),
                     T::Number(number) => number.to_css(dest),
@@ -634,14 +725,15 @@ ${helpers.single_keyword("font-variant-caps",
             fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
                 match (*self, *other) {
                     (T::Number(ref number), T::Number(ref other)) =>
-                        Ok(T::Number(Number(try!(number.0.interpolate(&other.0, time))))),
+                        Ok(T::Number(try!(number.interpolate(other, time)))),
                     _ => Err(()),
                 }
             }
         }
     }
 
-    #[inline] pub fn get_initial_value() -> computed_value::T {
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
         computed_value::T::None
     }
 
@@ -862,40 +954,67 @@ ${helpers.single_keyword("font-variant-position",
     }
 </%helpers:longhand>
 
-// https://www.w3.org/TR/css-fonts-3/#propdef-font-language-override
-<%helpers:longhand name="font-language-override" products="none" animatable="False" extra_prefixes="moz"
+<%helpers:longhand name="font-language-override" products="gecko" animatable="False" extra_prefixes="moz"
                    spec="https://drafts.csswg.org/css-fonts-3/#propdef-font-language-override">
+    use std::fmt;
+    use style_traits::ToCss;
+    use byteorder::{BigEndian, ByteOrder};
     use values::HasViewportPercentage;
-    use values::computed::ComputedValueAsSpecified;
-    pub use self::computed_value::T as SpecifiedValue;
-
-    impl ComputedValueAsSpecified for SpecifiedValue {}
     no_viewport_percentage!(SpecifiedValue);
 
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub enum SpecifiedValue {
+        Normal,
+        Override(String),
+    }
+
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            use cssparser;
+            match *self {
+                SpecifiedValue::Normal => dest.write_str("normal"),
+                SpecifiedValue::Override(ref lang) =>
+                    cssparser::serialize_string(lang, dest),
+            }
+        }
+    }
+
     pub mod computed_value {
-        use std::fmt;
+        use std::{fmt, str};
         use style_traits::ToCss;
+        use byteorder::{BigEndian, ByteOrder};
+        use cssparser;
 
         impl ToCss for T {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                match *self {
-                    T::Normal => dest.write_str("normal"),
-                    T::Override(ref lang) => write!(dest, "\"{}\"", lang),
+                if self.0 == 0 {
+                    return dest.write_str("normal")
                 }
+                let mut buf = [0; 4];
+                BigEndian::write_u32(&mut buf, self.0);
+                // Safe because we ensure it's ASCII during computing
+                let slice = if cfg!(debug_assertions) {
+                    str::from_utf8(&buf).unwrap()
+                } else {
+                    unsafe { str::from_utf8_unchecked(&buf) }
+                };
+                cssparser::serialize_string(slice.trim_right(), dest)
             }
         }
 
-        #[derive(Clone, Debug, PartialEq)]
+        // font-language-override can only have a single three-letter
+        // OpenType "language system" tag, so we should be able to compute
+        // it and store it as a 32-bit integer
+        // (see http://www.microsoft.com/typography/otspec/languagetags.htm).
+        #[derive(PartialEq, Clone, Copy, Debug)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub enum T {
-            Normal,
-            Override(String),
-        }
+        pub struct T(pub u32);
     }
 
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
-        computed_value::T::Normal
+        computed_value::T(0)
     }
 
     #[inline]
@@ -903,6 +1022,45 @@ ${helpers.single_keyword("font-variant-position",
         SpecifiedValue::Normal
     }
 
+    impl ToComputedValue for SpecifiedValue {
+        type ComputedValue = computed_value::T;
+
+        #[inline]
+        fn to_computed_value(&self, _: &Context) -> computed_value::T {
+            use std::ascii::AsciiExt;
+            match *self {
+                SpecifiedValue::Normal => computed_value::T(0),
+                SpecifiedValue::Override(ref lang) => {
+                    if lang.is_empty() || lang.len() > 4 || !lang.is_ascii() {
+                        return computed_value::T(0)
+                    }
+                    let mut computed_lang = lang.clone();
+                    while computed_lang.len() < 4 {
+                        computed_lang.push(' ');
+                    }
+                    let bytes = computed_lang.into_bytes();
+                    computed_value::T(BigEndian::read_u32(&bytes))
+                }
+            }
+        }
+        #[inline]
+        fn from_computed_value(computed: &computed_value::T) -> Self {
+            if computed.0 == 0 {
+                return SpecifiedValue::Normal
+            }
+            let mut buf = [0; 4];
+            BigEndian::write_u32(&mut buf, computed.0);
+            SpecifiedValue::Override(
+                if cfg!(debug_assertions) {
+                    String::from_utf8(buf.to_vec()).unwrap()
+                } else {
+                    unsafe { String::from_utf8_unchecked(buf.to_vec()) }
+                }
+            )
+        }
+    }
+
+    /// normal | <string>
     pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
         if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
             Ok(SpecifiedValue::Normal)

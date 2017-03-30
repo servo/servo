@@ -258,6 +258,7 @@ mod bindings {
                 vars: true,
                 ..CodegenConfig::nothing()
             })
+            .include(add_include("nsCSSPseudoClasses.h"))   // servo/rust-bindgen#599
             .header(add_include("nsStyleStruct.h"))
             .include(add_include("mozilla/ServoPropPrefList.h"))
             .header(add_include("mozilla/StyleAnimationValue.h"))
@@ -270,6 +271,7 @@ mod bindings {
             .include(add_include("mozilla/dom/NameSpaceConstants.h"))
             .include(add_include("mozilla/LookAndFeel.h"))
             .include(add_include("mozilla/ServoBindings.h"))
+            .include(add_include("nsCSSFontFaceRule.h"))
             .include(add_include("nsMediaFeatures.h"))
             .include(add_include("nsMediaList.h"))
             // FIXME(emilio): Incrementally remove these "pub use"s. Probably
@@ -282,7 +284,8 @@ mod bindings {
             .raw_line("use data::ElementData;")
             .hide_type("nsString")
             .bitfield_enum("nsChangeHint")
-            .bitfield_enum("nsRestyleHint");
+            .bitfield_enum("nsRestyleHint")
+            .constified_enum("UpdateAnimationsTasks");
         let whitelist_vars = [
             "NS_THEME_.*",
             "NODE_.*",
@@ -293,6 +296,7 @@ mod bindings {
             "BORDER_STYLE_.*",
             "mozilla::SERVO_PREF_.*",
             "kNameSpaceID_.*",
+            "kGenericFont_.*",
         ];
         let whitelist = [
             "RawGecko.*",
@@ -305,6 +309,7 @@ mod bindings {
             "mozilla::TraversalRootBehavior",
             "mozilla::StyleShapeRadius",
             "mozilla::StyleGrid.*",
+            "mozilla::UpdateAnimationsTasks",
             "mozilla::LookAndFeel",
             ".*ThreadSafe.*Holder",
             "AnonymousContent",
@@ -333,6 +338,7 @@ mod bindings {
             "nsBorderColors",
             "nscolor",
             "nsChangeHint",
+            "nsCSSFontFaceRule",
             "nsCSSKeyword",
             "nsCSSPropertyID",
             "nsCSSProps",
@@ -353,6 +359,7 @@ mod bindings {
             "nsCursorImage",
             "nsFont",
             "nsIAtom",
+            "nsIURI",
             "nsMainThreadPtrHandle",
             "nsMainThreadPtrHolder",
             "nsMargin",
@@ -581,6 +588,7 @@ mod bindings {
             "RawGeckoElement",
             "RawGeckoKeyframeList",
             "RawGeckoComputedKeyframeValuesList",
+            "RawGeckoFontFaceRuleList",
             "RawGeckoNode",
             "RawGeckoAnimationValueList",
             "RawServoAnimationValue",
@@ -604,15 +612,18 @@ mod bindings {
             "StyleBasicShape",
             "StyleBasicShapeType",
             "StyleShapeSource",
+            "nsCSSFontFaceRule",
             "nsCSSKeyword",
             "nsCSSPropertyID",
             "nsCSSShadowArray",
+            "nsCSSUnit",
             "nsCSSValue",
             "nsCSSValueSharedList",
             "nsChangeHint",
             "nsCursorImage",
             "nsFont",
             "nsIAtom",
+            "nsIURI",
             "nsMediaFeature",
             "nsRestyleHint",
             "nsStyleBackground",
@@ -664,6 +675,7 @@ mod bindings {
             "Loader",
             "ServoStyleSheet",
             "EffectCompositor_CascadeLevel",
+            "UpdateAnimationsTasks",
         ];
         struct ArrayType {
             cpp_type: &'static str,
@@ -695,6 +707,7 @@ mod bindings {
             "RawGeckoAnimationValueList",
             "RawGeckoKeyframeList",
             "RawGeckoComputedKeyframeValuesList",
+            "RawGeckoFontFaceRuleList",
         ];
         for &ty in structs_types.iter() {
             builder = builder.hide_type(ty)

@@ -63,7 +63,8 @@ use style::attr::AttrValue;
 use style::computed_values::display;
 use style::context::{QuirksMode, SharedStyleContext};
 use style::data::ElementData;
-use style::dom::{LayoutIterator, NodeInfo, OpaqueNode, PresentationalHintsSynthetizer, TElement, TNode};
+use style::dom::{DirtyDescendants, LayoutIterator, NodeInfo, OpaqueNode, PresentationalHintsSynthetizer};
+use style::dom::{TElement, TNode};
 use style::dom::UnsafeNode;
 use style::element_state::*;
 use style::properties::{ComputedValues, PropertyDeclarationBlock};
@@ -451,7 +452,7 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         self.element.has_selector_flags(flags)
     }
 
-    fn update_animations(&self, _pseudo: Option<&PseudoElement>) {
+    fn has_animations(&self, _pseudo: Option<&PseudoElement>) -> bool {
         panic!("this should be only called on gecko");
     }
 
@@ -487,6 +488,9 @@ impl<'le> ServoLayoutElement<'le> {
         }
     }
 
+    // FIXME(bholley): This should be merged with TElement::note_dirty_descendants,
+    // but that requires re-testing and possibly fixing the broken callers given
+    // the FIXME below, which I don't have time to do right now.
     pub unsafe fn note_dirty_descendant(&self) {
         use ::selectors::Element;
 
@@ -501,19 +505,7 @@ impl<'le> ServoLayoutElement<'le> {
             current = el.parent_element();
         }
 
-        debug_assert!(self.dirty_descendants_bit_is_propagated());
-    }
-
-    fn dirty_descendants_bit_is_propagated(&self) -> bool {
-        use ::selectors::Element;
-
-        let mut current = Some(*self);
-        while let Some(el) = current {
-            if !el.has_dirty_descendants() { return false; }
-            current = el.parent_element();
-        }
-
-        true
+        debug_assert!(self.descendants_bit_is_propagated::<DirtyDescendants>());
     }
 }
 

@@ -14,7 +14,6 @@ use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
 use gfx_traits::{Epoch, ScrollRootId};
 use gleam::gl;
-use gleam::gl::types::{GLint, GLsizei};
 use image::{DynamicImage, ImageFormat, RgbImage};
 use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, CONTROL};
@@ -40,7 +39,7 @@ use style_traits::viewport::ViewportConstraints;
 use time::{precise_time_ns, precise_time_s};
 use touch::{TouchHandler, TouchAction};
 use webrender;
-use webrender_traits::{self, ScrollEventPhase, ServoScrollRootId, LayoutPoint, ScrollLocation};
+use webrender_traits::{self, LayoutPoint, ScrollEventPhase, ScrollLayerId, ScrollLocation};
 use windowing::{self, MouseWindowEvent, WindowEvent, WindowMethods, WindowNavigateMsg};
 
 #[derive(Debug, PartialEq)]
@@ -77,9 +76,9 @@ trait ConvertScrollRootIdFromWebRender {
     fn from_webrender(&self) -> ScrollRootId;
 }
 
-impl ConvertScrollRootIdFromWebRender for webrender_traits::ServoScrollRootId {
+impl ConvertScrollRootIdFromWebRender for usize {
     fn from_webrender(&self) -> ScrollRootId {
-        ScrollRootId(self.0)
+        ScrollRootId(*self)
     }
 }
 
@@ -208,6 +207,9 @@ pub struct IOCompositor<Window: WindowMethods> {
 
     /// The webrender interface, if enabled.
     webrender_api: webrender_traits::RenderApi,
+
+    /// GL functions interface (may be GL or GLES)
+    gl: Rc<gl::Gl>,
 }
 
 #[derive(Copy, Clone)]
@@ -291,34 +293,34 @@ impl RenderTargetInfo {
     }
 }
 
-fn initialize_png(width: usize, height: usize) -> RenderTargetInfo {
-    let framebuffer_ids = gl::gen_framebuffers(1);
-    gl::bind_framebuffer(gl::FRAMEBUFFER, framebuffer_ids[0]);
+fn initialize_png(gl: &gl::Gl, width: usize, height: usize) -> RenderTargetInfo {
+    let framebuffer_ids = gl.gen_framebuffers(1);
+    gl.bind_framebuffer(gl::FRAMEBUFFER, framebuffer_ids[0]);
 
-    let texture_ids = gl::gen_textures(1);
-    gl::bind_texture(gl::TEXTURE_2D, texture_ids[0]);
+    let texture_ids = gl.gen_textures(1);
+    gl.bind_texture(gl::TEXTURE_2D, texture_ids[0]);
 
-    gl::tex_image_2d(gl::TEXTURE_2D, 0, gl::RGB as GLint, width as GLsizei,
-                     height as GLsizei, 0, gl::RGB, gl::UNSIGNED_BYTE, None);
-    gl::tex_parameter_i(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as GLint);
-    gl::tex_parameter_i(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as GLint);
+    gl.tex_image_2d(gl::TEXTURE_2D, 0, gl::RGB as gl::GLint, width as gl::GLsizei,
+                    height as gl::GLsizei, 0, gl::RGB, gl::UNSIGNED_BYTE, None);
+    gl.tex_parameter_i(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as gl::GLint);
+    gl.tex_parameter_i(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as gl::GLint);
 
-    gl::framebuffer_texture_2d(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT0, gl::TEXTURE_2D,
-                               texture_ids[0], 0);
+    gl.framebuffer_texture_2d(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT0, gl::TEXTURE_2D,
+                              texture_ids[0], 0);
 
-    gl::bind_texture(gl::TEXTURE_2D, 0);
+    gl.bind_texture(gl::TEXTURE_2D, 0);
 
-    let renderbuffer_ids = gl::gen_renderbuffers(1);
+    let renderbuffer_ids = gl.gen_renderbuffers(1);
     let depth_rb = renderbuffer_ids[0];
-    gl::bind_renderbuffer(gl::RENDERBUFFER, depth_rb);
-    gl::renderbuffer_storage(gl::RENDERBUFFER,
-                             gl::DEPTH_COMPONENT24,
-                             width as gl::GLsizei,
-                             height as gl::GLsizei);
-    gl::framebuffer_renderbuffer(gl::FRAMEBUFFER,
-                                 gl::DEPTH_ATTACHMENT,
-                                 gl::RENDERBUFFER,
-                                 depth_rb);
+    gl.bind_renderbuffer(gl::RENDERBUFFER, depth_rb);
+    gl.renderbuffer_storage(gl::RENDERBUFFER,
+                            gl::DEPTH_COMPONENT24,
+                            width as gl::GLsizei,
+                            height as gl::GLsizei);
+    gl.framebuffer_renderbuffer(gl::FRAMEBUFFER,
+                                gl::DEPTH_ATTACHMENT,
+                                gl::RENDERBUFFER,
+                                depth_rb);
 
     RenderTargetInfo {
         framebuffer_ids: framebuffer_ids,
@@ -373,6 +375,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         };
 
         IOCompositor {
+            gl: window.gl(),
             window: window,
             port: state.receiver,
             root_pipeline: None,
@@ -791,10 +794,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                 pipeline_id: PipelineId,
                                 scroll_root_id: ScrollRootId,
                                 point: Point2D<f32>) {
-        self.webrender_api.scroll_layers_with_scroll_root_id(
-            LayoutPoint::from_untyped(&point),
-            pipeline_id.to_webrender(),
-            ServoScrollRootId(scroll_root_id.0));
+        let id = ScrollLayerId::new(scroll_root_id.0, pipeline_id.to_webrender());
+        self.webrender_api.scroll_layer_with_id(LayoutPoint::from_untyped(&point), id);
     }
 
     fn handle_window_message(&mut self, event: WindowEvent) {
@@ -1386,13 +1387,18 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn send_viewport_rects(&self) {
         let mut stacking_context_scroll_states_per_pipeline = HashMap::new();
         for scroll_layer_state in self.webrender_api.get_scroll_layer_state() {
+            let external_id = match scroll_layer_state.id.external_id() {
+                Some(id) => id,
+                None => continue,
+            };
+
             let stacking_context_scroll_state = StackingContextScrollState {
-                scroll_root_id: scroll_layer_state.scroll_root_id.from_webrender(),
+                scroll_root_id: external_id.from_webrender(),
                 scroll_offset: scroll_layer_state.scroll_offset.to_untyped(),
             };
-            let pipeline_id = scroll_layer_state.pipeline_id;
+
             stacking_context_scroll_states_per_pipeline
-                .entry(pipeline_id)
+                .entry(scroll_layer_state.id.pipeline_id())
                 .or_insert(vec![])
                 .push(stacking_context_scroll_state);
         }
@@ -1529,7 +1535,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
         let render_target_info = match target {
             CompositeTarget::Window => RenderTargetInfo::empty(),
-            _ => initialize_png(width, height)
+            _ => initialize_png(&*self.gl, width, height)
         };
 
         profile(ProfilerCategory::Compositing, None, self.time_profiler_chan.clone(), || {
@@ -1593,16 +1599,16 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 width: usize,
                 height: usize)
                 -> RgbImage {
-        let mut pixels = gl::read_pixels(0, 0,
-                                         width as gl::GLsizei,
-                                         height as gl::GLsizei,
-                                         gl::RGB, gl::UNSIGNED_BYTE);
+        let mut pixels = self.gl.read_pixels(0, 0,
+                                             width as gl::GLsizei,
+                                             height as gl::GLsizei,
+                                             gl::RGB, gl::UNSIGNED_BYTE);
 
-        gl::bind_framebuffer(gl::FRAMEBUFFER, 0);
+        self.gl.bind_framebuffer(gl::FRAMEBUFFER, 0);
 
-        gl::delete_buffers(&render_target_info.texture_ids);
-        gl::delete_renderbuffers(&render_target_info.renderbuffer_ids);
-        gl::delete_frame_buffers(&render_target_info.framebuffer_ids);
+        self.gl.delete_buffers(&render_target_info.texture_ids);
+        self.gl.delete_renderbuffers(&render_target_info.renderbuffer_ids);
+        self.gl.delete_framebuffers(&render_target_info.framebuffer_ids);
 
         // flip image vertically (texture is upside down)
         let orig_pixels = pixels.clone();

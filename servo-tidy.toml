@@ -34,6 +34,8 @@ num = []
 packages = []
 # Files that are ignored for all tidy and lint checks.
 files = [
+  # Helper macro where actually a pseudo-element per line makes sense.
+  "./components/style/gecko/non_ts_pseudo_class_list.rs",
   # Generated and upstream code combined with our own. Could use cleanup
   "./components/style/gecko_bindings/bindings.rs",
   "./components/style/gecko_bindings/structs_debug.rs",

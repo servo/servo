@@ -75,8 +75,8 @@ impl ToCss for UrlSource {
 ///
 /// Note that the prelude parsing code lives in the `stylesheets` module.
 pub fn parse_font_face_block(context: &ParserContext, input: &mut Parser)
-                             -> Result<FontFaceRule, ()> {
-    let mut rule = FontFaceRule::initial();
+                             -> Result<FontFaceData, ()> {
+    let mut rule = FontFaceData::initial();
     {
         let parser = FontFaceRuleParser {
             context: context,
@@ -104,7 +104,7 @@ pub fn parse_font_face_block(context: &ParserContext, input: &mut Parser)
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 pub struct EffectiveSources(Vec<Source>);
 
-impl FontFaceRule {
+impl FontFaceData {
     /// Returns the list of effective sources for that font-face, that is the
     /// sources which don't list any format hint, or the ones which list at
     /// least "truetype" or "opentype".
@@ -134,7 +134,7 @@ impl iter::Iterator for EffectiveSources {
 
 struct FontFaceRuleParser<'a, 'b: 'a> {
     context: &'a ParserContext<'b>,
-    rule: &'a mut FontFaceRule,
+    rule: &'a mut FontFaceData,
     missing: MissingDescriptors,
 }
 
@@ -181,11 +181,11 @@ macro_rules! font_face_descriptors {
             $( #[$o_doc: meta] $o_name: tt $o_ident: ident: $o_ty: ty = $o_initial: expr, )*
         ]
     ) => {
-        /// A `@font-face` rule.
+        /// Data inside a `@font-face` rule.
         ///
         /// https://drafts.csswg.org/css-fonts/#font-face-rule
         #[derive(Debug, PartialEq, Eq)]
-        pub struct FontFaceRule {
+        pub struct FontFaceData {
             $(
                 #[$m_doc]
                 pub $m_ident: $m_ty,
@@ -218,9 +218,9 @@ macro_rules! font_face_descriptors {
             }
         }
 
-        impl FontFaceRule {
+        impl FontFaceData {
             fn initial() -> Self {
-                FontFaceRule {
+                FontFaceData {
                     $(
                         $m_ident: $m_initial,
                     )*
@@ -231,7 +231,7 @@ macro_rules! font_face_descriptors {
             }
         }
 
-        impl ToCssWithGuard for FontFaceRule {
+        impl ToCssWithGuard for FontFaceData {
             // Serialization of FontFaceRule is not specced.
             fn to_css<W>(&self, _guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
             where W: fmt::Write {

@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use base64;
 use hyper::mime::{Attr, Mime, SubLevel, TopLevel, Value};
-use rustc_serialize::base64::FromBase64;
 use servo_url::ServoUrl;
 use url::Position;
 use url::percent_encoding::percent_decode;
@@ -46,7 +46,7 @@ pub fn decode(url: &ServoUrl) -> Result<DecodeData, DecodeError> {
         // FIXME(#2909): It’s unclear what to do with non-alphabet characters,
         // but Acid 3 apparently depends on spaces being ignored.
         bytes = bytes.into_iter().filter(|&b| b != b' ').collect::<Vec<u8>>();
-        match bytes.from_base64() {
+        match base64::decode(&bytes) {
             Err(..) => return Err(DecodeError::NonBase64DataUri),
             Ok(data) => bytes = data,
         }

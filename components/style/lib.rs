@@ -41,6 +41,7 @@ extern crate app_units;
 extern crate atomic_refcell;
 #[macro_use]
 extern crate bitflags;
+#[allow(unused_extern_crates)] extern crate byteorder;
 #[cfg(feature = "gecko")] #[macro_use] #[no_link] extern crate cfg_if;
 #[macro_use] extern crate cssparser;
 extern crate euclid;
@@ -56,7 +57,9 @@ extern crate log;
 #[allow(unused_extern_crates)]
 #[macro_use]
 extern crate matches;
-#[cfg(feature = "gecko")] extern crate nsstring_vendor as nsstring;
+#[cfg(feature = "gecko")]
+#[macro_use]
+extern crate nsstring_vendor as nsstring;
 #[cfg(feature = "gecko")] extern crate num_cpus;
 extern crate num_integer;
 extern crate num_traits;

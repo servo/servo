@@ -196,6 +196,8 @@ pub struct Window {
     /// The list of keys that have been pressed but not yet released, to allow providing
     /// the equivalent ReceivedCharacter data as was received for the press event.
     pressed_key_map: RefCell<Vec<(ScanCode, char)>>,
+
+    gl: Rc<gl::Gl>,
 }
 
 #[cfg(not(target_os = "windows"))]
@@ -264,14 +266,34 @@ impl Window {
             WindowKind::Window(glutin_window)
         };
 
-        Window::load_gl_functions(&window_kind);
+        let gl = match window_kind {
+            WindowKind::Window(ref window) => {
+                match gl::GlType::default() {
+                    gl::GlType::Gl => {
+                        unsafe {
+                            gl::GlFns::load_with(|s| window.get_proc_address(s) as *const _)
+                        }
+                    }
+                    gl::GlType::Gles => {
+                        unsafe {
+                            gl::GlesFns::load_with(|s| window.get_proc_address(s) as *const _)
+                        }
+                    }
+                }
+            }
+            WindowKind::Headless(..) => {
+                unsafe {
+                    gl::GlFns::load_with(|s| HeadlessContext::get_proc_address(s))
+                }
+            }
+        };
 
         if opts::get().headless {
             // Print some information about the headless renderer that
             // can be useful in diagnosing CI failures on build machines.
-            println!("{}", gl::get_string(gl::VENDOR));
-            println!("{}", gl::get_string(gl::RENDERER));
-            println!("{}", gl::get_string(gl::VERSION));
+            println!("{}", gl.get_string(gl::VENDOR));
+            println!("{}", gl.get_string(gl::RENDERER));
+            println!("{}", gl.get_string(gl::VERSION));
         }
 
         #[cfg(not(target_os = "windows"))]
@@ -287,6 +309,7 @@ impl Window {
    
             pending_key_event_char: Cell::new(None),
             pressed_key_map: RefCell::new(vec![]),
+            gl: gl.clone(),
         };
 
         #[cfg(target_os = "windows")]
@@ -304,9 +327,9 @@ impl Window {
             pressed_key_map: RefCell::new(vec![]),
         };
 
-        gl::clear_color(0.6, 0.6, 0.6, 1.0);
-        gl::clear(gl::COLOR_BUFFER_BIT);
-        gl::finish();
+        gl.clear_color(0.6, 0.6, 0.6, 1.0);
+        gl.clear(gl::COLOR_BUFFER_BIT);
+        gl.finish();
         window.present();
 
         Rc::new(window)
@@ -340,24 +363,6 @@ impl Window {
     #[cfg(any(target_arch = "arm", target_arch = "aarch64"))]
     fn gl_version() -> GlRequest {
         GlRequest::Specific(Api::OpenGlEs, (3, 0))
-    }
-
-    #[cfg(not(target_os = "android"))]
-    fn load_gl_functions(window_kind: &WindowKind) {
-        match window_kind {
-            &WindowKind::Window(ref window) => {
-                gl::load_with(|s| window.get_proc_address(s) as *const c_void);
-            }
-            &WindowKind::Headless(..) => {
-                gl::load_with(|s| {
-                    HeadlessContext::get_proc_address(s)
-                });
-            }
-        }
-    }
-
-    #[cfg(target_os = "android")]
-    fn load_gl_functions(_: &WindowKind) {
     }
 
     fn handle_window_event(&self, event: glutin::Event) -> bool {
@@ -841,6 +846,10 @@ fn create_window_proxy(window: &Window) -> Option<glutin::WindowProxy> {
 }
 
 impl WindowMethods for Window {
+    fn gl(&self) -> Rc<gl::Gl> {
+        self.gl.clone()
+    }
+
     fn framebuffer_size(&self) -> TypedSize2D<u32, DevicePixel> {
         match self.kind {
             WindowKind::Window(ref window) => {

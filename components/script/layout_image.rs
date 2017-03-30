@@ -12,7 +12,7 @@ use dom::node::{Node, document_from_node};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use net_traits::{FetchResponseMsg, FetchResponseListener, FetchMetadata, NetworkError};
-use net_traits::image_cache_thread::{ImageCacheThread, PendingImageId};
+use net_traits::image_cache::{ImageCache, PendingImageId};
 use net_traits::request::{Type as RequestType, RequestInit as FetchRequestInit};
 use network_listener::{NetworkListener, PreInvoke};
 use servo_url::ServoUrl;
@@ -20,7 +20,7 @@ use std::sync::{Arc, Mutex};
 
 struct LayoutImageContext {
     id: PendingImageId,
-    cache: ImageCacheThread,
+    cache: Arc<ImageCache>,
 }
 
 impl FetchResponseListener for LayoutImageContext {
@@ -49,7 +49,7 @@ impl PreInvoke for LayoutImageContext {}
 pub fn fetch_image_for_layout(url: ServoUrl,
                               node: &Node,
                               id: PendingImageId,
-                              cache: ImageCacheThread) {
+                              cache: Arc<ImageCache>) {
     let context = Arc::new(Mutex::new(LayoutImageContext {
         id: id,
         cache: cache,

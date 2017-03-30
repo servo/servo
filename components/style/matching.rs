@@ -17,7 +17,7 @@ use data::{ComputedStyle, ElementData, ElementStyles, RestyleData};
 use dom::{AnimationRules, SendElement, TElement, TNode};
 use properties::{CascadeFlags, ComputedValues, SHAREABLE, SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP, cascade};
 use properties::longhands::display::computed_value as display;
-use restyle_hints::{RESTYLE_STYLE_ATTRIBUTE, RestyleHint};
+use restyle_hints::{RESTYLE_STYLE_ATTRIBUTE, RESTYLE_CSS_ANIMATIONS, RestyleHint};
 use rule_tree::{CascadeLevel, RuleTree, StrongRuleNode};
 use selector_parser::{PseudoElement, RestyleDamage, SelectorImpl};
 use selectors::MatchAttr;
@@ -469,24 +469,15 @@ trait PrivateMatchMethods: TElement {
         }
     }
 
-    fn cascade_internal(&self,
-                        context: &StyleContext<Self>,
-                        primary_style: &ComputedStyle,
-                        pseudo_style: &mut Option<(&PseudoElement, &mut ComputedStyle)>,
-                        booleans: &CascadeBooleans)
-                        -> Arc<ComputedValues> {
+    fn cascade_with_rules(&self,
+                          context: &StyleContext<Self>,
+                          rule_node: &StrongRuleNode,
+                          primary_style: &ComputedStyle,
+                          pseudo_style: &Option<(&PseudoElement, &mut ComputedStyle)>,
+                          cascade_flags: CascadeFlags)
+                          -> Arc<ComputedValues> {
         let shared_context = context.shared;
         let mut cascade_info = CascadeInfo::new();
-        let mut cascade_flags = CascadeFlags::empty();
-        if booleans.shareable {
-            cascade_flags.insert(SHAREABLE)
-        }
-        if self.skip_root_and_item_based_display_fixup() {
-            cascade_flags.insert(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP)
-        }
-
-        // Grab the rule node.
-        let rule_node = &pseudo_style.as_ref().map_or(primary_style, |p| &*p.1).rules;
 
         // Grab the inherited values.
         let parent_el;
@@ -552,6 +543,25 @@ trait PrivateMatchMethods: TElement {
         values
     }
 
+    fn cascade_internal(&self,
+                        context: &StyleContext<Self>,
+                        primary_style: &ComputedStyle,
+                        pseudo_style: &Option<(&PseudoElement, &mut ComputedStyle)>,
+                        booleans: &CascadeBooleans)
+                        -> Arc<ComputedValues> {
+        let mut cascade_flags = CascadeFlags::empty();
+        if booleans.shareable {
+            cascade_flags.insert(SHAREABLE)
+        }
+        if self.skip_root_and_item_based_display_fixup() {
+            cascade_flags.insert(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP)
+        }
+
+        // Grab the rule node.
+        let rule_node = &pseudo_style.as_ref().map_or(primary_style, |p| &*p.1).rules;
+        self.cascade_with_rules(context, rule_node, primary_style, pseudo_style, cascade_flags)
+    }
+
     /// Computes values and damage for the primary or pseudo style of an element,
     /// setting them on the ElementData.
     fn cascade_primary_or_pseudo<'a>(&self,
@@ -570,7 +580,7 @@ trait PrivateMatchMethods: TElement {
 
         // Compute the new values.
         let mut new_values = self.cascade_internal(context, primary_style,
-                                                   &mut pseudo_style, &booleans);
+                                                   &pseudo_style, &booleans);
 
         // Handle animations.
         if booleans.animate {
@@ -595,17 +605,48 @@ trait PrivateMatchMethods: TElement {
     }
 
     #[cfg(feature = "gecko")]
+    fn get_after_change_style(&self,
+                              context: &mut StyleContext<Self>,
+                              primary_style: &ComputedStyle,
+                              pseudo_style: &Option<(&PseudoElement, &mut ComputedStyle)>)
+                              -> Arc<ComputedValues> {
+        let style = &pseudo_style.as_ref().map_or(primary_style, |p| &*p.1);
+        let rule_node = &style.rules;
+        let without_transition_rules =
+            context.shared.stylist.rule_tree.remove_transition_rule_if_applicable(rule_node);
+        if without_transition_rules == *rule_node {
+            // Note that unwrapping here is fine, because the style is
+            // only incomplete during the styling process.
+            return style.values.as_ref().unwrap().clone();
+        }
+
+        let mut cascade_flags = CascadeFlags::empty();
+        if self.skip_root_and_item_based_display_fixup() {
+            cascade_flags.insert(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP)
+        }
+        self.cascade_with_rules(context,
+                                &without_transition_rules,
+                                primary_style,
+                                &pseudo_style,
+                                cascade_flags)
+    }
+
+    #[cfg(feature = "gecko")]
     fn process_animations(&self,
                           context: &mut StyleContext<Self>,
                           old_values: &mut Option<Arc<ComputedValues>>,
                           new_values: &mut Arc<ComputedValues>,
                           pseudo: Option<&PseudoElement>,
                           _possibly_expired_animations: &mut Vec<PropertyAnimation>) {
+        use context::{CSS_ANIMATIONS, EFFECT_PROPERTIES};
+        use context::UpdateAnimationsTasks;
+
         let ref new_box_style = new_values.get_box();
         let has_new_animation_style = new_box_style.animation_name_count() >= 1 &&
                                       new_box_style.animation_name_at(0).0.len() != 0;
         let has_animations = self.has_css_animations(pseudo);
 
+        let mut tasks = UpdateAnimationsTasks::empty();
         let needs_update_animations =
             old_values.as_ref().map_or(has_new_animation_style, |ref old| {
                 let ref old_box_style = old.get_box();
@@ -621,8 +662,15 @@ trait PrivateMatchMethods: TElement {
                   has_animations)
             });
         if needs_update_animations {
+            tasks.insert(CSS_ANIMATIONS);
+        }
+        if self.has_animations(pseudo) {
+            tasks.insert(EFFECT_PROPERTIES);
+        }
+        if !tasks.is_empty() {
             let task = SequentialTask::update_animations(self.as_node().as_element().unwrap(),
-                                                         pseudo.cloned());
+                                                         pseudo.cloned(),
+                                                         tasks);
             context.thread_local.tasks.push(task);
         }
     }
@@ -917,30 +965,54 @@ pub trait MatchMethods : TElement {
                                  context: &StyleContext<Self>,
                                  data: &mut AtomicRefMut<ElementData>)
                                  -> bool {
-        let primary_rules = &mut data.styles_mut().primary.rules;
+        use properties::PropertyDeclarationBlock;
+        use shared_lock::Locked;
+
+        let element_styles = &mut data.styles_mut();
+        let primary_rules = &mut element_styles.primary.rules;
         let mut rule_node_changed = false;
 
-        if hint.contains(RESTYLE_STYLE_ATTRIBUTE) {
-            let style_attribute = self.style_attribute();
+        {
+            let mut replace_rule_node = |level: CascadeLevel,
+                                         pdb: Option<&Arc<Locked<PropertyDeclarationBlock>>>,
+                                         path: &mut StrongRuleNode| {
+                let new_node = context.shared.stylist.rule_tree
+                    .update_rule_at_level(level, pdb, path, &context.shared.guards);
+                if let Some(n) = new_node {
+                    *path = n;
+                    rule_node_changed = true;
+                }
+            };
 
-            let new_node = context.shared.stylist.rule_tree
-                .update_rule_at_level(CascadeLevel::StyleAttributeNormal,
-                                      style_attribute,
-                                      primary_rules,
-                                      &context.shared.guards);
-            if let Some(n) = new_node {
-                *primary_rules = n;
-                rule_node_changed = true;
-            }
+            // RESTYLE_CSS_ANIMATIONS is processed prior to other restyle hints
+            // in the name of animation-only traversal. Rest of restyle hints
+            // will be processed in a subsequent normal traversal.
+            if hint.contains(RESTYLE_CSS_ANIMATIONS) {
+                debug_assert!(context.shared.animation_only_restyle);
 
-            let new_node = context.shared.stylist.rule_tree
-                .update_rule_at_level(CascadeLevel::StyleAttributeImportant,
-                                      style_attribute,
-                                      primary_rules,
-                                      &context.shared.guards);
-            if let Some(n) = new_node {
-                *primary_rules = n;
-                rule_node_changed = true;
+                let animation_rule = self.get_animation_rule(None);
+                replace_rule_node(CascadeLevel::Animations,
+                                  animation_rule.as_ref(),
+                                  primary_rules);
+
+                let iter = element_styles.pseudos.iter_mut().filter(|&(p, _)|
+                    <Self as MatchAttr>::Impl::pseudo_is_before_or_after(p));
+                for (pseudo, ref mut computed) in iter {
+                    let animation_rule = self.get_animation_rule(Some(pseudo));
+                    let pseudo_rules = &mut computed.rules;
+                    replace_rule_node(CascadeLevel::Animations,
+                                      animation_rule.as_ref(),
+                                      pseudo_rules);
+                }
+            } else if hint.contains(RESTYLE_STYLE_ATTRIBUTE) {
+                let style_attribute = self.style_attribute();
+                replace_rule_node(CascadeLevel::StyleAttributeNormal,
+                                  style_attribute,
+                                  primary_rules);
+                replace_rule_node(CascadeLevel::StyleAttributeImportant,
+                                  style_attribute,
+                                  primary_rules);
+                // The per-pseudo rule nodes never change in this path.
             }
         }
 

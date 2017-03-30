@@ -755,6 +755,18 @@
      {}
     ]
    ],
+   "css/border-image-linear-gradient.html": [
+    [
+     "/_mozilla/css/border-image-linear-gradient.html",
+     [
+      [
+       "/_mozilla/css/border-image-linear-gradient-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "css/border_black_ridge_a.html": [
     [
      "/_mozilla/css/border_black_ridge_a.html",
@@ -6993,6 +7005,11 @@
      {}
     ]
    ],
+   "css/border-image-linear-gradient-ref.html": [
+    [
+     {}
+    ]
+   ],
    "css/border_black_solid.html": [
     [
      {}
@@ -11040,6 +11057,12 @@
      {}
     ]
    ],
+   "css/calc-number-serialization.html": [
+    [
+     "/_mozilla/css/calc-number-serialization.html",
+     {}
+    ]
+   ],
    "css/empty-keyframes.html": [
     [
      "/_mozilla/css/empty-keyframes.html",
@@ -11100,6 +11123,12 @@
      {}
     ]
    ],
+   "css/perspective.html": [
+    [
+     "/_mozilla/css/perspective.html",
+     {}
+    ]
+   ],
    "css/stylesheet_media_queries.html": [
     [
      "/_mozilla/css/stylesheet_media_queries.html",
@@ -11139,6 +11168,12 @@
    "css/white-space-pre-wrap-long-line.html": [
     [
      "/_mozilla/css/white-space-pre-wrap-long-line.html",
+     {}
+    ]
+   ],
+   "css/writing-mode_change_display.html": [
+    [
+     "/_mozilla/css/writing-mode_change_display.html",
      {}
     ]
    ],
@@ -20345,6 +20380,14 @@
    "d0bf8fafec5ff2c0cfde8f0d47083ca23b745588",
    "support"
   ],
+  "css/border-image-linear-gradient-ref.html": [
+   "3c1b61477c8a3cb7befc3ab81b80a128b142e3f1",
+   "support"
+  ],
+  "css/border-image-linear-gradient.html": [
+   "40ea388a8a920eaecb2d0d12f998ed60ac3b56e8",
+   "reftest"
+  ],
   "css/border_black_groove.html": [
    "42912352ee8f09ae0ddbac3dce35294dc8608bbe",
    "reftest_node"
@@ -20668,6 +20711,10 @@
   "css/calc-basic.html": [
    "94dc4aac4c546a74add074be0d3e604c8b196888",
    "reftest"
+  ],
+  "css/calc-number-serialization.html": [
+   "b9e77c824d0c96e51d51fb8f1e923d3ab67be027",
+   "testharness"
   ],
   "css/canvas_as_block_element_a.html": [
    "668d93da2dab9722998cc7c5785c20e2ab9a1ced",
@@ -22741,6 +22788,10 @@
    "001acfd664f89e45ab321bf549803ca24d44e098",
    "support"
   ],
+  "css/perspective.html": [
+   "6d455ef4b9c815d89917f496999268d7410cfa62",
+   "testharness"
+  ],
   "css/perspective_zero.html": [
    "bcb877f51808e896d8024877f945ce289dbc6b36",
    "reftest"
@@ -24006,7 +24057,7 @@
    "reftest"
   ],
   "css/viewport_rule_ref.html": [
-   "00bb1ce6ccffc6b6bb0db1565985171ff49f1362",
+   "aa1693b5917599430c3520cc7aebdd275d4c6f19",
    "support"
   ],
   "css/visibility_hidden.html": [
@@ -24144,6 +24195,10 @@
   "css/word_break_ref.html": [
    "b16bf3e07cb3c45f7d630ca35bae1012d38d1b6b",
    "support"
+  ],
+  "css/writing-mode_change_display.html": [
+   "9ac1f9756a4cd44196242beb80621b9bc8cbe2ff",
+   "testharness"
   ],
   "mozilla/2x2.png": [
    "c67d3f646e86413722833d2308a9bfc793a916bf",
@@ -25078,7 +25133,7 @@
    "testharness"
   ],
   "mozilla/calc.html": [
-   "c333be7c567aebd1ed2f763d0ed644165ae8bd3b",
+   "c239c441c90e4d4ed94458eae5b2defabb47e984",
    "testharness"
   ],
   "mozilla/canvas.initial.reset.2dstate.html": [

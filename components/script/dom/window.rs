@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
+use base64;
 use bluetooth_traits::BluetoothRequest;
 use cssparser::Parser;
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
@@ -61,14 +62,13 @@ use js::rust::Runtime;
 use layout_image::fetch_image_for_layout;
 use msg::constellation_msg::{FrameType, PipelineId};
 use net_traits::{ResourceThreads, ReferrerPolicy};
-use net_traits::image_cache_thread::{ImageResponder, ImageResponse};
-use net_traits::image_cache_thread::{PendingImageResponse, ImageCacheThread, PendingImageId};
+use net_traits::image_cache::{ImageCache, ImageResponder, ImageResponse};
+use net_traits::image_cache::{PendingImageId, PendingImageResponse};
 use net_traits::storage_thread::StorageType;
 use num_traits::ToPrimitive;
 use open;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
-use rustc_serialize::base64::{FromBase64, STANDARD, ToBase64};
 use script_layout_interface::{TrustedNodeAddress, PendingImageState};
 use script_layout_interface::message::{Msg, Reflow, ReflowQueryType, ScriptReflow};
 use script_layout_interface::reporter::CSSErrorReporter;
@@ -167,8 +167,8 @@ pub struct Window {
     #[ignore_heap_size_of = "task sources are hard"]
     file_reading_task_source: FileReadingTaskSource,
     navigator: MutNullableJS<Navigator>,
-    #[ignore_heap_size_of = "channels are hard"]
-    image_cache_thread: ImageCacheThread,
+    #[ignore_heap_size_of = "Arc"]
+    image_cache: Arc<ImageCache>,
     #[ignore_heap_size_of = "channels are hard"]
     image_cache_chan: Sender<ImageCacheMsg>,
     browsing_context: MutNullableJS<BrowsingContext>,
@@ -315,8 +315,8 @@ impl Window {
         (box SendableMainThreadScriptChan(tx), box rx)
     }
 
-    pub fn image_cache_thread(&self) -> &ImageCacheThread {
-        &self.image_cache_thread
+    pub fn image_cache(&self) -> Arc<ImageCache> {
+        self.image_cache.clone()
     }
 
     /// This can panic if it is called after the browsing context has been discarded
@@ -410,16 +410,13 @@ pub fn base64_btoa(input: DOMString) -> Fallible<DOMString> {
 
         // "and then must apply the base64 algorithm to that sequence of
         //  octets, and return the result. [RFC4648]"
-        Ok(DOMString::from(octets.to_base64(STANDARD)))
+        Ok(DOMString::from(base64::encode(&octets)))
     }
 }
 
 // https://html.spec.whatwg.org/multipage/#atob
 pub fn base64_atob(input: DOMString) -> Fallible<DOMString> {
     // "Remove all space characters from input."
-    // serialize::base64::from_base64 ignores \r and \n,
-    // but it treats the other space characters as
-    // invalid input.
     fn is_html_space(c: char) -> bool {
         HTML_SPACE_CHARACTERS.iter().any(|&m| m == c)
     }
@@ -456,7 +453,7 @@ pub fn base64_atob(input: DOMString) -> Fallible<DOMString> {
         return Err(Error::InvalidCharacter)
     }
 
-    match input.from_base64() {
+    match base64::decode(&input) {
         Ok(data) => Ok(DOMString::from(data.iter().map(|&b| b as char).collect::<String>())),
         Err(..) => Err(Error::InvalidCharacter)
     }
@@ -1230,7 +1227,7 @@ impl Window {
             let node = from_untrusted_node_address(js_runtime.rt(), image.node);
 
             if let PendingImageState::Unrequested(ref url) = image.state {
-                fetch_image_for_layout(url.clone(), &*node, id, self.image_cache_thread.clone());
+                fetch_image_for_layout(url.clone(), &*node, id, self.image_cache.clone());
             }
 
             let mut images = self.pending_layout_images.borrow_mut();
@@ -1242,7 +1239,7 @@ impl Window {
                 ROUTER.add_route(responder_listener.to_opaque(), box move |message| {
                     let _ = image_cache_chan.send((pipeline, message.to().unwrap()));
                 });
-                self.image_cache_thread.add_listener(id, ImageResponder::new(responder, id));
+                self.image_cache.add_listener(id, ImageResponder::new(responder, id));
                 nodes.push(JS::from_ref(&*node));
             }
         }
@@ -1496,8 +1493,8 @@ impl Window {
         let referrer_policy = referrer_policy.or(doc.get_referrer_policy());
 
         // https://html.spec.whatwg.org/multipage/#navigating-across-documents
-        if !force_reload && url.as_url().unwrap()[..Position::AfterQuery] ==
-            doc.url().as_url().unwrap()[..Position::AfterQuery] {
+        if !force_reload && url.as_url()[..Position::AfterQuery] ==
+            doc.url().as_url()[..Position::AfterQuery] {
                 // Step 5
                 if let Some(fragment) = url.fragment() {
                     doc.check_and_scroll_fragment(fragment);
@@ -1706,7 +1703,7 @@ impl Window {
                history_task_source: HistoryTraversalTaskSource,
                file_task_source: FileReadingTaskSource,
                image_cache_chan: Sender<ImageCacheMsg>,
-               image_cache_thread: ImageCacheThread,
+               image_cache: Arc<ImageCache>,
                resource_threads: ResourceThreads,
                bluetooth_thread: IpcSender<BluetoothRequest>,
                mem_profiler_chan: MemProfilerChan,
@@ -1750,8 +1747,8 @@ impl Window {
             history_traversal_task_source: history_task_source,
             file_reading_task_source: file_task_source,
             image_cache_chan: image_cache_chan,
+            image_cache: image_cache.clone(),
             navigator: Default::default(),
-            image_cache_thread: image_cache_thread,
             history: Default::default(),
             browsing_context: Default::default(),
             document: Default::default(),

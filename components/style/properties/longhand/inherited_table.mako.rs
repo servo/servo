@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
- <%namespace name="helpers" file="/helpers.mako.rs" />
+<%namespace name="helpers" file="/helpers.mako.rs" />
 
 <% data.new_style_struct("InheritedTable", inherited=True, gecko_name="TableBorder") %>
 
@@ -52,7 +52,8 @@ ${helpers.single_keyword("caption-side", "top bottom",
 
     impl HasViewportPercentage for SpecifiedValue {
         fn has_viewport_percentage(&self) -> bool {
-            return self.horizontal.has_viewport_percentage() || self.vertical.has_viewport_percentage()
+            self.horizontal.has_viewport_percentage() ||
+            self.vertical.as_ref().map_or(false, |v| v.has_viewport_percentage())
         }
     }
 
@@ -60,7 +61,7 @@ ${helpers.single_keyword("caption-side", "top bottom",
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue {
         pub horizontal: specified::Length,
-        pub vertical: specified::Length,
+        pub vertical: Option<specified::Length>,
     }
 
     #[inline]
@@ -72,10 +73,15 @@ ${helpers.single_keyword("caption-side", "top bottom",
     }
 
     impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+            where W: fmt::Write,
+        {
             try!(self.horizontal.to_css(dest));
-            try!(dest.write_str(" "));
-            self.vertical.to_css(dest)
+            if let Some(vertical) = self.vertical.as_ref() {
+                try!(dest.write_str(" "));
+                vertical.to_css(dest)?;
+            }
+            Ok(())
         }
     }
 
@@ -92,9 +98,10 @@ ${helpers.single_keyword("caption-side", "top bottom",
 
         #[inline]
         fn to_computed_value(&self, context: &Context) -> computed_value::T {
+            let horizontal = self.horizontal.to_computed_value(context);
             computed_value::T {
-                horizontal: self.horizontal.to_computed_value(context),
-                vertical: self.vertical.to_computed_value(context),
+                horizontal: horizontal,
+                vertical: self.vertical.as_ref().map_or(horizontal, |v| v.to_computed_value(context)),
             }
         }
 
@@ -102,7 +109,7 @@ ${helpers.single_keyword("caption-side", "top bottom",
         fn from_computed_value(computed: &computed_value::T) -> Self {
             SpecifiedValue {
                 horizontal: ToComputedValue::from_computed_value(&computed.horizontal),
-                vertical: ToComputedValue::from_computed_value(&computed.vertical),
+                vertical: Some(ToComputedValue::from_computed_value(&computed.vertical)),
             }
         }
     }
@@ -123,17 +130,17 @@ ${helpers.single_keyword("caption-side", "top bottom",
             (None, None) => Err(()),
             (Some(length), None) => {
                 Ok(SpecifiedValue {
-                    horizontal: length.clone(),
-                    vertical: length,
+                    horizontal: length,
+                    vertical: None,
                 })
             }
             (Some(horizontal), Some(vertical)) => {
                 Ok(SpecifiedValue {
                     horizontal: horizontal,
-                    vertical: vertical,
+                    vertical: Some(vertical),
                 })
             }
-            (None, Some(_)) => panic!("shouldn't happen"),
+            (None, Some(_)) => unreachable!(),
         }
     }
 </%helpers:longhand>
