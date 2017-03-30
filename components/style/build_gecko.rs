@@ -258,6 +258,7 @@ mod bindings {
                 vars: true,
                 ..CodegenConfig::nothing()
             })
+            .include(add_include("nsCSSPseudoClasses.h"))   // servo/rust-bindgen#599
             .header(add_include("nsStyleStruct.h"))
             .include(add_include("mozilla/ServoPropPrefList.h"))
             .header(add_include("mozilla/StyleAnimationValue.h"))
@@ -270,6 +271,7 @@ mod bindings {
             .include(add_include("mozilla/dom/NameSpaceConstants.h"))
             .include(add_include("mozilla/LookAndFeel.h"))
             .include(add_include("mozilla/ServoBindings.h"))
+            .include(add_include("nsCSSFontFaceRule.h"))
             .include(add_include("nsMediaFeatures.h"))
             .include(add_include("nsMediaList.h"))
             // FIXME(emilio): Incrementally remove these "pub use"s. Probably
@@ -336,6 +338,7 @@ mod bindings {
             "nsBorderColors",
             "nscolor",
             "nsChangeHint",
+            "nsCSSFontFaceRule",
             "nsCSSKeyword",
             "nsCSSPropertyID",
             "nsCSSProps",
@@ -585,6 +588,7 @@ mod bindings {
             "RawGeckoElement",
             "RawGeckoKeyframeList",
             "RawGeckoComputedKeyframeValuesList",
+            "RawGeckoFontFaceRuleList",
             "RawGeckoNode",
             "RawGeckoAnimationValueList",
             "RawServoAnimationValue",
@@ -608,9 +612,11 @@ mod bindings {
             "StyleBasicShape",
             "StyleBasicShapeType",
             "StyleShapeSource",
+            "nsCSSFontFaceRule",
             "nsCSSKeyword",
             "nsCSSPropertyID",
             "nsCSSShadowArray",
+            "nsCSSUnit",
             "nsCSSValue",
             "nsCSSValueSharedList",
             "nsChangeHint",
@@ -701,6 +707,7 @@ mod bindings {
             "RawGeckoAnimationValueList",
             "RawGeckoKeyframeList",
             "RawGeckoComputedKeyframeValuesList",
+            "RawGeckoFontFaceRuleList",
         ];
         for &ty in structs_types.iter() {
             builder = builder.hide_type(ty)

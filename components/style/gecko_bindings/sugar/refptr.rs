@@ -235,10 +235,7 @@ impl<T: RefCounted> PartialEq for RefPtr<T> {
 unsafe impl<T: ThreadSafeRefCounted> Send for RefPtr<T> {}
 unsafe impl<T: ThreadSafeRefCounted> Sync for RefPtr<T> {}
 
-// Companion of NS_DECL_THREADSAFE_FFI_REFCOUNTING.
-//
-// Gets you a free RefCounted impl implemented via FFI.
-macro_rules! impl_threadsafe_refcount {
+macro_rules! impl_refcount {
     ($t:ty, $addref:ident, $release:ident) => (
         unsafe impl RefCounted for $t {
             fn addref(&self) {
@@ -248,6 +245,18 @@ macro_rules! impl_threadsafe_refcount {
                 ::gecko_bindings::bindings::$release(self as *const _ as *mut _)
             }
         }
+    );
+}
+
+impl_refcount!(::gecko_bindings::structs::nsCSSFontFaceRule,
+               Gecko_CSSFontFaceRule_AddRef, Gecko_CSSFontFaceRule_Release);
+
+// Companion of NS_DECL_THREADSAFE_FFI_REFCOUNTING.
+//
+// Gets you a free RefCounted impl implemented via FFI.
+macro_rules! impl_threadsafe_refcount {
+    ($t:ty, $addref:ident, $release:ident) => (
+        impl_refcount!($t, $addref, $release);
         unsafe impl ThreadSafeRefCounted for $t {}
     );
 }

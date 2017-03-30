@@ -1029,384 +1029,69 @@ pub mod root {
     pub const NS_STYLE_IS_TEXT_COMBINED: ::std::os::raw::c_ulonglong =
         34359738368;
     pub const NS_STYLE_CONTEXT_TYPE_SHIFT: ::std::os::raw::c_uint = 36;
+    pub mod std {
+        #[allow(unused_imports)]
+        use self::super::super::root;
+        #[repr(C)]
+        #[derive(Debug, Copy, Clone)]
+        pub struct pair<_T1, _T2> {
+            pub first: _T1,
+            pub second: _T2,
+        }
+        pub type pair_first_type<_T1> = _T1;
+        pub type pair_second_type<_T2> = _T2;
+        #[repr(C)]
+        #[derive(Debug, Copy)]
+        pub struct input_iterator_tag {
+            pub _address: u8,
+        }
+        #[test]
+        fn bindgen_test_layout_input_iterator_tag() {
+            assert_eq!(::std::mem::size_of::<input_iterator_tag>() , 1usize ,
+                       concat ! (
+                       "Size of: " , stringify ! ( input_iterator_tag ) ));
+            assert_eq! (::std::mem::align_of::<input_iterator_tag>() , 1usize
+                        , concat ! (
+                        "Alignment of " , stringify ! ( input_iterator_tag )
+                        ));
+        }
+        impl Clone for input_iterator_tag {
+            fn clone(&self) -> Self { *self }
+        }
+        #[repr(C)]
+        #[derive(Debug, Copy, Clone)]
+        pub struct iterator<_Category, _Tp, _Distance, _Pointer, _Reference> {
+            pub _address: u8,
+            pub _phantom_0: ::std::marker::PhantomData<_Category>,
+            pub _phantom_1: ::std::marker::PhantomData<_Tp>,
+            pub _phantom_2: ::std::marker::PhantomData<_Distance>,
+            pub _phantom_3: ::std::marker::PhantomData<_Pointer>,
+            pub _phantom_4: ::std::marker::PhantomData<_Reference>,
+        }
+        pub type iterator_iterator_category<_Category> = _Category;
+        pub type iterator_value_type<_Tp> = _Tp;
+        pub type iterator_difference_type<_Distance> = _Distance;
+        pub type iterator_pointer<_Pointer> = _Pointer;
+        pub type iterator_reference<_Reference> = _Reference;
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct atomic<_Tp> {
+            pub _M_i: _Tp,
+        }
+        pub mod chrono {
+            #[allow(unused_imports)]
+            use self::super::super::super::root;
+        }
+    }
+    pub mod __gnu_cxx {
+        #[allow(unused_imports)]
+        use self::super::super::root;
+    }
+    pub type __off_t = ::std::os::raw::c_long;
+    pub type __off64_t = ::std::os::raw::c_long;
     pub mod mozilla {
         #[allow(unused_imports)]
         use self::super::super::root;
-        pub const SERVO_PREF_ENABLED_align_content: bool = false;
-        pub const SERVO_PREF_ENABLED_align_items: bool = false;
-        pub const SERVO_PREF_ENABLED_align_self: bool = false;
-        pub const SERVO_PREF_ENABLED_all: bool = true;
-        pub const SERVO_PREF_ENABLED_animation: bool = false;
-        pub const SERVO_PREF_ENABLED_animation_delay: bool = false;
-        pub const SERVO_PREF_ENABLED_animation_direction: bool = false;
-        pub const SERVO_PREF_ENABLED_animation_duration: bool = false;
-        pub const SERVO_PREF_ENABLED_animation_fill_mode: bool = false;
-        pub const SERVO_PREF_ENABLED_animation_iteration_count: bool = false;
-        pub const SERVO_PREF_ENABLED_animation_name: bool = false;
-        pub const SERVO_PREF_ENABLED_animation_play_state: bool = false;
-        pub const SERVO_PREF_ENABLED_animation_timing_function: bool = false;
-        pub const SERVO_PREF_ENABLED__moz_appearance: bool = true;
-        pub const SERVO_PREF_ENABLED_appearance: bool = true;
-        pub const SERVO_PREF_ENABLED_backface_visibility: bool = false;
-        pub const SERVO_PREF_ENABLED_background: bool = false;
-        pub const SERVO_PREF_ENABLED_background_attachment: bool = false;
-        pub const SERVO_PREF_ENABLED_background_blend_mode: bool = true;
-        pub const SERVO_PREF_ENABLED_background_clip: bool = false;
-        pub const SERVO_PREF_ENABLED_background_color: bool = false;
-        pub const SERVO_PREF_ENABLED_background_image: bool = false;
-        pub const SERVO_PREF_ENABLED_background_origin: bool = false;
-        pub const SERVO_PREF_ENABLED_background_position: bool = false;
-        pub const SERVO_PREF_ENABLED_background_position_x: bool = false;
-        pub const SERVO_PREF_ENABLED_background_position_y: bool = false;
-        pub const SERVO_PREF_ENABLED_background_repeat: bool = false;
-        pub const SERVO_PREF_ENABLED_background_size: bool = false;
-        pub const SERVO_PREF_ENABLED__moz_binding: bool = false;
-        pub const SERVO_PREF_ENABLED_block_size: bool = false;
-        pub const SERVO_PREF_ENABLED_border: bool = false;
-        pub const SERVO_PREF_ENABLED_border_block_end: bool = false;
-        pub const SERVO_PREF_ENABLED_border_block_end_color: bool = false;
-        pub const SERVO_PREF_ENABLED_border_block_end_style: bool = false;
-        pub const SERVO_PREF_ENABLED_border_block_end_width: bool = false;
-        pub const SERVO_PREF_ENABLED_border_block_start: bool = false;
-        pub const SERVO_PREF_ENABLED_border_block_start_color: bool = false;
-        pub const SERVO_PREF_ENABLED_border_block_start_style: bool = false;
-        pub const SERVO_PREF_ENABLED_border_block_start_width: bool = false;
-        pub const SERVO_PREF_ENABLED_border_bottom: bool = false;
-        pub const SERVO_PREF_ENABLED_border_bottom_color: bool = false;
-        pub const SERVO_PREF_ENABLED__moz_border_bottom_colors: bool = false;
-        pub const SERVO_PREF_ENABLED_border_bottom_left_radius: bool = false;
-        pub const SERVO_PREF_ENABLED_border_bottom_right_radius: bool = false;
-        pub const SERVO_PREF_ENABLED_border_bottom_style: bool = false;
-        pub const SERVO_PREF_ENABLED_border_bottom_width: bool = false;
-        pub const SERVO_PREF_ENABLED_border_collapse: bool = false;
-        pub const SERVO_PREF_ENABLED_border_color: bool = false;
-        pub const SERVO_PREF_ENABLED_border_image: bool = false;
-        pub const SERVO_PREF_ENABLED_border_image_outset: bool = false;
-        pub const SERVO_PREF_ENABLED_border_image_repeat: bool = false;
-        pub const SERVO_PREF_ENABLED_border_image_slice: bool = false;
-        pub const SERVO_PREF_ENABLED_border_image_source: bool = false;
-        pub const SERVO_PREF_ENABLED_border_image_width: bool = false;
-        pub const SERVO_PREF_ENABLED_border_inline_end: bool = false;
-        pub const SERVO_PREF_ENABLED_border_inline_end_color: bool = false;
-        pub const SERVO_PREF_ENABLED_border_inline_end_style: bool = false;
-        pub const SERVO_PREF_ENABLED_border_inline_end_width: bool = false;
-        pub const SERVO_PREF_ENABLED_border_inline_start: bool = false;
-        pub const SERVO_PREF_ENABLED_border_inline_start_color: bool = false;
-        pub const SERVO_PREF_ENABLED_border_inline_start_style: bool = false;
-        pub const SERVO_PREF_ENABLED_border_inline_start_width: bool = false;
-        pub const SERVO_PREF_ENABLED_border_left: bool = false;
-        pub const SERVO_PREF_ENABLED_border_left_color: bool = false;
-        pub const SERVO_PREF_ENABLED__moz_border_left_colors: bool = false;
-        pub const SERVO_PREF_ENABLED_border_left_style: bool = false;
-        pub const SERVO_PREF_ENABLED_border_left_width: bool = false;
-        pub const SERVO_PREF_ENABLED_border_radius: bool = false;
-        pub const SERVO_PREF_ENABLED_border_right: bool = false;
-        pub const SERVO_PREF_ENABLED_border_right_color: bool = false;
-        pub const SERVO_PREF_ENABLED__moz_border_right_colors: bool = false;
-        pub const SERVO_PREF_ENABLED_border_right_style: bool = false;
-        pub const SERVO_PREF_ENABLED_border_right_width: bool = false;
-        pub const SERVO_PREF_ENABLED_border_spacing: bool = false;
-        pub const SERVO_PREF_ENABLED_border_style: bool = false;
-        pub const SERVO_PREF_ENABLED_border_top: bool = false;
-        pub const SERVO_PREF_ENABLED_border_top_color: bool = false;
-        pub const SERVO_PREF_ENABLED__moz_border_top_colors: bool = false;
-        pub const SERVO_PREF_ENABLED_border_top_left_radius: bool = false;
-        pub const SERVO_PREF_ENABLED_border_top_right_radius: bool = false;
-        pub const SERVO_PREF_ENABLED_border_top_style: bool = false;
-        pub const SERVO_PREF_ENABLED_border_top_width: bool = false;
-        pub const SERVO_PREF_ENABLED_border_width: bool = false;
-        pub const SERVO_PREF_ENABLED_bottom: bool = false;
-        pub const SERVO_PREF_ENABLED__moz_box_align: bool = false;
-        pub const SERVO_PREF_ENABLED_box_decoration_break: bool = true;
-        pub const SERVO_PREF_ENABLED__moz_box_direction: bool = false;
-        pub const SERVO_PREF_ENABLED__moz_box_flex: bool = false;
-        pub const SERVO_PREF_ENABLED__moz_box_ordinal_group: bool = false;
-        pub const SERVO_PREF_ENABLED__moz_box_orient: bool = false;
-        pub const SERVO_PREF_ENABLED__moz_box_pack: bool = false;
-        pub const SERVO_PREF_ENABLED_box_shadow: bool = false;
-        pub const SERVO_PREF_ENABLED_box_sizing: bool = false;
-        pub const SERVO_PREF_ENABLED_caption_side: bool = false;
-        pub const SERVO_PREF_ENABLED_caret_color: bool = false;
-        pub const SERVO_PREF_ENABLED_clear: bool = false;
-        pub const SERVO_PREF_ENABLED_clip: bool = false;
-        pub const SERVO_PREF_ENABLED_clip_path: bool = false;
-        pub const SERVO_PREF_ENABLED_clip_rule: bool = false;
-        pub const SERVO_PREF_ENABLED_color: bool = false;
-        pub const SERVO_PREF_ENABLED_color_adjust: bool = true;
-        pub const SERVO_PREF_ENABLED_color_interpolation: bool = false;
-        pub const SERVO_PREF_ENABLED_color_interpolation_filters: bool =
-            false;
-        pub const SERVO_PREF_ENABLED_column_count: bool = false;
-        pub const SERVO_PREF_ENABLED_column_fill: bool = false;
-        pub const SERVO_PREF_ENABLED_column_gap: bool = false;
-        pub const SERVO_PREF_ENABLED_column_rule: bool = false;
-        pub const SERVO_PREF_ENABLED_column_rule_color: bool = false;
-        pub const SERVO_PREF_ENABLED_column_rule_style: bool = false;
-        pub const SERVO_PREF_ENABLED_column_rule_width: bool = false;
-        pub const SERVO_PREF_ENABLED_column_span: bool = true;
-        pub const SERVO_PREF_ENABLED_column_width: bool = false;
-        pub const SERVO_PREF_ENABLED_columns: bool = false;
-        pub const SERVO_PREF_ENABLED_contain: bool = true;
-        pub const SERVO_PREF_ENABLED_content: bool = false;
-        pub const SERVO_PREF_ENABLED__moz_control_character_visibility: bool =
-            false;
-        pub const SERVO_PREF_ENABLED_counter_increment: bool = false;
-        pub const SERVO_PREF_ENABLED_counter_reset: bool = false;
-        pub const SERVO_PREF_ENABLED_cursor: bool = false;
-        pub const SERVO_PREF_ENABLED_direction: bool = false;
-        pub const SERVO_PREF_ENABLED_display: bool = false;
-        pub const SERVO_PREF_ENABLED_dominant_baseline: bool = false;
-        pub const SERVO_PREF_ENABLED_empty_cells: bool = false;
-        pub const SERVO_PREF_ENABLED_fill: bool = false;
-        pub const SERVO_PREF_ENABLED_fill_opacity: bool = false;
-        pub const SERVO_PREF_ENABLED_fill_rule: bool = false;
-        pub const SERVO_PREF_ENABLED_filter: bool = false;
-        pub const SERVO_PREF_ENABLED_flex: bool = false;
-        pub const SERVO_PREF_ENABLED_flex_basis: bool = false;
-        pub const SERVO_PREF_ENABLED_flex_direction: bool = false;
-        pub const SERVO_PREF_ENABLED_flex_flow: bool = false;
-        pub const SERVO_PREF_ENABLED_flex_grow: bool = false;
-        pub const SERVO_PREF_ENABLED_flex_shrink: bool = false;
-        pub const SERVO_PREF_ENABLED_flex_wrap: bool = false;
-        pub const SERVO_PREF_ENABLED_float_: bool = false;
-        pub const SERVO_PREF_ENABLED__moz_float_edge: bool = false;
-        pub const SERVO_PREF_ENABLED_flood_color: bool = false;
-        pub const SERVO_PREF_ENABLED_flood_opacity: bool = false;
-        pub const SERVO_PREF_ENABLED_font: bool = false;
-        pub const SERVO_PREF_ENABLED_font_family: bool = false;
-        pub const SERVO_PREF_ENABLED_font_feature_settings: bool = false;
-        pub const SERVO_PREF_ENABLED_font_kerning: bool = false;
-        pub const SERVO_PREF_ENABLED_font_language_override: bool = false;
-        pub const SERVO_PREF_ENABLED_font_size: bool = false;
-        pub const SERVO_PREF_ENABLED_font_size_adjust: bool = false;
-        pub const SERVO_PREF_ENABLED_font_stretch: bool = false;
-        pub const SERVO_PREF_ENABLED_font_style: bool = false;
-        pub const SERVO_PREF_ENABLED_font_synthesis: bool = false;
-        pub const SERVO_PREF_ENABLED_font_variant: bool = false;
-        pub const SERVO_PREF_ENABLED_font_variant_alternates: bool = false;
-        pub const SERVO_PREF_ENABLED_font_variant_caps: bool = false;
-        pub const SERVO_PREF_ENABLED_font_variant_east_asian: bool = false;
-        pub const SERVO_PREF_ENABLED_font_variant_ligatures: bool = false;
-        pub const SERVO_PREF_ENABLED_font_variant_numeric: bool = false;
-        pub const SERVO_PREF_ENABLED_font_variant_position: bool = false;
-        pub const SERVO_PREF_ENABLED_font_variation_settings: bool = true;
-        pub const SERVO_PREF_ENABLED_font_weight: bool = false;
-        pub const SERVO_PREF_ENABLED__moz_force_broken_image_icon: bool =
-            false;
-        pub const SERVO_PREF_ENABLED_grid: bool = true;
-        pub const SERVO_PREF_ENABLED_grid_area: bool = true;
-        pub const SERVO_PREF_ENABLED_grid_auto_columns: bool = true;
-        pub const SERVO_PREF_ENABLED_grid_auto_flow: bool = true;
-        pub const SERVO_PREF_ENABLED_grid_auto_rows: bool = true;
-        pub const SERVO_PREF_ENABLED_grid_column: bool = true;
-        pub const SERVO_PREF_ENABLED_grid_column_end: bool = true;
-        pub const SERVO_PREF_ENABLED_grid_column_gap: bool = true;
-        pub const SERVO_PREF_ENABLED_grid_column_start: bool = true;
-        pub const SERVO_PREF_ENABLED_grid_gap: bool = true;
-        pub const SERVO_PREF_ENABLED_grid_row: bool = true;
-        pub const SERVO_PREF_ENABLED_grid_row_end: bool = true;
-        pub const SERVO_PREF_ENABLED_grid_row_gap: bool = true;
-        pub const SERVO_PREF_ENABLED_grid_row_start: bool = true;
-        pub const SERVO_PREF_ENABLED_grid_template: bool = true;
-        pub const SERVO_PREF_ENABLED_grid_template_areas: bool = true;
-        pub const SERVO_PREF_ENABLED_grid_template_columns: bool = true;
-        pub const SERVO_PREF_ENABLED_grid_template_rows: bool = true;
-        pub const SERVO_PREF_ENABLED_height: bool = false;
-        pub const SERVO_PREF_ENABLED_hyphens: bool = false;
-        pub const SERVO_PREF_ENABLED_initial_letter: bool = true;
-        pub const SERVO_PREF_ENABLED_image_orientation: bool = true;
-        pub const SERVO_PREF_ENABLED__moz_image_region: bool = false;
-        pub const SERVO_PREF_ENABLED_image_rendering: bool = false;
-        pub const SERVO_PREF_ENABLED_ime_mode: bool = false;
-        pub const SERVO_PREF_ENABLED_inline_size: bool = false;
-        pub const SERVO_PREF_ENABLED_isolation: bool = true;
-        pub const SERVO_PREF_ENABLED_justify_content: bool = false;
-        pub const SERVO_PREF_ENABLED_justify_items: bool = false;
-        pub const SERVO_PREF_ENABLED_justify_self: bool = false;
-        pub const SERVO_PREF_ENABLED__x_lang: bool = false;
-        pub const SERVO_PREF_ENABLED_left: bool = false;
-        pub const SERVO_PREF_ENABLED_letter_spacing: bool = false;
-        pub const SERVO_PREF_ENABLED_lighting_color: bool = false;
-        pub const SERVO_PREF_ENABLED_line_height: bool = false;
-        pub const SERVO_PREF_ENABLED_list_style: bool = false;
-        pub const SERVO_PREF_ENABLED_list_style_image: bool = false;
-        pub const SERVO_PREF_ENABLED_list_style_position: bool = false;
-        pub const SERVO_PREF_ENABLED_list_style_type: bool = false;
-        pub const SERVO_PREF_ENABLED_margin: bool = false;
-        pub const SERVO_PREF_ENABLED_margin_block_end: bool = false;
-        pub const SERVO_PREF_ENABLED_margin_block_start: bool = false;
-        pub const SERVO_PREF_ENABLED_margin_bottom: bool = false;
-        pub const SERVO_PREF_ENABLED_margin_inline_end: bool = false;
-        pub const SERVO_PREF_ENABLED_margin_inline_start: bool = false;
-        pub const SERVO_PREF_ENABLED_margin_left: bool = false;
-        pub const SERVO_PREF_ENABLED_margin_right: bool = false;
-        pub const SERVO_PREF_ENABLED_margin_top: bool = false;
-        pub const SERVO_PREF_ENABLED_marker: bool = false;
-        pub const SERVO_PREF_ENABLED_marker_end: bool = false;
-        pub const SERVO_PREF_ENABLED_marker_mid: bool = false;
-        pub const SERVO_PREF_ENABLED_marker_start: bool = false;
-        pub const SERVO_PREF_ENABLED_mask: bool = false;
-        pub const SERVO_PREF_ENABLED_mask_clip: bool = false;
-        pub const SERVO_PREF_ENABLED_mask_composite: bool = false;
-        pub const SERVO_PREF_ENABLED_mask_image: bool = false;
-        pub const SERVO_PREF_ENABLED_mask_mode: bool = false;
-        pub const SERVO_PREF_ENABLED_mask_origin: bool = false;
-        pub const SERVO_PREF_ENABLED_mask_position: bool = false;
-        pub const SERVO_PREF_ENABLED_mask_position_x: bool = false;
-        pub const SERVO_PREF_ENABLED_mask_position_y: bool = false;
-        pub const SERVO_PREF_ENABLED_mask_repeat: bool = false;
-        pub const SERVO_PREF_ENABLED_mask_size: bool = false;
-        pub const SERVO_PREF_ENABLED_mask_type: bool = false;
-        pub const SERVO_PREF_ENABLED__moz_math_display: bool = false;
-        pub const SERVO_PREF_ENABLED__moz_math_variant: bool = false;
-        pub const SERVO_PREF_ENABLED_max_block_size: bool = false;
-        pub const SERVO_PREF_ENABLED_max_height: bool = false;
-        pub const SERVO_PREF_ENABLED_max_inline_size: bool = false;
-        pub const SERVO_PREF_ENABLED_max_width: bool = false;
-        pub const SERVO_PREF_ENABLED_min_block_size: bool = false;
-        pub const SERVO_PREF_ENABLED__moz_min_font_size_ratio: bool = false;
-        pub const SERVO_PREF_ENABLED_min_height: bool = false;
-        pub const SERVO_PREF_ENABLED_min_inline_size: bool = false;
-        pub const SERVO_PREF_ENABLED_min_width: bool = false;
-        pub const SERVO_PREF_ENABLED_mix_blend_mode: bool = true;
-        pub const SERVO_PREF_ENABLED_object_fit: bool = false;
-        pub const SERVO_PREF_ENABLED_object_position: bool = false;
-        pub const SERVO_PREF_ENABLED_offset_block_end: bool = false;
-        pub const SERVO_PREF_ENABLED_offset_block_start: bool = false;
-        pub const SERVO_PREF_ENABLED_offset_inline_end: bool = false;
-        pub const SERVO_PREF_ENABLED_offset_inline_start: bool = false;
-        pub const SERVO_PREF_ENABLED_opacity: bool = false;
-        pub const SERVO_PREF_ENABLED_order: bool = false;
-        pub const SERVO_PREF_ENABLED__moz_orient: bool = false;
-        pub const SERVO_PREF_ENABLED__moz_osx_font_smoothing: bool = true;
-        pub const SERVO_PREF_ENABLED_outline: bool = false;
-        pub const SERVO_PREF_ENABLED_outline_color: bool = false;
-        pub const SERVO_PREF_ENABLED_outline_offset: bool = false;
-        pub const SERVO_PREF_ENABLED__moz_outline_radius: bool = false;
-        pub const SERVO_PREF_ENABLED__moz_outline_radius_bottomleft: bool =
-            false;
-        pub const SERVO_PREF_ENABLED__moz_outline_radius_bottomright: bool =
-            false;
-        pub const SERVO_PREF_ENABLED__moz_outline_radius_topleft: bool =
-            false;
-        pub const SERVO_PREF_ENABLED__moz_outline_radius_topright: bool =
-            false;
-        pub const SERVO_PREF_ENABLED_outline_style: bool = false;
-        pub const SERVO_PREF_ENABLED_outline_width: bool = false;
-        pub const SERVO_PREF_ENABLED_overflow: bool = false;
-        pub const SERVO_PREF_ENABLED_overflow_clip_box: bool = true;
-        pub const SERVO_PREF_ENABLED_overflow_x: bool = false;
-        pub const SERVO_PREF_ENABLED_overflow_y: bool = false;
-        pub const SERVO_PREF_ENABLED_padding: bool = false;
-        pub const SERVO_PREF_ENABLED_padding_block_end: bool = false;
-        pub const SERVO_PREF_ENABLED_padding_block_start: bool = false;
-        pub const SERVO_PREF_ENABLED_padding_bottom: bool = false;
-        pub const SERVO_PREF_ENABLED_padding_inline_end: bool = false;
-        pub const SERVO_PREF_ENABLED_padding_inline_start: bool = false;
-        pub const SERVO_PREF_ENABLED_padding_left: bool = false;
-        pub const SERVO_PREF_ENABLED_padding_right: bool = false;
-        pub const SERVO_PREF_ENABLED_padding_top: bool = false;
-        pub const SERVO_PREF_ENABLED_page_break_after: bool = false;
-        pub const SERVO_PREF_ENABLED_page_break_before: bool = false;
-        pub const SERVO_PREF_ENABLED_page_break_inside: bool = false;
-        pub const SERVO_PREF_ENABLED_paint_order: bool = true;
-        pub const SERVO_PREF_ENABLED_perspective: bool = false;
-        pub const SERVO_PREF_ENABLED_perspective_origin: bool = false;
-        pub const SERVO_PREF_ENABLED_place_content: bool = false;
-        pub const SERVO_PREF_ENABLED_place_items: bool = false;
-        pub const SERVO_PREF_ENABLED_place_self: bool = false;
-        pub const SERVO_PREF_ENABLED_pointer_events: bool = false;
-        pub const SERVO_PREF_ENABLED_position: bool = false;
-        pub const SERVO_PREF_ENABLED_quotes: bool = false;
-        pub const SERVO_PREF_ENABLED_resize: bool = false;
-        pub const SERVO_PREF_ENABLED_right: bool = false;
-        pub const SERVO_PREF_ENABLED_ruby_align: bool = false;
-        pub const SERVO_PREF_ENABLED_ruby_position: bool = false;
-        pub const SERVO_PREF_ENABLED__moz_script_level: bool = false;
-        pub const SERVO_PREF_ENABLED__moz_script_min_size: bool = false;
-        pub const SERVO_PREF_ENABLED__moz_script_size_multiplier: bool =
-            false;
-        pub const SERVO_PREF_ENABLED_scroll_behavior: bool = true;
-        pub const SERVO_PREF_ENABLED_scroll_snap_coordinate: bool = true;
-        pub const SERVO_PREF_ENABLED_scroll_snap_destination: bool = true;
-        pub const SERVO_PREF_ENABLED_scroll_snap_points_x: bool = true;
-        pub const SERVO_PREF_ENABLED_scroll_snap_points_y: bool = true;
-        pub const SERVO_PREF_ENABLED_scroll_snap_type: bool = true;
-        pub const SERVO_PREF_ENABLED_scroll_snap_type_x: bool = true;
-        pub const SERVO_PREF_ENABLED_scroll_snap_type_y: bool = true;
-        pub const SERVO_PREF_ENABLED_shape_outside: bool = true;
-        pub const SERVO_PREF_ENABLED_shape_rendering: bool = false;
-        pub const SERVO_PREF_ENABLED__x_span: bool = false;
-        pub const SERVO_PREF_ENABLED__moz_stack_sizing: bool = false;
-        pub const SERVO_PREF_ENABLED_stop_color: bool = false;
-        pub const SERVO_PREF_ENABLED_stop_opacity: bool = false;
-        pub const SERVO_PREF_ENABLED_stroke: bool = false;
-        pub const SERVO_PREF_ENABLED_stroke_dasharray: bool = false;
-        pub const SERVO_PREF_ENABLED_stroke_dashoffset: bool = false;
-        pub const SERVO_PREF_ENABLED_stroke_linecap: bool = false;
-        pub const SERVO_PREF_ENABLED_stroke_linejoin: bool = false;
-        pub const SERVO_PREF_ENABLED_stroke_miterlimit: bool = false;
-        pub const SERVO_PREF_ENABLED_stroke_opacity: bool = false;
-        pub const SERVO_PREF_ENABLED_stroke_width: bool = false;
-        pub const SERVO_PREF_ENABLED__x_system_font: bool = false;
-        pub const SERVO_PREF_ENABLED__moz_tab_size: bool = false;
-        pub const SERVO_PREF_ENABLED_table_layout: bool = false;
-        pub const SERVO_PREF_ENABLED_text_align: bool = false;
-        pub const SERVO_PREF_ENABLED_text_align_last: bool = false;
-        pub const SERVO_PREF_ENABLED_text_anchor: bool = false;
-        pub const SERVO_PREF_ENABLED_text_combine_upright: bool = true;
-        pub const SERVO_PREF_ENABLED_text_decoration: bool = false;
-        pub const SERVO_PREF_ENABLED_text_decoration_color: bool = false;
-        pub const SERVO_PREF_ENABLED_text_decoration_line: bool = false;
-        pub const SERVO_PREF_ENABLED_text_decoration_style: bool = false;
-        pub const SERVO_PREF_ENABLED_text_emphasis: bool = false;
-        pub const SERVO_PREF_ENABLED_text_emphasis_color: bool = false;
-        pub const SERVO_PREF_ENABLED_text_emphasis_position: bool = false;
-        pub const SERVO_PREF_ENABLED_text_emphasis_style: bool = false;
-        pub const SERVO_PREF_ENABLED__webkit_text_fill_color: bool = true;
-        pub const SERVO_PREF_ENABLED_text_indent: bool = false;
-        pub const SERVO_PREF_ENABLED_text_justify: bool = true;
-        pub const SERVO_PREF_ENABLED_text_orientation: bool = false;
-        pub const SERVO_PREF_ENABLED_text_overflow: bool = false;
-        pub const SERVO_PREF_ENABLED_text_rendering: bool = false;
-        pub const SERVO_PREF_ENABLED_text_shadow: bool = false;
-        pub const SERVO_PREF_ENABLED__moz_text_size_adjust: bool = false;
-        pub const SERVO_PREF_ENABLED__webkit_text_stroke: bool = true;
-        pub const SERVO_PREF_ENABLED__webkit_text_stroke_color: bool = true;
-        pub const SERVO_PREF_ENABLED__webkit_text_stroke_width: bool = true;
-        pub const SERVO_PREF_ENABLED_text_transform: bool = false;
-        pub const SERVO_PREF_ENABLED__x_text_zoom: bool = false;
-        pub const SERVO_PREF_ENABLED_top: bool = false;
-        pub const SERVO_PREF_ENABLED__moz_top_layer: bool = false;
-        pub const SERVO_PREF_ENABLED_touch_action: bool = true;
-        pub const SERVO_PREF_ENABLED_transform: bool = false;
-        pub const SERVO_PREF_ENABLED__moz_transform: bool = true;
-        pub const SERVO_PREF_ENABLED_transform_box: bool = true;
-        pub const SERVO_PREF_ENABLED_transform_origin: bool = false;
-        pub const SERVO_PREF_ENABLED_transform_style: bool = false;
-        pub const SERVO_PREF_ENABLED_transition: bool = false;
-        pub const SERVO_PREF_ENABLED_transition_delay: bool = false;
-        pub const SERVO_PREF_ENABLED_transition_duration: bool = false;
-        pub const SERVO_PREF_ENABLED_transition_property: bool = false;
-        pub const SERVO_PREF_ENABLED_transition_timing_function: bool = false;
-        pub const SERVO_PREF_ENABLED_unicode_bidi: bool = false;
-        pub const SERVO_PREF_ENABLED__moz_user_focus: bool = false;
-        pub const SERVO_PREF_ENABLED__moz_user_input: bool = false;
-        pub const SERVO_PREF_ENABLED__moz_user_modify: bool = false;
-        pub const SERVO_PREF_ENABLED__moz_user_select: bool = false;
-        pub const SERVO_PREF_ENABLED_vector_effect: bool = false;
-        pub const SERVO_PREF_ENABLED_vertical_align: bool = false;
-        pub const SERVO_PREF_ENABLED_visibility: bool = false;
-        pub const SERVO_PREF_ENABLED_white_space: bool = false;
-        pub const SERVO_PREF_ENABLED_width: bool = false;
-        pub const SERVO_PREF_ENABLED_will_change: bool = false;
-        pub const SERVO_PREF_ENABLED__moz_window_dragging: bool = false;
-        pub const SERVO_PREF_ENABLED__moz_window_shadow: bool = false;
-        pub const SERVO_PREF_ENABLED_word_break: bool = false;
-        pub const SERVO_PREF_ENABLED_word_spacing: bool = false;
-        pub const SERVO_PREF_ENABLED_overflow_wrap: bool = false;
-        pub const SERVO_PREF_ENABLED_writing_mode: bool = false;
-        pub const SERVO_PREF_ENABLED_z_index: bool = false;
         #[repr(C)]
         #[derive(Debug, Copy)]
         pub struct fallible_t {
@@ -1428,21 +1113,6 @@ pub mod root {
         pub mod detail {
             #[allow(unused_imports)]
             use self::super::super::super::root;
-            /**
- * LinkedList supports refcounted elements using this adapter class. Clients
- * using LinkedList<RefPtr<T>> will get a data structure that holds a strong
- * reference to T as long as T is in the list.
- */
-            #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
-            pub struct LinkedListElementTraits<T> {
-                pub _address: u8,
-                pub _phantom_0: ::std::marker::PhantomData<T>,
-            }
-            pub type LinkedListElementTraits_RawType<T> = *mut T;
-            pub type LinkedListElementTraits_ConstRawType<T> = *mut T;
-            pub type LinkedListElementTraits_ClientType<T> = *mut T;
-            pub type LinkedListElementTraits_ConstClientType<T> = *mut T;
             #[repr(C)]
             #[derive(Debug, Copy)]
             pub struct nsStringRepr {
@@ -1629,6 +1299,21 @@ pub mod root {
             impl Clone for nsCStringRepr {
                 fn clone(&self) -> Self { *self }
             }
+            /**
+ * LinkedList supports refcounted elements using this adapter class. Clients
+ * using LinkedList<RefPtr<T>> will get a data structure that holds a strong
+ * reference to T as long as T is in the list.
+ */
+            #[repr(C)]
+            #[derive(Debug, Copy, Clone)]
+            pub struct LinkedListElementTraits<T> {
+                pub _address: u8,
+                pub _phantom_0: ::std::marker::PhantomData<T>,
+            }
+            pub type LinkedListElementTraits_RawType<T> = *mut T;
+            pub type LinkedListElementTraits_ConstRawType<T> = *mut T;
+            pub type LinkedListElementTraits_ClientType<T> = *mut T;
+            pub type LinkedListElementTraits_ConstClientType<T> = *mut T;
             #[repr(C)]
             #[derive(Debug)]
             pub struct MutexImpl {
@@ -1652,67 +1337,13 @@ pub mod root {
                             , "::" , stringify ! ( platformData_ ) ));
             }
         }
-        pub type MallocSizeOf =
-            ::std::option::Option<unsafe extern "C" fn(p:
-                                                           *const ::std::os::raw::c_void)
-                                      -> ::std::os::raw::c_ulong>;
-        #[repr(C)]
-        #[derive(Debug)]
-        pub struct OwningNonNull<T> {
-            pub mPtr: root::RefPtr<T>,
-            pub mInited: bool,
-        }
-        #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
-        pub struct StaticRefPtr<T> {
-            pub mRawPtr: *mut T,
-        }
-        #[repr(C)]
-        #[derive(Debug)]
-        pub struct LinkedListElement<T> {
-            pub mNext: *mut root::mozilla::LinkedListElement<T>,
-            pub mPrev: *mut root::mozilla::LinkedListElement<T>,
-            pub mIsSentinel: bool,
-        }
-        pub type LinkedListElement_Traits<T> =
-            root::mozilla::detail::LinkedListElementTraits<T>;
-        pub type LinkedListElement_RawType<T> =
-            root::mozilla::LinkedListElement_Traits<T>;
-        pub type LinkedListElement_ConstRawType<T> =
-            root::mozilla::LinkedListElement_Traits<T>;
-        pub type LinkedListElement_ClientType<T> =
-            root::mozilla::LinkedListElement_Traits<T>;
-        pub type LinkedListElement_ConstClientType<T> =
-            root::mozilla::LinkedListElement_Traits<T>;
-        pub const LinkedListElement_NodeKind_Sentinel:
-                  root::mozilla::LinkedListElement_NodeKind =
-            LinkedListElement_NodeKind::Normal;
         #[repr(i32)]
         #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-        pub enum LinkedListElement_NodeKind { Normal = 0, }
-        #[repr(C)]
-        #[derive(Debug)]
-        pub struct LinkedList<T> {
-            pub sentinel: root::mozilla::LinkedListElement<T>,
-        }
-        pub type LinkedList_Traits<T> =
-            root::mozilla::detail::LinkedListElementTraits<T>;
-        pub type LinkedList_RawType<T> = root::mozilla::LinkedList_Traits<T>;
-        pub type LinkedList_ConstRawType<T> =
-            root::mozilla::LinkedList_Traits<T>;
-        pub type LinkedList_ClientType<T> =
-            root::mozilla::LinkedList_Traits<T>;
-        pub type LinkedList_ConstClientType<T> =
-            root::mozilla::LinkedList_Traits<T>;
-        #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
-        pub struct LinkedList_Iterator<T> {
-            pub mCurrent: root::mozilla::LinkedList_RawType<T>,
-        }
-        #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
-        pub struct ReverseIterator<IteratorT> {
-            pub mCurrent: IteratorT,
+        pub enum CSSEnabledState {
+            eForAllContent = 0,
+            eInUASheets = 1,
+            eInChrome = 2,
+            eIgnoreEnabledState = 255,
         }
         #[repr(C)]
         #[derive(Debug, Copy, Clone)]
@@ -1728,455 +1359,113 @@ pub mod root {
             pub bindgen_union_field: u64,
             pub _phantom_0: ::std::marker::PhantomData<T>,
         }
-        /**
- * Pair is the logical concatenation of an instance of A with an instance B.
- * Space is conserved when possible.  Neither A nor B may be a final class.
- *
- * It's typically clearer to have individual A and B member fields.  Except if
- * you want the space-conserving qualities of Pair, you're probably better off
- * not using this!
- *
- * No guarantees are provided about the memory layout of A and B, the order of
- * initialization or destruction of A and B, and so on.  (This is approximately
- * required to optimize space usage.)  The first/second names are merely
- * conceptual!
- */
-        #[repr(C)]
-        pub struct Pair<A, B> {
-            pub _address: u8,
-            pub _phantom_0: ::std::marker::PhantomData<A>,
-            pub _phantom_1: ::std::marker::PhantomData<B>,
-        }
-        pub type Pair_Base = [u8; 0usize];
-        /**
- * A default deletion policy using plain old operator delete.
- *
- * Note that this type can be specialized, but authors should beware of the risk
- * that the specialization may at some point cease to match (either because it
- * gets moved to a different compilation unit or the signature changes). If the
- * non-specialized (|delete|-based) version compiles for that type but does the
- * wrong thing, bad things could happen.
- *
- * This is a non-issue for types which are always incomplete (i.e. opaque handle
- * types), since |delete|-ing such a type will always trigger a compilation
- * error.
- */
-        #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
-        pub struct DefaultDelete<T> {
-            pub _address: u8,
-            pub _phantom_0: ::std::marker::PhantomData<T>,
-        }
-        pub type TimeStampValue = u64;
-        /**
- * Instances of this class represent moments in time, or a special
- * "null" moment. We do not use the non-monotonic system clock or
- * local time, since they can be reset, causing apparent backward
- * travel in time, which can confuse algorithms. Instead we measure
- * elapsed time according to the system.  This time can never go
- * backwards (i.e. it never wraps around, at least not in less than
- * five million years of system elapsed time). It might not advance
- * while the system is sleeping. If TimeStamp::SetNow() is not called
- * at all for hours or days, we might not notice the passage of some
- * of that time.
- *
- * We deliberately do not expose a way to convert TimeStamps to some
- * particular unit. All you can do is compute a difference between two
- * TimeStamps to get a TimeDuration. You can also add a TimeDuration
- * to a TimeStamp to get a new TimeStamp. You can't do something
- * meaningless like add two TimeStamps.
- *
- * Internally this is implemented as either a wrapper around
- *   - high-resolution, monotonic, system clocks if they exist on this
- *     platform
- *   - PRIntervalTime otherwise.  We detect wraparounds of
- *     PRIntervalTime and work around them.
- *
- * This class is similar to C++11's time_point, however it is
- * explicitly nullable and provides an IsNull() method. time_point
- * is initialized to the clock's epoch and provides a
- * time_since_epoch() method that functions similiarly. i.e.
- * t.IsNull() is equivalent to t.time_since_epoch() == decltype(t)::duration::zero();
- */
-        #[repr(C)]
-        #[derive(Debug, Copy)]
-        pub struct TimeStamp {
-            /**
-   * When built with PRIntervalTime, a value of 0 means this instance
-   * is "null". Otherwise, the low 32 bits represent a PRIntervalTime,
-   * and the high 32 bits represent a counter of the number of
-   * rollovers of PRIntervalTime that we've seen. This counter starts
-   * at 1 to avoid a real time colliding with the "null" value.
-   *
-   * PR_INTERVAL_MAX is set at 100,000 ticks per second. So the minimum
-   * time to wrap around is about 2^64/100000 seconds, i.e. about
-   * 5,849,424 years.
-   *
-   * When using a system clock, a value is system dependent.
-   */
-            pub mValue: root::mozilla::TimeStampValue,
-        }
-        #[test]
-        fn bindgen_test_layout_TimeStamp() {
-            assert_eq!(::std::mem::size_of::<TimeStamp>() , 8usize , concat !
-                       ( "Size of: " , stringify ! ( TimeStamp ) ));
-            assert_eq! (::std::mem::align_of::<TimeStamp>() , 8usize , concat
-                        ! ( "Alignment of " , stringify ! ( TimeStamp ) ));
-            assert_eq! (unsafe {
-                        & ( * ( 0 as * const TimeStamp ) ) . mValue as * const
-                        _ as usize } , 0usize , concat ! (
-                        "Alignment of field: " , stringify ! ( TimeStamp ) ,
-                        "::" , stringify ! ( mValue ) ));
-        }
-        impl Clone for TimeStamp {
-            fn clone(&self) -> Self { *self }
-        }
-        #[repr(C)]
-        #[derive(Debug, Copy)]
-        pub struct MallocAllocPolicy {
-            pub _address: u8,
-        }
-        #[test]
-        fn bindgen_test_layout_MallocAllocPolicy() {
-            assert_eq!(::std::mem::size_of::<MallocAllocPolicy>() , 1usize ,
-                       concat ! (
-                       "Size of: " , stringify ! ( MallocAllocPolicy ) ));
-            assert_eq! (::std::mem::align_of::<MallocAllocPolicy>() , 1usize ,
-                        concat ! (
-                        "Alignment of " , stringify ! ( MallocAllocPolicy )
-                        ));
-        }
-        impl Clone for MallocAllocPolicy {
-            fn clone(&self) -> Self { *self }
-        }
-        #[repr(C)]
-        #[derive(Debug, Copy)]
-        pub struct ThreadSafeAutoRefCnt {
-            pub mValue: u64,
-        }
-        pub const ThreadSafeAutoRefCnt_isThreadSafe: bool = true;
-        #[test]
-        fn bindgen_test_layout_ThreadSafeAutoRefCnt() {
-            assert_eq!(::std::mem::size_of::<ThreadSafeAutoRefCnt>() , 8usize
-                       , concat ! (
-                       "Size of: " , stringify ! ( ThreadSafeAutoRefCnt ) ));
-            assert_eq! (::std::mem::align_of::<ThreadSafeAutoRefCnt>() ,
-                        8usize , concat ! (
-                        "Alignment of " , stringify ! ( ThreadSafeAutoRefCnt )
-                        ));
-            assert_eq! (unsafe {
-                        & ( * ( 0 as * const ThreadSafeAutoRefCnt ) ) . mValue
-                        as * const _ as usize } , 0usize , concat ! (
-                        "Alignment of field: " , stringify ! (
-                        ThreadSafeAutoRefCnt ) , "::" , stringify ! ( mValue )
-                        ));
-        }
-        impl Clone for ThreadSafeAutoRefCnt {
-            fn clone(&self) -> Self { *self }
-        }
-        pub mod gfx {
-            #[allow(unused_imports)]
-            use self::super::super::super::root;
-            pub type IntRegion = [u64; 3usize];
-            #[repr(C)]
-            #[derive(Debug, Copy)]
-            pub struct Color {
-                pub _bindgen_opaque_blob: [u32; 4usize],
-            }
-            #[test]
-            fn bindgen_test_layout_Color() {
-                assert_eq!(::std::mem::size_of::<Color>() , 16usize , concat !
-                           ( "Size of: " , stringify ! ( Color ) ));
-                assert_eq! (::std::mem::align_of::<Color>() , 4usize , concat
-                            ! ( "Alignment of " , stringify ! ( Color ) ));
-            }
-            impl Clone for Color {
-                fn clone(&self) -> Self { *self }
-            }
-            pub type IntPoint = [u32; 2usize];
-            pub type IntMargin = [u32; 4usize];
-            pub type IntRect = [u32; 4usize];
-            pub type Matrix4x4 = [u32; 16usize];
-            #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
-            pub struct SourceSurface([u8; 0]);
-            #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
-            pub struct DrawTarget([u8; 0]);
-            #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
-            pub struct Path([u8; 0]);
-        }
-        pub mod layers {
-            #[allow(unused_imports)]
-            use self::super::super::super::root;
-            #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
-            pub struct LayerManager([u8; 0]);
-            #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
-            pub struct ContainerLayer([u8; 0]);
-            /**
- * The viewport and displayport metrics for the painted frame at the
- * time of a layer-tree transaction.  These metrics are especially
- * useful for shadow layers, because the metrics values are updated
- * atomically with new pixels.
- */
-            #[repr(C)]
-            #[derive(Debug, Copy)]
-            pub struct FrameMetrics {
-                pub mScrollId: root::mozilla::layers::FrameMetrics_ViewID,
-                pub mPresShellResolution: f32,
-                pub mCompositionBounds: root::mozilla::ParentLayerRect,
-                pub mDisplayPort: root::mozilla::CSSRect,
-                pub mCriticalDisplayPort: root::mozilla::CSSRect,
-                pub mScrollableRect: root::mozilla::CSSRect,
-                pub mCumulativeResolution: root::mozilla::LayoutDeviceToLayerScale2D,
-                pub mDevPixelsPerCSSPixel: root::mozilla::CSSToLayoutDeviceScale,
-                pub mScrollOffset: root::mozilla::CSSPoint,
-                pub mZoom: root::mozilla::CSSToParentLayerScale2D,
-                pub mScrollGeneration: u32,
-                pub mSmoothScrollOffset: root::mozilla::CSSPoint,
-                pub mRootCompositionSize: root::mozilla::CSSSize,
-                pub mDisplayPortMargins: root::mozilla::ScreenMargin,
-                pub mPresShellId: u32,
-                pub mViewport: root::mozilla::CSSRect,
-                pub mExtraResolution: root::mozilla::ScreenToLayerScale2D,
-                pub mPaintRequestTime: root::mozilla::TimeStamp,
-                pub mScrollUpdateType: root::mozilla::layers::FrameMetrics_ScrollOffsetUpdateType,
-                pub _bitfield_1: u8,
-                pub __bindgen_padding_0: [u16; 3usize],
-            }
-            pub type FrameMetrics_ViewID = u64;
-            #[repr(u8)]
-            #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-            pub enum FrameMetrics_ScrollOffsetUpdateType {
-                eNone = 0,
-                eMainThread = 1,
-                ePending = 2,
-                eUserAction = 3,
-                eRestore = 4,
-                eSentinel = 5,
-            }
-            extern "C" {
-                #[link_name =
-                      "_ZN7mozilla6layers12FrameMetrics14NULL_SCROLL_IDE"]
-                pub static FrameMetrics_NULL_SCROLL_ID:
-                           root::mozilla::layers::FrameMetrics_ViewID;
-            }
-            pub const FrameMetrics_START_SCROLL_ID:
-                      root::mozilla::layers::FrameMetrics_ViewID =
-                2;
-            #[test]
-            fn bindgen_test_layout_FrameMetrics() {
-                assert_eq!(::std::mem::size_of::<FrameMetrics>() , 184usize ,
-                           concat ! (
-                           "Size of: " , stringify ! ( FrameMetrics ) ));
-                assert_eq! (::std::mem::align_of::<FrameMetrics>() , 8usize ,
-                            concat ! (
-                            "Alignment of " , stringify ! ( FrameMetrics ) ));
-                assert_eq! (unsafe {
-                            & ( * ( 0 as * const FrameMetrics ) ) . mScrollId
-                            as * const _ as usize } , 0usize , concat ! (
-                            "Alignment of field: " , stringify ! (
-                            FrameMetrics ) , "::" , stringify ! ( mScrollId )
-                            ));
-                assert_eq! (unsafe {
-                            & ( * ( 0 as * const FrameMetrics ) ) .
-                            mPresShellResolution as * const _ as usize } ,
-                            8usize , concat ! (
-                            "Alignment of field: " , stringify ! (
-                            FrameMetrics ) , "::" , stringify ! (
-                            mPresShellResolution ) ));
-                assert_eq! (unsafe {
-                            & ( * ( 0 as * const FrameMetrics ) ) .
-                            mCompositionBounds as * const _ as usize } ,
-                            12usize , concat ! (
-                            "Alignment of field: " , stringify ! (
-                            FrameMetrics ) , "::" , stringify ! (
-                            mCompositionBounds ) ));
-                assert_eq! (unsafe {
-                            & ( * ( 0 as * const FrameMetrics ) ) .
-                            mDisplayPort as * const _ as usize } , 28usize ,
-                            concat ! (
-                            "Alignment of field: " , stringify ! (
-                            FrameMetrics ) , "::" , stringify ! ( mDisplayPort
-                            ) ));
-                assert_eq! (unsafe {
-                            & ( * ( 0 as * const FrameMetrics ) ) .
-                            mCriticalDisplayPort as * const _ as usize } ,
-                            44usize , concat ! (
-                            "Alignment of field: " , stringify ! (
-                            FrameMetrics ) , "::" , stringify ! (
-                            mCriticalDisplayPort ) ));
-                assert_eq! (unsafe {
-                            & ( * ( 0 as * const FrameMetrics ) ) .
-                            mScrollableRect as * const _ as usize } , 60usize
-                            , concat ! (
-                            "Alignment of field: " , stringify ! (
-                            FrameMetrics ) , "::" , stringify ! (
-                            mScrollableRect ) ));
-                assert_eq! (unsafe {
-                            & ( * ( 0 as * const FrameMetrics ) ) .
-                            mCumulativeResolution as * const _ as usize } ,
-                            76usize , concat ! (
-                            "Alignment of field: " , stringify ! (
-                            FrameMetrics ) , "::" , stringify ! (
-                            mCumulativeResolution ) ));
-                assert_eq! (unsafe {
-                            & ( * ( 0 as * const FrameMetrics ) ) .
-                            mDevPixelsPerCSSPixel as * const _ as usize } ,
-                            84usize , concat ! (
-                            "Alignment of field: " , stringify ! (
-                            FrameMetrics ) , "::" , stringify ! (
-                            mDevPixelsPerCSSPixel ) ));
-                assert_eq! (unsafe {
-                            & ( * ( 0 as * const FrameMetrics ) ) .
-                            mScrollOffset as * const _ as usize } , 88usize ,
-                            concat ! (
-                            "Alignment of field: " , stringify ! (
-                            FrameMetrics ) , "::" , stringify ! (
-                            mScrollOffset ) ));
-                assert_eq! (unsafe {
-                            & ( * ( 0 as * const FrameMetrics ) ) . mZoom as *
-                            const _ as usize } , 96usize , concat ! (
-                            "Alignment of field: " , stringify ! (
-                            FrameMetrics ) , "::" , stringify ! ( mZoom ) ));
-                assert_eq! (unsafe {
-                            & ( * ( 0 as * const FrameMetrics ) ) .
-                            mScrollGeneration as * const _ as usize } ,
-                            104usize , concat ! (
-                            "Alignment of field: " , stringify ! (
-                            FrameMetrics ) , "::" , stringify ! (
-                            mScrollGeneration ) ));
-                assert_eq! (unsafe {
-                            & ( * ( 0 as * const FrameMetrics ) ) .
-                            mSmoothScrollOffset as * const _ as usize } ,
-                            108usize , concat ! (
-                            "Alignment of field: " , stringify ! (
-                            FrameMetrics ) , "::" , stringify ! (
-                            mSmoothScrollOffset ) ));
-                assert_eq! (unsafe {
-                            & ( * ( 0 as * const FrameMetrics ) ) .
-                            mRootCompositionSize as * const _ as usize } ,
-                            116usize , concat ! (
-                            "Alignment of field: " , stringify ! (
-                            FrameMetrics ) , "::" , stringify ! (
-                            mRootCompositionSize ) ));
-                assert_eq! (unsafe {
-                            & ( * ( 0 as * const FrameMetrics ) ) .
-                            mDisplayPortMargins as * const _ as usize } ,
-                            124usize , concat ! (
-                            "Alignment of field: " , stringify ! (
-                            FrameMetrics ) , "::" , stringify ! (
-                            mDisplayPortMargins ) ));
-                assert_eq! (unsafe {
-                            & ( * ( 0 as * const FrameMetrics ) ) .
-                            mPresShellId as * const _ as usize } , 140usize ,
-                            concat ! (
-                            "Alignment of field: " , stringify ! (
-                            FrameMetrics ) , "::" , stringify ! ( mPresShellId
-                            ) ));
-                assert_eq! (unsafe {
-                            & ( * ( 0 as * const FrameMetrics ) ) . mViewport
-                            as * const _ as usize } , 144usize , concat ! (
-                            "Alignment of field: " , stringify ! (
-                            FrameMetrics ) , "::" , stringify ! ( mViewport )
-                            ));
-                assert_eq! (unsafe {
-                            & ( * ( 0 as * const FrameMetrics ) ) .
-                            mExtraResolution as * const _ as usize } ,
-                            160usize , concat ! (
-                            "Alignment of field: " , stringify ! (
-                            FrameMetrics ) , "::" , stringify ! (
-                            mExtraResolution ) ));
-                assert_eq! (unsafe {
-                            & ( * ( 0 as * const FrameMetrics ) ) .
-                            mPaintRequestTime as * const _ as usize } ,
-                            168usize , concat ! (
-                            "Alignment of field: " , stringify ! (
-                            FrameMetrics ) , "::" , stringify ! (
-                            mPaintRequestTime ) ));
-                assert_eq! (unsafe {
-                            & ( * ( 0 as * const FrameMetrics ) ) .
-                            mScrollUpdateType as * const _ as usize } ,
-                            176usize , concat ! (
-                            "Alignment of field: " , stringify ! (
-                            FrameMetrics ) , "::" , stringify ! (
-                            mScrollUpdateType ) ));
-            }
-            impl Clone for FrameMetrics {
-                fn clone(&self) -> Self { *self }
-            }
-            #[repr(C)]
-            #[derive(Debug)]
-            pub struct ScrollSnapInfo {
-                pub mScrollSnapTypeX: u8,
-                pub mScrollSnapTypeY: u8,
-                pub mScrollSnapIntervalX: [u32; 2usize],
-                pub mScrollSnapIntervalY: [u32; 2usize],
-                pub mScrollSnapDestination: root::nsPoint,
-                pub mScrollSnapCoordinates: root::nsTArray<root::nsPoint>,
-            }
-            #[test]
-            fn bindgen_test_layout_ScrollSnapInfo() {
-                assert_eq!(::std::mem::size_of::<ScrollSnapInfo>() , 40usize ,
-                           concat ! (
-                           "Size of: " , stringify ! ( ScrollSnapInfo ) ));
-                assert_eq! (::std::mem::align_of::<ScrollSnapInfo>() , 8usize
-                            , concat ! (
-                            "Alignment of " , stringify ! ( ScrollSnapInfo )
-                            ));
-                assert_eq! (unsafe {
-                            & ( * ( 0 as * const ScrollSnapInfo ) ) .
-                            mScrollSnapTypeX as * const _ as usize } , 0usize
-                            , concat ! (
-                            "Alignment of field: " , stringify ! (
-                            ScrollSnapInfo ) , "::" , stringify ! (
-                            mScrollSnapTypeX ) ));
-                assert_eq! (unsafe {
-                            & ( * ( 0 as * const ScrollSnapInfo ) ) .
-                            mScrollSnapTypeY as * const _ as usize } , 1usize
-                            , concat ! (
-                            "Alignment of field: " , stringify ! (
-                            ScrollSnapInfo ) , "::" , stringify ! (
-                            mScrollSnapTypeY ) ));
-                assert_eq! (unsafe {
-                            & ( * ( 0 as * const ScrollSnapInfo ) ) .
-                            mScrollSnapIntervalX as * const _ as usize } ,
-                            4usize , concat ! (
-                            "Alignment of field: " , stringify ! (
-                            ScrollSnapInfo ) , "::" , stringify ! (
-                            mScrollSnapIntervalX ) ));
-                assert_eq! (unsafe {
-                            & ( * ( 0 as * const ScrollSnapInfo ) ) .
-                            mScrollSnapIntervalY as * const _ as usize } ,
-                            12usize , concat ! (
-                            "Alignment of field: " , stringify ! (
-                            ScrollSnapInfo ) , "::" , stringify ! (
-                            mScrollSnapIntervalY ) ));
-                assert_eq! (unsafe {
-                            & ( * ( 0 as * const ScrollSnapInfo ) ) .
-                            mScrollSnapDestination as * const _ as usize } ,
-                            20usize , concat ! (
-                            "Alignment of field: " , stringify ! (
-                            ScrollSnapInfo ) , "::" , stringify ! (
-                            mScrollSnapDestination ) ));
-                assert_eq! (unsafe {
-                            & ( * ( 0 as * const ScrollSnapInfo ) ) .
-                            mScrollSnapCoordinates as * const _ as usize } ,
-                            32usize , concat ! (
-                            "Alignment of field: " , stringify ! (
-                            ScrollSnapInfo ) , "::" , stringify ! (
-                            mScrollSnapCoordinates ) ));
-            }
-            #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
-            pub struct Layer([u8; 0]);
-        }
         pub mod dom {
             #[allow(unused_imports)]
             use self::super::super::super::root;
+            #[repr(C)]
+            #[derive(Debug)]
+            pub struct Element {
+                pub _base: root::mozilla::dom::FragmentOrElement,
+                pub mState: root::mozilla::EventStates,
+                pub mServoData: ::gecko_bindings::structs::ServoCell<*mut ::gecko_bindings::structs::ServoNodeData>,
+            }
+            #[repr(C)]
+            #[derive(Debug, Copy, Clone)]
+            pub struct Element_COMTypeInfo<T, U> {
+                pub _address: u8,
+                pub _phantom_0: ::std::marker::PhantomData<T>,
+                pub _phantom_1: ::std::marker::PhantomData<U>,
+            }
+            /**
+   * StyleStateLocks is used to specify which event states should be locked,
+   * and whether they should be locked to on or off.
+   */
+            #[repr(C)]
+            #[derive(Debug, Copy)]
+            pub struct Element_StyleStateLocks {
+                pub mLocks: root::mozilla::EventStates,
+                pub mValues: root::mozilla::EventStates,
+            }
+            #[test]
+            fn bindgen_test_layout_Element_StyleStateLocks() {
+                assert_eq!(::std::mem::size_of::<Element_StyleStateLocks>() ,
+                           16usize , concat ! (
+                           "Size of: " , stringify ! ( Element_StyleStateLocks
+                           ) ));
+                assert_eq! (::std::mem::align_of::<Element_StyleStateLocks>()
+                            , 8usize , concat ! (
+                            "Alignment of " , stringify ! (
+                            Element_StyleStateLocks ) ));
+                assert_eq! (unsafe {
+                            & ( * ( 0 as * const Element_StyleStateLocks ) ) .
+                            mLocks as * const _ as usize } , 0usize , concat !
+                            (
+                            "Alignment of field: " , stringify ! (
+                            Element_StyleStateLocks ) , "::" , stringify ! (
+                            mLocks ) ));
+                assert_eq! (unsafe {
+                            & ( * ( 0 as * const Element_StyleStateLocks ) ) .
+                            mValues as * const _ as usize } , 8usize , concat
+                            ! (
+                            "Alignment of field: " , stringify ! (
+                            Element_StyleStateLocks ) , "::" , stringify ! (
+                            mValues ) ));
+            }
+            impl Clone for Element_StyleStateLocks {
+                fn clone(&self) -> Self { *self }
+            }
+            #[repr(C)]
+            #[derive(Debug, Copy)]
+            pub struct Element_MappedAttributeEntry {
+                pub attribute: *mut *mut root::nsIAtom,
+            }
+            #[test]
+            fn bindgen_test_layout_Element_MappedAttributeEntry() {
+                assert_eq!(::std::mem::size_of::<Element_MappedAttributeEntry>()
+                           , 8usize , concat ! (
+                           "Size of: " , stringify ! (
+                           Element_MappedAttributeEntry ) ));
+                assert_eq! (::std::mem::align_of::<Element_MappedAttributeEntry>()
+                            , 8usize , concat ! (
+                            "Alignment of " , stringify ! (
+                            Element_MappedAttributeEntry ) ));
+                assert_eq! (unsafe {
+                            & (
+                            * ( 0 as * const Element_MappedAttributeEntry ) )
+                            . attribute as * const _ as usize } , 0usize ,
+                            concat ! (
+                            "Alignment of field: " , stringify ! (
+                            Element_MappedAttributeEntry ) , "::" , stringify
+                            ! ( attribute ) ));
+            }
+            impl Clone for Element_MappedAttributeEntry {
+                fn clone(&self) -> Self { *self }
+            }
+            pub const Element_kFireMutationEvent: bool = true;
+            pub const Element_kDontFireMutationEvent: bool = false;
+            pub const Element_kNotifyDocumentObservers: bool = true;
+            pub const Element_kDontNotifyDocumentObservers: bool = false;
+            pub const Element_kCallAfterSetAttr: bool = true;
+            pub const Element_kDontCallAfterSetAttr: bool = false;
+            #[test]
+            fn bindgen_test_layout_Element() {
+                assert_eq!(::std::mem::size_of::<Element>() , 136usize ,
+                           concat ! ( "Size of: " , stringify ! ( Element )
+                           ));
+                assert_eq! (::std::mem::align_of::<Element>() , 8usize ,
+                            concat ! (
+                            "Alignment of " , stringify ! ( Element ) ));
+                assert_eq! (unsafe {
+                            & ( * ( 0 as * const Element ) ) . mState as *
+                            const _ as usize } , 120usize , concat ! (
+                            "Alignment of field: " , stringify ! ( Element ) ,
+                            "::" , stringify ! ( mState ) ));
+                assert_eq! (unsafe {
+                            & ( * ( 0 as * const Element ) ) . mServoData as *
+                            const _ as usize } , 128usize , concat ! (
+                            "Alignment of field: " , stringify ! ( Element ) ,
+                            "::" , stringify ! ( mServoData ) ));
+            }
             pub mod binding_detail {
                 #[allow(unused_imports)]
                 use self::super::super::super::super::root;
@@ -2571,110 +1860,6 @@ pub mod root {
             #[repr(C)]
             #[derive(Debug, Copy, Clone)]
             pub struct DocGroup([u8; 0]);
-            #[repr(C)]
-            #[derive(Debug)]
-            pub struct Element {
-                pub _base: root::mozilla::dom::FragmentOrElement,
-                pub mState: root::mozilla::EventStates,
-                pub mServoData: ::gecko_bindings::structs::ServoCell<*mut ::gecko_bindings::structs::ServoNodeData>,
-            }
-            #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
-            pub struct Element_COMTypeInfo<T, U> {
-                pub _address: u8,
-                pub _phantom_0: ::std::marker::PhantomData<T>,
-                pub _phantom_1: ::std::marker::PhantomData<U>,
-            }
-            /**
-   * StyleStateLocks is used to specify which event states should be locked,
-   * and whether they should be locked to on or off.
-   */
-            #[repr(C)]
-            #[derive(Debug, Copy)]
-            pub struct Element_StyleStateLocks {
-                pub mLocks: root::mozilla::EventStates,
-                pub mValues: root::mozilla::EventStates,
-            }
-            #[test]
-            fn bindgen_test_layout_Element_StyleStateLocks() {
-                assert_eq!(::std::mem::size_of::<Element_StyleStateLocks>() ,
-                           16usize , concat ! (
-                           "Size of: " , stringify ! ( Element_StyleStateLocks
-                           ) ));
-                assert_eq! (::std::mem::align_of::<Element_StyleStateLocks>()
-                            , 8usize , concat ! (
-                            "Alignment of " , stringify ! (
-                            Element_StyleStateLocks ) ));
-                assert_eq! (unsafe {
-                            & ( * ( 0 as * const Element_StyleStateLocks ) ) .
-                            mLocks as * const _ as usize } , 0usize , concat !
-                            (
-                            "Alignment of field: " , stringify ! (
-                            Element_StyleStateLocks ) , "::" , stringify ! (
-                            mLocks ) ));
-                assert_eq! (unsafe {
-                            & ( * ( 0 as * const Element_StyleStateLocks ) ) .
-                            mValues as * const _ as usize } , 8usize , concat
-                            ! (
-                            "Alignment of field: " , stringify ! (
-                            Element_StyleStateLocks ) , "::" , stringify ! (
-                            mValues ) ));
-            }
-            impl Clone for Element_StyleStateLocks {
-                fn clone(&self) -> Self { *self }
-            }
-            #[repr(C)]
-            #[derive(Debug, Copy)]
-            pub struct Element_MappedAttributeEntry {
-                pub attribute: *mut *mut root::nsIAtom,
-            }
-            #[test]
-            fn bindgen_test_layout_Element_MappedAttributeEntry() {
-                assert_eq!(::std::mem::size_of::<Element_MappedAttributeEntry>()
-                           , 8usize , concat ! (
-                           "Size of: " , stringify ! (
-                           Element_MappedAttributeEntry ) ));
-                assert_eq! (::std::mem::align_of::<Element_MappedAttributeEntry>()
-                            , 8usize , concat ! (
-                            "Alignment of " , stringify ! (
-                            Element_MappedAttributeEntry ) ));
-                assert_eq! (unsafe {
-                            & (
-                            * ( 0 as * const Element_MappedAttributeEntry ) )
-                            . attribute as * const _ as usize } , 0usize ,
-                            concat ! (
-                            "Alignment of field: " , stringify ! (
-                            Element_MappedAttributeEntry ) , "::" , stringify
-                            ! ( attribute ) ));
-            }
-            impl Clone for Element_MappedAttributeEntry {
-                fn clone(&self) -> Self { *self }
-            }
-            pub const Element_kFireMutationEvent: bool = true;
-            pub const Element_kDontFireMutationEvent: bool = false;
-            pub const Element_kNotifyDocumentObservers: bool = true;
-            pub const Element_kDontNotifyDocumentObservers: bool = false;
-            pub const Element_kCallAfterSetAttr: bool = true;
-            pub const Element_kDontCallAfterSetAttr: bool = false;
-            #[test]
-            fn bindgen_test_layout_Element() {
-                assert_eq!(::std::mem::size_of::<Element>() , 136usize ,
-                           concat ! ( "Size of: " , stringify ! ( Element )
-                           ));
-                assert_eq! (::std::mem::align_of::<Element>() , 8usize ,
-                            concat ! (
-                            "Alignment of " , stringify ! ( Element ) ));
-                assert_eq! (unsafe {
-                            & ( * ( 0 as * const Element ) ) . mState as *
-                            const _ as usize } , 120usize , concat ! (
-                            "Alignment of field: " , stringify ! ( Element ) ,
-                            "::" , stringify ! ( mState ) ));
-                assert_eq! (unsafe {
-                            & ( * ( 0 as * const Element ) ) . mServoData as *
-                            const _ as usize } , 128usize , concat ! (
-                            "Alignment of field: " , stringify ! ( Element ) ,
-                            "::" , stringify ! ( mServoData ) ));
-            }
             #[repr(C)]
             #[derive(Debug, Copy, Clone)]
             pub struct Performance([u8; 0]);
@@ -4592,6 +3777,994 @@ pub mod root {
             #[repr(C)]
             #[derive(Debug, Copy, Clone)]
             pub struct Grid([u8; 0]);
+            /**
+ * CSSValue - a DOM object representing values in DOM computed style.
+ */
+            #[repr(C)]
+            #[derive(Debug)]
+            pub struct CSSValue {
+                pub _base: root::nsISupports,
+                pub _base_1: root::nsWrapperCache,
+            }
+            #[test]
+            fn bindgen_test_layout_CSSValue() {
+                assert_eq!(::std::mem::size_of::<CSSValue>() , 32usize ,
+                           concat ! ( "Size of: " , stringify ! ( CSSValue )
+                           ));
+                assert_eq! (::std::mem::align_of::<CSSValue>() , 8usize ,
+                            concat ! (
+                            "Alignment of " , stringify ! ( CSSValue ) ));
+            }
+        }
+        pub type CSSPseudoClassTypeBase = u8;
+        #[repr(u8)]
+        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        pub enum CSSPseudoClassType {
+            empty = 0,
+            mozOnlyWhitespace = 1,
+            mozEmptyExceptChildrenWithLocalname = 2,
+            lang = 3,
+            root = 4,
+            any = 5,
+            firstChild = 6,
+            firstNode = 7,
+            lastChild = 8,
+            lastNode = 9,
+            onlyChild = 10,
+            firstOfType = 11,
+            lastOfType = 12,
+            onlyOfType = 13,
+            nthChild = 14,
+            nthLastChild = 15,
+            nthOfType = 16,
+            nthLastOfType = 17,
+            mozIsHTML = 18,
+            unresolved = 19,
+            mozNativeAnonymous = 20,
+            mozSystemMetric = 21,
+            mozLocaleDir = 22,
+            mozLWTheme = 23,
+            mozLWThemeBrightText = 24,
+            mozLWThemeDarkText = 25,
+            mozWindowInactive = 26,
+            mozTableBorderNonzero = 27,
+            mozBrowserFrame = 28,
+            scope = 29,
+            negation = 30,
+            dir = 31,
+            link = 32,
+            mozAnyLink = 33,
+            anyLink = 34,
+            visited = 35,
+            active = 36,
+            checked = 37,
+            disabled = 38,
+            enabled = 39,
+            focus = 40,
+            focusWithin = 41,
+            hover = 42,
+            mozDragOver = 43,
+            target = 44,
+            indeterminate = 45,
+            mozDevtoolsHighlighted = 46,
+            mozStyleeditorTransitioning = 47,
+            fullscreen = 48,
+            mozFullScreen = 49,
+            mozFocusRing = 50,
+            mozBroken = 51,
+            mozLoading = 52,
+            mozUserDisabled = 53,
+            mozSuppressed = 54,
+            mozHandlerClickToPlay = 55,
+            mozHandlerVulnerableUpdatable = 56,
+            mozHandlerVulnerableNoUpdate = 57,
+            mozHandlerDisabled = 58,
+            mozHandlerBlocked = 59,
+            mozHandlerCrashed = 60,
+            mozMathIncrementScriptLevel = 61,
+            required = 62,
+            optional = 63,
+            valid = 64,
+            invalid = 65,
+            inRange = 66,
+            outOfRange = 67,
+            defaultPseudo = 68,
+            placeholderShown = 69,
+            mozReadOnly = 70,
+            mozReadWrite = 71,
+            mozSubmitInvalid = 72,
+            mozUIInvalid = 73,
+            mozUIValid = 74,
+            mozMeterOptimum = 75,
+            mozMeterSubOptimum = 76,
+            mozMeterSubSubOptimum = 77,
+            mozPlaceholder = 78,
+            Count = 79,
+            NotPseudo = 80,
+            MAX = 81,
+        }
+        pub const SERVO_PREF_ENABLED_align_content: bool = false;
+        pub const SERVO_PREF_ENABLED_align_items: bool = false;
+        pub const SERVO_PREF_ENABLED_align_self: bool = false;
+        pub const SERVO_PREF_ENABLED_all: bool = true;
+        pub const SERVO_PREF_ENABLED_animation: bool = false;
+        pub const SERVO_PREF_ENABLED_animation_delay: bool = false;
+        pub const SERVO_PREF_ENABLED_animation_direction: bool = false;
+        pub const SERVO_PREF_ENABLED_animation_duration: bool = false;
+        pub const SERVO_PREF_ENABLED_animation_fill_mode: bool = false;
+        pub const SERVO_PREF_ENABLED_animation_iteration_count: bool = false;
+        pub const SERVO_PREF_ENABLED_animation_name: bool = false;
+        pub const SERVO_PREF_ENABLED_animation_play_state: bool = false;
+        pub const SERVO_PREF_ENABLED_animation_timing_function: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_appearance: bool = true;
+        pub const SERVO_PREF_ENABLED_appearance: bool = true;
+        pub const SERVO_PREF_ENABLED_backface_visibility: bool = false;
+        pub const SERVO_PREF_ENABLED_background: bool = false;
+        pub const SERVO_PREF_ENABLED_background_attachment: bool = false;
+        pub const SERVO_PREF_ENABLED_background_blend_mode: bool = true;
+        pub const SERVO_PREF_ENABLED_background_clip: bool = false;
+        pub const SERVO_PREF_ENABLED_background_color: bool = false;
+        pub const SERVO_PREF_ENABLED_background_image: bool = false;
+        pub const SERVO_PREF_ENABLED_background_origin: bool = false;
+        pub const SERVO_PREF_ENABLED_background_position: bool = false;
+        pub const SERVO_PREF_ENABLED_background_position_x: bool = false;
+        pub const SERVO_PREF_ENABLED_background_position_y: bool = false;
+        pub const SERVO_PREF_ENABLED_background_repeat: bool = false;
+        pub const SERVO_PREF_ENABLED_background_size: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_binding: bool = false;
+        pub const SERVO_PREF_ENABLED_block_size: bool = false;
+        pub const SERVO_PREF_ENABLED_border: bool = false;
+        pub const SERVO_PREF_ENABLED_border_block_end: bool = false;
+        pub const SERVO_PREF_ENABLED_border_block_end_color: bool = false;
+        pub const SERVO_PREF_ENABLED_border_block_end_style: bool = false;
+        pub const SERVO_PREF_ENABLED_border_block_end_width: bool = false;
+        pub const SERVO_PREF_ENABLED_border_block_start: bool = false;
+        pub const SERVO_PREF_ENABLED_border_block_start_color: bool = false;
+        pub const SERVO_PREF_ENABLED_border_block_start_style: bool = false;
+        pub const SERVO_PREF_ENABLED_border_block_start_width: bool = false;
+        pub const SERVO_PREF_ENABLED_border_bottom: bool = false;
+        pub const SERVO_PREF_ENABLED_border_bottom_color: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_border_bottom_colors: bool = false;
+        pub const SERVO_PREF_ENABLED_border_bottom_left_radius: bool = false;
+        pub const SERVO_PREF_ENABLED_border_bottom_right_radius: bool = false;
+        pub const SERVO_PREF_ENABLED_border_bottom_style: bool = false;
+        pub const SERVO_PREF_ENABLED_border_bottom_width: bool = false;
+        pub const SERVO_PREF_ENABLED_border_collapse: bool = false;
+        pub const SERVO_PREF_ENABLED_border_color: bool = false;
+        pub const SERVO_PREF_ENABLED_border_image: bool = false;
+        pub const SERVO_PREF_ENABLED_border_image_outset: bool = false;
+        pub const SERVO_PREF_ENABLED_border_image_repeat: bool = false;
+        pub const SERVO_PREF_ENABLED_border_image_slice: bool = false;
+        pub const SERVO_PREF_ENABLED_border_image_source: bool = false;
+        pub const SERVO_PREF_ENABLED_border_image_width: bool = false;
+        pub const SERVO_PREF_ENABLED_border_inline_end: bool = false;
+        pub const SERVO_PREF_ENABLED_border_inline_end_color: bool = false;
+        pub const SERVO_PREF_ENABLED_border_inline_end_style: bool = false;
+        pub const SERVO_PREF_ENABLED_border_inline_end_width: bool = false;
+        pub const SERVO_PREF_ENABLED_border_inline_start: bool = false;
+        pub const SERVO_PREF_ENABLED_border_inline_start_color: bool = false;
+        pub const SERVO_PREF_ENABLED_border_inline_start_style: bool = false;
+        pub const SERVO_PREF_ENABLED_border_inline_start_width: bool = false;
+        pub const SERVO_PREF_ENABLED_border_left: bool = false;
+        pub const SERVO_PREF_ENABLED_border_left_color: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_border_left_colors: bool = false;
+        pub const SERVO_PREF_ENABLED_border_left_style: bool = false;
+        pub const SERVO_PREF_ENABLED_border_left_width: bool = false;
+        pub const SERVO_PREF_ENABLED_border_radius: bool = false;
+        pub const SERVO_PREF_ENABLED_border_right: bool = false;
+        pub const SERVO_PREF_ENABLED_border_right_color: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_border_right_colors: bool = false;
+        pub const SERVO_PREF_ENABLED_border_right_style: bool = false;
+        pub const SERVO_PREF_ENABLED_border_right_width: bool = false;
+        pub const SERVO_PREF_ENABLED_border_spacing: bool = false;
+        pub const SERVO_PREF_ENABLED_border_style: bool = false;
+        pub const SERVO_PREF_ENABLED_border_top: bool = false;
+        pub const SERVO_PREF_ENABLED_border_top_color: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_border_top_colors: bool = false;
+        pub const SERVO_PREF_ENABLED_border_top_left_radius: bool = false;
+        pub const SERVO_PREF_ENABLED_border_top_right_radius: bool = false;
+        pub const SERVO_PREF_ENABLED_border_top_style: bool = false;
+        pub const SERVO_PREF_ENABLED_border_top_width: bool = false;
+        pub const SERVO_PREF_ENABLED_border_width: bool = false;
+        pub const SERVO_PREF_ENABLED_bottom: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_box_align: bool = false;
+        pub const SERVO_PREF_ENABLED_box_decoration_break: bool = true;
+        pub const SERVO_PREF_ENABLED__moz_box_direction: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_box_flex: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_box_ordinal_group: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_box_orient: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_box_pack: bool = false;
+        pub const SERVO_PREF_ENABLED_box_shadow: bool = false;
+        pub const SERVO_PREF_ENABLED_box_sizing: bool = false;
+        pub const SERVO_PREF_ENABLED_caption_side: bool = false;
+        pub const SERVO_PREF_ENABLED_caret_color: bool = false;
+        pub const SERVO_PREF_ENABLED_clear: bool = false;
+        pub const SERVO_PREF_ENABLED_clip: bool = false;
+        pub const SERVO_PREF_ENABLED_clip_path: bool = false;
+        pub const SERVO_PREF_ENABLED_clip_rule: bool = false;
+        pub const SERVO_PREF_ENABLED_color: bool = false;
+        pub const SERVO_PREF_ENABLED_color_adjust: bool = true;
+        pub const SERVO_PREF_ENABLED_color_interpolation: bool = false;
+        pub const SERVO_PREF_ENABLED_color_interpolation_filters: bool =
+            false;
+        pub const SERVO_PREF_ENABLED_column_count: bool = false;
+        pub const SERVO_PREF_ENABLED_column_fill: bool = false;
+        pub const SERVO_PREF_ENABLED_column_gap: bool = false;
+        pub const SERVO_PREF_ENABLED_column_rule: bool = false;
+        pub const SERVO_PREF_ENABLED_column_rule_color: bool = false;
+        pub const SERVO_PREF_ENABLED_column_rule_style: bool = false;
+        pub const SERVO_PREF_ENABLED_column_rule_width: bool = false;
+        pub const SERVO_PREF_ENABLED_column_span: bool = true;
+        pub const SERVO_PREF_ENABLED_column_width: bool = false;
+        pub const SERVO_PREF_ENABLED_columns: bool = false;
+        pub const SERVO_PREF_ENABLED_contain: bool = true;
+        pub const SERVO_PREF_ENABLED_content: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_control_character_visibility: bool =
+            false;
+        pub const SERVO_PREF_ENABLED_counter_increment: bool = false;
+        pub const SERVO_PREF_ENABLED_counter_reset: bool = false;
+        pub const SERVO_PREF_ENABLED_cursor: bool = false;
+        pub const SERVO_PREF_ENABLED_direction: bool = false;
+        pub const SERVO_PREF_ENABLED_display: bool = false;
+        pub const SERVO_PREF_ENABLED_dominant_baseline: bool = false;
+        pub const SERVO_PREF_ENABLED_empty_cells: bool = false;
+        pub const SERVO_PREF_ENABLED_fill: bool = false;
+        pub const SERVO_PREF_ENABLED_fill_opacity: bool = false;
+        pub const SERVO_PREF_ENABLED_fill_rule: bool = false;
+        pub const SERVO_PREF_ENABLED_filter: bool = false;
+        pub const SERVO_PREF_ENABLED_flex: bool = false;
+        pub const SERVO_PREF_ENABLED_flex_basis: bool = false;
+        pub const SERVO_PREF_ENABLED_flex_direction: bool = false;
+        pub const SERVO_PREF_ENABLED_flex_flow: bool = false;
+        pub const SERVO_PREF_ENABLED_flex_grow: bool = false;
+        pub const SERVO_PREF_ENABLED_flex_shrink: bool = false;
+        pub const SERVO_PREF_ENABLED_flex_wrap: bool = false;
+        pub const SERVO_PREF_ENABLED_float_: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_float_edge: bool = false;
+        pub const SERVO_PREF_ENABLED_flood_color: bool = false;
+        pub const SERVO_PREF_ENABLED_flood_opacity: bool = false;
+        pub const SERVO_PREF_ENABLED_font: bool = false;
+        pub const SERVO_PREF_ENABLED_font_family: bool = false;
+        pub const SERVO_PREF_ENABLED_font_feature_settings: bool = false;
+        pub const SERVO_PREF_ENABLED_font_kerning: bool = false;
+        pub const SERVO_PREF_ENABLED_font_language_override: bool = false;
+        pub const SERVO_PREF_ENABLED_font_size: bool = false;
+        pub const SERVO_PREF_ENABLED_font_size_adjust: bool = false;
+        pub const SERVO_PREF_ENABLED_font_stretch: bool = false;
+        pub const SERVO_PREF_ENABLED_font_style: bool = false;
+        pub const SERVO_PREF_ENABLED_font_synthesis: bool = false;
+        pub const SERVO_PREF_ENABLED_font_variant: bool = false;
+        pub const SERVO_PREF_ENABLED_font_variant_alternates: bool = false;
+        pub const SERVO_PREF_ENABLED_font_variant_caps: bool = false;
+        pub const SERVO_PREF_ENABLED_font_variant_east_asian: bool = false;
+        pub const SERVO_PREF_ENABLED_font_variant_ligatures: bool = false;
+        pub const SERVO_PREF_ENABLED_font_variant_numeric: bool = false;
+        pub const SERVO_PREF_ENABLED_font_variant_position: bool = false;
+        pub const SERVO_PREF_ENABLED_font_variation_settings: bool = true;
+        pub const SERVO_PREF_ENABLED_font_weight: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_force_broken_image_icon: bool =
+            false;
+        pub const SERVO_PREF_ENABLED_grid: bool = true;
+        pub const SERVO_PREF_ENABLED_grid_area: bool = true;
+        pub const SERVO_PREF_ENABLED_grid_auto_columns: bool = true;
+        pub const SERVO_PREF_ENABLED_grid_auto_flow: bool = true;
+        pub const SERVO_PREF_ENABLED_grid_auto_rows: bool = true;
+        pub const SERVO_PREF_ENABLED_grid_column: bool = true;
+        pub const SERVO_PREF_ENABLED_grid_column_end: bool = true;
+        pub const SERVO_PREF_ENABLED_grid_column_gap: bool = true;
+        pub const SERVO_PREF_ENABLED_grid_column_start: bool = true;
+        pub const SERVO_PREF_ENABLED_grid_gap: bool = true;
+        pub const SERVO_PREF_ENABLED_grid_row: bool = true;
+        pub const SERVO_PREF_ENABLED_grid_row_end: bool = true;
+        pub const SERVO_PREF_ENABLED_grid_row_gap: bool = true;
+        pub const SERVO_PREF_ENABLED_grid_row_start: bool = true;
+        pub const SERVO_PREF_ENABLED_grid_template: bool = true;
+        pub const SERVO_PREF_ENABLED_grid_template_areas: bool = true;
+        pub const SERVO_PREF_ENABLED_grid_template_columns: bool = true;
+        pub const SERVO_PREF_ENABLED_grid_template_rows: bool = true;
+        pub const SERVO_PREF_ENABLED_height: bool = false;
+        pub const SERVO_PREF_ENABLED_hyphens: bool = false;
+        pub const SERVO_PREF_ENABLED_initial_letter: bool = true;
+        pub const SERVO_PREF_ENABLED_image_orientation: bool = true;
+        pub const SERVO_PREF_ENABLED__moz_image_region: bool = false;
+        pub const SERVO_PREF_ENABLED_image_rendering: bool = false;
+        pub const SERVO_PREF_ENABLED_ime_mode: bool = false;
+        pub const SERVO_PREF_ENABLED_inline_size: bool = false;
+        pub const SERVO_PREF_ENABLED_isolation: bool = true;
+        pub const SERVO_PREF_ENABLED_justify_content: bool = false;
+        pub const SERVO_PREF_ENABLED_justify_items: bool = false;
+        pub const SERVO_PREF_ENABLED_justify_self: bool = false;
+        pub const SERVO_PREF_ENABLED__x_lang: bool = false;
+        pub const SERVO_PREF_ENABLED_left: bool = false;
+        pub const SERVO_PREF_ENABLED_letter_spacing: bool = false;
+        pub const SERVO_PREF_ENABLED_lighting_color: bool = false;
+        pub const SERVO_PREF_ENABLED_line_height: bool = false;
+        pub const SERVO_PREF_ENABLED_list_style: bool = false;
+        pub const SERVO_PREF_ENABLED_list_style_image: bool = false;
+        pub const SERVO_PREF_ENABLED_list_style_position: bool = false;
+        pub const SERVO_PREF_ENABLED_list_style_type: bool = false;
+        pub const SERVO_PREF_ENABLED_margin: bool = false;
+        pub const SERVO_PREF_ENABLED_margin_block_end: bool = false;
+        pub const SERVO_PREF_ENABLED_margin_block_start: bool = false;
+        pub const SERVO_PREF_ENABLED_margin_bottom: bool = false;
+        pub const SERVO_PREF_ENABLED_margin_inline_end: bool = false;
+        pub const SERVO_PREF_ENABLED_margin_inline_start: bool = false;
+        pub const SERVO_PREF_ENABLED_margin_left: bool = false;
+        pub const SERVO_PREF_ENABLED_margin_right: bool = false;
+        pub const SERVO_PREF_ENABLED_margin_top: bool = false;
+        pub const SERVO_PREF_ENABLED_marker: bool = false;
+        pub const SERVO_PREF_ENABLED_marker_end: bool = false;
+        pub const SERVO_PREF_ENABLED_marker_mid: bool = false;
+        pub const SERVO_PREF_ENABLED_marker_start: bool = false;
+        pub const SERVO_PREF_ENABLED_mask: bool = false;
+        pub const SERVO_PREF_ENABLED_mask_clip: bool = false;
+        pub const SERVO_PREF_ENABLED_mask_composite: bool = false;
+        pub const SERVO_PREF_ENABLED_mask_image: bool = false;
+        pub const SERVO_PREF_ENABLED_mask_mode: bool = false;
+        pub const SERVO_PREF_ENABLED_mask_origin: bool = false;
+        pub const SERVO_PREF_ENABLED_mask_position: bool = false;
+        pub const SERVO_PREF_ENABLED_mask_position_x: bool = false;
+        pub const SERVO_PREF_ENABLED_mask_position_y: bool = false;
+        pub const SERVO_PREF_ENABLED_mask_repeat: bool = false;
+        pub const SERVO_PREF_ENABLED_mask_size: bool = false;
+        pub const SERVO_PREF_ENABLED_mask_type: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_math_display: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_math_variant: bool = false;
+        pub const SERVO_PREF_ENABLED_max_block_size: bool = false;
+        pub const SERVO_PREF_ENABLED_max_height: bool = false;
+        pub const SERVO_PREF_ENABLED_max_inline_size: bool = false;
+        pub const SERVO_PREF_ENABLED_max_width: bool = false;
+        pub const SERVO_PREF_ENABLED_min_block_size: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_min_font_size_ratio: bool = false;
+        pub const SERVO_PREF_ENABLED_min_height: bool = false;
+        pub const SERVO_PREF_ENABLED_min_inline_size: bool = false;
+        pub const SERVO_PREF_ENABLED_min_width: bool = false;
+        pub const SERVO_PREF_ENABLED_mix_blend_mode: bool = true;
+        pub const SERVO_PREF_ENABLED_object_fit: bool = false;
+        pub const SERVO_PREF_ENABLED_object_position: bool = false;
+        pub const SERVO_PREF_ENABLED_offset_block_end: bool = false;
+        pub const SERVO_PREF_ENABLED_offset_block_start: bool = false;
+        pub const SERVO_PREF_ENABLED_offset_inline_end: bool = false;
+        pub const SERVO_PREF_ENABLED_offset_inline_start: bool = false;
+        pub const SERVO_PREF_ENABLED_opacity: bool = false;
+        pub const SERVO_PREF_ENABLED_order: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_orient: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_osx_font_smoothing: bool = true;
+        pub const SERVO_PREF_ENABLED_outline: bool = false;
+        pub const SERVO_PREF_ENABLED_outline_color: bool = false;
+        pub const SERVO_PREF_ENABLED_outline_offset: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_outline_radius: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_outline_radius_bottomleft: bool =
+            false;
+        pub const SERVO_PREF_ENABLED__moz_outline_radius_bottomright: bool =
+            false;
+        pub const SERVO_PREF_ENABLED__moz_outline_radius_topleft: bool =
+            false;
+        pub const SERVO_PREF_ENABLED__moz_outline_radius_topright: bool =
+            false;
+        pub const SERVO_PREF_ENABLED_outline_style: bool = false;
+        pub const SERVO_PREF_ENABLED_outline_width: bool = false;
+        pub const SERVO_PREF_ENABLED_overflow: bool = false;
+        pub const SERVO_PREF_ENABLED_overflow_clip_box: bool = true;
+        pub const SERVO_PREF_ENABLED_overflow_x: bool = false;
+        pub const SERVO_PREF_ENABLED_overflow_y: bool = false;
+        pub const SERVO_PREF_ENABLED_padding: bool = false;
+        pub const SERVO_PREF_ENABLED_padding_block_end: bool = false;
+        pub const SERVO_PREF_ENABLED_padding_block_start: bool = false;
+        pub const SERVO_PREF_ENABLED_padding_bottom: bool = false;
+        pub const SERVO_PREF_ENABLED_padding_inline_end: bool = false;
+        pub const SERVO_PREF_ENABLED_padding_inline_start: bool = false;
+        pub const SERVO_PREF_ENABLED_padding_left: bool = false;
+        pub const SERVO_PREF_ENABLED_padding_right: bool = false;
+        pub const SERVO_PREF_ENABLED_padding_top: bool = false;
+        pub const SERVO_PREF_ENABLED_page_break_after: bool = false;
+        pub const SERVO_PREF_ENABLED_page_break_before: bool = false;
+        pub const SERVO_PREF_ENABLED_page_break_inside: bool = false;
+        pub const SERVO_PREF_ENABLED_paint_order: bool = true;
+        pub const SERVO_PREF_ENABLED_perspective: bool = false;
+        pub const SERVO_PREF_ENABLED_perspective_origin: bool = false;
+        pub const SERVO_PREF_ENABLED_place_content: bool = false;
+        pub const SERVO_PREF_ENABLED_place_items: bool = false;
+        pub const SERVO_PREF_ENABLED_place_self: bool = false;
+        pub const SERVO_PREF_ENABLED_pointer_events: bool = false;
+        pub const SERVO_PREF_ENABLED_position: bool = false;
+        pub const SERVO_PREF_ENABLED_quotes: bool = false;
+        pub const SERVO_PREF_ENABLED_resize: bool = false;
+        pub const SERVO_PREF_ENABLED_right: bool = false;
+        pub const SERVO_PREF_ENABLED_ruby_align: bool = false;
+        pub const SERVO_PREF_ENABLED_ruby_position: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_script_level: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_script_min_size: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_script_size_multiplier: bool =
+            false;
+        pub const SERVO_PREF_ENABLED_scroll_behavior: bool = true;
+        pub const SERVO_PREF_ENABLED_scroll_snap_coordinate: bool = true;
+        pub const SERVO_PREF_ENABLED_scroll_snap_destination: bool = true;
+        pub const SERVO_PREF_ENABLED_scroll_snap_points_x: bool = true;
+        pub const SERVO_PREF_ENABLED_scroll_snap_points_y: bool = true;
+        pub const SERVO_PREF_ENABLED_scroll_snap_type: bool = true;
+        pub const SERVO_PREF_ENABLED_scroll_snap_type_x: bool = true;
+        pub const SERVO_PREF_ENABLED_scroll_snap_type_y: bool = true;
+        pub const SERVO_PREF_ENABLED_shape_outside: bool = true;
+        pub const SERVO_PREF_ENABLED_shape_rendering: bool = false;
+        pub const SERVO_PREF_ENABLED__x_span: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_stack_sizing: bool = false;
+        pub const SERVO_PREF_ENABLED_stop_color: bool = false;
+        pub const SERVO_PREF_ENABLED_stop_opacity: bool = false;
+        pub const SERVO_PREF_ENABLED_stroke: bool = false;
+        pub const SERVO_PREF_ENABLED_stroke_dasharray: bool = false;
+        pub const SERVO_PREF_ENABLED_stroke_dashoffset: bool = false;
+        pub const SERVO_PREF_ENABLED_stroke_linecap: bool = false;
+        pub const SERVO_PREF_ENABLED_stroke_linejoin: bool = false;
+        pub const SERVO_PREF_ENABLED_stroke_miterlimit: bool = false;
+        pub const SERVO_PREF_ENABLED_stroke_opacity: bool = false;
+        pub const SERVO_PREF_ENABLED_stroke_width: bool = false;
+        pub const SERVO_PREF_ENABLED__x_system_font: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_tab_size: bool = false;
+        pub const SERVO_PREF_ENABLED_table_layout: bool = false;
+        pub const SERVO_PREF_ENABLED_text_align: bool = false;
+        pub const SERVO_PREF_ENABLED_text_align_last: bool = false;
+        pub const SERVO_PREF_ENABLED_text_anchor: bool = false;
+        pub const SERVO_PREF_ENABLED_text_combine_upright: bool = true;
+        pub const SERVO_PREF_ENABLED_text_decoration: bool = false;
+        pub const SERVO_PREF_ENABLED_text_decoration_color: bool = false;
+        pub const SERVO_PREF_ENABLED_text_decoration_line: bool = false;
+        pub const SERVO_PREF_ENABLED_text_decoration_style: bool = false;
+        pub const SERVO_PREF_ENABLED_text_emphasis: bool = false;
+        pub const SERVO_PREF_ENABLED_text_emphasis_color: bool = false;
+        pub const SERVO_PREF_ENABLED_text_emphasis_position: bool = false;
+        pub const SERVO_PREF_ENABLED_text_emphasis_style: bool = false;
+        pub const SERVO_PREF_ENABLED__webkit_text_fill_color: bool = true;
+        pub const SERVO_PREF_ENABLED_text_indent: bool = false;
+        pub const SERVO_PREF_ENABLED_text_justify: bool = true;
+        pub const SERVO_PREF_ENABLED_text_orientation: bool = false;
+        pub const SERVO_PREF_ENABLED_text_overflow: bool = false;
+        pub const SERVO_PREF_ENABLED_text_rendering: bool = false;
+        pub const SERVO_PREF_ENABLED_text_shadow: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_text_size_adjust: bool = false;
+        pub const SERVO_PREF_ENABLED__webkit_text_stroke: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_text_stroke_color: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_text_stroke_width: bool = true;
+        pub const SERVO_PREF_ENABLED_text_transform: bool = false;
+        pub const SERVO_PREF_ENABLED__x_text_zoom: bool = false;
+        pub const SERVO_PREF_ENABLED_top: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_top_layer: bool = false;
+        pub const SERVO_PREF_ENABLED_touch_action: bool = true;
+        pub const SERVO_PREF_ENABLED_transform: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_transform: bool = true;
+        pub const SERVO_PREF_ENABLED_transform_box: bool = true;
+        pub const SERVO_PREF_ENABLED_transform_origin: bool = false;
+        pub const SERVO_PREF_ENABLED_transform_style: bool = false;
+        pub const SERVO_PREF_ENABLED_transition: bool = false;
+        pub const SERVO_PREF_ENABLED_transition_delay: bool = false;
+        pub const SERVO_PREF_ENABLED_transition_duration: bool = false;
+        pub const SERVO_PREF_ENABLED_transition_property: bool = false;
+        pub const SERVO_PREF_ENABLED_transition_timing_function: bool = false;
+        pub const SERVO_PREF_ENABLED_unicode_bidi: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_user_focus: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_user_input: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_user_modify: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_user_select: bool = false;
+        pub const SERVO_PREF_ENABLED_vector_effect: bool = false;
+        pub const SERVO_PREF_ENABLED_vertical_align: bool = false;
+        pub const SERVO_PREF_ENABLED_visibility: bool = false;
+        pub const SERVO_PREF_ENABLED_white_space: bool = false;
+        pub const SERVO_PREF_ENABLED_width: bool = false;
+        pub const SERVO_PREF_ENABLED_will_change: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_window_dragging: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_window_shadow: bool = false;
+        pub const SERVO_PREF_ENABLED_word_break: bool = false;
+        pub const SERVO_PREF_ENABLED_word_spacing: bool = false;
+        pub const SERVO_PREF_ENABLED_overflow_wrap: bool = false;
+        pub const SERVO_PREF_ENABLED_writing_mode: bool = false;
+        pub const SERVO_PREF_ENABLED_z_index: bool = false;
+        pub type MallocSizeOf =
+            ::std::option::Option<unsafe extern "C" fn(p:
+                                                           *const ::std::os::raw::c_void)
+                                      -> ::std::os::raw::c_ulong>;
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct OwningNonNull<T> {
+            pub mPtr: root::RefPtr<T>,
+            pub mInited: bool,
+        }
+        #[repr(C)]
+        #[derive(Debug, Copy, Clone)]
+        pub struct StaticRefPtr<T> {
+            pub mRawPtr: *mut T,
+        }
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct LinkedListElement<T> {
+            pub mNext: *mut root::mozilla::LinkedListElement<T>,
+            pub mPrev: *mut root::mozilla::LinkedListElement<T>,
+            pub mIsSentinel: bool,
+        }
+        pub type LinkedListElement_Traits<T> =
+            root::mozilla::detail::LinkedListElementTraits<T>;
+        pub type LinkedListElement_RawType<T> =
+            root::mozilla::LinkedListElement_Traits<T>;
+        pub type LinkedListElement_ConstRawType<T> =
+            root::mozilla::LinkedListElement_Traits<T>;
+        pub type LinkedListElement_ClientType<T> =
+            root::mozilla::LinkedListElement_Traits<T>;
+        pub type LinkedListElement_ConstClientType<T> =
+            root::mozilla::LinkedListElement_Traits<T>;
+        pub const LinkedListElement_NodeKind_Sentinel:
+                  root::mozilla::LinkedListElement_NodeKind =
+            LinkedListElement_NodeKind::Normal;
+        #[repr(i32)]
+        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        pub enum LinkedListElement_NodeKind { Normal = 0, }
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct LinkedList<T> {
+            pub sentinel: root::mozilla::LinkedListElement<T>,
+        }
+        pub type LinkedList_Traits<T> =
+            root::mozilla::detail::LinkedListElementTraits<T>;
+        pub type LinkedList_RawType<T> = root::mozilla::LinkedList_Traits<T>;
+        pub type LinkedList_ConstRawType<T> =
+            root::mozilla::LinkedList_Traits<T>;
+        pub type LinkedList_ClientType<T> =
+            root::mozilla::LinkedList_Traits<T>;
+        pub type LinkedList_ConstClientType<T> =
+            root::mozilla::LinkedList_Traits<T>;
+        #[repr(C)]
+        #[derive(Debug, Copy, Clone)]
+        pub struct LinkedList_Iterator<T> {
+            pub mCurrent: root::mozilla::LinkedList_RawType<T>,
+        }
+        #[repr(C)]
+        #[derive(Debug, Copy, Clone)]
+        pub struct ReverseIterator<IteratorT> {
+            pub mCurrent: IteratorT,
+        }
+        /**
+ * Pair is the logical concatenation of an instance of A with an instance B.
+ * Space is conserved when possible.  Neither A nor B may be a final class.
+ *
+ * It's typically clearer to have individual A and B member fields.  Except if
+ * you want the space-conserving qualities of Pair, you're probably better off
+ * not using this!
+ *
+ * No guarantees are provided about the memory layout of A and B, the order of
+ * initialization or destruction of A and B, and so on.  (This is approximately
+ * required to optimize space usage.)  The first/second names are merely
+ * conceptual!
+ */
+        #[repr(C)]
+        pub struct Pair<A, B> {
+            pub _address: u8,
+            pub _phantom_0: ::std::marker::PhantomData<A>,
+            pub _phantom_1: ::std::marker::PhantomData<B>,
+        }
+        pub type Pair_Base = [u8; 0usize];
+        /**
+ * A default deletion policy using plain old operator delete.
+ *
+ * Note that this type can be specialized, but authors should beware of the risk
+ * that the specialization may at some point cease to match (either because it
+ * gets moved to a different compilation unit or the signature changes). If the
+ * non-specialized (|delete|-based) version compiles for that type but does the
+ * wrong thing, bad things could happen.
+ *
+ * This is a non-issue for types which are always incomplete (i.e. opaque handle
+ * types), since |delete|-ing such a type will always trigger a compilation
+ * error.
+ */
+        #[repr(C)]
+        #[derive(Debug, Copy, Clone)]
+        pub struct DefaultDelete<T> {
+            pub _address: u8,
+            pub _phantom_0: ::std::marker::PhantomData<T>,
+        }
+        pub type TimeStampValue = u64;
+        /**
+ * Instances of this class represent moments in time, or a special
+ * "null" moment. We do not use the non-monotonic system clock or
+ * local time, since they can be reset, causing apparent backward
+ * travel in time, which can confuse algorithms. Instead we measure
+ * elapsed time according to the system.  This time can never go
+ * backwards (i.e. it never wraps around, at least not in less than
+ * five million years of system elapsed time). It might not advance
+ * while the system is sleeping. If TimeStamp::SetNow() is not called
+ * at all for hours or days, we might not notice the passage of some
+ * of that time.
+ *
+ * We deliberately do not expose a way to convert TimeStamps to some
+ * particular unit. All you can do is compute a difference between two
+ * TimeStamps to get a TimeDuration. You can also add a TimeDuration
+ * to a TimeStamp to get a new TimeStamp. You can't do something
+ * meaningless like add two TimeStamps.
+ *
+ * Internally this is implemented as either a wrapper around
+ *   - high-resolution, monotonic, system clocks if they exist on this
+ *     platform
+ *   - PRIntervalTime otherwise.  We detect wraparounds of
+ *     PRIntervalTime and work around them.
+ *
+ * This class is similar to C++11's time_point, however it is
+ * explicitly nullable and provides an IsNull() method. time_point
+ * is initialized to the clock's epoch and provides a
+ * time_since_epoch() method that functions similiarly. i.e.
+ * t.IsNull() is equivalent to t.time_since_epoch() == decltype(t)::duration::zero();
+ */
+        #[repr(C)]
+        #[derive(Debug, Copy)]
+        pub struct TimeStamp {
+            /**
+   * When built with PRIntervalTime, a value of 0 means this instance
+   * is "null". Otherwise, the low 32 bits represent a PRIntervalTime,
+   * and the high 32 bits represent a counter of the number of
+   * rollovers of PRIntervalTime that we've seen. This counter starts
+   * at 1 to avoid a real time colliding with the "null" value.
+   *
+   * PR_INTERVAL_MAX is set at 100,000 ticks per second. So the minimum
+   * time to wrap around is about 2^64/100000 seconds, i.e. about
+   * 5,849,424 years.
+   *
+   * When using a system clock, a value is system dependent.
+   */
+            pub mValue: root::mozilla::TimeStampValue,
+        }
+        #[test]
+        fn bindgen_test_layout_TimeStamp() {
+            assert_eq!(::std::mem::size_of::<TimeStamp>() , 8usize , concat !
+                       ( "Size of: " , stringify ! ( TimeStamp ) ));
+            assert_eq! (::std::mem::align_of::<TimeStamp>() , 8usize , concat
+                        ! ( "Alignment of " , stringify ! ( TimeStamp ) ));
+            assert_eq! (unsafe {
+                        & ( * ( 0 as * const TimeStamp ) ) . mValue as * const
+                        _ as usize } , 0usize , concat ! (
+                        "Alignment of field: " , stringify ! ( TimeStamp ) ,
+                        "::" , stringify ! ( mValue ) ));
+        }
+        impl Clone for TimeStamp {
+            fn clone(&self) -> Self { *self }
+        }
+        #[repr(C)]
+        #[derive(Debug, Copy)]
+        pub struct MallocAllocPolicy {
+            pub _address: u8,
+        }
+        #[test]
+        fn bindgen_test_layout_MallocAllocPolicy() {
+            assert_eq!(::std::mem::size_of::<MallocAllocPolicy>() , 1usize ,
+                       concat ! (
+                       "Size of: " , stringify ! ( MallocAllocPolicy ) ));
+            assert_eq! (::std::mem::align_of::<MallocAllocPolicy>() , 1usize ,
+                        concat ! (
+                        "Alignment of " , stringify ! ( MallocAllocPolicy )
+                        ));
+        }
+        impl Clone for MallocAllocPolicy {
+            fn clone(&self) -> Self { *self }
+        }
+        #[repr(C)]
+        #[derive(Debug, Copy)]
+        pub struct ThreadSafeAutoRefCnt {
+            pub mValue: u64,
+        }
+        pub const ThreadSafeAutoRefCnt_isThreadSafe: bool = true;
+        #[test]
+        fn bindgen_test_layout_ThreadSafeAutoRefCnt() {
+            assert_eq!(::std::mem::size_of::<ThreadSafeAutoRefCnt>() , 8usize
+                       , concat ! (
+                       "Size of: " , stringify ! ( ThreadSafeAutoRefCnt ) ));
+            assert_eq! (::std::mem::align_of::<ThreadSafeAutoRefCnt>() ,
+                        8usize , concat ! (
+                        "Alignment of " , stringify ! ( ThreadSafeAutoRefCnt )
+                        ));
+            assert_eq! (unsafe {
+                        & ( * ( 0 as * const ThreadSafeAutoRefCnt ) ) . mValue
+                        as * const _ as usize } , 0usize , concat ! (
+                        "Alignment of field: " , stringify ! (
+                        ThreadSafeAutoRefCnt ) , "::" , stringify ! ( mValue )
+                        ));
+        }
+        impl Clone for ThreadSafeAutoRefCnt {
+            fn clone(&self) -> Self { *self }
+        }
+        pub mod gfx {
+            #[allow(unused_imports)]
+            use self::super::super::super::root;
+            pub type IntRegion = [u64; 3usize];
+            #[repr(C)]
+            #[derive(Debug, Copy)]
+            pub struct Color {
+                pub _bindgen_opaque_blob: [u32; 4usize],
+            }
+            #[test]
+            fn bindgen_test_layout_Color() {
+                assert_eq!(::std::mem::size_of::<Color>() , 16usize , concat !
+                           ( "Size of: " , stringify ! ( Color ) ));
+                assert_eq! (::std::mem::align_of::<Color>() , 4usize , concat
+                            ! ( "Alignment of " , stringify ! ( Color ) ));
+            }
+            impl Clone for Color {
+                fn clone(&self) -> Self { *self }
+            }
+            pub type IntPoint = [u32; 2usize];
+            pub type IntMargin = [u32; 4usize];
+            pub type IntRect = [u32; 4usize];
+            pub type Matrix4x4 = [u32; 16usize];
+            #[repr(C)]
+            #[derive(Debug, Copy, Clone)]
+            pub struct SourceSurface([u8; 0]);
+            #[repr(C)]
+            #[derive(Debug, Copy, Clone)]
+            pub struct DrawTarget([u8; 0]);
+            #[repr(C)]
+            #[derive(Debug, Copy, Clone)]
+            pub struct Path([u8; 0]);
+        }
+        pub mod layers {
+            #[allow(unused_imports)]
+            use self::super::super::super::root;
+            #[repr(C)]
+            #[derive(Debug, Copy, Clone)]
+            pub struct LayerManager([u8; 0]);
+            #[repr(C)]
+            #[derive(Debug, Copy, Clone)]
+            pub struct ContainerLayer([u8; 0]);
+            /**
+ * The viewport and displayport metrics for the painted frame at the
+ * time of a layer-tree transaction.  These metrics are especially
+ * useful for shadow layers, because the metrics values are updated
+ * atomically with new pixels.
+ */
+            #[repr(C)]
+            #[derive(Debug, Copy)]
+            pub struct FrameMetrics {
+                pub mScrollId: root::mozilla::layers::FrameMetrics_ViewID,
+                pub mPresShellResolution: f32,
+                pub mCompositionBounds: root::mozilla::ParentLayerRect,
+                pub mDisplayPort: root::mozilla::CSSRect,
+                pub mCriticalDisplayPort: root::mozilla::CSSRect,
+                pub mScrollableRect: root::mozilla::CSSRect,
+                pub mCumulativeResolution: root::mozilla::LayoutDeviceToLayerScale2D,
+                pub mDevPixelsPerCSSPixel: root::mozilla::CSSToLayoutDeviceScale,
+                pub mScrollOffset: root::mozilla::CSSPoint,
+                pub mZoom: root::mozilla::CSSToParentLayerScale2D,
+                pub mScrollGeneration: u32,
+                pub mSmoothScrollOffset: root::mozilla::CSSPoint,
+                pub mRootCompositionSize: root::mozilla::CSSSize,
+                pub mDisplayPortMargins: root::mozilla::ScreenMargin,
+                pub mPresShellId: u32,
+                pub mViewport: root::mozilla::CSSRect,
+                pub mExtraResolution: root::mozilla::ScreenToLayerScale2D,
+                pub mPaintRequestTime: root::mozilla::TimeStamp,
+                pub mScrollUpdateType: root::mozilla::layers::FrameMetrics_ScrollOffsetUpdateType,
+                pub _bitfield_1: u8,
+                pub __bindgen_padding_0: [u16; 3usize],
+            }
+            pub type FrameMetrics_ViewID = u64;
+            #[repr(u8)]
+            #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+            pub enum FrameMetrics_ScrollOffsetUpdateType {
+                eNone = 0,
+                eMainThread = 1,
+                ePending = 2,
+                eUserAction = 3,
+                eRestore = 4,
+                eSentinel = 5,
+            }
+            extern "C" {
+                #[link_name =
+                      "_ZN7mozilla6layers12FrameMetrics14NULL_SCROLL_IDE"]
+                pub static FrameMetrics_NULL_SCROLL_ID:
+                           root::mozilla::layers::FrameMetrics_ViewID;
+            }
+            pub const FrameMetrics_START_SCROLL_ID:
+                      root::mozilla::layers::FrameMetrics_ViewID =
+                2;
+            #[test]
+            fn bindgen_test_layout_FrameMetrics() {
+                assert_eq!(::std::mem::size_of::<FrameMetrics>() , 184usize ,
+                           concat ! (
+                           "Size of: " , stringify ! ( FrameMetrics ) ));
+                assert_eq! (::std::mem::align_of::<FrameMetrics>() , 8usize ,
+                            concat ! (
+                            "Alignment of " , stringify ! ( FrameMetrics ) ));
+                assert_eq! (unsafe {
+                            & ( * ( 0 as * const FrameMetrics ) ) . mScrollId
+                            as * const _ as usize } , 0usize , concat ! (
+                            "Alignment of field: " , stringify ! (
+                            FrameMetrics ) , "::" , stringify ! ( mScrollId )
+                            ));
+                assert_eq! (unsafe {
+                            & ( * ( 0 as * const FrameMetrics ) ) .
+                            mPresShellResolution as * const _ as usize } ,
+                            8usize , concat ! (
+                            "Alignment of field: " , stringify ! (
+                            FrameMetrics ) , "::" , stringify ! (
+                            mPresShellResolution ) ));
+                assert_eq! (unsafe {
+                            & ( * ( 0 as * const FrameMetrics ) ) .
+                            mCompositionBounds as * const _ as usize } ,
+                            12usize , concat ! (
+                            "Alignment of field: " , stringify ! (
+                            FrameMetrics ) , "::" , stringify ! (
+                            mCompositionBounds ) ));
+                assert_eq! (unsafe {
+                            & ( * ( 0 as * const FrameMetrics ) ) .
+                            mDisplayPort as * const _ as usize } , 28usize ,
+                            concat ! (
+                            "Alignment of field: " , stringify ! (
+                            FrameMetrics ) , "::" , stringify ! ( mDisplayPort
+                            ) ));
+                assert_eq! (unsafe {
+                            & ( * ( 0 as * const FrameMetrics ) ) .
+                            mCriticalDisplayPort as * const _ as usize } ,
+                            44usize , concat ! (
+                            "Alignment of field: " , stringify ! (
+                            FrameMetrics ) , "::" , stringify ! (
+                            mCriticalDisplayPort ) ));
+                assert_eq! (unsafe {
+                            & ( * ( 0 as * const FrameMetrics ) ) .
+                            mScrollableRect as * const _ as usize } , 60usize
+                            , concat ! (
+                            "Alignment of field: " , stringify ! (
+                            FrameMetrics ) , "::" , stringify ! (
+                            mScrollableRect ) ));
+                assert_eq! (unsafe {
+                            & ( * ( 0 as * const FrameMetrics ) ) .
+                            mCumulativeResolution as * const _ as usize } ,
+                            76usize , concat ! (
+                            "Alignment of field: " , stringify ! (
+                            FrameMetrics ) , "::" , stringify ! (
+                            mCumulativeResolution ) ));
+                assert_eq! (unsafe {
+                            & ( * ( 0 as * const FrameMetrics ) ) .
+                            mDevPixelsPerCSSPixel as * const _ as usize } ,
+                            84usize , concat ! (
+                            "Alignment of field: " , stringify ! (
+                            FrameMetrics ) , "::" , stringify ! (
+                            mDevPixelsPerCSSPixel ) ));
+                assert_eq! (unsafe {
+                            & ( * ( 0 as * const FrameMetrics ) ) .
+                            mScrollOffset as * const _ as usize } , 88usize ,
+                            concat ! (
+                            "Alignment of field: " , stringify ! (
+                            FrameMetrics ) , "::" , stringify ! (
+                            mScrollOffset ) ));
+                assert_eq! (unsafe {
+                            & ( * ( 0 as * const FrameMetrics ) ) . mZoom as *
+                            const _ as usize } , 96usize , concat ! (
+                            "Alignment of field: " , stringify ! (
+                            FrameMetrics ) , "::" , stringify ! ( mZoom ) ));
+                assert_eq! (unsafe {
+                            & ( * ( 0 as * const FrameMetrics ) ) .
+                            mScrollGeneration as * const _ as usize } ,
+                            104usize , concat ! (
+                            "Alignment of field: " , stringify ! (
+                            FrameMetrics ) , "::" , stringify ! (
+                            mScrollGeneration ) ));
+                assert_eq! (unsafe {
+                            & ( * ( 0 as * const FrameMetrics ) ) .
+                            mSmoothScrollOffset as * const _ as usize } ,
+                            108usize , concat ! (
+                            "Alignment of field: " , stringify ! (
+                            FrameMetrics ) , "::" , stringify ! (
+                            mSmoothScrollOffset ) ));
+                assert_eq! (unsafe {
+                            & ( * ( 0 as * const FrameMetrics ) ) .
+                            mRootCompositionSize as * const _ as usize } ,
+                            116usize , concat ! (
+                            "Alignment of field: " , stringify ! (
+                            FrameMetrics ) , "::" , stringify ! (
+                            mRootCompositionSize ) ));
+                assert_eq! (unsafe {
+                            & ( * ( 0 as * const FrameMetrics ) ) .
+                            mDisplayPortMargins as * const _ as usize } ,
+                            124usize , concat ! (
+                            "Alignment of field: " , stringify ! (
+                            FrameMetrics ) , "::" , stringify ! (
+                            mDisplayPortMargins ) ));
+                assert_eq! (unsafe {
+                            & ( * ( 0 as * const FrameMetrics ) ) .
+                            mPresShellId as * const _ as usize } , 140usize ,
+                            concat ! (
+                            "Alignment of field: " , stringify ! (
+                            FrameMetrics ) , "::" , stringify ! ( mPresShellId
+                            ) ));
+                assert_eq! (unsafe {
+                            & ( * ( 0 as * const FrameMetrics ) ) . mViewport
+                            as * const _ as usize } , 144usize , concat ! (
+                            "Alignment of field: " , stringify ! (
+                            FrameMetrics ) , "::" , stringify ! ( mViewport )
+                            ));
+                assert_eq! (unsafe {
+                            & ( * ( 0 as * const FrameMetrics ) ) .
+                            mExtraResolution as * const _ as usize } ,
+                            160usize , concat ! (
+                            "Alignment of field: " , stringify ! (
+                            FrameMetrics ) , "::" , stringify ! (
+                            mExtraResolution ) ));
+                assert_eq! (unsafe {
+                            & ( * ( 0 as * const FrameMetrics ) ) .
+                            mPaintRequestTime as * const _ as usize } ,
+                            168usize , concat ! (
+                            "Alignment of field: " , stringify ! (
+                            FrameMetrics ) , "::" , stringify ! (
+                            mPaintRequestTime ) ));
+                assert_eq! (unsafe {
+                            & ( * ( 0 as * const FrameMetrics ) ) .
+                            mScrollUpdateType as * const _ as usize } ,
+                            176usize , concat ! (
+                            "Alignment of field: " , stringify ! (
+                            FrameMetrics ) , "::" , stringify ! (
+                            mScrollUpdateType ) ));
+            }
+            impl Clone for FrameMetrics {
+                fn clone(&self) -> Self { *self }
+            }
+            #[repr(C)]
+            #[derive(Debug)]
+            pub struct ScrollSnapInfo {
+                pub mScrollSnapTypeX: u8,
+                pub mScrollSnapTypeY: u8,
+                pub mScrollSnapIntervalX: [u32; 2usize],
+                pub mScrollSnapIntervalY: [u32; 2usize],
+                pub mScrollSnapDestination: root::nsPoint,
+                pub mScrollSnapCoordinates: root::nsTArray<root::nsPoint>,
+            }
+            #[test]
+            fn bindgen_test_layout_ScrollSnapInfo() {
+                assert_eq!(::std::mem::size_of::<ScrollSnapInfo>() , 40usize ,
+                           concat ! (
+                           "Size of: " , stringify ! ( ScrollSnapInfo ) ));
+                assert_eq! (::std::mem::align_of::<ScrollSnapInfo>() , 8usize
+                            , concat ! (
+                            "Alignment of " , stringify ! ( ScrollSnapInfo )
+                            ));
+                assert_eq! (unsafe {
+                            & ( * ( 0 as * const ScrollSnapInfo ) ) .
+                            mScrollSnapTypeX as * const _ as usize } , 0usize
+                            , concat ! (
+                            "Alignment of field: " , stringify ! (
+                            ScrollSnapInfo ) , "::" , stringify ! (
+                            mScrollSnapTypeX ) ));
+                assert_eq! (unsafe {
+                            & ( * ( 0 as * const ScrollSnapInfo ) ) .
+                            mScrollSnapTypeY as * const _ as usize } , 1usize
+                            , concat ! (
+                            "Alignment of field: " , stringify ! (
+                            ScrollSnapInfo ) , "::" , stringify ! (
+                            mScrollSnapTypeY ) ));
+                assert_eq! (unsafe {
+                            & ( * ( 0 as * const ScrollSnapInfo ) ) .
+                            mScrollSnapIntervalX as * const _ as usize } ,
+                            4usize , concat ! (
+                            "Alignment of field: " , stringify ! (
+                            ScrollSnapInfo ) , "::" , stringify ! (
+                            mScrollSnapIntervalX ) ));
+                assert_eq! (unsafe {
+                            & ( * ( 0 as * const ScrollSnapInfo ) ) .
+                            mScrollSnapIntervalY as * const _ as usize } ,
+                            12usize , concat ! (
+                            "Alignment of field: " , stringify ! (
+                            ScrollSnapInfo ) , "::" , stringify ! (
+                            mScrollSnapIntervalY ) ));
+                assert_eq! (unsafe {
+                            & ( * ( 0 as * const ScrollSnapInfo ) ) .
+                            mScrollSnapDestination as * const _ as usize } ,
+                            20usize , concat ! (
+                            "Alignment of field: " , stringify ! (
+                            ScrollSnapInfo ) , "::" , stringify ! (
+                            mScrollSnapDestination ) ));
+                assert_eq! (unsafe {
+                            & ( * ( 0 as * const ScrollSnapInfo ) ) .
+                            mScrollSnapCoordinates as * const _ as usize } ,
+                            32usize , concat ! (
+                            "Alignment of field: " , stringify ! (
+                            ScrollSnapInfo ) , "::" , stringify ! (
+                            mScrollSnapCoordinates ) ));
+            }
+            #[repr(C)]
+            #[derive(Debug, Copy, Clone)]
+            pub struct Layer([u8; 0]);
         }
         #[repr(C)]
         #[derive(Debug, Copy)]
@@ -4942,8 +5115,108 @@ pub mod root {
             #[derive(Debug, Copy, Clone)]
             pub struct ImportRule([u8; 0]);
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
-            pub struct Rule([u8; 0]);
+            #[derive(Debug)]
+            pub struct Rule {
+                pub _base: root::nsIDOMCSSRule,
+                pub _base_1: root::nsWrapperCache,
+                pub mRefCnt: root::nsCycleCollectingAutoRefCnt,
+                pub _mOwningThread: root::nsAutoOwningThread,
+                pub mSheet: *mut root::mozilla::StyleSheet,
+                pub mParentRule: *mut root::mozilla::css::GroupRule,
+                pub mLineNumber: u32,
+                pub mColumnNumber: u32,
+            }
+            pub type Rule_HasThreadSafeRefCnt = root::mozilla::FalseType;
+            #[repr(C)]
+            #[derive(Debug, Copy)]
+            pub struct Rule_cycleCollection {
+                pub _base: root::nsXPCOMCycleCollectionParticipant,
+            }
+            #[test]
+            fn bindgen_test_layout_Rule_cycleCollection() {
+                assert_eq!(::std::mem::size_of::<Rule_cycleCollection>() ,
+                           16usize , concat ! (
+                           "Size of: " , stringify ! ( Rule_cycleCollection )
+                           ));
+                assert_eq! (::std::mem::align_of::<Rule_cycleCollection>() ,
+                            8usize , concat ! (
+                            "Alignment of " , stringify ! (
+                            Rule_cycleCollection ) ));
+            }
+            impl Clone for Rule_cycleCollection {
+                fn clone(&self) -> Self { *self }
+            }
+            pub const Rule_UNKNOWN_RULE:
+                      root::mozilla::css::Rule__bindgen_ty_1 =
+                Rule__bindgen_ty_1::UNKNOWN_RULE;
+            pub const Rule_CHARSET_RULE:
+                      root::mozilla::css::Rule__bindgen_ty_1 =
+                Rule__bindgen_ty_1::CHARSET_RULE;
+            pub const Rule_IMPORT_RULE: root::mozilla::css::Rule__bindgen_ty_1
+                      =
+                Rule__bindgen_ty_1::IMPORT_RULE;
+            pub const Rule_NAMESPACE_RULE:
+                      root::mozilla::css::Rule__bindgen_ty_1 =
+                Rule__bindgen_ty_1::NAMESPACE_RULE;
+            pub const Rule_STYLE_RULE: root::mozilla::css::Rule__bindgen_ty_1
+                      =
+                Rule__bindgen_ty_1::STYLE_RULE;
+            pub const Rule_MEDIA_RULE: root::mozilla::css::Rule__bindgen_ty_1
+                      =
+                Rule__bindgen_ty_1::MEDIA_RULE;
+            pub const Rule_FONT_FACE_RULE:
+                      root::mozilla::css::Rule__bindgen_ty_1 =
+                Rule__bindgen_ty_1::FONT_FACE_RULE;
+            pub const Rule_PAGE_RULE: root::mozilla::css::Rule__bindgen_ty_1 =
+                Rule__bindgen_ty_1::PAGE_RULE;
+            pub const Rule_KEYFRAME_RULE:
+                      root::mozilla::css::Rule__bindgen_ty_1 =
+                Rule__bindgen_ty_1::KEYFRAME_RULE;
+            pub const Rule_KEYFRAMES_RULE:
+                      root::mozilla::css::Rule__bindgen_ty_1 =
+                Rule__bindgen_ty_1::KEYFRAMES_RULE;
+            pub const Rule_DOCUMENT_RULE:
+                      root::mozilla::css::Rule__bindgen_ty_1 =
+                Rule__bindgen_ty_1::DOCUMENT_RULE;
+            pub const Rule_SUPPORTS_RULE:
+                      root::mozilla::css::Rule__bindgen_ty_1 =
+                Rule__bindgen_ty_1::SUPPORTS_RULE;
+            pub const Rule_FONT_FEATURE_VALUES_RULE:
+                      root::mozilla::css::Rule__bindgen_ty_1 =
+                Rule__bindgen_ty_1::FONT_FEATURE_VALUES_RULE;
+            pub const Rule_COUNTER_STYLE_RULE:
+                      root::mozilla::css::Rule__bindgen_ty_1 =
+                Rule__bindgen_ty_1::COUNTER_STYLE_RULE;
+            #[repr(u32)]
+            #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+            pub enum Rule__bindgen_ty_1 {
+                UNKNOWN_RULE = 0,
+                CHARSET_RULE = 1,
+                IMPORT_RULE = 2,
+                NAMESPACE_RULE = 3,
+                STYLE_RULE = 4,
+                MEDIA_RULE = 5,
+                FONT_FACE_RULE = 6,
+                PAGE_RULE = 7,
+                KEYFRAME_RULE = 8,
+                KEYFRAMES_RULE = 9,
+                DOCUMENT_RULE = 10,
+                SUPPORTS_RULE = 11,
+                FONT_FEATURE_VALUES_RULE = 12,
+                COUNTER_STYLE_RULE = 13,
+            }
+            extern "C" {
+                #[link_name = "_ZN7mozilla3css4Rule21_cycleCollectorGlobalE"]
+                pub static mut Rule__cycleCollectorGlobal:
+                           root::mozilla::css::Rule_cycleCollection;
+            }
+            #[test]
+            fn bindgen_test_layout_Rule() {
+                assert_eq!(::std::mem::size_of::<Rule>() , 72usize , concat !
+                           ( "Size of: " , stringify ! ( Rule ) ));
+                assert_eq! (::std::mem::align_of::<Rule>() , 8usize , concat !
+                            ( "Alignment of " , stringify ! ( Rule ) ));
+            }
             #[repr(C)]
             #[derive(Debug, Copy, Clone)]
             pub struct Loader([u8; 0]);
@@ -5692,14 +5965,6 @@ pub mod root {
         }
         impl Clone for StyleComplexColor {
             fn clone(&self) -> Self { *self }
-        }
-        #[repr(i32)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-        pub enum CSSEnabledState {
-            eForAllContent = 0,
-            eInUASheets = 1,
-            eInChrome = 2,
-            eIgnoreEnabledState = 255,
         }
         pub const FontFamilyType_eFamily_generic_first:
                   root::mozilla::FontFamilyType =
@@ -8252,93 +8517,93 @@ pub mod root {
         #[repr(C)]
         #[derive(Debug, Copy, Clone)]
         pub struct AnimationPerformanceWarning([u8; 0]);
-        pub type CSSPseudoClassTypeBase = u8;
-        #[repr(u8)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-        pub enum CSSPseudoClassType {
-            empty = 0,
-            mozOnlyWhitespace = 1,
-            mozEmptyExceptChildrenWithLocalname = 2,
-            lang = 3,
-            mozBoundElement = 4,
-            root = 5,
-            any = 6,
-            firstChild = 7,
-            firstNode = 8,
-            lastChild = 9,
-            lastNode = 10,
-            onlyChild = 11,
-            firstOfType = 12,
-            lastOfType = 13,
-            onlyOfType = 14,
-            nthChild = 15,
-            nthLastChild = 16,
-            nthOfType = 17,
-            nthLastOfType = 18,
-            mozIsHTML = 19,
-            unresolved = 20,
-            mozNativeAnonymous = 21,
-            mozSystemMetric = 22,
-            mozLocaleDir = 23,
-            mozLWTheme = 24,
-            mozLWThemeBrightText = 25,
-            mozLWThemeDarkText = 26,
-            mozWindowInactive = 27,
-            mozTableBorderNonzero = 28,
-            mozBrowserFrame = 29,
-            scope = 30,
-            negation = 31,
-            dir = 32,
-            link = 33,
-            mozAnyLink = 34,
-            anyLink = 35,
-            visited = 36,
-            active = 37,
-            checked = 38,
-            disabled = 39,
-            enabled = 40,
-            focus = 41,
-            focusWithin = 42,
-            hover = 43,
-            mozDragOver = 44,
-            target = 45,
-            indeterminate = 46,
-            mozDevtoolsHighlighted = 47,
-            mozStyleeditorTransitioning = 48,
-            fullscreen = 49,
-            mozFullScreen = 50,
-            mozFocusRing = 51,
-            mozBroken = 52,
-            mozLoading = 53,
-            mozUserDisabled = 54,
-            mozSuppressed = 55,
-            mozHandlerClickToPlay = 56,
-            mozHandlerVulnerableUpdatable = 57,
-            mozHandlerVulnerableNoUpdate = 58,
-            mozHandlerDisabled = 59,
-            mozHandlerBlocked = 60,
-            mozHandlerCrashed = 61,
-            mozMathIncrementScriptLevel = 62,
-            required = 63,
-            optional = 64,
-            valid = 65,
-            invalid = 66,
-            inRange = 67,
-            outOfRange = 68,
-            defaultPseudo = 69,
-            placeholderShown = 70,
-            mozReadOnly = 71,
-            mozReadWrite = 72,
-            mozSubmitInvalid = 73,
-            mozUIInvalid = 74,
-            mozUIValid = 75,
-            mozMeterOptimum = 76,
-            mozMeterSubOptimum = 77,
-            mozMeterSubSubOptimum = 78,
-            mozPlaceholder = 79,
-            Count = 80,
-            NotPseudo = 81,
-            MAX = 82,
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct CSSFontFaceDescriptors {
+            pub mFamily: root::nsCSSValue,
+            pub mStyle: root::nsCSSValue,
+            pub mWeight: root::nsCSSValue,
+            pub mStretch: root::nsCSSValue,
+            pub mSrc: root::nsCSSValue,
+            pub mUnicodeRange: root::nsCSSValue,
+            pub mFontFeatureSettings: root::nsCSSValue,
+            pub mFontLanguageOverride: root::nsCSSValue,
+            pub mDisplay: root::nsCSSValue,
+        }
+        extern "C" {
+            #[link_name = "_ZN7mozilla22CSSFontFaceDescriptors6FieldsE"]
+            pub static mut CSSFontFaceDescriptors_Fields:
+                       [*const root::nsCSSValue; 0usize];
+        }
+        #[test]
+        fn bindgen_test_layout_CSSFontFaceDescriptors() {
+            assert_eq!(::std::mem::size_of::<CSSFontFaceDescriptors>() ,
+                       144usize , concat ! (
+                       "Size of: " , stringify ! ( CSSFontFaceDescriptors )
+                       ));
+            assert_eq! (::std::mem::align_of::<CSSFontFaceDescriptors>() ,
+                        8usize , concat ! (
+                        "Alignment of " , stringify ! ( CSSFontFaceDescriptors
+                        ) ));
+            assert_eq! (unsafe {
+                        & ( * ( 0 as * const CSSFontFaceDescriptors ) ) .
+                        mFamily as * const _ as usize } , 0usize , concat ! (
+                        "Alignment of field: " , stringify ! (
+                        CSSFontFaceDescriptors ) , "::" , stringify ! (
+                        mFamily ) ));
+            assert_eq! (unsafe {
+                        & ( * ( 0 as * const CSSFontFaceDescriptors ) ) .
+                        mStyle as * const _ as usize } , 16usize , concat ! (
+                        "Alignment of field: " , stringify ! (
+                        CSSFontFaceDescriptors ) , "::" , stringify ! ( mStyle
+                        ) ));
+            assert_eq! (unsafe {
+                        & ( * ( 0 as * const CSSFontFaceDescriptors ) ) .
+                        mWeight as * const _ as usize } , 32usize , concat ! (
+                        "Alignment of field: " , stringify ! (
+                        CSSFontFaceDescriptors ) , "::" , stringify ! (
+                        mWeight ) ));
+            assert_eq! (unsafe {
+                        & ( * ( 0 as * const CSSFontFaceDescriptors ) ) .
+                        mStretch as * const _ as usize } , 48usize , concat !
+                        (
+                        "Alignment of field: " , stringify ! (
+                        CSSFontFaceDescriptors ) , "::" , stringify ! (
+                        mStretch ) ));
+            assert_eq! (unsafe {
+                        & ( * ( 0 as * const CSSFontFaceDescriptors ) ) . mSrc
+                        as * const _ as usize } , 64usize , concat ! (
+                        "Alignment of field: " , stringify ! (
+                        CSSFontFaceDescriptors ) , "::" , stringify ! ( mSrc )
+                        ));
+            assert_eq! (unsafe {
+                        & ( * ( 0 as * const CSSFontFaceDescriptors ) ) .
+                        mUnicodeRange as * const _ as usize } , 80usize ,
+                        concat ! (
+                        "Alignment of field: " , stringify ! (
+                        CSSFontFaceDescriptors ) , "::" , stringify ! (
+                        mUnicodeRange ) ));
+            assert_eq! (unsafe {
+                        & ( * ( 0 as * const CSSFontFaceDescriptors ) ) .
+                        mFontFeatureSettings as * const _ as usize } , 96usize
+                        , concat ! (
+                        "Alignment of field: " , stringify ! (
+                        CSSFontFaceDescriptors ) , "::" , stringify ! (
+                        mFontFeatureSettings ) ));
+            assert_eq! (unsafe {
+                        & ( * ( 0 as * const CSSFontFaceDescriptors ) ) .
+                        mFontLanguageOverride as * const _ as usize } ,
+                        112usize , concat ! (
+                        "Alignment of field: " , stringify ! (
+                        CSSFontFaceDescriptors ) , "::" , stringify ! (
+                        mFontLanguageOverride ) ));
+            assert_eq! (unsafe {
+                        & ( * ( 0 as * const CSSFontFaceDescriptors ) ) .
+                        mDisplay as * const _ as usize } , 128usize , concat !
+                        (
+                        "Alignment of field: " , stringify ! (
+                        CSSFontFaceDescriptors ) , "::" , stringify ! (
+                        mDisplay ) ));
         }
         #[repr(C)]
         #[derive(Debug)]
@@ -8378,67 +8643,6 @@ pub mod root {
             pub _phantom_1: ::std::marker::PhantomData<Deleter>,
         }
     }
-    pub mod std {
-        #[allow(unused_imports)]
-        use self::super::super::root;
-        #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
-        pub struct pair<_T1, _T2> {
-            pub first: _T1,
-            pub second: _T2,
-        }
-        pub type pair_first_type<_T1> = _T1;
-        pub type pair_second_type<_T2> = _T2;
-        pub type pair__PCCP = [u8; 0usize];
-        #[repr(C)]
-        #[derive(Debug, Copy)]
-        pub struct input_iterator_tag {
-            pub _address: u8,
-        }
-        #[test]
-        fn bindgen_test_layout_input_iterator_tag() {
-            assert_eq!(::std::mem::size_of::<input_iterator_tag>() , 1usize ,
-                       concat ! (
-                       "Size of: " , stringify ! ( input_iterator_tag ) ));
-            assert_eq! (::std::mem::align_of::<input_iterator_tag>() , 1usize
-                        , concat ! (
-                        "Alignment of " , stringify ! ( input_iterator_tag )
-                        ));
-        }
-        impl Clone for input_iterator_tag {
-            fn clone(&self) -> Self { *self }
-        }
-        #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
-        pub struct iterator<_Category, _Tp, _Distance, _Pointer, _Reference> {
-            pub _address: u8,
-            pub _phantom_0: ::std::marker::PhantomData<_Category>,
-            pub _phantom_1: ::std::marker::PhantomData<_Tp>,
-            pub _phantom_2: ::std::marker::PhantomData<_Distance>,
-            pub _phantom_3: ::std::marker::PhantomData<_Pointer>,
-            pub _phantom_4: ::std::marker::PhantomData<_Reference>,
-        }
-        pub type iterator_iterator_category<_Category> = _Category;
-        pub type iterator_value_type<_Tp> = _Tp;
-        pub type iterator_difference_type<_Distance> = _Distance;
-        pub type iterator_pointer<_Pointer> = _Pointer;
-        pub type iterator_reference<_Reference> = _Reference;
-        #[repr(C)]
-        #[derive(Debug)]
-        pub struct atomic<_Tp> {
-            pub _M_i: _Tp,
-        }
-        pub mod chrono {
-            #[allow(unused_imports)]
-            use self::super::super::super::root;
-        }
-    }
-    pub mod __gnu_cxx {
-        #[allow(unused_imports)]
-        use self::super::super::root;
-    }
-    pub type __off_t = ::std::os::raw::c_long;
-    pub type __off64_t = ::std::os::raw::c_long;
     #[repr(C)]
     #[derive(Debug, Copy)]
     pub struct _IO_FILE {
@@ -8629,39 +8833,6 @@ pub mod root {
     }
     pub type FILE = root::_IO_FILE;
     pub type va_list = root::__builtin_va_list;
-    pub type _IO_lock_t = ::std::os::raw::c_void;
-    #[repr(C)]
-    #[derive(Debug, Copy)]
-    pub struct _IO_marker {
-        pub _next: *mut root::_IO_marker,
-        pub _sbuf: *mut root::_IO_FILE,
-        pub _pos: ::std::os::raw::c_int,
-    }
-    #[test]
-    fn bindgen_test_layout__IO_marker() {
-        assert_eq!(::std::mem::size_of::<_IO_marker>() , 24usize , concat ! (
-                   "Size of: " , stringify ! ( _IO_marker ) ));
-        assert_eq! (::std::mem::align_of::<_IO_marker>() , 8usize , concat ! (
-                    "Alignment of " , stringify ! ( _IO_marker ) ));
-        assert_eq! (unsafe {
-                    & ( * ( 0 as * const _IO_marker ) ) . _next as * const _
-                    as usize } , 0usize , concat ! (
-                    "Alignment of field: " , stringify ! ( _IO_marker ) , "::"
-                    , stringify ! ( _next ) ));
-        assert_eq! (unsafe {
-                    & ( * ( 0 as * const _IO_marker ) ) . _sbuf as * const _
-                    as usize } , 8usize , concat ! (
-                    "Alignment of field: " , stringify ! ( _IO_marker ) , "::"
-                    , stringify ! ( _sbuf ) ));
-        assert_eq! (unsafe {
-                    & ( * ( 0 as * const _IO_marker ) ) . _pos as * const _ as
-                    usize } , 16usize , concat ! (
-                    "Alignment of field: " , stringify ! ( _IO_marker ) , "::"
-                    , stringify ! ( _pos ) ));
-    }
-    impl Clone for _IO_marker {
-        fn clone(&self) -> Self { *self }
-    }
     /**
  * MozRefCountType is Mozilla's reference count type.
  *
@@ -9198,6 +9369,342 @@ pub mod root {
         NS_OK_NO_NAME_CLAUSE_HANDLED = 7864354,
     }
     pub type nsrefcnt = root::MozRefCountType;
+    /**
+ * double-byte (char16_t) string types
+ */
+    #[repr(C)]
+    #[derive(Debug)]
+    pub struct nsAString {
+        pub _base: root::mozilla::detail::nsStringRepr,
+    }
+    pub type nsAString_self_type = root::nsAString;
+    extern "C" {
+        #[link_name = "_ZN9nsAString12kMaxCapacityE"]
+        pub static nsAString_kMaxCapacity:
+                   root::mozilla::detail::nsStringRepr_size_type;
+    }
+    #[test]
+    fn bindgen_test_layout_nsAString() {
+        assert_eq!(::std::mem::size_of::<nsAString>() , 16usize , concat ! (
+                   "Size of: " , stringify ! ( nsAString ) ));
+        assert_eq! (::std::mem::align_of::<nsAString>() , 8usize , concat ! (
+                    "Alignment of " , stringify ! ( nsAString ) ));
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy)]
+    pub struct nsSubstringTuple {
+        pub mHead: *const root::nsSubstringTuple_self_type,
+        pub mFragA: *const root::nsSubstringTuple_base_string_type,
+        pub mFragB: *const root::nsSubstringTuple_base_string_type,
+    }
+    pub type nsSubstringTuple_char_type = u16;
+    pub type nsSubstringTuple_self_type = root::nsSubstringTuple;
+    pub type nsSubstringTuple_base_string_type =
+        root::mozilla::detail::nsStringRepr;
+    pub type nsSubstringTuple_size_type = u32;
+    #[test]
+    fn bindgen_test_layout_nsSubstringTuple() {
+        assert_eq!(::std::mem::size_of::<nsSubstringTuple>() , 24usize ,
+                   concat ! ( "Size of: " , stringify ! ( nsSubstringTuple )
+                   ));
+        assert_eq! (::std::mem::align_of::<nsSubstringTuple>() , 8usize ,
+                    concat ! (
+                    "Alignment of " , stringify ! ( nsSubstringTuple ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const nsSubstringTuple ) ) . mHead as *
+                    const _ as usize } , 0usize , concat ! (
+                    "Alignment of field: " , stringify ! ( nsSubstringTuple )
+                    , "::" , stringify ! ( mHead ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const nsSubstringTuple ) ) . mFragA as *
+                    const _ as usize } , 8usize , concat ! (
+                    "Alignment of field: " , stringify ! ( nsSubstringTuple )
+                    , "::" , stringify ! ( mFragA ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const nsSubstringTuple ) ) . mFragB as *
+                    const _ as usize } , 16usize , concat ! (
+                    "Alignment of field: " , stringify ! ( nsSubstringTuple )
+                    , "::" , stringify ! ( mFragB ) ));
+    }
+    impl Clone for nsSubstringTuple {
+        fn clone(&self) -> Self { *self }
+    }
+    #[repr(C)]
+    pub struct nsAutoString {
+        pub _base: root::nsFixedString,
+        pub mStorage: [root::mozilla::detail::nsStringRepr_char_type; 64usize],
+    }
+    pub type nsAutoString_self_type = root::nsAutoString;
+    pub const nsAutoString_kDefaultStorageSize:
+              root::nsAutoString__bindgen_ty_1 =
+        nsAutoString__bindgen_ty_1::kDefaultStorageSize;
+    #[repr(u32)]
+    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    pub enum nsAutoString__bindgen_ty_1 { kDefaultStorageSize = 64, }
+    #[test]
+    fn bindgen_test_layout_nsAutoString() {
+        assert_eq!(::std::mem::size_of::<nsAutoString>() , 160usize , concat !
+                   ( "Size of: " , stringify ! ( nsAutoString ) ));
+        assert_eq! (::std::mem::align_of::<nsAutoString>() , 8usize , concat !
+                    ( "Alignment of " , stringify ! ( nsAutoString ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const nsAutoString ) ) . mStorage as *
+                    const _ as usize } , 32usize , concat ! (
+                    "Alignment of field: " , stringify ! ( nsAutoString ) ,
+                    "::" , stringify ! ( mStorage ) ));
+    }
+    #[repr(C)]
+    #[derive(Debug)]
+    pub struct nsDependentSubstring {
+        pub _base: root::nsAString,
+    }
+    pub type nsDependentSubstring_self_type = root::nsDependentSubstring;
+    #[test]
+    fn bindgen_test_layout_nsDependentSubstring() {
+        assert_eq!(::std::mem::size_of::<nsDependentSubstring>() , 16usize ,
+                   concat ! (
+                   "Size of: " , stringify ! ( nsDependentSubstring ) ));
+        assert_eq! (::std::mem::align_of::<nsDependentSubstring>() , 8usize ,
+                    concat ! (
+                    "Alignment of " , stringify ! ( nsDependentSubstring ) ));
+    }
+    #[repr(C)]
+    pub struct nsStringComparator__bindgen_vtable {
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy)]
+    pub struct nsStringComparator {
+        pub vtable_: *const nsStringComparator__bindgen_vtable,
+    }
+    pub type nsStringComparator_char_type = u16;
+    #[test]
+    fn bindgen_test_layout_nsStringComparator() {
+        assert_eq!(::std::mem::size_of::<nsStringComparator>() , 8usize ,
+                   concat ! ( "Size of: " , stringify ! ( nsStringComparator )
+                   ));
+        assert_eq! (::std::mem::align_of::<nsStringComparator>() , 8usize ,
+                    concat ! (
+                    "Alignment of " , stringify ! ( nsStringComparator ) ));
+    }
+    impl Clone for nsStringComparator {
+        fn clone(&self) -> Self { *self }
+    }
+    /**
+ * single-byte (char) string types
+ */
+    #[repr(C)]
+    #[derive(Debug)]
+    pub struct nsACString {
+        pub _base: root::mozilla::detail::nsCStringRepr,
+    }
+    pub type nsACString_self_type = root::nsACString;
+    extern "C" {
+        #[link_name = "_ZN10nsACString12kMaxCapacityE"]
+        pub static nsACString_kMaxCapacity:
+                   root::mozilla::detail::nsCStringRepr_size_type;
+    }
+    #[test]
+    fn bindgen_test_layout_nsACString() {
+        assert_eq!(::std::mem::size_of::<nsACString>() , 16usize , concat ! (
+                   "Size of: " , stringify ! ( nsACString ) ));
+        assert_eq! (::std::mem::align_of::<nsACString>() , 8usize , concat ! (
+                    "Alignment of " , stringify ! ( nsACString ) ));
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy)]
+    pub struct nsCSubstringTuple {
+        pub mHead: *const root::nsCSubstringTuple_self_type,
+        pub mFragA: *const root::nsCSubstringTuple_base_string_type,
+        pub mFragB: *const root::nsCSubstringTuple_base_string_type,
+    }
+    pub type nsCSubstringTuple_char_type = ::std::os::raw::c_char;
+    pub type nsCSubstringTuple_self_type = root::nsCSubstringTuple;
+    pub type nsCSubstringTuple_base_string_type =
+        root::mozilla::detail::nsCStringRepr;
+    pub type nsCSubstringTuple_size_type = u32;
+    #[test]
+    fn bindgen_test_layout_nsCSubstringTuple() {
+        assert_eq!(::std::mem::size_of::<nsCSubstringTuple>() , 24usize ,
+                   concat ! ( "Size of: " , stringify ! ( nsCSubstringTuple )
+                   ));
+        assert_eq! (::std::mem::align_of::<nsCSubstringTuple>() , 8usize ,
+                    concat ! (
+                    "Alignment of " , stringify ! ( nsCSubstringTuple ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const nsCSubstringTuple ) ) . mHead as *
+                    const _ as usize } , 0usize , concat ! (
+                    "Alignment of field: " , stringify ! ( nsCSubstringTuple )
+                    , "::" , stringify ! ( mHead ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const nsCSubstringTuple ) ) . mFragA as *
+                    const _ as usize } , 8usize , concat ! (
+                    "Alignment of field: " , stringify ! ( nsCSubstringTuple )
+                    , "::" , stringify ! ( mFragA ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const nsCSubstringTuple ) ) . mFragB as *
+                    const _ as usize } , 16usize , concat ! (
+                    "Alignment of field: " , stringify ! ( nsCSubstringTuple )
+                    , "::" , stringify ! ( mFragB ) ));
+    }
+    impl Clone for nsCSubstringTuple {
+        fn clone(&self) -> Self { *self }
+    }
+    #[repr(C)]
+    #[derive(Debug)]
+    pub struct nsCString {
+        pub _base: root::nsACString,
+    }
+    pub type nsCString_self_type = root::nsCString;
+    #[repr(C)]
+    #[derive(Debug, Copy)]
+    pub struct nsCString_Segment {
+        pub mBegin: u32,
+        pub mLength: u32,
+    }
+    #[test]
+    fn bindgen_test_layout_nsCString_Segment() {
+        assert_eq!(::std::mem::size_of::<nsCString_Segment>() , 8usize ,
+                   concat ! ( "Size of: " , stringify ! ( nsCString_Segment )
+                   ));
+        assert_eq! (::std::mem::align_of::<nsCString_Segment>() , 4usize ,
+                    concat ! (
+                    "Alignment of " , stringify ! ( nsCString_Segment ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const nsCString_Segment ) ) . mBegin as *
+                    const _ as usize } , 0usize , concat ! (
+                    "Alignment of field: " , stringify ! ( nsCString_Segment )
+                    , "::" , stringify ! ( mBegin ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const nsCString_Segment ) ) . mLength as *
+                    const _ as usize } , 4usize , concat ! (
+                    "Alignment of field: " , stringify ! ( nsCString_Segment )
+                    , "::" , stringify ! ( mLength ) ));
+    }
+    impl Clone for nsCString_Segment {
+        fn clone(&self) -> Self { *self }
+    }
+    #[test]
+    fn bindgen_test_layout_nsCString() {
+        assert_eq!(::std::mem::size_of::<nsCString>() , 16usize , concat ! (
+                   "Size of: " , stringify ! ( nsCString ) ));
+        assert_eq! (::std::mem::align_of::<nsCString>() , 8usize , concat ! (
+                    "Alignment of " , stringify ! ( nsCString ) ));
+    }
+    #[repr(C)]
+    #[derive(Debug)]
+    pub struct nsDependentCSubstring {
+        pub _base: root::nsACString,
+    }
+    pub type nsDependentCSubstring_self_type = root::nsDependentCSubstring;
+    #[test]
+    fn bindgen_test_layout_nsDependentCSubstring() {
+        assert_eq!(::std::mem::size_of::<nsDependentCSubstring>() , 16usize ,
+                   concat ! (
+                   "Size of: " , stringify ! ( nsDependentCSubstring ) ));
+        assert_eq! (::std::mem::align_of::<nsDependentCSubstring>() , 8usize ,
+                    concat ! (
+                    "Alignment of " , stringify ! ( nsDependentCSubstring )
+                    ));
+    }
+    #[repr(C)]
+    pub struct nsCStringComparator__bindgen_vtable {
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy)]
+    pub struct nsCStringComparator {
+        pub vtable_: *const nsCStringComparator__bindgen_vtable,
+    }
+    pub type nsCStringComparator_char_type = ::std::os::raw::c_char;
+    #[test]
+    fn bindgen_test_layout_nsCStringComparator() {
+        assert_eq!(::std::mem::size_of::<nsCStringComparator>() , 8usize ,
+                   concat ! (
+                   "Size of: " , stringify ! ( nsCStringComparator ) ));
+        assert_eq! (::std::mem::align_of::<nsCStringComparator>() , 8usize ,
+                    concat ! (
+                    "Alignment of " , stringify ! ( nsCStringComparator ) ));
+    }
+    impl Clone for nsCStringComparator {
+        fn clone(&self) -> Self { *self }
+    }
+    /**
+ * typedefs for backwards compatibility
+ */
+    pub type nsSubstring = root::nsAString;
+    pub type nsAFlatCString = root::nsCString;
+    pub type _IO_lock_t = ::std::os::raw::c_void;
+    #[repr(C)]
+    #[derive(Debug, Copy)]
+    pub struct _IO_marker {
+        pub _next: *mut root::_IO_marker,
+        pub _sbuf: *mut root::_IO_FILE,
+        pub _pos: ::std::os::raw::c_int,
+    }
+    #[test]
+    fn bindgen_test_layout__IO_marker() {
+        assert_eq!(::std::mem::size_of::<_IO_marker>() , 24usize , concat ! (
+                   "Size of: " , stringify ! ( _IO_marker ) ));
+        assert_eq! (::std::mem::align_of::<_IO_marker>() , 8usize , concat ! (
+                    "Alignment of " , stringify ! ( _IO_marker ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const _IO_marker ) ) . _next as * const _
+                    as usize } , 0usize , concat ! (
+                    "Alignment of field: " , stringify ! ( _IO_marker ) , "::"
+                    , stringify ! ( _next ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const _IO_marker ) ) . _sbuf as * const _
+                    as usize } , 8usize , concat ! (
+                    "Alignment of field: " , stringify ! ( _IO_marker ) , "::"
+                    , stringify ! ( _sbuf ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const _IO_marker ) ) . _pos as * const _ as
+                    usize } , 16usize , concat ! (
+                    "Alignment of field: " , stringify ! ( _IO_marker ) , "::"
+                    , stringify ! ( _pos ) ));
+    }
+    impl Clone for _IO_marker {
+        fn clone(&self) -> Self { *self }
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy)]
+    pub struct nsIAtom {
+        pub _base: root::nsISupports,
+        pub _bitfield_1: u32,
+        pub mHash: u32,
+        /**
+   * WARNING! There is an invisible constraint on |mString|: the chars it
+   * points to must belong to an nsStringBuffer. This is so that the
+   * nsStringBuffer::FromData() calls above are valid.
+   */
+        pub mString: *mut u16,
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy, Clone)]
+    pub struct nsIAtom_COMTypeInfo<T, U> {
+        pub _address: u8,
+        pub _phantom_0: ::std::marker::PhantomData<T>,
+        pub _phantom_1: ::std::marker::PhantomData<U>,
+    }
+    #[test]
+    fn bindgen_test_layout_nsIAtom() {
+        assert_eq!(::std::mem::size_of::<nsIAtom>() , 24usize , concat ! (
+                   "Size of: " , stringify ! ( nsIAtom ) ));
+        assert_eq! (::std::mem::align_of::<nsIAtom>() , 8usize , concat ! (
+                    "Alignment of " , stringify ! ( nsIAtom ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const nsIAtom ) ) . mHash as * const _ as
+                    usize } , 12usize , concat ! (
+                    "Alignment of field: " , stringify ! ( nsIAtom ) , "::" ,
+                    stringify ! ( mHash ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const nsIAtom ) ) . mString as * const _ as
+                    usize } , 16usize , concat ! (
+                    "Alignment of field: " , stringify ! ( nsIAtom ) , "::" ,
+                    stringify ! ( mString ) ));
+    }
+    impl Clone for nsIAtom {
+        fn clone(&self) -> Self { *self }
+    }
     /**
  * already_AddRefed cooperates with reference counting smart pointers to enable
  * you to assign in a pointer _without_ |AddRef|ing it.  You might want to use
@@ -10004,269 +10511,6 @@ pub mod root {
         JS_GENERIC_MAGIC = 16,
         JS_WHY_MAGIC_COUNT = 17,
     }
-    /**
- * double-byte (char16_t) string types
- */
-    #[repr(C)]
-    #[derive(Debug)]
-    pub struct nsAString {
-        pub _base: root::mozilla::detail::nsStringRepr,
-    }
-    pub type nsAString_self_type = root::nsAString;
-    extern "C" {
-        #[link_name = "_ZN9nsAString12kMaxCapacityE"]
-        pub static nsAString_kMaxCapacity:
-                   root::mozilla::detail::nsStringRepr_size_type;
-    }
-    #[test]
-    fn bindgen_test_layout_nsAString() {
-        assert_eq!(::std::mem::size_of::<nsAString>() , 16usize , concat ! (
-                   "Size of: " , stringify ! ( nsAString ) ));
-        assert_eq! (::std::mem::align_of::<nsAString>() , 8usize , concat ! (
-                    "Alignment of " , stringify ! ( nsAString ) ));
-    }
-    #[repr(C)]
-    #[derive(Debug, Copy)]
-    pub struct nsSubstringTuple {
-        pub mHead: *const root::nsSubstringTuple_self_type,
-        pub mFragA: *const root::nsSubstringTuple_base_string_type,
-        pub mFragB: *const root::nsSubstringTuple_base_string_type,
-    }
-    pub type nsSubstringTuple_char_type = u16;
-    pub type nsSubstringTuple_self_type = root::nsSubstringTuple;
-    pub type nsSubstringTuple_base_string_type =
-        root::mozilla::detail::nsStringRepr;
-    pub type nsSubstringTuple_size_type = u32;
-    #[test]
-    fn bindgen_test_layout_nsSubstringTuple() {
-        assert_eq!(::std::mem::size_of::<nsSubstringTuple>() , 24usize ,
-                   concat ! ( "Size of: " , stringify ! ( nsSubstringTuple )
-                   ));
-        assert_eq! (::std::mem::align_of::<nsSubstringTuple>() , 8usize ,
-                    concat ! (
-                    "Alignment of " , stringify ! ( nsSubstringTuple ) ));
-        assert_eq! (unsafe {
-                    & ( * ( 0 as * const nsSubstringTuple ) ) . mHead as *
-                    const _ as usize } , 0usize , concat ! (
-                    "Alignment of field: " , stringify ! ( nsSubstringTuple )
-                    , "::" , stringify ! ( mHead ) ));
-        assert_eq! (unsafe {
-                    & ( * ( 0 as * const nsSubstringTuple ) ) . mFragA as *
-                    const _ as usize } , 8usize , concat ! (
-                    "Alignment of field: " , stringify ! ( nsSubstringTuple )
-                    , "::" , stringify ! ( mFragA ) ));
-        assert_eq! (unsafe {
-                    & ( * ( 0 as * const nsSubstringTuple ) ) . mFragB as *
-                    const _ as usize } , 16usize , concat ! (
-                    "Alignment of field: " , stringify ! ( nsSubstringTuple )
-                    , "::" , stringify ! ( mFragB ) ));
-    }
-    impl Clone for nsSubstringTuple {
-        fn clone(&self) -> Self { *self }
-    }
-    #[repr(C)]
-    pub struct nsAutoString {
-        pub _base: root::nsFixedString,
-        pub mStorage: [root::mozilla::detail::nsStringRepr_char_type; 64usize],
-    }
-    pub type nsAutoString_self_type = root::nsAutoString;
-    pub const nsAutoString_kDefaultStorageSize:
-              root::nsAutoString__bindgen_ty_1 =
-        nsAutoString__bindgen_ty_1::kDefaultStorageSize;
-    #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-    pub enum nsAutoString__bindgen_ty_1 { kDefaultStorageSize = 64, }
-    #[test]
-    fn bindgen_test_layout_nsAutoString() {
-        assert_eq!(::std::mem::size_of::<nsAutoString>() , 160usize , concat !
-                   ( "Size of: " , stringify ! ( nsAutoString ) ));
-        assert_eq! (::std::mem::align_of::<nsAutoString>() , 8usize , concat !
-                    ( "Alignment of " , stringify ! ( nsAutoString ) ));
-        assert_eq! (unsafe {
-                    & ( * ( 0 as * const nsAutoString ) ) . mStorage as *
-                    const _ as usize } , 32usize , concat ! (
-                    "Alignment of field: " , stringify ! ( nsAutoString ) ,
-                    "::" , stringify ! ( mStorage ) ));
-    }
-    #[repr(C)]
-    #[derive(Debug)]
-    pub struct nsDependentSubstring {
-        pub _base: root::nsAString,
-    }
-    pub type nsDependentSubstring_self_type = root::nsDependentSubstring;
-    #[test]
-    fn bindgen_test_layout_nsDependentSubstring() {
-        assert_eq!(::std::mem::size_of::<nsDependentSubstring>() , 16usize ,
-                   concat ! (
-                   "Size of: " , stringify ! ( nsDependentSubstring ) ));
-        assert_eq! (::std::mem::align_of::<nsDependentSubstring>() , 8usize ,
-                    concat ! (
-                    "Alignment of " , stringify ! ( nsDependentSubstring ) ));
-    }
-    #[repr(C)]
-    pub struct nsStringComparator__bindgen_vtable {
-    }
-    #[repr(C)]
-    #[derive(Debug, Copy)]
-    pub struct nsStringComparator {
-        pub vtable_: *const nsStringComparator__bindgen_vtable,
-    }
-    pub type nsStringComparator_char_type = u16;
-    #[test]
-    fn bindgen_test_layout_nsStringComparator() {
-        assert_eq!(::std::mem::size_of::<nsStringComparator>() , 8usize ,
-                   concat ! ( "Size of: " , stringify ! ( nsStringComparator )
-                   ));
-        assert_eq! (::std::mem::align_of::<nsStringComparator>() , 8usize ,
-                    concat ! (
-                    "Alignment of " , stringify ! ( nsStringComparator ) ));
-    }
-    impl Clone for nsStringComparator {
-        fn clone(&self) -> Self { *self }
-    }
-    /**
- * single-byte (char) string types
- */
-    #[repr(C)]
-    #[derive(Debug)]
-    pub struct nsACString {
-        pub _base: root::mozilla::detail::nsCStringRepr,
-    }
-    pub type nsACString_self_type = root::nsACString;
-    extern "C" {
-        #[link_name = "_ZN10nsACString12kMaxCapacityE"]
-        pub static nsACString_kMaxCapacity:
-                   root::mozilla::detail::nsCStringRepr_size_type;
-    }
-    #[test]
-    fn bindgen_test_layout_nsACString() {
-        assert_eq!(::std::mem::size_of::<nsACString>() , 16usize , concat ! (
-                   "Size of: " , stringify ! ( nsACString ) ));
-        assert_eq! (::std::mem::align_of::<nsACString>() , 8usize , concat ! (
-                    "Alignment of " , stringify ! ( nsACString ) ));
-    }
-    #[repr(C)]
-    #[derive(Debug, Copy)]
-    pub struct nsCSubstringTuple {
-        pub mHead: *const root::nsCSubstringTuple_self_type,
-        pub mFragA: *const root::nsCSubstringTuple_base_string_type,
-        pub mFragB: *const root::nsCSubstringTuple_base_string_type,
-    }
-    pub type nsCSubstringTuple_char_type = ::std::os::raw::c_char;
-    pub type nsCSubstringTuple_self_type = root::nsCSubstringTuple;
-    pub type nsCSubstringTuple_base_string_type =
-        root::mozilla::detail::nsCStringRepr;
-    pub type nsCSubstringTuple_size_type = u32;
-    #[test]
-    fn bindgen_test_layout_nsCSubstringTuple() {
-        assert_eq!(::std::mem::size_of::<nsCSubstringTuple>() , 24usize ,
-                   concat ! ( "Size of: " , stringify ! ( nsCSubstringTuple )
-                   ));
-        assert_eq! (::std::mem::align_of::<nsCSubstringTuple>() , 8usize ,
-                    concat ! (
-                    "Alignment of " , stringify ! ( nsCSubstringTuple ) ));
-        assert_eq! (unsafe {
-                    & ( * ( 0 as * const nsCSubstringTuple ) ) . mHead as *
-                    const _ as usize } , 0usize , concat ! (
-                    "Alignment of field: " , stringify ! ( nsCSubstringTuple )
-                    , "::" , stringify ! ( mHead ) ));
-        assert_eq! (unsafe {
-                    & ( * ( 0 as * const nsCSubstringTuple ) ) . mFragA as *
-                    const _ as usize } , 8usize , concat ! (
-                    "Alignment of field: " , stringify ! ( nsCSubstringTuple )
-                    , "::" , stringify ! ( mFragA ) ));
-        assert_eq! (unsafe {
-                    & ( * ( 0 as * const nsCSubstringTuple ) ) . mFragB as *
-                    const _ as usize } , 16usize , concat ! (
-                    "Alignment of field: " , stringify ! ( nsCSubstringTuple )
-                    , "::" , stringify ! ( mFragB ) ));
-    }
-    impl Clone for nsCSubstringTuple {
-        fn clone(&self) -> Self { *self }
-    }
-    #[repr(C)]
-    #[derive(Debug)]
-    pub struct nsCString {
-        pub _base: root::nsACString,
-    }
-    pub type nsCString_self_type = root::nsCString;
-    #[repr(C)]
-    #[derive(Debug, Copy)]
-    pub struct nsCString_Segment {
-        pub mBegin: u32,
-        pub mLength: u32,
-    }
-    #[test]
-    fn bindgen_test_layout_nsCString_Segment() {
-        assert_eq!(::std::mem::size_of::<nsCString_Segment>() , 8usize ,
-                   concat ! ( "Size of: " , stringify ! ( nsCString_Segment )
-                   ));
-        assert_eq! (::std::mem::align_of::<nsCString_Segment>() , 4usize ,
-                    concat ! (
-                    "Alignment of " , stringify ! ( nsCString_Segment ) ));
-        assert_eq! (unsafe {
-                    & ( * ( 0 as * const nsCString_Segment ) ) . mBegin as *
-                    const _ as usize } , 0usize , concat ! (
-                    "Alignment of field: " , stringify ! ( nsCString_Segment )
-                    , "::" , stringify ! ( mBegin ) ));
-        assert_eq! (unsafe {
-                    & ( * ( 0 as * const nsCString_Segment ) ) . mLength as *
-                    const _ as usize } , 4usize , concat ! (
-                    "Alignment of field: " , stringify ! ( nsCString_Segment )
-                    , "::" , stringify ! ( mLength ) ));
-    }
-    impl Clone for nsCString_Segment {
-        fn clone(&self) -> Self { *self }
-    }
-    #[test]
-    fn bindgen_test_layout_nsCString() {
-        assert_eq!(::std::mem::size_of::<nsCString>() , 16usize , concat ! (
-                   "Size of: " , stringify ! ( nsCString ) ));
-        assert_eq! (::std::mem::align_of::<nsCString>() , 8usize , concat ! (
-                    "Alignment of " , stringify ! ( nsCString ) ));
-    }
-    #[repr(C)]
-    #[derive(Debug)]
-    pub struct nsDependentCSubstring {
-        pub _base: root::nsACString,
-    }
-    pub type nsDependentCSubstring_self_type = root::nsDependentCSubstring;
-    #[test]
-    fn bindgen_test_layout_nsDependentCSubstring() {
-        assert_eq!(::std::mem::size_of::<nsDependentCSubstring>() , 16usize ,
-                   concat ! (
-                   "Size of: " , stringify ! ( nsDependentCSubstring ) ));
-        assert_eq! (::std::mem::align_of::<nsDependentCSubstring>() , 8usize ,
-                    concat ! (
-                    "Alignment of " , stringify ! ( nsDependentCSubstring )
-                    ));
-    }
-    #[repr(C)]
-    pub struct nsCStringComparator__bindgen_vtable {
-    }
-    #[repr(C)]
-    #[derive(Debug, Copy)]
-    pub struct nsCStringComparator {
-        pub vtable_: *const nsCStringComparator__bindgen_vtable,
-    }
-    pub type nsCStringComparator_char_type = ::std::os::raw::c_char;
-    #[test]
-    fn bindgen_test_layout_nsCStringComparator() {
-        assert_eq!(::std::mem::size_of::<nsCStringComparator>() , 8usize ,
-                   concat ! (
-                   "Size of: " , stringify ! ( nsCStringComparator ) ));
-        assert_eq! (::std::mem::align_of::<nsCStringComparator>() , 8usize ,
-                    concat ! (
-                    "Alignment of " , stringify ! ( nsCStringComparator ) ));
-    }
-    impl Clone for nsCStringComparator {
-        fn clone(&self) -> Self { *self }
-    }
-    /**
- * typedefs for backwards compatibility
- */
-    pub type nsSubstring = root::nsAString;
-    pub type nsAFlatCString = root::nsCString;
     #[repr(C)]
     pub struct nsISupports__bindgen_vtable {
     }
@@ -11226,46 +11470,6 @@ pub mod root {
                     "::" , stringify ! ( mStorageSize ) ));
     }
     impl Clone for nsStringBuffer {
-        fn clone(&self) -> Self { *self }
-    }
-    #[repr(C)]
-    #[derive(Debug, Copy)]
-    pub struct nsIAtom {
-        pub _base: root::nsISupports,
-        pub _bitfield_1: u32,
-        pub mHash: u32,
-        /**
-   * WARNING! There is an invisible constraint on |mString|: the chars it
-   * points to must belong to an nsStringBuffer. This is so that the
-   * nsStringBuffer::FromData() calls above are valid.
-   */
-        pub mString: *mut u16,
-    }
-    #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
-    pub struct nsIAtom_COMTypeInfo<T, U> {
-        pub _address: u8,
-        pub _phantom_0: ::std::marker::PhantomData<T>,
-        pub _phantom_1: ::std::marker::PhantomData<U>,
-    }
-    #[test]
-    fn bindgen_test_layout_nsIAtom() {
-        assert_eq!(::std::mem::size_of::<nsIAtom>() , 24usize , concat ! (
-                   "Size of: " , stringify ! ( nsIAtom ) ));
-        assert_eq! (::std::mem::align_of::<nsIAtom>() , 8usize , concat ! (
-                    "Alignment of " , stringify ! ( nsIAtom ) ));
-        assert_eq! (unsafe {
-                    & ( * ( 0 as * const nsIAtom ) ) . mHash as * const _ as
-                    usize } , 12usize , concat ! (
-                    "Alignment of field: " , stringify ! ( nsIAtom ) , "::" ,
-                    stringify ! ( mHash ) ));
-        assert_eq! (unsafe {
-                    & ( * ( 0 as * const nsIAtom ) ) . mString as * const _ as
-                    usize } , 16usize , concat ! (
-                    "Alignment of field: " , stringify ! ( nsIAtom ) , "::" ,
-                    stringify ! ( mString ) ));
-    }
-    impl Clone for nsIAtom {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
@@ -12633,8 +12837,121 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
+    #[derive(Debug, Copy)]
+    pub struct nsIDOMCSSValue {
+        pub _base: root::nsISupports,
+    }
+    #[repr(C)]
     #[derive(Debug, Copy, Clone)]
-    pub struct nsIDOMCSSRule([u8; 0]);
+    pub struct nsIDOMCSSValue_COMTypeInfo<T, U> {
+        pub _address: u8,
+        pub _phantom_0: ::std::marker::PhantomData<T>,
+        pub _phantom_1: ::std::marker::PhantomData<U>,
+    }
+    pub const nsIDOMCSSValue_CSS_INHERIT: root::nsIDOMCSSValue__bindgen_ty_1 =
+        nsIDOMCSSValue__bindgen_ty_1::CSS_INHERIT;
+    pub const nsIDOMCSSValue_CSS_PRIMITIVE_VALUE:
+              root::nsIDOMCSSValue__bindgen_ty_1 =
+        nsIDOMCSSValue__bindgen_ty_1::CSS_PRIMITIVE_VALUE;
+    pub const nsIDOMCSSValue_CSS_VALUE_LIST:
+              root::nsIDOMCSSValue__bindgen_ty_1 =
+        nsIDOMCSSValue__bindgen_ty_1::CSS_VALUE_LIST;
+    pub const nsIDOMCSSValue_CSS_CUSTOM: root::nsIDOMCSSValue__bindgen_ty_1 =
+        nsIDOMCSSValue__bindgen_ty_1::CSS_CUSTOM;
+    #[repr(u32)]
+    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    pub enum nsIDOMCSSValue__bindgen_ty_1 {
+        CSS_INHERIT = 0,
+        CSS_PRIMITIVE_VALUE = 1,
+        CSS_VALUE_LIST = 2,
+        CSS_CUSTOM = 3,
+    }
+    #[test]
+    fn bindgen_test_layout_nsIDOMCSSValue() {
+        assert_eq!(::std::mem::size_of::<nsIDOMCSSValue>() , 8usize , concat !
+                   ( "Size of: " , stringify ! ( nsIDOMCSSValue ) ));
+        assert_eq! (::std::mem::align_of::<nsIDOMCSSValue>() , 8usize , concat
+                    ! ( "Alignment of " , stringify ! ( nsIDOMCSSValue ) ));
+    }
+    impl Clone for nsIDOMCSSValue {
+        fn clone(&self) -> Self { *self }
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy)]
+    pub struct nsIDOMCSSRule {
+        pub _base: root::nsISupports,
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy, Clone)]
+    pub struct nsIDOMCSSRule_COMTypeInfo<T, U> {
+        pub _address: u8,
+        pub _phantom_0: ::std::marker::PhantomData<T>,
+        pub _phantom_1: ::std::marker::PhantomData<U>,
+    }
+    pub const nsIDOMCSSRule_UNKNOWN_RULE: root::nsIDOMCSSRule__bindgen_ty_1 =
+        nsIDOMCSSRule__bindgen_ty_1::UNKNOWN_RULE;
+    pub const nsIDOMCSSRule_STYLE_RULE: root::nsIDOMCSSRule__bindgen_ty_1 =
+        nsIDOMCSSRule__bindgen_ty_1::STYLE_RULE;
+    pub const nsIDOMCSSRule_CHARSET_RULE: root::nsIDOMCSSRule__bindgen_ty_1 =
+        nsIDOMCSSRule__bindgen_ty_1::CHARSET_RULE;
+    pub const nsIDOMCSSRule_IMPORT_RULE: root::nsIDOMCSSRule__bindgen_ty_1 =
+        nsIDOMCSSRule__bindgen_ty_1::IMPORT_RULE;
+    pub const nsIDOMCSSRule_MEDIA_RULE: root::nsIDOMCSSRule__bindgen_ty_1 =
+        nsIDOMCSSRule__bindgen_ty_1::MEDIA_RULE;
+    pub const nsIDOMCSSRule_FONT_FACE_RULE: root::nsIDOMCSSRule__bindgen_ty_1
+              =
+        nsIDOMCSSRule__bindgen_ty_1::FONT_FACE_RULE;
+    pub const nsIDOMCSSRule_PAGE_RULE: root::nsIDOMCSSRule__bindgen_ty_1 =
+        nsIDOMCSSRule__bindgen_ty_1::PAGE_RULE;
+    pub const nsIDOMCSSRule_KEYFRAMES_RULE: root::nsIDOMCSSRule__bindgen_ty_1
+              =
+        nsIDOMCSSRule__bindgen_ty_1::KEYFRAMES_RULE;
+    pub const nsIDOMCSSRule_KEYFRAME_RULE: root::nsIDOMCSSRule__bindgen_ty_1 =
+        nsIDOMCSSRule__bindgen_ty_1::KEYFRAME_RULE;
+    pub const nsIDOMCSSRule_MOZ_KEYFRAMES_RULE:
+              root::nsIDOMCSSRule__bindgen_ty_1 =
+        nsIDOMCSSRule__bindgen_ty_1::KEYFRAMES_RULE;
+    pub const nsIDOMCSSRule_MOZ_KEYFRAME_RULE:
+              root::nsIDOMCSSRule__bindgen_ty_1 =
+        nsIDOMCSSRule__bindgen_ty_1::KEYFRAME_RULE;
+    pub const nsIDOMCSSRule_NAMESPACE_RULE: root::nsIDOMCSSRule__bindgen_ty_1
+              =
+        nsIDOMCSSRule__bindgen_ty_1::NAMESPACE_RULE;
+    pub const nsIDOMCSSRule_COUNTER_STYLE_RULE:
+              root::nsIDOMCSSRule__bindgen_ty_1 =
+        nsIDOMCSSRule__bindgen_ty_1::COUNTER_STYLE_RULE;
+    pub const nsIDOMCSSRule_SUPPORTS_RULE: root::nsIDOMCSSRule__bindgen_ty_1 =
+        nsIDOMCSSRule__bindgen_ty_1::SUPPORTS_RULE;
+    pub const nsIDOMCSSRule_FONT_FEATURE_VALUES_RULE:
+              root::nsIDOMCSSRule__bindgen_ty_1 =
+        nsIDOMCSSRule__bindgen_ty_1::FONT_FEATURE_VALUES_RULE;
+    #[repr(u32)]
+    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    pub enum nsIDOMCSSRule__bindgen_ty_1 {
+        UNKNOWN_RULE = 0,
+        STYLE_RULE = 1,
+        CHARSET_RULE = 2,
+        IMPORT_RULE = 3,
+        MEDIA_RULE = 4,
+        FONT_FACE_RULE = 5,
+        PAGE_RULE = 6,
+        KEYFRAMES_RULE = 7,
+        KEYFRAME_RULE = 8,
+        NAMESPACE_RULE = 10,
+        COUNTER_STYLE_RULE = 11,
+        SUPPORTS_RULE = 12,
+        FONT_FEATURE_VALUES_RULE = 14,
+    }
+    #[test]
+    fn bindgen_test_layout_nsIDOMCSSRule() {
+        assert_eq!(::std::mem::size_of::<nsIDOMCSSRule>() , 8usize , concat !
+                   ( "Size of: " , stringify ! ( nsIDOMCSSRule ) ));
+        assert_eq! (::std::mem::align_of::<nsIDOMCSSRule>() , 8usize , concat
+                    ! ( "Alignment of " , stringify ! ( nsIDOMCSSRule ) ));
+    }
+    impl Clone for nsIDOMCSSRule {
+        fn clone(&self) -> Self { *self }
+    }
     #[repr(C)]
     #[derive(Debug, Copy, Clone)]
     pub struct nsIDOMCSSRuleList([u8; 0]);
@@ -12660,6 +12977,31 @@ pub mod root {
                     "Alignment of " , stringify ! ( nsIDOMCSSStyleSheet ) ));
     }
     impl Clone for nsIDOMCSSStyleSheet {
+        fn clone(&self) -> Self { *self }
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy)]
+    pub struct nsIDOMCSSStyleDeclaration {
+        pub _base: root::nsISupports,
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy, Clone)]
+    pub struct nsIDOMCSSStyleDeclaration_COMTypeInfo<T, U> {
+        pub _address: u8,
+        pub _phantom_0: ::std::marker::PhantomData<T>,
+        pub _phantom_1: ::std::marker::PhantomData<U>,
+    }
+    #[test]
+    fn bindgen_test_layout_nsIDOMCSSStyleDeclaration() {
+        assert_eq!(::std::mem::size_of::<nsIDOMCSSStyleDeclaration>() , 8usize
+                   , concat ! (
+                   "Size of: " , stringify ! ( nsIDOMCSSStyleDeclaration ) ));
+        assert_eq! (::std::mem::align_of::<nsIDOMCSSStyleDeclaration>() ,
+                    8usize , concat ! (
+                    "Alignment of " , stringify ! ( nsIDOMCSSStyleDeclaration
+                    ) ));
+    }
+    impl Clone for nsIDOMCSSStyleDeclaration {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
@@ -13678,8 +14020,27 @@ pub mod root {
                     "Alignment of " , stringify ! ( nsIContent ) ));
     }
     #[repr(C)]
+    #[derive(Debug)]
+    pub struct nsICSSDeclaration {
+        pub _base: root::nsIDOMCSSStyleDeclaration,
+        pub _base_1: root::nsWrapperCache,
+    }
+    #[repr(C)]
     #[derive(Debug, Copy, Clone)]
-    pub struct nsICSSDeclaration([u8; 0]);
+    pub struct nsICSSDeclaration_COMTypeInfo<T, U> {
+        pub _address: u8,
+        pub _phantom_0: ::std::marker::PhantomData<T>,
+        pub _phantom_1: ::std::marker::PhantomData<U>,
+    }
+    #[test]
+    fn bindgen_test_layout_nsICSSDeclaration() {
+        assert_eq!(::std::mem::size_of::<nsICSSDeclaration>() , 32usize ,
+                   concat ! ( "Size of: " , stringify ! ( nsICSSDeclaration )
+                   ));
+        assert_eq! (::std::mem::align_of::<nsICSSDeclaration>() , 8usize ,
+                    concat ! (
+                    "Alignment of " , stringify ! ( nsICSSDeclaration ) ));
+    }
     pub type SuspendTypes = u32;
     #[repr(u32)]
     #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -20818,6 +21179,34 @@ pub mod root {
     #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
     pub struct nsRestyleHint(pub ::std::os::raw::c_uint);
     #[repr(C)]
+    #[derive(Debug)]
+    pub struct nsFontFaceRuleContainer {
+        pub mRule: root::RefPtr<root::nsCSSFontFaceRule>,
+        pub mSheetType: root::mozilla::SheetType,
+    }
+    #[test]
+    fn bindgen_test_layout_nsFontFaceRuleContainer() {
+        assert_eq!(::std::mem::size_of::<nsFontFaceRuleContainer>() , 16usize
+                   , concat ! (
+                   "Size of: " , stringify ! ( nsFontFaceRuleContainer ) ));
+        assert_eq! (::std::mem::align_of::<nsFontFaceRuleContainer>() , 8usize
+                    , concat ! (
+                    "Alignment of " , stringify ! ( nsFontFaceRuleContainer )
+                    ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const nsFontFaceRuleContainer ) ) . mRule
+                    as * const _ as usize } , 0usize , concat ! (
+                    "Alignment of field: " , stringify ! (
+                    nsFontFaceRuleContainer ) , "::" , stringify ! ( mRule )
+                    ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const nsFontFaceRuleContainer ) ) .
+                    mSheetType as * const _ as usize } , 8usize , concat ! (
+                    "Alignment of field: " , stringify ! (
+                    nsFontFaceRuleContainer ) , "::" , stringify ! (
+                    mSheetType ) ));
+    }
+    #[repr(C)]
     #[derive(Debug, Copy, Clone)]
     pub struct nsStyleContext([u8; 0]);
     #[repr(C)]
@@ -26084,6 +26473,8 @@ pub mod root {
         root::nsTArray<root::mozilla::PropertyStyleAnimationValuePair>;
     pub type RawGeckoStyleAnimationList =
         root::nsStyleAutoArray<root::mozilla::StyleAnimation>;
+    pub type RawGeckoFontFaceRuleList =
+        root::nsTArray<root::nsFontFaceRuleContainer>;
     pub type RawServoAnimationValueMapBorrowed =
         *const root::RawServoAnimationValueMap;
     pub type RawGeckoNodeBorrowed = *const root::RawGeckoNode;
@@ -26104,6 +26495,8 @@ pub mod root {
         *mut root::RawGeckoComputedKeyframeValuesList;
     pub type RawGeckoStyleAnimationListBorrowed =
         *const root::RawGeckoStyleAnimationList;
+    pub type RawGeckoFontFaceRuleListBorrowedMut =
+        *mut root::RawGeckoFontFaceRuleList;
     #[repr(C)]
     #[derive(Debug, Copy, Clone)]
     pub struct ElementRuleProcessorData([u8; 0]);
@@ -26159,6 +26552,46 @@ pub mod root {
     #[repr(C)]
     #[derive(Debug, Copy, Clone)]
     pub struct nsIStyleRule([u8; 0]);
+    #[repr(C)]
+    #[derive(Debug)]
+    pub struct nsCSSFontFaceRule {
+        pub _base: root::mozilla::css::Rule,
+        pub _base_1: root::nsIDOMCSSFontFaceRule,
+        pub mDecl: root::nsCSSFontFaceStyleDecl,
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy)]
+    pub struct nsCSSFontFaceRule_cycleCollection {
+        pub _base: root::mozilla::css::Rule_cycleCollection,
+    }
+    #[test]
+    fn bindgen_test_layout_nsCSSFontFaceRule_cycleCollection() {
+        assert_eq!(::std::mem::size_of::<nsCSSFontFaceRule_cycleCollection>()
+                   , 16usize , concat ! (
+                   "Size of: " , stringify ! (
+                   nsCSSFontFaceRule_cycleCollection ) ));
+        assert_eq! (::std::mem::align_of::<nsCSSFontFaceRule_cycleCollection>()
+                    , 8usize , concat ! (
+                    "Alignment of " , stringify ! (
+                    nsCSSFontFaceRule_cycleCollection ) ));
+    }
+    impl Clone for nsCSSFontFaceRule_cycleCollection {
+        fn clone(&self) -> Self { *self }
+    }
+    extern "C" {
+        #[link_name = "_ZN17nsCSSFontFaceRule21_cycleCollectorGlobalE"]
+        pub static mut nsCSSFontFaceRule__cycleCollectorGlobal:
+                   root::nsCSSFontFaceRule_cycleCollection;
+    }
+    #[test]
+    fn bindgen_test_layout_nsCSSFontFaceRule() {
+        assert_eq!(::std::mem::size_of::<nsCSSFontFaceRule>() , 256usize ,
+                   concat ! ( "Size of: " , stringify ! ( nsCSSFontFaceRule )
+                   ));
+        assert_eq! (::std::mem::align_of::<nsCSSFontFaceRule>() , 8usize ,
+                    concat ! (
+                    "Alignment of " , stringify ! ( nsCSSFontFaceRule ) ));
+    }
     #[repr(C)]
     #[derive(Debug, Copy)]
     pub struct nsMediaFeature {
@@ -26358,6 +26791,57 @@ pub mod root {
                     "Alignment of field: " , stringify ! (
                     GeckoParserExtraData ) , "::" , stringify ! ( mPrincipal )
                     ));
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy, Clone)]
+    pub struct nsROCSSPrimitiveValue([u8; 0]);
+    #[repr(C)]
+    #[derive(Debug, Copy)]
+    pub struct nsIDOMCSSFontFaceRule {
+        pub _base: root::nsISupports,
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy, Clone)]
+    pub struct nsIDOMCSSFontFaceRule_COMTypeInfo<T, U> {
+        pub _address: u8,
+        pub _phantom_0: ::std::marker::PhantomData<T>,
+        pub _phantom_1: ::std::marker::PhantomData<U>,
+    }
+    #[test]
+    fn bindgen_test_layout_nsIDOMCSSFontFaceRule() {
+        assert_eq!(::std::mem::size_of::<nsIDOMCSSFontFaceRule>() , 8usize ,
+                   concat ! (
+                   "Size of: " , stringify ! ( nsIDOMCSSFontFaceRule ) ));
+        assert_eq! (::std::mem::align_of::<nsIDOMCSSFontFaceRule>() , 8usize ,
+                    concat ! (
+                    "Alignment of " , stringify ! ( nsIDOMCSSFontFaceRule )
+                    ));
+    }
+    impl Clone for nsIDOMCSSFontFaceRule {
+        fn clone(&self) -> Self { *self }
+    }
+    #[repr(C)]
+    #[derive(Debug)]
+    pub struct nsCSSFontFaceStyleDecl {
+        pub _base: root::nsICSSDeclaration,
+        pub mDescriptors: root::mozilla::CSSFontFaceDescriptors,
+    }
+    #[test]
+    fn bindgen_test_layout_nsCSSFontFaceStyleDecl() {
+        assert_eq!(::std::mem::size_of::<nsCSSFontFaceStyleDecl>() , 176usize
+                   , concat ! (
+                   "Size of: " , stringify ! ( nsCSSFontFaceStyleDecl ) ));
+        assert_eq! (::std::mem::align_of::<nsCSSFontFaceStyleDecl>() , 8usize
+                    , concat ! (
+                    "Alignment of " , stringify ! ( nsCSSFontFaceStyleDecl )
+                    ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const nsCSSFontFaceStyleDecl ) ) .
+                    mDescriptors as * const _ as usize } , 32usize , concat !
+                    (
+                    "Alignment of field: " , stringify ! (
+                    nsCSSFontFaceStyleDecl ) , "::" , stringify ! (
+                    mDescriptors ) ));
     }
     pub type nsMediaFeatureValueGetter =
         ::std::option::Option<unsafe extern "C" fn(aPresContext:
@@ -26644,6 +27128,72 @@ pub mod root {
     pub type __builtin_va_list = [root::__va_list_tag; 1usize];
     #[test]
     fn __bindgen_test_layout_template_4() {
+        assert_eq!(::std::mem::size_of::<root::nsReadingIterator<u16>>() ,
+                   24usize , concat ! (
+                   "Size of template specialization: " , stringify ! (
+                   root::nsReadingIterator<u16> ) ));
+        assert_eq!(::std::mem::align_of::<root::nsReadingIterator<u16>>() ,
+                   8usize , concat ! (
+                   "Alignment of template specialization: " , stringify ! (
+                   root::nsReadingIterator<u16> ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_template_5() {
+        assert_eq!(::std::mem::size_of::<root::nsWritingIterator<u16>>() ,
+                   24usize , concat ! (
+                   "Size of template specialization: " , stringify ! (
+                   root::nsWritingIterator<u16> ) ));
+        assert_eq!(::std::mem::align_of::<root::nsWritingIterator<u16>>() ,
+                   8usize , concat ! (
+                   "Alignment of template specialization: " , stringify ! (
+                   root::nsWritingIterator<u16> ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_template_6() {
+        assert_eq!(::std::mem::size_of::<root::nsReadingIterator<::std::os::raw::c_char>>()
+                   , 24usize , concat ! (
+                   "Size of template specialization: " , stringify ! (
+                   root::nsReadingIterator<::std::os::raw::c_char> ) ));
+        assert_eq!(::std::mem::align_of::<root::nsReadingIterator<::std::os::raw::c_char>>()
+                   , 8usize , concat ! (
+                   "Alignment of template specialization: " , stringify ! (
+                   root::nsReadingIterator<::std::os::raw::c_char> ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_template_7() {
+        assert_eq!(::std::mem::size_of::<root::nsWritingIterator<::std::os::raw::c_char>>()
+                   , 24usize , concat ! (
+                   "Size of template specialization: " , stringify ! (
+                   root::nsWritingIterator<::std::os::raw::c_char> ) ));
+        assert_eq!(::std::mem::align_of::<root::nsWritingIterator<::std::os::raw::c_char>>()
+                   , 8usize , concat ! (
+                   "Alignment of template specialization: " , stringify ! (
+                   root::nsWritingIterator<::std::os::raw::c_char> ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_template_8() {
+        assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::mozilla::dom::NodeInfo>>()
+                   , 8usize , concat ! (
+                   "Size of template specialization: " , stringify ! (
+                   root::already_AddRefed<root::mozilla::dom::NodeInfo> ) ));
+        assert_eq!(::std::mem::align_of::<root::already_AddRefed<root::mozilla::dom::NodeInfo>>()
+                   , 8usize , concat ! (
+                   "Alignment of template specialization: " , stringify ! (
+                   root::already_AddRefed<root::mozilla::dom::NodeInfo> ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_template_9() {
+        assert_eq!(::std::mem::size_of::<root::nsTArray<::nsstring::nsStringRepr>>() ,
+                   8usize , concat ! (
+                   "Size of template specialization: " , stringify ! (
+                   root::nsTArray<::nsstring::nsStringRepr> ) ));
+        assert_eq!(::std::mem::align_of::<root::nsTArray<::nsstring::nsStringRepr>>() ,
+                   8usize , concat ! (
+                   "Alignment of template specialization: " , stringify ! (
+                   root::nsTArray<::nsstring::nsStringRepr> ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_template_10() {
         assert_eq!(::std::mem::size_of::<root::JS::Handle<*mut root::JSObject>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26654,7 +27204,18 @@ pub mod root {
                    root::JS::Handle<*mut root::JSObject> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_5() {
+    fn __bindgen_test_layout_template_11() {
+        assert_eq!(::std::mem::size_of::<[u64; 6usize]>() , 48usize , concat !
+                   (
+                   "Size of template specialization: " , stringify ! (
+                   [u64; 6usize] ) ));
+        assert_eq!(::std::mem::align_of::<[u64; 6usize]>() , 8usize , concat !
+                   (
+                   "Alignment of template specialization: " , stringify ! (
+                   [u64; 6usize] ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_template_12() {
         assert_eq!(::std::mem::size_of::<root::JS::Handle<root::JS::Value>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26665,7 +27226,7 @@ pub mod root {
                    root::JS::Handle<root::JS::Value> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_6() {
+    fn __bindgen_test_layout_template_13() {
         assert_eq!(::std::mem::size_of::<root::JS::MutableHandle<*mut root::JSObject>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26676,7 +27237,7 @@ pub mod root {
                    root::JS::MutableHandle<*mut root::JSObject> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_7() {
+    fn __bindgen_test_layout_template_14() {
         assert_eq!(::std::mem::size_of::<root::JS::MutableHandle<root::JS::Value>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26687,7 +27248,7 @@ pub mod root {
                    root::JS::MutableHandle<root::JS::Value> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_8() {
+    fn __bindgen_test_layout_template_15() {
         assert_eq!(::std::mem::size_of::<[u64; 3usize]>() , 24usize , concat !
                    (
                    "Size of template specialization: " , stringify ! (
@@ -26698,7 +27259,7 @@ pub mod root {
                    [u64; 3usize] ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_9() {
+    fn __bindgen_test_layout_template_16() {
         assert_eq!(::std::mem::size_of::<root::JS::DeletePolicy<root::JSErrorNotes>>()
                    , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26709,7 +27270,7 @@ pub mod root {
                    root::JS::DeletePolicy<root::JSErrorNotes> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_10() {
+    fn __bindgen_test_layout_template_17() {
         assert_eq!(::std::mem::size_of::<root::mozilla::UniquePtr<[::std::os::raw::c_char; 0usize],
                                                root::JS::FreePolicy>>()
                    , 8usize , concat ! (
@@ -26726,7 +27287,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_11() {
+    fn __bindgen_test_layout_template_18() {
         assert_eq!(::std::mem::size_of::<root::JS::TenuredHeap<*mut root::JSObject>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26737,7 +27298,7 @@ pub mod root {
                    root::JS::TenuredHeap<*mut root::JSObject> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_12() {
+    fn __bindgen_test_layout_template_19() {
         assert_eq!(::std::mem::size_of::<root::JS::Heap<*mut root::JSObject>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26748,7 +27309,7 @@ pub mod root {
                    root::JS::Heap<*mut root::JSObject> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_13() {
+    fn __bindgen_test_layout_template_20() {
         assert_eq!(::std::mem::size_of::<root::JS::Heap<root::JS::Value>>() ,
                    8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26759,51 +27320,7 @@ pub mod root {
                    root::JS::Heap<root::JS::Value> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_14() {
-        assert_eq!(::std::mem::size_of::<root::nsReadingIterator<u16>>() ,
-                   24usize , concat ! (
-                   "Size of template specialization: " , stringify ! (
-                   root::nsReadingIterator<u16> ) ));
-        assert_eq!(::std::mem::align_of::<root::nsReadingIterator<u16>>() ,
-                   8usize , concat ! (
-                   "Alignment of template specialization: " , stringify ! (
-                   root::nsReadingIterator<u16> ) ));
-    }
-    #[test]
-    fn __bindgen_test_layout_template_15() {
-        assert_eq!(::std::mem::size_of::<root::nsWritingIterator<u16>>() ,
-                   24usize , concat ! (
-                   "Size of template specialization: " , stringify ! (
-                   root::nsWritingIterator<u16> ) ));
-        assert_eq!(::std::mem::align_of::<root::nsWritingIterator<u16>>() ,
-                   8usize , concat ! (
-                   "Alignment of template specialization: " , stringify ! (
-                   root::nsWritingIterator<u16> ) ));
-    }
-    #[test]
-    fn __bindgen_test_layout_template_16() {
-        assert_eq!(::std::mem::size_of::<root::nsReadingIterator<::std::os::raw::c_char>>()
-                   , 24usize , concat ! (
-                   "Size of template specialization: " , stringify ! (
-                   root::nsReadingIterator<::std::os::raw::c_char> ) ));
-        assert_eq!(::std::mem::align_of::<root::nsReadingIterator<::std::os::raw::c_char>>()
-                   , 8usize , concat ! (
-                   "Alignment of template specialization: " , stringify ! (
-                   root::nsReadingIterator<::std::os::raw::c_char> ) ));
-    }
-    #[test]
-    fn __bindgen_test_layout_template_17() {
-        assert_eq!(::std::mem::size_of::<root::nsWritingIterator<::std::os::raw::c_char>>()
-                   , 24usize , concat ! (
-                   "Size of template specialization: " , stringify ! (
-                   root::nsWritingIterator<::std::os::raw::c_char> ) ));
-        assert_eq!(::std::mem::align_of::<root::nsWritingIterator<::std::os::raw::c_char>>()
-                   , 8usize , concat ! (
-                   "Alignment of template specialization: " , stringify ! (
-                   root::nsWritingIterator<::std::os::raw::c_char> ) ));
-    }
-    #[test]
-    fn __bindgen_test_layout_template_18() {
+    fn __bindgen_test_layout_template_21() {
         assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete<[root::nsDependentSubstring; 0usize]>>()
                    , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26816,7 +27333,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_19() {
+    fn __bindgen_test_layout_template_22() {
         assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete<[root::nsDependentCSubstring; 0usize]>>()
                    , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26829,7 +27346,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_20() {
+    fn __bindgen_test_layout_template_23() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::nsCString>>() ,
                    8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26840,18 +27357,7 @@ pub mod root {
                    root::nsTArray<root::nsCString> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_21() {
-        assert_eq!(::std::mem::size_of::<root::nsTArray<::nsstring::nsStringRepr>>() ,
-                   8usize , concat ! (
-                   "Size of template specialization: " , stringify ! (
-                   root::nsTArray<::nsstring::nsStringRepr> ) ));
-        assert_eq!(::std::mem::align_of::<root::nsTArray<::nsstring::nsStringRepr>>() ,
-                   8usize , concat ! (
-                   "Alignment of template specialization: " , stringify ! (
-                   root::nsTArray<::nsstring::nsStringRepr> ) ));
-    }
-    #[test]
-    fn __bindgen_test_layout_template_22() {
+    fn __bindgen_test_layout_template_24() {
         assert_eq!(::std::mem::size_of::<root::mozilla::binding_danger::TErrorResult<root::mozilla::binding_danger::JustAssertCleanupPolicy>>()
                    , 32usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26864,7 +27370,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_23() {
+    fn __bindgen_test_layout_template_25() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::nsStringBuffer>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26875,7 +27381,7 @@ pub mod root {
                    root::already_AddRefed<root::nsStringBuffer> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_24() {
+    fn __bindgen_test_layout_template_26() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::nsIAtom>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26886,7 +27392,7 @@ pub mod root {
                    root::already_AddRefed<root::nsIAtom> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_25() {
+    fn __bindgen_test_layout_template_27() {
         assert_eq!(::std::mem::size_of::<root::JS::DeletePolicy<root::JSErrorNotes_Note>>()
                    , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26897,7 +27403,7 @@ pub mod root {
                    root::JS::DeletePolicy<root::JSErrorNotes_Note> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_26() {
+    fn __bindgen_test_layout_template_28() {
         assert_eq!(::std::mem::size_of::<root::mozilla::UniquePtr<root::JSErrorNotes_Note,
                                                root::JS::DeletePolicy<root::JSErrorNotes_Note>>>()
                    , 8usize , concat ! (
@@ -26914,7 +27420,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_27() {
+    fn __bindgen_test_layout_template_29() {
         assert_eq!(::std::mem::size_of::<root::std::iterator<root::std::input_iterator_tag,
                                           root::mozilla::UniquePtr<root::JSErrorNotes_Note,
                                                                    root::JS::DeletePolicy<root::JSErrorNotes_Note>>,
@@ -26955,7 +27461,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_28() {
+    fn __bindgen_test_layout_template_30() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::nsIRunnable>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26966,7 +27472,7 @@ pub mod root {
                    root::already_AddRefed<root::nsIRunnable> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_29() {
+    fn __bindgen_test_layout_template_31() {
         assert_eq!(::std::mem::size_of::<root::nsCOMPtr<root::nsIPrincipal>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26977,7 +27483,7 @@ pub mod root {
                    root::nsCOMPtr<root::nsIPrincipal> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_30() {
+    fn __bindgen_test_layout_template_32() {
         assert_eq!(::std::mem::size_of::<[u64; 29usize]>() , 232usize , concat
                    ! (
                    "Size of template specialization: " , stringify ! (
@@ -26988,7 +27494,7 @@ pub mod root {
                    [u64; 29usize] ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_31() {
+    fn __bindgen_test_layout_template_33() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::nsIURI>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26999,7 +27505,7 @@ pub mod root {
                    root::already_AddRefed<root::nsIURI> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_32() {
+    fn __bindgen_test_layout_template_34() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::RefPtr<root::mozilla::dom::AnonymousContent>>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -27012,7 +27518,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_33() {
+    fn __bindgen_test_layout_template_35() {
         assert_eq!(::std::mem::size_of::<root::RefPtr<root::mozilla::StyleSheet>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -27023,7 +27529,7 @@ pub mod root {
                    root::RefPtr<root::mozilla::StyleSheet> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_34() {
+    fn __bindgen_test_layout_template_36() {
         assert_eq!(::std::mem::size_of::<root::RefPtr<root::mozilla::dom::Element>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -27034,7 +27540,7 @@ pub mod root {
                    root::RefPtr<root::mozilla::dom::Element> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_35() {
+    fn __bindgen_test_layout_template_37() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::RefPtr<root::mozilla::dom::Element>>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -27047,7 +27553,7 @@ pub mod root {
                    ));
     }
     #[test]
-    fn __bindgen_test_layout_template_36() {
+    fn __bindgen_test_layout_template_38() {
         assert_eq!(::std::mem::size_of::<root::nsCOMPtr<root::nsIObserver>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -27058,7 +27564,7 @@ pub mod root {
                    root::nsCOMPtr<root::nsIObserver> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_37() {
+    fn __bindgen_test_layout_template_39() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::nsCOMPtr<root::nsIObserver>>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -27069,7 +27575,7 @@ pub mod root {
                    root::nsTArray<root::nsCOMPtr<root::nsIObserver>> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_38() {
+    fn __bindgen_test_layout_template_40() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::nsIDocument>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -27080,7 +27586,7 @@ pub mod root {
                    root::already_AddRefed<root::nsIDocument> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_39() {
+    fn __bindgen_test_layout_template_41() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::nsContentList>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -27091,7 +27597,7 @@ pub mod root {
                    root::already_AddRefed<root::nsContentList> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_40() {
+    fn __bindgen_test_layout_template_42() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::nsINode>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -27102,7 +27608,7 @@ pub mod root {
                    root::already_AddRefed<root::nsINode> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_41() {
+    fn __bindgen_test_layout_template_43() {
         assert_eq!(::std::mem::size_of::<root::nsCOMPtr<root::nsIWeakReference>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -27113,7 +27619,7 @@ pub mod root {
                    root::nsCOMPtr<root::nsIWeakReference> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_42() {
+    fn __bindgen_test_layout_template_44() {
         assert_eq!(::std::mem::size_of::<u64>() , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! ( u64 )
                    ));
@@ -27122,7 +27628,7 @@ pub mod root {
                    u64 ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_43() {
+    fn __bindgen_test_layout_template_45() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::nsRect>>() ,
                    8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -27133,7 +27639,7 @@ pub mod root {
                    root::nsTArray<root::nsRect> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_44() {
+    fn __bindgen_test_layout_template_46() {
         assert_eq!(::std::mem::size_of::<[u64; 29usize]>() , 232usize , concat
                    ! (
                    "Size of template specialization: " , stringify ! (
@@ -27144,18 +27650,7 @@ pub mod root {
                    [u64; 29usize] ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_45() {
-        assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::mozilla::dom::NodeInfo>>()
-                   , 8usize , concat ! (
-                   "Size of template specialization: " , stringify ! (
-                   root::already_AddRefed<root::mozilla::dom::NodeInfo> ) ));
-        assert_eq!(::std::mem::align_of::<root::already_AddRefed<root::mozilla::dom::NodeInfo>>()
-                   , 8usize , concat ! (
-                   "Alignment of template specialization: " , stringify ! (
-                   root::already_AddRefed<root::mozilla::dom::NodeInfo> ) ));
-    }
-    #[test]
-    fn __bindgen_test_layout_template_46() {
+    fn __bindgen_test_layout_template_47() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::nsIContent>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -27166,18 +27661,18 @@ pub mod root {
                    root::nsTArray<*mut root::nsIContent> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_47() {
-        assert_eq!(::std::mem::size_of::<[u64; 6usize]>() , 48usize , concat !
-                   (
+    fn __bindgen_test_layout_template_48() {
+        assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::mozilla::dom::CSSValue>>()
+                   , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
-                   [u64; 6usize] ) ));
-        assert_eq!(::std::mem::align_of::<[u64; 6usize]>() , 8usize , concat !
-                   (
+                   root::already_AddRefed<root::mozilla::dom::CSSValue> ) ));
+        assert_eq!(::std::mem::align_of::<root::already_AddRefed<root::mozilla::dom::CSSValue>>()
+                   , 8usize , concat ! (
                    "Alignment of template specialization: " , stringify ! (
-                   [u64; 6usize] ) ));
+                   root::already_AddRefed<root::mozilla::dom::CSSValue> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_48() {
+    fn __bindgen_test_layout_template_49() {
         assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete<root::mozilla::dom::TimeoutManager>>()
                    , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -27190,7 +27685,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_49() {
+    fn __bindgen_test_layout_template_50() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::nsISupports>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -27201,7 +27696,7 @@ pub mod root {
                    root::already_AddRefed<root::nsISupports> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_50() {
+    fn __bindgen_test_layout_template_51() {
         assert_eq!(::std::mem::size_of::<root::nsCOMPtr<root::nsIRunnable>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -27212,7 +27707,7 @@ pub mod root {
                    root::nsCOMPtr<root::nsIRunnable> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_51() {
+    fn __bindgen_test_layout_template_52() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::nsIContent>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -27223,7 +27718,7 @@ pub mod root {
                    root::already_AddRefed<root::nsIContent> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_52() {
+    fn __bindgen_test_layout_template_53() {
         assert_eq!(::std::mem::size_of::<[u64; 6usize]>() , 48usize , concat !
                    (
                    "Size of template specialization: " , stringify ! (
@@ -27234,7 +27729,7 @@ pub mod root {
                    [u64; 6usize] ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_53() {
+    fn __bindgen_test_layout_template_54() {
         assert_eq!(::std::mem::size_of::<root::mozilla::OwningNonNull<root::nsINode>>()
                    , 16usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -27243,17 +27738,6 @@ pub mod root {
                    , 8usize , concat ! (
                    "Alignment of template specialization: " , stringify ! (
                    root::mozilla::OwningNonNull<root::nsINode> ) ));
-    }
-    #[test]
-    fn __bindgen_test_layout_template_54() {
-        assert_eq!(::std::mem::size_of::<[u32; 2usize]>() , 8usize , concat !
-                   (
-                   "Size of template specialization: " , stringify ! (
-                   [u32; 2usize] ) ));
-        assert_eq!(::std::mem::align_of::<[u32; 2usize]>() , 4usize , concat !
-                   (
-                   "Alignment of template specialization: " , stringify ! (
-                   [u32; 2usize] ) ));
     }
     #[test]
     fn __bindgen_test_layout_template_55() {
@@ -27279,17 +27763,6 @@ pub mod root {
     }
     #[test]
     fn __bindgen_test_layout_template_57() {
-        assert_eq!(::std::mem::size_of::<[u32; 4usize]>() , 16usize , concat !
-                   (
-                   "Size of template specialization: " , stringify ! (
-                   [u32; 4usize] ) ));
-        assert_eq!(::std::mem::align_of::<[u32; 4usize]>() , 4usize , concat !
-                   (
-                   "Alignment of template specialization: " , stringify ! (
-                   [u32; 4usize] ) ));
-    }
-    #[test]
-    fn __bindgen_test_layout_template_58() {
         assert_eq!(::std::mem::size_of::<[u32; 2usize]>() , 8usize , concat !
                    (
                    "Size of template specialization: " , stringify ! (
@@ -27298,6 +27771,17 @@ pub mod root {
                    (
                    "Alignment of template specialization: " , stringify ! (
                    [u32; 2usize] ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_template_58() {
+        assert_eq!(::std::mem::size_of::<[u32; 4usize]>() , 16usize , concat !
+                   (
+                   "Size of template specialization: " , stringify ! (
+                   [u32; 4usize] ) ));
+        assert_eq!(::std::mem::align_of::<[u32; 4usize]>() , 4usize , concat !
+                   (
+                   "Alignment of template specialization: " , stringify ! (
+                   [u32; 4usize] ) ));
     }
     #[test]
     fn __bindgen_test_layout_template_59() {
@@ -27312,14 +27796,14 @@ pub mod root {
     }
     #[test]
     fn __bindgen_test_layout_template_60() {
-        assert_eq!(::std::mem::size_of::<[u32; 4usize]>() , 16usize , concat !
+        assert_eq!(::std::mem::size_of::<[u32; 2usize]>() , 8usize , concat !
                    (
                    "Size of template specialization: " , stringify ! (
-                   [u32; 4usize] ) ));
-        assert_eq!(::std::mem::align_of::<[u32; 4usize]>() , 4usize , concat !
+                   [u32; 2usize] ) ));
+        assert_eq!(::std::mem::align_of::<[u32; 2usize]>() , 4usize , concat !
                    (
                    "Alignment of template specialization: " , stringify ! (
-                   [u32; 4usize] ) ));
+                   [u32; 2usize] ) ));
     }
     #[test]
     fn __bindgen_test_layout_template_61() {
@@ -27345,23 +27829,23 @@ pub mod root {
     }
     #[test]
     fn __bindgen_test_layout_template_63() {
+        assert_eq!(::std::mem::size_of::<[u32; 4usize]>() , 16usize , concat !
+                   (
+                   "Size of template specialization: " , stringify ! (
+                   [u32; 4usize] ) ));
+        assert_eq!(::std::mem::align_of::<[u32; 4usize]>() , 4usize , concat !
+                   (
+                   "Alignment of template specialization: " , stringify ! (
+                   [u32; 4usize] ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_template_64() {
         assert_eq!(::std::mem::size_of::<u32>() , 4usize , concat ! (
                    "Size of template specialization: " , stringify ! ( u32 )
                    ));
         assert_eq!(::std::mem::align_of::<u32>() , 4usize , concat ! (
                    "Alignment of template specialization: " , stringify ! (
                    u32 ) ));
-    }
-    #[test]
-    fn __bindgen_test_layout_template_64() {
-        assert_eq!(::std::mem::size_of::<[u32; 2usize]>() , 8usize , concat !
-                   (
-                   "Size of template specialization: " , stringify ! (
-                   [u32; 2usize] ) ));
-        assert_eq!(::std::mem::align_of::<[u32; 2usize]>() , 4usize , concat !
-                   (
-                   "Alignment of template specialization: " , stringify ! (
-                   [u32; 2usize] ) ));
     }
     #[test]
     fn __bindgen_test_layout_template_65() {
@@ -27387,6 +27871,17 @@ pub mod root {
     }
     #[test]
     fn __bindgen_test_layout_template_67() {
+        assert_eq!(::std::mem::size_of::<[u32; 2usize]>() , 8usize , concat !
+                   (
+                   "Size of template specialization: " , stringify ! (
+                   [u32; 2usize] ) ));
+        assert_eq!(::std::mem::align_of::<[u32; 2usize]>() , 4usize , concat !
+                   (
+                   "Alignment of template specialization: " , stringify ! (
+                   [u32; 2usize] ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_template_68() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<f64>>() , 8usize ,
                    concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -27397,7 +27892,7 @@ pub mod root {
                    root::nsTArray<f64> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_68() {
+    fn __bindgen_test_layout_template_69() {
         assert_eq!(::std::mem::size_of::<root::RefPtr<root::mozilla::dom::DOMIntersectionObserverEntry>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -27410,7 +27905,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_69() {
+    fn __bindgen_test_layout_template_70() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::RefPtr<root::mozilla::dom::DOMIntersectionObserverEntry>>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -27423,7 +27918,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_70() {
+    fn __bindgen_test_layout_template_71() {
         assert_eq!(::std::mem::size_of::<root::mozilla::UniquePtr<root::ProfilerBacktrace,
                                                root::ProfilerBacktraceDestructor>>()
                    , 8usize , concat ! (
@@ -27440,7 +27935,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_71() {
+    fn __bindgen_test_layout_template_72() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::mozilla::FontFamilyName>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -27451,7 +27946,7 @@ pub mod root {
                    root::nsTArray<root::mozilla::FontFamilyName> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_72() {
+    fn __bindgen_test_layout_template_73() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<::std::os::raw::c_uint>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -27462,7 +27957,7 @@ pub mod root {
                    root::nsTArray<::std::os::raw::c_uint> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_73() {
+    fn __bindgen_test_layout_template_74() {
         assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete<root::ProxyBehaviour>>()
                    , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -27473,7 +27968,7 @@ pub mod root {
                    root::mozilla::DefaultDelete<root::ProxyBehaviour> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_74() {
+    fn __bindgen_test_layout_template_75() {
         assert_eq!(::std::mem::size_of::<root::nsMainThreadPtrHolder<root::nsIURI>>()
                    , 24usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -27484,7 +27979,7 @@ pub mod root {
                    root::nsMainThreadPtrHolder<root::nsIURI> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_75() {
+    fn __bindgen_test_layout_template_76() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::nsMainThreadPtrHolder<root::nsIURI>>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -27497,7 +27992,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_76() {
+    fn __bindgen_test_layout_template_77() {
         assert_eq!(::std::mem::size_of::<root::nsMainThreadPtrHolder<root::nsIPrincipal>>()
                    , 24usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -27508,7 +28003,7 @@ pub mod root {
                    root::nsMainThreadPtrHolder<root::nsIPrincipal> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_77() {
+    fn __bindgen_test_layout_template_78() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::nsMainThreadPtrHolder<root::nsIPrincipal>>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -27521,7 +28016,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_78() {
+    fn __bindgen_test_layout_template_79() {
         assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete<root::nsCSSValueList>>()
                    , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -27532,7 +28027,7 @@ pub mod root {
                    root::mozilla::DefaultDelete<root::nsCSSValueList> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_79() {
+    fn __bindgen_test_layout_template_80() {
         assert_eq!(::std::mem::size_of::<root::mozilla::UniquePtr<root::nsCSSValueList,
                                                root::mozilla::DefaultDelete<root::nsCSSValueList>>>()
                    , 8usize , concat ! (
@@ -27549,7 +28044,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_80() {
+    fn __bindgen_test_layout_template_81() {
         assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete<root::nsCSSValuePairList>>()
                    , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -27562,7 +28057,7 @@ pub mod root {
                    ));
     }
     #[test]
-    fn __bindgen_test_layout_template_81() {
+    fn __bindgen_test_layout_template_82() {
         assert_eq!(::std::mem::size_of::<root::mozilla::UniquePtr<root::nsCSSValuePairList,
                                                root::mozilla::DefaultDelete<root::nsCSSValuePairList>>>()
                    , 8usize , concat ! (
@@ -27579,7 +28074,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_82() {
+    fn __bindgen_test_layout_template_83() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::mozilla::FramePropertyTable_PropertyValue>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -27592,7 +28087,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_83() {
+    fn __bindgen_test_layout_template_84() {
         assert_eq!(::std::mem::size_of::<root::nsPtrHashKey<root::nsIFrame>>()
                    , 16usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -27603,7 +28098,7 @@ pub mod root {
                    root::nsPtrHashKey<root::nsIFrame> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_84() {
+    fn __bindgen_test_layout_template_85() {
         assert_eq!(::std::mem::size_of::<[u64; 6usize]>() , 48usize , concat !
                    (
                    "Size of template specialization: " , stringify ! (
@@ -27614,7 +28109,7 @@ pub mod root {
                    [u64; 6usize] ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_85() {
+    fn __bindgen_test_layout_template_86() {
         assert_eq!(::std::mem::size_of::<root::mozilla::OwningNonNull<root::mozilla::EffectCompositor_AnimationStyleRuleProcessor>>()
                    , 16usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -27627,7 +28122,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_86() {
+    fn __bindgen_test_layout_template_87() {
         assert_eq!(::std::mem::size_of::<[u64; 2usize]>() , 16usize , concat !
                    (
                    "Size of template specialization: " , stringify ! (
@@ -27638,7 +28133,7 @@ pub mod root {
                    [u64; 2usize] ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_87() {
+    fn __bindgen_test_layout_template_88() {
         assert_eq!(::std::mem::size_of::<u64>() , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! ( u64 )
                    ));
@@ -27647,7 +28142,7 @@ pub mod root {
                    u64 ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_88() {
+    fn __bindgen_test_layout_template_89() {
         assert_eq!(::std::mem::size_of::<[u32; 3usize]>() , 12usize , concat !
                    (
                    "Size of template specialization: " , stringify ! (
@@ -27658,7 +28153,7 @@ pub mod root {
                    [u32; 3usize] ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_89() {
+    fn __bindgen_test_layout_template_90() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::nsStyleImageRequest>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -27669,7 +28164,7 @@ pub mod root {
                    root::already_AddRefed<root::nsStyleImageRequest> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_90() {
+    fn __bindgen_test_layout_template_91() {
         assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete<root::nsStyleSides>>()
                    , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -27680,7 +28175,7 @@ pub mod root {
                    root::mozilla::DefaultDelete<root::nsStyleSides> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_91() {
+    fn __bindgen_test_layout_template_92() {
         assert_eq!(::std::mem::size_of::<root::mozilla::UniquePtr<root::nsStyleSides,
                                                root::mozilla::DefaultDelete<root::nsStyleSides>>>()
                    , 8usize , concat ! (
@@ -27697,7 +28192,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_92() {
+    fn __bindgen_test_layout_template_93() {
         assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete<root::CachedBorderImageData>>()
                    , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -27710,7 +28205,7 @@ pub mod root {
                    ));
     }
     #[test]
-    fn __bindgen_test_layout_template_93() {
+    fn __bindgen_test_layout_template_94() {
         assert_eq!(::std::mem::size_of::<root::std::pair<::nsstring::nsStringRepr, ::nsstring::nsStringRepr>>()
                    , 32usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -27721,7 +28216,7 @@ pub mod root {
                    root::std::pair<::nsstring::nsStringRepr, ::nsstring::nsStringRepr> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_94() {
+    fn __bindgen_test_layout_template_95() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::std::pair<::nsstring::nsStringRepr,
                                                      ::nsstring::nsStringRepr>>>()
                    , 8usize , concat ! (
@@ -27736,7 +28231,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_95() {
+    fn __bindgen_test_layout_template_96() {
         assert_eq!(::std::mem::size_of::<[u64; 18usize]>() , 144usize , concat
                    ! (
                    "Size of template specialization: " , stringify ! (
@@ -27747,7 +28242,7 @@ pub mod root {
                    [u64; 18usize] ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_96() {
+    fn __bindgen_test_layout_template_97() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::mozilla::DisplayItemClip_RoundedRect>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -27760,7 +28255,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_97() {
+    fn __bindgen_test_layout_template_98() {
         assert_eq!(::std::mem::size_of::<root::RefPtr<root::mozilla::dom::DOMRect>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -27771,7 +28266,7 @@ pub mod root {
                    root::RefPtr<root::mozilla::dom::DOMRect> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_98() {
+    fn __bindgen_test_layout_template_99() {
         assert_eq!(::std::mem::size_of::<u64>() , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! ( u64 )
                    ));
@@ -27780,7 +28275,7 @@ pub mod root {
                    u64 ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_99() {
+    fn __bindgen_test_layout_template_100() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::mozilla::css::DocumentRule>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -27791,7 +28286,7 @@ pub mod root {
                    root::nsTArray<*mut root::mozilla::css::DocumentRule> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_100() {
+    fn __bindgen_test_layout_template_101() {
         assert_eq!(::std::mem::size_of::<root::nsAutoPtr<root::nsMediaQuery>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (

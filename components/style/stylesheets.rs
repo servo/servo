@@ -11,7 +11,11 @@ use cssparser::{AtRuleParser, Parser, QualifiedRuleParser};
 use cssparser::{AtRuleType, RuleListParser, SourcePosition, Token, parse_one_rule};
 use cssparser::ToCss as ParserToCss;
 use error_reporting::ParseErrorReporter;
-use font_face::{FontFaceRule, parse_font_face_block};
+#[cfg(feature = "servo")]
+use font_face::FontFaceData;
+use font_face::parse_font_face_block;
+#[cfg(feature = "gecko")]
+pub use gecko::rules::FontFaceRule;
 use keyframes::{Keyframe, parse_keyframe_list};
 use media_queries::{Device, MediaList, parse_media_query_list};
 use parking_lot::RwLock;
@@ -551,6 +555,10 @@ impl ToCssWithGuard for StyleRule {
     }
 }
 
+/// A @font-face rule
+#[cfg(feature = "servo")]
+pub type FontFaceRule = FontFaceData;
+
 impl Stylesheet {
     /// Updates an empty stylesheet from a given string of text.
     pub fn update_from_str(existing: &Stylesheet,
@@ -1004,7 +1012,7 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
         match prelude {
             AtRulePrelude::FontFace => {
                 Ok(CssRule::FontFace(Arc::new(self.shared_lock.wrap(
-                    try!(parse_font_face_block(self.context, input))))))
+                    parse_font_face_block(self.context, input)?.into()))))
             }
             AtRulePrelude::Media(media_queries) => {
                 Ok(CssRule::Media(Arc::new(self.shared_lock.wrap(MediaRule {
