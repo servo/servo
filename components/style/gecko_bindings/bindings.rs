@@ -8,6 +8,7 @@ use gecko_bindings::structs::RawGeckoDocument;
 use gecko_bindings::structs::RawGeckoElement;
 use gecko_bindings::structs::RawGeckoKeyframeList;
 use gecko_bindings::structs::RawGeckoComputedKeyframeValuesList;
+use gecko_bindings::structs::RawGeckoFontFaceRuleList;
 use gecko_bindings::structs::RawGeckoNode;
 use gecko_bindings::structs::RawGeckoAnimationValueList;
 use gecko_bindings::structs::RawServoAnimationValue;
@@ -31,9 +32,11 @@ use gecko_bindings::structs::SheetParsingMode;
 use gecko_bindings::structs::StyleBasicShape;
 use gecko_bindings::structs::StyleBasicShapeType;
 use gecko_bindings::structs::StyleShapeSource;
+use gecko_bindings::structs::nsCSSFontFaceRule;
 use gecko_bindings::structs::nsCSSKeyword;
 use gecko_bindings::structs::nsCSSPropertyID;
 use gecko_bindings::structs::nsCSSShadowArray;
+use gecko_bindings::structs::nsCSSUnit;
 use gecko_bindings::structs::nsCSSValue;
 use gecko_bindings::structs::nsCSSValueSharedList;
 use gecko_bindings::structs::nsChangeHint;
@@ -281,6 +284,10 @@ pub type RawGeckoComputedKeyframeValuesListBorrowed<'a> = &'a RawGeckoComputedKe
 pub type RawGeckoComputedKeyframeValuesListBorrowedOrNull<'a> = Option<&'a RawGeckoComputedKeyframeValuesList>;
 pub type RawGeckoComputedKeyframeValuesListBorrowedMut<'a> = &'a mut RawGeckoComputedKeyframeValuesList;
 pub type RawGeckoComputedKeyframeValuesListBorrowedMutOrNull<'a> = Option<&'a mut RawGeckoComputedKeyframeValuesList>;
+pub type RawGeckoFontFaceRuleListBorrowed<'a> = &'a RawGeckoFontFaceRuleList;
+pub type RawGeckoFontFaceRuleListBorrowedOrNull<'a> = Option<&'a RawGeckoFontFaceRuleList>;
+pub type RawGeckoFontFaceRuleListBorrowedMut<'a> = &'a mut RawGeckoFontFaceRuleList;
+pub type RawGeckoFontFaceRuleListBorrowedMutOrNull<'a> = Option<&'a mut RawGeckoFontFaceRuleList>;
 
 extern "C" {
     pub fn Gecko_EnsureTArrayCapacity(aArray: *mut ::std::os::raw::c_void,
@@ -952,6 +959,9 @@ extern "C" {
                                             len: nscoord);
 }
 extern "C" {
+    pub fn Gecko_CSSValue_SetNormal(css_value: nsCSSValueBorrowedMut);
+}
+extern "C" {
     pub fn Gecko_CSSValue_SetNumber(css_value: nsCSSValueBorrowedMut,
                                     number: f32);
 }
@@ -977,11 +987,13 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_CSSValue_SetString(css_value: nsCSSValueBorrowedMut,
-                                    string: *const u8, len: u32);
+                                    string: *const u8, len: u32,
+                                    unit: nsCSSUnit);
 }
 extern "C" {
-    pub fn Gecko_CSSValue_SetIdent(css_value: nsCSSValueBorrowedMut,
-                                   string: *const u8, len: u32);
+    pub fn Gecko_CSSValue_SetStringFromAtom(css_value: nsCSSValueBorrowedMut,
+                                            atom: *mut nsIAtom,
+                                            unit: nsCSSUnit);
 }
 extern "C" {
     pub fn Gecko_CSSValue_SetArray(css_value: nsCSSValueBorrowedMut,
@@ -992,12 +1004,8 @@ extern "C" {
                                  uri: ServoBundledURI);
 }
 extern "C" {
-    pub fn Gecko_CSSValue_SetLocal(css_value: nsCSSValueBorrowedMut,
-                                   family: nsString);
-}
-extern "C" {
-    pub fn Gecko_CSSValue_SetInteger(css_value: nsCSSValueBorrowedMut,
-                                     integer: i32);
+    pub fn Gecko_CSSValue_SetInt(css_value: nsCSSValueBorrowedMut,
+                                 integer: i32, unit: nsCSSUnit);
 }
 extern "C" {
     pub fn Gecko_CSSValue_Drop(css_value: nsCSSValueBorrowedMut);
@@ -1029,6 +1037,19 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_GetMediaFeatures() -> *const nsMediaFeature;
+}
+extern "C" {
+    pub fn Gecko_CSSFontFaceRule_Create() -> *mut nsCSSFontFaceRule;
+}
+extern "C" {
+    pub fn Gecko_CSSFontFaceRule_GetCssText(rule: *const nsCSSFontFaceRule,
+                                            result: *mut nsAString);
+}
+extern "C" {
+    pub fn Gecko_CSSFontFaceRule_AddRef(aPtr: *mut nsCSSFontFaceRule);
+}
+extern "C" {
+    pub fn Gecko_CSSFontFaceRule_Release(aPtr: *mut nsCSSFontFaceRule);
 }
 extern "C" {
     pub fn Gecko_GetLookAndFeelSystemColor(color_id: i32,
@@ -1441,6 +1462,11 @@ extern "C" {
      -> bool;
 }
 extern "C" {
+    pub fn Servo_StyleSet_GetFontFaceRules(set: RawServoStyleSetBorrowed,
+                                           list:
+                                               RawGeckoFontFaceRuleListBorrowedMut);
+}
+extern "C" {
     pub fn Servo_CssRules_ListTypes(rules: ServoCssRulesBorrowed,
                                     result: nsTArrayBorrowed_uintptr_t);
 }
@@ -1493,6 +1519,11 @@ extern "C" {
 extern "C" {
     pub fn Servo_NamespaceRule_GetCssText(rule: RawServoNamespaceRuleBorrowed,
                                           result: *mut nsAString);
+}
+extern "C" {
+    pub fn Servo_CssRules_GetFontFaceRuleAt(rules: ServoCssRulesBorrowed,
+                                            index: u32)
+     -> *mut nsCSSFontFaceRule;
 }
 extern "C" {
     pub fn Servo_StyleRule_GetStyle(rule: RawServoStyleRuleBorrowed)
