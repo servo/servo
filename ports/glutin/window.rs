@@ -191,7 +191,7 @@ pub struct Window {
     pending_key_event_char: Cell<Option<char>>,
 
     #[cfg(target_os = "windows")]
-    last_pressed_key : Cell<Option<constellation_msg::Key>>,
+    last_pressed_key: Cell<Option<constellation_msg::Key>>,
 
     /// The list of keys that have been pressed but not yet released, to allow providing
     /// the equivalent ReceivedCharacter data as was received for the press event.
@@ -322,7 +322,7 @@ impl Window {
             mouse_pos: Cell::new(Point2D::new(0, 0)),
             key_modifiers: Cell::new(KeyModifiers::empty()),
             current_url: RefCell::new(None),
-         
+
             last_pressed_key: Cell::new(None),
             pressed_key_map: RefCell::new(vec![]),
             gl: gl.clone(),
@@ -368,7 +368,6 @@ impl Window {
 
     fn handle_window_event(&self, event: glutin::Event) -> bool {
         match event {
-            
             Event::ReceivedCharacter(ch) => {
                 #[cfg(not(target_os = "windows"))]
                 {
@@ -384,11 +383,12 @@ impl Window {
                     if self.last_pressed_key.get().is_some()
                     {
                         let last_pressed_key = self.last_pressed_key.get().unwrap();
-                        self.event_queue.borrow_mut().push(WindowEvent::KeyEvent(Some(ch), last_pressed_key, KeyState::Pressed, modifiers));
+                        let event = WindowEvent::KeyEvent(Some(ch), last_pressed_key, KeyState::Pressed, modifiers);
+                        self.event_queue.borrow_mut().push(event);
                     }
                 }
             }
-            
+
             Event::KeyboardInput(element_state, scan_code, Some(virtual_key_code)) => {
                 match virtual_key_code {
                     VirtualKeyCode::LControl => self.toggle_modifier(LEFT_CONTROL),
