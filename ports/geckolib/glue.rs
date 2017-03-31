@@ -1551,6 +1551,7 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
                                                   raw_data: RawServoStyleSetBorrowed,
                                                   computed_keyframes: RawGeckoComputedKeyframeValuesListBorrowedMut)
 {
+    use std::mem;
     use style::properties::LonghandIdSet;
     use style::properties::declaration_block::Importance;
     use style::values::computed::Context;
@@ -1614,6 +1615,10 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
                     unsafe { animation_values.set_len((i + 1) as u32) };
                     seen.set_transition_property_bit(&anim.0);
                     animation_values[i].mProperty = anim.0.into();
+                    // We only make sure we have enough space for this variable,
+                    // but didn't construct a default value for StyleAnimationValue,
+                    // so we should zero it to avoid getting undefined behaviors.
+                    animation_values[i].mValue.mGecko = unsafe { mem::zeroed() };
                     animation_values[i].mValue.mServo.set_arc_leaky(Arc::new(anim.1));
                 }
             }
