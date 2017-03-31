@@ -32,6 +32,7 @@ use style::gecko_bindings::bindings::{RawServoDeclarationBlockBorrowed, RawServo
 use style::gecko_bindings::bindings::{RawServoMediaListBorrowed, RawServoMediaListStrong};
 use style::gecko_bindings::bindings::{RawServoMediaRule, RawServoMediaRuleBorrowed};
 use style::gecko_bindings::bindings::{RawServoNamespaceRule, RawServoNamespaceRuleBorrowed};
+use style::gecko_bindings::bindings::{RawServoPageRule, RawServoPageRuleBorrowed};
 use style::gecko_bindings::bindings::{RawServoStyleRule, RawServoStyleRuleBorrowed};
 use style::gecko_bindings::bindings::{RawServoStyleSetBorrowed, RawServoStyleSetOwned};
 use style::gecko_bindings::bindings::{RawServoStyleSheetBorrowed, ServoComputedValuesBorrowed};
@@ -79,7 +80,7 @@ use style::selector_parser::PseudoElementCascadeType;
 use style::sequential;
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards, ToCssWithGuard, Locked};
 use style::string_cache::Atom;
-use style::stylesheets::{CssRule, CssRules, CssRuleType, ImportRule, MediaRule, NamespaceRule};
+use style::stylesheets::{CssRule, CssRules, CssRuleType, ImportRule, MediaRule, NamespaceRule, PageRule};
 use style::stylesheets::{Origin, Stylesheet, StyleRule};
 use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
 use style::supports::parse_condition_or_declaration;
@@ -731,6 +732,12 @@ impl_basic_rule_funcs! { (Namespace, NamespaceRule, RawServoNamespaceRule),
     to_css: Servo_NamespaceRule_GetCssText,
 }
 
+impl_basic_rule_funcs! { (Page, PageRule, RawServoPageRule),
+    getter: Servo_CssRules_GetPageRuleAt,
+    debug: Servo_PageRule_Debug,
+    to_css: Servo_PageRule_GetCssText,
+}
+
 #[no_mangle]
 pub extern "C" fn Servo_CssRules_GetFontFaceRuleAt(rules: ServoCssRulesBorrowed, index: u32)
                                                    -> *mut nsCSSFontFaceRule
@@ -791,6 +798,22 @@ pub extern "C" fn Servo_NamespaceRule_GetPrefix(rule: RawServoNamespaceRuleBorro
 #[no_mangle]
 pub extern "C" fn Servo_NamespaceRule_GetURI(rule: RawServoNamespaceRuleBorrowed) -> *mut nsIAtom {
     read_locked_arc(rule, |rule: &NamespaceRule| rule.url.0.as_ptr())
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_PageRule_GetStyle(rule: RawServoPageRuleBorrowed) -> RawServoDeclarationBlockStrong {
+    read_locked_arc(rule, |rule: &PageRule| {
+        rule.0.clone().into_strong()
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_PageRule_SetStyle(rule: RawServoPageRuleBorrowed,
+                                           declarations: RawServoDeclarationBlockBorrowed) {
+    let declarations = Locked::<PropertyDeclarationBlock>::as_arc(&declarations);
+    write_locked_arc(rule, |rule: &mut PageRule| {
+        rule.0 = declarations.clone();
+    })
 }
 
 #[no_mangle]
