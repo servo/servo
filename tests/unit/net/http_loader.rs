@@ -511,7 +511,7 @@ fn test_load_doesnt_add_host_to_sts_list_when_url_is_http_even_if_sts_headers_ar
 #[test]
 fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_in_response() {
     let handler = move |_: HyperRequest, mut response: HyperResponse| {
-        response.headers_mut().set(SetCookie(vec![CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned())]));
+        response.headers_mut().set(SetCookie(vec!["mozillaIs=theBest".to_owned()]));
         response.send(b"Yay!").unwrap();
     };
     let (mut server, url) = make_server(handler);
@@ -543,7 +543,7 @@ fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_
 fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_resource_manager() {
     let handler = move |request: HyperRequest, response: HyperResponse| {
         assert_eq!(request.headers.get::<CookieHeader>(),
-                   Some(&CookieHeader(vec![CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned())])));
+                   Some(&CookieHeader(vec!["mozillaIs=theBest".to_owned()])));
         response.send(b"Yay!").unwrap();
     };
     let (mut server, url) = make_server(handler);
@@ -581,7 +581,7 @@ fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_re
 fn test_load_sends_cookie_if_nonhttp() {
     let handler = move |request: HyperRequest, response: HyperResponse| {
         assert_eq!(request.headers.get::<CookieHeader>(),
-                   Some(&CookieHeader(vec![CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned())])));
+                   Some(&CookieHeader(vec!["mozillaIs=theBest".to_owned()])));
         response.send(b"Yay!").unwrap();
     };
     let (mut server, url) = make_server(handler);
@@ -618,9 +618,8 @@ fn test_load_sends_cookie_if_nonhttp() {
 #[test]
 fn test_cookie_set_with_httponly_should_not_be_available_using_getcookiesforurl() {
     let handler = move |_: HyperRequest, mut response: HyperResponse| {
-        let mut pair = CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned());
-        pair.httponly = true;
-        response.headers_mut().set(SetCookie(vec![pair]));
+        let pair = vec!["mozillaIs=theBest; HttpOnly".to_owned()];
+        response.headers_mut().set(SetCookie(pair));
         response.send(b"Yay!").unwrap();
     };
     let (mut server, url) = make_server(handler);
@@ -653,9 +652,8 @@ fn test_cookie_set_with_httponly_should_not_be_available_using_getcookiesforurl(
 #[test]
 fn test_when_cookie_received_marked_secure_is_ignored_for_http() {
     let handler = move |_: HyperRequest, mut response: HyperResponse| {
-        let mut pair = CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned());
-        pair.secure = true;
-        response.headers_mut().set(SetCookie(vec![pair]));
+        let pair = vec!["mozillaIs=theBest; Secure".to_owned()];
+        response.headers_mut().set(SetCookie(pair));
         response.send(b"Yay!").unwrap();
     };
     let (mut server, url) = make_server(handler);
@@ -951,14 +949,14 @@ fn  test_redirect_from_x_to_y_provides_y_cookies_from_y() {
         };
         if path == "/com/" {
             assert_eq!(request.headers.get(),
-                       Some(&CookieHeader(vec![CookiePair::new("mozillaIsNot".to_owned(), "dotOrg".to_owned())])));
+                       Some(&CookieHeader(vec!["mozillaIsNot=dotOrg".to_owned()])));
             let location = shared_url_y.lock().unwrap().as_ref().unwrap().to_string();
             response.headers_mut().set(Location(location));
             *response.status_mut() = StatusCode::MovedPermanently;
             response.send(b"").unwrap();
         } else if path == "/org/" {
             assert_eq!(request.headers.get(),
-                       Some(&CookieHeader(vec![CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned())])));
+                       Some(&CookieHeader(vec!["mozillaIs=theBest".to_owned()])));
             response.send(b"Yay!").unwrap();
         } else {
             panic!("unexpected path {:?}", path)
@@ -1032,7 +1030,7 @@ fn test_redirect_from_x_to_x_provides_x_with_cookie_from_first_response() {
             response.send(b"").unwrap();
         } else if path == "/subsequent/" {
             assert_eq!(request.headers.get(),
-                       Some(&CookieHeader(vec![CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned())])));
+                       Some(&CookieHeader(vec!["mozillaIs=theBest".to_owned()])));
             response.send(b"Yay!").unwrap();
         } else {
             panic!("unexpected path {:?}", path)

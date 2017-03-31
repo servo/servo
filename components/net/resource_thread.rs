@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //! A thread that takes a URL and streams back the binary data.
-use connector::{Connector, create_http_connector, create_ssl_context};
+use connector::{Connector, create_http_connector};
 use cookie;
 use cookie_rs;
 use cookie_storage::CookieStorage;
@@ -21,7 +21,6 @@ use net_traits::{CustomResponseMediator, ResourceId};
 use net_traits::{ResourceThreads, WebSocketCommunicate, WebSocketConnectData};
 use net_traits::request::{Request, RequestInit};
 use net_traits::storage_thread::StorageThreadMsg;
-use openssl::ssl::SslContext;
 use profile_traits::time::ProfilerChan;
 use serde::{Deserialize, Serialize};
 use serde_json;
@@ -47,7 +46,6 @@ pub struct ResourceGroup {
     cookie_jar: Arc<RwLock<CookieStorage>>,
     auth_cache: Arc<RwLock<AuthCache>>,
     hsts_list: Arc<RwLock<HstsList>>,
-    ssl_context: Arc<SslContext>,
     connector: Arc<Pool<Connector>>,
 }
 
@@ -106,20 +104,17 @@ fn create_resource_groups(config_dir: Option<&Path>)
         read_json_from_file(&mut hsts_list, config_dir, "hsts_list.json");
         read_json_from_file(&mut cookie_jar, config_dir, "cookie_jar.json");
     }
-    let ssl_context = create_ssl_context("certs");
     let resource_group = ResourceGroup {
         cookie_jar: Arc::new(RwLock::new(cookie_jar)),
         auth_cache: Arc::new(RwLock::new(auth_cache)),
         hsts_list: Arc::new(RwLock::new(hsts_list.clone())),
-        ssl_context: ssl_context.clone(),
-        connector: create_http_connector(ssl_context.clone()),
+        connector: create_http_connector("certs"),
     };
     let private_resource_group = ResourceGroup {
         cookie_jar: Arc::new(RwLock::new(CookieStorage::new(150))),
         auth_cache: Arc::new(RwLock::new(AuthCache::new())),
         hsts_list: Arc::new(RwLock::new(HstsList::new())),
-        ssl_context: ssl_context.clone(),
-        connector: create_http_connector(ssl_context),
+        connector: create_http_connector("certs"),
     };
     (resource_group, private_resource_group)
 }
@@ -153,6 +148,7 @@ impl ResourceChannelManager {
         }
     }
 
+
     /// Returns false if the thread should exit.
     fn process_msg(&mut self,
                    msg: CoreResourceMsg,
@@ -163,10 +159,10 @@ impl ResourceChannelManager {
             CoreResourceMsg::WebsocketConnect(connect, connect_data) =>
                 self.resource_manager.websocket_connect(connect, connect_data, group),
             CoreResourceMsg::SetCookieForUrl(request, cookie, source) =>
-                self.resource_manager.set_cookie_for_url(&request, cookie, source, group),
+                self.resource_manager.set_cookie_for_url(&request, cookie.into_inner(), source, group),
             CoreResourceMsg::SetCookiesForUrl(request, cookies, source) => {
                 for cookie in cookies {
-                    self.resource_manager.set_cookie_for_url(&request, cookie.0, source, group);
+                    self.resource_manager.set_cookie_for_url(&request, cookie.into_inner(), source, group);
                 }
             }
             CoreResourceMsg::GetCookiesForUrl(url, consumer, source) => {
@@ -312,9 +308,11 @@ impl CoreResourceManager {
         }
     }
 
-    fn set_cookie_for_url(&mut self, request: &ServoUrl, cookie: cookie_rs::Cookie, source: CookieSource,
+    fn set_cookie_for_url(&mut self, request: &ServoUrl,
+                          cookie: cookie_rs::Cookie<'static>,
+                          source: CookieSource,
                           resource_group: &ResourceGroup) {
-        if let Some(cookie) = cookie::Cookie::new_wrapped(cookie, &request, source) {
+        if let Some(cookie) = cookie::Cookie::new_wrapped(cookie, request, source) {
             let mut cookie_jar = resource_group.cookie_jar.write().unwrap();
             cookie_jar.push(cookie, request, source)
         }
@@ -329,7 +327,7 @@ impl CoreResourceManager {
             cookie_jar: group.cookie_jar.clone(),
             auth_cache: group.auth_cache.clone(),
             // FIXME(#15694): use group.connector.clone() instead.
-            connector_pool: create_http_connector(group.ssl_context.clone()),
+            connector_pool: create_http_connector("certs"),
         };
         let ua = self.user_agent.clone();
         let dc = self.devtools_chan.clone();
@@ -357,7 +355,6 @@ impl CoreResourceManager {
                          resource_grp: &ResourceGroup) {
         websocket_loader::init(connect,
                                connect_data,
-                               resource_grp.cookie_jar.clone(),
-                               resource_grp.ssl_context.clone());
+                               resource_grp.cookie_jar.clone());
     }
 }

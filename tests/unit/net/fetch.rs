@@ -18,10 +18,10 @@ use hyper::header::{Encoding, Location, Pragma, Quality, QualityItem, SetCookie,
 use hyper::header::{Headers, Host, HttpDate, Referer as HyperReferer};
 use hyper::method::Method;
 use hyper::mime::{Mime, SubLevel, TopLevel};
-use hyper::net::Openssl;
 use hyper::server::{Request as HyperRequest, Response as HyperResponse, Server};
 use hyper::status::StatusCode;
 use hyper::uri::RequestUri;
+use hyper_openssl;
 use msg::constellation_msg::TEST_PIPELINE_ID;
 use net::fetch::cors_cache::CorsCache;
 use net::fetch::methods::FetchContext;
@@ -524,9 +524,10 @@ fn test_fetch_with_hsts() {
     let mut key_path = path.clone();
     key_path.push("privatekey_for_testing.key");
 
-    let ssl = Openssl::with_cert_and_key(cert_path.into_os_string(), key_path.into_os_string())
+    let ssl = hyper_openssl::OpensslServer::from_files(key_path, cert_path)
         .unwrap();
 
+    //takes an address and something that implements hyper::net::Ssl
     let mut server = Server::https("0.0.0.0:0", ssl).unwrap().handle_threads(handler, 1).unwrap();
 
     let context =  FetchContext {
