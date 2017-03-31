@@ -222,6 +222,44 @@ fn fmt_subtree<F, N: TNode>(f: &mut fmt::Formatter, stringify: &F, n: N, indent:
     Ok(())
 }
 
+/// Flag that this element has a descendant for style processing, propagating
+/// the bit up to the root as needed.
+///
+/// This is _not_ safe to call during the parallel traversal.
+///
+/// This is intended as a helper so Servo and Gecko can override it with custom
+/// stuff if needed.
+///
+/// Returns whether no parent had already noted it, that is, whether we reached
+/// the root during the walk up.
+pub unsafe fn raw_note_descendants<E, B>(element: E) -> bool
+    where E: TElement,
+          B: DescendantsBit<E>,
+{
+    debug_assert!(!thread_state::get().is_worker());
+    // TODO(emilio, bholley): Documenting the flags setup a bit better wouldn't
+    // really hurt I guess.
+    debug_assert!(element.get_data().is_some(),
+                  "You should ensure you only flag styled elements");
+
+    let mut curr = Some(element);
+    while let Some(el) = curr {
+        if B::has(el) {
+            break;
+        }
+        B::set(el);
+        curr = el.parent_element();
+    }
+
+    // Note: We disable this assertion on servo because of bugs. See the
+    // comment around note_dirty_descendant in layout/wrapper.rs.
+    if cfg!(feature = "gecko") {
+        debug_assert!(element.descendants_bit_is_propagated::<B>());
+    }
+
+    curr.is_none()
+}
+
 /// A trait used to synthesize presentational hints for HTML element attributes.
 pub trait PresentationalHintsSynthetizer {
     /// Generate the proper applicable declarations due to presentational hints,
@@ -301,29 +339,18 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
     /// the actual restyle traversal.
     fn has_dirty_descendants(&self) -> bool;
 
+    /// Flags an element and its ancestors with a given `DescendantsBit`.
+    ///
+    /// TODO(emilio): We call this conservatively from restyle_element_internal
+    /// because we never flag unstyled stuff. A different setup for this may be
+    /// a bit cleaner, but it's probably not worth to invest on it right now
+    /// unless necessary.
+    unsafe fn note_descendants<B: DescendantsBit<Self>>(&self);
+
     /// Flag that this element has a descendant for style processing.
     ///
     /// Only safe to call with exclusive access to the element.
     unsafe fn set_dirty_descendants(&self);
-
-    /// Flag that this element has a descendant for style processing, propagating
-    /// the bit up to the root as needed.
-    ///
-    /// This is _not_ safe to call during the parallel traversal.
-    unsafe fn note_descendants<B: DescendantsBit<Self>>(&self) {
-        debug_assert!(!thread_state::get().is_worker());
-        let mut curr = Some(*self);
-        while curr.is_some() && !B::has(curr.unwrap()) {
-            B::set(curr.unwrap());
-            curr = curr.unwrap().parent_element();
-        }
-
-        // Note: We disable this assertion on servo because of bugs. See the
-        // comment around note_dirty_descendant in layout/wrapper.rs.
-        if cfg!(feature = "gecko") {
-            debug_assert!(self.descendants_bit_is_propagated::<B>());
-        }
-    }
 
     /// Debug helper to be sure the bit is propagated.
     fn descendants_bit_is_propagated<B: DescendantsBit<Self>>(&self) -> bool {
