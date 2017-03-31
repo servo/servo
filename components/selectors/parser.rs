@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+// extern crate smallvec;
 
 use cssparser::{Token, Parser as CssParser, parse_nth, ToCss, serialize_identifier, CssStringWriter};
 use std::ascii::AsciiExt;
@@ -376,32 +377,33 @@ impl<Impl: SelectorImpl> ToCss for Selector<Impl> {
 
 impl<Impl: SelectorImpl> ToCss for ComplexSelector<Impl> {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        use smallvec::SmallVec;
-        let mut current = self;
-        let mut nodes = SmallVec::<[Arc<ComplexSelector<Impl>>; 8]>::new();
-        loop{
-            match current.next{
-                None => break,
-                Some((ref next, ref combinator)) => {
-                    current = &**next;
-                    combinator.to_css(dest)?;
-                    nodes.push((*next).clone());
-                }
-            }
-        }
+       use smallvec::SmallVec;
+       let mut current = self;
+       let mut nodes = SmallVec::<[&Self;8]>::new();
+       nodes.push(current);
 
-        for simp in &self.compound_selector{
-            simp.to_css(dest)?;
-        }
+       loop {
+           match current.next {
+               None => break,
+               Some((ref next, _)) => {
+                   current = &**next;
+                   nodes.push(next);
+               }
+           }
+       }
 
-        for node in nodes {
-            for simple in &node.compound_selector {
-                simple.to_css(dest)?;
-            }
-        }
+       for selector in nodes.iter().rev(){
+           if let Some((_, ref combinator)) = selector.next{
+               combinator.to_css(dest)?;
+           }
 
-        Ok(())
-    }
+           for simple in &selector.compound_selector{
+               simple.to_css(dest)?;
+           }
+       }
+
+           Ok(())
+       }
 }
 
 impl ToCss for Combinator {
@@ -1150,9 +1152,6 @@ fn parse_simple_pseudo_class<P, Impl>(parser: &P, name: Cow<str>) -> Result<Simp
 // NB: pub module in order to access the DummyParser
 #[cfg(test)]
 pub mod tests {
-
-
-
     use cssparser::{Parser as CssParser, ToCss, serialize_identifier};
     use std::borrow::Cow;
     use std::collections::HashMap;
