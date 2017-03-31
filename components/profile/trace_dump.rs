@@ -10,6 +10,7 @@ use std::fs;
 use std::io::Write;
 
 /// An RAII class for writing the HTML trace dump.
+#[derive(Debug)]
 pub struct TraceDump {
     file: fs::File,
 }
