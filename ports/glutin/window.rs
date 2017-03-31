@@ -17,7 +17,9 @@ use gdi32;
 use gleam::gl;
 use glutin;
 use glutin::{Api, ElementState, Event, GlRequest, MouseButton, MouseScrollDelta, VirtualKeyCode};
-use glutin::{ScanCode, TouchPhase};
+#[cfg(not(target_os = "windows"))]
+use glutin::ScanCode;
+use glutin::TouchPhase;
 #[cfg(target_os = "macos")]
 use glutin::os::macos::{ActivationPolicy, WindowBuilderExt};
 use msg::constellation_msg::{self, Key};
@@ -195,6 +197,7 @@ pub struct Window {
 
     /// The list of keys that have been pressed but not yet released, to allow providing
     /// the equivalent ReceivedCharacter data as was received for the press event.
+    #[cfg(not(target_os = "windows"))]
     pressed_key_map: RefCell<Vec<(ScanCode, char)>>,
 
     gl: Rc<gl::Gl>,
@@ -324,7 +327,6 @@ impl Window {
             current_url: RefCell::new(None),
 
             last_pressed_key: Cell::new(None),
-            pressed_key_map: RefCell::new(vec![]),
             gl: gl.clone(),
         };
 
@@ -380,16 +382,15 @@ impl Window {
                     let modifiers = Window::glutin_mods_to_script_mods(self.key_modifiers.get());
                     //TODO : Should not be in an if because the condition should be always true
                     // allowing us to call unwrap on self.last_pressed_key.get()
-                    if self.last_pressed_key.get().is_some()
-                    {
-                        let last_pressed_key = self.last_pressed_key.get().unwrap();
-                        let event = WindowEvent::KeyEvent(Some(ch), last_pressed_key, KeyState::Pressed, modifiers);
-                        self.event_queue.borrow_mut().push(event);
+                    if let Some(last_pressed_key) = self.last_pressed_key.get() {
+						let event = WindowEvent::KeyEvent(Some(ch), last_pressed_key, KeyState::Pressed, modifiers);
+						self.event_queue.borrow_mut().push(event);						
                     }
+					self.last_pressed_key.set(None);							
                 }
             }
 
-            Event::KeyboardInput(element_state, scan_code, Some(virtual_key_code)) => {
+            Event::KeyboardInput(element_state, _scan_code, Some(virtual_key_code)) => {
                 match virtual_key_code {
                     VirtualKeyCode::LControl => self.toggle_modifier(LEFT_CONTROL),
                     VirtualKeyCode::RControl => self.toggle_modifier(RIGHT_CONTROL),
@@ -414,7 +415,7 @@ impl Window {
                                         .and_then(|ch| filter_nonprintable(ch, virtual_key_code));
                             self.pending_key_event_char.set(None);
                             if let Some(ch) = ch {
-                                self.pressed_key_map.borrow_mut().push((scan_code, ch));
+                                self.pressed_key_map.borrow_mut().push((_scan_code, ch));
                             }
                             ch
                         }
@@ -425,7 +426,7 @@ impl Window {
                             let idx = self.pressed_key_map
                                         .borrow()
                                         .iter()
-                                        .position(|&(code, _)| code == scan_code);
+                                        .position(|&(code, _)| code == _scan_code);
                             idx.map(|idx| self.pressed_key_map.borrow_mut().swap_remove(idx).1)
                         }
                     };
@@ -449,7 +450,9 @@ impl Window {
                             ElementState::Released => KeyState::Released,
                         };
                         if element_state == ElementState::Pressed {
-                            self.last_pressed_key.set(Some(key));
+							if filter_nonprintable('0', virtual_key_code).is_some() {
+								self.last_pressed_key.set(Some(key));							
+							}
                         }
                         let modifiers = Window::glutin_mods_to_script_mods(self.key_modifiers.get());
                         self.event_queue.borrow_mut().push(WindowEvent::KeyEvent(None, key, state, modifiers));
