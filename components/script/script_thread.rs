@@ -481,7 +481,7 @@ pub struct ScriptThread {
 
     microtask_queue: MicrotaskQueue,
 
-    /// a vector of MutationObserver objects
+    /// The unit of related similar-origin browsing contexts' list of MutationObserver objects
     mutation_observers: Vec<MutationObserver>,
 
     /// A handle to the webvr thread, if available
@@ -574,7 +574,7 @@ impl ScriptThreadFactory for ScriptThread {
 }
 
 impl ScriptThread {
-    pub fn set_mutation_observer(observer: &MutationObserver) {
+    pub fn add_mutation_observer(observer: &MutationObserver) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
             script_thread.mutation_observers
