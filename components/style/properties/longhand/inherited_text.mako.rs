@@ -1076,6 +1076,28 @@ ${helpers.single_keyword("text-align-last",
             vertical.to_css(dest)
         }
     }
+
+    % if product == "gecko":
+        impl SpecifiedValue {
+            pub fn from_gecko_keyword(kw: u32) -> Self {
+                use gecko_bindings::structs;
+
+                let vert = if kw & structs::NS_STYLE_TEXT_EMPHASIS_POSITION_RIGHT != 0 {
+                    VerticalWritingModeValue::Right
+                } else {
+                    debug_assert!(kw & structs::NS_STYLE_TEXT_EMPHASIS_POSITION_LEFT != 0);
+                    VerticalWritingModeValue::Left
+                };
+                let horiz = if kw & structs::NS_STYLE_TEXT_EMPHASIS_POSITION_OVER != 0 {
+                    HorizontalWritingModeValue::Over
+                } else {
+                    debug_assert!(kw & structs::NS_STYLE_TEXT_EMPHASIS_POSITION_UNDER != 0);
+                    HorizontalWritingModeValue::Under
+                };
+                SpecifiedValue(horiz, vert)
+            }
+        }
+    % endif
 </%helpers:longhand>
 
 ${helpers.predefined_type("text-emphasis-color", "CSSColor",
