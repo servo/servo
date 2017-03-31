@@ -19,6 +19,8 @@
     pub use self::computed_value::T as SpecifiedValue;
     pub use self::computed_value::ContentItem;
 
+    // FIXME(emilio): This is wrong, content: normal should compute to "none" if
+    // it's for a pseudo, and to "contents" if it's for an element.
     impl ComputedValueAsSpecified for SpecifiedValue {}
     no_viewport_percentage!(SpecifiedValue);
 

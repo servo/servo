@@ -1155,22 +1155,31 @@ pub trait MatchMethods : TElement {
                               -> RestyleDamage
     {
         match self.existing_style_for_restyle_damage(old_values, pseudo) {
-            Some(ref source) => RestyleDamage::compute(source, new_values),
-            None => {
-                // If there's no style source, that likely means that Gecko
-                // couldn't find a style context. This happens with display:none
-                // elements, and probably a number of other edge cases that
-                // we don't handle well yet (like display:contents).
-                if new_values.get_box().clone_display() == display::T::none &&
-                    old_values.get_box().clone_display() == display::T::none {
-                    // The style remains display:none. No need for damage.
-                    RestyleDamage::empty()
-                } else {
-                    // Something else. Be conservative for now.
-                    RestyleDamage::reconstruct()
-                }
+            Some(ref source) => return RestyleDamage::compute(source, new_values),
+            None => {},
+        }
+
+        // If there's no style source, that likely means that Gecko
+        // couldn't find a style context. This happens with display:none
+        // elements, and probably a number of other edge cases that
+        // we don't handle well yet (like display:contents).
+        if new_values.get_box().clone_display() == display::T::none &&
+            old_values.get_box().clone_display() == display::T::none {
+            // The style remains display:none. No need for damage.
+            return RestyleDamage::empty();
+        }
+
+        if let Some(pseudo) = pseudo {
+            if SelectorImpl::pseudo_is_before_or_after(pseudo) &&
+                old_values.ineffective_content_property() &&
+                new_values.ineffective_content_property() {
+                return RestyleDamage::empty();
             }
         }
+        // Something else. Be conservative for now.
+        warn!("Reframing due to lack of old style source: {:?}, pseudo: {:?}",
+              self, pseudo);
+        RestyleDamage::reconstruct()
     }
 
     /// Run the CSS cascade and compute values for the element, potentially

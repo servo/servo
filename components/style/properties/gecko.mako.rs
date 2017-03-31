@@ -159,6 +159,10 @@ impl ComputedValues {
         self.custom_properties.as_ref().map(|x| x.clone())
     }
 
+    pub fn ineffective_content_property(&self) -> bool {
+        self.get_counters().ineffective_content_property()
+    }
+
     #[allow(non_snake_case)]
     pub fn has_moz_binding(&self) -> bool {
         !self.get_box().gecko.mBinding.mPtr.mRawPtr.is_null()
@@ -3397,6 +3401,10 @@ clip-path
 
 <%self:impl_trait style_struct_name="Counters"
                   skip_longhands="content counter-increment counter-reset">
+    pub fn ineffective_content_property(&self) -> bool {
+        self.gecko.mContents.is_empty()
+    }
+
     pub fn set_content(&mut self, v: longhands::content::computed_value::T) {
         use properties::longhands::content::computed_value::T;
         use properties::longhands::content::computed_value::ContentItem;
