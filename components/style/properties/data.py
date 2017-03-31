@@ -97,7 +97,7 @@ class Longhand(object):
                  need_clone=False, need_index=False, gecko_ffi_name=None, depend_on_viewport_size=False,
                  allowed_in_keyframe_block=True, complex_color=False, cast_type='u8',
                  has_uncacheable_values=False, logical=False, alias=None, extra_prefixes=None, boxed=False,
-                 creates_stacking_context=False, fixpos_cb=False, abspos_cb=False):
+                 flags=None):
         self.name = name
         if not spec:
             raise TypeError("Spec should be specified for %s" % name)
@@ -121,9 +121,7 @@ class Longhand(object):
         self.alias = alias.split() if alias else []
         self.extra_prefixes = extra_prefixes.split() if extra_prefixes else []
         self.boxed = arg_to_bool(boxed)
-        self.creates_stacking_context = arg_to_bool(creates_stacking_context)
-        self.fixpos_cb = arg_to_bool(fixpos_cb)
-        self.abspos_cb = arg_to_bool(abspos_cb)
+        self.flags = flags.split() if flags else []
 
         # https://drafts.csswg.org/css-animations/#keyframes
         # > The <declaration-list> inside of <keyframe-block> accepts any CSS property
@@ -154,7 +152,7 @@ class Longhand(object):
 
 class Shorthand(object):
     def __init__(self, name, sub_properties, spec=None, experimental=False, internal=False,
-                 allowed_in_keyframe_block=True, alias=None, extra_prefixes=None):
+                 allowed_in_keyframe_block=True, alias=None, extra_prefixes=None, flags=None):
         self.name = name
         if not spec:
             raise TypeError("Spec should be specified for %s" % name)
@@ -167,6 +165,7 @@ class Shorthand(object):
         self.internal = internal
         self.alias = alias.split() if alias else []
         self.extra_prefixes = extra_prefixes.split() if extra_prefixes else []
+        self.flags = flags.split() if flags else []
 
         # https://drafts.csswg.org/css-animations/#keyframes
         # > The <declaration-list> inside of <keyframe-block> accepts any CSS property

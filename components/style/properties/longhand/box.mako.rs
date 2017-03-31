@@ -107,8 +107,7 @@ ${helpers.single_keyword("position", "static absolute relative fixed",
                          need_clone="True",
                          extra_gecko_values="sticky",
                          animation_type="none",
-                         creates_stacking_context="True",
-                         abspos_cb="True",
+                         flags="CREATES_STACKING_CONTEXT ABSPOS_CB",
                          spec="https://drafts.csswg.org/css-position/#position-property")}
 
 <%helpers:single_keyword_computed name="float"
@@ -1101,8 +1100,7 @@ ${helpers.predefined_type("scroll-snap-coordinate",
 
 <%helpers:longhand name="transform" products="gecko servo" extra_prefixes="webkit"
                    animation_type="normal"
-                   creates_stacking_context="True"
-                   fixpos_cb="True"
+                   flags="CREATES_STACKING_CONTEXT FIXPOS_CB"
                    spec="https://drafts.csswg.org/css-transforms/#propdef-transform">
     use app_units::Au;
     use values::specified::{Angle, Length, LengthOrPercentage, Number};
@@ -1814,7 +1812,7 @@ ${helpers.single_keyword("isolation",
                          "auto isolate",
                          products="gecko",
                          spec="https://drafts.fxtf.org/compositing/#isolation",
-                         creates_stacking_context=True,
+                         flags="CREATES_STACKING_CONTEXT",
                          animation_type="none")}
 
 // TODO add support for logical values recto and verso
@@ -1854,8 +1852,7 @@ ${helpers.predefined_type("perspective",
                           spec="https://drafts.csswg.org/css-transforms/#perspective",
                           extra_prefixes="moz webkit",
                           boxed=True,
-                          creates_stacking_context=True,
-                          fixpos_cb=True,
+                          flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
                           animation_type="normal")}
 
 // FIXME: This prop should be animatable
@@ -1965,8 +1962,7 @@ ${helpers.single_keyword("transform-style",
                          "flat preserve-3d",
                          spec="https://drafts.csswg.org/css-transforms/#transform-style-property",
                          extra_prefixes="moz webkit",
-                         creates_stacking_context=True,
-                         fixpos_cb=True,
+                         flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
                          animation_type="none")}
 
 <%helpers:longhand name="transform-origin" animation_type="normal" extra_prefixes="moz webkit" boxed="True"
