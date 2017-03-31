@@ -1160,9 +1160,11 @@ pub trait MatchMethods : TElement {
         }
 
         // If there's no style source, that likely means that Gecko
-        // couldn't find a style context. This happens with display:none
-        // elements, and probably a number of other edge cases that
-        // we don't handle well yet (like display:contents).
+        // couldn't find a style context.
+        //
+        // This happens with display:none elements, and also a number of
+        // other cases, like pseudos that end up matching rules but not
+        // producing a frame.
         if new_values.get_box().clone_display() == display::T::none &&
             old_values.get_box().clone_display() == display::T::none {
             // The style remains display:none. No need for damage.
