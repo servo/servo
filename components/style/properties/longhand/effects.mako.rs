@@ -11,7 +11,7 @@ ${helpers.predefined_type("opacity",
                           "Opacity",
                           "1.0",
                           animation_type="normal",
-                          creates_stacking_context=True,
+                          flags="CREATES_STACKING_CONTEXT",
                           spec="https://drafts.csswg.org/css-color/#opacity")}
 
 <%helpers:vector_longhand name="box-shadow" allow_empty="True"
@@ -87,8 +87,7 @@ ${helpers.predefined_type("clip",
 
 // FIXME: This prop should be animatable
 <%helpers:longhand name="filter" animation_type="none" extra_prefixes="webkit"
-                    creates_stacking_context="True"
-                    fixpos_cb="True"
+                   flags="CREATES_STACKING_CONTEXT FIXPOS_CB"
                    spec="https://drafts.fxtf.org/filters/#propdef-filter">
     //pub use self::computed_value::T as SpecifiedValue;
     use cssparser;
@@ -526,5 +525,5 @@ ${helpers.single_keyword("mix-blend-mode",
                             color-burn hard-light soft-light difference exclusion hue
                             saturation color luminosity""", gecko_constant_prefix="NS_STYLE_BLEND",
                          animation_type="none",
-                         creates_stacking_context=True,
+                         flags="CREATES_STACKING_CONTEXT",
                          spec="https://drafts.fxtf.org/compositing/#propdef-mix-blend-mode")}
