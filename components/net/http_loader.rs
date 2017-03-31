@@ -558,7 +558,7 @@ pub fn http_fetch(request: Rc<Request>,
                                                        cors_flag, done_chan, context);
 
         // Substep 4
-        if cors_flag && cors_check(request.clone(), &fetch_result).is_err() {
+        if cors_flag && cors_check(&request, &fetch_result).is_err() {
             return Response::network_error(NetworkError::Internal("CORS check failed".into()));
         }
 
@@ -1238,7 +1238,7 @@ fn cors_preflight_fetch(request: Rc<Request>,
     let response = http_network_or_cache_fetch(preflight.clone(), false, false, &mut None, context);
 
     // Step 7
-    if cors_check(request.clone(), &response).is_ok() &&
+    if cors_check(&request, &response).is_ok() &&
        response.status.map_or(false, |status| status.is_success()) {
         // Substep 1
         let mut methods = if response.headers.has::<AccessControlAllowMethods>() {
@@ -1308,7 +1308,7 @@ fn cors_preflight_fetch(request: Rc<Request>,
 }
 
 /// [CORS check](https://fetch.spec.whatwg.org#concept-cors-check)
-fn cors_check(request: Rc<Request>, response: &Response) -> Result<(), ()> {
+fn cors_check(request: &Request, response: &Response) -> Result<(), ()> {
     // Step 1
     let origin = response.headers.get::<AccessControlAllowOrigin>().cloned();
 
