@@ -48,31 +48,31 @@ pub struct FetchContext {
 pub type DoneChannel = Option<(Sender<Data>, Receiver<Data>)>;
 
 /// [Fetch](https://fetch.spec.whatwg.org#concept-fetch)
-pub fn fetch(request: &Request,
+pub fn fetch(request: &mut Request,
              target: Target,
              context: &FetchContext) {
     fetch_with_cors_cache(request, &mut CorsCache::new(), target, context);
 }
 
-pub fn fetch_with_cors_cache(request: &Request,
+pub fn fetch_with_cors_cache(request: &mut Request,
                              cache: &mut CorsCache,
                              target: Target,
                              context: &FetchContext) {
     // Step 1
-    if request.window.get() == Window::Client {
+    if request.window == Window::Client {
         // TODO: Set window to request's client object if client is a Window object
     } else {
-        request.window.set(Window::NoWindow);
+        request.window = Window::NoWindow;
     }
 
     // Step 2
-    if *request.origin.borrow() == Origin::Client {
+    if request.origin == Origin::Client {
         // TODO: set request's origin to request's client's origin
         unimplemented!()
     }
 
     // Step 3
-    if !request.headers.borrow().has::<Accept>() {
+    if !request.headers.has::<Accept>() {
         let value = match request.type_ {
             // Substep 2
             _ if request.is_navigation_request() =>
@@ -101,11 +101,11 @@ pub fn fetch_with_cors_cache(request: &Request,
         };
 
         // Substep 4
-        request.headers.borrow_mut().set(Accept(value));
+        request.headers.set(Accept(value));
     }
 
     // Step 4
-    set_default_accept_language(&mut request.headers.borrow_mut());
+    set_default_accept_language(&mut request.headers);
 
     // Step 5
     // TODO: Figure out what a Priority object is
@@ -120,7 +120,7 @@ pub fn fetch_with_cors_cache(request: &Request,
 }
 
 /// [Main fetch](https://fetch.spec.whatwg.org/#concept-main-fetch)
-pub fn main_fetch(request: &Request,
+pub fn main_fetch(request: &mut Request,
                   cache: &mut CorsCache,
                   cors_flag: bool,
                   recursive_flag: bool,
@@ -158,30 +158,30 @@ pub fn main_fetch(request: &Request,
     // currently the clients themselves set referrer policy in RequestInit
 
     // Step 7
-    let referrer_policy = request.referrer_policy.get().unwrap_or(ReferrerPolicy::NoReferrerWhenDowngrade);
-    request.referrer_policy.set(Some(referrer_policy));
+    let referrer_policy = request.referrer_policy.unwrap_or(ReferrerPolicy::NoReferrerWhenDowngrade);
+    request.referrer_policy = Some(referrer_policy);
 
     // Step 8
     {
-        let mut referrer = request.referrer.borrow_mut();
-        let referrer_url = match mem::replace(&mut *referrer, Referrer::NoReferrer) {
+        let referrer_url = match mem::replace(&mut request.referrer, Referrer::NoReferrer) {
             Referrer::NoReferrer => None,
             Referrer::Client => {
                 // FIXME(#14507): We should never get this value here; it should
                 //                already have been handled in the script thread.
-                request.headers.borrow_mut().remove::<RefererHeader>();
+                request.headers.remove::<RefererHeader>();
                 None
             },
             Referrer::ReferrerUrl(url) => {
-                request.headers.borrow_mut().remove::<RefererHeader>();
-                determine_request_referrer(&mut *request.headers.borrow_mut(),
+                request.headers.remove::<RefererHeader>();
+                let current_url = request.current_url().clone();
+                determine_request_referrer(&mut request.headers,
                                            referrer_policy,
                                            url,
-                                           request.current_url().clone())
+                                           current_url)
             }
         };
         if let Some(referrer_url) = referrer_url {
-            *referrer = Referrer::ReferrerUrl(referrer_url);
+            request.referrer = Referrer::ReferrerUrl(referrer_url);
         }
     }
 
@@ -192,7 +192,7 @@ pub fn main_fetch(request: &Request,
             .read()
             .unwrap()
             .is_host_secure(request.current_url().domain().unwrap()) {
-           request.url_list.borrow_mut().last_mut().unwrap().as_mut_url().set_scheme("https").unwrap();
+           request.url_list.last_mut().unwrap().as_mut_url().set_scheme("https").unwrap();
         }
     }
 
@@ -204,7 +204,7 @@ pub fn main_fetch(request: &Request,
         Some(response) => response,
         None => {
             let current_url = request.current_url();
-            let same_origin = if let Origin::Origin(ref origin) = *request.origin.borrow() {
+            let same_origin = if let Origin::Origin(ref origin) = request.origin {
                 *origin == current_url.origin()
             } else {
                 false
@@ -221,7 +221,7 @@ pub fn main_fetch(request: &Request,
                 Response::network_error(NetworkError::Internal("Cross-origin response".into()))
 
             } else if request.mode == RequestMode::NoCors {
-                request.response_tainting.set(ResponseTainting::Opaque);
+                request.response_tainting = ResponseTainting::Opaque;
                 basic_fetch(request, cache, target, done_chan, context)
 
             } else if !matches!(current_url.scheme(), "http" | "https") {
@@ -229,9 +229,9 @@ pub fn main_fetch(request: &Request,
 
             } else if request.use_cors_preflight ||
                 (request.unsafe_request &&
-                 (!is_simple_method(&request.method.borrow()) ||
-                  request.headers.borrow().iter().any(|h| !is_simple_header(&h)))) {
-                request.response_tainting.set(ResponseTainting::CorsTainting);
+                 (!is_simple_method(&request.method) ||
+                  request.headers.iter().any(|h| !is_simple_header(&h)))) {
+                request.response_tainting = ResponseTainting::CorsTainting;
                 let response = http_fetch(request, cache, true, true, false,
                                           target, done_chan, context);
                 if response.is_network_error() {
@@ -240,7 +240,7 @@ pub fn main_fetch(request: &Request,
                 response
 
             } else {
-                request.response_tainting.set(ResponseTainting::CorsTainting);
+                request.response_tainting = ResponseTainting::CorsTainting;
                 http_fetch(request, cache, true, false, false, target, done_chan, context)
             }
         }
@@ -254,7 +254,7 @@ pub fn main_fetch(request: &Request,
     // Step 13
     // no need to check if response is a network error, since the type would not be `Default`
     let response = if response.response_type == ResponseType::Default {
-        let response_type = match request.response_tainting.get() {
+        let response_type = match request.response_tainting {
             ResponseTainting::Basic => ResponseType::Basic,
             ResponseTainting::CorsTainting => ResponseType::Cors,
             ResponseTainting::Opaque => ResponseType::Opaque,
@@ -276,7 +276,7 @@ pub fn main_fetch(request: &Request,
 
         // Step 15
         if internal_response.url_list.borrow().is_empty() {
-            *internal_response.url_list.borrow_mut() = request.url_list.borrow().clone();
+            *internal_response.url_list.borrow_mut() = request.url_list.clone();
         }
 
         // Step 16
@@ -295,7 +295,7 @@ pub fn main_fetch(request: &Request,
         // We check `internal_response` since we did not mutate `response` in the previous step.
         let not_network_error = !response.is_network_error() && !internal_response.is_network_error();
         if not_network_error && (is_null_body_status(&internal_response.status) ||
-            match *request.method.borrow() {
+            match request.method {
                 Method::Head | Method::Connect => true,
                 _ => false }) {
             // when Fetch is used only asynchronously, we will need to make sure
@@ -316,13 +316,13 @@ pub fn main_fetch(request: &Request,
 
     // Step 18
     let mut response_loaded = false;
-    let response = if !response.is_network_error() && *request.integrity_metadata.borrow() != "" {
+    let response = if !response.is_network_error() && request.integrity_metadata != "" {
         // Substep 1
         wait_for_response(&response, target, done_chan);
         response_loaded = true;
 
         // Substep 2
-        let ref integrity_metadata = *request.integrity_metadata.borrow();
+        let ref integrity_metadata = &request.integrity_metadata;
         if response.termination_reason.is_none() &&
            !is_response_integrity_valid(integrity_metadata, &response) {
             Response::network_error(NetworkError::Internal("Subresource integrity validation failed".into()))
@@ -347,7 +347,7 @@ pub fn main_fetch(request: &Request,
     }
 
     // Step 20
-    if request.body.borrow().is_some() && matches!(request.current_url().scheme(), "http" | "https") {
+    if request.body.is_some() && matches!(request.current_url().scheme(), "http" | "https") {
         // XXXManishearth: We actually should be calling process_request
         // in http_network_fetch. However, we can't yet follow the request
         // upload progress, so I'm keeping it here for now and pretending
@@ -396,7 +396,7 @@ fn wait_for_response(response: &Response, target: Target, done_chan: &mut DoneCh
 }
 
 /// [Basic fetch](https://fetch.spec.whatwg.org#basic-fetch)
-fn basic_fetch(request: &Request,
+fn basic_fetch(request: &mut Request,
                cache: &mut CorsCache,
                target: Target,
                done_chan: &mut DoneChannel,
@@ -417,7 +417,7 @@ fn basic_fetch(request: &Request,
         },
 
         "data" => {
-            if *request.method.borrow() == Method::Get {
+            if request.method == Method::Get {
                 match decode(&url) {
                     Ok((mime, bytes)) => {
                         let mut response = Response::new(url);
@@ -433,7 +433,7 @@ fn basic_fetch(request: &Request,
         },
 
         "file" => {
-            if *request.method.borrow() == Method::Get {
+            if request.method == Method::Get {
                 match url.to_file_path() {
                     Ok(file_path) => {
                         match File::open(file_path.clone()) {
@@ -460,7 +460,7 @@ fn basic_fetch(request: &Request,
         "blob" => {
             println!("Loading blob {}", url.as_str());
             // Step 2.
-            if *request.method.borrow() != Method::Get {
+            if request.method != Method::Get {
                 return Response::network_error(NetworkError::Internal("Unexpected method for blob".into()));
             }
 

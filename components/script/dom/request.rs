@@ -158,9 +158,9 @@ impl Request {
         request.method = temporary_request.method;
         request.headers = temporary_request.headers.clone();
         request.unsafe_request = true;
-        request.window.set(window);
+        request.window = window;
         // TODO: `entry settings object` is not implemented in Servo yet.
-        *request.origin.borrow_mut() = Origin::Client;
+        request.origin = Origin::Client;
         request.omit_origin_header = temporary_request.omit_origin_header;
         request.referrer = temporary_request.referrer;
         request.referrer_policy = temporary_request.referrer_policy;
@@ -187,11 +187,11 @@ impl Request {
                     request.mode = NetTraitsRequestMode::SameOrigin;
                 }
                 // Step 13.2
-                request.omit_origin_header.set(false);
+                request.omit_origin_header = false;
                 // Step 13.3
-                *request.referrer.borrow_mut() = NetTraitsRequestReferrer::Client;
+                request.referrer = NetTraitsRequestReferrer::Client;
                 // Step 13.4
-                request.referrer_policy.set(None);
+                request.referrer_policy = None;
             }
 
         // Step 14
@@ -200,7 +200,7 @@ impl Request {
             let ref referrer = init_referrer.0;
             // Step 14.2
             if referrer.is_empty() {
-                *request.referrer.borrow_mut() = NetTraitsRequestReferrer::NoReferrer;
+                request.referrer = NetTraitsRequestReferrer::NoReferrer;
             } else {
                 // Step 14.3
                 let parsed_referrer = base_url.join(referrer);
@@ -215,10 +215,10 @@ impl Request {
                         parsed_referrer.scheme() == "about" &&
                         parsed_referrer.path() == "client") ||
                        parsed_referrer.origin() != origin {
-                            *request.referrer.borrow_mut() = NetTraitsRequestReferrer::Client;
+                            request.referrer = NetTraitsRequestReferrer::Client;
                         } else {
                             // Step 14.6
-                            *request.referrer.borrow_mut() = NetTraitsRequestReferrer::ReferrerUrl(parsed_referrer);
+                            request.referrer = NetTraitsRequestReferrer::ReferrerUrl(parsed_referrer);
                         }
                 }
             }
@@ -227,7 +227,7 @@ impl Request {
         // Step 15
         if let Some(init_referrerpolicy) = init.referrerPolicy.as_ref() {
             let init_referrer_policy = init_referrerpolicy.clone().into();
-            request.referrer_policy.set(Some(init_referrer_policy));
+            request.referrer_policy = Some(init_referrer_policy);
         }
 
         // Step 16
@@ -254,11 +254,11 @@ impl Request {
         // Step 21
         if let Some(init_cache) = init.cache.as_ref() {
             let cache = init_cache.clone().into();
-            request.cache_mode.set(cache);
+            request.cache_mode = cache;
         }
 
         // Step 22
-        if request.cache_mode.get() == NetTraitsRequestCache::OnlyIfCached {
+        if request.cache_mode == NetTraitsRequestCache::OnlyIfCached {
             if request.mode != NetTraitsRequestMode::SameOrigin {
                 return Err(Error::Type(
                     "Cache is 'only-if-cached' and mode is not 'same-origin'".to_string()));
@@ -268,13 +268,13 @@ impl Request {
         // Step 23
         if let Some(init_redirect) = init.redirect.as_ref() {
             let redirect = init_redirect.clone().into();
-            request.redirect_mode.set(redirect);
+            request.redirect_mode = redirect;
         }
 
         // Step 24
         if let Some(init_integrity) = init.integrity.as_ref() {
             let integrity = init_integrity.clone().to_string();
-            *request.integrity_metadata.borrow_mut() = integrity;
+            request.integrity_metadata = integrity;
         }
 
         // Step 25
@@ -292,7 +292,7 @@ impl Request {
                 None => return Err(Error::Type("Method is not a valid UTF8".to_string())),
             };
             // Step 25.3
-            *request.method.borrow_mut() = method;
+            request.method = method;
         }
 
         // Step 26
@@ -334,12 +334,12 @@ impl Request {
         if r.request.borrow().mode == NetTraitsRequestMode::NoCors {
             let borrowed_request = r.request.borrow();
             // Step 30.1
-            if !is_cors_safelisted_method(&borrowed_request.method.borrow()) {
+            if !is_cors_safelisted_method(&borrowed_request.method) {
                 return Err(Error::Type(
                     "The mode is 'no-cors' but the method is not a cors-safelisted method".to_string()));
             }
             // Step 30.2
-            if !borrowed_request.integrity_metadata.borrow().is_empty() {
+            if !borrowed_request.integrity_metadata.is_empty() {
                 return Err(Error::Type("Integrity metadata is not an empty string".to_string()));
             }
             // Step 30.3
@@ -364,8 +364,7 @@ impl Request {
         // Step 32
         let mut input_body = if let RequestInfo::Request(ref input_request) = input {
             let input_request_request = input_request.request.borrow();
-            let body = input_request_request.body.borrow();
-            body.clone()
+            input_request_request.body.clone()
         } else {
             None
         };
@@ -374,11 +373,11 @@ impl Request {
         if let Some(init_body_option) = init.body.as_ref() {
             if init_body_option.is_some() || input_body.is_some() {
                 let req = r.request.borrow();
-                let req_method = req.method.borrow();
-                match &*req_method {
-                    &HttpMethod::Get => return Err(Error::Type(
+                let req_method = &req.method;
+                match *req_method {
+                    HttpMethod::Get => return Err(Error::Type(
                         "Init's body is non-null, and request method is GET".to_string())),
-                    &HttpMethod::Head => return Err(Error::Type(
+                    HttpMethod::Head => return Err(Error::Type(
                         "Init's body is non-null, and request method is HEAD".to_string())),
                     _ => {},
                 }
@@ -402,10 +401,7 @@ impl Request {
         }
 
         // Step 35
-        {
-            let borrowed_request = r.request.borrow();
-            *borrowed_request.body.borrow_mut() = input_body;
-        }
+        r.request.borrow_mut().body = input_body;
 
         // Step 36
         let extracted_mime_type = r.Headers().extract_mime_type();
@@ -445,10 +441,10 @@ impl Request {
         let mime_type = r.mime_type.borrow().clone();
         let headers_guard = r.Headers().get_guard();
         let r_clone = Request::new(&r.global(), url, is_service_worker_global_scope);
-        r_clone.request.borrow_mut().pipeline_id.set(req.pipeline_id.get());
+        r_clone.request.borrow_mut().pipeline_id = req.pipeline_id;
         {
             let mut borrowed_r_request = r_clone.request.borrow_mut();
-            *borrowed_r_request.origin.borrow_mut() = req.origin.borrow().clone();
+            borrowed_r_request.origin = req.origin.clone();
         }
         *r_clone.request.borrow_mut() = req.clone();
         r_clone.body_used.set(body_used);
@@ -540,15 +536,13 @@ impl RequestMethods for Request {
     // https://fetch.spec.whatwg.org/#dom-request-method
     fn Method(&self) -> ByteString {
         let r = self.request.borrow();
-        let m = r.method.borrow();
-        ByteString::new(m.as_ref().as_bytes().into())
+        ByteString::new(r.method.as_ref().as_bytes().into())
     }
 
     // https://fetch.spec.whatwg.org/#dom-request-url
     fn Url(&self) -> USVString {
         let r = self.request.borrow();
-        let url = r.url_list.borrow();
-        USVString(url.get(0).map_or("", |u| u.as_str()).into())
+        USVString(r.url_list.get(0).map_or("", |u| u.as_str()).into())
     }
 
     // https://fetch.spec.whatwg.org/#dom-request-headers
@@ -569,11 +563,10 @@ impl RequestMethods for Request {
     // https://fetch.spec.whatwg.org/#dom-request-referrer
     fn Referrer(&self) -> USVString {
         let r = self.request.borrow();
-        let referrer = r.referrer.borrow();
-        USVString(match &*referrer {
-            &NetTraitsRequestReferrer::NoReferrer => String::from("no-referrer"),
-            &NetTraitsRequestReferrer::Client => String::from("about:client"),
-            &NetTraitsRequestReferrer::ReferrerUrl(ref u) => {
+        USVString(match r.referrer {
+            NetTraitsRequestReferrer::NoReferrer => String::from("no-referrer"),
+            NetTraitsRequestReferrer::Client => String::from("about:client"),
+            NetTraitsRequestReferrer::ReferrerUrl(ref u) => {
                 let u_c = u.clone();
                 u_c.into_string()
             }
@@ -582,7 +575,7 @@ impl RequestMethods for Request {
 
     // https://fetch.spec.whatwg.org/#dom-request-referrerpolicy
     fn ReferrerPolicy(&self) -> ReferrerPolicy {
-        self.request.borrow().referrer_policy.get().map(|m| m.into()).unwrap_or(ReferrerPolicy::_empty)
+        self.request.borrow().referrer_policy.map(|m| m.into()).unwrap_or(ReferrerPolicy::_empty)
     }
 
     // https://fetch.spec.whatwg.org/#dom-request-mode
@@ -599,20 +592,19 @@ impl RequestMethods for Request {
     // https://fetch.spec.whatwg.org/#dom-request-cache
     fn Cache(&self) -> RequestCache {
         let r = self.request.borrow().clone();
-        r.cache_mode.get().into()
+        r.cache_mode.into()
     }
 
     // https://fetch.spec.whatwg.org/#dom-request-redirect
     fn Redirect(&self) -> RequestRedirect {
         let r = self.request.borrow().clone();
-        r.redirect_mode.get().into()
+        r.redirect_mode.into()
     }
 
     // https://fetch.spec.whatwg.org/#dom-request-integrity
     fn Integrity(&self) -> DOMString {
         let r = self.request.borrow();
-        let integrity = r.integrity_metadata.borrow();
-        DOMString::from_string(integrity.clone())
+        DOMString::from_string(r.integrity_metadata.clone())
     }
 
     // https://fetch.spec.whatwg.org/#dom-body-bodyused
@@ -675,8 +667,8 @@ impl BodyOperations for Request {
     }
 
     fn take_body(&self) -> Option<Vec<u8>> {
-        let request = self.request.borrow_mut();
-        let body = request.body.borrow_mut().take();
+        let mut request = self.request.borrow_mut();
+        let body = request.body.take();
         Some(body.unwrap_or(vec![]))
     }
 

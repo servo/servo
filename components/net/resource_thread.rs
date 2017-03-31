@@ -338,7 +338,7 @@ impl CoreResourceManager {
         let filemanager = self.filemanager.clone();
 
         thread::Builder::new().name(format!("fetch thread for {}", init.url)).spawn(move || {
-            let request = Request::from_init(init);
+            let mut request = Request::from_init(init);
             // XXXManishearth: Check origin against pipeline id (also ensure that the mode is allowed)
             // todo load context / mimesniff in fetch
             // todo referrer policy?
@@ -349,7 +349,7 @@ impl CoreResourceManager {
                 devtools_chan: dc,
                 filemanager: filemanager,
             };
-            fetch(&request, &mut sender, &context);
+            fetch(&mut request, &mut sender, &context);
         }).expect("Thread spawning failed");
     }
 

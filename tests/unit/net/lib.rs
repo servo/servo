@@ -69,11 +69,11 @@ impl FetchTaskTarget for FetchResponseCollector {
     }
 }
 
-fn fetch(request: &Request, dc: Option<Sender<DevtoolsControlMsg>>) -> Response {
+fn fetch(request: &mut Request, dc: Option<Sender<DevtoolsControlMsg>>) -> Response {
     fetch_with_context(request, &new_fetch_context(dc))
 }
 
-fn fetch_with_context(request: &Request, context: &FetchContext) -> Response {
+fn fetch_with_context(request: &mut Request, context: &FetchContext) -> Response {
     let (sender, receiver) = channel();
     let mut target = FetchResponseCollector {
         sender: sender,
@@ -84,7 +84,7 @@ fn fetch_with_context(request: &Request, context: &FetchContext) -> Response {
     receiver.recv().unwrap()
 }
 
-fn fetch_with_cors_cache(request: &Request, cache: &mut CorsCache) -> Response {
+fn fetch_with_cors_cache(request: &mut Request, cache: &mut CorsCache) -> Response {
     let (sender, receiver) = channel();
     let mut target = FetchResponseCollector {
         sender: sender,
