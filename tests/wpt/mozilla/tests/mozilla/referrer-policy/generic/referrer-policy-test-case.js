@@ -109,15 +109,26 @@ function ReferrerPolicyTestCase(scenario, testDescription, sanityChecker) {
 
         // Check the reported URL.
         test.step(function() {
+          if (expected_referrer) {
+            expected_referrer = new URL(expected_referrer);
+            if (t._scenario.referrer_url === "omitted") {
+              expected_referrer = undefined;
+            } else if (t._scenario.referrer_url === "origin") {
+              expected_referrer = expected_referrer.origin + "/";
+            } else if (t._scenario.referrer_url === "stripped-referrer") {
+              expected_referrer = stripUrlForUseAsReferrer(expected_referrer.toString());
+            }
+          }
+
+          expected_referrer = expected_referrer || t._expectedReferrerUrl;
+
           assert_equals(result.referrer,
-                        expected_referrer || t._expectedReferrerUrl,
-                        "Reported Referrer URL is '" +
-                        (expected_referrer || t._expectedReferrerUrl) + "'.");
+                        expected_referrer,
+                        "Reported Referrer URL is '" + expected_referrer + "'.");
           assert_equals(result.headers.referer,
-                        expected_referrer || t._expectedReferrerUrl,
-                        "Reported Referrer URL from HTTP header is '" +
-                        (expected_referrer || t._expectedReferrerUrl) + "'");
-        }, "Reported Referrer URL is as expected: " + t._scenario.referrer_url);
+                        expected_referrer,
+                        "Reported Referrer URL from HTTP header is '" + expected_referrer + "'");
+        }, "Reported Referrer URL is as expected: " + (expected_referrer || t._expectedReferrerUrl));
 
         test.done();
       })
