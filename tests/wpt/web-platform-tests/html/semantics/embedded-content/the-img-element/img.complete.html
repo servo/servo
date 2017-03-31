@@ -33,16 +33,20 @@
   var t = async_test("async src complete test");
 
   t.step(function(){
-    document.getElementById("imgTestTag3").src = '3.jpg?nocache=' + Math.random();
+    document.getElementById("imgTestTag3").onload = t.step_func(function(){
+      assert_true(document.getElementById("imgTestTag3").complete);
+      assert_equals(document.getElementById("imgTestTag3").src.split("/").pop().split('?')[0], "3.jpg");
+      t.done();
+    });
 
+    document.getElementById("imgTestTag3").src = 'test' + Math.random();
     //test if img.complete is set to false if src is changed
     assert_false(document.getElementById("imgTestTag3").complete, "src changed, should be set to false")
+    //change src again, should make only one request as per 'await stable state'
+    document.getElementById("imgTestTag3").src = '3.jpg?nocache=' + Math.random();
   });
 
-  document.getElementById("imgTestTag3").onload = t.step_func(function(){
-    assert_true(document.getElementById("imgTestTag3").complete);
-    t.done();
-  });
+
 
   // https://html.spec.whatwg.org/multipage/multipage/embedded-content-1.html#update-the-image-data
   // says to "await a stable state" before fetching so we use a separate <script>
@@ -51,14 +55,16 @@
 <script>
   // test: The final task that is queued by the networking task source once the resource has been fetched has been queued, but has not yet been run, and the img element is not in the broken state
   async_test(function(t) {
+    var loaded = false;
+    imageInstance.onload = imageInstance.onerror = t.step_func(function() {
+      loaded = true;
+    });
     assert_false(imageInstance.complete, "imageInstance.complete should be false");
-    var startTime = Date.now();
-    while (true) {
-      if (Date.now() - startTime > 2000)
-        assert_unreached('.complete didn\'t change to true');
-      if (imageInstance.complete === true) break;
-    }
-    t.done();
+    setTimeout(function(){
+      assert_false(loaded, "image should not have loaded yet");
+      assert_true(imageInstance.complete, "imageInstance.complete should be true");
+      t.done();
+    }, 2000);
   },
   'IDL attribute complete returns true when image resource has been fetched but not run yet & image is not in broken state');
 
@@ -80,3 +86,4 @@
     t2.done();
   });
 </script>
+
