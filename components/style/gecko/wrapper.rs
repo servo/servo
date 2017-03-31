@@ -511,7 +511,17 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     unsafe fn note_descendants<B: DescendantsBit<Self>>(&self) {
-        debug_assert!(self.get_data().is_some());
+        // FIXME(emilio): We seem to reach this in Gecko's
+        // layout/style/test/test_pseudoelement_state.html, while changing the
+        // state of an anonymous content element which is styled, but whose
+        // parent isn't, presumably because we've cleared the data and haven't
+        // reached it yet.
+        //
+        // Otherwise we should be able to assert this.
+        if self.get_data().is_none() {
+            return;
+        }
+
         if dom::raw_note_descendants::<Self, B>(*self) {
             bindings::Gecko_SetOwnerDocumentNeedsStyleFlush(self.0);
         }
