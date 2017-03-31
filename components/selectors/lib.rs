@@ -6,6 +6,7 @@
 #[macro_use] extern crate cssparser;
 #[macro_use] extern crate matches;
 extern crate fnv;
+extern crate smallvec;
 
 pub mod bloom;
 pub mod matching;
