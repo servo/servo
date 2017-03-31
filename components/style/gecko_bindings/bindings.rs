@@ -597,6 +597,10 @@ extern "C" {
      -> RawServoDeclarationBlockStrongBorrowedOrNull;
 }
 extern "C" {
+    pub fn Gecko_GetExtraContentStyleDeclarations(element: RawGeckoElementBorrowed)
+     -> RawServoDeclarationBlockStrongBorrowedOrNull;
+}
+extern "C" {
     pub fn Gecko_GetAnimationRule(aElement: RawGeckoElementBorrowed,
                                   aPseudoTag: *mut nsIAtom,
                                   aCascadeLevel:
