@@ -59,7 +59,7 @@ ${helpers.single_keyword("mask-type", "luminance alpha",
                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-type")}
 
 <%helpers:longhand name="clip-path" animatable="False" products="gecko" boxed="True"
-                   creates_stacking_context="True"
+                   flags="CREATES_STACKING_CONTEXT"
                    spec="https://drafts.fxtf.org/css-masking/#propdef-clip-path">
     use std::fmt;
     use style_traits::ToCss;
@@ -200,7 +200,7 @@ ${helpers.single_keyword("mask-composite",
 
 <%helpers:vector_longhand name="mask-image" products="gecko" animatable="False" extra_prefixes="webkit"
                           has_uncacheable_values="${product == 'gecko'}"
-                          creates_stacking_context="True"
+                          flags="CREATES_STACKING_CONTEXT",
                           spec="https://drafts.fxtf.org/css-masking/#propdef-mask-image">
     use std::fmt;
     use style_traits::ToCss;
