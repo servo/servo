@@ -83,6 +83,7 @@ impl CSSRule {
             StyleCssRule::Namespace(s) => Root::upcast(CSSNamespaceRule::new(window, parent_stylesheet, s)),
             StyleCssRule::Viewport(s) => Root::upcast(CSSViewportRule::new(window, parent_stylesheet, s)),
             StyleCssRule::Supports(s) => Root::upcast(CSSSupportsRule::new(window, parent_stylesheet, s)),
+            StyleCssRule::Page(_) => unreachable!(),
         }
     }
 
