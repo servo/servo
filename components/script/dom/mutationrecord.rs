@@ -11,38 +11,13 @@ use std::default::Default;
 
 #[dom_struct]
 pub struct MutationRecord {
-  reflector_: Reflector,
+    reflector_: Reflector,
 
-//  readonly attribute DOMString record_type;
-  record_type: DOMString,
+    //property for record type
+    record_type: DOMString,
 
-//  [SameObject]
-//  readonly attribute Node target;
-  target: Root<Node>,
-
-//  [SameObject]
-//  readonly attribute NodeList addedNodes;
-  addedNodes: Root<NodeList>,
-
-//  [SameObject]
-//  readonly attribute NodeList removedNodes;
-  removedNodes: Root<NodeList>,
-
-//  readonly attribute Node? previousSibling;
-  previousSibling: Root<Node>,
-
-//  readonly attribute Node? nextSibling;
-  nextSibling: Root<Node>,
-
-//  readonly attribute DOMString? attributeName;
-  attributeName: DOMString,
-
-//  readonly attribute DOMString? attributeNamespace;
-  attributeNamespace: DOMString,
-
-//  readonly attribute DOMString? oldValue;
-  oldValue: DOMString,
-
+    //property for target node
+    target: JS<Node>,
 }
 
 impl MutationRecord {
@@ -51,85 +26,17 @@ impl MutationRecord {
             reflector_: Reflector::new(),
             record_type: record_type,
             target: target,
-            addedNodes: NodeList::empty(window),
-            removedNodes: NodeList::empty(window),
-            previousSibling: Root::from_ref(&*ptr::null()),
-            nextSibling: Root::from_ref(&*ptr::null()),
-            attributeName: Default::default(),
-            attributeNamespace: Default::default(),
-            oldValue: Default::default(),
         }
     }
 }
 
 impl MutationRecordMethods for MutationRecord {
+    fn Type(&self) -> DOMString {
+        return self.record_type;
+    }
 
-  fn Type(&self) -> DOMString {
-      return self.record_type;
-      //return "characterData";
-      //return "childList";
-  }
-
-  fn Target(&self) -> Root<Node> {
-      return self.target;
-  }
-
-  fn AddedNodes(&self) -> Root<NodeList> {
-      return self.addedNodes;
-  }
-
-  fn RemovedNodes(&self) -> Root<NodeList> {
-      return self.removedNodes;
-  }
-
-  fn GetPreviousSibling(&self) -> Option<Root<Node>> {
-      Some(self.previousSibling)
-
-    //   if self.previousSibling.is_null() {
-    //       return None;
-    //   } else {
-    //       return Some(self.previousSibling);
-    //   }
-  }
-
-  fn GetNextSibling(&self) -> Option<Root<Node>> {
-      Some(self.nextSibling)
-
-    //   if self.nextSibling.is_null() {
-    //       return None;
-    //   } else {
-    //       return Some(self.nextSibling);
-    //   }
-  }
-
-  fn GetAttributeName(&self) -> Option<DOMString> {
-      Some(self.attributeName)
-
-    //   if self.attributeName.is_null() {
-    //       return None;
-    //   } else {
-    //       return Some(self.attributeName);
-    //   }
-  }
-
-  fn GetAttributeNamespace(&self) -> Option<DOMString> {
-      Some(self.attributeNamespace)
-
-    //   if self.attributeNamespace.is_null() {
-    //       return None;
-    //   } else {
-    //       return Some(self.attributeNamespace);
-    //   }
-  }
-
-  fn GetOldValue(&self) -> Option<DOMString> {
-      Some(self.oldValue)
-
-    //   if self.oldValue.is_null() {
-    //       return None;
-    //   } else {
-    //       return Some(self.oldValue);
-    //   }
-  }
+    fn Target(&self) -> Root<Node> {
+        return self.target;
+    }
 
 }
