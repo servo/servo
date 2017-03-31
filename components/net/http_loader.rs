@@ -44,7 +44,6 @@ use std::io::{self, Read, Write};
 use std::iter::FromIterator;
 use std::mem;
 use std::ops::Deref;
-use std::rc::Rc;
 use std::sync::{Arc, RwLock};
 use std::sync::mpsc::{channel, Sender};
 use std::thread;
@@ -477,7 +476,7 @@ fn obtain_response(request_factory: &NetworkHttpRequestFactory,
 }
 
 /// [HTTP fetch](https://fetch.spec.whatwg.org#http-fetch)
-pub fn http_fetch(request: Rc<Request>,
+pub fn http_fetch(request: &Request,
                   cache: &mut CorsCache,
                   cors_flag: bool,
                   cors_preflight_flag: bool,
@@ -554,7 +553,7 @@ pub fn http_fetch(request: Rc<Request>,
         request.skip_service_worker.set(true);
 
         // Substep 3
-        let fetch_result = http_network_or_cache_fetch(request.clone(), authentication_fetch_flag,
+        let fetch_result = http_network_or_cache_fetch(request, authentication_fetch_flag,
                                                        cors_flag, done_chan, context);
 
         // Substep 4
@@ -649,7 +648,7 @@ pub fn http_fetch(request: Rc<Request>,
 }
 
 /// [HTTP redirect fetch](https://fetch.spec.whatwg.org#http-redirect-fetch)
-fn http_redirect_fetch(request: Rc<Request>,
+fn http_redirect_fetch(request: &Request,
                        cache: &mut CorsCache,
                        response: Response,
                        cors_flag: bool,
@@ -738,7 +737,7 @@ fn try_immutable_origin_to_hyper_origin(url_origin: &ImmutableOrigin) -> Option<
 }
 
 /// [HTTP network or cache fetch](https://fetch.spec.whatwg.org#http-network-or-cache-fetch)
-fn http_network_or_cache_fetch(request: Rc<Request>,
+fn http_network_or_cache_fetch(request: &Request,
                                authentication_fetch_flag: bool,
                                cors_flag: bool,
                                done_chan: &mut DoneChannel,
@@ -748,13 +747,15 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
     let request_has_no_window = true;
 
     // Step 2
+    let http_request;
     let http_request = if request_has_no_window &&
         request.redirect_mode.get() == RedirectMode::Error {
         request
     } else {
         // Step 3
         // TODO Implement body source
-        Rc::new((*request).clone())
+        http_request = request.clone();
+        &http_request
     };
 
     // Step 4
@@ -943,7 +944,7 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
                 NetworkError::Internal("Couldn't find response in cache".into()))
         }
         // Substep 2
-        let forward_response = http_network_fetch(http_request.clone(), credentials_flag,
+        let forward_response = http_network_fetch(http_request, credentials_flag,
                                                   done_chan, context);
         match forward_response.raw_status {
             // Substep 3
@@ -1033,7 +1034,7 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
 }
 
 /// [HTTP network fetch](https://fetch.spec.whatwg.org/#http-network-fetch)
-fn http_network_fetch(request: Rc<Request>,
+fn http_network_fetch(request: &Request,
                       credentials_flag: bool,
                       done_chan: &mut DoneChannel,
                       context: &FetchContext)
@@ -1234,8 +1235,7 @@ fn cors_preflight_fetch(request: &Request,
         AccessControlRequestHeaders(value));
 
     // Step 6
-    let preflight = Rc::new(preflight);
-    let response = http_network_or_cache_fetch(preflight.clone(), false, false, &mut None, context);
+    let response = http_network_or_cache_fetch(&preflight, false, false, &mut None, context);
 
     // Step 7
     if cors_check(&request, &response).is_ok() &&

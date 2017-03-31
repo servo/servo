@@ -27,7 +27,6 @@ use std::fmt;
 use std::fs::File;
 use std::io::Read;
 use std::mem;
-use std::rc::Rc;
 use std::str;
 use std::sync::mpsc::{Sender, Receiver};
 use subresource_integrity::is_response_integrity_valid;
@@ -49,13 +48,13 @@ pub struct FetchContext {
 pub type DoneChannel = Option<(Sender<Data>, Receiver<Data>)>;
 
 /// [Fetch](https://fetch.spec.whatwg.org#concept-fetch)
-pub fn fetch(request: Rc<Request>,
+pub fn fetch(request: &Request,
              target: Target,
              context: &FetchContext) {
     fetch_with_cors_cache(request, &mut CorsCache::new(), target, context);
 }
 
-pub fn fetch_with_cors_cache(request: Rc<Request>,
+pub fn fetch_with_cors_cache(request: &Request,
                              cache: &mut CorsCache,
                              target: Target,
                              context: &FetchContext) {
@@ -121,7 +120,7 @@ pub fn fetch_with_cors_cache(request: Rc<Request>,
 }
 
 /// [Main fetch](https://fetch.spec.whatwg.org/#concept-main-fetch)
-pub fn main_fetch(request: Rc<Request>,
+pub fn main_fetch(request: &Request,
                   cache: &mut CorsCache,
                   cors_flag: bool,
                   recursive_flag: bool,
@@ -216,14 +215,14 @@ pub fn main_fetch(request: Rc<Request>,
                 current_url.scheme() == "file" ||
                 current_url.scheme() == "about" ||
                 request.mode == RequestMode::Navigate {
-                basic_fetch(request.clone(), cache, target, done_chan, context)
+                basic_fetch(request, cache, target, done_chan, context)
 
             } else if request.mode == RequestMode::SameOrigin {
                 Response::network_error(NetworkError::Internal("Cross-origin response".into()))
 
             } else if request.mode == RequestMode::NoCors {
                 request.response_tainting.set(ResponseTainting::Opaque);
-                basic_fetch(request.clone(), cache, target, done_chan, context)
+                basic_fetch(request, cache, target, done_chan, context)
 
             } else if !matches!(current_url.scheme(), "http" | "https") {
                 Response::network_error(NetworkError::Internal("Non-http scheme".into()))
@@ -233,7 +232,7 @@ pub fn main_fetch(request: Rc<Request>,
                  (!is_simple_method(&request.method.borrow()) ||
                   request.headers.borrow().iter().any(|h| !is_simple_header(&h)))) {
                 request.response_tainting.set(ResponseTainting::CorsTainting);
-                let response = http_fetch(request.clone(), cache, true, true, false,
+                let response = http_fetch(request, cache, true, true, false,
                                           target, done_chan, context);
                 if response.is_network_error() {
                     // TODO clear cache entries using request
@@ -242,7 +241,7 @@ pub fn main_fetch(request: Rc<Request>,
 
             } else {
                 request.response_tainting.set(ResponseTainting::CorsTainting);
-                http_fetch(request.clone(), cache, true, false, false, target, done_chan, context)
+                http_fetch(request, cache, true, false, false, target, done_chan, context)
             }
         }
     };
@@ -397,7 +396,7 @@ fn wait_for_response(response: &Response, target: Target, done_chan: &mut DoneCh
 }
 
 /// [Basic fetch](https://fetch.spec.whatwg.org#basic-fetch)
-fn basic_fetch(request: Rc<Request>,
+fn basic_fetch(request: &Request,
                cache: &mut CorsCache,
                target: Target,
                done_chan: &mut DoneChannel,
@@ -414,7 +413,7 @@ fn basic_fetch(request: Rc<Request>,
         },
 
         "http" | "https" => {
-            http_fetch(request.clone(), cache, false, false, false, target, done_chan, context)
+            http_fetch(request, cache, false, false, false, target, done_chan, context)
         },
 
         "data" => {

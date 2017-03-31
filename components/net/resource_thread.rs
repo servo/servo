@@ -33,7 +33,6 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
-use std::rc::Rc;
 use std::sync::{Arc, RwLock};
 use std::sync::mpsc::Sender;
 use std::thread;
@@ -350,7 +349,7 @@ impl CoreResourceManager {
                 devtools_chan: dc,
                 filemanager: filemanager,
             };
-            fetch(Rc::new(request), &mut sender, &context);
+            fetch(&request, &mut sender, &context);
         }).expect("Thread spawning failed");
     }
 

@@ -21,7 +21,7 @@ fn assert_parse(url:          &'static str,
     let origin = Origin::Origin(url.origin());
     let request = Request::new(url, Some(origin), false, None);
 
-    let response = fetch(request, None);
+    let response = fetch(&request, None);
 
     match data {
         Some(data) => {

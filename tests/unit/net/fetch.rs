@@ -37,7 +37,6 @@ use servo_config::resource_files::resources_dir_path;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use std::fs::File;
 use std::io::Read;
-use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{Sender, channel};
@@ -57,7 +56,7 @@ fn test_fetch_response_is_not_network_error() {
     let origin = Origin::Origin(url.origin());
     let request = Request::new(url, Some(origin), false, None);
     *request.referrer.borrow_mut() = Referrer::NoReferrer;
-    let fetch_response = fetch(request, None);
+    let fetch_response = fetch(&request, None);
     let _ = server.close();
 
     if fetch_response.is_network_error() {
@@ -71,7 +70,7 @@ fn test_fetch_on_bad_port_is_network_error() {
     let origin = Origin::Origin(url.origin());
     let request = Request::new(url, Some(origin), false, None);
     *request.referrer.borrow_mut() = Referrer::NoReferrer;
-    let fetch_response = fetch(request, None);
+    let fetch_response = fetch(&request, None);
     assert!(fetch_response.is_network_error());
     let fetch_error = fetch_response.get_network_error().unwrap();
     assert!(fetch_error == &NetworkError::Internal("Request attempted on bad port".into()))
@@ -88,7 +87,7 @@ fn test_fetch_response_body_matches_const_message() {
     let origin = Origin::Origin(url.origin());
     let request = Request::new(url, Some(origin), false, None);
     *request.referrer.borrow_mut() = Referrer::NoReferrer;
-    let fetch_response = fetch(request, None);
+    let fetch_response = fetch(&request, None);
     let _ = server.close();
 
     assert!(!fetch_response.is_network_error());
@@ -108,7 +107,7 @@ fn test_fetch_aboutblank() {
     let origin = Origin::Origin(url.origin());
     let request = Request::new(url, Some(origin), false, None);
     *request.referrer.borrow_mut() = Referrer::NoReferrer;
-    let fetch_response = fetch(request, None);
+    let fetch_response = fetch(&request, None);
     assert!(!fetch_response.is_network_error());
     assert!(*fetch_response.body.lock().unwrap() == ResponseBody::Done(vec![]));
 }
@@ -137,7 +136,7 @@ fn test_fetch_blob() {
 
 
     let request = Request::new(url, Some(Origin::Origin(origin.origin())), false, None);
-    let fetch_response = fetch_with_context(request, &context);
+    let fetch_response = fetch_with_context(&request, &context);
 
     assert!(!fetch_response.is_network_error());
 
@@ -162,7 +161,7 @@ fn test_fetch_file() {
     let origin = Origin::Origin(url.origin());
     let request = Request::new(url, Some(origin), false, None);
 
-    let fetch_response = fetch(request, None);
+    let fetch_response = fetch(&request, None);
     assert!(!fetch_response.is_network_error());
     assert_eq!(fetch_response.headers.len(), 1);
     let content_type: &ContentType = fetch_response.headers.get().unwrap();
@@ -187,7 +186,7 @@ fn test_fetch_ftp() {
     let origin = Origin::Origin(url.origin());
     let request = Request::new(url, Some(origin), false, None);
     *request.referrer.borrow_mut() = Referrer::NoReferrer;
-    let fetch_response = fetch(request, None);
+    let fetch_response = fetch(&request, None);
     assert!(fetch_response.is_network_error());
 }
 
@@ -197,7 +196,7 @@ fn test_fetch_bogus_scheme() {
     let origin = Origin::Origin(url.origin());
     let request = Request::new(url, Some(origin), false, None);
     *request.referrer.borrow_mut() = Referrer::NoReferrer;
-    let fetch_response = fetch(request, None);
+    let fetch_response = fetch(&request, None);
     assert!(fetch_response.is_network_error());
 }
 
@@ -228,7 +227,7 @@ fn test_cors_preflight_fetch() {
     *request.referrer_policy.get_mut() = Some(ReferrerPolicy::Origin);
     request.use_cors_preflight = true;
     request.mode = RequestMode::CorsMode;
-    let fetch_response = fetch(request, None);
+    let fetch_response = fetch(&request, None);
     let _ = server.close();
 
     assert!(!fetch_response.is_network_error());
@@ -264,11 +263,11 @@ fn test_cors_preflight_cache_fetch() {
     *request.referrer.borrow_mut() = Referrer::NoReferrer;
     request.use_cors_preflight = true;
     request.mode = RequestMode::CorsMode;
-    let wrapped_request0 = Rc::new(request.clone());
-    let wrapped_request1 = Rc::new(request);
+    let wrapped_request0 = request.clone();
+    let wrapped_request1 = request;
 
-    let fetch_response0 = fetch_with_cors_cache(wrapped_request0.clone(), &mut cache);
-    let fetch_response1 = fetch_with_cors_cache(wrapped_request1.clone(), &mut cache);
+    let fetch_response0 = fetch_with_cors_cache(&wrapped_request0, &mut cache);
+    let fetch_response1 = fetch_with_cors_cache(&wrapped_request1, &mut cache);
     let _ = server.close();
 
     assert!(!fetch_response0.is_network_error() && !fetch_response1.is_network_error());
@@ -277,8 +276,8 @@ fn test_cors_preflight_cache_fetch() {
     assert_eq!(1, counter.load(Ordering::SeqCst));
 
     // The entry exists in the CORS-preflight cache
-    assert_eq!(true, cache.match_method(&*wrapped_request0, Method::Get));
-    assert_eq!(true, cache.match_method(&*wrapped_request1, Method::Get));
+    assert_eq!(true, cache.match_method(&wrapped_request0, Method::Get));
+    assert_eq!(true, cache.match_method(&wrapped_request1, Method::Get));
 
     match *fetch_response0.body.lock().unwrap() {
         ResponseBody::Done(ref body) => assert_eq!(&**body, ACK),
@@ -314,7 +313,7 @@ fn test_cors_preflight_fetch_network_error() {
     *request.referrer.borrow_mut() = Referrer::NoReferrer;
     request.use_cors_preflight = true;
     request.mode = RequestMode::CorsMode;
-    let fetch_response = fetch(request, None);
+    let fetch_response = fetch(&request, None);
     let _ = server.close();
 
     assert!(fetch_response.is_network_error());
@@ -335,7 +334,7 @@ fn test_fetch_response_is_basic_filtered() {
     let origin = Origin::Origin(url.origin());
     let request = Request::new(url, Some(origin), false, None);
     *request.referrer.borrow_mut() = Referrer::NoReferrer;
-    let fetch_response = fetch(request, None);
+    let fetch_response = fetch(&request, None);
     let _ = server.close();
 
     assert!(!fetch_response.is_network_error());
@@ -381,7 +380,7 @@ fn test_fetch_response_is_cors_filtered() {
     let mut request = Request::new(url, Some(origin), false, None);
     *request.referrer.borrow_mut() = Referrer::NoReferrer;
     request.mode = RequestMode::CorsMode;
-    let fetch_response = fetch(request, None);
+    let fetch_response = fetch(&request, None);
     let _ = server.close();
 
     assert!(!fetch_response.is_network_error());
@@ -412,7 +411,7 @@ fn test_fetch_response_is_opaque_filtered() {
     let origin = Origin::Origin(ImmutableOrigin::new_opaque());
     let request = Request::new(url, Some(origin), false, None);
     *request.referrer.borrow_mut() = Referrer::NoReferrer;
-    let fetch_response = fetch(request, None);
+    let fetch_response = fetch(&request, None);
     let _ = server.close();
 
     assert!(!fetch_response.is_network_error());
@@ -460,7 +459,7 @@ fn test_fetch_response_is_opaque_redirect_filtered() {
     let request = Request::new(url, Some(origin), false, None);
     *request.referrer.borrow_mut() = Referrer::NoReferrer;
     request.redirect_mode.set(RedirectMode::Manual);
-    let fetch_response = fetch(request, None);
+    let fetch_response = fetch(&request, None);
     let _ = server.close();
 
     assert!(!fetch_response.is_network_error());
@@ -497,7 +496,7 @@ fn test_fetch_with_local_urls_only() {
         // Set the flag.
         request.local_urls_only = true;
 
-        fetch(request, None)
+        fetch(&request, None)
     };
 
     let local_url = ServoUrl::parse("about:blank").unwrap();
@@ -549,7 +548,7 @@ fn test_fetch_with_hsts() {
     *request.referrer.borrow_mut() = Referrer::NoReferrer;
     // Set the flag.
     request.local_urls_only = false;
-    let response = fetch_with_context(request, &context);
+    let response = fetch_with_context(&request, &context);
     let _ = server.close();
     assert_eq!(response.internal_response.unwrap().url().unwrap().scheme(),
                "https");
@@ -573,7 +572,7 @@ fn test_fetch_with_sri_network_error() {
     // Set the flag.
     request.local_urls_only = false;
 
-    let response = fetch(request, None);
+    let response = fetch(&request, None);
 
     let _ = server.close();
     assert!(response.is_network_error());
@@ -597,7 +596,7 @@ fn test_fetch_with_sri_sucess() {
     // Set the flag.
     request.local_urls_only = false;
 
-    let response = fetch(request, None);
+    let response = fetch(&request, None);
 
     let _ = server.close();
     assert_eq!(response_is_done(&response), true);
@@ -629,7 +628,7 @@ fn test_fetch_blocked_nosniff() {
         let origin = Origin::Origin(url.origin());
         let mut request = Request::new(url, Some(origin), false, None);
         request.type_ = request_type;
-        let fetch_response = fetch(request, None);
+        let fetch_response = fetch(&request, None);
         let _ = server.close();
 
         assert_eq!(fetch_response.is_network_error(), should_error);
@@ -671,7 +670,7 @@ fn setup_server_and_fetch(message: &'static [u8], redirect_cap: u32) -> Response
     let origin = Origin::Origin(url.origin());
     let request = Request::new(url, Some(origin), false, None);
     *request.referrer.borrow_mut() = Referrer::NoReferrer;
-    let fetch_response = fetch(request, None);
+    let fetch_response = fetch(&request, None);
     let _ = server.close();
     fetch_response
 }
@@ -756,7 +755,7 @@ fn test_fetch_redirect_updates_method_runner(tx: Sender<bool>, status_code: Stat
     *request.referrer.borrow_mut() = Referrer::NoReferrer;
     *request.method.borrow_mut() = method;
 
-    let _ = fetch(request, None);
+    let _ = fetch(&request, None);
     let _ = server.close();
 }
 
@@ -830,7 +829,7 @@ fn test_fetch_async_returns_complete_response() {
     let request = Request::new(url, Some(origin), false, None);
     *request.referrer.borrow_mut() = Referrer::NoReferrer;
 
-    let fetch_response = fetch(request, None);
+    let fetch_response = fetch(&request, None);
 
     let _ = server.close();
     assert_eq!(response_is_done(&fetch_response), true);
@@ -849,7 +848,7 @@ fn test_opaque_filtered_fetch_async_returns_complete_response() {
     let request = Request::new(url, Some(origin), false, None);
     *request.referrer.borrow_mut() = Referrer::NoReferrer;
 
-    let fetch_response = fetch(request, None);
+    let fetch_response = fetch(&request, None);
 
     let _ = server.close();
 
@@ -885,7 +884,7 @@ fn test_opaque_redirect_filtered_fetch_async_returns_complete_response() {
     *request.referrer.borrow_mut() = Referrer::NoReferrer;
     request.redirect_mode.set(RedirectMode::Manual);
 
-    let fetch_response = fetch(request, None);
+    let fetch_response = fetch(&request, None);
 
     let _ = server.close();
 
@@ -908,7 +907,7 @@ fn test_fetch_with_devtools() {
 
     let (devtools_chan, devtools_port) = channel::<DevtoolsControlMsg>();
 
-    let _ = fetch(request, Some(devtools_chan));
+    let _ = fetch(&request, Some(devtools_chan));
     let _ = server.close();
 
     // notification received from devtools
