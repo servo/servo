@@ -542,7 +542,7 @@ pub fn http_fetch(request: Rc<Request>,
 
             // Sub-substep 1
             if method_mismatch || header_mismatch {
-                let preflight_result = cors_preflight_fetch(request.clone(), cache, context);
+                let preflight_result = cors_preflight_fetch(&request, cache, context);
                 // Sub-substep 2
                 if let Some(e) = preflight_result.get_network_error() {
                     return Response::network_error(e.clone());
@@ -1204,7 +1204,7 @@ fn http_network_fetch(request: Rc<Request>,
 }
 
 /// [CORS preflight fetch](https://fetch.spec.whatwg.org#cors-preflight-fetch)
-fn cors_preflight_fetch(request: Rc<Request>,
+fn cors_preflight_fetch(request: &Request,
                         cache: &mut CorsCache,
                         context: &FetchContext)
                         -> Response {
