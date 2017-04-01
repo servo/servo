@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+// extern crate smallvec;
 
 use cssparser::{Token, Parser as CssParser, parse_nth, ToCss, serialize_identifier, CssStringWriter};
 use std::ascii::AsciiExt;
@@ -11,6 +12,7 @@ use std::hash::Hash;
 use std::ops::Add;
 use std::sync::Arc;
 use tree::SELECTOR_WHITESPACE;
+// use self::smallvec::SmallVec;
 
 macro_rules! with_all_bounds {
     (
@@ -376,32 +378,40 @@ impl<Impl: SelectorImpl> ToCss for Selector<Impl> {
 
 impl<Impl: SelectorImpl> ToCss for ComplexSelector<Impl> {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        use smallvec::SmallVec;
-        let mut current = self;
-        let mut nodes = SmallVec::<[Arc<ComplexSelector<Impl>>; 8]>::new();
-        loop {
-            match current.next {
-                None => break,
-                Some((ref next, ref combinator)) => {
-                    current = &**next;
-                    combinator.to_css(dest)?;
-                    nodes.push((*next).clone());
-                }
-            }
+       use smallvec::SmallVec;
+       let mut current = self;
+       let mut nodes = SmallVec::<[Arc<ComplexSelector<Impl>>; 8]>::new();
+
+       loop {
+           match current.next {
+               None => break,
+               Some((ref next, _)) => {
+                   current = &**next;
+                   nodes.push((*next).clone());
+               }
+           }
+       }
+
+       while let Some(v) = nodes.pop() {
+           if let Some((_, ref comb)) = v.next {
+               comb.to_css(dest)?;
+           }
+
+           for vis in &v.compound_selector {
+               vis.to_css(dest)?;
+           }
+       }
+
+        if let Some((_, ref comb)) = self.next {
+            comb.to_css(dest)?;
         }
 
         for simp in &self.compound_selector {
             simp.to_css(dest)?;
         }
 
-        for node in nodes {
-            for simple in &node.compound_selector {
-                simple.to_css(dest)?;
-            }
-        }
-
-        Ok(())
-    }
+           Ok(())
+       }
 }
 
 impl ToCss for Combinator {
