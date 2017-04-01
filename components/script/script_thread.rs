@@ -482,7 +482,7 @@ pub struct ScriptThread {
     microtask_queue: MicrotaskQueue,
 
     /// The unit of related similar-origin browsing contexts' list of MutationObserver objects
-    mutation_observers: Vec<MutationObserver>,
+    mutation_observers: Vec<JS<MutationObserver>>,
 
     /// A handle to the webvr thread, if available
     webvr_thread: Option<IpcSender<WebVRMsg>>,
@@ -578,7 +578,7 @@ impl ScriptThread {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
             script_thread.mutation_observers
-                .push(*observer);
+                .push(JS::from_ref(&*observer));
         })
     }
 

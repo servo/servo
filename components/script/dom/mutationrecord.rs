@@ -21,7 +21,7 @@ pub struct MutationRecord {
 }
 
 impl MutationRecord {
-    fn new(window: &Window, record_type: DOMString, target: Root<Node>) -> MutationRecord {
+    fn new(window: &Window, record_type: DOMString, target: JS<Node>) -> MutationRecord {
         MutationRecord {
             reflector_: Reflector::new(),
             record_type: record_type,
@@ -36,7 +36,7 @@ impl MutationRecordMethods for MutationRecord {
     }
 
     fn Target(&self) -> Root<Node> {
-        return self.target;
+        return Root::from_ref(&*self.target);
     }
 
 }
