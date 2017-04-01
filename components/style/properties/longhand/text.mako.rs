@@ -230,3 +230,74 @@ ${helpers.predefined_type(
     products="gecko",
     animatable=True,
     spec="https://drafts.csswg.org/css-text-decor/#propdef-text-decoration-color")}
+
+<%helpers:longhand name="initial-letter"
+                   animatable="False"
+                   products="none"
+                   spec="https://drafts.csswg.org/css-inline/#sizing-drop-initials">
+    use std::fmt;
+    use style_traits::ToCss;
+    use values::HasViewportPercentage;
+    use values::computed::ComputedValueAsSpecified;
+    use values::specified::{Number, Integer};
+
+    impl ComputedValueAsSpecified for SpecifiedValue {}
+    no_viewport_percentage!(SpecifiedValue);
+
+    #[derive(PartialEq, Clone, Debug)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub enum SpecifiedValue {
+        Normal,
+        Specified(Number, Option<Integer>)
+    }
+
+    pub mod computed_value {
+        pub use super::SpecifiedValue as T;
+    }
+
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match *self {
+                SpecifiedValue::Normal => try!(dest.write_str("normal")),
+                SpecifiedValue::Specified(size, sink) => {
+                    try!(size.to_css(dest));
+                    if let Some(sink) = sink {
+                        try!(dest.write_str(" "));
+                        try!(sink.to_css(dest));
+                    }
+                }
+            };
+
+            Ok(())
+        }
+    }
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T::Normal
+    }
+
+    #[inline]
+    pub fn get_initial_specified_value() -> SpecifiedValue {
+        SpecifiedValue::Normal
+    }
+
+    /// normal | <number> <integer>?
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
+            return Ok(SpecifiedValue::Normal);
+        }
+
+        let size = try!(Number::parse_at_least_one(input));
+
+        match input.try(|input| Integer::parse(context, input)) {
+            Ok(number) => {
+                if number.value() < 1 {
+                    return Err(());
+                }
+                Ok(SpecifiedValue::Specified(size, Some(number)))
+            }
+            Err(()) => Ok(SpecifiedValue::Specified(size, None)),
+        }
+    }
+</%helpers:longhand>

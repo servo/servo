@@ -153,7 +153,7 @@ fn traverse_subtree(element: GeckoElement, raw_data: RawServoStyleSetBorrowed,
     // servo to try to style it. Detect that here and bail out.
     if let Some(parent) = element.parent_element() {
         if parent.borrow_data().map_or(true, |d| d.styles().is_display_none()) {
-            debug!("{:?} has unstyled parent - ignoring call to traverse_subtree", parent);
+            debug!("{:?} has unstyled parent {:?} - ignoring call to traverse_subtree", element, parent);
             return;
         }
     }
@@ -1148,6 +1148,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetKeywordValue(declarations:
         Float => longhands::float::SpecifiedValue::from_gecko_keyword(value),
         VerticalAlign => longhands::vertical_align::SpecifiedValue::from_gecko_keyword(value),
         TextAlign => longhands::text_align::SpecifiedValue::from_gecko_keyword(value),
+        TextEmphasisPosition => longhands::text_emphasis_position::SpecifiedValue::from_gecko_keyword(value),
         Clear => longhands::clear::SpecifiedValue::from_gecko_keyword(value),
         FontSize => {
             // We rely on Gecko passing in font-size values (0...7) here.
@@ -1551,6 +1552,7 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
                                                   raw_data: RawServoStyleSetBorrowed,
                                                   computed_keyframes: RawGeckoComputedKeyframeValuesListBorrowedMut)
 {
+    use std::mem;
     use style::properties::LonghandIdSet;
     use style::properties::declaration_block::Importance;
     use style::values::computed::Context;
@@ -1614,6 +1616,10 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
                     unsafe { animation_values.set_len((i + 1) as u32) };
                     seen.set_transition_property_bit(&anim.0);
                     animation_values[i].mProperty = anim.0.into();
+                    // We only make sure we have enough space for this variable,
+                    // but didn't construct a default value for StyleAnimationValue,
+                    // so we should zero it to avoid getting undefined behaviors.
+                    animation_values[i].mValue.mGecko = unsafe { mem::zeroed() };
                     animation_values[i].mValue.mServo.set_arc_leaky(Arc::new(anim.1));
                 }
             }

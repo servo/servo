@@ -17,7 +17,7 @@ pub type FontFaceRule = RefPtr<nsCSSFontFaceRule>;
 fn set_font_face_descriptors(descriptors: &mut CSSFontFaceDescriptors,
                              data: FontFaceData) {
     // font-family
-    descriptors.mFamily.set_string_from_atom(&data.family.0);
+    descriptors.mFamily.set_string_from_atom(&data.family.name);
 
     macro_rules! map_enum {
         ($target:ident = ($data:ident: $prop:ident) {
@@ -74,8 +74,8 @@ fn set_font_face_descriptors(descriptors: &mut CSSFontFaceDescriptors,
                     next!().set_font_format(&hint);
                 }
             }
-            Source::Local(ref name) => {
-                next!().set_local_font(&name.0);
+            Source::Local(ref family) => {
+                next!().set_local_font(&family.name);
             }
         }
     }

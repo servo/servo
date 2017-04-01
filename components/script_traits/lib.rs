@@ -416,6 +416,15 @@ pub enum TouchpadPressurePhase {
 #[derive(Deserialize, Serialize)]
 pub struct TimerEventRequest(pub IpcSender<TimerEvent>, pub TimerSource, pub TimerEventId, pub MsDuration);
 
+/// Type of messages that can be sent to the timer scheduler.
+#[derive(Deserialize, Serialize)]
+pub enum TimerSchedulerMsg {
+    /// Message to schedule a new timer event.
+    Request(TimerEventRequest),
+    /// Message to exit the timer scheduler.
+    Exit,
+}
+
 /// Notifies the script thread to fire due timers.
 /// `TimerSource` must be `FromWindow` when dispatched to `ScriptThread` and
 /// must be `FromWorker` when dispatched to a `DedicatedGlobalWorkerScope`
@@ -479,7 +488,7 @@ pub struct InitialScriptState {
     /// A sender for the layout thread to communicate to the constellation.
     pub layout_to_constellation_chan: IpcSender<LayoutMsg>,
     /// A channel to schedule timer events.
-    pub scheduler_chan: IpcSender<TimerEventRequest>,
+    pub scheduler_chan: IpcSender<TimerSchedulerMsg>,
     /// A channel to the resource manager thread.
     pub resource_threads: ResourceThreads,
     /// A channel to the bluetooth thread.
@@ -770,7 +779,7 @@ pub struct WorkerGlobalScopeInit {
     /// Messages to send to constellation
     pub constellation_chan: IpcSender<ScriptMsg>,
     /// Message to send to the scheduler
-    pub scheduler_chan: IpcSender<TimerEventRequest>,
+    pub scheduler_chan: IpcSender<TimerSchedulerMsg>,
     /// The worker id
     pub worker_id: WorkerId,
     /// The pipeline id

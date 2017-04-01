@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cookie::Cookie;
+use cookie_rs;
 use cookie_storage::CookieStorage;
 use fetch::methods::{should_be_blocked_due_to_bad_port, should_be_blocked_due_to_nosniff};
 use http_loader::{is_redirect_status, set_request_cookies};
@@ -11,14 +12,13 @@ use hyper::header::{Accept, CacheControl, CacheDirective, Connection, Connection
 use hyper::header::{Headers, Host, SetCookie, Pragma, Protocol, ProtocolName, Upgrade};
 use hyper::http::h1::{LINE_ENDING, parse_response};
 use hyper::method::Method;
-use hyper::net::{HttpStream, HttpsStream};
+use hyper::net::HttpStream;
 use hyper::status::StatusCode;
 use hyper::version::HttpVersion;
 use net_traits::{CookieSource, MessageData, NetworkError, WebSocketCommunicate, WebSocketConnectData};
 use net_traits::{WebSocketDomAction, WebSocketNetworkEvent};
 use net_traits::hosts::replace_host;
 use net_traits::request::Type;
-use openssl::ssl::{SslContext, SslStream};
 use servo_url::ServoUrl;
 use std::ascii::AsciiExt;
 use std::io::{self, Write};
@@ -35,14 +35,12 @@ use websocket::sender::Sender;
 
 pub fn init(connect: WebSocketCommunicate,
             connect_data: WebSocketConnectData,
-            cookie_jar: Arc<RwLock<CookieStorage>>,
-            ssl_context: Arc<SslContext>) {
+            cookie_jar: Arc<RwLock<CookieStorage>>) {
     thread::Builder::new().name(format!("WebSocket connection to {}", connect_data.resource_url)).spawn(move || {
         let channel = establish_a_websocket_connection(&connect_data.resource_url,
                                                        connect_data.origin,
                                                        connect_data.protocols,
-                                                       cookie_jar,
-                                                       ssl_context);
+                                                       cookie_jar);
         let (ws_sender, mut receiver) = match channel {
             Ok((protocol_in_use, sender, receiver)) => {
                 let _ = connect.event_sender.send(WebSocketNetworkEvent::ConnectionEstablished { protocol_in_use });
@@ -117,11 +115,10 @@ pub fn init(connect: WebSocketCommunicate,
     }).expect("Thread spawning failed");
 }
 
-type Stream = HttpsStream<SslStream<HttpStream>>;
+type Stream = HttpStream;
 
 // https://fetch.spec.whatwg.org/#concept-websocket-connection-obtain
-fn obtain_a_websocket_connection(url: &ServoUrl, ssl_context: Arc<SslContext>)
-                                 -> Result<Stream, NetworkError> {
+fn obtain_a_websocket_connection(url: &ServoUrl) -> Result<Stream, NetworkError> {
     // Step 1.
     let host = url.host_str().unwrap();
 
@@ -137,27 +134,23 @@ fn obtain_a_websocket_connection(url: &ServoUrl, ssl_context: Arc<SslContext>)
         _ => panic!("URL's scheme should be ws or wss"),
     };
 
+    if secure {
+        return Err(NetworkError::Internal("WSS is disabled for now.".into()));
+    }
+
     // Steps 4-5.
     let host = replace_host(host);
     let tcp_stream = TcpStream::connect((&*host, port)).map_err(|e| {
         NetworkError::Internal(format!("Could not connect to host: {}", e))
     })?;
-    let http_stream = HttpStream(tcp_stream);
-    if !secure {
-        return Ok(HttpsStream::Http(http_stream));
-    }
-    let ssl_stream = SslStream::connect(&*ssl_context, http_stream).map_err(|e| {
-        NetworkError::from_ssl_error(url, &e)
-    })?;
-    Ok(HttpsStream::Https(ssl_stream))
+    Ok(HttpStream(tcp_stream))
 }
 
 // https://fetch.spec.whatwg.org/#concept-websocket-establish
 fn establish_a_websocket_connection(resource_url: &ServoUrl,
                                     origin: String,
                                     protocols: Vec<String>,
-                                    cookie_jar: Arc<RwLock<CookieStorage>>,
-                                    ssl_context: Arc<SslContext>)
+                                    cookie_jar: Arc<RwLock<CookieStorage>>)
                                     -> Result<(Option<String>,
                                                Sender<Stream>,
                                                Receiver<Stream>),
@@ -192,7 +185,7 @@ fn establish_a_websocket_connection(resource_url: &ServoUrl,
     // TODO: handle permessage-deflate extension.
 
     // Step 11 and network error check from step 12.
-    let response = fetch(resource_url, origin, headers, cookie_jar, ssl_context)?;
+    let response = fetch(resource_url, origin, headers, cookie_jar)?;
 
     // Step 12, the status code check.
     if response.status != StatusCode::SwitchingProtocols {
@@ -279,8 +272,7 @@ struct Response {
 fn fetch(url: &ServoUrl,
          origin: String,
          mut headers: Headers,
-         cookie_jar: Arc<RwLock<CookieStorage>>,
-         ssl_context: Arc<SslContext>)
+         cookie_jar: Arc<RwLock<CookieStorage>>)
          -> Result<Response, NetworkError> {
     // Step 1.
     // TODO: handle request's window.
@@ -324,15 +316,14 @@ fn fetch(url: &ServoUrl,
     }
 
     // Step 8.
-    main_fetch(url, origin, headers, cookie_jar, ssl_context)
+    main_fetch(url, origin, headers, cookie_jar)
 }
 
 // https://fetch.spec.whatwg.org/#concept-main-fetch
 fn main_fetch(url: &ServoUrl,
               origin: String,
               mut headers: Headers,
-              cookie_jar: Arc<RwLock<CookieStorage>>,
-              ssl_context: Arc<SslContext>)
+              cookie_jar: Arc<RwLock<CookieStorage>>)
               -> Result<Response, NetworkError> {
     // Step 1.
     let mut response = None;
@@ -375,7 +366,7 @@ fn main_fetch(url: &ServoUrl,
         // doesn't need to be filtered at all.
 
         // Step 12.2.
-        basic_fetch(url, origin, &mut headers, cookie_jar, ssl_context)
+        basic_fetch(url, origin, &mut headers, cookie_jar)
     });
 
     // Step 13.
@@ -413,19 +404,17 @@ fn main_fetch(url: &ServoUrl,
 fn basic_fetch(url: &ServoUrl,
                origin: String,
                headers: &mut Headers,
-               cookie_jar: Arc<RwLock<CookieStorage>>,
-               ssl_context: Arc<SslContext>)
+               cookie_jar: Arc<RwLock<CookieStorage>>)
                -> Result<Response, NetworkError> {
     // In the case of a WebSocket request, HTTP fetch is always used.
-    http_fetch(url, origin, headers, cookie_jar, ssl_context)
+    http_fetch(url, origin, headers, cookie_jar)
 }
 
 // https://fetch.spec.whatwg.org/#concept-http-fetch
 fn http_fetch(url: &ServoUrl,
               origin: String,
               headers: &mut Headers,
-              cookie_jar: Arc<RwLock<CookieStorage>>,
-              ssl_context: Arc<SslContext>)
+              cookie_jar: Arc<RwLock<CookieStorage>>)
               -> Result<Response, NetworkError> {
     // Step 1.
     // Not applicable: with step 3 being useless here, this one is too.
@@ -446,7 +435,7 @@ fn http_fetch(url: &ServoUrl,
         // Not applicable: request's redirect mode is "error".
 
         // Step 4.3.
-        let response = http_network_or_cache_fetch(url, origin, headers, cookie_jar, ssl_context);
+        let response = http_network_or_cache_fetch(url, origin, headers, cookie_jar);
 
         // Step 4.4.
         // Not applicable: CORS flag is unset.
@@ -475,8 +464,7 @@ fn http_fetch(url: &ServoUrl,
 fn http_network_or_cache_fetch(url: &ServoUrl,
                                origin: String,
                                headers: &mut Headers,
-                               cookie_jar: Arc<RwLock<CookieStorage>>,
-                               ssl_context: Arc<SslContext>)
+                               cookie_jar: Arc<RwLock<CookieStorage>>)
                                -> Result<Response, NetworkError> {
     // Steps 1-3.
     // Not applicable: we don't even have a request yet, and there is no body
@@ -552,7 +540,7 @@ fn http_network_or_cache_fetch(url: &ServoUrl,
         // Not applicable: cache mode is "no-store".
 
         // Step 22.2.
-        let forward_response = http_network_fetch(url, headers, cookie_jar, ssl_context);
+        let forward_response = http_network_fetch(url, headers, cookie_jar);
 
         // Step 22.3.
         // Not applicable: request's method is not unsafe.
@@ -581,15 +569,14 @@ fn http_network_or_cache_fetch(url: &ServoUrl,
 // https://fetch.spec.whatwg.org/#concept-http-network-fetch
 fn http_network_fetch(url: &ServoUrl,
                       headers: &Headers,
-                      cookie_jar: Arc<RwLock<CookieStorage>>,
-                      ssl_context: Arc<SslContext>)
+                      cookie_jar: Arc<RwLock<CookieStorage>>)
                       -> Result<Response, NetworkError> {
     // Step 1.
     // Not applicable: credentials flag is set.
 
     // Steps 2-3.
     // Request's mode is "websocket".
-    let connection = obtain_a_websocket_connection(url, ssl_context)?;
+    let connection = obtain_a_websocket_connection(url)?;
 
     // Step 4.
     // Not applicable: request’s body is null.
@@ -610,8 +597,10 @@ fn http_network_fetch(url: &ServoUrl,
     if let Some(cookies) = response.headers.get::<SetCookie>() {
         let mut jar = cookie_jar.write().unwrap();
         for cookie in &**cookies {
-            if let Some(cookie) = Cookie::new_wrapped(cookie.clone(), url, CookieSource::HTTP) {
-                jar.push(cookie, url, CookieSource::HTTP);
+            if let Ok(cookie) = cookie_rs::Cookie::parse(&**cookie) {
+                if let Some(cookie) = Cookie::new_wrapped(cookie.into_owned(), url, CookieSource::HTTP) {
+                    jar.push(cookie, url, CookieSource::HTTP);
+                }
             }
         }
     }

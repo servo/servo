@@ -35,7 +35,7 @@ mod bindings {
     use std::cmp;
     use std::collections::HashSet;
     use std::env;
-    use std::fs::File;
+    use std::fs::{self, File};
     use std::io::{Read, Write};
     use std::path::{Path, PathBuf};
     use std::sync::Mutex;
@@ -59,6 +59,11 @@ mod bindings {
         pub static ref LAST_MODIFIED: Mutex<SystemTime> =
             Mutex::new(get_modified_time(&env::current_exe().unwrap())
                        .expect("Failed to get modified time of executable"));
+        static ref BINDING_DISTDIR_PATH: PathBuf = {
+            let path = DISTDIR_PATH.join("rust_bindings/style");
+            fs::create_dir_all(&path).expect("Fail to create bindings dir in dist");
+            path
+        };
     }
 
     fn get_modified_time(file: &Path) -> Option<SystemTime> {
@@ -229,7 +234,10 @@ mod bindings {
             result = Regex::new(&format!(r"\b{}\b", fixup.pat)).unwrap().replace_all(&result, fixup.rep.as_str())
                 .into_owned().into();
         }
-        File::create(&out_file).unwrap().write_all(&result.into_bytes()).expect("Unable to write output");
+        let bytes = result.into_bytes();
+        File::create(&out_file).unwrap().write_all(&bytes).expect("Unable to write output");
+        File::create(&BINDING_DISTDIR_PATH.join(file)).unwrap()
+            .write_all(&bytes).expect("Unable to write output to binding dist");
     }
 
     fn get_arc_types() -> Vec<String> {
@@ -526,7 +534,6 @@ mod bindings {
 
     pub fn setup_logging() {
         use log;
-        use std::fs;
 
         struct BuildLogger {
             file: Option<Mutex<fs::File>>,

@@ -597,6 +597,10 @@ extern "C" {
      -> RawServoDeclarationBlockStrongBorrowedOrNull;
 }
 extern "C" {
+    pub fn Gecko_GetExtraContentStyleDeclarations(element: RawGeckoElementBorrowed)
+     -> RawServoDeclarationBlockStrongBorrowedOrNull;
+}
+extern "C" {
     pub fn Gecko_GetAnimationRule(aElement: RawGeckoElementBorrowed,
                                   aPseudoTag: *mut nsIAtom,
                                   aCascadeLevel:
@@ -660,7 +664,8 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_FontFamilyList_AppendNamed(aList: *mut FontFamilyList,
-                                            aName: *mut nsIAtom);
+                                            aName: *mut nsIAtom,
+                                            aQuoted: bool);
 }
 extern "C" {
     pub fn Gecko_FontFamilyList_AppendGeneric(list: *mut FontFamilyList,

@@ -108,7 +108,7 @@ def copy_dependencies(binary_path, lib_path):
 
 def copy_windows_dependencies(binary_path, destination):
     try:
-        [shutil.copy(path.join(binary_path, d), destination) for d in ["libeay32md.dll", "ssleay32md.dll"]]
+        [shutil.copy(path.join(binary_path, d), destination) for d in ["libcryptoMD.dll", "libsslMD.dll"]]
     except:
         deps = [
             "libstdc++-6.dll",
@@ -119,8 +119,8 @@ def copy_windows_dependencies(binary_path, destination):
             "zlib1.dll",
             "libiconv-2.dll",
             "libintl-8.dll",
-            "libeay32.dll",
-            "ssleay32.dll",
+            "libcryptoMD.dll",
+            "libsslMD.dll",
         ]
         for d in deps:
             dep_path = path.join("C:\\msys64\\mingw64\\bin", d)

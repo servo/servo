@@ -138,7 +138,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnrootedPass {
             visit::FnKind::Closure(_) => return,
         };
 
-        if !in_derive_expn(cx, span) {
+        if !in_derive_expn(span) {
             let def_id = cx.tcx.hir.local_def_id(id);
             let ty = cx.tcx.item_type(def_id);
 

@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use brotli::Decompressor;
-use connector::{Connector, create_http_connector, create_ssl_context};
+use connector::{Connector, create_http_connector};
 use cookie;
 use cookie_storage::CookieStorage;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest};
@@ -27,6 +27,7 @@ use hyper::header::Origin as HyperOrigin;
 use hyper::method::Method;
 use hyper::net::{Fresh, HttpStream, HttpsStream, NetworkConnector};
 use hyper::status::StatusCode;
+use hyper_openssl::SslStream;
 use hyper_serde::Serde;
 use log;
 use msg::constellation_msg::PipelineId;
@@ -35,7 +36,6 @@ use net_traits::hosts::replace_host;
 use net_traits::request::{CacheMode, CredentialsMode, Destination, Origin};
 use net_traits::request::{RedirectMode, Referrer, Request, RequestMode, ResponseTainting};
 use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
-use openssl::ssl::SslStream;
 use resource_thread::AuthCache;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use std::collections::HashSet;
@@ -75,12 +75,11 @@ pub struct HttpState {
 
 impl HttpState {
     pub fn new(certificate_path: &str) -> HttpState {
-        let ssl_context = create_ssl_context(certificate_path);
         HttpState {
             hsts_list: Arc::new(RwLock::new(HstsList::new())),
             cookie_jar: Arc::new(RwLock::new(CookieStorage::new(150))),
             auth_cache: Arc::new(RwLock::new(AuthCache::new())),
-            connector_pool: create_http_connector(ssl_context),
+            connector_pool: create_http_connector(certificate_path),
         }
     }
 }
@@ -258,8 +257,8 @@ fn set_cookie_for_url(cookie_jar: &Arc<RwLock<CookieStorage>>,
     let header = Header::parse_header(&[cookie_val.into_bytes()]);
 
     if let Ok(SetCookie(cookies)) = header {
-        for bare_cookie in cookies {
-            if let Some(cookie) = cookie::Cookie::new_wrapped(bare_cookie, request, source) {
+        for cookie in cookies {
+            if let Some(cookie) = cookie::Cookie::from_cookie_string(cookie, request, source) {
                 cookie_jar.push(cookie, request, source);
             }
         }

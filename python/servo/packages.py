@@ -21,5 +21,5 @@ WINDOWS_MSVC = {
     "cmake": "3.6.1",
     "moztools": "0.0.1-5",
     "ninja": "1.7.1",
-    "openssl": "1.0.1t-vs2015",
+    "openssl": "1.1.0e-vs2015",
 }
