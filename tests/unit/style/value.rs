@@ -12,7 +12,7 @@ use style::values::specified::length::{CalcLengthOrPercentage, CalcUnit};
 fn length_has_viewport_percentage() {
     let l = NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vw(100.));
     assert!(l.has_viewport_percentage());
-    let l = NoCalcLength::Absolute(Au(100));
+    let l = NoCalcLength::Au(Au(100));
     assert!(!l.has_viewport_percentage());
 }
 

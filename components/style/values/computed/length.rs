@@ -22,7 +22,14 @@ impl ToComputedValue for specified::NoCalcLength {
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Au {
         match *self {
-            specified::NoCalcLength::Absolute(length) => length,
+            specified::NoCalcLength::Au(length) => length,
+            specified::NoCalcLength::Px(length) => length.into(),
+            specified::NoCalcLength::In(length) => length.into(),
+            specified::NoCalcLength::Cm(length) => length.into(),
+            specified::NoCalcLength::Mm(length) => length.into(),
+            specified::NoCalcLength::Q(length) => length.into(),
+            specified::NoCalcLength::Pt(length) => length.into(),
+            specified::NoCalcLength::Pc(length) => length.into(),
             specified::NoCalcLength::FontRelative(length) =>
                 length.to_computed_value(context, /* use inherited */ false),
             specified::NoCalcLength::ViewportPercentage(length) =>
@@ -34,7 +41,7 @@ impl ToComputedValue for specified::NoCalcLength {
 
     #[inline]
     fn from_computed_value(computed: &Au) -> Self {
-        specified::NoCalcLength::Absolute(*computed)
+        specified::NoCalcLength::Au(*computed)
     }
 }
 

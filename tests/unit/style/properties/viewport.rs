@@ -20,7 +20,7 @@ fn has_viewport_percentage_for_specified_value() {
 
     let pabs = PropertyDeclaration::BorderTopWidth(Box::new(
         border_top_width::SpecifiedValue::from_length(
-            Length::NoCalc(NoCalcLength::Absolute(Au(100)))
+            Length::NoCalc(NoCalcLength::Au(Au(100)))
         )
     ));
     assert!(!pabs.has_viewport_percentage());
