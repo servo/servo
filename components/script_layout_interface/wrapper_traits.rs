@@ -176,7 +176,7 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Debug + GetLayoutData + NodeInfo 
     /// it can be used to reach siblings and cousins. A simple immutable borrow
     /// of the parent data is fine, since the bottom-up traversal will not process
     /// the parent until all the children have been processed.
-    fn style_for_text_node(&self) -> Arc<ServoComputedValues>;
+    fn parent_style(&self) -> Arc<ServoComputedValues>;
 
     #[inline]
     fn is_element_or_elements_pseudo(&self) -> bool {
@@ -222,8 +222,10 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Debug + GetLayoutData + NodeInfo 
         if let Some(el) = self.as_element() {
             el.style(context)
         } else {
+            // Text nodes are not styled during traversal,instead we simply
+            // return parent style here and do cascading during layout.
             debug_assert!(self.is_text_node());
-            self.style_for_text_node()
+            self.parent_style()
         }
     }
 
@@ -232,7 +234,8 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Debug + GetLayoutData + NodeInfo 
             el.selected_style()
         } else {
             debug_assert!(self.is_text_node());
-            self.style_for_text_node()
+            // TODO(stshine): What should the selected style be for text?
+            self.parent_style()
         }
     }
 

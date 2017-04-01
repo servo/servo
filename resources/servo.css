@@ -168,6 +168,12 @@ svg > * {
   display: none;
 }
 
+/* style for text node. */
+*|*::-servo-text {
+    margin: 0;
+}
+
+/* style for text in input elements. */
 *|*::-servo-input-text {
     margin: 0;
 }
@@ -215,3 +221,18 @@ svg > * {
     height: auto;
 }
 
+/* The outer fragment wrapper of an inline-block. */
+*|*::-servo-inline-block-wrapper {
+    position: static;
+    border: none;
+    padding: 0;
+    margin: 0;
+}
+
+/* The outer fragment wrapper of an inline absolute hypothetical fragment. */
+*|*::-servo-inline-absolute {
+    clip: auto;
+    border: none;
+    padding: 0;
+    margin: 0;
+}

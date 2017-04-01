@@ -32,6 +32,7 @@ pub enum PseudoElement {
     Selection,
     DetailsSummary,
     DetailsContent,
+    ServoText,
     ServoInputText,
     ServoTableWrapper,
     ServoAnonymousTableWrapper,
@@ -39,6 +40,8 @@ pub enum PseudoElement {
     ServoAnonymousTableRow,
     ServoAnonymousTableCell,
     ServoAnonymousBlock,
+    ServoInlineBlockWrapper,
+    ServoInlineAbsolute,
 }
 
 impl ToCss for PseudoElement {
@@ -50,6 +53,7 @@ impl ToCss for PseudoElement {
             Selection => "::selection",
             DetailsSummary => "::-servo-details-summary",
             DetailsContent => "::-servo-details-content",
+            ServoText => "::-servo-text",
             ServoInputText => "::-servo-input-text",
             ServoTableWrapper => "::-servo-table-wrapper",
             ServoAnonymousTableWrapper => "::-servo-anonymous-table-wrapper",
@@ -57,6 +61,8 @@ impl ToCss for PseudoElement {
             ServoAnonymousTableRow => "::-servo-anonymous-table-row",
             ServoAnonymousTableCell => "::-servo-anonymous-table-cell",
             ServoAnonymousBlock => "::-servo-anonymous-block",
+            ServoInlineBlockWrapper => "::-servo-inline-block-wrapper",
+            ServoInlineAbsolute => "::-servo-inline-absolute",
         })
     }
 }
@@ -83,13 +89,16 @@ impl PseudoElement {
             PseudoElement::Selection => PseudoElementCascadeType::Eager,
             PseudoElement::DetailsSummary => PseudoElementCascadeType::Lazy,
             PseudoElement::DetailsContent |
+            PseudoElement::ServoText |
             PseudoElement::ServoInputText |
             PseudoElement::ServoTableWrapper |
             PseudoElement::ServoAnonymousTableWrapper |
             PseudoElement::ServoAnonymousTable |
             PseudoElement::ServoAnonymousTableRow |
             PseudoElement::ServoAnonymousTableCell |
-            PseudoElement::ServoAnonymousBlock => PseudoElementCascadeType::Precomputed,
+            PseudoElement::ServoAnonymousBlock |
+            PseudoElement::ServoInlineBlockWrapper |
+            PseudoElement::ServoInlineAbsolute => PseudoElementCascadeType::Precomputed,
         }
     }
 }
@@ -278,6 +287,12 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
                 }
                 DetailsContent
             },
+            "-servo-text" => {
+                if !self.in_user_agent_stylesheet() {
+                    return Err(())
+                }
+                ServoText
+            },
             "-servo-input-text" => {
                 if !self.in_user_agent_stylesheet() {
                     return Err(())
@@ -320,6 +335,18 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
                 }
                 ServoAnonymousBlock
             },
+            "-servo-inline-block-wrapper" => {
+                if !self.in_user_agent_stylesheet() {
+                    return Err(())
+                }
+                ServoInlineBlockWrapper
+            },
+            "-servo-input-absolute" => {
+                if !self.in_user_agent_stylesheet() {
+                    return Err(())
+                }
+                ServoInlineAbsolute
+            },
             _ => return Err(())
         };
 
@@ -352,6 +379,7 @@ impl SelectorImpl {
         fun(PseudoElement::DetailsContent);
         fun(PseudoElement::DetailsSummary);
         fun(PseudoElement::Selection);
+        fun(PseudoElement::ServoText);
         fun(PseudoElement::ServoInputText);
         fun(PseudoElement::ServoTableWrapper);
         fun(PseudoElement::ServoAnonymousTableWrapper);
@@ -359,6 +387,8 @@ impl SelectorImpl {
         fun(PseudoElement::ServoAnonymousTableRow);
         fun(PseudoElement::ServoAnonymousTableCell);
         fun(PseudoElement::ServoAnonymousBlock);
+        fun(PseudoElement::ServoInlineBlockWrapper);
+        fun(PseudoElement::ServoInlineAbsolute);
     }
 
     /// Returns the pseudo-class state flag for selector matching.
