@@ -128,12 +128,10 @@ pub fn main_fetch(request: &mut Request,
                   done_chan: &mut DoneChannel,
                   context: &FetchContext)
                   -> Response {
-    // TODO: Implement main fetch spec
-
-    // Step 1
+    // Step 1.
     let mut response = None;
 
-    // Step 2
+    // Step 2.
     if request.local_urls_only {
         match request.current_url().scheme() {
             "about" | "blob" | "data" | "filesystem" => (), // Ok, the URL is local.
@@ -141,27 +139,27 @@ pub fn main_fetch(request: &mut Request,
         }
     }
 
-    // Step 3
-    // TODO be able to execute report CSP
+    // Step 3.
+    // TODO: handle content security policy violations.
 
-    // Step 4
-    // TODO this step, based off of http_loader.rs (upgrade)
+    // Step 4.
+    // TODO: handle upgrade to a potentially secure URL.
 
-    // Step 5
-    // TODO this step (CSP port/content blocking)
+    // Step 5.
     if should_be_blocked_due_to_bad_port(&request.url()) {
         response = Some(Response::network_error(NetworkError::Internal("Request attempted on bad port".into())));
     }
+    // TODO: handle blocking as mixed content.
+    // TODO: handle blocking by content security policy.
 
     // Step 6
-    // TODO this step (referrer policy)
-    // currently the clients themselves set referrer policy in RequestInit
+    // TODO: handle request's client's referrer policy.
 
-    // Step 7
+    // Step 7.
     let referrer_policy = request.referrer_policy.unwrap_or(ReferrerPolicy::NoReferrerWhenDowngrade);
     request.referrer_policy = Some(referrer_policy);
 
-    // Step 8
+    // Step 8.
     {
         let referrer_url = match mem::replace(&mut request.referrer, Referrer::NoReferrer) {
             Referrer::NoReferrer => None,
@@ -185,7 +183,10 @@ pub fn main_fetch(request: &mut Request,
         }
     }
 
-    // Step 9
+    // Step 9.
+    // TODO: handle FTP URLs.
+
+    // Step 10.
     if !request.current_url().is_secure_scheme() && request.current_url().domain().is_some() {
         if context.state
             .hsts_list
@@ -196,63 +197,61 @@ pub fn main_fetch(request: &mut Request,
         }
     }
 
-    // Step 10
-    // this step is obsoleted by fetch_async
+    // Step 11.
+    // Not applicable: see fetch_async.
 
-    // Step 11
-    let response = match response {
-        Some(response) => response,
-        None => {
-            let current_url = request.current_url();
-            let same_origin = if let Origin::Origin(ref origin) = request.origin {
-                *origin == current_url.origin()
-            } else {
-                false
-            };
+    // Step 12.
+    let response = response.unwrap_or_else(|| {
+        let current_url = request.current_url();
+        let same_origin = if let Origin::Origin(ref origin) = request.origin {
+            *origin == current_url.origin()
+        } else {
+            false
+        };
 
-            if (same_origin && !cors_flag ) ||
-                current_url.scheme() == "data" ||
-                current_url.scheme() == "file" ||
-                current_url.scheme() == "about" ||
-                request.mode == RequestMode::Navigate {
-                basic_fetch(request, cache, target, done_chan, context)
+        if (same_origin && !cors_flag ) ||
+            current_url.scheme() == "data" ||
+            current_url.scheme() == "file" ||
+            current_url.scheme() == "about" ||
+            request.mode == RequestMode::Navigate {
+            basic_fetch(request, cache, target, done_chan, context)
 
-            } else if request.mode == RequestMode::SameOrigin {
-                Response::network_error(NetworkError::Internal("Cross-origin response".into()))
+        } else if request.mode == RequestMode::SameOrigin {
+            Response::network_error(NetworkError::Internal("Cross-origin response".into()))
 
-            } else if request.mode == RequestMode::NoCors {
-                request.response_tainting = ResponseTainting::Opaque;
-                basic_fetch(request, cache, target, done_chan, context)
+        } else if request.mode == RequestMode::NoCors {
+            request.response_tainting = ResponseTainting::Opaque;
+            basic_fetch(request, cache, target, done_chan, context)
 
-            } else if !matches!(current_url.scheme(), "http" | "https") {
-                Response::network_error(NetworkError::Internal("Non-http scheme".into()))
+        } else if !matches!(current_url.scheme(), "http" | "https") {
+            Response::network_error(NetworkError::Internal("Non-http scheme".into()))
 
-            } else if request.use_cors_preflight ||
-                (request.unsafe_request &&
-                 (!is_simple_method(&request.method) ||
-                  request.headers.iter().any(|h| !is_simple_header(&h)))) {
-                request.response_tainting = ResponseTainting::CorsTainting;
-                let response = http_fetch(request, cache, true, true, false,
-                                          target, done_chan, context);
-                if response.is_network_error() {
-                    // TODO clear cache entries using request
-                }
-                response
-
-            } else {
-                request.response_tainting = ResponseTainting::CorsTainting;
-                http_fetch(request, cache, true, false, false, target, done_chan, context)
+        } else if request.use_cors_preflight ||
+            (request.unsafe_request &&
+                (!is_simple_method(&request.method) ||
+                request.headers.iter().any(|h| !is_simple_header(&h)))) {
+            request.response_tainting = ResponseTainting::CorsTainting;
+            let response = http_fetch(request, cache, true, true, false,
+                                        target, done_chan, context);
+            if response.is_network_error() {
+                // TODO clear cache entries using request
             }
-        }
-    };
+            response
 
-    // Step 12
+        } else {
+            request.response_tainting = ResponseTainting::CorsTainting;
+            http_fetch(request, cache, true, false, false, target, done_chan, context)
+        }
+    });
+
+    // Step 13.
     if recursive_flag {
         return response;
     }
 
-    // Step 13
-    // no need to check if response is a network error, since the type would not be `Default`
+    // Step 14.
+    // We don't need to check whether response is a network error,
+    // given its type would not be `Default` in this case.
     let response = if response.response_type == ResponseType::Default {
         let response_type = match request.response_tainting {
             ResponseTainting::Basic => ResponseType::Basic,
@@ -264,8 +263,8 @@ pub fn main_fetch(request: &mut Request,
         response
     };
 
-    let internal_error = { // Inner scope to reborrow response
-        // Step 14
+    let internal_error = {
+        // Step 15.
         let network_error_response;
         let internal_response = if let Some(error) = response.get_network_error() {
             network_error_response = Response::network_error(error.clone());
@@ -274,13 +273,15 @@ pub fn main_fetch(request: &mut Request,
             response.actual_response()
         };
 
-        // Step 15
+        // Step 16.
         if internal_response.url_list.borrow().is_empty() {
             *internal_response.url_list.borrow_mut() = request.url_list.clone();
         }
 
-        // Step 16
-        // TODO Blocking for CSP, mixed content, MIME type
+        // Step 17.
+        // TODO: handle blocking as mixed content.
+        // TODO: handle blocking by content security policy.
+        // TODO: handle blocking due to MIME type.
         let blocked_error_response;
         let internal_response =
             if !response.is_network_error() && should_be_blocked_due_to_nosniff(request.type_, &response.headers) {
@@ -291,8 +292,9 @@ pub fn main_fetch(request: &mut Request,
                 internal_response
             };
 
-        // Step 17
-        // We check `internal_response` since we did not mutate `response` in the previous step.
+        // Step 18.
+        // We check `internal_response` since we did not mutate `response`
+        // in the previous step.
         let not_network_error = !response.is_network_error() && !internal_response.is_network_error();
         if not_network_error && (is_null_body_status(&internal_response.status) ||
             match request.method {
@@ -307,21 +309,21 @@ pub fn main_fetch(request: &mut Request,
         internal_response.get_network_error().map(|e| e.clone())
     };
 
-    // Execute deferred rebinding of response
+    // Execute deferred rebinding of response.
     let response = if let Some(error) = internal_error {
         Response::network_error(error)
     } else {
         response
     };
 
-    // Step 18
+    // Step 19.
     let mut response_loaded = false;
-    let response = if !response.is_network_error() && request.integrity_metadata != "" {
-        // Substep 1
+    let response = if !response.is_network_error() && !request.integrity_metadata.is_empty() {
+        // Step 19.1.
         wait_for_response(&response, target, done_chan);
         response_loaded = true;
 
-        // Substep 2
+        // Step 19.2.
         let ref integrity_metadata = &request.integrity_metadata;
         if response.termination_reason.is_none() &&
            !is_response_integrity_valid(integrity_metadata, &response) {
@@ -333,7 +335,7 @@ pub fn main_fetch(request: &mut Request,
         response
     };
 
-    // Step 19
+    // Step 20.
     if request.synchronous {
         // process_response is not supposed to be used
         // by sync fetch, but we overload it here for simplicity
@@ -346,7 +348,7 @@ pub fn main_fetch(request: &mut Request,
         return response;
     }
 
-    // Step 20
+    // Step 21.
     if request.body.is_some() && matches!(request.current_url().scheme(), "http" | "https") {
         // XXXManishearth: We actually should be calling process_request
         // in http_network_fetch. However, we can't yet follow the request
@@ -356,19 +358,20 @@ pub fn main_fetch(request: &mut Request,
         target.process_request_eof(&request);
     }
 
-    // Step 21
+    // Step 22.
     target.process_response(&response);
 
-    // Step 22
+    // Step 23.
     if !response_loaded {
        wait_for_response(&response, target, done_chan);
     }
 
-    // Step 24
+    // Step 24.
     target.process_response_eof(&response);
 
-    // TODO remove this line when only asynchronous fetches are used
-    return response;
+    // Steps 25-27.
+    // TODO: remove this line when only asynchronous fetches are used
+    response
 }
 
 fn wait_for_response(response: &Response, target: Target, done_chan: &mut DoneChannel) {
