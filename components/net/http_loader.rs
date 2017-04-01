@@ -553,15 +553,15 @@ pub fn http_fetch(request: &mut Request,
         request.skip_service_worker = true;
 
         // Substep 3
-        let fetch_result = http_network_or_cache_fetch(request, authentication_fetch_flag,
-                                                       cors_flag, done_chan, context);
+        let mut fetch_result = http_network_or_cache_fetch(
+            request, authentication_fetch_flag, cors_flag, done_chan, context);
 
         // Substep 4
         if cors_flag && cors_check(&request, &fetch_result).is_err() {
             return Response::network_error(NetworkError::Internal("CORS check failed".into()));
         }
 
-        fetch_result.return_internal.set(false);
+        fetch_result.return_internal = false;
         response = Some(fetch_result);
     }
 
@@ -579,7 +579,7 @@ pub fn http_fetch(request: &mut Request,
                 },
                 RedirectMode::Follow => {
                     // set back to default
-                    response.return_internal.set(true);
+                    response.return_internal = true;
                     http_redirect_fetch(request, cache, response,
                                         cors_flag, target, done_chan, context)
                 }
@@ -642,7 +642,7 @@ pub fn http_fetch(request: &mut Request,
     }
 
     // set back to default
-    response.return_internal.set(true);
+    response.return_internal = true;
     // Step 7
     response
 }
@@ -657,7 +657,7 @@ fn http_redirect_fetch(request: &mut Request,
                        context: &FetchContext)
                        -> Response {
     // Step 1
-    assert_eq!(response.return_internal.get(), true);
+    assert!(response.return_internal);
 
     // Step 2
     if !response.actual_response().headers.has::<Location>() {

@@ -10,7 +10,7 @@ use hyper::status::StatusCode;
 use hyper_serde::Serde;
 use servo_url::ServoUrl;
 use std::ascii::AsciiExt;
-use std::cell::{Cell, RefCell};
+use std::cell::RefCell;
 use std::sync::{Arc, Mutex};
 
 /// [Response type](https://fetch.spec.whatwg.org/#concept-response-type)
@@ -97,7 +97,7 @@ pub struct Response {
     /// is a filtered response
     pub internal_response: Option<Box<Response>>,
     /// whether or not to try to return the internal_response when asked for actual_response
-    pub return_internal: Cell<bool>,
+    pub return_internal: bool,
 }
 
 impl Response {
@@ -115,7 +115,7 @@ impl Response {
             https_state: HttpsState::None,
             referrer: None,
             internal_response: None,
-            return_internal: Cell::new(true),
+            return_internal: true,
         }
     }
 
@@ -133,7 +133,7 @@ impl Response {
             https_state: HttpsState::None,
             referrer: None,
             internal_response: None,
-            return_internal: Cell::new(true),
+            return_internal: true,
         }
     }
 
@@ -156,7 +156,7 @@ impl Response {
     }
 
     pub fn actual_response(&self) -> &Response {
-        if self.return_internal.get() && self.internal_response.is_some() {
+        if self.return_internal && self.internal_response.is_some() {
             &**self.internal_response.as_ref().unwrap()
         } else {
             self
@@ -164,7 +164,7 @@ impl Response {
     }
 
     pub fn to_actual(self) -> Response {
-        if self.return_internal.get() && self.internal_response.is_some() {
+        if self.return_internal && self.internal_response.is_some() {
             *self.internal_response.unwrap()
         } else {
             self
