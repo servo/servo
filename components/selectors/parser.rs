@@ -393,21 +393,21 @@ impl<Impl: SelectorImpl> ToCss for ComplexSelector<Impl> {
        }
 
        while let Some(v) = nodes.pop() {
-           if let Some((_, ref comb)) = v.next {
-               comb.to_css(dest)?;
+           if let Some((_, ref combinator)) = v.next {
+               combinator.to_css(dest)?;
            }
 
-           for vis in &v.compound_selector {
-               vis.to_css(dest)?;
+           for simple in &v.compound_selector {
+               simple.to_css(dest)?;
            }
        }
 
-        if let Some((_, ref comb)) = self.next {
-            comb.to_css(dest)?;
+        if let Some((_, ref combinator)) = self.next {
+            combinator.to_css(dest)?;
         }
 
-        for simp in &self.compound_selector {
-            simp.to_css(dest)?;
+        for simple in &self.compound_selector {
+            simple.to_css(dest)?;
         }
 
            Ok(())
