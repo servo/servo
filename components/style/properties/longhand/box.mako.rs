@@ -1098,7 +1098,7 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                    flags="CREATES_STACKING_CONTEXT FIXPOS_CB"
                    spec="https://drafts.csswg.org/css-transforms/#propdef-transform">
     use app_units::Au;
-    use values::specified::Number;
+    use values::specified::{LengthOrPercentage, LengthOrPercentageOrNumber as LoPoNumber, Number};
     use style_traits::ToCss;
     use values::CSSFloat;
     use values::HasViewportPercentage;
@@ -1148,12 +1148,12 @@ ${helpers.predefined_type("scroll-snap-coordinate",
     }
 
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    #[derive(Copy, Clone, Debug, PartialEq)]
+    #[derive(Clone, Debug, PartialEq)]
     pub struct SpecifiedMatrix {
-        pub m11: Number, pub m12: Number, pub m13: Number, pub m14: Number,
-        pub m21: Number, pub m22: Number, pub m23: Number, pub m24: Number,
-        pub m31: Number, pub m32: Number, pub m33: Number, pub m34: Number,
-        pub m41: Number, pub m42: Number, pub m43: Number, pub m44: Number,
+        pub m11: Number,     pub m12: Number,     pub m13: Number,     pub m14: Number,
+        pub m21: Number,     pub m22: Number,     pub m23: Number,     pub m24: Number,
+        pub m31: Number,     pub m32: Number,     pub m33: Number,     pub m34: Number,
+        pub m41: LoPoNumber, pub m42: LoPoNumber, pub m43: LoPoNumber, pub m44: Number,
     }
 
     impl ToComputedValue for SpecifiedMatrix {
@@ -1173,9 +1173,9 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                 m32: self.m32.to_computed_value(context),
                 m33: self.m33.to_computed_value(context),
                 m34: self.m34.to_computed_value(context),
-                m41: self.m41.to_computed_value(context),
-                m42: self.m42.to_computed_value(context),
-                m43: self.m43.to_computed_value(context),
+                m41: length_to_computed_number(self.m41.to_computed_value(context)),
+                m42: length_to_computed_number(self.m42.to_computed_value(context)),
+                m43: length_to_computed_number(self.m43.to_computed_value(context)),
                 m44: self.m44.to_computed_value(context),
             }
         }
@@ -1194,11 +1194,34 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                 m32: Number::from_computed_value(&computed.m32),
                 m33: Number::from_computed_value(&computed.m33),
                 m34: Number::from_computed_value(&computed.m34),
-                m41: Number::from_computed_value(&computed.m41),
-                m42: Number::from_computed_value(&computed.m42),
-                m43: Number::from_computed_value(&computed.m43),
+                m41: Either::Second(Number::from_computed_value(&computed.m41)),
+                m42: Either::Second(Number::from_computed_value(&computed.m42)),
+                m43: Either::Second(Number::from_computed_value(&computed.m43)),
                 m44: Number::from_computed_value(&computed.m44),
             }
+        }
+    }
+
+    /// Takes a computed LengthOrPercentageOrNumber and returns computed Number as CSSFloat.
+    /// This function is needed for -moz-transform because prefixed property treats length and
+    /// percentages as Number values.
+    ///
+    /// We needed to divide length to 60 to get actual pixel value.
+    /// We could also pass specified LengthOrPercentageOrNumber to be able to prevent this division
+    /// but Length and Calc have so many values to be calculated. Probably it's better to
+    /// leave these calculations to ToComputedValue method.
+    fn length_to_computed_number(value: computed::LengthOrPercentageOrNumber) -> CSSFloat {
+        match value {
+            Either::First(length) => {
+                match length {
+                    computed::LengthOrPercentage::Length(len) => (len.0 / 60) as CSSFloat,
+                    computed::LengthOrPercentage::Percentage(percentage) => percentage,
+                    computed::LengthOrPercentage::Calc(calc) => {
+                        (calc.length.0 / 60) as CSSFloat + calc.percentage.unwrap_or(0.0)
+                    },
+                }
+            },
+            Either::Second(num) => num,
         }
     }
 
@@ -1371,7 +1394,8 @@ ${helpers.predefined_type("scroll-snap-coordinate",
         computed_value::T(None)
     }
 
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+    fn parse_internal(context: &ParserContext, input: &mut Parser, prefixed: bool)
+        -> Result<SpecifiedValue,()> {
         if input.try(|input| input.expect_ident_matching("none")).is_ok() {
             return Ok(SpecifiedValue(Vec::new()))
         }
@@ -1386,17 +1410,32 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                 &name,
                 "matrix" => {
                     try!(input.parse_nested_block(|input| {
-                        let values = try!(input.parse_comma_separated(|input| {
-                            specified::parse_number(input)
-                        }));
-                        if values.len() != 6 {
-                            return Err(())
+                        let mut values = vec![];
+                        let mut lengths = vec![];
+                        // Consume first number
+                        values.push(specified::parse_number(input)?);
+                        // Parse other 5 number/LengthOrPercentageOrNumber
+                        for i in 0..5 {
+                            input.expect_comma()?;
+                            if i < 3 {
+                                values.push(specified::parse_number(input)?);
+                            } else {
+                                // -moz-transform accepts LengthOrPercentageOrNumber in the nondiagonal
+                                // homogeneous components. transform accepts only number.
+                                if prefixed {
+                                    lengths.push(LoPoNumber::parse(context, input)?)
+                                } else {
+                                    lengths.push(Either::Second(specified::parse_number(input)?));
+                                }
+                            }
                         }
+
                         let matrix = SpecifiedMatrix {
                             m11: values[0],        m12: values[1],        m13: Number::new(0.0), m14: Number::new(0.0),
                             m21: values[2],        m22: values[3],        m23: Number::new(0.0), m24: Number::new(0.0),
                             m31: Number::new(0.0), m32: Number::new(0.0), m33: Number::new(1.0), m34: Number::new(0.0),
-                            m41: values[4],        m42: values[5],        m43: Number::new(0.0), m44: Number::new(1.0),
+                            m41: lengths[0].clone(), m42: lengths[1].clone(),
+                            m43: Either::Second(Number::new(0.0)), m44: Number::new(1.0),
                         };
                         result.push(SpecifiedOperation::Matrix(matrix));
                         Ok(())
@@ -1404,16 +1443,33 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                 },
                 "matrix3d" => {
                     try!(input.parse_nested_block(|input| {
-                        let values = try!(input.parse_comma_separated(specified::parse_number));
-                        if values.len() != 16 {
-                            return Err(())
+                        let mut values = vec![];
+                        let mut lengths = vec![];
+                        // Parse first number
+                        values.push(specified::parse_number(input)?);
+                        // Parse other 15 number/LengthOrPercentageOrNumber
+                        for i in 0..15 {
+                            input.expect_comma()?;
+                            if i < 11 || i > 13 {
+                                values.push(specified::parse_number(input)?);
+                            } else {
+                                // -moz-transform accepts LengthOrPercentageOrNumber in the nondiagonal
+                                // homogeneous components. transform accepts only number.
+                                if prefixed {
+                                    lengths.push(LoPoNumber::parse(context, input)?)
+                                } else {
+                                    lengths.push(Either::Second(specified::parse_number(input)?));
+                                }
+                            }
                         }
+
                         result.push(SpecifiedOperation::Matrix(
                             SpecifiedMatrix {
                                 m11: values[ 0], m12: values[ 1], m13: values[ 2], m14: values[ 3],
                                 m21: values[ 4], m22: values[ 5], m23: values[ 6], m24: values[ 7],
                                 m31: values[ 8], m32: values[ 9], m33: values[10], m34: values[11],
-                                m41: values[12], m42: values[13], m43: values[14], m44: values[15]
+                                m41: lengths[0].clone(), m42: lengths[1].clone(),  m43: lengths[2].clone(),
+                                m44: values[12]
                             }));
                         Ok(())
                     }))
@@ -1615,6 +1671,17 @@ ${helpers.predefined_type("scroll-snap-coordinate",
         } else {
             Err(())
         }
+    }
+
+    /// Parses `transform` property.
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+        parse_internal(context, input, false)
+    }
+
+    /// Parses `-moz-transform` property. This prefixed property also accepts LengthOrPercentage
+    /// in the nondiagonal homogeneous components of matrix and matrix3d.
+    pub fn parse_prefixed(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+        parse_internal(context, input, true)
     }
 
     impl ToComputedValue for SpecifiedValue {

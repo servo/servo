@@ -431,6 +431,8 @@ bitflags! {
         /// This property has values that can establish a containing block for
         /// absolutely positioned elements.
         const ABSPOS_CB = 1 << 2,
+        /// This property(shorthand) is an alias of another property.
+        const ALIAS_PROPERTY = 1 << 3,
     }
 }
 
@@ -570,6 +572,12 @@ impl ShorthandId {
             Some(declaration) => declaration,
             None => return None
         };
+
+        // Alias shorthand properties like -moz-transform should not be
+        // serialized as shothand. They will be serialized as londhand.
+        if self.flags().contains(ALIAS_PROPERTY) {
+            return None;
+        }
 
         // https://drafts.csswg.org/css-variables/#variables-in-shorthands
         if let Some(css) = first_declaration.with_variables_from_shorthand(self) {
