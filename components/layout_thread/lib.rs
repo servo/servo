@@ -355,20 +355,24 @@ fn add_font_face_rules(stylesheet: &Stylesheet,
                        outstanding_web_fonts_counter: &Arc<AtomicUsize>) {
     if opts::get().load_webfonts_synchronously {
         let (sender, receiver) = ipc::channel().unwrap();
-        stylesheet.effective_font_face_rules(&device, guard, |font_face| {
-            let effective_sources = font_face.effective_sources();
-            font_cache_thread.add_web_font(font_face.family.clone(),
-                                           effective_sources,
-                                           sender.clone());
-            receiver.recv().unwrap();
+        stylesheet.effective_font_face_rules(&device, guard, |rule| {
+            if let Some(font_face) = rule.font_face() {
+                let effective_sources = font_face.effective_sources();
+                font_cache_thread.add_web_font(font_face.family().clone(),
+                                               effective_sources,
+                                               sender.clone());
+                receiver.recv().unwrap();
+            }
         })
     } else {
-        stylesheet.effective_font_face_rules(&device, guard, |font_face| {
-            let effective_sources = font_face.effective_sources();
-            outstanding_web_fonts_counter.fetch_add(1, Ordering::SeqCst);
-            font_cache_thread.add_web_font(font_face.family.clone(),
-                                          effective_sources,
-                                          (*font_cache_sender).clone());
+        stylesheet.effective_font_face_rules(&device, guard, |rule| {
+            if let Some(font_face) = rule.font_face() {
+                let effective_sources = font_face.effective_sources();
+                outstanding_web_fonts_counter.fetch_add(1, Ordering::SeqCst);
+                font_cache_thread.add_web_font(font_face.family().clone(),
+                                              effective_sources,
+                                              (*font_cache_sender).clone());
+            }
         })
     }
 }

@@ -4,7 +4,7 @@
 
 //! Bindings for CSS Rule objects
 
-use font_face::{FontFaceData, Source};
+use font_face::{FontFaceRuleData, Source};
 use gecko_bindings::bindings;
 use gecko_bindings::structs::{self, CSSFontFaceDescriptors, nsCSSFontFaceRule};
 use gecko_bindings::sugar::refptr::{RefPtr, UniqueRefPtr};
@@ -15,18 +15,22 @@ use std::fmt;
 pub type FontFaceRule = RefPtr<nsCSSFontFaceRule>;
 
 fn set_font_face_descriptors(descriptors: &mut CSSFontFaceDescriptors,
-                             data: FontFaceData) {
+                             data: FontFaceRuleData) {
     // font-family
-    descriptors.mFamily.set_string_from_atom(&data.family.name);
+    if let Some(ref family) = data.family {
+        descriptors.mFamily.set_string_from_atom(&family.name);
+    }
 
     macro_rules! map_enum {
         ($target:ident = ($data:ident: $prop:ident) {
             $($servo:ident => $gecko:ident,)+
         }) => {{
-            use computed_values::$prop::T;
-            descriptors.$target.set_enum(match data.$data {
-                $( T::$servo => structs::$gecko as i32, )+
-            })
+            if let Some(ref value) = data.$data {
+                use computed_values::$prop::T;
+                descriptors.$target.set_enum(match *value {
+                    $( T::$servo => structs::$gecko as i32, )+
+                })
+            }
         }}
     }
 
@@ -38,7 +42,9 @@ fn set_font_face_descriptors(descriptors: &mut CSSFontFaceDescriptors,
     });
 
     // font-weight
-    descriptors.mWeight.set_integer(data.weight as i32);
+    if let Some(weight) = data.weight {
+        descriptors.mWeight.set_integer(weight as i32);
+    }
 
     // font-stretch
     map_enum!(mStretch = (stretch: font_stretch) {
@@ -54,53 +60,52 @@ fn set_font_face_descriptors(descriptors: &mut CSSFontFaceDescriptors,
     });
 
     // src
-    let src_len = data.sources.iter().fold(0, |acc, src| {
-        acc + match *src {
-            // Each format hint takes one position in the array of mSrc.
-            Source::Url(ref url) => url.format_hints.len() + 1,
-            Source::Local(_) => 1,
-        }
-    });
-    let mut target_srcs =
-        descriptors.mSrc.set_array(src_len as i32).as_mut_slice().iter_mut();
-    macro_rules! next { () => {
-        target_srcs.next().expect("Length of target_srcs should be enough")
-    } }
-    for src in data.sources.iter() {
-        match *src {
-            Source::Url(ref url) => {
-                next!().set_url(&url.url);
-                for hint in url.format_hints.iter() {
-                    next!().set_font_format(&hint);
+    if let Some(ref sources) = data.sources {
+        let src_len = sources.iter().fold(0, |acc, src| {
+            acc + match *src {
+                // Each format hint takes one position in the array of mSrc.
+                Source::Url(ref url) => url.format_hints.len() + 1,
+                Source::Local(_) => 1,
+            }
+        });
+        let mut target_srcs =
+            descriptors.mSrc.set_array(src_len as i32).as_mut_slice().iter_mut();
+        macro_rules! next { () => {
+            target_srcs.next().expect("Length of target_srcs should be enough")
+        } }
+        for src in sources.iter() {
+            match *src {
+                Source::Url(ref url) => {
+                    next!().set_url(&url.url);
+                    for hint in url.format_hints.iter() {
+                        next!().set_font_format(&hint);
+                    }
+                }
+                Source::Local(ref family) => {
+                    next!().set_local_font(&family.name);
                 }
             }
-            Source::Local(ref family) => {
-                next!().set_local_font(&family.name);
-            }
         }
+        debug_assert!(target_srcs.next().is_none(), "Should have filled all slots");
     }
-    debug_assert!(target_srcs.next().is_none(), "Should have filled all slots");
 
     // unicode-range
-    let target_ranges = descriptors.mUnicodeRange
-        .set_array((data.unicode_range.len() * 2) as i32)
-        .as_mut_slice().chunks_mut(2);
-    for (range, target) in data.unicode_range.iter().zip(target_ranges) {
-        target[0].set_integer(range.start as i32);
-        target[1].set_integer(range.end as i32);
+    if let Some(ref unicode_range) = data.unicode_range {
+        let target_ranges = descriptors.mUnicodeRange
+            .set_array((unicode_range.len() * 2) as i32)
+            .as_mut_slice().chunks_mut(2);
+        for (range, target) in unicode_range.iter().zip(target_ranges) {
+            target[0].set_integer(range.start as i32);
+            target[1].set_integer(range.end as i32);
+        }
     }
 
-    // The following three descriptors are not implemented yet.
-    // font-feature-settings
-    descriptors.mFontFeatureSettings.set_normal();
-    // font-language-override
-    descriptors.mFontLanguageOverride.set_normal();
-    // font-display
-    descriptors.mDisplay.set_enum(structs::NS_FONT_DISPLAY_AUTO as i32);
+    // Leave unset descriptors to eCSSUnit_Null,
+    // FontFaceSet::FindOrCreateUserFontEntryFromFontFace does the defaulting to initial values.
 }
 
-impl From<FontFaceData> for FontFaceRule {
-    fn from(data: FontFaceData) -> FontFaceRule {
+impl From<FontFaceRuleData> for FontFaceRule {
+    fn from(data: FontFaceRuleData) -> FontFaceRule {
         let mut result = unsafe {
             UniqueRefPtr::from_addrefed(bindings::Gecko_CSSFontFaceRule_Create())
         };
