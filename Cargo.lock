@@ -2289,7 +2289,7 @@ dependencies = [
  "webrender_traits 0.27.0 (git+https://github.com/servo/webrender)",
  "webvr 0.0.1",
  "webvr_traits 0.0.1",
- "xml5ever 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "xml5ever 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -3274,7 +3274,7 @@ dependencies = [
 
 [[package]]
 name = "xml5ever"
-version = "0.4.2"
+version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "html5ever-atoms 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3547,4 +3547,4 @@ dependencies = [
 "checksum xdg 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "a66b7c2281ebde13cf4391d70d4c7e5946c3c25e72a7b859ca8f677dcd0b0c61"
 "checksum xi-unicode 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "12ea8eda4b1eb72f02d148402e23832d56a33f55d8c1b2d5bcdde91d79d47cb1"
 "checksum xml-rs 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)" = "f2b15eed12692bd59d15e98ee7f8dc8408465b992d8ddb4d1672c24865132ec7"
-"checksum xml5ever 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)" = "236e16db2a9c6ddacc51731121e76431838c72d08b411603da37e1ee91c6d770"
+"checksum xml5ever 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)" = "b96d39141ee1af5889a0bfe871ef28937e617145ad63d41b2832c5b6752cbc5c"
