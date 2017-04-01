@@ -1,3 +1,9 @@
+/*
+ * The origin of this IDL file is:
+ * https://dom.spec.whatwg.org/#mutationobserver
+ */
+
+// https://dom.spec.whatwg.org/#mutationobserver
 [Pref="dom.mutation_observer.enabled", Constructor(MutationCallback callback)]
 interface MutationObserver {
     //void observe(Node target, optional MutationObserverInit options);

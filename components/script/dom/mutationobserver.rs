@@ -1,6 +1,5 @@
 use core::ptr::null;
 use dom;
-use dom_struct::dom_struct;
 use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationCallback;
 use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationObserverInit;
 use dom::bindings::error::Error;
@@ -10,6 +9,8 @@ use dom::bindings::trace::JSTraceable;
 use dom::mutationrecord::MutationRecord;
 use dom::node::Node;
 use dom::window::Window;
+use dom_struct::dom_struct;
+use script_thread::ScriptThread;
 use std::ops::Deref;
 use std::rc::Rc;
 
@@ -28,8 +29,8 @@ impl MutationObserver {
     }
 
     pub fn Constructor(global: &Window, callback: Rc<MutationCallback>) -> Result<Root<MutationObserver>, Error> {
-        let observer = MutationObserver::new(global, Rc::deref(callback));
-        ScriptThread.add_mutation_observer(observer)
+        let observer = MutationObserver::new(global, Rc::deref(&callback));
+        ScriptThread::add_mutation_observer(&observer)
     }
 
 }

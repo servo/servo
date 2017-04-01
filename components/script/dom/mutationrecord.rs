@@ -1,12 +1,12 @@
 use core::ptr;
-use dom_struct::dom_struct;
 use dom::bindings::codegen::Bindings::MutationRecordBinding::MutationRecordBinding::MutationRecordMethods;
 use dom::bindings::js::{JS, Root};
-use dom::bindings::str::DOMString;
 use dom::bindings::reflector::Reflector;
+use dom::bindings::str::DOMString;
 use dom::node::Node;
 use dom::nodelist::NodeList;
 use dom::window::Window;
+use dom_struct::dom_struct;
 use std::default::Default;
 
 #[dom_struct]
@@ -31,10 +31,12 @@ impl MutationRecord {
 }
 
 impl MutationRecordMethods for MutationRecord {
+    // https://dom.spec.whatwg.org/#dom-mutationrecord-type
     fn Type(&self) -> DOMString {
         return self.record_type;
     }
 
+    // https://dom.spec.whatwg.org/#dom-mutationrecord-target
     fn Target(&self) -> Root<Node> {
         return Root::from_ref(&*self.target);
     }

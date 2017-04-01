@@ -1,3 +1,9 @@
+/*
+ * The origin of this IDL file is:
+ * https://dom.spec.whatwg.org/#mutationrecord
+ */
+
+// https://dom.spec.whatwg.org/#mutationrecord
 [Pref="dom.mutation_observer.enabled", Exposed=Window]
 interface MutationRecord {
     readonly attribute DOMString type;
