@@ -5,14 +5,14 @@
 use app_units::Au;
 use cssparser::Parser;
 use style::values::HasViewportPercentage;
-use style::values::specified::{ViewportPercentageLength, NoCalcLength};
+use style::values::specified::{AbsoluteLength, ViewportPercentageLength, NoCalcLength};
 use style::values::specified::length::{CalcLengthOrPercentage, CalcUnit};
 
 #[test]
 fn length_has_viewport_percentage() {
     let l = NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vw(100.));
     assert!(l.has_viewport_percentage());
-    let l = NoCalcLength::Absolute(Au(100));
+    let l = NoCalcLength::Absolute(AbsoluteLength::Px(Au(100).to_f32_px()));
     assert!(!l.has_viewport_percentage());
 }
 

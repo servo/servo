@@ -557,7 +557,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
             }
             LengthOrPercentageOrAuto::Length(length) => {
                 let width_value = specified::LengthOrPercentageOrAuto::Length(
-                    specified::NoCalcLength::Absolute(length));
+                    specified::NoCalcLength::Absolute(specified::AbsoluteLength::Px(length.to_f32_px())));
                 hints.push(from_declaration(
                     shared_lock,
                     PropertyDeclaration::Width(width_value)));
@@ -584,7 +584,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
             }
             LengthOrPercentageOrAuto::Length(length) => {
                 let height_value = specified::LengthOrPercentageOrAuto::Length(
-                    specified::NoCalcLength::Absolute(length));
+                    specified::NoCalcLength::Absolute(specified::AbsoluteLength::Px(length.to_f32_px())));
                 hints.push(from_declaration(
                     shared_lock,
                     PropertyDeclaration::Height(height_value)));
