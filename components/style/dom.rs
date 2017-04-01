@@ -386,6 +386,10 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
     unsafe fn unset_animation_only_dirty_descendants(&self) {
     }
 
+    /// Returns true if this element is native anonymous (only Gecko has native
+    /// anonymous content).
+    fn is_native_anonymous(&self) -> bool { false }
+
     /// Atomically stores the number of children of this node that we will
     /// need to process during bottom-up traversal.
     fn store_children_to_process(&self, n: isize);
