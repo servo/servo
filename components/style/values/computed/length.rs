@@ -10,7 +10,7 @@ use std::fmt;
 use style_traits::ToCss;
 use super::{Number, ToComputedValue, Context};
 use values::{Auto, CSSFloat, Either, ExtremumLength, None_, Normal, specified};
-use values::specified::length::{FontRelativeLength, ViewportPercentageLength};
+use values::specified::length::{AbsoluteLength, FontRelativeLength, ViewportPercentageLength};
 
 pub use super::image::{EndingShape as GradientShape, Gradient, GradientKind, Image};
 pub use super::image::{LengthOrKeyword, LengthOrPercentageOrKeyword};
@@ -22,7 +22,8 @@ impl ToComputedValue for specified::NoCalcLength {
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Au {
         match *self {
-            specified::NoCalcLength::Absolute(length) => length,
+            specified::NoCalcLength::Absolute(length) =>
+                length.to_computed_value(context),
             specified::NoCalcLength::FontRelative(length) =>
                 length.to_computed_value(context, /* use inherited */ false),
             specified::NoCalcLength::ViewportPercentage(length) =>
@@ -34,7 +35,7 @@ impl ToComputedValue for specified::NoCalcLength {
 
     #[inline]
     fn from_computed_value(computed: &Au) -> Self {
-        specified::NoCalcLength::Absolute(*computed)
+        specified::NoCalcLength::Absolute(AbsoluteLength::Px(computed.to_f32_px()))
     }
 }
 

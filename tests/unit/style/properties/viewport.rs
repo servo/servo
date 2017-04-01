@@ -6,7 +6,7 @@ use app_units::Au;
 use style::properties::PropertyDeclaration;
 use style::properties::longhands::border_top_width;
 use style::values::HasViewportPercentage;
-use style::values::specified::{Length, NoCalcLength, ViewportPercentageLength};
+use style::values::specified::{AbsoluteLength, Length, NoCalcLength, ViewportPercentageLength};
 
 #[test]
 fn has_viewport_percentage_for_specified_value() {
@@ -20,7 +20,7 @@ fn has_viewport_percentage_for_specified_value() {
 
     let pabs = PropertyDeclaration::BorderTopWidth(Box::new(
         border_top_width::SpecifiedValue::from_length(
-            Length::NoCalc(NoCalcLength::Absolute(Au(100)))
+            Length::NoCalc(NoCalcLength::Absolute(AbsoluteLength::Px(Au(100).to_f32_px())))
         )
     ));
     assert!(!pabs.has_viewport_percentage());
