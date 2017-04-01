@@ -11,11 +11,11 @@ use properties::ComputedValues;
 use properties::longhands::display::computed_value as display;
 use restyle_hints::{RESTYLE_CSS_ANIMATIONS, RESTYLE_DESCENDANTS, RESTYLE_LATER_SIBLINGS, RESTYLE_SELF, RestyleHint};
 use rule_tree::StrongRuleNode;
-use selector_parser::{PseudoElement, RestyleDamage, Snapshot};
-use std::collections::HashMap;
+use selector_parser::{EAGER_PSEUDO_COUNT, PseudoElement, RestyleDamage, Snapshot};
+#[cfg(feature = "servo")] use std::collections::HashMap;
 use std::fmt;
-use std::hash::BuildHasherDefault;
-use std::ops::{Deref, DerefMut};
+#[cfg(feature = "servo")] use std::hash::BuildHasherDefault;
+use std::ops::Deref;
 use std::sync::Arc;
 use stylist::Stylist;
 use thread_state;
@@ -73,33 +73,87 @@ impl fmt::Debug for ComputedStyle {
     }
 }
 
-type PseudoStylesInner = HashMap<PseudoElement, ComputedStyle,
-                                 BuildHasherDefault<::fnv::FnvHasher>>;
-
-/// A set of styles for a given element's pseudo-elements.
-///
-/// This is a map from pseudo-element to `ComputedStyle`.
-///
-/// TODO(emilio): This should probably be a small array by default instead of a
-/// full-blown `HashMap`.
+/// A list of styles for eagerly-cascaded pseudo-elements. Lazily-allocated.
 #[derive(Clone, Debug)]
-pub struct PseudoStyles(PseudoStylesInner);
+pub struct EagerPseudoStyles(Option<Box<[Option<ComputedStyle>]>>);
 
-impl PseudoStyles {
-    /// Construct an empty set of `PseudoStyles`.
-    pub fn empty() -> Self {
-        PseudoStyles(HashMap::with_hasher(Default::default()))
+impl EagerPseudoStyles {
+    /// Returns whether there are any pseudo styles.
+    pub fn is_empty(&self) -> bool {
+        self.0.is_some()
+    }
+
+    /// Returns a reference to the style for a given eager pseudo, if it exists.
+    pub fn get(&self, pseudo: &PseudoElement) -> Option<&ComputedStyle> {
+        debug_assert!(pseudo.is_eager());
+        self.0.as_ref().and_then(|p| p[pseudo.eager_index()].as_ref())
+    }
+
+    /// Returns a mutable reference to the style for a given eager pseudo, if it exists.
+    pub fn get_mut(&mut self, pseudo: &PseudoElement) -> Option<&mut ComputedStyle> {
+        debug_assert!(pseudo.is_eager());
+        self.0.as_mut().and_then(|p| p[pseudo.eager_index()].as_mut())
+    }
+
+    /// Returns true if the EagerPseudoStyles has a ComputedStyle for |pseudo|.
+    pub fn has(&self, pseudo: &PseudoElement) -> bool {
+        self.get(pseudo).is_some()
+    }
+
+    /// Inserts a pseudo-element. The pseudo-element must not already exist.
+    pub fn insert(&mut self, pseudo: &PseudoElement, style: ComputedStyle) {
+        debug_assert!(!self.has(pseudo));
+        if self.0.is_none() {
+            self.0 = Some(vec![None; EAGER_PSEUDO_COUNT].into_boxed_slice());
+        }
+        self.0.as_mut().unwrap()[pseudo.eager_index()] = Some(style);
+    }
+
+    /// Removes a pseudo-element style if it exists, and returns it.
+    pub fn take(&mut self, pseudo: &PseudoElement) -> Option<ComputedStyle> {
+        let result = match self.0.as_mut() {
+            None => return None,
+            Some(arr) => arr[pseudo.eager_index()].take(),
+        };
+        let empty = self.0.as_ref().unwrap().iter().all(|x| x.is_none());
+        if empty {
+            self.0 = None;
+        }
+        result
+    }
+
+    /// Returns a list of the pseudo-elements.
+    pub fn keys(&self) -> Vec<PseudoElement> {
+        let mut v = Vec::new();
+        if let Some(ref arr) = self.0 {
+            for i in 0..EAGER_PSEUDO_COUNT {
+                if arr[i].is_some() {
+                    v.push(PseudoElement::from_eager_index(i));
+                }
+            }
+        }
+        v
+    }
+
+    /// Sets the rule node for a given pseudo-element, which must already have an entry.
+    ///
+    /// Returns true if the rule node changed.
+    pub fn set_rules(&mut self, pseudo: &PseudoElement, rules: StrongRuleNode) -> bool {
+        debug_assert!(self.has(pseudo));
+        let mut style = self.get_mut(pseudo).unwrap();
+        let changed = style.rules != rules;
+        style.rules = rules;
+        changed
     }
 }
 
-impl Deref for PseudoStyles {
-    type Target = PseudoStylesInner;
-    fn deref(&self) -> &Self::Target { &self.0 }
-}
-
-impl DerefMut for PseudoStyles {
-    fn deref_mut(&mut self) -> &mut Self::Target { &mut self.0 }
-}
+/// A cache of precomputed and lazy pseudo-elements, used by servo. This isn't
+/// a very efficient design, but is the result of servo having previously used
+/// the eager pseudo map (when it was a map) for this cache.
+#[cfg(feature = "servo")]
+type PseudoElementCache = HashMap<PseudoElement, ComputedStyle, BuildHasherDefault<::fnv::FnvHasher>>;
+#[cfg(feature = "gecko")]
+type PseudoElementCache = ();
 
 /// The styles associated with a node, including the styles for any
 /// pseudo-elements.
@@ -107,8 +161,10 @@ impl DerefMut for PseudoStyles {
 pub struct ElementStyles {
     /// The element's style.
     pub primary: ComputedStyle,
-    /// The map of styles for the element's pseudos.
-    pub pseudos: PseudoStyles,
+    /// A list of the styles for the element's eagerly-cascaded pseudo-elements.
+    pub pseudos: EagerPseudoStyles,
+    /// NB: This is an empty field for gecko.
+    pub cached_pseudos: PseudoElementCache,
 }
 
 impl ElementStyles {
@@ -116,7 +172,8 @@ impl ElementStyles {
     pub fn new(primary: ComputedStyle) -> Self {
         ElementStyles {
             primary: primary,
-            pseudos: PseudoStyles::empty(),
+            pseudos: EagerPseudoStyles(None),
+            cached_pseudos: PseudoElementCache::default(),
         }
     }
 
