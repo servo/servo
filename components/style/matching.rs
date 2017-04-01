@@ -20,7 +20,6 @@ use properties::longhands::display::computed_value as display;
 use restyle_hints::{RESTYLE_STYLE_ATTRIBUTE, RESTYLE_CSS_ANIMATIONS, RestyleHint};
 use rule_tree::{CascadeLevel, RuleTree, StrongRuleNode};
 use selector_parser::{PseudoElement, RestyleDamage, SelectorImpl};
-use selectors::MatchAttr;
 use selectors::bloom::BloomFilter;
 use selectors::matching::{ElementSelectorFlags, StyleRelations};
 use selectors::matching::AFFECTED_BY_PSEUDO_ELEMENTS;
@@ -905,7 +904,7 @@ pub trait MatchMethods : TElement {
         SelectorImpl::each_eagerly_cascaded_pseudo_element(|pseudo| {
             let mut per_pseudo = &mut data.styles_mut().pseudos;
             debug_assert!(applicable_declarations.is_empty());
-            let pseudo_animation_rules = if <Self as MatchAttr>::Impl::pseudo_is_before_or_after(&pseudo) {
+            let pseudo_animation_rules = if pseudo.is_before_or_after() {
                 self.get_animation_rules(Some(&pseudo))
             } else {
                 AnimationRules(None, None)
@@ -995,8 +994,7 @@ pub trait MatchMethods : TElement {
                                   animation_rule.as_ref(),
                                   primary_rules);
 
-                let iter = element_styles.pseudos.iter_mut().filter(|&(p, _)|
-                    <Self as MatchAttr>::Impl::pseudo_is_before_or_after(p));
+                let iter = element_styles.pseudos.iter_mut().filter(|&(p, _)| p.is_before_or_after());
                 for (pseudo, ref mut computed) in iter {
                     let animation_rule = self.get_animation_rule(Some(pseudo));
                     let pseudo_rules = &mut computed.rules;
@@ -1212,7 +1210,7 @@ pub trait MatchMethods : TElement {
             }
 
             // Only ::before and ::after are animatable.
-            let animate = <Self as MatchAttr>::Impl::pseudo_is_before_or_after(&pseudo);
+            let animate = pseudo.is_before_or_after();
             self.cascade_primary_or_pseudo(context, data, Some(&pseudo),
                                            &mut possibly_expired_animations,
                                            CascadeBooleans {

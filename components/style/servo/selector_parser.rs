@@ -78,6 +78,24 @@ impl PseudoElement {
         }
     }
 
+    /// Whether this pseudo-element is eagerly-cascaded.
+    #[inline]
+    pub fn is_eager(&self) -> bool {
+        self.cascade_type() == PseudoElementCascadeType::Eager
+    }
+
+    /// Whether this pseudo-element is lazily-cascaded.
+    #[inline]
+    pub fn is_lazy(&self) -> bool {
+        self.cascade_type() == PseudoElementCascadeType::Lazy
+    }
+
+    /// Whether this pseudo-element is precomputed.
+    #[inline]
+    pub fn is_precomputed(&self) -> bool {
+        self.cascade_type() == PseudoElementCascadeType::Precomputed
+    }
+
     /// Returns which kind of cascade type has this pseudo.
     ///
     /// For more info on cascade types, see docs/components/style.md
@@ -395,12 +413,6 @@ impl SelectorImpl {
     #[inline]
     pub fn pseudo_class_state_flag(pc: &NonTSPseudoClass) -> ElementState {
         pc.state_flag()
-    }
-
-    /// Returns whether this pseudo is either :before or :after.
-    #[inline]
-    pub fn pseudo_is_before_or_after(pseudo: &PseudoElement) -> bool {
-        pseudo.is_before_or_after()
     }
 }
 

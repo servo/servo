@@ -55,6 +55,31 @@ impl PseudoElement {
         self.1
     }
 
+    /// Whether this pseudo-element is ::before or ::after.
+    #[inline]
+    pub fn is_before_or_after(&self) -> bool {
+        *self.as_atom() == atom!(":before") ||
+        *self.as_atom() == atom!(":after")
+    }
+
+    /// Whether this pseudo-element is eagerly-cascaded.
+    #[inline]
+    pub fn is_eager(&self) -> bool {
+        self.is_before_or_after()
+    }
+
+    /// Whether this pseudo-element is lazily-cascaded.
+    #[inline]
+    pub fn is_lazy(&self) -> bool {
+        !self.is_eager() && !self.is_precomputed()
+    }
+
+    /// Whether this pseudo-element is precomputed.
+    #[inline]
+    pub fn is_precomputed(&self) -> bool {
+        self.is_anon_box()
+    }
+
     /// Construct a pseudo-element from an `Atom`, receiving whether it is also
     /// an anonymous box, and don't check it on release builds.
     ///
@@ -398,7 +423,8 @@ impl SelectorImpl {
     ///
     /// We resolve the others lazily, see `Servo_ResolvePseudoStyle`.
     pub fn pseudo_element_cascade_type(pseudo: &PseudoElement) -> PseudoElementCascadeType {
-        if Self::pseudo_is_before_or_after(pseudo) {
+        if pseudo.is_eager() {
+            debug_assert!(!pseudo.is_anon_box());
             return PseudoElementCascadeType::Eager
         }
 
@@ -421,13 +447,6 @@ impl SelectorImpl {
         }
 
         include!("generated/gecko_pseudo_element_helper.rs")
-    }
-
-    #[inline]
-    /// Returns whether the given pseudo-element is `::before` or `::after`.
-    pub fn pseudo_is_before_or_after(pseudo: &PseudoElement) -> bool {
-        *pseudo.as_atom() == atom!(":before") ||
-        *pseudo.as_atom() == atom!(":after")
     }
 
     #[inline]
