@@ -233,7 +233,14 @@ macro_rules! font_face_descriptors_common {
             fn parse_value(&mut self, name: &str, input: &mut Parser) -> Result<(), ()> {
                 match_ignore_ascii_case! { name,
                     $(
-                        $name => self.rule.$ident = Some(Parse::parse(self.context, input)?),
+                        $name => {
+                            // DeclarationParser also calls parse_entirely
+                            // so we’d normally not need to,
+                            // but in this case we do because we set the value as a side effect
+                            // rather than returning it.
+                            let value = input.parse_entirely(|i| Parse::parse(self.context, i))?;
+                            self.rule.$ident = Some(value)
+                        }
                     )*
                     _ => return Err(())
                 }
