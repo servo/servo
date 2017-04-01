@@ -12,6 +12,7 @@
 use computed_values::{font_style, font_weight, font_stretch};
 use computed_values::font_family::FamilyName;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
+#[cfg(feature = "gecko")] use gecko_bindings::structs::CSSFontFaceDescriptors;
 #[cfg(feature = "gecko")] use cssparser::UnicodeRange;
 use parser::{ParserContext, log_css_error, Parse};
 use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
@@ -174,7 +175,7 @@ impl Parse for Source {
 
 macro_rules! font_face_descriptors_common {
     (
-        $( #[$doc: meta] $name: tt $ident: ident: $ty: ty, )*
+        $( #[$doc: meta] $name: tt $ident: ident / $gecko_ident: ident: $ty: ty, )*
     ) => {
         /// Data inside a `@font-face` rule.
         ///
@@ -194,6 +195,19 @@ macro_rules! font_face_descriptors_common {
                         $ident: None,
                     )*
                 }
+            }
+
+            /// Convert to Gecko types
+            #[cfg(feature = "gecko")]
+            pub fn set_descriptors(&self, descriptors: &mut CSSFontFaceDescriptors) {
+                $(
+                    if let Some(ref value) = self.$ident {
+                        descriptors.$gecko_ident.set_from(value)
+                    }
+                )*
+                // Leave unset descriptors to eCSSUnit_Null,
+                // FontFaceSet::FindOrCreateUserFontEntryFromFontFace does the defaulting
+                // to initial values.
             }
         }
 
@@ -232,15 +246,16 @@ macro_rules! font_face_descriptors_common {
 macro_rules! font_face_descriptors {
     (
         mandatory descriptors = [
-            $( #[$m_doc: meta] $m_name: tt $m_ident: ident: $m_ty: ty, )*
+            $( #[$m_doc: meta] $m_name: tt $m_ident: ident / $m_gecko_ident: ident: $m_ty: ty, )*
         ]
         optional descriptors = [
-            $( #[$o_doc: meta] $o_name: tt $o_ident: ident: $o_ty: ty = $o_initial: expr, )*
+            $( #[$o_doc: meta] $o_name: tt $o_ident: ident / $o_gecko_ident: ident: $o_ty: ty =
+                $o_initial: expr, )*
         ]
     ) => {
         font_face_descriptors_common! {
-            $( #[$m_doc] $m_name $m_ident: $m_ty, )*
-            $( #[$o_doc] $o_name $o_ident: $o_ty, )*
+            $( #[$m_doc] $m_name $m_ident / $m_gecko_ident: $m_ty, )*
+            $( #[$o_doc] $o_name $o_ident / $o_gecko_ident: $o_ty, )*
         }
 
         impl FontFaceRuleData {
@@ -286,23 +301,23 @@ macro_rules! font_face_descriptors {
 font_face_descriptors! {
     mandatory descriptors = [
         /// The name of this font face
-        "font-family" family: FamilyName,
+        "font-family" family / mFamily: FamilyName,
 
         /// The alternative sources for this font face.
-        "src" sources: Vec<Source>,
+        "src" sources / mSrc: Vec<Source>,
     ]
     optional descriptors = [
         /// The style of this font face
-        "font-style" style: font_style::T = font_style::T::normal,
+        "font-style" style / mStyle: font_style::T = font_style::T::normal,
 
         /// The weight of this font face
-        "font-weight" weight: font_weight::T = font_weight::T::Weight400 /* normal */,
+        "font-weight" weight / mWeight: font_weight::T = font_weight::T::Weight400 /* normal */,
 
         /// The stretch of this font face
-        "font-stretch" stretch: font_stretch::T = font_stretch::T::normal,
+        "font-stretch" stretch / mStretch: font_stretch::T = font_stretch::T::normal,
 
         /// The ranges of code points outside of which this font face should not be used.
-        "unicode-range" unicode_range: Vec<UnicodeRange> = vec![
+        "unicode-range" unicode_range / mUnicodeRange: Vec<UnicodeRange> = vec![
             UnicodeRange { start: 0, end: 0x10FFFF }
         ],
 
@@ -314,10 +329,10 @@ font_face_descriptors! {
 font_face_descriptors! {
     mandatory descriptors = [
         /// The name of this font face
-        "font-family" family: FamilyName,
+        "font-family" family / mFamily: FamilyName,
 
         /// The alternative sources for this font face.
-        "src" sources: Vec<Source>,
+        "src" sources / mSrc: Vec<Source>,
     ]
     optional descriptors = [
     ]
