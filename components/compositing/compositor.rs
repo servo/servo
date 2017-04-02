@@ -76,9 +76,12 @@ trait ConvertScrollRootIdFromWebRender {
     fn from_webrender(&self) -> ScrollRootId;
 }
 
-impl ConvertScrollRootIdFromWebRender for usize {
+impl ConvertScrollRootIdFromWebRender for u64 {
     fn from_webrender(&self) -> ScrollRootId {
-        ScrollRootId(*self)
+        // This conversion is lossy on 32 bit platforms,
+        // but we only actually use the bottom 32 bits
+        // on Servo anyway.
+        ScrollRootId(*self as usize)
     }
 }
 
@@ -794,7 +797,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                 pipeline_id: PipelineId,
                                 scroll_root_id: ScrollRootId,
                                 point: Point2D<f32>) {
-        let id = ScrollLayerId::new(scroll_root_id.0, pipeline_id.to_webrender());
+        let id = ScrollLayerId::new(scroll_root_id.0 as u64, pipeline_id.to_webrender());
         self.webrender_api.scroll_layer_with_id(LayoutPoint::from_untyped(&point), id);
     }
 

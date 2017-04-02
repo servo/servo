@@ -425,7 +425,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                                    vec![],
                                                    None);
 
-                let provided_id = ScrollLayerId::new(item.scroll_root.id.0, builder.pipeline_id);
+                let provided_id = ScrollLayerId::new(item.scroll_root.id.0 as u64, builder.pipeline_id);
                 let id = builder.define_clip(clip,
                                              item.scroll_root.size.to_sizef(),
                                              Some(provided_id));
@@ -444,7 +444,7 @@ impl WebRenderScrollRootIdConverter for ScrollRootId {
         if *self == ScrollRootId::root() {
             ScrollLayerId::root_scroll_layer(pipeline_id)
         } else {
-            ScrollLayerId::new(self.0, pipeline_id)
+            ScrollLayerId::new(self.0 as u64, pipeline_id)
         }
     }
 }
