@@ -16,6 +16,7 @@ use dom::bindings::codegen::Bindings::PromiseBinding::AnyCallback;
 use dom::bindings::conversions::root_from_object;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::reflector::{DomObject, MutDomObject, Reflector};
+use dom::bindings::utils::AsCCharPtrPtr;
 use dom::globalscope::GlobalScope;
 use dom::promisenativehandler::PromiseNativeHandler;
 use dom_struct::dom_struct;
@@ -55,7 +56,7 @@ impl PromiseHelper for Rc<Promise> {
         self.permanent_js_root.set(ObjectValue(*obj));
         assert!(AddRawValueRoot(cx,
                                 self.permanent_js_root.get_unsafe(),
-                                b"Promise::root\0" as *const _ as *const _));
+                                b"Promise::root\0".as_c_char_ptr()));
     }
 }
 

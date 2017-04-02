@@ -8,6 +8,7 @@ use dom::bindings::error::{Error, Fallible, report_pending_exception};
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::DomObject;
 use dom::bindings::settings_stack::{AutoEntryScript, AutoIncumbentScript};
+use dom::bindings::utils::AsCCharPtrPtr;
 use dom::globalscope::GlobalScope;
 use js::jsapi::{Heap, MutableHandleObject};
 use js::jsapi::{IsCallable, JSContext, JSObject, JS_WrapObject, AddRawValueRoot};
@@ -81,7 +82,7 @@ impl CallbackObject {
         self.callback.set(callback);
         self.permanent_js_root.set(ObjectValue(callback));
         assert!(AddRawValueRoot(cx, self.permanent_js_root.get_unsafe(),
-                                b"CallbackObject::root\n" as *const _ as *const _));
+                                b"CallbackObject::root\n".as_c_char_ptr()));
     }
 }
 

@@ -3086,7 +3086,7 @@ let traps = ProxyTraps {
     isConstructor: None,
 };
 
-CreateProxyHandler(&traps, &Class as *const _ as *const _)\
+CreateProxyHandler(&traps, Class.as_void_ptr())\
 """ % args)
 
 
@@ -5565,6 +5565,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings::namespace::create_namespace_object',
         'dom::bindings::reflector::MutDomObject',
         'dom::bindings::reflector::DomObject',
+        'dom::bindings::utils::AsVoidPtr',
         'dom::bindings::utils::DOMClass',
         'dom::bindings::utils::DOMJSClass',
         'dom::bindings::utils::DOM_PROTO_UNFORGEABLE_HOLDER_SLOT',
