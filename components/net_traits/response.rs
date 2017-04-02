@@ -10,7 +10,6 @@ use hyper::status::StatusCode;
 use hyper_serde::Serde;
 use servo_url::ServoUrl;
 use std::ascii::AsciiExt;
-use std::cell::RefCell;
 use std::sync::{Arc, Mutex};
 
 /// [Response type](https://fetch.spec.whatwg.org/#concept-response-type)
@@ -81,7 +80,7 @@ pub struct Response {
     pub response_type: ResponseType,
     pub termination_reason: Option<TerminationReason>,
     url: Option<ServoUrl>,
-    pub url_list: RefCell<Vec<ServoUrl>>,
+    pub url_list: Vec<ServoUrl>,
     /// `None` can be considered a StatusCode of `0`.
     #[ignore_heap_size_of = "Defined in hyper"]
     pub status: Option<StatusCode>,
@@ -106,7 +105,7 @@ impl Response {
             response_type: ResponseType::Default,
             termination_reason: None,
             url: Some(url),
-            url_list: RefCell::new(Vec::new()),
+            url_list: vec![],
             status: Some(StatusCode::Ok),
             raw_status: Some((200, b"OK".to_vec())),
             headers: Headers::new(),
@@ -124,7 +123,7 @@ impl Response {
             response_type: ResponseType::Error(e),
             termination_reason: None,
             url: None,
-            url_list: RefCell::new(vec![]),
+            url_list: vec![],
             status: None,
             raw_status: None,
             headers: Headers::new(),
@@ -158,6 +157,14 @@ impl Response {
     pub fn actual_response(&self) -> &Response {
         if self.return_internal && self.internal_response.is_some() {
             &**self.internal_response.as_ref().unwrap()
+        } else {
+            self
+        }
+    }
+
+    pub fn actual_response_mut(&mut self) -> &mut Response {
+        if self.return_internal && self.internal_response.is_some() {
+            &mut **self.internal_response.as_mut().unwrap()
         } else {
             self
         }
@@ -226,7 +233,7 @@ impl Response {
             },
 
             ResponseType::Opaque => {
-                response.url_list = RefCell::new(vec![]);
+                response.url_list = vec![];
                 response.url = None;
                 response.headers = Headers::new();
                 response.status = None;

@@ -418,7 +418,7 @@ fn test_fetch_response_is_opaque_filtered() {
     assert_eq!(fetch_response.response_type, ResponseType::Opaque);
 
     assert!(fetch_response.url().is_none());
-    assert!(fetch_response.url_list.into_inner().len() == 0);
+    assert!(fetch_response.url_list.is_empty());
     // this also asserts that status message is "the empty byte sequence"
     assert!(fetch_response.status.is_none());
     assert_eq!(fetch_response.headers, Headers::new());

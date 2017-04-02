@@ -507,8 +507,7 @@ pub fn http_fetch(request: &mut Request,
                 request.mode != RequestMode::NoCors) ||
                (res.response_type == ResponseType::OpaqueRedirect &&
                 request.redirect_mode != RedirectMode::Manual) ||
-               (res.url_list.borrow().len() > 1 &&
-                request.redirect_mode != RedirectMode::Follow) ||
+               (res.url_list.len() > 1 && request.redirect_mode != RedirectMode::Follow) ||
                res.is_network_error() {
                 return Response::network_error(NetworkError::Internal("Request failed".into()));
             }

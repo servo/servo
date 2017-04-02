@@ -896,8 +896,7 @@ fn test_load_succeeds_with_a_redirect_loop() {
     let _ = server_b.close();
 
     let response = response.to_actual();
-    assert_eq!(*response.url_list.borrow(),
-               [url_a.clone(), url_b, url_a]);
+    assert_eq!(response.url_list, [url_a.clone(), url_b, url_a]);
     assert_eq!(*response.body.lock().unwrap(),
                ResponseBody::Done(b"Success".to_vec()));
 }

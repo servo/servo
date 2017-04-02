@@ -252,7 +252,7 @@ pub fn main_fetch(request: &mut Request,
     // Step 14.
     // We don't need to check whether response is a network error,
     // given its type would not be `Default` in this case.
-    let response = if response.response_type == ResponseType::Default {
+    let mut response = if response.response_type == ResponseType::Default {
         let response_type = match request.response_tainting {
             ResponseTainting::Basic => ResponseType::Basic,
             ResponseTainting::CorsTainting => ResponseType::Cors,
@@ -264,18 +264,22 @@ pub fn main_fetch(request: &mut Request,
     };
 
     let internal_error = {
+        // Tests for steps 17 and 18, before step 15 for borrowing concerns.
+        let response_is_network_error = response.is_network_error();
+        let should_replace_with_nosniff_error =
+            !response_is_network_error && should_be_blocked_due_to_nosniff(request.type_, &response.headers);
+
         // Step 15.
-        let network_error_response;
-        let internal_response = if let Some(error) = response.get_network_error() {
-            network_error_response = Response::network_error(error.clone());
-            &network_error_response
+        let mut network_error_response = response.get_network_error().cloned().map(Response::network_error);
+        let internal_response = if let Some(error_response) = network_error_response.as_mut() {
+            error_response
         } else {
-            response.actual_response()
+            response.actual_response_mut()
         };
 
         // Step 16.
-        if internal_response.url_list.borrow().is_empty() {
-            *internal_response.url_list.borrow_mut() = request.url_list.clone();
+        if internal_response.url_list.is_empty() {
+            internal_response.url_list = request.url_list.clone();
         }
 
         // Step 17.
@@ -284,7 +288,7 @@ pub fn main_fetch(request: &mut Request,
         // TODO: handle blocking due to MIME type.
         let blocked_error_response;
         let internal_response =
-            if !response.is_network_error() && should_be_blocked_due_to_nosniff(request.type_, &response.headers) {
+            if should_replace_with_nosniff_error {
                 // Defer rebinding result
                 blocked_error_response = Response::network_error(NetworkError::Internal("Blocked by nosniff".into()));
                 &blocked_error_response
@@ -295,7 +299,7 @@ pub fn main_fetch(request: &mut Request,
         // Step 18.
         // We check `internal_response` since we did not mutate `response`
         // in the previous step.
-        let not_network_error = !response.is_network_error() && !internal_response.is_network_error();
+        let not_network_error = !response_is_network_error && !internal_response.is_network_error();
         if not_network_error && (is_null_body_status(&internal_response.status) ||
             match request.method {
                 Method::Head | Method::Connect => true,
