@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //! A thread that takes a URL and streams back the binary data.
-use connector::{Connector, create_http_connector};
+use connector::{Connector, create_http_connector, create_ssl_client};
 use cookie;
 use cookie_rs;
 use cookie_storage::CookieStorage;
@@ -13,6 +13,7 @@ use filemanager_thread::{FileManager, TFDProvider};
 use hsts::HstsList;
 use http_loader::HttpState;
 use hyper::client::pool::Pool;
+use hyper_openssl::OpensslClient;
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};
 use net_traits::{CookieSource, CoreResourceThread};
@@ -46,6 +47,7 @@ pub struct ResourceGroup {
     cookie_jar: Arc<RwLock<CookieStorage>>,
     auth_cache: Arc<RwLock<AuthCache>>,
     hsts_list: Arc<RwLock<HstsList>>,
+    ssl_client: OpensslClient,
     connector: Arc<Pool<Connector>>,
 }
 
@@ -104,17 +106,20 @@ fn create_resource_groups(config_dir: Option<&Path>)
         read_json_from_file(&mut hsts_list, config_dir, "hsts_list.json");
         read_json_from_file(&mut cookie_jar, config_dir, "cookie_jar.json");
     }
+    let ssl_client = create_ssl_client("certs");
     let resource_group = ResourceGroup {
         cookie_jar: Arc::new(RwLock::new(cookie_jar)),
         auth_cache: Arc::new(RwLock::new(auth_cache)),
         hsts_list: Arc::new(RwLock::new(hsts_list.clone())),
-        connector: create_http_connector("certs"),
+        ssl_client: ssl_client.clone(),
+        connector: create_http_connector(ssl_client.clone()),
     };
     let private_resource_group = ResourceGroup {
         cookie_jar: Arc::new(RwLock::new(CookieStorage::new(150))),
         auth_cache: Arc::new(RwLock::new(AuthCache::new())),
         hsts_list: Arc::new(RwLock::new(HstsList::new())),
-        connector: create_http_connector("certs"),
+        ssl_client: ssl_client.clone(),
+        connector: create_http_connector(ssl_client),
     };
     (resource_group, private_resource_group)
 }
@@ -327,7 +332,7 @@ impl CoreResourceManager {
             cookie_jar: group.cookie_jar.clone(),
             auth_cache: group.auth_cache.clone(),
             // FIXME(#15694): use group.connector.clone() instead.
-            connector_pool: create_http_connector("certs"),
+            connector_pool: create_http_connector(group.ssl_client.clone()),
         };
         let ua = self.user_agent.clone();
         let dc = self.devtools_chan.clone();

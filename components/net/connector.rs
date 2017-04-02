@@ -12,7 +12,7 @@ use std::sync::Arc;
 
 pub type Connector = HttpsConnector<OpensslClient>;
 
-pub fn create_http_connector(certificate_file: &str) -> Arc<Pool<Connector>> {
+pub fn create_ssl_client(certificate_file: &str) -> OpensslClient {
     let ca_file = &resources_dir_path()
         .expect("Need certificate file to make network requests")
         .join(certificate_file);
@@ -25,9 +25,11 @@ pub fn create_http_connector(certificate_file: &str) -> Arc<Pool<Connector>> {
         context.set_options(SSL_OP_NO_SSLV2 | SSL_OP_NO_SSLV3 | SSL_OP_NO_COMPRESSION);
     }
     let ssl_connector = ssl_connector_builder.build();
-    let ssl_client = OpensslClient::from(ssl_connector);
-    let https_connector = HttpsConnector::new(ssl_client);
+    OpensslClient::from(ssl_connector)
+}
 
+pub fn create_http_connector(ssl_client: OpensslClient) -> Arc<Pool<Connector>> {
+    let https_connector = HttpsConnector::new(ssl_client);
     Arc::new(Pool::with_connector(Default::default(), https_connector))
 }
 
