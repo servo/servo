@@ -37,6 +37,8 @@ var invalidSelectors = [
   {name: "Unknown pseudo-element",       selector: "div::example"},
   {name: "Unknown pseudo-element",       selector: "::example"},
   {name: "Invalid pseudo-element",       selector: ":::before"},
+  {name: "Invalid pseudo-element",	 selector: ": before"},
+  {name: "Invalid pseudo-element",       selector: ":: before"},
   {name: "Undeclared namespace",         selector: "ns|div"},
   {name: "Undeclared namespace",         selector: ":not(ns|div)"},
   {name: "Invalid namespace",            selector: "^|div"},
