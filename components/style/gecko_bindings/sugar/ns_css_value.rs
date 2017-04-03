@@ -163,6 +163,11 @@ impl nsCSSValue {
         unsafe { bindings::Gecko_CSSValue_SetArray(self, len) }
         unsafe { self.mValue.mArray.as_mut().as_mut() }.unwrap()
     }
+
+    /// Generic set from any value that implements the ToNsCssValue trait.
+    pub fn set_from<T: ToNsCssValue>(&mut self, value: &T) {
+        value.convert(self)
+    }
 }
 
 impl Drop for nsCSSValue {
@@ -209,4 +214,10 @@ impl IndexMut<usize> for nsCSSValue_Array {
     fn index_mut(&mut self, i: usize) -> &mut nsCSSValue {
         &mut self.as_mut_slice()[i]
     }
+}
+
+/// Generic conversion to nsCSSValue
+pub trait ToNsCssValue {
+    /// Convert
+    fn convert(&self, nscssvalue: &mut nsCSSValue);
 }

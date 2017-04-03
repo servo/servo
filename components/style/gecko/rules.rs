@@ -4,9 +4,13 @@
 
 //! Bindings for CSS Rule objects
 
-use font_face::{FontFaceData, Source};
+use computed_values::{font_style, font_weight, font_stretch};
+use computed_values::font_family::FamilyName;
+use cssparser::UnicodeRange;
+use font_face::{FontFaceRuleData, Source};
 use gecko_bindings::bindings;
-use gecko_bindings::structs::{self, CSSFontFaceDescriptors, nsCSSFontFaceRule};
+use gecko_bindings::structs::{self, nsCSSFontFaceRule, nsCSSValue};
+use gecko_bindings::sugar::ns_css_value::ToNsCssValue;
 use gecko_bindings::sugar::refptr::{RefPtr, UniqueRefPtr};
 use shared_lock::{ToCssWithGuard, SharedRwLockReadGuard};
 use std::fmt;
@@ -14,34 +18,46 @@ use std::fmt;
 /// A @font-face rule
 pub type FontFaceRule = RefPtr<nsCSSFontFaceRule>;
 
-fn set_font_face_descriptors(descriptors: &mut CSSFontFaceDescriptors,
-                             data: FontFaceData) {
-    // font-family
-    descriptors.mFamily.set_string_from_atom(&data.family.name);
-
-    macro_rules! map_enum {
-        ($target:ident = ($data:ident: $prop:ident) {
-            $($servo:ident => $gecko:ident,)+
-        }) => {{
-            use computed_values::$prop::T;
-            descriptors.$target.set_enum(match data.$data {
-                $( T::$servo => structs::$gecko as i32, )+
-            })
-        }}
+impl ToNsCssValue for FamilyName {
+    fn convert(&self, nscssvalue: &mut nsCSSValue) {
+        nscssvalue.set_string_from_atom(&self.name)
     }
+}
 
-    // font-style
-    map_enum!(mStyle = (style: font_style) {
+impl ToNsCssValue for font_weight::T {
+    fn convert(&self, nscssvalue: &mut nsCSSValue) {
+        nscssvalue.set_integer(*self as i32)
+    }
+}
+
+macro_rules! map_enum {
+    (
+        $(
+            $prop:ident {
+                $($servo:ident => $gecko:ident,)+
+            }
+        )+
+    ) => {
+        $(
+            impl ToNsCssValue for $prop::T {
+                fn convert(&self, nscssvalue: &mut nsCSSValue) {
+                    nscssvalue.set_enum(match *self {
+                        $( $prop::T::$servo => structs::$gecko as i32, )+
+                    })
+                }
+            }
+        )+
+    }
+}
+
+map_enum! {
+    font_style {
         normal => NS_FONT_STYLE_NORMAL,
         italic => NS_FONT_STYLE_ITALIC,
         oblique => NS_FONT_STYLE_OBLIQUE,
-    });
+    }
 
-    // font-weight
-    descriptors.mWeight.set_integer(data.weight as i32);
-
-    // font-stretch
-    map_enum!(mStretch = (stretch: font_stretch) {
+    font_stretch {
         normal          => NS_FONT_STRETCH_NORMAL,
         ultra_condensed => NS_FONT_STRETCH_ULTRA_CONDENSED,
         extra_condensed => NS_FONT_STRETCH_EXTRA_CONDENSED,
@@ -51,60 +67,58 @@ fn set_font_face_descriptors(descriptors: &mut CSSFontFaceDescriptors,
         expanded        => NS_FONT_STRETCH_EXPANDED,
         extra_expanded  => NS_FONT_STRETCH_EXTRA_EXPANDED,
         ultra_expanded  => NS_FONT_STRETCH_ULTRA_EXPANDED,
-    });
-
-    // src
-    let src_len = data.sources.iter().fold(0, |acc, src| {
-        acc + match *src {
-            // Each format hint takes one position in the array of mSrc.
-            Source::Url(ref url) => url.format_hints.len() + 1,
-            Source::Local(_) => 1,
-        }
-    });
-    let mut target_srcs =
-        descriptors.mSrc.set_array(src_len as i32).as_mut_slice().iter_mut();
-    macro_rules! next { () => {
-        target_srcs.next().expect("Length of target_srcs should be enough")
-    } }
-    for src in data.sources.iter() {
-        match *src {
-            Source::Url(ref url) => {
-                next!().set_url(&url.url);
-                for hint in url.format_hints.iter() {
-                    next!().set_font_format(&hint);
-                }
-            }
-            Source::Local(ref family) => {
-                next!().set_local_font(&family.name);
-            }
-        }
     }
-    debug_assert!(target_srcs.next().is_none(), "Should have filled all slots");
-
-    // unicode-range
-    let target_ranges = descriptors.mUnicodeRange
-        .set_array((data.unicode_range.len() * 2) as i32)
-        .as_mut_slice().chunks_mut(2);
-    for (range, target) in data.unicode_range.iter().zip(target_ranges) {
-        target[0].set_integer(range.start as i32);
-        target[1].set_integer(range.end as i32);
-    }
-
-    // The following three descriptors are not implemented yet.
-    // font-feature-settings
-    descriptors.mFontFeatureSettings.set_normal();
-    // font-language-override
-    descriptors.mFontLanguageOverride.set_normal();
-    // font-display
-    descriptors.mDisplay.set_enum(structs::NS_FONT_DISPLAY_AUTO as i32);
 }
 
-impl From<FontFaceData> for FontFaceRule {
-    fn from(data: FontFaceData) -> FontFaceRule {
+impl ToNsCssValue for Vec<Source> {
+    fn convert(&self, nscssvalue: &mut nsCSSValue) {
+        let src_len = self.iter().fold(0, |acc, src| {
+            acc + match *src {
+                // Each format hint takes one position in the array of mSrc.
+                Source::Url(ref url) => url.format_hints.len() + 1,
+                Source::Local(_) => 1,
+            }
+        });
+        let mut target_srcs =
+            nscssvalue.set_array(src_len as i32).as_mut_slice().iter_mut();
+        macro_rules! next { () => {
+            target_srcs.next().expect("Length of target_srcs should be enough")
+        } }
+        for src in self.iter() {
+            match *src {
+                Source::Url(ref url) => {
+                    next!().set_url(&url.url);
+                    for hint in url.format_hints.iter() {
+                        next!().set_font_format(&hint);
+                    }
+                }
+                Source::Local(ref family) => {
+                    next!().set_local_font(&family.name);
+                }
+            }
+        }
+        debug_assert!(target_srcs.next().is_none(), "Should have filled all slots");
+    }
+}
+
+impl ToNsCssValue for Vec<UnicodeRange> {
+    fn convert(&self, nscssvalue: &mut nsCSSValue) {
+        let target_ranges = nscssvalue
+            .set_array((self.len() * 2) as i32)
+            .as_mut_slice().chunks_mut(2);
+        for (range, target) in self.iter().zip(target_ranges) {
+            target[0].set_integer(range.start as i32);
+            target[1].set_integer(range.end as i32);
+        }
+    }
+}
+
+impl From<FontFaceRuleData> for FontFaceRule {
+    fn from(data: FontFaceRuleData) -> FontFaceRule {
         let mut result = unsafe {
             UniqueRefPtr::from_addrefed(bindings::Gecko_CSSFontFaceRule_Create())
         };
-        set_font_face_descriptors(&mut result.mDecl.mDescriptors, data);
+        data.set_descriptors(&mut result.mDecl.mDescriptors);
         result.get()
     }
 }
