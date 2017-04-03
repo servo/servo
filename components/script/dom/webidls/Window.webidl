@@ -201,3 +201,10 @@ partial interface Window {
    readonly attribute TestRunner testRunner;
    //readonly attribute EventSender eventSender;
 };
+
+// https://drafts.css-houdini.org/worklets/#examples
+partial interface Window {
+   [Pref="dom.worklet.testing.enabled", SameObject] readonly attribute Worklet testWorklet;
+   [Pref="dom.worklet.testing.enabled"] DOMString? testWorkletLookup(DOMString key);
+};
+

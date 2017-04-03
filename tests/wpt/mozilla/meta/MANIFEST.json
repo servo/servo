@@ -11168,6 +11168,21 @@
     [
      {}
     ]
+   ],
+   "mozilla/worklets/syntax_error.js": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/worklets/test_worklet.js": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/worklets/throw_exception.js": [
+    [
+     {}
+    ]
    ]
   },
   "testharness": {
@@ -20008,6 +20023,12 @@
    "mozilla/windowproxy.html": [
     [
      "/_mozilla/mozilla/windowproxy.html",
+     {}
+    ]
+   ],
+   "mozilla/worklets/test_worklet.html": [
+    [
+     "/_mozilla/mozilla/worklets/test_worklet.html",
      {}
     ]
    ]
@@ -31689,6 +31710,22 @@
   "mozilla/windowproxy.html": [
    "128cd0aa5cf80f60078979039036d32b470b0616",
    "testharness"
+  ],
+  "mozilla/worklets/syntax_error.js": [
+   "f3a9b8c78346507bc0b3190c8000ccf80cc133f6",
+   "support"
+  ],
+  "mozilla/worklets/test_worklet.html": [
+   "2019a6801640a85c99d5688d4ee0b152f22f0b33",
+   "testharness"
+  ],
+  "mozilla/worklets/test_worklet.js": [
+   "9d5f8a07cd62a10f4f5ff93744672e5a6fdbc2b0",
+   "support"
+  ],
+  "mozilla/worklets/throw_exception.js": [
+   "ebfdae19db68fed8e69142ef73842ac9921e4463",
+   "support"
   ]
  },
  "url_base": "/_mozilla/",
