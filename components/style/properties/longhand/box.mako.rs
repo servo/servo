@@ -671,17 +671,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                 SpecifiedValue::Steps(count, start_end) => {
                     computed_value::T::Steps(count.to_computed_value(context) as u32, start_end)
                 },
-                SpecifiedValue::Keyword(keyword) => {
-                    match keyword {
-                        FunctionKeyword::Ease => ease(),
-                        FunctionKeyword::Linear => linear(),
-                        FunctionKeyword::EaseIn => ease_in(),
-                        FunctionKeyword::EaseOut => ease_out(),
-                        FunctionKeyword::EaseInOut => ease_in_out(),
-                        FunctionKeyword::StepStart => STEP_START,
-                        FunctionKeyword::StepEnd => STEP_END,
-                    }
-                },
+                SpecifiedValue::Keyword(keyword) => keyword.to_computed_value(),
             }
         }
         #[inline]
@@ -698,6 +688,21 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                     let int_count = count as i32;
                     SpecifiedValue::Steps(specified::Integer::from_computed_value(&int_count), start_end)
                 },
+            }
+        }
+    }
+
+    impl FunctionKeyword {
+        #[inline]
+        pub fn to_computed_value(&self) -> computed_value::T {
+            match *self {
+                FunctionKeyword::Ease => ease(),
+                FunctionKeyword::Linear => linear(),
+                FunctionKeyword::EaseIn => ease_in(),
+                FunctionKeyword::EaseOut => ease_out(),
+                FunctionKeyword::EaseInOut => ease_in_out(),
+                FunctionKeyword::StepStart => STEP_START,
+                FunctionKeyword::StepEnd => STEP_END,
             }
         }
     }
