@@ -595,11 +595,14 @@ impl Stylesheet {
     /// Updates an empty stylesheet from a given string of text.
     pub fn update_from_str(existing: &Stylesheet,
                            css: &str,
+                           url_data: &UrlExtraData,
                            stylesheet_loader: Option<&StylesheetLoader>,
                            error_reporter: &ParseErrorReporter) {
         let mut namespaces = Namespaces::default();
+        // FIXME: we really should update existing.url_data with the given url_data,
+        // otherwise newly inserted rule may not have the right base url.
         let (rules, dirty_on_viewport_size_change) = Stylesheet::parse_rules(
-            css, &existing.url_data, existing.origin, &mut namespaces,
+            css, url_data, existing.origin, &mut namespaces,
             &existing.shared_lock, stylesheet_loader, error_reporter,
         );
 

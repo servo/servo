@@ -74,12 +74,14 @@ impl Stylesheet {
                              bytes: &[u8],
                              protocol_encoding_label: Option<&str>,
                              environment_encoding: Option<EncodingRef>,
+                             url_data: &UrlExtraData,
                              stylesheet_loader: Option<&StylesheetLoader>,
                              error_reporter: &ParseErrorReporter) {
         let (string, _) = decode_stylesheet_bytes(
             bytes, protocol_encoding_label, environment_encoding);
         Self::update_from_str(existing,
                               &string,
+                              url_data,
                               stylesheet_loader,
                               error_reporter)
     }

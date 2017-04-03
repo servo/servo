@@ -364,9 +364,10 @@ pub extern "C" fn Servo_StyleSheet_ClearAndUpdate(stylesheet: RawServoStyleSheet
                                                   loader: *mut Loader,
                                                   gecko_stylesheet: *mut ServoStyleSheet,
                                                   data: *const nsACString,
-                                                  _extra_data: *mut URLExtraData)
+                                                  extra_data: *mut URLExtraData)
 {
     let input = unsafe { data.as_ref().unwrap().as_str_unchecked() };
+    let url_data = unsafe { RefPtr::from_ptr_ref(&extra_data) };
 
     let loader = if loader.is_null() {
         None
@@ -381,7 +382,8 @@ pub extern "C" fn Servo_StyleSheet_ClearAndUpdate(stylesheet: RawServoStyleSheet
     };
 
     let sheet = Stylesheet::as_arc(&stylesheet);
-    Stylesheet::update_from_str(&sheet, input, loader, &StdoutErrorReporter);
+    Stylesheet::update_from_str(&sheet, input, url_data,
+                                loader, &StdoutErrorReporter);
 }
 
 #[no_mangle]
