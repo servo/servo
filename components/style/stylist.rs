@@ -345,7 +345,7 @@ impl Stylist {
                                          parent: Option<&Arc<ComputedValues>>,
                                          cascade_flags: CascadeFlags)
                                          -> ComputedStyle {
-        debug_assert!(SelectorImpl::pseudo_element_cascade_type(pseudo).is_precomputed());
+        debug_assert!(pseudo.is_precomputed());
 
         let rule_node = match self.precomputed_pseudo_element_decls.get(pseudo) {
             Some(declarations) => {
@@ -435,7 +435,7 @@ impl Stylist {
                  fmt::Debug +
                  PresentationalHintsSynthetizer
     {
-        debug_assert!(SelectorImpl::pseudo_element_cascade_type(pseudo).is_lazy());
+        debug_assert!(pseudo.is_lazy());
         if self.pseudos_map.get(pseudo).is_none() {
             return None;
         }
@@ -603,9 +603,7 @@ impl Stylist {
         debug_assert!(!self.is_device_dirty);
         debug_assert!(style_attribute.is_none() || pseudo_element.is_none(),
                       "Style attributes do not apply to pseudo-elements");
-        debug_assert!(pseudo_element.is_none() ||
-                      !SelectorImpl::pseudo_element_cascade_type(pseudo_element.as_ref().unwrap())
-                        .is_precomputed());
+        debug_assert!(pseudo_element.as_ref().map_or(true, |p| !p.is_precomputed()));
 
         let map = match pseudo_element {
             Some(ref pseudo) => self.pseudos_map.get(pseudo).unwrap(),

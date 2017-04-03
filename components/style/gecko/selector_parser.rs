@@ -42,7 +42,39 @@ use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct PseudoElement(Atom, bool);
 
+/// List of eager pseudos. Keep this in sync with the count below.
+macro_rules! each_eager_pseudo {
+    ($macro_name:ident, $atom_macro:ident) => {
+        $macro_name!($atom_macro!(":after"), 0);
+        $macro_name!($atom_macro!(":before"), 1);
+    }
+}
+
+/// The number of eager pseudo-elements (just ::before and ::after).
+pub const EAGER_PSEUDO_COUNT: usize = 2;
+
+
 impl PseudoElement {
+    /// Gets the canonical index of this eagerly-cascaded pseudo-element.
+    #[inline]
+    pub fn eager_index(&self) -> usize {
+        macro_rules! case {
+            ($atom:expr, $idx:expr) => { if *self.as_atom() == $atom { return $idx; } }
+        }
+        each_eager_pseudo!(case, atom);
+        panic!("Not eager")
+    }
+
+    /// Creates a pseudo-element from an eager index.
+    #[inline]
+    pub fn from_eager_index(i: usize) -> Self {
+        macro_rules! case {
+            ($atom:expr, $idx:expr) => { if i == $idx { return PseudoElement($atom, false); } }
+        }
+        each_eager_pseudo!(case, atom);
+        panic!("Not eager")
+    }
+
     /// Get the pseudo-element as an atom.
     #[inline]
     pub fn as_atom(&self) -> &Atom {
@@ -53,6 +85,35 @@ impl PseudoElement {
     #[inline]
     fn is_anon_box(&self) -> bool {
         self.1
+    }
+
+    /// Whether this pseudo-element is ::before or ::after.
+    #[inline]
+    pub fn is_before_or_after(&self) -> bool {
+        *self.as_atom() == atom!(":before") ||
+        *self.as_atom() == atom!(":after")
+    }
+
+    /// Whether this pseudo-element is eagerly-cascaded.
+    #[inline]
+    pub fn is_eager(&self) -> bool {
+        macro_rules! case {
+            ($atom:expr, $idx:expr) => { if *self.as_atom() == $atom { return true; } }
+        }
+        each_eager_pseudo!(case, atom);
+        return false;
+    }
+
+    /// Whether this pseudo-element is lazily-cascaded.
+    #[inline]
+    pub fn is_lazy(&self) -> bool {
+        !self.is_eager() && !self.is_precomputed()
+    }
+
+    /// Whether this pseudo-element is precomputed.
+    #[inline]
+    pub fn is_precomputed(&self) -> bool {
+        self.is_anon_box()
     }
 
     /// Construct a pseudo-element from an `Atom`, receiving whether it is also
@@ -398,7 +459,8 @@ impl SelectorImpl {
     ///
     /// We resolve the others lazily, see `Servo_ResolvePseudoStyle`.
     pub fn pseudo_element_cascade_type(pseudo: &PseudoElement) -> PseudoElementCascadeType {
-        if Self::pseudo_is_before_or_after(pseudo) {
+        if pseudo.is_eager() {
+            debug_assert!(!pseudo.is_anon_box());
             return PseudoElementCascadeType::Eager
         }
 
@@ -408,6 +470,19 @@ impl SelectorImpl {
 
         PseudoElementCascadeType::Lazy
     }
+
+    /// A helper to traverse each eagerly cascaded pseudo-element, executing
+    /// `fun` on it.
+    #[inline]
+    pub fn each_eagerly_cascaded_pseudo_element<F>(mut fun: F)
+        where F: FnMut(PseudoElement),
+    {
+        macro_rules! case {
+            ($atom:expr, $idx:expr) => { fun(PseudoElement($atom, false)); }
+        }
+        each_eager_pseudo!(case, atom);
+    }
+
 
     #[inline]
     /// Executes a function for each pseudo-element.
@@ -421,13 +496,6 @@ impl SelectorImpl {
         }
 
         include!("generated/gecko_pseudo_element_helper.rs")
-    }
-
-    #[inline]
-    /// Returns whether the given pseudo-element is `::before` or `::after`.
-    pub fn pseudo_is_before_or_after(pseudo: &PseudoElement) -> bool {
-        *pseudo.as_atom() == atom!(":before") ||
-        *pseudo.as_atom() == atom!(":after")
     }
 
     #[inline]

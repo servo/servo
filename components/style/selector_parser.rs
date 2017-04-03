@@ -102,26 +102,6 @@ pub enum PseudoElementCascadeType {
     Precomputed,
 }
 
-impl PseudoElementCascadeType {
-    /// Simple accessor to check whether the cascade type is eager.
-    #[inline]
-    pub fn is_eager(&self) -> bool {
-        *self == PseudoElementCascadeType::Eager
-    }
-
-    /// Simple accessor to check whether the cascade type is lazy.
-    #[inline]
-    pub fn is_lazy(&self) -> bool {
-        *self == PseudoElementCascadeType::Lazy
-    }
-
-    /// Simple accessor to check whether the cascade type is precomputed.
-    #[inline]
-    pub fn is_precomputed(&self) -> bool {
-        *self == PseudoElementCascadeType::Precomputed
-    }
-}
-
 /// An extension to rust-selector's `Element` trait.
 pub trait ElementExt: Element<Impl=SelectorImpl> + Debug {
     /// Whether this element is a `link`.
@@ -134,22 +114,6 @@ pub trait ElementExt: Element<Impl=SelectorImpl> + Debug {
 }
 
 impl SelectorImpl {
-    /// A helper to traverse each eagerly cascaded pseudo-element, executing
-    /// `fun` on it.
-    ///
-    /// TODO(emilio): We can optimize this for Gecko using the pseudo-element
-    /// macro, and we should consider doing that for Servo too.
-    #[inline]
-    pub fn each_eagerly_cascaded_pseudo_element<F>(mut fun: F)
-        where F: FnMut(PseudoElement),
-    {
-        Self::each_pseudo_element(|pseudo| {
-            if Self::pseudo_element_cascade_type(&pseudo).is_eager() {
-                fun(pseudo)
-            }
-        })
-    }
-
     /// A helper to traverse each precomputed pseudo-element, executing `fun` on
     /// it.
     ///
@@ -160,7 +124,7 @@ impl SelectorImpl {
         where F: FnMut(PseudoElement),
     {
         Self::each_pseudo_element(|pseudo| {
-            if Self::pseudo_element_cascade_type(&pseudo).is_precomputed() {
+            if pseudo.is_precomputed() {
                 fun(pseudo)
             }
         })
