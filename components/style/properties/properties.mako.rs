@@ -1976,24 +1976,25 @@ pub fn cascade(device: &Device,
         }
     };
 
-    // Hold locks until after the apply_declarations() call returns.
-    // Use filter_map because the root node has no style source.
-    let declaration_blocks = rule_node.self_and_ancestors().filter_map(|node| {
-        let guard = node.cascade_level().guard(guards);
-        node.style_source().map(|source| (source.read(guard), node.importance()))
-    }).collect::<Vec<_>>();
     let iter_declarations = || {
-        declaration_blocks.iter().flat_map(|&(ref source, source_importance)| {
-            source.declarations().iter()
-            // Yield declarations later in source order (with more precedence) first.
-            .rev()
-            .filter_map(move |&(ref declaration, declaration_importance)| {
-                if declaration_importance == source_importance {
-                    Some(declaration)
-                } else {
-                    None
-                }
-            })
+        rule_node.self_and_ancestors().flat_map(|node| {
+            let declarations = match node.style_source() {
+                Some(source) => source.read(node.cascade_level().guard(guards)).declarations(),
+                // The root node has no style source.
+                None => &[]
+            };
+            let node_importance = node.importance();
+            declarations
+                .iter()
+                // Yield declarations later in source order (with more precedence) first.
+                .rev()
+                .filter_map(move |&(ref declaration, declaration_importance)| {
+                    if declaration_importance == node_importance {
+                        Some(declaration)
+                    } else {
+                        None
+                    }
+                })
         })
     };
     apply_declarations(device,
