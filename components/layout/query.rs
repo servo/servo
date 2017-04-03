@@ -17,11 +17,11 @@ use gfx_traits::ScrollRootId;
 use inline::LAST_FRAGMENT_OF_ELEMENT;
 use ipc_channel::ipc::IpcSender;
 use opaque_node::OpaqueNodeMethods;
-use script_layout_interface::PendingImage;
+use script_layout_interface::{PendingImage, LayoutElementType, LayoutNodeType};
 use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse};
 use script_layout_interface::rpc::{HitTestResponse, LayoutRPC};
 use script_layout_interface::rpc::{MarginStyleResponse, NodeGeometryResponse};
-use script_layout_interface::rpc::{NodeOverflowResponse, OffsetParentResponse};
+use script_layout_interface::rpc::{ElementInnerTextResponse, NodeOverflowResponse, OffsetParentResponse};
 use script_layout_interface::rpc::{NodeScrollRootIdResponse, ResolvedStyleResponse, TextIndexResponse};
 use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use script_traits::LayoutMsg as ConstellationMsg;
@@ -31,7 +31,7 @@ use std::cmp::{min, max};
 use std::mem;
 use std::ops::Deref;
 use std::sync::{Arc, Mutex};
-use style::computed_values;
+use style::computed_values::{self, visibility};
 use style::context::{StyleContext, ThreadLocalStyleContext};
 use style::dom::TElement;
 use style::logical_geometry::{WritingMode, BlockFlowDirection, InlineBaseDirection};
@@ -97,6 +97,9 @@ pub struct LayoutThreadData {
 
     /// A queued response for the list of nodes at a given point.
     pub nodes_from_point_response: Vec<UntrustedNodeAddress>,
+
+    /// A queued response for the inner text of an element.
+    pub element_inner_text_response: String,
 }
 
 pub struct LayoutRPCImpl(pub Arc<Mutex<LayoutThreadData>>);
@@ -206,6 +209,12 @@ impl LayoutRPC for LayoutRPCImpl {
         let &LayoutRPCImpl(ref rw_data) = self;
         let mut rw_data = rw_data.lock().unwrap();
         mem::replace(&mut rw_data.pending_images, vec![])
+    }
+
+    fn element_inner_text(&self) -> ElementInnerTextResponse {
+        let &LayoutRPCImpl(ref rw_data) = self;
+        let rw_data = rw_data.lock().unwrap();
+        ElementInnerTextResponse(rw_data.element_inner_text_response.clone())
     }
 }
 
@@ -897,4 +906,69 @@ pub fn process_margin_style_query<N: LayoutNode>(requested_node: N)
         bottom: margin.margin_bottom,
         left: margin.margin_left,
     }
+}
+
+enum InnerTextItem {
+    Text(String),
+    RequiredLineBreakCount(u32),
+}
+
+pub fn process_element_inner_text<N: LayoutNode>(context: &LayoutContext,
+                                                 node: N) -> String {
+    // Step 2.
+    let text_items = node.traverse_preorder().filter_map(|child| {
+        debug!("CHILD {:?}", child.type_id());
+
+        // TODO Substep 1.
+
+        // Substep 2.
+        let layout_node = child.to_threadsafe();
+        let style = layout_node.style(&context.style_context);
+        if style.get_inheritedbox().visibility != visibility::T::visible {
+            return None;
+        }
+
+        // TODO Substep 3.
+        let display = style.get_box().display;
+        if display == computed_values::display::T::none {
+            return None;
+        }
+
+        match child.type_id() {
+            LayoutNodeType::Text => {
+                // TODO Substep 4.
+            },
+            LayoutNodeType::Element(LayoutElementType::HTMLBRElement) => {
+                // Substep 5.
+                return Some(InnerTextItem::Text(String::from("\u{000A}")));
+            },
+            LayoutNodeType::Element(LayoutElementType::HTMLParagraphElement) => {
+                // Substep 8.
+                return Some(InnerTextItem::RequiredLineBreakCount(2));
+            },
+            _ => {},
+        }
+
+        match display {
+            computed_values::display::T::table_cell => {
+                // Substep 6.
+                return Some(InnerTextItem::Text(String::from("\u{0009}")));
+            },
+            computed_values::display::T::table_row => {
+                // Substep 7.
+                return Some(InnerTextItem::Text(String::from("\u{000A}")));
+            },
+            _ => {},
+        }
+
+        // TODO Substep 9.
+
+        debug!("LAYOUT_NODE {:?}", layout_node.type_id());
+        debug!("BOX DISPLAY {:?}", style.get_box().display);
+        debug!("VISIBILITY {:?}", style.get_inheritedbox().visibility);
+
+        None
+    }).collect::<Vec<InnerTextItem>>();
+
+    String::from("banana")
 }

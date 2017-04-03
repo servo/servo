@@ -67,7 +67,7 @@ use layout::opaque_node::OpaqueNodeMethods;
 use layout::parallel;
 use layout::query::{LayoutRPCImpl, LayoutThreadData, process_content_box_request, process_content_boxes_request};
 use layout::query::{process_margin_style_query, process_node_overflow_request, process_resolved_style_request};
-use layout::query::{process_node_geometry_request, process_node_scroll_area_request};
+use layout::query::{process_node_geometry_request, process_node_scroll_area_request, process_element_inner_text};
 use layout::query::{process_node_scroll_root_id_request, process_offset_parent_query};
 use layout::sequential;
 use layout::traversal::{ComputeAbsolutePositions, RecalcStyleAndConstructFlows};
@@ -472,6 +472,7 @@ impl LayoutThread {
                     text_index_response: TextIndexResponse(None),
                     pending_images: vec![],
                     nodes_from_point_response: vec![],
+                    element_inner_text_response: String::new(),
                 })),
             error_reporter: CSSErrorReporter {
                 pipelineid: id,
@@ -1008,7 +1009,10 @@ impl LayoutThread {
                     },
                     ReflowQueryType::TextIndexQuery(..) => {
                         rw_data.text_index_response = TextIndexResponse(None);
-                    }
+                    },
+                    ReflowQueryType::ElementInnerText(_) => {
+                        rw_data.element_inner_text_response = String::new();
+                    },
                     ReflowQueryType::NoQuery => {}
                 }
                 return;
@@ -1324,7 +1328,11 @@ impl LayoutThread {
                    .map(|metadata| metadata.node.to_untrusted_node_address())
                    .collect()
             },
-            ReflowQueryType::NoQuery => {}
+            ReflowQueryType::ElementInnerText(node) => {
+                let node = unsafe { ServoLayoutNode::new(&node) };
+                rw_data.element_inner_text_response = process_element_inner_text(context, node);
+            },
+            ReflowQueryType::NoQuery => {},
         }
     }
 
@@ -1620,7 +1628,8 @@ fn reflow_query_type_needs_display_list(query_type: &ReflowQueryType) -> bool {
         ReflowQueryType::NodeGeometryQuery(_) | ReflowQueryType::NodeScrollGeometryQuery(_) |
         ReflowQueryType::NodeOverflowQuery(_) | ReflowQueryType::NodeScrollRootIdQuery(_) |
         ReflowQueryType::ResolvedStyleQuery(..) | ReflowQueryType::OffsetParentQuery(_) |
-        ReflowQueryType::MarginStyleQuery(_) | ReflowQueryType::NoQuery => false,
+        ReflowQueryType::MarginStyleQuery(_) | ReflowQueryType::ElementInnerText(_) |
+        ReflowQueryType::NoQuery => false,
     }
 }
 

@@ -9,6 +9,7 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::OnErrorEventHandlerNonNull;
 use dom::bindings::codegen::Bindings::HTMLElementBinding;
 use dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
+use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
@@ -29,13 +30,16 @@ use dom::node::{Node, SEQUENTIALLY_FOCUSABLE};
 use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
 use dom::virtualmethods::VirtualMethods;
+use dom::window::ReflowReason;
 use dom_struct::dom_struct;
 use html5ever_atoms::LocalName;
+use script_layout_interface::message::{ReflowQueryType};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::default::Default;
 use std::rc::Rc;
 use style::attr::AttrValue;
+use style::context::ReflowGoal;
 use style::element_state::*;
 
 #[dom_struct]
@@ -369,6 +373,30 @@ impl HTMLElementMethods for HTMLElement {
         let (_, rect) = window.offset_parent_query(node.to_trusted_node_address());
 
         rect.size.height.to_nearest_px()
+    }
+
+    fn InnerText(&self) -> DOMString {
+        debug!("InnerText");
+
+        let node = self.upcast::<Node>();
+
+        // TODO Step 1.
+        if false {
+            return node.GetTextContent().unwrap();
+        }
+
+        for node in self.upcast::<Node>().traverse_preorder() {
+            debug!("NODE {:?}", node.type_id());
+        }
+
+        let window = window_from_node(self);
+        window.reflow(ReflowGoal::ForScriptQuery,
+                      ReflowQueryType::ElementInnerText(node.to_trusted_node_address()),
+                      ReflowReason::Query);
+        DOMString::from(window.layout().element_inner_text().0)
+    }
+
+    fn SetInnerText(&self, _: DOMString) {
     }
 }
 

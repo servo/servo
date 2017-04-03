@@ -1832,6 +1832,7 @@ fn debug_reflow_events(id: PipelineId, goal: &ReflowGoal, query_type: &ReflowQue
         ReflowQueryType::OffsetParentQuery(_n) => "\tOffsetParentQuery",
         ReflowQueryType::MarginStyleQuery(_n) => "\tMarginStyleQuery",
         ReflowQueryType::TextIndexQuery(..) => "\tTextIndexQuery",
+        ReflowQueryType::ElementInnerText(..) => "\tElementInnerText",
     });
 
     debug_msg.push_str(match *reason {

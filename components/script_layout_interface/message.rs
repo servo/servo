@@ -99,6 +99,7 @@ pub enum ReflowQueryType {
     MarginStyleQuery(TrustedNodeAddress),
     TextIndexQuery(TrustedNodeAddress, i32, i32),
     NodesFromPoint(Point2D<f32>, Point2D<f32>),
+    ElementInnerText(TrustedNodeAddress),
 }
 
 /// Information needed for a reflow.
