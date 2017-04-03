@@ -32,7 +32,12 @@ impl<'a> AutoGCRuleTree<'a> {
 
 impl<'a> Drop for AutoGCRuleTree<'a> {
     fn drop(&mut self) {
-        unsafe { self.0.gc() }
+        unsafe {
+            self.0.gc();
+            assert!(::std::thread::panicking() ||
+                    !self.0.root().has_children_for_testing(),
+                    "No rule nodes other than the root shall remain!");
+        }
     }
 }
 
