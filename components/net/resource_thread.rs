@@ -114,10 +114,11 @@ fn create_resource_groups(config_dir: Option<&Path>)
         ssl_client: ssl_client.clone(),
         connector: create_http_connector(ssl_client.clone()),
     };
+    let private_ssl_client = create_ssl_client("certs");
     let private_resource_group = ResourceGroup {
         http_state: Arc::new(HttpState::new()),
-        ssl_client: ssl_client.clone(),
-        connector: create_http_connector(ssl_client),
+        ssl_client: private_ssl_client.clone(),
+        connector: create_http_connector(private_ssl_client),
     };
     (resource_group, private_resource_group)
 }
