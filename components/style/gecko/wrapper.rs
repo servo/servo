@@ -50,7 +50,6 @@ use gecko_bindings::structs::NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE;
 use gecko_bindings::structs::NODE_IS_NATIVE_ANONYMOUS;
 use gecko_bindings::sugar::ownership::HasArcFFI;
 use parking_lot::RwLock;
-use parser::ParserContextExtraData;
 use properties::{ComputedValues, parse_style_attribute};
 use properties::PropertyDeclarationBlock;
 use properties::animated_properties::AnimationValueMap;
@@ -59,13 +58,13 @@ use selector_parser::{ElementExt, Snapshot};
 use selectors::Element;
 use selectors::matching::{ElementSelectorFlags, StyleRelations};
 use selectors::parser::{AttrSelector, NamespaceConstraint};
-use servo_url::ServoUrl;
 use shared_lock::Locked;
 use sink::Push;
 use std::fmt;
 use std::ptr;
 use std::sync::Arc;
 use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
+use stylesheets::UrlExtraData;
 use stylist::ApplicableDeclarationBlock;
 
 /// A simple wrapper over a non-null Gecko node (`nsINode`) pointer.
@@ -315,9 +314,8 @@ impl<'le> fmt::Debug for GeckoElement<'le> {
 impl<'le> GeckoElement<'le> {
     /// Parse the style attribute of an element.
     pub fn parse_style_attribute(value: &str,
-                                 base_url: &ServoUrl,
-                                 extra_data: ParserContextExtraData) -> PropertyDeclarationBlock {
-        parse_style_attribute(value, base_url, &StdoutErrorReporter, extra_data)
+                                 url_data: &UrlExtraData) -> PropertyDeclarationBlock {
+        parse_style_attribute(value, url_data, &StdoutErrorReporter)
     }
 
     fn flags(&self) -> u32 {
@@ -387,15 +385,6 @@ impl<'le> GeckoElement<'le> {
     pub fn create_snapshot(&self) -> Snapshot {
         Snapshot::new(*self)
     }
-}
-
-lazy_static! {
-    /// A dummy base url in order to get it where we don't have any available.
-    ///
-    /// We need to get rid of this sooner than later.
-    pub static ref DUMMY_BASE_URL: ServoUrl = {
-        ServoUrl::parse("http://www.example.org").unwrap()
-    };
 }
 
 /// Converts flags from the layout used by rust-selectors to the layout used

@@ -113,7 +113,6 @@ use style::dom::{ShowSubtree, ShowSubtreeDataAndPrimaryValues, TElement, TNode};
 use style::error_reporting::StdoutErrorReporter;
 use style::logical_geometry::LogicalPoint;
 use style::media_queries::{Device, MediaType};
-use style::parser::ParserContextExtraData;
 use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, REPOSITION, STORE_OVERFLOW};
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards};
 use style::stylesheets::{Origin, Stylesheet, UserAgentStylesheets};
@@ -1586,8 +1585,7 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
             Default::default(),
             shared_lock.clone(),
             None,
-            &StdoutErrorReporter,
-            ParserContextExtraData::default()))
+            &StdoutErrorReporter))
     }
 
     let shared_lock = SharedRwLock::new();
@@ -1600,7 +1598,7 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
     for &(ref contents, ref url) in &opts::get().user_stylesheets {
         user_or_user_agent_stylesheets.push(Stylesheet::from_bytes(
             &contents, url.clone(), None, None, Origin::User, Default::default(),
-            shared_lock.clone(), None, &StdoutErrorReporter, ParserContextExtraData::default()));
+            shared_lock.clone(), None, &StdoutErrorReporter));
     }
 
     let quirks_mode_stylesheet = try!(parse_ua_stylesheet(&shared_lock, "quirks-mode.css"));

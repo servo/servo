@@ -19,7 +19,6 @@ use dom_struct::dom_struct;
 use servo_atoms::Atom;
 use std::sync::Arc;
 use style::keyframes::{Keyframe, KeyframeSelector};
-use style::parser::ParserContextExtraData;
 use style::shared_lock::{Locked, ToCssWithGuard};
 use style::stylesheets::KeyframesRule;
 
@@ -83,8 +82,7 @@ impl CSSKeyframesRuleMethods for CSSKeyframesRule {
 
     // https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-appendrule
     fn AppendRule(&self, rule: DOMString) {
-        let rule = Keyframe::parse(&rule, self.cssrule.parent_stylesheet().style_stylesheet(),
-                                   ParserContextExtraData::default());
+        let rule = Keyframe::parse(&rule, self.cssrule.parent_stylesheet().style_stylesheet());
         if let Ok(rule) = rule {
             let mut guard = self.cssrule.shared_lock().write();
             self.keyframesrule.write_with(&mut guard).keyframes.push(rule);

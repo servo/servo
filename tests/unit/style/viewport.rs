@@ -8,7 +8,7 @@ use media_queries::CSSErrorReporterTest;
 use servo_config::prefs::{PREFS, PrefValue};
 use servo_url::ServoUrl;
 use style::media_queries::{Device, MediaType};
-use style::parser::{ParserContext, ParserContextExtraData};
+use style::parser::ParserContext;
 use style::shared_lock::SharedRwLock;
 use style::stylesheets::{Stylesheet, Origin};
 use style::values::specified::LengthOrPercentageOrAuto::{self, Auto};
@@ -30,8 +30,7 @@ macro_rules! stylesheet {
             Default::default(),
             $shared_lock,
             None,
-            &$error_reporter,
-            ParserContextExtraData::default()
+            &$error_reporter
         ))
     }
 }

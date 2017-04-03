@@ -27,7 +27,6 @@ use servo_url::ServoUrl;
 use std::mem;
 use std::sync::{Arc, Mutex};
 use style::media_queries::MediaList;
-use style::parser::ParserContextExtraData;
 use style::shared_lock::Locked as StyleLocked;
 use style::stylesheets::{ImportRule, Stylesheet, Origin};
 use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
@@ -146,8 +145,7 @@ impl FetchResponseListener for StylesheetContext {
                                                             media.take().unwrap(),
                                                             shared_lock,
                                                             Some(&loader),
-                                                            win.css_error_reporter(),
-                                                            ParserContextExtraData::default()));
+                                                            win.css_error_reporter()));
 
                         if link.is_alternate() {
                             sheet.set_disabled(true);
@@ -163,9 +161,9 @@ impl FetchResponseListener for StylesheetContext {
                                                   &data,
                                                   protocol_encoding_label,
                                                   Some(environment_encoding),
+                                                  &final_url,
                                                   Some(&loader),
-                                                  win.css_error_reporter(),
-                                                  ParserContextExtraData::default());
+                                                  win.css_error_reporter());
                 }
             }
 

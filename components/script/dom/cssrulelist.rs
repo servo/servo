@@ -92,7 +92,10 @@ impl CSSRuleList {
         let parent_stylesheet = self.parent_stylesheet.style_stylesheet();
         let new_rule = {
             let mut guard = parent_stylesheet.shared_lock.write();
-            css_rules.write_with(&mut guard).insert_rule(rule, parent_stylesheet, index, nested)?
+            // FIXME We should probably pass in a proper StylesheetLoader.
+            //       See servo/servo#16240
+            css_rules.write_with(&mut guard).insert_rule(rule, parent_stylesheet,
+                                                         index, nested, None)?
             // Drop `guard` here,
             // CSSRule::new_specific re-acquires the lock for @support and @media.
         };

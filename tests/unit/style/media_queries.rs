@@ -9,7 +9,6 @@ use std::borrow::ToOwned;
 use style::Atom;
 use style::error_reporting::ParseErrorReporter;
 use style::media_queries::*;
-use style::parser::ParserContextExtraData;
 use style::servo::media_queries::*;
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard};
 use style::stylesheets::{Stylesheet, Origin, CssRule};
@@ -31,8 +30,7 @@ fn test_media_rule<F>(css: &str, callback: F)
     let css_str = css.to_owned();
     let stylesheet = Stylesheet::from_str(
         css, url, Origin::Author, Default::default(), SharedRwLock::new(),
-        None, &CSSErrorReporterTest,
-        ParserContextExtraData::default());
+        None, &CSSErrorReporterTest);
     let mut rule_count = 0;
     let guard = stylesheet.shared_lock.read();
     media_queries(&guard, &stylesheet.rules.read_with(&guard).0, &mut |mq| {
@@ -59,8 +57,7 @@ fn media_query_test(device: &Device, css: &str, expected_rule_count: usize) {
     let url = ServoUrl::parse("http://localhost").unwrap();
     let ss = Stylesheet::from_str(
         css, url, Origin::Author, Default::default(), SharedRwLock::new(),
-        None, &CSSErrorReporterTest,
-        ParserContextExtraData::default());
+        None, &CSSErrorReporterTest);
     let mut rule_count = 0;
     ss.effective_style_rules(device, &ss.shared_lock.read(), |_| rule_count += 1);
     assert!(rule_count == expected_rule_count, css.to_owned());
