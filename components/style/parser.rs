@@ -39,7 +39,7 @@ impl<'a> ParserContext<'a> {
     pub fn new_for_cssom(url_data: &'a UrlExtraData,
                          error_reporter: &'a ParseErrorReporter)
                          -> ParserContext<'a> {
-        Self::new(Origin::User, url_data, error_reporter)
+        Self::new(Origin::Author, url_data, error_reporter)
     }
 }
 
