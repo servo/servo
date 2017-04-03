@@ -4,7 +4,6 @@
 
 use cookie::Cookie;
 use cookie_rs;
-use cookie_storage::CookieStorage;
 use fetch::methods::{should_be_blocked_due_to_bad_port, should_be_blocked_due_to_nosniff};
 use http_loader::{HttpState, is_redirect_status, set_request_cookies};
 use hyper::buffer::BufReader;
@@ -23,7 +22,7 @@ use servo_url::ServoUrl;
 use std::ascii::AsciiExt;
 use std::io::{self, Write};
 use std::net::TcpStream;
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use url::Position;
@@ -40,7 +39,7 @@ pub fn init(connect: WebSocketCommunicate,
         let channel = establish_a_websocket_connection(&connect_data.resource_url,
                                                        connect_data.origin,
                                                        connect_data.protocols,
-                                                       &http_state.cookie_jar);
+                                                       &http_state);
         let (ws_sender, mut receiver) = match channel {
             Ok((protocol_in_use, sender, receiver)) => {
                 let _ = connect.event_sender.send(WebSocketNetworkEvent::ConnectionEstablished { protocol_in_use });
@@ -150,7 +149,7 @@ fn obtain_a_websocket_connection(url: &ServoUrl) -> Result<Stream, NetworkError>
 fn establish_a_websocket_connection(resource_url: &ServoUrl,
                                     origin: String,
                                     protocols: Vec<String>,
-                                    cookie_jar: &RwLock<CookieStorage>)
+                                    http_state: &HttpState)
                                     -> Result<(Option<String>,
                                                Sender<Stream>,
                                                Receiver<Stream>),
@@ -185,7 +184,7 @@ fn establish_a_websocket_connection(resource_url: &ServoUrl,
     // TODO: handle permessage-deflate extension.
 
     // Step 11 and network error check from step 12.
-    let response = fetch(resource_url, origin, headers, cookie_jar)?;
+    let response = fetch(resource_url, origin, headers, http_state)?;
 
     // Step 12, the status code check.
     if response.status != StatusCode::SwitchingProtocols {
@@ -272,7 +271,7 @@ struct Response {
 fn fetch(url: &ServoUrl,
          origin: String,
          mut headers: Headers,
-         cookie_jar: &RwLock<CookieStorage>)
+         http_state: &HttpState)
          -> Result<Response, NetworkError> {
     // Step 1.
     // TODO: handle request's window.
@@ -316,14 +315,14 @@ fn fetch(url: &ServoUrl,
     }
 
     // Step 8.
-    main_fetch(url, origin, headers, cookie_jar)
+    main_fetch(url, origin, headers, http_state)
 }
 
 // https://fetch.spec.whatwg.org/#concept-main-fetch
 fn main_fetch(url: &ServoUrl,
               origin: String,
               mut headers: Headers,
-              cookie_jar: &RwLock<CookieStorage>)
+              http_state: &HttpState)
               -> Result<Response, NetworkError> {
     // Step 1.
     let mut response = None;
@@ -366,7 +365,7 @@ fn main_fetch(url: &ServoUrl,
         // doesn't need to be filtered at all.
 
         // Step 12.2.
-        basic_fetch(url, origin, &mut headers, cookie_jar)
+        basic_fetch(url, origin, &mut headers, http_state)
     });
 
     // Step 13.
@@ -404,17 +403,17 @@ fn main_fetch(url: &ServoUrl,
 fn basic_fetch(url: &ServoUrl,
                origin: String,
                headers: &mut Headers,
-               cookie_jar: &RwLock<CookieStorage>)
+               http_state: &HttpState)
                -> Result<Response, NetworkError> {
     // In the case of a WebSocket request, HTTP fetch is always used.
-    http_fetch(url, origin, headers, cookie_jar)
+    http_fetch(url, origin, headers, http_state)
 }
 
 // https://fetch.spec.whatwg.org/#concept-http-fetch
 fn http_fetch(url: &ServoUrl,
               origin: String,
               headers: &mut Headers,
-              cookie_jar: &RwLock<CookieStorage>)
+              http_state: &HttpState)
               -> Result<Response, NetworkError> {
     // Step 1.
     // Not applicable: with step 3 being useless here, this one is too.
@@ -435,7 +434,7 @@ fn http_fetch(url: &ServoUrl,
         // Not applicable: request's redirect mode is "error".
 
         // Step 4.3.
-        let response = http_network_or_cache_fetch(url, origin, headers, cookie_jar);
+        let response = http_network_or_cache_fetch(url, origin, headers, http_state);
 
         // Step 4.4.
         // Not applicable: CORS flag is unset.
@@ -464,7 +463,7 @@ fn http_fetch(url: &ServoUrl,
 fn http_network_or_cache_fetch(url: &ServoUrl,
                                origin: String,
                                headers: &mut Headers,
-                               cookie_jar: &RwLock<CookieStorage>)
+                               http_state: &HttpState)
                                -> Result<Response, NetworkError> {
     // Steps 1-3.
     // Not applicable: we don't even have a request yet, and there is no body
@@ -515,7 +514,7 @@ fn http_network_or_cache_fetch(url: &ServoUrl,
     {
         // Step 17.1.
         // TODO: handle user agent configured to block cookies.
-        set_request_cookies(&url, headers, &cookie_jar);
+        set_request_cookies(&url, headers, &http_state.cookie_jar);
 
         // Steps 17.2-6.
         // Not applicable: request has no Authorization header.
@@ -540,7 +539,7 @@ fn http_network_or_cache_fetch(url: &ServoUrl,
         // Not applicable: cache mode is "no-store".
 
         // Step 22.2.
-        let forward_response = http_network_fetch(url, headers, cookie_jar);
+        let forward_response = http_network_fetch(url, headers, http_state);
 
         // Step 22.3.
         // Not applicable: request's method is not unsafe.
@@ -569,7 +568,7 @@ fn http_network_or_cache_fetch(url: &ServoUrl,
 // https://fetch.spec.whatwg.org/#concept-http-network-fetch
 fn http_network_fetch(url: &ServoUrl,
                       headers: &Headers,
-                      cookie_jar: &RwLock<CookieStorage>)
+                      http_state: &HttpState)
                       -> Result<Response, NetworkError> {
     // Step 1.
     // Not applicable: credentials flag is set.
@@ -595,7 +594,7 @@ fn http_network_fetch(url: &ServoUrl,
 
     // Step 15.
     if let Some(cookies) = response.headers.get::<SetCookie>() {
-        let mut jar = cookie_jar.write().unwrap();
+        let mut jar = http_state.cookie_jar.write().unwrap();
         for cookie in &**cookies {
             if let Ok(cookie) = cookie_rs::Cookie::parse(&**cookie) {
                 if let Some(cookie) = Cookie::new_wrapped(cookie.into_owned(), url, CookieSource::HTTP) {
