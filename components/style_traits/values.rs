@@ -25,6 +25,12 @@ pub trait ToCss {
     }
 }
 
+impl<'a, T> ToCss for &'a T where T: ToCss + ?Sized {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        (*self).to_css(dest)
+    }
+}
+
 /// Marker trait to automatically implement ToCss for Vec<T>.
 pub trait OneOrMoreCommaSeparated {}
 
