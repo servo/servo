@@ -390,6 +390,7 @@ pub mod node;
 pub mod nodeiterator;
 pub mod nodelist;
 pub mod pagetransitionevent;
+pub mod paintworkletglobalscope;
 pub mod performance;
 pub mod performancetiming;
 pub mod permissions;
