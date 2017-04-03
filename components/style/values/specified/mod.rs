@@ -310,12 +310,39 @@ impl ToCss for BorderRadiusSize {
     }
 }
 
-#[derive(Clone, PartialEq, PartialOrd, Copy, Debug)]
+#[derive(Clone, PartialEq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
-/// An angle, normalized to radians.
+/// An angle consisting of a value and a unit.
 pub struct Angle {
-    radians: CSSFloat,
+    value: CSSFloat,
+    unit: AngleUnit,
     was_calc: bool,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
+/// A unit used together with an angle.
+pub enum AngleUnit {
+    /// Degrees, short name "deg".
+    Degree,
+    /// Gradians, short name "grad".
+    Gradian,
+    /// Radians, short name "rad".
+    Radian,
+    /// Turns, short name "turn".
+    Turn,
+}
+
+impl ToCss for AngleUnit {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        use self::AngleUnit::*;
+        dest.write_str(match *self {
+            Degree => "deg",
+            Gradian => "grad",
+            Radian => "rad",
+            Turn => "turn",
+        })
+    }
 }
 
 impl ToCss for Angle {
@@ -323,7 +350,8 @@ impl ToCss for Angle {
         if self.was_calc {
             dest.write_str("calc(")?;
         }
-        write!(dest, "{}rad", self.radians)?;
+        self.value.to_css(dest)?;
+        self.unit.to_css(dest)?;
         if self.was_calc {
             dest.write_str(")")?;
         }
@@ -339,46 +367,60 @@ impl ToComputedValue for Angle {
     }
 
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        Angle {
-            radians: computed.radians(),
-            was_calc: false,
-        }
+        Angle::from_radians(computed.radians())
     }
 }
 
 impl Angle {
+    /// Returns an angle with the given value in degrees.
+    pub fn from_degrees(value: CSSFloat) -> Self {
+        Angle { value: value, unit: AngleUnit::Degree, was_calc: false }
+    }
+    /// Returns an angle with the given value in gradians.
+    pub fn from_gradians(value: CSSFloat) -> Self {
+        Angle { value: value, unit: AngleUnit::Gradian, was_calc: false }
+    }
+    /// Returns an angle with the given value in turns.
+    pub fn from_turns(value: CSSFloat) -> Self {
+        Angle { value: value, unit: AngleUnit::Turn, was_calc: false }
+    }
+    /// Returns an angle with the given value in radians.
+    pub fn from_radians(value: CSSFloat) -> Self {
+        Angle { value: value, unit: AngleUnit::Radian, was_calc: false }
+    }
+
     #[inline]
     #[allow(missing_docs)]
     pub fn radians(self) -> f32 {
-        self.radians
+        use self::AngleUnit::*;
+
+        const RAD_PER_DEG: CSSFloat = PI / 180.0;
+        const RAD_PER_GRAD: CSSFloat = PI / 200.0;
+        const RAD_PER_TURN: CSSFloat = PI * 2.0;
+
+        let radians = match self.unit {
+            Degree => self.value * RAD_PER_DEG,
+            Gradian => self.value * RAD_PER_GRAD,
+            Turn => self.value * RAD_PER_TURN,
+            Radian => self.value,
+        };
+        radians.min(f32::MAX).max(f32::MIN)
     }
 
-    /// Returns an angle value that represents zero radians.
+    /// Returns an angle value that represents zero.
     pub fn zero() -> Self {
-        Self::from_radians(0.0)
-    }
-
-    #[inline]
-    #[allow(missing_docs)]
-    pub fn from_radians(r: f32) -> Self {
-        Angle {
-            radians: r.min(f32::MAX).max(f32::MIN),
-            was_calc: false,
-        }
+        Self::from_degrees(0.0)
     }
 
     /// Returns an `Angle` parsed from a `calc()` expression.
     pub fn from_calc(radians: CSSFloat) -> Self {
         Angle {
-            radians: radians.min(f32::MAX).max(f32::MIN),
+            value: radians,
+            unit: AngleUnit::Radian,
             was_calc: true,
         }
     }
 }
-
-const RAD_PER_DEG: CSSFloat = PI / 180.0;
-const RAD_PER_GRAD: CSSFloat = PI / 200.0;
-const RAD_PER_TURN: CSSFloat = PI * 2.0;
 
 impl Parse for Angle {
     /// Parses an angle according to CSS-VALUES § 6.1.
@@ -397,15 +439,14 @@ impl Parse for Angle {
 impl Angle {
     #[allow(missing_docs)]
     pub fn parse_dimension(value: CSSFloat, unit: &str) -> Result<Angle, ()> {
-        let radians = match_ignore_ascii_case! { unit,
-            "deg" => value * RAD_PER_DEG,
-            "grad" => value * RAD_PER_GRAD,
-            "turn" => value * RAD_PER_TURN,
-            "rad" => value,
+        let angle = match_ignore_ascii_case! { unit,
+            "deg" => Angle::from_degrees(value),
+            "grad" => Angle::from_gradians(value),
+            "turn" => Angle::from_turns(value),
+            "rad" => Angle::from_radians(value),
              _ => return Err(())
         };
-
-        Ok(Angle::from_radians(radians))
+        Ok(angle)
     }
 }
 
