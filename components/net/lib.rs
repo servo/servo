@@ -42,7 +42,7 @@ extern crate websocket;
 
 mod blob_loader;
 mod chrome_loader;
-mod connector;
+pub mod connector;
 pub mod cookie;
 pub mod cookie_storage;
 mod data_loader;

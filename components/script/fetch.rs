@@ -37,17 +37,16 @@ struct FetchContext {
 }
 
 fn from_referrer_to_referrer_url(request: &NetTraitsRequest) -> Option<ServoUrl> {
-    let referrer = request.referrer.borrow();
-    referrer.to_url().map(|url| url.clone())
+    request.referrer.to_url().map(|url| url.clone())
 }
 
 fn request_init_from_request(request: NetTraitsRequest) -> NetTraitsRequestInit {
     NetTraitsRequestInit {
-        method: request.method.borrow().clone(),
+        method: request.method.clone(),
         url: request.url(),
-        headers: request.headers.borrow().clone(),
+        headers: request.headers.clone(),
         unsafe_request: request.unsafe_request,
-        body: request.body.borrow().clone(),
+        body: request.body.clone(),
         type_: request.type_,
         destination: request.destination,
         synchronous: request.synchronous,
@@ -60,9 +59,9 @@ fn request_init_from_request(request: NetTraitsRequest) -> NetTraitsRequestInit 
         // ... NetTraitsRequest.origin: RefCell<Origin>
         origin: request.url(),
         referrer_url: from_referrer_to_referrer_url(&request),
-        referrer_policy: request.referrer_policy.get(),
-        pipeline_id: request.pipeline_id.get(),
-        redirect_mode: request.redirect_mode.get(),
+        referrer_policy: request.referrer_policy,
+        pipeline_id: request.pipeline_id,
+        redirect_mode: request.redirect_mode,
         ..NetTraitsRequestInit::default()
     }
 }

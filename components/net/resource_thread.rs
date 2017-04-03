@@ -33,7 +33,6 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
-use std::rc::Rc;
 use std::sync::{Arc, RwLock};
 use std::sync::mpsc::Sender;
 use std::thread;
@@ -44,9 +43,7 @@ const TFD_PROVIDER: &'static TFDProvider = &TFDProvider;
 
 #[derive(Clone)]
 pub struct ResourceGroup {
-    cookie_jar: Arc<RwLock<CookieStorage>>,
-    auth_cache: Arc<RwLock<AuthCache>>,
-    hsts_list: Arc<RwLock<HstsList>>,
+    http_state: Arc<HttpState>,
     ssl_client: OpensslClient,
     connector: Arc<Pool<Connector>>,
 }
@@ -106,18 +103,19 @@ fn create_resource_groups(config_dir: Option<&Path>)
         read_json_from_file(&mut hsts_list, config_dir, "hsts_list.json");
         read_json_from_file(&mut cookie_jar, config_dir, "cookie_jar.json");
     }
+    let http_state = HttpState {
+        cookie_jar: RwLock::new(cookie_jar),
+        auth_cache: RwLock::new(auth_cache),
+        hsts_list: RwLock::new(hsts_list),
+    };
     let ssl_client = create_ssl_client("certs");
     let resource_group = ResourceGroup {
-        cookie_jar: Arc::new(RwLock::new(cookie_jar)),
-        auth_cache: Arc::new(RwLock::new(auth_cache)),
-        hsts_list: Arc::new(RwLock::new(hsts_list.clone())),
+        http_state: Arc::new(http_state),
         ssl_client: ssl_client.clone(),
         connector: create_http_connector(ssl_client.clone()),
     };
     let private_resource_group = ResourceGroup {
-        cookie_jar: Arc::new(RwLock::new(CookieStorage::new(150))),
-        auth_cache: Arc::new(RwLock::new(AuthCache::new())),
-        hsts_list: Arc::new(RwLock::new(HstsList::new())),
+        http_state: Arc::new(HttpState::new()),
         ssl_client: ssl_client.clone(),
         connector: create_http_connector(ssl_client),
     };
@@ -171,14 +169,14 @@ impl ResourceChannelManager {
                 }
             }
             CoreResourceMsg::GetCookiesForUrl(url, consumer, source) => {
-                let mut cookie_jar = group.cookie_jar.write().unwrap();
+                let mut cookie_jar = group.http_state.cookie_jar.write().unwrap();
                 consumer.send(cookie_jar.cookies_for_url(&url, source)).unwrap();
             }
             CoreResourceMsg::NetworkMediator(mediator_chan) => {
                 self.resource_manager.swmanager_chan = Some(mediator_chan)
             }
             CoreResourceMsg::GetCookiesDataForUrl(url, consumer, source) => {
-                let mut cookie_jar = group.cookie_jar.write().unwrap();
+                let mut cookie_jar = group.http_state.cookie_jar.write().unwrap();
                 let cookies = cookie_jar.cookies_data_for_url(&url, source).map(Serde).collect();
                 consumer.send(cookies).unwrap();
             }
@@ -194,15 +192,15 @@ impl ResourceChannelManager {
             CoreResourceMsg::ToFileManager(msg) => self.resource_manager.filemanager.handle(msg, TFD_PROVIDER),
             CoreResourceMsg::Exit(sender) => {
                 if let Some(ref config_dir) = self.config_dir {
-                    match group.auth_cache.read() {
+                    match group.http_state.auth_cache.read() {
                         Ok(auth_cache) => write_json_to_file(&*auth_cache, config_dir, "auth_cache.json"),
                         Err(_) => warn!("Error writing auth cache to disk"),
                     }
-                    match group.cookie_jar.read() {
+                    match group.http_state.cookie_jar.read() {
                         Ok(jar) => write_json_to_file(&*jar, config_dir, "cookie_jar.json"),
                         Err(_) => warn!("Error writing cookie jar to disk"),
                     }
-                    match group.hsts_list.read() {
+                    match group.http_state.hsts_list.read() {
                         Ok(hsts) => write_json_to_file(&*hsts, config_dir, "hsts_list.json"),
                         Err(_) => warn!("Error writing hsts list to disk"),
                     }
@@ -318,7 +316,7 @@ impl CoreResourceManager {
                           source: CookieSource,
                           resource_group: &ResourceGroup) {
         if let Some(cookie) = cookie::Cookie::new_wrapped(cookie, request, source) {
-            let mut cookie_jar = resource_group.cookie_jar.write().unwrap();
+            let mut cookie_jar = resource_group.http_state.cookie_jar.write().unwrap();
             cookie_jar.push(cookie, request, source)
         }
     }
@@ -327,19 +325,15 @@ impl CoreResourceManager {
              init: RequestInit,
              mut sender: IpcSender<FetchResponseMsg>,
              group: &ResourceGroup) {
-        let http_state = HttpState {
-            hsts_list: group.hsts_list.clone(),
-            cookie_jar: group.cookie_jar.clone(),
-            auth_cache: group.auth_cache.clone(),
-            // FIXME(#15694): use group.connector.clone() instead.
-            connector_pool: create_http_connector(group.ssl_client.clone()),
-        };
+        let http_state = group.http_state.clone();
         let ua = self.user_agent.clone();
         let dc = self.devtools_chan.clone();
         let filemanager = self.filemanager.clone();
+        // FIXME(#15694): use group.connector.clone() instead.
+        let connector = create_http_connector(group.ssl_client.clone());
 
         thread::Builder::new().name(format!("fetch thread for {}", init.url)).spawn(move || {
-            let request = Request::from_init(init);
+            let mut request = Request::from_init(init);
             // XXXManishearth: Check origin against pipeline id (also ensure that the mode is allowed)
             // todo load context / mimesniff in fetch
             // todo referrer policy?
@@ -349,8 +343,9 @@ impl CoreResourceManager {
                 user_agent: ua,
                 devtools_chan: dc,
                 filemanager: filemanager,
+                connector: connector,
             };
-            fetch(Rc::new(request), &mut sender, &context);
+            fetch(&mut request, &mut sender, &context);
         }).expect("Thread spawning failed");
     }
 
@@ -360,6 +355,6 @@ impl CoreResourceManager {
                          resource_grp: &ResourceGroup) {
         websocket_loader::init(connect,
                                connect_data,
-                               resource_grp.cookie_jar.clone());
+                               resource_grp.http_state.clone());
     }
 }

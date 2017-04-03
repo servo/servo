@@ -66,7 +66,7 @@ impl CorsCacheEntry {
 }
 
 fn match_headers(cors_cache: &CorsCacheEntry, cors_req: &Request) -> bool {
-    cors_cache.origin == *cors_req.origin.borrow() &&
+    cors_cache.origin == cors_req.origin &&
         cors_cache.url == cors_req.current_url() &&
         (cors_cache.credentials || cors_req.credentials_mode != CredentialsMode::Include)
 }
@@ -97,7 +97,7 @@ impl CorsCache {
     pub fn clear(&mut self, request: &Request) {
         let CorsCache(buf) = self.clone();
         let new_buf: Vec<CorsCacheEntry> =
-            buf.into_iter().filter(|e| e.origin == *request.origin.borrow() &&
+            buf.into_iter().filter(|e| e.origin == request.origin &&
                                        request.current_url() == e.url).collect();
         *self = CorsCache(new_buf);
     }
@@ -127,7 +127,7 @@ impl CorsCache {
         match self.find_entry_by_header(&request, header_name).map(|e| e.max_age = new_max_age) {
             Some(_) => true,
             None => {
-                self.insert(CorsCacheEntry::new(request.origin.borrow().clone(), request.current_url(), new_max_age,
+                self.insert(CorsCacheEntry::new(request.origin.clone(), request.current_url(), new_max_age,
                                                 request.credentials_mode == CredentialsMode::Include,
                                                 HeaderOrMethod::HeaderData(header_name.to_owned())));
                 false
@@ -149,7 +149,7 @@ impl CorsCache {
         match self.find_entry_by_method(&request, method.clone()).map(|e| e.max_age = new_max_age) {
             Some(_) => true,
             None => {
-                self.insert(CorsCacheEntry::new(request.origin.borrow().clone(), request.current_url(), new_max_age,
+                self.insert(CorsCacheEntry::new(request.origin.clone(), request.current_url(), new_max_age,
                                                 request.credentials_mode == CredentialsMode::Include,
                                                 HeaderOrMethod::MethodData(method)));
                 false
