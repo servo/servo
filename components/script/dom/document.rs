@@ -2132,7 +2132,21 @@ impl Document {
             scripts: Default::default(),
             anchors: Default::default(),
             applets: Default::default(),
-            style_shared_lock: StyleSharedRwLock::new(),
+            style_shared_lock: {
+                lazy_static! {
+                    /// Per-process shared lock for author-origin stylesheets
+                    ///
+                    /// FIXME: make it per-document or per-pipeline instead:
+                    /// https://github.com/servo/servo/issues/16027
+                    /// (Need to figure out what to do with the style attribute
+                    /// of elements adopted into another document.)
+                    static ref PER_PROCESS_AUTHOR_SHARED_LOCK: StyleSharedRwLock = {
+                        StyleSharedRwLock::new()
+                    };
+                }
+                PER_PROCESS_AUTHOR_SHARED_LOCK.clone()
+                //StyleSharedRwLock::new()
+            },
             stylesheets: DOMRefCell::new(None),
             stylesheets_changed_since_reflow: Cell::new(false),
             stylesheet_list: MutNullableJS::new(None),
