@@ -49,6 +49,7 @@ use dom::screen::Screen;
 use dom::storage::Storage;
 use dom::testrunner::TestRunner;
 use dom::windowproxy::WindowProxy;
+use dom::worklet::Worklet;
 use dom_struct::dom_struct;
 use euclid::{Point2D, Rect, Size2D};
 use fetch;
@@ -273,6 +274,9 @@ pub struct Window {
     /// Directory to store unminified scripts for this window if unminify-js
     /// opt is enabled.
     unminified_js_dir: DOMRefCell<Option<String>>,
+
+    /// Worklets
+    test_worklet: MutNullableJS<Worklet>,
 }
 
 impl Window {
@@ -1830,6 +1834,7 @@ impl Window {
             permission_state_invocation_results: DOMRefCell::new(HashMap::new()),
             pending_layout_images: DOMRefCell::new(HashMap::new()),
             unminified_js_dir: DOMRefCell::new(None),
+            test_worklet: Default::default(),
         };
 
         unsafe {

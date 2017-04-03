@@ -5,7 +5,7 @@
  * https://dom.spec.whatwg.org/#interface-eventtarget
  */
 
-[Abstract, Exposed=(Window,Worker)]
+[Abstract, Exposed=(Window,Worker,Worklet)]
 interface EventTarget {
   void addEventListener(DOMString type,
                         EventListener? listener,

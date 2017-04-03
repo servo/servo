@@ -11185,6 +11185,21 @@
     [
      {}
     ]
+   ],
+   "mozilla/worklets/syntax_error.js": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/worklets/test_worklet.js": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/worklets/throw_exception.js": [
+    [
+     {}
+    ]
    ]
   },
   "testharness": {
@@ -20027,6 +20042,12 @@
      "/_mozilla/mozilla/windowproxy.html",
      {}
     ]
+   ],
+   "mozilla/worklets/test_worklet.html": [
+    [
+     "/_mozilla/mozilla/worklets/test_worklet.html",
+     {}
+    ]
    ]
   }
  },
@@ -25796,7 +25817,7 @@
    "testharness"
   ],
   "mozilla/interfaces.html": [
-   "21e18bafdbfe5f3aa0ee71766bdc3b6a7e334226",
+   "49dd9f6ef449813f2ce943d4c9fac351357e5c74",
    "testharness"
   ],
   "mozilla/interfaces.js": [
@@ -31714,6 +31735,22 @@
   "mozilla/windowproxy.html": [
    "128cd0aa5cf80f60078979039036d32b470b0616",
    "testharness"
+  ],
+  "mozilla/worklets/syntax_error.js": [
+   "f3a9b8c78346507bc0b3190c8000ccf80cc133f6",
+   "support"
+  ],
+  "mozilla/worklets/test_worklet.html": [
+   "fe9c93a5307c616f878b6623155e1b04c86dd994",
+   "testharness"
+  ],
+  "mozilla/worklets/test_worklet.js": [
+   "9d5f8a07cd62a10f4f5ff93744672e5a6fdbc2b0",
+   "support"
+  ],
+  "mozilla/worklets/throw_exception.js": [
+   "ebfdae19db68fed8e69142ef73842ac9921e4463",
+   "support"
   ]
  },
  "url_base": "/_mozilla/",

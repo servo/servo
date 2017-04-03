@@ -296,3 +296,4 @@ fn create_native_handler_function(cx: *mut JSContext,
         obj.get()
     }
 }
+

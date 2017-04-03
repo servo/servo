@@ -5,6 +5,8 @@
 // This interface is entirely internal to Servo, and should not be accessible to
 // web pages.
 
-[Exposed=(Window,Worker,Worklet),
- Inline]
-interface GlobalScope : EventTarget {};
+[Pref="dom.worklet.testing.enabled", Exposed=(Window), Constructor]
+interface TestWorklet {
+   [NewObject] Promise<void> addModule(USVString moduleURL, optional WorkletOptions options);
+   DOMString? lookup(DOMString key);
+};
