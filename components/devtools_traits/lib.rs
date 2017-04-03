@@ -230,6 +230,8 @@ pub enum LogLevel {
     Info,
     Warn,
     Error,
+    Group,
+    GroupEnd,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -239,6 +241,7 @@ pub struct ConsoleMessage {
     pub filename: String,
     pub lineNumber: usize,
     pub columnNumber: usize,
+    pub groupName: String,
 }
 
 bitflags! {

@@ -12,9 +12,9 @@ use dom::workerglobalscope::WorkerGlobalScope;
 pub struct Console(());
 
 impl Console {
-    fn send_to_devtools(global: &GlobalScope, level: LogLevel, message: DOMString) {
+    fn send_to_devtools(global: &GlobalScope, level: LogLevel, message: DOMString, group_name: DOMString) {
         if let Some(chan) = global.devtools_chan() {
-            let console_message = prepare_message(level, message);
+            let console_message = prepare_message(level, message, group_name);
             let worker_id = global.downcast::<WorkerGlobalScope>().map(|worker| {
                 worker.get_worker_id()
             });
@@ -32,7 +32,7 @@ impl Console {
     pub fn Log(global: &GlobalScope, messages: Vec<DOMString>) {
         for message in messages {
             println!("{}", message);
-            Self::send_to_devtools(global, LogLevel::Log, message);
+            Self::send_to_devtools(global, LogLevel::Log, message, DOMString::new());
         }
     }
 
@@ -40,7 +40,7 @@ impl Console {
     pub fn Debug(global: &GlobalScope, messages: Vec<DOMString>) {
         for message in messages {
             println!("{}", message);
-            Self::send_to_devtools(global, LogLevel::Debug, message);
+            Self::send_to_devtools(global, LogLevel::Debug, message, DOMString::new());
         }
     }
 
@@ -48,7 +48,7 @@ impl Console {
     pub fn Info(global: &GlobalScope, messages: Vec<DOMString>) {
         for message in messages {
             println!("{}", message);
-            Self::send_to_devtools(global, LogLevel::Info, message);
+            Self::send_to_devtools(global, LogLevel::Info, message, DOMString::new());
         }
     }
 
@@ -56,7 +56,7 @@ impl Console {
     pub fn Warn(global: &GlobalScope, messages: Vec<DOMString>) {
         for message in messages {
             println!("{}", message);
-            Self::send_to_devtools(global, LogLevel::Warn, message);
+            Self::send_to_devtools(global, LogLevel::Warn, message, DOMString::new());
         }
     }
 
@@ -64,7 +64,7 @@ impl Console {
     pub fn Error(global: &GlobalScope, messages: Vec<DOMString>) {
         for message in messages {
             println!("{}", message);
-            Self::send_to_devtools(global, LogLevel::Error, message);
+            Self::send_to_devtools(global, LogLevel::Error, message, DOMString::new());
         }
     }
 
@@ -73,7 +73,7 @@ impl Console {
         if !condition {
             let message = message.unwrap_or_else(|| DOMString::from("no message"));
             println!("Assertion failed: {}", message);
-            Self::send_to_devtools(global, LogLevel::Error, message);
+            Self::send_to_devtools(global, LogLevel::Error, message, DOMString::new());
         }
     }
 
@@ -82,7 +82,7 @@ impl Console {
         if let Ok(()) = global.time(label.clone()) {
             let message = DOMString::from(format!("{}: timer started", label));
             println!("{}", message);
-            Self::send_to_devtools(global, LogLevel::Log, message);
+            Self::send_to_devtools(global, LogLevel::Log, message, DOMString::new());
         }
     }
 
@@ -93,12 +93,23 @@ impl Console {
                 format!("{}: {}ms", label, delta)
             );
             println!("{}", message);
-            Self::send_to_devtools(global, LogLevel::Log, message);
+            Self::send_to_devtools(global, LogLevel::Log, message, DOMString::new());
         };
+    }
+
+    // https://developer.mozilla.org/en-US/docs/Web/API/Console/group
+    pub fn Group(global: &GlobalScope, label: Option<DOMString>) {
+        let label = label.unwrap_or_else(|| DOMString::from("<no group label>"));
+        Self::send_to_devtools(global, LogLevel::Group, label.clone(), label);
+    }
+
+    // https://developer.mozilla.org/en-US/docs/Web/API/Console/groupEnd
+    pub fn GroupEnd(global: &GlobalScope) {
+        Self::send_to_devtools(global, LogLevel::GroupEnd, DOMString::new(), DOMString::new());
     }
 }
 
-fn prepare_message(log_level: LogLevel, message: DOMString) -> ConsoleMessage {
+fn prepare_message(log_level: LogLevel, message: DOMString, group_name: DOMString) -> ConsoleMessage {
     // TODO: Sending fake values for filename, lineNumber and columnNumber in LogMessage; adjust later
     ConsoleMessage {
         message: String::from(message),
@@ -106,5 +117,6 @@ fn prepare_message(log_level: LogLevel, message: DOMString) -> ConsoleMessage {
         filename: "test".to_owned(),
         lineNumber: 1,
         columnNumber: 1,
+        groupName: String::from(group_name),
     }
 }

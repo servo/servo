@@ -90,6 +90,7 @@ struct ConsoleMsg {
     filename: String,
     lineNumber: usize,
     columnNumber: usize,
+    groupName: String,
 }
 
 #[derive(Serialize)]
@@ -300,6 +301,8 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                     LogLevel::Info => "info",
                     LogLevel::Warn => "warn",
                     LogLevel::Error => "error",
+                    LogLevel::Group => "group",
+                    LogLevel::GroupEnd => "groupEnd",
                     _ => "log"
                 }.to_owned(),
                 timeStamp: precise_time_ns(),
@@ -307,6 +310,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                 filename: console_message.filename,
                 lineNumber: console_message.lineNumber,
                 columnNumber: console_message.columnNumber,
+                groupName: console_message.groupName,
             },
         };
         for mut stream in &mut *console_actor.streams.borrow_mut() {
@@ -517,6 +521,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                     filename: css_error.filename,
                     lineNumber: css_error.line,
                     columnNumber: css_error.column,
+                    groupName: String::new(),
                 };
                 handle_console_message(actors.clone(), id, None, console_message,
                                        &actor_pipelines, &actor_workers)
