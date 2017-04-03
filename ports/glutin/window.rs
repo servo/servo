@@ -380,11 +380,16 @@ impl Window {
                 #[cfg(target_os = "windows")]
                 {
                     let modifiers = Window::glutin_mods_to_script_mods(self.key_modifiers.get());
-                    //TODO : Should not be in an if because the condition should be always true
-                    // allowing us to call unwrap on self.last_pressed_key.get()
                     if let Some(last_pressed_key) = self.last_pressed_key.get() {
                         let event = WindowEvent::KeyEvent(Some(ch), last_pressed_key, KeyState::Pressed, modifiers);
                         self.event_queue.borrow_mut().push(event);
+                    }
+                    else {
+                        // Only send the character if we can print it (by ignoring characters like backspace)
+                        if ch >= ' ' {
+                            let event = WindowEvent::KeyEvent(Some(ch), Key::A, KeyState::Pressed, modifiers);
+                            self.event_queue.borrow_mut().push(event);
+                        }
                     }
                     self.last_pressed_key.set(None);
                 }
