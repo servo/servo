@@ -10,10 +10,12 @@
 #![feature(nonzero)]
 #![feature(on_unimplemented)]
 #![feature(optin_builtin_traits)]
+#![feature(option_entry)]
 #![feature(plugin)]
 #![feature(proc_macro)]
 #![feature(stmt_expr_attributes)]
 #![feature(try_from)]
+#![feature(unboxed_closures)]
 #![feature(untagged_unions)]
 
 #![deny(unsafe_code)]
@@ -46,7 +48,7 @@ extern crate encoding;
 extern crate euclid;
 extern crate fnv;
 extern crate gfx_traits;
-extern crate heapsize;
+#[macro_use] extern crate heapsize;
 #[macro_use] extern crate heapsize_derive;
 #[macro_use] extern crate html5ever;
 #[macro_use]
@@ -92,6 +94,7 @@ extern crate smallvec;
 #[macro_use]
 extern crate style;
 extern crate style_traits;
+extern crate swapper;
 extern crate time;
 #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
 extern crate tinyfiledialogs;

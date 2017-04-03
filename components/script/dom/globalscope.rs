@@ -19,6 +19,7 @@ use dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use dom::eventtarget::EventTarget;
 use dom::window::Window;
 use dom::workerglobalscope::WorkerGlobalScope;
+use dom::workletglobalscope::WorkletGlobalScope;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
@@ -259,6 +260,10 @@ impl GlobalScope {
             // https://html.spec.whatwg.org/multipage/#script-settings-for-workers:api-base-url
             return worker.get_url().clone();
         }
+        if let Some(worker) = self.downcast::<WorkletGlobalScope>() {
+            // https://drafts.css-houdini.org/worklets/#script-settings-for-worklets
+            return worker.base_url();
+        }
         unreachable!();
     }
 
@@ -269,6 +274,10 @@ impl GlobalScope {
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             return worker.get_url().clone();
+        }
+        if let Some(worker) = self.downcast::<WorkletGlobalScope>() {
+            // TODO: is this the right URL to return?
+            return worker.base_url();
         }
         unreachable!();
     }
@@ -349,14 +358,14 @@ impl GlobalScope {
 
     /// Evaluate JS code on this global scope.
     pub fn evaluate_js_on_global_with_result(
-            &self, code: &str, rval: MutableHandleValue) {
+            &self, code: &str, rval: MutableHandleValue) -> bool {
         self.evaluate_script_on_global_with_result(code, "", rval, 1)
     }
 
     /// Evaluate a JS script on this global scope.
     #[allow(unsafe_code)]
     pub fn evaluate_script_on_global_with_result(
-            &self, code: &str, filename: &str, rval: MutableHandleValue, line_number: u32) {
+            &self, code: &str, filename: &str, rval: MutableHandleValue, line_number: u32) -> bool {
         let metadata = time::TimerMetadata {
             url: if filename.is_empty() {
                 self.get_url().as_str().into()
@@ -379,16 +388,21 @@ impl GlobalScope {
                 let _ac = JSAutoCompartment::new(cx, globalhandle.get());
                 let _aes = AutoEntryScript::new(self);
                 let options = CompileOptionsWrapper::new(cx, filename.as_ptr(), line_number);
-                unsafe {
-                    if !Evaluate2(cx, options.ptr, code.as_ptr(),
-                                  code.len() as libc::size_t,
-                                  rval) {
-                        debug!("error evaluating JS string");
-                        report_pending_exception(cx, true);
-                    }
+
+                debug!("evaluating JS string");
+                let result = unsafe {
+                    Evaluate2(cx, options.ptr, code.as_ptr(),
+                              code.len() as libc::size_t,
+                              rval)
+                };
+
+                if !result {
+                    debug!("error evaluating JS string");
+                    unsafe { report_pending_exception(cx, true) };
                 }
 
                 maybe_resume_unwind();
+                result
             }
         )
     }
@@ -468,6 +482,9 @@ impl GlobalScope {
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             return worker.perform_a_microtask_checkpoint();
         }
+        if let Some(worker) = self.downcast::<WorkletGlobalScope>() {
+            return worker.perform_a_microtask_checkpoint();
+        }
         unreachable!();
     }
 
@@ -477,6 +494,9 @@ impl GlobalScope {
             return ScriptThread::enqueue_microtask(job);
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            return worker.enqueue_microtask(job);
+        }
+        if let Some(worker) = self.downcast::<WorkletGlobalScope>() {
             return worker.enqueue_microtask(job);
         }
         unreachable!();

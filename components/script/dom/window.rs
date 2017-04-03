@@ -49,6 +49,8 @@ use dom::promise::Promise;
 use dom::screen::Screen;
 use dom::storage::Storage;
 use dom::testrunner::TestRunner;
+use dom::worklet::Worklet;
+use dom::workletglobalscope::WorkletGlobalScopeType;
 use dom_struct::dom_struct;
 use euclid::{Point2D, Rect, Size2D};
 use fetch;
@@ -76,7 +78,7 @@ use script_layout_interface::rpc::{MarginStyleResponse, NodeScrollRootIdResponse
 use script_layout_interface::rpc::{ResolvedStyleResponse, TextIndexResponse};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, ScriptThreadEventCategory};
 use script_thread::{MainThreadScriptChan, MainThreadScriptMsg, Runnable, RunnableWrapper};
-use script_thread::{SendableMainThreadScriptChan, ImageCacheMsg};
+use script_thread::{ScriptThread, SendableMainThreadScriptChan, ImageCacheMsg};
 use script_traits::{ConstellationControlMsg, LoadData, MozBrowserEvent, UntrustedNodeAddress};
 use script_traits::{DocumentState, TimerEvent, TimerEventId};
 use script_traits::{ScriptMsg as ConstellationMsg, TimerSchedulerMsg, WindowSizeData, WindowSizeType};
@@ -273,6 +275,9 @@ pub struct Window {
     /// Directory to store unminified scripts for this window if unminify-js
     /// opt is enabled.
     unminified_js_dir: DOMRefCell<Option<String>>,
+
+    /// Worklets
+    test_worklet: MutNullableJS<Worklet>,
 }
 
 impl Window {
@@ -991,6 +996,16 @@ impl WindowMethods for Window {
     // https://fetch.spec.whatwg.org/#fetch-method
     fn Fetch(&self, input: RequestOrUSVString, init: RootedTraceableBox<RequestInit>) -> Rc<Promise> {
         fetch::Fetch(&self.upcast(), input, init)
+    }
+
+    fn TestWorklet(&self) -> Root<Worklet> {
+        self.test_worklet.or_init(|| Worklet::new(self, WorkletGlobalScopeType::Test))
+    }
+
+    fn TestWorkletLookup(&self, key: DOMString) -> Option<DOMString> {
+        let id = self.TestWorklet().worklet_id();
+        let pool = ScriptThread::worklet_thread_pool();
+        pool.test_worklet_lookup(id, String::from(key)).map(DOMString::from)
     }
 
     fn TestRunner(&self) -> Root<TestRunner> {
@@ -1826,6 +1841,7 @@ impl Window {
             permission_state_invocation_results: DOMRefCell::new(HashMap::new()),
             pending_layout_images: DOMRefCell::new(HashMap::new()),
             unminified_js_dir: DOMRefCell::new(None),
+            test_worklet: Default::default(),
         };
 
         unsafe {

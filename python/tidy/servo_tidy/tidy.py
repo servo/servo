@@ -67,6 +67,7 @@ WEBIDL_STANDARDS = [
     "//dom.spec.whatwg.org",
     "//domparsing.spec.whatwg.org",
     "//drafts.csswg.org",
+    "//drafts.css-houdini.org",
     "//drafts.fxtf.org",
     "//encoding.spec.whatwg.org",
     "//fetch.spec.whatwg.org",

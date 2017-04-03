@@ -1,0 +1,25 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Test worklet loading</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(function() {
+  return window.testWorklet.addModule("test_worklet.js")
+    .then(function () {
+      assert_equals(window.testWorkletLookup("hello"), "world");
+    });
+}, "Loading a test worklet.");
+
+promise_test(function(t) {
+   return promise_rejects(t, "AbortError", window.testWorklet.addModule("nonexistent_worklet.js"));
+}, "Loading a nonexistent test worklet.");
+
+promise_test(function(t) {
+   return promise_rejects(t, "AbortError", window.testWorklet.addModule("syntax_error.js"));
+}, "Loading a syntactically incorrect test worklet.");
+
+promise_test(function(t) {
+   return promise_rejects(t, "AbortError", window.testWorklet.addModule("throw_exception.js"));
+}, "Loading an exception-throwing test worklet.");
+</script>
