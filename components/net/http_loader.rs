@@ -65,6 +65,7 @@ fn read_block<R: Read>(reader: &mut R) -> Result<Data, ()> {
     }
 }
 
+#[derive(Clone)]
 pub struct HttpState {
     pub hsts_list: Arc<RwLock<HstsList>>,
     pub cookie_jar: Arc<RwLock<CookieStorage>>,
