@@ -26,3 +26,11 @@ fn test_will_change() {
     assert!(parse(will_change::parse, "contents, inherit, initial").is_err());
     assert!(parse(will_change::parse, "transform scroll-position").is_err());
 }
+
+#[test]
+fn test_transform_translate() {
+    use style::properties::longhands::transform;
+    assert_roundtrip_with_context!(transform::parse, "translate(2px)");
+    assert_roundtrip_with_context!(transform::parse, "translate(2px, 5px)");
+    assert!(parse(transform::parse, "translate(2px foo)").is_err());
+}
