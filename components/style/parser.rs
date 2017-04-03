@@ -9,7 +9,9 @@
 use cssparser::{Parser, SourcePosition, UnicodeRange};
 use error_reporting::ParseErrorReporter;
 #[cfg(feature = "gecko")]
-use gecko_bindings::sugar::refptr::{GeckoArcPrincipal, GeckoArcURI};
+use gecko_bindings::structs::URLExtraData;
+#[cfg(feature = "gecko")]
+use gecko_bindings::sugar::refptr::RefPtr;
 use servo_url::ServoUrl;
 use style_traits::OneOrMoreCommaSeparated;
 use stylesheets::Origin;
@@ -21,12 +23,8 @@ pub struct ParserContextExtraData;
 /// Extra data that the style backend may need to parse stylesheets.
 #[cfg(feature = "gecko")]
 pub struct ParserContextExtraData {
-    /// The base URI.
-    pub base: Option<GeckoArcURI>,
-    /// The referrer URI.
-    pub referrer: Option<GeckoArcURI>,
-    /// The principal that loaded this stylesheet.
-    pub principal: Option<GeckoArcPrincipal>,
+    /// The URL extra data.
+    pub data: Option<RefPtr<URLExtraData>>,
 }
 
 #[cfg(not(feature = "gecko"))]
@@ -39,7 +37,7 @@ impl Default for ParserContextExtraData {
 #[cfg(feature = "gecko")]
 impl Default for ParserContextExtraData {
     fn default() -> Self {
-        ParserContextExtraData { base: None, referrer: None, principal: None }
+        ParserContextExtraData { data: None }
     }
 }
 
@@ -48,15 +46,10 @@ impl ParserContextExtraData {
     /// Construct from a GeckoParserExtraData
     ///
     /// GeckoParserExtraData must live longer than this call
-    pub unsafe fn new(data: *const ::gecko_bindings::structs::GeckoParserExtraData) -> Self {
-        // the to_safe calls are safe since we trust that we have references to
-        // real Gecko refptrs. The dereferencing of data is safe because this function
-        // is expected to be called with a `data` living longer than this function.
-        unsafe { ParserContextExtraData {
-            base: Some((*data).mBaseURI.to_safe()),
-            referrer: Some((*data).mReferrer.to_safe()),
-            principal: Some((*data).mPrincipal.to_safe()),
-        }}
+    pub unsafe fn new(data: *mut URLExtraData) -> Self {
+        ParserContextExtraData {
+            data: Some(RefPtr::new(data)),
+        }
     }
 }
 /// The data that the parser needs from outside in order to parse a stylesheet.

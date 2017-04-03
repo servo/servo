@@ -5,8 +5,8 @@
 //! Common handling for the specified value CSS url() values.
 
 use cssparser::CssStringWriter;
-use gecko_bindings::structs::ServoBundledURI;
-use gecko_bindings::sugar::refptr::{GeckoArcPrincipal, GeckoArcURI};
+use gecko_bindings::structs::{ServoBundledURI, URLExtraData};
+use gecko_bindings::sugar::refptr::RefPtr;
 use parser::ParserContext;
 use std::borrow::Cow;
 use std::fmt::{self, Write};
@@ -22,12 +22,8 @@ pub struct SpecifiedUrl {
     /// really large.
     serialization: Arc<String>,
 
-    /// The base URI.
-    pub base: GeckoArcURI,
-    /// The referrer.
-    pub referrer: GeckoArcURI,
-    /// The principal that originated this URI.
-    pub principal: GeckoArcPrincipal,
+    /// The URL extra data.
+    pub extra_data: RefPtr<URLExtraData>,
 }
 
 impl SpecifiedUrl {
@@ -39,7 +35,7 @@ impl SpecifiedUrl {
                                  context: &ParserContext)
                                  -> Result<Self, ()> {
         let extra = &context.extra_data;
-        if extra.base.is_none() || extra.referrer.is_none() || extra.principal.is_none() {
+        if extra.data.is_none() {
             // FIXME(heycam) should ensure we always have a principal, etc.,
             // when parsing style attributes and re-parsing due to CSS
             // Variables.
@@ -49,9 +45,7 @@ impl SpecifiedUrl {
 
         Ok(SpecifiedUrl {
             serialization: Arc::new(url.into_owned()),
-            base: extra.base.as_ref().unwrap().clone(),
-            referrer: extra.referrer.as_ref().unwrap().clone(),
-            principal: extra.principal.as_ref().unwrap().clone(),
+            extra_data: extra.data.as_ref().unwrap().clone(),
         })
     }
 
@@ -88,9 +82,7 @@ impl SpecifiedUrl {
         ServoBundledURI {
             mURLString: ptr,
             mURLStringLength: len as u32,
-            mBaseURI: self.base.get(),
-            mReferrer: self.referrer.get(),
-            mPrincipal: self.principal.get(),
+            mExtraData: self.extra_data.get(),
         }
     }
 }

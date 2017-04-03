@@ -2158,8 +2158,7 @@ ${helpers.predefined_type("-moz-binding", "UrlOrNone", "Either::Second(None_)",
                           animatable="False",
                           gecko_ffi_name="mBinding",
                           spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-binding)",
-                          disable_when_testing="True",
-                          boxed=True)}
+                          disable_when_testing="True")}
 
 ${helpers.single_keyword("-moz-orient",
                           "inline block horizontal vertical",
