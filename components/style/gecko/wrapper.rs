@@ -41,7 +41,7 @@ use gecko_bindings::bindings::Gecko_IsSignificantChild;
 use gecko_bindings::bindings::Gecko_MatchStringArgPseudo;
 use gecko_bindings::bindings::Gecko_UpdateAnimations;
 use gecko_bindings::structs;
-use gecko_bindings::structs::{RawGeckoElement, RawGeckoNode, URLExtraData};
+use gecko_bindings::structs::{RawGeckoElement, RawGeckoNode};
 use gecko_bindings::structs::{nsIAtom, nsIContent, nsStyleContext};
 use gecko_bindings::structs::EffectCompositor_CascadeLevel as CascadeLevel;
 use gecko_bindings::structs::NODE_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO;
@@ -49,7 +49,6 @@ use gecko_bindings::structs::NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO;
 use gecko_bindings::structs::NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE;
 use gecko_bindings::structs::NODE_IS_NATIVE_ANONYMOUS;
 use gecko_bindings::sugar::ownership::HasArcFFI;
-use gecko_bindings::sugar::refptr::RefPtr;
 use parking_lot::RwLock;
 use properties::{ComputedValues, parse_style_attribute};
 use properties::PropertyDeclarationBlock;
@@ -386,17 +385,6 @@ impl<'le> GeckoElement<'le> {
     pub fn create_snapshot(&self) -> Snapshot {
         Snapshot::new(*self)
     }
-}
-
-lazy_static! {
-    /// A dummy url data in order to get it where we don't have any available.
-    ///
-    /// We need to get rid of this sooner than later.
-    pub static ref DUMMY_URL_DATA: RefPtr<URLExtraData> = {
-        unsafe {
-            RefPtr::from_addrefed(bindings::Gecko_URLExtraData_CreateDummy())
-        }
-    };
 }
 
 /// Converts flags from the layout used by rust-selectors to the layout used

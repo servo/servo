@@ -25,7 +25,6 @@ use style::gecko::global_style_data::GLOBAL_STYLE_DATA;
 use style::gecko::restyle_damage::GeckoRestyleDamage;
 use style::gecko::selector_parser::{SelectorImpl, PseudoElement};
 use style::gecko::traversal::RecalcStyleOnly;
-use style::gecko::wrapper::DUMMY_URL_DATA;
 use style::gecko::wrapper::GeckoElement;
 use style::gecko_bindings::bindings;
 use style::gecko_bindings::bindings::{RawGeckoKeyframeListBorrowed, RawGeckoKeyframeListBorrowedMut};
@@ -97,7 +96,9 @@ use super::stylesheet_loader::StylesheetLoader;
  * depend on but good enough for our purposes.
  */
 
-
+// A dummy url data for where we don't pass url data in.
+// We need to get rid of this sooner than later.
+static mut DUMMY_URL_DATA: Option<*mut URLExtraData> = None;
 
 #[no_mangle]
 pub extern "C" fn Servo_Initialize() {
@@ -117,12 +118,24 @@ pub extern "C" fn Servo_Initialize() {
 
     // Initialize some static data.
     gecko_properties::initialize();
+
+    // Initialize the dummy url data
+    unsafe {
+        DUMMY_URL_DATA = Some(bindings::Gecko_URLExtraData_CreateDummy());
+    }
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_Shutdown() {
     // Clear some static data to avoid shutdown leaks.
     gecko_properties::shutdown();
+
+    // Clear the dummy url data to avoid shutdown leaks.
+    unsafe { RefPtr::from_addrefed(DUMMY_URL_DATA.take().unwrap()) };
+}
+
+unsafe fn dummy_url_data() -> &'static RefPtr<URLExtraData> {
+    RefPtr::from_ptr_ref(DUMMY_URL_DATA.as_ref().unwrap())
 }
 
 fn create_shared_context<'a>(guard: &'a SharedRwLockReadGuard,
@@ -317,8 +330,8 @@ pub extern "C" fn Servo_StyleSheet_Empty(mode: SheetParsingMode) -> RawServoStyl
     };
     let shared_lock = global_style_data.shared_lock.clone();
     Arc::new(Stylesheet::from_str(
-        "", DUMMY_URL_DATA.clone(), origin, Default::default(),
-        shared_lock, None, &StdoutErrorReporter)
+        "", unsafe { dummy_url_data() }.clone(), origin,
+        Default::default(), shared_lock, None, &StdoutErrorReporter)
     ).into_strong()
 }
 
@@ -1335,7 +1348,7 @@ pub extern "C" fn Servo_CSSSupports2(property: *const nsACString, value: *const 
     };
     let value = unsafe { value.as_ref().unwrap().as_str_unchecked() };
 
-    let url_data = &*DUMMY_URL_DATA;
+    let url_data = unsafe { dummy_url_data() };
     parse_one_declaration(id, &value, url_data, &StdoutErrorReporter).is_ok()
 }
 
@@ -1345,7 +1358,7 @@ pub extern "C" fn Servo_CSSSupports(cond: *const nsACString) -> bool {
     let mut input = Parser::new(&condition);
     let cond = parse_condition_or_declaration(&mut input);
     if let Ok(cond) = cond {
-        let url_data = &*DUMMY_URL_DATA;
+        let url_data = unsafe { dummy_url_data() };
         let reporter = StdoutErrorReporter;
         let context = ParserContext::new_for_cssom(url_data, &reporter);
         cond.eval(&context)
