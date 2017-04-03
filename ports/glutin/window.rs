@@ -383,11 +383,13 @@ impl Window {
                     if let Some(last_pressed_key) = self.last_pressed_key.get() {
                         let event = WindowEvent::KeyEvent(Some(ch), last_pressed_key, KeyState::Pressed, modifiers);
                         self.event_queue.borrow_mut().push(event);
-                    }
-                    else {
+                    } else {
                         // Only send the character if we can print it (by ignoring characters like backspace)
                         if ch >= ' ' {
-                            let event = WindowEvent::KeyEvent(Some(ch), Key::A /* unused */, KeyState::Pressed, modifiers);
+                            let event = WindowEvent::KeyEvent(Some(ch),
+                                                              Key::A /* unused */,
+                                                              KeyState::Pressed,
+                                                              modifiers);
                             self.event_queue.borrow_mut().push(event);
                         }
                     }
