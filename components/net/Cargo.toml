@@ -33,7 +33,7 @@ serde_derive = "0.9"
 serde_json = "0.9"
 servo_config = {path = "../config"}
 servo_url = {path = "../url"}
-servo-websocket = "0.19"
+websocket = { git = "https://github.com/cyderize/rust-websocket.git" }
 threadpool = "1.0"
 time = "0.1.17"
 unicase = "1.4.0"

@@ -32,6 +32,8 @@ use websocket::header::{Origin, WebSocketAccept, WebSocketKey, WebSocketProtocol
 use websocket::message::Type as MessageType;
 use websocket::receiver::Receiver;
 use websocket::sender::Sender;
+use websocket::ClientBuilder;
+use websocket::client::{Reader, Writer};
 
 pub fn init(connect: WebSocketCommunicate,
             connect_data: WebSocketConnectData,
@@ -152,112 +154,36 @@ fn establish_a_websocket_connection(resource_url: &ServoUrl,
                                     protocols: Vec<String>,
                                     cookie_jar: Arc<RwLock<CookieStorage>>)
                                     -> Result<(Option<String>,
-                                               Sender<Stream>,
-                                               Receiver<Stream>),
-                                              NetworkError> {
-    // Steps 1 is not really applicable here, given we don't exactly go
-    // through the same infrastructure as the Fetch spec.
-
-    // Step 2, slimmed down because we don't go through the whole Fetch infra.
-    let mut headers = Headers::new();
-
-    // Step 3.
-    headers.set(Upgrade(vec![Protocol::new(ProtocolName::WebSocket, None)]));
-
-    // Step 4.
-    headers.set(Connection(vec![ConnectionOption::ConnectionHeader("upgrade".into())]));
-
-    // Step 5.
-    let key_value = WebSocketKey::new();
-
-    // Step 6.
-    headers.set(key_value);
-
-    // Step 7.
-    headers.set(WebSocketVersion::WebSocket13);
-
-    // Step 8.
-    if !protocols.is_empty() {
-        headers.set(WebSocketProtocol(protocols.clone()));
-    }
-
-    // Steps 9-10.
+                                               Writer<TcpStream>,
+                                               Reader<TcpStream>),
+                                              NetworkError>
+{
     // TODO: handle permessage-deflate extension.
-
-    // Step 11 and network error check from step 12.
-    let response = fetch(resource_url, origin, headers, cookie_jar)?;
-
-    // Step 12, the status code check.
-    if response.status != StatusCode::SwitchingProtocols {
-        return Err(NetworkError::Internal("Response's status should be 101.".into()));
-    }
-
-    // Step 13.
-    if !protocols.is_empty() {
-        if response.headers.get::<WebSocketProtocol>().map_or(true, |protocols| protocols.is_empty()) {
-            return Err(NetworkError::Internal(
-                "Response's Sec-WebSocket-Protocol header is missing, malformed or empty.".into()));
-        }
-    }
-
-    // Step 14.2.
-    let upgrade_header = response.headers.get::<Upgrade>().ok_or_else(|| {
-        NetworkError::Internal("Response should have an Upgrade header.".into())
-    })?;
-    if upgrade_header.len() != 1 {
-        return Err(NetworkError::Internal("Response's Upgrade header should have only one value.".into()));
-    }
-    if upgrade_header[0].name != ProtocolName::WebSocket {
-        return Err(NetworkError::Internal("Response's Upgrade header value should be \"websocket\".".into()));
-    }
-
-    // Step 14.3.
-    let connection_header = response.headers.get::<Connection>().ok_or_else(|| {
-        NetworkError::Internal("Response should have a Connection header.".into())
-    })?;
-    let connection_includes_upgrade = connection_header.iter().any(|option| {
-        match *option {
-            ConnectionOption::ConnectionHeader(ref option) => *option == "upgrade",
-            _ => false,
-        }
-    });
-    if !connection_includes_upgrade {
-        return Err(NetworkError::Internal("Response's Connection header value should include \"upgrade\".".into()));
-    }
-
-    // Step 14.4.
-    let accept_header = response.headers.get::<WebSocketAccept>().ok_or_else(|| {
-        NetworkError::Internal("Response should have a Sec-Websocket-Accept header.".into())
-    })?;
-    if *accept_header != WebSocketAccept::new(&key_value) {
-        return Err(NetworkError::Internal(
-            "Response's Sec-WebSocket-Accept header value did not match the sent key.".into()));
-    }
+    let client = ClientBuilder::from_url(resource_url.as_url())
+        .add_protocols(protocols.clone())
+        .origin(origin)
+        .connect_insecure()
+        .unwrap();
 
     // Step 14.5.
     // TODO: handle permessage-deflate extension.
     // We don't support any extension, so we fail at the mere presence of
     // a Sec-WebSocket-Extensions header.
-    if response.headers.get_raw("Sec-WebSocket-Extensions").is_some() {
+    if client.extensions().len() > 0 {
         return Err(NetworkError::Internal(
             "Response's Sec-WebSocket-Extensions header value included unsupported extensions.".into()));
     }
 
     // Step 14.6.
-    let protocol_in_use = if let Some(response_protocols) = response.headers.get::<WebSocketProtocol>() {
-        for replied in &**response_protocols {
-            if !protocols.iter().any(|requested| requested.eq_ignore_ascii_case(replied)) {
-                return Err(NetworkError::Internal(
-                    "Response's Sec-WebSocket-Protocols contain values that were not requested.".into()));
-            }
+    for replied in client.protocols() {
+        if !protocols.iter().any(|requested| requested.eq_ignore_ascii_case(replied)) {
+            return Err(NetworkError::Internal(
+                "Response's Sec-WebSocket-Protocols contain values that were not requested.".into()));
         }
-        response_protocols.first().cloned()
-    } else {
-        None
-    };
+    }
+    let protocol_in_use = client.protocols().first().cloned();
 
-    let sender = Sender::new(response.writer, true);
-    let receiver = Receiver::new(response.reader, false);
+    let (receiver, sender) = client.split().unwrap();
     Ok((protocol_in_use, sender, receiver))
 }
 
@@ -482,7 +408,7 @@ fn http_network_or_cache_fetch(url: &ServoUrl,
 
     // Step 11.
     // Request's mode is "websocket".
-    headers.set(Origin(origin));
+    // headers.set(Origin(origin));
 
     // Step 12.
     // TODO: handle header User-Agent.
