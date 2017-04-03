@@ -534,7 +534,7 @@ fn test_fetch_with_hsts() {
     let connector = create_http_connector(ssl_client);
 
     let context =  FetchContext {
-        state: HttpState::new(),
+        state: Arc::new(HttpState::new()),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: None,
         filemanager: FileManager::new(),

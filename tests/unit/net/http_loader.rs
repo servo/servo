@@ -50,7 +50,7 @@ fn read_response(reader: &mut Read) -> String {
     }
 }
 
-fn assert_cookie_for_domain(cookie_jar: Arc<RwLock<CookieStorage>>, domain: &str, cookie: Option<&str>) {
+fn assert_cookie_for_domain(cookie_jar: &RwLock<CookieStorage>, domain: &str, cookie: Option<&str>) {
     let mut cookie_jar = cookie_jar.write().unwrap();
     let url = ServoUrl::parse(&*domain).unwrap();
     let cookies = cookie_jar.cookies_for_url(&url, CookieSource::HTTP);
@@ -518,7 +518,7 @@ fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_
 
     let context = new_fetch_context(None);
 
-    assert_cookie_for_domain(context.state.cookie_jar.clone(), url.as_str(), None);
+    assert_cookie_for_domain(&context.state.cookie_jar, url.as_str(), None);
 
     let mut request = Request::from_init(RequestInit {
         url: url.clone(),
@@ -536,7 +536,7 @@ fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_
 
     assert!(response.status.unwrap().is_success());
 
-    assert_cookie_for_domain(context.state.cookie_jar.clone(), url.as_str(), Some("mozillaIs=theBest"));
+    assert_cookie_for_domain(&context.state.cookie_jar, url.as_str(), Some("mozillaIs=theBest"));
 }
 
 #[test]
@@ -626,7 +626,7 @@ fn test_cookie_set_with_httponly_should_not_be_available_using_getcookiesforurl(
 
     let context = new_fetch_context(None);
 
-    assert_cookie_for_domain(context.state.cookie_jar.clone(), url.as_str(), None);
+    assert_cookie_for_domain(&context.state.cookie_jar, url.as_str(), None);
 
     let mut request = Request::from_init(RequestInit {
         url: url.clone(),
@@ -644,7 +644,7 @@ fn test_cookie_set_with_httponly_should_not_be_available_using_getcookiesforurl(
 
     assert!(response.status.unwrap().is_success());
 
-    assert_cookie_for_domain(context.state.cookie_jar.clone(), url.as_str(), Some("mozillaIs=theBest"));
+    assert_cookie_for_domain(&context.state.cookie_jar, url.as_str(), Some("mozillaIs=theBest"));
     let mut cookie_jar = context.state.cookie_jar.write().unwrap();
     assert!(cookie_jar.cookies_for_url(&url, CookieSource::NonHTTP).is_none());
 }
@@ -660,7 +660,7 @@ fn test_when_cookie_received_marked_secure_is_ignored_for_http() {
 
     let context = new_fetch_context(None);
 
-    assert_cookie_for_domain(context.state.cookie_jar.clone(), url.as_str(), None);
+    assert_cookie_for_domain(&context.state.cookie_jar, url.as_str(), None);
 
     let mut request = Request::from_init(RequestInit {
         url: url.clone(),
@@ -678,7 +678,7 @@ fn test_when_cookie_received_marked_secure_is_ignored_for_http() {
 
     assert!(response.status.unwrap().is_success());
 
-    assert_cookie_for_domain(context.state.cookie_jar.clone(), url.as_str(), None);
+    assert_cookie_for_domain(&context.state.cookie_jar, url.as_str(), None);
 }
 
 #[test]

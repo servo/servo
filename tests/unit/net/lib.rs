@@ -43,6 +43,7 @@ use net_traits::FetchTaskTarget;
 use net_traits::request::Request;
 use net_traits::response::Response;
 use servo_url::ServoUrl;
+use std::sync::Arc;
 use std::sync::mpsc::{Sender, channel};
 
 const DEFAULT_USER_AGENT: &'static str = "Such Browser. Very Layout. Wow.";
@@ -55,7 +56,7 @@ fn new_fetch_context(dc: Option<Sender<DevtoolsControlMsg>>) -> FetchContext {
     let ssl_client = create_ssl_client("certs");
     let connector = create_http_connector(ssl_client);
     FetchContext {
-        state: HttpState::new(),
+        state: Arc::new(HttpState::new()),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: dc,
         filemanager: FileManager::new(),

@@ -65,19 +65,18 @@ fn read_block<R: Read>(reader: &mut R) -> Result<Data, ()> {
     }
 }
 
-#[derive(Clone)]
 pub struct HttpState {
-    pub hsts_list: Arc<RwLock<HstsList>>,
-    pub cookie_jar: Arc<RwLock<CookieStorage>>,
-    pub auth_cache: Arc<RwLock<AuthCache>>,
+    pub hsts_list: RwLock<HstsList>,
+    pub cookie_jar: RwLock<CookieStorage>,
+    pub auth_cache: RwLock<AuthCache>,
 }
 
 impl HttpState {
     pub fn new() -> HttpState {
         HttpState {
-            hsts_list: Arc::new(RwLock::new(HstsList::new())),
-            cookie_jar: Arc::new(RwLock::new(CookieStorage::new(150))),
-            auth_cache: Arc::new(RwLock::new(AuthCache::new())),
+            hsts_list: RwLock::new(HstsList::new()),
+            cookie_jar: RwLock::new(CookieStorage::new(150)),
+            auth_cache: RwLock::new(AuthCache::new()),
         }
     }
 }
@@ -238,7 +237,7 @@ pub fn determine_request_referrer(headers: &mut Headers,
     }
 }
 
-pub fn set_request_cookies(url: &ServoUrl, headers: &mut Headers, cookie_jar: &Arc<RwLock<CookieStorage>>) {
+pub fn set_request_cookies(url: &ServoUrl, headers: &mut Headers, cookie_jar: &RwLock<CookieStorage>) {
     let mut cookie_jar = cookie_jar.write().unwrap();
     if let Some(cookie_list) = cookie_jar.cookies_for_url(url, CookieSource::HTTP) {
         let mut v = Vec::new();
@@ -247,7 +246,7 @@ pub fn set_request_cookies(url: &ServoUrl, headers: &mut Headers, cookie_jar: &A
     }
 }
 
-fn set_cookie_for_url(cookie_jar: &Arc<RwLock<CookieStorage>>,
+fn set_cookie_for_url(cookie_jar: &RwLock<CookieStorage>,
                       request: &ServoUrl,
                       cookie_val: String) {
     let mut cookie_jar = cookie_jar.write().unwrap();
@@ -263,7 +262,7 @@ fn set_cookie_for_url(cookie_jar: &Arc<RwLock<CookieStorage>>,
     }
 }
 
-fn set_cookies_from_headers(url: &ServoUrl, headers: &Headers, cookie_jar: &Arc<RwLock<CookieStorage>>) {
+fn set_cookies_from_headers(url: &ServoUrl, headers: &Headers, cookie_jar: &RwLock<CookieStorage>) {
     if let Some(cookies) = headers.get_raw("set-cookie") {
         for cookie in cookies.iter() {
             if let Ok(cookie_value) = String::from_utf8(cookie.clone()) {
@@ -363,7 +362,7 @@ fn send_response_to_devtools(devtools_chan: &Sender<DevtoolsControlMsg>,
     let _ = devtools_chan.send(DevtoolsControlMsg::FromChrome(msg));
 }
 
-fn auth_from_cache(auth_cache: &Arc<RwLock<AuthCache>>, origin: &ImmutableOrigin) -> Option<Basic> {
+fn auth_from_cache(auth_cache: &RwLock<AuthCache>, origin: &ImmutableOrigin) -> Option<Basic> {
     if let Some(ref auth_entry) = auth_cache.read().unwrap().entries.get(&origin.ascii_serialization()) {
         let user_name = auth_entry.user_name.clone();
         let password  = Some(auth_entry.password.clone());

@@ -41,7 +41,7 @@ pub enum Data {
 }
 
 pub struct FetchContext {
-    pub state: HttpState,
+    pub state: Arc<HttpState>,
     pub user_agent: Cow<'static, str>,
     pub devtools_chan: Option<Sender<DevtoolsControlMsg>>,
     pub filemanager: FileManager,

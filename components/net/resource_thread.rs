@@ -43,7 +43,7 @@ const TFD_PROVIDER: &'static TFDProvider = &TFDProvider;
 
 #[derive(Clone)]
 pub struct ResourceGroup {
-    http_state: HttpState,
+    http_state: Arc<HttpState>,
     ssl_client: OpensslClient,
     connector: Arc<Pool<Connector>>,
 }
@@ -104,18 +104,18 @@ fn create_resource_groups(config_dir: Option<&Path>)
         read_json_from_file(&mut cookie_jar, config_dir, "cookie_jar.json");
     }
     let http_state = HttpState {
-        cookie_jar: Arc::new(RwLock::new(cookie_jar)),
-        auth_cache: Arc::new(RwLock::new(auth_cache)),
-        hsts_list: Arc::new(RwLock::new(hsts_list.clone())),
+        cookie_jar: RwLock::new(cookie_jar),
+        auth_cache: RwLock::new(auth_cache),
+        hsts_list: RwLock::new(hsts_list),
     };
     let ssl_client = create_ssl_client("certs");
     let resource_group = ResourceGroup {
-        http_state: http_state,
+        http_state: Arc::new(http_state),
         ssl_client: ssl_client.clone(),
         connector: create_http_connector(ssl_client.clone()),
     };
     let private_resource_group = ResourceGroup {
-        http_state: HttpState::new(),
+        http_state: Arc::new(HttpState::new()),
         ssl_client: ssl_client.clone(),
         connector: create_http_connector(ssl_client),
     };
@@ -355,6 +355,6 @@ impl CoreResourceManager {
                          resource_grp: &ResourceGroup) {
         websocket_loader::init(connect,
                                connect_data,
-                               resource_grp.http_state.cookie_jar.clone());
+                               resource_grp.http_state.clone());
     }
 }

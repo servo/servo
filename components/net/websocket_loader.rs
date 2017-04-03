@@ -6,7 +6,7 @@ use cookie::Cookie;
 use cookie_rs;
 use cookie_storage::CookieStorage;
 use fetch::methods::{should_be_blocked_due_to_bad_port, should_be_blocked_due_to_nosniff};
-use http_loader::{is_redirect_status, set_request_cookies};
+use http_loader::{HttpState, is_redirect_status, set_request_cookies};
 use hyper::buffer::BufReader;
 use hyper::header::{Accept, CacheControl, CacheDirective, Connection, ConnectionOption};
 use hyper::header::{Headers, Host, SetCookie, Pragma, Protocol, ProtocolName, Upgrade};
@@ -35,12 +35,12 @@ use websocket::sender::Sender;
 
 pub fn init(connect: WebSocketCommunicate,
             connect_data: WebSocketConnectData,
-            cookie_jar: Arc<RwLock<CookieStorage>>) {
+            http_state: Arc<HttpState>) {
     thread::Builder::new().name(format!("WebSocket connection to {}", connect_data.resource_url)).spawn(move || {
         let channel = establish_a_websocket_connection(&connect_data.resource_url,
                                                        connect_data.origin,
                                                        connect_data.protocols,
-                                                       cookie_jar);
+                                                       &http_state.cookie_jar);
         let (ws_sender, mut receiver) = match channel {
             Ok((protocol_in_use, sender, receiver)) => {
                 let _ = connect.event_sender.send(WebSocketNetworkEvent::ConnectionEstablished { protocol_in_use });
@@ -150,7 +150,7 @@ fn obtain_a_websocket_connection(url: &ServoUrl) -> Result<Stream, NetworkError>
 fn establish_a_websocket_connection(resource_url: &ServoUrl,
                                     origin: String,
                                     protocols: Vec<String>,
-                                    cookie_jar: Arc<RwLock<CookieStorage>>)
+                                    cookie_jar: &RwLock<CookieStorage>)
                                     -> Result<(Option<String>,
                                                Sender<Stream>,
                                                Receiver<Stream>),
@@ -272,7 +272,7 @@ struct Response {
 fn fetch(url: &ServoUrl,
          origin: String,
          mut headers: Headers,
-         cookie_jar: Arc<RwLock<CookieStorage>>)
+         cookie_jar: &RwLock<CookieStorage>)
          -> Result<Response, NetworkError> {
     // Step 1.
     // TODO: handle request's window.
@@ -323,7 +323,7 @@ fn fetch(url: &ServoUrl,
 fn main_fetch(url: &ServoUrl,
               origin: String,
               mut headers: Headers,
-              cookie_jar: Arc<RwLock<CookieStorage>>)
+              cookie_jar: &RwLock<CookieStorage>)
               -> Result<Response, NetworkError> {
     // Step 1.
     let mut response = None;
@@ -404,7 +404,7 @@ fn main_fetch(url: &ServoUrl,
 fn basic_fetch(url: &ServoUrl,
                origin: String,
                headers: &mut Headers,
-               cookie_jar: Arc<RwLock<CookieStorage>>)
+               cookie_jar: &RwLock<CookieStorage>)
                -> Result<Response, NetworkError> {
     // In the case of a WebSocket request, HTTP fetch is always used.
     http_fetch(url, origin, headers, cookie_jar)
@@ -414,7 +414,7 @@ fn basic_fetch(url: &ServoUrl,
 fn http_fetch(url: &ServoUrl,
               origin: String,
               headers: &mut Headers,
-              cookie_jar: Arc<RwLock<CookieStorage>>)
+              cookie_jar: &RwLock<CookieStorage>)
               -> Result<Response, NetworkError> {
     // Step 1.
     // Not applicable: with step 3 being useless here, this one is too.
@@ -464,7 +464,7 @@ fn http_fetch(url: &ServoUrl,
 fn http_network_or_cache_fetch(url: &ServoUrl,
                                origin: String,
                                headers: &mut Headers,
-                               cookie_jar: Arc<RwLock<CookieStorage>>)
+                               cookie_jar: &RwLock<CookieStorage>)
                                -> Result<Response, NetworkError> {
     // Steps 1-3.
     // Not applicable: we don't even have a request yet, and there is no body
@@ -569,7 +569,7 @@ fn http_network_or_cache_fetch(url: &ServoUrl,
 // https://fetch.spec.whatwg.org/#concept-http-network-fetch
 fn http_network_fetch(url: &ServoUrl,
                       headers: &Headers,
-                      cookie_jar: Arc<RwLock<CookieStorage>>)
+                      cookie_jar: &RwLock<CookieStorage>)
                       -> Result<Response, NetworkError> {
     // Step 1.
     // Not applicable: credentials flag is set.
