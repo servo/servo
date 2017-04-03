@@ -106,7 +106,12 @@ impl CssRules {
     }
 
     /// https://drafts.csswg.org/cssom/#insert-a-css-rule
-    pub fn insert_rule(&mut self, rule: &str, parent_stylesheet: &Stylesheet, index: usize, nested: bool)
+    pub fn insert_rule(&mut self,
+                       rule: &str,
+                       parent_stylesheet: &Stylesheet,
+                       index: usize,
+                       nested: bool,
+                       loader: Option<&StylesheetLoader>)
                        -> Result<CssRule, RulesMutateError> {
         // Step 1, 2
         if index > self.0.len() {
@@ -126,7 +131,8 @@ impl CssRules {
         // XXXManishearth should we also store the namespace map?
         let (new_rule, new_state) =
             try!(CssRule::parse(&rule, parent_stylesheet,
-                                ParserContextExtraData::default(), state));
+                                ParserContextExtraData::default(),
+                                state, loader));
 
         // Step 5
         // Computes the maximum allowed parser state at a given index.
@@ -343,7 +349,8 @@ impl CssRule {
     pub fn parse(css: &str,
                  parent_stylesheet: &Stylesheet,
                  extra_data: ParserContextExtraData,
-                 state: Option<State>)
+                 state: Option<State>,
+                 loader: Option<&StylesheetLoader>)
                  -> Result<(Self, State), SingleRuleParseError> {
         let error_reporter = MemoryHoleReporter;
         let mut namespaces = parent_stylesheet.namespaces.write();
@@ -359,7 +366,7 @@ impl CssRule {
             stylesheet_origin: parent_stylesheet.origin,
             context: context,
             shared_lock: &parent_stylesheet.shared_lock,
-            loader: None,
+            loader: loader,
             state: Cell::new(state),
             namespaces: &mut namespaces,
         };

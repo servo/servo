@@ -510,13 +510,24 @@ pub extern "C" fn Servo_CssRules_ListTypes(rules: ServoCssRulesBorrowed,
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_CssRules_InsertRule(rules: ServoCssRulesBorrowed, sheet: RawServoStyleSheetBorrowed,
-                                            rule: *const nsACString, index: u32, nested: bool,
+pub extern "C" fn Servo_CssRules_InsertRule(rules: ServoCssRulesBorrowed,
+                                            sheet: RawServoStyleSheetBorrowed,
+                                            rule: *const nsACString,
+                                            index: u32,
+                                            nested: bool,
+                                            loader: *mut Loader,
+                                            gecko_stylesheet: *mut ServoStyleSheet,
                                             rule_type: *mut u16) -> nsresult {
     let sheet = Stylesheet::as_arc(&sheet);
+    let loader = if loader.is_null() {
+        None
+    } else {
+        Some(StylesheetLoader::new(loader, gecko_stylesheet))
+    };
+    let loader = loader.as_ref().map(|loader| loader as &StyleStylesheetLoader);
     let rule = unsafe { rule.as_ref().unwrap().as_str_unchecked() };
     write_locked_arc(rules, |rules: &mut CssRules| {
-        match rules.insert_rule(rule, sheet, index as usize, nested) {
+        match rules.insert_rule(rule, sheet, index as usize, nested, loader) {
             Ok(new_rule) => {
                 *unsafe { rule_type.as_mut().unwrap() } = new_rule.rule_type() as u16;
                 nsresult::NS_OK
