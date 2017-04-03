@@ -25,6 +25,12 @@ pub trait ToCss {
     }
 }
 
+impl<'a, T> ToCss for &'a T where T: ToCss + ?Sized {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        (*self).to_css(dest)
+    }
+}
+
 /// Marker trait to automatically implement ToCss for Vec<T>.
 pub trait OneOrMoreCommaSeparated {}
 
@@ -175,5 +181,16 @@ pub mod specified {
                 AllowedNumericType::NonNegative => cmp::max(Au(0), val),
             }
         }
+    }
+}
+
+
+/// Wrap CSS types for serialization with `write!` or `format!` macros.
+/// Used by ToCss of SpecifiedOperation.
+pub struct Css<T>(pub T);
+
+impl<T: ToCss> fmt::Display for Css<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.0.to_css(f)
     }
 }
