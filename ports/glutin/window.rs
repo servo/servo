@@ -387,7 +387,7 @@ impl Window {
                     else {
                         // Only send the character if we can print it (by ignoring characters like backspace)
                         if ch >= ' ' {
-                            let event = WindowEvent::KeyEvent(Some(ch), Key::A, KeyState::Pressed, modifiers);
+                            let event = WindowEvent::KeyEvent(Some(ch), Key::A /* unused */, KeyState::Pressed, modifiers);
                             self.event_queue.borrow_mut().push(event);
                         }
                     }
@@ -455,7 +455,7 @@ impl Window {
                             ElementState::Released => KeyState::Released,
                         };
                         if element_state == ElementState::Pressed {
-                            if filter_nonprintable('0', virtual_key_code).is_some() {
+                            if filter_nonprintable('0' /* unused */, virtual_key_code).is_some() {
                                 self.last_pressed_key.set(Some(key));
                             }
                         }
