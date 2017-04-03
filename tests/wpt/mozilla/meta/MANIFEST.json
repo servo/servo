@@ -6736,6 +6736,18 @@
      ],
      {}
     ]
+   ],
+   "mozilla/worklets/test_paint_worklet.html": [
+    [
+     "/_mozilla/mozilla/worklets/test_paint_worklet.html",
+     [
+      [
+       "/_mozilla/mozilla/worklets/test_paint_worklet_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
    ]
   },
   "reftest_node": {
@@ -11204,6 +11216,16 @@
     ]
    ],
    "mozilla/worklets/syntax_error.js": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/worklets/test_paint_worklet.js": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/worklets/test_paint_worklet_ref.html": [
     [
      {}
     ]
@@ -31773,6 +31795,18 @@
   ],
   "mozilla/worklets/syntax_error.js": [
    "f3a9b8c78346507bc0b3190c8000ccf80cc133f6",
+   "support"
+  ],
+  "mozilla/worklets/test_paint_worklet.html": [
+   "67fccbde17c28e13b5f4dc54d70b1279d6e9d602",
+   "reftest"
+  ],
+  "mozilla/worklets/test_paint_worklet.js": [
+   "e714db50da9e5cb18c652629fcc1b5ccc453564d",
+   "support"
+  ],
+  "mozilla/worklets/test_paint_worklet_ref.html": [
+   "e9cfa945824a8ecf07c41a269f82a2c2ca002406",
    "support"
   ],
   "mozilla/worklets/test_worklet.html": [

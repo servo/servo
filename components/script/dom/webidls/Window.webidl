@@ -204,3 +204,7 @@ partial interface Window {
    //readonly attribute EventSender eventSender;
 };
 
+// https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet
+partial interface Window {
+    [SameObject] readonly attribute Worklet paintWorklet;
+};

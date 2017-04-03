@@ -6,6 +6,8 @@ use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::globalscope::GlobalScope;
+use dom::paintworkletglobalscope::PaintWorkletGlobalScope;
+use dom::paintworkletglobalscope::PaintWorkletTask;
 use dom::testworkletglobalscope::TestWorkletGlobalScope;
 use dom::testworkletglobalscope::TestWorkletTask;
 use dom_struct::dom_struct;
@@ -92,6 +94,10 @@ impl WorkletGlobalScope {
                 Some(global) => global.perform_a_worklet_task(task),
                 None => warn!("This is not a test worklet."),
             },
+            WorkletTask::Paint(task) => match self.downcast::<PaintWorkletGlobalScope>() {
+                Some(global) => global.perform_a_worklet_task(task),
+                None => warn!("This is not a paint worklet."),
+            },
         }
     }
 }
@@ -116,8 +122,10 @@ pub struct WorkletGlobalScopeInit {
 /// https://drafts.css-houdini.org/worklets/#worklet-global-scope-type
 #[derive(Clone, Copy, Debug, HeapSizeOf, JSTraceable)]
 pub enum WorkletGlobalScopeType {
-    /// https://drafts.css-houdini.org/worklets/#examples
+    /// A servo-specific testing worklet
     Test,
+    /// A paint worklet
+    Paint,
 }
 
 impl WorkletGlobalScopeType {
@@ -132,6 +140,8 @@ impl WorkletGlobalScopeType {
         match *self {
             WorkletGlobalScopeType::Test =>
                 Root::upcast(TestWorkletGlobalScope::new(runtime, pipeline_id, base_url, init)),
+            WorkletGlobalScopeType::Paint =>
+                Root::upcast(PaintWorkletGlobalScope::new(runtime, pipeline_id, base_url, init)),
         }
     }
 }
@@ -139,5 +149,5 @@ impl WorkletGlobalScopeType {
 /// A task which can be performed in the context of a worklet global.
 pub enum WorkletTask {
     Test(TestWorkletTask),
+    Paint(PaintWorkletTask),
 }
-

@@ -9,6 +9,7 @@
 #![deny(missing_docs)]
 #![deny(unsafe_code)]
 
+extern crate app_units;
 extern crate bluetooth_traits;
 extern crate canvas_traits;
 extern crate cookie as cookie_rs;
@@ -30,6 +31,7 @@ extern crate rustc_serialize;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
+extern crate servo_atoms;
 extern crate servo_url;
 extern crate style_traits;
 extern crate time;
@@ -39,6 +41,7 @@ extern crate webvr_traits;
 mod script_msg;
 pub mod webdriver_msg;
 
+use app_units::Au;
 use bluetooth_traits::BluetoothRequest;
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
 use euclid::Size2D;
@@ -63,12 +66,13 @@ use net_traits::storage_thread::StorageType;
 use profile_traits::mem;
 use profile_traits::time as profile_time;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use servo_atoms::Atom;
 use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::fmt;
 use std::sync::Arc;
-use std::sync::mpsc::{Receiver, Sender};
+use std::sync::mpsc::{Receiver, Sender, RecvTimeoutError};
 use style_traits::CSSPixel;
 use webdriver_msg::{LoadStatus, WebDriverScriptCommand};
 use webrender_traits::ClipId;
@@ -813,3 +817,28 @@ pub struct WorkerScriptLoadOrigin {
     /// the pipeline id of the entity requesting the load
     pub pipeline_id: Option<PipelineId>,
 }
+
+/// Errors from executing a paint worklet
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub enum PaintWorkletError {
+    /// Execution timed out.
+    Timeout,
+    /// No such worklet.
+    WorkletNotFound,
+}
+
+impl From<RecvTimeoutError> for PaintWorkletError {
+    fn from(_: RecvTimeoutError) -> PaintWorkletError {
+        PaintWorkletError::Timeout
+    }
+}
+
+/// Execute paint code in the worklet thread pool.<
+pub trait PaintWorkletExecutor: Sync + Send {
+    /// https://drafts.css-houdini.org/css-paint-api/#draw-a-paint-image
+    fn draw_a_paint_image(&self,
+                          name: Atom,
+                          concrete_object_size: Size2D<Au>)
+                          -> Result<Image, PaintWorkletError>;
+}
+

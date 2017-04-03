@@ -57,9 +57,18 @@ fn get_placeholder_image(webrender_api: &webrender_traits::RenderApi, path: &Pat
     let mut image_data = vec![];
     try!(file.read_to_end(&mut image_data));
     let mut image = load_from_memory(&image_data).unwrap();
+    set_webrender_image_key(webrender_api, &mut image);
+    Ok(Arc::new(image))
+}
+
+fn set_webrender_image_key(webrender_api: &webrender_traits::RenderApi, image: &mut Image) {
+    if image.id.is_some() { return; }
     let format = convert_format(image.format);
     let mut bytes = Vec::new();
     bytes.extend_from_slice(&*image.bytes);
+    if format == webrender_traits::ImageFormat::RGBA8 {
+        premultiply(bytes.as_mut_slice());
+    }
     let descriptor = webrender_traits::ImageDescriptor {
         width: image.width,
         height: image.height,
@@ -72,7 +81,6 @@ fn get_placeholder_image(webrender_api: &webrender_traits::RenderApi, path: &Pat
     let image_key = webrender_api.generate_image_key();
     webrender_api.add_image(image_key, descriptor, data, None);
     image.id = Some(image_key);
-    Ok(Arc::new(image))
 }
 
 // TODO(gw): This is a port of the old is_image_opaque code from WR.
@@ -338,26 +346,7 @@ impl ImageCacheStore {
         };
 
         match load_result {
-            LoadResult::Loaded(ref mut image) => {
-                let format = convert_format(image.format);
-                let mut bytes = Vec::new();
-                bytes.extend_from_slice(&*image.bytes);
-                if format == webrender_traits::ImageFormat::RGBA8 {
-                    premultiply(bytes.as_mut_slice());
-                }
-                let descriptor = webrender_traits::ImageDescriptor {
-                    width: image.width,
-                    height: image.height,
-                    stride: None,
-                    format: format,
-                    offset: 0,
-                    is_opaque: is_image_opaque(format, &bytes),
-                };
-                let data = webrender_traits::ImageData::new(bytes);
-                let image_key = self.webrender_api.generate_image_key();
-                self.webrender_api.add_image(image_key, descriptor, data, None);
-                image.id = Some(image_key);
-            }
+            LoadResult::Loaded(ref mut image) => set_webrender_image_key(&self.webrender_api, image),
             LoadResult::PlaceholderLoaded(..) | LoadResult::None => {}
         }
 
@@ -575,5 +564,10 @@ impl ImageCache for ImageCacheImpl {
                 }
             }
         }
+    }
+
+    /// Ensure an image has a webrender key.
+    fn set_webrender_image_key(&self, image: &mut Image) {
+        set_webrender_image_key(&self.store.lock().unwrap().webrender_api, image);
     }
 }

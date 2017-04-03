@@ -15,6 +15,7 @@ use net_traits::image_cache::{ImageOrMetadataAvailable, UsePlaceholder};
 use opaque_node::OpaqueNodeMethods;
 use parking_lot::RwLock;
 use script_layout_interface::{PendingImage, PendingImageState};
+use script_traits::PaintWorkletExecutor;
 use script_traits::UntrustedNodeAddress;
 use servo_url::ServoUrl;
 use std::borrow::{Borrow, BorrowMut};
@@ -94,6 +95,9 @@ pub struct LayoutContext<'a> {
     pub webrender_image_cache: Arc<RwLock<HashMap<(ServoUrl, UsePlaceholder),
                                                   WebRenderImageInfo,
                                                   BuildHasherDefault<FnvHasher>>>>,
+
+    /// The executor for worklets
+    pub paint_worklet_executor: Option<Arc<PaintWorkletExecutor>>,
 
     /// A list of in-progress image loads to be shared with the script thread.
     /// A None value means that this layout was not initiated by the script thread.

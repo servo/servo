@@ -90,6 +90,7 @@ use script_layout_interface::rpc::TextIndexResponse;
 use script_layout_interface::wrapper_traits::LayoutNode;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg};
 use script_traits::{ScrollState, UntrustedNodeAddress};
+use script_traits::PaintWorkletExecutor;
 use selectors::Element;
 use servo_config::opts;
 use servo_config::prefs::PREFS;
@@ -225,6 +226,9 @@ pub struct LayoutThread {
 
     webrender_image_cache: Arc<RwLock<FnvHashMap<(ServoUrl, UsePlaceholder),
                                                  WebRenderImageInfo>>>,
+    /// The executor for paint worklets.
+    /// Will be None if the script thread hasn't added any paint worklet modules.
+    paint_worklet_executor: Option<Arc<PaintWorkletExecutor>>,
 
     /// Webrender interface.
     webrender_api: webrender_traits::RenderApi,
@@ -477,6 +481,7 @@ impl LayoutThread {
             constellation_chan: constellation_chan.clone(),
             time_profiler_chan: time_profiler_chan,
             mem_profiler_chan: mem_profiler_chan,
+            paint_worklet_executor: None,
             image_cache: image_cache.clone(),
             font_cache_thread: font_cache_thread,
             first_reflow: Cell::new(true),
@@ -574,6 +579,7 @@ impl LayoutThread {
             webrender_image_cache: self.webrender_image_cache.clone(),
             pending_images: if script_initiated_layout { Some(Mutex::new(vec![])) } else { None },
             newly_transitioning_nodes: if script_initiated_layout { Some(Mutex::new(vec![])) } else { None },
+            paint_worklet_executor: self.paint_worklet_executor.clone(),
         }
     }
 
@@ -688,6 +694,11 @@ impl LayoutThread {
             }
             Msg::SetFinalUrl(final_url) => {
                 self.url = final_url;
+            },
+            Msg::SetPaintWorkletExecutor(executor) => {
+                debug!("Setting the paint worklet executor");
+                debug_assert!(self.paint_worklet_executor.is_none());
+                self.paint_worklet_executor = Some(executor);
             },
             Msg::PrepareToExit(response_chan) => {
                 self.prepare_to_exit(response_chan);

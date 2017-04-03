@@ -51,6 +51,7 @@ use dom::storage::Storage;
 use dom::testrunner::TestRunner;
 use dom::windowproxy::WindowProxy;
 use dom::worklet::Worklet;
+use dom::workletglobalscope::WorkletGlobalScopeType;
 use dom_struct::dom_struct;
 use euclid::{Point2D, Rect, Size2D};
 use fetch;
@@ -279,6 +280,8 @@ pub struct Window {
 
     /// Worklets
     test_worklet: MutNullableJS<Worklet>,
+    /// https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet
+    paint_worklet: MutNullableJS<Worklet>,
 }
 
 impl Window {
@@ -371,6 +374,14 @@ impl Window {
 
     pub fn webvr_thread(&self) -> Option<IpcSender<WebVRMsg>> {
         self.webvr_thread.clone()
+    }
+
+    fn new_paint_worklet(&self) -> Root<Worklet> {
+        debug!("Creating new paint worklet.");
+        let worklet = Worklet::new(self, WorkletGlobalScopeType::Paint);
+        let executor = Arc::new(worklet.executor());
+        let _ = self.layout_chan.send(Msg::SetPaintWorkletExecutor(executor));
+        worklet
     }
 
     pub fn permission_state_invocation_results(&self) -> &DOMRefCell<HashMap<String, PermissionState>> {
@@ -1009,6 +1020,11 @@ impl WindowMethods for Window {
     // https://fetch.spec.whatwg.org/#fetch-method
     fn Fetch(&self, input: RequestOrUSVString, init: RootedTraceableBox<RequestInit>) -> Rc<Promise> {
         fetch::Fetch(&self.upcast(), input, init)
+    }
+
+    // https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet
+    fn PaintWorklet(&self) -> Root<Worklet> {
+        self.paint_worklet.or_init(|| self.new_paint_worklet())
     }
 
     fn TestRunner(&self) -> Root<TestRunner> {
@@ -1856,6 +1872,7 @@ impl Window {
             pending_layout_images: DOMRefCell::new(HashMap::new()),
             unminified_js_dir: DOMRefCell::new(None),
             test_worklet: Default::default(),
+            paint_worklet: Default::default(),
         };
 
         unsafe {
