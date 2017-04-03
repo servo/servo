@@ -962,6 +962,8 @@ mod shorthand_serialization {
 
     mod transform {
         pub use super::*;
+        use style::properties::longhands::transform::SpecifiedOperation;
+        use style::values::specified::{Angle, Number};
 
         #[test]
         fn should_serialize_none_correctly() {
@@ -981,6 +983,46 @@ mod shorthand_serialization {
 
             assert_eq!(try_serialize.is_ok(), true);
             assert_eq!(s, "none");
+        }
+
+        #[inline(always)]
+        fn validate_serialization<T: ToCss>(op: &T, expected_string: &'static str) {
+            let css_string = op.to_css_string();
+            assert_eq!(css_string, expected_string);
+        }
+
+        #[test]
+        fn transform_scale() {
+            validate_serialization(&SpecifiedOperation::Scale(Number::new(1.3), None), "scale(1.3)");
+            validate_serialization(
+                &SpecifiedOperation::Scale(Number::new(2.0), Some(Number::new(2.0))),
+                "scale(2, 2)");
+            validate_serialization(&SpecifiedOperation::ScaleX(Number::new(42.0)), "scaleX(42)");
+            validate_serialization(&SpecifiedOperation::ScaleY(Number::new(0.3)), "scaleY(0.3)");
+            validate_serialization(&SpecifiedOperation::ScaleZ(Number::new(1.0)), "scaleZ(1)");
+            validate_serialization(
+                &SpecifiedOperation::Scale3D(Number::new(4.0), Number::new(5.0), Number::new(6.0)),
+                "scale3d(4, 5, 6)");
+        }
+
+        #[test]
+        fn transform_skew() {
+            validate_serialization(
+                &SpecifiedOperation::Skew(Angle::from_degrees(42.3), None),
+                "skew(42.3deg)");
+            validate_serialization(
+                &SpecifiedOperation::Skew(Angle::from_gradians(-50.0), Some(Angle::from_turns(0.73))),
+                "skew(-50grad, 0.73turn)");
+            validate_serialization(
+                &SpecifiedOperation::SkewX(Angle::from_radians(0.31)), "skewX(0.31rad)");
+        }
+
+        #[test]
+        fn transform_rotate() {
+            validate_serialization(
+                &SpecifiedOperation::Rotate(Angle::from_turns(35.0)),
+                "rotate(35turn)"
+            )
         }
     }
 
