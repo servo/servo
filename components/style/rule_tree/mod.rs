@@ -549,14 +549,12 @@ impl StrongRuleNode {
     }
 
     fn next_sibling(&self) -> Option<WeakRuleNode> {
-        // Note that relaxed is fine because the tree is only iterated while
-        // mutated for search/insertion. In that case, the only thing that may
-        // happen is that we find a null sibling pointer when other thread has
-        // written already to that memory location.
-        //
-        // In that case, we have a CAS loop where we try to store ourselves,
-        // eventually arriving to the right position in the tree.
-        let ptr = self.get().next_sibling.load(Ordering::Relaxed);
+        // We use acquire semantics here to ensure proper synchronization while
+        // inserting in the child list. It may be possible that the CAS we do
+        // during insertion could be converted to relaxed operations (read the
+        // comment there).  In that case this could be converted to `Relaxed`
+        // too.
+        let ptr = self.get().next_sibling.load(Ordering::Acquire);
         if ptr.is_null() {
             None
         } else {
@@ -599,10 +597,23 @@ impl StrongRuleNode {
                     None => &self.get().first_child,
                 };
 
+                // We use `AqcRel` semantics to ensure the initializing writes
+                // in `node` are visible after the swap succeeds.
+                //
+                // TODO(emilio): Perhaps this could be `Relaxed`? When the CAS
+                // succeeds, the writes from the last thread that wrote into
+                // next_sibling_ptr are visible in this one. If we have the
+                // guarantee that _all_ memory written before that write is
+                // visible (which I think we do), that means that their
+                // initialization of the new node is visible into our thread
+                // too, so we shouldn't need this `AcqRel` semantics.
+                //
+                // If this is true, the next_sibling() function should also be
+                // changed to `Relaxed`.
                 let existing =
                     next_sibling_ptr.compare_and_swap(ptr::null_mut(),
                                                       new_ptr,
-                                                      Ordering::Acquire);
+                                                      Ordering::AcqRel);
 
                 if existing == ptr::null_mut() {
                     // Now we know we're in the correct position in the child
@@ -851,8 +862,10 @@ impl Drop for StrongRuleNode {
 
         // Ensure we "lock" the free list head swapping it with a null pointer.
         //
-        // Note that we can use relaxed operations, we'll fail the
-        // compare_exchange_weak anyway if we fail.
+        // Note that we use Acquire/Release semantics for the free list
+        // synchronization, in order to guarantee that the next_free
+        // reads/writes we do below are properly visible from multiple threads
+        // racing.
         let mut old_head = free_list.load(Ordering::Relaxed);
         loop {
             match free_list.compare_exchange_weak(old_head,
@@ -871,9 +884,9 @@ impl Drop for StrongRuleNode {
         // If other thread has raced with use while using the same rule node,
         // just store the old head again, we're done.
         //
-        // Note that we can use relaxed operations here since we're effectively
-        // locking the free list, and the memory ordering is already guaranteed
-        // by that locking/unlocking.
+        // Note that we can use relaxed operations for loading since we're
+        // effectively locking the free list with Acquire/Release semantics, and
+        // the memory ordering is already guaranteed by that locking/unlocking.
         if node.next_free.load(Ordering::Relaxed) != ptr::null_mut() {
             free_list.store(old_head, Ordering::Release);
             return;
@@ -886,7 +899,7 @@ impl Drop for StrongRuleNode {
         node.next_free.store(old_head, Ordering::Relaxed);
 
         // This can be release because of the locking of the free list, that
-        // ensure that all the other nodes racing with this one are using
+        // ensures that all the other nodes racing with this one are using
         // `Acquire`.
         free_list.store(self.ptr(), Ordering::Release);
     }
