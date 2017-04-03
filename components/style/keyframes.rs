@@ -8,7 +8,7 @@
 
 use cssparser::{AtRuleParser, Parser, QualifiedRuleParser, RuleListParser};
 use cssparser::{DeclarationListParser, DeclarationParser, parse_one_rule};
-use parser::{ParserContext, ParserContextExtraData, log_css_error};
+use parser::{ParserContext, log_css_error};
 use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock, PropertyId};
 use properties::{PropertyDeclarationId, LonghandId, ParsedDeclaration};
 use properties::LonghandIdSet;
@@ -123,15 +123,12 @@ impl ToCssWithGuard for Keyframe {
 
 impl Keyframe {
     /// Parse a CSS keyframe.
-    pub fn parse(css: &str,
-                 parent_stylesheet: &Stylesheet,
-                 extra_data: ParserContextExtraData)
+    pub fn parse(css: &str, parent_stylesheet: &Stylesheet)
                  -> Result<Arc<Locked<Self>>, ()> {
         let error_reporter = MemoryHoleReporter;
-        let context = ParserContext::new_with_extra_data(parent_stylesheet.origin,
-                                                         &parent_stylesheet.base_url,
-                                                         &error_reporter,
-                                                         extra_data);
+        let context = ParserContext::new(parent_stylesheet.origin,
+                                         &parent_stylesheet.url_data,
+                                         &error_reporter);
         let mut input = Parser::new(css);
 
         let mut rule_parser = KeyframeListParser {

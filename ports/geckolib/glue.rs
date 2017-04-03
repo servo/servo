@@ -8,7 +8,6 @@ use cssparser::ToCss as ParserToCss;
 use env_logger::LogBuilder;
 use parking_lot::RwLock;
 use selectors::Element;
-use servo_url::ServoUrl;
 use std::borrow::Cow;
 use std::env;
 use std::fmt::Write;
@@ -26,7 +25,7 @@ use style::gecko::global_style_data::GLOBAL_STYLE_DATA;
 use style::gecko::restyle_damage::GeckoRestyleDamage;
 use style::gecko::selector_parser::{SelectorImpl, PseudoElement};
 use style::gecko::traversal::RecalcStyleOnly;
-use style::gecko::wrapper::DUMMY_BASE_URL;
+use style::gecko::wrapper::DUMMY_URL_DATA;
 use style::gecko::wrapper::GeckoElement;
 use style::gecko_bindings::bindings;
 use style::gecko_bindings::bindings::{RawGeckoKeyframeListBorrowed, RawGeckoKeyframeListBorrowedMut};
@@ -63,11 +62,12 @@ use style::gecko_bindings::structs::nsCSSValueSharedList;
 use style::gecko_bindings::structs::nsresult;
 use style::gecko_bindings::sugar::ownership::{FFIArcHelpers, HasFFI, HasArcFFI, HasBoxFFI};
 use style::gecko_bindings::sugar::ownership::{HasSimpleFFI, Strong};
+use style::gecko_bindings::sugar::refptr::RefPtr;
 use style::gecko_properties::{self, style_structs};
 use style::keyframes::KeyframesStepValue;
 use style::media_queries::{MediaList, parse_media_query_list};
 use style::parallel;
-use style::parser::{ParserContext, ParserContextExtraData};
+use style::parser::ParserContext;
 use style::properties::{CascadeFlags, ComputedValues, Importance, ParsedDeclaration};
 use style::properties::{PropertyDeclarationBlock, PropertyId};
 use style::properties::SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP;
@@ -310,8 +310,6 @@ pub extern "C" fn Servo_Element_ClearData(element: RawGeckoElementBorrowed) {
 #[no_mangle]
 pub extern "C" fn Servo_StyleSheet_Empty(mode: SheetParsingMode) -> RawServoStyleSheetStrong {
     let global_style_data = &*GLOBAL_STYLE_DATA;
-    let url = ServoUrl::parse("about:blank").unwrap();
-    let extra_data = ParserContextExtraData::default();
     let origin = match mode {
         SheetParsingMode::eAuthorSheetFeatures => Origin::Author,
         SheetParsingMode::eUserSheetFeatures => Origin::User,
@@ -319,8 +317,8 @@ pub extern "C" fn Servo_StyleSheet_Empty(mode: SheetParsingMode) -> RawServoStyl
     };
     let shared_lock = global_style_data.shared_lock.clone();
     Arc::new(Stylesheet::from_str(
-        "", url, origin, Default::default(), shared_lock, None,
-        &StdoutErrorReporter, extra_data)
+        "", DUMMY_URL_DATA.clone(), origin, Default::default(),
+        shared_lock, None, &StdoutErrorReporter)
     ).into_strong()
 }
 
@@ -329,7 +327,7 @@ pub extern "C" fn Servo_StyleSheet_FromUTF8Bytes(loader: *mut Loader,
                                                  stylesheet: *mut ServoStyleSheet,
                                                  data: *const nsACString,
                                                  mode: SheetParsingMode,
-                                                 base_url: *const nsACString,
+                                                 _base_url: *const nsACString,
                                                  extra_data: *mut URLExtraData)
                                                  -> RawServoStyleSheetStrong {
     let global_style_data = &*GLOBAL_STYLE_DATA;
@@ -341,9 +339,7 @@ pub extern "C" fn Servo_StyleSheet_FromUTF8Bytes(loader: *mut Loader,
         SheetParsingMode::eAgentSheetFeatures => Origin::UserAgent,
     };
 
-    let base_str = unsafe { base_url.as_ref().unwrap().as_str_unchecked() };
-    let url = ServoUrl::parse(base_str).unwrap();
-    let extra_data = unsafe { ParserContextExtraData::new(extra_data) };
+    let url_data = unsafe { RefPtr::from_ptr_ref(&extra_data) };
     let loader = if loader.is_null() {
         None
     } else {
@@ -358,8 +354,8 @@ pub extern "C" fn Servo_StyleSheet_FromUTF8Bytes(loader: *mut Loader,
 
     let shared_lock = global_style_data.shared_lock.clone();
     Arc::new(Stylesheet::from_str(
-        input, url, origin, Default::default(), shared_lock, loader,
-        &StdoutErrorReporter, extra_data)
+        input, url_data.clone(), origin, Default::default(),
+        shared_lock, loader, &StdoutErrorReporter)
     ).into_strong()
 }
 
@@ -368,10 +364,9 @@ pub extern "C" fn Servo_StyleSheet_ClearAndUpdate(stylesheet: RawServoStyleSheet
                                                   loader: *mut Loader,
                                                   gecko_stylesheet: *mut ServoStyleSheet,
                                                   data: *const nsACString,
-                                                  extra_data: *mut URLExtraData)
+                                                  _extra_data: *mut URLExtraData)
 {
     let input = unsafe { data.as_ref().unwrap().as_str_unchecked() };
-    let extra_data = unsafe { ParserContextExtraData::new(extra_data) };
 
     let loader = if loader.is_null() {
         None
@@ -386,7 +381,7 @@ pub extern "C" fn Servo_StyleSheet_ClearAndUpdate(stylesheet: RawServoStyleSheet
     };
 
     let sheet = Stylesheet::as_arc(&stylesheet);
-    Stylesheet::update_from_str(&sheet, input, loader, &StdoutErrorReporter, extra_data);
+    Stylesheet::update_from_str(&sheet, input, loader, &StdoutErrorReporter);
 }
 
 #[no_mangle]
@@ -776,20 +771,9 @@ pub extern "C" fn Servo_StyleSet_Drop(data: RawServoStyleSetOwned) {
     let _ = data.into_box::<PerDocumentStyleData>();
 }
 
-// Must be a macro since we need to store the base_url on the stack somewhere
-/// Initializes the data needed for constructing a ParserContext from
-/// Gecko-side values
-macro_rules! make_context {
-    (($base:ident, $data:ident) => ($base_url:ident, $extra_data:ident)) => {
-        let base_str = unsafe { $base.as_ref().unwrap().as_str_unchecked() };
-        let $base_url = ServoUrl::parse(base_str).unwrap();
-        let $extra_data = unsafe { ParserContextExtraData::new($data) };
-    }
-}
-
 #[no_mangle]
 pub extern "C" fn Servo_ParseProperty(property: *const nsACString, value: *const nsACString,
-                                      base: *const nsACString,
+                                      _base: *const nsACString,
                                       data: *mut URLExtraData)
                                       -> RawServoDeclarationBlockStrong {
     let name = unsafe { property.as_ref().unwrap().as_str_unchecked() };
@@ -800,13 +784,9 @@ pub extern "C" fn Servo_ParseProperty(property: *const nsACString, value: *const
     };
     let value = unsafe { value.as_ref().unwrap().as_str_unchecked() };
 
-    make_context!((base, data) => (base_url, extra_data));
-
+    let url_data = unsafe { RefPtr::from_ptr_ref(&data) };
     let reporter = StdoutErrorReporter;
-    let context = ParserContext::new_with_extra_data(Origin::Author,
-                                                     &base_url,
-                                                     &reporter,
-                                                     extra_data);
+    let context = ParserContext::new(Origin::Author, url_data, &reporter);
 
     match ParsedDeclaration::parse(id, &context, &mut Parser::new(value), false) {
         Ok(parsed) => {
@@ -821,15 +801,15 @@ pub extern "C" fn Servo_ParseProperty(property: *const nsACString, value: *const
 
 #[no_mangle]
 pub extern "C" fn Servo_ParseEasing(easing: *const nsAString,
-                                    base: *const nsACString,
+                                    _base: *const nsACString,
                                     data: *mut URLExtraData,
                                     output: nsTimingFunctionBorrowedMut)
                                     -> bool {
     use style::properties::longhands::transition_timing_function;
 
-    make_context!((base, data) => (base_url, extra_data));
+    let url_data = unsafe { RefPtr::from_ptr_ref(&data) };
     let reporter = StdoutErrorReporter;
-    let context = ParserContext::new_with_extra_data(Origin::Author, &base_url, &reporter, extra_data);
+    let context = ParserContext::new(Origin::Author, url_data, &reporter);
     let easing = unsafe { (*easing).to_string() };
     match transition_timing_function::single_value::parse(&context, &mut Parser::new(&easing)) {
         Ok(parsed_easing) => {
@@ -842,14 +822,14 @@ pub extern "C" fn Servo_ParseEasing(easing: *const nsAString,
 
 #[no_mangle]
 pub extern "C" fn Servo_ParseStyleAttribute(data: *const nsACString,
-                                            base: *const nsACString,
+                                            _base: *const nsACString,
                                             raw_extra_data: *mut URLExtraData)
                                             -> RawServoDeclarationBlockStrong {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let value = unsafe { data.as_ref().unwrap().as_str_unchecked() };
-    make_context!((base, raw_extra_data) => (base_url, extra_data));
+    let url_data = unsafe { RefPtr::from_ptr_ref(&raw_extra_data) };
     Arc::new(global_style_data.shared_lock.wrap(
-        GeckoElement::parse_style_attribute(value, &base_url, extra_data))).into_strong()
+        GeckoElement::parse_style_attribute(value, url_data))).into_strong()
 }
 
 #[no_mangle]
@@ -963,12 +943,12 @@ pub extern "C" fn Servo_DeclarationBlock_GetPropertyIsImportant(declarations: Ra
 
 fn set_property(declarations: RawServoDeclarationBlockBorrowed, property_id: PropertyId,
                 value: *const nsACString, is_important: bool,
-                base: *const nsACString, data: *mut URLExtraData) -> bool {
+                _base: *const nsACString, data: *mut URLExtraData) -> bool {
     let value = unsafe { value.as_ref().unwrap().as_str_unchecked() };
 
-    make_context!((base, data) => (base_url, extra_data));
-    if let Ok(parsed) = parse_one_declaration(property_id, value, &base_url,
-                                              &StdoutErrorReporter, extra_data) {
+    let url_data = unsafe { RefPtr::from_ptr_ref(&data) };
+    if let Ok(parsed) = parse_one_declaration(property_id, value, url_data,
+                                              &StdoutErrorReporter) {
         let importance = if is_important { Importance::Important } else { Importance::Normal };
         write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
             parsed.expand_set_into(decls, importance)
@@ -1360,10 +1340,8 @@ pub extern "C" fn Servo_CSSSupports2(property: *const nsACString, value: *const 
     };
     let value = unsafe { value.as_ref().unwrap().as_str_unchecked() };
 
-    let base_url = &*DUMMY_BASE_URL;
-    let extra_data = ParserContextExtraData::default();
-
-    parse_one_declaration(id, &value, &base_url, &StdoutErrorReporter, extra_data).is_ok()
+    let url_data = &*DUMMY_URL_DATA;
+    parse_one_declaration(id, &value, url_data, &StdoutErrorReporter).is_ok()
 }
 
 #[no_mangle]
@@ -1372,9 +1350,9 @@ pub extern "C" fn Servo_CSSSupports(cond: *const nsACString) -> bool {
     let mut input = Parser::new(&condition);
     let cond = parse_condition_or_declaration(&mut input);
     if let Ok(cond) = cond {
-        let url = ServoUrl::parse("about:blank").unwrap();
+        let url_data = &*DUMMY_URL_DATA;
         let reporter = StdoutErrorReporter;
-        let context = ParserContext::new_for_cssom(&url, &reporter);
+        let context = ParserContext::new_for_cssom(url_data, &reporter);
         cond.eval(&context)
     } else {
         false

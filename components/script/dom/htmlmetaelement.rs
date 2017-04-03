@@ -105,7 +105,7 @@ impl HTMLMetaElement {
                         rules: CssRules::new(vec![rule], shared_lock),
                         origin: Origin::Author,
                         shared_lock: shared_lock.clone(),
-                        base_url: window_from_node(self).get_url(),
+                        url_data: window_from_node(self).get_url(),
                         namespaces: Default::default(),
                         media: Arc::new(shared_lock.wrap(Default::default())),
                         // Viewport constraints are always recomputed on resize; they don't need to

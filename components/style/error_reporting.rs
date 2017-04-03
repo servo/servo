@@ -8,7 +8,7 @@
 
 use cssparser::{Parser, SourcePosition};
 use log;
-use servo_url::ServoUrl;
+use stylesheets::UrlExtraData;
 
 /// A generic trait for an error reporter.
 pub trait ParseErrorReporter : Sync + Send {
@@ -20,7 +20,7 @@ pub trait ParseErrorReporter : Sync + Send {
                     input: &mut Parser,
                     position: SourcePosition,
                     message: &str,
-                    url: &ServoUrl);
+                    url: &UrlExtraData);
 }
 
 /// An error reporter that reports the errors to the `info` log channel.
@@ -32,7 +32,7 @@ impl ParseErrorReporter for StdoutErrorReporter {
                     input: &mut Parser,
                     position: SourcePosition,
                     message: &str,
-                    url: &ServoUrl) {
+                    url: &UrlExtraData) {
         if log_enabled!(log::LogLevel::Info) {
             let location = input.source_location(position);
             info!("Url:\t{}\n{}:{} {}", url.as_str(), location.line, location.column, message)

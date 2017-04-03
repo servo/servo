@@ -9,11 +9,10 @@
 use cssparser::{DeclarationListParser, parse_important};
 use cssparser::{Parser, AtRuleParser, DeclarationParser, Delimiter};
 use error_reporting::ParseErrorReporter;
-use parser::{ParserContext, ParserContextExtraData, log_css_error};
-use servo_url::ServoUrl;
+use parser::{ParserContext, log_css_error};
 use std::fmt;
 use style_traits::ToCss;
-use stylesheets::Origin;
+use stylesheets::{Origin, UrlExtraData};
 use super::*;
 #[cfg(feature = "gecko")] use properties::animated_properties::AnimationValueMap;
 
@@ -610,14 +609,10 @@ pub fn append_serialization<'a, W, I, N>(dest: &mut W,
 /// A helper to parse the style attribute of an element, in order for this to be
 /// shared between Servo and Gecko.
 pub fn parse_style_attribute(input: &str,
-                             base_url: &ServoUrl,
-                             error_reporter: &ParseErrorReporter,
-                             extra_data: ParserContextExtraData)
+                             url_data: &UrlExtraData,
+                             error_reporter: &ParseErrorReporter)
                              -> PropertyDeclarationBlock {
-    let context = ParserContext::new_with_extra_data(Origin::Author,
-                                                     base_url,
-                                                     error_reporter,
-                                                     extra_data);
+    let context = ParserContext::new(Origin::Author, url_data, error_reporter);
     parse_property_declaration_list(&context, &mut Parser::new(input))
 }
 
@@ -628,14 +623,10 @@ pub fn parse_style_attribute(input: &str,
 /// this does not attempt to parse !important at all
 pub fn parse_one_declaration(id: PropertyId,
                              input: &str,
-                             base_url: &ServoUrl,
-                             error_reporter: &ParseErrorReporter,
-                             extra_data: ParserContextExtraData)
+                             url_data: &UrlExtraData,
+                             error_reporter: &ParseErrorReporter)
                              -> Result<ParsedDeclaration, ()> {
-    let context = ParserContext::new_with_extra_data(Origin::Author,
-                                                     base_url,
-                                                     error_reporter,
-                                                     extra_data);
+    let context = ParserContext::new(Origin::Author, url_data, error_reporter);
     Parser::new(input).parse_entirely(|parser| {
         ParsedDeclaration::parse(id, &context, parser, false)
             .map_err(|_| ())

@@ -18,7 +18,6 @@ use servo_url::ServoUrl;
 use std::ascii::AsciiExt;
 use std::sync::Arc;
 use style::attr::AttrValue;
-use style::parser::ParserContextExtraData;
 use style::properties::{Importance, PropertyDeclarationBlock, PropertyId, LonghandId, ShorthandId};
 use style::properties::{parse_one_declaration, parse_style_attribute};
 use style::selector_parser::PseudoElement;
@@ -147,7 +146,7 @@ impl CSSStyleOwner {
         match *self {
             CSSStyleOwner::Element(ref el) => window_from_node(&**el).Document().base_url(),
             CSSStyleOwner::CSSRule(ref rule, _) => {
-                rule.parent_stylesheet().style_stylesheet().base_url.clone()
+                rule.parent_stylesheet().style_stylesheet().url_data.clone()
             }
         }
     }
@@ -258,8 +257,7 @@ impl CSSStyleDeclaration {
             let window = self.owner.window();
             let result =
                 parse_one_declaration(id, &value, &self.owner.base_url(),
-                                      window.css_error_reporter(),
-                                      ParserContextExtraData::default());
+                                      window.css_error_reporter());
 
             // Step 7
             let parsed = match result {
@@ -439,8 +437,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
             // Step 3
             *pdb = parse_style_attribute(&value,
                                          &self.owner.base_url(),
-                                         window.css_error_reporter(),
-                                         ParserContextExtraData::default());
+                                         window.css_error_reporter());
         });
 
         Ok(())
