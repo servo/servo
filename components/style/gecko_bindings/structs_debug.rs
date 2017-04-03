@@ -5626,7 +5626,8 @@ pub mod root {
         #[derive(Debug)]
         pub struct StyleSheet {
             pub _base: root::nsIDOMCSSStyleSheet,
-            pub _base_1: root::nsWrapperCache,
+            pub _base_1: root::nsICSSLoaderObserver,
+            pub _base_2: root::nsWrapperCache,
             pub mRefCnt: root::nsCycleCollectingAutoRefCnt,
             pub _mOwningThread: root::nsAutoOwningThread,
             pub mParent: *mut root::mozilla::StyleSheet,
@@ -5709,7 +5710,7 @@ pub mod root {
         }
         #[test]
         fn bindgen_test_layout_StyleSheet() {
-            assert_eq!(::std::mem::size_of::<StyleSheet>() , 128usize , concat
+            assert_eq!(::std::mem::size_of::<StyleSheet>() , 136usize , concat
                        ! ( "Size of: " , stringify ! ( StyleSheet ) ));
             assert_eq! (::std::mem::align_of::<StyleSheet>() , 8usize , concat
                         ! ( "Alignment of " , stringify ! ( StyleSheet ) ));
@@ -14740,6 +14741,30 @@ pub mod root {
                     "Alignment of " , stringify ! ( nsIStreamListener ) ));
     }
     impl Clone for nsIStreamListener {
+        fn clone(&self) -> Self { *self }
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy)]
+    pub struct nsICSSLoaderObserver {
+        pub _base: root::nsISupports,
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy, Clone)]
+    pub struct nsICSSLoaderObserver_COMTypeInfo<T, U> {
+        pub _address: u8,
+        pub _phantom_0: ::std::marker::PhantomData<T>,
+        pub _phantom_1: ::std::marker::PhantomData<U>,
+    }
+    #[test]
+    fn bindgen_test_layout_nsICSSLoaderObserver() {
+        assert_eq!(::std::mem::size_of::<nsICSSLoaderObserver>() , 8usize ,
+                   concat ! (
+                   "Size of: " , stringify ! ( nsICSSLoaderObserver ) ));
+        assert_eq! (::std::mem::align_of::<nsICSSLoaderObserver>() , 8usize ,
+                    concat ! (
+                    "Alignment of " , stringify ! ( nsICSSLoaderObserver ) ));
+    }
+    impl Clone for nsICSSLoaderObserver {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
