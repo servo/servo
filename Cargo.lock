@@ -945,7 +945,6 @@ dependencies = [
  "log 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "parking_lot 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "selectors 0.18.0",
- "servo_url 0.0.1",
  "style 0.0.1",
  "style_traits 0.0.1",
  "stylo_tests 0.0.1",

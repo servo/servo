@@ -327,7 +327,6 @@ pub extern "C" fn Servo_StyleSheet_FromUTF8Bytes(loader: *mut Loader,
                                                  stylesheet: *mut ServoStyleSheet,
                                                  data: *const nsACString,
                                                  mode: SheetParsingMode,
-                                                 _base_url: *const nsACString,
                                                  extra_data: *mut URLExtraData)
                                                  -> RawServoStyleSheetStrong {
     let global_style_data = &*GLOBAL_STYLE_DATA;
@@ -775,7 +774,6 @@ pub extern "C" fn Servo_StyleSet_Drop(data: RawServoStyleSetOwned) {
 
 #[no_mangle]
 pub extern "C" fn Servo_ParseProperty(property: *const nsACString, value: *const nsACString,
-                                      _base: *const nsACString,
                                       data: *mut URLExtraData)
                                       -> RawServoDeclarationBlockStrong {
     let name = unsafe { property.as_ref().unwrap().as_str_unchecked() };
@@ -803,7 +801,6 @@ pub extern "C" fn Servo_ParseProperty(property: *const nsACString, value: *const
 
 #[no_mangle]
 pub extern "C" fn Servo_ParseEasing(easing: *const nsAString,
-                                    _base: *const nsACString,
                                     data: *mut URLExtraData,
                                     output: nsTimingFunctionBorrowedMut)
                                     -> bool {
@@ -824,7 +821,6 @@ pub extern "C" fn Servo_ParseEasing(easing: *const nsAString,
 
 #[no_mangle]
 pub extern "C" fn Servo_ParseStyleAttribute(data: *const nsACString,
-                                            _base: *const nsACString,
                                             raw_extra_data: *mut URLExtraData)
                                             -> RawServoDeclarationBlockStrong {
     let global_style_data = &*GLOBAL_STYLE_DATA;
@@ -944,8 +940,7 @@ pub extern "C" fn Servo_DeclarationBlock_GetPropertyIsImportant(declarations: Ra
 }
 
 fn set_property(declarations: RawServoDeclarationBlockBorrowed, property_id: PropertyId,
-                value: *const nsACString, is_important: bool,
-                _base: *const nsACString, data: *mut URLExtraData) -> bool {
+                value: *const nsACString, is_important: bool, data: *mut URLExtraData) -> bool {
     let value = unsafe { value.as_ref().unwrap().as_str_unchecked() };
 
     let url_data = unsafe { RefPtr::from_ptr_ref(&data) };
@@ -964,20 +959,18 @@ fn set_property(declarations: RawServoDeclarationBlockBorrowed, property_id: Pro
 pub extern "C" fn Servo_DeclarationBlock_SetProperty(declarations: RawServoDeclarationBlockBorrowed,
                                                      property: *const nsACString, value: *const nsACString,
                                                      is_important: bool,
-                                                     base: *const nsACString,
                                                      data: *mut URLExtraData) -> bool {
     set_property(declarations, get_property_id_from_property!(property, false),
-                 value, is_important, base, data)
+                 value, is_important, data)
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_DeclarationBlock_SetPropertyById(declarations: RawServoDeclarationBlockBorrowed,
                                                          property: nsCSSPropertyID, value: *const nsACString,
                                                          is_important: bool,
-                                                         base: *const nsACString,
                                                          data: *mut URLExtraData) -> bool {
     set_property(declarations, get_property_id_from_nscsspropertyid!(property, false),
-                 value, is_important, base, data)
+                 value, is_important, data)
 }
 
 fn remove_property(declarations: RawServoDeclarationBlockBorrowed, property_id: PropertyId) {
