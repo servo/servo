@@ -21,8 +21,11 @@ impl nsTimingFunction {
         }
     }
 
-    fn set_as_cubic_bezier(&mut self, p1: Point2D<f32>, p2: Point2D<f32>) {
-        self.mType = nsTimingFunction_Type::CubicBezier;
+    fn set_as_bezier(&mut self,
+                     function_type: nsTimingFunction_Type,
+                     p1: Point2D<f32>,
+                     p2: Point2D<f32>) {
+        self.mType = function_type;
         unsafe {
             let ref mut gecko_cubic_bezier =
                 unsafe { self.__bindgen_anon_1.mFunc.as_mut() };
@@ -46,7 +49,7 @@ impl From<ComputedTimingFunction> for nsTimingFunction {
                 tf.set_as_step(nsTimingFunction_Type::StepEnd, steps);
             },
             ComputedTimingFunction::CubicBezier(p1, p2) => {
-                tf.set_as_cubic_bezier(p1, p2);
+                tf.set_as_bezier(nsTimingFunction_Type::CubicBezier, p1, p2);
             },
         }
         tf
@@ -67,21 +70,39 @@ impl From<SpecifiedTimingFunction> for nsTimingFunction {
                 tf.set_as_step(nsTimingFunction_Type::StepEnd, steps.value() as u32);
             },
             SpecifiedTimingFunction::CubicBezier(p1, p2) => {
-                tf.set_as_cubic_bezier(Point2D::new(p1.x.value, p1.y.value),
-                                       Point2D::new(p2.x.value, p2.y.value));
+                tf.set_as_bezier(nsTimingFunction_Type::CubicBezier,
+                                 Point2D::new(p1.x.value, p1.y.value),
+                                 Point2D::new(p2.x.value, p2.y.value));
             },
             SpecifiedTimingFunction::Keyword(keyword) => {
-                match keyword {
-                    FunctionKeyword::Ease => tf.mType = nsTimingFunction_Type::Ease,
-                    FunctionKeyword::Linear => tf.mType = nsTimingFunction_Type::Linear,
-                    FunctionKeyword::EaseIn => tf.mType = nsTimingFunction_Type::EaseIn,
-                    FunctionKeyword::EaseOut => tf.mType = nsTimingFunction_Type::EaseOut,
-                    FunctionKeyword::EaseInOut => tf.mType = nsTimingFunction_Type::EaseInOut,
-                    FunctionKeyword::StepStart => {
-                        tf.set_as_step(nsTimingFunction_Type::StepStart, 1);
+                match keyword.to_computed_value() {
+                    ComputedTimingFunction::CubicBezier(p1, p2) => {
+                        match keyword {
+                            FunctionKeyword::Ease => {
+                                tf.set_as_bezier(nsTimingFunction_Type::Ease, p1, p2);
+                            },
+                            FunctionKeyword::Linear => {
+                                tf.set_as_bezier(nsTimingFunction_Type::Linear, p1, p2);
+                            },
+                            FunctionKeyword::EaseIn => {
+                                tf.set_as_bezier(nsTimingFunction_Type::EaseIn, p1, p2);
+                            },
+                            FunctionKeyword::EaseOut => {
+                                tf.set_as_bezier(nsTimingFunction_Type::EaseOut, p1, p2);
+                            },
+                            FunctionKeyword::EaseInOut => {
+                                tf.set_as_bezier(nsTimingFunction_Type::EaseInOut, p1, p2);
+                            },
+                            _ => unreachable!("Unexpected bezier function type"),
+                        }
                     },
-                    FunctionKeyword::StepEnd => {
-                        tf.set_as_step(nsTimingFunction_Type::StepEnd, 1);
+                    ComputedTimingFunction::Steps(steps, StartEnd::Start) => {
+                        debug_assert!(keyword == FunctionKeyword::StepStart && steps == 1);
+                        tf.set_as_step(nsTimingFunction_Type::StepStart, steps);
+                    },
+                    ComputedTimingFunction::Steps(steps, StartEnd::End) => {
+                        debug_assert!(keyword == FunctionKeyword::StepEnd && steps == 1);
+                        tf.set_as_step(nsTimingFunction_Type::StepEnd, steps);
                     },
                 }
             },
