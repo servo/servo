@@ -3,13 +3,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use blob_loader::load_blob_sync;
+use connector::Connector;
 use data_loader::decode;
 use devtools_traits::DevtoolsControlMsg;
 use fetch::cors_cache::CorsCache;
 use filemanager_thread::FileManager;
 use http_loader::{HttpState, determine_request_referrer, http_fetch, set_default_accept_language};
-use hyper::Error;
-use hyper::error::Result as HyperResult;
+use hyper::{Error, Result as HyperResult};
+use hyper::client::Pool;
 use hyper::header::{Accept, AcceptLanguage, ContentLanguage, ContentType};
 use hyper::header::{Header, HeaderFormat, HeaderView, Headers, QualityItem};
 use hyper::header::{Referer as RefererHeader, q, qitem};
@@ -28,6 +29,7 @@ use std::fs::File;
 use std::io::Read;
 use std::mem;
 use std::str;
+use std::sync::Arc;
 use std::sync::mpsc::{Sender, Receiver};
 use subresource_integrity::is_response_integrity_valid;
 
@@ -43,6 +45,7 @@ pub struct FetchContext {
     pub user_agent: Cow<'static, str>,
     pub devtools_chan: Option<Sender<DevtoolsControlMsg>>,
     pub filemanager: FileManager,
+    pub connector: Arc<Pool<Connector>>,
 }
 
 pub type DoneChannel = Option<(Sender<Data>, Receiver<Data>)>;

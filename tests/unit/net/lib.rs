@@ -34,6 +34,7 @@ extern crate url;
 
 use devtools_traits::DevtoolsControlMsg;
 use hyper::server::{Handler, Listening, Server};
+use net::connector::{create_http_connector, create_ssl_client};
 use net::fetch::cors_cache::CorsCache;
 use net::fetch::methods::{self, FetchContext};
 use net::filemanager_thread::FileManager;
@@ -51,11 +52,14 @@ struct FetchResponseCollector {
 }
 
 fn new_fetch_context(dc: Option<Sender<DevtoolsControlMsg>>) -> FetchContext {
+    let ssl_client = create_ssl_client("certs");
+    let connector = create_http_connector(ssl_client);
     FetchContext {
-        state: HttpState::new("certs"),
+        state: HttpState::new(),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: dc,
         filemanager: FileManager::new(),
+        connector: connector,
     }
 }
 impl FetchTaskTarget for FetchResponseCollector {
