@@ -28,8 +28,7 @@ fn test_linear_gradient() {
     assert_roundtrip_with_context!(Image::parse, "linear-gradient(to right top, red, green)");
 
     // Parsing with <angle>
-    assert_roundtrip_with_context!(Image::parse, "linear-gradient(45deg, red, green)",
-                                                 "linear-gradient(0.7853982rad, red, green)");
+    assert_roundtrip_with_context!(Image::parse, "linear-gradient(45deg, red, green)");
 
     // Parsing with more than two entries in <color-stop-list>
     assert_roundtrip_with_context!(Image::parse, "linear-gradient(red, yellow, green)");
