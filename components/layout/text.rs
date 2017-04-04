@@ -175,6 +175,7 @@ impl TextRunScanner {
 
             // First, transform/compress text of all the nodes.
             let (mut run_info_list, mut run_info) = (Vec::new(), RunInfo::new());
+            let mut initialized_run_info = false;
             let mut insertion_point = None;
 
             for (fragment_index, in_fragment) in self.clump.iter().enumerate() {
@@ -229,6 +230,14 @@ impl TextRunScanner {
                         Some(range) => range.contains(ByteIndex(byte_index as isize)),
                         None => false
                     };
+
+                    if !initialized_run_info {
+                        run_info.font_index = font_index;
+                        run_info.bidi_level = bidi_level;
+                        run_info.script = script;
+                        mapping.selected = selected;
+                        initialized_run_info = true;
+                    }
 
                     // Now, if necessary, flush the mapping we were building up.
                     let flush_run = run_info.font_index != font_index ||
