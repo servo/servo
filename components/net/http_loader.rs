@@ -16,14 +16,16 @@ use hyper::Error as HttpError;
 use hyper::LanguageTag;
 use hyper::client::{Pool, Request as HyperRequest, Response as HyperResponse};
 use hyper::client::pool::PooledStream;
-use hyper::header::{AcceptEncoding, AcceptLanguage, AccessControlAllowCredentials};
-use hyper::header::{AccessControlAllowOrigin, AccessControlAllowHeaders, AccessControlAllowMethods};
-use hyper::header::{AccessControlRequestHeaders, AccessControlMaxAge, AccessControlRequestMethod};
-use hyper::header::{Authorization, Basic, CacheControl, CacheDirective, ContentEncoding};
-use hyper::header::{ContentLength, Encoding, Header, Headers, Host, IfMatch, IfRange};
-use hyper::header::{IfUnmodifiedSince, IfModifiedSince, IfNoneMatch, Location, Pragma, Quality};
-use hyper::header::{QualityItem, Referer, SetCookie, UserAgent, qitem};
-use hyper::header::Origin as HyperOrigin;
+use hyper::header::{Accept, AccessControlAllowCredentials, AccessControlAllowHeaders};
+use hyper::header::{AccessControlAllowMethods, AccessControlAllowOrigin};
+use hyper::header::{AccessControlMaxAge, AccessControlRequestHeaders};
+use hyper::header::{AccessControlRequestMethod, AcceptEncoding, AcceptLanguage};
+use hyper::header::{Authorization, Basic, CacheControl, CacheDirective};
+use hyper::header::{ContentEncoding, ContentLength, Encoding, Header, Headers};
+use hyper::header::{Host, Origin as HyperOrigin, IfMatch, IfRange};
+use hyper::header::{IfUnmodifiedSince, IfModifiedSince, IfNoneMatch, Location};
+use hyper::header::{Pragma, Quality, QualityItem, Referer, SetCookie};
+use hyper::header::{UserAgent, q, qitem};
 use hyper::method::Method;
 use hyper::net::{Fresh, HttpStream, HttpsStream, NetworkConnector};
 use hyper::status::StatusCode;
@@ -34,7 +36,8 @@ use msg::constellation_msg::PipelineId;
 use net_traits::{CookieSource, FetchMetadata, NetworkError, ReferrerPolicy};
 use net_traits::hosts::replace_host;
 use net_traits::request::{CacheMode, CredentialsMode, Destination, Origin};
-use net_traits::request::{RedirectMode, Referrer, Request, RequestMode, ResponseTainting};
+use net_traits::request::{RedirectMode, Referrer, Request, RequestMode};
+use net_traits::request::{ResponseTainting, Type};
 use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
 use resource_thread::AuthCache;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -139,6 +142,47 @@ impl NetworkHttpRequestFactory {
 
         Ok(request)
     }
+}
+
+// Step 3 of https://fetch.spec.whatwg.org/#concept-fetch.
+pub fn set_default_accept(type_: Type, destination: Destination, headers: &mut Headers) {
+    if headers.has::<Accept>() {
+        return;
+    }
+    let value = match (type_, destination) {
+        // Step 3.2.
+        (_, Destination::Document) => {
+            vec![
+                qitem(mime!(Text / Html)),
+                qitem(mime!(Application / ("xhtml+xml"))),
+                QualityItem::new(mime!(Application / Xml), q(0.9)),
+                QualityItem::new(mime!(_ / _), q(0.8)),
+            ]
+        },
+        // Step 3.3.
+        (Type::Image, _) => {
+            vec![
+                qitem(mime!(Image / Png)),
+                qitem(mime!(Image / ("svg+xml") )),
+                QualityItem::new(mime!(Image / _), q(0.8)),
+                QualityItem::new(mime!(_ / _), q(0.5)),
+            ]
+        },
+        // Step 3.3.
+        (Type::Style, _) => {
+            vec![
+                qitem(mime!(Text / Css)),
+                QualityItem::new(mime!(_ / _), q(0.1))
+            ]
+        },
+        // Step 3.1.
+        _ => {
+            vec![qitem(mime!(_ / _))]
+        },
+    };
+
+    // Step 3.4.
+    headers.set(Accept(value));
 }
 
 fn set_default_accept_encoding(headers: &mut Headers) {

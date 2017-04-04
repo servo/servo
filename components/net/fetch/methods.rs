@@ -8,12 +8,12 @@ use data_loader::decode;
 use devtools_traits::DevtoolsControlMsg;
 use fetch::cors_cache::CorsCache;
 use filemanager_thread::FileManager;
-use http_loader::{HttpState, determine_request_referrer, http_fetch, set_default_accept_language};
+use http_loader::{HttpState, determine_request_referrer, http_fetch};
+use http_loader::{set_default_accept, set_default_accept_language};
 use hyper::{Error, Result as HyperResult};
 use hyper::client::Pool;
 use hyper::header::{Accept, AcceptLanguage, ContentLanguage, ContentType};
-use hyper::header::{Header, HeaderFormat, HeaderView, Headers, QualityItem};
-use hyper::header::{Referer as RefererHeader, q, qitem};
+use hyper::header::{Header, HeaderFormat, HeaderView, Headers, Referer as RefererHeader};
 use hyper::method::Method;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper::status::StatusCode;
@@ -75,37 +75,7 @@ pub fn fetch_with_cors_cache(request: &mut Request,
     }
 
     // Step 3.
-    if !request.headers.has::<Accept>() {
-        let value = match request.type_ {
-            // Step 3.2.
-            _ if request.is_navigation_request() =>
-                vec![qitem(mime!(Text / Html)),
-                     // FIXME: This should properly generate a MimeType that has a
-                     // SubLevel of xhtml+xml (https://github.com/hyperium/mime.rs/issues/22)
-                     qitem(mime!(Application / ("xhtml+xml") )),
-                     QualityItem::new(mime!(Application / Xml), q(0.9)),
-                     QualityItem::new(mime!(_ / _), q(0.8))],
-
-            // Step 3.3.
-            Type::Image =>
-                vec![qitem(mime!(Image / Png)),
-                     // FIXME: This should properly generate a MimeType that has a
-                     // SubLevel of svg+xml (https://github.com/hyperium/mime.rs/issues/22)
-                     qitem(mime!(Image / ("svg+xml") )),
-                     QualityItem::new(mime!(Image / _), q(0.8)),
-                     QualityItem::new(mime!(_ / _), q(0.5))],
-
-            // Step 3.3.
-            Type::Style =>
-                vec![qitem(mime!(Text / Css)),
-                     QualityItem::new(mime!(_ / _), q(0.1))],
-            // Step 3.1.
-            _ => vec![qitem(mime!(_ / _))]
-        };
-
-        // Step 3.4.
-        request.headers.set(Accept(value));
-    }
+    set_default_accept(request.type_, request.destination, &mut request.headers);
 
     // Step 4.
     set_default_accept_language(&mut request.headers);
