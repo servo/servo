@@ -935,7 +935,7 @@ impl LayoutThread {
             let Epoch(epoch_number) = self.epoch;
 
             let viewport_size = webrender_traits::LayoutSize::from_untyped(&viewport_size);
-            self.webrender_api.set_root_display_list(
+            self.webrender_api.set_display_list(
                 Some(get_root_flow_background_color(layout_root)),
                 webrender_traits::Epoch(epoch_number),
                 viewport_size,
