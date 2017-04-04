@@ -33,7 +33,7 @@ use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{GCMethods, ToString, get_object_class, is_dom_class};
 use libc;
 use std::ffi::CString;
-use std::os::raw::c_void;
+use std::os::raw::{c_char, c_void};
 use std::ptr;
 use std::slice;
 
@@ -513,3 +513,24 @@ unsafe extern "C" fn instance_class_has_proto_at_depth(clasp: *const js::jsapi::
 pub const DOM_CALLBACKS: DOMCallbacks = DOMCallbacks {
     instanceClassMatchesProto: Some(instance_class_has_proto_at_depth),
 };
+
+// Generic method for returning libc::c_void from caller
+pub trait AsVoidPtr {
+    fn as_void_ptr(&self) -> *const libc::c_void;
+}
+impl<T> AsVoidPtr for T {
+    fn as_void_ptr(&self) -> *const libc::c_void {
+        self as *const T as *const libc::c_void
+    }
+}
+
+// Generic method for returning c_char from caller
+pub trait AsCCharPtrPtr {
+    fn as_c_char_ptr(&self) -> *const c_char;
+}
+
+impl AsCCharPtrPtr for [u8] {
+    fn as_c_char_ptr(&self) -> *const c_char {
+        self as *const [u8] as *const c_char
+    }
+}
