@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cookie::Cookie;
-use cookie_rs;
 use fetch::methods::{should_be_blocked_due_to_bad_port, should_be_blocked_due_to_nosniff};
 use http_loader::{HttpState, is_redirect_status, set_request_cookies};
 use hyper::buffer::BufReader;
@@ -596,10 +595,8 @@ fn http_network_fetch(url: &ServoUrl,
     if let Some(cookies) = response.headers.get::<SetCookie>() {
         let mut jar = http_state.cookie_jar.write().unwrap();
         for cookie in &**cookies {
-            if let Ok(cookie) = cookie_rs::Cookie::parse(&**cookie) {
-                if let Some(cookie) = Cookie::new_wrapped(cookie.into_owned(), url, CookieSource::HTTP) {
-                    jar.push(cookie, url, CookieSource::HTTP);
-                }
+            if let Some(cookie) = Cookie::from_cookie_string(cookie.clone(), url, CookieSource::HTTP) {
+                jar.push(cookie, url, CookieSource::HTTP);
             }
         }
     }
