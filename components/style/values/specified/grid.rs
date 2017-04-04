@@ -8,6 +8,7 @@ use cssparser::{Parser, Token, serialize_identifier};
 use parser::{Parse, ParserContext};
 use std::ascii::AsciiExt;
 use std::fmt;
+use std::mem;
 use style_traits::ToCss;
 use values::{CSSFloat, CustomIdent, HasViewportPercentage};
 use values::computed::{ComputedValueAsSpecified, Context, ToComputedValue};
@@ -546,5 +547,59 @@ impl HasViewportPercentage for TrackRepeat<LengthOrPercentage> {
     #[inline]
     fn has_viewport_percentage(&self) -> bool {
         self.track_sizes.iter().any(|ref v| v.has_viewport_percentage())
+    }
+}
+
+impl<L: ToComputedValue> ToComputedValue for TrackRepeat<L> {
+    type ComputedValue = TrackRepeat<L::ComputedValue>;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        // If the repeat count is numeric, then expand the values and merge accordingly.
+        if let RepeatCount::Number(num) = self.count {
+            let mut line_names = vec![];
+            let mut track_sizes = vec![];
+            let mut prev_names = vec![];
+
+            for _ in 0..num.value {
+                let mut names_iter = self.line_names.iter();
+                for (size, names) in self.track_sizes.iter().zip(&mut names_iter) {
+                    prev_names.extend_from_slice(&names);
+                    line_names.push(mem::replace(&mut prev_names, vec![]));
+                    track_sizes.push(size.to_computed_value(context));
+                }
+
+                if let Some(names) = names_iter.next() {
+                    prev_names.extend_from_slice(&names);
+                }
+            }
+
+            line_names.push(prev_names);
+            TrackRepeat {
+                count: self.count,
+                track_sizes: track_sizes,
+                line_names: line_names,
+            }
+
+        } else {    // if it's auto-fit/auto-fill, then it's left to the layout.
+            TrackRepeat {
+                count: self.count,
+                track_sizes: self.track_sizes.iter()
+                                             .map(|l| l.to_computed_value(context))
+                                             .collect(),
+                line_names: self.line_names.clone(),
+            }
+        }
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        TrackRepeat {
+            count: computed.count,
+            track_sizes: computed.track_sizes.iter()
+                                             .map(ToComputedValue::from_computed_value)
+                                             .collect(),
+            line_names: computed.line_names.clone(),
+        }
     }
 }
