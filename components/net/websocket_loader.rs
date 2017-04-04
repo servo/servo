@@ -4,9 +4,10 @@
 
 use cookie::Cookie;
 use fetch::methods::{should_be_blocked_due_to_bad_port, should_be_blocked_due_to_nosniff};
-use http_loader::{HttpState, is_redirect_status, set_default_accept_language, set_request_cookies};
+use http_loader::{HttpState, is_redirect_status, set_default_accept};
+use http_loader::{set_default_accept_language, set_request_cookies};
 use hyper::buffer::BufReader;
-use hyper::header::{Accept, CacheControl, CacheDirective, Connection, ConnectionOption};
+use hyper::header::{CacheControl, CacheDirective, Connection, ConnectionOption};
 use hyper::header::{Headers, Host, SetCookie, Pragma, Protocol, ProtocolName, Upgrade};
 use hyper::http::h1::{LINE_ENDING, parse_response};
 use hyper::method::Method;
@@ -16,7 +17,7 @@ use hyper::version::HttpVersion;
 use net_traits::{CookieSource, MessageData, NetworkError, WebSocketCommunicate, WebSocketConnectData};
 use net_traits::{WebSocketDomAction, WebSocketNetworkEvent};
 use net_traits::hosts::replace_host;
-use net_traits::request::Type;
+use net_traits::request::{Destination, Type};
 use servo_url::ServoUrl;
 use std::ascii::AsciiExt;
 use std::io::{self, Write};
@@ -279,20 +280,7 @@ fn fetch(url: &ServoUrl,
     // TODO: handle request's origin.
 
     // Step 3.
-    // We know there is no `Accept` header in `headers`.
-    {
-        // Step 3.1.
-        let value = Accept::star();
-
-        // Step 3.2.
-        // Not applicable: not a navigation request.
-
-        // Step 3.3.
-        // Not applicable: request's type is the empty string.
-
-        // Step 3.4.
-        headers.set(value);
-    }
+    set_default_accept(Type::None, Destination::None, &mut headers);
 
     // Step 4.
     set_default_accept_language(&mut headers);
