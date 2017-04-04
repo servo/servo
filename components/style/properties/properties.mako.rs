@@ -2109,6 +2109,7 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
                     | LonghandId::TextOrientation
                     | LonghandId::AnimationName
                     | LonghandId::TransitionProperty
+                    | LonghandId::XLang
                 % endif
             );
             if
