@@ -525,6 +525,31 @@ trait PrivateMatchMethods: TElement {
     }
 
     #[cfg(feature = "gecko")]
+    fn needs_update_animations(&self,
+                               old_values: &Option<Arc<ComputedValues>>,
+                               new_values: &Arc<ComputedValues>,
+                               pseudo: Option<&PseudoElement>) -> bool {
+        let ref new_box_style = new_values.get_box();
+        let has_new_animation_style = new_box_style.animation_name_count() >= 1 &&
+                                      new_box_style.animation_name_at(0).0.len() != 0;
+        let has_animations = self.has_css_animations(pseudo);
+
+        old_values.as_ref().map_or(has_new_animation_style, |ref old| {
+            let ref old_box_style = old.get_box();
+            let old_display_style = old_box_style.clone_display();
+            let new_display_style = new_box_style.clone_display();
+            // FIXME: Bug 1344581: We still need to compare keyframe rules.
+            !old_box_style.animations_equals(&new_box_style) ||
+             (old_display_style == display::T::none &&
+              new_display_style != display::T::none &&
+              has_new_animation_style) ||
+             (old_display_style != display::T::none &&
+              new_display_style == display::T::none &&
+              has_animations)
+        })
+    }
+
+    #[cfg(feature = "gecko")]
     fn process_animations(&self,
                           context: &mut StyleContext<Self>,
                           old_values: &mut Option<Arc<ComputedValues>>,
@@ -533,27 +558,8 @@ trait PrivateMatchMethods: TElement {
         use context::{CSS_ANIMATIONS, EFFECT_PROPERTIES};
         use context::UpdateAnimationsTasks;
 
-        let ref new_box_style = new_values.get_box();
-        let has_new_animation_style = new_box_style.animation_name_count() >= 1 &&
-                                      new_box_style.animation_name_at(0).0.len() != 0;
-        let has_animations = self.has_css_animations(pseudo);
-
         let mut tasks = UpdateAnimationsTasks::empty();
-        let needs_update_animations =
-            old_values.as_ref().map_or(has_new_animation_style, |ref old| {
-                let ref old_box_style = old.get_box();
-                let old_display_style = old_box_style.clone_display();
-                let new_display_style = new_box_style.clone_display();
-                // FIXME: Bug 1344581: We still need to compare keyframe rules.
-                !old_box_style.animations_equals(&new_box_style) ||
-                 (old_display_style == display::T::none &&
-                  new_display_style != display::T::none &&
-                  has_new_animation_style) ||
-                 (old_display_style != display::T::none &&
-                  new_display_style == display::T::none &&
-                  has_animations)
-            });
-        if needs_update_animations {
+        if self.needs_update_animations(old_values, new_values, pseudo) {
             tasks.insert(CSS_ANIMATIONS);
         }
         if self.has_animations(pseudo) {
