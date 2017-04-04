@@ -370,12 +370,11 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 let start_point = item.gradient.start_point.to_pointf();
                 let end_point = item.gradient.end_point.to_pointf();
                 let clip = item.base.clip.to_clip_region(builder);
-                builder.push_gradient(rect,
-                                      clip,
-                                      start_point,
-                                      end_point,
-                                      item.gradient.stops.clone(),
-                                      ExtendMode::Clamp);
+                let gradient = builder.create_gradient(start_point,
+                                                       end_point,
+                                                       item.gradient.stops.clone(),
+                                                       ExtendMode::Clamp);
+                builder.push_gradient(rect, clip, gradient);
             }
             DisplayItem::Line(..) => {
                 println!("TODO DisplayItem::Line");
