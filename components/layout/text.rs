@@ -234,17 +234,22 @@ impl TextRunScanner {
                     let flush_run = run_info.font_index != font_index ||
                                     run_info.bidi_level != bidi_level ||
                                     !compatible_script;
-                    let flush_mapping = flush_run || mapping.selected != selected;
+                    let new_mapping_needed = flush_run || mapping.selected != selected;
 
-                    if flush_mapping {
-                        mapping.flush(&mut mappings,
-                                      &mut run_info,
-                                      &**text,
-                                      compression,
-                                      text_transform,
-                                      &mut last_whitespace,
-                                      &mut start_position,
-                                      end_position);
+                    if new_mapping_needed {
+                        // We ignore empty mappings at the very start of a fragment.
+                        // The run info values are uninitialized at this point so
+                        // flushing an empty mapping is pointless.
+                        if end_position > 0 {
+                            mapping.flush(&mut mappings,
+                                          &mut run_info,
+                                          &**text,
+                                          compression,
+                                          text_transform,
+                                          &mut last_whitespace,
+                                          &mut start_position,
+                                          end_position);
+                        }
                         if run_info.text.len() > 0 {
                             if flush_run {
                                 run_info.flush(&mut run_info_list, &mut insertion_point);

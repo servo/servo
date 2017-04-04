@@ -1451,6 +1451,18 @@
      {}
     ]
    ],
+   "css/ellipsis_font_panic.html": [
+    [
+     "/_mozilla/css/ellipsis_font_panic.html",
+     [
+      [
+       "/_mozilla/css/ellipsis_font_panic-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "css/empty_cells_a.html": [
     [
      "/_mozilla/css/empty_cells_a.html",
@@ -7325,6 +7337,11 @@
     ]
    ],
    "css/display_table_cell_intrinsic_width_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/ellipsis_font_panic-ref.html": [
     [
      {}
     ]
@@ -20918,6 +20935,14 @@
   "css/display_table_cell_intrinsic_width_ref.html": [
    "24dfcfa8ac401233d287631e57ea64edb94883cc",
    "support"
+  ],
+  "css/ellipsis_font_panic-ref.html": [
+   "21988e7f477117e23eb0d6770eec3896bac3b4a2",
+   "support"
+  ],
+  "css/ellipsis_font_panic.html": [
+   "037c81c6f2f550b6d7e415b0fc7f3d0476202b76",
+   "reftest"
   ],
   "css/empty-keyframes.html": [
    "366edc7d29168809b6385ce7139786a0446ba560",
