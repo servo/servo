@@ -308,6 +308,7 @@ mod bindings {
             "mozilla::SERVO_PREF_.*",
             "kNameSpaceID_.*",
             "kGenericFont_.*",
+            "kPresContext_.*",
         ];
         let whitelist = [
             "RawGecko.*",

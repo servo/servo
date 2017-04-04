@@ -14,6 +14,7 @@
 //! style system it's kind of pointless in the Stylo case, and only Servo forces
 //! the separation between the style system implementation and everything else.
 
+use app_units::Au;
 use atomic_refcell::AtomicRefCell;
 use context::{SharedStyleContext, UpdateAnimationsTasks};
 use data::ElementData;
@@ -21,6 +22,7 @@ use dom::{self, AnimationRules, DescendantsBit, LayoutIterator, NodeInfo, TEleme
 use dom::{OpaqueNode, PresentationalHintsSynthetizer};
 use element_state::ElementState;
 use error_reporting::StdoutErrorReporter;
+use font_metrics::FontMetricsProvider;
 use gecko::global_style_data::GLOBAL_STYLE_DATA;
 use gecko::selector_parser::{SelectorImpl, NonTSPseudoClass, PseudoElement};
 use gecko::snapshot_helpers;
@@ -432,8 +434,11 @@ fn get_animation_rule(element: &GeckoElement,
 pub struct GeckoFontMetricsProvider {
     /// Cache of base font sizes for each language
     ///
-    /// Should have at most 31 elements (the number of language groups). Usually
-    /// will have 1.
+    /// Usually will have 1 element.
+    ///
+    // This may be slow on pages using more languages, might be worth optimizing
+    // by caching lang->group mapping separately and/or using a hashmap on larger
+    // loads.
     pub font_size_cache: RefCell<Vec<(Atom, ::gecko_bindings::structs::FontSizePrefs)>>,
 }
 
@@ -446,9 +451,37 @@ impl GeckoFontMetricsProvider {
     }
 }
 
-impl ::font_metrics::FontMetricsProvider for GeckoFontMetricsProvider {
-    fn create_from(_: &SharedStyleContext) -> Self {
+impl FontMetricsProvider for GeckoFontMetricsProvider {
+    fn create_from(_: &SharedStyleContext) -> GeckoFontMetricsProvider {
         GeckoFontMetricsProvider::new()
+    }
+
+    fn get_size(&self, font_name: &Atom, font_family: u8) -> Au {
+        use gecko_bindings::bindings::Gecko_GetBaseSize;
+        let mut cache = self.font_size_cache.borrow_mut();
+        if let Some(sizes) = cache.iter().find(|el| el.0 == *font_name) {
+            return sizes.1.size_for_generic(font_family);
+        }
+        let sizes = unsafe {
+            Gecko_GetBaseSize(font_name.as_ptr())
+        };
+        cache.push((font_name.clone(), sizes));
+        sizes.size_for_generic(font_family)
+    }
+}
+
+impl structs::FontSizePrefs {
+    fn size_for_generic(&self, font_family: u8) -> Au {
+        Au(match font_family {
+            structs::kPresContext_DefaultVariableFont_ID => self.mDefaultVariableSize,
+            structs::kPresContext_DefaultFixedFont_ID => self.mDefaultFixedSize,
+            structs::kGenericFont_serif => self.mDefaultSerifSize,
+            structs::kGenericFont_sans_serif => self.mDefaultSansSerifSize,
+            structs::kGenericFont_monospace => self.mDefaultMonospaceSize,
+            structs::kGenericFont_cursive => self.mDefaultCursiveSize,
+            structs::kGenericFont_fantasy => self.mDefaultFantasySize,
+            x => unreachable!("Unknown generic ID {}", x),
+        })
     }
 }
 

@@ -562,17 +562,10 @@ ${helpers.single_keyword("font-variant-caps",
 
                 // XXXManishearth handle quirks mode
 
-                let base_sizes = unsafe {
-                    Gecko_GetBaseSize(cx.style().get_font().gecko().mLanguage.raw())
-                };
-                let base_size = match cx.style().get_font().gecko().mGenericID {
-                    structs::kGenericFont_serif => base_sizes.mDefaultSerifSize,
-                    structs::kGenericFont_sans_serif => base_sizes.mDefaultSansSerifSize,
-                    structs::kGenericFont_monospace => base_sizes.mDefaultMonospaceSize,
-                    structs::kGenericFont_cursive => base_sizes.mDefaultCursiveSize,
-                    structs::kGenericFont_fantasy => base_sizes.mDefaultFantasySize,
-                    x => unreachable!("Unknown generic ID {}", x),
-                };
+                let ref gecko_font = cx.style().get_font().gecko();
+                let base_size = unsafe { Atom::with(gecko_font.mLanguage.raw(), &mut |atom| {
+                    cx.font_metrics_provider.get_size(atom, gecko_font.mGenericID).0
+                }) };
 
                 let base_size_px = au_to_int_px(base_size as f32);
                 let html_size = *self as usize;

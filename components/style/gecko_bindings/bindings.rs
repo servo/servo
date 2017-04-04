@@ -1063,9 +1063,7 @@ extern "C" {
                                           aSource: *const nsStyleFont);
 }
 extern "C" {
-    pub fn Gecko_GetBaseSize(lang: *mut nsIAtom,
-                             pres_context: RawGeckoPresContextBorrowed)
-     -> FontSizePrefs;
+    pub fn Gecko_GetBaseSize(lang: *mut nsIAtom) -> FontSizePrefs;
 }
 extern "C" {
     pub fn Gecko_GetMediaFeatures() -> *const nsMediaFeature;

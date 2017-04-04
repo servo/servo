@@ -19547,6 +19547,8 @@ pub mod root {
     #[repr(C)]
     #[derive(Debug, Copy, Clone)]
     pub struct gfxMissingFontRecorder([u8; 0]);
+    pub const kPresContext_DefaultVariableFont_ID: u8 = 0;
+    pub const kPresContext_DefaultFixedFont_ID: u8 = 1;
     #[repr(C)]
     #[derive(Debug)]
     pub struct nsRootPresContext {
