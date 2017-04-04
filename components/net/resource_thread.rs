@@ -330,8 +330,7 @@ impl CoreResourceManager {
         let ua = self.user_agent.clone();
         let dc = self.devtools_chan.clone();
         let filemanager = self.filemanager.clone();
-        // FIXME(#15694): use group.connector.clone() instead.
-        let connector = create_http_connector(group.ssl_client.clone());
+        let connector = group.connector.clone();
 
         thread::Builder::new().name(format!("fetch thread for {}", init.url)).spawn(move || {
             let mut request = Request::from_init(init);
