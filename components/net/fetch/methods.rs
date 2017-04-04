@@ -61,23 +61,23 @@ pub fn fetch_with_cors_cache(request: &mut Request,
                              cache: &mut CorsCache,
                              target: Target,
                              context: &FetchContext) {
-    // Step 1
+    // Step 1.
     if request.window == Window::Client {
         // TODO: Set window to request's client object if client is a Window object
     } else {
         request.window = Window::NoWindow;
     }
 
-    // Step 2
+    // Step 2.
     if request.origin == Origin::Client {
         // TODO: set request's origin to request's client's origin
         unimplemented!()
     }
 
-    // Step 3
+    // Step 3.
     if !request.headers.has::<Accept>() {
         let value = match request.type_ {
-            // Substep 2
+            // Step 3.2.
             _ if request.is_navigation_request() =>
                 vec![qitem(mime!(Text / Html)),
                      // FIXME: This should properly generate a MimeType that has a
@@ -86,7 +86,7 @@ pub fn fetch_with_cors_cache(request: &mut Request,
                      QualityItem::new(mime!(Application / Xml), q(0.9)),
                      QualityItem::new(mime!(_ / _), q(0.8))],
 
-            // Substep 3
+            // Step 3.3.
             Type::Image =>
                 vec![qitem(mime!(Image / Png)),
                      // FIXME: This should properly generate a MimeType that has a
@@ -95,30 +95,33 @@ pub fn fetch_with_cors_cache(request: &mut Request,
                      QualityItem::new(mime!(Image / _), q(0.8)),
                      QualityItem::new(mime!(_ / _), q(0.5))],
 
-            // Substep 3
+            // Step 3.3.
             Type::Style =>
                 vec![qitem(mime!(Text / Css)),
                      QualityItem::new(mime!(_ / _), q(0.1))],
-            // Substep 1
+            // Step 3.1.
             _ => vec![qitem(mime!(_ / _))]
         };
 
-        // Substep 4
+        // Step 3.4.
         request.headers.set(Accept(value));
     }
 
-    // Step 4
+    // Step 4.
     set_default_accept_language(&mut request.headers);
 
-    // Step 5
-    // TODO: Figure out what a Priority object is
+    // Step 5.
+    // TODO: figure out what a Priority object is.
 
-    // Step 6
+    // Step 6.
+    // TODO: handle client hints headers.
+
+    // Step 7.
     if request.is_subresource_request() {
-        // TODO: create a fetch record and append it to request's client's fetch group list
+        // TODO: handle client hints headers.
     }
 
-    // Step 7
+    // Step 8.
     main_fetch(request, cache, false, false, target, &mut None, &context);
 }
 
