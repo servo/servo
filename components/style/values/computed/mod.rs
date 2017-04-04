@@ -57,9 +57,7 @@ pub struct Context<'a> {
 
     /// A font metrics provider, used to access font metrics to implement
     /// font-relative units.
-    ///
-    /// TODO(emilio): This should be required, see #14079.
-    pub font_metrics_provider: Option<&'a FontMetricsProvider>,
+    pub font_metrics_provider: &'a FontMetricsProvider,
 }
 
 impl<'a> Context<'a> {

@@ -15,7 +15,7 @@
 //! the separation between the style system implementation and everything else.
 
 use atomic_refcell::AtomicRefCell;
-use context::UpdateAnimationsTasks;
+use context::{SharedStyleContext, UpdateAnimationsTasks};
 use data::ElementData;
 use dom::{self, AnimationRules, DescendantsBit, LayoutIterator, NodeInfo, TElement, TNode, UnsafeNode};
 use dom::{OpaqueNode, PresentationalHintsSynthetizer};
@@ -60,6 +60,7 @@ use selectors::matching::{ElementSelectorFlags, StyleRelations};
 use selectors::parser::{AttrSelector, NamespaceConstraint};
 use shared_lock::Locked;
 use sink::Push;
+use std::cell::RefCell;
 use std::fmt;
 use std::ptr;
 use std::sync::Arc;
@@ -426,8 +427,34 @@ fn get_animation_rule(element: &GeckoElement,
     }
 }
 
+#[derive(Debug)]
+/// Gecko font metrics provider
+pub struct GeckoFontMetricsProvider {
+    /// Cache of base font sizes for each language
+    ///
+    /// Should have at most 31 elements (the number of language groups). Usually
+    /// will have 1.
+    pub font_size_cache: RefCell<Vec<(Atom, ::gecko_bindings::structs::FontSizePrefs)>>,
+}
+
+impl GeckoFontMetricsProvider {
+    /// Construct
+    pub fn new() -> Self {
+        GeckoFontMetricsProvider {
+            font_size_cache: RefCell::new(Vec::new()),
+        }
+    }
+}
+
+impl ::font_metrics::FontMetricsProvider for GeckoFontMetricsProvider {
+    fn create_from(_: &SharedStyleContext) -> Self {
+        GeckoFontMetricsProvider::new()
+    }
+}
+
 impl<'le> TElement for GeckoElement<'le> {
     type ConcreteNode = GeckoNode<'le>;
+    type FontMetricsProvider = GeckoFontMetricsProvider;
 
     fn as_node(&self) -> Self::ConcreteNode {
         unsafe { GeckoNode(&*(self.0 as *const _ as *const RawGeckoNode)) }

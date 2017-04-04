@@ -7,6 +7,7 @@
 use app_units::Au;
 use cssparser::Parser;
 use euclid::{Size2D, TypedSize2D};
+use font_metrics::ServoMetricsProvider;
 use media_queries::MediaType;
 use properties::ComputedValues;
 use std::fmt;
@@ -185,7 +186,10 @@ impl Range<specified::Length> {
             // This cloning business is kind of dumb.... It's because Context
             // insists on having an actual ComputedValues inside itself.
             style: default_values.clone(),
-            font_metrics_provider: None
+            // Servo doesn't support font metrics
+            // A real provider will be needed here once we do; since
+            // ch units can exist in media queries.
+            font_metrics_provider: &ServoMetricsProvider,
         };
 
         match *self {

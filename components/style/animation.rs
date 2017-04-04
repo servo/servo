@@ -10,6 +10,7 @@ use bezier::Bezier;
 use context::SharedStyleContext;
 use dom::{OpaqueNode, UnsafeNode};
 use euclid::point::Point2D;
+use font_metrics::FontMetricsProvider;
 use keyframes::{KeyframesStep, KeyframesStepValue};
 use properties::{self, CascadeFlags, ComputedValues, Importance};
 use properties::animated_properties::{AnimatedProperty, TransitionProperty};
@@ -410,7 +411,8 @@ pub fn start_transitions_if_applicable(new_animations_sender: &Sender<Animation>
 fn compute_style_for_animation_step(context: &SharedStyleContext,
                                     step: &KeyframesStep,
                                     previous_style: &ComputedValues,
-                                    style_from_cascade: &ComputedValues)
+                                    style_from_cascade: &ComputedValues,
+                                    font_metrics_provider: &FontMetricsProvider)
                                     -> ComputedValues {
     match step.value {
         KeyframesStepValue::ComputedValues => style_from_cascade.clone(),
@@ -433,7 +435,7 @@ fn compute_style_for_animation_step(context: &SharedStyleContext,
                                                previous_style,
                                                /* cascade_info = */ None,
                                                &*context.error_reporter,
-                                               /* Metrics provider */ None,
+                                               font_metrics_provider,
                                                CascadeFlags::empty());
             computed
         }
@@ -534,7 +536,8 @@ pub fn update_style_for_animation_frame(mut new_style: &mut Arc<ComputedValues>,
 /// If `damage` is provided, inserts the appropriate restyle damage.
 pub fn update_style_for_animation(context: &SharedStyleContext,
                                   animation: &Animation,
-                                  style: &mut Arc<ComputedValues>) {
+                                  style: &mut Arc<ComputedValues>,
+                                  font_metrics_provider: &FontMetricsProvider) {
     debug!("update_style_for_animation: entering");
     debug_assert!(!animation.is_expired());
 
@@ -658,7 +661,8 @@ pub fn update_style_for_animation(context: &SharedStyleContext,
             let from_style = compute_style_for_animation_step(context,
                                                               last_keyframe,
                                                               &**style,
-                                                              &state.cascade_style);
+                                                              &state.cascade_style,
+                                                              font_metrics_provider);
 
             // NB: The spec says that the timing function can be overwritten
             // from the keyframe style.
@@ -672,7 +676,8 @@ pub fn update_style_for_animation(context: &SharedStyleContext,
             let target_style = compute_style_for_animation_step(context,
                                                                 target_keyframe,
                                                                 &from_style,
-                                                                &state.cascade_style);
+                                                                &state.cascade_style,
+                                                                font_metrics_provider);
 
             let mut new_style = (*style).clone();
 
