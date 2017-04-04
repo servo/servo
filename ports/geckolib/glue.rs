@@ -85,7 +85,7 @@ use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
 use style::supports::parse_condition_or_declaration;
 use style::thread_state;
 use style::timer::Timer;
-use style::traversal::{ANIMATION_ONLY, UNSTYLED_CHILDREN_ONLY};
+use style::traversal::{ANIMATION_ONLY, FOR_RECONSTRUCT, UNSTYLED_CHILDREN_ONLY};
 use style::traversal::{resolve_style, DomTraversal, TraversalDriver, TraversalFlags};
 use style_traits::ToCss;
 use super::stylesheet_loader::StylesheetLoader;
@@ -207,13 +207,20 @@ fn traverse_subtree(element: GeckoElement, raw_data: RawServoStyleSetBorrowed,
 #[no_mangle]
 pub extern "C" fn Servo_TraverseSubtree(root: RawGeckoElementBorrowed,
                                         raw_data: RawServoStyleSetBorrowed,
-                                        behavior: structs::TraversalRootBehavior) -> bool {
+                                        root_behavior: structs::TraversalRootBehavior,
+                                        restyle_behavior: structs::TraversalRestyleBehavior)
+                                        -> bool {
+    use self::structs::TraversalRestyleBehavior as Restyle;
+    use self::structs::TraversalRootBehavior as Root;
+
     let element = GeckoElement(root);
     debug!("Servo_TraverseSubtree: {:?}", element);
 
-    let traversal_flags = match behavior {
-        structs::TraversalRootBehavior::UnstyledChildrenOnly => UNSTYLED_CHILDREN_ONLY,
-        _ => TraversalFlags::empty(),
+    let traversal_flags = match (root_behavior, restyle_behavior) {
+        (Root::Normal, Restyle::Normal) => TraversalFlags::empty(),
+        (Root::UnstyledChildrenOnly, Restyle::Normal) => UNSTYLED_CHILDREN_ONLY,
+        (Root::Normal, Restyle::ForReconstruct) => FOR_RECONSTRUCT,
+        _ => panic!("invalid combination of TraversalRootBehavior and TraversalRestyleBehavior"),
     };
 
     if element.has_animation_only_dirty_descendants() ||

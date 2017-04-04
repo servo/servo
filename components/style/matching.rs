@@ -557,7 +557,7 @@ trait PrivateMatchMethods: TElement {
 
         // Accumulate restyle damage.
         if let Some(old) = old_values {
-            self.accumulate_damage(restyle.unwrap(), &old, &new_values, pseudo);
+            self.accumulate_damage(&context.shared, restyle.unwrap(), &old, &new_values, pseudo);
         }
 
         // Set the new computed values.
@@ -677,10 +677,16 @@ trait PrivateMatchMethods: TElement {
     /// Computes and applies non-redundant damage.
     #[cfg(feature = "gecko")]
     fn accumulate_damage(&self,
+                         shared_context: &SharedStyleContext,
                          restyle: &mut RestyleData,
                          old_values: &Arc<ComputedValues>,
                          new_values: &Arc<ComputedValues>,
                          pseudo: Option<&PseudoElement>) {
+        // Don't accumulate damage if we're in a restyle for reconstruction.
+        if shared_context.traversal_flags.for_reconstruct() {
+            return;
+        }
+
         // If an ancestor is already getting reconstructed by Gecko's top-down
         // frame constructor, no need to apply damage.
         if restyle.damage_handled.contains(RestyleDamage::reconstruct()) {
@@ -705,6 +711,7 @@ trait PrivateMatchMethods: TElement {
     /// Computes and applies restyle damage unless we've already maxed it out.
     #[cfg(feature = "servo")]
     fn accumulate_damage(&self,
+                         _shared_context: &SharedStyleContext,
                          restyle: &mut RestyleData,
                          old_values: &Arc<ComputedValues>,
                          new_values: &Arc<ComputedValues>,
@@ -1109,7 +1116,7 @@ pub trait MatchMethods : TElement {
                     let old_values = data.get_styles_mut()
                                          .and_then(|s| s.primary.values.take());
                     if let Some(old) = old_values {
-                        self.accumulate_damage(data.restyle_mut(), &old,
+                        self.accumulate_damage(shared_context, data.restyle_mut(), &old,
                                                shared_style.values(), None);
                     }
 
