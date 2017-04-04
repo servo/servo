@@ -149,6 +149,12 @@ pub trait DomTraversal<E: TElement> : Sync {
                     -> PreTraverseToken
     {
         if traversal_flags.for_unstyled_children_only() {
+            if root.borrow_data().map_or(true, |d| d.has_styles() && d.styles().is_display_none()) {
+                return PreTraverseToken {
+                    traverse: false,
+                    unstyled_children_only: false,
+                };
+            }
             return PreTraverseToken {
                 traverse: true,
                 unstyled_children_only: true,
