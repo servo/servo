@@ -1,0 +1,39 @@
+<!doctype html>
+<meta charset="utf-8">
+<html>
+    <body>
+        <title>Test for issue #15858</title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <map name="my_map" id="my_map">
+            <area shape="rect" coords="0,0,100,100"/>
+        </map>
+        <img usemap="#my_map" src="2x2.png" id="my_img"/>
+        <img usemap="#my_unk_map" src="2x2.png" id="my_img_unk_map"/>
+
+        <script>
+            var test = async_test("ImageClickShouldNotCrash");
+            var img = document.getElementById('my_img');
+            var img_clicked = false;
+            img.onclick = function(e) { img_clicked = true; return true; };
+            document.addEventListener("DOMContentLoaded", function() {
+                test.step(function() {
+                    document.getElementById('my_img').click()
+                });
+            });
+            test.step_timeout(function() { assert_true(img_clicked, "Image click expected"); test.done(); }, 500);
+
+            var test_unkmap = async_test("ImageClickShouldNotCrashUnknownMap");
+            var img_unkmap = document.getElementById('my_img_unk_map');
+            var img_unk_clicked = false;
+            img_unkmap.onclick = function(e) { img_unk_clicked = true; return true; };
+            document.addEventListener("DOMContentLoaded", function() {
+                test_unkmap.step(function() {
+                    document.getElementById('my_img_unk_map').click()
+                });
+            });
+            test_unkmap.step_timeout(function() { assert_true(img_unk_clicked, "Image click expected"); test_unkmap.done(); }, 500);
+        </script>
+
+    </body>
+</html>
