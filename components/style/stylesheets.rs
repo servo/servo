@@ -27,12 +27,8 @@ use parser::{ParserContext, log_css_error};
 use properties::{PropertyDeclarationBlock, parse_property_declaration_list};
 use selector_parser::{SelectorImpl, SelectorParser};
 use selectors::parser::SelectorList;
-<<<<<<< 5ef8a0a2f7917792105cf28f6e581a92e863c3dd
-use servo_config::prefs::PREFS;
 #[cfg(not(feature = "gecko"))]
-=======
 use config;
->>>>>>> Change code for serialization for {box,text}-shadow so blur-radius
 use servo_url::ServoUrl;
 use shared_lock::{SharedRwLock, Locked, ToCssWithGuard, SharedRwLockReadGuard};
 use std::cell::Cell;
