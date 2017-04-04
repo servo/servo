@@ -10,7 +10,7 @@ use style::parser::ParserContext;
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, Importance, PropertyId};
 use style::properties::longhands::outline_color::computed_value::T as ComputedColor;
 use style::properties::parse_property_declaration_list;
-use style::stylesheets::Origin;
+use style::stylesheets::{CssRuleType, Origin};
 use style::values::{RGBA, Auto};
 use style::values::specified::{BorderStyle, BorderWidth, CSSColor, Length, NoCalcLength};
 use style::values::specified::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrAutoOrContent};
@@ -23,7 +23,7 @@ fn parse_declaration_block(css_properties: &str) -> PropertyDeclarationBlock {
     let reporter = CSSErrorReporterTest;
     let context = ParserContext::new(Origin::Author, &url, &reporter);
     let mut parser = Parser::new(css_properties);
-    parse_property_declaration_list(&context, &mut parser)
+    parse_property_declaration_list(&context, &mut parser, CssRuleType::Style)
 }
 
 #[test]

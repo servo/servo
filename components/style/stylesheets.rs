@@ -262,6 +262,7 @@ pub enum CssRule {
 }
 
 #[allow(missing_docs)]
+#[derive(PartialEq, Eq, Copy, Clone)]
 pub enum CssRuleType {
     // https://drafts.csswg.org/cssom/#the-cssrule-interface
     Style               = 1,
@@ -1114,7 +1115,7 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
                 }))))
             }
             AtRulePrelude::Page => {
-                let declarations = parse_property_declaration_list(self.context, input);
+                let declarations = parse_property_declaration_list(self.context, input, CssRuleType::Page);
                 Ok(CssRule::Page(Arc::new(self.shared_lock.wrap(PageRule(
                     Arc::new(self.shared_lock.wrap(declarations))
                 )))))
@@ -1137,7 +1138,7 @@ impl<'a, 'b> QualifiedRuleParser for NestedRuleParser<'a, 'b> {
 
     fn parse_block(&mut self, prelude: SelectorList<SelectorImpl>, input: &mut Parser)
                    -> Result<CssRule, ()> {
-        let declarations = parse_property_declaration_list(self.context, input);
+        let declarations = parse_property_declaration_list(self.context, input, CssRuleType::Style);
         Ok(CssRule::Style(Arc::new(self.shared_lock.wrap(StyleRule {
             selectors: prelude,
             block: Arc::new(self.shared_lock.wrap(declarations))
