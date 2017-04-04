@@ -496,32 +496,34 @@ trait PrivateMatchMethods: TElement {
         }
     }
 
+    /// get_after_change_style removes the transition rules from the ComputedValues.
+    /// If there is no transition rule in the ComputedValues, it returns None.
     #[cfg(feature = "gecko")]
     fn get_after_change_style(&self,
                               context: &mut StyleContext<Self>,
                               primary_style: &ComputedStyle,
                               pseudo_style: &Option<(&PseudoElement, &ComputedStyle)>)
-                              -> Arc<ComputedValues> {
+                              -> Option<Arc<ComputedValues>> {
         let style = &pseudo_style.as_ref().map_or(primary_style, |p| &*p.1);
         let rule_node = &style.rules;
         let without_transition_rules =
             context.shared.stylist.rule_tree.remove_transition_rule_if_applicable(rule_node);
         if without_transition_rules == *rule_node {
-            // Note that unwrapping here is fine, because the style is
-            // only incomplete during the styling process.
-            return style.values.as_ref().unwrap().clone();
+            // We don't have transition rule in this case, so return None to let the caller
+            // use the original ComputedValues.
+            return None;
         }
 
         let mut cascade_flags = CascadeFlags::empty();
         if self.skip_root_and_item_based_display_fixup() {
-            cascade_flags.insert(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP)
+            cascade_flags.insert(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP);
         }
-        self.cascade_with_rules(context.shared,
-                                &context.thread_local.font_metrics_provider,
-                                &without_transition_rules,
-                                primary_style,
-                                cascade_flags,
-                                pseudo_style.is_some())
+        Some(self.cascade_with_rules(context.shared,
+                                     &context.thread_local.font_metrics_provider,
+                                     &without_transition_rules,
+                                     primary_style,
+                                     cascade_flags,
+                                     pseudo_style.is_some()))
     }
 
     #[cfg(feature = "gecko")]
