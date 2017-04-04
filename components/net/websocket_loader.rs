@@ -4,7 +4,7 @@
 
 use cookie::Cookie;
 use fetch::methods::{should_be_blocked_due_to_bad_port, should_be_blocked_due_to_nosniff};
-use http_loader::{HttpState, is_redirect_status, set_request_cookies};
+use http_loader::{HttpState, is_redirect_status, set_default_accept_language, set_request_cookies};
 use hyper::buffer::BufReader;
 use hyper::header::{Accept, CacheControl, CacheDirective, Connection, ConnectionOption};
 use hyper::header::{Headers, Host, SetCookie, Pragma, Protocol, ProtocolName, Upgrade};
@@ -295,7 +295,7 @@ fn fetch(url: &ServoUrl,
     }
 
     // Step 4.
-    // TODO: handle `Accept-Language`.
+    set_default_accept_language(&mut headers);
 
     // Step 5.
     // TODO: handle request's priority.
