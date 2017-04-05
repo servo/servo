@@ -10,7 +10,6 @@ use std::collections::HashMap;
 use std::net::{Ipv4Addr, Ipv6Addr};
 use std::str::from_utf8;
 use time;
-use url::Url;
 
 #[derive(Clone, Deserialize, Serialize)]
 pub struct HstsEntry {
@@ -134,17 +133,5 @@ impl HstsList {
                 }
             }
         }
-    }
-}
-
-pub fn secure_url(url: &Url) -> Url {
-    if url.scheme() == "http" {
-        let mut secure_url = url.clone();
-        secure_url.set_scheme("https").unwrap();
-        // .set_port(Some(443)) would set the port to None,
-        // and should only be done when it was already None.
-        secure_url
-    } else {
-        url.clone()
     }
 }
