@@ -244,6 +244,8 @@ pub fn main_fetch(request: &mut Request,
         let response_is_network_error = response.is_network_error();
         let should_replace_with_nosniff_error =
             !response_is_network_error && should_be_blocked_due_to_nosniff(request.type_, &response.headers);
+        let should_replace_with_mime_type_error =
+            !response_is_network_error && should_be_blocked_due_to_mime_type(request.type_, &response.headers);
 
         // Step 15.
         let mut network_error_response = response.get_network_error().cloned().map(Response::network_error);
@@ -261,12 +263,15 @@ pub fn main_fetch(request: &mut Request,
         // Step 17.
         // TODO: handle blocking as mixed content.
         // TODO: handle blocking by content security policy.
-        // TODO: handle blocking due to MIME type.
         let blocked_error_response;
         let internal_response =
             if should_replace_with_nosniff_error {
                 // Defer rebinding result
                 blocked_error_response = Response::network_error(NetworkError::Internal("Blocked by nosniff".into()));
+                &blocked_error_response
+            } else if should_replace_with_mime_type_error {
+                // Defer rebinding result
+                blocked_error_response = Response::network_error(NetworkError::Internal("Blocked by mime type".into()));
                 &blocked_error_response
             } else {
                 internal_response
@@ -596,6 +601,21 @@ pub fn should_be_blocked_due_to_nosniff(request_type: Type, response_headers: &H
         // Step 8
         _ => false
     };
+}
+
+/// https://fetch.spec.whatwg.org/#should-response-to-request-be-blocked-due-to-mime-type?
+fn should_be_blocked_due_to_mime_type(request_type: Type, response_headers: &Headers) -> bool {
+    let mime_type = match response_headers.get::<ContentType>() {
+        Some(header) => header,
+        None => return false,
+    };
+    request_type == Type::Script && match *mime_type {
+        ContentType(Mime(TopLevel::Audio, _, _)) |
+        ContentType(Mime(TopLevel::Video, _, _)) |
+        ContentType(Mime(TopLevel::Image, _, _)) => true,
+        ContentType(Mime(TopLevel::Text, SubLevel::Ext(ref ext), _)) => ext == "csv",
+        _ => false,
+    }
 }
 
 /// https://fetch.spec.whatwg.org/#block-bad-port
