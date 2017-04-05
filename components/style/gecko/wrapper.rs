@@ -694,7 +694,7 @@ impl<'le> PresentationalHintsSynthetizer for GeckoElement<'le> {
             let global_style_data = &*GLOBAL_STYLE_DATA;
 
             let pdb = PropertyDeclarationBlock::with_one(
-                PropertyDeclaration::XLang(SpecifiedLang(Atom::from(ptr))),
+                PropertyDeclaration::XLang(SpecifiedLang(unsafe { Atom::from_addrefed(ptr) })),
                 Importance::Normal
             );
             let arc = Arc::new(global_style_data.shared_lock.wrap(pdb));
