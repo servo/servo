@@ -163,15 +163,8 @@ pub fn main_fetch(request: &mut Request,
     // TODO: handle FTP URLs.
 
     // Step 10.
-    if !request.current_url().is_secure_scheme() && request.current_url().domain().is_some() {
-        if context.state
-            .hsts_list
-            .read()
-            .unwrap()
-            .is_host_secure(request.current_url().domain().unwrap()) {
-           request.url_list.last_mut().unwrap().as_mut_url().set_scheme("https").unwrap();
-        }
-    }
+    context.state.hsts_list.read().unwrap().switch_known_hsts_host_domain_url_to_https(
+        request.current_url_mut());
 
     // Step 11.
     // Not applicable: see fetch_async.
@@ -496,11 +489,6 @@ pub fn is_simple_method(m: &Method) -> bool {
         _ => false
     }
 }
-
-// fn modify_request_headers(headers: &mut Headers) -> {
-//     // TODO this function
-
-// }
 
 fn is_null_body_status(status: &Option<StatusCode>) -> bool {
     match *status {

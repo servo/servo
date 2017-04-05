@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use net::hsts::{HstsEntry, HstsList};
-use net::hsts::secure_url;
 use net_traits::IncludeSubdomains;
 use std::collections::HashMap;
 use time;
@@ -293,28 +292,4 @@ fn test_hsts_list_with_expired_entry_is_not_is_host_secure() {
 fn test_preload_hsts_domains_well_formed() {
     let hsts_list = HstsList::from_servo_preload();
     assert!(!hsts_list.entries_map.is_empty());
-}
-
-#[test]
-fn test_secure_url_does_not_change_explicit_port() {
-    let url = Url::parse("http://mozilla.org:8080/").unwrap();
-    let secure = secure_url(&url);
-
-    assert!(secure.port().unwrap() == 8080u16);
-}
-
-#[test]
-fn test_secure_url_does_not_affect_non_http_schemas() {
-    let url = Url::parse("file://mozilla.org").unwrap();
-    let secure = secure_url(&url);
-
-    assert_eq!(secure.scheme(), "file");
-}
-
-#[test]
-fn test_secure_url_forces_an_http_host_in_list_to_https() {
-    let url = Url::parse("http://mozilla.org").unwrap();
-    let secure = secure_url(&url);
-
-    assert_eq!(secure.scheme(), "https");
 }

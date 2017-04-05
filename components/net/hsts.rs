@@ -6,11 +6,11 @@ use net_traits::IncludeSubdomains;
 use net_traits::pub_domains::reg_suffix;
 use serde_json;
 use servo_config::resource_files::read_resource_file;
+use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::net::{Ipv4Addr, Ipv6Addr};
 use std::str::from_utf8;
 use time;
-use url::Url;
 
 #[derive(Clone, Deserialize, Serialize)]
 pub struct HstsEntry {
@@ -135,16 +135,14 @@ impl HstsList {
             }
         }
     }
-}
 
-pub fn secure_url(url: &Url) -> Url {
-    if url.scheme() == "http" {
-        let mut secure_url = url.clone();
-        secure_url.set_scheme("https").unwrap();
-        // .set_port(Some(443)) would set the port to None,
-        // and should only be done when it was already None.
-        secure_url
-    } else {
-        url.clone()
+    /// Step 10 of https://fetch.spec.whatwg.org/#concept-main-fetch.
+    pub fn switch_known_hsts_host_domain_url_to_https(&self, url: &mut ServoUrl) {
+        if url.scheme() != "http" {
+            return;
+        }
+        if url.domain().map_or(false, |domain| self.is_host_secure(domain)) {
+            url.as_mut_url().set_scheme("https").unwrap();
+        }
     }
 }
