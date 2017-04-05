@@ -34,7 +34,6 @@ use hyper_serde::Serde;
 use log;
 use msg::constellation_msg::PipelineId;
 use net_traits::{CookieSource, FetchMetadata, NetworkError, ReferrerPolicy};
-use net_traits::hosts::replace_host;
 use net_traits::request::{CacheMode, CredentialsMode, Destination, Origin};
 use net_traits::request::{RedirectMode, Referrer, Request, RequestMode};
 use net_traits::request::{ResponseTainting, Type};
@@ -129,7 +128,7 @@ impl NetworkConnector for NetworkHttpRequestFactory {
     type Stream = PooledStream<HttpsStream<SslStream<HttpStream>>>;
 
     fn connect(&self, host: &str, port: u16, scheme: &str) -> Result<Self::Stream, HttpError> {
-        self.connector.connect(&replace_host(host), port, scheme)
+        self.connector.connect(host, port, scheme)
     }
 }
 
