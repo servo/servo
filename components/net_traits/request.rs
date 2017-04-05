@@ -330,6 +330,11 @@ impl Request {
         self.url_list.last().unwrap().clone()
     }
 
+    /// https://fetch.spec.whatwg.org/#concept-request-current-url
+    pub fn current_url_mut(&mut self) -> &mut ServoUrl {
+        self.url_list.last_mut().unwrap()
+    }
+
     /// https://fetch.spec.whatwg.org/#navigation-request
     pub fn is_navigation_request(&self) -> bool {
         self.destination == Destination::Document

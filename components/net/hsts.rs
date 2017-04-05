@@ -6,6 +6,7 @@ use net_traits::IncludeSubdomains;
 use net_traits::pub_domains::reg_suffix;
 use serde_json;
 use servo_config::resource_files::read_resource_file;
+use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::net::{Ipv4Addr, Ipv6Addr};
 use std::str::from_utf8;
@@ -132,6 +133,16 @@ impl HstsList {
                     e.max_age = entry.max_age;
                 }
             }
+        }
+    }
+
+    /// Step 10 of https://fetch.spec.whatwg.org/#concept-main-fetch.
+    pub fn switch_known_hsts_host_domain_url_to_https(&self, url: &mut ServoUrl) {
+        if url.scheme() != "http" {
+            return;
+        }
+        if url.domain().map_or(false, |domain| self.is_host_secure(domain)) {
+            url.as_mut_url().set_scheme("https").unwrap();
         }
     }
 }
