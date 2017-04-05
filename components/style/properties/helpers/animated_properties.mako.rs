@@ -301,7 +301,10 @@ impl AnimationValue {
 
     /// Construct an AnimationValue from a property declaration
     pub fn from_declaration(decl: &PropertyDeclaration, context: &Context, initial: &ComputedValues) -> Option<Self> {
+        use error_reporting::StdoutErrorReporter;
         use properties::LonghandId;
+        use properties::DeclaredValue;
+
         match *decl {
             % for prop in data.longhands:
             % if prop.animatable:
@@ -344,10 +347,41 @@ impl AnimationValue {
                     % endif
                     % endfor
                 }
-            }
-            PropertyDeclaration::WithVariables(_, _) => {
-                // https://bugzilla.mozilla.org/show_bug.cgi?id=1326131
-                unimplemented!()
+            },
+            PropertyDeclaration::WithVariables(id, ref variables) => {
+                let custom_props = context.style().custom_properties();
+                let reporter = StdoutErrorReporter;
+                match id {
+                    % for prop in data.longhands:
+                    % if prop.animatable:
+                    LonghandId::${prop.camel_case} => {
+                        let mut result = None;
+                        ::properties::substitute_variables_${prop.ident}_slow(
+                            &variables.css,
+                            variables.first_token_type,
+                            &variables.url_data,
+                            variables.from_shorthand,
+                            &custom_props,
+                            |v| {
+                                let declaration = match *v {
+                                    DeclaredValue::Value(value) => {
+                                        PropertyDeclaration::${prop.camel_case}(value.clone())
+                                    },
+                                    DeclaredValue::CSSWideKeyword(keyword) => {
+                                        PropertyDeclaration::CSSWideKeyword(id, keyword)
+                                    },
+                                    DeclaredValue::WithVariables(_) => unreachable!(),
+                                };
+                                result = AnimationValue::from_declaration(&declaration, context, initial);
+                            },
+                            &reporter);
+                        result
+                    },
+                    % else:
+                    LonghandId::${prop.camel_case} => None,
+                    % endif
+                    % endfor
+                }
             },
             _ => None // non animatable properties will get included because of shorthands. ignore.
         }
