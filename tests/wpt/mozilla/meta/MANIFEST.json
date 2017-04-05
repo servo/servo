@@ -11230,12 +11230,6 @@
      {}
     ]
    ],
-   "mozilla/bad_cert_detected.html": [
-    [
-     "/_mozilla/mozilla/bad_cert_detected.html",
-     {}
-    ]
-   ],
    "mozilla/binding_keyword.html": [
     [
      "/_mozilla/mozilla/binding_keyword.html",
@@ -24282,10 +24276,6 @@
   "mozilla/adopt-panic.css": [
    "170d51460da58c16f5cf94ecda18f18a1c18c116",
    "support"
-  ],
-  "mozilla/bad_cert_detected.html": [
-   "5d49332d2a6c823bfaf378f84641ce8bba5c8210",
-   "testharness"
   ],
   "mozilla/binding_keyword.html": [
    "c79aa6d506fbabbed0f6f31d1b8600ea6ba8ff41",
