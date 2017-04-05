@@ -33,10 +33,31 @@ class MachCommands(CommandBase):
         if not params:
             params = []
 
+        self.ensure_bootstrapped()
+
         if self.context.topdir == getcwd():
             with cd(path.join('components', 'servo')):
                 return call(["cargo"] + params, env=self.build_env())
         return call(['cargo'] + params, env=self.build_env())
+
+    @Command('cargo-geckolib',
+             description='Run Cargo with the same compiler version and root crate as build-geckolib',
+             category='devenv')
+    @CommandArgument(
+        'params', default=None, nargs='...',
+        help="Command-line arguments to be passed through to Cargo")
+    def cargo_geckolib(self, params):
+        if not params:
+            params = []
+
+        self.set_use_stable_rust()
+        self.ensure_bootstrapped()
+        env = self.build_env(geckolib=True)
+
+        if self.context.topdir == getcwd():
+            with cd(path.join('ports', 'geckolib')):
+                return call(["cargo"] + params, env=env)
+        return call(['cargo'] + params, env=env)
 
     @Command('cargo-update',
              description='Same as update-cargo',
@@ -95,7 +116,26 @@ class MachCommands(CommandBase):
     def rustc(self, params):
         if params is None:
             params = []
+
+        self.ensure_bootstrapped()
+
         return call(["rustc"] + params, env=self.build_env())
+
+    @Command('rustc-geckolib',
+             description='Run the Rust compiler with the same compiler version and root crate as build-geckolib',
+             category='devenv')
+    @CommandArgument(
+        'params', default=None, nargs='...',
+        help="Command-line arguments to be passed through to rustc")
+    def rustc_geckolib(self, params):
+        if params is None:
+            params = []
+
+        self.set_use_stable_rust()
+        self.ensure_bootstrapped()
+        env = self.build_env(geckolib=True)
+
+        return call(["rustc"] + params, env=env)
 
     @Command('rust-root',
              description='Print the path to the root of the Rust compiler',

@@ -382,7 +382,7 @@ class CommandBase(object):
                                   " --release" if release else ""))
         sys.exit()
 
-    def build_env(self, hosts_file_path=None, target=None, is_build=False):
+    def build_env(self, hosts_file_path=None, target=None, is_build=False, geckolib=False):
         """Return an extended environment dictionary."""
         env = os.environ.copy()
         if sys.platform == "win32" and type(env['PATH']) == unicode:
@@ -518,6 +518,10 @@ class CommandBase(object):
                 git_info.append('dirty')
 
         env['GIT_INFO'] = '-'.join(git_info)
+
+        if geckolib:
+            geckolib_build_path = path.join(self.context.topdir, "target", "geckolib").encode("UTF-8")
+            env["CARGO_TARGET_DIR"] = geckolib_build_path
 
         return env
 

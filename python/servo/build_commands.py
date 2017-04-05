@@ -416,9 +416,8 @@ class MachCommands(CommandBase):
         self.set_use_stable_rust()
         self.ensure_bootstrapped()
 
-        env = self.build_env(is_build=True)
+        env = self.build_env(is_build=True, geckolib=True)
         geckolib_build_path = path.join(self.context.topdir, "target", "geckolib").encode("UTF-8")
-        env["CARGO_TARGET_DIR"] = geckolib_build_path
 
         ret = None
         opts = []
