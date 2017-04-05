@@ -18,6 +18,7 @@
 //! loop.
 
 use bluetooth_traits::BluetoothRequest;
+use core::borrow::BorrowMut;
 use devtools;
 use devtools_traits::{DevtoolScriptControlMsg, DevtoolsPageInfo};
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
@@ -575,10 +576,11 @@ impl ScriptThreadFactory for ScriptThread {
 
 impl ScriptThread {
     pub fn add_mutation_observer(observer: &MutationObserver) {
-        SCRIPT_THREAD_ROOT.with(|root| {
+       SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
             script_thread.mutation_observers
-                .push(JS::from_ref(&*observer));
+                .borrow_mut()
+                .push(JS::from_ref(observer));
         })
     }
 

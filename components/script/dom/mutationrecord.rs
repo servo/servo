@@ -37,7 +37,7 @@ impl MutationRecord {
 impl MutationRecordMethods for MutationRecord {
     // https://dom.spec.whatwg.org/#dom-mutationrecord-type
     fn Type(&self) -> DOMString {
-        return self.record_type;
+        DOMString::from(self.record_type.clone())
     }
 
     // https://dom.spec.whatwg.org/#dom-mutationrecord-target
