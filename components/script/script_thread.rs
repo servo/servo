@@ -18,7 +18,6 @@
 //! loop.
 
 use bluetooth_traits::BluetoothRequest;
-use core::borrow::BorrowMut;
 use devtools;
 use devtools_traits::{DevtoolScriptControlMsg, DevtoolsPageInfo};
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
@@ -483,7 +482,7 @@ pub struct ScriptThread {
     microtask_queue: MicrotaskQueue,
 
     /// The unit of related similar-origin browsing contexts' list of MutationObserver objects
-    mutation_observers: Vec<JS<MutationObserver>>,
+    mutation_observers: DOMRefCell<Vec<JS<MutationObserver>>>,
 
     /// A handle to the webvr thread, if available
     webvr_thread: Option<IpcSender<WebVRMsg>>,
@@ -576,7 +575,7 @@ impl ScriptThreadFactory for ScriptThread {
 
 impl ScriptThread {
     pub fn add_mutation_observer(observer: &MutationObserver) {
-       SCRIPT_THREAD_ROOT.with(|root| {
+        SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
             script_thread.mutation_observers
                 .borrow_mut()
@@ -736,7 +735,7 @@ impl ScriptThread {
 
             microtask_queue: MicrotaskQueue::default(),
 
-            mutation_observers: vec![],
+            mutation_observers: Default::default(),
 
             layout_to_constellation_chan: state.layout_to_constellation_chan,
 
