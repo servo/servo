@@ -46,6 +46,7 @@ use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::globalscope::GlobalScope;
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmliframeelement::HTMLIFrameElement;
+use dom::mutationobserver::MutationObserver;
 use dom::node::{Node, NodeDamage, window_from_node};
 use dom::serviceworker::TrustedServiceWorkerAddress;
 use dom::serviceworkerregistration::ServiceWorkerRegistration;
@@ -480,6 +481,9 @@ pub struct ScriptThread {
 
     microtask_queue: MicrotaskQueue,
 
+    /// The unit of related similar-origin browsing contexts' list of MutationObserver objects
+    mutation_observers: DOMRefCell<Vec<JS<MutationObserver>>>,
+
     /// A handle to the webvr thread, if available
     webvr_thread: Option<IpcSender<WebVRMsg>>,
 
@@ -570,6 +574,15 @@ impl ScriptThreadFactory for ScriptThread {
 }
 
 impl ScriptThread {
+    pub fn add_mutation_observer(observer: &MutationObserver) {
+        SCRIPT_THREAD_ROOT.with(|root| {
+            let script_thread = unsafe { &*root.get().unwrap() };
+            script_thread.mutation_observers
+                .borrow_mut()
+                .push(JS::from_ref(observer));
+        })
+    }
+
     pub fn mark_document_with_no_blocked_loads(doc: &Document) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
@@ -721,6 +734,8 @@ impl ScriptThread {
             content_process_shutdown_chan: state.content_process_shutdown_chan,
 
             microtask_queue: MicrotaskQueue::default(),
+
+            mutation_observers: Default::default(),
 
             layout_to_constellation_chan: state.layout_to_constellation_chan,
 
