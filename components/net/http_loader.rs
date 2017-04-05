@@ -487,7 +487,9 @@ fn obtain_response(request_factory: &NetworkHttpRequestFactory,
 
         let response = match request_writer.send() {
             Ok(w) => w,
-            Err(HttpError::Io(ref io_error)) if io_error.kind() == io::ErrorKind::ConnectionAborted => {
+            Err(HttpError::Io(ref io_error))
+                if io_error.kind() == io::ErrorKind::ConnectionAborted ||
+                   io_error.kind() == io::ErrorKind::ConnectionReset => {
                 debug!("connection aborted ({:?}), possibly stale, trying new connection", io_error.description());
                 continue;
             },
