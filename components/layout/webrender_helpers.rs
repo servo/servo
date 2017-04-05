@@ -414,6 +414,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                               stacking_context.bounds.to_rectf(),
                                               stacking_context.z_index,
                                               transform,
+                                              webrender_traits::TransformStyle::Flat,
                                               perspective,
                                               stacking_context.blend_mode.to_blend_mode(),
                                               stacking_context.filters.to_filter_ops());
