@@ -80,8 +80,8 @@ impl ToCss for AlignFlags {
             ALIGN_CENTER => "center",
             ALIGN_LEFT => "left",
             ALIGN_RIGHT => "left",
-            ALIGN_BASELINE => "right",
-            ALIGN_LAST_BASELINE => "baseline",
+            ALIGN_BASELINE => "baseline",
+            ALIGN_LAST_BASELINE => "last baseline",
             ALIGN_STRETCH => "stretch",
             ALIGN_SELF_START => "self-start",
             ALIGN_SELF_END => "self-end",
@@ -322,33 +322,63 @@ impl Parse for JustifyItems {
 
 // auto | normal | stretch | <baseline-position>
 fn parse_auto_normal_stretch_baseline(input: &mut Parser) -> Result<AlignFlags, ()> {
+    if let Ok(baseline) = input.try(|input| parse_baseline(input)) {
+        return Ok(baseline);
+    }
+
     let ident = input.expect_ident()?;
     match_ignore_ascii_case! { &ident,
         "auto" => Ok(ALIGN_AUTO),
         "normal" => Ok(ALIGN_NORMAL),
         "stretch" => Ok(ALIGN_STRETCH),
-        "baseline" => Ok(ALIGN_BASELINE),
         _ => Err(())
     }
 }
 
 // normal | stretch | <baseline-position>
 fn parse_normal_stretch_baseline(input: &mut Parser) -> Result<AlignFlags, ()> {
+    if let Ok(baseline) = input.try(|input| parse_baseline(input)) {
+        return Ok(baseline);
+    }
+
     let ident = input.expect_ident()?;
     match_ignore_ascii_case! { &ident,
         "normal" => Ok(ALIGN_NORMAL),
         "stretch" => Ok(ALIGN_STRETCH),
-        "baseline" => Ok(ALIGN_BASELINE),
         _ => Err(())
     }
 }
 
 // normal | <baseline-position>
 fn parse_normal_or_baseline(input: &mut Parser) -> Result<AlignFlags, ()> {
+    if let Ok(baseline) = input.try(|input| parse_baseline(input)) {
+        return Ok(baseline);
+    }
+
     let ident = input.expect_ident()?;
     match_ignore_ascii_case! { &ident,
         "normal" => Ok(ALIGN_NORMAL),
+        _ => Err(())
+    }
+}
+
+// <baseline-position>
+fn parse_baseline(input: &mut Parser) -> Result<AlignFlags, ()> {
+    let ident = input.expect_ident()?;
+    match_ignore_ascii_case! { &ident,
         "baseline" => Ok(ALIGN_BASELINE),
+        "first" => {
+            if input.try(|input| input.expect_ident_matching("baseline")).is_ok() {
+                return Ok(ALIGN_BASELINE);
+            }
+            Err(())
+        },
+        "last" => {
+            if input.try(|input| input.expect_ident_matching("baseline")).is_ok() {
+                return Ok(ALIGN_LAST_BASELINE);
+            }
+            Err(())
+        },
         _ => Err(())
     }
 }
@@ -358,9 +388,9 @@ fn parse_content_distribution(input: &mut Parser) -> Result<AlignFlags, ()> {
     let ident = input.expect_ident()?;
     match_ignore_ascii_case! { &ident,
       "stretch" => Ok(ALIGN_STRETCH),
-      "space_between" => Ok(ALIGN_SPACE_BETWEEN),
-      "space_around" => Ok(ALIGN_SPACE_AROUND),
-      "space_evenly" => Ok(ALIGN_SPACE_EVENLY),
+      "space-between" => Ok(ALIGN_SPACE_BETWEEN),
+      "space-around" => Ok(ALIGN_SPACE_AROUND),
+      "space-evenly" => Ok(ALIGN_SPACE_EVENLY),
       _ => Err(())
     }
 }

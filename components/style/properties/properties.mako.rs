@@ -27,13 +27,12 @@ use font_metrics::FontMetricsProvider;
 #[cfg(feature = "servo")] use logical_geometry::{LogicalMargin, PhysicalSide};
 use logical_geometry::WritingMode;
 use media_queries::Device;
-use parser::{Parse, ParserContext, ParserContextExtraData};
+use parser::{Parse, ParserContext};
 use properties::animated_properties::TransitionProperty;
 #[cfg(feature = "servo")] use servo_config::prefs::PREFS;
-use servo_url::ServoUrl;
 use shared_lock::StylesheetGuards;
 use style_traits::ToCss;
-use stylesheets::Origin;
+use stylesheets::{Origin, UrlExtraData};
 #[cfg(feature = "servo")] use values::Either;
 use values::{HasViewportPercentage, computed};
 use cascade_info::CascadeInfo;
@@ -296,18 +295,13 @@ impl PropertyDeclarationIdSet {
             % endif
         {
             if let DeclaredValue::WithVariables(ref with_variables) = *value {
-                // FIXME(heycam): A ParserContextExtraData should be built from data
-                // stored in the WithVariables, in case variable expansion results in
-                // a url() value.
-                let extra_data = ParserContextExtraData::default();
                 substitute_variables_${property.ident}_slow(&with_variables.css,
                                                             with_variables.first_token_type,
-                                                            &with_variables.base_url,
+                                                            &with_variables.url_data,
                                                             with_variables.from_shorthand,
                                                             custom_properties,
                                                             f,
-                                                            error_reporter,
-                                                            extra_data);
+                                                            error_reporter);
             } else {
                 f(value);
             }
@@ -318,12 +312,11 @@ impl PropertyDeclarationIdSet {
         fn substitute_variables_${property.ident}_slow<F>(
                 css: &String,
                 first_token_type: TokenSerializationType,
-                base_url: &ServoUrl,
+                url_data: &UrlExtraData,
                 from_shorthand: Option<ShorthandId>,
                 custom_properties: &Option<Arc<::custom_properties::ComputedValuesMap>>,
                 f: F,
-                error_reporter: &ParseErrorReporter,
-                extra_data: ParserContextExtraData)
+                error_reporter: &ParseErrorReporter)
                 % if property.boxed:
                     where F: FnOnce(&DeclaredValue<Box<longhands::${property.ident}::SpecifiedValue>>)
                 % else:
@@ -337,9 +330,7 @@ impl PropertyDeclarationIdSet {
                     //
                     // FIXME(pcwalton): Cloning the error reporter is slow! But so are custom
                     // properties, so whatever...
-                    let context = ParserContext::new_with_extra_data(
-                        ::stylesheets::Origin::Author, base_url, error_reporter,
-                        extra_data);
+                    let context = ParserContext::new(Origin::Author, url_data, error_reporter);
                     Parser::new(&css).parse_entirely(|input| {
                         match from_shorthand {
                             None => {
@@ -652,8 +643,8 @@ pub struct UnparsedValue {
     css: String,
     /// The first token type for this serialization.
     first_token_type: TokenSerializationType,
-    /// The base url.
-    base_url: ServoUrl,
+    /// The url data for resolving url values.
+    url_data: UrlExtraData,
     /// The shorthand this came from.
     from_shorthand: Option<ShorthandId>,
 }
@@ -1976,24 +1967,25 @@ pub fn cascade(device: &Device,
         }
     };
 
-    // Hold locks until after the apply_declarations() call returns.
-    // Use filter_map because the root node has no style source.
-    let declaration_blocks = rule_node.self_and_ancestors().filter_map(|node| {
-        let guard = node.cascade_level().guard(guards);
-        node.style_source().map(|source| (source.read(guard), node.importance()))
-    }).collect::<Vec<_>>();
     let iter_declarations = || {
-        declaration_blocks.iter().flat_map(|&(ref source, source_importance)| {
-            source.declarations().iter()
-            // Yield declarations later in source order (with more precedence) first.
-            .rev()
-            .filter_map(move |&(ref declaration, declaration_importance)| {
-                if declaration_importance == source_importance {
-                    Some(declaration)
-                } else {
-                    None
-                }
-            })
+        rule_node.self_and_ancestors().flat_map(|node| {
+            let declarations = match node.style_source() {
+                Some(source) => source.read(node.cascade_level().guard(guards)).declarations(),
+                // The root node has no style source.
+                None => &[]
+            };
+            let node_importance = node.importance();
+            declarations
+                .iter()
+                // Yield declarations later in source order (with more precedence) first.
+                .rev()
+                .filter_map(move |&(ref declaration, declaration_importance)| {
+                    if declaration_importance == node_importance {
+                        Some(declaration)
+                    } else {
+                        None
+                    }
+                })
         })
     };
     apply_declarations(device,
@@ -2398,96 +2390,6 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
     style
 }
 
-/// Modifies the style for an anonymous flow so it resets all its non-inherited
-/// style structs, and set their borders and outlines to zero.
-///
-/// Also, it gets a new display value, which is honored except when it's
-/// `inline`.
-#[cfg(feature = "servo")]
-pub fn modify_style_for_anonymous_flow(style: &mut Arc<ComputedValues>,
-                                       new_display_value: longhands::display::computed_value::T) {
-    // The 'align-self' property needs some special treatment since
-    // its value depends on the 'align-items' value of its parent.
-    % if "align-items" in data.longhands_by_name:
-        use computed_values::align_self::T as align_self;
-        use computed_values::align_items::T as align_items;
-        let self_align =
-            match style.position.align_items {
-                align_items::stretch => align_self::stretch,
-                align_items::baseline => align_self::baseline,
-                align_items::flex_start => align_self::flex_start,
-                align_items::flex_end => align_self::flex_end,
-                align_items::center => align_self::center,
-            };
-    % endif
-    let inital_values = &*INITIAL_SERVO_VALUES;
-    let mut style = Arc::make_mut(style);
-    % for style_struct in data.active_style_structs():
-    % if not style_struct.inherited:
-        style.${style_struct.ident} = inital_values.clone_${style_struct.name_lower}();
-    % endif
-    % endfor
-    % if "align-items" in data.longhands_by_name:
-       let position = Arc::make_mut(&mut style.position);
-       position.align_self = self_align;
-    % endif
-    if new_display_value != longhands::display::computed_value::T::inline {
-        let new_box = Arc::make_mut(&mut style.box_);
-        new_box.display = new_display_value;
-    }
-    let border = Arc::make_mut(&mut style.border);
-    % for side in ["top", "right", "bottom", "left"]:
-        // Like calling to_computed_value, which wouldn't type check.
-        border.border_${side}_width = Au(0);
-    % endfor
-    // Initial value of outline-style is always none for anonymous box.
-    let outline = Arc::make_mut(&mut style.outline);
-    outline.outline_width = Au(0);
-}
-
-/// Alters the given style to accommodate replaced content. This is called in
-/// flow construction. It handles cases like:
-///
-///     <div style="position: absolute">foo bar baz</div>
-///
-/// (in which `foo`, `bar`, and `baz` must not be absolutely-positioned) and
-/// cases like `<sup>Foo</sup>` (in which the `vertical-align: top` style of
-/// `sup` must not propagate down into `Foo`).
-///
-/// FIXME(#5625, pcwalton): It would probably be cleaner and faster to do this
-/// in the cascade.
-#[cfg(feature = "servo")]
-#[inline]
-pub fn modify_style_for_replaced_content(style: &mut Arc<ComputedValues>) {
-    // Reset `position` to handle cases like `<div style="position: absolute">foo bar baz</div>`.
-    if style.box_.display != longhands::display::computed_value::T::inline {
-        let mut style = Arc::make_mut(style);
-        Arc::make_mut(&mut style.box_).display = longhands::display::computed_value::T::inline;
-        Arc::make_mut(&mut style.box_).position =
-            longhands::position::computed_value::T::static_;
-    }
-
-    // Reset `vertical-align` to handle cases like `<sup>foo</sup>`.
-    if style.box_.vertical_align != longhands::vertical_align::computed_value::T::baseline {
-        let mut style = Arc::make_mut(style);
-        Arc::make_mut(&mut style.box_).vertical_align =
-            longhands::vertical_align::computed_value::T::baseline
-    }
-
-    // Reset margins.
-    if style.margin.margin_top != computed::LengthOrPercentageOrAuto::Length(Au(0)) ||
-            style.margin.margin_left != computed::LengthOrPercentageOrAuto::Length(Au(0)) ||
-            style.margin.margin_bottom != computed::LengthOrPercentageOrAuto::Length(Au(0)) ||
-            style.margin.margin_right != computed::LengthOrPercentageOrAuto::Length(Au(0)) {
-        let mut style = Arc::make_mut(style);
-        let margin = Arc::make_mut(&mut style.margin);
-        margin.margin_top = computed::LengthOrPercentageOrAuto::Length(Au(0));
-        margin.margin_left = computed::LengthOrPercentageOrAuto::Length(Au(0));
-        margin.margin_bottom = computed::LengthOrPercentageOrAuto::Length(Au(0));
-        margin.margin_right = computed::LengthOrPercentageOrAuto::Length(Au(0));
-    }
-}
-
 /// Adjusts borders as appropriate to account for a fragment's status as the
 /// first or last fragment within the range of an element.
 ///
@@ -2541,65 +2443,6 @@ pub fn modify_border_style_for_inline_sides(style: &mut Arc<ComputedValues>,
     if !is_last_fragment_of_element {
         let side = style.writing_mode.inline_end_physical_side();
         modify_side(style, side)
-    }
-}
-
-/// Adjusts the `position` property as necessary for the outer fragment wrapper
-/// of an inline-block.
-#[cfg(feature = "servo")]
-#[inline]
-pub fn modify_style_for_outer_inline_block_fragment(style: &mut Arc<ComputedValues>) {
-    let mut style = Arc::make_mut(style);
-    let box_style = Arc::make_mut(&mut style.box_);
-    box_style.position = longhands::position::computed_value::T::static_
-}
-
-/// Adjusts the `position` and `padding` properties as necessary to account for
-/// text.
-///
-/// Text is never directly relatively positioned; it's always contained within
-/// an element that is itself relatively positioned.
-#[cfg(feature = "servo")]
-#[inline]
-pub fn modify_style_for_text(style: &mut Arc<ComputedValues>) {
-    if style.box_.position == longhands::position::computed_value::T::relative {
-        // We leave the `position` property set to `relative` so that we'll still establish a
-        // containing block if needed. But we reset all position offsets to `auto`.
-        let mut style = Arc::make_mut(style);
-        let mut position = Arc::make_mut(&mut style.position);
-        position.top = computed::LengthOrPercentageOrAuto::Auto;
-        position.right = computed::LengthOrPercentageOrAuto::Auto;
-        position.bottom = computed::LengthOrPercentageOrAuto::Auto;
-        position.left = computed::LengthOrPercentageOrAuto::Auto;
-    }
-
-    if style.padding.padding_top != computed::LengthOrPercentage::Length(Au(0)) ||
-            style.padding.padding_right != computed::LengthOrPercentage::Length(Au(0)) ||
-            style.padding.padding_bottom != computed::LengthOrPercentage::Length(Au(0)) ||
-            style.padding.padding_left != computed::LengthOrPercentage::Length(Au(0)) {
-        let mut style = Arc::make_mut(style);
-        let mut padding = Arc::make_mut(&mut style.padding);
-        padding.padding_top = computed::LengthOrPercentage::Length(Au(0));
-        padding.padding_right = computed::LengthOrPercentage::Length(Au(0));
-        padding.padding_bottom = computed::LengthOrPercentage::Length(Au(0));
-        padding.padding_left = computed::LengthOrPercentage::Length(Au(0));
-    }
-
-    if style.effects.opacity != 1.0 {
-        let mut style = Arc::make_mut(style);
-        let mut effects = Arc::make_mut(&mut style.effects);
-        effects.opacity = 1.0;
-    }
-}
-
-/// Adjusts the `clip` property so that an inline absolute hypothetical fragment
-/// doesn't clip its children.
-#[cfg(feature = "servo")]
-pub fn modify_style_for_inline_absolute_hypothetical_fragment(style: &mut Arc<ComputedValues>) {
-    if !style.get_effects().clip.is_auto() {
-        let mut style = Arc::make_mut(style);
-        let effects_style = Arc::make_mut(&mut style.effects);
-        effects_style.clip = Either::auto()
     }
 }
 

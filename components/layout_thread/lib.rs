@@ -113,7 +113,6 @@ use style::dom::{ShowSubtree, ShowSubtreeDataAndPrimaryValues, TElement, TNode};
 use style::error_reporting::StdoutErrorReporter;
 use style::logical_geometry::LogicalPoint;
 use style::media_queries::{Device, MediaType};
-use style::parser::ParserContextExtraData;
 use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, REPOSITION, STORE_OVERFLOW};
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards};
 use style::stylesheets::{Origin, Stylesheet, UserAgentStylesheets};
@@ -355,20 +354,24 @@ fn add_font_face_rules(stylesheet: &Stylesheet,
                        outstanding_web_fonts_counter: &Arc<AtomicUsize>) {
     if opts::get().load_webfonts_synchronously {
         let (sender, receiver) = ipc::channel().unwrap();
-        stylesheet.effective_font_face_rules(&device, guard, |font_face| {
-            let effective_sources = font_face.effective_sources();
-            font_cache_thread.add_web_font(font_face.family.clone(),
-                                           effective_sources,
-                                           sender.clone());
-            receiver.recv().unwrap();
+        stylesheet.effective_font_face_rules(&device, guard, |rule| {
+            if let Some(font_face) = rule.font_face() {
+                let effective_sources = font_face.effective_sources();
+                font_cache_thread.add_web_font(font_face.family().clone(),
+                                               effective_sources,
+                                               sender.clone());
+                receiver.recv().unwrap();
+            }
         })
     } else {
-        stylesheet.effective_font_face_rules(&device, guard, |font_face| {
-            let effective_sources = font_face.effective_sources();
-            outstanding_web_fonts_counter.fetch_add(1, Ordering::SeqCst);
-            font_cache_thread.add_web_font(font_face.family.clone(),
-                                          effective_sources,
-                                          (*font_cache_sender).clone());
+        stylesheet.effective_font_face_rules(&device, guard, |rule| {
+            if let Some(font_face) = rule.font_face() {
+                let effective_sources = font_face.effective_sources();
+                outstanding_web_fonts_counter.fetch_add(1, Ordering::SeqCst);
+                font_cache_thread.add_web_font(font_face.family().clone(),
+                                              effective_sources,
+                                              (*font_cache_sender).clone());
+            }
         })
     }
 }
@@ -932,7 +935,7 @@ impl LayoutThread {
             let Epoch(epoch_number) = self.epoch;
 
             let viewport_size = webrender_traits::LayoutSize::from_untyped(&viewport_size);
-            self.webrender_api.set_root_display_list(
+            self.webrender_api.set_display_list(
                 Some(get_root_flow_background_color(layout_root)),
                 webrender_traits::Epoch(epoch_number),
                 viewport_size,
@@ -1582,8 +1585,7 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
             Default::default(),
             shared_lock.clone(),
             None,
-            &StdoutErrorReporter,
-            ParserContextExtraData::default()))
+            &StdoutErrorReporter))
     }
 
     let shared_lock = SharedRwLock::new();
@@ -1596,7 +1598,7 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
     for &(ref contents, ref url) in &opts::get().user_stylesheets {
         user_or_user_agent_stylesheets.push(Stylesheet::from_bytes(
             &contents, url.clone(), None, None, Origin::User, Default::default(),
-            shared_lock.clone(), None, &StdoutErrorReporter, ParserContextExtraData::default()));
+            shared_lock.clone(), None, &StdoutErrorReporter));
     }
 
     let quirks_mode_stylesheet = try!(parse_ua_stylesheet(&shared_lock, "quirks-mode.css"));

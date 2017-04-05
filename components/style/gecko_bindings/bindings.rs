@@ -17,10 +17,8 @@ use gecko_bindings::structs::RawServoDeclarationBlock;
 use gecko_bindings::structs::RawGeckoPresContext;
 use gecko_bindings::structs::RawGeckoPresContextOwned;
 use gecko_bindings::structs::RawGeckoStyleAnimationList;
-use gecko_bindings::structs::GeckoParserExtraData;
+use gecko_bindings::structs::RawGeckoURLExtraData;
 use gecko_bindings::structs::RefPtr;
-use gecko_bindings::structs::ThreadSafeURIHolder;
-use gecko_bindings::structs::ThreadSafePrincipalHolder;
 use gecko_bindings::structs::CSSPseudoClassType;
 use gecko_bindings::structs::TraversalRootBehavior;
 use gecko_bindings::structs::FontFamilyList;
@@ -43,7 +41,6 @@ use gecko_bindings::structs::nsChangeHint;
 use gecko_bindings::structs::nsCursorImage;
 use gecko_bindings::structs::nsFont;
 use gecko_bindings::structs::nsIAtom;
-use gecko_bindings::structs::nsIURI;
 use gecko_bindings::structs::nsMediaFeature;
 use gecko_bindings::structs::nsRestyleHint;
 use gecko_bindings::structs::nsStyleBackground;
@@ -371,20 +368,6 @@ extern "C" {
     pub fn Servo_StyleSet_Drop(ptr: RawServoStyleSetOwned);
 }
 extern "C" {
-    pub fn Gecko_AddRefPrincipalArbitraryThread(aPtr:
-                                                    *mut ThreadSafePrincipalHolder);
-}
-extern "C" {
-    pub fn Gecko_ReleasePrincipalArbitraryThread(aPtr:
-                                                     *mut ThreadSafePrincipalHolder);
-}
-extern "C" {
-    pub fn Gecko_AddRefURIArbitraryThread(aPtr: *mut ThreadSafeURIHolder);
-}
-extern "C" {
-    pub fn Gecko_ReleaseURIArbitraryThread(aPtr: *mut ThreadSafeURIHolder);
-}
-extern "C" {
     pub fn Gecko_ChildrenCount(node: RawGeckoNodeBorrowed) -> u32;
 }
 extern "C" {
@@ -445,10 +428,13 @@ extern "C" {
 extern "C" {
     pub fn Gecko_LoadStyleSheet(loader: *mut Loader,
                                 parent: *mut ServoStyleSheet,
-                                import_rule: RawServoImportRuleBorrowed,
-                                base_uri: *mut nsIURI, url_bytes: *const u8,
-                                url_length: u32, media_bytes: *const u8,
-                                media_length: u32);
+                                child_sheet: RawServoStyleSheetBorrowed,
+                                base_url_data: *mut RawGeckoURLExtraData,
+                                url_bytes: *const u8, url_length: u32,
+                                media_bytes: *const u8, media_length: u32);
+}
+extern "C" {
+    pub fn Gecko_URLExtraData_CreateDummy() -> *mut RawGeckoURLExtraData;
 }
 extern "C" {
     pub fn Gecko_MaybeCreateStyleChildrenIterator(node: RawGeckoNodeBorrowed)
@@ -890,6 +876,14 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_ReleaseCSSURLValueArbitraryThread(aPtr: *mut URLValue);
+}
+extern "C" {
+    pub fn Gecko_AddRefURLExtraDataArbitraryThread(aPtr:
+                                                       *mut RawGeckoURLExtraData);
+}
+extern "C" {
+    pub fn Gecko_ReleaseURLExtraDataArbitraryThread(aPtr:
+                                                        *mut RawGeckoURLExtraData);
 }
 extern "C" {
     pub fn Gecko_FillAllBackgroundLists(layers: *mut nsStyleImageLayers,
@@ -1386,11 +1380,8 @@ extern "C" {
                                               *mut ServoStyleSheet,
                                           data: *const nsACString,
                                           parsing_mode: SheetParsingMode,
-                                          base_url: *const nsACString,
-                                          base: *mut ThreadSafeURIHolder,
-                                          referrer: *mut ThreadSafeURIHolder,
-                                          principal:
-                                              *mut ThreadSafePrincipalHolder)
+                                          extra_data:
+                                              *mut RawGeckoURLExtraData)
      -> RawServoStyleSheetStrong;
 }
 extern "C" {
@@ -1404,10 +1395,8 @@ extern "C" {
                                            gecko_stylesheet:
                                                *mut ServoStyleSheet,
                                            data: *const nsACString,
-                                           base: *mut ThreadSafeURIHolder,
-                                           referrer: *mut ThreadSafeURIHolder,
-                                           principal:
-                                               *mut ThreadSafePrincipalHolder);
+                                           extra_data:
+                                               *mut RawGeckoURLExtraData);
 }
 extern "C" {
     pub fn Servo_StyleSheet_HasRules(sheet: RawServoStyleSheetBorrowed)
@@ -1479,8 +1468,9 @@ extern "C" {
     pub fn Servo_CssRules_InsertRule(rules: ServoCssRulesBorrowed,
                                      sheet: RawServoStyleSheetBorrowed,
                                      rule: *const nsACString, index: u32,
-                                     nested: bool, rule_type: *mut u16)
-     -> nsresult;
+                                     nested: bool, loader: *mut Loader,
+                                     gecko_stylesheet: *mut ServoStyleSheet,
+                                     rule_type: *mut u16) -> nsresult;
 }
 extern "C" {
     pub fn Servo_CssRules_DeleteRule(rules: ServoCssRulesBorrowed, index: u32)
@@ -1562,14 +1552,12 @@ extern "C" {
 extern "C" {
     pub fn Servo_ParseProperty(property: *const nsACString,
                                value: *const nsACString,
-                               base: *const nsACString,
-                               data: *const GeckoParserExtraData)
+                               data: *mut RawGeckoURLExtraData)
      -> RawServoDeclarationBlockStrong;
 }
 extern "C" {
     pub fn Servo_ParseEasing(easing: *const nsAString,
-                             base: *const nsACString,
-                             data: *const GeckoParserExtraData,
+                             data: *mut RawGeckoURLExtraData,
                              output: nsTimingFunctionBorrowedMut) -> bool;
 }
 extern "C" {
@@ -1623,8 +1611,7 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_ParseStyleAttribute(data: *const nsACString,
-                                     base: *const nsACString,
-                                     extraData: *const GeckoParserExtraData)
+                                     extra_data: *mut RawGeckoURLExtraData)
      -> RawServoDeclarationBlockStrong;
 }
 extern "C" {
@@ -1691,9 +1678,7 @@ extern "C" {
                                               property: *const nsACString,
                                               value: *const nsACString,
                                               is_important: bool,
-                                              base: *const nsACString,
-                                              data:
-                                                  *const GeckoParserExtraData)
+                                              data: *mut RawGeckoURLExtraData)
      -> bool;
 }
 extern "C" {
@@ -1702,9 +1687,8 @@ extern "C" {
                                                   property: nsCSSPropertyID,
                                                   value: *const nsACString,
                                                   is_important: bool,
-                                                  base: *const nsACString,
                                                   data:
-                                                      *const GeckoParserExtraData)
+                                                      *mut RawGeckoURLExtraData)
      -> bool;
 }
 extern "C" {

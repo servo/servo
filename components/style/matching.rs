@@ -20,13 +20,11 @@ use properties::longhands::display::computed_value as display;
 use restyle_hints::{RESTYLE_STYLE_ATTRIBUTE, RESTYLE_CSS_ANIMATIONS, RestyleHint};
 use rule_tree::{CascadeLevel, RuleTree, StrongRuleNode};
 use selector_parser::{PseudoElement, RestyleDamage, SelectorImpl};
-use selectors::MatchAttr;
 use selectors::bloom::BloomFilter;
 use selectors::matching::{ElementSelectorFlags, StyleRelations};
 use selectors::matching::AFFECTED_BY_PSEUDO_ELEMENTS;
 use servo_config::opts;
 use sink::ForgetfulSink;
-use std::collections::hash_map::Entry;
 use std::sync::Arc;
 use stylist::ApplicableDeclarationBlock;
 
@@ -903,9 +901,9 @@ pub trait MatchMethods : TElement {
         // Compute rule nodes for eagerly-cascaded pseudo-elements.
         let mut matches_different_pseudos = false;
         SelectorImpl::each_eagerly_cascaded_pseudo_element(|pseudo| {
-            let mut per_pseudo = &mut data.styles_mut().pseudos;
+            let mut pseudos = &mut data.styles_mut().pseudos;
             debug_assert!(applicable_declarations.is_empty());
-            let pseudo_animation_rules = if <Self as MatchAttr>::Impl::pseudo_is_before_or_after(&pseudo) {
+            let pseudo_animation_rules = if pseudo.is_before_or_after() {
                 self.get_animation_rules(Some(&pseudo))
             } else {
                 AnimationRules(None, None)
@@ -921,19 +919,13 @@ pub trait MatchMethods : TElement {
             if !applicable_declarations.is_empty() {
                 let new_rules =
                     compute_rule_node::<Self>(rule_tree, &mut applicable_declarations);
-                match per_pseudo.entry(pseudo) {
-                    Entry::Occupied(mut e) => {
-                        if e.get().rules != new_rules {
-                            e.get_mut().rules = new_rules;
-                            rule_nodes_changed = true;
-                        }
-                    },
-                    Entry::Vacant(e) => {
-                        e.insert(ComputedStyle::new_partial(new_rules));
-                        matches_different_pseudos = true;
-                    }
+                if pseudos.has(&pseudo) {
+                    rule_nodes_changed = pseudos.set_rules(&pseudo, new_rules);
+                } else {
+                    pseudos.insert(&pseudo, ComputedStyle::new_partial(new_rules));
+                    matches_different_pseudos = true;
                 }
-            } else if per_pseudo.remove(&pseudo).is_some() {
+            } else if pseudos.take(&pseudo).is_some() {
                 matches_different_pseudos = true;
             }
         });
@@ -948,7 +940,7 @@ pub trait MatchMethods : TElement {
         }
 
         // If we have any pseudo elements, indicate so in the primary StyleRelations.
-        if !data.styles().pseudos.is_empty() {
+        if data.styles().pseudos.is_empty() {
             primary_relations |= AFFECTED_BY_PSEUDO_ELEMENTS;
         }
 
@@ -995,11 +987,10 @@ pub trait MatchMethods : TElement {
                                   animation_rule.as_ref(),
                                   primary_rules);
 
-                let iter = element_styles.pseudos.iter_mut().filter(|&(p, _)|
-                    <Self as MatchAttr>::Impl::pseudo_is_before_or_after(p));
-                for (pseudo, ref mut computed) in iter {
-                    let animation_rule = self.get_animation_rule(Some(pseudo));
-                    let pseudo_rules = &mut computed.rules;
+                let pseudos = &mut element_styles.pseudos;
+                for pseudo in pseudos.keys().iter().filter(|p| p.is_before_or_after()) {
+                    let animation_rule = self.get_animation_rule(Some(&pseudo));
+                    let pseudo_rules = &mut pseudos.get_mut(&pseudo).unwrap().rules;
                     replace_rule_node(CascadeLevel::Animations,
                                       animation_rule.as_ref(),
                                       pseudo_rules);
@@ -1198,11 +1189,10 @@ pub trait MatchMethods : TElement {
         //
         // Note that we've already set up the map of matching pseudo-elements
         // in match_element (and handled the damage implications of changing
-        // which pseudos match), so now we can just iterate the map. This does
-        // mean collecting the keys, so that the borrow checker will let us pass
-        // the mutable |data| to the inner cascade function.
-        let matched_pseudos: Vec<PseudoElement> =
-            data.styles().pseudos.keys().cloned().collect();
+        // which pseudos match), so now we can just iterate what we have. This
+        // does mean collecting owned pseudos, so that the borrow checker will
+        // let us pass the mutable |data| to the inner cascade function.
+        let matched_pseudos = data.styles().pseudos.keys();
         for pseudo in matched_pseudos {
             // If the new primary style is display:none, we don't need pseudo
             // styles, but we still need to clear any stale values.
@@ -1212,7 +1202,7 @@ pub trait MatchMethods : TElement {
             }
 
             // Only ::before and ::after are animatable.
-            let animate = <Self as MatchAttr>::Impl::pseudo_is_before_or_after(&pseudo);
+            let animate = pseudo.is_before_or_after();
             self.cascade_primary_or_pseudo(context, data, Some(&pseudo),
                                            &mut possibly_expired_animations,
                                            CascadeBooleans {

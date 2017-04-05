@@ -7,7 +7,6 @@ use hyper::header::Headers;
 use hyper::method::Method;
 use msg::constellation_msg::PipelineId;
 use servo_url::{ImmutableOrigin, ServoUrl};
-use std::cell::{Cell, RefCell};
 use std::default::Default;
 
 /// An [initiator](https://fetch.spec.whatwg.org/#concept-request-initiator)
@@ -191,42 +190,42 @@ impl Default for RequestInit {
 #[derive(Clone, HeapSizeOf)]
 pub struct Request {
     #[ignore_heap_size_of = "Defined in hyper"]
-    pub method: RefCell<Method>,
+    pub method: Method,
     pub local_urls_only: bool,
     pub sandboxed_storage_area_urls: bool,
     #[ignore_heap_size_of = "Defined in hyper"]
-    pub headers: RefCell<Headers>,
+    pub headers: Headers,
     pub unsafe_request: bool,
-    pub body: RefCell<Option<Vec<u8>>>,
+    pub body: Option<Vec<u8>>,
     // TODO: client object
     pub is_service_worker_global_scope: bool,
-    pub window: Cell<Window>,
+    pub window: Window,
     // TODO: target browsing context
-    pub keep_alive: Cell<bool>,
-    pub skip_service_worker: Cell<bool>,
+    pub keep_alive: bool,
+    pub skip_service_worker: bool,
     pub initiator: Initiator,
     pub type_: Type,
     pub destination: Destination,
     // TODO: priority object
-    pub origin: RefCell<Origin>,
-    pub omit_origin_header: Cell<bool>,
+    pub origin: Origin,
+    pub omit_origin_header: bool,
     /// https://fetch.spec.whatwg.org/#concept-request-referrer
-    pub referrer: RefCell<Referrer>,
-    pub referrer_policy: Cell<Option<ReferrerPolicy>>,
-    pub pipeline_id: Cell<Option<PipelineId>>,
+    pub referrer: Referrer,
+    pub referrer_policy: Option<ReferrerPolicy>,
+    pub pipeline_id: Option<PipelineId>,
     pub synchronous: bool,
     pub mode: RequestMode,
     pub use_cors_preflight: bool,
     pub credentials_mode: CredentialsMode,
     pub use_url_credentials: bool,
-    pub cache_mode: Cell<CacheMode>,
-    pub redirect_mode: Cell<RedirectMode>,
-    pub integrity_metadata: RefCell<String>,
+    pub cache_mode: CacheMode,
+    pub redirect_mode: RedirectMode,
+    pub integrity_metadata: String,
     // Use the last method on url_list to act as spec current url field, and
     // first method to act as spec url field
-    pub url_list: RefCell<Vec<ServoUrl>>,
-    pub redirect_count: Cell<u32>,
-    pub response_tainting: Cell<ResponseTainting>,
+    pub url_list: Vec<ServoUrl>,
+    pub redirect_count: u32,
+    pub response_tainting: ResponseTainting,
 }
 
 impl Request {
@@ -236,35 +235,35 @@ impl Request {
                pipeline_id: Option<PipelineId>)
                -> Request {
         Request {
-            method: RefCell::new(Method::Get),
+            method: Method::Get,
             local_urls_only: false,
             sandboxed_storage_area_urls: false,
-            headers: RefCell::new(Headers::new()),
+            headers: Headers::new(),
             unsafe_request: false,
-            body: RefCell::new(None),
+            body: None,
             is_service_worker_global_scope: is_service_worker_global_scope,
-            window: Cell::new(Window::Client),
-            keep_alive: Cell::new(false),
-            skip_service_worker: Cell::new(false),
+            window: Window::Client,
+            keep_alive: false,
+            skip_service_worker: false,
             initiator: Initiator::None,
             type_: Type::None,
             destination: Destination::None,
-            origin: RefCell::new(origin.unwrap_or(Origin::Client)),
-            omit_origin_header: Cell::new(false),
-            referrer: RefCell::new(Referrer::Client),
-            referrer_policy: Cell::new(None),
-            pipeline_id: Cell::new(pipeline_id),
+            origin: origin.unwrap_or(Origin::Client),
+            omit_origin_header: false,
+            referrer: Referrer::Client,
+            referrer_policy: None,
+            pipeline_id: pipeline_id,
             synchronous: false,
             mode: RequestMode::NoCors,
             use_cors_preflight: false,
             credentials_mode: CredentialsMode::Omit,
             use_url_credentials: false,
-            cache_mode: Cell::new(CacheMode::Default),
-            redirect_mode: Cell::new(RedirectMode::Follow),
-            integrity_metadata: RefCell::new(String::new()),
-            url_list: RefCell::new(vec![url]),
-            redirect_count: Cell::new(0),
-            response_tainting: Cell::new(ResponseTainting::Basic),
+            cache_mode: CacheMode::Default,
+            redirect_mode: RedirectMode::Follow,
+            integrity_metadata: String::new(),
+            url_list: vec![url],
+            redirect_count: 0,
+            response_tainting: ResponseTainting::Basic,
         }
     }
 
@@ -273,10 +272,10 @@ impl Request {
                                    Some(Origin::Origin(init.origin.origin())),
                                    false,
                                    init.pipeline_id);
-        *req.method.borrow_mut() = init.method;
-        *req.headers.borrow_mut() = init.headers;
+        req.method = init.method;
+        req.headers = init.headers;
         req.unsafe_request = init.unsafe_request;
-        *req.body.borrow_mut() = init.body;
+        req.body = init.body;
         req.type_ = init.type_;
         req.destination = init.destination;
         req.synchronous = init.synchronous;
@@ -284,25 +283,25 @@ impl Request {
         req.use_cors_preflight = init.use_cors_preflight;
         req.credentials_mode = init.credentials_mode;
         req.use_url_credentials = init.use_url_credentials;
-        req.cache_mode.set(init.cache_mode);
-        *req.referrer.borrow_mut() = if let Some(url) = init.referrer_url {
+        req.cache_mode = init.cache_mode;
+        req.referrer = if let Some(url) = init.referrer_url {
             Referrer::ReferrerUrl(url)
         } else {
             Referrer::NoReferrer
         };
-        req.referrer_policy.set(init.referrer_policy);
-        req.pipeline_id.set(init.pipeline_id);
-        req.redirect_mode.set(init.redirect_mode);
-        *req.integrity_metadata.borrow_mut() = init.integrity_metadata;
+        req.referrer_policy = init.referrer_policy;
+        req.pipeline_id = init.pipeline_id;
+        req.redirect_mode = init.redirect_mode;
+        req.integrity_metadata = init.integrity_metadata;
         req
     }
 
     pub fn url(&self) -> ServoUrl {
-        self.url_list.borrow().first().unwrap().clone()
+        self.url_list.first().unwrap().clone()
     }
 
     pub fn current_url(&self) -> ServoUrl {
-        self.url_list.borrow().last().unwrap().clone()
+        self.url_list.last().unwrap().clone()
     }
 
     pub fn is_navigation_request(&self) -> bool {

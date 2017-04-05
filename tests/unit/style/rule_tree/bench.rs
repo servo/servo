@@ -8,7 +8,6 @@ use servo_url::ServoUrl;
 use std::sync::Arc;
 use style::error_reporting::ParseErrorReporter;
 use style::media_queries::MediaList;
-use style::parser::ParserContextExtraData;
 use style::properties::{longhands, Importance, PropertyDeclaration, PropertyDeclarationBlock};
 use style::rule_tree::{CascadeLevel, RuleTree, StrongRuleNode, StyleSource};
 use style::shared_lock::SharedRwLock;
@@ -33,7 +32,12 @@ impl<'a> AutoGCRuleTree<'a> {
 
 impl<'a> Drop for AutoGCRuleTree<'a> {
     fn drop(&mut self) {
-        unsafe { self.0.gc() }
+        unsafe {
+            self.0.gc();
+            assert!(::std::thread::panicking() ||
+                    !self.0.root().has_children_for_testing(),
+                    "No rule nodes other than the root shall remain!");
+        }
     }
 }
 
@@ -46,8 +50,7 @@ fn parse_rules(css: &str) -> Vec<(StyleSource, CascadeLevel)> {
                                  },
                                  SharedRwLock::new(),
                                  None,
-                                 &ErrorringErrorReporter,
-                                 ParserContextExtraData {});
+                                 &ErrorringErrorReporter);
     let guard = s.shared_lock.read();
     let rules = s.rules.read_with(&guard);
     rules.0.iter().filter_map(|rule| {

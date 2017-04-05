@@ -256,6 +256,10 @@ class PackageCommands(CommandBase):
             os.symlink('/Applications', path.join(dir_to_dmg, 'Applications'))
             dmg_path = path.join(target_dir, "servo-tech-demo.dmg")
 
+            if path.exists(dmg_path):
+                print("Deleting existing dmg")
+                os.remove(dmg_path)
+
             try:
                 subprocess.check_call(['hdiutil', 'create', '-volname', 'Servo', dmg_path, '-srcfolder', dir_to_dmg])
             except subprocess.CalledProcessError as e:

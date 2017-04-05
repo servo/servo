@@ -9,8 +9,7 @@ use dom::bindings::js::{JS, Root, RootedReference};
 use dom::bindings::proxyhandler::{fill_property_descriptor, get_property_descriptor};
 use dom::bindings::reflector::{DomObject, Reflector};
 use dom::bindings::trace::JSTraceable;
-use dom::bindings::utils::WindowProxyHandler;
-use dom::bindings::utils::get_array_index_from_id;
+use dom::bindings::utils::{WindowProxyHandler, get_array_index_from_id, AsVoidPtr};
 use dom::dissimilaroriginwindow::DissimilarOriginWindow;
 use dom::element::Element;
 use dom::globalscope::GlobalScope;
@@ -112,7 +111,7 @@ impl BrowsingContext {
 
             // The window proxy owns the browsing context.
             // When we finalize the window proxy, it drops the browsing context it owns.
-            SetProxyExtra(window_proxy.get(), 0, &PrivateValue(&*browsing_context as *const _ as *const _));
+            SetProxyExtra(window_proxy.get(), 0, &PrivateValue((&*browsing_context).as_void_ptr()));
 
             // Notify the JS engine about the new window proxy binding.
             SetWindowProxy(cx, window_jsobject, window_proxy.handle());
@@ -152,7 +151,7 @@ impl BrowsingContext {
 
             // The window proxy owns the browsing context.
             // When we finalize the window proxy, it drops the browsing context it owns.
-            SetProxyExtra(window_proxy.get(), 0, &PrivateValue(&*browsing_context as *const _ as *const _));
+            SetProxyExtra(window_proxy.get(), 0, &PrivateValue((&*browsing_context).as_void_ptr()));
 
             // Notify the JS engine about the new window proxy binding.
             SetWindowProxy(cx, window_jsobject, window_proxy.handle());
@@ -225,7 +224,7 @@ impl BrowsingContext {
             debug!("Transplanted window proxy is {:p}.", new_window_proxy.get());
 
             // Transfer ownership of this browsing context from the old window proxy to the new one.
-            SetProxyExtra(new_window_proxy.get(), 0, &PrivateValue(self as *const _ as *const _));
+            SetProxyExtra(new_window_proxy.get(), 0, &PrivateValue(self.as_void_ptr()));
 
             // Notify the JS engine about the new window proxy binding.
             SetWindowProxy(cx, window_jsobject, new_window_proxy.handle());
@@ -601,4 +600,3 @@ unsafe extern fn trace(trc: *mut JSTracer, obj: *mut JSObject) {
     }
     (*this).trace(trc);
 }
-

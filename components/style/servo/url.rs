@@ -42,7 +42,7 @@ impl SpecifiedUrl {
                                  context: &ParserContext)
                                  -> Result<Self, ()> {
         let serialization = Arc::new(url.into_owned());
-        let resolved = context.base_url.join(&serialization).ok();
+        let resolved = context.url_data.join(&serialization).ok();
         Ok(SpecifiedUrl {
             original: Some(serialization),
             resolved: resolved,

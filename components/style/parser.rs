@@ -8,99 +8,38 @@
 
 use cssparser::{Parser, SourcePosition, UnicodeRange};
 use error_reporting::ParseErrorReporter;
-#[cfg(feature = "gecko")]
-use gecko_bindings::sugar::refptr::{GeckoArcPrincipal, GeckoArcURI};
-use servo_url::ServoUrl;
 use style_traits::OneOrMoreCommaSeparated;
-use stylesheets::Origin;
+use stylesheets::{Origin, UrlExtraData};
 
-/// Extra data that the style backend may need to parse stylesheets.
-#[cfg(not(feature = "gecko"))]
-pub struct ParserContextExtraData;
-
-/// Extra data that the style backend may need to parse stylesheets.
-#[cfg(feature = "gecko")]
-pub struct ParserContextExtraData {
-    /// The base URI.
-    pub base: Option<GeckoArcURI>,
-    /// The referrer URI.
-    pub referrer: Option<GeckoArcURI>,
-    /// The principal that loaded this stylesheet.
-    pub principal: Option<GeckoArcPrincipal>,
-}
-
-#[cfg(not(feature = "gecko"))]
-impl Default for ParserContextExtraData {
-    fn default() -> Self {
-        ParserContextExtraData
-    }
-}
-
-#[cfg(feature = "gecko")]
-impl Default for ParserContextExtraData {
-    fn default() -> Self {
-        ParserContextExtraData { base: None, referrer: None, principal: None }
-    }
-}
-
-#[cfg(feature = "gecko")]
-impl ParserContextExtraData {
-    /// Construct from a GeckoParserExtraData
-    ///
-    /// GeckoParserExtraData must live longer than this call
-    pub unsafe fn new(data: *const ::gecko_bindings::structs::GeckoParserExtraData) -> Self {
-        // the to_safe calls are safe since we trust that we have references to
-        // real Gecko refptrs. The dereferencing of data is safe because this function
-        // is expected to be called with a `data` living longer than this function.
-        unsafe { ParserContextExtraData {
-            base: Some((*data).mBaseURI.to_safe()),
-            referrer: Some((*data).mReferrer.to_safe()),
-            principal: Some((*data).mPrincipal.to_safe()),
-        }}
-    }
-}
 /// The data that the parser needs from outside in order to parse a stylesheet.
 pub struct ParserContext<'a> {
     /// The `Origin` of the stylesheet, whether it's a user, author or
     /// user-agent stylesheet.
     pub stylesheet_origin: Origin,
-    /// The base url we're parsing this stylesheet as.
-    pub base_url: &'a ServoUrl,
+    /// The extra data we need for resolving url values.
+    pub url_data: &'a UrlExtraData,
     /// An error reporter to report syntax errors.
     pub error_reporter: &'a ParseErrorReporter,
-    /// Implementation-dependent extra data.
-    pub extra_data: ParserContextExtraData,
 }
 
 impl<'a> ParserContext<'a> {
-    /// Create a `ParserContext` with extra data.
-    pub fn new_with_extra_data(stylesheet_origin: Origin,
-                               base_url: &'a ServoUrl,
-                               error_reporter: &'a ParseErrorReporter,
-                               extra_data: ParserContextExtraData)
-                               -> ParserContext<'a> {
+    /// Create a parser context.
+    pub fn new(stylesheet_origin: Origin,
+               url_data: &'a UrlExtraData,
+               error_reporter: &'a ParseErrorReporter)
+               -> ParserContext<'a> {
         ParserContext {
             stylesheet_origin: stylesheet_origin,
-            base_url: base_url,
+            url_data: url_data,
             error_reporter: error_reporter,
-            extra_data: extra_data,
         }
     }
 
-    /// Create a parser context with the default extra data.
-    pub fn new(stylesheet_origin: Origin,
-               base_url: &'a ServoUrl,
-               error_reporter: &'a ParseErrorReporter)
-               -> ParserContext<'a> {
-        let extra_data = ParserContextExtraData::default();
-        Self::new_with_extra_data(stylesheet_origin, base_url, error_reporter, extra_data)
-    }
-
     /// Create a parser context for on-the-fly parsing in CSSOM
-    pub fn new_for_cssom(base_url: &'a ServoUrl,
+    pub fn new_for_cssom(url_data: &'a UrlExtraData,
                          error_reporter: &'a ParseErrorReporter)
                          -> ParserContext<'a> {
-        Self::new(Origin::User, base_url, error_reporter)
+        Self::new(Origin::Author, url_data, error_reporter)
     }
 }
 
@@ -111,8 +50,8 @@ pub fn log_css_error(input: &mut Parser,
                      position: SourcePosition,
                      message: &str,
                      parsercontext: &ParserContext) {
-    let servo_url = parsercontext.base_url;
-    parsercontext.error_reporter.report_error(input, position, message, servo_url);
+    let url_data = parsercontext.url_data;
+    parsercontext.error_reporter.report_error(input, position, message, url_data);
 }
 
 // XXXManishearth Replace all specified value parse impls with impls of this

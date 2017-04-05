@@ -370,12 +370,11 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 let start_point = item.gradient.start_point.to_pointf();
                 let end_point = item.gradient.end_point.to_pointf();
                 let clip = item.base.clip.to_clip_region(builder);
-                builder.push_gradient(rect,
-                                      clip,
-                                      start_point,
-                                      end_point,
-                                      item.gradient.stops.clone(),
-                                      ExtendMode::Clamp);
+                let gradient = builder.create_gradient(start_point,
+                                                       end_point,
+                                                       item.gradient.stops.clone(),
+                                                       ExtendMode::Clamp);
+                builder.push_gradient(rect, clip, gradient);
             }
             DisplayItem::Line(..) => {
                 println!("TODO DisplayItem::Line");
@@ -425,7 +424,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                                    vec![],
                                                    None);
 
-                let provided_id = ScrollLayerId::new(item.scroll_root.id.0, builder.pipeline_id);
+                let provided_id = ScrollLayerId::new(item.scroll_root.id.0 as u64, builder.pipeline_id);
                 let id = builder.define_clip(clip,
                                              item.scroll_root.size.to_sizef(),
                                              Some(provided_id));
@@ -444,7 +443,7 @@ impl WebRenderScrollRootIdConverter for ScrollRootId {
         if *self == ScrollRootId::root() {
             ScrollLayerId::root_scroll_layer(pipeline_id)
         } else {
-            ScrollLayerId::new(self.0, pipeline_id)
+            ScrollLayerId::new(self.0 as u64, pipeline_id)
         }
     }
 }

@@ -12,18 +12,23 @@ use cssparser::{AtRuleType, RuleListParser, SourcePosition, Token, parse_one_rul
 use cssparser::ToCss as ParserToCss;
 use error_reporting::ParseErrorReporter;
 #[cfg(feature = "servo")]
-use font_face::FontFaceData;
+use font_face::FontFaceRuleData;
 use font_face::parse_font_face_block;
 #[cfg(feature = "gecko")]
 pub use gecko::rules::FontFaceRule;
+#[cfg(feature = "gecko")]
+use gecko_bindings::structs::URLExtraData;
+#[cfg(feature = "gecko")]
+use gecko_bindings::sugar::refptr::RefPtr;
 use keyframes::{Keyframe, parse_keyframe_list};
 use media_queries::{Device, MediaList, parse_media_query_list};
 use parking_lot::RwLock;
-use parser::{ParserContext, ParserContextExtraData, log_css_error};
+use parser::{ParserContext, log_css_error};
 use properties::{PropertyDeclarationBlock, parse_property_declaration_list};
 use selector_parser::{SelectorImpl, SelectorParser};
 use selectors::parser::SelectorList;
 use servo_config::prefs::PREFS;
+#[cfg(not(feature = "gecko"))]
 use servo_url::ServoUrl;
 use shared_lock::{SharedRwLock, Locked, ToCssWithGuard, SharedRwLockReadGuard};
 use std::cell::Cell;
@@ -36,6 +41,30 @@ use supports::SupportsCondition;
 use values::specified::url::SpecifiedUrl;
 use viewport::ViewportRule;
 
+
+/// Extra data that the backend may need to resolve url values.
+#[cfg(not(feature = "gecko"))]
+pub type UrlExtraData = ServoUrl;
+
+/// Extra data that the backend may need to resolve url values.
+#[cfg(feature = "gecko")]
+pub type UrlExtraData = RefPtr<URLExtraData>;
+
+#[cfg(feature = "gecko")]
+impl UrlExtraData {
+    /// Returns a string for the url.
+    ///
+    /// Unimplemented currently.
+    pub fn as_str(&self) -> &str {
+        // TODO
+        "(stylo: not supported)"
+    }
+}
+
+// XXX We probably need to figure out whether we should mark Eq here.
+// It is currently marked so because properties::UnparsedValue wants Eq.
+#[cfg(feature = "gecko")]
+impl Eq for UrlExtraData {}
 
 /// Each style rule has an origin, which determines where it enters the cascade.
 ///
@@ -106,7 +135,12 @@ impl CssRules {
     }
 
     /// https://drafts.csswg.org/cssom/#insert-a-css-rule
-    pub fn insert_rule(&mut self, rule: &str, parent_stylesheet: &Stylesheet, index: usize, nested: bool)
+    pub fn insert_rule(&mut self,
+                       rule: &str,
+                       parent_stylesheet: &Stylesheet,
+                       index: usize,
+                       nested: bool,
+                       loader: Option<&StylesheetLoader>)
                        -> Result<CssRule, RulesMutateError> {
         // Step 1, 2
         if index > self.0.len() {
@@ -125,8 +159,7 @@ impl CssRules {
         // Step 3, 4
         // XXXManishearth should we also store the namespace map?
         let (new_rule, new_state) =
-            try!(CssRule::parse(&rule, parent_stylesheet,
-                                ParserContextExtraData::default(), state));
+            try!(CssRule::parse(&rule, parent_stylesheet, state, loader));
 
         // Step 5
         // Computes the maximum allowed parser state at a given index.
@@ -183,8 +216,8 @@ pub struct Stylesheet {
     pub media: Arc<Locked<MediaList>>,
     /// The origin of this stylesheet.
     pub origin: Origin,
-    /// The base url this stylesheet should use.
-    pub base_url: ServoUrl,
+    /// The url data this stylesheet should use.
+    pub url_data: UrlExtraData,
     /// The lock used for objects inside this stylesheet
     pub shared_lock: SharedRwLock,
     /// The namespaces that apply to this stylesheet.
@@ -259,7 +292,7 @@ impl ParseErrorReporter for MemoryHoleReporter {
             _: &mut Parser,
             _: SourcePosition,
             _: &str,
-            _: &ServoUrl) {
+            _: &UrlExtraData) {
         // do nothing
     }
 }
@@ -342,15 +375,14 @@ impl CssRule {
     #[allow(missing_docs)]
     pub fn parse(css: &str,
                  parent_stylesheet: &Stylesheet,
-                 extra_data: ParserContextExtraData,
-                 state: Option<State>)
+                 state: Option<State>,
+                 loader: Option<&StylesheetLoader>)
                  -> Result<(Self, State), SingleRuleParseError> {
         let error_reporter = MemoryHoleReporter;
         let mut namespaces = parent_stylesheet.namespaces.write();
-        let context = ParserContext::new_with_extra_data(parent_stylesheet.origin,
-                                                         &parent_stylesheet.base_url,
-                                                         &error_reporter,
-                                                         extra_data);
+        let context = ParserContext::new(parent_stylesheet.origin,
+                                         &parent_stylesheet.url_data,
+                                         &error_reporter);
         let mut input = Parser::new(css);
 
         // nested rules are in the body state
@@ -359,7 +391,7 @@ impl CssRule {
             stylesheet_origin: parent_stylesheet.origin,
             context: context,
             shared_lock: &parent_stylesheet.shared_lock,
-            loader: None,
+            loader: loader,
             state: Cell::new(state),
             namespaces: &mut namespaces,
         };
@@ -557,19 +589,21 @@ impl ToCssWithGuard for StyleRule {
 
 /// A @font-face rule
 #[cfg(feature = "servo")]
-pub type FontFaceRule = FontFaceData;
+pub type FontFaceRule = FontFaceRuleData;
 
 impl Stylesheet {
     /// Updates an empty stylesheet from a given string of text.
     pub fn update_from_str(existing: &Stylesheet,
                            css: &str,
+                           url_data: &UrlExtraData,
                            stylesheet_loader: Option<&StylesheetLoader>,
-                           error_reporter: &ParseErrorReporter,
-                           extra_data: ParserContextExtraData) {
+                           error_reporter: &ParseErrorReporter) {
         let mut namespaces = Namespaces::default();
+        // FIXME: we really should update existing.url_data with the given url_data,
+        // otherwise newly inserted rule may not have the right base url.
         let (rules, dirty_on_viewport_size_change) = Stylesheet::parse_rules(
-            css, &existing.base_url, existing.origin, &mut namespaces, &existing.shared_lock,
-            stylesheet_loader, error_reporter, extra_data,
+            css, url_data, existing.origin, &mut namespaces,
+            &existing.shared_lock, stylesheet_loader, error_reporter,
         );
 
         *existing.namespaces.write() = namespaces;
@@ -582,13 +616,12 @@ impl Stylesheet {
     }
 
     fn parse_rules(css: &str,
-                   base_url: &ServoUrl,
+                   url_data: &UrlExtraData,
                    origin: Origin,
                    namespaces: &mut Namespaces,
                    shared_lock: &SharedRwLock,
                    stylesheet_loader: Option<&StylesheetLoader>,
-                   error_reporter: &ParseErrorReporter,
-                   extra_data: ParserContextExtraData)
+                   error_reporter: &ParseErrorReporter)
                    -> (Vec<CssRule>, bool) {
         let mut rules = Vec::new();
         let mut input = Parser::new(css);
@@ -597,10 +630,7 @@ impl Stylesheet {
             namespaces: namespaces,
             shared_lock: shared_lock,
             loader: stylesheet_loader,
-            context: ParserContext::new_with_extra_data(origin,
-                                                        base_url,
-                                                        error_reporter,
-                                                        extra_data),
+            context: ParserContext::new(origin, url_data, error_reporter),
             state: Cell::new(State::Start),
         };
 
@@ -629,21 +659,20 @@ impl Stylesheet {
     /// Effectively creates a new stylesheet and forwards the hard work to
     /// `Stylesheet::update_from_str`.
     pub fn from_str(css: &str,
-                    base_url: ServoUrl,
+                    url_data: UrlExtraData,
                     origin: Origin,
                     media: MediaList,
                     shared_lock: SharedRwLock,
                     stylesheet_loader: Option<&StylesheetLoader>,
-                    error_reporter: &ParseErrorReporter,
-                    extra_data: ParserContextExtraData) -> Stylesheet {
+                    error_reporter: &ParseErrorReporter) -> Stylesheet {
         let mut namespaces = Namespaces::default();
         let (rules, dirty_on_viewport_size_change) = Stylesheet::parse_rules(
-            css, &base_url, origin, &mut namespaces, &shared_lock,
-            stylesheet_loader, error_reporter, extra_data,
+            css, &url_data, origin, &mut namespaces,
+            &shared_lock, stylesheet_loader, error_reporter,
         );
         Stylesheet {
             origin: origin,
-            base_url: base_url,
+            url_data: url_data,
             namespaces: RwLock::new(namespaces),
             rules: CssRules::new(rules, &shared_lock),
             media: Arc::new(shared_lock.wrap(media)),
@@ -862,7 +891,7 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
                                 media: Arc::new(self.shared_lock.wrap(media)),
                                 shared_lock: self.shared_lock.clone(),
                                 origin: self.context.stylesheet_origin,
-                                base_url: self.context.base_url.clone(),
+                                url_data: self.context.url_data.clone(),
                                 namespaces: RwLock::new(Namespaces::default()),
                                 dirty_on_viewport_size_change: AtomicBool::new(false),
                                 disabled: AtomicBool::new(false),
@@ -1012,7 +1041,7 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
         match prelude {
             AtRulePrelude::FontFace => {
                 Ok(CssRule::FontFace(Arc::new(self.shared_lock.wrap(
-                    parse_font_face_block(self.context, input)?.into()))))
+                    parse_font_face_block(self.context, input).into()))))
             }
             AtRulePrelude::Media(media_queries) => {
                 Ok(CssRule::Media(Arc::new(self.shared_lock.wrap(MediaRule {

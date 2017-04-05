@@ -788,16 +788,7 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
         self.node.type_id()
     }
 
-    fn style_for_text_node(&self) -> Arc<ComputedValues> {
-        // Text nodes get a copy of the parent style. Inheriting all non-
-        // inherited properties into the text node is odd from a CSS
-        // perspective, but makes fragment construction easier (by making
-        // properties like vertical-align on fragments have values that
-        // match the parent element). This is an implementation detail of
-        // Servo layout that is not central to how fragment construction
-        // works, but would be difficult to change. (Text node style is
-        // also not visible to script.)
-        debug_assert!(self.is_text_node());
+    fn parent_style(&self) -> Arc<ComputedValues> {
         let parent = self.node.parent_node().unwrap().as_element().unwrap();
         let parent_data = parent.get_data().unwrap().borrow();
         parent_data.styles().primary.values().clone()

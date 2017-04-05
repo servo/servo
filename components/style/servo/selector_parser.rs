@@ -19,6 +19,7 @@ use selectors::parser::{AttrSelector, SelectorMethods};
 use std::borrow::Cow;
 use std::fmt;
 use std::fmt::Debug;
+use std::mem;
 
 /// A pseudo-element, both public and private.
 ///
@@ -26,12 +27,16 @@ use std::fmt::Debug;
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
+#[repr(usize)]
 pub enum PseudoElement {
+    // Eager pseudos. Keep these first so that eager_index() works.
+    After = 0,
     Before,
-    After,
     Selection,
+    // Non-eager pseudos.
     DetailsSummary,
     DetailsContent,
+    ServoText,
     ServoInputText,
     ServoTableWrapper,
     ServoAnonymousTableWrapper,
@@ -39,17 +44,20 @@ pub enum PseudoElement {
     ServoAnonymousTableRow,
     ServoAnonymousTableCell,
     ServoAnonymousBlock,
+    ServoInlineBlockWrapper,
+    ServoInlineAbsolute,
 }
 
 impl ToCss for PseudoElement {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         use self::PseudoElement::*;
         dest.write_str(match *self {
-            Before => "::before",
             After => "::after",
+            Before => "::before",
             Selection => "::selection",
             DetailsSummary => "::-servo-details-summary",
             DetailsContent => "::-servo-details-content",
+            ServoText => "::-servo-text",
             ServoInputText => "::-servo-input-text",
             ServoTableWrapper => "::-servo-table-wrapper",
             ServoAnonymousTableWrapper => "::-servo-anonymous-table-wrapper",
@@ -57,39 +65,79 @@ impl ToCss for PseudoElement {
             ServoAnonymousTableRow => "::-servo-anonymous-table-row",
             ServoAnonymousTableCell => "::-servo-anonymous-table-cell",
             ServoAnonymousBlock => "::-servo-anonymous-block",
+            ServoInlineBlockWrapper => "::-servo-inline-block-wrapper",
+            ServoInlineAbsolute => "::-servo-inline-absolute",
         })
     }
 }
 
+/// The number of eager pseudo-elements. Keep this in sync with cascade_type.
+pub const EAGER_PSEUDO_COUNT: usize = 3;
+
 impl PseudoElement {
+    /// Gets the canonical index of this eagerly-cascaded pseudo-element.
+    #[inline]
+    pub fn eager_index(&self) -> usize {
+        debug_assert!(self.is_eager());
+        self.clone() as usize
+    }
+
+    /// Creates a pseudo-element from an eager index.
+    #[inline]
+    pub fn from_eager_index(i: usize) -> Self {
+        assert!(i < EAGER_PSEUDO_COUNT);
+        let result: PseudoElement = unsafe { mem::transmute(i) };
+        debug_assert!(result.is_eager());
+        result
+    }
+
     /// Whether the current pseudo element is :before or :after.
     #[inline]
     pub fn is_before_or_after(&self) -> bool {
-        match *self {
-            PseudoElement::Before |
-            PseudoElement::After => true,
-            _ => false,
-        }
+        matches!(*self, PseudoElement::After | PseudoElement::Before)
+    }
+
+    /// Whether this pseudo-element is eagerly-cascaded.
+    #[inline]
+    pub fn is_eager(&self) -> bool {
+        self.cascade_type() == PseudoElementCascadeType::Eager
+    }
+
+    /// Whether this pseudo-element is lazily-cascaded.
+    #[inline]
+    pub fn is_lazy(&self) -> bool {
+        self.cascade_type() == PseudoElementCascadeType::Lazy
+    }
+
+    /// Whether this pseudo-element is precomputed.
+    #[inline]
+    pub fn is_precomputed(&self) -> bool {
+        self.cascade_type() == PseudoElementCascadeType::Precomputed
     }
 
     /// Returns which kind of cascade type has this pseudo.
     ///
     /// For more info on cascade types, see docs/components/style.md
+    ///
+    /// Note: Keep this in sync with EAGER_PSEUDO_COUNT.
     #[inline]
     pub fn cascade_type(&self) -> PseudoElementCascadeType {
         match *self {
-            PseudoElement::Before |
             PseudoElement::After |
+            PseudoElement::Before |
             PseudoElement::Selection => PseudoElementCascadeType::Eager,
             PseudoElement::DetailsSummary => PseudoElementCascadeType::Lazy,
             PseudoElement::DetailsContent |
+            PseudoElement::ServoText |
             PseudoElement::ServoInputText |
             PseudoElement::ServoTableWrapper |
             PseudoElement::ServoAnonymousTableWrapper |
             PseudoElement::ServoAnonymousTable |
             PseudoElement::ServoAnonymousTableRow |
             PseudoElement::ServoAnonymousTableCell |
-            PseudoElement::ServoAnonymousBlock => PseudoElementCascadeType::Precomputed,
+            PseudoElement::ServoAnonymousBlock |
+            PseudoElement::ServoInlineBlockWrapper |
+            PseudoElement::ServoInlineAbsolute => PseudoElementCascadeType::Precomputed,
         }
     }
 }
@@ -278,6 +326,12 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
                 }
                 DetailsContent
             },
+            "-servo-text" => {
+                if !self.in_user_agent_stylesheet() {
+                    return Err(())
+                }
+                ServoText
+            },
             "-servo-input-text" => {
                 if !self.in_user_agent_stylesheet() {
                     return Err(())
@@ -320,6 +374,18 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
                 }
                 ServoAnonymousBlock
             },
+            "-servo-inline-block-wrapper" => {
+                if !self.in_user_agent_stylesheet() {
+                    return Err(())
+                }
+                ServoInlineBlockWrapper
+            },
+            "-servo-input-absolute" => {
+                if !self.in_user_agent_stylesheet() {
+                    return Err(())
+                }
+                ServoInlineAbsolute
+            },
             _ => return Err(())
         };
 
@@ -342,6 +408,17 @@ impl SelectorImpl {
         pseudo.cascade_type()
     }
 
+    /// A helper to traverse each eagerly cascaded pseudo-element, executing
+    /// `fun` on it.
+    #[inline]
+    pub fn each_eagerly_cascaded_pseudo_element<F>(mut fun: F)
+        where F: FnMut(PseudoElement),
+    {
+        for i in 0..EAGER_PSEUDO_COUNT {
+            fun(PseudoElement::from_eager_index(i));
+        }
+    }
+
     /// Executes `fun` for each pseudo-element.
     #[inline]
     pub fn each_pseudo_element<F>(mut fun: F)
@@ -352,6 +429,7 @@ impl SelectorImpl {
         fun(PseudoElement::DetailsContent);
         fun(PseudoElement::DetailsSummary);
         fun(PseudoElement::Selection);
+        fun(PseudoElement::ServoText);
         fun(PseudoElement::ServoInputText);
         fun(PseudoElement::ServoTableWrapper);
         fun(PseudoElement::ServoAnonymousTableWrapper);
@@ -359,18 +437,14 @@ impl SelectorImpl {
         fun(PseudoElement::ServoAnonymousTableRow);
         fun(PseudoElement::ServoAnonymousTableCell);
         fun(PseudoElement::ServoAnonymousBlock);
+        fun(PseudoElement::ServoInlineBlockWrapper);
+        fun(PseudoElement::ServoInlineAbsolute);
     }
 
     /// Returns the pseudo-class state flag for selector matching.
     #[inline]
     pub fn pseudo_class_state_flag(pc: &NonTSPseudoClass) -> ElementState {
         pc.state_flag()
-    }
-
-    /// Returns whether this pseudo is either :before or :after.
-    #[inline]
-    pub fn pseudo_is_before_or_after(pseudo: &PseudoElement) -> bool {
-        pseudo.is_before_or_after()
     }
 }
 

@@ -25,7 +25,6 @@ use script_layout_interface::message::Msg;
 use std::cell::Cell;
 use std::sync::Arc;
 use style::media_queries::parse_media_query_list;
-use style::parser::ParserContextExtraData;
 use style::stylesheets::{Stylesheet, Origin};
 use stylesheet_loader::{StylesheetLoader, StylesheetOwner};
 
@@ -88,8 +87,7 @@ impl HTMLStyleElement {
         let loader = StylesheetLoader::for_element(self.upcast());
         let sheet = Stylesheet::from_str(&data, url, Origin::Author, mq,
                                          shared_lock, Some(&loader),
-                                         win.css_error_reporter(),
-                                         ParserContextExtraData::default());
+                                         win.css_error_reporter());
 
         let sheet = Arc::new(sheet);
 

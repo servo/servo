@@ -5,7 +5,7 @@
 use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::ipc;
 use style::computed_values::font_family::FamilyName;
-use style::font_face::{FontFaceData, Source};
+use style::font_face::{FontFaceRuleData, Source};
 
 #[test]
 fn test_local_web_font() {
@@ -20,12 +20,15 @@ fn test_local_web_font() {
         name: From::from("test font face"),
         quoted: true,
     };
-    let font_face_rule = FontFaceData {
-        family: family_name.clone(),
-        sources: vec![Source::Local(variant_name)],
+    let font_face_rule = FontFaceRuleData {
+        family: Some(family_name.clone()),
+        sources: Some(vec![Source::Local(variant_name)]),
     };
 
-    font_cache_thread.add_web_font(family_name, font_face_rule.effective_sources(), out_chan);
+    font_cache_thread.add_web_font(
+        family_name,
+        font_face_rule.font_face().unwrap().effective_sources(),
+        out_chan);
 
     assert_eq!(out_receiver.recv().unwrap(), ());
 }
