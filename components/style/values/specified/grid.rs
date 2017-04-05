@@ -10,7 +10,7 @@ use std::{fmt, mem, usize};
 use std::ascii::AsciiExt;
 use style_traits::ToCss;
 use values::{CSSFloat, CustomIdent, Either, HasViewportPercentage};
-use values::computed::{ComputedValueAsSpecified, Context, ToComputedValue};
+use values::computed::{self, ComputedValueAsSpecified, Context, ToComputedValue};
 use values::specified::{Integer, LengthOrPercentage};
 
 #[derive(PartialEq, Clone, Debug)]
@@ -777,5 +777,99 @@ impl HasViewportPercentage for TrackList<TrackSizeOrRepeat> {
     #[inline]
     fn has_viewport_percentage(&self) -> bool {
         self.values.iter().any(|ref v| v.has_viewport_percentage())
+    }
+}
+
+impl ToComputedValue for TrackList<TrackSizeOrRepeat> {
+    type ComputedValue = TrackList<TrackSize<computed::LengthOrPercentage>>;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        // Merge the line names while computing values. The resulting values will
+        // all be a bunch of `<track-size>`.
+        //
+        // For example,
+        // `[a b] 100px [c d] repeat(1, 30px [g]) [h]` will be merged as `[a b] 100px [c d] 30px [g h]`
+        //  whereas, `[a b] repeat(2, [c] 50px [d]) [e f] repeat(auto-fill, [g] 12px) 10px [h]` will be merged as
+        // `[a b c] 50px [d c] 50px [d e f] repeat(auto-fill, [g] 12px) 10px [h]`, with the `<auto-repeat>` value
+        // set in the `auto_repeat` field, and the `idx` in TrackListType::Auto pointing to the values after
+        // `<auto-repeat>` (in this case, `10px [h]`).
+        let mut line_names = vec![];
+        let mut list_type = self.list_type;
+        let mut values = vec![];
+        let mut prev_names = vec![];
+        let mut auto_repeat = None;
+
+        let mut names_iter = self.line_names.iter();
+        for (size_or_repeat, names) in self.values.iter().zip(&mut names_iter) {
+            prev_names.extend_from_slice(names);
+
+            match *size_or_repeat {
+                Either::First(ref size) => values.push(size.to_computed_value(context)),
+                Either::Second(ref repeat) => {
+                    let mut computed = repeat.to_computed_value(context);
+                    if computed.count == RepeatCount::AutoFit || computed.count == RepeatCount::AutoFill {
+                        line_names.push(mem::replace(&mut prev_names, vec![]));     // don't merge for auto
+                        list_type = TrackListType::Auto(values.len() as u16);
+                        auto_repeat = Some(computed);
+                        continue
+                    }
+
+                    let mut repeat_names_iter = computed.line_names.drain(..);
+                    for (size, mut names) in computed.track_sizes.drain(..).zip(&mut repeat_names_iter) {
+                        prev_names.append(&mut names);
+                        line_names.push(mem::replace(&mut prev_names, vec![]));
+                        values.push(size);
+                    }
+
+                    if let Some(mut names) = repeat_names_iter.next() {
+                        prev_names.append(&mut names);
+                    }
+
+                    continue    // last `<line-names>` in repeat() may merge with the next set
+                }
+            }
+
+            line_names.push(mem::replace(&mut prev_names, vec![]));
+        }
+
+        if let Some(names) = names_iter.next() {
+            prev_names.extend_from_slice(names);
+        }
+
+        line_names.push(mem::replace(&mut prev_names, vec![]));
+
+        TrackList {
+            list_type: list_type,
+            values: values,
+            line_names: line_names,
+            auto_repeat: auto_repeat,
+        }
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        let auto_idx = if let TrackListType::Auto(idx) = computed.list_type {
+            idx as usize
+        } else {
+            usize::MAX
+        };
+
+        let mut values = Vec::with_capacity(computed.values.len() + 1);
+        for (i, value) in computed.values.iter().map(ToComputedValue::from_computed_value).enumerate() {
+            if i == auto_idx {
+                let value = TrackRepeat::from_computed_value(computed.auto_repeat.as_ref().unwrap());
+                values.push(Either::Second(value));
+            }
+
+            values.push(Either::First(value));
+        }
+
+        TrackList {
+            list_type: computed.list_type,
+            values: values,
+            line_names: computed.line_names.clone(),
+            auto_repeat: None,
+        }
     }
 }
