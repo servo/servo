@@ -404,8 +404,7 @@ ${helpers.single_keyword("text-align-last",
     % endif
 </%helpers:longhand>
 
-// FIXME: This prop should be animatable.
-<%helpers:longhand name="letter-spacing" boxed="True" animatable="False"
+<%helpers:longhand name="letter-spacing" boxed="True" animatable="True"
                    spec="https://drafts.csswg.org/css-text/#propdef-letter-spacing">
     use std::fmt;
     use style_traits::ToCss;
@@ -438,9 +437,32 @@ ${helpers.single_keyword("text-align-last",
 
     pub mod computed_value {
         use app_units::Au;
+        use properties::animated_properties::Interpolate;
+
         #[derive(Debug, Clone, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T(pub Option<Au>);
+
+        impl Interpolate for T {
+            #[inline]
+            fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
+                match (self, other) {
+                    (&T(Some(ref this)), &T(Some(ref other))) => {
+                        Ok(T(this.interpolate(other, progress).ok()))
+                    },
+                    (&T(Some(ref this)), &T(None)) => {
+                        Ok(T(this.interpolate(&Au(0), progress).ok()))
+                    },
+                    (&T(None), &T(Some(ref other))) => {
+                        Ok(T(Au(0).interpolate(other, progress).ok()))
+                    },
+                    (&T(None), &T(None)) => {
+                        Ok(T(None))
+                    },
+                }
+            }
+        }
+
     }
 
     impl ToCss for computed_value::T {

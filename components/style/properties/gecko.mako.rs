@@ -2882,6 +2882,15 @@ fn static_assert() {
         }
     }
 
+    pub fn clone_letter_spacing(&self) -> longhands::letter_spacing::computed_value::T {
+        use properties::longhands::letter_spacing::computed_value::T;
+        match self.gecko.mLetterSpacing.as_value() {
+            CoordDataValue::Normal => T(None),
+            CoordDataValue::Coord(coord) => T(Some(Au(coord))),
+            _ => unreachable!("Unexpected computed value for letter-spacing"),
+        }
+    }
+
     <%call expr="impl_coord_copy('letter_spacing', 'mLetterSpacing')"></%call>
 
     pub fn set_word_spacing(&mut self, v: longhands::word_spacing::computed_value::T) {
