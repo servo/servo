@@ -77,6 +77,22 @@ fn test_border_radius() {
     assert_border_radius_values!("10px 20px 30px 40px / 1px 2px 3px 4px";
                                  "10px", "20px", "30px", "40px" ;
                                  "1px", "2px", "3px", "4px");
+    assert_border_radius_values!("10px 20px 30px 40px / 1px 2px 3px 4px";
+                                 "10px", "20px", "30px", "40px" ;
+                                 "1px", "2px", "3px", "4px");
+    assert_border_radius_values!("10px 20px 30px 40px / 1px 2px 3px 4px";
+                                 "10px", "20px", "30px", "40px" ;
+                                 "1px", "2px", "3px", "4px");
+    assert_border_radius_values!("10px -20px 30px 40px";
+                                 "10px", "10px", "10px", "10px";
+                                 "10px", "10px", "10px", "10px");
+    assert_border_radius_values!("10px 20px -30px 40px";
+                                 "10px", "20px", "10px", "20px";
+                                 "10px", "20px", "10px", "20px");
+    assert_border_radius_values!("10px 20px 30px -40px";
+                                 "10px", "20px", "30px", "20px";
+                                 "10px", "20px", "30px", "20px");
+    assert!(parse(BorderRadius::parse, "-10px 20px 30px 40px").is_err());
 }
 
 #[test]
@@ -112,9 +128,8 @@ fn test_circle() {
                                                 "circle(at 95% 100%)");
     assert_roundtrip_basicshape!(Circle::parse, "circle(at right 5% bottom 1px)",
                                                 "circle(at right 5% bottom 1px)");
-    assert_roundtrip_basicshape!(Circle::parse, "circle(at 5% bottom 1px)",
-                                                "circle(at left 5% bottom 1px)");
 
+    assert!(parse(Circle::parse, "circle(at 5% bottom 1px)").is_err());
     assert!(parse(Circle::parse, "circle(at top 40%)").is_err());
     assert!(parse(Circle::parse, "circle(-10px)").is_err());
 }

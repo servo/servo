@@ -27,7 +27,7 @@ use model::{self, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, SizeC
 use model::{style_length, ToGfxMatrix};
 use msg::constellation_msg::PipelineId;
 use net_traits::image::base::{Image, ImageMetadata};
-use net_traits::image_cache_thread::{ImageOrMetadataAvailable, UsePlaceholder};
+use net_traits::image_cache::{ImageOrMetadataAvailable, UsePlaceholder};
 use range::*;
 use script_layout_interface::HTMLCanvasData;
 use script_layout_interface::SVGSVGData;
@@ -41,15 +41,15 @@ use std::collections::LinkedList;
 use std::sync::{Arc, Mutex};
 use style::arc_ptr_eq;
 use style::computed_values::{border_collapse, box_sizing, clear, color, display, mix_blend_mode};
-use style::computed_values::{overflow_wrap, overflow_x, position, text_decoration, transform};
-use style::computed_values::{transform_style, vertical_align, white_space, word_break, z_index};
+use style::computed_values::{overflow_wrap, overflow_x, position, text_decoration_line, transform};
+use style::computed_values::{transform_style, vertical_align, white_space, word_break};
 use style::computed_values::content::ContentItem;
 use style::logical_geometry::{Direction, LogicalMargin, LogicalRect, LogicalSize, WritingMode};
 use style::properties::ServoComputedValues;
 use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::RECONSTRUCT_FLOW;
 use style::str::char_is_whitespace;
-use style::values::{self, Either};
+use style::values::{self, Either, Auto};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use text;
 use text::TextRunScanner;
@@ -367,11 +367,14 @@ impl ImageFragmentInfo {
     ///
     /// FIXME(pcwalton): The fact that image fragments store the cache in the fragment makes little
     /// sense to me.
-    pub fn new(url: Option<ServoUrl>,
-               layout_context: &LayoutContext)
+    pub fn new<N: ThreadSafeLayoutNode>(url: Option<ServoUrl>,
+                                        node: &N,
+                                        layout_context: &LayoutContext)
                -> ImageFragmentInfo {
         let image_or_metadata = url.and_then(|url| {
-            layout_context.get_or_request_image_or_meta(url, UsePlaceholder::Yes)
+            layout_context.get_or_request_image_or_meta(node.opaque(),
+                                                        url,
+                                                        UsePlaceholder::Yes)
         });
 
         let (image, metadata) = match image_or_metadata {
@@ -1164,20 +1167,15 @@ impl Fragment {
     /// can be expensive to compute, so if possible use the `border_padding` field instead.
     #[inline]
     pub fn border_width(&self) -> LogicalMargin<Au> {
-        let style_border_width = match self.specific {
-            SpecificFragmentInfo::ScannedText(_) |
-            SpecificFragmentInfo::InlineBlock(_) => LogicalMargin::zero(self.style.writing_mode),
-            _ => self.style().logical_border_width(),
-        };
+        let style_border_width = self.style().logical_border_width();
 
-        match self.inline_context {
-            None => style_border_width,
+        // NOTE: We can have nodes with different writing mode inside
+        // the inline fragment context, so we need to overwrite the
+        // writing mode to compute the child logical sizes.
+        let writing_mode = self.style.writing_mode;
+        let context_border = match self.inline_context {
+            None => LogicalMargin::zero(writing_mode),
             Some(ref inline_fragment_context) => {
-                // NOTE: We can have nodes with different writing mode inside
-                // the inline fragment context, so we need to overwrite the
-                // writing mode to compute the child logical sizes.
-                let writing_mode = self.style.writing_mode;
-
                 inline_fragment_context.nodes.iter().fold(style_border_width, |accumulator, node| {
                     let mut this_border_width =
                         node.style.border_width_for_writing_mode(writing_mode);
@@ -1190,7 +1188,8 @@ impl Fragment {
                     accumulator + this_border_width
                 })
             }
-        }
+        };
+        style_border_width + context_border
     }
 
     /// Returns the border width in given direction if this fragment has property
@@ -1223,12 +1222,6 @@ impl Fragment {
                 self.margin.inline_end = Au(0);
                 return
             }
-            SpecificFragmentInfo::InlineBlock(_) => {
-                // Inline-blocks do not take self margins into account but do account for margins
-                // from outer inline contexts.
-                self.margin.inline_start = Au(0);
-                self.margin.inline_end = Au(0);
-            }
             _ => {
                 let margin = self.style().logical_margin();
                 self.margin.inline_start =
@@ -1256,8 +1249,8 @@ impl Fragment {
                                           containing_block_inline_size).specified_or_zero()
                 };
 
-                self.margin.inline_start = self.margin.inline_start + this_inline_start_margin;
-                self.margin.inline_end = self.margin.inline_end + this_inline_end_margin;
+                self.margin.inline_start += this_inline_start_margin;
+                self.margin.inline_end += this_inline_end_margin;
             }
         }
     }
@@ -1306,14 +1299,10 @@ impl Fragment {
         };
 
         // Compute padding from the fragment's style.
-        //
-        // This is zero in the case of `inline-block` because that padding is applied to the
-        // wrapped block, not the fragment.
         let padding_from_style = match self.specific {
             SpecificFragmentInfo::TableColumn(_) |
             SpecificFragmentInfo::TableRow |
-            SpecificFragmentInfo::TableWrapper |
-            SpecificFragmentInfo::InlineBlock(_) => LogicalMargin::zero(self.style.writing_mode),
+            SpecificFragmentInfo::TableWrapper => LogicalMargin::zero(self.style.writing_mode),
             _ => model::padding_from_style(self.style(), containing_block_inline_size, self.style().writing_mode),
         };
 
@@ -1416,15 +1405,15 @@ impl Fragment {
         self.style().get_color().color
     }
 
-    /// Returns the text decoration of this fragment, according to the style of the nearest ancestor
+    /// Returns the text decoration line of this fragment, according to the style of the nearest ancestor
     /// element.
     ///
-    /// NB: This may not be the actual text decoration, because of the override rules specified in
+    /// NB: This may not be the actual text decoration line, because of the override rules specified in
     /// CSS 2.1 § 16.3.1. Unfortunately, computing this properly doesn't really fit into Servo's
     /// model. Therefore, this is a best lower bound approximation, but the end result may actually
     /// have the various decoration flags turned on afterward.
-    pub fn text_decoration(&self) -> text_decoration::T {
-        self.style().get_text().text_decoration
+    pub fn text_decoration_line(&self) -> text_decoration_line::T {
+        self.style().get_text().text_decoration_line
     }
 
     /// Returns the inline-start offset from margin edge to content edge.
@@ -2294,7 +2283,7 @@ impl Fragment {
              &SpecificFragmentInfo::UnscannedText(_)) => {
                 // FIXME: Should probably use a whitelist of styles that can safely differ (#3165)
                 if self.style().get_font() != other.style().get_font() ||
-                        self.text_decoration() != other.text_decoration() ||
+                        self.text_decoration_line() != other.text_decoration_line() ||
                         self.white_space() != other.white_space() ||
                         self.color() != other.color() {
                     return false
@@ -2509,15 +2498,15 @@ impl Fragment {
                self.style().get_box().overflow_x,
                self.style().get_box().overflow_y.0) {
             (position::T::absolute,
-             z_index::T::Auto,
+             Either::Second(Auto),
              overflow_x::T::visible,
              overflow_x::T::visible) |
             (position::T::fixed,
-             z_index::T::Auto,
+             Either::Second(Auto),
              overflow_x::T::visible,
              overflow_x::T::visible) |
             (position::T::relative,
-             z_index::T::Auto,
+             Either::Second(Auto),
              overflow_x::T::visible,
              overflow_x::T::visible) => false,
             (position::T::absolute, _, _, _) |
@@ -2533,15 +2522,15 @@ impl Fragment {
     pub fn effective_z_index(&self) -> i32 {
         match self.style().get_box().position {
             position::T::static_ => {},
-            _ => return self.style().get_position().z_index.number_or_zero(),
+            _ => return self.style().get_position().z_index.integer_or(0),
         }
 
         if self.style().get_box().transform.0.is_some() {
-            return self.style().get_position().z_index.number_or_zero();
+            return self.style().get_position().z_index.integer_or(0);
         }
 
         match self.style().get_box().display {
-            display::T::flex => self.style().get_position().z_index.number_or_zero(),
+            display::T::flex => self.style().get_position().z_index.integer_or(0),
             _ => 0,
         }
     }
@@ -2870,13 +2859,13 @@ impl Fragment {
     }
 
     /// Returns the 4D matrix representing this fragment's transform.
-    pub fn transform_matrix(&self, stacking_relative_border_box: &Rect<Au>) -> Matrix4D<f32> {
-        let mut transform = Matrix4D::identity();
+    pub fn transform_matrix(&self, stacking_relative_border_box: &Rect<Au>) -> Option<Matrix4D<f32>> {
         let operations = match self.style.get_box().transform.0 {
-            None => return transform,
+            None => return None,
             Some(ref operations) => operations,
         };
 
+        let mut transform = Matrix4D::identity();
         let transform_origin = &self.style.get_box().transform_origin;
         let transform_origin_x = model::specified(transform_origin.horizontal,
                                                   stacking_relative_border_box.size
@@ -2925,11 +2914,11 @@ impl Fragment {
             transform = transform.pre_mul(&matrix);
         }
 
-        pre_transform.pre_mul(&transform).pre_mul(&post_transform)
+        Some(pre_transform.pre_mul(&transform).pre_mul(&post_transform))
     }
 
     /// Returns the 4D matrix representing this fragment's perspective.
-    pub fn perspective_matrix(&self, stacking_relative_border_box: &Rect<Au>) -> Matrix4D<f32> {
+    pub fn perspective_matrix(&self, stacking_relative_border_box: &Rect<Au>) -> Option<Matrix4D<f32>> {
         match self.style().get_box().perspective {
             Either::First(length) => {
                 let perspective_origin = self.style().get_box().perspective_origin;
@@ -2948,10 +2937,10 @@ impl Fragment {
 
                 let perspective_matrix = create_perspective_matrix(length);
 
-                pre_transform.pre_mul(&perspective_matrix).pre_mul(&post_transform)
+                Some(pre_transform.pre_mul(&perspective_matrix).pre_mul(&post_transform))
             }
             Either::Second(values::None_) => {
-                Matrix4D::identity()
+                None
             }
         }
     }

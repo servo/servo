@@ -106,6 +106,18 @@ partial interface CSSStyleDeclaration {
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-top-style;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderTopWidth;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-top-width;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-image-source;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderImageSource;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-image-slice;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderImageSlice;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-image-repeat;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderImageRepeat;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-image-outset;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderImageOutset;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-image-width;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderImageWidth;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-image;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderImage;
 
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-block-start-color;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderBlockStartColor;
@@ -245,6 +257,8 @@ partial interface CSSStyleDeclaration {
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString text-align;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString textDecoration;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString text-decoration;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString textDecorationLine;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString text-decoration-line;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString textIndent;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString text-indent;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString textJustify;

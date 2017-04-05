@@ -13,6 +13,7 @@ use dom::bindings::str::DOMString;
 use dom::blob::{Blob, BlobImpl, blob_parts_to_bytes};
 use dom::globalscope::GlobalScope;
 use dom::window::Window;
+use dom_struct::dom_struct;
 use net_traits::filemanager_thread::SelectedFile;
 use time;
 

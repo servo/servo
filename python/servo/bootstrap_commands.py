@@ -71,7 +71,8 @@ class MachCommands(CommandBase):
         rust_dir = path.join(self.context.sharedir, "rust", rust_path)
         install_dir = path.join(self.context.sharedir, "rust", version)
         if not self.config["build"]["llvm-assertions"]:
-            install_dir += "-alt"
+            if not self.use_stable_rust():
+                install_dir += "-alt"
 
         if not force and path.exists(path.join(rust_dir, "rustc", "bin", "rustc" + BIN_SUFFIX)):
             print("Rust compiler already downloaded.", end=" ")

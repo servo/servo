@@ -3,39 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use rustc::hir::def_id::DefId;
-use rustc::lint::{LateContext, LintContext};
-use syntax::ast;
+use rustc::lint::LateContext;
 use syntax::codemap::{ExpnFormat, Span};
-use syntax::ptr::P;
-
-/// Matches a type with a provided string, and returns its type parameters if successful
-pub fn match_ty_unwrap<'a>(ty: &'a ast::Ty, segments: &[&str]) -> Option<&'a [P<ast::Ty>]> {
-    match ty.node {
-        ast::TyKind::Path(_, ast::Path { segments: ref seg, .. }) => {
-            // So hir::Path isn't the full path, just the tokens that were provided.
-            // I could muck around with the maps and find the full path
-            // however the more efficient way is to simply reverse the iterators and zip them
-            // which will compare them in reverse until one of them runs out of segments
-            if seg.iter().rev().zip(segments.iter().rev()).all(|(a, b)| &*a.identifier.name.as_str() == *b) {
-                match seg.last() {
-                    Some(&ast::PathSegment { parameters: Some(ref params), .. }) => {
-                        match **params {
-                            ast::PathParameters::AngleBracketed(ref a) => Some(&a.types),
-
-                            // `Foo(A,B) -> C`
-                            ast::PathParameters::Parenthesized(_) => None,
-                        }
-                    }
-                    Some(&ast::PathSegment { parameters: None, .. }) => Some(&[]),
-                    None => None,
-                }
-            } else {
-                None
-            }
-        },
-        _ => None
-    }
-}
 
 /// check if a DefId's path matches the given absolute type path
 /// usage e.g. with
@@ -59,15 +28,14 @@ pub fn match_def_path(cx: &LateContext, def_id: DefId, path: &[&str]) -> bool {
          .all(|(nm, p)| &*nm.as_interned_str() == *p)
 }
 
-pub fn in_derive_expn(cx: &LateContext, span: Span) -> bool {
-    cx.sess().codemap().with_expn_info(span.expn_id,
-            |info| {
-                if let Some(i) = info {
-                    if let ExpnFormat::MacroAttribute(n) = i.callee.format {
-                        if n.as_str().contains("derive") {
-                            true
-                        } else { false }
-                    } else { false }
-                } else { false }
-            })
+pub fn in_derive_expn(span: Span) -> bool {
+    if let Some(i) = span.ctxt.outer().expn_info() {
+        if let ExpnFormat::MacroAttribute(n) = i.callee.format {
+            n.as_str().contains("derive")
+        } else {
+            false
+        }
+    } else {
+        false
+    }
 }

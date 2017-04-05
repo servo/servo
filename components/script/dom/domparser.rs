@@ -19,6 +19,7 @@ use dom::document::{Document, HasBrowsingContext, IsHTMLDocument};
 use dom::document::DocumentSource;
 use dom::servoparser::ServoParser;
 use dom::window::Window;
+use dom_struct::dom_struct;
 use script_traits::DocumentActivity;
 
 #[dom_struct]
@@ -61,7 +62,7 @@ impl DOMParserMethods for DOMParser {
                 let document = Document::new(&self.window,
                                              HasBrowsingContext::No,
                                              Some(url.clone()),
-                                             doc.origin().alias(),
+                                             doc.origin().clone(),
                                              IsHTMLDocument::HTMLDocument,
                                              Some(content_type),
                                              None,
@@ -79,7 +80,7 @@ impl DOMParserMethods for DOMParser {
                 let document = Document::new(&self.window,
                                              HasBrowsingContext::No,
                                              Some(url.clone()),
-                                             doc.origin().alias(),
+                                             doc.origin().clone(),
                                              IsHTMLDocument::NonHTMLDocument,
                                              Some(content_type),
                                              None,

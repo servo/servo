@@ -34,6 +34,7 @@ use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
 use dom::promisenativehandler::{PromiseNativeHandler, Callback};
 use dom::url::URL;
+use dom_struct::dom_struct;
 use js::jsapi::{HandleObject, HandleValue, Heap, JSContext, JSObject, JSAutoCompartment};
 use js::jsapi::{JS_NewPlainObject, JS_NewUint8ClampedArray};
 use js::jsval::{JSVal, NullValue};
@@ -246,8 +247,8 @@ impl TestBindingMethods for TestBinding {
         Some(ByteStringOrLong::ByteString(ByteString::new(vec!())))
     }
     fn SetUnion6AttributeNullable(&self, _: Option<ByteStringOrLong>) {}
-    fn BinaryRenamedMethod(&self) -> () {}
-    fn ReceiveVoid(&self) -> () {}
+    fn BinaryRenamedMethod(&self) {}
+    fn ReceiveVoid(&self) {}
     fn ReceiveBoolean(&self) -> bool { false }
     fn ReceiveByte(&self) -> i8 { 0 }
     fn ReceiveOctet(&self) -> u8 { 0 }

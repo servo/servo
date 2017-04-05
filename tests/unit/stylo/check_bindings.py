@@ -33,5 +33,6 @@ with open(INPUT_FILE, "r") as bindings, open(OUTPUT_FILE, "w+") as tests:
     tests.write("}\n")
 
 with open(GLUE_FILE, "r") as glue, open(GLUE_OUTPUT_FILE, "w+") as glue_output:
+    glue_output.write("pub use style::gecko::arc_types::*;")
     for line in glue:
         glue_output.write(line.replace("pub extern \"C\" fn", "pub unsafe extern \"C\" fn"))

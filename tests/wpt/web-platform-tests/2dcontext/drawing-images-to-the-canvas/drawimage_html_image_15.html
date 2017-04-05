@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>Canvas test: 2d.drawImage.crop.4x2</title>
+<link rel="match" href="drawimage_html_image_15_ref.html">
+<style>
+  html, body {
+    margin: 0;
+  }
+</style>
+<canvas id="dest" height="100" width="100"></canvas>
+<script>
+
+var sourceWidth = 512;
+var sourceHeight = 256;
+var smoothingEnabled = false;
+var destCanvas = document.getElementById('dest');
+var sourceImg = document.createElement('img');
+sourceImg.src = '../4x2.png'
+sourceImg.width = sourceWidth;
+sourceImg.height = sourceHeight;
+
+sourceImg.onload = function() {
+  var destCtx = destCanvas.getContext('2d');
+  destCtx.fillStyle = "#FF0000";
+  destCtx.fillRect(0, 0,  destCanvas.width, destCanvas.height);
+  destCtx.imageSmoothingEnabled = smoothingEnabled;
+
+  destCtx.drawImage(sourceImg, 64, 64, 448, 192, 0, 0, 70, 30);
+  document.documentElement.classList.remove('reftest-wait');
+}
+
+</script>

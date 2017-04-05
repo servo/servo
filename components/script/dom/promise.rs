@@ -15,10 +15,11 @@ use dom::bindings::callback::CallbackContainer;
 use dom::bindings::codegen::Bindings::PromiseBinding::AnyCallback;
 use dom::bindings::conversions::root_from_object;
 use dom::bindings::error::{Error, Fallible};
-use dom::bindings::js::MutHeapJSVal;
 use dom::bindings::reflector::{DomObject, MutDomObject, Reflector};
+use dom::bindings::utils::AsCCharPtrPtr;
 use dom::globalscope::GlobalScope;
 use dom::promisenativehandler::PromiseNativeHandler;
+use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::{CallOriginalPromiseResolve, CallOriginalPromiseReject, CallOriginalPromiseThen};
 use js::jsapi::{JSAutoCompartment, CallArgs, JS_GetFunctionObject, JS_NewFunction};
@@ -26,6 +27,7 @@ use js::jsapi::{JSContext, HandleValue, HandleObject, IsPromiseObject, GetFuncti
 use js::jsapi::{JS_ClearPendingException, JSObject, AddRawValueRoot, RemoveRawValueRoot, PromiseState};
 use js::jsapi::{MutableHandleObject, NewPromiseObject, ResolvePromise, RejectPromise, GetPromiseState};
 use js::jsapi::{SetFunctionNativeReserved, NewFunctionWithReserved, AddPromiseReactions};
+use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue, ObjectValue, Int32Value};
 use std::ptr;
 use std::rc::Rc;
@@ -38,7 +40,7 @@ pub struct Promise {
     /// native instance exists. This ensures that the reflector will never be GCed
     /// while native code could still interact with its native representation.
     #[ignore_heap_size_of = "SM handles JS values"]
-    permanent_js_root: MutHeapJSVal,
+    permanent_js_root: Heap<JSVal>,
 }
 
 /// Private helper to enable adding new methods to Rc<Promise>.
@@ -54,7 +56,7 @@ impl PromiseHelper for Rc<Promise> {
         self.permanent_js_root.set(ObjectValue(*obj));
         assert!(AddRawValueRoot(cx,
                                 self.permanent_js_root.get_unsafe(),
-                                b"Promise::root\0" as *const _ as *const _));
+                                b"Promise::root\0".as_c_char_ptr()));
     }
 }
 
@@ -92,7 +94,7 @@ impl Promise {
         assert!(IsPromiseObject(obj));
         let promise = Promise {
             reflector: Reflector::new(),
-            permanent_js_root: MutHeapJSVal::new(),
+            permanent_js_root: Heap::default(),
         };
         let mut promise = Rc::new(promise);
         Rc::get_mut(&mut promise).unwrap().init_reflector(obj.get());

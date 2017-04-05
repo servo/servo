@@ -6,19 +6,25 @@
 
 #![deny(missing_docs)]
 
-use std::slice::{Iter, IterMut};
+use std::{iter, slice};
 
 /// A LRU cache used to store a set of at most `n` elements at the same time.
 ///
 /// Currently used for the style sharing candidate cache.
-pub struct LRUCache<K, V> {
-    entries: Vec<(K, V)>,
+pub struct LRUCache<K> {
+    entries: Vec<K>,
     cache_size: usize,
 }
 
-impl<K: PartialEq, V: Clone> LRUCache<K, V> {
+/// A iterator over the items of the LRU cache.
+pub type LRUCacheIterator<'a, K> = iter::Rev<slice::Iter<'a, K>>;
+
+/// A iterator over the mutable items of the LRU cache.
+pub type LRUCacheMutIterator<'a, K> = iter::Rev<slice::IterMut<'a, K>>;
+
+impl<K: PartialEq> LRUCache<K> {
     /// Create a new LRU cache with `size` elements at most.
-    pub fn new(size: usize) -> LRUCache<K, V> {
+    pub fn new(size: usize) -> Self {
         LRUCache {
           entries: vec![],
           cache_size: size,
@@ -27,54 +33,31 @@ impl<K: PartialEq, V: Clone> LRUCache<K, V> {
 
     #[inline]
     /// Touch a given position, and put it in the last item on the list.
-    pub fn touch(&mut self, pos: usize) -> &V {
+    pub fn touch(&mut self, pos: usize) {
         let last_index = self.entries.len() - 1;
         if pos != last_index {
             let entry = self.entries.remove(pos);
             self.entries.push(entry);
         }
-        &self.entries[last_index].1
     }
 
-    /// Iterate over the contents of this cache.
-    pub fn iter(&self) -> Iter<(K, V)> {
-        self.entries.iter()
+    /// Iterate over the contents of this cache, from more to less recently
+    /// used.
+    pub fn iter(&self) -> LRUCacheIterator<K> {
+        self.entries.iter().rev()
     }
 
     /// Iterate mutably over the contents of this cache.
-    pub fn iter_mut(&mut self) -> IterMut<(K, V)> {
-        self.entries.iter_mut()
+    pub fn iter_mut(&mut self) -> LRUCacheMutIterator<K> {
+        self.entries.iter_mut().rev()
     }
 
-    /// Insert a given key and value in the cache.
-    pub fn insert(&mut self, key: K, val: V) {
+    /// Insert a given key in the cache.
+    pub fn insert(&mut self, key: K) {
         if self.entries.len() == self.cache_size {
             self.entries.remove(0);
         }
-        self.entries.push((key, val));
-    }
-
-    /// Try to find a key in the cache.
-    pub fn find(&mut self, key: &K) -> Option<V> {
-        match self.entries.iter().position(|&(ref k, _)| key == k) {
-            Some(pos) => Some(self.touch(pos).clone()),
-            None      => None,
-        }
-    }
-
-    /// Try to find a given key, or create a given item with that key executing
-    /// `blk`.
-    pub fn find_or_create<F>(&mut self, key: K, mut blk: F) -> V
-        where F: FnMut() -> V,
-    {
-        match self.entries.iter().position(|&(ref k, _)| *k == key) {
-            Some(pos) => self.touch(pos).clone(),
-            None => {
-                let val = blk();
-                self.insert(key, val.clone());
-                val
-            }
-        }
+        self.entries.push(key);
     }
 
     /// Evict all elements from the cache.

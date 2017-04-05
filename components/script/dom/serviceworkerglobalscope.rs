@@ -18,6 +18,7 @@ use dom::extendableevent::ExtendableEvent;
 use dom::extendablemessageevent::ExtendableMessageEvent;
 use dom::globalscope::GlobalScope;
 use dom::workerglobalscope::WorkerGlobalScope;
+use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcSender, IpcReceiver};
 use ipc_channel::router::ROUTER;
 use js::jsapi::{JS_SetInterruptCallback, JSAutoCompartment, JSContext};

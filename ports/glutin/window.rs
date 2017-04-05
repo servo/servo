@@ -9,6 +9,7 @@ use compositing::compositor_thread::{self, CompositorProxy, CompositorReceiver};
 use compositing::windowing::{MouseWindowEvent, WindowNavigateMsg};
 use compositing::windowing::{WindowEvent, WindowMethods};
 use euclid::{Point2D, Size2D, TypedPoint2D};
+use euclid::rect::TypedRect;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
 #[cfg(target_os = "windows")]
@@ -28,7 +29,7 @@ use script_traits::{DevicePixel, TouchEventType, TouchpadPressurePhase};
 use servo_config::opts;
 use servo_config::prefs::PREFS;
 use servo_config::resource_files;
-use servo_geometry::ScreenPx;
+use servo_geometry::DeviceIndependentPixel;
 use servo_url::ServoUrl;
 use std::cell::{Cell, RefCell};
 #[cfg(any(target_os = "linux", target_os = "macos"))]
@@ -190,15 +191,17 @@ pub struct Window {
     /// The list of keys that have been pressed but not yet released, to allow providing
     /// the equivalent ReceivedCharacter data as was received for the press event.
     pressed_key_map: RefCell<Vec<(ScanCode, char)>>,
+
+    gl: Rc<gl::Gl>,
 }
 
 #[cfg(not(target_os = "windows"))]
-fn window_creation_scale_factor() -> ScaleFactor<f32, ScreenPx, DevicePixel> {
+fn window_creation_scale_factor() -> ScaleFactor<f32, DeviceIndependentPixel, DevicePixel> {
     ScaleFactor::new(1.0)
 }
 
 #[cfg(target_os = "windows")]
-fn window_creation_scale_factor() -> ScaleFactor<f32, ScreenPx, DevicePixel> {
+fn window_creation_scale_factor() -> ScaleFactor<f32, DeviceIndependentPixel, DevicePixel> {
         let hdc = unsafe { user32::GetDC(::std::ptr::null_mut()) };
         let ppi = unsafe { gdi32::GetDeviceCaps(hdc, winapi::wingdi::LOGPIXELSY) };
         ScaleFactor::new(ppi as f32 / 96.0)
@@ -207,7 +210,7 @@ fn window_creation_scale_factor() -> ScaleFactor<f32, ScreenPx, DevicePixel> {
 
 impl Window {
     pub fn new(is_foreground: bool,
-               window_size: TypedSize2D<u32, ScreenPx>,
+               window_size: TypedSize2D<u32, DeviceIndependentPixel>,
                parent: Option<glutin::WindowID>) -> Rc<Window> {
         let win_size: TypedSize2D<u32, DevicePixel> =
             (window_size.to_f32() * window_creation_scale_factor())
@@ -258,14 +261,34 @@ impl Window {
             WindowKind::Window(glutin_window)
         };
 
-        Window::load_gl_functions(&window_kind);
+        let gl = match window_kind {
+            WindowKind::Window(ref window) => {
+                match gl::GlType::default() {
+                    gl::GlType::Gl => {
+                        unsafe {
+                            gl::GlFns::load_with(|s| window.get_proc_address(s) as *const _)
+                        }
+                    }
+                    gl::GlType::Gles => {
+                        unsafe {
+                            gl::GlesFns::load_with(|s| window.get_proc_address(s) as *const _)
+                        }
+                    }
+                }
+            }
+            WindowKind::Headless(..) => {
+                unsafe {
+                    gl::GlFns::load_with(|s| HeadlessContext::get_proc_address(s))
+                }
+            }
+        };
 
         if opts::get().headless {
             // Print some information about the headless renderer that
             // can be useful in diagnosing CI failures on build machines.
-            println!("{}", gl::get_string(gl::VENDOR));
-            println!("{}", gl::get_string(gl::RENDERER));
-            println!("{}", gl::get_string(gl::VERSION));
+            println!("{}", gl.get_string(gl::VENDOR));
+            println!("{}", gl.get_string(gl::RENDERER));
+            println!("{}", gl.get_string(gl::VERSION));
         }
 
         let window = Window {
@@ -280,11 +303,12 @@ impl Window {
 
             pending_key_event_char: Cell::new(None),
             pressed_key_map: RefCell::new(vec![]),
+            gl: gl.clone(),
         };
 
-        gl::clear_color(0.6, 0.6, 0.6, 1.0);
-        gl::clear(gl::COLOR_BUFFER_BIT);
-        gl::finish();
+        gl.clear_color(0.6, 0.6, 0.6, 1.0);
+        gl.clear(gl::COLOR_BUFFER_BIT);
+        gl.finish();
         window.present();
 
         Rc::new(window)
@@ -318,24 +342,6 @@ impl Window {
     #[cfg(any(target_arch = "arm", target_arch = "aarch64"))]
     fn gl_version() -> GlRequest {
         GlRequest::Specific(Api::OpenGlEs, (3, 0))
-    }
-
-    #[cfg(not(target_os = "android"))]
-    fn load_gl_functions(window_kind: &WindowKind) {
-        match window_kind {
-            &WindowKind::Window(ref window) => {
-                gl::load_with(|s| window.get_proc_address(s) as *const c_void);
-            }
-            &WindowKind::Headless(..) => {
-                gl::load_with(|s| {
-                    HeadlessContext::get_proc_address(s)
-                });
-            }
-        }
-    }
-
-    #[cfg(target_os = "android")]
-    fn load_gl_functions(_: &WindowKind) {
     }
 
     fn handle_window_event(&self, event: glutin::Event) -> bool {
@@ -783,6 +789,10 @@ fn create_window_proxy(window: &Window) -> Option<glutin::WindowProxy> {
 }
 
 impl WindowMethods for Window {
+    fn gl(&self) -> Rc<gl::Gl> {
+        self.gl.clone()
+    }
+
     fn framebuffer_size(&self) -> TypedSize2D<u32, DevicePixel> {
         match self.kind {
             WindowKind::Window(ref window) => {
@@ -797,7 +807,13 @@ impl WindowMethods for Window {
         }
     }
 
-    fn size(&self) -> TypedSize2D<f32, ScreenPx> {
+    fn window_rect(&self) -> TypedRect<u32, DevicePixel> {
+        let size = self.framebuffer_size();
+        let origin = TypedPoint2D::zero();
+        TypedRect::new(origin, size)
+    }
+
+    fn size(&self) -> TypedSize2D<f32, DeviceIndependentPixel> {
         match self.kind {
             WindowKind::Window(ref window) => {
                 // TODO(ajeffrey): can this fail?
@@ -881,7 +897,7 @@ impl WindowMethods for Window {
     }
 
     #[cfg(not(target_os = "windows"))]
-    fn scale_factor(&self) -> ScaleFactor<f32, ScreenPx, DevicePixel> {
+    fn hidpi_factor(&self) -> ScaleFactor<f32, DeviceIndependentPixel, DevicePixel> {
         match self.kind {
             WindowKind::Window(ref window) => {
                 ScaleFactor::new(window.hidpi_factor())
@@ -893,7 +909,7 @@ impl WindowMethods for Window {
     }
 
     #[cfg(target_os = "windows")]
-    fn scale_factor(&self) -> ScaleFactor<f32, ScreenPx, DevicePixel> {
+    fn hidpi_factor(&self) -> ScaleFactor<f32, DeviceIndependentPixel, DevicePixel> {
         let hdc = unsafe { user32::GetDC(::std::ptr::null_mut()) };
         let ppi = unsafe { gdi32::GetDeviceCaps(hdc, winapi::wingdi::LOGPIXELSY) };
         ScaleFactor::new(ppi as f32 / 96.0)
@@ -1042,8 +1058,7 @@ impl WindowMethods for Window {
                 self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Back));
             }
 
-            (NONE, None, Key::PageDown) |
-            (NONE, Some(' '), _) => {
+            (NONE, None, Key::PageDown) => {
                let scroll_location = ScrollLocation::Delta(TypedPoint2D::new(0.0,
                                    -self.framebuffer_size()
                                         .to_f32()
@@ -1052,8 +1067,7 @@ impl WindowMethods for Window {
                 self.scroll_window(scroll_location,
                                    TouchEventType::Move);
             }
-            (NONE, None, Key::PageUp) |
-            (SHIFT, Some(' '), _) => {
+            (NONE, None, Key::PageUp) => {
                 let scroll_location = ScrollLocation::Delta(TypedPoint2D::new(0.0,
                                    self.framebuffer_size()
                                        .to_f32()
@@ -1100,6 +1114,10 @@ impl WindowMethods for Window {
                 self.platform_handle_key(key, mods);
             }
         }
+    }
+
+    fn allow_navigation(&self, _: ServoUrl) -> bool {
+        true
     }
 
     fn supports_clipboard(&self) -> bool {

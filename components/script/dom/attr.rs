@@ -12,6 +12,7 @@ use dom::bindings::str::DOMString;
 use dom::element::{AttributeMutation, Element};
 use dom::virtualmethods::vtable_for;
 use dom::window::Window;
+use dom_struct::dom_struct;
 use html5ever_atoms::{Prefix, LocalName, Namespace};
 use servo_atoms::Atom;
 use std::borrow::ToOwned;

@@ -14,10 +14,10 @@ use dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument
 use dom::location::Location;
 use dom::node::Node;
 use dom::window::Window;
+use dom_struct::dom_struct;
 use js::jsapi::{JSContext, JSObject};
-use origin::Origin;
 use script_traits::DocumentActivity;
-use servo_url::ServoUrl;
+use servo_url::{MutableOrigin, ServoUrl};
 
 // https://dom.spec.whatwg.org/#xmldocument
 #[dom_struct]
@@ -29,7 +29,7 @@ impl XMLDocument {
     fn new_inherited(window: &Window,
                      has_browsing_context: HasBrowsingContext,
                      url: Option<ServoUrl>,
-                     origin: Origin,
+                     origin: MutableOrigin,
                      is_html_document: IsHTMLDocument,
                      content_type: Option<DOMString>,
                      last_modified: Option<String>,
@@ -55,7 +55,7 @@ impl XMLDocument {
     pub fn new(window: &Window,
                has_browsing_context: HasBrowsingContext,
                url: Option<ServoUrl>,
-               origin: Origin,
+               origin: MutableOrigin,
                doctype: IsHTMLDocument,
                content_type: Option<DOMString>,
                last_modified: Option<String>,

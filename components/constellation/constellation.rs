@@ -87,7 +87,6 @@ use msg::constellation_msg::{FrameId, FrameType, PipelineId};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, TraversalDirection};
 use net_traits::{self, IpcSend, ResourceThreads};
-use net_traits::image_cache_thread::ImageCacheThread;
 use net_traits::pub_domains::reg_host;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
@@ -97,7 +96,7 @@ use profile_traits::time;
 use script_traits::{AnimationState, AnimationTickType, CompositorEvent};
 use script_traits::{ConstellationControlMsg, ConstellationMsg as FromCompositorMsg, DiscardBrowsingContext};
 use script_traits::{DocumentActivity, DocumentState, LayoutControlMsg, LoadData};
-use script_traits::{IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSandboxState, TimerEventRequest};
+use script_traits::{IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSandboxState, TimerSchedulerMsg};
 use script_traits::{LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg, ScriptThreadFactory};
 use script_traits::{LogEntry, ServiceWorkerMsg, webdriver_msg};
 use script_traits::{MozBrowserErrorType, MozBrowserEvent, WebDriverCommandMsg, WindowSizeData};
@@ -108,7 +107,7 @@ use servo_config::opts;
 use servo_config::prefs::PREFS;
 use servo_rand::{Rng, SeedableRng, ServoRng, random};
 use servo_remutex::ReentrantMutex;
-use servo_url::ServoUrl;
+use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use std::borrow::ToOwned;
 use std::collections::{HashMap, VecDeque};
 use std::iter::once;
@@ -119,7 +118,7 @@ use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread;
 use std::time::Instant;
-use style_traits::PagePx;
+use style_traits::CSSPixel;
 use style_traits::cursor::Cursor;
 use style_traits::viewport::ViewportConstraints;
 use timer_scheduler::TimerScheduler;
@@ -175,10 +174,6 @@ pub struct Constellation<Message, LTF, STF> {
     /// browsing.
     private_resource_threads: ResourceThreads,
 
-    /// A channel for the constellation to send messages to the image
-    /// cache thread.
-    image_cache_thread: ImageCacheThread,
-
     /// A channel for the constellation to send messages to the font
     /// cache thread.
     font_cache_thread: FontCacheThread,
@@ -219,7 +214,7 @@ pub struct Constellation<Message, LTF, STF> {
 
     /// A channel for the constellation to send messages to the
     /// timer thread.
-    scheduler_chan: IpcSender<TimerEventRequest>,
+    scheduler_chan: IpcSender<TimerSchedulerMsg>,
 
     /// A channel for the constellation to send messages to the
     /// Webrender thread.
@@ -229,13 +224,13 @@ pub struct Constellation<Message, LTF, STF> {
     /// event loop for each registered domain name (aka eTLD+1) in
     /// each top-level frame. We store the event loops in a map
     /// indexed by top-level frame id (as a `FrameId`) and registered
-    /// domain name (as a `String`) to event loops. This double
+    /// domain name (as a `Host`) to event loops. This double
     /// indirection ensures that separate tabs do not share event
     /// loops, even if the same domain is loaded in each.
     /// It is important that scripts with the same eTLD+1
     /// share an event loop, since they can use `document.domain`
     /// to become same-origin, at which point they can share DOM objects.
-    event_loops: HashMap<FrameId, HashMap<String, Weak<EventLoop>>>,
+    event_loops: HashMap<FrameId, HashMap<Host, Weak<EventLoop>>>,
 
     /// The set of all the pipelines in the browser.
     /// (See the `pipeline` module for more details.)
@@ -301,9 +296,6 @@ pub struct InitialConstellationState {
 
     /// A channel to the bluetooth thread.
     pub bluetooth_thread: IpcSender<BluetoothRequest>,
-
-    /// A channel to the image cache thread.
-    pub image_cache_thread: ImageCacheThread,
 
     /// A channel to the font cache thread.
     pub font_cache_thread: FontCacheThread,
@@ -518,7 +510,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 bluetooth_thread: state.bluetooth_thread,
                 public_resource_threads: state.public_resource_threads,
                 private_resource_threads: state.private_resource_threads,
-                image_cache_thread: state.image_cache_thread,
                 font_cache_thread: state.font_cache_thread,
                 swmanager_chan: None,
                 swmanager_receiver: swmanager_receiver,
@@ -534,8 +525,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 time_profiler_chan: state.time_profiler_chan,
                 mem_profiler_chan: state.mem_profiler_chan,
                 window_size: WindowSizeData {
-                    visible_viewport: opts::get().initial_window_size.to_f32() *
-                                          ScaleFactor::new(1.0),
                     initial_viewport: opts::get().initial_window_size.to_f32() *
                         ScaleFactor::new(1.0),
                     device_pixel_ratio:
@@ -588,7 +577,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     pipeline_id: PipelineId,
                     frame_id: FrameId,
                     parent_info: Option<(PipelineId, FrameType)>,
-                    initial_window_size: Option<TypedSize2D<f32, PagePx>>,
+                    initial_window_size: Option<TypedSize2D<f32, CSSPixel>>,
+                    // TODO: we have to provide ownership of the LoadData
+                    // here, because it will be send on an ipc channel,
+                    // and ipc channels take onership of their data.
+                    // https://github.com/servo/ipc-channel/issues/138
                     load_data: LoadData,
                     sandbox: IFrameSandboxState,
                     is_private: bool) {
@@ -602,16 +595,18 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             None => self.root_frame_id,
         };
 
+        debug!("Creating new pipeline {} in top-level frame {}.", pipeline_id, top_level_frame_id);
+
         let (event_loop, host) = match sandbox {
             IFrameSandboxState::IFrameSandboxed => (None, None),
             IFrameSandboxState::IFrameUnsandboxed => match reg_host(&load_data.url) {
                 None => (None, None),
                 Some(host) => {
                     let event_loop = self.event_loops.get(&top_level_frame_id)
-                        .and_then(|map| map.get(host))
+                        .and_then(|map| map.get(&host))
                         .and_then(|weak| weak.upgrade());
                     match event_loop {
-                        None => (None, Some(String::from(host))),
+                        None => (None, Some(host)),
                         Some(event_loop) => (Some(event_loop.clone()), None),
                     }
                 },
@@ -653,7 +648,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             devtools_chan: self.devtools_chan.clone(),
             bluetooth_thread: self.bluetooth_thread.clone(),
             swmanager_thread: self.swmanager_sender.clone(),
-            image_cache_thread: self.image_cache_thread.clone(),
             font_cache_thread: self.font_cache_thread.clone(),
             resource_threads: resource_threads,
             time_profiler_chan: self.time_profiler_chan.clone(),
@@ -675,6 +669,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         };
 
         if let Some(host) = host {
+            debug!("Adding new host entry {} for top-level frame {}.", host, top_level_frame_id);
             self.event_loops.entry(top_level_frame_id)
                 .or_insert_with(HashMap::new)
                 .insert(host, Rc::downgrade(&pipeline.event_loop));
@@ -749,8 +744,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     }
 
     /// Create a new frame and update the internal bookkeeping.
-    fn new_frame(&mut self, frame_id: FrameId, pipeline_id: PipelineId, url: ServoUrl) {
-        let frame = Frame::new(frame_id, pipeline_id, url);
+    fn new_frame(&mut self, frame_id: FrameId, pipeline_id: PipelineId, load_data: LoadData) {
+        let frame = Frame::new(frame_id, pipeline_id, load_data);
         self.frames.insert(frame_id, frame);
 
         // If a child frame, add it to the parent pipeline.
@@ -975,6 +970,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     warn!("constellation got set final url message for dead pipeline");
                 }
             }
+            FromScriptMsg::PostMessage(frame_id, origin, data) => {
+                debug!("constellation got postMessage message");
+                self.handle_post_message_msg(frame_id, origin, data);
+            }
             FromScriptMsg::MozBrowserEvent(parent_pipeline_id, pipeline_id, event) => {
                 debug!("constellation got mozbrowser event message");
                 self.handle_mozbrowser_event_msg(parent_pipeline_id,
@@ -1083,7 +1082,18 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             FromScriptMsg::TouchEventProcessed(result) => {
                 self.compositor_proxy.send(ToCompositorMsg::TouchEventProcessed(result))
             }
-
+            FromScriptMsg::GetFrameId(pipeline_id, sender) => {
+                let result = self.pipelines.get(&pipeline_id).map(|pipeline| pipeline.frame_id);
+                if let Err(e) = sender.send(result) {
+                    warn!("Sending reply to get frame id failed ({:?}).", e);
+                }
+            }
+            FromScriptMsg::GetParentInfo(pipeline_id, sender) => {
+                let result = self.pipelines.get(&pipeline_id).and_then(|pipeline| pipeline.parent_info);
+                if let Err(e) = sender.send(result) {
+                    warn!("Sending reply to get parent info failed ({:?}).", e);
+                }
+            }
             FromScriptMsg::RegisterServiceWorker(scope_things, scope) => {
                 debug!("constellation got store registration scope message");
                 self.handle_register_serviceworker(scope_things, scope);
@@ -1190,9 +1200,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         let (core_sender, core_receiver) = ipc::channel().expect("Failed to create IPC channel!");
         let (storage_sender, storage_receiver) = ipc::channel().expect("Failed to create IPC channel!");
 
-        debug!("Exiting image cache.");
-        self.image_cache_thread.exit();
-
         debug!("Exiting core resource threads.");
         if let Err(e) = self.public_resource_threads.send(net_traits::CoreResourceMsg::Exit(core_sender)) {
             warn!("Exit resource thread failed ({})", e);
@@ -1232,6 +1239,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             if let Err(e) = chan.send(WebVRMsg::Exit) {
                 warn!("Exit WebVR thread failed ({})", e);
             }
+        }
+
+        debug!("Exiting timer scheduler.");
+        if let Err(e) = self.scheduler_chan.send(TimerSchedulerMsg::Exit) {
+            warn!("Exit timer scheduler failed ({})", e);
         }
 
         debug!("Exiting font cache thread.");
@@ -1293,15 +1305,15 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         warn!("creating replacement pipeline for about:failure");
 
         let new_pipeline_id = PipelineId::new();
-        let load_data = LoadData::new(failure_url.clone(), None, None);
+        let load_data = LoadData::new(failure_url, None, None);
         let sandbox = IFrameSandboxState::IFrameSandboxed;
-        self.new_pipeline(new_pipeline_id, top_level_frame_id, parent_info, window_size, load_data, sandbox, false);
+        self.new_pipeline(new_pipeline_id, top_level_frame_id, parent_info,
+                          window_size, load_data.clone(), sandbox, false);
         self.pending_frames.push(FrameChange {
             frame_id: top_level_frame_id,
-            old_pipeline_id: pipeline_id,
             new_pipeline_id: new_pipeline_id,
-            url: failure_url,
-            replace: None,
+            load_data: load_data,
+            replace_instant: None,
         });
     }
 
@@ -1335,25 +1347,24 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     }
 
     fn handle_init_load(&mut self, url: ServoUrl) {
-        let window_size = self.window_size.visible_viewport;
+        let window_size = self.window_size.initial_viewport;
         let root_pipeline_id = PipelineId::new();
         let root_frame_id = self.root_frame_id;
         let load_data = LoadData::new(url.clone(), None, None);
         let sandbox = IFrameSandboxState::IFrameUnsandboxed;
-        self.new_pipeline(root_pipeline_id, root_frame_id, None, Some(window_size), load_data, sandbox, false);
+        self.new_pipeline(root_pipeline_id, root_frame_id, None, Some(window_size), load_data.clone(), sandbox, false);
         self.handle_load_start_msg(root_pipeline_id);
         self.pending_frames.push(FrameChange {
             frame_id: self.root_frame_id,
-            old_pipeline_id: None,
             new_pipeline_id: root_pipeline_id,
-            url: url.clone(),
-            replace: None,
+            load_data: load_data,
+            replace_instant: None,
         });
         self.compositor_proxy.send(ToCompositorMsg::ChangePageUrl(root_pipeline_id, url));
     }
 
     fn handle_frame_size_msg(&mut self,
-                             iframe_sizes: Vec<(PipelineId, TypedSize2D<f32, PagePx>)>) {
+                             iframe_sizes: Vec<(PipelineId, TypedSize2D<f32, CSSPixel>)>) {
         for (pipeline_id, size) in iframe_sizes {
             let result = {
                 let pipeline = match self.pipelines.get_mut(&pipeline_id) {
@@ -1367,8 +1378,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
                 pipeline.size = Some(size);
                 let msg = ConstellationControlMsg::Resize(pipeline_id, WindowSizeData {
-                    visible_viewport: size,
-                    initial_viewport: size * ScaleFactor::new(1.0),
+                    initial_viewport: size,
                     device_pixel_ratio: self.window_size.device_pixel_ratio,
                 }, WindowSizeType::Initial);
 
@@ -1434,8 +1444,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             (load_data, window_size, is_private)
         };
 
-        let replace = if load_info.info.replace {
-            self.frames.get(&load_info.info.frame_id).map(|frame| frame.current())
+        let replace_instant = if load_info.info.replace {
+            self.frames.get(&load_info.info.frame_id).map(|frame| frame.instant)
         } else {
             None
         };
@@ -1443,10 +1453,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // Create the new pipeline, attached to the parent and push to pending frames
         self.pending_frames.push(FrameChange {
             frame_id: load_info.info.frame_id,
-            old_pipeline_id: load_info.old_pipeline_id,
             new_pipeline_id: load_info.info.new_pipeline_id,
-            url: load_data.url.clone(),
-            replace: replace,
+            load_data: load_data.clone(),
+            replace_instant: replace_instant,
         });
 
         self.new_pipeline(load_info.info.new_pipeline_id,
@@ -1492,8 +1501,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                           parent_pipeline.visible)
         };
 
-        let replace = if replace {
-            self.frames.get(&frame_id).map(|frame| frame.current())
+        // TODO: Referrer?
+        let load_data = LoadData::new(url, None, None);
+
+        let replace_instant = if replace {
+            self.frames.get(&frame_id).map(|frame| frame.instant)
         } else {
             None
         };
@@ -1503,10 +1515,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         self.pending_frames.push(FrameChange {
             frame_id: frame_id,
-            old_pipeline_id: None,
             new_pipeline_id: new_pipeline_id,
-            url: url,
-            replace: replace,
+            load_data: load_data,
+            replace_instant: replace_instant,
         });
     }
 
@@ -1578,6 +1589,13 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     }
 
     fn load_url(&mut self, source_id: PipelineId, load_data: LoadData, replace: bool) -> Option<PipelineId> {
+        // Allow the embedder to handle the url itself
+        let (chan, port) = ipc::channel().expect("Failed to create IPC channel!");
+        self.compositor_proxy.send(ToCompositorMsg::AllowNavigation(load_data.url.clone(), chan));
+        if let Ok(false) = port.recv() {
+            return None;
+        }
+
         debug!("Loading {} in pipeline {}.", load_data.url, source_id);
         // If this load targets an iframe, its framing element may exist
         // in a separate script thread than the framed document that initiated
@@ -1611,9 +1629,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 Some(source_id)
             }
             None => {
+                let root_frame_id = self.root_frame_id;
+
                 // Make sure no pending page would be overridden.
                 for frame_change in &self.pending_frames {
-                    if frame_change.old_pipeline_id == Some(source_id) {
+                    if frame_change.frame_id == root_frame_id {
                         // id that sent load msg is being changed already; abort
                         return None;
                     }
@@ -1634,19 +1654,17 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 // Create the new pipeline
                 let window_size = self.pipelines.get(&source_id).and_then(|source| source.size);
                 let new_pipeline_id = PipelineId::new();
-                let root_frame_id = self.root_frame_id;
                 let sandbox = IFrameSandboxState::IFrameUnsandboxed;
-                let replace = if replace {
-                    self.frames.get(&frame_id).map(|frame| frame.current())
+                let replace_instant = if replace {
+                    self.frames.get(&frame_id).map(|frame| frame.instant)
                 } else {
                     None
                 };
                 self.pending_frames.push(FrameChange {
                     frame_id: root_frame_id,
-                    old_pipeline_id: Some(source_id),
                     new_pipeline_id: new_pipeline_id,
-                    url: load_data.url.clone(),
-                    replace: replace,
+                    load_data: load_data.clone(),
+                    replace_instant: replace_instant,
                 });
                 self.new_pipeline(new_pipeline_id, root_frame_id, None, window_size, load_data, sandbox, false);
 
@@ -1784,6 +1802,21 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
+    fn handle_post_message_msg(&mut self, frame_id: FrameId, origin: Option<ImmutableOrigin>, data: Vec<u8>) {
+        let pipeline_id = match self.frames.get(&frame_id) {
+            None => return warn!("postMessage to closed frame {}.", frame_id),
+            Some(frame) => frame.pipeline_id,
+        };
+        let msg = ConstellationControlMsg::PostMessage(pipeline_id, origin, data);
+        let result = match self.pipelines.get(&pipeline_id) {
+            Some(pipeline) => pipeline.event_loop.send(msg),
+            None => return warn!("postMessage to closed pipeline {}.", pipeline_id),
+        };
+        if let Err(e) = result {
+            self.handle_send_error(pipeline_id, e);
+        }
+    }
+
     fn handle_mozbrowser_event_msg(&mut self,
                                    parent_pipeline_id: PipelineId,
                                    pipeline_id: PipelineId,
@@ -1807,7 +1840,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         let current_pipeline_id = self.frames.get(&frame_id)
             .map(|frame| frame.pipeline_id);
         let pipeline_id_loaded = self.pending_frames.iter().rev()
-            .find(|x| x.old_pipeline_id == current_pipeline_id)
+            .find(|x| x.frame_id == frame_id)
             .map(|x| x.new_pipeline_id)
             .or(current_pipeline_id);
         if let Err(e) = resp_chan.send(pipeline_id_loaded) {
@@ -1997,26 +2030,25 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 // entry has been discarded, so we navigate to the entry
                 // URL instead. When the document has activated, it will
                 // traverse to the entry, but with the new pipeline id.
-                debug!("Reloading document {} for frame {}.", entry.url, frame_id);
-                // TODO: referrer?
-                let load_data = LoadData::new(entry.url.clone(), None, None);
+                debug!("Reloading document {} for frame {}.", entry.load_data.url, entry.frame_id);
                 // TODO: save the sandbox state so it can be restored here.
                 let sandbox = IFrameSandboxState::IFrameUnsandboxed;
                 let new_pipeline_id = PipelineId::new();
-                let (old_pipeline_id, parent_info, window_size, is_private) = match self.frames.get(&frame_id) {
+                let load_data = entry.load_data;
+                let (parent_info, window_size, is_private) = match self.frames.get(&frame_id) {
                     Some(frame) => match self.pipelines.get(&frame.pipeline_id) {
-                        Some(pipeline) => (frame.pipeline_id, pipeline.parent_info, pipeline.size, pipeline.is_private),
-                        None => (frame.pipeline_id, None, None, false),
+                        Some(pipeline) => (pipeline.parent_info, pipeline.size, pipeline.is_private),
+                        None => (None, None, false),
                     },
                     None => return warn!("no frame to traverse"),
                 };
-                self.new_pipeline(new_pipeline_id, frame_id, parent_info, window_size, load_data, sandbox, is_private);
+                self.new_pipeline(new_pipeline_id, frame_id, parent_info,
+                                  window_size, load_data.clone(), sandbox, is_private);
                 self.pending_frames.push(FrameChange {
                     frame_id: frame_id,
-                    old_pipeline_id: Some(old_pipeline_id),
                     new_pipeline_id: new_pipeline_id,
-                    url: entry.url.clone(),
-                    replace: Some(entry),
+                    load_data: load_data,
+                    replace_instant: Some(entry.instant),
                 });
                 return;
             }
@@ -2027,7 +2059,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // frame tree is modified below.
         let update_focus_pipeline = self.focused_pipeline_in_tree(entry.frame_id);
 
-        let old_pipeline_id = match self.frames.get_mut(&frame_id) {
+        let (old_pipeline_id, replaced_pipeline_id) = match self.frames.get_mut(&frame_id) {
             Some(frame) => {
                 let old_pipeline_id = frame.pipeline_id;
                 let mut curr_entry = frame.current();
@@ -2050,9 +2082,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
                 debug_assert_eq!(entry.instant, curr_entry.instant);
 
-                frame.update_current(pipeline_id, &entry);
+                let replaced_pipeline_id = curr_entry.pipeline_id;
 
-                old_pipeline_id
+                frame.update_current(pipeline_id, entry);
+
+                (old_pipeline_id, replaced_pipeline_id)
             },
             None => return warn!("no frame to traverse"),
         };
@@ -2065,6 +2099,13 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // the replacement.
         if update_focus_pipeline {
             self.focus_pipeline_id = Some(pipeline_id);
+        }
+
+        // If we replaced a pipeline, close it.
+        if let Some(replaced_pipeline_id) = replaced_pipeline_id {
+            if replaced_pipeline_id != pipeline_id {
+                self.close_pipeline(replaced_pipeline_id, DiscardBrowsingContext::No, ExitPipelineMode::Normal);
+            }
         }
 
         // Deactivate the old pipeline, and activate the new one.
@@ -2130,24 +2171,24 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // If the currently focused pipeline is the one being changed (or a child
         // of the pipeline being changed) then update the focus pipeline to be
         // the replacement.
-        if let Some(old_pipeline_id) = frame_change.old_pipeline_id {
-            if let Some(old_frame_id) = self.pipelines.get(&old_pipeline_id).map(|pipeline| pipeline.frame_id) {
-                if self.focused_pipeline_in_tree(old_frame_id) {
-                    self.focus_pipeline_id = Some(frame_change.new_pipeline_id);
-                }
-            }
+        if self.focused_pipeline_in_tree(frame_change.frame_id) {
+            self.focus_pipeline_id = Some(frame_change.new_pipeline_id);
         }
 
-        let (evicted_id, new_frame, navigated, location_changed) = if let Some(mut entry) = frame_change.replace {
-            debug!("Replacing pipeline in existing frame.");
-            let evicted_id = entry.pipeline_id;
-            entry.replace_pipeline(frame_change.new_pipeline_id, frame_change.url.clone());
+        let (evicted_id, new_frame, navigated, location_changed) = if let Some(instant) = frame_change.replace_instant {
+            debug!("Replacing pipeline in existing frame with timestamp {:?}.", instant);
+            let entry = FrameState {
+                frame_id: frame_change.frame_id,
+                pipeline_id: Some(frame_change.new_pipeline_id),
+                load_data: frame_change.load_data.clone(),
+                instant: instant,
+            };
             self.traverse_to_entry(entry);
-            (evicted_id, false, None, false)
+            (None, false, None, false)
         } else if let Some(frame) = self.frames.get_mut(&frame_change.frame_id) {
             debug!("Adding pipeline to existing frame.");
             let old_pipeline_id = frame.pipeline_id;
-            frame.load(frame_change.new_pipeline_id, frame_change.url.clone());
+            frame.load(frame_change.new_pipeline_id, frame_change.load_data.clone());
             let evicted_id = frame.prev.len()
                 .checked_sub(PREFS.get("session-history.max-length").as_u64().unwrap_or(20) as usize)
                 .and_then(|index| frame.prev.get_mut(index))
@@ -2163,7 +2204,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
 
         if new_frame {
-            self.new_frame(frame_change.frame_id, frame_change.new_pipeline_id, frame_change.url);
+            self.new_frame(frame_change.frame_id, frame_change.new_pipeline_id, frame_change.load_data);
             self.update_activity(frame_change.new_pipeline_id);
         };
 
@@ -2212,8 +2253,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
     /// Called when the window is resized.
     fn handle_window_size_msg(&mut self, new_size: WindowSizeData, size_type: WindowSizeType) {
-        debug!("handle_window_size_msg: {:?} {:?}", new_size.initial_viewport.to_untyped(),
-                                                       new_size.visible_viewport.to_untyped());
+        debug!("handle_window_size_msg: {:?}", new_size.initial_viewport.to_untyped());
 
         if let Some(frame) = self.frames.get(&self.root_frame_id) {
             // Send Resize (or ResizeInactive) messages to each

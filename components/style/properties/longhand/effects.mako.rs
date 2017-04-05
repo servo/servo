@@ -11,6 +11,7 @@ ${helpers.predefined_type("opacity",
                           "Opacity",
                           "1.0",
                           animatable=True,
+                          creates_stacking_context=True,
                           spec="https://drafts.csswg.org/css-color/#opacity")}
 
 <%helpers:vector_longhand name="box-shadow" allow_empty="True"
@@ -28,13 +29,13 @@ ${helpers.predefined_type("opacity",
             if self.inset {
                 try!(dest.write_str("inset "));
             }
-            try!(self.blur_radius.to_css(dest));
-            try!(dest.write_str(" "));
-            try!(self.spread_radius.to_css(dest));
-            try!(dest.write_str(" "));
             try!(self.offset_x.to_css(dest));
             try!(dest.write_str(" "));
             try!(self.offset_y.to_css(dest));
+            try!(dest.write_str(" "));
+            try!(self.blur_radius.to_css(dest));
+            try!(dest.write_str(" "));
+            try!(self.spread_radius.to_css(dest));
 
             if let Some(ref color) = self.color {
                 try!(dest.write_str(" "));
@@ -81,12 +82,13 @@ ${helpers.predefined_type("clip",
                           "ClipRectOrAuto",
                           "computed::ClipRectOrAuto::auto()",
                           animatable=False,
-                          products="servo",
                           boxed="True",
                           spec="https://drafts.fxtf.org/css-masking/#clip-property")}
 
 // FIXME: This prop should be animatable
 <%helpers:longhand name="filter" animatable="False" extra_prefixes="webkit"
+                    creates_stacking_context="True"
+                    fixpos_cb="True"
                    spec="https://drafts.fxtf.org/filters/#propdef-filter">
     //pub use self::computed_value::T as SpecifiedValue;
     use cssparser;
@@ -267,9 +269,7 @@ ${helpers.predefined_type("clip",
                     try!(dest.write_str(")"));
                 }
                 computed_value::Filter::Url(ref url) => {
-                    dest.write_str("url(")?;
                     url.to_css(dest)?;
-                    dest.write_str(")")?;
                 }
                 % endif
             }
@@ -312,9 +312,7 @@ ${helpers.predefined_type("clip",
                     try!(dest.write_str(")"));
                 }
                 SpecifiedFilter::Url(ref url) => {
-                    dest.write_str("url(")?;
                     url.to_css(dest)?;
-                    dest.write_str(")")?;
                 }
                 % endif
             }
@@ -340,7 +338,7 @@ ${helpers.predefined_type("clip",
             % endif
             if let Ok(function_name) = input.try(|input| input.expect_function()) {
                 filters.push(try!(input.parse_nested_block(|input| {
-                    match_ignore_ascii_case! { function_name,
+                    match_ignore_ascii_case! { &function_name,
                         "blur" => specified::Length::parse_non_negative(input).map(SpecifiedFilter::Blur),
                         "brightness" => parse_factor(input).map(SpecifiedFilter::Brightness),
                         "contrast" => parse_factor(input).map(SpecifiedFilter::Contrast),
@@ -368,8 +366,8 @@ ${helpers.predefined_type("clip",
     fn parse_factor(input: &mut Parser) -> Result<::values::CSSFloat, ()> {
         use cssparser::Token;
         match input.next() {
-            Ok(Token::Number(value)) => Ok(value.value),
-            Ok(Token::Percentage(value)) => Ok(value.unit_value),
+            Ok(Token::Number(value)) if value.value.is_sign_positive() => Ok(value.value),
+            Ok(Token::Percentage(value)) if value.unit_value.is_sign_positive() => Ok(value.unit_value),
             _ => Err(())
         }
     }
@@ -446,7 +444,7 @@ pub fn parse_origin(context: &ParserContext, input: &mut Parser) -> Result<Origi
         if let Err(_) = input.try(|input| {
             let token = try!(input.expect_ident());
             match_ignore_ascii_case! {
-                token,
+                &token,
                 "left" => {
                     if horizontal.is_none() {
                         horizontal = Some(LengthOrPercentage::Percentage(Percentage(0.0)))
@@ -488,7 +486,7 @@ pub fn parse_origin(context: &ParserContext, input: &mut Parser) -> Result<Origi
             }
             Ok(())
         }) {
-            match LengthOrPercentage::parse(context, input) {
+            match input.try(|input| LengthOrPercentage::parse(context, input)) {
                 Ok(value) => {
                     if horizontal.is_none() {
                         horizontal = Some(value);
@@ -521,4 +519,5 @@ ${helpers.single_keyword("mix-blend-mode",
                             color-burn hard-light soft-light difference exclusion hue
                             saturation color luminosity""", gecko_constant_prefix="NS_STYLE_BLEND",
                          animatable=False,
+                         creates_stacking_context=True,
                          spec="https://drafts.fxtf.org/compositing/#propdef-mix-blend-mode")}

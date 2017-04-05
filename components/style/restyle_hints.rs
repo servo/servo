@@ -41,16 +41,21 @@ bitflags! {
         ///
         /// NB: In Gecko, we have RESTYLE_SUBTREE which is inclusive of self,
         /// but heycam isn't aware of a good reason for that.
-        const RESTYLE_DESCENDANTS = 0x02,
+        const RESTYLE_DESCENDANTS = 0x04,
 
         /// Rerun selector matching on all later siblings of the element and all
         /// of their descendants.
         const RESTYLE_LATER_SIBLINGS = 0x08,
 
+        /// Replace the style data coming from CSS animations without updating
+        /// any other style data. This hint is only processed in animation-only
+        /// traversal which is prior to normal traversal.
+        const RESTYLE_CSS_ANIMATIONS = 0x20,
+
         /// Don't re-run selector-matching on the element, only the style
         /// attribute has changed, and this change didn't have any other
         /// dependencies.
-        const RESTYLE_STYLE_ATTRIBUTE = 0x80,
+        const RESTYLE_STYLE_ATTRIBUTE = 0x40,
     }
 }
 
@@ -75,14 +80,13 @@ pub fn assert_restyle_hints_match() {
 
     check_restyle_hints! {
         nsRestyleHint_eRestyle_Self => RESTYLE_SELF,
-        // XXX This for Servo actually means something like an hypothetical
-        // Restyle_AllDescendants (but without running selector matching on the
-        // element). ServoRestyleManager interprets it like that, but in practice we
-        // should align the behavior with Gecko adding a new restyle hint, maybe?
-        //
-        // See https://bugzilla.mozilla.org/show_bug.cgi?id=1291786
-        nsRestyleHint_eRestyle_SomeDescendants => RESTYLE_DESCENDANTS,
+        // Note that eRestyle_Subtree means "self and descendants", while
+        // RESTYLE_DESCENDANTS means descendants only.  The From impl
+        // below handles converting eRestyle_Subtree into
+        // (RESTYLE_SELF | RESTYLE_DESCENDANTS).
+        nsRestyleHint_eRestyle_Subtree => RESTYLE_DESCENDANTS,
         nsRestyleHint_eRestyle_LaterSiblings => RESTYLE_LATER_SIBLINGS,
+        nsRestyleHint_eRestyle_CSSAnimations => RESTYLE_CSS_ANIMATIONS,
         nsRestyleHint_eRestyle_StyleAttribute => RESTYLE_STYLE_ATTRIBUTE,
     }
 }
@@ -91,7 +95,7 @@ impl RestyleHint {
     /// The subset hints that affect the styling of a single element during the
     /// traversal.
     pub fn for_self() -> Self {
-        RESTYLE_SELF | RESTYLE_STYLE_ATTRIBUTE
+        RESTYLE_SELF | RESTYLE_STYLE_ATTRIBUTE | RESTYLE_CSS_ANIMATIONS
     }
 }
 
@@ -106,7 +110,14 @@ impl From<nsRestyleHint> for RestyleHint {
             warn!("stylo: dropping unsupported restyle hint bits");
         }
 
-        Self::from_bits_truncate(raw_bits)
+        let mut bits = Self::from_bits_truncate(raw_bits);
+
+        // eRestyle_Subtree converts to (RESTYLE_SELF | RESTYLE_DESCENDANTS).
+        if bits.contains(RESTYLE_DESCENDANTS) {
+            bits |= RESTYLE_SELF;
+        }
+
+        bits
     }
 }
 
@@ -264,14 +275,25 @@ impl<'a, E> MatchAttr for ElementWrapper<'a, E>
 impl<'a, E> Element for ElementWrapper<'a, E>
     where E: TElement,
 {
-    fn match_non_ts_pseudo_class(&self, pseudo_class: &NonTSPseudoClass) -> bool {
+    fn match_non_ts_pseudo_class<F>(&self,
+                                    pseudo_class: &NonTSPseudoClass,
+                                    relations: &mut StyleRelations,
+                                    _: &mut F)
+                                    -> bool
+        where F: FnMut(&Self, ElementSelectorFlags),
+    {
         let flag = SelectorImpl::pseudo_class_state_flag(pseudo_class);
-        if flag == ElementState::empty() {
-            self.element.match_non_ts_pseudo_class(pseudo_class)
-        } else {
-            match self.snapshot.and_then(|s| s.state()) {
-                Some(snapshot_state) => snapshot_state.contains(flag),
-                _   => self.element.match_non_ts_pseudo_class(pseudo_class)
+        if flag.is_empty() {
+            return self.element.match_non_ts_pseudo_class(pseudo_class,
+                                                          relations,
+                                                          &mut |_, _| {})
+        }
+        match self.snapshot.and_then(|s| s.state()) {
+            Some(snapshot_state) => snapshot_state.contains(flag),
+            None => {
+                self.element.match_non_ts_pseudo_class(pseudo_class,
+                                                       relations,
+                                                       &mut |_, _| {})
             }
         }
     }
@@ -342,9 +364,22 @@ impl<'a, E> Element for ElementWrapper<'a, E>
     }
 }
 
+/// Returns the union of any `ElementState` flags for components of a
+/// `ComplexSelector`.
+pub fn complex_selector_to_state(sel: &ComplexSelector<SelectorImpl>) -> ElementState {
+    sel.compound_selector.iter().fold(ElementState::empty(), |state, s| {
+        state | selector_to_state(s)
+    })
+}
+
 fn selector_to_state(sel: &SimpleSelector<SelectorImpl>) -> ElementState {
     match *sel {
         SimpleSelector::NonTSPseudoClass(ref pc) => SelectorImpl::pseudo_class_state_flag(pc),
+        SimpleSelector::Negation(ref negated) => {
+            negated.iter().fold(ElementState::empty(), |state, s| {
+                state | complex_selector_to_state(s)
+            })
+        }
         _ => ElementState::empty(),
     }
 }
@@ -479,6 +514,15 @@ impl DependencySet {
                 if !sensitivities.attrs {
                     sensitivities.attrs = is_attr_selector(s);
                 }
+
+                // NOTE(emilio): I haven't thought this thoroughly, but we may
+                // not need to do anything for combinators inside negations.
+                //
+                // Or maybe we do, and need to call note_selector recursively
+                // here to account for them correctly, but keep the
+                // sensitivities of the parent?
+                //
+                // In any case, perhaps we should just drop it, see bug 1348802.
             }
             if !sensitivities.is_empty() {
                 self.add_dependency(Dependency {
@@ -566,11 +610,11 @@ impl DependencySet {
                 let matched_then =
                     matches_complex_selector(&dep.selector, snapshot, None,
                                              &mut StyleRelations::empty(),
-                                             &mut ElementSelectorFlags::empty());
+                                             &mut |_, _| {});
                 let matches_now =
                     matches_complex_selector(&dep.selector, element, None,
                                              &mut StyleRelations::empty(),
-                                             &mut ElementSelectorFlags::empty());
+                                             &mut |_, _| {});
                 if matched_then != matches_now {
                     hint.insert(dep.hint);
                 }

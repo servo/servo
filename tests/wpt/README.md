@@ -1,5 +1,6 @@
 This folder contains the web platform tests, CSS WG tests, and the
-code required to integrate them with Servo.
+code required to integrate them with Servo. 
+To learn how to write tests, go [here](http://web-platform-tests.org/writing-tests/index.html).
 
 Contents
 ========
@@ -116,17 +117,19 @@ The simplest way to create a new test is to use the following command:
     ./mach create-wpt tests/wpt/path/to/new/test.html
 
 This will create test.html in the appropriate directory using the WPT
-template for JavaScript tests. To create a new reference test instead,
-use the following:
+template for JavaScript tests. Tests are written using [testharness.js](https://github.com/w3c/testharness.js/). Documentation can be found [here](http://testthewebforward.org/docs/testharness-library.html).
+To create a new reference test instead, use the following:
 
     ./mach create-wpt --reftest tests/wpt/path/to/new/reftest.html --reference tests/wpt/path/to/reference.html
 
 `reference.html` will be created if it does not exist, and `reftest.html`
-will be created using the WPT reftest template. These new tests can then
-be run in the following manner like any other WPT test:
+will be created using the WPT reftest template. To know more about reftests, check [this](http://web-platform-tests.org/writing-tests/reftests.html).
+These new tests can then be run in the following manner like any other WPT test:
 
     ./mach test-wpt tests/wpt/path/to/new/test.html
     ./mach test-wpt tests/wpt/path/to/new/reftest.html
+
+
 
 Editing tests
 =============

@@ -7,24 +7,32 @@
 #![deny(missing_docs)]
 
 use {Atom, Prefix, Namespace};
-use cssparser::{AtRuleParser, Parser, QualifiedRuleParser, stylesheet_encoding, EncodingSupport};
+use cssparser::{AtRuleParser, Parser, QualifiedRuleParser};
 use cssparser::{AtRuleType, RuleListParser, SourcePosition, Token, parse_one_rule};
 use cssparser::ToCss as ParserToCss;
-use encoding::{self, EncodingRef, DecoderTrap};
 use error_reporting::ParseErrorReporter;
-use font_face::{FontFaceRule, parse_font_face_block};
+#[cfg(feature = "servo")]
+use font_face::FontFaceRuleData;
+use font_face::parse_font_face_block;
+#[cfg(feature = "gecko")]
+pub use gecko::rules::FontFaceRule;
+#[cfg(feature = "gecko")]
+use gecko_bindings::structs::URLExtraData;
+#[cfg(feature = "gecko")]
+use gecko_bindings::sugar::refptr::RefPtr;
 use keyframes::{Keyframe, parse_keyframe_list};
 use media_queries::{Device, MediaList, parse_media_query_list};
 use parking_lot::RwLock;
-use parser::{ParserContext, ParserContextExtraData, log_css_error};
+use parser::{ParserContext, log_css_error};
 use properties::{PropertyDeclarationBlock, parse_property_declaration_list};
 use selector_parser::{SelectorImpl, SelectorParser};
 use selectors::parser::SelectorList;
 use servo_config::prefs::PREFS;
+#[cfg(not(feature = "gecko"))]
 use servo_url::ServoUrl;
+use shared_lock::{SharedRwLock, Locked, ToCssWithGuard, SharedRwLockReadGuard};
 use std::cell::Cell;
 use std::fmt;
-use std::str;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use style_traits::ToCss;
@@ -33,6 +41,30 @@ use supports::SupportsCondition;
 use values::specified::url::SpecifiedUrl;
 use viewport::ViewportRule;
 
+
+/// Extra data that the backend may need to resolve url values.
+#[cfg(not(feature = "gecko"))]
+pub type UrlExtraData = ServoUrl;
+
+/// Extra data that the backend may need to resolve url values.
+#[cfg(feature = "gecko")]
+pub type UrlExtraData = RefPtr<URLExtraData>;
+
+#[cfg(feature = "gecko")]
+impl UrlExtraData {
+    /// Returns a string for the url.
+    ///
+    /// Unimplemented currently.
+    pub fn as_str(&self) -> &str {
+        // TODO
+        "(stylo: not supported)"
+    }
+}
+
+// XXX We probably need to figure out whether we should mark Eq here.
+// It is currently marked so because properties::UnparsedValue wants Eq.
+#[cfg(feature = "gecko")]
+impl Eq for UrlExtraData {}
 
 /// Each style rule has an origin, which determines where it enters the cascade.
 ///
@@ -52,7 +84,6 @@ pub enum Origin {
 
 /// A set of namespaces applying to a given stylesheet.
 #[derive(Default, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
 pub struct Namespaces {
     pub default: Option<Namespace>,
@@ -89,8 +120,8 @@ impl From<SingleRuleParseError> for RulesMutateError {
 
 impl CssRules {
     #[allow(missing_docs)]
-    pub fn new(rules: Vec<CssRule>) -> Arc<RwLock<CssRules>> {
-        Arc::new(RwLock::new(CssRules(rules)))
+    pub fn new(rules: Vec<CssRule>, shared_lock: &SharedRwLock) -> Arc<Locked<CssRules>> {
+        Arc::new(shared_lock.wrap(CssRules(rules)))
     }
 
     fn only_ns_or_import(&self) -> bool {
@@ -104,7 +135,12 @@ impl CssRules {
     }
 
     /// https://drafts.csswg.org/cssom/#insert-a-css-rule
-    pub fn insert_rule(&mut self, rule: &str, parent_stylesheet: &Stylesheet, index: usize, nested: bool)
+    pub fn insert_rule(&mut self,
+                       rule: &str,
+                       parent_stylesheet: &Stylesheet,
+                       index: usize,
+                       nested: bool,
+                       loader: Option<&StylesheetLoader>)
                        -> Result<CssRule, RulesMutateError> {
         // Step 1, 2
         if index > self.0.len() {
@@ -123,8 +159,7 @@ impl CssRules {
         // Step 3, 4
         // XXXManishearth should we also store the namespace map?
         let (new_rule, new_state) =
-            try!(CssRule::parse(&rule, parent_stylesheet,
-                                ParserContextExtraData::default(), state));
+            try!(CssRule::parse(&rule, parent_stylesheet, state, loader));
 
         // Step 5
         // Computes the maximum allowed parser state at a given index.
@@ -176,13 +211,15 @@ impl CssRules {
 pub struct Stylesheet {
     /// List of rules in the order they were found (important for
     /// cascading order)
-    pub rules: Arc<RwLock<CssRules>>,
+    pub rules: Arc<Locked<CssRules>>,
     /// List of media associated with the Stylesheet.
-    pub media: Arc<RwLock<MediaList>>,
+    pub media: Arc<Locked<MediaList>>,
     /// The origin of this stylesheet.
     pub origin: Origin,
-    /// The base url this stylesheet should use.
-    pub base_url: ServoUrl,
+    /// The url data this stylesheet should use.
+    pub url_data: UrlExtraData,
+    /// The lock used for objects inside this stylesheet
+    pub shared_lock: SharedRwLock,
     /// The namespaces that apply to this stylesheet.
     pub namespaces: RwLock<Namespaces>,
     /// Whether this stylesheet would be dirty when the viewport size changes.
@@ -194,6 +231,8 @@ pub struct Stylesheet {
 
 /// This structure holds the user-agent and user stylesheets.
 pub struct UserAgentStylesheets {
+    /// The lock used for user-agent stylesheets.
+    pub shared_lock: SharedRwLock,
     /// The user or user agent stylesheets.
     pub user_or_user_agent_stylesheets: Vec<Stylesheet>,
     /// The quirks mode stylesheet.
@@ -210,14 +249,14 @@ pub enum CssRule {
     // No Charset here, CSSCharsetRule has been removed from CSSOM
     // https://drafts.csswg.org/cssom/#changes-from-5-december-2013
 
-    Namespace(Arc<RwLock<NamespaceRule>>),
-    Import(Arc<RwLock<ImportRule>>),
-    Style(Arc<RwLock<StyleRule>>),
-    Media(Arc<RwLock<MediaRule>>),
-    FontFace(Arc<RwLock<FontFaceRule>>),
-    Viewport(Arc<RwLock<ViewportRule>>),
-    Keyframes(Arc<RwLock<KeyframesRule>>),
-    Supports(Arc<RwLock<SupportsRule>>),
+    Namespace(Arc<Locked<NamespaceRule>>),
+    Import(Arc<Locked<ImportRule>>),
+    Style(Arc<Locked<StyleRule>>),
+    Media(Arc<Locked<MediaRule>>),
+    FontFace(Arc<Locked<FontFaceRule>>),
+    Viewport(Arc<Locked<ViewportRule>>),
+    Keyframes(Arc<Locked<KeyframesRule>>),
+    Supports(Arc<Locked<SupportsRule>>),
 }
 
 #[allow(missing_docs)]
@@ -252,11 +291,9 @@ impl ParseErrorReporter for MemoryHoleReporter {
     fn report_error(&self,
             _: &mut Parser,
             _: SourcePosition,
-            _: &str) {
+            _: &str,
+            _: &UrlExtraData) {
         // do nothing
-    }
-    fn clone(&self) -> Box<ParseErrorReporter + Send + Sync> {
-        Box::new(MemoryHoleReporter)
     }
 }
 
@@ -296,13 +333,13 @@ impl CssRule {
     /// used for others.
     ///
     /// This will not recurse down unsupported @supports rules
-    pub fn with_nested_rules_and_mq<F, R>(&self, mut f: F) -> R
+    pub fn with_nested_rules_and_mq<F, R>(&self, guard: &SharedRwLockReadGuard, mut f: F) -> R
     where F: FnMut(&[CssRule], Option<&MediaList>) -> R {
         match *self {
             CssRule::Import(ref lock) => {
-                let rule = lock.read();
-                let media = rule.stylesheet.media.read();
-                let rules = rule.stylesheet.rules.read();
+                let rule = lock.read_with(guard);
+                let media = rule.stylesheet.media.read_with(guard);
+                let rules = rule.stylesheet.rules.read_with(guard);
                 // FIXME(emilio): Include the nested rules if the stylesheet is
                 // loaded.
                 f(&rules.0, Some(&media))
@@ -315,16 +352,16 @@ impl CssRule {
                 f(&[], None)
             }
             CssRule::Media(ref lock) => {
-                let media_rule = lock.read();
-                let mq = media_rule.media_queries.read();
-                let rules = &media_rule.rules.read().0;
+                let media_rule = lock.read_with(guard);
+                let mq = media_rule.media_queries.read_with(guard);
+                let rules = &media_rule.rules.read_with(guard).0;
                 f(rules, Some(&mq))
             }
             CssRule::Supports(ref lock) => {
-                let supports_rule = lock.read();
+                let supports_rule = lock.read_with(guard);
                 let enabled = supports_rule.enabled;
                 if enabled {
-                    let rules = &supports_rule.rules.read().0;
+                    let rules = &supports_rule.rules.read_with(guard).0;
                     f(rules, None)
                 } else {
                     f(&[], None)
@@ -338,15 +375,14 @@ impl CssRule {
     #[allow(missing_docs)]
     pub fn parse(css: &str,
                  parent_stylesheet: &Stylesheet,
-                 extra_data: ParserContextExtraData,
-                 state: Option<State>)
+                 state: Option<State>,
+                 loader: Option<&StylesheetLoader>)
                  -> Result<(Self, State), SingleRuleParseError> {
-        let error_reporter = Box::new(MemoryHoleReporter);
+        let error_reporter = MemoryHoleReporter;
         let mut namespaces = parent_stylesheet.namespaces.write();
-        let context = ParserContext::new_with_extra_data(parent_stylesheet.origin,
-                                                         &parent_stylesheet.base_url,
-                                                         error_reporter.clone(),
-                                                         extra_data);
+        let context = ParserContext::new(parent_stylesheet.origin,
+                                         &parent_stylesheet.url_data,
+                                         &error_reporter);
         let mut input = Parser::new(css);
 
         // nested rules are in the body state
@@ -354,7 +390,8 @@ impl CssRule {
         let mut rule_parser = TopLevelRuleParser {
             stylesheet_origin: parent_stylesheet.origin,
             context: context,
-            loader: None,
+            shared_lock: &parent_stylesheet.shared_lock,
+            loader: loader,
             state: Cell::new(state),
             namespaces: &mut namespaces,
         };
@@ -371,24 +408,24 @@ impl CssRule {
     }
 }
 
-impl ToCss for CssRule {
+impl ToCssWithGuard for CssRule {
     // https://drafts.csswg.org/cssom/#serialize-a-css-rule
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
+    where W: fmt::Write {
         match *self {
-            CssRule::Namespace(ref lock) => lock.read().to_css(dest),
-            CssRule::Import(ref lock) => lock.read().to_css(dest),
-            CssRule::Style(ref lock) => lock.read().to_css(dest),
-            CssRule::FontFace(ref lock) => lock.read().to_css(dest),
-            CssRule::Viewport(ref lock) => lock.read().to_css(dest),
-            CssRule::Keyframes(ref lock) => lock.read().to_css(dest),
-            CssRule::Media(ref lock) => lock.read().to_css(dest),
-            CssRule::Supports(ref lock) => lock.read().to_css(dest),
+            CssRule::Namespace(ref lock) => lock.read_with(guard).to_css(guard, dest),
+            CssRule::Import(ref lock) => lock.read_with(guard).to_css(guard, dest),
+            CssRule::Style(ref lock) => lock.read_with(guard).to_css(guard, dest),
+            CssRule::FontFace(ref lock) => lock.read_with(guard).to_css(guard, dest),
+            CssRule::Viewport(ref lock) => lock.read_with(guard).to_css(guard, dest),
+            CssRule::Keyframes(ref lock) => lock.read_with(guard).to_css(guard, dest),
+            CssRule::Media(ref lock) => lock.read_with(guard).to_css(guard, dest),
+            CssRule::Supports(ref lock) => lock.read_with(guard).to_css(guard, dest),
         }
     }
 }
 
 #[derive(Debug, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
 pub struct NamespaceRule {
     /// `None` for the default Namespace
@@ -396,9 +433,10 @@ pub struct NamespaceRule {
     pub url: Namespace,
 }
 
-impl ToCss for NamespaceRule {
+impl ToCssWithGuard for NamespaceRule {
     // https://drafts.csswg.org/cssom/#serialize-a-css-rule CSSNamespaceRule
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, _guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
+    where W: fmt::Write {
         try!(dest.write_str("@namespace "));
         if let Some(ref prefix) = self.prefix {
             try!(dest.write_str(&*prefix.to_string()));
@@ -426,11 +464,12 @@ pub struct ImportRule {
     pub stylesheet: Arc<Stylesheet>,
 }
 
-impl ToCss for ImportRule {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+impl ToCssWithGuard for ImportRule {
+    fn to_css<W>(&self, guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
+    where W: fmt::Write {
         try!(dest.write_str("@import "));
         try!(self.url.to_css(dest));
-        let media = self.stylesheet.media.read();
+        let media = self.stylesheet.media.read_with(guard);
         if !media.is_empty() {
             try!(dest.write_str(" "));
             try!(media.to_css(dest));
@@ -447,12 +486,13 @@ pub struct KeyframesRule {
     /// The name of the current animation.
     pub name: Atom,
     /// The keyframes specified for this CSS rule.
-    pub keyframes: Vec<Arc<RwLock<Keyframe>>>,
+    pub keyframes: Vec<Arc<Locked<Keyframe>>>,
 }
 
-impl ToCss for KeyframesRule {
+impl ToCssWithGuard for KeyframesRule {
     // Serialization of KeyframesRule is not specced.
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
+    where W: fmt::Write {
         try!(dest.write_str("@keyframes "));
         try!(dest.write_str(&*self.name.to_string()));
         try!(dest.write_str(" { "));
@@ -463,8 +503,8 @@ impl ToCss for KeyframesRule {
                 try!(dest.write_str(" "));
             }
             first = false;
-            let keyframe = lock.read();
-            try!(keyframe.to_css(dest));
+            let keyframe = lock.read_with(&guard);
+            try!(keyframe.to_css(guard, dest));
         }
         dest.write_str(" }")
     }
@@ -473,20 +513,21 @@ impl ToCss for KeyframesRule {
 #[allow(missing_docs)]
 #[derive(Debug)]
 pub struct MediaRule {
-    pub media_queries: Arc<RwLock<MediaList>>,
-    pub rules: Arc<RwLock<CssRules>>,
+    pub media_queries: Arc<Locked<MediaList>>,
+    pub rules: Arc<Locked<CssRules>>,
 }
 
-impl ToCss for MediaRule {
+impl ToCssWithGuard for MediaRule {
     // Serialization of MediaRule is not specced.
     // https://drafts.csswg.org/cssom/#serialize-a-css-rule CSSMediaRule
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
+    where W: fmt::Write {
         try!(dest.write_str("@media "));
-        try!(self.media_queries.read().to_css(dest));
+        try!(self.media_queries.read_with(guard).to_css(dest));
         try!(dest.write_str(" {"));
-        for rule in self.rules.read().0.iter() {
+        for rule in self.rules.read_with(guard).0.iter() {
             try!(dest.write_str(" "));
-            try!(rule.to_css(dest));
+            try!(rule.to_css(guard, dest));
         }
         dest.write_str(" }")
     }
@@ -499,19 +540,20 @@ pub struct SupportsRule {
     /// The parsed condition
     pub condition: SupportsCondition,
     /// Child rules
-    pub rules: Arc<RwLock<CssRules>>,
+    pub rules: Arc<Locked<CssRules>>,
     /// The result of evaluating the condition
     pub enabled: bool,
 }
 
-impl ToCss for SupportsRule {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+impl ToCssWithGuard for SupportsRule {
+    fn to_css<W>(&self, guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
+    where W: fmt::Write {
         try!(dest.write_str("@supports "));
         try!(self.condition.to_css(dest));
         try!(dest.write_str(" {"));
-        for rule in self.rules.read().0.iter() {
+        for rule in self.rules.read_with(guard).0.iter() {
             try!(dest.write_str(" "));
-            try!(rule.to_css(dest));
+            try!(rule.to_css(guard, dest));
         }
         dest.write_str(" }")
     }
@@ -521,21 +563,22 @@ impl ToCss for SupportsRule {
 #[derive(Debug)]
 pub struct StyleRule {
     pub selectors: SelectorList<SelectorImpl>,
-    pub block: Arc<RwLock<PropertyDeclarationBlock>>,
+    pub block: Arc<Locked<PropertyDeclarationBlock>>,
 }
 
-impl ToCss for StyleRule {
+impl ToCssWithGuard for StyleRule {
     // https://drafts.csswg.org/cssom/#serialize-a-css-rule CSSStyleRule
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
+    where W: fmt::Write {
         // Step 1
         try!(self.selectors.to_css(dest));
         // Step 2
         try!(dest.write_str(" { "));
         // Step 3
-        let declaration_block = self.block.read();
+        let declaration_block = self.block.read_with(guard);
         try!(declaration_block.to_css(dest));
         // Step 4
-        if declaration_block.declarations.len() > 0 {
+        if declaration_block.declarations().len() > 0 {
             try!(write!(dest, " "));
         }
         // Step 5
@@ -544,98 +587,50 @@ impl ToCss for StyleRule {
     }
 }
 
-struct RustEncoding;
-
-impl EncodingSupport for RustEncoding {
-    type Encoding = EncodingRef;
-
-    fn utf8() -> Self::Encoding {
-        encoding::all::UTF_8
-    }
-
-    fn is_utf16_be_or_le(encoding: &Self::Encoding) -> bool {
-        matches!(encoding.name(), "utf-16be" | "utf-16le")
-    }
-
-    fn from_label(ascii_label: &[u8]) -> Option<Self::Encoding> {
-        str::from_utf8(ascii_label).ok().and_then(encoding::label::encoding_from_whatwg_label)
-    }
-}
-
-fn decode_stylesheet_bytes(css: &[u8], protocol_encoding_label: Option<&str>,
-                           environment_encoding: Option<EncodingRef>)
-                           -> (String, EncodingRef) {
-    let fallback_encoding = stylesheet_encoding::<RustEncoding>(
-        css, protocol_encoding_label.map(str::as_bytes), environment_encoding);
-    let (result, used_encoding) = encoding::decode(css, DecoderTrap::Replace, fallback_encoding);
-    (result.unwrap(), used_encoding)
-}
+/// A @font-face rule
+#[cfg(feature = "servo")]
+pub type FontFaceRule = FontFaceRuleData;
 
 impl Stylesheet {
-    /// Parse a stylesheet from a set of bytes, potentially received over the
-    /// network.
-    ///
-    /// Takes care of decoding the network bytes and forwards the resulting
-    /// string to `Stylesheet::from_str`.
-    pub fn from_bytes(bytes: &[u8],
-                      base_url: ServoUrl,
-                      protocol_encoding_label: Option<&str>,
-                      environment_encoding: Option<EncodingRef>,
-                      origin: Origin,
-                      media: MediaList,
-                      stylesheet_loader: Option<&StylesheetLoader>,
-                      error_reporter: Box<ParseErrorReporter + Send>,
-                      extra_data: ParserContextExtraData)
-                      -> Stylesheet {
-        let (string, _) = decode_stylesheet_bytes(
-            bytes, protocol_encoding_label, environment_encoding);
-        Stylesheet::from_str(&string,
-                             base_url,
-                             origin,
-                             media,
-                             stylesheet_loader,
-                             error_reporter,
-                             extra_data)
-    }
-
-    /// Updates an empty stylesheet with a set of bytes that reached over the
-    /// network.
-    pub fn update_from_bytes(existing: &Stylesheet,
-                             bytes: &[u8],
-                             protocol_encoding_label: Option<&str>,
-                             environment_encoding: Option<EncodingRef>,
-                             stylesheet_loader: Option<&StylesheetLoader>,
-                             error_reporter: Box<ParseErrorReporter + Send>,
-                             extra_data: ParserContextExtraData) {
-        let (string, _) = decode_stylesheet_bytes(
-            bytes, protocol_encoding_label, environment_encoding);
-        Self::update_from_str(existing,
-                              &string,
-                              stylesheet_loader,
-                              error_reporter,
-                              extra_data)
-    }
-
     /// Updates an empty stylesheet from a given string of text.
     pub fn update_from_str(existing: &Stylesheet,
                            css: &str,
+                           url_data: &UrlExtraData,
                            stylesheet_loader: Option<&StylesheetLoader>,
-                           error_reporter: Box<ParseErrorReporter + Send>,
-                           extra_data: ParserContextExtraData) {
-        let mut rules = existing.rules.write();
-        let mut namespaces = existing.namespaces.write();
+                           error_reporter: &ParseErrorReporter) {
+        let mut namespaces = Namespaces::default();
+        // FIXME: we really should update existing.url_data with the given url_data,
+        // otherwise newly inserted rule may not have the right base url.
+        let (rules, dirty_on_viewport_size_change) = Stylesheet::parse_rules(
+            css, url_data, existing.origin, &mut namespaces,
+            &existing.shared_lock, stylesheet_loader, error_reporter,
+        );
 
-        assert!(rules.is_empty());
+        *existing.namespaces.write() = namespaces;
+        existing.dirty_on_viewport_size_change
+            .store(dirty_on_viewport_size_change, Ordering::Release);
 
+        // Acquire the lock *after* parsing, to minimize the exclusive section.
+        let mut guard = existing.shared_lock.write();
+        *existing.rules.write_with(&mut guard) = CssRules(rules);
+    }
+
+    fn parse_rules(css: &str,
+                   url_data: &UrlExtraData,
+                   origin: Origin,
+                   namespaces: &mut Namespaces,
+                   shared_lock: &SharedRwLock,
+                   stylesheet_loader: Option<&StylesheetLoader>,
+                   error_reporter: &ParseErrorReporter)
+                   -> (Vec<CssRule>, bool) {
+        let mut rules = Vec::new();
         let mut input = Parser::new(css);
         let rule_parser = TopLevelRuleParser {
-            stylesheet_origin: existing.origin,
-            namespaces: &mut namespaces,
+            stylesheet_origin: origin,
+            namespaces: namespaces,
+            shared_lock: shared_lock,
             loader: stylesheet_loader,
-            context: ParserContext::new_with_extra_data(existing.origin,
-                                                        &existing.base_url,
-                                                        error_reporter,
-                                                        extra_data),
+            context: ParserContext::new(origin, url_data, error_reporter),
             state: Cell::new(State::Start),
         };
 
@@ -645,7 +640,7 @@ impl Stylesheet {
             let mut iter = RuleListParser::new_for_stylesheet(&mut input, rule_parser);
             while let Some(result) = iter.next() {
                 match result {
-                    Ok(rule) => rules.0.push(rule),
+                    Ok(rule) => rules.push(rule),
                     Err(range) => {
                         let pos = range.start;
                         let message = format!("Invalid rule: '{}'", iter.input.slice(range));
@@ -655,8 +650,7 @@ impl Stylesheet {
             }
         }
 
-        existing.dirty_on_viewport_size_change
-            .store(input.seen_viewport_percentages(), Ordering::Release);
+        (rules, input.seen_viewport_percentages())
     }
 
     /// Creates an empty stylesheet and parses it with a given base url, origin
@@ -665,29 +659,27 @@ impl Stylesheet {
     /// Effectively creates a new stylesheet and forwards the hard work to
     /// `Stylesheet::update_from_str`.
     pub fn from_str(css: &str,
-                    base_url: ServoUrl,
+                    url_data: UrlExtraData,
                     origin: Origin,
                     media: MediaList,
+                    shared_lock: SharedRwLock,
                     stylesheet_loader: Option<&StylesheetLoader>,
-                    error_reporter: Box<ParseErrorReporter + Send>,
-                    extra_data: ParserContextExtraData) -> Stylesheet {
-        let s = Stylesheet {
+                    error_reporter: &ParseErrorReporter) -> Stylesheet {
+        let mut namespaces = Namespaces::default();
+        let (rules, dirty_on_viewport_size_change) = Stylesheet::parse_rules(
+            css, &url_data, origin, &mut namespaces,
+            &shared_lock, stylesheet_loader, error_reporter,
+        );
+        Stylesheet {
             origin: origin,
-            base_url: base_url,
-            namespaces: RwLock::new(Namespaces::default()),
-            rules: CssRules::new(vec![]),
-            media: Arc::new(RwLock::new(media)),
-            dirty_on_viewport_size_change: AtomicBool::new(false),
+            url_data: url_data,
+            namespaces: RwLock::new(namespaces),
+            rules: CssRules::new(rules, &shared_lock),
+            media: Arc::new(shared_lock.wrap(media)),
+            shared_lock: shared_lock,
+            dirty_on_viewport_size_change: AtomicBool::new(dirty_on_viewport_size_change),
             disabled: AtomicBool::new(false),
-        };
-
-        Self::update_from_str(&s,
-                              css,
-                              stylesheet_loader,
-                              error_reporter,
-                              extra_data);
-
-        s
+        }
     }
 
     /// Whether this stylesheet can be dirty on viewport size change.
@@ -714,8 +706,8 @@ impl Stylesheet {
     /// on the associated MediaList.
     ///
     /// Always true if no associated MediaList exists.
-    pub fn is_effective_for_device(&self, device: &Device) -> bool {
-        self.media.read().evaluate(device)
+    pub fn is_effective_for_device(&self, device: &Device, guard: &SharedRwLockReadGuard) -> bool {
+        self.media.read_with(guard).evaluate(device)
     }
 
     /// Return an iterator over the effective rules within the style-sheet, as
@@ -725,8 +717,9 @@ impl Stylesheet {
     /// nested rules will be skipped. Use `rules` if all rules need to be
     /// examined.
     #[inline]
-    pub fn effective_rules<F>(&self, device: &Device, mut f: F) where F: FnMut(&CssRule) {
-        effective_rules(&self.rules.read().0, device, &mut f);
+    pub fn effective_rules<F>(&self, device: &Device, guard: &SharedRwLockReadGuard, mut f: F)
+    where F: FnMut(&CssRule) {
+        effective_rules(&self.rules.read_with(guard).0, device, guard, &mut f);
     }
 
     /// Returns whether the stylesheet has been explicitly disabled through the
@@ -747,16 +740,17 @@ impl Stylesheet {
     }
 }
 
-fn effective_rules<F>(rules: &[CssRule], device: &Device, f: &mut F) where F: FnMut(&CssRule) {
+fn effective_rules<F>(rules: &[CssRule], device: &Device, guard: &SharedRwLockReadGuard, f: &mut F)
+where F: FnMut(&CssRule) {
     for rule in rules {
         f(rule);
-        rule.with_nested_rules_and_mq(|rules, mq| {
+        rule.with_nested_rules_and_mq(guard, |rules, mq| {
             if let Some(media_queries) = mq {
                 if !media_queries.evaluate(device) {
                     return
                 }
             }
-            effective_rules(rules, device, f)
+            effective_rules(rules, device, guard, f)
         })
     }
 }
@@ -766,10 +760,11 @@ macro_rules! rule_filter {
         impl Stylesheet {
             $(
                 #[allow(missing_docs)]
-                pub fn $method<F>(&self, device: &Device, mut f: F) where F: FnMut(&$rule_type) {
-                    self.effective_rules(device, |rule| {
+                pub fn $method<F>(&self, device: &Device, guard: &SharedRwLockReadGuard, mut f: F)
+                where F: FnMut(&$rule_type) {
+                    self.effective_rules(device, guard, |rule| {
                         if let CssRule::$variant(ref lock) = *rule {
-                            let rule = lock.read();
+                            let rule = lock.read_with(guard);
                             f(&rule)
                         }
                     })
@@ -795,12 +790,35 @@ pub trait StylesheetLoader {
     ///
     /// The called code is responsible to update the `stylesheet` rules field
     /// when the sheet is done loading.
-    fn request_stylesheet(&self, import: &Arc<RwLock<ImportRule>>);
+    ///
+    /// The convoluted signature allows impls to look at MediaList and ImportRule
+    /// before they’re locked, while keeping the trait object-safe.
+    fn request_stylesheet(
+        &self,
+        media: MediaList,
+        make_import: &mut FnMut(MediaList) -> ImportRule,
+        make_arc: &mut FnMut(ImportRule) -> Arc<Locked<ImportRule>>,
+    ) -> Arc<Locked<ImportRule>>;
 }
+
+struct NoOpLoader;
+
+impl StylesheetLoader for NoOpLoader {
+    fn request_stylesheet(
+        &self,
+        media: MediaList,
+        make_import: &mut FnMut(MediaList) -> ImportRule,
+        make_arc: &mut FnMut(ImportRule) -> Arc<Locked<ImportRule>>,
+    ) -> Arc<Locked<ImportRule>> {
+        make_arc(make_import(media))
+    }
+}
+
 
 struct TopLevelRuleParser<'a> {
     stylesheet_origin: Origin,
     namespaces: &'a mut Namespaces,
+    shared_lock: &'a SharedRwLock,
     loader: Option<&'a StylesheetLoader>,
     context: ParserContext<'a>,
     state: Cell<State>,
@@ -810,6 +828,7 @@ impl<'b> TopLevelRuleParser<'b> {
     fn nested<'a: 'b>(&'a self) -> NestedRuleParser<'a, 'b> {
         NestedRuleParser {
             stylesheet_origin: self.stylesheet_origin,
+            shared_lock: self.shared_lock,
             context: &self.context,
             namespaces: self.namespaces,
         }
@@ -831,7 +850,7 @@ enum AtRulePrelude {
     /// A @font-face rule prelude.
     FontFace,
     /// A @media rule prelude, with its media queries.
-    Media(Arc<RwLock<MediaList>>),
+    Media(Arc<Locked<MediaList>>),
     /// An @supports rule, with its conditional
     Supports(SupportsCondition),
     /// A @viewport rule prelude.
@@ -851,38 +870,37 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
             "import" => {
                 if self.state.get() <= State::Imports {
                     self.state.set(State::Imports);
-                    let url = try!(input.expect_url_or_string());
-                    let url =
-                        try!(SpecifiedUrl::parse_from_string(url,
-                                                             &self.context));
+                    let url_string = input.expect_url_or_string()?;
+                    let specified_url = SpecifiedUrl::parse_from_string(url_string, &self.context)?;
 
-                    let media =
-                        Arc::new(RwLock::new(parse_media_query_list(input)));
+                    let media = parse_media_query_list(input);
 
-                    let is_valid_url = url.url().is_some();
+                    let noop_loader = NoOpLoader;
+                    let loader = if !specified_url.is_invalid() {
+                        self.loader.expect("Expected a stylesheet loader for @import")
+                    } else {
+                        &noop_loader
+                    };
 
-                    let import_rule = Arc::new(RwLock::new(
+                    let mut specified_url = Some(specified_url);
+                    let arc = loader.request_stylesheet(media, &mut |media| {
                         ImportRule {
-                            url: url,
+                            url: specified_url.take().unwrap(),
                             stylesheet: Arc::new(Stylesheet {
-                                rules: Arc::new(RwLock::new(CssRules(vec![]))),
-                                media: media,
+                                rules: CssRules::new(Vec::new(), self.shared_lock),
+                                media: Arc::new(self.shared_lock.wrap(media)),
+                                shared_lock: self.shared_lock.clone(),
                                 origin: self.context.stylesheet_origin,
-                                base_url: self.context.base_url.clone(),
+                                url_data: self.context.url_data.clone(),
                                 namespaces: RwLock::new(Namespaces::default()),
                                 dirty_on_viewport_size_change: AtomicBool::new(false),
                                 disabled: AtomicBool::new(false),
                             })
                         }
-                    ));
-
-                    if is_valid_url {
-                        let loader = self.loader
-                            .expect("Expected a stylesheet loader for @import");
-                        loader.request_stylesheet(&import_rule);
-                    }
-
-                    return Ok(AtRuleType::WithoutBlock(CssRule::Import(import_rule)))
+                    }, &mut |import_rule| {
+                        Arc::new(self.shared_lock.wrap(import_rule))
+                    });
+                    return Ok(AtRuleType::WithoutBlock(CssRule::Import(arc)))
                 } else {
                     self.state.set(State::Invalid);
                     return Err(())  // "@import must be before any rule but @charset"
@@ -904,12 +922,12 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
                         None
                     };
 
-                    return Ok(AtRuleType::WithoutBlock(CssRule::Namespace(Arc::new(RwLock::new(
-                        NamespaceRule {
+                    return Ok(AtRuleType::WithoutBlock(CssRule::Namespace(Arc::new(
+                        self.shared_lock.wrap(NamespaceRule {
                             prefix: opt_prefix,
                             url: url,
-                        }
-                    )))))
+                        })
+                    ))))
                 } else {
                     self.state.set(State::Invalid);
                     return Err(())  // "@namespace must be before any rule but @charset and @import"
@@ -953,15 +971,16 @@ impl<'a> QualifiedRuleParser for TopLevelRuleParser<'a> {
     }
 }
 
-#[derive(Clone)]  // shallow, relatively cheap clone
+#[derive(Clone)]  // shallow, relatively cheap .clone
 struct NestedRuleParser<'a, 'b: 'a> {
     stylesheet_origin: Origin,
+    shared_lock: &'a SharedRwLock,
     context: &'a ParserContext<'b>,
     namespaces: &'b Namespaces,
 }
 
 impl<'a, 'b> NestedRuleParser<'a, 'b> {
-    fn parse_nested_rules(&self, input: &mut Parser) -> Arc<RwLock<CssRules>> {
+    fn parse_nested_rules(&self, input: &mut Parser) -> Arc<Locked<CssRules>> {
         let mut iter = RuleListParser::new_for_nested_rule(input, self.clone());
         let mut rules = Vec::new();
         while let Some(result) = iter.next() {
@@ -974,7 +993,7 @@ impl<'a, 'b> NestedRuleParser<'a, 'b> {
                 }
             }
         }
-        CssRules::new(rules)
+        CssRules::new(rules, self.shared_lock)
     }
 }
 
@@ -987,7 +1006,8 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
         match_ignore_ascii_case! { name,
             "media" => {
                 let media_queries = parse_media_query_list(input);
-                Ok(AtRuleType::WithBlock(AtRulePrelude::Media(Arc::new(RwLock::new(media_queries)))))
+                let arc = Arc::new(self.shared_lock.wrap(media_queries));
+                Ok(AtRuleType::WithBlock(AtRulePrelude::Media(arc)))
             },
             "supports" => {
                 let cond = SupportsCondition::parse(input)?;
@@ -1020,31 +1040,31 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
     fn parse_block(&mut self, prelude: AtRulePrelude, input: &mut Parser) -> Result<CssRule, ()> {
         match prelude {
             AtRulePrelude::FontFace => {
-                Ok(CssRule::FontFace(Arc::new(RwLock::new(
-                    try!(parse_font_face_block(self.context, input))))))
+                Ok(CssRule::FontFace(Arc::new(self.shared_lock.wrap(
+                    parse_font_face_block(self.context, input).into()))))
             }
             AtRulePrelude::Media(media_queries) => {
-                Ok(CssRule::Media(Arc::new(RwLock::new(MediaRule {
+                Ok(CssRule::Media(Arc::new(self.shared_lock.wrap(MediaRule {
                     media_queries: media_queries,
                     rules: self.parse_nested_rules(input),
                 }))))
             }
             AtRulePrelude::Supports(cond) => {
                 let enabled = cond.eval(self.context);
-                Ok(CssRule::Supports(Arc::new(RwLock::new(SupportsRule {
+                Ok(CssRule::Supports(Arc::new(self.shared_lock.wrap(SupportsRule {
                     condition: cond,
                     rules: self.parse_nested_rules(input),
                     enabled: enabled,
                 }))))
             }
             AtRulePrelude::Viewport => {
-                Ok(CssRule::Viewport(Arc::new(RwLock::new(
+                Ok(CssRule::Viewport(Arc::new(self.shared_lock.wrap(
                     try!(ViewportRule::parse(input, self.context))))))
             }
             AtRulePrelude::Keyframes(name) => {
-                Ok(CssRule::Keyframes(Arc::new(RwLock::new(KeyframesRule {
+                Ok(CssRule::Keyframes(Arc::new(self.shared_lock.wrap(KeyframesRule {
                     name: name,
-                    keyframes: parse_keyframe_list(&self.context, input),
+                    keyframes: parse_keyframe_list(&self.context, input, self.shared_lock),
                 }))))
             }
         }
@@ -1065,9 +1085,10 @@ impl<'a, 'b> QualifiedRuleParser for NestedRuleParser<'a, 'b> {
 
     fn parse_block(&mut self, prelude: SelectorList<SelectorImpl>, input: &mut Parser)
                    -> Result<CssRule, ()> {
-        Ok(CssRule::Style(Arc::new(RwLock::new(StyleRule {
+        let declarations = parse_property_declaration_list(self.context, input);
+        Ok(CssRule::Style(Arc::new(self.shared_lock.wrap(StyleRule {
             selectors: prelude,
-            block: Arc::new(RwLock::new(parse_property_declaration_list(self.context, input)))
+            block: Arc::new(self.shared_lock.wrap(declarations))
         }))))
     }
 }

@@ -5,6 +5,7 @@
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::XMLHttpRequestEventTargetBinding::XMLHttpRequestEventTargetMethods;
 use dom::eventtarget::EventTarget;
+use dom_struct::dom_struct;
 
 #[dom_struct]
 pub struct XMLHttpRequestEventTarget {

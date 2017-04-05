@@ -7,19 +7,28 @@
 #![crate_name = "servo_url"]
 #![crate_type = "rlib"]
 
-#[cfg(feature = "servo")] extern crate heapsize;
+#[cfg(feature = "servo")] #[macro_use] extern crate heapsize;
 #[cfg(feature = "servo")] #[macro_use] extern crate heapsize_derive;
 #[cfg(feature = "servo")] extern crate serde;
+#[cfg(feature = "servo")] #[macro_use] extern crate serde_derive;
 #[cfg(feature = "servo")] extern crate url_serde;
 
+extern crate servo_rand;
 extern crate url;
+extern crate uuid;
+
+pub mod origin;
+
+pub use origin::{OpaqueOrigin, ImmutableOrigin, MutableOrigin};
 
 use std::fmt;
 use std::net::IpAddr;
 use std::ops::{Range, RangeFrom, RangeTo, RangeFull, Index};
 use std::path::Path;
 use std::sync::Arc;
-use url::{Url, Origin, Position};
+use url::{Url, Position};
+
+pub use url::Host;
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -38,14 +47,12 @@ impl ServoUrl {
         Arc::try_unwrap(self.0).unwrap_or_else(|s| (*s).clone()).into_string()
     }
 
-    // NOTE: These methods return options that are always true temporarily until
-    // we special-case some urls to avoid going through rust-url.
-    pub fn into_url(self) -> Option<Url> {
-        Some(Arc::try_unwrap(self.0).unwrap_or_else(|s| (*s).clone()))
+    pub fn into_url(self) -> Url {
+        Arc::try_unwrap(self.0).unwrap_or_else(|s| (*s).clone())
     }
 
-    pub fn as_url(&self) -> Option<&Arc<Url>> {
-        Some(&self.0)
+    pub fn as_url(&self) -> &Url {
+        &self.0
     }
 
     pub fn parse(input: &str) -> Result<Self, url::ParseError> {
@@ -68,8 +75,8 @@ impl ServoUrl {
         self.0.path()
     }
 
-    pub fn origin(&self) -> Origin {
-        self.0.origin()
+    pub fn origin(&self) -> ImmutableOrigin {
+        ImmutableOrigin::new(self.0.origin())
     }
 
     pub fn scheme(&self) -> &str {
@@ -85,24 +92,24 @@ impl ServoUrl {
         self.0.as_str()
     }
 
-    pub fn as_mut_url(&mut self) -> Option<&mut Url> {
-        Some(Arc::make_mut(&mut self.0))
+    pub fn as_mut_url(&mut self) -> &mut Url {
+        Arc::make_mut(&mut self.0)
     }
 
     pub fn set_username(&mut self, user: &str) -> Result<(), ()> {
-        Arc::make_mut(&mut self.0).set_username(user)
+        self.as_mut_url().set_username(user)
     }
 
     pub fn set_ip_host(&mut self, addr: IpAddr) -> Result<(), ()> {
-        Arc::make_mut(&mut self.0).set_ip_host(addr)
+        self.as_mut_url().set_ip_host(addr)
     }
 
     pub fn set_password(&mut self, pass: Option<&str>) -> Result<(), ()> {
-        Arc::make_mut(&mut self.0).set_password(pass)
+        self.as_mut_url().set_password(pass)
     }
 
     pub fn set_fragment(&mut self, fragment: Option<&str>) {
-        Arc::make_mut(&mut self.0).set_fragment(fragment)
+        self.as_mut_url().set_fragment(fragment)
     }
 
     pub fn username(&self) -> &str {

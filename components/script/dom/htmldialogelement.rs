@@ -13,6 +13,7 @@ use dom::element::Element;
 use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, window_from_node};
+use dom_struct::dom_struct;
 use html5ever_atoms::LocalName;
 
 #[dom_struct]

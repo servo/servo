@@ -14,6 +14,7 @@ use dom::documentfragment::DocumentFragment;
 use dom::htmlelement::HTMLElement;
 use dom::node::{CloneChildrenFlag, Node, document_from_node};
 use dom::virtualmethods::VirtualMethods;
+use dom_struct::dom_struct;
 use html5ever_atoms::LocalName;
 
 #[dom_struct]

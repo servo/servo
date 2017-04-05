@@ -12,11 +12,13 @@ use data::ElementData;
 use dom::{OpaqueNode, TNode, TElement, SendElement};
 use error_reporting::ParseErrorReporter;
 use euclid::Size2D;
+#[cfg(feature = "gecko")] use gecko_bindings::structs;
 use matching::StyleSharingCandidateCache;
 use parking_lot::RwLock;
-use properties::ComputedValues;
+#[cfg(feature = "gecko")] use selector_parser::PseudoElement;
 use selectors::matching::ElementSelectorFlags;
 use servo_config::opts;
+use shared_lock::StylesheetGuards;
 use std::collections::HashMap;
 use std::env;
 use std::fmt;
@@ -27,6 +29,7 @@ use stylist::Stylist;
 use thread_state;
 use time;
 use timer::Timer;
+use traversal::DomTraversal;
 
 /// This structure is used to create a local style context from a shared one.
 pub struct ThreadLocalStyleContextCreationInfo {
@@ -60,18 +63,12 @@ pub enum QuirksMode {
 ///
 /// There's exactly one of these during a given restyle traversal, and it's
 /// shared among the worker threads.
-pub struct SharedStyleContext {
-    /// The current viewport size.
-    pub viewport_size: Size2D<Au>,
-
-    /// Screen sized changed?
-    pub screen_size_changed: bool,
-
+pub struct SharedStyleContext<'a> {
     /// The CSS selector stylist.
     pub stylist: Arc<Stylist>,
 
-    /// Why is this reflow occurring
-    pub goal: ReflowGoal,
+    /// Guards for pre-acquired locks
+    pub guards: StylesheetGuards<'a>,
 
     /// The animations that are currently running.
     pub running_animations: Arc<RwLock<HashMap<OpaqueNode, Vec<Animation>>>>,
@@ -80,7 +77,7 @@ pub struct SharedStyleContext {
     pub expired_animations: Arc<RwLock<HashMap<OpaqueNode, Vec<Animation>>>>,
 
     ///The CSS error reporter for all CSS loaded in this layout thread
-    pub error_reporter: Box<ParseErrorReporter + Sync>,
+    pub error_reporter: Box<ParseErrorReporter>,
 
     /// Data needed to create the thread-local style context from the shared one.
     pub local_context_creation_data: Mutex<ThreadLocalStyleContextCreationInfo>,
@@ -92,9 +89,15 @@ pub struct SharedStyleContext {
     /// The QuirksMode state which the document needs to be rendered with
     pub quirks_mode: QuirksMode,
 
-    /// The default computed values to use for elements with no rules
-    /// applying to them.
-    pub default_computed_values: Arc<ComputedValues>,
+    /// True if the traversal is processing only animation restyles.
+    pub animation_only_restyle: bool,
+}
+
+impl<'a> SharedStyleContext<'a> {
+    /// Return a suitable viewport size in order to be used for viewport units.
+    pub fn viewport_size(&self) -> Size2D<Au> {
+        self.stylist.device.au_viewport_size()
+    }
 }
 
 /// Information about the current element being processed. We group this together
@@ -123,6 +126,8 @@ pub struct TraversalStatistics {
     pub styles_shared: u32,
     /// Time spent in the traversal, in milliseconds.
     pub traversal_time_ms: f64,
+    /// Whether this was a parallel traversal.
+    pub is_parallel: Option<bool>,
 }
 
 /// Implementation of Add to aggregate statistics across different threads.
@@ -137,6 +142,7 @@ impl<'a> Add for &'a TraversalStatistics {
             elements_matched: self.elements_matched + other.elements_matched,
             styles_shared: self.styles_shared + other.styles_shared,
             traversal_time_ms: 0.0,
+            is_parallel: None,
         }
     }
 }
@@ -147,6 +153,11 @@ impl fmt::Display for TraversalStatistics {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         debug_assert!(self.traversal_time_ms != 0.0, "should have set traversal time");
         try!(writeln!(f, "[PERF] perf block start"));
+        try!(writeln!(f, "[PERF],traversal,{}", if self.is_parallel.unwrap() {
+            "parallel"
+        } else {
+            "sequential"
+        }));
         try!(writeln!(f, "[PERF],elements_traversed,{}", self.elements_traversed));
         try!(writeln!(f, "[PERF],elements_styled,{}", self.elements_styled));
         try!(writeln!(f, "[PERF],elements_matched,{}", self.elements_matched));
@@ -175,10 +186,30 @@ impl TraversalStatistics {
     }
 
     /// Computes the traversal time given the start time in seconds.
-    pub fn compute_traversal_time(&mut self, start: f64) {
+    pub fn finish<E, D>(&mut self, traversal: &D, start: f64)
+        where E: TElement,
+              D: DomTraversal<E>,
+    {
+        self.is_parallel = Some(traversal.is_parallel());
         self.traversal_time_ms = (time::precise_time_s() - start) * 1000.0;
     }
 }
+
+#[cfg(feature = "gecko")]
+bitflags! {
+    /// Represents which tasks are performed in a SequentialTask of UpdateAnimations.
+    pub flags UpdateAnimationsTasks: u8 {
+        /// Update CSS Animations.
+        const CSS_ANIMATIONS = structs::UpdateAnimationsTasks_CSSAnimations,
+        /// Update CSS Transitions.
+        const CSS_TRANSITIONS = structs::UpdateAnimationsTasks_CSSTransitions,
+        /// Update effect properties.
+        const EFFECT_PROPERTIES = structs::UpdateAnimationsTasks_EffectProperties,
+        /// Update animation cacade results for animations running on the compositor.
+        const CASCADE_RESULTS = structs::UpdateAnimationsTasks_CascadeResults,
+    }
+}
+
 
 /// A task to be run in sequential mode on the parent (non-worker) thread. This
 /// is used by the style system to queue up work which is not safe to do during
@@ -187,6 +218,11 @@ pub enum SequentialTask<E: TElement> {
     /// Sets selector flags. This is used when we need to set flags on an
     /// element that we don't have exclusive access to (i.e. the parent).
     SetSelectorFlags(SendElement<E>, ElementSelectorFlags),
+
+    #[cfg(feature = "gecko")]
+    /// Marks that we need to update CSS animations, update effect properties of
+    /// any type of animations after the normal traversal.
+    UpdateAnimations(SendElement<E>, Option<PseudoElement>, UpdateAnimationsTasks),
 }
 
 impl<E: TElement> SequentialTask<E> {
@@ -198,6 +234,10 @@ impl<E: TElement> SequentialTask<E> {
             SetSelectorFlags(el, flags) => {
                 unsafe { el.set_selector_flags(flags) };
             }
+            #[cfg(feature = "gecko")]
+            UpdateAnimations(el, pseudo, tasks) => {
+                unsafe { el.update_animations(pseudo.as_ref(), tasks) };
+            }
         }
     }
 
@@ -205,6 +245,14 @@ impl<E: TElement> SequentialTask<E> {
     pub fn set_selector_flags(el: E, flags: ElementSelectorFlags) -> Self {
         use self::SequentialTask::*;
         SetSelectorFlags(unsafe { SendElement::new(el) }, flags)
+    }
+
+    #[cfg(feature = "gecko")]
+    /// Creates a task to update various animation state on a given (pseudo-)element.
+    pub fn update_animations(el: E, pseudo: Option<PseudoElement>,
+                             tasks: UpdateAnimationsTasks) -> Self {
+        use self::SequentialTask::*;
+        UpdateAnimations(unsafe { SendElement::new(el) }, pseudo, tasks)
     }
 }
 
@@ -286,7 +334,7 @@ impl<E: TElement> Drop for ThreadLocalStyleContext<E> {
 /// shared style context, and a mutable reference to a local one.
 pub struct StyleContext<'a, E: TElement + 'a> {
     /// The shared style context reference.
-    pub shared: &'a SharedStyleContext,
+    pub shared: &'a SharedStyleContext<'a>,
     /// The thread-local style context (mutable) reference.
     pub thread_local: &'a mut ThreadLocalStyleContext<E>,
 }

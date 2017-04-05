@@ -8,6 +8,7 @@ use dom::bindings::error::Fallible;
 use dom::bindings::reflector::Reflector;
 use dom::bindings::str::DOMString;
 use dom::window::Window;
+use dom_struct::dom_struct;
 use regex::Regex;
 
 pub type UUID = DOMString;

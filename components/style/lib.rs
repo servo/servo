@@ -41,10 +41,9 @@ extern crate app_units;
 extern crate atomic_refcell;
 #[macro_use]
 extern crate bitflags;
+#[allow(unused_extern_crates)] extern crate byteorder;
 #[cfg(feature = "gecko")] #[macro_use] #[no_link] extern crate cfg_if;
-#[macro_use]
-extern crate cssparser;
-extern crate encoding;
+#[macro_use] extern crate cssparser;
 extern crate euclid;
 extern crate fnv;
 #[cfg(feature = "gecko")] #[macro_use] pub mod gecko_string_cache;
@@ -58,17 +57,16 @@ extern crate log;
 #[allow(unused_extern_crates)]
 #[macro_use]
 extern crate matches;
-#[cfg(feature = "gecko")] extern crate nsstring_vendor as nsstring;
+#[cfg(feature = "gecko")]
+#[macro_use]
+extern crate nsstring_vendor as nsstring;
+#[cfg(feature = "gecko")] extern crate num_cpus;
 extern crate num_integer;
 extern crate num_traits;
-#[cfg(feature = "gecko")] extern crate num_cpus;
 extern crate ordered_float;
-extern crate owning_ref;
 extern crate parking_lot;
 extern crate pdqsort;
-extern crate phf;
 extern crate rayon;
-extern crate rustc_serialize;
 extern crate selectors;
 #[cfg(feature = "servo")] #[macro_use] extern crate serde_derive;
 #[cfg(feature = "servo")] #[macro_use] extern crate servo_atoms;
@@ -93,6 +91,7 @@ pub mod custom_properties;
 pub mod data;
 pub mod dom;
 pub mod element_state;
+#[cfg(feature = "servo")] mod encoding_support;
 pub mod error_reporting;
 pub mod font_face;
 pub mod font_metrics;
@@ -103,13 +102,13 @@ pub mod keyframes;
 pub mod logical_geometry;
 pub mod matching;
 pub mod media_queries;
-pub mod owning_handle;
 pub mod parallel;
 pub mod parser;
 pub mod restyle_hints;
 pub mod rule_tree;
 pub mod scoped_tls;
 pub mod selector_parser;
+pub mod shared_lock;
 pub mod stylist;
 #[cfg(feature = "servo")] #[allow(unsafe_code)] pub mod servo;
 pub mod sequential;
@@ -172,11 +171,19 @@ macro_rules! reexport_computed_values {
 longhand_properties_idents!(reexport_computed_values);
 
 /// Returns whether the two arguments point to the same value.
+///
+/// FIXME: Remove this and use Arc::ptr_eq once we require Rust 1.17
 #[inline]
 pub fn arc_ptr_eq<T: 'static>(a: &Arc<T>, b: &Arc<T>) -> bool {
-    let a: &T = &**a;
-    let b: &T = &**b;
-    (a as *const T) == (b as *const T)
+    ptr_eq::<T>(&**a, &**b)
+}
+
+/// Pointer equality
+///
+/// FIXME: Remove this and use std::ptr::eq once we require Rust 1.17
+#[inline]
+pub fn ptr_eq<T: ?Sized>(a: *const T, b: *const T) -> bool {
+    a == b
 }
 
 /// Serializes as CSS a comma-separated list of any `T` that supports being

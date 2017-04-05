@@ -22,6 +22,7 @@ use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlscriptelement::{HTMLScriptElement, ScriptResult};
 use dom::node::{Node, NodeSiblingIterator};
 use dom::text::Text;
+use dom_struct::dom_struct;
 use encoding::all::UTF_8;
 use encoding::types::{DecoderTrap, Encoding};
 use html5ever::tokenizer::buffer_queue::BufferQueue;
@@ -110,7 +111,7 @@ impl ServoParser {
         let document = Document::new(window,
                                      HasBrowsingContext::No,
                                      Some(url.clone()),
-                                     context_document.origin().alias(),
+                                     context_document.origin().clone(),
                                      IsHTMLDocument::HTMLDocument,
                                      None,
                                      None,
@@ -656,7 +657,12 @@ fn insert(parent: &Node, reference_child: Option<&Node>, child: NodeOrText<JS<No
             parent.InsertBefore(&n, reference_child).unwrap();
         },
         NodeOrText::AppendText(t) => {
-            if let Some(text) = parent.GetLastChild().and_then(Root::downcast::<Text>) {
+            let text = reference_child
+                .and_then(Node::GetPreviousSibling)
+                .or_else(|| parent.GetLastChild())
+                .and_then(Root::downcast::<Text>);
+
+            if let Some(text) = text {
                 text.upcast::<CharacterData>().append_data(&t);
             } else {
                 let text = Text::new(String::from(t).into(), &parent.owner_doc());

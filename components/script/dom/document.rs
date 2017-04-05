@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use cookie_rs;
 use core::nonzero::NonZero;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use document_loader::{DocumentLoader, LoadType};
@@ -56,7 +57,7 @@ use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use dom::htmlelement::HTMLElement;
 use dom::htmlembedelement::HTMLEmbedElement;
-use dom::htmlformelement::HTMLFormElement;
+use dom::htmlformelement::{FormControl, FormControlElementHelpers, HTMLFormElement};
 use dom::htmlheadelement::HTMLHeadElement;
 use dom::htmlhtmlelement::HTMLHtmlElement;
 use dom::htmliframeelement::HTMLIFrameElement;
@@ -68,6 +69,7 @@ use dom::location::Location;
 use dom::messageevent::MessageEvent;
 use dom::mouseevent::MouseEvent;
 use dom::node::{self, CloneChildrenFlag, Node, NodeDamage, window_from_node, IS_IN_DOC, LayoutNodeHelpers};
+use dom::node::VecPreOrderInsertionHelper;
 use dom::nodeiterator::NodeIterator;
 use dom::nodelist::NodeList;
 use dom::pagetransitionevent::PageTransitionEvent;
@@ -87,6 +89,7 @@ use dom::treewalker::TreeWalker;
 use dom::uievent::UIEvent;
 use dom::webglcontextevent::WebGLContextEvent;
 use dom::window::{ReflowReason, Window};
+use dom_struct::dom_struct;
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
 use euclid::point::Point2D;
@@ -102,25 +105,25 @@ use msg::constellation_msg::{FrameId, Key, KeyModifiers, KeyState};
 use net_traits::{FetchResponseMsg, IpcSend, ReferrerPolicy};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
+use net_traits::pub_domains::is_pub_domain;
 use net_traits::request::RequestInit;
 use net_traits::response::HttpsState;
 use num_traits::ToPrimitive;
-use origin::Origin;
 use script_layout_interface::message::{Msg, ReflowQueryType};
 use script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
-use script_thread::{MainThreadScriptMsg, Runnable};
+use script_thread::{MainThreadScriptMsg, Runnable, ScriptThread};
 use script_traits::{AnimationState, CompositorEvent, DocumentActivity};
 use script_traits::{MouseButton, MouseEventType, MozBrowserEvent};
-use script_traits::{ScriptMsg as ConstellationMsg, TouchpadPressurePhase};
+use script_traits::{MsDuration, ScriptMsg as ConstellationMsg, TouchpadPressurePhase};
 use script_traits::{TouchEventType, TouchId};
 use script_traits::UntrustedNodeAddress;
 use servo_atoms::Atom;
 use servo_config::prefs::PREFS;
-use servo_url::ServoUrl;
+use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::{Cell, Ref, RefMut};
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::default::Default;
 use std::iter::once;
@@ -132,11 +135,23 @@ use style::attr::AttrValue;
 use style::context::{QuirksMode, ReflowGoal};
 use style::restyle_hints::{RestyleHint, RESTYLE_STYLE_ATTRIBUTE};
 use style::selector_parser::{RestyleDamage, Snapshot};
+use style::shared_lock::SharedRwLock as StyleSharedRwLock;
 use style::str::{HTML_SPACE_CHARACTERS, split_html_space_chars, str_join};
 use style::stylesheets::Stylesheet;
 use task_source::TaskSource;
 use time;
+use timers::OneshotTimerCallback;
+use url::Host;
 use url::percent_encoding::percent_decode;
+
+/// The number of times we are allowed to see spurious `requestAnimationFrame()` calls before
+/// falling back to fake ones.
+///
+/// A spurious `requestAnimationFrame()` call is defined as one that does not change the DOM.
+const SPURIOUS_ANIMATION_FRAME_THRESHOLD: u8 = 5;
+
+/// The amount of time between fake `requestAnimationFrame()`s.
+const FAKE_REQUEST_ANIMATION_FRAME_DELAY: u64 = 16;
 
 pub enum TouchEventResult {
     Processed(bool),
@@ -207,6 +222,9 @@ pub struct Document {
     scripts: MutNullableJS<HTMLCollection>,
     anchors: MutNullableJS<HTMLCollection>,
     applets: MutNullableJS<HTMLCollection>,
+    /// Lock use for style attributes and author-origin stylesheet objects in this document.
+    /// Can be acquired once for accessing many objects.
+    style_shared_lock: StyleSharedRwLock,
     /// List of stylesheets associated with nodes in this document. |None| if the list needs to be refreshed.
     stylesheets: DOMRefCell<Option<Vec<StylesheetInDocument>>>,
     /// Whether the list of stylesheets has changed since the last reflow was triggered.
@@ -277,7 +295,7 @@ pub struct Document {
     https_state: Cell<HttpsState>,
     touchpad_pressure_phase: Cell<TouchpadPressurePhase>,
     /// The document's origin.
-    origin: Origin,
+    origin: MutableOrigin,
     ///  https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-states
     referrer_policy: Cell<Option<ReferrerPolicy>>,
     /// https://html.spec.whatwg.org/multipage/#dom-document-referrer
@@ -289,6 +307,11 @@ pub struct Document {
     last_click_info: DOMRefCell<Option<(Instant, Point2D<f32>)>>,
     /// https://html.spec.whatwg.org/multipage/#ignore-destructive-writes-counter
     ignore_destructive_writes_counter: Cell<u32>,
+    /// The number of spurious `requestAnimationFrame()` requests we've received.
+    ///
+    /// A rAF request is considered spurious if nothing was actually reflowed.
+    spurious_animation_frames: Cell<u8>,
+
     /// Track the total number of elements in this DOM's tree.
     /// This is sent to the layout thread every time a reflow is done;
     /// layout uses this to determine if the gains from parallel layout will be worth the overhead.
@@ -297,6 +320,12 @@ pub struct Document {
     dom_count: Cell<u32>,
     /// Entry node for fullscreen.
     fullscreen_element: MutNullableJS<Element>,
+    /// Map from ID to set of form control elements that have that ID as
+    /// their 'form' content attribute. Used to reset form controls
+    /// whenever any element with the same ID as the form attribute
+    /// is inserted or removed from the document.
+    /// See https://html.spec.whatwg.org/multipage/#form-owner
+    form_id_listener_map: DOMRefCell<HashMap<Atom, HashSet<JS<Element>>>>,
 }
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -374,7 +403,7 @@ impl Document {
     #[inline]
     pub fn browsing_context(&self) -> Option<Root<BrowsingContext>> {
         if self.has_browsing_context {
-            Some(self.window.browsing_context())
+            self.window.maybe_browsing_context()
         } else {
             None
         }
@@ -424,7 +453,7 @@ impl Document {
         }
     }
 
-    pub fn origin(&self) -> &Origin {
+    pub fn origin(&self) -> &MutableOrigin {
         &self.origin
     }
 
@@ -560,20 +589,26 @@ impl Document {
                self,
                to_unregister,
                id);
-        let mut id_map = self.id_map.borrow_mut();
-        let is_empty = match id_map.get_mut(&id) {
-            None => false,
-            Some(elements) => {
-                let position = elements.iter()
-                                       .position(|element| &**element == to_unregister)
-                                       .expect("This element should be in registered.");
-                elements.remove(position);
-                elements.is_empty()
+        // Limit the scope of the borrow because id_map might be borrowed again by
+        // GetElementById through the following sequence of calls
+        // reset_form_owner_for_listeners -> reset_form_owner -> GetElementById
+        {
+            let mut id_map = self.id_map.borrow_mut();
+            let is_empty = match id_map.get_mut(&id) {
+                None => false,
+                Some(elements) => {
+                    let position = elements.iter()
+                                        .position(|element| &**element == to_unregister)
+                                        .expect("This element should be in registered.");
+                    elements.remove(position);
+                    elements.is_empty()
+                }
+            };
+            if is_empty {
+                id_map.remove(&id);
             }
-        };
-        if is_empty {
-            id_map.remove(&id);
         }
+        self.reset_form_owner_for_listeners(&id);
     }
 
     /// Associate an element present in this document with the provided id.
@@ -585,34 +620,34 @@ impl Document {
         assert!(element.upcast::<Node>().is_in_doc());
         assert!(!id.is_empty());
 
-        let mut id_map = self.id_map.borrow_mut();
-
         let root = self.GetDocumentElement()
                        .expect("The element is in the document, so there must be a document \
                                 element.");
 
-        match id_map.entry(id) {
-            Vacant(entry) => {
-                entry.insert(vec![JS::from_ref(element)]);
-            }
-            Occupied(entry) => {
-                let elements = entry.into_mut();
+        // Limit the scope of the borrow because id_map might be borrowed again by
+        // GetElementById through the following sequence of calls
+        // reset_form_owner_for_listeners -> reset_form_owner -> GetElementById
+        {
+            let mut id_map = self.id_map.borrow_mut();
+            let mut elements = id_map.entry(id.clone()).or_insert(Vec::new());
+            elements.insert_pre_order(element, root.r().upcast::<Node>());
+        }
+        self.reset_form_owner_for_listeners(&id);
+    }
 
-                let new_node = element.upcast::<Node>();
-                let mut head: usize = 0;
-                let root = root.upcast::<Node>();
-                for node in root.traverse_preorder() {
-                    if let Some(elem) = node.downcast() {
-                        if &*(*elements)[head] == elem {
-                            head += 1;
-                        }
-                        if new_node == &*node || head == elements.len() {
-                            break;
-                        }
-                    }
-                }
+    pub fn register_form_id_listener<T: ?Sized + FormControl>(&self, id: DOMString, listener: &T) {
+        let mut map = self.form_id_listener_map.borrow_mut();
+        let listener = listener.to_element();
+        let mut set = map.entry(Atom::from(id)).or_insert(HashSet::new());
+        set.insert(JS::from_ref(listener));
+    }
 
-                elements.insert(head, JS::from_ref(element));
+    pub fn unregister_form_id_listener<T: ?Sized + FormControl>(&self, id: DOMString, listener: &T) {
+        let mut map = self.form_id_listener_map.borrow_mut();
+        if let Occupied(mut entry) = map.entry(Atom::from(id)) {
+            entry.get_mut().remove(&JS::from_ref(listener.to_element()));
+            if entry.get().is_empty() {
+                entry.remove();
             }
         }
     }
@@ -1497,11 +1532,20 @@ impl Document {
         //
         // TODO: Should tick animation only when document is visible
         if !self.running_animation_callbacks.get() {
-            let global_scope = self.window.upcast::<GlobalScope>();
-            let event = ConstellationMsg::ChangeRunningAnimationsState(
-                global_scope.pipeline_id(),
-                AnimationState::AnimationCallbacksPresent);
-            global_scope.constellation_chan().send(event).unwrap();
+            if !self.is_faking_animation_frames() {
+                let global_scope = self.window.upcast::<GlobalScope>();
+                let event = ConstellationMsg::ChangeRunningAnimationsState(
+                    global_scope.pipeline_id(),
+                    AnimationState::AnimationCallbacksPresent);
+                global_scope.constellation_chan().send(event).unwrap();
+            } else {
+                let callback = FakeRequestAnimationFrameCallback {
+                    document: Trusted::new(self),
+                };
+                self.global()
+                    .schedule_callback(OneshotTimerCallback::FakeRequestAnimationFrame(callback),
+                                       MsDuration::new(FAKE_REQUEST_ANIMATION_FRAME_DELAY));
+            }
         }
 
         ident
@@ -1523,6 +1567,7 @@ impl Document {
             &mut *self.animation_frame_list.borrow_mut());
 
         self.running_animation_callbacks.set(true);
+        let was_faking_animation_frames = self.is_faking_animation_frames();
         let timing = self.window.Performance().Now();
 
         for (_, callback) in animation_frame_list.drain(..) {
@@ -1531,24 +1576,40 @@ impl Document {
             }
         }
 
+        self.running_animation_callbacks.set(false);
+
+        let spurious = !self.window.reflow(ReflowGoal::ForDisplay,
+                                           ReflowQueryType::NoQuery,
+                                           ReflowReason::RequestAnimationFrame);
+
         // Only send the animation change state message after running any callbacks.
         // This means that if the animation callback adds a new callback for
         // the next frame (which is the common case), we won't send a NoAnimationCallbacksPresent
         // message quickly followed by an AnimationCallbacksPresent message.
-        if self.animation_frame_list.borrow().is_empty() {
+        //
+        // If this frame was spurious and we've seen too many spurious frames in a row, tell the
+        // constellation to stop giving us video refresh callbacks, to save energy. (A spurious
+        // animation frame is one in which the callback did not mutate the DOM—that is, an
+        // animation frame that wasn't actually used for animation.)
+        if self.animation_frame_list.borrow().is_empty() ||
+                (!was_faking_animation_frames && self.is_faking_animation_frames()) {
             mem::swap(&mut *self.animation_frame_list.borrow_mut(),
                       &mut *animation_frame_list);
             let global_scope = self.window.upcast::<GlobalScope>();
-            let event = ConstellationMsg::ChangeRunningAnimationsState(global_scope.pipeline_id(),
-                                                                       AnimationState::NoAnimationCallbacksPresent);
+            let event = ConstellationMsg::ChangeRunningAnimationsState(
+                global_scope.pipeline_id(),
+                AnimationState::NoAnimationCallbacksPresent);
             global_scope.constellation_chan().send(event).unwrap();
         }
 
-        self.running_animation_callbacks.set(false);
-
-        self.window.reflow(ReflowGoal::ForDisplay,
-                           ReflowQueryType::NoQuery,
-                           ReflowReason::RequestAnimationFrame);
+        // Update the counter of spurious animation frames.
+        if spurious {
+            if self.spurious_animation_frames.get() < SPURIOUS_ANIMATION_FRAME_THRESHOLD {
+                self.spurious_animation_frames.set(self.spurious_animation_frames.get() + 1)
+            }
+        } else {
+            self.spurious_animation_frames.set(0)
+        }
     }
 
     pub fn fetch_async(&self, load: LoadType,
@@ -1599,17 +1660,26 @@ impl Document {
         // Step 5 can be found in asap_script_loaded and
         // asap_in_order_script_loaded.
 
+        let loader = self.loader.borrow();
+        if loader.is_blocked() || loader.events_inhibited() {
+            // Step 6.
+            return;
+        }
+
+        ScriptThread::mark_document_with_no_blocked_loads(self);
+    }
+
+    // https://html.spec.whatwg.org/multipage/#the-end
+    pub fn maybe_queue_document_completion(&self) {
         if self.loader.borrow().is_blocked() {
             // Step 6.
             return;
         }
 
-        // The rest will ever run only once per document.
-        if self.loader.borrow().events_inhibited() {
-            return;
-        }
+        assert!(!self.loader.borrow().events_inhibited());
         self.loader.borrow_mut().inhibit_events();
 
+        // The rest will ever run only once per document.
         // Step 7.
         debug!("Document loads are complete.");
         let handler = box DocumentProgressHandler::new(Trusted::new(self));
@@ -1876,7 +1946,13 @@ impl Document {
             Point2D::new(client_point.x + self.window.PageXOffset() as f32,
                          client_point.y + self.window.PageYOffset() as f32);
 
-        self.window.layout().nodes_from_point(page_point, *client_point)
+        if !self.window.reflow(ReflowGoal::ForScriptQuery,
+                               ReflowQueryType::NodesFromPoint(page_point, *client_point),
+                               ReflowReason::Query) {
+            return vec!();
+        };
+
+        self.window.layout().nodes_from_point_response()
     }
 }
 
@@ -1893,6 +1969,7 @@ pub trait LayoutDocumentHelpers {
     unsafe fn needs_paint_from_layout(&self);
     unsafe fn will_paint(&self);
     unsafe fn quirks_mode(&self) -> QuirksMode;
+    unsafe fn style_shared_lock(&self) -> &StyleSharedRwLock;
 }
 
 #[allow(unsafe_code)]
@@ -1929,6 +2006,60 @@ impl LayoutDocumentHelpers for LayoutJS<Document> {
     unsafe fn quirks_mode(&self) -> QuirksMode {
         (*self.unsafe_get()).quirks_mode()
     }
+
+    #[inline]
+    unsafe fn style_shared_lock(&self) -> &StyleSharedRwLock {
+        (*self.unsafe_get()).style_shared_lock()
+    }
+}
+
+// https://html.spec.whatwg.org/multipage/#is-a-registrable-domain-suffix-of-or-is-equal-to
+// The spec says to return a bool, we actually return an Option<Host> containing
+// the parsed host in the successful case, to avoid having to re-parse the host.
+fn get_registrable_domain_suffix_of_or_is_equal_to(host_suffix_string: &str, original_host: Host) -> Option<Host> {
+    // Step 1
+    if host_suffix_string.is_empty() {
+        return None;
+    }
+
+    // Step 2-3.
+    let host = match Host::parse(host_suffix_string) {
+        Ok(host) => host,
+        Err(_) => return None,
+    };
+
+    // Step 4.
+    if host != original_host {
+        // Step 4.1
+        let host = match host {
+            Host::Domain(ref host) => host,
+            _ => return None,
+        };
+        let original_host = match original_host {
+            Host::Domain(ref original_host) => original_host,
+            _ => return None,
+        };
+
+        // Step 4.2
+        let (prefix, suffix) = match original_host.len().checked_sub(host.len()) {
+            Some(index) => original_host.split_at(index),
+            None => return None,
+        };
+        if !prefix.ends_with(".") {
+            return None;
+        }
+        if suffix != host {
+            return None;
+        }
+
+        // Step 4.3
+        if is_pub_domain(host) {
+            return None;
+        }
+    }
+
+    // Step 5
+    Some(host)
 }
 
 /// https://url.spec.whatwg.org/#network-scheme
@@ -1949,7 +2080,7 @@ impl Document {
     pub fn new_inherited(window: &Window,
                          has_browsing_context: HasBrowsingContext,
                          url: Option<ServoUrl>,
-                         origin: Origin,
+                         origin: MutableOrigin,
                          is_html_document: IsHTMLDocument,
                          content_type: Option<DOMString>,
                          last_modified: Option<String>,
@@ -2001,6 +2132,21 @@ impl Document {
             scripts: Default::default(),
             anchors: Default::default(),
             applets: Default::default(),
+            style_shared_lock: {
+                lazy_static! {
+                    /// Per-process shared lock for author-origin stylesheets
+                    ///
+                    /// FIXME: make it per-document or per-pipeline instead:
+                    /// https://github.com/servo/servo/issues/16027
+                    /// (Need to figure out what to do with the style attribute
+                    /// of elements adopted into another document.)
+                    static ref PER_PROCESS_AUTHOR_SHARED_LOCK: StyleSharedRwLock = {
+                        StyleSharedRwLock::new()
+                    };
+                }
+                PER_PROCESS_AUTHOR_SHARED_LOCK.clone()
+                //StyleSharedRwLock::new()
+            },
             stylesheets: DOMRefCell::new(None),
             stylesheets_changed_since_reflow: Cell::new(false),
             stylesheet_list: MutNullableJS::new(None),
@@ -2041,8 +2187,10 @@ impl Document {
             target_element: MutNullableJS::new(None),
             last_click_info: DOMRefCell::new(None),
             ignore_destructive_writes_counter: Default::default(),
+            spurious_animation_frames: Cell::new(0),
             dom_count: Cell::new(1),
             fullscreen_element: MutNullableJS::new(None),
+            form_id_listener_map: Default::default(),
         }
     }
 
@@ -2053,7 +2201,7 @@ impl Document {
         Ok(Document::new(window,
                          HasBrowsingContext::No,
                          None,
-                         doc.origin().alias(),
+                         doc.origin().clone(),
                          IsHTMLDocument::NonHTMLDocument,
                          None,
                          None,
@@ -2067,7 +2215,7 @@ impl Document {
     pub fn new(window: &Window,
                has_browsing_context: HasBrowsingContext,
                url: Option<ServoUrl>,
-               origin: Origin,
+               origin: MutableOrigin,
                doctype: IsHTMLDocument,
                content_type: Option<DOMString>,
                last_modified: Option<String>,
@@ -2128,6 +2276,11 @@ impl Document {
         };
     }
 
+    /// Return a reference to the per-document shared lock used in stylesheets.
+    pub fn style_shared_lock(&self) -> &StyleSharedRwLock {
+        &self.style_shared_lock
+    }
+
     /// Returns the list of stylesheets associated with nodes in the document.
     pub fn stylesheets(&self) -> Vec<Arc<Stylesheet>> {
         self.ensure_stylesheets();
@@ -2154,7 +2307,7 @@ impl Document {
                                         HasBrowsingContext::No,
                                         None,
                                         // https://github.com/whatwg/html/issues/2109
-                                        Origin::opaque_identifier(),
+                                        MutableOrigin::new(ImmutableOrigin::new_opaque()),
                                         doctype,
                                         None,
                                         None,
@@ -2245,6 +2398,12 @@ impl Document {
     pub fn decr_ignore_destructive_writes_counter(&self) {
         self.ignore_destructive_writes_counter.set(
             self.ignore_destructive_writes_counter.get() - 1);
+    }
+
+    /// Whether we've seen so many spurious animation frames (i.e. animation frames that didn't
+    /// mutate the DOM) that we've decided to fall back to fake ones.
+    fn is_faking_animation_frames(&self) -> bool {
+        self.spurious_animation_frames.get() >= SPURIOUS_ANIMATION_FRAME_THRESHOLD
     }
 
     // https://fullscreen.spec.whatwg.org/#dom-element-requestfullscreen
@@ -2350,6 +2509,17 @@ impl Document {
             }
         }
     }
+
+    fn reset_form_owner_for_listeners(&self, id: &Atom) {
+        let map = self.form_id_listener_map.borrow();
+        if let Some(listeners) = map.get(id) {
+            for listener in listeners {
+                listener.r().as_maybe_form_control()
+                        .expect("Element must be a form control")
+                        .reset_form_owner();
+            }
+        }
+    }
 }
 
 
@@ -2408,20 +2578,50 @@ impl DocumentMethods for Document {
         false
     }
 
-    // https://html.spec.whatwg.org/multipage/#relaxing-the-same-origin-restriction
+    // https://html.spec.whatwg.org/multipage/#dom-document-domain
     fn Domain(&self) -> DOMString {
         // Step 1.
-        if self.browsing_context().is_none() {
+        if !self.has_browsing_context {
             return DOMString::new();
         }
 
-        if let Some(host) = self.origin.host() {
-            // Step 4.
-            DOMString::from(host.to_string())
-        } else {
+        // Step 2.
+        match self.origin.effective_domain() {
             // Step 3.
-            DOMString::new()
+            None => DOMString::new(),
+            // Step 4.
+            Some(Host::Domain(domain)) => DOMString::from(domain),
+            Some(host) => DOMString::from(host.to_string()),
         }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-document-domain
+    fn SetDomain(&self, value: DOMString) -> ErrorResult {
+        // Step 1.
+        if !self.has_browsing_context {
+            return Err(Error::Security);
+        }
+
+        // TODO: Step 2. "If this Document object's active sandboxing
+        // flag set has its sandboxed document.domain browsing context
+        // flag set, then throw a "SecurityError" DOMException."
+
+        // Steps 3-4.
+        let effective_domain = match self.origin.effective_domain() {
+            Some(effective_domain) => effective_domain,
+            None => return Err(Error::Security),
+        };
+
+        // Step 5
+        let host = match get_registrable_domain_suffix_of_or_is_equal_to(&*value, effective_domain) {
+            None => return Err(Error::Security),
+            Some(host) => host,
+        };
+
+        // Step 6
+        self.origin.set_domain(host);
+
+        Ok(())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-referrer
@@ -2709,8 +2909,7 @@ impl DocumentMethods for Document {
             "progressevent" =>
                 Ok(Root::upcast(ProgressEvent::new_uninitialized(self.window.upcast()))),
             "storageevent" => {
-                let USVString(url) = self.URL();
-                Ok(Root::upcast(StorageEvent::new_uninitialized(&self.window, DOMString::from(url))))
+                Ok(Root::upcast(StorageEvent::new_uninitialized(&self.window, "".into())))
             },
             "touchevent" =>
                 Ok(Root::upcast(
@@ -3077,7 +3276,7 @@ impl DocumentMethods for Document {
             return Ok(DOMString::new());
         }
 
-        if !self.origin.is_scheme_host_port_tuple() {
+        if !self.origin.is_tuple() {
             return Err(Error::Security);
         }
 
@@ -3097,19 +3296,19 @@ impl DocumentMethods for Document {
             return Ok(());
         }
 
-        if !self.origin.is_scheme_host_port_tuple() {
+        if !self.origin.is_tuple() {
             return Err(Error::Security);
         }
 
-        let header = Header::parse_header(&[cookie.into()]);
-        if let Ok(SetCookie(cookies)) = header {
-            let cookies = cookies.into_iter().map(Serde).collect();
+        if let Ok(cookie_header) = SetCookie::parse_header(&vec![cookie.to_string().into_bytes()]) {
+            let cookies = cookie_header.0.into_iter().filter_map(|cookie| {
+                cookie_rs::Cookie::parse(cookie).ok().map(Serde)
+            }).collect();
             let _ = self.window
-                        .upcast::<GlobalScope>()
-                        .resource_threads()
-                        .send(SetCookiesForUrl(self.url(), cookies, NonHTTP));
+                    .upcast::<GlobalScope>()
+                    .resource_threads()
+                    .send(SetCookiesForUrl(self.url(), cookies, NonHTTP));
         }
-
         Ok(())
     }
 
@@ -3251,7 +3450,7 @@ impl DocumentMethods for Document {
         let y = *y as f32;
         let point = &Point2D::new(x, y);
         let window = window_from_node(self);
-        let viewport = window.window_size().unwrap().visible_viewport;
+        let viewport = window.window_size().unwrap().initial_viewport;
 
         if self.browsing_context().is_none() {
             return None;
@@ -3284,7 +3483,7 @@ impl DocumentMethods for Document {
         let y = *y as f32;
         let point = &Point2D::new(x, y);
         let window = window_from_node(self);
-        let viewport = window.window_size().unwrap().visible_viewport;
+        let viewport = window.window_size().unwrap().initial_viewport;
 
         if self.browsing_context().is_none() {
             return vec!();
@@ -3332,6 +3531,9 @@ impl DocumentMethods for Document {
 
         let entry_responsible_document = GlobalScope::entry().as_window().Document();
 
+        // This check is same-origin not same-origin-domain.
+        // https://github.com/whatwg/html/issues/2282
+        // https://github.com/whatwg/html/pull/2288
         if !self.origin.same_origin(&entry_responsible_document.origin) {
             // Step 4.
             return Err(Error::Security);
@@ -3659,6 +3861,26 @@ pub enum FocusType {
 pub enum FocusEventType {
     Focus,      // Element gained focus. Doesn't bubble.
     Blur,       // Element lost focus. Doesn't bubble.
+}
+
+/// A fake `requestAnimationFrame()` callback—"fake" because it is not triggered by the video
+/// refresh but rather a simple timer.
+///
+/// If the page is observed to be using `requestAnimationFrame()` for non-animation purposes (i.e.
+/// without mutating the DOM), then we fall back to simple timeouts to save energy over video
+/// refresh.
+#[derive(JSTraceable, HeapSizeOf)]
+pub struct FakeRequestAnimationFrameCallback {
+    /// The document.
+    #[ignore_heap_size_of = "non-owning"]
+    document: Trusted<Document>,
+}
+
+impl FakeRequestAnimationFrameCallback {
+    pub fn invoke(self) {
+        let document = self.document.root();
+        document.run_the_animation_frame_callbacks();
+    }
 }
 
 #[derive(HeapSizeOf, JSTraceable)]

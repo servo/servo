@@ -9,6 +9,7 @@ use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::{DOMString, USVString};
 use dom::urlhelper::UrlHelper;
 use dom::workerglobalscope::WorkerGlobalScope;
+use dom_struct::dom_struct;
 use servo_url::ServoUrl;
 
 // https://html.spec.whatwg.org/multipage/#worker-locations

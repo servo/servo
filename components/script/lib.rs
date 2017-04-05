@@ -6,12 +6,12 @@
 #![feature(conservative_impl_trait)]
 #![feature(const_fn)]
 #![feature(core_intrinsics)]
-#![feature(field_init_shorthand)]
 #![feature(mpsc_select)]
 #![feature(nonzero)]
 #![feature(on_unimplemented)]
 #![feature(optin_builtin_traits)]
 #![feature(plugin)]
+#![feature(proc_macro)]
 #![feature(slice_patterns)]
 #![feature(stmt_expr_attributes)]
 #![feature(try_from)]
@@ -22,13 +22,13 @@
 
 #![doc = "The script crate contains all matters DOM."]
 
-#![plugin(plugins)]
 #![plugin(script_plugins)]
 
 extern crate angle;
 extern crate app_units;
 extern crate atomic_refcell;
 extern crate audio_video_metadata;
+extern crate base64;
 #[macro_use]
 extern crate bitflags;
 extern crate bluetooth_traits;
@@ -37,11 +37,10 @@ extern crate canvas_traits;
 extern crate caseless;
 extern crate cookie as cookie_rs;
 extern crate core;
-#[macro_use]
-extern crate cssparser;
-#[macro_use]
-extern crate deny_public_fields;
+#[macro_use] extern crate cssparser;
+#[macro_use] extern crate deny_public_fields;
 extern crate devtools_traits;
+extern crate dom_struct;
 #[macro_use]
 extern crate domobject_derive;
 extern crate encoding;
@@ -61,6 +60,8 @@ extern crate ipc_channel;
 extern crate js;
 #[macro_use]
 extern crate jstraceable_derive;
+#[macro_use]
+extern crate lazy_static;
 extern crate libc;
 #[macro_use]
 extern crate log;
@@ -80,7 +81,6 @@ extern crate range;
 extern crate ref_filter_map;
 extern crate ref_slice;
 extern crate regex;
-extern crate rustc_serialize;
 extern crate script_layout_interface;
 extern crate script_traits;
 extern crate selectors;
@@ -101,7 +101,6 @@ extern crate unicode_segmentation;
 extern crate url;
 extern crate uuid;
 extern crate webrender_traits;
-extern crate websocket;
 extern crate webvr_traits;
 extern crate xml5ever;
 
@@ -112,11 +111,11 @@ pub mod document_loader;
 #[macro_use]
 mod dom;
 pub mod fetch;
+mod layout_image;
 pub mod layout_wrapper;
 mod mem;
 mod microtask;
 mod network_listener;
-pub mod origin;
 pub mod script_runtime;
 #[allow(unsafe_code)]
 pub mod script_thread;

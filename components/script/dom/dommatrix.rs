@@ -10,6 +10,7 @@ use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::dommatrixreadonly::{dommatrixinit_to_matrix, DOMMatrixReadOnly, entries_to_matrix};
 use dom::globalscope::GlobalScope;
+use dom_struct::dom_struct;
 use euclid::Matrix4D;
 
 

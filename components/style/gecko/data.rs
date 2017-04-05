@@ -11,17 +11,14 @@ use gecko_bindings::bindings::RawServoStyleSet;
 use gecko_bindings::structs::RawGeckoPresContextOwned;
 use gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
 use media_queries::Device;
-use num_cpus;
 use parking_lot::RwLock;
 use properties::ComputedValues;
-use rayon;
-use std::cmp;
+use shared_lock::{Locked, StylesheetGuards, SharedRwLockReadGuard};
 use std::collections::HashMap;
-use std::env;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, channel};
-use stylesheets::Stylesheet;
-use stylist::Stylist;
+use stylesheets::{FontFaceRule, Origin, Stylesheet};
+use stylist::{ExtraStyleData, Stylist};
 
 /// The container for data that a Servo-backed Gecko document needs to style
 /// itself.
@@ -49,27 +46,13 @@ pub struct PerDocumentStyleDataImpl {
     /// animations properly.
     pub expired_animations: Arc<RwLock<HashMap<OpaqueNode, Vec<Animation>>>>,
 
-    /// The worker thread pool.
-    /// FIXME(bholley): This shouldn't be per-document.
-    pub work_queue: Option<rayon::ThreadPool>,
-
-    /// The number of threads of the work queue.
-    pub num_threads: usize,
+    /// List of effective font face rules.
+    pub font_faces: Vec<(Arc<Locked<FontFaceRule>>, Origin)>,
 }
 
 /// The data itself is an `AtomicRefCell`, which guarantees the proper semantics
 /// and unexpected races while trying to mutate it.
 pub struct PerDocumentStyleData(AtomicRefCell<PerDocumentStyleDataImpl>);
-
-lazy_static! {
-    /// The number of layout threads, computed statically.
-    pub static ref NUM_THREADS: usize = {
-        match env::var("STYLO_THREADS").map(|s| s.parse::<usize>().expect("invalid STYLO_THREADS")) {
-            Ok(num) => num,
-            _ => cmp::max(num_cpus::get() * 3 / 4, 1),
-        }
-    };
-}
 
 impl PerDocumentStyleData {
     /// Create a dummy `PerDocumentStyleData`.
@@ -86,14 +69,7 @@ impl PerDocumentStyleData {
             new_animations_receiver: new_anims_receiver,
             running_animations: Arc::new(RwLock::new(HashMap::new())),
             expired_animations: Arc::new(RwLock::new(HashMap::new())),
-            work_queue: if *NUM_THREADS <= 1 {
-                None
-            } else {
-                let configuration =
-                    rayon::Configuration::new().set_num_threads(*NUM_THREADS);
-                rayon::ThreadPool::new(configuration).ok()
-            },
-            num_threads: *NUM_THREADS,
+            font_faces: vec![],
         }))
     }
 
@@ -112,27 +88,31 @@ impl PerDocumentStyleDataImpl {
     /// Reset the device state because it may have changed.
     ///
     /// Implies also a stylesheet flush.
-    pub fn reset_device(&mut self) {
+    pub fn reset_device(&mut self, guard: &SharedRwLockReadGuard) {
         {
             let mut stylist = Arc::get_mut(&mut self.stylist).unwrap();
             Arc::get_mut(&mut stylist.device).unwrap().reset();
         }
         self.stylesheets_changed = true;
-        self.flush_stylesheets();
+        self.flush_stylesheets(guard);
     }
 
     /// Recreate the style data if the stylesheets have changed.
-    pub fn flush_stylesheets(&mut self) {
+    pub fn flush_stylesheets(&mut self, guard: &SharedRwLockReadGuard) {
         if self.stylesheets_changed {
             let mut stylist = Arc::get_mut(&mut self.stylist).unwrap();
-            stylist.update(&self.stylesheets, None, true);
+            let mut extra_data = ExtraStyleData {
+                font_faces: &mut self.font_faces,
+            };
+            stylist.update(&self.stylesheets, &StylesheetGuards::same(guard),
+                           None, true, &mut extra_data);
             self.stylesheets_changed = false;
         }
     }
 
     /// Get the default computed values for this document.
     pub fn default_computed_values(&self) -> &Arc<ComputedValues> {
-        self.stylist.device.default_values_arc()
+        self.stylist.device.default_computed_values_arc()
     }
 }
 
@@ -141,9 +121,3 @@ unsafe impl HasFFI for PerDocumentStyleData {
 }
 unsafe impl HasSimpleFFI for PerDocumentStyleData {}
 unsafe impl HasBoxFFI for PerDocumentStyleData {}
-
-impl Drop for PerDocumentStyleDataImpl {
-    fn drop(&mut self) {
-        let _ = self.work_queue.take();
-    }
-}

@@ -21,6 +21,7 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{Node, UnbindContext, document_from_node, window_from_node};
 use dom::stylesheet::StyleSheet as DOMStyleSheet;
 use dom::virtualmethods::VirtualMethods;
+use dom_struct::dom_struct;
 use html5ever_atoms::LocalName;
 use net_traits::ReferrerPolicy;
 use script_traits::{MozBrowserEvent, ScriptMsg as ConstellationMsg};
@@ -290,9 +291,8 @@ impl HTMLLinkElement {
         // doesn't match.
         let loader = StylesheetLoader::for_element(self.upcast());
         loader.load(StylesheetContextSource::LinkElement {
-            url: url,
             media: Some(media),
-        }, cors_setting, integrity_metadata.to_owned());
+        }, url, cors_setting, integrity_metadata.to_owned());
     }
 
     fn handle_favicon_url(&self, rel: &str, href: &str, sizes: &Option<String>) {

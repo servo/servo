@@ -3,31 +3,34 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::Parser;
-use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
 use media_queries::CSSErrorReporterTest;
 use servo_config::prefs::{PREFS, PrefValue};
 use servo_url::ServoUrl;
-use style::error_reporting::ParseErrorReporter;
 use style::media_queries::{Device, MediaType};
-use style::parser::{ParserContext, ParserContextExtraData};
+use style::parser::ParserContext;
+use style::shared_lock::SharedRwLock;
 use style::stylesheets::{Stylesheet, Origin};
 use style::values::specified::LengthOrPercentageOrAuto::{self, Auto};
 use style::values::specified::NoCalcLength::{self, ViewportPercentage};
 use style::values::specified::ViewportPercentageLength::Vw;
 use style::viewport::*;
+use style_traits::PinchZoomFactor;
 use style_traits::viewport::*;
 
 macro_rules! stylesheet {
     ($css:expr, $origin:ident, $error_reporter:expr) => {
+        stylesheet!($css, $origin, $error_reporter, SharedRwLock::new())
+    };
+    ($css:expr, $origin:ident, $error_reporter:expr, $shared_lock:expr) => {
         Box::new(Stylesheet::from_str(
             $css,
             ServoUrl::parse("http://localhost").unwrap(),
             Origin::$origin,
             Default::default(),
+            $shared_lock,
             None,
-            $error_reporter,
-            ParserContextExtraData::default()
+            &$error_reporter
         ))
     }
 }
@@ -38,9 +41,9 @@ fn test_viewport_rule<F>(css: &str,
     where F: Fn(&Vec<ViewportDescriptorDeclaration>, &str)
 {
     PREFS.set("layout.viewport.enabled", PrefValue::Boolean(true));
-    let stylesheet = stylesheet!(css, Author, Box::new(CSSErrorReporterTest));
+    let stylesheet = stylesheet!(css, Author, CSSErrorReporterTest);
     let mut rule_count = 0;
-    stylesheet.effective_viewport_rules(&device, |rule| {
+    stylesheet.effective_viewport_rules(&device, &stylesheet.shared_lock.read(), |rule| {
         rule_count += 1;
         callback(&rule.declarations, css);
     });
@@ -252,24 +255,31 @@ fn multiple_stylesheets_cascading() {
     PREFS.set("layout.viewport.enabled", PrefValue::Boolean(true));
     let device = Device::new(MediaType::Screen, TypedSize2D::new(800., 600.));
     let error_reporter = CSSErrorReporterTest;
+    let shared_lock = SharedRwLock::new();
     let stylesheets = vec![
-        stylesheet!("@viewport { min-width: 100px; min-height: 100px; zoom: 1; }", UserAgent, error_reporter.clone()),
-        stylesheet!("@viewport { min-width: 200px; min-height: 200px; }", User, error_reporter.clone()),
-        stylesheet!("@viewport { min-width: 300px; }", Author, error_reporter.clone())];
+        stylesheet!("@viewport { min-width: 100px; min-height: 100px; zoom: 1; }",
+                    UserAgent, error_reporter, shared_lock.clone()),
+        stylesheet!("@viewport { min-width: 200px; min-height: 200px; }",
+                    User, error_reporter, shared_lock.clone()),
+        stylesheet!("@viewport { min-width: 300px; }",
+                    Author, error_reporter, shared_lock.clone())
+    ];
 
-    let declarations = Cascade::from_stylesheets(&stylesheets, &device).finish();
+    let declarations = Cascade::from_stylesheets(&stylesheets, &shared_lock.read(), &device).finish();
     assert_decl_len!(declarations == 3);
     assert_decl_eq!(&declarations[0], UserAgent, Zoom: Zoom::Number(1.));
     assert_decl_eq!(&declarations[1], User, MinHeight: viewport_length!(200., px));
     assert_decl_eq!(&declarations[2], Author, MinWidth: viewport_length!(300., px));
 
     let stylesheets = vec![
-        stylesheet!("@viewport { min-width: 100px !important; }", UserAgent, error_reporter.clone()),
+        stylesheet!("@viewport { min-width: 100px !important; }",
+                    UserAgent, error_reporter, shared_lock.clone()),
         stylesheet!("@viewport { min-width: 200px !important; min-height: 200px !important; }",
-        User, error_reporter.clone()),
+                    User, error_reporter, shared_lock.clone()),
         stylesheet!("@viewport { min-width: 300px !important; min-height: 300px !important; zoom: 3 !important; }",
-        Author, error_reporter.clone())];
-    let declarations = Cascade::from_stylesheets(&stylesheets, &device).finish();
+                    Author, error_reporter, shared_lock.clone())
+    ];
+    let declarations = Cascade::from_stylesheets(&stylesheets, &shared_lock.read(), &device).finish();
     assert_decl_len!(declarations == 3);
     assert_decl_eq!(&declarations[0], UserAgent, MinWidth: viewport_length!(100., px), !important);
     assert_decl_eq!(&declarations[1], User, MinHeight: viewport_length!(200., px), !important);
@@ -279,7 +289,8 @@ fn multiple_stylesheets_cascading() {
 #[test]
 fn constrain_viewport() {
     let url = ServoUrl::parse("http://localhost").unwrap();
-    let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
+    let reporter = CSSErrorReporterTest;
+    let context = ParserContext::new(Origin::Author, &url, &reporter);
 
     macro_rules! from_css {
         ($css:expr) => {
@@ -295,7 +306,7 @@ fn constrain_viewport() {
                Some(ViewportConstraints {
                    size: initial_viewport,
 
-                   initial_zoom: ScaleFactor::new(1.),
+                   initial_zoom: PinchZoomFactor::new(1.),
                    min_zoom: None,
                    max_zoom: None,
 
@@ -307,7 +318,7 @@ fn constrain_viewport() {
                Some(ViewportConstraints {
                    size: initial_viewport,
 
-                   initial_zoom: ScaleFactor::new(1.),
+                   initial_zoom: PinchZoomFactor::new(1.),
                    min_zoom: None,
                    max_zoom: None,
 
@@ -322,7 +333,7 @@ fn constrain_viewport() {
                Some(ViewportConstraints {
                    size: initial_viewport,
 
-                   initial_zoom: ScaleFactor::new(1.),
+                   initial_zoom: PinchZoomFactor::new(1.),
                    min_zoom: None,
                    max_zoom: None,
 
@@ -336,7 +347,7 @@ fn constrain_viewport() {
                Some(ViewportConstraints {
                    size: TypedSize2D::new(320., 240.),
 
-                   initial_zoom: ScaleFactor::new(1.),
+                   initial_zoom: PinchZoomFactor::new(1.),
                    min_zoom: None,
                    max_zoom: None,
 

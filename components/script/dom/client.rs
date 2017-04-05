@@ -9,6 +9,7 @@ use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::{DOMString, USVString};
 use dom::serviceworker::ServiceWorker;
 use dom::window::Window;
+use dom_struct::dom_struct;
 use servo_url::ServoUrl;
 use std::default::Default;
 use uuid::Uuid;

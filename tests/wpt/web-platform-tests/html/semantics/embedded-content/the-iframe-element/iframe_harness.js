@@ -1,15 +1,16 @@
 function get_test_results(id) {
     async_test(function(test) {
-        var timer = window.setInterval(test.step_func(loop), 100);
+        test.step_timeout(loop, 100);
         function loop() {
             var xhr = new XMLHttpRequest();
             xhr.open('GET', 'stash.py?id=' + id);
-            xhr.onreadystatechange = test.step_func(function() {
+            xhr.onload = test.step_func(function() {
                 assert_equals(xhr.status, 200);
                 if (xhr.responseText) {
                     assert_equals(xhr.responseText, "OK");
                     test.done();
-                    window.clearTimeout(timer);
+                } else {
+                    test.step_timeout(loop, 100);
                 }
             });
             xhr.send();

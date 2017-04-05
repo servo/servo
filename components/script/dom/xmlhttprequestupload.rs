@@ -7,6 +7,7 @@ use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::globalscope::GlobalScope;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
+use dom_struct::dom_struct;
 
 #[dom_struct]
 pub struct XMLHttpRequestUpload {

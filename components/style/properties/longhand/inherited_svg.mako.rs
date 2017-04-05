@@ -22,12 +22,12 @@ ${helpers.single_keyword("text-anchor",
 
 // Section 11 - Painting: Filling, Stroking and Marker Symbols
 ${helpers.single_keyword("color-interpolation",
-                         "auto sRGB linearRGB",
+                         "srgb auto linearrgb",
                          products="gecko",
                          animatable=False,
                          spec="https://www.w3.org/TR/SVG11/painting.html#ColorInterpolationProperty")}
 
-${helpers.single_keyword("color-interpolation-filters", "auto sRGB linearRGB",
+${helpers.single_keyword("color-interpolation-filters", "linearrgb auto srgb",
                          products="gecko",
                          gecko_constant_prefix="NS_STYLE_COLOR_INTERPOLATION",
                          animatable=False,
@@ -52,7 +52,7 @@ ${helpers.single_keyword("fill-rule", "nonzero evenodd",
                          spec="https://www.w3.org/TR/SVG11/painting.html#FillRuleProperty")}
 
 ${helpers.single_keyword("shape-rendering",
-                         "auto optimizeSpeed crispEdges geometricPrecision",
+                         "auto optimizespeed crispedges geometricprecision",
                          products="gecko",
                          animatable=False,
                          spec="https://www.w3.org/TR/SVG11/painting.html#ShapeRenderingProperty")}
@@ -92,7 +92,9 @@ ${helpers.predefined_type("stroke-opacity", "Opacity", "1.0",
                           products="gecko", animatable=False,
                           spec="https://www.w3.org/TR/SVG11/painting.html#StrokeOpacityProperty")}
 
-${helpers.predefined_type("stroke-dasharray", "LoPOrNumber", "Either::Second(0.0)",
+${helpers.predefined_type("stroke-dasharray",
+                          "LengthOrPercentageOrNumber",
+                          "Either::Second(0.0)",
                           "parse_non_negative",
                           vector="True",
                           products="gecko",
@@ -196,7 +198,7 @@ ${helpers.predefined_type("marker-end", "UrlOrNone", "Either::Second(None_)",
             loop {
 
                 let result = input.try(|i| {
-                    match_ignore_ascii_case! { i.expect_ident()?,
+                    match_ignore_ascii_case! { &i.expect_ident()?,
                         "fill" => Ok(FILL),
                         "stroke" => Ok(STROKE),
                         "markers" => Ok(MARKERS),

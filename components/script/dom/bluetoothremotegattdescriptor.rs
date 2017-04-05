@@ -19,6 +19,7 @@ use dom::bluetooth::{AsyncBluetoothListener, response_async};
 use dom::bluetoothremotegattcharacteristic::{BluetoothRemoteGATTCharacteristic, MAXIMUM_ATTRIBUTE_LENGTH};
 use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
+use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use js::jsapi::JSContext;
 use std::rc::Rc;

@@ -34,14 +34,15 @@ use dom::webglshader::WebGLShader;
 use dom::webgltexture::{TexParameterValue, WebGLTexture};
 use dom::webgluniformlocation::WebGLUniformLocation;
 use dom::window::Window;
+use dom_struct::dom_struct;
 use euclid::size::Size2D;
 use ipc_channel::ipc::{self, IpcSender};
 use js::conversions::ConversionBehavior;
-use js::jsapi::{JSContext, JSObject, JS_GetArrayBufferViewType, Type, Rooted};
+use js::jsapi::{JSContext, JSObject, Type, Rooted};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue, UndefinedValue};
 use js::typedarray::{TypedArray, TypedArrayElement, Float32, Int32};
 use net_traits::image::base::PixelFormat;
-use net_traits::image_cache_thread::ImageResponse;
+use net_traits::image_cache::ImageResponse;
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use script_traits::ScriptMsg as ConstellationMsg;
 use std::cell::Cell;
@@ -2080,8 +2081,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
 
         typedarray!(in(cx) let mut pixels_data: ArrayBufferView = pixels);
-        let mut data = match { pixels_data.as_mut() } {
-            Ok(data) => data.as_mut_slice(),
+        let (array_type, mut data) = match { pixels_data.as_mut() } {
+            Ok(data) => (data.get_array_type(), data.as_mut_slice()),
             Err(_) => return Err(Error::Type("Not an ArrayBufferView".to_owned())),
         };
 
@@ -2089,7 +2090,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return Ok(());
         }
 
-        match { JS_GetArrayBufferViewType(pixels) } {
+        match array_type {
             Type::Uint8 => (),
             _ => return Ok(self.webgl_error(InvalidOperation)),
         }

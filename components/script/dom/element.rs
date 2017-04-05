@@ -19,13 +19,14 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::UnionTypes::NodeOrString;
+use dom::bindings::conversions::DerivedFrom;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::js::{JS, LayoutJS, MutNullableJS};
 use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::DomObject;
-use dom::bindings::str::DOMString;
+use dom::bindings::str::{DOMString, extended_filtering};
 use dom::bindings::xmlname::{namespace_from_domstring, validate_and_extract, xml_name_type};
 use dom::bindings::xmlname::XMLName::InvalidXMLName;
 use dom::characterdata::CharacterData;
@@ -44,6 +45,7 @@ use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElement;
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlfontelement::{HTMLFontElement, HTMLFontElementLayoutHelpers};
+use dom::htmlformelement::FormControlElementHelpers;
 use dom::htmlhrelement::{HTMLHRElement, HTMLHRLayoutHelpers};
 use dom::htmliframeelement::{HTMLIFrameElement, HTMLIFrameElementLayoutMethods};
 use dom::htmlimageelement::{HTMLImageElement, LayoutHTMLImageElementHelpers};
@@ -72,6 +74,7 @@ use dom::text::Text;
 use dom::validation::Validatable;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
 use dom::window::ReflowReason;
+use dom_struct::dom_struct;
 use html5ever::serialize;
 use html5ever::serialize::SerializeOpts;
 use html5ever::serialize::TraversalScope;
@@ -79,11 +82,10 @@ use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
 use html5ever_atoms::{Prefix, LocalName, Namespace, QualName};
 use js::jsapi::{HandleValue, JSAutoCompartment};
 use net_traits::request::CorsSettings;
-use parking_lot::RwLock;
 use ref_filter_map::ref_filter_map;
 use script_layout_interface::message::ReflowQueryType;
 use script_thread::Runnable;
-use selectors::matching::{ElementSelectorFlags, matches};
+use selectors::matching::{ElementSelectorFlags, StyleRelations, matches};
 use selectors::matching::{HAS_EDGE_CHILD_SELECTOR, HAS_SLOW_SELECTOR, HAS_SLOW_SELECTOR_LATER_SIBLINGS};
 use selectors::parser::{AttrSelector, NamespaceConstraint};
 use servo_atoms::Atom;
@@ -99,18 +101,17 @@ use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::context::{QuirksMode, ReflowGoal};
 use style::element_state::*;
 use style::matching::{common_style_affecting_attributes, rare_style_affecting_attributes};
-use style::parser::ParserContextExtraData;
-use style::properties::{DeclaredValue, Importance};
-use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, parse_style_attribute};
-use style::properties::longhands::{background_image, border_spacing, font_family, font_size, overflow_x};
+use style::properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock, parse_style_attribute};
+use style::properties::longhands::{self, background_image, border_spacing, font_family, font_size, overflow_x};
 use style::restyle_hints::RESTYLE_SELF;
 use style::rule_tree::CascadeLevel;
 use style::selector_parser::{NonTSPseudoClass, RestyleDamage, SelectorImpl, SelectorParser};
+use style::shared_lock::{SharedRwLock, Locked};
 use style::sink::Push;
 use style::stylist::ApplicableDeclarationBlock;
 use style::thread_state;
 use style::values::CSSFloat;
-use style::values::specified::{self, CSSColor, CSSRGBA};
+use style::values::specified::{self, CSSColor};
 use stylesheet_loader::StylesheetOwner;
 
 // TODO: Update focus state when the top-level browsing context gains or loses system focus,
@@ -127,7 +128,7 @@ pub struct Element {
     attrs: DOMRefCell<Vec<JS<Attr>>>,
     id_attribute: DOMRefCell<Option<Atom>>,
     #[ignore_heap_size_of = "Arc"]
-    style_attribute: DOMRefCell<Option<Arc<RwLock<PropertyDeclarationBlock>>>>,
+    style_attribute: DOMRefCell<Option<Arc<Locked<PropertyDeclarationBlock>>>>,
     attr_list: MutNullableJS<NamedNodeMap>,
     class_list: MutNullableJS<DOMTokenList>,
     state: Cell<ElementState>,
@@ -178,9 +179,9 @@ pub enum AdjacentPosition {
 }
 
 impl<'a> TryFrom<&'a str> for AdjacentPosition {
-    type Err = Error;
+    type Error = Error;
 
-    fn try_from(position: &'a str) -> Result<AdjacentPosition, Self::Err> {
+    fn try_from(position: &'a str) -> Result<AdjacentPosition, Self::Error> {
         match_ignore_ascii_case! { &*position,
             "beforebegin" => Ok(AdjacentPosition::BeforeBegin),
             "afterbegin"  => Ok(AdjacentPosition::AfterBegin),
@@ -350,9 +351,10 @@ pub trait LayoutElementHelpers {
     #[allow(unsafe_code)]
     unsafe fn html_element_in_html_document_for_layout(&self) -> bool;
     fn id_attribute(&self) -> *const Option<Atom>;
-    fn style_attribute(&self) -> *const Option<Arc<RwLock<PropertyDeclarationBlock>>>;
+    fn style_attribute(&self) -> *const Option<Arc<Locked<PropertyDeclarationBlock>>>;
     fn local_name(&self) -> &LocalName;
     fn namespace(&self) -> &Namespace;
+    fn get_lang_for_layout(&self) -> String;
     fn get_checked_state_for_layout(&self) -> bool;
     fn get_indeterminate_state_for_layout(&self) -> bool;
     fn get_state_for_layout(&self) -> ElementState;
@@ -381,14 +383,17 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         where V: Push<ApplicableDeclarationBlock>
     {
         #[inline]
-        fn from_declaration(declaration: PropertyDeclaration) -> ApplicableDeclarationBlock {
+        fn from_declaration(shared_lock: &SharedRwLock, declaration: PropertyDeclaration)
+                            -> ApplicableDeclarationBlock {
             ApplicableDeclarationBlock::from_declarations(
-                Arc::new(RwLock::new(PropertyDeclarationBlock {
-                    declarations: vec![(declaration, Importance::Normal)],
-                    important_count: 0,
-                })),
+                Arc::new(shared_lock.wrap(PropertyDeclarationBlock::with_one(
+                    declaration, Importance::Normal
+                ))),
                 CascadeLevel::PresHints)
         }
+
+        let document = self.upcast::<Node>().owner_doc_for_layout();
+        let shared_lock = document.style_shared_lock();
 
         let bgcolor = if let Some(this) = self.downcast::<HTMLBodyElement>() {
             this.get_background_color()
@@ -406,8 +411,9 @@ impl LayoutElementHelpers for LayoutJS<Element> {
 
         if let Some(color) = bgcolor {
             hints.push(from_declaration(
-                PropertyDeclaration::BackgroundColor(DeclaredValue::Value(
-                    CSSColor { parsed: Color::RGBA(color), authored: None }))));
+                shared_lock,
+                PropertyDeclaration::BackgroundColor(
+                    CSSColor { parsed: Color::RGBA(color), authored: None })));
         }
 
         let background = if let Some(this) = self.downcast::<HTMLBodyElement>() {
@@ -418,12 +424,13 @@ impl LayoutElementHelpers for LayoutJS<Element> {
 
         if let Some(url) = background {
             hints.push(from_declaration(
-                PropertyDeclaration::BackgroundImage(DeclaredValue::Value(
+                shared_lock,
+                PropertyDeclaration::BackgroundImage(
                     background_image::SpecifiedValue(vec![
                         background_image::single_value::SpecifiedValue(Some(
-                            specified::Image::for_cascade(url.into(), specified::url::UrlExtraData { })
+                            specified::Image::for_cascade(url.into())
                         ))
-                    ])))));
+                    ]))));
         }
 
         let color = if let Some(this) = self.downcast::<HTMLFontElement>() {
@@ -440,10 +447,14 @@ impl LayoutElementHelpers for LayoutJS<Element> {
 
         if let Some(color) = color {
             hints.push(from_declaration(
-                PropertyDeclaration::Color(DeclaredValue::Value(CSSRGBA {
-                    parsed: color,
-                    authored: None,
-                }))));
+                shared_lock,
+                PropertyDeclaration::Color(
+                    longhands::color::SpecifiedValue(CSSColor {
+                        parsed: Color::RGBA(color),
+                        authored: None,
+                    })
+                )
+            ));
         }
 
         let font_family = if let Some(this) = self.downcast::<HTMLFontElement>() {
@@ -454,20 +465,22 @@ impl LayoutElementHelpers for LayoutJS<Element> {
 
         if let Some(font_family) = font_family {
             hints.push(from_declaration(
+                shared_lock,
                 PropertyDeclaration::FontFamily(
-                    DeclaredValue::Value(
                         font_family::computed_value::T(vec![
                             font_family::computed_value::FontFamily::from_atom(
-                                font_family)])))));
+                                font_family)]))));
         }
 
         let font_size = self.downcast::<HTMLFontElement>().and_then(|this| this.get_size());
 
         if let Some(font_size) = font_size {
             hints.push(from_declaration(
+                shared_lock,
                 PropertyDeclaration::FontSize(
-                    DeclaredValue::Value(
-                        font_size::SpecifiedValue(font_size.into())))))
+                    font_size::SpecifiedValue::from_html_size(font_size as u8)
+                )
+            ))
         }
 
         let cellspacing = if let Some(this) = self.downcast::<HTMLTableElement>() {
@@ -479,11 +492,12 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         if let Some(cellspacing) = cellspacing {
             let width_value = specified::Length::from_px(cellspacing as f32);
             hints.push(from_declaration(
-                PropertyDeclaration::BorderSpacing(DeclaredValue::Value(
+                shared_lock,
+                PropertyDeclaration::BorderSpacing(
                     Box::new(border_spacing::SpecifiedValue {
-                        horizontal: width_value.clone(),
-                        vertical: width_value,
-                    })))));
+                        horizontal: width_value,
+                        vertical: None,
+                    }))));
         }
 
 
@@ -512,8 +526,9 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         if let Some(size) = size {
             let value = specified::NoCalcLength::ServoCharacterWidth(specified::CharacterWidth(size));
             hints.push(from_declaration(
-                PropertyDeclaration::Width(DeclaredValue::Value(
-                    specified::LengthOrPercentageOrAuto::Length(value)))));
+                shared_lock,
+                PropertyDeclaration::Width(
+                    specified::LengthOrPercentageOrAuto::Length(value))));
         }
 
         let width = if let Some(this) = self.downcast::<HTMLIFrameElement>() {
@@ -537,13 +552,15 @@ impl LayoutElementHelpers for LayoutJS<Element> {
                 let width_value =
                     specified::LengthOrPercentageOrAuto::Percentage(specified::Percentage(percentage));
                 hints.push(from_declaration(
-                    PropertyDeclaration::Width(DeclaredValue::Value(width_value))));
+                    shared_lock,
+                    PropertyDeclaration::Width(width_value)));
             }
             LengthOrPercentageOrAuto::Length(length) => {
                 let width_value = specified::LengthOrPercentageOrAuto::Length(
                     specified::NoCalcLength::Absolute(length));
                 hints.push(from_declaration(
-                    PropertyDeclaration::Width(DeclaredValue::Value(width_value))));
+                    shared_lock,
+                    PropertyDeclaration::Width(width_value)));
             }
         }
 
@@ -562,13 +579,15 @@ impl LayoutElementHelpers for LayoutJS<Element> {
                 let height_value =
                     specified::LengthOrPercentageOrAuto::Percentage(specified::Percentage(percentage));
                 hints.push(from_declaration(
-                    PropertyDeclaration::Height(DeclaredValue::Value(height_value))));
+                    shared_lock,
+                    PropertyDeclaration::Height(height_value)));
             }
             LengthOrPercentageOrAuto::Length(length) => {
                 let height_value = specified::LengthOrPercentageOrAuto::Length(
                     specified::NoCalcLength::Absolute(length));
                 hints.push(from_declaration(
-                    PropertyDeclaration::Height(DeclaredValue::Value(height_value))));
+                    shared_lock,
+                    PropertyDeclaration::Height(height_value)));
             }
         }
 
@@ -590,8 +609,8 @@ impl LayoutElementHelpers for LayoutJS<Element> {
             // https://html.spec.whatwg.org/multipage/#textarea-effective-width
             let value = specified::NoCalcLength::ServoCharacterWidth(specified::CharacterWidth(cols));
             hints.push(from_declaration(
-                PropertyDeclaration::Width(DeclaredValue::Value(
-                    specified::LengthOrPercentageOrAuto::Length(value)))));
+                shared_lock,
+                PropertyDeclaration::Width(specified::LengthOrPercentageOrAuto::Length(value))));
         }
 
         let rows = if let Some(this) = self.downcast::<HTMLTextAreaElement>() {
@@ -609,8 +628,8 @@ impl LayoutElementHelpers for LayoutJS<Element> {
             // https://html.spec.whatwg.org/multipage/#textarea-effective-height
             let value = specified::NoCalcLength::FontRelative(specified::FontRelativeLength::Em(rows as CSSFloat));
             hints.push(from_declaration(
-                PropertyDeclaration::Height(DeclaredValue::Value(
-                        specified::LengthOrPercentageOrAuto::Length(value)))));
+                shared_lock,
+                PropertyDeclaration::Height(specified::LengthOrPercentageOrAuto::Length(value))));
         }
 
 
@@ -623,13 +642,17 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         if let Some(border) = border {
             let width_value = specified::BorderWidth::from_length(specified::Length::from_px(border as f32));
             hints.push(from_declaration(
-                PropertyDeclaration::BorderTopWidth(DeclaredValue::Value(width_value.clone()))));
+                shared_lock,
+                PropertyDeclaration::BorderTopWidth(Box::new(width_value.clone()))));
             hints.push(from_declaration(
-                PropertyDeclaration::BorderLeftWidth(DeclaredValue::Value(width_value.clone()))));
+                shared_lock,
+                PropertyDeclaration::BorderLeftWidth(Box::new(width_value.clone()))));
             hints.push(from_declaration(
-                PropertyDeclaration::BorderBottomWidth(DeclaredValue::Value(width_value.clone()))));
+                shared_lock,
+                PropertyDeclaration::BorderBottomWidth(Box::new(width_value.clone()))));
             hints.push(from_declaration(
-                PropertyDeclaration::BorderRightWidth(DeclaredValue::Value(width_value))));
+                shared_lock,
+                PropertyDeclaration::BorderRightWidth(Box::new(width_value))));
         }
     }
 
@@ -672,7 +695,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
     }
 
     #[allow(unsafe_code)]
-    fn style_attribute(&self) -> *const Option<Arc<RwLock<PropertyDeclarationBlock>>> {
+    fn style_attribute(&self) -> *const Option<Arc<Locked<PropertyDeclarationBlock>>> {
         unsafe {
             (*self.unsafe_get()).style_attribute.borrow_for_layout()
         }
@@ -689,6 +712,30 @@ impl LayoutElementHelpers for LayoutJS<Element> {
     fn namespace(&self) -> &Namespace {
         unsafe {
             &(*self.unsafe_get()).namespace
+        }
+    }
+
+    #[allow(unsafe_code)]
+    fn get_lang_for_layout(&self) -> String {
+        unsafe {
+            let mut current_node = Some(self.upcast::<Node>());
+            while let Some(node) = current_node {
+                current_node = node.parent_node_ref();
+                match node.downcast::<Element>().map(|el| el.unsafe_get()) {
+                    Some(elem) => {
+                        if let Some(attr) = (*elem).get_attr_val_for_layout(&ns!(xml), &local_name!("lang")) {
+                            return attr.to_owned();
+                        }
+                        if let Some(attr) = (*elem).get_attr_val_for_layout(&ns!(), &local_name!("lang")) {
+                            return attr.to_owned();
+                        }
+                    }
+                    None => continue
+                }
+            }
+            // TODO: Check meta tags for a pragma-set default language
+            // TODO: Check HTTP Content-Language header
+            String::new()
         }
     }
 
@@ -811,7 +858,7 @@ impl Element {
         ns!()
     }
 
-    pub fn style_attribute(&self) -> &DOMRefCell<Option<Arc<RwLock<PropertyDeclarationBlock>>>> {
+    pub fn style_attribute(&self) -> &DOMRefCell<Option<Arc<Locked<PropertyDeclarationBlock>>>> {
         &self.style_attribute
     }
 
@@ -1331,6 +1378,14 @@ impl Element {
         }
         let document = document_from_node(self);
         document.get_allow_fullscreen()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#home-subtree
+    pub fn is_in_same_home_subtree<T>(&self, other: &T) -> bool
+        where T: DerivedFrom<Element> + DomObject
+    {
+        let other = other.upcast::<Element>();
+        self.root_element() == other.root_element()
     }
 }
 
@@ -2138,11 +2193,10 @@ impl VirtualMethods for Element {
                             block
                         } else {
                             let win = window_from_node(self);
-                            Arc::new(RwLock::new(parse_style_attribute(
+                            Arc::new(doc.style_shared_lock().wrap(parse_style_attribute(
                                 &attr.value(),
                                 &doc.base_url(),
-                                win.css_error_reporter(),
-                                ParserContextExtraData::default())))
+                                win.css_error_reporter())))
                         };
 
                         Some(block)
@@ -2212,6 +2266,10 @@ impl VirtualMethods for Element {
             s.bind_to_tree(tree_in_doc);
         }
 
+        if let Some(f) = self.as_maybe_form_control() {
+            f.bind_form_control_to_tree();
+        }
+
         if !tree_in_doc {
             return;
         }
@@ -2226,6 +2284,10 @@ impl VirtualMethods for Element {
 
     fn unbind_from_tree(&self, context: &UnbindContext) {
         self.super_type().unwrap().unbind_from_tree(context);
+
+        if let Some(f) = self.as_maybe_form_control() {
+            f.unbind_form_control_from_tree();
+        }
 
         if !context.tree_in_doc {
             return;
@@ -2352,7 +2414,13 @@ impl<'a> ::selectors::Element for Root<Element> {
         self.namespace()
     }
 
-    fn match_non_ts_pseudo_class(&self, pseudo_class: &NonTSPseudoClass) -> bool {
+    fn match_non_ts_pseudo_class<F>(&self,
+                                    pseudo_class: &NonTSPseudoClass,
+                                    _: &mut StyleRelations,
+                                    _: &mut F)
+                                    -> bool
+        where F: FnMut(&Self, ElementSelectorFlags),
+    {
         match *pseudo_class {
             // https://github.com/servo/servo/issues/8718
             NonTSPseudoClass::Link |
@@ -2370,6 +2438,10 @@ impl<'a> ::selectors::Element for Root<Element> {
                     }
                 }
             },
+
+            // FIXME(#15746): This is wrong, we need to instead use extended filtering as per RFC4647
+            //                https://tools.ietf.org/html/rfc4647#section-3.3.2
+            NonTSPseudoClass::Lang(ref lang) => extended_filtering(&*self.get_lang(), &*lang),
 
             NonTSPseudoClass::ReadOnly =>
                 !Element::state(self).contains(pseudo_class.state_flag()),
@@ -2573,6 +2645,19 @@ impl Element {
         }
         // Step 7
         self.set_click_in_progress(false);
+    }
+
+    // https://html.spec.whatwg.org/multipage/#language
+    pub fn get_lang(&self) -> String {
+        self.upcast::<Node>().inclusive_ancestors().filter_map(|node| {
+            node.downcast::<Element>().and_then(|el| {
+                el.get_attribute(&ns!(xml), &local_name!("lang")).or_else(|| {
+                    el.get_attribute(&ns!(), &local_name!("lang"))
+                }).map(|attr| String::from(attr.Value()))
+            })
+        // TODO: Check meta tags for a pragma-set default language
+        // TODO: Check HTTP Content-Language header
+        }).next().unwrap_or(String::new())
     }
 
     pub fn state(&self) -> ElementState {

@@ -296,6 +296,11 @@ class CommandBase(object):
         if not self.config["tools"]["system-rust"]:
             self.config["tools"]["rust-root"] = path.join(
                 self.context.sharedir, "rust", self.rust_path())
+        if use_stable_rust:
+            # Cargo maintainer's position is that CARGO_INCREMENTAL is a nightly-only feature
+            # and should not be used on the stable channel.
+            # https://github.com/rust-lang/cargo/issues/3835
+            self.config["build"]["incremental"] = False
 
     def use_stable_rust(self):
         return self._use_stable_rust
@@ -402,7 +407,7 @@ class CommandBase(object):
             # Link openssl
             env["OPENSSL_INCLUDE_DIR"] = path.join(package_dir("openssl"), "include")
             env["OPENSSL_LIB_DIR"] = path.join(package_dir("openssl"), "lib" + msvc_x64)
-            env["OPENSSL_LIBS"] = "ssleay32MD:libeay32MD"
+            env["OPENSSL_LIBS"] = "libsslMD:libcryptoMD"
             # Link moztools
             env["MOZTOOLS_PATH"] = path.join(package_dir("moztools"), "bin")
 

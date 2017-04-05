@@ -20,6 +20,7 @@ use dom::htmloptionelement::HTMLOptionElement;
 use dom::htmlselectelement::HTMLSelectElement;
 use dom::node::{document_from_node, Node};
 use dom::window::Window;
+use dom_struct::dom_struct;
 
 #[dom_struct]
 pub struct HTMLOptionsCollection {

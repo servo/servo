@@ -11,16 +11,17 @@
 
 // TODO spec says that UAs should not support this
 // we should probably remove from gecko (https://bugzilla.mozilla.org/show_bug.cgi?id=1328331)
-${helpers.single_keyword("ime-mode", "normal auto active disabled inactive",
+${helpers.single_keyword("ime-mode", "auto normal active disabled inactive",
                          products="gecko", gecko_ffi_name="mIMEMode",
                          animatable=False,
                          spec="https://drafts.csswg.org/css-ui/#input-method-editor")}
 
-${helpers.single_keyword("-moz-user-select", "auto text none all", products="gecko",
+${helpers.single_keyword("-moz-user-select", "auto text none all element elements" +
+                            " toggle tri-state -moz-all -moz-none -moz-text",
+                         products="gecko",
                          alias="-webkit-user-select",
                          gecko_ffi_name="mUserSelect",
                          gecko_enum_prefix="StyleUserSelect",
-                         gecko_inexhaustive=True,
                          animatable=False,
                          spec="https://drafts.csswg.org/css-ui-4/#propdef-user-select")}
 

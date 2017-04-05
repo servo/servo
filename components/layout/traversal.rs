@@ -22,20 +22,20 @@ use style::traversal::PerLevelTraversalData;
 use wrapper::{GetRawData, LayoutNodeHelpers, LayoutNodeLayoutData};
 use wrapper::ThreadSafeLayoutNodeHelpers;
 
-pub struct RecalcStyleAndConstructFlows {
-    context: LayoutContext,
+pub struct RecalcStyleAndConstructFlows<'a> {
+    context: LayoutContext<'a>,
     driver: TraversalDriver,
 }
 
-impl RecalcStyleAndConstructFlows {
-    pub fn layout_context(&self) -> &LayoutContext {
+impl<'a> RecalcStyleAndConstructFlows<'a> {
+    pub fn layout_context(&self) -> &LayoutContext<'a> {
         &self.context
     }
 }
 
-impl RecalcStyleAndConstructFlows {
+impl<'a> RecalcStyleAndConstructFlows<'a> {
     /// Creates a traversal context, taking ownership of the shared layout context.
-    pub fn new(context: LayoutContext, driver: TraversalDriver) -> Self {
+    pub fn new(context: LayoutContext<'a>, driver: TraversalDriver) -> Self {
         RecalcStyleAndConstructFlows {
             context: context,
             driver: driver,
@@ -44,13 +44,13 @@ impl RecalcStyleAndConstructFlows {
 
     /// Consumes this traversal context, returning ownership of the shared layout
     /// context to the caller.
-    pub fn destroy(self) -> LayoutContext {
+    pub fn destroy(self) -> LayoutContext<'a> {
         self.context
     }
 }
 
 #[allow(unsafe_code)]
-impl<E> DomTraversal<E> for RecalcStyleAndConstructFlows
+impl<'a, E> DomTraversal<E> for RecalcStyleAndConstructFlows<'a>
     where E: TElement,
           E::ConcreteNode: LayoutNode,
 {
@@ -152,7 +152,7 @@ fn construct_flows_at<N>(context: &LayoutContext,
 /// The bubble-inline-sizes traversal, the first part of layout computation. This computes
 /// preferred and intrinsic inline-sizes and bubbles them up the tree.
 pub struct BubbleISizes<'a> {
-    pub layout_context: &'a LayoutContext,
+    pub layout_context: &'a LayoutContext<'a>,
 }
 
 impl<'a> PostorderFlowTraversal for BubbleISizes<'a> {
@@ -171,7 +171,7 @@ impl<'a> PostorderFlowTraversal for BubbleISizes<'a> {
 /// The assign-inline-sizes traversal. In Gecko this corresponds to `Reflow`.
 #[derive(Copy, Clone)]
 pub struct AssignISizes<'a> {
-    pub layout_context: &'a LayoutContext,
+    pub layout_context: &'a LayoutContext<'a>,
 }
 
 impl<'a> PreorderFlowTraversal for AssignISizes<'a> {
@@ -191,7 +191,7 @@ impl<'a> PreorderFlowTraversal for AssignISizes<'a> {
 /// positions. In Gecko this corresponds to `Reflow`.
 #[derive(Copy, Clone)]
 pub struct AssignBSizes<'a> {
-    pub layout_context: &'a LayoutContext,
+    pub layout_context: &'a LayoutContext<'a>,
 }
 
 impl<'a> PostorderFlowTraversal for AssignBSizes<'a> {
@@ -220,7 +220,7 @@ impl<'a> PostorderFlowTraversal for AssignBSizes<'a> {
 
 #[derive(Copy, Clone)]
 pub struct ComputeAbsolutePositions<'a> {
-    pub layout_context: &'a LayoutContext,
+    pub layout_context: &'a LayoutContext<'a>,
 }
 
 impl<'a> PreorderFlowTraversal for ComputeAbsolutePositions<'a> {

@@ -106,11 +106,14 @@ impl Flow for MulticolFlow {
             if let Either::First(column_width) = column_style.column_width {
                 column_count =
                     max(1, (content_inline_size + column_gap).0 / (column_width + column_gap).0);
-                if let Some(specified_column_count) = column_style.column_count.0 {
+                if let Either::First(specified_column_count) = column_style.column_count {
                     column_count = min(column_count, specified_column_count as i32);
                 }
             } else {
-                column_count = column_style.column_count.0.unwrap() as i32;
+                column_count = match column_style.column_count {
+                    Either::First(n) => n,
+                    _ => unreachable!(),
+                }
             }
             column_width =
                 max(Au(0), (content_inline_size + column_gap) / column_count - column_gap);
@@ -140,7 +143,7 @@ impl Flow for MulticolFlow {
                     // FIXME: (until column balancing) substract margins/borders/padding
                     LogicalSize::from_physical(
                         self.block_flow.base.writing_mode,
-                        ctx.shared_context().viewport_size,
+                        ctx.shared_context().viewport_size(),
                     ).block
                 }
             }

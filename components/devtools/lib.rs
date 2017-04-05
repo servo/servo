@@ -10,12 +10,9 @@
 #![crate_name = "devtools"]
 #![crate_type = "rlib"]
 
-#![feature(box_syntax)]
-#![feature(plugin)]
-#![plugin(plugins)]
-
 #![allow(non_snake_case)]
 #![deny(unsafe_code)]
+#![feature(box_syntax)]
 
 extern crate devtools_traits;
 extern crate encoding;

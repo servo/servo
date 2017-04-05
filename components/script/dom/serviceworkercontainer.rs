@@ -13,6 +13,7 @@ use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
 use dom::serviceworker::ServiceWorker;
+use dom_struct::dom_struct;
 use script_thread::ScriptThread;
 use serviceworkerjob::{Job, JobType};
 use std::ascii::AsciiExt;

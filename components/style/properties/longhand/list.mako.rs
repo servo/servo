@@ -38,7 +38,7 @@ ${helpers.single_keyword("list-style-type", """
     spec="https://drafts.csswg.org/css-lists/#propdef-list-style-type")}
 
 ${helpers.predefined_type("list-style-image", "UrlOrNone", "Either::Second(None_)",
-                          animatable=False,
+                          initial_specified_value="Either::Second(None_)", animatable=False,
                           spec="https://drafts.csswg.org/css-lists/#propdef-list-style-image")}
 
 <%helpers:longhand name="quotes" animatable="False"

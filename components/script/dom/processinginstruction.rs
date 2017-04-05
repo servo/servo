@@ -9,6 +9,7 @@ use dom::bindings::str::DOMString;
 use dom::characterdata::CharacterData;
 use dom::document::Document;
 use dom::node::Node;
+use dom_struct::dom_struct;
 
 /// An HTML processing instruction node.
 #[dom_struct]

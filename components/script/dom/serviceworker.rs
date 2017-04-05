@@ -15,6 +15,7 @@ use dom::bindings::str::USVString;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
+use dom_struct::dom_struct;
 use js::jsapi::{HandleValue, JSContext};
 use script_thread::Runnable;
 use script_traits::{ScriptMsg, DOMMessage};

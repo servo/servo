@@ -18,6 +18,7 @@ use dom::headers::{Headers, Guard};
 use dom::headers::{is_vchar, is_obs_text};
 use dom::promise::Promise;
 use dom::xmlhttprequest::Extractable;
+use dom_struct::dom_struct;
 use hyper::header::Headers as HyperHeaders;
 use hyper::status::StatusCode;
 use hyper_serde::Serde;

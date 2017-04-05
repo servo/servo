@@ -7,6 +7,7 @@ use mime_guess::guess_mime_type_opt;
 use net_traits::blob_url_store::{BlobBuf, BlobURLStoreError};
 use net_traits::filemanager_thread::{FileManagerResult, FileManagerThreadMsg, FileOrigin, FilterPattern};
 use net_traits::filemanager_thread::{FileManagerThreadError, ReadFileProgress, RelativePos, SelectedFile};
+use servo_config::opts;
 use servo_config::prefs::PREFS;
 use std::collections::HashMap;
 use std::fs::File;
@@ -35,6 +36,10 @@ pub struct TFDProvider;
 impl UIProvider for TFDProvider {
     #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
     fn open_file_dialog(&self, path: &str, patterns: Vec<FilterPattern>) -> Option<String> {
+        if opts::get().headless {
+            return None;
+        }
+
         let mut filter = vec![];
         for p in patterns {
             let s = "*.".to_string() + &p.0;
@@ -50,6 +55,10 @@ impl UIProvider for TFDProvider {
 
     #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
     fn open_file_dialog_multi(&self, path: &str, patterns: Vec<FilterPattern>) -> Option<Vec<String>> {
+        if opts::get().headless {
+            return None;
+        }
+
         let mut filter = vec![];
         for p in patterns {
             let s = "*.".to_string() + &p.0;

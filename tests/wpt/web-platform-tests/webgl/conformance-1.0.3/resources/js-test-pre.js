@@ -78,7 +78,7 @@ function nonKhronosFrameworkNotifyDone() {
   // if found, since it's overriden by some tests.
   var wpt_test = window.test;
   var wpt_assert_true = window.assert_true;
-
+  var wt_async_test = window.async_test;
 
   window.reportTestResultsToHarness = function reportTestResultsToHarness(success, msg) {
     if (window.parent.webglTestHarness) {
@@ -99,6 +99,12 @@ function notifyFinishedToHarness() {
     window.nonKhronosFrameworkNotifyDone();
   }
 }
+
+(function() {
+  var oldNotify = notifyFinishedToHarness;
+  var t = async_test("Overall test");
+  window.notifyFinishedToHarness = t.step_func_done(oldNotify);
+}())
 
 function _logToConsole(msg)
 {

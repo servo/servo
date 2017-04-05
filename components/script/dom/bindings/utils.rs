@@ -33,7 +33,7 @@ use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{GCMethods, ToString, get_object_class, is_dom_class};
 use libc;
 use std::ffi::CString;
-use std::os::raw::c_void;
+use std::os::raw::{c_char, c_void};
 use std::ptr;
 use std::slice;
 
@@ -177,20 +177,20 @@ pub fn get_array_index_from_id(_cx: *mut JSContext, id: HandleId) -> Option<u32>
     }*/
 }
 
-/// Find the index of a string given by `v` in `values`.
+/// Find the enum equivelent of a string given by `v` in `pairs`.
 /// Returns `Err(())` on JSAPI failure (there is a pending exception), and
 /// `Ok((None, value))` if there was no matching string.
-pub unsafe fn find_enum_string_index(cx: *mut JSContext,
+pub unsafe fn find_enum_value<'a, T>(cx: *mut JSContext,
                                      v: HandleValue,
-                                     values: &[&'static str])
-                                     -> Result<(Option<usize>, DOMString), ()> {
+                                     pairs: &'a [(&'static str, T)])
+                                     -> Result<(Option<&'a T>, DOMString), ()> {
     let jsstr = ToString(cx, v);
     if jsstr.is_null() {
         return Err(());
     }
 
     let search = jsstring_to_str(cx, jsstr);
-    Ok((values.iter().position(|value| search == *value), search))
+    Ok((pairs.iter().find(|&&(key, _)| search == *key).map(|&(_, ref ev)| ev), search))
 }
 
 /// Returns wether `obj` is a platform object
@@ -513,3 +513,24 @@ unsafe extern "C" fn instance_class_has_proto_at_depth(clasp: *const js::jsapi::
 pub const DOM_CALLBACKS: DOMCallbacks = DOMCallbacks {
     instanceClassMatchesProto: Some(instance_class_has_proto_at_depth),
 };
+
+// Generic method for returning libc::c_void from caller
+pub trait AsVoidPtr {
+    fn as_void_ptr(&self) -> *const libc::c_void;
+}
+impl<T> AsVoidPtr for T {
+    fn as_void_ptr(&self) -> *const libc::c_void {
+        self as *const T as *const libc::c_void
+    }
+}
+
+// Generic method for returning c_char from caller
+pub trait AsCCharPtrPtr {
+    fn as_c_char_ptr(&self) -> *const c_char;
+}
+
+impl AsCCharPtrPtr for [u8] {
+    fn as_c_char_ptr(&self) -> *const c_char {
+        self as *const [u8] as *const c_char
+    }
+}

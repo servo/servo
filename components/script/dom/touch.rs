@@ -9,6 +9,7 @@ use dom::bindings::num::Finite;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::eventtarget::EventTarget;
 use dom::window::Window;
+use dom_struct::dom_struct;
 
 #[dom_struct]
 pub struct Touch {

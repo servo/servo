@@ -53,7 +53,8 @@ fn font_feature_settings_should_parse_properly() {
 #[test]
 fn font_feature_settings_should_throw_on_bad_input() {
     let url = ServoUrl::parse("http://localhost").unwrap();
-    let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
+    let reporter = CSSErrorReporterTest;
+    let context = ParserContext::new(Origin::Author, &url, &reporter);
 
     let mut empty = Parser::new("");
     assert!(font_feature_settings::parse(&context, &mut empty).is_err());
@@ -103,7 +104,8 @@ fn font_weight_keyword_should_preserve_keyword() {
     use style::properties::longhands::font_weight::SpecifiedValue;
 
     let url = ServoUrl::parse("http://localhost").unwrap();
-    let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
+    let reporter = CSSErrorReporterTest;
+    let context = ParserContext::new(Origin::Author, &url, &reporter);
     let mut parser = Parser::new("normal");
     let result = font_weight::parse(&context, &mut parser);
     assert_eq!(result.unwrap(), SpecifiedValue::Normal);

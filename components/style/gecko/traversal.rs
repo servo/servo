@@ -13,14 +13,14 @@ use traversal::{DomTraversal, PerLevelTraversalData, TraversalDriver, recalc_sty
 
 /// This is the simple struct that Gecko uses to encapsulate a DOM traversal for
 /// styling.
-pub struct RecalcStyleOnly {
-    shared: SharedStyleContext,
+pub struct RecalcStyleOnly<'a> {
+    shared: SharedStyleContext<'a>,
     driver: TraversalDriver,
 }
 
-impl RecalcStyleOnly {
+impl<'a> RecalcStyleOnly<'a> {
     /// Create a `RecalcStyleOnly` traversal from a `SharedStyleContext`.
-    pub fn new(shared: SharedStyleContext, driver: TraversalDriver) -> Self {
+    pub fn new(shared: SharedStyleContext<'a>, driver: TraversalDriver) -> Self {
         RecalcStyleOnly {
             shared: shared,
             driver: driver,
@@ -28,10 +28,11 @@ impl RecalcStyleOnly {
     }
 }
 
-impl<'le> DomTraversal<GeckoElement<'le>> for RecalcStyleOnly {
+impl<'recalc, 'le> DomTraversal<GeckoElement<'le>> for RecalcStyleOnly<'recalc> {
     type ThreadLocalContext = ThreadLocalStyleContext<GeckoElement<'le>>;
 
-    fn process_preorder(&self, traversal_data: &mut PerLevelTraversalData,
+    fn process_preorder(&self,
+                        traversal_data: &mut PerLevelTraversalData,
                         thread_local: &mut Self::ThreadLocalContext,
                         node: GeckoNode<'le>)
     {

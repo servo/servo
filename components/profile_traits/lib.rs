@@ -6,11 +6,8 @@
 //! rest of Servo. These APIs are here instead of in `profile` so that these
 //! modules won't have to depend on `profile`.
 
-#![feature(box_syntax)]
-#![feature(plugin)]
-#![plugin(plugins)]
-
 #![deny(unsafe_code)]
+#![feature(box_syntax)]
 
 extern crate ipc_channel;
 #[macro_use]

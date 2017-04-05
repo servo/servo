@@ -4,6 +4,7 @@
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use dom::bindings::reflector::Reflector;
+use dom_struct::dom_struct;
 
 #[dom_struct]
 pub struct WebGLObject {

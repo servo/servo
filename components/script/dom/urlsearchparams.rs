@@ -14,6 +14,7 @@ use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::weakref::MutableWeakRef;
 use dom::globalscope::GlobalScope;
 use dom::url::URL;
+use dom_struct::dom_struct;
 use encoding::types::EncodingRef;
 use url::form_urlencoded;
 

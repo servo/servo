@@ -11,6 +11,7 @@ use dom::characterdata::CharacterData;
 use dom::document::Document;
 use dom::node::Node;
 use dom::window::Window;
+use dom_struct::dom_struct;
 
 /// An HTML comment.
 #[dom_struct]

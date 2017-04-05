@@ -16,6 +16,7 @@ use dom::characterdata::CharacterData;
 use dom::document::Document;
 use dom::node::Node;
 use dom::window::Window;
+use dom_struct::dom_struct;
 
 /// An HTML text node.
 #[dom_struct]
@@ -42,7 +43,8 @@ impl Text {
 }
 
 impl TextMethods for Text {
-    // https://dom.spec.whatwg.org/#dom-text-splittextoffset
+    // https://dom.spec.whatwg.org/#dom-text-splittext
+    // https://dom.spec.whatwg.org/#concept-text-split
     fn SplitText(&self, offset: u32) -> Fallible<Root<Text>> {
         let cdata = self.upcast::<CharacterData>();
         // Step 1.
@@ -71,11 +73,7 @@ impl TextMethods for Text {
         }
         // Step 8.
         cdata.DeleteData(offset, count).unwrap();
-        if parent.is_none() {
-            // Step 9.
-            node.ranges().clamp_above(&node, offset);
-        }
-        // Step 10.
+        // Step 9.
         Ok(new_node)
     }
 

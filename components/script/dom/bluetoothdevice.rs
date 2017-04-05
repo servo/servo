@@ -24,6 +24,7 @@ use dom::bluetoothremotegattservice::BluetoothRemoteGATTService;
 use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
+use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::JSContext;
 use std::cell::Cell;
@@ -250,7 +251,7 @@ impl BluetoothDeviceMethods for BluetoothDevice {
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-unwatchadvertisements
-    fn UnwatchAdvertisements(&self) -> () {
+    fn UnwatchAdvertisements(&self) {
         // Step 1.
         self.watching_advertisements.set(false)
         // TODO: Step 2.

@@ -6,8 +6,6 @@
 //! The traits are here instead of in script so that these modules won't have
 //! to depend on script.
 
-#![feature(plugin)]
-#![plugin(plugins)]
 #![deny(missing_docs)]
 #![deny(unsafe_code)]
 
@@ -59,17 +57,19 @@ use msg::constellation_msg::{FrameId, FrameType, Key, KeyModifiers, KeyState};
 use msg::constellation_msg::{PipelineId, PipelineNamespaceId, TraversalDirection};
 use net_traits::{ReferrerPolicy, ResourceThreads};
 use net_traits::image::base::Image;
-use net_traits::image_cache_thread::ImageCacheThread;
+use net_traits::image_cache::ImageCache;
 use net_traits::response::HttpsState;
 use net_traits::storage_thread::StorageType;
 use profile_traits::mem;
 use profile_traits::time as profile_time;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::fmt;
+use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender};
-use style_traits::{PagePx, UnsafeNode, ViewportPx};
+use style_traits::{CSSPixel, UnsafeNode};
 use webdriver_msg::{LoadStatus, WebDriverScriptCommand};
 use webvr_traits::{WebVRDisplayEvent, WebVRMsg};
 
@@ -241,6 +241,8 @@ pub enum ConstellationControlMsg {
     /// Notifies script thread that a url should be loaded in this iframe.
     /// PipelineId is for the parent, FrameId is for the actual frame.
     Navigate(PipelineId, FrameId, LoadData, bool),
+    /// Post a message to a given window.
+    PostMessage(PipelineId, Option<ImmutableOrigin>, Vec<u8>),
     /// Requests the script thread forward a mozbrowser event to an iframe it owns,
     /// or to the window if no child frame id is provided.
     MozBrowserEvent(PipelineId, Option<FrameId>, MozBrowserEvent),
@@ -299,6 +301,7 @@ impl fmt::Debug for ConstellationControlMsg {
             ChangeFrameVisibilityStatus(..) => "ChangeFrameVisibilityStatus",
             NotifyVisibilityChange(..) => "NotifyVisibilityChange",
             Navigate(..) => "Navigate",
+            PostMessage(..) => "PostMessage",
             MozBrowserEvent(..) => "MozBrowserEvent",
             UpdatePipelineId(..) => "UpdatePipelineId",
             FocusIFrame(..) => "FocusIFrame",
@@ -413,6 +416,15 @@ pub enum TouchpadPressurePhase {
 #[derive(Deserialize, Serialize)]
 pub struct TimerEventRequest(pub IpcSender<TimerEvent>, pub TimerSource, pub TimerEventId, pub MsDuration);
 
+/// Type of messages that can be sent to the timer scheduler.
+#[derive(Deserialize, Serialize)]
+pub enum TimerSchedulerMsg {
+    /// Message to schedule a new timer event.
+    Request(TimerEventRequest),
+    /// Message to exit the timer scheduler.
+    Exit,
+}
+
 /// Notifies the script thread to fire due timers.
 /// `TimerSource` must be `FromWindow` when dispatched to `ScriptThread` and
 /// must be `FromWorker` when dispatched to a `DedicatedGlobalWorkerScope`
@@ -476,13 +488,13 @@ pub struct InitialScriptState {
     /// A sender for the layout thread to communicate to the constellation.
     pub layout_to_constellation_chan: IpcSender<LayoutMsg>,
     /// A channel to schedule timer events.
-    pub scheduler_chan: IpcSender<TimerEventRequest>,
+    pub scheduler_chan: IpcSender<TimerSchedulerMsg>,
     /// A channel to the resource manager thread.
     pub resource_threads: ResourceThreads,
     /// A channel to the bluetooth thread.
     pub bluetooth_thread: IpcSender<BluetoothRequest>,
-    /// A channel to the image cache thread.
-    pub image_cache_thread: ImageCacheThread,
+    /// The image cache for this script thread.
+    pub image_cache: Arc<ImageCache>,
     /// A channel to the time profiler thread.
     pub time_profiler_chan: profile_traits::time::ProfilerChan,
     /// A channel to the memory profiler thread.
@@ -505,7 +517,8 @@ pub trait ScriptThreadFactory {
     /// Type of message sent from script to layout.
     type Message;
     /// Create a `ScriptThread`.
-    fn create(state: InitialScriptState, load_data: LoadData) -> (Sender<Self::Message>, Receiver<Self::Message>);
+    fn create(state: InitialScriptState, load_data: LoadData)
+        -> (Sender<Self::Message>, Receiver<Self::Message>);
 }
 
 /// Whether the sandbox attribute is present for an iframe element
@@ -665,13 +678,10 @@ pub enum DevicePixel {}
 pub struct WindowSizeData {
     /// The size of the initial layout viewport, before parsing an
     /// http://www.w3.org/TR/css-device-adapt/#initial-viewport
-    pub initial_viewport: TypedSize2D<f32, ViewportPx>,
-
-    /// The "viewing area" in page px. See `PagePx` documentation for details.
-    pub visible_viewport: TypedSize2D<f32, PagePx>,
+    pub initial_viewport: TypedSize2D<f32, CSSPixel>,
 
     /// The resolution of the window in dppx, not including any "pinch zoom" factor.
-    pub device_pixel_ratio: ScaleFactor<f32, ViewportPx, DevicePixel>,
+    pub device_pixel_ratio: ScaleFactor<f32, CSSPixel, DevicePixel>,
 }
 
 /// The type of window size change.
@@ -769,7 +779,7 @@ pub struct WorkerGlobalScopeInit {
     /// Messages to send to constellation
     pub constellation_chan: IpcSender<ScriptMsg>,
     /// Message to send to the scheduler
-    pub scheduler_chan: IpcSender<TimerEventRequest>,
+    pub scheduler_chan: IpcSender<TimerSchedulerMsg>,
     /// The worker id
     pub worker_id: WorkerId,
     /// The pipeline id

@@ -16,6 +16,7 @@ use dom::htmlcollection::HTMLCollection;
 use dom::node::{Node, window_from_node};
 use dom::nodelist::NodeList;
 use dom::window::Window;
+use dom_struct::dom_struct;
 use servo_atoms::Atom;
 
 // https://dom.spec.whatwg.org/#documentfragment

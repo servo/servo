@@ -19,7 +19,8 @@ fn test_column_width() {
     assert_roundtrip_with_context!(column_width::parse, "0.3vw");
 
     let url = ServoUrl::parse("http://localhost").unwrap();
-    let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
+    let reporter = CSSErrorReporterTest;
+    let context = ParserContext::new(Origin::Author, &url, &reporter);
 
     let mut negative = Parser::new("-6px");
     assert!(column_width::parse(&context, &mut negative).is_err());
@@ -35,7 +36,8 @@ fn test_column_gap() {
     assert_roundtrip_with_context!(column_gap::parse, "0.3vw");
 
     let url = ServoUrl::parse("http://localhost").unwrap();
-    let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
+    let reporter = CSSErrorReporterTest;
+    let context = ParserContext::new(Origin::Author, &url, &reporter);
 
     let mut negative = Parser::new("-6px");
     assert!(column_gap::parse(&context, &mut negative).is_err());

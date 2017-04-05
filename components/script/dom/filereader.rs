@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use base64;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
@@ -19,6 +20,7 @@ use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom::progressevent::ProgressEvent;
+use dom_struct::dom_struct;
 use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
 use encoding::types::{DecoderTrap, EncodingRef};
@@ -28,7 +30,6 @@ use js::jsapi::JSAutoCompartment;
 use js::jsapi::JSContext;
 use js::jsval::{self, JSVal};
 use js::typedarray::{ArrayBuffer, CreateWith};
-use rustc_serialize::base64::{CharacterSet, Config, Newline, ToBase64};
 use script_thread::RunnableWrapper;
 use servo_atoms::Atom;
 use std::cell::Cell;
@@ -246,13 +247,7 @@ impl FileReader {
 
     //https://w3c.github.io/FileAPI/#dfn-readAsDataURL
     fn perform_readasdataurl(result: &DOMRefCell<Option<FileReaderResult>>, data: ReadMetaData, bytes: &[u8]) {
-        let config = Config {
-            char_set: CharacterSet::UrlSafe,
-            newline: Newline::LF,
-            pad: true,
-            line_length: None
-        };
-        let base64 = bytes.to_base64(config);
+        let base64 = base64::encode(bytes);
 
         let output = if data.blobtype.is_empty() {
             format!("data:base64,{}", base64)
@@ -374,20 +369,11 @@ impl FileReader {
         if self.ready_state.get() == FileReaderReadyState::Loading {
             return Err(Error::InvalidState);
         }
+
         // Step 2
-        let global = self.global();
-        if blob.IsClosed() {
-            let exception = DOMException::new(&global, DOMErrorName::InvalidStateError);
-            self.error.set(Some(&exception));
-
-            self.dispatch_progress_event(atom!("error"), 0, None);
-            return Ok(());
-        }
-
-        // Step 3
         self.change_ready_state(FileReaderReadyState::Loading);
 
-        // Step 4
+        // Step 3
         let blob_contents = Arc::new(blob.get_bytes().unwrap_or(vec![]));
 
         let type_ = blob.Type();

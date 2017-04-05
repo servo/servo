@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use app_units::Au;
 use cssparser::Parser;
-use euclid::size::Size2D;
+use euclid::size::TypedSize2D;
 use media_queries::CSSErrorReporterTest;
 use std::f32::consts::PI;
+use style::media_queries::{Device, MediaType};
 use style::parser::ParserContext;
 use style::properties::ComputedValues;
 use style::stylesheets::Origin;
@@ -28,8 +28,7 @@ fn test_linear_gradient() {
     assert_roundtrip_with_context!(Image::parse, "linear-gradient(to right top, red, green)");
 
     // Parsing with <angle>
-    assert_roundtrip_with_context!(Image::parse, "linear-gradient(45deg, red, green)",
-                                                 "linear-gradient(0.7853982rad, red, green)");
+    assert_roundtrip_with_context!(Image::parse, "linear-gradient(45deg, red, green)");
 
     // Parsing with more than two entries in <color-stop-list>
     assert_roundtrip_with_context!(Image::parse, "linear-gradient(red, yellow, green)");
@@ -43,17 +42,19 @@ fn test_linear_gradient() {
     // AngleOrCorner::None should become AngleOrCorner::Angle(Angle(PI)) when parsed
     // Note that Angle(PI) is correct for top-to-bottom rendering, whereas Angle(0) would render bottom-to-top.
     // ref: https://developer.mozilla.org/en-US/docs/Web/CSS/angle
-    let container = Size2D::new(Au::default(), Au::default());
+    let viewport_size = TypedSize2D::new(0., 0.);
     let initial_style = ComputedValues::initial_values();
+    let device = Device::new(MediaType::Screen, viewport_size);
     let specified_context = Context {
         is_root_element: true,
-        viewport_size: container,
+        device: &device,
         inherited_style: initial_style,
+        layout_parent_style: initial_style,
         style: initial_style.clone(),
         font_metrics_provider: None,
     };
     assert_eq!(specified::AngleOrCorner::None.to_computed_value(&specified_context),
-               computed::AngleOrCorner::Angle(Angle(PI)));
+               computed::AngleOrCorner::Angle(Angle::from_radians(PI)));
 }
 
 #[test]

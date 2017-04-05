@@ -14,6 +14,7 @@ use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::trace::JSTraceable;
 use dom::globalscope::GlobalScope;
+use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::{HandleValue, Heap, JSContext, JSObject, MutableHandleObject};
 use js::jsval::UndefinedValue;

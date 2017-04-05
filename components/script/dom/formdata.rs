@@ -15,6 +15,7 @@ use dom::blob::{Blob, BlobImpl};
 use dom::file::File;
 use dom::globalscope::GlobalScope;
 use dom::htmlformelement::{HTMLFormElement, FormDatumValue, FormDatum};
+use dom_struct::dom_struct;
 use html5ever_atoms::LocalName;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};

@@ -86,7 +86,7 @@ pub fn traverse_dom<E, D>(traversal: &D,
                 Some(ref cx) => &cx.borrow().statistics + &acc,
             }
         });
-        aggregate.compute_traversal_time(start_time.unwrap());
+        aggregate.finish(traversal, start_time.unwrap());
         println!("{}", aggregate);
     }
 }

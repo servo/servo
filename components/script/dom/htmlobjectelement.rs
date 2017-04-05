@@ -7,7 +7,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HTMLObjectElementBinding;
 use dom::bindings::codegen::Bindings::HTMLObjectElementBinding::HTMLObjectElementMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
+use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
@@ -17,8 +17,10 @@ use dom::node::{Node, window_from_node};
 use dom::validation::Validatable;
 use dom::validitystate::{ValidityState, ValidationFlags};
 use dom::virtualmethods::VirtualMethods;
+use dom_struct::dom_struct;
 use html5ever_atoms::LocalName;
 use net_traits::image::base::Image;
+use std::default::Default;
 use std::sync::Arc;
 
 #[dom_struct]
@@ -26,6 +28,7 @@ pub struct HTMLObjectElement {
     htmlelement: HTMLElement,
     #[ignore_heap_size_of = "Arc"]
     image: DOMRefCell<Option<Arc<Image>>>,
+    form_owner: MutNullableJS<HTMLFormElement>,
 }
 
 impl HTMLObjectElement {
@@ -36,6 +39,7 @@ impl HTMLObjectElement {
             htmlelement:
                 HTMLElement::new_inherited(local_name, prefix, document),
             image: DOMRefCell::new(None),
+            form_owner: Default::default(),
         }
     }
 
@@ -113,9 +117,24 @@ impl VirtualMethods for HTMLObjectElement {
                     self.process_data_url();
                 }
             },
+            &local_name!("form") => {
+                self.form_attribute_mutated(mutation);
+            },
             _ => {},
         }
     }
 }
 
-impl FormControl for HTMLObjectElement {}
+impl FormControl for HTMLObjectElement {
+    fn form_owner(&self) -> Option<Root<HTMLFormElement>> {
+        self.form_owner.get()
+    }
+
+    fn set_form_owner(&self, form: Option<&HTMLFormElement>) {
+        self.form_owner.set(form);
+    }
+
+    fn to_element<'a>(&'a self) -> &'a Element {
+        self.upcast::<Element>()
+    }
+}

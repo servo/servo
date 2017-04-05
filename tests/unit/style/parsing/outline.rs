@@ -28,7 +28,8 @@ fn test_outline_style() {
         // except that 'hidden' is not a legal outline style.
 
         let url = ::servo_url::ServoUrl::parse("http://localhost").unwrap();
-        let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
+        let reporter = CSSErrorReporterTest;
+        let context = ParserContext::new(Origin::Author, &url, &reporter);
         let mut parser = Parser::new(r#"hidden"#);
         let parsed = outline_style::parse(&context, &mut parser);
         assert!(parsed.is_err());

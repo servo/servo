@@ -12,16 +12,16 @@
 use app_units::Au;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser, parse_important};
 use cssparser::ToCss as ParserToCss;
-use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
 use media_queries::Device;
 use parser::{ParserContext, log_css_error};
+use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
 use std::fmt;
 use std::iter::Enumerate;
 use std::str::Chars;
-use style_traits::ToCss;
+use style_traits::{PinchZoomFactor, ToCss};
 use style_traits::viewport::{Orientation, UserZoom, ViewportConstraints, Zoom};
 use stylesheets::{Stylesheet, Origin};
 use values::computed::{Context, ToComputedValue};
@@ -505,9 +505,10 @@ impl ViewportRule {
     }
 }
 
-impl ToCss for ViewportRule {
+impl ToCssWithGuard for ViewportRule {
     // Serialization of ViewportRule is not specced.
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, _guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
+    where W: fmt::Write {
         try!(dest.write_str("@viewport { "));
         let mut iter = self.declarations.iter();
         try!(iter.next().unwrap().to_css(dest));
@@ -556,13 +557,14 @@ impl Cascade {
         }
     }
 
-    pub fn from_stylesheets<'a, I>(stylesheets: I, device: &Device) -> Self
+    pub fn from_stylesheets<'a, I>(stylesheets: I, guard: &SharedRwLockReadGuard,
+                                   device: &Device) -> Self
         where I: IntoIterator,
               I::Item: AsRef<Stylesheet>,
     {
         let mut cascade = Self::new();
         for stylesheet in stylesheets {
-            stylesheet.as_ref().effective_viewport_rules(device, |rule| {
+            stylesheet.as_ref().effective_viewport_rules(device, guard, |rule| {
                 for declaration in &rule.declarations {
                     cascade.add(Cow::Borrowed(declaration))
                 }
@@ -688,9 +690,10 @@ impl MaybeNew for ViewportConstraints {
         // TODO(emilio): Stop cloning `ComputedValues` around!
         let context = Context {
             is_root_element: false,
-            viewport_size: initial_viewport,
-            inherited_style: device.default_values(),
-            style: device.default_values().clone(),
+            device: device,
+            inherited_style: device.default_computed_values(),
+            layout_parent_style: device.default_computed_values(),
+            style: device.default_computed_values().clone(),
             font_metrics_provider: None, // TODO: Should have!
         };
 
@@ -796,9 +799,9 @@ impl MaybeNew for ViewportConstraints {
             size: TypedSize2D::new(width.to_f32_px(), height.to_f32_px()),
 
             // TODO: compute a zoom factor for 'auto' as suggested by DEVICE-ADAPT § 10.
-            initial_zoom: ScaleFactor::new(initial_zoom.unwrap_or(1.)),
-            min_zoom: min_zoom.map(ScaleFactor::new),
-            max_zoom: max_zoom.map(ScaleFactor::new),
+            initial_zoom: PinchZoomFactor::new(initial_zoom.unwrap_or(1.)),
+            min_zoom: min_zoom.map(PinchZoomFactor::new),
+            max_zoom: max_zoom.map(PinchZoomFactor::new),
 
             user_zoom: user_zoom,
             orientation: orientation

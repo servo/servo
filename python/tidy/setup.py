@@ -11,11 +11,11 @@ import os
 from setuptools import setup, find_packages
 
 
-VERSION = '0.2.0'
+VERSION = '0.3.0'
 
 install_requires = [
     "flake8==2.4.1",
-    "toml==0.9.1",
+    "toml==0.9.2",
     "colorama==0.3.7",
 ]
 

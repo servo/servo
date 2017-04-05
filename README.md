@@ -59,6 +59,8 @@ sudo apt install git curl freeglut3-dev autoconf \
     libglu1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev libdbus-1-dev
 ```
 
+If you using a version prior to **Ubuntu 17.04** or **Debian Sid**, replace `libssl1.0-dev` with `libssl-dev`.
+
 If you are on **Ubuntu 14.04** and encountered errors on installing these dependencies involving `libcheese`, see [#6158](https://github.com/servo/servo/issues/6158) for a workaround.
 
 If `virtualenv` does not exist, try `python-virtualenv`.
@@ -210,7 +212,13 @@ cp servobuild.example .servobuild
 
 ## Running
 
-Use `./mach run [url]` to run Servo. Also, don't miss the info on the [browserhtml page](https://github.com/browserhtml/browserhtml) on how to run the Browser.html
+Use `./mach run [url]` to run Servo. Like so,
+
+``` shell
+./mach run https://www.google.com
+```
+
+Also, don't miss the info on the [browserhtml page](https://github.com/browserhtml/browserhtml) on how to run the Browser.html
 full tech demo (it provides a more browser-like experience than just browsing a single
 URL with servo).
 

@@ -10,7 +10,8 @@
                          additional_methods=[Method("outline_has_nonzero_width", "bool")]) %>
 
 // TODO(pcwalton): `invert`
-${helpers.predefined_type("outline-color", "CSSColor", "::cssparser::Color::CurrentColor",
+${helpers.predefined_type("outline-color", "CSSColor", "computed::CSSColor::CurrentColor",
+                          initial_specified_value="specified::CSSColor::currentcolor()",
                           animatable=True, complex_color=True, need_clone=True,
                           spec="https://drafts.csswg.org/css-ui/#propdef-outline-color")}
 
@@ -39,6 +40,11 @@ ${helpers.predefined_type("outline-color", "CSSColor", "::cssparser::Color::Curr
         Either::Second(BorderStyle::none)
     }
 
+    #[inline]
+    pub fn get_initial_specified_value() -> SpecifiedValue {
+        Either::Second(BorderStyle::none)
+    }
+
     pub mod computed_value {
         pub type T = super::SpecifiedValue;
     }
@@ -47,8 +53,9 @@ ${helpers.predefined_type("outline-color", "CSSColor", "::cssparser::Color::Curr
         SpecifiedValue::parse(context, input)
             .and_then(|result| {
                 if let Either::Second(BorderStyle::hidden) = result {
-                    // The outline-style property accepts the same values as border-style,
-                    // except that 'hidden' is not a legal outline style.
+                    // The outline-style property accepts the same values as
+                    // border-style, except that 'hidden' is not a legal outline
+                    // style.
                     Err(())
                 } else {
                     Ok(result)
@@ -88,7 +95,13 @@ ${helpers.predefined_type("outline-color", "CSSColor", "::cssparser::Color::Curr
         use app_units::Au;
         pub type T = Au;
     }
+
     pub use super::border_top_width::get_initial_value;
+    #[inline]
+    pub fn get_initial_specified_value() -> SpecifiedValue {
+        SpecifiedValue(specified::Length::NoCalc(specified::NoCalcLength::medium()))
+    }
+
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
 
@@ -110,6 +123,7 @@ ${helpers.predefined_type("outline-color", "CSSColor", "::cssparser::Color::Curr
     ${helpers.predefined_type("-moz-outline-radius-" + corner, "BorderRadiusSize",
         "computed::BorderRadiusSize::zero()",
         "parse", products="gecko",
+        boxed=True,
         animatable=False,
         spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-outline-radius)")}
 % endfor

@@ -22,6 +22,7 @@ use dom::htmlselectelement::HTMLSelectElement;
 use dom::node::{Node, UnbindContext};
 use dom::text::Text;
 use dom::virtualmethods::VirtualMethods;
+use dom_struct::dom_struct;
 use html5ever_atoms::LocalName;
 use std::cell::Cell;
 use style::element_state::*;

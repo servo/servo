@@ -9,6 +9,7 @@ use dom::bindings::js::{JS, MutNullableJS, Root, RootedReference};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::node::{ChildrenMutation, Node};
 use dom::window::Window;
+use dom_struct::dom_struct;
 use std::cell::Cell;
 
 #[derive(JSTraceable, HeapSizeOf)]

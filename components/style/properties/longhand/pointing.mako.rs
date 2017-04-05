@@ -6,7 +6,8 @@
 
 <% data.new_style_struct("Pointing", inherited=True, gecko_name="UserInterface") %>
 
-<%helpers:longhand name="cursor" animatable="False" spec="https://drafts.csswg.org/css-ui/#cursor">
+<%helpers:longhand name="cursor" boxed="${product == 'gecko'}" animatable="False"
+  spec="https://drafts.csswg.org/css-ui/#cursor">
     pub use self::computed_value::T as SpecifiedValue;
     use values::HasViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
@@ -170,3 +171,11 @@ ${helpers.single_keyword("-moz-user-focus",
                          gecko_inexhaustive=True,
                          animatable=False,
                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-user-focus)")}
+
+${helpers.predefined_type("caret-color",
+                          "ColorOrAuto",
+                          "Either::Second(Auto)",
+                          spec="https://drafts.csswg.org/css-ui/#caret-color",
+                          animatable="True",
+                          boxed=True,
+                          products="gecko")}

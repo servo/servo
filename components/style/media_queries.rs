@@ -66,7 +66,7 @@ impl ToCss for Qualifier {
 /// A [media query][mq].
 ///
 /// [mq]: https://drafts.csswg.org/mediaqueries/
-#[derive(Clone, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct MediaQuery {
     /// The qualifier for this query.
@@ -243,19 +243,13 @@ pub fn parse_media_query_list(input: &mut Parser) -> MediaList {
     }
 
     let mut media_queries = vec![];
-    let mut found_invalid = false;
     loop {
         match input.parse_until_before(Delimiter::Comma, MediaQuery::parse) {
-            Ok(mq) => if !found_invalid {
+            Ok(mq) => {
                 media_queries.push(mq);
             },
-            Err(..) => if !found_invalid {
-                media_queries.clear();
+            Err(..) => {
                 media_queries.push(MediaQuery::never_matching());
-                // Consume the rest of the input as if they were valid
-                // expressions (they might be, they might not), but ignore the
-                // result, this allows correctly parsing invalid media queries.
-                found_invalid = true;
             },
         }
 
@@ -265,8 +259,6 @@ pub fn parse_media_query_list(input: &mut Parser) -> MediaList {
             Err(()) => break,
         }
     }
-
-    debug_assert!(!found_invalid || media_queries.len() == 1);
 
     MediaList {
         media_queries: media_queries,
@@ -298,5 +290,38 @@ impl MediaList {
     /// Whether this `MediaList` contains no media queries.
     pub fn is_empty(&self) -> bool {
         self.media_queries.is_empty()
+    }
+
+    /// Append a new media query item to the media list.
+    /// https://drafts.csswg.org/cssom/#dom-medialist-appendmedium
+    ///
+    /// Returns true if added, false if fail to parse the medium string.
+    pub fn append_medium(&mut self, new_medium: &str) -> bool {
+        let mut parser = Parser::new(new_medium);
+        let new_query = match MediaQuery::parse(&mut parser) {
+            Ok(query) => query,
+            Err(_) => { return false; }
+        };
+        // This algorithm doesn't actually matches the current spec,
+        // but it matches the behavior of Gecko and Edge.
+        // See https://github.com/w3c/csswg-drafts/issues/697
+        self.media_queries.retain(|query| query != &new_query);
+        self.media_queries.push(new_query);
+        true
+    }
+
+    /// Delete a media query from the media list.
+    /// https://drafts.csswg.org/cssom/#dom-medialist-deletemedium
+    ///
+    /// Returns true if found and deleted, false otherwise.
+    pub fn delete_medium(&mut self, old_medium: &str) -> bool {
+        let mut parser = Parser::new(old_medium);
+        let old_query = match MediaQuery::parse(&mut parser) {
+            Ok(query) => query,
+            Err(_) => { return false; }
+        };
+        let old_len = self.media_queries.len();
+        self.media_queries.retain(|query| query != &old_query);
+        old_len != self.media_queries.len()
     }
 }

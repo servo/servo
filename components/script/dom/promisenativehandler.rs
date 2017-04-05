@@ -7,6 +7,7 @@ use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::trace::JSTraceable;
 use dom::globalscope::GlobalScope;
+use dom_struct::dom_struct;
 use heapsize::HeapSizeOf;
 use js::jsapi::{JSContext, HandleValue};
 

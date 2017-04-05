@@ -10,6 +10,7 @@ use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::htmlelement::HTMLElement;
 use dom::node::window_from_node;
+use dom_struct::dom_struct;
 
 #[dom_struct]
 pub struct DOMStringMap {

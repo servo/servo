@@ -7,7 +7,7 @@ use euclid::scale_factor::ScaleFactor;
 use script_traits::{DevicePixel, EventResult, TouchId};
 use self::TouchState::*;
 
-/// Minimum number of `ScreenPx` to begin touch scrolling.
+/// Minimum number of `DeviceIndependentPixel` to begin touch scrolling.
 const TOUCH_PAN_MIN_SCREEN_PX: f32 = 20.0;
 
 pub struct TouchHandler {
@@ -100,7 +100,6 @@ impl TouchHandler {
         let action = match self.state {
             Touching => {
                 let delta = point - old_point;
-                // TODO let delta: TypedPoint2D<_, ScreenPx> = delta / self.device_pixels_per_screen_px();
 
                 if delta.x.abs() > TOUCH_PAN_MIN_SCREEN_PX ||
                    delta.y.abs() > TOUCH_PAN_MIN_SCREEN_PX

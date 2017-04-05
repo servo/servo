@@ -13,8 +13,10 @@ use dom::cssrulelist::{CSSRuleList, RulesSource};
 use dom::element::Element;
 use dom::stylesheet::StyleSheet;
 use dom::window::Window;
+use dom_struct::dom_struct;
 use std::cell::Cell;
 use std::sync::Arc;
+use style::shared_lock::SharedRwLock;
 use style::stylesheets::Stylesheet as StyleStyleSheet;
 
 #[dom_struct]
@@ -69,6 +71,10 @@ impl CSSStyleSheet {
         if self.style_stylesheet.set_disabled(disabled) {
             self.global().as_window().Document().invalidate_stylesheets();
         }
+    }
+
+    pub fn shared_lock(&self) -> &SharedRwLock {
+        &self.style_stylesheet.shared_lock
     }
 
     pub fn style_stylesheet(&self) -> &StyleStyleSheet {

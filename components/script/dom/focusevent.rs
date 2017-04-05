@@ -14,6 +14,7 @@ use dom::event::{EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::uievent::UIEvent;
 use dom::window::Window;
+use dom_struct::dom_struct;
 use std::default::Default;
 
 #[dom_struct]

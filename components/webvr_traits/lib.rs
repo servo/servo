@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![feature(custom_derive)]
-#![feature(plugin)]
 #![deny(unsafe_code)]
 
 extern crate ipc_channel;

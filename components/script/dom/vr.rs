@@ -15,6 +15,7 @@ use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
 use dom::vrdisplay::VRDisplay;
 use dom::vrdisplayevent::VRDisplayEvent;
+use dom_struct::dom_struct;
 use ipc_channel::ipc;
 use ipc_channel::ipc::IpcSender;
 use script_traits::WebVREventMsg;

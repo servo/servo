@@ -3,8 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //! A thread that takes a URL and streams back the binary data.
-use connector::{Connector, create_http_connector};
-use content_blocker::BLOCKED_CONTENT_RULES;
+use connector::{Connector, create_http_connector, create_ssl_client};
 use cookie;
 use cookie_rs;
 use cookie_storage::CookieStorage;
@@ -14,6 +13,7 @@ use filemanager_thread::{FileManager, TFDProvider};
 use hsts::HstsList;
 use http_loader::HttpState;
 use hyper::client::pool::Pool;
+use hyper_openssl::OpensslClient;
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};
 use net_traits::{CookieSource, CoreResourceThread};
@@ -23,8 +23,8 @@ use net_traits::{ResourceThreads, WebSocketCommunicate, WebSocketConnectData};
 use net_traits::request::{Request, RequestInit};
 use net_traits::storage_thread::StorageThreadMsg;
 use profile_traits::time::ProfilerChan;
-use rustc_serialize::{Decodable, Encodable};
-use rustc_serialize::json;
+use serde::{Deserialize, Serialize};
+use serde_json;
 use servo_url::ServoUrl;
 use std::borrow::{Cow, ToOwned};
 use std::collections::HashMap;
@@ -33,7 +33,6 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
-use std::rc::Rc;
 use std::sync::{Arc, RwLock};
 use std::sync::mpsc::Sender;
 use std::thread;
@@ -44,9 +43,8 @@ const TFD_PROVIDER: &'static TFDProvider = &TFDProvider;
 
 #[derive(Clone)]
 pub struct ResourceGroup {
-    cookie_jar: Arc<RwLock<CookieStorage>>,
-    auth_cache: Arc<RwLock<AuthCache>>,
-    hsts_list: Arc<RwLock<HstsList>>,
+    http_state: Arc<HttpState>,
+    ssl_client: OpensslClient,
     connector: Arc<Pool<Connector>>,
 }
 
@@ -105,17 +103,22 @@ fn create_resource_groups(config_dir: Option<&Path>)
         read_json_from_file(&mut hsts_list, config_dir, "hsts_list.json");
         read_json_from_file(&mut cookie_jar, config_dir, "cookie_jar.json");
     }
-    let resource_group = ResourceGroup {
-        cookie_jar: Arc::new(RwLock::new(cookie_jar)),
-        auth_cache: Arc::new(RwLock::new(auth_cache)),
-        hsts_list: Arc::new(RwLock::new(hsts_list.clone())),
-        connector: create_http_connector("certs"),
+    let http_state = HttpState {
+        cookie_jar: RwLock::new(cookie_jar),
+        auth_cache: RwLock::new(auth_cache),
+        hsts_list: RwLock::new(hsts_list),
     };
+    let ssl_client = create_ssl_client("certs");
+    let resource_group = ResourceGroup {
+        http_state: Arc::new(http_state),
+        ssl_client: ssl_client.clone(),
+        connector: create_http_connector(ssl_client.clone()),
+    };
+    let private_ssl_client = create_ssl_client("certs");
     let private_resource_group = ResourceGroup {
-        cookie_jar: Arc::new(RwLock::new(CookieStorage::new(150))),
-        auth_cache: Arc::new(RwLock::new(AuthCache::new())),
-        hsts_list: Arc::new(RwLock::new(HstsList::new())),
-        connector: create_http_connector("certs"),
+        http_state: Arc::new(HttpState::new()),
+        ssl_client: private_ssl_client.clone(),
+        connector: create_http_connector(private_ssl_client),
     };
     (resource_group, private_resource_group)
 }
@@ -149,6 +152,7 @@ impl ResourceChannelManager {
         }
     }
 
+
     /// Returns false if the thread should exit.
     fn process_msg(&mut self,
                    msg: CoreResourceMsg,
@@ -159,21 +163,21 @@ impl ResourceChannelManager {
             CoreResourceMsg::WebsocketConnect(connect, connect_data) =>
                 self.resource_manager.websocket_connect(connect, connect_data, group),
             CoreResourceMsg::SetCookieForUrl(request, cookie, source) =>
-                self.resource_manager.set_cookie_for_url(&request, cookie, source, group),
+                self.resource_manager.set_cookie_for_url(&request, cookie.into_inner(), source, group),
             CoreResourceMsg::SetCookiesForUrl(request, cookies, source) => {
                 for cookie in cookies {
-                    self.resource_manager.set_cookie_for_url(&request, cookie.0, source, group);
+                    self.resource_manager.set_cookie_for_url(&request, cookie.into_inner(), source, group);
                 }
             }
             CoreResourceMsg::GetCookiesForUrl(url, consumer, source) => {
-                let mut cookie_jar = group.cookie_jar.write().unwrap();
+                let mut cookie_jar = group.http_state.cookie_jar.write().unwrap();
                 consumer.send(cookie_jar.cookies_for_url(&url, source)).unwrap();
             }
             CoreResourceMsg::NetworkMediator(mediator_chan) => {
                 self.resource_manager.swmanager_chan = Some(mediator_chan)
             }
             CoreResourceMsg::GetCookiesDataForUrl(url, consumer, source) => {
-                let mut cookie_jar = group.cookie_jar.write().unwrap();
+                let mut cookie_jar = group.http_state.cookie_jar.write().unwrap();
                 let cookies = cookie_jar.cookies_data_for_url(&url, source).map(Serde).collect();
                 consumer.send(cookies).unwrap();
             }
@@ -189,15 +193,15 @@ impl ResourceChannelManager {
             CoreResourceMsg::ToFileManager(msg) => self.resource_manager.filemanager.handle(msg, TFD_PROVIDER),
             CoreResourceMsg::Exit(sender) => {
                 if let Some(ref config_dir) = self.config_dir {
-                    match group.auth_cache.read() {
+                    match group.http_state.auth_cache.read() {
                         Ok(auth_cache) => write_json_to_file(&*auth_cache, config_dir, "auth_cache.json"),
                         Err(_) => warn!("Error writing auth cache to disk"),
                     }
-                    match group.cookie_jar.read() {
+                    match group.http_state.cookie_jar.read() {
                         Ok(jar) => write_json_to_file(&*jar, config_dir, "cookie_jar.json"),
                         Err(_) => warn!("Error writing cookie jar to disk"),
                     }
-                    match group.hsts_list.read() {
+                    match group.http_state.hsts_list.read() {
                         Ok(hsts) => write_json_to_file(&*hsts, config_dir, "hsts_list.json"),
                         Err(_) => warn!("Error writing hsts list to disk"),
                     }
@@ -211,7 +215,7 @@ impl ResourceChannelManager {
 }
 
 pub fn read_json_from_file<T>(data: &mut T, config_dir: &Path, filename: &str)
-    where T: Decodable
+    where T: Deserialize
 {
     let path = config_dir.join(filename);
     let display = path.display();
@@ -233,17 +237,17 @@ pub fn read_json_from_file<T>(data: &mut T, config_dir: &Path, filename: &str)
         Ok(_) => println!("successfully read from {}", display),
     }
 
-    match json::decode(&string_buffer) {
+    match serde_json::from_str(&string_buffer) {
         Ok(decoded_buffer) => *data = decoded_buffer,
         Err(why) => warn!("Could not decode buffer{}", why),
     }
 }
 
 pub fn write_json_to_file<T>(data: &T, config_dir: &Path, filename: &str)
-    where T: Encodable
+    where T: Serialize
 {
     let json_encoded: String;
-    match json::encode(&data) {
+    match serde_json::to_string_pretty(&data) {
         Ok(d) => json_encoded = d,
         Err(_) => return,
     }
@@ -266,7 +270,7 @@ pub fn write_json_to_file<T>(data: &T, config_dir: &Path, filename: &str)
     }
 }
 
-#[derive(RustcDecodable, RustcEncodable, Clone)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct AuthCacheEntry {
     pub user_name: String,
     pub password: String,
@@ -281,7 +285,7 @@ impl AuthCache {
     }
 }
 
-#[derive(RustcDecodable, RustcEncodable, Clone)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct AuthCache {
     pub version: u32,
     pub entries: HashMap<String, AuthCacheEntry>,
@@ -308,10 +312,12 @@ impl CoreResourceManager {
         }
     }
 
-    fn set_cookie_for_url(&mut self, request: &ServoUrl, cookie: cookie_rs::Cookie, source: CookieSource,
+    fn set_cookie_for_url(&mut self, request: &ServoUrl,
+                          cookie: cookie_rs::Cookie<'static>,
+                          source: CookieSource,
                           resource_group: &ResourceGroup) {
-        if let Some(cookie) = cookie::Cookie::new_wrapped(cookie, &request, source) {
-            let mut cookie_jar = resource_group.cookie_jar.write().unwrap();
+        if let Some(cookie) = cookie::Cookie::new_wrapped(cookie, request, source) {
+            let mut cookie_jar = resource_group.http_state.cookie_jar.write().unwrap();
             cookie_jar.push(cookie, request, source)
         }
     }
@@ -320,19 +326,15 @@ impl CoreResourceManager {
              init: RequestInit,
              mut sender: IpcSender<FetchResponseMsg>,
              group: &ResourceGroup) {
-        let http_state = HttpState {
-            hsts_list: group.hsts_list.clone(),
-            cookie_jar: group.cookie_jar.clone(),
-            auth_cache: group.auth_cache.clone(),
-            blocked_content: BLOCKED_CONTENT_RULES.clone(),
-            connector_pool: group.connector.clone(),
-        };
+        let http_state = group.http_state.clone();
         let ua = self.user_agent.clone();
         let dc = self.devtools_chan.clone();
         let filemanager = self.filemanager.clone();
+        // FIXME(#15694): use group.connector.clone() instead.
+        let connector = create_http_connector(group.ssl_client.clone());
 
         thread::Builder::new().name(format!("fetch thread for {}", init.url)).spawn(move || {
-            let request = Request::from_init(init);
+            let mut request = Request::from_init(init);
             // XXXManishearth: Check origin against pipeline id (also ensure that the mode is allowed)
             // todo load context / mimesniff in fetch
             // todo referrer policy?
@@ -342,8 +344,9 @@ impl CoreResourceManager {
                 user_agent: ua,
                 devtools_chan: dc,
                 filemanager: filemanager,
+                connector: connector,
             };
-            fetch(Rc::new(request), &mut sender, &context);
+            fetch(&mut request, &mut sender, &context);
         }).expect("Thread spawning failed");
     }
 
@@ -351,6 +354,8 @@ impl CoreResourceManager {
                          connect: WebSocketCommunicate,
                          connect_data: WebSocketConnectData,
                          resource_grp: &ResourceGroup) {
-        websocket_loader::init(connect, connect_data, resource_grp.cookie_jar.clone());
+        websocket_loader::init(connect,
+                               connect_data,
+                               resource_grp.http_state.clone());
     }
 }

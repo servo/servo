@@ -18,6 +18,7 @@ use dom::bluetoothdevice::BluetoothDevice;
 use dom::globalscope::GlobalScope;
 use dom::permissionstatus::PermissionStatus;
 use dom::promise::Promise;
+use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use js::jsapi::JSContext;
 use std::rc::Rc;

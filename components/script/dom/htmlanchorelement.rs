@@ -24,6 +24,7 @@ use dom::mouseevent::MouseEvent;
 use dom::node::{Node, document_from_node};
 use dom::urlhelper::UrlHelper;
 use dom::virtualmethods::VirtualMethods;
+use dom_struct::dom_struct;
 use html5ever_atoms::LocalName;
 use net_traits::ReferrerPolicy;
 use num_traits::ToPrimitive;
@@ -112,11 +113,17 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
         self.upcast::<Node>().SetTextContent(Some(value))
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-a-rel
+    make_getter!(Rel, "rel");
+
+    // https://html.spec.whatwg.org/multipage/#dom-a-rel
+    fn SetRel(&self, rel: DOMString) {
+        self.upcast::<Element>().set_tokenlist_attribute(&local_name!("rel"), rel);
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-a-rellist
     fn RelList(&self) -> Root<DOMTokenList> {
-        self.rel_list.or_init(|| {
-            DOMTokenList::new(self.upcast(), &local_name!("rel"))
-        })
+        self.rel_list.or_init(|| DOMTokenList::new(self.upcast(), &local_name!("rel")))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-a-coords

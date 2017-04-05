@@ -15,7 +15,7 @@ use dom::bindings::codegen::UnionTypes::DocumentOrBodyInit;
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, MutHeapJSVal, MutNullableJS, Root};
+use dom::bindings::js::{JS, MutNullableJS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::str::{ByteString, DOMString, USVString, is_token};
@@ -36,20 +36,21 @@ use dom::window::Window;
 use dom::workerglobalscope::WorkerGlobalScope;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use dom::xmlhttprequestupload::XMLHttpRequestUpload;
+use dom_struct::dom_struct;
 use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
 use encoding::types::{DecoderTrap, EncoderTrap, Encoding, EncodingRef};
 use euclid::length::Length;
 use html5ever::serialize;
 use html5ever::serialize::SerializeOpts;
-use hyper::header::{ContentLength, ContentType};
+use hyper::header::{ContentLength, ContentType, ContentEncoding};
 use hyper::header::Headers;
 use hyper::method::Method;
 use hyper::mime::{self, Attr as MimeAttr, Mime, Value as MimeValue};
 use hyper_serde::Serde;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
-use js::jsapi::{JSContext, JS_ParseJSON};
+use js::jsapi::{Heap, JSContext, JS_ParseJSON};
 use js::jsapi::JS_ClearPendingException;
 use js::jsval::{JSVal, NullValue, UndefinedValue};
 use net_traits::{FetchMetadata, FilteredMetadata};
@@ -132,7 +133,7 @@ pub struct XMLHttpRequest {
     response_xml: MutNullableJS<Document>,
     response_blob: MutNullableJS<Blob>,
     #[ignore_heap_size_of = "Defined in rust-mozjs"]
-    response_json: MutHeapJSVal,
+    response_json: Heap<JSVal>,
     #[ignore_heap_size_of = "Defined in hyper"]
     response_headers: DOMRefCell<Headers>,
     #[ignore_heap_size_of = "Defined in hyper"]
@@ -182,7 +183,7 @@ impl XMLHttpRequest {
             response_type: Cell::new(XMLHttpRequestResponseType::_empty),
             response_xml: Default::default(),
             response_blob: Default::default(),
-            response_json: MutHeapJSVal::new(),
+            response_json: Heap::default(),
             response_headers: DOMRefCell::new(Headers::new()),
             override_mime_type: DOMRefCell::new(None),
             override_charset: DOMRefCell::new(None),
@@ -979,14 +980,12 @@ impl XMLHttpRequest {
                 // Part of step 11, send() (processing response end of file)
                 // XXXManishearth handle errors, if any (substep 2)
 
-                // Subsubsteps 5-7
+                // Subsubsteps 6-8
                 self.send_flag.set(false);
 
                 self.change_ready_state(XMLHttpRequestState::Done);
                 return_if_fetch_was_terminated!();
-                // Subsubsteps 10-12
-                self.dispatch_response_progress_event(atom!("progress"));
-                return_if_fetch_was_terminated!();
+                // Subsubsteps 11-12
                 self.dispatch_response_progress_event(atom!("load"));
                 return_if_fetch_was_terminated!();
                 self.dispatch_response_progress_event(atom!("loadend"));
@@ -1009,15 +1008,11 @@ impl XMLHttpRequest {
                 let upload_complete = &self.upload_complete;
                 if !upload_complete.get() {
                     upload_complete.set(true);
-                    self.dispatch_upload_progress_event(atom!("progress"), None);
-                    return_if_fetch_was_terminated!();
                     self.dispatch_upload_progress_event(Atom::from(errormsg), None);
                     return_if_fetch_was_terminated!();
                     self.dispatch_upload_progress_event(atom!("loadend"), None);
                     return_if_fetch_was_terminated!();
                 }
-                self.dispatch_response_progress_event(atom!("progress"));
-                return_if_fetch_was_terminated!();
                 self.dispatch_response_progress_event(Atom::from(errormsg));
                 return_if_fetch_was_terminated!();
                 self.dispatch_response_progress_event(atom!("loadend"));
@@ -1032,12 +1027,17 @@ impl XMLHttpRequest {
     }
 
     fn dispatch_progress_event(&self, upload: bool, type_: Atom, loaded: u64, total: Option<u64>) {
+        let (total_length, length_computable) = if self.response_headers.borrow().has::<ContentEncoding>() {
+            (0, false)
+        } else {
+            (total.unwrap_or(0), total.is_some())
+        };
         let progressevent = ProgressEvent::new(&self.global(),
                                                type_,
                                                EventBubbles::DoesNotBubble,
                                                EventCancelable::NotCancelable,
-                                               total.is_some(), loaded,
-                                               total.unwrap_or(0));
+                                               length_computable, loaded,
+                                               total_length);
         let target = if upload {
             self.upload.upcast()
         } else {
@@ -1225,7 +1225,7 @@ impl XMLHttpRequest {
         Document::new(win,
                       HasBrowsingContext::No,
                       parsed_url,
-                      doc.origin().alias(),
+                      doc.origin().clone(),
                       is_html_document,
                       content_type,
                       None,

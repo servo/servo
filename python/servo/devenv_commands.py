@@ -10,7 +10,6 @@
 from __future__ import print_function, unicode_literals
 from os import path, getcwd, listdir
 
-import subprocess
 import sys
 
 from mach.decorators import (
@@ -86,26 +85,6 @@ class MachCommands(CommandBase):
         with cd(self.context.topdir):
             call(["cargo", "update"] + params,
                  env=self.build_env())
-
-    @Command('clippy',
-             description='Run Clippy',
-             category='devenv')
-    @CommandArgument(
-        '--package', '-p', default=None,
-        help='Updates the selected package')
-    @CommandArgument(
-        '--json', '-j', action="store_true",
-        help='Outputs')
-    def clippy(self, package=None, json=False):
-        params = ["--features=clippy"]
-        if package:
-            params += ["-p", package]
-        if json:
-            params += ["--", "-Zunstable-options", "--error-format", "json"]
-
-        with cd(path.join(self.context.topdir, "components", "servo")):
-            return subprocess.call(["cargo", "rustc", "-v"] + params,
-                                   env=self.build_env())
 
     @Command('rustc',
              description='Run the Rust compiler',

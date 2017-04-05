@@ -12,6 +12,7 @@ use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::uievent::UIEvent;
 use dom::window::Window;
+use dom_struct::dom_struct;
 
 #[dom_struct]
 pub struct ForceTouchEvent {

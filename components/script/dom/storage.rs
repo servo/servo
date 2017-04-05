@@ -13,6 +13,7 @@ use dom::bindings::str::DOMString;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::storageevent::StorageEvent;
 use dom::window::Window;
+use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcSender};
 use net_traits::IpcSend;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};

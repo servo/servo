@@ -25,6 +25,12 @@ pub trait ToCss {
     }
 }
 
+impl<'a, T> ToCss for &'a T where T: ToCss + ?Sized {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        (*self).to_css(dest)
+    }
+}
+
 /// Marker trait to automatically implement ToCss for Vec<T>.
 pub trait OneOrMoreCommaSeparated {}
 
@@ -108,7 +114,7 @@ macro_rules! __define_css_keyword_enum__add_optional_traits {
 macro_rules! __define_css_keyword_enum__actual {
     ($name: ident [ $( $derived_trait: ident),* ] [ $( $css: expr => $variant: ident ),+ ]) => {
         #[allow(non_camel_case_types, missing_docs)]
-        #[derive(Clone, Eq, PartialEq, Copy, Hash, RustcEncodable, Debug $(, $derived_trait )* )]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq $(, $derived_trait )* )]
         pub enum $name {
             $( $variant ),+
         }
@@ -116,7 +122,13 @@ macro_rules! __define_css_keyword_enum__actual {
         impl $name {
             /// Parse this property from a CSS input stream.
             pub fn parse(input: &mut ::cssparser::Parser) -> Result<$name, ()> {
-                match_ignore_ascii_case! { try!(input.expect_ident()),
+                let ident = input.expect_ident()?;
+                Self::from_ident(&ident)
+            }
+
+            /// Parse this property from an already-tokenized identifier.
+            pub fn from_ident(ident: &str) -> Result<$name, ()> {
+                match_ignore_ascii_case! { ident,
                                            $( $css => Ok($name::$variant), )+
                                            _ => Err(())
                 }
@@ -169,5 +181,16 @@ pub mod specified {
                 AllowedNumericType::NonNegative => cmp::max(Au(0), val),
             }
         }
+    }
+}
+
+
+/// Wrap CSS types for serialization with `write!` or `format!` macros.
+/// Used by ToCss of SpecifiedOperation.
+pub struct Css<T>(pub T);
+
+impl<T: ToCss> fmt::Display for Css<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.0.to_css(f)
     }
 }

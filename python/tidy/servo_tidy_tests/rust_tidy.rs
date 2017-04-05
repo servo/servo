@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use    app_units::Au;
+use azure::azure_hl::{ AntialiasMode, Color, ColorPattern, CompositionOp };
 use azure::azure_hl::{AntialiasMode, Color,
 ColorPattern, CompositionOp};
 use euclid::size::Size2D;
@@ -37,7 +38,7 @@ impl test {
         }
     }
 
-    fn test_fun2(y : &String, z : &Vec<f32>, r: &Root<isize>) -> f32 {
+    fn test_fun2(y : &String, z : &Vec<f32>, r: &Root<isize>) -> () {
         let x = true;
         x
             && x;

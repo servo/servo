@@ -11,7 +11,8 @@ use style::stylesheets::Origin;
 
 fn parse<T, F: Fn(&ParserContext, &mut Parser) -> Result<T, ()>>(f: F, s: &str) -> Result<T, ()> {
     let url = ::servo_url::ServoUrl::parse("http://localhost").unwrap();
-    let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
+    let reporter = CSSErrorReporterTest;
+    let context = ParserContext::new(Origin::Author, &url, &reporter);
     let mut parser = Parser::new(s);
     f(&context, &mut parser)
 }
@@ -24,7 +25,8 @@ macro_rules! assert_roundtrip_with_context {
     };
     ($fun:expr,$input:expr, $output:expr) => {
         let url = ::servo_url::ServoUrl::parse("http://localhost").unwrap();
-        let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
+        let reporter = CSSErrorReporterTest;
+        let context = ParserContext::new(Origin::Author, &url, &reporter);
         let mut parser = Parser::new($input);
         let parsed = $fun(&context, &mut parser)
                      .expect(&format!("Failed to parse {}", $input));
@@ -58,10 +60,23 @@ macro_rules! assert_roundtrip {
     }
 }
 
+macro_rules! assert_parser_exhausted {
+    ($name:ident, $string:expr, $should_exhausted:expr) => {{
+        let url = ::servo_url::ServoUrl::parse("http://localhost").unwrap();
+        let reporter = CSSErrorReporterTest;
+        let context = ParserContext::new(Origin::Author, &url, &reporter);
+        let mut parser = Parser::new($string);
+        let parsed = $name::parse(&context, &mut parser);
+        assert_eq!(parsed.is_ok(), true);
+        assert_eq!(parser.is_exhausted(), $should_exhausted);
+    }}
+}
+
 macro_rules! parse_longhand {
     ($name:ident, $s:expr) => {{
         let url = ::servo_url::ServoUrl::parse("http://localhost").unwrap();
-        let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
+        let reporter = CSSErrorReporterTest;
+        let context = ParserContext::new(Origin::Author, &url, &reporter);
         $name::parse(&context, &mut Parser::new($s)).unwrap()
     }};
 }
@@ -70,15 +85,21 @@ mod animation;
 mod background;
 mod basic_shape;
 mod border;
+mod box_;
 mod column;
+mod containment;
+mod effects;
 mod font;
 mod image;
 mod inherited_box;
 mod inherited_text;
+mod length;
 mod mask;
 mod outline;
 mod position;
 mod selectors;
 mod supports;
+mod text;
 mod text_overflow;
 mod transition_timing_function;
+mod ui;

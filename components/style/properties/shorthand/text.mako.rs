@@ -5,18 +5,24 @@
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
 <%helpers:shorthand name="text-decoration"
-                    sub_properties="text-decoration-color
-                                    text-decoration-line
-                                    text-decoration-style"
-                    products="gecko"
-                    disable_when_testing="True"
+                    sub_properties="text-decoration-line
+                    ${' text-decoration-style text-decoration-color' if product == 'gecko' or data.testing else ''}"
                     spec="https://drafts.csswg.org/css-text-decor/#propdef-text-decoration">
-    use cssparser::Color as CSSParserColor;
-    use properties::longhands::{text_decoration_color, text_decoration_line, text_decoration_style};
-    use values::specified::CSSColor;
+
+    % if product == "gecko" or data.testing:
+        use values::specified;
+        use properties::longhands::{text_decoration_line, text_decoration_style, text_decoration_color};
+    % else:
+        use properties::longhands::text_decoration_line;
+    % endif
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
-        let (mut color, mut line, mut style, mut any) = (None, None, None, false);
+        % if product == "gecko" or data.testing:
+            let (mut line, mut style, mut color, mut any) = (None, None, None, false);
+        % else:
+            let (mut line, mut any) = (None, false);
+        % endif
+
         loop {
             macro_rules! parse_component {
                 ($value:ident, $module:ident) => (
@@ -30,9 +36,13 @@
                 )
             }
 
-            parse_component!(color, text_decoration_color);
             parse_component!(line, text_decoration_line);
-            parse_component!(style, text_decoration_style);
+
+            % if product == "gecko" or data.testing:
+                parse_component!(style, text_decoration_style);
+                parse_component!(color, text_decoration_color);
+            % endif
+
             break;
         }
 
@@ -41,37 +51,30 @@
         }
 
         Ok(Longhands {
-            text_decoration_color: color.or(Some(CSSColor { parsed: CSSParserColor::CurrentColor,
-                                                            authored: None })),
-            text_decoration_line: line.or(Some(text_decoration_line::computed_value::none)),
-            text_decoration_style: style.or(Some(text_decoration_style::computed_value::T::solid)),
+            text_decoration_line: unwrap_or_initial!(text_decoration_line, line),
+
+            % if product == "gecko" or data.testing:
+                text_decoration_style: unwrap_or_initial!(text_decoration_style, style),
+                text_decoration_color: unwrap_or_initial!(text_decoration_color, color),
+            % endif
         })
     }
 
-    impl<'a> LonghandsToSerialize<'a>  {
-        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self.text_decoration_line {
-                DeclaredValue::Value(ref line) => {
-                    try!(line.to_css(dest));
-                },
-                _ => {
-                    try!(write!(dest, "none"));
-                }
-            };
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            self.text_decoration_line.to_css(dest)?;
 
-            if let DeclaredValue::Value(ref style) = *self.text_decoration_style {
-                if *style != text_decoration_style::computed_value::T::solid {
-                    try!(write!(dest, " "));
-                    try!(style.to_css(dest));
+            % if product == "gecko" or data.testing:
+                if self.text_decoration_style != &text_decoration_style::SpecifiedValue::solid {
+                    dest.write_str(" ")?;
+                    self.text_decoration_style.to_css(dest)?;
                 }
-            }
 
-            if let DeclaredValue::Value(ref color) = *self.text_decoration_color {
-                if color.parsed != CSSParserColor::CurrentColor {
-                    try!(write!(dest, " "));
-                    try!(color.to_css(dest));
+                if self.text_decoration_color.parsed != specified::Color::CurrentColor {
+                    dest.write_str(" ")?;
+                    self.text_decoration_color.to_css(dest)?;
                 }
-            }
+            % endif
 
             Ok(())
         }

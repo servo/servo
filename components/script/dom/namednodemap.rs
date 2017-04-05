@@ -13,6 +13,7 @@ use dom::bindings::str::DOMString;
 use dom::bindings::xmlname::namespace_from_domstring;
 use dom::element::Element;
 use dom::window::Window;
+use dom_struct::dom_struct;
 use html5ever_atoms::LocalName;
 use std::ascii::AsciiExt;
 

@@ -2,46 +2,45 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use script::origin::Origin;
-use servo_url::ServoUrl;
+use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 
 #[test]
 fn same_origin() {
-    let a = Origin::new(&ServoUrl::parse("http://example.com/a.html").unwrap());
-    let b = Origin::new(&ServoUrl::parse("http://example.com/b.html").unwrap());
+    let a = MutableOrigin::new(ServoUrl::parse("http://example.com/a.html").unwrap().origin());
+    let b = MutableOrigin::new(ServoUrl::parse("http://example.com/b.html").unwrap().origin());
     assert!(a.same_origin(&b));
-    assert_eq!(a.is_scheme_host_port_tuple(), true);
+    assert_eq!(a.is_tuple(), true);
 }
 
 #[test]
 fn identical_origin() {
-    let a = Origin::new(&ServoUrl::parse("http://example.com/a.html").unwrap());
+    let a = MutableOrigin::new(ServoUrl::parse("http://example.com/a.html").unwrap().origin());
     assert!(a.same_origin(&a));
 }
 
 #[test]
 fn cross_origin() {
-    let a = Origin::new(&ServoUrl::parse("http://example.com/a.html").unwrap());
-    let b = Origin::new(&ServoUrl::parse("http://example.org/b.html").unwrap());
+    let a = MutableOrigin::new(ServoUrl::parse("http://example.com/a.html").unwrap().origin());
+    let b = MutableOrigin::new(ServoUrl::parse("http://example.org/b.html").unwrap().origin());
     assert!(!a.same_origin(&b));
 }
 
 #[test]
-fn alias_same_origin() {
-    let a = Origin::new(&ServoUrl::parse("http://example.com/a.html").unwrap());
-    let b = Origin::new(&ServoUrl::parse("http://example.com/b.html").unwrap());
-    let c = b.alias();
+fn clone_same_origin() {
+    let a = MutableOrigin::new(ServoUrl::parse("http://example.com/a.html").unwrap().origin());
+    let b = MutableOrigin::new(ServoUrl::parse("http://example.com/b.html").unwrap().origin());
+    let c = b.clone();
     assert!(a.same_origin(&c));
     assert!(b.same_origin(&b));
     assert!(c.same_origin(&b));
-    assert_eq!(c.is_scheme_host_port_tuple(), true);
+    assert_eq!(c.is_tuple(), true);
 }
 
 #[test]
-fn alias_cross_origin() {
-    let a = Origin::new(&ServoUrl::parse("http://example.com/a.html").unwrap());
-    let b = Origin::new(&ServoUrl::parse("http://example.org/b.html").unwrap());
-    let c = b.alias();
+fn clone_cross_origin() {
+    let a = MutableOrigin::new(ServoUrl::parse("http://example.com/a.html").unwrap().origin());
+    let b = MutableOrigin::new(ServoUrl::parse("http://example.org/b.html").unwrap().origin());
+    let c = b.clone();
     assert!(!a.same_origin(&c));
     assert!(b.same_origin(&c));
     assert!(c.same_origin(&c));
@@ -49,16 +48,16 @@ fn alias_cross_origin() {
 
 #[test]
 fn opaque() {
-    let a = Origin::opaque_identifier();
-    let b = Origin::opaque_identifier();
+    let a = MutableOrigin::new(ImmutableOrigin::new_opaque());
+    let b = MutableOrigin::new(ImmutableOrigin::new_opaque());
     assert!(!a.same_origin(&b));
-    assert_eq!(a.is_scheme_host_port_tuple(), false);
+    assert_eq!(a.is_tuple(), false);
 }
 
 #[test]
 fn opaque_clone() {
-    let a = Origin::opaque_identifier();
-    let b = a.alias();
+    let a = MutableOrigin::new(ImmutableOrigin::new_opaque());
+    let b = a.clone();
     assert!(a.same_origin(&b));
-    assert_eq!(a.is_scheme_host_port_tuple(), false);
+    assert_eq!(a.is_tuple(), false);
 }

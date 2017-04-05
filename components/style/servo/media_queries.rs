@@ -10,7 +10,7 @@ use euclid::{Size2D, TypedSize2D};
 use media_queries::MediaType;
 use properties::ComputedValues;
 use std::fmt;
-use style_traits::{ToCss, ViewportPx};
+use style_traits::{CSSPixel, ToCss};
 use style_traits::viewport::ViewportConstraints;
 use values::computed::{self, ToComputedValue};
 use values::specified;
@@ -23,14 +23,14 @@ use values::specified;
 pub struct Device {
     /// The current media type used by de device.
     media_type: MediaType,
-    /// The current viewport size, in viewport pixels.
-    viewport_size: TypedSize2D<f32, ViewportPx>,
+    /// The current viewport size, in CSS pixels.
+    viewport_size: TypedSize2D<f32, CSSPixel>,
 }
 
 impl Device {
     /// Trivially construct a new `Device`.
     pub fn new(media_type: MediaType,
-               viewport_size: TypedSize2D<f32, ViewportPx>)
+               viewport_size: TypedSize2D<f32, CSSPixel>)
                -> Device {
         Device {
             media_type: media_type,
@@ -39,7 +39,10 @@ impl Device {
     }
 
     /// Return the default computed values for this device.
-    pub fn default_values(&self) -> &ComputedValues {
+    pub fn default_computed_values(&self) -> &ComputedValues {
+        // FIXME(bz): This isn't really right, but it's no more wrong
+        // than what we used to do.  See
+        // https://github.com/servo/servo/issues/14773 for fixing it properly.
         ComputedValues::initial_values()
     }
 
@@ -53,7 +56,7 @@ impl Device {
 
     /// Returns the viewport size in pixels.
     #[inline]
-    pub fn px_viewport_size(&self) -> TypedSize2D<f32, ViewportPx> {
+    pub fn px_viewport_size(&self) -> TypedSize2D<f32, CSSPixel> {
         self.viewport_size
     }
 
@@ -106,7 +109,7 @@ impl Expression {
             let name = try!(input.expect_ident());
             try!(input.expect_colon());
             // TODO: Handle other media features
-            Ok(Expression(match_ignore_ascii_case! { name,
+            Ok(Expression(match_ignore_ascii_case! { &name,
                 "min-width" => {
                     ExpressionKind::Width(Range::Min(try!(specified::Length::parse_non_negative(input))))
                 },
@@ -128,7 +131,7 @@ impl Expression {
         let value = viewport_size.width;
         match self.0 {
             ExpressionKind::Width(ref range) => {
-                match range.to_computed_range(viewport_size, device.default_values()) {
+                match range.to_computed_range(device) {
                     Range::Min(ref width) => { value >= *width },
                     Range::Max(ref width) => { value <= *width },
                     Range::Eq(ref width) => { value == *width },
@@ -170,16 +173,15 @@ pub enum Range<T> {
 }
 
 impl Range<specified::Length> {
-    fn to_computed_range(&self,
-                         viewport_size: Size2D<Au>,
-                         default_values: &ComputedValues)
-                         -> Range<Au> {
+    fn to_computed_range(&self, device: &Device) -> Range<Au> {
+        let default_values = device.default_computed_values();
         // http://dev.w3.org/csswg/mediaqueries3/#units
         // em units are relative to the initial font-size.
         let context = computed::Context {
             is_root_element: false,
-            viewport_size: viewport_size,
+            device: device,
             inherited_style: default_values,
+            layout_parent_style: default_values,
             // This cloning business is kind of dumb.... It's because Context
             // insists on having an actual ComputedValues inside itself.
             style: default_values.clone(),

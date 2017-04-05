@@ -16,6 +16,13 @@ ${helpers.single_keyword("-moz-box-align", "stretch start center baseline end",
                          alias="-webkit-box-align",
                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/box-align)")}
 
+${helpers.single_keyword("-moz-box-direction", "normal reverse",
+                         products="gecko", gecko_ffi_name="mBoxDirection",
+                         gecko_enum_prefix="StyleBoxDirection",
+                         animatable=False,
+                         alias="-webkit-box-direction",
+                         spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/box-direction)")}
+
 ${helpers.predefined_type("-moz-box-flex", "Number", "0.0", "parse_non_negative",
                           products="gecko", gecko_ffi_name="mBoxFlex",
                           needs_context=False,
@@ -23,9 +30,31 @@ ${helpers.predefined_type("-moz-box-flex", "Number", "0.0", "parse_non_negative"
                           alias="-webkit-box-flex",
                           spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/box-flex)")}
 
+${helpers.single_keyword("-moz-box-orient", "horizontal vertical",
+                         products="gecko", gecko_ffi_name="mBoxOrient",
+                         gecko_enum_prefix="StyleBoxOrient",
+                         animatable=False,
+                         alias="-webkit-box-orient",
+                         spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/box-orient)")}
+
+${helpers.single_keyword("-moz-box-pack", "start center end justify",
+                         products="gecko", gecko_ffi_name="mBoxPack",
+                         gecko_enum_prefix="StyleBoxPack",
+                         animatable=False,
+                         alias="-webkit-box-pack",
+                         spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/box-pack)")}
 
 ${helpers.single_keyword("-moz-stack-sizing", "stretch-to-fit ignore",
                          products="gecko", gecko_ffi_name="mStretchStack",
                          gecko_constant_prefix="NS_STYLE_STACK_SIZING",
                          animatable=False,
                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-stack-sizing)")}
+
+${helpers.predefined_type("-moz-box-ordinal-group", "Integer", "0",
+                          parse_method="parse_non_negative",
+                          needs_context=False,
+                          products="gecko",
+                          alias="-webkit-box-ordinal-group",
+                          gecko_ffi_name="mBoxOrdinal",
+                          animatable=False,
+                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-box-ordinal-group)")}

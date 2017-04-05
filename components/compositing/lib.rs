@@ -2,11 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![feature(box_syntax)]
-#![feature(plugin)]
-#![plugin(plugins)]
-
 #![deny(unsafe_code)]
+#![feature(box_syntax)]
 
 extern crate euclid;
 extern crate gfx_traits;
@@ -33,7 +30,7 @@ use euclid::size::TypedSize2D;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg};
-use style_traits::PagePx;
+use style_traits::CSSPixel;
 
 mod compositor;
 pub mod compositor_thread;
@@ -43,7 +40,7 @@ pub mod windowing;
 
 pub struct SendableFrameTree {
     pub pipeline: CompositionPipeline,
-    pub size: Option<TypedSize2D<f32, PagePx>>,
+    pub size: Option<TypedSize2D<f32, CSSPixel>>,
     pub children: Vec<SendableFrameTree>,
 }
 

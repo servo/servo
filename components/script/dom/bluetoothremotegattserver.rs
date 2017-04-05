@@ -15,6 +15,7 @@ use dom::bluetoothdevice::BluetoothDevice;
 use dom::bluetoothuuid::{BluetoothServiceUUID, BluetoothUUID};
 use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
+use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use js::jsapi::JSContext;
 use std::cell::Cell;

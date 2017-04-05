@@ -9,6 +9,7 @@ use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::globalscope::GlobalScope;
 use dom::plugin::Plugin;
+use dom_struct::dom_struct;
 
 #[dom_struct]
 pub struct PluginArray {

@@ -22,6 +22,7 @@ use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom::messageevent::MessageEvent;
 use dom::workerglobalscope::prepare_workerscope_init;
+use dom_struct::dom_struct;
 use ipc_channel::ipc;
 use js::jsapi::{HandleValue, JSAutoCompartment, JSContext, NullHandleValue};
 use js::jsval::UndefinedValue;

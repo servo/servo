@@ -86,6 +86,8 @@ pub enum Msg {
     LoadStart(bool, bool),
     /// The load of a page has completed: (can go back, can go forward, is root frame).
     LoadComplete(bool, bool, bool),
+    /// Wether or not to follow a link
+    AllowNavigation(ServoUrl, IpcSender<bool>),
     /// We hit the delayed composition timeout. (See `delayed_composition.rs`.)
     DelayedCompositionTimeout(u64),
     /// Composite.
@@ -144,6 +146,7 @@ impl Debug for Msg {
             Msg::ChangePageUrl(..) => write!(f, "ChangePageUrl"),
             Msg::SetFrameTree(..) => write!(f, "SetFrameTree"),
             Msg::LoadComplete(..) => write!(f, "LoadComplete"),
+            Msg::AllowNavigation(..) => write!(f, "AllowNavigation"),
             Msg::LoadStart(..) => write!(f, "LoadStart"),
             Msg::DelayedCompositionTimeout(..) => write!(f, "DelayedCompositionTimeout"),
             Msg::Recomposite(..) => write!(f, "Recomposite"),

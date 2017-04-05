@@ -35,6 +35,7 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{Node, NodeDamage, UnbindContext, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom::window::{ReflowReason, Window};
+use dom_struct::dom_struct;
 use html5ever_atoms::LocalName;
 use ipc_channel::ipc;
 use js::jsapi::{JSAutoCompartment, JSContext, MutableHandleValue};
@@ -167,7 +168,7 @@ impl HTMLIFrameElement {
                 layout_threads: PREFS.get("layout.threads").as_u64().expect("count") as usize,
             };
 
-            ScriptThread::process_attach_layout(new_layout_info, document.origin().alias());
+            ScriptThread::process_attach_layout(new_layout_info, document.origin().clone());
         } else {
             let load_info = IFrameLoadInfoWithData {
                 info: load_info,
@@ -195,7 +196,7 @@ impl HTMLIFrameElement {
         if mode == ProcessingMode::FirstTime && !self.upcast::<Element>().has_attribute(&local_name!("src")) {
             let window = window_from_node(self);
             let event_loop = window.dom_manipulation_task_source();
-            let _ = event_loop.queue(box IframeLoadEventSteps::new(self),
+            let _ = event_loop.queue(box IFrameLoadEventSteps::new(self),
                                      window.upcast());
             return;
         }
@@ -325,20 +326,6 @@ impl HTMLIFrameElement {
         } else {
             false
         }
-    }
-
-    pub fn get_content_window(&self) -> Option<Root<Window>> {
-        self.pipeline_id.get()
-            .and_then(|pipeline_id| ScriptThread::find_document(pipeline_id))
-            .and_then(|document| {
-                let current_global = GlobalScope::current();
-                let current_document = current_global.as_window().Document();
-                if document.origin().same_origin(current_document.origin()) {
-                    Some(Root::from_ref(document.window()))
-                } else {
-                    None
-                }
-            })
     }
 }
 
@@ -511,15 +498,31 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-contentwindow
     fn GetContentWindow(&self) -> Option<Root<BrowsingContext>> {
-        match self.get_content_window() {
-            Some(ref window) => Some(window.browsing_context()),
-            None => None
-        }
+        self.pipeline_id.get().and_then(|_| ScriptThread::find_browsing_context(self.frame_id))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-contentdocument
+    // https://html.spec.whatwg.org/multipage/#concept-bcc-content-document
     fn GetContentDocument(&self) -> Option<Root<Document>> {
-        self.get_content_window().map(|window| window.Document())
+        // Step 1.
+        let pipeline_id = match self.pipeline_id.get() {
+            None => return None,
+            Some(pipeline_id) => pipeline_id,
+        };
+        // Step 2-3.
+        // Note that this lookup will fail if the document is dissimilar-origin,
+        // so we should return None in that case.
+        let document = match ScriptThread::find_document(pipeline_id) {
+            None => return None,
+            Some(document) => document,
+        };
+        // Step 4.
+        let current = GlobalScope::current().as_window().Document();
+        if !current.origin().same_origin_domain(document.origin()) {
+            return None;
+        }
+        // Step 5.
+        Some(document)
     }
 
     // Experimental mozbrowser implementation is based on the webidl
@@ -739,22 +742,22 @@ impl VirtualMethods for HTMLIFrameElement {
     }
 }
 
-struct IframeLoadEventSteps {
+struct IFrameLoadEventSteps {
     frame_element: Trusted<HTMLIFrameElement>,
     pipeline_id: PipelineId,
 }
 
-impl IframeLoadEventSteps {
-    fn new(frame_element: &HTMLIFrameElement) -> IframeLoadEventSteps {
-        IframeLoadEventSteps {
+impl IFrameLoadEventSteps {
+    fn new(frame_element: &HTMLIFrameElement) -> IFrameLoadEventSteps {
+        IFrameLoadEventSteps {
             frame_element: Trusted::new(frame_element),
             pipeline_id: frame_element.pipeline_id().unwrap(),
         }
     }
 }
 
-impl Runnable for IframeLoadEventSteps {
-    fn handler(self: Box<IframeLoadEventSteps>) {
+impl Runnable for IFrameLoadEventSteps {
+    fn handler(self: Box<IFrameLoadEventSteps>) {
         let this = self.frame_element.root();
         this.iframe_load_event_steps(self.pipeline_id);
     }

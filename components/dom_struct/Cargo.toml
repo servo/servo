@@ -1,0 +1,13 @@
+[package]
+name = "dom_struct"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+publish = false
+
+[lib]
+path = "lib.rs"
+proc-macro = true
+
+[dependencies]
+quote = "0.3"

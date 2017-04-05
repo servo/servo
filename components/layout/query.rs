@@ -17,6 +17,7 @@ use gfx_traits::ScrollRootId;
 use inline::LAST_FRAGMENT_OF_ELEMENT;
 use ipc_channel::ipc::IpcSender;
 use opaque_node::OpaqueNodeMethods;
+use script_layout_interface::PendingImage;
 use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse};
 use script_layout_interface::rpc::{HitTestResponse, LayoutRPC};
 use script_layout_interface::rpc::{MarginStyleResponse, NodeGeometryResponse};
@@ -27,6 +28,7 @@ use script_traits::LayoutMsg as ConstellationMsg;
 use script_traits::UntrustedNodeAddress;
 use sequential;
 use std::cmp::{min, max};
+use std::mem;
 use std::ops::Deref;
 use std::sync::{Arc, Mutex};
 use style::computed_values;
@@ -89,6 +91,12 @@ pub struct LayoutThreadData {
 
     /// Index in a text fragment. We need this do determine the insertion point.
     pub text_index_response: TextIndexResponse,
+
+    /// A list of images requests that need to be initiated.
+    pub pending_images: Vec<PendingImage>,
+
+    /// A queued response for the list of nodes at a given point.
+    pub nodes_from_point_response: Vec<UntrustedNodeAddress>,
 }
 
 pub struct LayoutRPCImpl(pub Arc<Mutex<LayoutThreadData>>);
@@ -139,33 +147,10 @@ impl LayoutRPC for LayoutRPCImpl {
         }
     }
 
-    fn nodes_from_point(&self,
-                        page_point: Point2D<f32>,
-                        client_point: Point2D<f32>) -> Vec<UntrustedNodeAddress> {
-        let page_point = Point2D::new(Au::from_f32_px(page_point.x),
-                                      Au::from_f32_px(page_point.y));
-        let client_point = Point2D::new(Au::from_f32_px(client_point.x),
-                                        Au::from_f32_px(client_point.y));
-
-        let nodes_from_point_list = {
-            let &LayoutRPCImpl(ref rw_data) = self;
-            let rw_data = rw_data.lock().unwrap();
-            let result = match rw_data.display_list {
-                None => panic!("Tried to hit test without a DisplayList"),
-                Some(ref display_list) => {
-                    display_list.hit_test(&page_point,
-                                          &client_point,
-                                          &rw_data.stacking_context_scroll_offsets)
-                }
-            };
-
-            result
-        };
-
-        nodes_from_point_list.iter()
-           .rev()
-           .map(|metadata| metadata.node.to_untrusted_node_address())
-           .collect()
+    fn nodes_from_point_response(&self) -> Vec<UntrustedNodeAddress> {
+        let &LayoutRPCImpl(ref rw_data) = self;
+        let rw_data = rw_data.lock().unwrap();
+        rw_data.nodes_from_point_response.clone()
     }
 
     fn node_geometry(&self) -> NodeGeometryResponse {
@@ -188,8 +173,8 @@ impl LayoutRPC for LayoutRPCImpl {
 
     fn node_scroll_root_id(&self) -> NodeScrollRootIdResponse {
         NodeScrollRootIdResponse(self.0.lock()
-                                        .unwrap().scroll_root_id_response
-                                        .expect("scroll_root_id is not correctly fetched"))
+                                       .unwrap().scroll_root_id_response
+                                       .expect("scroll_root_id is not correctly fetched"))
     }
 
     /// Retrieves the resolved value for a CSS style property.
@@ -215,6 +200,12 @@ impl LayoutRPC for LayoutRPCImpl {
         let &LayoutRPCImpl(ref rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
         rw_data.text_index_response.clone()
+    }
+
+    fn pending_images(&self) -> Vec<PendingImage> {
+        let &LayoutRPCImpl(ref rw_data) = self;
+        let mut rw_data = rw_data.lock().unwrap();
+        mem::replace(&mut rw_data.pending_images, vec![])
     }
 }
 

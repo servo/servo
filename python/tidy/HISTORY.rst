@@ -1,7 +1,17 @@
 Release History
 ---------------
 
-0.1.0 (2016-08-09)
+0.3.0 (2017-02-24)
+++++++++++++++++++
+
+- Added checking for blocked packages
+- Added checking for alphabetical order for JSON keys and ``#![feature(...)]``
+- Improved duplicated packages checking
+- Improved ordering ``use`` statements
+- Allow tidy to run custom project-specific lints
+- And many other improvements
+
+0.2.0 (2016-08-09)
 ++++++++++++++++++
 
 - Improve license checking to disregard comments and line breaks

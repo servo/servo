@@ -13,6 +13,7 @@ use dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use dom::dommatrix::DOMMatrix;
 use dom::dompoint::DOMPoint;
 use dom::globalscope::GlobalScope;
+use dom_struct::dom_struct;
 use euclid::{Matrix4D, Point4D, Radians};
 use std::cell::{Cell, Ref};
 use std::f64;

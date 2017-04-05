@@ -2,14 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![feature(plugin)]
-#![plugin(plugins)]
-
-extern crate content_blocker;
 extern crate cookie as cookie_rs;
 extern crate devtools_traits;
 extern crate flate2;
 extern crate hyper;
+extern crate hyper_openssl;
 extern crate hyper_serde;
 extern crate ipc_channel;
 extern crate msg;
@@ -37,6 +34,7 @@ extern crate url;
 
 use devtools_traits::DevtoolsControlMsg;
 use hyper::server::{Handler, Listening, Server};
+use net::connector::{create_http_connector, create_ssl_client};
 use net::fetch::cors_cache::CorsCache;
 use net::fetch::methods::{self, FetchContext};
 use net::filemanager_thread::FileManager;
@@ -45,7 +43,7 @@ use net_traits::FetchTaskTarget;
 use net_traits::request::Request;
 use net_traits::response::Response;
 use servo_url::ServoUrl;
-use std::rc::Rc;
+use std::sync::Arc;
 use std::sync::mpsc::{Sender, channel};
 
 const DEFAULT_USER_AGENT: &'static str = "Such Browser. Very Layout. Wow.";
@@ -55,11 +53,14 @@ struct FetchResponseCollector {
 }
 
 fn new_fetch_context(dc: Option<Sender<DevtoolsControlMsg>>) -> FetchContext {
+    let ssl_client = create_ssl_client("certs");
+    let connector = create_http_connector(ssl_client);
     FetchContext {
-        state: HttpState::new("certs"),
+        state: Arc::new(HttpState::new()),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: dc,
         filemanager: FileManager::new(),
+        connector: connector,
     }
 }
 impl FetchTaskTarget for FetchResponseCollector {
@@ -73,22 +74,22 @@ impl FetchTaskTarget for FetchResponseCollector {
     }
 }
 
-fn fetch(request: Request, dc: Option<Sender<DevtoolsControlMsg>>) -> Response {
+fn fetch(request: &mut Request, dc: Option<Sender<DevtoolsControlMsg>>) -> Response {
     fetch_with_context(request, &new_fetch_context(dc))
 }
 
-fn fetch_with_context(request: Request, context: &FetchContext) -> Response {
+fn fetch_with_context(request: &mut Request, context: &FetchContext) -> Response {
     let (sender, receiver) = channel();
     let mut target = FetchResponseCollector {
         sender: sender,
     };
 
-    methods::fetch(Rc::new(request), &mut target, context);
+    methods::fetch(request, &mut target, context);
 
     receiver.recv().unwrap()
 }
 
-fn fetch_with_cors_cache(request: Rc<Request>, cache: &mut CorsCache) -> Response {
+fn fetch_with_cors_cache(request: &mut Request, cache: &mut CorsCache) -> Response {
     let (sender, receiver) = channel();
     let mut target = FetchResponseCollector {
         sender: sender,

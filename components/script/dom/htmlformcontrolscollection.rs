@@ -14,6 +14,7 @@ use dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use dom::node::Node;
 use dom::radionodelist::RadioNodeList;
 use dom::window::Window;
+use dom_struct::dom_struct;
 use std::iter;
 
 #[dom_struct]

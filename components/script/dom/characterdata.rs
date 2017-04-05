@@ -19,6 +19,7 @@ use dom::element::Element;
 use dom::node::{Node, NodeDamage};
 use dom::processinginstruction::ProcessingInstruction;
 use dom::text::Text;
+use dom_struct::dom_struct;
 use servo_config::opts;
 use std::cell::Ref;
 

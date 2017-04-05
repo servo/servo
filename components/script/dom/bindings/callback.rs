@@ -5,9 +5,10 @@
 //! Base classes to work with IDL callbacks.
 
 use dom::bindings::error::{Error, Fallible, report_pending_exception};
-use dom::bindings::js::{JS, Root, MutHeapJSVal};
+use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::DomObject;
 use dom::bindings::settings_stack::{AutoEntryScript, AutoIncumbentScript};
+use dom::bindings::utils::AsCCharPtrPtr;
 use dom::globalscope::GlobalScope;
 use js::jsapi::{Heap, MutableHandleObject};
 use js::jsapi::{IsCallable, JSContext, JSObject, JS_WrapObject, AddRawValueRoot};
@@ -39,7 +40,7 @@ pub enum ExceptionHandling {
 pub struct CallbackObject {
     /// The underlying `JSObject`.
     callback: Heap<*mut JSObject>,
-    permanent_js_root: MutHeapJSVal,
+    permanent_js_root: Heap<JSVal>,
 
     /// The ["callback context"], that is, the global to use as incumbent
     /// global when calling the callback.
@@ -67,7 +68,7 @@ impl CallbackObject {
     fn new() -> CallbackObject {
         CallbackObject {
             callback: Heap::default(),
-            permanent_js_root: MutHeapJSVal::new(),
+            permanent_js_root: Heap::default(),
             incumbent: GlobalScope::incumbent().map(|i| JS::from_ref(&*i)),
         }
     }
@@ -81,7 +82,7 @@ impl CallbackObject {
         self.callback.set(callback);
         self.permanent_js_root.set(ObjectValue(callback));
         assert!(AddRawValueRoot(cx, self.permanent_js_root.get_unsafe(),
-                                b"CallbackObject::root\n" as *const _ as *const _));
+                                b"CallbackObject::root\n".as_c_char_ptr()));
     }
 }
 

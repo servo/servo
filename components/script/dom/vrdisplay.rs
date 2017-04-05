@@ -30,6 +30,7 @@ use dom::vrframedata::VRFrameData;
 use dom::vrpose::VRPose;
 use dom::vrstageparameters::VRStageParameters;
 use dom::webglrenderingcontext::WebGLRenderingContext;
+use dom_struct::dom_struct;
 use ipc_channel::ipc;
 use ipc_channel::ipc::{IpcSender, IpcReceiver};
 use js::jsapi::JSContext;
@@ -70,6 +71,7 @@ pub struct VRDisplay {
     frame_data_status: Cell<VRFrameDataStatus>,
     #[ignore_heap_size_of = "channels are hard"]
     frame_data_receiver: DOMRefCell<Option<IpcReceiver<Result<Vec<u8>, ()>>>>,
+    running_display_raf: Cell<bool>
 }
 
 unsafe_no_jsmanaged_fields!(WebVRDisplayData);
@@ -109,6 +111,7 @@ impl VRDisplay {
             raf_callback_list: DOMRefCell::new(vec![]),
             frame_data_status: Cell::new(VRFrameDataStatus::Waiting),
             frame_data_receiver: DOMRefCell::new(None),
+            running_display_raf: Cell::new(false),
         }
     }
 
@@ -168,8 +171,13 @@ impl VRDisplayMethods for VRDisplay {
 
     // https://w3c.github.io/webvr/#dom-vrdisplay-getframedata-framedata-framedata
     fn GetFrameData(&self, frameData: &VRFrameData) -> bool {
-        // If presenting we use a synced data with compositor for the whole frame
-        if self.presenting.get() {
+        // If presenting we use a synced data with compositor for the whole frame.
+        // Frame data is only synced with compositor when GetFrameData is called from
+        // inside the VRDisplay.requestAnimationFrame. This is checked using the running_display_raf property.
+        // This check avoids data race conditions when calling GetFrameData from outside of the
+        // VRDisplay.requestAnimationFrame callbacks and fixes a possible deadlock during the interval
+        // when the requestAnimationFrame is moved from window to VRDisplay.
+        if self.presenting.get() && self.running_display_raf.get() {
             if self.frame_data_status.get() == VRFrameDataStatus::Waiting {
                 self.sync_frame_data();
             }
@@ -202,7 +210,7 @@ impl VRDisplayMethods for VRDisplay {
     }
 
     // https://w3c.github.io/webvr/#dom-vrdisplay-resetpose
-    fn ResetPose(&self) -> () {
+    fn ResetPose(&self) {
         let (sender, receiver) = ipc::channel().unwrap();
         self.webvr_thread().send(WebVRMsg::ResetPose(self.global().pipeline_id(),
                                                      self.get_display_id(),
@@ -219,7 +227,7 @@ impl VRDisplayMethods for VRDisplay {
     }
 
     // https://w3c.github.io/webvr/#dom-vrdisplay-depthnear
-    fn SetDepthNear(&self, value: Finite<f64>) -> () {
+    fn SetDepthNear(&self, value: Finite<f64>) {
         self.depth_near.set(*value.deref());
     }
 
@@ -229,7 +237,7 @@ impl VRDisplayMethods for VRDisplay {
     }
 
     // https://w3c.github.io/webvr/#dom-vrdisplay-depthfar
-    fn SetDepthFar(&self, value: Finite<f64>) -> () {
+    fn SetDepthFar(&self, value: Finite<f64>) {
         self.depth_far.set(*value.deref());
     }
 
@@ -248,7 +256,7 @@ impl VRDisplayMethods for VRDisplay {
     }
 
     // https://w3c.github.io/webvr/#dom-vrdisplay-cancelanimationframe
-    fn CancelAnimationFrame(&self, handle: u32) -> () {
+    fn CancelAnimationFrame(&self, handle: u32) {
         if self.presenting.get() {
             let mut list = self.raf_callback_list.borrow_mut();
             if let Some(mut pair) = list.iter_mut().find(|pair| pair.0 == handle) {
@@ -363,7 +371,7 @@ impl VRDisplayMethods for VRDisplay {
     }
 
     // https://w3c.github.io/webvr/#dom-vrdisplay-submitframe
-    fn SubmitFrame(&self) -> () {
+    fn SubmitFrame(&self) {
         if !self.presenting.get() {
             warn!("VRDisplay not presenting");
             return;
@@ -524,6 +532,7 @@ impl VRDisplay {
 
     fn handle_raf(&self, end_sender: &mpsc::Sender<Result<(f64, f64), ()>>) {
         self.frame_data_status.set(VRFrameDataStatus::Waiting);
+        self.running_display_raf.set(true);
 
         let mut callbacks = mem::replace(&mut *self.raf_callback_list.borrow_mut(), vec![]);
         let now = self.global().as_window().Performance().Now();
@@ -535,6 +544,7 @@ impl VRDisplay {
             }
         }
 
+        self.running_display_raf.set(false);
         if self.frame_data_status.get() == VRFrameDataStatus::Waiting {
             // User didn't call getFrameData while presenting.
             // We automatically reads the pending VRFrameData to avoid overflowing the IPC-Channel buffers.

@@ -10,7 +10,7 @@
                    spec="https://drafts.csswg.org/css2/visudet.html#propdef-line-height">
     use std::fmt;
     use style_traits::ToCss;
-    use values::{CSSFloat, HasViewportPercentage};
+    use values::HasViewportPercentage;
 
     impl HasViewportPercentage for SpecifiedValue {
         fn has_viewport_percentage(&self) -> bool {
@@ -28,7 +28,7 @@
         % if product == "gecko":
             MozBlockHeight,
         % endif
-        Number(CSSFloat),
+        Number(specified::Number),
         LengthOrPercentage(specified::LengthOrPercentage),
     }
 
@@ -40,7 +40,7 @@
                     SpecifiedValue::MozBlockHeight => dest.write_str("-moz-block-height"),
                 % endif
                 SpecifiedValue::LengthOrPercentage(ref value) => value.to_css(dest),
-                SpecifiedValue::Number(number) => write!(dest, "{}", number),
+                SpecifiedValue::Number(number) => number.to_css(dest),
             }
         }
     }
@@ -52,24 +52,24 @@
         // parsed as a plain Number rather than a Length (0px); this matches the behaviour
         // of all major browsers
         input.try(specified::Number::parse_non_negative)
-        .map(|n| SpecifiedValue::Number(n.0))
-        .or_else(|()| {
-            input.try(specified::LengthOrPercentage::parse_non_negative)
-            .map(SpecifiedValue::LengthOrPercentage)
+            .map(SpecifiedValue::Number)
             .or_else(|()| {
-                match try!(input.next()) {
-                    Token::Ident(ref value) if value.eq_ignore_ascii_case("normal") => {
-                        Ok(SpecifiedValue::Normal)
+                input.try(specified::LengthOrPercentage::parse_non_negative)
+                .map(SpecifiedValue::LengthOrPercentage)
+                .or_else(|()| {
+                    match try!(input.next()) {
+                        Token::Ident(ref value) if value.eq_ignore_ascii_case("normal") => {
+                            Ok(SpecifiedValue::Normal)
+                        }
+                        % if product == "gecko":
+                        Token::Ident(ref value) if value.eq_ignore_ascii_case("-moz-block-height") => {
+                            Ok(SpecifiedValue::MozBlockHeight)
+                        }
+                        % endif
+                        _ => Err(()),
                     }
-                    % if product == "gecko":
-                    Token::Ident(ref value) if value.eq_ignore_ascii_case("-moz-block-height") => {
-                        Ok(SpecifiedValue::MozBlockHeight)
-                    }
-                    % endif
-                    _ => Err(()),
-                }
+                })
             })
-        })
     }
     pub mod computed_value {
         use app_units::Au;
@@ -101,6 +101,11 @@
      #[inline]
     pub fn get_initial_value() -> computed_value::T { computed_value::T::Normal }
 
+    #[inline]
+    pub fn get_initial_specified_value() -> SpecifiedValue {
+        SpecifiedValue::Normal
+    }
+
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
 
@@ -111,7 +116,7 @@
                 % if product == "gecko":
                     SpecifiedValue::MozBlockHeight => computed_value::T::MozBlockHeight,
                 % endif
-                SpecifiedValue::Number(value) => computed_value::T::Number(value),
+                SpecifiedValue::Number(value) => computed_value::T::Number(value.to_computed_value(context)),
                 SpecifiedValue::LengthOrPercentage(ref value) => {
                     match *value {
                         specified::LengthOrPercentage::Length(ref value) =>
@@ -139,7 +144,9 @@
                 % if product == "gecko":
                     computed_value::T::MozBlockHeight => SpecifiedValue::MozBlockHeight,
                 % endif
-                computed_value::T::Number(value) => SpecifiedValue::Number(value),
+                computed_value::T::Number(ref value) => {
+                    SpecifiedValue::Number(specified::Number::from_computed_value(value))
+                },
                 computed_value::T::Length(au) => {
                     SpecifiedValue::LengthOrPercentage(specified::LengthOrPercentage::Length(
                         ToComputedValue::from_computed_value(&au)
@@ -159,10 +166,17 @@ ${helpers.single_keyword("text-transform",
                          animatable=False,
                          spec="https://drafts.csswg.org/css-text/#propdef-text-transform")}
 
-${helpers.single_keyword("hyphens", "none manual auto",
+${helpers.single_keyword("hyphens", "manual none auto",
                          gecko_enum_prefix="StyleHyphens",
                          products="gecko", animatable=False, extra_prefixes="moz",
                          spec="https://drafts.csswg.org/css-text/#propdef-hyphens")}
+
+// TODO: Support <percentage>
+${helpers.single_keyword("-moz-text-size-adjust", "auto none",
+                         gecko_constant_prefix="NS_STYLE_TEXT_SIZE_ADJUST",
+                         products="gecko", animatable=False,
+                         spec="https://drafts.csswg.org/css-size-adjust/#adjustment-control",
+                         alias="-webkit-text-size-adjust")}
 
 ${helpers.predefined_type("text-indent",
                           "LengthOrPercentage",
@@ -187,11 +201,46 @@ ${helpers.single_keyword("word-break",
                          spec="https://drafts.csswg.org/css-text/#propdef-word-break")}
 
 // TODO(pcwalton): Support `text-justify: distribute`.
-${helpers.single_keyword("text-justify",
-                         "auto none inter-word",
-                         products="servo",
-                         animatable=False,
-                         spec="https://drafts.csswg.org/css-text/#propdef-text-justify")}
+<%helpers:single_keyword_computed name="text-justify"
+                                  values="auto none inter-word"
+                                  extra_gecko_values="inter-character"
+                                  extra_specified="${'distribute' if product == 'gecko' else ''}"
+                                  gecko_enum_prefix="StyleTextJustify"
+                                  animatable="False"
+                                  spec="https://drafts.csswg.org/css-text/#propdef-text-justify">
+    use values::HasViewportPercentage;
+    no_viewport_percentage!(SpecifiedValue);
+
+    impl ToComputedValue for SpecifiedValue {
+        type ComputedValue = computed_value::T;
+
+        #[inline]
+        fn to_computed_value(&self, _: &Context) -> computed_value::T {
+            match *self {
+                % for value in "auto none inter_word".split():
+                    SpecifiedValue::${value} => computed_value::T::${value},
+                % endfor
+                % if product == "gecko":
+                    SpecifiedValue::inter_character => computed_value::T::inter_character,
+                    // https://drafts.csswg.org/css-text-3/#valdef-text-justify-distribute
+                    SpecifiedValue::distribute => computed_value::T::inter_character,
+                % endif
+            }
+        }
+
+        #[inline]
+        fn from_computed_value(computed: &computed_value::T) -> SpecifiedValue {
+            match *computed {
+                % for value in "auto none inter_word".split():
+                    computed_value::T::${value} => SpecifiedValue::${value},
+                % endfor
+                % if product == "gecko":
+                    computed_value::T::inter_character => SpecifiedValue::inter_character,
+                % endif
+            }
+        }
+    }
+</%helpers:single_keyword_computed>
 
 ${helpers.single_keyword("text-align-last",
                          "auto start end left right center justify",
@@ -201,11 +250,10 @@ ${helpers.single_keyword("text-align-last",
                          spec="https://drafts.csswg.org/css-text/#propdef-text-align-last")}
 
 // TODO make this a shorthand and implement text-align-last/text-align-all
-<%helpers:longhand name="text-align" animatable="False" spec="https://drafts.csswg.org/css-text/#propdef-text-align">
-    pub use self::computed_value::T as SpecifiedValue;
+<%helpers:longhand name="text-align" animatable="False" need_clone="True"
+                   spec="https://drafts.csswg.org/css-text/#propdef-text-align">
     use values::computed::ComputedValueAsSpecified;
     use values::HasViewportPercentage;
-    impl ComputedValueAsSpecified for SpecifiedValue {}
     no_viewport_percentage!(SpecifiedValue);
     pub mod computed_value {
         use style_traits::ToCss;
@@ -250,25 +298,114 @@ ${helpers.single_keyword("text-align-last",
             _moz_center("-moz-center") => 6,
             _moz_left("-moz-left") => 7,
             _moz_right("-moz-right") => 8,
-            match_parent("match-parent") => 9,
             char("char") => 10,
             % endif
         }
+
+        ${helpers.gecko_keyword_conversion(Keyword('text-align',
+                                                   """left right center justify -moz-left -moz-right
+                                                    -moz-center char end""",
+                                                    gecko_strip_moz_prefix=False), type="T")}
     }
+
     #[inline] pub fn get_initial_value() -> computed_value::T {
         computed_value::T::start
     }
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        computed_value::T::parse(input)
-    }
-    ${helpers.gecko_keyword_conversion(Keyword('text-align',
-                                               """left right center justify -moz-left -moz-right
-                                                -moz-center char end match-parent""",
-                                                gecko_strip_moz_prefix=False))}
+
+
+    % if product == "gecko":
+        use std::fmt;
+        use style_traits::ToCss;
+
+        #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
+        pub enum SpecifiedValue {
+            Keyword(computed_value::T),
+            MatchParent,
+            MozCenterOrInherit,
+        }
+        pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+            // MozCenterOrInherit cannot be parsed, only set directly on th elements
+            if let Ok(key) = input.try(computed_value::T::parse) {
+                Ok(SpecifiedValue::Keyword(key))
+            } else {
+                input.expect_ident_matching("match-parent")?;
+                Ok(SpecifiedValue::MatchParent)
+            }
+        }
+        impl ToCss for SpecifiedValue {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                match *self {
+                    SpecifiedValue::Keyword(key) => key.to_css(dest),
+                    SpecifiedValue::MatchParent => dest.write_str("match-parent"),
+                    SpecifiedValue::MozCenterOrInherit => Ok(()),
+                }
+            }
+        }
+
+        impl SpecifiedValue {
+            pub fn from_gecko_keyword(kw: u32) -> Self {
+                use gecko_bindings::structs::NS_STYLE_TEXT_ALIGN_MATCH_PARENT;
+                if kw == NS_STYLE_TEXT_ALIGN_MATCH_PARENT {
+                    SpecifiedValue::MatchParent
+                } else {
+                    SpecifiedValue::Keyword(computed_value::T::from_gecko_keyword(kw))
+                }
+            }
+        }
+        impl ToComputedValue for SpecifiedValue {
+            type ComputedValue = computed_value::T;
+
+            #[inline]
+            fn to_computed_value(&self, context: &Context) -> computed_value::T {
+                match *self {
+                    SpecifiedValue::Keyword(key) => key,
+                    SpecifiedValue::MatchParent => {
+                        // on the root <html> element we should still respect the dir
+                        // but the parent dir of that element is LTR even if it's <html dir=rtl>
+                        // and will only be RTL if certain prefs have been set.
+                        // In that case, the default behavior here will set it to left,
+                        // but we want to set it to right -- instead set it to the default (`start`),
+                        // which will do the right thing in this case (but not the general case)
+                        if context.is_root_element {
+                            return get_initial_value();
+                        }
+                        let parent = context.inherited_style().get_inheritedtext().clone_text_align();
+                        let ltr = context.inherited_style().writing_mode.is_bidi_ltr();
+                        match (parent, ltr) {
+                            (computed_value::T::start, true) => computed_value::T::left,
+                            (computed_value::T::start, false) => computed_value::T::right,
+                            (computed_value::T::end, true) => computed_value::T::right,
+                            (computed_value::T::end, false) => computed_value::T::left,
+                            _ => parent
+                        }
+                    }
+                    SpecifiedValue::MozCenterOrInherit => {
+                        let parent = context.inherited_style().get_inheritedtext().clone_text_align();
+                        if parent == computed_value::T::start {
+                            computed_value::T::center
+                        } else {
+                            parent
+                        }
+                    }
+                }
+            }
+
+            #[inline]
+            fn from_computed_value(computed: &computed_value::T) -> Self {
+                SpecifiedValue::Keyword(*computed)
+            }
+        }
+    % else:
+        impl ComputedValueAsSpecified for SpecifiedValue {}
+        pub use self::computed_value::T as SpecifiedValue;
+        pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+            computed_value::T::parse(input)
+        }
+    % endif
 </%helpers:longhand>
 
 // FIXME: This prop should be animatable.
-<%helpers:longhand name="letter-spacing" animatable="False"
+<%helpers:longhand name="letter-spacing" boxed="True" animatable="False"
                    spec="https://drafts.csswg.org/css-text/#propdef-letter-spacing">
     use std::fmt;
     use style_traits::ToCss;
@@ -752,7 +889,7 @@ ${helpers.single_keyword("text-align-last",
                     blur_radius: value.blur_radius.to_computed_value(context),
                     color: value.color
                                 .as_ref()
-                                .map(|color| color.parsed)
+                                .map(|color| color.to_computed_value(context))
                                 .unwrap_or(cssparser::Color::CurrentColor),
                 }
             }).collect())
@@ -771,7 +908,7 @@ ${helpers.single_keyword("text-align-last",
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="text-emphasis-style" products="gecko" need_clone="True" animatable="False"
+<%helpers:longhand name="text-emphasis-style" products="gecko" need_clone="True" boxed="True" animatable="False"
                    spec="https://drafts.csswg.org/css-text-decor/#propdef-text-emphasis-style">
     use computed_values::writing_mode::T as writing_mode;
     use std::fmt;
@@ -1027,10 +1164,33 @@ ${helpers.single_keyword("text-align-last",
             vertical.to_css(dest)
         }
     }
+
+    % if product == "gecko":
+        impl SpecifiedValue {
+            pub fn from_gecko_keyword(kw: u32) -> Self {
+                use gecko_bindings::structs;
+
+                let vert = if kw & structs::NS_STYLE_TEXT_EMPHASIS_POSITION_RIGHT != 0 {
+                    VerticalWritingModeValue::Right
+                } else {
+                    debug_assert!(kw & structs::NS_STYLE_TEXT_EMPHASIS_POSITION_LEFT != 0);
+                    VerticalWritingModeValue::Left
+                };
+                let horiz = if kw & structs::NS_STYLE_TEXT_EMPHASIS_POSITION_OVER != 0 {
+                    HorizontalWritingModeValue::Over
+                } else {
+                    debug_assert!(kw & structs::NS_STYLE_TEXT_EMPHASIS_POSITION_UNDER != 0);
+                    HorizontalWritingModeValue::Under
+                };
+                SpecifiedValue(horiz, vert)
+            }
+        }
+    % endif
 </%helpers:longhand>
 
 ${helpers.predefined_type("text-emphasis-color", "CSSColor",
                           "::cssparser::Color::CurrentColor",
+                          initial_specified_value="specified::CSSColor::currentcolor()",
                           products="gecko", animatable=True,
                           complex_color=True, need_clone=True,
                           spec="https://drafts.csswg.org/css-text-decor/#propdef-text-emphasis-color")}
@@ -1040,7 +1200,7 @@ ${helpers.predefined_type(
     "-moz-tab-size", "LengthOrNumber",
     "::values::Either::Second(8.0)",
     "parse_non_negative",
-    products="gecko", animatable=False,
+    products="gecko", boxed=True, animatable=False,
     spec="https://drafts.csswg.org/css-text-3/#tab-size-property")}
 
 
@@ -1056,17 +1216,18 @@ ${helpers.predefined_type(
 ${helpers.predefined_type(
     "-webkit-text-stroke-color", "CSSColor",
     "CSSParserColor::CurrentColor",
+    initial_specified_value="specified::CSSColor::currentcolor()",
     products="gecko", animatable=True,
     complex_color=True, need_clone=True,
     spec="https://compat.spec.whatwg.org/#the-webkit-text-stroke-color")}
 
-<%helpers:longhand products="gecko" name="-webkit-text-stroke-width" animatable="False"
+<%helpers:longhand products="gecko" name="-webkit-text-stroke-width" boxed="True" animatable="False"
                    spec="https://compat.spec.whatwg.org/#the-webkit-text-stroke-width">
     use app_units::Au;
     use std::fmt;
     use style_traits::ToCss;
     use values::HasViewportPercentage;
-    use values::specified::BorderWidth;
+    use values::specified::{BorderWidth, Length};
 
     pub type SpecifiedValue = BorderWidth;
 
@@ -1082,12 +1243,16 @@ ${helpers.predefined_type(
     #[inline] pub fn get_initial_value() -> computed_value::T {
         Au::from_px(0)
     }
+    #[inline]
+    pub fn get_initial_specified_value() -> SpecifiedValue {
+        BorderWidth::from_length(Length::zero())
+    }
 </%helpers:longhand>
 
 
 // CSS Ruby Layout Module Level 1
 // https://drafts.csswg.org/css-ruby/
-${helpers.single_keyword("ruby-align", "start center space-between space-around",
+${helpers.single_keyword("ruby-align", "space-around start center space-between",
                          products="gecko", animatable=False,
                          spec="https://drafts.csswg.org/css-ruby/#ruby-align-property")}
 

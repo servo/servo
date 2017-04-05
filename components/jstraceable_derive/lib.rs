@@ -7,7 +7,6 @@ extern crate proc_macro;
 extern crate syn;
 extern crate synstructure;
 
-#[cfg(not(test))]
 #[proc_macro_derive(JSTraceable)]
 pub fn expand_token_stream(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     expand_string(&input.to_string()).parse().unwrap()

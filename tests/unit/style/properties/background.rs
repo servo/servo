@@ -11,7 +11,8 @@ use style::stylesheets::Origin;
 #[test]
 fn background_size_should_reject_negative_values() {
     let url = ::servo_url::ServoUrl::parse("http://localhost").unwrap();
-    let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
+    let reporter = CSSErrorReporterTest;
+    let context = ParserContext::new(Origin::Author, &url, &reporter);
 
     let parse_result = background_size::parse(&context, &mut Parser::new("-40% -40%"));
 

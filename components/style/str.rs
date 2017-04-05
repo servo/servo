@@ -7,8 +7,6 @@
 #![deny(missing_docs)]
 
 use num_traits::ToPrimitive;
-use std::ascii::AsciiExt;
-use std::borrow::Cow;
 use std::convert::AsRef;
 use std::iter::{Filter, Peekable};
 use std::str::Split;
@@ -145,13 +143,4 @@ pub fn str_join<I, T>(strs: I, join: &str) -> String
         acc.push_str(s.as_ref());
         acc
     })
-}
-
-/// Like AsciiExt::to_ascii_lowercase, but avoids allocating when the input is already lower-case.
-pub fn cow_into_ascii_lowercase<'a, S: Into<Cow<'a, str>>>(s: S) -> Cow<'a, str> {
-    let mut cow = s.into();
-    if let Some(first_uppercase) = cow.bytes().position(|byte| byte >= b'A' && byte <= b'Z') {
-        cow.to_mut()[first_uppercase..].make_ascii_lowercase();
-    }
-    cow
 }

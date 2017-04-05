@@ -11,6 +11,7 @@ use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::bindings::str::USVString;
 use dom::dissimilaroriginwindow::DissimilarOriginWindow;
+use dom_struct::dom_struct;
 
 /// Represents a dissimilar-origin `Location` that exists in another script thread.
 ///

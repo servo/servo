@@ -9,48 +9,14 @@
 #![allow(unsafe_code)]
 
 use app_units::Au;
-use gecko::values::convert_rgba_to_nscolor;
+use gecko::values::{convert_rgba_to_nscolor, GeckoStyleCoordConvertible};
 use gecko_bindings::bindings::{Gecko_CreateGradient, Gecko_SetGradientImageValue, Gecko_SetUrlImageValue};
-use gecko_bindings::bindings::{RawServoStyleSheet, RawServoStyleRule, RawServoImportRule};
-use gecko_bindings::bindings::{ServoComputedValues, ServoCssRules};
+use gecko_bindings::bindings::Gecko_InitializeImageCropRect;
 use gecko_bindings::structs::{nsStyleCoord_CalcValue, nsStyleImage};
-use gecko_bindings::structs::RawServoDeclarationBlock;
-use gecko_bindings::structs::nsresult;
+use gecko_bindings::structs::{nsresult, SheetType};
 use gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordDataMut};
-use gecko_bindings::sugar::ownership::{HasArcFFI, HasFFI};
-use parking_lot::RwLock;
-use properties::{ComputedValues, PropertyDeclarationBlock};
-use stylesheets::{CssRules, RulesMutateError, Stylesheet, StyleRule, ImportRule};
+use stylesheets::{Origin, RulesMutateError};
 use values::computed::{CalcLengthOrPercentage, Gradient, Image, LengthOrPercentage, LengthOrPercentageOrAuto};
-
-unsafe impl HasFFI for Stylesheet {
-    type FFIType = RawServoStyleSheet;
-}
-unsafe impl HasArcFFI for Stylesheet {}
-unsafe impl HasFFI for ComputedValues {
-    type FFIType = ServoComputedValues;
-}
-unsafe impl HasArcFFI for ComputedValues {}
-
-unsafe impl HasFFI for RwLock<PropertyDeclarationBlock> {
-    type FFIType = RawServoDeclarationBlock;
-}
-unsafe impl HasArcFFI for RwLock<PropertyDeclarationBlock> {}
-
-unsafe impl HasFFI for RwLock<CssRules> {
-    type FFIType = ServoCssRules;
-}
-unsafe impl HasArcFFI for RwLock<CssRules> {}
-
-unsafe impl HasFFI for RwLock<StyleRule> {
-    type FFIType = RawServoStyleRule;
-}
-unsafe impl HasArcFFI for RwLock<StyleRule> {}
-
-unsafe impl HasFFI for RwLock<ImportRule> {
-    type FFIType = RawServoImportRule;
-}
-unsafe impl HasArcFFI for RwLock<ImportRule> {}
 
 impl From<CalcLengthOrPercentage> for nsStyleCoord_CalcValue {
     fn from(other: CalcLengthOrPercentage) -> nsStyleCoord_CalcValue {
@@ -141,27 +107,40 @@ impl nsStyleImage {
                 self.set_gradient(gradient)
             },
             Image::Url(ref url) if with_url => {
-                let (ptr, len) = match url.as_slice_components() {
-                    Ok(value) | Err(value) => value
-                };
-                let extra_data = url.extra_data();
                 unsafe {
-                    Gecko_SetUrlImageValue(self,
-                                           ptr,
-                                           len as u32,
-                                           extra_data.base.get(),
-                                           extra_data.referrer.get(),
-                                           extra_data.principal.get());
+                    Gecko_SetUrlImageValue(self, url.for_ffi());
+                    // We unfortunately must make any url() value uncacheable, since
+                    // the applicable declarations cache is not per document, but
+                    // global, and the imgRequestProxy objects we store in the style
+                    // structs don't like to be tracked by more than one document.
+                    //
+                    // FIXME(emilio): With the scoped TLS thing this is no longer
+                    // true, remove this line in a follow-up!
+                    *cacheable = false;
                 }
-                // We unfortunately must make any url() value uncacheable, since
-                // the applicable declarations cache is not per document, but
-                // global, and the imgRequestProxy objects we store in the style
-                // structs don't like to be tracked by more than one document.
-                //
-                // FIXME(emilio): With the scoped TLS thing this is no longer
-                // true, remove this line in a follow-up!
-                *cacheable = false;
             },
+            Image::ImageRect(ref image_rect) if with_url => {
+                unsafe {
+                    Gecko_SetUrlImageValue(self, image_rect.url.for_ffi());
+                    Gecko_InitializeImageCropRect(self);
+
+                    // We unfortunately must make any url() value uncacheable, since
+                    // the applicable declarations cache is not per document, but
+                    // global, and the imgRequestProxy objects we store in the style
+                    // structs don't like to be tracked by more than one document.
+                    //
+                    // FIXME(emilio): With the scoped TLS thing this is no longer
+                    // true, remove this line in a follow-up!
+                    *cacheable = false;
+
+                    // Set CropRect
+                    let ref mut rect = *self.mCropRect.mPtr;
+                    image_rect.top.to_gecko_style_coord(&mut rect.data_at_mut(0));
+                    image_rect.right.to_gecko_style_coord(&mut rect.data_at_mut(1));
+                    image_rect.bottom.to_gecko_style_coord(&mut rect.data_at_mut(2));
+                    image_rect.left.to_gecko_style_coord(&mut rect.data_at_mut(3));
+                }
+            }
             _ => (),
         }
     }
@@ -483,13 +462,13 @@ pub mod basic_shape {
         fn from(reference: GeometryBox) -> Self {
             use gecko_bindings::structs::StyleGeometryBox::*;
             match reference {
-                GeometryBox::ShapeBox(ShapeBox::Content) => Content,
-                GeometryBox::ShapeBox(ShapeBox::Padding) => Padding,
-                GeometryBox::ShapeBox(ShapeBox::Border) => Border,
-                GeometryBox::ShapeBox(ShapeBox::Margin) => Margin,
-                GeometryBox::Fill => Fill,
-                GeometryBox::Stroke => Stroke,
-                GeometryBox::View => View,
+                GeometryBox::ShapeBox(ShapeBox::ContentBox) => ContentBox,
+                GeometryBox::ShapeBox(ShapeBox::PaddingBox) => PaddingBox,
+                GeometryBox::ShapeBox(ShapeBox::BorderBox) => BorderBox,
+                GeometryBox::ShapeBox(ShapeBox::MarginBox) => MarginBox,
+                GeometryBox::FillBox => FillBox,
+                GeometryBox::StrokeBox => StrokeBox,
+                GeometryBox::ViewBox => ViewBox,
             }
         }
     }
@@ -501,13 +480,13 @@ pub mod basic_shape {
         fn from(reference: StyleGeometryBox) -> Self {
             use gecko_bindings::structs::StyleGeometryBox::*;
             match reference {
-                Content => GeometryBox::ShapeBox(ShapeBox::Content),
-                Padding => GeometryBox::ShapeBox(ShapeBox::Padding),
-                Border => GeometryBox::ShapeBox(ShapeBox::Border),
-                Margin => GeometryBox::ShapeBox(ShapeBox::Margin),
-                Fill => GeometryBox::Fill,
-                Stroke => GeometryBox::Stroke,
-                View => GeometryBox::View,
+                ContentBox => GeometryBox::ShapeBox(ShapeBox::ContentBox),
+                PaddingBox => GeometryBox::ShapeBox(ShapeBox::PaddingBox),
+                BorderBox => GeometryBox::ShapeBox(ShapeBox::BorderBox),
+                MarginBox => GeometryBox::ShapeBox(ShapeBox::MarginBox),
+                FillBox => GeometryBox::FillBox,
+                StrokeBox => GeometryBox::StrokeBox,
+                ViewBox => GeometryBox::ViewBox,
                 other => panic!("Unexpected StyleGeometryBox::{:?} while converting to GeometryBox", other),
             }
         }
@@ -521,6 +500,16 @@ impl From<RulesMutateError> for nsresult {
             RulesMutateError::IndexSize => nsresult::NS_ERROR_DOM_INDEX_SIZE_ERR,
             RulesMutateError::HierarchyRequest => nsresult::NS_ERROR_DOM_HIERARCHY_REQUEST_ERR,
             RulesMutateError::InvalidState => nsresult::NS_ERROR_DOM_INVALID_STATE_ERR,
+        }
+    }
+}
+
+impl From<Origin> for SheetType {
+    fn from(other: Origin) -> Self {
+        match other {
+            Origin::UserAgent => SheetType::Agent,
+            Origin::Author => SheetType::Doc,
+            Origin::User => SheetType::User,
         }
     }
 }

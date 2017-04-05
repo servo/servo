@@ -11,6 +11,7 @@ use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::event::Event;
 use dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
+use dom_struct::dom_struct;
 use js::jsapi::{HandleValue, JSContext};
 use servo_atoms::Atom;
 

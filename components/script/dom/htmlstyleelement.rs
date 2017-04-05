@@ -18,13 +18,13 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{ChildrenMutation, Node, UnbindContext, document_from_node, window_from_node};
 use dom::stylesheet::StyleSheet as DOMStyleSheet;
 use dom::virtualmethods::VirtualMethods;
+use dom_struct::dom_struct;
 use html5ever_atoms::LocalName;
 use net_traits::ReferrerPolicy;
 use script_layout_interface::message::Msg;
 use std::cell::Cell;
 use std::sync::Arc;
 use style::media_queries::parse_media_query_list;
-use style::parser::ParserContextExtraData;
 use style::stylesheets::{Stylesheet, Origin};
 use stylesheet_loader::{StylesheetLoader, StylesheetOwner};
 
@@ -83,11 +83,11 @@ impl HTMLStyleElement {
 
         let data = node.GetTextContent().expect("Element.textContent must be a string");
         let mq = parse_media_query_list(&mut CssParser::new(&mq_str));
+        let shared_lock = node.owner_doc().style_shared_lock().clone();
         let loader = StylesheetLoader::for_element(self.upcast());
         let sheet = Stylesheet::from_str(&data, url, Origin::Author, mq,
-                                         Some(&loader),
-                                         win.css_error_reporter(),
-                                         ParserContextExtraData::default());
+                                         shared_lock, Some(&loader),
+                                         win.css_error_reporter());
 
         let sheet = Arc::new(sheet);
 

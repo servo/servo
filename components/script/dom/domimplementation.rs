@@ -23,6 +23,7 @@ use dom::htmltitleelement::HTMLTitleElement;
 use dom::node::Node;
 use dom::text::Text;
 use dom::xmldocument::XMLDocument;
+use dom_struct::dom_struct;
 use script_traits::DocumentActivity;
 
 // https://dom.spec.whatwg.org/#domimplementation
@@ -80,7 +81,7 @@ impl DOMImplementationMethods for DOMImplementation {
         let doc = XMLDocument::new(win,
                                    HasBrowsingContext::No,
                                    None,
-                                   self.document.origin().alias(),
+                                   self.document.origin().clone(),
                                    IsHTMLDocument::NonHTMLDocument,
                                    Some(DOMString::from(content_type)),
                                    None,
@@ -127,7 +128,7 @@ impl DOMImplementationMethods for DOMImplementation {
         let doc = Document::new(win,
                                 HasBrowsingContext::No,
                                 None,
-                                self.document.origin().alias(),
+                                self.document.origin().clone(),
                                 IsHTMLDocument::HTMLDocument,
                                 None,
                                 None,

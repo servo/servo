@@ -7,6 +7,7 @@ use dom::bindings::error::Fallible;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::globalscope::GlobalScope;
+use dom_struct::dom_struct;
 use std::cell::Cell;
 
 #[dom_struct]

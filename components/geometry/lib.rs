@@ -20,17 +20,17 @@ use std::i32;
 /// should approximate a device-independent reference length.  This unit corresponds to Android's
 /// "density-independent pixel" (dip), Mac OS X's "point", and Windows "device-independent pixel."
 ///
-/// The relationship between DevicePixel and ScreenPx is defined by the OS.  On most low-dpi
-/// screens, one ScreenPx is equal to one DevicePixel.  But on high-density screens it can be
-/// some larger number.  For example, by default on Apple "retina" displays, one ScreenPx equals
-/// two DevicePixels.  On Android "MDPI" displays, one ScreenPx equals 1.5 device pixels.
+/// The relationship between DevicePixel and DeviceIndependentPixel is defined by the OS.  On most low-dpi
+/// screens, one DeviceIndependentPixel is equal to one DevicePixel.  But on high-density screens it can be
+/// some larger number.  For example, by default on Apple "retina" displays, one DeviceIndependentPixel equals
+/// two DevicePixels.  On Android "MDPI" displays, one DeviceIndependentPixel equals 1.5 device pixels.
 ///
-/// The ratio between ScreenPx and DevicePixel for a given display be found by calling
+/// The ratio between DeviceIndependentPixel and DevicePixel for a given display be found by calling
 /// `servo::windowing::WindowMethods::hidpi_factor`.
 #[derive(Clone, Copy, Debug)]
-pub enum ScreenPx {}
+pub enum DeviceIndependentPixel {}
 
-known_heap_size!(0, ScreenPx);
+known_heap_size!(0, DeviceIndependentPixel);
 
 // An Au is an "App Unit" and represents 1/60th of a CSS pixel.  It was
 // originally proposed in 2002 as a standard unit of measure in Gecko.

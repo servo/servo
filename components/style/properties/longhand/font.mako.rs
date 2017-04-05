@@ -6,8 +6,7 @@
 <% from data import Method %>
 
 <% data.new_style_struct("Font",
-                         inherited=True,
-                         additional_methods=[Method("compute_font_hash", is_mut=True)]) %>
+                         inherited=True) %>
 <%helpers:longhand name="font-family" animatable="False" need_index="True"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-family">
     use self::computed_value::{FontFamily, FamilyName};
@@ -19,7 +18,7 @@
     no_viewport_percentage!(SpecifiedValue);
 
     pub mod computed_value {
-        use cssparser::{CssStringWriter, Parser};
+        use cssparser::{CssStringWriter, Parser, serialize_identifier};
         use std::fmt::{self, Write};
         use Atom;
         use style_traits::ToCss;
@@ -34,13 +33,16 @@
 
         #[derive(Debug, PartialEq, Eq, Clone, Hash)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
-        pub struct FamilyName(pub Atom);
+        pub struct FamilyName {
+            pub name: Atom,
+            pub quoted: bool,
+        }
 
         impl FontFamily {
             #[inline]
             pub fn atom(&self) -> &Atom {
                 match *self {
-                    FontFamily::FamilyName(ref name) => &name.0,
+                    FontFamily::FamilyName(ref family_name) => &family_name.name,
                     FontFamily::Generic(ref name) => name,
                 }
             }
@@ -63,7 +65,7 @@
                     }
                     _ => {}
                 }
-                match_ignore_ascii_case! { input,
+                match_ignore_ascii_case! { &input,
                     "serif" => return FontFamily::Generic(atom!("serif")),
                     "sans-serif" => return FontFamily::Generic(atom!("sans-serif")),
                     "cursive" => return FontFamily::Generic(atom!("cursive")),
@@ -71,13 +73,22 @@
                     "monospace" => return FontFamily::Generic(atom!("monospace")),
                     _ => {}
                 }
-                FontFamily::FamilyName(FamilyName(input))
+
+                // We don't know if it's quoted or not. So we set it to
+                // quoted by default.
+                FontFamily::FamilyName(FamilyName {
+                    name: input,
+                    quoted: true,
+                })
             }
 
             /// Parse a font-family value
             pub fn parse(input: &mut Parser) -> Result<Self, ()> {
                 if let Ok(value) = input.try(|input| input.expect_string()) {
-                    return Ok(FontFamily::FamilyName(FamilyName(Atom::from(&*value))))
+                    return Ok(FontFamily::FamilyName(FamilyName {
+                        name: Atom::from(&*value),
+                        quoted: true,
+                    }))
                 }
                 let first_ident = try!(input.expect_ident());
 
@@ -85,12 +96,15 @@
                 // string (as lowercase) in the static atoms table. We don't have an
                 // API to do that yet though, so we do the simple thing for now.
                 let mut css_wide_keyword = false;
-                match_ignore_ascii_case! { first_ident,
+                match_ignore_ascii_case! { &first_ident,
                     "serif" => return Ok(FontFamily::Generic(atom!("serif"))),
                     "sans-serif" => return Ok(FontFamily::Generic(atom!("sans-serif"))),
                     "cursive" => return Ok(FontFamily::Generic(atom!("cursive"))),
                     "fantasy" => return Ok(FontFamily::Generic(atom!("fantasy"))),
                     "monospace" => return Ok(FontFamily::Generic(atom!("monospace"))),
+                    % if product == "gecko":
+                        "-moz-fixed" => return Ok(FontFamily::Generic(atom!("-moz-fixed"))),
+                    % endif
 
                     // https://drafts.csswg.org/css-fonts/#propdef-font-family
                     // "Font family names that happen to be the same as a keyword value
@@ -118,15 +132,22 @@
                     value.push_str(" ");
                     value.push_str(&ident);
                 }
-                Ok(FontFamily::FamilyName(FamilyName(Atom::from(value))))
+                Ok(FontFamily::FamilyName(FamilyName {
+                    name: Atom::from(value),
+                    quoted: false,
+                }))
             }
         }
 
         impl ToCss for FamilyName {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                dest.write_char('"')?;
-                write!(CssStringWriter::new(dest), "{}", self.0)?;
-                dest.write_char('"')
+                if self.quoted {
+                    dest.write_char('"')?;
+                    write!(CssStringWriter::new(dest), "{}", self.name)?;
+                    dest.write_char('"')
+                } else {
+                    serialize_identifier(&*self.name.to_string(), dest)
+                }
             }
         }
 
@@ -136,7 +157,16 @@
                     FontFamily::FamilyName(ref name) => name.to_css(dest),
 
                     // All generic values accepted by the parser are known to not require escaping.
-                    FontFamily::Generic(ref name) => write!(dest, "{}", name),
+                    FontFamily::Generic(ref name) => {
+                        % if product == "gecko":
+                            // We should treat -moz-fixed as monospace
+                            if name == &atom!("-moz-fixed") {
+                                return write!(dest, "monospace");
+                            }
+                        % endif
+
+                        write!(dest, "{}", name)
+                    },
                 }
             }
         }
@@ -254,7 +284,7 @@ ${helpers.single_keyword("font-variant-caps",
     /// normal | bold | bolder | lighter | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900
     pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
         input.try(|input| {
-            match_ignore_ascii_case! { try!(input.expect_ident()),
+            match_ignore_ascii_case! { &try!(input.expect_ident()),
                 "normal" => Ok(SpecifiedValue::Normal),
                 "bold" => Ok(SpecifiedValue::Bold),
                 "bolder" => Ok(SpecifiedValue::Bolder),
@@ -327,6 +357,11 @@ ${helpers.single_keyword("font-variant-caps",
         computed_value::T::Weight400  // normal
     }
 
+    #[inline]
+    pub fn get_initial_specified_value() -> SpecifiedValue {
+        SpecifiedValue::Normal
+    }
+
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
 
@@ -384,22 +419,183 @@ ${helpers.single_keyword("font-variant-caps",
 
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            self.0.to_css(dest)
+            match *self {
+                SpecifiedValue::Length(ref lop) => lop.to_css(dest),
+                SpecifiedValue::Keyword(kw) => kw.to_css(dest),
+                SpecifiedValue::Smaller => dest.write_str("smaller"),
+                SpecifiedValue::Larger => dest.write_str("larger"),
+            }
         }
     }
 
     impl HasViewportPercentage for SpecifiedValue {
         fn has_viewport_percentage(&self) -> bool {
-            return self.0.has_viewport_percentage()
+            match *self {
+                SpecifiedValue::Length(ref lop) => lop.has_viewport_percentage(),
+                _ => false
+            }
         }
     }
 
     #[derive(Debug, Clone, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub struct SpecifiedValue(pub specified::LengthOrPercentage);
+    pub enum SpecifiedValue {
+        Length(specified::LengthOrPercentage),
+        Keyword(KeywordSize),
+        Smaller,
+        Larger,
+    }
+
     pub mod computed_value {
         use app_units::Au;
         pub type T = Au;
+    }
+
+    /// CSS font keywords
+    #[derive(Debug, Copy, Clone, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub enum KeywordSize {
+        XXSmall = 0,
+        XSmall = 1,
+        Small = 2,
+        Medium = 3,
+        Large = 4,
+        XLarge = 5,
+        XXLarge = 6,
+        // This is not a real font keyword and will not parse
+        // HTML font-size 7 corresponds to this value
+        XXXLarge = 7,
+    }
+
+    pub use self::KeywordSize::*;
+
+    impl KeywordSize {
+        pub fn parse(input: &mut Parser) -> Result<Self, ()> {
+            Ok(match_ignore_ascii_case! {&*input.expect_ident()?,
+                "xx-small" => XXSmall,
+                "x-small" => XSmall,
+                "small" => Small,
+                "medium" => Medium,
+                "large" => Large,
+                "x-large" => XLarge,
+                "xx-large" => XXLarge,
+                _ => return Err(())
+            })
+        }
+    }
+
+    impl Default for KeywordSize {
+        fn default() -> Self {
+            Medium
+        }
+    }
+
+    impl ToCss for KeywordSize {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            dest.write_str(match *self {
+                XXSmall => "xx-small",
+                XSmall => "x-small",
+                Small => "small",
+                Medium => "medium",
+                Large => "large",
+                XLarge => "x-large",
+                XXLarge => "xx-large",
+                XXXLarge => unreachable!("We should never serialize \
+                                          specified values set via
+                                          HTML presentation attributes"),
+            })
+        }
+    }
+
+    % if product == "servo":
+        impl ToComputedValue for KeywordSize {
+            type ComputedValue = Au;
+            #[inline]
+            fn to_computed_value(&self, _: &Context) -> computed_value::T {
+                // https://drafts.csswg.org/css-fonts-3/#font-size-prop
+                use values::FONT_MEDIUM_PX;
+                match *self {
+                    XXSmall => Au::from_px(FONT_MEDIUM_PX) * 3 / 5,
+                    XSmall => Au::from_px(FONT_MEDIUM_PX) * 3 / 4,
+                    Small => Au::from_px(FONT_MEDIUM_PX) * 8 / 9,
+                    Medium => Au::from_px(FONT_MEDIUM_PX),
+                    Large => Au::from_px(FONT_MEDIUM_PX) * 6 / 5,
+                    XLarge => Au::from_px(FONT_MEDIUM_PX) * 3 / 2,
+                    XXLarge => Au::from_px(FONT_MEDIUM_PX) * 2,
+                    XXXLarge => Au::from_px(FONT_MEDIUM_PX) * 3,
+                }
+            }
+
+            #[inline]
+            fn from_computed_value(_: &computed_value::T) -> Self {
+                unreachable!()
+            }
+        }
+    % else:
+        impl ToComputedValue for KeywordSize {
+            type ComputedValue = Au;
+            #[inline]
+            fn to_computed_value(&self, cx: &Context) -> computed_value::T {
+                use gecko_bindings::bindings::Gecko_nsStyleFont_GetBaseSize;
+                use values::specified::length::au_to_int_px;
+                // Data from nsRuleNode.cpp in Gecko
+                // Mapping from base size and HTML size to pixels
+                // The first index is (base_size - 9), the second is the
+                // HTML size. "0" is CSS keyword xx-small, not HTML size 0,
+                // since HTML size 0 is the same as 1.
+                //
+                //  xxs   xs      s      m     l      xl     xxl   -
+                //  -     0/1     2      3     4      5      6     7
+                static FONT_SIZE_MAPPING: [[i32; 8]; 8] = [
+                    [9,    9,     9,     9,    11,    14,    18,    27],
+                    [9,    9,     9,    10,    12,    15,    20,    30],
+                    [9,    9,    10,    11,    13,    17,    22,    33],
+                    [9,    9,    10,    12,    14,    18,    24,    36],
+                    [9,   10,    12,    13,    16,    20,    26,    39],
+                    [9,   10,    12,    14,    17,    21,    28,    42],
+                    [9,   10,    13,    15,    18,    23,    30,    45],
+                    [9,   10,    13,    16,    18,    24,    32,    48]
+                ];
+
+                static FONT_SIZE_FACTORS: [i32; 8] = [60, 75, 89, 100, 120, 150, 200, 300];
+
+                // XXXManishearth handle quirks mode
+
+                let base_size = unsafe {
+                    Gecko_nsStyleFont_GetBaseSize(cx.style().get_font().gecko(),
+                                                  &*cx.device.pres_context)
+                };
+                let base_size_px = au_to_int_px(base_size as f32);
+                let html_size = *self as usize;
+                if base_size_px >= 9 && base_size_px <= 16 {
+                    Au::from_px(FONT_SIZE_MAPPING[(base_size_px - 9) as usize][html_size])
+                } else {
+                    Au(FONT_SIZE_FACTORS[html_size] * base_size / 100)
+                }
+            }
+
+            #[inline]
+            fn from_computed_value(_: &computed_value::T) -> Self {
+                unreachable!()
+            }
+        }
+    % endif
+
+    impl SpecifiedValue {
+        /// https://html.spec.whatwg.org/multipage/#rules-for-parsing-a-legacy-font-size
+        pub fn from_html_size(size: u8) -> Self {
+            SpecifiedValue::Keyword(match size {
+                // If value is less than 1, let it be 1.
+                0 | 1 => XSmall,
+                2 => Small,
+                3 => Medium,
+                4 => Large,
+                5 => XLarge,
+                6 => XXLarge,
+                // If value is greater than 7, let it be 7.
+                _ => XXXLarge,
+            })
+        }
     }
 
     #[inline]
@@ -408,79 +604,135 @@ ${helpers.single_keyword("font-variant-caps",
         Au::from_px(FONT_MEDIUM_PX)
     }
 
+    #[inline]
+    pub fn get_initial_specified_value() -> SpecifiedValue {
+        SpecifiedValue::Keyword(Medium)
+    }
+
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
 
         #[inline]
         fn to_computed_value(&self, context: &Context) -> computed_value::T {
-            match self.0 {
-                LengthOrPercentage::Length(NoCalcLength::FontRelative(value)) => {
+            use values::specified::length::FontRelativeLength;
+            match *self {
+                SpecifiedValue::Length(LengthOrPercentage::Length(
+                        NoCalcLength::FontRelative(value))) => {
                     value.to_computed_value(context, /* use inherited */ true)
                 }
-                LengthOrPercentage::Length(NoCalcLength::ServoCharacterWidth(value)) => {
+                SpecifiedValue::Length(LengthOrPercentage::Length(
+                        NoCalcLength::ServoCharacterWidth(value))) => {
                     value.to_computed_value(context.inherited_style().get_font().clone_font_size())
                 }
-                LengthOrPercentage::Length(ref l) => {
+                SpecifiedValue::Length(LengthOrPercentage::Length(ref l)) => {
                     l.to_computed_value(context)
                 }
-                LengthOrPercentage::Percentage(Percentage(value)) => {
+                SpecifiedValue::Length(LengthOrPercentage::Percentage(Percentage(value))) => {
                     context.inherited_style().get_font().clone_font_size().scale_by(value)
                 }
-                LengthOrPercentage::Calc(ref calc) => {
+                SpecifiedValue::Length(LengthOrPercentage::Calc(ref calc)) => {
                     let calc = calc.to_computed_value(context);
                     calc.length() + context.inherited_style().get_font().clone_font_size()
                                            .scale_by(calc.percentage())
+                }
+                SpecifiedValue::Keyword(ref key) => {
+                    key.to_computed_value(context)
+                }
+                SpecifiedValue::Smaller => {
+                    FontRelativeLength::Em(0.85).to_computed_value(context,
+                                                                   /* use_inherited */ true)
+                }
+                SpecifiedValue::Larger => {
+                    FontRelativeLength::Em(1.2).to_computed_value(context,
+                                                                   /* use_inherited */ true)
                 }
             }
         }
 
         #[inline]
         fn from_computed_value(computed: &computed_value::T) -> Self {
-                SpecifiedValue(LengthOrPercentage::Length(
+                SpecifiedValue::Length(LengthOrPercentage::Length(
                         ToComputedValue::from_computed_value(computed)
                 ))
         }
     }
     /// <length> | <percentage> | <absolute-size> | <relative-size>
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        use values::specified::{Length, LengthOrPercentage};
-
-        input.try(specified::LengthOrPercentage::parse_non_negative)
-        .or_else(|()| {
-            let ident = try!(input.expect_ident());
-            NoCalcLength::from_str(&ident as &str)
-                         .ok_or(())
-                         .map(specified::LengthOrPercentage::Length)
-        }).map(SpecifiedValue)
+    pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        if let Ok(lop) = input.try(specified::LengthOrPercentage::parse_non_negative) {
+            Ok(SpecifiedValue::Length(lop))
+        } else if let Ok(kw) = input.try(KeywordSize::parse) {
+            Ok(SpecifiedValue::Keyword(kw))
+        } else {
+            match_ignore_ascii_case! {&*input.expect_ident()?,
+                "smaller" => Ok(SpecifiedValue::Smaller),
+                "larger" => Ok(SpecifiedValue::Larger),
+                _ => Err(())
+            }
+        }
     }
 </%helpers:longhand>
 
 <%helpers:longhand products="gecko" name="font-size-adjust" animatable="True"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-size-adjust">
+    use std::fmt;
+    use style_traits::ToCss;
     use values::HasViewportPercentage;
-    use values::computed::ComputedValueAsSpecified;
-    use values::specified::Number;
 
-    impl ComputedValueAsSpecified for SpecifiedValue {}
     no_viewport_percentage!(SpecifiedValue);
 
     #[derive(Copy, Clone, Debug, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedValue {
         None,
-        Number(Number),
+        Number(specified::Number),
+    }
+
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+            where W: fmt::Write,
+        {
+            match *self {
+                SpecifiedValue::None => dest.write_str("none"),
+                SpecifiedValue::Number(number) => number.to_css(dest),
+            }
+        }
+    }
+
+    impl ToComputedValue for SpecifiedValue {
+        type ComputedValue = computed_value::T;
+
+        fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+            match *self {
+                SpecifiedValue::None => computed_value::T::None,
+                SpecifiedValue::Number(ref n) => computed_value::T::Number(n.to_computed_value(context)),
+            }
+        }
+
+        fn from_computed_value(computed: &computed_value::T) -> Self {
+            match *computed {
+                computed_value::T::None => SpecifiedValue::None,
+                computed_value::T::Number(ref v) => SpecifiedValue::Number(specified::Number::from_computed_value(v)),
+            }
+        }
     }
 
     pub mod computed_value {
-        use style_traits::ToCss;
-        use std::fmt;
         use properties::animated_properties::Interpolate;
-        use values::specified::Number;
+        use std::fmt;
+        use style_traits::ToCss;
+        use values::CSSFloat;
 
-        pub use super::SpecifiedValue as T;
+        #[derive(Copy, Clone, Debug, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        pub enum T {
+            None,
+            Number(CSSFloat),
+        }
 
         impl ToCss for T {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+                where W: fmt::Write,
+            {
                 match *self {
                     T::None => dest.write_str("none"),
                     T::Number(number) => number.to_css(dest),
@@ -492,15 +744,21 @@ ${helpers.single_keyword("font-variant-caps",
             fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
                 match (*self, *other) {
                     (T::Number(ref number), T::Number(ref other)) =>
-                        Ok(T::Number(Number(try!(number.0.interpolate(&other.0, time))))),
+                        Ok(T::Number(try!(number.interpolate(other, time)))),
                     _ => Err(()),
                 }
             }
         }
     }
 
-    #[inline] pub fn get_initial_value() -> computed_value::T {
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
         computed_value::T::None
+    }
+
+    #[inline]
+    pub fn get_initial_specified_value() -> SpecifiedValue {
+        SpecifiedValue::None
     }
 
     /// none | <number>
@@ -557,7 +815,7 @@ ${helpers.single_keyword("font-variant-caps",
 
     pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
         let mut result = SpecifiedValue { weight: false, style: false };
-        match_ignore_ascii_case! {try!(input.expect_ident()),
+        match_ignore_ascii_case! { &try!(input.expect_ident()),
             "none" => Ok(result),
             "weight" => {
                 result.weight = true;
@@ -715,42 +973,113 @@ ${helpers.single_keyword("font-variant-position",
     }
 </%helpers:longhand>
 
-// https://www.w3.org/TR/css-fonts-3/#propdef-font-language-override
-<%helpers:longhand name="font-language-override" products="none" animatable="False" extra_prefixes="moz"
+<%helpers:longhand name="font-language-override" products="gecko" animatable="False" extra_prefixes="moz"
                    spec="https://drafts.csswg.org/css-fonts-3/#propdef-font-language-override">
+    use std::fmt;
+    use style_traits::ToCss;
+    use byteorder::{BigEndian, ByteOrder};
     use values::HasViewportPercentage;
-    use values::computed::ComputedValueAsSpecified;
-    pub use self::computed_value::T as SpecifiedValue;
-
-    impl ComputedValueAsSpecified for SpecifiedValue {}
     no_viewport_percentage!(SpecifiedValue);
 
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub enum SpecifiedValue {
+        Normal,
+        Override(String),
+    }
+
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            use cssparser;
+            match *self {
+                SpecifiedValue::Normal => dest.write_str("normal"),
+                SpecifiedValue::Override(ref lang) =>
+                    cssparser::serialize_string(lang, dest),
+            }
+        }
+    }
+
     pub mod computed_value {
-        use std::fmt;
+        use std::{fmt, str};
         use style_traits::ToCss;
+        use byteorder::{BigEndian, ByteOrder};
+        use cssparser;
 
         impl ToCss for T {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                match *self {
-                    T::Normal => dest.write_str("normal"),
-                    T::Override(ref lang) => write!(dest, "\"{}\"", lang),
+                if self.0 == 0 {
+                    return dest.write_str("normal")
                 }
+                let mut buf = [0; 4];
+                BigEndian::write_u32(&mut buf, self.0);
+                // Safe because we ensure it's ASCII during computing
+                let slice = if cfg!(debug_assertions) {
+                    str::from_utf8(&buf).unwrap()
+                } else {
+                    unsafe { str::from_utf8_unchecked(&buf) }
+                };
+                cssparser::serialize_string(slice.trim_right(), dest)
             }
         }
 
-        #[derive(Clone, Debug, PartialEq)]
+        // font-language-override can only have a single three-letter
+        // OpenType "language system" tag, so we should be able to compute
+        // it and store it as a 32-bit integer
+        // (see http://www.microsoft.com/typography/otspec/languagetags.htm).
+        #[derive(PartialEq, Clone, Copy, Debug)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub enum T {
-            Normal,
-            Override(String),
-        }
+        pub struct T(pub u32);
     }
 
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
-        computed_value::T::Normal
+        computed_value::T(0)
     }
 
+    #[inline]
+    pub fn get_initial_specified_value() -> SpecifiedValue {
+        SpecifiedValue::Normal
+    }
+
+    impl ToComputedValue for SpecifiedValue {
+        type ComputedValue = computed_value::T;
+
+        #[inline]
+        fn to_computed_value(&self, _: &Context) -> computed_value::T {
+            use std::ascii::AsciiExt;
+            match *self {
+                SpecifiedValue::Normal => computed_value::T(0),
+                SpecifiedValue::Override(ref lang) => {
+                    if lang.is_empty() || lang.len() > 4 || !lang.is_ascii() {
+                        return computed_value::T(0)
+                    }
+                    let mut computed_lang = lang.clone();
+                    while computed_lang.len() < 4 {
+                        computed_lang.push(' ');
+                    }
+                    let bytes = computed_lang.into_bytes();
+                    computed_value::T(BigEndian::read_u32(&bytes))
+                }
+            }
+        }
+        #[inline]
+        fn from_computed_value(computed: &computed_value::T) -> Self {
+            if computed.0 == 0 {
+                return SpecifiedValue::Normal
+            }
+            let mut buf = [0; 4];
+            BigEndian::write_u32(&mut buf, computed.0);
+            SpecifiedValue::Override(
+                if cfg!(debug_assertions) {
+                    String::from_utf8(buf.to_vec()).unwrap()
+                } else {
+                    unsafe { String::from_utf8_unchecked(buf.to_vec()) }
+                }
+            )
+        }
+    }
+
+    /// normal | <string>
     pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
         if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
             Ok(SpecifiedValue::Normal)

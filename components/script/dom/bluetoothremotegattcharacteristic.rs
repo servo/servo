@@ -25,6 +25,7 @@ use dom::bluetoothuuid::{BluetoothDescriptorUUID, BluetoothUUID};
 use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
+use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use js::jsapi::JSContext;
 use std::rc::Rc;

@@ -8,11 +8,8 @@
 
 #![cfg_attr(any(target_os = "linux", target_os = "android"), feature(alloc))]
 #![feature(box_syntax)]
-#![feature(plugin)]
 #![feature(range_contains)]
 #![feature(unique)]
-
-#![plugin(plugins)]
 
 #![deny(unsafe_code)]
 

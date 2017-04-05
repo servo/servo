@@ -10,6 +10,7 @@ use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::{ByteString, is_token};
 use dom::globalscope::GlobalScope;
+use dom_struct::dom_struct;
 use hyper::header::Headers as HyperHeaders;
 use mime::{Mime, TopLevel, SubLevel};
 use std::cell::Cell;

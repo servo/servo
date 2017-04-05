@@ -10,6 +10,7 @@ use dom::bindings::js::Root;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::globalscope::GlobalScope;
+use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcSender};
 
 // https://webbluetoothcg.github.io/web-bluetooth/tests#test-runner

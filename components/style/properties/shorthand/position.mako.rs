@@ -31,25 +31,17 @@
             return Err(())
         }
         Ok(Longhands {
-            flex_direction: direction,
-            flex_wrap: wrap,
+            flex_direction: unwrap_or_initial!(flex_direction, direction),
+            flex_wrap: unwrap_or_initial!(flex_wrap, wrap),
         })
     }
 
 
-    impl<'a> LonghandsToSerialize<'a>  {
-        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self.flex_direction {
-                DeclaredValue::Initial => try!(write!(dest, "row")),
-                _ => try!(self.flex_direction.to_css(dest))
-            };
-
-            try!(write!(dest, " "));
-
-            match *self.flex_wrap {
-                DeclaredValue::Initial => write!(dest, "nowrap"),
-                _ => self.flex_wrap.to_css(dest)
-            }
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            self.flex_direction.to_css(dest)?;
+            dest.write_str(" ")?;
+            self.flex_wrap.to_css(dest)
         }
     }
 </%helpers:shorthand>
@@ -57,7 +49,12 @@
 <%helpers:shorthand name="flex" sub_properties="flex-grow flex-shrink flex-basis" extra_prefixes="webkit"
                     spec="https://drafts.csswg.org/css-flexbox/#flex-property">
     use parser::Parse;
-    use values::specified::{Number, NoCalcLength, LengthOrPercentageOrAutoOrContent};
+    use values::specified::{Number, NoCalcLength};
+    % if product == "gecko":
+        use values::specified::LengthOrPercentageOrAuto;
+    % else:
+        use values::specified::LengthOrPercentageOrAutoOrContent;
+    % endif
 
     pub fn parse_flexibility(input: &mut Parser)
                              -> Result<(Number, Option<Number>),()> {
@@ -73,9 +70,14 @@
 
         if input.try(|input| input.expect_ident_matching("none")).is_ok() {
             return Ok(Longhands {
-                flex_grow: Some(Number(0.0)),
-                flex_shrink: Some(Number(0.0)),
-                flex_basis: Some(LengthOrPercentageOrAutoOrContent::Auto)
+                flex_grow: Number::new(0.0),
+                flex_shrink: Number::new(0.0),
+                % if product == "gecko":
+                    flex_basis: LengthOrPercentageOrAuto::Auto
+                % else:
+                    flex_basis: LengthOrPercentageOrAutoOrContent::Auto
+                % endif
+
             })
         }
         loop {
@@ -87,7 +89,11 @@
                 }
             }
             if basis.is_none() {
-                if let Ok(value) = input.try(|i| LengthOrPercentageOrAutoOrContent::parse(context, i)) {
+                % if product == "gecko":
+                    if let Ok(value) = input.try(|i| LengthOrPercentageOrAuto::parse(context, i)) {
+                % else:
+                    if let Ok(value) = input.try(|i| LengthOrPercentageOrAutoOrContent::parse(context, i)) {
+                % endif
                     basis = Some(value);
                     continue
                 }
@@ -99,14 +105,18 @@
             return Err(())
         }
         Ok(Longhands {
-            flex_grow: grow.or(Some(Number(1.0))),
-            flex_shrink: shrink.or(Some(Number(1.0))),
-            flex_basis: basis.or(Some(LengthOrPercentageOrAutoOrContent::Length(NoCalcLength::zero())))
+            flex_grow: grow.unwrap_or(Number::new(1.0)),
+            flex_shrink: shrink.unwrap_or(Number::new(1.0)),
+            % if product == "gecko":
+                flex_basis: basis.unwrap_or(LengthOrPercentageOrAuto::Length(NoCalcLength::zero()))
+            % else:
+                flex_basis: basis.unwrap_or(LengthOrPercentageOrAutoOrContent::Length(NoCalcLength::zero()))
+            % endif
         })
     }
 
-    impl<'a> LonghandsToSerialize<'a>  {
-        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             try!(self.flex_grow.to_css(dest));
             try!(write!(dest, " "));
 
@@ -116,4 +126,33 @@
             self.flex_basis.to_css(dest)
         }
     }
+</%helpers:shorthand>
+
+<%helpers:shorthand name="grid-gap" sub_properties="grid-row-gap grid-column-gap"
+                    spec="https://drafts.csswg.org/css-grid/#propdef-grid-gap"
+                    products="gecko">
+  use properties::longhands::{grid_row_gap, grid_column_gap};
+
+  pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+      let row_gap = grid_row_gap::parse(context, input)?;
+      let column_gap = input.try(|input| grid_column_gap::parse(context, input)).unwrap_or(row_gap.clone());
+
+      Ok(Longhands {
+        grid_row_gap: row_gap,
+        grid_column_gap: column_gap,
+      })
+  }
+
+  impl<'a> ToCss for LonghandsToSerialize<'a>  {
+      fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+          if self.grid_row_gap == self.grid_column_gap {
+            self.grid_row_gap.to_css(dest)
+          } else {
+            self.grid_row_gap.to_css(dest)?;
+            dest.write_str(" ")?;
+            self.grid_column_gap.to_css(dest)
+          }
+      }
+  }
+
 </%helpers:shorthand>

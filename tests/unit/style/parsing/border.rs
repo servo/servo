@@ -15,83 +15,89 @@ use style_traits::ToCss;
 #[test]
 fn border_image_shorthand_should_parse_when_all_properties_specified() {
     let url = ServoUrl::parse("http://localhost").unwrap();
-    let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
+    let reporter = CSSErrorReporterTest;
+    let context = ParserContext::new(Origin::Author, &url, &reporter);
     let mut parser = Parser::new("linear-gradient(red, blue) 30 30% 45 fill / 20px 40px / 10px \
                                  round stretch");
     let result = border_image::parse_value(&context, &mut parser).unwrap();
 
-    assert_eq!(result.border_image_source.unwrap(),
+    assert_eq!(result.border_image_source,
                parse_longhand!(border_image_source, "linear-gradient(red, blue)"));
-    assert_eq!(result.border_image_slice.unwrap(), parse_longhand!(border_image_slice, "30 30% 45 fill"));
-    assert_eq!(result.border_image_width.unwrap(), parse_longhand!(border_image_width, "20px 40px"));
-    assert_eq!(result.border_image_outset.unwrap(), parse_longhand!(border_image_outset, "10px"));
-    assert_eq!(result.border_image_repeat.unwrap(), parse_longhand!(border_image_repeat, "round stretch"));
+    assert_eq!(result.border_image_slice, parse_longhand!(border_image_slice, "30 30% 45 fill"));
+    assert_eq!(result.border_image_width, parse_longhand!(border_image_width, "20px 40px"));
+    assert_eq!(result.border_image_outset, parse_longhand!(border_image_outset, "10px"));
+    assert_eq!(result.border_image_repeat, parse_longhand!(border_image_repeat, "round stretch"));
 }
 
 #[test]
 fn border_image_shorthand_should_parse_without_width() {
     let url = ServoUrl::parse("http://localhost").unwrap();
-    let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
+    let reporter = CSSErrorReporterTest;
+    let context = ParserContext::new(Origin::Author, &url, &reporter);
     let mut parser = Parser::new("linear-gradient(red, blue) 30 30% 45 fill / / 10px round stretch");
     let result = border_image::parse_value(&context, &mut parser).unwrap();
 
-    assert_eq!(result.border_image_source.unwrap(),
+    assert_eq!(result.border_image_source,
                parse_longhand!(border_image_source, "linear-gradient(red, blue)"));
-    assert_eq!(result.border_image_slice.unwrap(), parse_longhand!(border_image_slice, "30 30% 45 fill"));
-    assert_eq!(result.border_image_outset.unwrap(), parse_longhand!(border_image_outset, "10px"));
-    assert_eq!(result.border_image_repeat.unwrap(), parse_longhand!(border_image_repeat, "round stretch"));
-    assert_eq!(result.border_image_width.unwrap(), border_image_width::get_initial_specified_value());
+    assert_eq!(result.border_image_slice, parse_longhand!(border_image_slice, "30 30% 45 fill"));
+    assert_eq!(result.border_image_outset, parse_longhand!(border_image_outset, "10px"));
+    assert_eq!(result.border_image_repeat, parse_longhand!(border_image_repeat, "round stretch"));
+    assert_eq!(result.border_image_width, border_image_width::get_initial_specified_value());
 }
 
 #[test]
 fn border_image_shorthand_should_parse_without_outset() {
     let url = ServoUrl::parse("http://localhost").unwrap();
-    let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
+    let reporter = CSSErrorReporterTest;
+    let context = ParserContext::new(Origin::Author, &url, &reporter);
     let mut parser = Parser::new("linear-gradient(red, blue) 30 30% 45 fill / 20px 40px round");
     let result = border_image::parse_value(&context, &mut parser).unwrap();
 
-    assert_eq!(result.border_image_source.unwrap(),
+    assert_eq!(result.border_image_source,
                parse_longhand!(border_image_source, "linear-gradient(red, blue)"));
-    assert_eq!(result.border_image_slice.unwrap(), parse_longhand!(border_image_slice, "30 30% 45 fill"));
-    assert_eq!(result.border_image_width.unwrap(), parse_longhand!(border_image_width, "20px 40px"));
-    assert_eq!(result.border_image_repeat.unwrap(), parse_longhand!(border_image_repeat, "round"));
-    assert_eq!(result.border_image_outset.unwrap(), border_image_outset::get_initial_specified_value());
+    assert_eq!(result.border_image_slice, parse_longhand!(border_image_slice, "30 30% 45 fill"));
+    assert_eq!(result.border_image_width, parse_longhand!(border_image_width, "20px 40px"));
+    assert_eq!(result.border_image_repeat, parse_longhand!(border_image_repeat, "round"));
+    assert_eq!(result.border_image_outset, border_image_outset::get_initial_specified_value());
 }
 
 #[test]
 fn border_image_shorthand_should_parse_without_width_or_outset() {
     let url = ServoUrl::parse("http://localhost").unwrap();
-    let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
+    let reporter = CSSErrorReporterTest;
+    let context = ParserContext::new(Origin::Author, &url, &reporter);
     let mut parser = Parser::new("linear-gradient(red, blue) 30 30% 45 fill round");
     let result = border_image::parse_value(&context, &mut parser).unwrap();
 
-    assert_eq!(result.border_image_source.unwrap(),
+    assert_eq!(result.border_image_source,
                parse_longhand!(border_image_source, "linear-gradient(red, blue)"));
-    assert_eq!(result.border_image_slice.unwrap(), parse_longhand!(border_image_slice, "30 30% 45 fill"));
-    assert_eq!(result.border_image_repeat.unwrap(), parse_longhand!(border_image_repeat, "round"));
-    assert_eq!(result.border_image_width.unwrap(), border_image_width::get_initial_specified_value());
-    assert_eq!(result.border_image_outset.unwrap(), border_image_outset::get_initial_specified_value());
+    assert_eq!(result.border_image_slice, parse_longhand!(border_image_slice, "30 30% 45 fill"));
+    assert_eq!(result.border_image_repeat, parse_longhand!(border_image_repeat, "round"));
+    assert_eq!(result.border_image_width, border_image_width::get_initial_specified_value());
+    assert_eq!(result.border_image_outset, border_image_outset::get_initial_specified_value());
 }
 
 #[test]
 fn border_image_shorthand_should_parse_with_just_source() {
     let url = ServoUrl::parse("http://localhost").unwrap();
-    let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
+    let reporter = CSSErrorReporterTest;
+    let context = ParserContext::new(Origin::Author, &url, &reporter);
     let mut parser = Parser::new("linear-gradient(red, blue)");
     let result = border_image::parse_value(&context, &mut parser).unwrap();
 
-    assert_eq!(result.border_image_source.unwrap(),
+    assert_eq!(result.border_image_source,
                parse_longhand!(border_image_source, "linear-gradient(red, blue)"));
-    assert_eq!(result.border_image_slice.unwrap(), border_image_slice::get_initial_specified_value());
-    assert_eq!(result.border_image_width.unwrap(), border_image_width::get_initial_specified_value());
-    assert_eq!(result.border_image_outset.unwrap(), border_image_outset::get_initial_specified_value());
-    assert_eq!(result.border_image_repeat.unwrap(), border_image_repeat::get_initial_specified_value());
+    assert_eq!(result.border_image_slice, border_image_slice::get_initial_specified_value());
+    assert_eq!(result.border_image_width, border_image_width::get_initial_specified_value());
+    assert_eq!(result.border_image_outset, border_image_outset::get_initial_specified_value());
+    assert_eq!(result.border_image_repeat, border_image_repeat::get_initial_specified_value());
 }
 
 #[test]
 fn border_image_outset_should_error_on_negative_length() {
     let url = ServoUrl::parse("http://localhost").unwrap();
-    let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
+    let reporter = CSSErrorReporterTest;
+    let context = ParserContext::new(Origin::Author, &url, &reporter);
     let mut parser = Parser::new("-1em");
     let result = border_image_outset::parse(&context, &mut parser);
     assert_eq!(result, Err(()));
@@ -100,7 +106,8 @@ fn border_image_outset_should_error_on_negative_length() {
 #[test]
 fn border_image_outset_should_error_on_negative_number() {
     let url = ServoUrl::parse("http://localhost").unwrap();
-    let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
+    let reporter = CSSErrorReporterTest;
+    let context = ParserContext::new(Origin::Author, &url, &reporter);
     let mut parser = Parser::new("-15");
     let result = border_image_outset::parse(&context, &mut parser);
     assert_eq!(result, Err(()));
@@ -109,7 +116,8 @@ fn border_image_outset_should_error_on_negative_number() {
 #[test]
 fn border_image_outset_should_return_number_on_plain_zero() {
     let url = ServoUrl::parse("http://localhost").unwrap();
-    let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
+    let reporter = CSSErrorReporterTest;
+    let context = ParserContext::new(Origin::Author, &url, &reporter);
     let mut parser = Parser::new("0");
     let result = border_image_outset::parse(&context, &mut parser);
     assert_eq!(result.unwrap(), parse_longhand!(border_image_outset, "0"));
@@ -118,7 +126,8 @@ fn border_image_outset_should_return_number_on_plain_zero() {
 #[test]
 fn border_image_outset_should_return_length_on_length_zero() {
     let url = ServoUrl::parse("http://localhost").unwrap();
-    let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
+    let reporter = CSSErrorReporterTest;
+    let context = ParserContext::new(Origin::Author, &url, &reporter);
     let mut parser = Parser::new("0em");
     let result = border_image_outset::parse(&context, &mut parser);
     assert_eq!(result.unwrap(), parse_longhand!(border_image_outset, "0em"));
@@ -138,4 +147,13 @@ fn test_border_style() {
     assert_roundtrip_with_context!(BorderStyle::parse, r#"ridge"#);
     assert_roundtrip_with_context!(BorderStyle::parse, r#"inset"#);
     assert_roundtrip_with_context!(BorderStyle::parse, r#"outset"#);
+}
+
+#[test]
+fn test_border_spacing() {
+    use style::properties::longhands::border_spacing;
+
+    assert_parser_exhausted!(border_spacing, "1px rubbish", false);
+    assert_parser_exhausted!(border_spacing, "1px", true);
+    assert_parser_exhausted!(border_spacing, "1px 2px", true);
 }

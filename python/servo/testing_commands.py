@@ -232,7 +232,7 @@ class MachCommands(CommandBase):
                 test_patterns.append(test)
 
         if not packages:
-            packages = set(os.listdir(path.join(self.context.topdir, "tests", "unit")))
+            packages = set(os.listdir(path.join(self.context.topdir, "tests", "unit"))) - set(['.DS_Store'])
 
         packages.discard('stylo')
 
@@ -300,7 +300,7 @@ class MachCommands(CommandBase):
         release = ["--release"] if release else []
         ret = 0
         with cd(path.join("ports", "geckolib")):
-            ret = call(["cargo", "test", "-p", "stylo_tests"] + release, env=env)
+            ret = call(["cargo", "test", "-p", "stylo_tests", "--features", "testing"] + release, env=env)
         if ret != 0:
             return ret
         with cd(path.join("ports", "geckolib")):
@@ -345,7 +345,7 @@ class MachCommands(CommandBase):
                 test_patterns.append(test)
 
         if not packages:
-            packages = set(os.listdir(path.join(self.context.topdir, "tests", "compiletest")))
+            packages = set(os.listdir(path.join(self.context.topdir, "tests", "compiletest"))) - set(['.DS_Store'])
 
         packages.remove("helper")
 

@@ -59,6 +59,7 @@ ${helpers.single_keyword("mask-type", "luminance alpha",
                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-type")}
 
 <%helpers:longhand name="clip-path" animatable="False" products="gecko" boxed="True"
+                   creates_stacking_context="True"
                    spec="https://drafts.fxtf.org/css-masking/#propdef-clip-path">
     use std::fmt;
     use style_traits::ToCss;
@@ -87,21 +88,30 @@ ${helpers.single_keyword("mask-type", "luminance alpha",
 </%helpers:longhand>
 
 ${helpers.single_keyword("mask-mode",
-                         "alpha luminance match-source",
+                         "match-source alpha luminance",
                          vector=True,
                          products="gecko",
                          animatable=False,
                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-mode")}
 
-// TODO implement all of repeat-style for background and mask
-// https://drafts.csswg.org/css-backgrounds-3/#repeat-style
-${helpers.single_keyword("mask-repeat",
-                         "repeat repeat-x repeat-y space round no-repeat",
-                         vector=True,
-                         products="gecko",
-                         extra_prefixes="webkit",
-                         animatable=False,
-                         spec="https://drafts.fxtf.org/css-masking/#propdef-mask-repeat")}
+<%helpers:vector_longhand name="mask-repeat" products="gecko" animatable="False" extra_prefixes="webkit"
+                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-repeat">
+    pub use properties::longhands::background_repeat::single_value::parse;
+    pub use properties::longhands::background_repeat::single_value::SpecifiedValue;
+    pub use properties::longhands::background_repeat::single_value::computed_value;
+    pub use properties::longhands::background_repeat::single_value::RepeatKeyword;
+    use properties::longhands::background_repeat::single_value;
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T(RepeatKeyword::NoRepeat, RepeatKeyword::NoRepeat)
+    }
+
+    #[inline]
+    pub fn get_initial_specified_value() -> SpecifiedValue {
+        SpecifiedValue::Other(RepeatKeyword::NoRepeat, None)
+    }
+</%helpers:vector_longhand>
 
 <%helpers:vector_longhand name="mask-position-x" products="gecko" animatable="True" extra_prefixes="webkit"
                           spec="https://drafts.fxtf.org/css-masking/#propdef-mask-position">
@@ -146,7 +156,7 @@ ${helpers.single_keyword("mask-repeat",
 </%helpers:vector_longhand>
 
 ${helpers.single_keyword("mask-clip",
-                         "content-box padding-box border-box",
+                         "border-box content-box padding-box",
                          extra_gecko_values="fill-box stroke-box view-box no-clip",
                          vector=True,
                          products="gecko",
@@ -155,7 +165,7 @@ ${helpers.single_keyword("mask-clip",
                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-clip")}
 
 ${helpers.single_keyword("mask-origin",
-                         "content-box padding-box border-box",
+                         "border-box content-box padding-box",
                          extra_gecko_values="fill-box stroke-box view-box",
                          vector=True,
                          products="gecko",
@@ -189,7 +199,8 @@ ${helpers.single_keyword("mask-composite",
                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-composite")}
 
 <%helpers:vector_longhand name="mask-image" products="gecko" animatable="False" extra_prefixes="webkit"
-                          has_uncacheable_values="${product == 'gecko'}",
+                          has_uncacheable_values="${product == 'gecko'}"
+                          creates_stacking_context="True"
                           spec="https://drafts.fxtf.org/css-masking/#propdef-mask-image">
     use std::fmt;
     use style_traits::ToCss;
@@ -257,12 +268,7 @@ ${helpers.single_keyword("mask-composite",
             let image = try!(Image::parse(context, input));
             match image {
                 Image::Url(url_value) => {
-                    let has_valid_url = match url_value.url() {
-                        Some(url) => url.fragment().is_some(),
-                        None => false,
-                    };
-
-                    if has_valid_url {
+                    if url_value.is_fragment() {
                         Ok(SpecifiedValue::Url(url_value))
                     } else {
                         Ok(SpecifiedValue::Image(Image::Url(url_value)))
