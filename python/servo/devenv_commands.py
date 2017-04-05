@@ -33,6 +33,8 @@ class MachCommands(CommandBase):
         if not params:
             params = []
 
+        self.ensure_bootstrapped()
+
         if self.context.topdir == getcwd():
             with cd(path.join('components', 'servo')):
                 return call(["cargo"] + params, env=self.build_env())
@@ -49,6 +51,7 @@ class MachCommands(CommandBase):
             params = []
 
         self.set_use_stable_rust()
+        self.ensure_bootstrapped()
         env = self.build_env(geckolib=True)
 
         if self.context.topdir == getcwd():
@@ -113,6 +116,9 @@ class MachCommands(CommandBase):
     def rustc(self, params):
         if params is None:
             params = []
+
+        self.ensure_bootstrapped()
+
         return call(["rustc"] + params, env=self.build_env())
 
     @Command('rustc-geckolib',
@@ -126,6 +132,7 @@ class MachCommands(CommandBase):
             params = []
 
         self.set_use_stable_rust()
+        self.ensure_bootstrapped()
         env = self.build_env(geckolib=True)
 
         return call(["rustc"] + params, env=env)
