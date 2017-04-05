@@ -314,7 +314,7 @@ impl HTMLIFrameElement {
     pub fn iframe_load_event_steps(&self, loaded_pipeline: PipelineId) {
         // TODO(#9592): assert that the load blocker is present at all times when we
         //              can guarantee that it's created for the case of iframe.reload().
-        if Some(loaded_pipeline) != self.pipeline_id() { return; }
+        // if Some(loaded_pipeline) != self.pipeline_id() { return; }
 
         // TODO A cross-origin child document would not be easily accessible
         //      from this script thread. It's unclear how to implement

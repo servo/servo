@@ -325,7 +325,9 @@ var referenceDoc = document.implementation.createHTMLDocument("");
 referenceDoc.removeChild(referenceDoc.documentElement);
 
 actualIframe.onload = function() {
+  console.log("Onload actual iframe");
   expectedIframe.onload = function() {
+    console.log("Onload expected iframe: Location = " + expectedIframe.contentDocument.location);
     for (var i = iStart; i < iStop; i++) {
       testDeleteContents(i);
     }
