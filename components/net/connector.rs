@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use hosts::replace_host;
 use hyper::client::Pool;
 use hyper::error::{Result as HyperResult, Error as HyperError};
 use hyper::net::{NetworkConnector, HttpsStream, HttpStream, SslClient};
 use hyper_openssl::OpensslClient;
-use net_traits::hosts::replace_host;
 use openssl::ssl::{SSL_OP_NO_COMPRESSION, SSL_OP_NO_SSLV2, SSL_OP_NO_SSLV3};
 use openssl::ssl::{SslConnectorBuilder, SslMethod};
 use std::io;

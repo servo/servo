@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use parse_hosts::HostsFile;
-use servo_url::ServoUrl;
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::env;
@@ -61,20 +60,4 @@ pub fn replace_host(host: &str) -> Cow<str> {
     HOST_TABLE.lock().unwrap().as_ref()
         .and_then(|table| table.get(host))
         .map_or(host.into(), |replaced_host| replaced_host.to_string().into())
-}
-
-pub fn replace_host_in_url(url: ServoUrl) -> ServoUrl {
-    if let Some(table) = HOST_TABLE.lock().unwrap().as_ref() {
-        host_replacement(table, url)
-    } else {
-        url
-    }
-}
-
-pub fn host_replacement(host_table: &HashMap<String, IpAddr>, mut url: ServoUrl) -> ServoUrl {
-    let replacement = url.domain().and_then(|domain| host_table.get(domain));
-    if let Some(ip) = replacement {
-        url.set_ip_host(*ip).unwrap();
-    }
-    url
 }

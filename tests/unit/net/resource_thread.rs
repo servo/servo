@@ -4,12 +4,9 @@
 
 use ipc_channel::ipc;
 use net::resource_thread::new_core_resource_thread;
+use net::test::parse_hostsfile;
 use net_traits::CoreResourceMsg;
-use net_traits::hosts::{host_replacement, parse_hostsfile};
 use profile_traits::time::ProfilerChan;
-use servo_url::ServoUrl;
-use std::borrow::ToOwned;
-use std::collections::HashMap;
 use std::net::IpAddr;
 
 fn ip(s: &str) -> IpAddr {
@@ -142,20 +139,4 @@ fn test_parse_hostsfile_with_end_of_line_whitespace()
     assert_eq!(ip("127.0.0.1"), *hosts_table.get("foo.bar.com").unwrap());
     assert_eq!(ip("2001:db8:0:0:0:ff00:42:8329"), *hosts_table.get("moz.foo.com").unwrap());
     assert_eq!(ip("127.0.0.2"), *hosts_table.get("servo.test.server").unwrap());
-}
-
-#[test]
-fn test_replace_hosts() {
-    let mut host_table = HashMap::new();
-    host_table.insert("foo.bar.com".to_owned(), ip("127.0.0.1"));
-    host_table.insert("servo.test.server".to_owned(), ip("127.0.0.2"));
-
-    let url = ServoUrl::parse("http://foo.bar.com:8000/foo").unwrap();
-    assert_eq!(host_replacement(&host_table, url).host_str().unwrap(), "127.0.0.1");
-
-    let url = ServoUrl::parse("http://servo.test.server").unwrap();
-    assert_eq!(host_replacement(&host_table, url).host_str().unwrap(), "127.0.0.2");
-
-    let url = ServoUrl::parse("http://a.foo.bar.com").unwrap();
-    assert_eq!(host_replacement(&host_table, url).host_str().unwrap(), "a.foo.bar.com");
 }

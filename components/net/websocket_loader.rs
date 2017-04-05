@@ -4,6 +4,7 @@
 
 use cookie::Cookie;
 use fetch::methods::{should_be_blocked_due_to_bad_port, should_be_blocked_due_to_nosniff};
+use hosts::replace_host;
 use http_loader::{HttpState, is_redirect_status, set_default_accept};
 use http_loader::{set_default_accept_language, set_request_cookies};
 use hyper::buffer::BufReader;
@@ -16,7 +17,6 @@ use hyper::status::StatusCode;
 use hyper::version::HttpVersion;
 use net_traits::{CookieSource, MessageData, NetworkError, WebSocketCommunicate, WebSocketConnectData};
 use net_traits::{WebSocketDomAction, WebSocketNetworkEvent};
-use net_traits::hosts::replace_host;
 use net_traits::request::{Destination, Type};
 use servo_url::ServoUrl;
 use std::ascii::AsciiExt;

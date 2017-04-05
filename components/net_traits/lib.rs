@@ -22,7 +22,6 @@ extern crate lazy_static;
 extern crate log;
 extern crate msg;
 extern crate num_traits;
-extern crate parse_hosts;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
@@ -51,7 +50,6 @@ use storage_thread::StorageThreadMsg;
 
 pub mod blob_url_store;
 pub mod filemanager_thread;
-pub mod hosts;
 pub mod image_cache;
 pub mod net_error_list;
 pub mod pub_domains;
