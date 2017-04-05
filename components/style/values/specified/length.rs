@@ -1170,6 +1170,14 @@ impl LengthOrPercentageOrAuto {
     pub fn parse_non_negative(input: &mut Parser) -> Result<LengthOrPercentageOrAuto, ()> {
         LengthOrPercentageOrAuto::parse_internal(input, AllowedNumericType::NonNegative)
     }
+
+    /// Parse a non-negative length, percentage, or auto.
+    #[inline]
+    pub fn parse_non_negative_with_context(_context: &ParserContext,
+                                           input: &mut Parser)
+                                           -> Result<LengthOrPercentageOrAuto, ()> {
+        LengthOrPercentageOrAuto::parse_non_negative(input)
+    }
 }
 
 impl Parse for LengthOrPercentageOrAuto {
@@ -1271,6 +1279,16 @@ pub enum LengthOrPercentageOrAutoOrContent {
     Auto,
     /// The `content` keyword.
     Content
+}
+
+impl LengthOrPercentageOrAutoOrContent {
+    /// Alias to `parse` so that Gecko and Servo can use the same method name for
+    /// both `LengthOrPercentageOrAuto` and `LengthOrPercentageOrAutoOrContent`.
+    ///
+    /// NOTE: `parse` already only accepts non-negative values.
+    pub fn parse_non_negative_with_context(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        Self::parse(context, input)
+    }
 }
 
 impl HasViewportPercentage for LengthOrPercentageOrAutoOrContent {
