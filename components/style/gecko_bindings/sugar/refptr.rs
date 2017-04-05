@@ -6,7 +6,6 @@
 
 use gecko_bindings::structs;
 use gecko_bindings::sugar::ownership::HasArcFFI;
-use heapsize::HeapSizeOf;
 use std::{mem, ptr};
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
@@ -229,10 +228,6 @@ impl<T: RefCounted> Clone for RefPtr<T> {
             _marker: PhantomData,
         }
     }
-}
-
-impl<T: RefCounted> HeapSizeOf for RefPtr<T> {
-    fn heap_size_of_children(&self) -> usize { 0 }
 }
 
 impl<T: RefCounted> PartialEq for RefPtr<T> {

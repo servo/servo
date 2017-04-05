@@ -47,7 +47,7 @@ extern crate bitflags;
 extern crate euclid;
 extern crate fnv;
 #[cfg(feature = "gecko")] #[macro_use] pub mod gecko_string_cache;
-extern crate heapsize;
+#[cfg(feature = "servo")] extern crate heapsize;
 #[cfg(feature = "servo")] #[macro_use] extern crate heapsize_derive;
 #[cfg(feature = "servo")] #[macro_use] extern crate html5ever_atoms;
 #[macro_use]
