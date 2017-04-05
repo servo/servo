@@ -414,6 +414,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                               stacking_context.bounds.to_rectf(),
                                               stacking_context.z_index,
                                               transform,
+                                              webrender_traits::TransformStyle::Flat,
                                               perspective,
                                               stacking_context.blend_mode.to_blend_mode(),
                                               stacking_context.filters.to_filter_ops());
@@ -425,8 +426,8 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                                    None);
 
                 let provided_id = ScrollLayerId::new(item.scroll_root.id.0 as u64, builder.pipeline_id);
-                let id = builder.define_clip(clip,
-                                             item.scroll_root.size.to_sizef(),
+                let id = builder.define_clip(item.scroll_root.content_rect.to_rectf(),
+                                             clip,
                                              Some(provided_id));
                 debug_assert!(provided_id == id);
             }
