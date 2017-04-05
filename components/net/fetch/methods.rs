@@ -490,11 +490,6 @@ pub fn is_simple_method(m: &Method) -> bool {
     }
 }
 
-// fn modify_request_headers(headers: &mut Headers) -> {
-//     // TODO this function
-
-// }
-
 fn is_null_body_status(status: &Option<StatusCode>) -> bool {
     match *status {
         Some(status) => match status {
