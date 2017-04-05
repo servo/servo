@@ -1963,24 +1963,29 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             &self.base.early_absolute_position_info.relative_containing_block_size,
             self.base.early_absolute_position_info.relative_containing_block_mode,
             coordinate_system);
-        let clip = self.fragment.stacking_relative_content_box(&border_box);
+        let content_box = self.fragment.stacking_relative_content_box(&border_box);
 
-        let has_scrolling_overflow = self.base.overflow.scroll.origin != Point2D::zero() ||
-                                     self.base.overflow.scroll.size.width > clip.size.width ||
-                                     self.base.overflow.scroll.size.height > clip.size.height;
-        self.mark_scrolling_overflow(has_scrolling_overflow);
-        if !has_scrolling_overflow {
+        // If we don't overflow our box at all, we can avoid creating a scroll root.
+        if self.base.overflow.scroll.origin == Point2D::zero() &&
+           self.base.overflow.scroll.size.width <= content_box.size.width &&
+           self.base.overflow.scroll.size.height <= content_box.size.height {
+            self.mark_scrolling_overflow(false);
             return containing_scroll_root_id;
         }
 
+        self.mark_scrolling_overflow(true);
+
         let new_scroll_root_id = ScrollRootId::new_of_type(self.fragment.node.id() as usize,
                                                            self.fragment.fragment_type());
+
+        let content_size = self.base.overflow.scroll.origin + self.base.overflow.scroll.size;
         state.add_scroll_root(
             ScrollRoot {
                 id: new_scroll_root_id,
                 parent_id: containing_scroll_root_id,
-                clip: clip,
-                size: self.base.overflow.scroll.size,
+                clip: Rect::new(Point2D::zero(), content_box.size),
+                content_rect: Rect::new(content_box.origin,
+                                        Size2D::new(content_size.x, content_size.y)),
             },
             self.base.stacking_context_id
         );
