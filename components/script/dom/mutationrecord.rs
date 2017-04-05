@@ -7,7 +7,6 @@ use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::Reflector;
 use dom::bindings::str::DOMString;
 use dom::node::Node;
-use dom::window::Window;
 use dom_struct::dom_struct;
 
 #[dom_struct]
