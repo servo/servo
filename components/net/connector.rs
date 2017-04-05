@@ -7,15 +7,19 @@ use hyper::net::HttpsConnector;
 use hyper_openssl::OpensslClient;
 use openssl::ssl::{SSL_OP_NO_COMPRESSION, SSL_OP_NO_SSLV2, SSL_OP_NO_SSLV3};
 use openssl::ssl::{SslConnectorBuilder, SslMethod};
+use servo_config::opts;
 use servo_config::resource_files::resources_dir_path;
 use std::sync::Arc;
 
 pub type Connector = HttpsConnector<OpensslClient>;
 
 pub fn create_ssl_client(certificate_file: &str) -> OpensslClient {
-    let ca_file = &resources_dir_path()
-        .expect("Need certificate file to make network requests")
-        .join(certificate_file);
+    let ca_file = match opts::get().certificate_path {
+        Some(ref path) => PathBuf::from(path),
+        None => resources_dir_path()
+            .expect("Need certificate file to make network requests")
+            .join(certificate_file),
+    };
 
     let mut ssl_connector_builder = SslConnectorBuilder::new(SslMethod::tls()).unwrap();
     {
