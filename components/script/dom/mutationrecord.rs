@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 use core::ptr;
 use dom::bindings::codegen::Bindings::MutationRecordBinding::MutationRecordBinding::MutationRecordMethods;
 use dom::bindings::js::{JS, Root};
@@ -21,11 +25,11 @@ pub struct MutationRecord {
 }
 
 impl MutationRecord {
-    fn new(window: &Window, record_type: DOMString, target: JS<Node>) -> MutationRecord {
+    fn new(window: &Window, record_type: DOMString, target: &Node) -> MutationRecord {
         MutationRecord {
             reflector_: Reflector::new(),
             record_type: record_type,
-            target: target,
+            target: JS::from_ref(target),
         }
     }
 }
