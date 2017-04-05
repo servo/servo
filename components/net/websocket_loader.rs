@@ -36,7 +36,7 @@ pub fn init(connect: WebSocketCommunicate,
             connect_data: WebSocketConnectData,
             http_state: Arc<HttpState>) {
     thread::Builder::new().name(format!("WebSocket connection to {}", connect_data.resource_url)).spawn(move || {
-        let channel = establish_a_websocket_connection(&connect_data.resource_url,
+        let channel = establish_a_websocket_connection(connect_data.resource_url,
                                                        connect_data.origin,
                                                        connect_data.protocols,
                                                        &http_state);
@@ -146,7 +146,7 @@ fn obtain_a_websocket_connection(url: &ServoUrl) -> Result<Stream, NetworkError>
 }
 
 // https://fetch.spec.whatwg.org/#concept-websocket-establish
-fn establish_a_websocket_connection(resource_url: &ServoUrl,
+fn establish_a_websocket_connection(resource_url: ServoUrl,
                                     origin: String,
                                     protocols: Vec<String>,
                                     http_state: &HttpState)
@@ -268,7 +268,7 @@ struct Response {
 }
 
 // https://fetch.spec.whatwg.org/#concept-fetch
-fn fetch(url: &ServoUrl,
+fn fetch(url: ServoUrl,
          origin: String,
          mut headers: Headers,
          http_state: &HttpState)
@@ -306,7 +306,7 @@ fn fetch(url: &ServoUrl,
 }
 
 // https://fetch.spec.whatwg.org/#concept-main-fetch
-fn main_fetch(url: &ServoUrl,
+fn main_fetch(url: ServoUrl,
               origin: String,
               mut headers: Headers,
               http_state: &HttpState)
@@ -324,7 +324,7 @@ fn main_fetch(url: &ServoUrl,
     // TODO: handle upgrade to a potentially secure URL.
 
     // Step 5.
-    if should_be_blocked_due_to_bad_port(url) {
+    if should_be_blocked_due_to_bad_port(&url) {
         response = Some(Err(NetworkError::Internal("Request should be blocked due to bad port.".into())));
     }
     // TODO: handle blocking as mixed content.
@@ -352,7 +352,7 @@ fn main_fetch(url: &ServoUrl,
         // doesn't need to be filtered at all.
 
         // Step 12.2.
-        basic_fetch(url, origin, &mut headers, http_state)
+        basic_fetch(&url, origin, &mut headers, http_state)
     });
 
     // Step 13.
