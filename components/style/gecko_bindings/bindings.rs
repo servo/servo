@@ -480,6 +480,10 @@ extern "C" {
      -> *mut nsIAtom;
 }
 extern "C" {
+    pub fn Gecko_GetXMLLangValue(element: RawGeckoElementBorrowed)
+     -> *mut nsIAtom;
+}
+extern "C" {
     pub fn Gecko_AtomAttrValue(element: RawGeckoElementBorrowed,
                                attribute: *mut nsIAtom) -> *mut nsIAtom;
 }
@@ -1049,6 +1053,10 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_CSSFontFaceRule_Release(aPtr: *mut nsCSSFontFaceRule);
+}
+extern "C" {
+    pub fn Gecko_GetBody(pres_context: RawGeckoPresContextBorrowed)
+     -> RawGeckoElementBorrowedOrNull;
 }
 extern "C" {
     pub fn Gecko_GetLookAndFeelSystemColor(color_id: i32,

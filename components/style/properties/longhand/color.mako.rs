@@ -26,10 +26,7 @@
 
         #[inline]
         fn from_computed_value(computed: &computed_value::T) -> Self {
-            SpecifiedValue(CSSColor {
-                parsed: Color::RGBA(*computed),
-                authored: None,
-            })
+            SpecifiedValue(Color::RGBA(*computed).into())
         }
     }
 
