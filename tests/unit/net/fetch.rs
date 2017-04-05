@@ -530,7 +530,8 @@ fn test_fetch_with_hsts() {
     //takes an address and something that implements hyper::net::Ssl
     let mut server = Server::https("0.0.0.0:0", ssl).unwrap().handle_threads(handler, 1).unwrap();
 
-    let ssl_client = create_ssl_client("self_signed_certificate_for_testing.crt");
+    let ca_file = resources_dir_path().unwrap().join("self_signed_certificate_for_testing.crt");
+    let ssl_client = create_ssl_client(&ca_file);
     let connector = create_http_connector(ssl_client);
 
     let context =  FetchContext {
