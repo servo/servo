@@ -142,6 +142,7 @@ ${helpers.predefined_type("flex-basis",
                           "LengthOrPercentageOrAutoOrContent",
                           "computed::LengthOrPercentageOrAuto::Auto" if product == "gecko" else
                           "computed::LengthOrPercentageOrAutoOrContent::Auto",
+                          "parse_non_negative_with_context",
                           spec="https://drafts.csswg.org/css-flexbox/#flex-basis-property",
                           extra_prefixes="webkit",
                           animatable=True if product == "gecko" else False)}
