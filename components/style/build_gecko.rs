@@ -439,6 +439,7 @@ mod bindings {
         let opaque_types = [
             "std::pair__PCCP",
             "std::namespace::atomic___base", "std::atomic__My_base",
+            "std::atomic",
             "std::atomic___base",
             "mozilla::gfx::.*",
             "FallibleTArray",
