@@ -257,21 +257,57 @@ pub extern "C" fn Servo_AnimationValueMap_Push(value_map: RawServoAnimationValue
 
 #[no_mangle]
 pub extern "C" fn Servo_AnimationCompose(raw_value_map: RawServoAnimationValueMapBorrowed,
-                                         property: nsCSSPropertyID,
+                                         base_values: *mut ::std::os::raw::c_void,
+                                         css_property: nsCSSPropertyID,
                                          segment: RawGeckoAnimationPropertySegmentBorrowed,
                                          computed_timing: RawGeckoComputedTimingBorrowed)
 {
+    use style::gecko_bindings::bindings::Gecko_AnimationGetBaseStyle;
     use style::gecko_bindings::bindings::Gecko_GetPositionInSegment;
     use style::gecko_bindings::bindings::Gecko_GetProgressFromComputedTiming;
     use style::properties::animated_properties::AnimationValueMap;
 
-    let property: TransitionProperty = property.into();
+    let property: TransitionProperty = css_property.into();
     let value_map = RwLock::<AnimationValueMap>::as_arc(&raw_value_map);
 
-    let from_value = unsafe { &*segment.mFromValue.mServo.mRawPtr };
-    let from_value = AnimationValue::as_arc(&from_value).as_ref();
-    let to_value = unsafe { &*segment.mToValue.mServo.mRawPtr };
-    let to_value = AnimationValue::as_arc(&to_value).as_ref();
+    // If either of the segment endpoints are null, get the underlying value to
+    // use from the current value in the values map (set by a lower-priority
+    // effect), or, if there is no current value, look up the cached base value
+    // for this property.
+    let underlying_value = if segment.mFromValue.mServo.mRawPtr.is_null() ||
+                              segment.mToValue.mServo.mRawPtr.is_null() {
+        let previous_composed_value = value_map.read().get(&property).cloned();
+        previous_composed_value.or_else(|| {
+            let raw_base_style = unsafe { Gecko_AnimationGetBaseStyle(base_values, css_property) };
+            AnimationValue::arc_from_borrowed(&raw_base_style).map(|v| v.as_ref()).cloned()
+        })
+    } else {
+        None
+    };
+
+    if (segment.mFromValue.mServo.mRawPtr.is_null() ||
+        segment.mToValue.mServo.mRawPtr.is_null()) &&
+        underlying_value.is_none() {
+        warn!("Underlying value should be valid in the case where either 'from' value or 'to' value is null");
+        return;
+    }
+
+    // Declare for making derefenced raw pointer alive outside the if block.
+    let raw_from_value;
+    let from_value = if !segment.mFromValue.mServo.mRawPtr.is_null() {
+        raw_from_value = unsafe { &*segment.mFromValue.mServo.mRawPtr };
+        AnimationValue::as_arc(&raw_from_value).as_ref()
+    } else {
+        underlying_value.as_ref().unwrap()
+    };
+
+    let raw_to_value;
+    let to_value = if !segment.mToValue.mServo.mRawPtr.is_null() {
+        raw_to_value = unsafe { &*segment.mToValue.mServo.mRawPtr };
+        AnimationValue::as_arc(&raw_to_value).as_ref()
+    } else {
+        underlying_value.as_ref().unwrap()
+    };
 
     let progress = unsafe { Gecko_GetProgressFromComputedTiming(computed_timing) };
     if segment.mToKey == segment.mFromKey {
