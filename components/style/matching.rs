@@ -468,13 +468,12 @@ trait PrivateMatchMethods: TElement {
     }
 
     fn cascade_with_rules(&self,
-                          context: &StyleContext<Self>,
+                          shared_context: &SharedStyleContext,
                           rule_node: &StrongRuleNode,
                           primary_style: &ComputedStyle,
                           pseudo_style: &Option<(&PseudoElement, &mut ComputedStyle)>,
                           cascade_flags: CascadeFlags)
                           -> Arc<ComputedValues> {
-        let shared_context = context.shared;
         let mut cascade_info = CascadeInfo::new();
 
         // Grab the inherited values.
@@ -557,7 +556,7 @@ trait PrivateMatchMethods: TElement {
 
         // Grab the rule node.
         let rule_node = &pseudo_style.as_ref().map_or(primary_style, |p| &*p.1).rules;
-        self.cascade_with_rules(context, rule_node, primary_style, pseudo_style, cascade_flags)
+        self.cascade_with_rules(context.shared, rule_node, primary_style, pseudo_style, cascade_flags)
     }
 
     /// Computes values and damage for the primary or pseudo style of an element,
@@ -622,7 +621,7 @@ trait PrivateMatchMethods: TElement {
         if self.skip_root_and_item_based_display_fixup() {
             cascade_flags.insert(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP)
         }
-        self.cascade_with_rules(context,
+        self.cascade_with_rules(context.shared,
                                 &without_transition_rules,
                                 primary_style,
                                 &pseudo_style,
