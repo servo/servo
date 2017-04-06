@@ -81,6 +81,7 @@ impl TransitionProperty {
 
     /// Get a transition property from a property declaration.
     pub fn from_declaration(declaration: &PropertyDeclaration) -> Option<Self> {
+        use properties::LonghandId;
         match *declaration {
             % for prop in data.longhands:
                 % if prop.animatable:
@@ -88,6 +89,18 @@ impl TransitionProperty {
                         => Some(TransitionProperty::${prop.camel_case}),
                 % endif
             % endfor
+            PropertyDeclaration::CSSWideKeyword(id, _) |
+            PropertyDeclaration::WithVariables(id, _) => {
+                match id {
+                    % for prop in data.longhands:
+                        % if prop.animatable:
+                            LonghandId::${prop.camel_case} =>
+                                Some(TransitionProperty::${prop.camel_case}),
+                        % endif
+                    % endfor
+                    _ => None,
+                }
+            },
             _ => None,
         }
     }
