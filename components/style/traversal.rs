@@ -10,8 +10,7 @@ use atomic_refcell::{AtomicRefCell, AtomicRefMut};
 use context::{SharedStyleContext, StyleContext, ThreadLocalStyleContext};
 use data::{ElementData, ElementStyles, StoredRestyleHint};
 use dom::{DirtyDescendants, NodeInfo, TElement, TNode};
-use matching::MatchMethods;
-use matching::relations_are_shareable;
+use matching::{MatchMethods, StyleSharingBehavior};
 use restyle_hints::{RESTYLE_DESCENDANTS, RESTYLE_SELF};
 use selector_parser::RestyleDamage;
 use servo_config::opts;
@@ -396,8 +395,7 @@ fn resolve_style_internal<E, F>(context: &mut StyleContext<E>,
         }
 
         // Compute our style.
-        element.match_element(context, &mut data);
-        element.cascade_element(context, &mut data);
+        element.match_and_cascade(context, &mut data, StyleSharingBehavior::Disallow);
 
         // Conservatively mark us as having dirty descendants, since there might
         // be other unstyled siblings we miss when walking straight up the parent
@@ -602,32 +600,18 @@ fn compute_style<E, D>(_traversal: &D,
             traversal_data.current_dom_depth = Some(dom_depth);
 
             context.thread_local.bloom_filter.assert_complete(element);
-
-
-            // Perform CSS selector matching.
             context.thread_local.statistics.elements_matched += 1;
-            let (primary_relations, _rule_nodes_changed) =
-                element.match_element(context, &mut data);
 
-            // Cascade properties and compute values.
-            element.cascade_element(context, &mut data);
-
-            // If the style is shareable, add it to the LRU cache.
-            if relations_are_shareable(&primary_relations) {
-                context.thread_local
-                       .style_sharing_candidate_cache
-                       .insert_if_possible(&element,
-                                           data.styles().primary.values(),
-                                           primary_relations);
-            }
+            // Perform the matching and cascading.
+            element.match_and_cascade(context, &mut data, StyleSharingBehavior::Allow);
         }
         CascadeWithReplacements(hint) => {
             let _rule_nodes_changed =
                 element.cascade_with_replacements(hint, context, &mut data);
-            element.cascade_element(context, &mut data);
+            element.cascade_primary_and_pseudos(context, &mut data);
         }
         CascadeOnly => {
-            element.cascade_element(context, &mut data);
+            element.cascade_primary_and_pseudos(context, &mut data);
         }
     };
 }
