@@ -17,7 +17,6 @@ use dom::serviceworkercontainer::ServiceWorkerContainer;
 use dom::vr::VR;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use script_traits::WebVREventMsg;
 
 #[dom_struct]
 pub struct Navigator {
@@ -134,11 +133,11 @@ impl NavigatorMethods for Navigator {
     // https://www.w3.org/TR/gamepad/#navigator-interface-extension
     fn GetGamepads(&self) -> Root<GamepadList> {
         let root = self.gamepads.or_init(|| {
-            GamepadList::new(&self.global(), Vec::new())
+            GamepadList::new(&self.global(), &[])
         });
 
         let vr_gamepads = self.Vr().get_gamepads();
-        root.sync(&vr_gamepads);
+        root.add_if_not_exists(&vr_gamepads);
         // TODO: Add not VR related gamepads
         root
     }
@@ -146,11 +145,4 @@ impl NavigatorMethods for Navigator {
     fn Permissions(&self) -> Root<Permissions> {
         self.permissions.or_init(|| Permissions::new(&self.global()))
     }
-}
-
-impl Navigator {
-     pub fn handle_webvr_events(&self, events: Vec<WebVREventMsg>) {
-         self.vr.get().expect("Shouldn't arrive here with an empty VR instance")
-                      .handle_webvr_events(events);
-     }
 }

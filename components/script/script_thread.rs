@@ -27,6 +27,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
 use dom::bindings::codegen::Bindings::EventBinding::EventInit;
+use dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
 use dom::bindings::codegen::Bindings::TransitionEventBinding::TransitionEventInit;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, StringificationBehavior};
@@ -90,7 +91,6 @@ use script_traits::{ScriptThreadFactory, TimerEvent, TimerSchedulerMsg, TimerSou
 use script_traits::{TouchEventType, TouchId, UntrustedNodeAddress, WindowSizeData, WindowSizeType};
 use script_traits::CompositorEvent::{KeyEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent};
 use script_traits::CompositorEvent::{TouchEvent, TouchpadPressureEvent};
-use script_traits::WebVREventMsg;
 use script_traits::webdriver_msg::WebDriverScriptCommand;
 use serviceworkerjob::{Job, JobQueue, AsyncJobHandler};
 use servo_config::opts;
@@ -118,7 +118,7 @@ use task_source::user_interaction::{UserInteractionTask, UserInteractionTaskSour
 use time::Tm;
 use url::Position;
 use webdriver_handlers;
-use webvr_traits::WebVRMsg;
+use webvr_traits::{WebVREvent, WebVRMsg};
 
 pub type ImageCacheMsg = (PipelineId, PendingImageResponse);
 
@@ -1055,7 +1055,7 @@ impl ScriptThread {
                 self.handle_reload(pipeline_id),
             ConstellationControlMsg::ExitPipeline(pipeline_id, discard_browsing_context) =>
                 self.handle_exit_pipeline_msg(pipeline_id, discard_browsing_context),
-            ConstellationControlMsg::WebVREvent(pipeline_id, events) =>
+            ConstellationControlMsg::WebVREvents(pipeline_id, events) =>
                 self.handle_webvr_events(pipeline_id, events),
             msg @ ConstellationControlMsg::AttachLayout(..) |
             msg @ ConstellationControlMsg::Viewport(..) |
@@ -2171,11 +2171,11 @@ impl ScriptThread {
         }
     }
 
-    fn handle_webvr_events(&self, pipeline_id: PipelineId, events: Vec<WebVREventMsg>) {
+    fn handle_webvr_events(&self, pipeline_id: PipelineId, events: Vec<WebVREvent>) {
         let window = self.documents.borrow().find_window(pipeline_id);
         if let Some(window) = window {
-            let navigator = window.Navigator();
-            navigator.handle_webvr_events(events);
+            let vr = window.Navigator().Vr();
+            vr.handle_webvr_events(events);
         }
     }
 

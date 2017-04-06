@@ -19,28 +19,28 @@ pub struct GamepadList {
 }
 
 impl GamepadList {
-    #[allow(unrooted_must_root)]
-    fn new_inherited(list: Vec<JS<Gamepad>>) -> GamepadList {
+    fn new_inherited(list: &[&Gamepad]) -> GamepadList {
         GamepadList {
             reflector_: Reflector::new(),
-            list: DOMRefCell::new(list)
+            list: DOMRefCell::new(list.iter().map(|g| JS::from_ref(&**g)).collect())
         }
     }
 
-    #[allow(unrooted_must_root)]
-    pub fn new(global: &GlobalScope, list: Vec<Root<Gamepad>>) -> Root<GamepadList> {
-        reflect_dom_object(box GamepadList::new_inherited(list.iter().map(|r| JS::from_ref(&**r)).collect()),
+    pub fn new(global: &GlobalScope, list: &[&Gamepad]) -> Root<GamepadList> {
+        reflect_dom_object(box GamepadList::new_inherited(list),
                            global,
                            GamepadListBinding::Wrap)
     }
 
-    pub fn add(&self, gamepad: &Gamepad) {
+    fn add(&self, gamepad: &Gamepad) {
         self.list.borrow_mut().push(JS::from_ref(&*gamepad));
+        // Ensure that the gamepad has the correct index
+        gamepad.update_index(self.list.borrow().len() as i32 - 1);
     }
 
-    pub fn sync(&self, gamepads: &[Root<Gamepad>]) {
+    pub fn add_if_not_exists(&self, gamepads: &[Root<Gamepad>]) {
         for gamepad in gamepads {
-            if self.list.borrow().iter().find(|g| g.gamepad_id() == gamepad.gamepad_id()).is_none() {
+            if self.list.borrow().iter().any(|g| g.gamepad_id() == gamepad.gamepad_id()) {
                 self.add(gamepad);
             }
         }
@@ -48,12 +48,12 @@ impl GamepadList {
 }
 
 impl GamepadListMethods for GamepadList {
-    // https://www.w3.org/TR/gamepad/#dom-navigator-getgamepads
+    // https://w3c.github.io/gamepad/#dom-navigator-getgamepads
     fn Length(&self) -> u32 {
         self.list.borrow().len() as u32
     }
 
-    // https://www.w3.org/TR/gamepad/#dom-navigator-getgamepads
+    // https://w3c.github.io/gamepad/#dom-navigator-getgamepads
     fn Item(&self, index: u32) -> Option<Root<Gamepad>> {
         if (index as usize) < self.list.borrow().len() {
             Some(Root::from_ref(&*(self.list.borrow()[index as usize])))
@@ -62,7 +62,7 @@ impl GamepadListMethods for GamepadList {
         }
     }
 
-    // https://www.w3.org/TR/gamepad/#dom-navigator-getgamepads
+    // https://w3c.github.io/gamepad/#dom-navigator-getgamepads
     fn IndexedGetter(&self, index: u32) -> Option<Root<Gamepad>> {
         self.Item(index)
     }

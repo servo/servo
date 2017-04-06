@@ -101,7 +101,6 @@ use script_traits::{LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg, Scri
 use script_traits::{LogEntry, ServiceWorkerMsg, webdriver_msg};
 use script_traits::{MozBrowserErrorType, MozBrowserEvent, WebDriverCommandMsg, WindowSizeData};
 use script_traits::{SWManagerMsg, ScopeThings, WindowSizeType};
-use script_traits::WebVREventMsg;
 use serde::{Deserialize, Serialize};
 use servo_config::opts;
 use servo_config::prefs::PREFS;
@@ -123,7 +122,7 @@ use style_traits::cursor::Cursor;
 use style_traits::viewport::ViewportConstraints;
 use timer_scheduler::TimerScheduler;
 use webrender_traits;
-use webvr_traits::WebVRMsg;
+use webvr_traits::{WebVREvent, WebVRMsg};
 
 /// The `Constellation` itself. In the servo browser, there is one
 /// constellation, which maintains all of the browser global data.
@@ -905,7 +904,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 assert!(self.webvr_thread.is_none());
                 self.webvr_thread = Some(webvr_thread)
             }
-            FromCompositorMsg::WebVREvent(pipeline_ids, events) => {
+            FromCompositorMsg::WebVREvents(pipeline_ids, events) => {
                 debug!("constellation got {:?} WebVR events", events.len());
                 self.handle_webvr_events(pipeline_ids, events);
             }
@@ -1334,12 +1333,12 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
-    fn handle_webvr_events(&mut self, ids: Vec<PipelineId>, events: Vec<WebVREventMsg>) {
+    fn handle_webvr_events(&mut self, ids: Vec<PipelineId>, events: Vec<WebVREvent>) {
         for id in ids {
             match self.pipelines.get_mut(&id) {
                 Some(ref pipeline) => {
                     // Notify script thread
-                    let _ = pipeline.event_loop.send(ConstellationControlMsg::WebVREvent(id, events.clone()));
+                    let _ = pipeline.event_loop.send(ConstellationControlMsg::WebVREvents(id, events.clone()));
                 },
                 None => warn!("constellation got webvr event for dead pipeline")
             }

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// https://www.w3.org/TR/gamepad/#gamepadevent-interface
+// https://w3c.github.io/gamepad/#gamepadevent-interface
 [Pref="dom.gamepad.enabled", Constructor(DOMString type, GamepadEventInit eventInitDict)]
 interface GamepadEvent : Event {
   readonly attribute Gamepad gamepad;

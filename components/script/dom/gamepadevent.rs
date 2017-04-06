@@ -60,12 +60,13 @@ impl GamepadEvent {
         };
 
         GamepadEvent::new(&global,
-                          Atom::from(DOMString::from(name)),
+                          name.into(),
                           false,
                           false,
                           &gamepad)
     }
 
+    // https://w3c.github.io/gamepad/#gamepadevent-interface
     pub fn Constructor(window: &Window,
                        type_: DOMString,
                        init: &GamepadEventBinding::GamepadEventInit)
@@ -79,7 +80,7 @@ impl GamepadEvent {
 }
 
 impl GamepadEventMethods for GamepadEvent {
-    // https://www.w3.org/TR/gamepad/#dom-gamepadevent
+    // https://w3c.github.io/gamepad/#gamepadevent-interface
     fn Gamepad(&self) -> Root<Gamepad> {
         Root::from_ref(&*self.gamepad)
     }

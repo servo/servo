@@ -5,7 +5,7 @@
 use ipc_channel::ipc;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use msg::constellation_msg::PipelineId;
-use script_traits::{ConstellationMsg, WebVREventMsg};
+use script_traits::ConstellationMsg;
 use servo_config::prefs::PREFS;
 use std::{thread, time};
 use std::collections::{HashMap, HashSet};
@@ -42,7 +42,7 @@ pub struct WebVRThread {
     constellation_chan: Sender<ConstellationMsg>,
     vr_compositor_chan: WebVRCompositorSender,
     polling_events: bool,
-    presenting: HashMap<u64, PipelineId>
+    presenting: HashMap<u32, PipelineId>
 }
 
 impl WebVRThread {
@@ -137,7 +137,7 @@ impl WebVRThread {
 
     fn handle_framedata(&mut self,
                         pipeline: PipelineId,
-                        display_id: u64,
+                        display_id: u32,
                         near: f64,
                         far: f64,
                         sender: IpcSender<WebVRResult<VRFrameData>>) {
@@ -151,7 +151,7 @@ impl WebVRThread {
 
     fn handle_reset_pose(&mut self,
                          pipeline: PipelineId,
-                         display_id: u64,
+                         display_id: u32,
                          sender: IpcSender<WebVRResult<VRDisplayData>>) {
         match self.access_check(pipeline, display_id) {
             Ok(display) => {
@@ -169,7 +169,7 @@ impl WebVRThread {
     // while the user is having a VR experience in the current tab.
     // These security rules also avoid multithreading race conditions between WebVRThread and
     // Webrender thread. See WebVRCompositorHandler implementation notes for more details about this.
-    fn access_check(&self, pipeline: PipelineId, display_id: u64) -> Result<&VRDisplayPtr, &'static str> {
+    fn access_check(&self, pipeline: PipelineId, display_id: u32) -> Result<&VRDisplayPtr, &'static str> {
         if *self.presenting.get(&display_id).unwrap_or(&pipeline) != pipeline {
             return Err("No access granted to this Display because it's presenting on other JavaScript Tab");
         }
@@ -178,7 +178,7 @@ impl WebVRThread {
 
     fn handle_request_present(&mut self,
                               pipeline: PipelineId,
-                              display_id: u64,
+                              display_id: u32,
                               sender: IpcSender<WebVRResult<()>>) {
         match self.access_check(pipeline, display_id).map(|d| d.clone()) {
             Ok(display) => {
@@ -195,7 +195,7 @@ impl WebVRThread {
 
     fn handle_exit_present(&mut self,
                          pipeline: PipelineId,
-                         display_id: u64,
+                         display_id: u32,
                          sender: Option<IpcSender<WebVRResult<()>>>) {
         match self.access_check(pipeline, display_id).map(|d| d.clone()) {
             Ok(display) => {
@@ -214,13 +214,13 @@ impl WebVRThread {
         }
     }
 
-    fn handle_create_compositor(&mut self, display_id: u64) {
+    fn handle_create_compositor(&mut self, display_id: u32) {
         let compositor = self.service.get_display(display_id).map(|d| WebVRCompositor(d.as_ptr()));
         self.vr_compositor_chan.send(compositor).unwrap();
     }
 
     fn handle_get_gamepads(&mut self,
-                           synced_ids: Vec<u64>,
+                           synced_ids: Vec<u32>,
                            sender: IpcSender<WebVRResult<Vec<(Option<VRGamepadData>, VRGamepadState)>>>) {
         let gamepads = self.service.get_gamepads();
         let data = gamepads.iter().map(|g| {
@@ -250,16 +250,9 @@ impl WebVRThread {
         sender.send(self.polling_events).unwrap();
     }
 
-    fn notify_events(&self, mut events: Vec<VREvent>) {
+    fn notify_events(&self, events: Vec<VREvent>) {
         let pipeline_ids: Vec<PipelineId> = self.contexts.iter().map(|c| *c).collect();
-        let events = events.drain(0..).map(|ev| {
-            match ev {
-                VREvent::Display(ev) => WebVREventMsg::DisplayEvent(ev),
-                VREvent::Gamepad(ev) => WebVREventMsg::GamepadEvent(ev),
-            }
-        }).collect();
-
-        self.constellation_chan.send(ConstellationMsg::WebVREvent(pipeline_ids.clone(), events)).unwrap();
+        self.constellation_chan.send(ConstellationMsg::WebVREvents(pipeline_ids.clone(), events)).unwrap();
     }
 
     #[inline]
@@ -382,7 +375,7 @@ impl WebVRCompositorHandler {
             None => return,
         };
 
-        sender.send(WebVRMsg::CreateCompositor(display_id)).unwrap();
+        sender.send(WebVRMsg::CreateCompositor(display_id as u32)).unwrap();
         let display = self.webvr_thread_receiver.recv().unwrap();
 
         match display {

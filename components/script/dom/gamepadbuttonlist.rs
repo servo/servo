@@ -27,23 +27,16 @@ impl GamepadButtonList {
         }
     }
 
-    #[allow(unrooted_must_root)]
-    pub fn new(global: &GlobalScope, list: Vec<Root<GamepadButton>>) -> Root<GamepadButtonList> {
-        reflect_dom_object(box GamepadButtonList::new_inherited(list.iter().map(|r| JS::from_ref(&**r)).collect()),
+    pub fn new_from_vr(global: &GlobalScope, buttons: &[WebVRGamepadButton]) -> Root<GamepadButtonList> {
+        let list: Vec<Root<GamepadButton>> = buttons.iter()
+                                                    .map(|btn| GamepadButton::new(&global, btn.pressed, btn.touched))
+                                                    .collect();
+        reflect_dom_object(box GamepadButtonList::new_inherited(list.iter().map(|g| JS::from_ref(&**g)).collect()),
                            global,
                            GamepadButtonListBinding::Wrap)
     }
 
-    pub fn new_from_vr(global: &GlobalScope, buttons: &[WebVRGamepadButton]) -> Root<GamepadButtonList> {
-        let mut list = Vec::new();
-        for btn in buttons {
-            list.push(GamepadButton::new(&global, btn.pressed, btn.touched));
-        }
-
-        GamepadButtonList::new(&global, list)
-    }
-
-    pub fn sync_vr(&self, vr_buttons: &[WebVRGamepadButton]) {
+    pub fn sync_from_vr(&self, vr_buttons: &[WebVRGamepadButton]) {
         let mut index = 0;
         for btn in vr_buttons {
             self.list.get(index).as_ref().unwrap().update(btn.pressed, btn.touched);
@@ -53,21 +46,17 @@ impl GamepadButtonList {
 }
 
 impl GamepadButtonListMethods for GamepadButtonList {
-    // https://www.w3.org/TR/gamepad/#dom-gamepad-buttons
+    // https://w3c.github.io/gamepad/#dom-gamepad-buttons
     fn Length(&self) -> u32 {
         self.list.len() as u32
     }
 
-    // https://www.w3.org/TR/gamepad/#dom-gamepad-buttons
+    // https://w3c.github.io/gamepad/#dom-gamepad-buttons
     fn Item(&self, index: u32) -> Option<Root<GamepadButton>> {
-        if (index as usize) < self.list.len() {
-            Some(Root::from_ref(&*(self.list[index as usize])))
-        } else {
-            None
-        }
+        self.list.get(index as usize).map(|button| Root::from_ref(&**button))
     }
 
-    // https://www.w3.org/TR/gamepad/#dom-gamepad-buttons
+    // https://w3c.github.io/gamepad/#dom-gamepad-buttons
     fn IndexedGetter(&self, index: u32) -> Option<Root<GamepadButton>> {
         self.Item(index)
     }

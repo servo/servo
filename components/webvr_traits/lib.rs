@@ -16,6 +16,7 @@ pub use webvr::VRDisplayData as WebVRDisplayData;
 pub use webvr::VRDisplayCapabilities as WebVRDisplayCapabilities;
 pub use webvr::VRDisplayEvent as WebVRDisplayEvent;
 pub use webvr::VRDisplayEventReason as WebVRDisplayEventReason;
+pub use webvr::VREvent as WebVREvent;
 pub use webvr::VREye as WebVREye;
 pub use webvr::VREyeParameters as WebVREyeParameters;
 pub use webvr::VRFieldOfView as WebVRFieldOfView;
