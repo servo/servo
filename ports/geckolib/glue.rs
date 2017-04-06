@@ -39,7 +39,9 @@ use style::gecko_bindings::bindings::{RawServoStyleSheetStrong, ServoComputedVal
 use style::gecko_bindings::bindings::{ServoCssRulesBorrowed, ServoCssRulesStrong};
 use style::gecko_bindings::bindings::{nsACString, nsAString};
 use style::gecko_bindings::bindings::Gecko_AnimationAppendKeyframe;
+use style::gecko_bindings::bindings::RawGeckoAnimationPropertySegmentBorrowed;
 use style::gecko_bindings::bindings::RawGeckoComputedKeyframeValuesListBorrowedMut;
+use style::gecko_bindings::bindings::RawGeckoComputedTimingBorrowed;
 use style::gecko_bindings::bindings::RawGeckoElementBorrowed;
 use style::gecko_bindings::bindings::RawGeckoFontFaceRuleListBorrowedMut;
 use style::gecko_bindings::bindings::RawServoAnimationValueBorrowed;
@@ -253,6 +255,82 @@ pub extern "C" fn Servo_AnimationValueMap_Push(value_map: RawServoAnimationValue
     value_map.write().insert(property.into(), value.clone());
 }
 
+#[no_mangle]
+pub extern "C" fn Servo_AnimationCompose(raw_value_map: RawServoAnimationValueMapBorrowed,
+                                         base_values: *mut ::std::os::raw::c_void,
+                                         css_property: nsCSSPropertyID,
+                                         segment: RawGeckoAnimationPropertySegmentBorrowed,
+                                         computed_timing: RawGeckoComputedTimingBorrowed)
+{
+    use style::gecko_bindings::bindings::Gecko_AnimationGetBaseStyle;
+    use style::gecko_bindings::bindings::Gecko_GetPositionInSegment;
+    use style::gecko_bindings::bindings::Gecko_GetProgressFromComputedTiming;
+    use style::properties::animated_properties::AnimationValueMap;
+
+    let property: TransitionProperty = css_property.into();
+    let value_map = RwLock::<AnimationValueMap>::as_arc(&raw_value_map);
+
+    // If either of the segment endpoints are null, get the underlying value to
+    // use from the current value in the values map (set by a lower-priority
+    // effect), or, if there is no current value, look up the cached base value
+    // for this property.
+    let underlying_value = if segment.mFromValue.mServo.mRawPtr.is_null() ||
+                              segment.mToValue.mServo.mRawPtr.is_null() {
+        let previous_composed_value = value_map.read().get(&property).cloned();
+        previous_composed_value.or_else(|| {
+            let raw_base_style = unsafe { Gecko_AnimationGetBaseStyle(base_values, css_property) };
+            AnimationValue::arc_from_borrowed(&raw_base_style).map(|v| v.as_ref()).cloned()
+        })
+    } else {
+        None
+    };
+
+    if (segment.mFromValue.mServo.mRawPtr.is_null() ||
+        segment.mToValue.mServo.mRawPtr.is_null()) &&
+        underlying_value.is_none() {
+        warn!("Underlying value should be valid in the case where either 'from' value or 'to' value is null");
+        return;
+    }
+
+    // Declare for making derefenced raw pointer alive outside the if block.
+    let raw_from_value;
+    let from_value = if !segment.mFromValue.mServo.mRawPtr.is_null() {
+        raw_from_value = unsafe { &*segment.mFromValue.mServo.mRawPtr };
+        AnimationValue::as_arc(&raw_from_value).as_ref()
+    } else {
+        underlying_value.as_ref().unwrap()
+    };
+
+    let raw_to_value;
+    let to_value = if !segment.mToValue.mServo.mRawPtr.is_null() {
+        raw_to_value = unsafe { &*segment.mToValue.mServo.mRawPtr };
+        AnimationValue::as_arc(&raw_to_value).as_ref()
+    } else {
+        underlying_value.as_ref().unwrap()
+    };
+
+    let progress = unsafe { Gecko_GetProgressFromComputedTiming(computed_timing) };
+    if segment.mToKey == segment.mFromKey {
+        if progress < 0. {
+            value_map.write().insert(property, from_value.clone());
+        } else {
+            value_map.write().insert(property, to_value.clone());
+        }
+        return;
+    }
+
+    let position = unsafe {
+        Gecko_GetPositionInSegment(segment, progress, computed_timing.mBeforeFlag)
+    };
+    if let Ok(value) = from_value.interpolate(to_value, position) {
+        value_map.write().insert(property, value);
+    } else if progress < 0.5 {
+        value_map.write().insert(property, from_value.clone());
+    } else {
+        value_map.write().insert(property, to_value.clone());
+    }
+}
+
 macro_rules! get_property_id_from_nscsspropertyid {
     ($property_id: ident, $ret: expr) => {{
         match PropertyId::from_nscsspropertyid($property_id) {
@@ -308,6 +386,45 @@ pub extern "C" fn Servo_AnimationValue_DeepEqual(this: RawServoAnimationValueBor
     let this_value = AnimationValue::as_arc(&this);
     let other_value = AnimationValue::as_arc(&other);
     this_value == other_value
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_StyleSet_GetBaseComputedValuesForElement(raw_data: RawServoStyleSetBorrowed,
+                                                                 element: RawGeckoElementBorrowed,
+                                                                 pseudo_tag: *mut nsIAtom)
+                                                                 -> ServoComputedValuesStrong
+{
+    use style::matching::MatchMethods;
+
+    let doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow();
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
+    let shared_context = &create_shared_context(&guard, &doc_data, false);
+
+    let element = GeckoElement(element);
+    let element_data = element.borrow_data().unwrap();
+    let styles = element_data.styles();
+
+    let pseudo = if pseudo_tag.is_null() {
+        None
+    } else {
+        let atom = Atom::from(pseudo_tag);
+        Some(PseudoElement::from_atom_unchecked(atom, /* anon_box = */ false))
+    };
+    let pseudos = &styles.pseudos;
+    let pseudo_style = pseudo.as_ref().map(|p| (p, pseudos.get(p).unwrap()));
+
+    element.get_base_style(shared_context, &styles.primary, &pseudo_style)
+           .into_strong()
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_ComputedValues_ExtractAnimationValue(computed_values: ServoComputedValuesBorrowed,
+                                                             property_id: nsCSSPropertyID)
+                                                             -> RawServoAnimationValueStrong
+{
+    let computed_values = ComputedValues::as_arc(&computed_values);
+    Arc::new(AnimationValue::from_computed_values(&property_id.into(), computed_values)).into_strong()
 }
 
 #[no_mangle]
