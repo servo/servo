@@ -45,31 +45,33 @@
         }
     }
     /// normal | <number> | <length> | <percentage>
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
         use cssparser::Token;
         use std::ascii::AsciiExt;
-        // We try to parse as a Number first because, for 'line-height', we want "0" to be
-        // parsed as a plain Number rather than a Length (0px); this matches the behaviour
-        // of all major browsers
-        input.try(specified::Number::parse_non_negative)
-            .map(SpecifiedValue::Number)
-            .or_else(|()| {
-                input.try(specified::LengthOrPercentage::parse_non_negative)
-                .map(SpecifiedValue::LengthOrPercentage)
-                .or_else(|()| {
-                    match try!(input.next()) {
-                        Token::Ident(ref value) if value.eq_ignore_ascii_case("normal") => {
-                            Ok(SpecifiedValue::Normal)
-                        }
-                        % if product == "gecko":
-                        Token::Ident(ref value) if value.eq_ignore_ascii_case("-moz-block-height") => {
-                            Ok(SpecifiedValue::MozBlockHeight)
-                        }
-                        % endif
-                        _ => Err(()),
-                    }
-                })
-            })
+
+        // We try to parse as a Number first because, for 'line-height', we want
+        // "0" to be parsed as a plain Number rather than a Length (0px); this
+        // matches the behaviour of all major browsers
+        if let Ok(number) = input.try(specified::Number::parse_non_negative) {
+            return Ok(SpecifiedValue::Number(number))
+        }
+
+        if let Ok(lop) = input.try(specified::LengthOrPercentage::parse_non_negative) {
+            return Ok(SpecifiedValue::LengthOrPercentage(lop))
+        }
+
+
+        match try!(input.next()) {
+            Token::Ident(ref value) if value.eq_ignore_ascii_case("normal") => {
+                Ok(SpecifiedValue::Normal)
+            }
+            % if product == "gecko":
+            Token::Ident(ref value) if value.eq_ignore_ascii_case("-moz-block-height") => {
+                Ok(SpecifiedValue::MozBlockHeight)
+            }
+            % endif
+            _ => Err(()),
+        }
     }
     pub mod computed_value {
         use app_units::Au;

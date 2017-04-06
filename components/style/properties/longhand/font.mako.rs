@@ -659,15 +659,17 @@ ${helpers.single_keyword("font-variant-caps",
     /// <length> | <percentage> | <absolute-size> | <relative-size>
     pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
         if let Ok(lop) = input.try(specified::LengthOrPercentage::parse_non_negative) {
-            Ok(SpecifiedValue::Length(lop))
-        } else if let Ok(kw) = input.try(KeywordSize::parse) {
-            Ok(SpecifiedValue::Keyword(kw))
-        } else {
-            match_ignore_ascii_case! {&*input.expect_ident()?,
-                "smaller" => Ok(SpecifiedValue::Smaller),
-                "larger" => Ok(SpecifiedValue::Larger),
-                _ => Err(())
-            }
+            return Ok(SpecifiedValue::Length(lop))
+        }
+
+        if let Ok(kw) = input.try(KeywordSize::parse) {
+            return Ok(SpecifiedValue::Keyword(kw))
+        }
+
+        match_ignore_ascii_case! {&*input.expect_ident()?,
+            "smaller" => Ok(SpecifiedValue::Smaller),
+            "larger" => Ok(SpecifiedValue::Larger),
+            _ => Err(())
         }
     }
 </%helpers:longhand>
