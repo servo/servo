@@ -42,6 +42,8 @@ pub trait LayoutRPC {
     fn pending_images(&self) -> Vec<PendingImage>;
     /// Requests the list of nodes from the given point.
     fn nodes_from_point_response(&self) -> Vec<UntrustedNodeAddress>;
+    /// Requests the list of nodes that have just started CSS transitions in the last reflow.
+    fn newly_transitioning_nodes(&self) -> Vec<UntrustedNodeAddress>;
 
     fn text_index(&self) -> TextIndexResponse;
 }

@@ -472,6 +472,7 @@ impl LayoutThread {
                     text_index_response: TextIndexResponse(None),
                     pending_images: vec![],
                     nodes_from_point_response: vec![],
+                    newly_transitioning_nodes: vec![],
                 })),
             error_reporter: CSSErrorReporter {
                 pipelineid: id,
@@ -1406,11 +1407,14 @@ impl LayoutThread {
                                                document: Option<&ServoLayoutDocument>,
                                                rw_data: &mut LayoutThreadData,
                                                context: &mut LayoutContext) {
+        assert!(rw_data.newly_transitioning_nodes.is_empty());
+
         // Kick off animations if any were triggered, expire completed ones.
         animation::update_animation_state(&self.constellation_chan,
                                           &self.script_chan,
                                           &mut *self.running_animations.write(),
                                           &mut *self.expired_animations.write(),
+                                          &mut rw_data.newly_transitioning_nodes,
                                           &self.new_animations_receiver,
                                           self.id,
                                           &self.timer);

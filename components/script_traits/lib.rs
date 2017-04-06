@@ -69,7 +69,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender};
-use style_traits::{CSSPixel, UnsafeNode};
+use style_traits::CSSPixel;
 use webdriver_msg::{LoadStatus, WebDriverScriptCommand};
 use webvr_traits::{WebVRDisplayEvent, WebVRMsg};
 
@@ -257,7 +257,7 @@ pub enum ConstellationControlMsg {
     /// Notifies script thread that all animations are done
     TickAllAnimations(PipelineId),
     /// Notifies the script thread of a transition end
-    TransitionEnd(UnsafeNode, String, f64),
+    TransitionEnd(UntrustedNodeAddress, String, f64),
     /// Notifies the script thread that a new Web font has been loaded, and thus the page should be
     /// reflowed.
     WebFontLoaded(PipelineId),

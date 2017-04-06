@@ -19757,6 +19757,12 @@
      {}
     ]
    ],
+   "mozilla/transitionend_safety.html": [
+    [
+     "/_mozilla/mozilla/transitionend_safety.html",
+     {}
+    ]
+   ],
    "mozilla/union.html": [
     [
      "/_mozilla/mozilla/union.html",
@@ -31320,6 +31326,10 @@
   ],
   "mozilla/track_line.html": [
    "38d8991444d05c40f1d0168bfce8472e378b603c",
+   "testharness"
+  ],
+  "mozilla/transitionend_safety.html": [
+   "778e43b049aa421bad7f86eb03d0955576a84ce0",
    "testharness"
   ],
   "mozilla/union.html": [

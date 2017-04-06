@@ -97,6 +97,9 @@ pub struct LayoutThreadData {
 
     /// A queued response for the list of nodes at a given point.
     pub nodes_from_point_response: Vec<UntrustedNodeAddress>,
+
+    /// A list of nodes that have just started a CSS transition.
+    pub newly_transitioning_nodes: Vec<UntrustedNodeAddress>,
 }
 
 pub struct LayoutRPCImpl(pub Arc<Mutex<LayoutThreadData>>);
@@ -206,6 +209,12 @@ impl LayoutRPC for LayoutRPCImpl {
         let &LayoutRPCImpl(ref rw_data) = self;
         let mut rw_data = rw_data.lock().unwrap();
         mem::replace(&mut rw_data.pending_images, vec![])
+    }
+
+    fn newly_transitioning_nodes(&self) -> Vec<UntrustedNodeAddress> {
+        let &LayoutRPCImpl(ref rw_data) = self;
+        let mut rw_data = rw_data.lock().unwrap();
+        mem::replace(&mut rw_data.newly_transitioning_nodes, vec![])
     }
 }
 
