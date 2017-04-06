@@ -395,9 +395,8 @@ fn resolve_style_internal<E, F>(context: &mut StyleContext<E>,
         }
 
         // Compute our style.
-        let match_results = element.match_element(context, &mut data);
-        element.cascade_element(context, &mut data,
-                                match_results.primary_is_shareable());
+        element.match_element(context, &mut data);
+        element.cascade_element(context, &mut data);
 
         // Conservatively mark us as having dirty descendants, since there might
         // be other unstyled siblings we miss when walking straight up the parent
@@ -625,13 +624,10 @@ fn compute_style<E, D>(_traversal: &D,
     };
 
     // Cascade properties and compute values.
-    let shareable = match_results.primary_is_shareable();
-    unsafe {
-        element.cascade_element(context, &mut data, shareable);
-    }
+    element.cascade_element(context, &mut data);
 
     // If the style is shareable, add it to the LRU cache.
-    if shareable {
+    if match_results.primary_is_shareable() {
         context.thread_local
                .style_sharing_candidate_cache
                .insert_if_possible(&element,

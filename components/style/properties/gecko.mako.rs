@@ -77,7 +77,6 @@ pub struct ComputedValues {
     % endfor
 
     custom_properties: Option<Arc<ComputedValuesMap>>,
-    shareable: bool,
     pub writing_mode: WritingMode,
     pub root_font_size: Au,
     pub font_size_keyword: Option<longhands::font_size::KeywordSize>,
@@ -87,7 +86,6 @@ impl ComputedValues {
     pub fn inherit_from(parent: &Self, default: &Self) -> Arc<Self> {
         Arc::new(ComputedValues {
             custom_properties: parent.custom_properties.clone(),
-            shareable: parent.shareable,
             writing_mode: parent.writing_mode,
             root_font_size: parent.root_font_size,
             font_size_keyword: parent.font_size_keyword,
@@ -102,7 +100,6 @@ impl ComputedValues {
     }
 
     pub fn new(custom_properties: Option<Arc<ComputedValuesMap>>,
-           shareable: bool,
            writing_mode: WritingMode,
            root_font_size: Au,
            font_size_keyword: Option<longhands::font_size::KeywordSize>,
@@ -112,7 +109,6 @@ impl ComputedValues {
     ) -> Self {
         ComputedValues {
             custom_properties: custom_properties,
-            shareable: shareable,
             writing_mode: writing_mode,
             root_font_size: root_font_size,
             font_size_keyword: font_size_keyword,
@@ -125,7 +121,6 @@ impl ComputedValues {
     pub fn default_values(pres_context: RawGeckoPresContextBorrowed) -> Arc<Self> {
         Arc::new(ComputedValues {
             custom_properties: None,
-            shareable: true,
             writing_mode: WritingMode::empty(), // FIXME(bz): This seems dubious
             root_font_size: longhands::font_size::get_initial_value(), // FIXME(bz): Also seems dubious?
             font_size_keyword: Some(Default::default()),

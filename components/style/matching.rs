@@ -15,7 +15,7 @@ use cascade_info::CascadeInfo;
 use context::{SequentialTask, SharedStyleContext, StyleContext};
 use data::{ComputedStyle, ElementData, ElementStyles, RestyleData};
 use dom::{AnimationRules, SendElement, TElement, TNode};
-use properties::{CascadeFlags, ComputedValues, SHAREABLE, SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP, cascade};
+use properties::{CascadeFlags, ComputedValues, SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP, cascade};
 use properties::longhands::display::computed_value as display;
 use restyle_hints::{RESTYLE_STYLE_ATTRIBUTE, RESTYLE_CSS_ANIMATIONS, RestyleHint};
 use rule_tree::{CascadeLevel, RuleTree, StrongRuleNode};
@@ -430,15 +430,6 @@ pub enum StyleSharingResult {
     StyleWasShared(usize),
 }
 
-/// Callers need to pass several boolean flags to cascade_primary_or_pseudo.
-/// We encapsulate them in this struct to avoid mixing them up.
-///
-/// FIXME(pcwalton): Unify with `CascadeFlags`, perhaps?
-struct CascadeBooleans {
-    shareable: bool,
-    animate: bool,
-}
-
 trait PrivateMatchMethods: TElement {
     /// Returns the closest parent element that doesn't have a display: contents
     /// style (and thus generates a box).
@@ -543,13 +534,9 @@ trait PrivateMatchMethods: TElement {
     fn cascade_internal(&self,
                         context: &StyleContext<Self>,
                         primary_style: &ComputedStyle,
-                        pseudo_style: &Option<(&PseudoElement, &mut ComputedStyle)>,
-                        booleans: &CascadeBooleans)
+                        pseudo_style: &Option<(&PseudoElement, &mut ComputedStyle)>)
                         -> Arc<ComputedValues> {
         let mut cascade_flags = CascadeFlags::empty();
-        if booleans.shareable {
-            cascade_flags.insert(SHAREABLE)
-        }
         if self.skip_root_and_item_based_display_fixup() {
             cascade_flags.insert(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP)
         }
@@ -566,7 +553,7 @@ trait PrivateMatchMethods: TElement {
                                      data: &mut ElementData,
                                      pseudo: Option<&PseudoElement>,
                                      possibly_expired_animations: &mut Vec<PropertyAnimation>,
-                                     booleans: CascadeBooleans) {
+                                     animate: bool) {
         // Collect some values.
         let (mut styles, restyle) = data.styles_and_restyle_mut();
         let mut primary_style = &mut styles.primary;
@@ -577,10 +564,10 @@ trait PrivateMatchMethods: TElement {
 
         // Compute the new values.
         let mut new_values = self.cascade_internal(context, primary_style,
-                                                   &pseudo_style, &booleans);
+                                                   &pseudo_style);
 
         // Handle animations.
-        if booleans.animate {
+        if animate {
             self.process_animations(context,
                                     &mut old_values,
                                     &mut new_values,
@@ -1177,18 +1164,14 @@ pub trait MatchMethods : TElement {
     /// starting any new transitions or animations.
     fn cascade_element(&self,
                        context: &mut StyleContext<Self>,
-                       mut data: &mut AtomicRefMut<ElementData>,
-                       primary_is_shareable: bool)
+                       mut data: &mut AtomicRefMut<ElementData>)
     {
         let mut possibly_expired_animations = vec![];
 
         // Cascade the primary style.
         self.cascade_primary_or_pseudo(context, data, None,
                                        &mut possibly_expired_animations,
-                                       CascadeBooleans {
-                                           shareable: primary_is_shareable,
-                                           animate: true,
-                                       });
+                                       /* animate = */ true);
 
         // Check whether the primary style is display:none.
         let display_none = data.styles().primary.values().get_box().clone_display() ==
@@ -1214,10 +1197,7 @@ pub trait MatchMethods : TElement {
             let animate = pseudo.is_before_or_after();
             self.cascade_primary_or_pseudo(context, data, Some(&pseudo),
                                            &mut possibly_expired_animations,
-                                           CascadeBooleans {
-                                               shareable: false,
-                                               animate: animate,
-                                           });
+                                           animate);
         }
     }
 
