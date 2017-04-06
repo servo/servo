@@ -1210,6 +1210,34 @@ pub trait MatchMethods : TElement {
                                            });
         }
     }
+
+    /// Returns computed values without animation and transition rules.
+    fn get_base_style(&self,
+                      shared_context: &SharedStyleContext,
+                      primary_style: &ComputedStyle,
+                      pseudo_style: &Option<(&PseudoElement, &ComputedStyle)>)
+                      -> Arc<ComputedValues> {
+        let style = &pseudo_style.as_ref().map_or(primary_style, |p| &*p.1);
+        let rule_node = &style.rules;
+        let without_animation_rules =
+            shared_context.stylist.rule_tree.remove_animation_and_transition_rules(rule_node);
+        if without_animation_rules == *rule_node {
+            // Note that unwrapping here is fine, because the style is
+            // only incomplete during the styling process.
+            return style.values.as_ref().unwrap().clone();
+        }
+
+        let mut cascade_flags = CascadeFlags::empty();
+        if self.skip_root_and_item_based_display_fixup() {
+            cascade_flags.insert(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP)
+        }
+        self.cascade_with_rules(shared_context,
+                                &without_animation_rules,
+                                primary_style,
+                                cascade_flags,
+                                pseudo_style.is_some())
+    }
+
 }
 
 impl<E: TElement> MatchMethods for E {}

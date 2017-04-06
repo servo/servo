@@ -311,6 +311,36 @@ pub extern "C" fn Servo_AnimationValue_DeepEqual(this: RawServoAnimationValueBor
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_StyleSet_GetBaseComputedValuesForElement(raw_data: RawServoStyleSetBorrowed,
+                                                                 element: RawGeckoElementBorrowed,
+                                                                 pseudo_tag: *mut nsIAtom)
+                                                                 -> ServoComputedValuesStrong
+{
+    use style::matching::MatchMethods;
+
+    let doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow();
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
+    let shared_context = &create_shared_context(&guard, &doc_data, false);
+
+    let element = GeckoElement(element);
+    let element_data = element.borrow_data().unwrap();
+    let styles = element_data.styles();
+
+    let pseudo = if pseudo_tag.is_null() {
+        None
+    } else {
+        let atom = Atom::from(pseudo_tag);
+        Some(PseudoElement::from_atom_unchecked(atom, /* anon_box = */ false))
+    };
+    let pseudos = &styles.pseudos;
+    let pseudo_style = pseudo.as_ref().map(|p| (p, pseudos.get(p).unwrap()));
+
+    element.get_base_style(shared_context, &styles.primary, &pseudo_style)
+           .into_strong()
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_StyleWorkerThreadCount() -> u32 {
     GLOBAL_STYLE_DATA.num_threads as u32
 }
