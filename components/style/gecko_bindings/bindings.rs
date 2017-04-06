@@ -4,6 +4,8 @@ pub use nsstring::{nsACString, nsAString, nsString};
 type nsACString_internal = nsACString;
 type nsAString_internal = nsAString;
 use gecko_bindings::structs::mozilla::css::URLValue;
+use gecko_bindings::structs::RawGeckoAnimationPropertySegment;
+use gecko_bindings::structs::RawGeckoComputedTiming;
 use gecko_bindings::structs::RawGeckoDocument;
 use gecko_bindings::structs::RawGeckoElement;
 use gecko_bindings::structs::RawGeckoKeyframeList;
@@ -21,6 +23,7 @@ use gecko_bindings::structs::RawGeckoURLExtraData;
 use gecko_bindings::structs::RefPtr;
 use gecko_bindings::structs::CSSPseudoClassType;
 use gecko_bindings::structs::TraversalRootBehavior;
+use gecko_bindings::structs::ComputedTimingFunction_BeforeFlag;
 use gecko_bindings::structs::FontFamilyList;
 use gecko_bindings::structs::FontFamilyType;
 use gecko_bindings::structs::Keyframe;
@@ -269,10 +272,18 @@ pub type nsTimingFunctionBorrowed<'a> = &'a nsTimingFunction;
 pub type nsTimingFunctionBorrowedOrNull<'a> = Option<&'a nsTimingFunction>;
 pub type nsTimingFunctionBorrowedMut<'a> = &'a mut nsTimingFunction;
 pub type nsTimingFunctionBorrowedMutOrNull<'a> = Option<&'a mut nsTimingFunction>;
+pub type RawGeckoAnimationPropertySegmentBorrowed<'a> = &'a RawGeckoAnimationPropertySegment;
+pub type RawGeckoAnimationPropertySegmentBorrowedOrNull<'a> = Option<&'a RawGeckoAnimationPropertySegment>;
+pub type RawGeckoAnimationPropertySegmentBorrowedMut<'a> = &'a mut RawGeckoAnimationPropertySegment;
+pub type RawGeckoAnimationPropertySegmentBorrowedMutOrNull<'a> = Option<&'a mut RawGeckoAnimationPropertySegment>;
 pub type RawGeckoAnimationValueListBorrowed<'a> = &'a RawGeckoAnimationValueList;
 pub type RawGeckoAnimationValueListBorrowedOrNull<'a> = Option<&'a RawGeckoAnimationValueList>;
 pub type RawGeckoAnimationValueListBorrowedMut<'a> = &'a mut RawGeckoAnimationValueList;
 pub type RawGeckoAnimationValueListBorrowedMutOrNull<'a> = Option<&'a mut RawGeckoAnimationValueList>;
+pub type RawGeckoComputedTimingBorrowed<'a> = &'a RawGeckoComputedTiming;
+pub type RawGeckoComputedTimingBorrowedOrNull<'a> = Option<&'a RawGeckoComputedTiming>;
+pub type RawGeckoComputedTimingBorrowedMut<'a> = &'a mut RawGeckoComputedTiming;
+pub type RawGeckoComputedTimingBorrowedMutOrNull<'a> = Option<&'a mut RawGeckoComputedTiming>;
 pub type RawGeckoKeyframeListBorrowed<'a> = &'a RawGeckoKeyframeList;
 pub type RawGeckoKeyframeListBorrowedOrNull<'a> = Option<&'a RawGeckoKeyframeList>;
 pub type RawGeckoKeyframeListBorrowedMut<'a> = &'a mut RawGeckoKeyframeList;
@@ -451,16 +462,7 @@ extern "C" {
     pub fn Gecko_ElementState(element: RawGeckoElementBorrowed) -> u64;
 }
 extern "C" {
-    pub fn Gecko_IsLink(element: RawGeckoElementBorrowed) -> bool;
-}
-extern "C" {
     pub fn Gecko_IsTextNode(node: RawGeckoNodeBorrowed) -> bool;
-}
-extern "C" {
-    pub fn Gecko_IsVisitedLink(element: RawGeckoElementBorrowed) -> bool;
-}
-extern "C" {
-    pub fn Gecko_IsUnvisitedLink(element: RawGeckoElementBorrowed) -> bool;
 }
 extern "C" {
     pub fn Gecko_IsRootElement(element: RawGeckoElementBorrowed) -> bool;
@@ -587,7 +589,8 @@ extern "C" {
      -> RawServoDeclarationBlockStrongBorrowedOrNull;
 }
 extern "C" {
-    pub fn Gecko_GetExtraContentStyleDeclarations(element: RawGeckoElementBorrowed)
+    pub fn Gecko_GetExtraContentStyleDeclarations(element:
+                                                      RawGeckoElementBorrowed)
      -> RawServoDeclarationBlockStrongBorrowedOrNull;
 }
 extern "C" {
@@ -623,6 +626,25 @@ extern "C" {
     pub fn Gecko_ElementHasCSSAnimations(aElement: RawGeckoElementBorrowed,
                                          aPseudoTagOrNull: *mut nsIAtom)
      -> bool;
+}
+extern "C" {
+    pub fn Gecko_GetProgressFromComputedTiming(aComputedTiming:
+                                                   RawGeckoComputedTimingBorrowed)
+     -> f64;
+}
+extern "C" {
+    pub fn Gecko_GetPositionInSegment(aSegment:
+                                          RawGeckoAnimationPropertySegmentBorrowed,
+                                      aProgress: f64,
+                                      aBeforeFlag:
+                                          ComputedTimingFunction_BeforeFlag)
+     -> f64;
+}
+extern "C" {
+    pub fn Gecko_AnimationGetBaseStyle(aBaseStyles:
+                                           *mut ::std::os::raw::c_void,
+                                       aProperty: nsCSSPropertyID)
+     -> RawServoAnimationValueBorrowedOrNull;
 }
 extern "C" {
     pub fn Gecko_Atomize(aString: *const ::std::os::raw::c_char, aLength: u32)
@@ -1586,6 +1608,13 @@ extern "C" {
                                             RawServoAnimationValueBorrowed);
 }
 extern "C" {
+    pub fn Servo_ComputedValues_ExtractAnimationValue(computed_values:
+                                                          ServoComputedValuesBorrowed,
+                                                      property:
+                                                          nsCSSPropertyID)
+     -> RawServoAnimationValueStrong;
+}
+extern "C" {
     pub fn Servo_AnimationValues_Interpolate(from:
                                                  RawServoAnimationValueBorrowed,
                                              to:
@@ -1709,6 +1738,16 @@ extern "C" {
                                                          RawServoDeclarationBlockBorrowed,
                                                      property:
                                                          nsCSSPropertyID);
+}
+extern "C" {
+    pub fn Servo_AnimationCompose(animation_values:
+                                      RawServoAnimationValueMapBorrowed,
+                                  base_values: *mut ::std::os::raw::c_void,
+                                  property: nsCSSPropertyID,
+                                  animation_segment:
+                                      RawGeckoAnimationPropertySegmentBorrowed,
+                                  computed_timing:
+                                      RawGeckoComputedTimingBorrowed);
 }
 extern "C" {
     pub fn Servo_DeclarationBlock_PropertyIsSet(declarations:
@@ -1841,8 +1880,7 @@ extern "C" {
 extern "C" {
     pub fn Servo_ResolveStyle(element: RawGeckoElementBorrowed,
                               set: RawServoStyleSetBorrowed,
-                              allow_stale: bool)
-     -> ServoComputedValuesStrong;
+                              allow_stale: bool) -> ServoComputedValuesStrong;
 }
 extern "C" {
     pub fn Servo_ResolvePseudoStyle(element: RawGeckoElementBorrowed,
@@ -1864,6 +1902,15 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_AssertTreeIsClean(root: RawGeckoElementBorrowed);
+}
+extern "C" {
+    pub fn Servo_StyleSet_GetBaseComputedValuesForElement(set:
+                                                              RawServoStyleSetBorrowed,
+                                                          element:
+                                                              RawGeckoElementBorrowed,
+                                                          pseudo_tag:
+                                                              *mut nsIAtom)
+     -> ServoComputedValuesStrong;
 }
 extern "C" {
     pub fn Servo_GetStyleFont(computed_values:
