@@ -6,6 +6,7 @@
 
 use cssparser::{Parser, Token};
 use parser::{Parse, ParserContext};
+use std::ascii::AsciiExt;
 use std::fmt;
 use style_traits::ToCss;
 use values::{CSSFloat, HasViewportPercentage};
@@ -130,23 +131,23 @@ pub enum TrackBreadth<L> {
 /// Parse a single flexible length.
 pub fn parse_flex(input: &mut Parser) -> Result<CSSFloat, ()> {
     match try!(input.next()) {
-        Token::Dimension(ref value, ref unit) if unit.to_lowercase() == "fr" && value.value.is_sign_positive()
+        Token::Dimension(ref value, ref unit) if unit.eq_ignore_ascii_case("fr") && value.value.is_sign_positive()
             => Ok(value.value),
         _ => Err(()),
     }
 }
 
 impl Parse for TrackBreadth<LengthOrPercentage> {
-    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse(_: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         if let Ok(lop) = input.try(LengthOrPercentage::parse_non_negative) {
-            Ok(TrackBreadth::Breadth(lop))
-        } else {
-            if let Ok(f) = input.try(parse_flex) {
-                Ok(TrackBreadth::Flex(f))
-            } else {
-                TrackKeyword::parse(input).map(TrackBreadth::Keyword)
-            }
+            return Ok(TrackBreadth::Breadth(lop))
         }
+
+        if let Ok(f) = input.try(parse_flex) {
+            return Ok(TrackBreadth::Flex(f))
+        }
+
+        TrackKeyword::parse(input).map(TrackBreadth::Keyword)
     }
 }
 
@@ -223,24 +224,28 @@ impl<L> Default for TrackSize<L> {
 impl Parse for TrackSize<LengthOrPercentage> {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         if let Ok(b) = input.try(|i| TrackBreadth::parse(context, i)) {
-            Ok(TrackSize::Breadth(b))
-        } else {
-            if input.try(|i| i.expect_function_matching("minmax")).is_ok() {
-                Ok(try!(input.parse_nested_block(|input| {
-                    let inflexible_breadth = if let Ok(lop) = input.try(LengthOrPercentage::parse_non_negative) {
-                        Ok(TrackBreadth::Breadth(lop))
-                    } else {
-                        TrackKeyword::parse(input).map(TrackBreadth::Keyword)
+            return Ok(TrackSize::Breadth(b))
+        }
+
+        if input.try(|i| i.expect_function_matching("minmax")).is_ok() {
+            return input.parse_nested_block(|input| {
+                let inflexible_breadth =
+                    match input.try(LengthOrPercentage::parse_non_negative) {
+                        Ok(lop) => TrackBreadth::Breadth(lop),
+                        Err(..) => {
+                            let keyword = try!(TrackKeyword::parse(input));
+                            TrackBreadth::Keyword(keyword)
+                        }
                     };
 
-                    try!(input.expect_comma());
-                    Ok(TrackSize::MinMax(try!(inflexible_breadth), try!(TrackBreadth::parse(context, input))))
-                })))
-            } else {
-                try!(input.expect_function_matching("fit-content"));
-                Ok(try!(LengthOrPercentage::parse(context, input).map(TrackSize::FitContent)))
-            }
+                try!(input.expect_comma());
+                Ok(TrackSize::MinMax(inflexible_breadth, try!(TrackBreadth::parse(context, input))))
+            });
         }
+
+        try!(input.expect_function_matching("fit-content"));
+        // FIXME(emilio): This needs a parse_nested_block, doesn't it?
+        Ok(try!(LengthOrPercentage::parse(context, input).map(TrackSize::FitContent)))
     }
 }
 

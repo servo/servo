@@ -56,8 +56,8 @@
         use values::specified::LengthOrPercentageOrAutoOrContent;
     % endif
 
-    pub fn parse_flexibility(input: &mut Parser)
-                             -> Result<(Number, Option<Number>),()> {
+    fn parse_flexibility(input: &mut Parser)
+                         -> Result<(Number, Option<Number>),()> {
         let grow = try!(Number::parse_non_negative(input));
         let shrink = input.try(Number::parse_non_negative).ok();
         Ok((grow, shrink))
