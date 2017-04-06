@@ -14,7 +14,7 @@ use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser, 
 use cssparser::ToCss as ParserToCss;
 use euclid::size::TypedSize2D;
 use media_queries::Device;
-use parser::{ParserContext, log_css_error};
+use parser::{Parse, ParserContext, log_css_error};
 use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
@@ -165,9 +165,9 @@ impl FromMeta for ViewportLength {
 }
 
 impl ViewportLength {
-    fn parse(input: &mut Parser) -> Result<ViewportLength, ()> {
-        // we explicitly do not accept 'extend-to-zoom', since it is a UA internal value
-        // for <META> viewport translation
+    fn parse(input: &mut Parser) -> Result<Self, ()> {
+        // we explicitly do not accept 'extend-to-zoom', since it is a UA
+        // internal value for <META> viewport translation
         LengthOrPercentageOrAuto::parse_non_negative(input).map(ViewportLength::Specified)
     }
 }
@@ -246,7 +246,7 @@ impl ToCss for ViewportDescriptorDeclaration {
 
 fn parse_shorthand(input: &mut Parser) -> Result<(ViewportLength, ViewportLength), ()> {
     let min = try!(ViewportLength::parse(input));
-    match input.try(|input| ViewportLength::parse(input)) {
+    match input.try(ViewportLength::parse) {
         Err(()) => Ok((min.clone(), min)),
         Ok(max) => Ok((min, max))
     }
@@ -287,33 +287,18 @@ impl<'a, 'b> DeclarationParser for ViewportRuleParser<'a, 'b> {
             }}
         }
 
-        match name {
-            n if n.eq_ignore_ascii_case("min-width") =>
-                ok!(MinWidth(ViewportLength::parse)),
-            n if n.eq_ignore_ascii_case("max-width") =>
-                ok!(MaxWidth(ViewportLength::parse)),
-            n if n.eq_ignore_ascii_case("width") =>
-                ok!(shorthand -> [MinWidth, MaxWidth]),
-
-            n if n.eq_ignore_ascii_case("min-height") =>
-                ok!(MinHeight(ViewportLength::parse)),
-            n if n.eq_ignore_ascii_case("max-height") =>
-                ok!(MaxHeight(ViewportLength::parse)),
-            n if n.eq_ignore_ascii_case("height") =>
-                ok!(shorthand -> [MinHeight, MaxHeight]),
-
-            n if n.eq_ignore_ascii_case("zoom") =>
-                ok!(Zoom(Zoom::parse)),
-            n if n.eq_ignore_ascii_case("min-zoom") =>
-                ok!(MinZoom(Zoom::parse)),
-            n if n.eq_ignore_ascii_case("max-zoom") =>
-                ok!(MaxZoom(Zoom::parse)),
-
-            n if n.eq_ignore_ascii_case("user-zoom") =>
-                ok!(UserZoom(UserZoom::parse)),
-            n if n.eq_ignore_ascii_case("orientation") =>
-                ok!(Orientation(Orientation::parse)),
-
+        match_ignore_ascii_case! { name,
+            "min-width" => ok!(MinWidth(ViewportLength::parse)),
+            "max-width" => ok!(MaxWidth(ViewportLength::parse)),
+            "width" => ok!(shorthand -> [MinWidth, MaxWidth]),
+            "min-height" => ok!(MinHeight(ViewportLength::parse)),
+            "max-height" => ok!(MaxHeight(ViewportLength::parse)),
+            "height" => ok!(shorthand -> [MinHeight, MaxHeight]),
+            "zoom" => ok!(Zoom(Zoom::parse)),
+            "min-zoom" => ok!(MinZoom(Zoom::parse)),
+            "max-zoom" => ok!(MaxZoom(Zoom::parse)),
+            "user-zoom" => ok!(UserZoom(UserZoom::parse)),
+            "orientation" => ok!(Orientation(Orientation::parse)),
             _ => Err(()),
         }
     }
@@ -340,11 +325,9 @@ fn is_whitespace_separator_or_equals(c: &char) -> bool {
     WHITESPACE.contains(c) || SEPARATOR.contains(c) || *c == '='
 }
 
-impl ViewportRule {
+impl Parse for ViewportRule {
     #[allow(missing_docs)]
-    pub fn parse(input: &mut Parser, context: &ParserContext)
-                     -> Result<ViewportRule, ()>
-    {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         let parser = ViewportRuleParser { context: context };
 
         let mut cascade = Cascade::new();
@@ -366,7 +349,9 @@ impl ViewportRule {
         }
         Ok(ViewportRule { declarations: cascade.finish() })
     }
+}
 
+impl ViewportRule {
     #[allow(missing_docs)]
     pub fn from_meta(content: &str) -> Option<ViewportRule> {
         let mut declarations = vec![None; VIEWPORT_DESCRIPTOR_VARIANTS];

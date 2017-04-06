@@ -48,16 +48,10 @@
 
 <%helpers:shorthand name="flex" sub_properties="flex-grow flex-shrink flex-basis" extra_prefixes="webkit"
                     spec="https://drafts.csswg.org/css-flexbox/#flex-property">
-    use parser::Parse;
-    use values::specified::{Number, NoCalcLength};
-    % if product == "gecko":
-        use values::specified::LengthOrPercentageOrAuto;
-    % else:
-        use values::specified::LengthOrPercentageOrAutoOrContent;
-    % endif
+    use values::specified::Number;
 
-    pub fn parse_flexibility(input: &mut Parser)
-                             -> Result<(Number, Option<Number>),()> {
+    fn parse_flexibility(input: &mut Parser)
+                         -> Result<(Number, Option<Number>),()> {
         let grow = try!(Number::parse_non_negative(input));
         let shrink = input.try(Number::parse_non_negative).ok();
         Ok((grow, shrink))
@@ -72,12 +66,7 @@
             return Ok(Longhands {
                 flex_grow: Number::new(0.0),
                 flex_shrink: Number::new(0.0),
-                % if product == "gecko":
-                    flex_basis: LengthOrPercentageOrAuto::Auto
-                % else:
-                    flex_basis: LengthOrPercentageOrAutoOrContent::Auto
-                % endif
-
+                flex_basis: longhands::flex_basis::SpecifiedValue::auto(),
             })
         }
         loop {
@@ -89,11 +78,7 @@
                 }
             }
             if basis.is_none() {
-                % if product == "gecko":
-                    if let Ok(value) = input.try(|i| LengthOrPercentageOrAuto::parse(context, i)) {
-                % else:
-                    if let Ok(value) = input.try(|i| LengthOrPercentageOrAutoOrContent::parse(context, i)) {
-                % endif
+                if let Ok(value) = input.try(|input| longhands::flex_basis::parse(context, input)) {
                     basis = Some(value);
                     continue
                 }
@@ -107,21 +92,17 @@
         Ok(Longhands {
             flex_grow: grow.unwrap_or(Number::new(1.0)),
             flex_shrink: shrink.unwrap_or(Number::new(1.0)),
-            % if product == "gecko":
-                flex_basis: basis.unwrap_or(LengthOrPercentageOrAuto::Length(NoCalcLength::zero()))
-            % else:
-                flex_basis: basis.unwrap_or(LengthOrPercentageOrAutoOrContent::Length(NoCalcLength::zero()))
-            % endif
+            flex_basis: basis.unwrap_or(longhands::flex_basis::SpecifiedValue::zero()),
         })
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             try!(self.flex_grow.to_css(dest));
-            try!(write!(dest, " "));
+            try!(dest.write_str(" "));
 
             try!(self.flex_shrink.to_css(dest));
-            try!(write!(dest, " "));
+            try!(dest.write_str(" "));
 
             self.flex_basis.to_css(dest)
         }
