@@ -4079,6 +4079,18 @@
      {}
     ]
    ],
+   "css/overflow_border_radius.html": [
+    [
+     "/_mozilla/css/overflow_border_radius.html",
+     [
+      [
+       "/_mozilla/css/overflow_border_radius_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "css/overflow_position_abs_inline_block.html": [
     [
      "/_mozilla/css/overflow_position_abs_inline_block.html",
@@ -8411,6 +8423,11 @@
     ]
    ],
    "css/overflow_auto_stacking_order_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/overflow_border_radius_ref.html": [
     [
      {}
     ]
@@ -22687,6 +22704,14 @@
   ],
   "css/overflow_auto_stacking_order_ref.html": [
    "195201950fd56bd139e71971d66f92ee4fef815d",
+   "support"
+  ],
+  "css/overflow_border_radius.html": [
+   "2c8a650f518ccff78517556540416f7e0e798033",
+   "reftest"
+  ],
+  "css/overflow_border_radius_ref.html": [
+   "3798d0efb1b9858ad47ecf6f09357c3c0dae1b80",
    "support"
   ],
   "css/overflow_position_abs_inline_block.html": [

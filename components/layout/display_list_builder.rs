@@ -520,7 +520,9 @@ fn handle_overlapping_radii(size: &Size2D<Au>, radii: &BorderRadii<Au>) -> Borde
     }
 }
 
-fn build_border_radius(abs_bounds: &Rect<Au>, border_style: &style_structs::Border) -> BorderRadii<Au> {
+fn build_border_radius(abs_bounds: &Rect<Au>,
+                       border_style: &style_structs::Border)
+                       -> BorderRadii<Au> {
     // TODO(cgaebel): Support border radii even in the case of multiple border widths.
     // This is an extension of supporting elliptical radii. For now, all percentage
     // radii will be relative to the width.
@@ -535,6 +537,34 @@ fn build_border_radius(abs_bounds: &Rect<Au>, border_style: &style_structs::Bord
         bottom_left:  model::specified_border_radius(border_style.border_bottom_left_radius,
                                                      abs_bounds.size.width),
     })
+}
+
+/// Get the border radius for the rectangle inside of a rounded border. This is useful
+/// for building the clip for the content inside the border.
+fn build_border_radius_for_inner_rect(outer_rect: &Rect<Au>,
+                                      style: Arc<ServoComputedValues>)
+                                      -> BorderRadii<Au> {
+    let mut radii = build_border_radius(&outer_rect, style.get_border());
+    if radii.is_square() {
+        return radii;
+    }
+
+    // Since we are going to using the inner rectangle (outer rectangle minus
+    // border width), we need to adjust to border radius so that we are smaller
+    // rectangle with the same border curve.
+    let border_widths = style.logical_border_width().to_physical(style.writing_mode);
+    radii.top_left.width = cmp::max(Au(0), radii.top_left.width - border_widths.left);
+    radii.bottom_left.width = cmp::max(Au(0), radii.bottom_left.width - border_widths.left);
+
+    radii.top_right.width = cmp::max(Au(0), radii.top_right.width - border_widths.right);
+    radii.bottom_right.width = cmp::max(Au(0), radii.bottom_right.width - border_widths.right);
+
+    radii.top_left.height = cmp::max(Au(0), radii.top_left.height - border_widths.top);
+    radii.top_right.height = cmp::max(Au(0), radii.top_right.height - border_widths.top);
+
+    radii.bottom_left.height = cmp::max(Au(0), radii.bottom_left.height - border_widths.bottom);
+    radii.bottom_right.height = cmp::max(Au(0), radii.bottom_right.height - border_widths.bottom);
+    radii
 }
 
 impl FragmentDisplayListBuilding for Fragment {
@@ -1978,12 +2008,21 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         let new_scroll_root_id = ScrollRootId::new_of_type(self.fragment.node.id() as usize,
                                                            self.fragment.fragment_type());
 
+        let clip_rect = Rect::new(Point2D::zero(), content_box.size);
+        let mut clip = ClippingRegion::from_rect(&clip_rect);
+
+        let border_radii = build_border_radius_for_inner_rect(&border_box,
+                                                              self.fragment.style.clone());
+        if !border_radii.is_square() {
+            clip.intersect_with_rounded_rect(&clip_rect, &border_radii)
+        }
+
         let content_size = self.base.overflow.scroll.origin + self.base.overflow.scroll.size;
         state.add_scroll_root(
             ScrollRoot {
                 id: new_scroll_root_id,
                 parent_id: containing_scroll_root_id,
-                clip: Rect::new(Point2D::zero(), content_box.size),
+                clip: clip,
                 content_rect: Rect::new(content_box.origin,
                                         Size2D::new(content_size.x, content_size.y)),
             },
