@@ -287,33 +287,18 @@ impl<'a, 'b> DeclarationParser for ViewportRuleParser<'a, 'b> {
             }}
         }
 
-        match name {
-            n if n.eq_ignore_ascii_case("min-width") =>
-                ok!(MinWidth(ViewportLength::parse)),
-            n if n.eq_ignore_ascii_case("max-width") =>
-                ok!(MaxWidth(ViewportLength::parse)),
-            n if n.eq_ignore_ascii_case("width") =>
-                ok!(shorthand -> [MinWidth, MaxWidth]),
-
-            n if n.eq_ignore_ascii_case("min-height") =>
-                ok!(MinHeight(ViewportLength::parse)),
-            n if n.eq_ignore_ascii_case("max-height") =>
-                ok!(MaxHeight(ViewportLength::parse)),
-            n if n.eq_ignore_ascii_case("height") =>
-                ok!(shorthand -> [MinHeight, MaxHeight]),
-
-            n if n.eq_ignore_ascii_case("zoom") =>
-                ok!(Zoom(Zoom::parse)),
-            n if n.eq_ignore_ascii_case("min-zoom") =>
-                ok!(MinZoom(Zoom::parse)),
-            n if n.eq_ignore_ascii_case("max-zoom") =>
-                ok!(MaxZoom(Zoom::parse)),
-
-            n if n.eq_ignore_ascii_case("user-zoom") =>
-                ok!(UserZoom(UserZoom::parse)),
-            n if n.eq_ignore_ascii_case("orientation") =>
-                ok!(Orientation(Orientation::parse)),
-
+        match_ignore_ascii_case! { name,
+            "min-width" => ok!(MinWidth(ViewportLength::parse)),
+            "max-width" => ok!(MaxWidth(ViewportLength::parse)),
+            "width" => ok!(shorthand -> [MinWidth, MaxWidth]),
+            "min-height" => ok!(MinHeight(ViewportLength::parse)),
+            "max-height" => ok!(MaxHeight(ViewportLength::parse)),
+            "height" => ok!(shorthand -> [MinHeight, MaxHeight]),
+            "zoom" => ok!(Zoom(Zoom::parse)),
+            "min-zoom" => ok!(MinZoom(Zoom::parse)),
+            "max-zoom" => ok!(MaxZoom(Zoom::parse)),
+            "user-zoom" => ok!(UserZoom(UserZoom::parse)),
+            "orientation" => ok!(Orientation(Orientation::parse)),
             _ => Err(()),
         }
     }

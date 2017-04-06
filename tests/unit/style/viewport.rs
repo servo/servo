@@ -8,7 +8,7 @@ use media_queries::CSSErrorReporterTest;
 use servo_config::prefs::{PREFS, PrefValue};
 use servo_url::ServoUrl;
 use style::media_queries::{Device, MediaType};
-use style::parser::ParserContext;
+use style::parser::{Parse, ParserContext};
 use style::shared_lock::SharedRwLock;
 use style::stylesheets::{Stylesheet, Origin};
 use style::values::specified::LengthOrPercentageOrAuto::{self, Auto};
@@ -294,7 +294,7 @@ fn constrain_viewport() {
 
     macro_rules! from_css {
         ($css:expr) => {
-            &ViewportRule::parse(&mut Parser::new($css), &context).unwrap()
+            &ViewportRule::parse(&context, &mut Parser::new($css)).unwrap()
         }
     }
 
