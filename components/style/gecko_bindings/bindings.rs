@@ -445,9 +445,6 @@ extern "C" {
                                 media_bytes: *const u8, media_length: u32);
 }
 extern "C" {
-    pub fn Gecko_URLExtraData_CreateDummy() -> *mut RawGeckoURLExtraData;
-}
-extern "C" {
     pub fn Gecko_MaybeCreateStyleChildrenIterator(node: RawGeckoNodeBorrowed)
      -> StyleChildrenIteratorOwnedOrNull;
 }
@@ -1859,7 +1856,7 @@ extern "C" {
      -> ServoComputedValuesStrong;
 }
 extern "C" {
-    pub fn Servo_Initialize();
+    pub fn Servo_Initialize(dummy_url_data: *mut RawGeckoURLExtraData);
 }
 extern "C" {
     pub fn Servo_Shutdown();
