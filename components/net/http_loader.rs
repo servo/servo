@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use brotli::Decompressor;
-use connector::Connector;
+use connector::{Connector, create_http_connector};
 use cookie;
 use cookie_storage::CookieStorage;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest};
@@ -70,6 +70,7 @@ pub struct HttpState {
     pub cookie_jar: RwLock<CookieStorage>,
     pub auth_cache: RwLock<AuthCache>,
     pub ssl_client: OpensslClient,
+    pub connector: Pool<Connector>,
 }
 
 impl HttpState {
@@ -78,7 +79,8 @@ impl HttpState {
             hsts_list: RwLock::new(HstsList::new()),
             cookie_jar: RwLock::new(CookieStorage::new(150)),
             auth_cache: RwLock::new(AuthCache::new()),
-            ssl_client: ssl_client,
+            ssl_client: ssl_client.clone(),
+            connector: create_http_connector(ssl_client),
         }
     }
 }
@@ -1082,7 +1084,9 @@ fn http_network_fetch(request: &Request,
     // do not. Once we support other kinds of fetches we'll need to be more fine grained here
     // since things like image fetches are classified differently by devtools
     let is_xhr = request.destination == Destination::None;
-    let wrapped_response = obtain_response(&context.connector, &url, &request.method,
+    let wrapped_response = obtain_response(&context.state.connector,
+                                           &url,
+                                           &request.method,
                                            &request.headers,
                                            &request.body, &request.method,
                                            &request.pipeline_id, request.redirect_count + 1,

@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //! A thread that takes a URL and streams back the binary data.
-use connector::{Connector, create_http_connector, create_ssl_client};
+use connector::{create_http_connector, create_ssl_client};
 use cookie;
 use cookie_rs;
 use cookie_storage::CookieStorage;
@@ -12,7 +12,6 @@ use fetch::methods::{FetchContext, fetch};
 use filemanager_thread::{FileManager, TFDProvider};
 use hsts::HstsList;
 use http_loader::HttpState;
-use hyper::client::pool::Pool;
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};
 use net_traits::{CookieSource, CoreResourceThread};
@@ -45,7 +44,6 @@ const TFD_PROVIDER: &'static TFDProvider = &TFDProvider;
 #[derive(Clone)]
 pub struct ResourceGroup {
     http_state: Arc<HttpState>,
-    connector: Arc<Pool<Connector>>,
 }
 
 /// Returns a tuple of (public, private) senders to the new threads.
@@ -117,16 +115,15 @@ fn create_resource_groups(config_dir: Option<&Path>)
         auth_cache: RwLock::new(auth_cache),
         hsts_list: RwLock::new(hsts_list),
         ssl_client: ssl_client.clone(),
+        connector: create_http_connector(ssl_client),
     };
     let resource_group = ResourceGroup {
         http_state: Arc::new(http_state),
-        connector: create_http_connector(ssl_client),
     };
 
     let private_ssl_client = create_ssl_client(&ca_file);
     let private_resource_group = ResourceGroup {
-        http_state: Arc::new(HttpState::new(private_ssl_client.clone())),
-        connector: create_http_connector(private_ssl_client),
+        http_state: Arc::new(HttpState::new(private_ssl_client)),
     };
 
     (resource_group, private_resource_group)
@@ -339,7 +336,6 @@ impl CoreResourceManager {
         let ua = self.user_agent.clone();
         let dc = self.devtools_chan.clone();
         let filemanager = self.filemanager.clone();
-        let connector = group.connector.clone();
 
         thread::Builder::new().name(format!("fetch thread for {}", init.url)).spawn(move || {
             let mut request = Request::from_init(init);
@@ -352,7 +348,6 @@ impl CoreResourceManager {
                 user_agent: ua,
                 devtools_chan: dc,
                 filemanager: filemanager,
-                connector: connector,
             };
             fetch(&mut request, &mut sender, &context);
         }).expect("Thread spawning failed");

@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use blob_loader::load_blob_sync;
-use connector::Connector;
 use data_loader::decode;
 use devtools_traits::DevtoolsControlMsg;
 use fetch::cors_cache::CorsCache;
@@ -11,7 +10,6 @@ use filemanager_thread::FileManager;
 use http_loader::{HttpState, determine_request_referrer, http_fetch};
 use http_loader::{set_default_accept, set_default_accept_language};
 use hyper::{Error, Result as HyperResult};
-use hyper::client::Pool;
 use hyper::header::{Accept, AcceptLanguage, ContentLanguage, ContentType};
 use hyper::header::{Header, HeaderFormat, HeaderView, Headers, Referer as RefererHeader};
 use hyper::method::Method;
@@ -45,7 +43,6 @@ pub struct FetchContext {
     pub user_agent: Cow<'static, str>,
     pub devtools_chan: Option<Sender<DevtoolsControlMsg>>,
     pub filemanager: FileManager,
-    pub connector: Arc<Pool<Connector>>,
 }
 
 pub type DoneChannel = Option<(Sender<Data>, Receiver<Data>)>;
