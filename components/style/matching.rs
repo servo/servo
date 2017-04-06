@@ -745,7 +745,6 @@ trait PrivateMatchMethods: TElement {
             animation::start_transitions_if_applicable(
                 new_animations_sender,
                 this_opaque,
-                self.as_node().to_unsafe(),
                 &**values,
                 new_values,
                 &shared_context.timer,
@@ -843,7 +842,7 @@ trait PrivateMatchMethods: TElement {
                                                           running_animation,
                                                           style,
                                                           font_metrics);
-                    if let Animation::Transition(_, _, _, ref frame, _) = *running_animation {
+                    if let Animation::Transition(_, _, ref frame, _) = *running_animation {
                         possibly_expired_animations.push(frame.property_animation.clone())
                     }
                 }

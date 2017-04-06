@@ -76,7 +76,7 @@ use script_layout_interface::rpc::{MarginStyleResponse, NodeScrollRootIdResponse
 use script_layout_interface::rpc::{ResolvedStyleResponse, TextIndexResponse};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, ScriptThreadEventCategory};
 use script_thread::{MainThreadScriptChan, MainThreadScriptMsg, Runnable, RunnableWrapper};
-use script_thread::{SendableMainThreadScriptChan, ImageCacheMsg};
+use script_thread::{SendableMainThreadScriptChan, ImageCacheMsg, ScriptThread};
 use script_traits::{ConstellationControlMsg, LoadData, MozBrowserEvent, UntrustedNodeAddress};
 use script_traits::{DocumentState, TimerEvent, TimerEventId};
 use script_traits::{ScriptMsg as ConstellationMsg, TimerSchedulerMsg, WindowSizeData, WindowSizeType};
@@ -1150,6 +1150,7 @@ impl Window {
     /// off-main-thread layout.
     ///
     /// Returns true if layout actually happened, false otherwise.
+    #[allow(unsafe_code)]
     pub fn force_reflow(&self,
                         goal: ReflowGoal,
                         query_type: ReflowQueryType,
@@ -1260,6 +1261,9 @@ impl Window {
                 nodes.push(JS::from_ref(&*node));
             }
         }
+
+        let newly_transitioning_nodes = self.layout_rpc.newly_transitioning_nodes();
+        ScriptThread::note_newly_transitioning_nodes(newly_transitioning_nodes);
 
         true
     }
