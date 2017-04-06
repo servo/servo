@@ -1542,7 +1542,6 @@ pub struct ComputedValues {
         ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
     % endfor
     custom_properties: Option<Arc<::custom_properties::ComputedValuesMap>>,
-    shareable: bool,
     /// The writing mode of this computed values struct.
     pub writing_mode: WritingMode,
     /// The root element's computed font size.
@@ -1555,7 +1554,6 @@ pub struct ComputedValues {
 impl ComputedValues {
     /// Construct a `ComputedValues` instance.
     pub fn new(custom_properties: Option<Arc<::custom_properties::ComputedValuesMap>>,
-               shareable: bool,
                writing_mode: WritingMode,
                root_font_size: Au,
                font_size_keyword: Option<longhands::font_size::KeywordSize>,
@@ -1565,7 +1563,6 @@ impl ComputedValues {
     ) -> Self {
         ComputedValues {
             custom_properties: custom_properties,
-            shareable: shareable,
             writing_mode: writing_mode,
             root_font_size: root_font_size,
             font_size_keyword: font_size_keyword,
@@ -1889,7 +1886,6 @@ mod lazy_static_module {
                 }),
             % endfor
             custom_properties: None,
-            shareable: true,
             writing_mode: WritingMode::empty(),
             root_font_size: longhands::font_size::get_initial_value(),
             font_size_keyword: Some(Default::default()),
@@ -1918,15 +1914,12 @@ static CASCADE_PROPERTY: [CascadePropertyFn; ${len(data.longhands)}] = [
 bitflags! {
     /// A set of flags to tweak the behavior of the `cascade` function.
     pub flags CascadeFlags: u8 {
-        /// Whether the `ComputedValues` structure to be constructed should be
-        /// considered shareable.
-        const SHAREABLE = 0x01,
         /// Whether to inherit all styles from the parent. If this flag is not
         /// present, non-inherited styles are reset to their initial values.
-        const INHERIT_ALL = 0x02,
+        const INHERIT_ALL = 0x01,
         /// Whether to skip any root element and flex/grid item display style
         /// fixup.
-        const SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP = 0x04,
+        const SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP = 0x02,
     }
 }
 
@@ -2033,7 +2026,6 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
 
     let starting_style = if !flags.contains(INHERIT_ALL) {
         ComputedValues::new(custom_properties,
-                            flags.contains(SHAREABLE),
                             WritingMode::empty(),
                             inherited_style.root_font_size,
                             inherited_style.font_size_keyword,
@@ -2047,7 +2039,6 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
                             )
     } else {
         ComputedValues::new(custom_properties,
-                            flags.contains(SHAREABLE),
                             WritingMode::empty(),
                             inherited_style.root_font_size,
                             inherited_style.font_size_keyword,

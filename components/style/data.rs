@@ -80,7 +80,7 @@ pub struct EagerPseudoStyles(Option<Box<[Option<ComputedStyle>]>>);
 impl EagerPseudoStyles {
     /// Returns whether there are any pseudo styles.
     pub fn is_empty(&self) -> bool {
-        self.0.is_some()
+        self.0.is_none()
     }
 
     /// Returns a reference to the style for a given eager pseudo, if it exists.
