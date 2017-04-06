@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-// extern crate smallvec;
 
 use cssparser::{Token, Parser as CssParser, parse_nth, ToCss, serialize_identifier, CssStringWriter};
 use std::ascii::AsciiExt;
@@ -400,10 +399,10 @@ impl<Impl: SelectorImpl> ToCss for ComplexSelector<Impl> {
            for simple in &selector.compound_selector{
                simple.to_css(dest)?;
            }
-       }
+        }
 
            Ok(())
-       }
+    }
 }
 
 impl ToCss for Combinator {
