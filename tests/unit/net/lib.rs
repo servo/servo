@@ -56,9 +56,9 @@ struct FetchResponseCollector {
 fn new_fetch_context(dc: Option<Sender<DevtoolsControlMsg>>) -> FetchContext {
     let ca_file = resources_dir_path().unwrap().join("certs");
     let ssl_client = create_ssl_client(&ca_file);
-    let connector = create_http_connector(ssl_client);
+    let connector = create_http_connector(ssl_client.clone());
     FetchContext {
-        state: Arc::new(HttpState::new()),
+        state: Arc::new(HttpState::new(ssl_client)),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: dc,
         filemanager: FileManager::new(),

@@ -532,10 +532,10 @@ fn test_fetch_with_hsts() {
 
     let ca_file = resources_dir_path().unwrap().join("self_signed_certificate_for_testing.crt");
     let ssl_client = create_ssl_client(&ca_file);
-    let connector = create_http_connector(ssl_client);
+    let connector = create_http_connector(ssl_client.clone());
 
     let context =  FetchContext {
-        state: Arc::new(HttpState::new()),
+        state: Arc::new(HttpState::new(ssl_client)),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: None,
         filemanager: FileManager::new(),

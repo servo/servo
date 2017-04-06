@@ -13,7 +13,6 @@ use filemanager_thread::{FileManager, TFDProvider};
 use hsts::HstsList;
 use http_loader::HttpState;
 use hyper::client::pool::Pool;
-use hyper_openssl::OpensslClient;
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};
 use net_traits::{CookieSource, CoreResourceThread};
@@ -46,7 +45,6 @@ const TFD_PROVIDER: &'static TFDProvider = &TFDProvider;
 #[derive(Clone)]
 pub struct ResourceGroup {
     http_state: Arc<HttpState>,
-    ssl_client: OpensslClient,
     connector: Arc<Pool<Connector>>,
 }
 
@@ -105,11 +103,6 @@ fn create_resource_groups(config_dir: Option<&Path>)
         read_json_from_file(&mut hsts_list, config_dir, "hsts_list.json");
         read_json_from_file(&mut cookie_jar, config_dir, "cookie_jar.json");
     }
-    let http_state = HttpState {
-        cookie_jar: RwLock::new(cookie_jar),
-        auth_cache: RwLock::new(auth_cache),
-        hsts_list: RwLock::new(hsts_list),
-    };
 
     let ca_file = match opts::get().certificate_path {
         Some(ref path) => PathBuf::from(path),
@@ -117,19 +110,25 @@ fn create_resource_groups(config_dir: Option<&Path>)
             .expect("Need certificate file to make network requests")
             .join("certs"),
     };
-    let ssl_client = create_ssl_client(&ca_file);
 
+    let ssl_client = create_ssl_client(&ca_file);
+    let http_state = HttpState {
+        cookie_jar: RwLock::new(cookie_jar),
+        auth_cache: RwLock::new(auth_cache),
+        hsts_list: RwLock::new(hsts_list),
+        ssl_client: ssl_client.clone(),
+    };
     let resource_group = ResourceGroup {
         http_state: Arc::new(http_state),
-        ssl_client: ssl_client.clone(),
-        connector: create_http_connector(ssl_client.clone()),
+        connector: create_http_connector(ssl_client),
     };
+
     let private_ssl_client = create_ssl_client(&ca_file);
     let private_resource_group = ResourceGroup {
-        http_state: Arc::new(HttpState::new()),
-        ssl_client: private_ssl_client.clone(),
+        http_state: Arc::new(HttpState::new(private_ssl_client.clone())),
         connector: create_http_connector(private_ssl_client),
     };
+
     (resource_group, private_resource_group)
 }
 
