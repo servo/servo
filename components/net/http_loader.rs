@@ -44,7 +44,7 @@ use std::io::{self, Read, Write};
 use std::iter::FromIterator;
 use std::mem;
 use std::ops::Deref;
-use std::sync::{Arc, RwLock};
+use std::sync::RwLock;
 use std::sync::mpsc::{channel, Sender};
 use std::thread;
 use time;
@@ -392,7 +392,7 @@ fn auth_from_cache(auth_cache: &RwLock<AuthCache>, origin: &ImmutableOrigin) -> 
     }
 }
 
-fn obtain_response(connector: Arc<Pool<Connector>>,
+fn obtain_response(connector: &Pool<Connector>,
                    url: &ServoUrl,
                    method: &Method,
                    request_headers: &Headers,
@@ -1082,7 +1082,7 @@ fn http_network_fetch(request: &Request,
     // do not. Once we support other kinds of fetches we'll need to be more fine grained here
     // since things like image fetches are classified differently by devtools
     let is_xhr = request.destination == Destination::None;
-    let wrapped_response = obtain_response(context.connector.clone(), &url, &request.method,
+    let wrapped_response = obtain_response(&context.connector, &url, &request.method,
                                            &request.headers,
                                            &request.body, &request.method,
                                            &request.pipeline_id, request.redirect_count + 1,
