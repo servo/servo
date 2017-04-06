@@ -822,52 +822,9 @@ pub trait MatchMethods : TElement {
         let animation_rules = self.get_animation_rules(None);
         let mut rule_nodes_changed = false;
 
-        // TODO(emilio): This is somewhat inefficient, because of a variety of
-        // reasons:
-        //
-        //  * It doesn't coalesce flags.
-        //  * It doesn't look at flags already sent in a task for the main
-        //    thread to process.
-        //  * It doesn't take advantage of us knowing that the traversal is
-        //    sequential.
-        //
-        // I suspect (need to measure!) that we don't use to set flags on
-        // a lot of different elements, but we could end up posting the same
-        // flag over and over with this approach.
-        //
-        // If the number of elements is low, perhaps a small cache with the
-        // flags already sent would be appropriate.
-        //
-        // The sequential task business for this is kind of sad :(.
-        //
-        // Anyway, let's do the obvious thing for now.
         let tasks = &mut context.thread_local.tasks;
         let mut set_selector_flags = |element: &Self, flags: ElementSelectorFlags| {
-            // Apply the selector flags.
-            let self_flags = flags.for_self();
-            if !self_flags.is_empty() {
-                if element == self {
-                    unsafe { element.set_selector_flags(self_flags); }
-                } else {
-                    if !element.has_selector_flags(self_flags) {
-                        let task =
-                            SequentialTask::set_selector_flags(element.clone(),
-                                                               self_flags);
-                        tasks.push(task);
-                    }
-                }
-            }
-            let parent_flags = flags.for_parent();
-            if !parent_flags.is_empty() {
-                if let Some(p) = element.parent_element() {
-                    // Avoid the overhead of the SequentialTask if the flags are
-                    // already set.
-                    if !p.has_selector_flags(parent_flags) {
-                        let task = SequentialTask::set_selector_flags(p, parent_flags);
-                        tasks.push(task);
-                    }
-                }
-            }
+            self.apply_selector_flags(tasks, element, flags);
         };
 
         // Borrow the stuff we need here so the borrow checker doesn't get mad
@@ -946,6 +903,59 @@ pub trait MatchMethods : TElement {
         MatchResults {
             primary_relations: Some(primary_relations),
             rule_nodes_changed: rule_nodes_changed,
+        }
+    }
+
+    /// Applies selector flags to an element, deferring mutations of the parent
+    /// until after the traversal.
+    ///
+    /// TODO(emilio): This is somewhat inefficient, because of a variety of
+    /// reasons:
+    ///
+    ///  * It doesn't coalesce flags.
+    ///  * It doesn't look at flags already sent in a task for the main
+    ///    thread to process.
+    ///  * It doesn't take advantage of us knowing that the traversal is
+    ///    sequential.
+    ///
+    /// I suspect (need to measure!) that we don't use to set flags on
+    /// a lot of different elements, but we could end up posting the same
+    /// flag over and over with this approach.
+    ///
+    /// If the number of elements is low, perhaps a small cache with the
+    /// flags already sent would be appropriate.
+    ///
+    /// The sequential task business for this is kind of sad :(.
+    ///
+    /// Anyway, let's do the obvious thing for now.
+    fn apply_selector_flags(&self,
+                            tasks: &mut Vec<SequentialTask<Self>>,
+                            element: &Self,
+                            flags: ElementSelectorFlags) {
+        // Apply the selector flags.
+        let self_flags = flags.for_self();
+        if !self_flags.is_empty() {
+            if element == self {
+                unsafe { element.set_selector_flags(self_flags); }
+            } else {
+                if !element.has_selector_flags(self_flags) {
+                    let task =
+                        SequentialTask::set_selector_flags(element.clone(),
+                                                           self_flags);
+                    tasks.push(task);
+                }
+            }
+        }
+        let parent_flags = flags.for_parent();
+        if !parent_flags.is_empty() {
+            if let Some(p) = element.parent_element() {
+                // Avoid the overhead of the SequentialTask if the flags are
+                // already set.
+                if !p.has_selector_flags(parent_flags) {
+                    let task = SequentialTask::set_selector_flags(p, parent_flags);
+                    tasks.push(task);
+                }
+            }
         }
     }
 
