@@ -1,0 +1,27 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Asynchronous transitionend event is not a GC hazard</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+  async_test(function(t) {
+    var elem = document.createElement('div');
+    document.body.appendChild(elem);
+    elem.textContent = 'hi there';
+    elem.style.transition = 'color 10ms';
+    elem.style.color = 'black';
+    elem.ontransitionend = t.step_func_done();
+
+    t.step_timeout(function() {
+      elem.style.color = 'red';
+
+      t.step_timeout(function() {
+        document.body.removeChild(elem);
+        elem = null;
+        window.gc();
+      }, 0);
+    }, 0);
+  }, 'Nodes cannot be GCed while a CSS transition is in effect.');
+</script>
+</body>
