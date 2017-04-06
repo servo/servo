@@ -2759,6 +2759,18 @@
      {}
     ]
    ],
+   "css/inline_block_percentage_margin.html": [
+    [
+     "/_mozilla/css/inline_block_percentage_margin.html",
+     [
+      [
+       "/_mozilla/css/inline_block_percentage_margin_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "css/inline_block_stacking_context_a.html": [
     [
      "/_mozilla/css/inline_block_stacking_context_a.html",
@@ -7871,6 +7883,11 @@
     ]
    ],
    "css/inline_block_percentage_height_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/inline_block_percentage_margin_ref.html": [
     [
      {}
     ]
@@ -21795,6 +21812,14 @@
   ],
   "css/inline_block_percentage_height_ref.html": [
    "bad4704435c74a3204925206802eb004f380500e",
+   "support"
+  ],
+  "css/inline_block_percentage_margin.html": [
+   "0b750acad3bcc6b5fabf9e625b6adf22e1e97640",
+   "reftest"
+  ],
+  "css/inline_block_percentage_margin_ref.html": [
+   "3726b3b2149b9e6584277fd33b77940d5f9d6800",
    "support"
   ],
   "css/inline_block_stacking_context_a.html": [
