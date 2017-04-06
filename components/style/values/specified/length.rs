@@ -1150,15 +1150,14 @@ impl ToCss for LengthOrPercentageOrAuto {
 
 impl LengthOrPercentageOrAuto {
     fn parse_internal(input: &mut Parser, context: AllowedNumericType)
-                      -> Result<LengthOrPercentageOrAuto, ()>
-    {
+                      -> Result<Self, ()> {
         match try!(input.next()) {
             Token::Dimension(ref value, ref unit) if context.is_ok(value.value) =>
                 NoCalcLength::parse_dimension(value.value, unit).map(LengthOrPercentageOrAuto::Length),
             Token::Percentage(ref value) if context.is_ok(value.unit_value) =>
                 Ok(LengthOrPercentageOrAuto::Percentage(Percentage(value.unit_value))),
             Token::Number(ref value) if value.value == 0. =>
-                Ok(LengthOrPercentageOrAuto::Length(NoCalcLength::zero())),
+                Ok(Self::zero()),
             Token::Ident(ref value) if value.eq_ignore_ascii_case("auto") =>
                 Ok(LengthOrPercentageOrAuto::Auto),
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
@@ -1175,12 +1174,14 @@ impl LengthOrPercentageOrAuto {
         Self::parse_internal(input, AllowedNumericType::NonNegative)
     }
 
-    /// Parse a non-negative length, percentage, or auto.
-    #[inline]
-    pub fn parse_non_negative_with_context(_context: &ParserContext,
-                                           input: &mut Parser)
-                                           -> Result<LengthOrPercentageOrAuto, ()> {
-        LengthOrPercentageOrAuto::parse_non_negative(input)
+    /// Returns the `auto` value.
+    pub fn auto() -> Self {
+        LengthOrPercentageOrAuto::Auto
+    }
+
+    /// Returns a value representing a `0` length.
+    pub fn zero() -> Self {
+        LengthOrPercentageOrAuto::Length(NoCalcLength::zero())
     }
 }
 
@@ -1286,12 +1287,36 @@ pub enum LengthOrPercentageOrAutoOrContent {
 }
 
 impl LengthOrPercentageOrAutoOrContent {
-    /// Alias to `parse` so that Gecko and Servo can use the same method name for
-    /// both `LengthOrPercentageOrAuto` and `LengthOrPercentageOrAutoOrContent`.
-    ///
-    /// NOTE: `parse` already only accepts non-negative values.
-    pub fn parse_non_negative_with_context(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        Self::parse(context, input)
+    /// Parse a non-negative LengthOrPercentageOrAutoOrContent.
+    pub fn parse_non_negative(input: &mut Parser) -> Result<Self, ()> {
+        let context = AllowedNumericType::NonNegative;
+        match try!(input.next()) {
+            Token::Dimension(ref value, ref unit) if context.is_ok(value.value) =>
+                NoCalcLength::parse_dimension(value.value, unit).map(LengthOrPercentageOrAutoOrContent::Length),
+            Token::Percentage(ref value) if context.is_ok(value.unit_value) =>
+                Ok(LengthOrPercentageOrAutoOrContent::Percentage(Percentage(value.unit_value))),
+            Token::Number(ref value) if value.value == 0. =>
+                Ok(Self::zero()),
+            Token::Ident(ref value) if value.eq_ignore_ascii_case("auto") =>
+                Ok(LengthOrPercentageOrAutoOrContent::Auto),
+            Token::Ident(ref value) if value.eq_ignore_ascii_case("content") =>
+                Ok(LengthOrPercentageOrAutoOrContent::Content),
+            Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
+                let calc = try!(input.parse_nested_block(CalcLengthOrPercentage::parse_length_or_percentage));
+                Ok(LengthOrPercentageOrAutoOrContent::Calc(Box::new(calc)))
+            },
+            _ => Err(())
+        }
+    }
+
+    /// Returns the `auto` value.
+    pub fn auto() -> Self {
+        LengthOrPercentageOrAutoOrContent::Auto
+    }
+
+    /// Returns a value representing a `0` length.
+    pub fn zero() -> Self {
+        LengthOrPercentageOrAutoOrContent::Length(NoCalcLength::zero())
     }
 }
 
@@ -1313,29 +1338,6 @@ impl ToCss for LengthOrPercentageOrAutoOrContent {
             LengthOrPercentageOrAutoOrContent::Auto => dest.write_str("auto"),
             LengthOrPercentageOrAutoOrContent::Content => dest.write_str("content"),
             LengthOrPercentageOrAutoOrContent::Calc(ref calc) => calc.to_css(dest),
-        }
-    }
-}
-
-impl Parse for LengthOrPercentageOrAutoOrContent {
-    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        let context = AllowedNumericType::NonNegative;
-        match try!(input.next()) {
-            Token::Dimension(ref value, ref unit) if context.is_ok(value.value) =>
-                NoCalcLength::parse_dimension(value.value, unit).map(LengthOrPercentageOrAutoOrContent::Length),
-            Token::Percentage(ref value) if context.is_ok(value.unit_value) =>
-                Ok(LengthOrPercentageOrAutoOrContent::Percentage(Percentage(value.unit_value))),
-            Token::Number(ref value) if value.value == 0. =>
-                Ok(LengthOrPercentageOrAutoOrContent::Length(NoCalcLength::zero())),
-            Token::Ident(ref value) if value.eq_ignore_ascii_case("auto") =>
-                Ok(LengthOrPercentageOrAutoOrContent::Auto),
-            Token::Ident(ref value) if value.eq_ignore_ascii_case("content") =>
-                Ok(LengthOrPercentageOrAutoOrContent::Content),
-            Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-                let calc = try!(input.parse_nested_block(CalcLengthOrPercentage::parse_length_or_percentage));
-                Ok(LengthOrPercentageOrAutoOrContent::Calc(Box::new(calc)))
-            },
-            _ => Err(())
         }
     }
 }

@@ -483,35 +483,22 @@ ${helpers.single_keyword("background-origin",
     }
 
     pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
-        let width;
-        if let Ok(value) = input.try(|input| {
-            match input.next() {
-                Err(_) => Err(()),
-                Ok(Token::Ident(ref ident)) if ident.eq_ignore_ascii_case("cover") => {
-                    Ok(SpecifiedValue::Cover)
-                }
-                Ok(Token::Ident(ref ident)) if ident.eq_ignore_ascii_case("contain") => {
-                    Ok(SpecifiedValue::Contain)
-                }
-                Ok(_) => Err(()),
-            }
-        }) {
-            return Ok(value)
-        } else {
-            width = try!(specified::LengthOrPercentageOrAuto::parse_non_negative(input))
+        if input.try(|input| input.expect_ident_matching("cover")).is_ok() {
+            return Ok(SpecifiedValue::Cover);
         }
 
-        let height;
-        if let Ok(value) = input.try(|input| {
-            match input.next() {
-                Err(_) => Ok(specified::LengthOrPercentageOrAuto::Auto),
-                Ok(_) => Err(()),
-            }
-        }) {
-            height = value
-        } else {
-            height = try!(specified::LengthOrPercentageOrAuto::parse_non_negative(input));
+        if input.try(|input| input.expect_ident_matching("contain")).is_ok() {
+            return Ok(SpecifiedValue::Contain);
         }
+
+        let width =
+            try!(specified::LengthOrPercentageOrAuto::parse_non_negative(input));
+
+        let height = if input.is_exhausted() {
+            specified::LengthOrPercentageOrAuto::Auto
+        } else {
+            try!(specified::LengthOrPercentageOrAuto::parse_non_negative(input))
+        };
 
         Ok(SpecifiedValue::Explicit(ExplicitSize {
             width: width,

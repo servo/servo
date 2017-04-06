@@ -23,7 +23,7 @@ use gecko_bindings::sugar::refptr::RefPtr;
 use keyframes::{Keyframe, parse_keyframe_list};
 use media_queries::{Device, MediaList, parse_media_query_list};
 use parking_lot::RwLock;
-use parser::{ParserContext, log_css_error};
+use parser::{Parse, ParserContext, log_css_error};
 use properties::{PropertyDeclarationBlock, parse_property_declaration_list};
 use selector_parser::{SelectorImpl, SelectorParser};
 use selectors::parser::SelectorList;
@@ -1059,7 +1059,7 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
             }
             AtRulePrelude::Viewport => {
                 Ok(CssRule::Viewport(Arc::new(self.shared_lock.wrap(
-                    try!(ViewportRule::parse(input, self.context))))))
+                    try!(ViewportRule::parse(self.context, input))))))
             }
             AtRulePrelude::Keyframes(name) => {
                 Ok(CssRule::Keyframes(Arc::new(self.shared_lock.wrap(KeyframesRule {
