@@ -534,7 +534,6 @@ trait PrivateMatchMethods: TElement {
                                      context: &mut StyleContext<Self>,
                                      data: &mut ElementData,
                                      pseudo: Option<&PseudoElement>,
-                                     possibly_expired_animations: &mut Vec<PropertyAnimation>,
                                      animate: bool) {
         // Collect some values.
         let (mut styles, restyle) = data.styles_and_restyle_mut();
@@ -553,8 +552,7 @@ trait PrivateMatchMethods: TElement {
             self.process_animations(context,
                                     &mut old_values,
                                     &mut new_values,
-                                    pseudo,
-                                    possibly_expired_animations);
+                                    pseudo);
         }
 
         // Accumulate restyle damage.
@@ -602,8 +600,7 @@ trait PrivateMatchMethods: TElement {
                           context: &mut StyleContext<Self>,
                           old_values: &mut Option<Arc<ComputedValues>>,
                           new_values: &mut Arc<ComputedValues>,
-                          pseudo: Option<&PseudoElement>,
-                          _possibly_expired_animations: &mut Vec<PropertyAnimation>) {
+                          pseudo: Option<&PseudoElement>) {
         use context::{CSS_ANIMATIONS, EFFECT_PROPERTIES};
         use context::UpdateAnimationsTasks;
 
@@ -646,8 +643,10 @@ trait PrivateMatchMethods: TElement {
                           context: &mut StyleContext<Self>,
                           old_values: &mut Option<Arc<ComputedValues>>,
                           new_values: &mut Arc<ComputedValues>,
-                          _pseudo: Option<&PseudoElement>,
-                          possibly_expired_animations: &mut Vec<PropertyAnimation>) {
+                          _pseudo: Option<&PseudoElement>) {
+        let possibly_expired_animations =
+            &mut context.thread_local.current_element_info.as_mut().unwrap()
+                        .possibly_expired_animations;
         let shared_context = context.shared;
         if let Some(ref mut old) = *old_values {
             self.update_animations_for_cascade(shared_context, old,
@@ -797,14 +796,13 @@ pub trait MatchMethods : TElement {
         let _rule_node_changed = self.match_primary(context, data, &mut primary_relations);
 
         // Cascade properties and compute primary values.
-        let mut expired = vec![];
-        self.cascade_primary(context, data, &mut expired);
+        self.cascade_primary(context, data);
 
         // Match and cascade eager pseudo-elements.
         if !data.styles().is_display_none() {
             let _pseudo_rule_nodes_changed =
                 self.match_pseudos(context, data);
-            self.cascade_pseudos(context, data, &mut expired);
+            self.cascade_pseudos(context, data);
         }
 
         // If we have any pseudo elements, indicate so in the primary StyleRelations.
@@ -827,9 +825,8 @@ pub trait MatchMethods : TElement {
                                    context: &mut StyleContext<Self>,
                                    mut data: &mut ElementData)
     {
-        let mut possibly_expired_animations = vec![];
-        self.cascade_primary(context, &mut data, &mut possibly_expired_animations);
-        self.cascade_pseudos(context, &mut data, &mut possibly_expired_animations);
+        self.cascade_primary(context, &mut data);
+        self.cascade_pseudos(context, &mut data);
     }
 
     /// Runs selector matching to (re)compute the primary rule node for this element.
@@ -1218,18 +1215,15 @@ pub trait MatchMethods : TElement {
     /// Performs the cascade for the element's primary style.
     fn cascade_primary(&self,
                        context: &mut StyleContext<Self>,
-                       mut data: &mut ElementData,
-                       possibly_expired_animations: &mut Vec<PropertyAnimation>)
+                       mut data: &mut ElementData)
     {
-        self.cascade_primary_or_pseudo(context, &mut data, None,
-                                       possibly_expired_animations, /* animate = */ true);
+        self.cascade_primary_or_pseudo(context, &mut data, None, /* animate = */ true);
     }
 
     /// Performs the cascade for the element's eager pseudos.
     fn cascade_pseudos(&self,
                        context: &mut StyleContext<Self>,
-                       mut data: &mut ElementData,
-                       possibly_expired_animations: &mut Vec<PropertyAnimation>)
+                       mut data: &mut ElementData)
     {
         // Note that we've already set up the map of matching pseudo-elements
         // in match_pseudos (and handled the damage implications of changing
@@ -1240,8 +1234,7 @@ pub trait MatchMethods : TElement {
         for pseudo in matched_pseudos {
             // Only ::before and ::after are animatable.
             let animate = pseudo.is_before_or_after();
-            self.cascade_primary_or_pseudo(context, data, Some(&pseudo),
-                                           possibly_expired_animations, animate);
+            self.cascade_primary_or_pseudo(context, data, Some(&pseudo), animate);
         }
     }
 
