@@ -2759,6 +2759,18 @@
      {}
     ]
    ],
+   "css/inline_block_percentage_margin.html": [
+    [
+     "/_mozilla/css/inline_block_percentage_margin.html",
+     [
+      [
+       "/_mozilla/css/inline_block_percentage_margin_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "css/inline_block_stacking_context_a.html": [
     [
      "/_mozilla/css/inline_block_stacking_context_a.html",
@@ -9611,6 +9623,11 @@
     ]
    ],
    "mozilla/referrer-policy/generic/subresource/mozresource.py": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/referrer-policy/generic/subresource/mozresource.pyc": [
     [
      {}
     ]
@@ -21797,6 +21814,10 @@
    "bad4704435c74a3204925206802eb004f380500e",
    "support"
   ],
+  "css/inline_block_percentage_margin.html": [
+   "f0cbaa1f582c6088789c2fc68246d90bb4b60e8b",
+   "reftest"
+  ],
   "css/inline_block_stacking_context_a.html": [
    "6c872ab3c551e4fe6c293468aa310ae61487b583",
    "reftest"
@@ -25847,6 +25868,10 @@
   ],
   "mozilla/referrer-policy/generic/subresource/mozresource.py": [
    "d5e7151e650a785f23df411f1f302116372f4dc6",
+   "support"
+  ],
+  "mozilla/referrer-policy/generic/subresource/mozresource.pyc": [
+   "5547d2f263cbfb40361e1714a6b23650a0571853",
    "support"
   ],
   "mozilla/referrer-policy/generic/subresource/stash.py": [
