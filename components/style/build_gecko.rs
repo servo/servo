@@ -274,6 +274,8 @@ mod bindings {
             .include(add_include("nsThemeConstants.h"))
             .include(add_include("mozilla/dom/AnimationEffectReadOnlyBinding.h"))
             .include(add_include("mozilla/AnimationPropertySegment.h"))
+            .include(add_include("mozilla/ComputedTiming.h"))
+            .include(add_include("mozilla/ComputedTimingFunction.h"))
             .include(add_include("mozilla/Keyframe.h"))
             .include(add_include("mozilla/ServoElementSnapshot.h"))
             .include(add_include("mozilla/dom/Element.h"))
@@ -310,6 +312,9 @@ mod bindings {
         let whitelist = [
             "RawGecko.*",
             "mozilla::AnimationPropertySegment",
+            "mozilla::ComputedTiming",
+            "mozilla::ComputedTimingFunction",
+            "mozilla::ComputedTimingFunction::BeforeFlag",
             "mozilla::ServoStyleSheet",
             "mozilla::ServoElementSnapshot.*",
             "mozilla::CSSPseudoClassType",
