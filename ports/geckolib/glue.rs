@@ -39,7 +39,9 @@ use style::gecko_bindings::bindings::{RawServoStyleSheetStrong, ServoComputedVal
 use style::gecko_bindings::bindings::{ServoCssRulesBorrowed, ServoCssRulesStrong};
 use style::gecko_bindings::bindings::{nsACString, nsAString};
 use style::gecko_bindings::bindings::Gecko_AnimationAppendKeyframe;
+use style::gecko_bindings::bindings::RawGeckoAnimationPropertySegmentBorrowed;
 use style::gecko_bindings::bindings::RawGeckoComputedKeyframeValuesListBorrowedMut;
+use style::gecko_bindings::bindings::RawGeckoComputedTimingBorrowed;
 use style::gecko_bindings::bindings::RawGeckoElementBorrowed;
 use style::gecko_bindings::bindings::RawGeckoFontFaceRuleListBorrowedMut;
 use style::gecko_bindings::bindings::RawServoAnimationValueBorrowed;
@@ -251,6 +253,46 @@ pub extern "C" fn Servo_AnimationValueMap_Push(value_map: RawServoAnimationValue
     let value_map = RwLock::<AnimationValueMap>::as_arc(&value_map);
     let value = AnimationValue::as_arc(&value).as_ref();
     value_map.write().insert(property.into(), value.clone());
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_AnimationCompose(raw_value_map: RawServoAnimationValueMapBorrowed,
+                                         property: nsCSSPropertyID,
+                                         segment: RawGeckoAnimationPropertySegmentBorrowed,
+                                         computed_timing: RawGeckoComputedTimingBorrowed)
+{
+    use style::gecko_bindings::bindings::Gecko_GetPositionInSegment;
+    use style::gecko_bindings::bindings::Gecko_GetProgressFromComputedTiming;
+    use style::properties::animated_properties::AnimationValueMap;
+
+    let property: TransitionProperty = property.into();
+    let value_map = RwLock::<AnimationValueMap>::as_arc(&raw_value_map);
+
+    let from_value = unsafe { &*segment.mFromValue.mServo.mRawPtr };
+    let from_value = AnimationValue::as_arc(&from_value).as_ref();
+    let to_value = unsafe { &*segment.mToValue.mServo.mRawPtr };
+    let to_value = AnimationValue::as_arc(&to_value).as_ref();
+
+    let progress = unsafe { Gecko_GetProgressFromComputedTiming(computed_timing) };
+    if segment.mToKey == segment.mFromKey {
+        if progress < 0. {
+            value_map.write().insert(property, from_value.clone());
+        } else {
+            value_map.write().insert(property, to_value.clone());
+        }
+        return;
+    }
+
+    let position = unsafe {
+        Gecko_GetPositionInSegment(segment, progress, computed_timing.mBeforeFlag)
+    };
+    if let Ok(value) = from_value.interpolate(to_value, position) {
+        value_map.write().insert(property, value);
+    } else if progress < 0.5 {
+        value_map.write().insert(property, from_value.clone());
+    } else {
+        value_map.write().insert(property, to_value.clone());
+    }
 }
 
 macro_rules! get_property_id_from_nscsspropertyid {
