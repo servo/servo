@@ -9,12 +9,12 @@ use dom::bindings::str::DOMString;
 use dom::keyboardevent::KeyboardEvent;
 use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
 use msg::constellation_msg::{Key, KeyModifiers};
-use unicode_segmentation::UnicodeSegmentation;
 use std::borrow::ToOwned;
 use std::cmp::{max, min};
 use std::default::Default;
 use std::ops::Range;
 use std::usize;
+use unicode_segmentation::UnicodeSegmentation;
 
 #[derive(Copy, Clone, PartialEq)]
 pub enum Selection {
