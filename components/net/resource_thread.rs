@@ -25,6 +25,8 @@ use net_traits::storage_thread::StorageThreadMsg;
 use profile_traits::time::ProfilerChan;
 use serde::{Deserialize, Serialize};
 use serde_json;
+use servo_config::opts;
+use servo_config::resource_files::resources_dir_path;
 use servo_url::ServoUrl;
 use std::borrow::{Cow, ToOwned};
 use std::collections::HashMap;
@@ -108,13 +110,21 @@ fn create_resource_groups(config_dir: Option<&Path>)
         auth_cache: RwLock::new(auth_cache),
         hsts_list: RwLock::new(hsts_list),
     };
-    let ssl_client = create_ssl_client("certs");
+
+    let ca_file = match opts::get().certificate_path {
+        Some(ref path) => PathBuf::from(path),
+        None => resources_dir_path()
+            .expect("Need certificate file to make network requests")
+            .join("certs"),
+    };
+    let ssl_client = create_ssl_client(&ca_file);
+
     let resource_group = ResourceGroup {
         http_state: Arc::new(http_state),
         ssl_client: ssl_client.clone(),
         connector: create_http_connector(ssl_client.clone()),
     };
-    let private_ssl_client = create_ssl_client("certs");
+    let private_ssl_client = create_ssl_client(&ca_file);
     let private_resource_group = ResourceGroup {
         http_state: Arc::new(HttpState::new()),
         ssl_client: private_ssl_client.clone(),

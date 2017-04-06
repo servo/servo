@@ -11230,12 +11230,6 @@
      {}
     ]
    ],
-   "mozilla/bad_cert_detected.html": [
-    [
-     "/_mozilla/mozilla/bad_cert_detected.html",
-     {}
-    ]
-   ],
    "mozilla/binding_keyword.html": [
     [
      "/_mozilla/mozilla/binding_keyword.html",
@@ -19650,6 +19644,12 @@
      {}
     ]
    ],
+   "mozilla/secure.https.html": [
+    [
+     "/_mozilla/mozilla/secure.https.html",
+     {}
+    ]
+   ],
    "mozilla/send-arraybuffer.htm": [
     [
      "/_mozilla/mozilla/send-arraybuffer.htm",
@@ -24276,10 +24276,6 @@
   "mozilla/adopt-panic.css": [
    "170d51460da58c16f5cf94ecda18f18a1c18c116",
    "support"
-  ],
-  "mozilla/bad_cert_detected.html": [
-   "5d49332d2a6c823bfaf378f84641ce8bba5c8210",
-   "testharness"
   ],
   "mozilla/binding_keyword.html": [
    "c79aa6d506fbabbed0f6f31d1b8600ea6ba8ff41",
@@ -31148,6 +31144,10 @@
   "mozilla/scrolling_div_background_borders_ref.html": [
    "6cb4fd833674380c660c0f5ff0f5dd5cb18ed1dd",
    "support"
+  ],
+  "mozilla/secure.https.html": [
+   "fc757effccd93c56ab79b0510a01ae815b7a8714",
+   "testharness"
   ],
   "mozilla/send-arraybuffer.htm": [
    "dc04c6f888458b28bd29a3a43f4dab7f12e72a33",

@@ -16,6 +16,8 @@ extern crate hyper_openssl;
 extern crate hyper_serde;
 extern crate immeta;
 extern crate ipc_channel;
+#[macro_use]
+extern crate lazy_static;
 #[macro_use] extern crate log;
 #[macro_use] #[no_link] extern crate matches;
 #[macro_use]
@@ -24,6 +26,7 @@ extern crate mime_guess;
 extern crate msg;
 extern crate net_traits;
 extern crate openssl;
+extern crate parse_hosts;
 extern crate profile_traits;
 extern crate serde;
 #[macro_use]
@@ -47,6 +50,7 @@ pub mod cookie;
 pub mod cookie_storage;
 mod data_loader;
 pub mod filemanager_thread;
+mod hosts;
 pub mod hsts;
 mod http_loader;
 pub mod image_cache;
@@ -65,4 +69,5 @@ pub mod fetch {
 pub mod test {
     pub use chrome_loader::resolve_chrome_url;
     pub use http_loader::HttpState;
+    pub use hosts::{replace_host_table, parse_hostsfile};
 }

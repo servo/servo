@@ -6,7 +6,6 @@ use net::hsts::{HstsEntry, HstsList};
 use net_traits::IncludeSubdomains;
 use std::collections::HashMap;
 use time;
-use url::Url;
 
 #[test]
 fn test_hsts_entry_is_not_expired_when_it_has_no_timestamp() {
