@@ -10,7 +10,8 @@ use atomic_refcell::{AtomicRefCell, AtomicRefMut};
 use context::{SharedStyleContext, StyleContext, ThreadLocalStyleContext};
 use data::{ElementData, ElementStyles, StoredRestyleHint};
 use dom::{DirtyDescendants, NodeInfo, TElement, TNode};
-use matching::{MatchMethods, MatchResults};
+use matching::MatchMethods;
+use matching::relations_are_shareable;
 use restyle_hints::{RESTYLE_DESCENDANTS, RESTYLE_SELF};
 use selector_parser::RestyleDamage;
 use servo_config::opts;
@@ -586,7 +587,7 @@ fn compute_style<E, D>(_traversal: &D,
         }
     }
 
-    let match_results = match kind {
+    match kind {
         MatchAndCascade => {
             // Ensure the bloom filter is up to date.
             let dom_depth =
@@ -605,35 +606,30 @@ fn compute_style<E, D>(_traversal: &D,
 
             // Perform CSS selector matching.
             context.thread_local.statistics.elements_matched += 1;
-            element.match_element(context, &mut data)
+            let (primary_relations, _rule_nodes_changed) =
+                element.match_element(context, &mut data);
+
+            // Cascade properties and compute values.
+            element.cascade_element(context, &mut data);
+
+            // If the style is shareable, add it to the LRU cache.
+            if relations_are_shareable(&primary_relations) {
+                context.thread_local
+                       .style_sharing_candidate_cache
+                       .insert_if_possible(&element,
+                                           data.styles().primary.values(),
+                                           primary_relations);
+            }
         }
         CascadeWithReplacements(hint) => {
-            let rule_nodes_changed =
+            let _rule_nodes_changed =
                 element.cascade_with_replacements(hint, context, &mut data);
-            MatchResults {
-                primary_relations: None,
-                rule_nodes_changed: rule_nodes_changed,
-            }
+            element.cascade_element(context, &mut data);
         }
         CascadeOnly => {
-            MatchResults {
-                primary_relations: None,
-                rule_nodes_changed: false,
-            }
+            element.cascade_element(context, &mut data);
         }
     };
-
-    // Cascade properties and compute values.
-    element.cascade_element(context, &mut data);
-
-    // If the style is shareable, add it to the LRU cache.
-    if match_results.primary_is_shareable() {
-        context.thread_local
-               .style_sharing_candidate_cache
-               .insert_if_possible(&element,
-                                   data.styles().primary.values(),
-                                   match_results.primary_relations.unwrap());
-    }
 }
 
 fn preprocess_children<E, D>(traversal: &D,

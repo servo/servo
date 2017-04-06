@@ -30,7 +30,7 @@ use stylist::ApplicableDeclarationBlock;
 
 /// Determines the amount of relations where we're going to share style.
 #[inline]
-fn relations_are_shareable(relations: &StyleRelations) -> bool {
+pub fn relations_are_shareable(relations: &StyleRelations) -> bool {
     use selectors::matching::*;
     !relations.intersects(AFFECTED_BY_ID_SELECTOR |
                           AFFECTED_BY_PSEUDO_ELEMENTS | AFFECTED_BY_STATE |
@@ -56,24 +56,6 @@ fn create_common_style_affecting_attributes_from_element<E: TElement>(element: &
         }
     }
     flags
-}
-
-/// The results returned from running selector matching on an element.
-pub struct MatchResults {
-    /// A set of style relations (different hints about what rules matched or
-    /// could have matched). This is necessary if the style will be shared.
-    /// If None, the style will not be shared.
-    pub primary_relations: Option<StyleRelations>,
-    /// Whether the rule nodes changed during selector matching.
-    pub rule_nodes_changed: bool,
-}
-
-impl MatchResults {
-    /// Returns true if the primary rule node is shareable with other nodes.
-    pub fn primary_is_shareable(&self) -> bool {
-        self.primary_relations.as_ref()
-            .map_or(false, relations_are_shareable)
-    }
 }
 
 /// Information regarding a style sharing candidate.
@@ -799,7 +781,7 @@ pub trait MatchMethods : TElement {
     fn match_element(&self,
                      context: &mut StyleContext<Self>,
                      data: &mut ElementData)
-                     -> MatchResults
+                     -> (StyleRelations, bool)
     {
         let mut applicable_declarations =
             Vec::<ApplicableDeclarationBlock>::with_capacity(16);
@@ -887,10 +869,7 @@ pub trait MatchMethods : TElement {
             primary_relations |= AFFECTED_BY_PSEUDO_ELEMENTS;
         }
 
-        MatchResults {
-            primary_relations: Some(primary_relations),
-            rule_nodes_changed: rule_nodes_changed,
-        }
+        (primary_relations, rule_nodes_changed)
     }
 
     /// Applies selector flags to an element, deferring mutations of the parent
