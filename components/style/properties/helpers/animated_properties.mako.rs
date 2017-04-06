@@ -399,6 +399,23 @@ impl AnimationValue {
             _ => None // non animatable properties will get included because of shorthands. ignore.
         }
     }
+
+    /// Get an AnimationValue for a TransitionProperty from a given computed values.
+    pub fn from_computed_values(transition_property: &TransitionProperty,
+                                computed_values: &ComputedValues)
+                                -> Self {
+        match *transition_property {
+            TransitionProperty::All => panic!("Can't use TransitionProperty::All here."),
+            % for prop in data.longhands:
+                % if prop.animatable:
+                    TransitionProperty::${prop.camel_case} => {
+                        AnimationValue::${prop.camel_case}(
+                            computed_values.get_${prop.style_struct.ident.strip("_")}().clone_${prop.ident}())
+                    }
+                % endif
+            % endfor
+        }
+    }
 }
 
 impl Interpolate for AnimationValue {

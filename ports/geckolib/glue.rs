@@ -341,6 +341,15 @@ pub extern "C" fn Servo_StyleSet_GetBaseComputedValuesForElement(raw_data: RawSe
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_ComputedValues_ExtractAnimationValue(computed_values: ServoComputedValuesBorrowed,
+                                                             property_id: nsCSSPropertyID)
+                                                             -> RawServoAnimationValueStrong
+{
+    let computed_values = ComputedValues::as_arc(&computed_values);
+    Arc::new(AnimationValue::from_computed_values(&property_id.into(), computed_values)).into_strong()
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_StyleWorkerThreadCount() -> u32 {
     GLOBAL_STYLE_DATA.num_threads as u32
 }
