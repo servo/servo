@@ -597,6 +597,8 @@ mod bindings {
             .whitelisted_function("Gecko_.*");
         let structs_types = [
             "mozilla::css::URLValue",
+            "RawGeckoAnimationPropertySegment",
+            "RawGeckoComputedTiming",
             "RawGeckoDocument",
             "RawGeckoElement",
             "RawGeckoKeyframeList",
@@ -614,6 +616,7 @@ mod bindings {
             "RefPtr",
             "CSSPseudoClassType",
             "TraversalRootBehavior",
+            "ComputedTimingFunction_BeforeFlag",
             "FontFamilyList",
             "FontFamilyType",
             "Keyframe",
@@ -714,7 +717,9 @@ mod bindings {
         let servo_borrow_types = [
             "nsCSSValue",
             "nsTimingFunction",
+            "RawGeckoAnimationPropertySegment",
             "RawGeckoAnimationValueList",
+            "RawGeckoComputedTiming",
             "RawGeckoKeyframeList",
             "RawGeckoComputedKeyframeValuesList",
             "RawGeckoFontFaceRuleList",
