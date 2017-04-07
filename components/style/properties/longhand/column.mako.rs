@@ -14,7 +14,7 @@ ${helpers.predefined_type("column-width",
                           parse_method="parse_non_negative_length",
                           extra_prefixes="moz",
                           boxed=True,
-                          animatable=False,
+                          animation_type="none",
                           experimental=True,
                           spec="https://drafts.csswg.org/css-multicol/#propdef-column-width")}
 
@@ -25,7 +25,7 @@ ${helpers.predefined_type("column-count", "IntegerOrAuto",
                           parse_method="parse_positive",
                           initial_specified_value="Either::Second(Auto)",
                           experimental="True",
-                          animatable="False",
+                          animation_type="none",
                           extra_prefixes="moz",
                           spec="https://drafts.csswg.org/css-multicol/#propdef-column-count")}
 
@@ -37,15 +37,15 @@ ${helpers.predefined_type("column-gap",
                           extra_prefixes="moz",
                           experimental=True,
                           boxed=True,
-                          animatable=False,
+                          animation_type="none",
                           spec="https://drafts.csswg.org/css-multicol/#propdef-column-gap")}
 
 ${helpers.single_keyword("column-fill", "balance auto", extra_prefixes="moz",
-                         products="gecko", animatable=False,
+                         products="gecko", animation_type="none",
                          spec="https://drafts.csswg.org/css-multicol/#propdef-column-fill")}
 
 // https://drafts.csswg.org/css-multicol-1/#propdef-column-rule-width
-<%helpers:longhand name="column-rule-width" products="gecko" boxed="True" animatable="True" extra_prefixes="moz"
+<%helpers:longhand name="column-rule-width" products="gecko" boxed="True" animation_type="normal" extra_prefixes="moz"
                    spec="https://drafts.csswg.org/css-multicol/#propdef-column-rule-width">
     use app_units::Au;
     use std::fmt;
@@ -79,18 +79,18 @@ ${helpers.single_keyword("column-fill", "balance auto", extra_prefixes="moz",
 ${helpers.predefined_type("column-rule-color", "CSSColor",
                           "::cssparser::Color::CurrentColor",
                           initial_specified_value="specified::CSSColor::currentcolor()",
-                          products="gecko", animatable=True, extra_prefixes="moz",
+                          products="gecko", animation_type="normal", extra_prefixes="moz",
                           complex_color=True, need_clone=True,
                           spec="https://drafts.csswg.org/css-multicol/#propdef-column-rule-color")}
 
 // It's not implemented in servo or gecko yet.
 ${helpers.single_keyword("column-span", "none all",
-                         products="none", animatable=False,
+                         products="none", animation_type="none",
                          spec="https://drafts.csswg.org/css-multicol/#propdef-column-span")}
 
 ${helpers.single_keyword("column-rule-style",
                          "none hidden dotted dashed solid double groove ridge inset outset",
                          products="gecko", extra_prefixes="moz",
                          gecko_constant_prefix="NS_STYLE_BORDER_STYLE",
-                         animatable=False,
+                         animation_type="none",
                          spec="https://drafts.csswg.org/css-multicol/#propdef-column-rule-style")}

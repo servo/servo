@@ -1070,6 +1070,12 @@ fn static_assert() {
 
     ${impl_simple_copy('align_items', 'mAlignItems')}
 
+    pub fn clone_align_items(&self) -> longhands::align_items::computed_value::T {
+        use values::specified::align::{AlignFlags, AlignItems};
+        AlignItems(AlignFlags::from_bits(self.gecko.mAlignItems)
+                                        .expect("mAlignItems contains valid flags"))
+    }
+
     pub fn set_justify_items(&mut self, v: longhands::justify_items::computed_value::T) {
         self.gecko.mJustifyItems = v.0.bits()
     }
