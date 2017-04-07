@@ -33,4 +33,5 @@ fn test_transform_translate() {
     assert_roundtrip_with_context!(transform::parse, "translate(2px)");
     assert_roundtrip_with_context!(transform::parse, "translate(2px, 5px)");
     assert!(parse(transform::parse, "translate(2px foo)").is_err());
+    assert!(parse(transform::parse, "perspective(-10px)").is_err());
 }

@@ -1213,6 +1213,8 @@ ${helpers.predefined_type("scroll-snap-coordinate",
         ///
         /// Part of CSS Transform Module Level 2 and defined at
         /// [§ 13.1. 3D Transform Function](https://drafts.csswg.org/css-transforms-2/#funcdef-perspective).
+        ///
+        /// The value must be greater than or equal to zero.
         Perspective(specified::Length),
     }
 
@@ -1535,7 +1537,7 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                 },
                 "perspective" => {
                     try!(input.parse_nested_block(|input| {
-                        let d = try!(specified::Length::parse(context, input));
+                        let d = try!(specified::Length::parse_non_negative(input));
                         result.push(SpecifiedOperation::Perspective(d));
                         Ok(())
                     }))
