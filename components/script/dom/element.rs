@@ -2152,10 +2152,6 @@ impl ElementMethods for Element {
     }
 }
 
-pub fn fragment_affecting_attributes() -> [LocalName; 3] {
-    [local_name!("width"), local_name!("height"), local_name!("src")]
-}
-
 impl VirtualMethods for Element {
     fn super_type(&self) -> Option<&VirtualMethods> {
         Some(self.upcast::<Node>() as &VirtualMethods)
