@@ -2885,11 +2885,12 @@ fn static_assert() {
 
     pub fn clone_letter_spacing(&self) -> longhands::letter_spacing::computed_value::T {
         use properties::longhands::letter_spacing::computed_value::T;
-        match self.gecko.mLetterSpacing.as_value() {
-            CoordDataValue::Normal => T(None),
-            CoordDataValue::Coord(coord) => T(Some(Au(coord))),
-            _ => unreachable!("Unexpected computed value for letter-spacing"),
-        }
+        debug_assert!(
+            matches!(self.gecko.mLetterSpacing.as_value(),
+                     CoordDataValue::Normal |
+                     CoordDataValue::Coord(_)),
+            "Unexpected computed value for letter-spacing");
+        T(Au::from_gecko_style_coord(&self.gecko.mLetterSpacing))
     }
 
     <%call expr="impl_coord_copy('letter_spacing', 'mLetterSpacing')"></%call>
@@ -2900,6 +2901,19 @@ fn static_assert() {
             // https://drafts.csswg.org/css-text-3/#valdef-word-spacing-normal
             None => self.gecko.mWordSpacing.set_value(CoordDataValue::Coord(0)),
         }
+    }
+
+    pub fn clone_word_spacing(&self) -> longhands::word_spacing::computed_value::T {
+        use properties::longhands::word_spacing::computed_value::T;
+        use values::computed::LengthOrPercentage;
+        debug_assert!(
+            matches!(self.gecko.mWordSpacing.as_value(),
+                     CoordDataValue::Normal |
+                     CoordDataValue::Coord(_) |
+                     CoordDataValue::Percent(_) |
+                     CoordDataValue::Calc(_)),
+            "Unexpected computed value for word-spacing");
+        T(LengthOrPercentage::from_gecko_style_coord(&self.gecko.mWordSpacing))
     }
 
     <%call expr="impl_coord_copy('word_spacing', 'mWordSpacing')"></%call>

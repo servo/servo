@@ -736,3 +736,26 @@
     %>
 </%def>
 
+/// Macro for defining Interpolate trait for tuple struct which has Option<T>,
+/// e.g. struct T(pub Option<Au>).
+<%def name="impl_interpolate_for_option_tuple(value_for_none)">
+    impl Interpolate for T {
+        #[inline]
+        fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
+            match (self, other) {
+                (&T(Some(ref this)), &T(Some(ref other))) => {
+                    Ok(T(this.interpolate(other, progress).ok()))
+                },
+                (&T(Some(ref this)), &T(None)) => {
+                    Ok(T(this.interpolate(&${value_for_none}, progress).ok()))
+                },
+                (&T(None), &T(Some(ref other))) => {
+                    Ok(T(${value_for_none}.interpolate(other, progress).ok()))
+                },
+                (&T(None), &T(None)) => {
+                    Ok(T(None))
+                },
+            }
+        }
+    }
+</%def>
