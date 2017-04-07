@@ -22,6 +22,7 @@ namespace console {
   void assert(boolean condition, optional DOMString message);
   void time(DOMString message);
   void timeEnd(DOMString message);
-  void group(optional DOMString label);
+  void group(DOMString... data);
+  void groupCollapsed(DOMString... data);
   void groupEnd();
 };

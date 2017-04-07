@@ -231,6 +231,7 @@ pub enum LogLevel {
     Warn,
     Error,
     Group,
+    GroupCollapsed,
     GroupEnd,
 }
 

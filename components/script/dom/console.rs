@@ -14,7 +14,11 @@ pub struct Console(());
 impl Console {
     fn send_to_devtools(global: &GlobalScope, level: LogLevel, message: DOMString) {
         if let Some(chan) = global.devtools_chan() {
-            let group_name = if level == LogLevel::Group { message.clone() } else { DOMString::new() };
+            let group_name = if level == LogLevel::Group || LogLevel::GroupCollapsed {
+                message.clone()
+            } else {
+                DOMString::new()
+            };
             let console_message = prepare_message(level, message, group_name);
             let worker_id = global.downcast::<WorkerGlobalScope>().map(|worker| {
                 worker.get_worker_id()
@@ -99,9 +103,23 @@ impl Console {
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/group
-    pub fn Group(global: &GlobalScope, label: Option<DOMString>) {
-        let label = label.unwrap_or_else(|| DOMString::from("<no group label>"));
+    pub fn Group(global: &GlobalScope, data: Vec<DOMString>) {
+        let label = if data.len() > 0 {
+            DOMString::from(data.join(" "))
+        } else {
+            DOMString::from("<no group label>")
+        };
         Self::send_to_devtools(global, LogLevel::Group, label);
+    }
+
+    // https://developer.mozilla.org/en-US/docs/Web/API/Console/groupCollapsed
+    pub fn GroupCollapsed(global: &GlobalScope, data: Vec<DOMString>) {
+        let label = if data.len() > 0 {
+            DOMString::from(data.join(" "))
+        } else {
+            DOMString::from("<no group label>")
+        };
+        Self::send_to_devtools(global, LogLevel::GroupCollapsed, label);
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/groupEnd

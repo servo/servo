@@ -302,6 +302,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                     LogLevel::Warn => "warn",
                     LogLevel::Error => "error",
                     LogLevel::Group => "group",
+                    LogLevel::GroupCollapsed => "groupCollapsed",
                     LogLevel::GroupEnd => "groupEnd",
                     _ => "log"
                 }.to_owned(),
