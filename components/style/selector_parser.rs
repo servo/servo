@@ -7,9 +7,8 @@
 #![deny(missing_docs)]
 
 use cssparser::Parser as CssParser;
-use matching::{common_style_affecting_attributes, CommonStyleAffectingAttributeMode};
 use selectors::Element;
-use selectors::parser::{AttrSelector, SelectorList};
+use selectors::parser::SelectorList;
 use std::fmt::Debug;
 use stylesheets::{Origin, Namespaces};
 
@@ -129,42 +128,4 @@ impl SelectorImpl {
             }
         })
     }
-}
-
-/// Checks whether we can share style if an element matches a given
-/// attribute-selector that checks for existence (`[attr_name]`) easily.
-///
-/// We could do the same thing that we do for sibling rules and keep optimizing
-/// these common attributes, but we'd have to measure how common it is.
-pub fn attr_exists_selector_is_shareable(attr_selector: &AttrSelector<SelectorImpl>) -> bool {
-    // NB(pcwalton): If you update this, remember to update the corresponding list in
-    // `can_share_style_with()` as well.
-    common_style_affecting_attributes().iter().any(|common_attr_info| {
-        common_attr_info.attr_name == attr_selector.name && match common_attr_info.mode {
-            CommonStyleAffectingAttributeMode::IsPresent(_) => true,
-            CommonStyleAffectingAttributeMode::IsEqual(..) => false,
-        }
-    })
-}
-
-/// Checks whether we can share style if an element matches a given
-/// attribute-selector that checks for equality (`[attr_name="attr_value"]`)
-/// easily.
-///
-/// We could do the same thing that we do for sibling rules and keep optimizing
-/// these common attributes, but we'd have to measure how common it is.
-pub fn attr_equals_selector_is_shareable(attr_selector: &AttrSelector<SelectorImpl>,
-                                         value: &AttrValue) -> bool {
-    // FIXME(pcwalton): Remove once we start actually supporting RTL text. This is in
-    // here because the UA style otherwise disables all style sharing completely.
-    // FIXME(SimonSapin): should this be the attribute *name* rather than value?
-    atom!("dir") == *value ||
-    common_style_affecting_attributes().iter().any(|common_attr_info| {
-        common_attr_info.attr_name == attr_selector.name && match common_attr_info.mode {
-            CommonStyleAffectingAttributeMode::IsEqual(ref target_value, _) => {
-                *target_value == *value
-            }
-            CommonStyleAffectingAttributeMode::IsPresent(_) => false,
-        }
-    })
 }

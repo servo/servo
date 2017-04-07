@@ -6,7 +6,8 @@
 
 #![deny(missing_docs)]
 
-use parser::{AttrSelector, ComplexSelector, SelectorImpl, SimpleSelector};
+use parser::{AttrSelector, Combinator, ComplexSelector, SelectorImpl, SimpleSelector};
+use std::sync::Arc;
 
 /// A trait to visit selector properties.
 ///
@@ -24,7 +25,13 @@ pub trait SelectorVisitor {
     }
 
     /// Visits a complex selector.
-    fn visit_complex_selector(&mut self, _: &ComplexSelector<Self::Impl>) -> bool {
+    ///
+    /// Gets the combinator to the right of the selector, or `None` if the
+    /// selector is the leftmost one.
+    fn visit_complex_selector(&mut self,
+                              _: &Arc<ComplexSelector<Self::Impl>>,
+                              _combinator_to_right: Option<Combinator>)
+                              -> bool {
         true
     }
 

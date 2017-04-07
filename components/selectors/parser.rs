@@ -145,15 +145,16 @@ impl<Impl: SelectorImpl> SelectorMethods for Selector<Impl> {
     }
 }
 
-impl<Impl: SelectorImpl> SelectorMethods for ComplexSelector<Impl> {
+impl<Impl: SelectorImpl> SelectorMethods for Arc<ComplexSelector<Impl>> {
     type Impl = Impl;
 
     fn visit<V>(&self, visitor: &mut V) -> bool
         where V: SelectorVisitor<Impl = Impl>,
     {
         let mut current = self;
+        let mut combinator = None;
         loop {
-            if !visitor.visit_complex_selector(current) {
+            if !visitor.visit_complex_selector(current, combinator) {
                 return false;
             }
 
@@ -164,7 +165,10 @@ impl<Impl: SelectorImpl> SelectorMethods for ComplexSelector<Impl> {
             }
 
             match current.next {
-                Some((ref next, _)) => current = next,
+                Some((ref next, next_combinator)) => {
+                    current = next;
+                    combinator = Some(next_combinator);
+                }
                 None => break,
             }
         }
@@ -220,30 +224,6 @@ impl<Impl: SelectorImpl> SelectorMethods for SimpleSelector<Impl> {
 pub struct ComplexSelector<Impl: SelectorImpl> {
     pub compound_selector: Vec<SimpleSelector<Impl>>,
     pub next: Option<(Arc<ComplexSelector<Impl>>, Combinator)>,  // c.next is left of c
-}
-
-impl<Impl: SelectorImpl> ComplexSelector<Impl> {
-    /// Visits this selectors and all the ones to the left of it, until a
-    /// visitor method returns `false`.
-    pub fn visit<V>(&self, visitor: &mut V) -> bool
-        where V: SelectorVisitor<Impl = Impl>,
-    {
-        let mut current = self;
-        loop {
-            for selector in &current.compound_selector {
-                if !selector.visit(visitor) {
-                    return false;
-                }
-            }
-
-            match current.next {
-                Some((ref next, _)) => current = next,
-                None => break,
-            }
-        }
-
-        true
-    }
 }
 
 #[derive(Eq, PartialEq, Clone, Copy, Debug, Hash)]
