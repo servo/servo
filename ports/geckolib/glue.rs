@@ -100,10 +100,10 @@ use super::stylesheet_loader::StylesheetLoader;
 
 // A dummy url data for where we don't pass url data in.
 // We need to get rid of this sooner than later.
-static mut DUMMY_URL_DATA: Option<*mut URLExtraData> = None;
+static mut DUMMY_URL_DATA: *mut URLExtraData = 0 as *mut URLExtraData;
 
 #[no_mangle]
-pub extern "C" fn Servo_Initialize() {
+pub extern "C" fn Servo_Initialize(dummy_url_data: *mut URLExtraData) {
     // Initialize logging.
     let mut builder = LogBuilder::new();
     let default_level = if cfg!(debug_assertions) { "warn" } else { "error" };
@@ -122,9 +122,7 @@ pub extern "C" fn Servo_Initialize() {
     gecko_properties::initialize();
 
     // Initialize the dummy url data
-    unsafe {
-        DUMMY_URL_DATA = Some(bindings::Gecko_URLExtraData_CreateDummy());
-    }
+    unsafe { DUMMY_URL_DATA = dummy_url_data; }
 }
 
 #[no_mangle]
@@ -132,12 +130,13 @@ pub extern "C" fn Servo_Shutdown() {
     // Clear some static data to avoid shutdown leaks.
     gecko_properties::shutdown();
 
-    // Clear the dummy url data to avoid shutdown leaks.
-    unsafe { RefPtr::from_addrefed(DUMMY_URL_DATA.take().unwrap()) };
+    // The dummy url will be released after shutdown, so clear the
+    // reference to avoid use-after-free.
+    unsafe { DUMMY_URL_DATA = ptr::null_mut(); }
 }
 
 unsafe fn dummy_url_data() -> &'static RefPtr<URLExtraData> {
-    RefPtr::from_ptr_ref(DUMMY_URL_DATA.as_ref().unwrap())
+    RefPtr::from_ptr_ref(&DUMMY_URL_DATA)
 }
 
 fn create_shared_context<'a>(guard: &'a SharedRwLockReadGuard,

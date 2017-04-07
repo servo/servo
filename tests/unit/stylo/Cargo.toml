@@ -19,12 +19,10 @@ atomic_refcell = "0.1"
 cssparser = "0.12"
 env_logger = "0.4"
 euclid = "0.11"
-lazy_static = "0.2"
 libc = "0.2"
 log = {version = "0.3.5", features = ["release_max_level_info"]}
 parking_lot = "0.3"
 selectors = {path = "../../../components/selectors"}
-servo_url = {path = "../../../components/url"}
 style_traits = {path = "../../../components/style_traits"}
 geckoservo = {path = "../../../ports/geckolib"}
 style = {path = "../../../components/style", features = ["gecko"]}
