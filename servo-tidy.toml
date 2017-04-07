@@ -20,6 +20,7 @@ rand = [
   "parking_lot_core",
   "phf_generator",
   "rayon",
+  "rayon-core",
   "servo_rand",
   "servo-websocket",
   "tempdir",
