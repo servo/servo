@@ -100,7 +100,6 @@ use std::sync::Arc;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::context::{QuirksMode, ReflowGoal};
 use style::element_state::*;
-use style::matching::{common_style_affecting_attributes, rare_style_affecting_attributes};
 use style::properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock, parse_style_attribute};
 use style::properties::longhands::{self, background_image, border_spacing, font_family, font_size, overflow_x};
 use style::restyle_hints::RESTYLE_SELF;
@@ -2234,14 +2233,6 @@ impl VirtualMethods for Element {
                             }
                         }
                     }
-                }
-            },
-            _ if attr.namespace() == &ns!() => {
-                if fragment_affecting_attributes().iter().any(|a| a == attr.local_name()) ||
-                   common_style_affecting_attributes().iter().any(|a| &a.attr_name == attr.local_name()) ||
-                   rare_style_affecting_attributes().iter().any(|a| a == attr.local_name())
-                {
-                    node.dirty(NodeDamage::OtherNodeDamage);
                 }
             },
             _ => {},

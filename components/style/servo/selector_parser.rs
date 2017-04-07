@@ -12,10 +12,10 @@ use cssparser::{Parser as CssParser, ToCss, serialize_identifier};
 use element_state::ElementState;
 use restyle_hints::ElementSnapshot;
 use selector_parser::{ElementExt, PseudoElementCascadeType, SelectorParser};
-use selector_parser::{attr_equals_selector_is_shareable, attr_exists_selector_is_shareable};
 use selectors::{Element, MatchAttrGeneric};
 use selectors::matching::StyleRelations;
 use selectors::parser::{AttrSelector, SelectorMethods};
+use selectors::visitor::SelectorVisitor;
 use std::borrow::Cow;
 use std::fmt;
 use std::fmt::Debug;
@@ -199,10 +199,14 @@ impl ToCss for NonTSPseudoClass {
 }
 
 impl SelectorMethods for NonTSPseudoClass {
-    #[inline]
-    fn affects_siblings(&self) -> bool { false }
-    #[inline]
-    fn matches_non_common_style_affecting_attribute(&self) -> bool { false }
+    type Impl = SelectorImpl;
+
+
+    fn visit<V>(&self, _: &mut V) -> bool
+        where V: SelectorVisitor<Impl = Self::Impl>
+    {
+        true
+    }
 }
 
 impl NonTSPseudoClass {
@@ -251,15 +255,6 @@ impl ::selectors::SelectorImpl for SelectorImpl {
     type NamespaceUrl = Namespace;
     type BorrowedLocalName = LocalName;
     type BorrowedNamespaceUrl = Namespace;
-
-    fn attr_exists_selector_is_shareable(attr_selector: &AttrSelector<Self>) -> bool {
-        attr_exists_selector_is_shareable(attr_selector)
-    }
-
-    fn attr_equals_selector_is_shareable(attr_selector: &AttrSelector<Self>,
-                                         value: &Self::AttrValue) -> bool {
-        attr_equals_selector_is_shareable(attr_selector, value)
-    }
 }
 
 impl<'a> ::selectors::Parser for SelectorParser<'a> {

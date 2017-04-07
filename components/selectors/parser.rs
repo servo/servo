@@ -145,15 +145,16 @@ impl<Impl: SelectorImpl> SelectorMethods for Selector<Impl> {
     }
 }
 
-impl<Impl: SelectorImpl> SelectorMethods for ComplexSelector<Impl> {
+impl<Impl: SelectorImpl> SelectorMethods for Arc<ComplexSelector<Impl>> {
     type Impl = Impl;
 
     fn visit<V>(&self, visitor: &mut V) -> bool
         where V: SelectorVisitor<Impl = Impl>,
     {
         let mut current = self;
+        let mut combinator = None;
         loop {
-            if !visitor.visit_complex_selector(current) {
+            if !visitor.visit_complex_selector(current, combinator) {
                 return false;
             }
 
@@ -164,7 +165,10 @@ impl<Impl: SelectorImpl> SelectorMethods for ComplexSelector<Impl> {
             }
 
             match current.next {
-                Some((ref next, _)) => current = next,
+                Some((ref next, next_combinator)) => {
+                    current = next;
+                    combinator = Some(next_combinator);
+                }
                 None => break,
             }
         }
