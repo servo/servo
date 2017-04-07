@@ -80,7 +80,7 @@ servo_atoms = {path = "../atoms"}
 servo_config = {path = "../config"}
 servo_geometry = {path = "../geometry" }
 servo_rand = {path = "../rand"}
-servo_url = {path = "../url", features = ["servo"]}
+servo_url = {path = "../url"}
 smallvec = "0.3"
 style = {path = "../style"}
 style_traits = {path = "../style_traits"}

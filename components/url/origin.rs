@@ -7,12 +7,11 @@ use servo_rand::Rng;
 use std::cell::RefCell;
 use std::rc::Rc;
 use url::{Host, Origin};
-#[cfg(feature = "servo")] use url_serde;
+use url_serde;
 use uuid::Uuid;
 
 /// The origin of an URL
-#[derive(PartialEq, Eq, Clone, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
+#[derive(PartialEq, Eq, Clone, Debug, HeapSizeOf, Deserialize, Serialize)]
 pub enum ImmutableOrigin {
     /// A globally unique identifier
     Opaque(OpaqueOrigin),
@@ -20,8 +19,7 @@ pub enum ImmutableOrigin {
     /// Consists of the URL's scheme, host and port
     Tuple(
         String,
-        #[cfg_attr(feature = "servo",
-                   serde(deserialize_with = "url_serde::deserialize", serialize_with = "url_serde::serialize"))]
+        #[serde(deserialize_with = "url_serde::deserialize", serialize_with = "url_serde::serialize")]
         Host,
         u16,
     )
@@ -97,18 +95,15 @@ impl ImmutableOrigin {
 }
 
 /// Opaque identifier for URLs that have file or other schemes
-#[derive(Eq, PartialEq, Clone, Debug)]
-#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(Eq, PartialEq, Clone, Debug, Deserialize, Serialize)]
 pub struct OpaqueOrigin(Uuid);
 
-#[cfg(feature = "servo")]
 known_heap_size!(0, OpaqueOrigin);
 
 /// A representation of an [origin](https://html.spec.whatwg.org/multipage/#origin-2).
 #[derive(Clone, Debug)]
 pub struct MutableOrigin(Rc<(ImmutableOrigin, RefCell<Option<Host>>)>);
 
-#[cfg(feature = "servo")]
 known_heap_size!(0, MutableOrigin);
 
 impl MutableOrigin {

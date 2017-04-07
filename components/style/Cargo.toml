@@ -18,7 +18,7 @@ use_bindgen = ["bindgen", "regex"]
 servo = ["serde/unstable", "serde", "serde_derive", "heapsize", "heapsize_derive",
          "style_traits/servo", "servo_atoms", "servo_config", "html5ever-atoms",
          "cssparser/heapsize", "cssparser/serde", "encoding",
-         "rayon/unstable", "servo_url", "servo_url/servo"]
+         "rayon/unstable", "servo_url"]
 testing = []
 
 [dependencies]

@@ -19,7 +19,7 @@ rustc-serialize = "0.3"
 serde = {version = "0.9"}
 serde_derive = {version = "0.9"}
 servo_geometry = {path = "../geometry"}
-servo_url = {path = "../url", features = ["servo"]}
+servo_url = {path = "../url"}
 url = "1.2"
 
 [dev-dependencies]
