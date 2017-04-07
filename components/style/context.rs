@@ -5,7 +5,7 @@
 //! The context within which style is calculated.
 #![deny(missing_docs)]
 
-use animation::Animation;
+use animation::{Animation, PropertyAnimation};
 use app_units::Au;
 use bloom::StyleBloom;
 use data::ElementData;
@@ -103,13 +103,16 @@ impl<'a> SharedStyleContext<'a> {
 /// Information about the current element being processed. We group this together
 /// into a single struct within ThreadLocalStyleContext so that we can instantiate
 /// and destroy it easily at the beginning and end of element processing.
-struct CurrentElementInfo {
+pub struct CurrentElementInfo {
     /// The element being processed. Currently we use an OpaqueNode since we only
     /// use this for identity checks, but we could use SendElement if there were
     /// a good reason to.
     element: OpaqueNode,
     /// Whether the element is being styled for the first time.
     is_initial_style: bool,
+    /// A Vec of possibly expired animations. Used only by Servo.
+    #[allow(dead_code)]
+    pub possibly_expired_animations: Vec<PropertyAnimation>,
 }
 
 /// Statistics gathered during the traversal. We gather statistics on each thread
@@ -276,7 +279,7 @@ pub struct ThreadLocalStyleContext<E: TElement> {
     /// Statistics about the traversal.
     pub statistics: TraversalStatistics,
     /// Information related to the current element, non-None during processing.
-    current_element_info: Option<CurrentElementInfo>,
+    pub current_element_info: Option<CurrentElementInfo>,
 }
 
 impl<E: TElement> ThreadLocalStyleContext<E> {
@@ -298,6 +301,7 @@ impl<E: TElement> ThreadLocalStyleContext<E> {
         self.current_element_info = Some(CurrentElementInfo {
             element: element.as_node().opaque(),
             is_initial_style: !data.has_styles(),
+            possibly_expired_animations: Vec::new(),
         });
     }
 
