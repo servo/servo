@@ -223,7 +223,7 @@ pub struct Modification {
     pub newValue: Option<String>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, PartialEq, Serialize)]
 pub enum LogLevel {
     Log,
     Debug,

@@ -12,8 +12,9 @@ use dom::workerglobalscope::WorkerGlobalScope;
 pub struct Console(());
 
 impl Console {
-    fn send_to_devtools(global: &GlobalScope, level: LogLevel, message: DOMString, group_name: DOMString) {
+    fn send_to_devtools(global: &GlobalScope, level: LogLevel, message: DOMString) {
         if let Some(chan) = global.devtools_chan() {
+            let group_name = if level == LogLevel::Group { message.clone() } else { DOMString::new() };
             let console_message = prepare_message(level, message, group_name);
             let worker_id = global.downcast::<WorkerGlobalScope>().map(|worker| {
                 worker.get_worker_id()
@@ -32,7 +33,7 @@ impl Console {
     pub fn Log(global: &GlobalScope, messages: Vec<DOMString>) {
         for message in messages {
             println!("{}", message);
-            Self::send_to_devtools(global, LogLevel::Log, message, DOMString::new());
+            Self::send_to_devtools(global, LogLevel::Log, message);
         }
     }
 
@@ -40,7 +41,7 @@ impl Console {
     pub fn Debug(global: &GlobalScope, messages: Vec<DOMString>) {
         for message in messages {
             println!("{}", message);
-            Self::send_to_devtools(global, LogLevel::Debug, message, DOMString::new());
+            Self::send_to_devtools(global, LogLevel::Debug, message);
         }
     }
 
@@ -48,7 +49,7 @@ impl Console {
     pub fn Info(global: &GlobalScope, messages: Vec<DOMString>) {
         for message in messages {
             println!("{}", message);
-            Self::send_to_devtools(global, LogLevel::Info, message, DOMString::new());
+            Self::send_to_devtools(global, LogLevel::Info, message);
         }
     }
 
@@ -56,7 +57,7 @@ impl Console {
     pub fn Warn(global: &GlobalScope, messages: Vec<DOMString>) {
         for message in messages {
             println!("{}", message);
-            Self::send_to_devtools(global, LogLevel::Warn, message, DOMString::new());
+            Self::send_to_devtools(global, LogLevel::Warn, message);
         }
     }
 
@@ -64,7 +65,7 @@ impl Console {
     pub fn Error(global: &GlobalScope, messages: Vec<DOMString>) {
         for message in messages {
             println!("{}", message);
-            Self::send_to_devtools(global, LogLevel::Error, message, DOMString::new());
+            Self::send_to_devtools(global, LogLevel::Error, message);
         }
     }
 
@@ -73,7 +74,7 @@ impl Console {
         if !condition {
             let message = message.unwrap_or_else(|| DOMString::from("no message"));
             println!("Assertion failed: {}", message);
-            Self::send_to_devtools(global, LogLevel::Error, message, DOMString::new());
+            Self::send_to_devtools(global, LogLevel::Error, message);
         }
     }
 
@@ -82,7 +83,7 @@ impl Console {
         if let Ok(()) = global.time(label.clone()) {
             let message = DOMString::from(format!("{}: timer started", label));
             println!("{}", message);
-            Self::send_to_devtools(global, LogLevel::Log, message, DOMString::new());
+            Self::send_to_devtools(global, LogLevel::Log, message);
         }
     }
 
@@ -93,19 +94,19 @@ impl Console {
                 format!("{}: {}ms", label, delta)
             );
             println!("{}", message);
-            Self::send_to_devtools(global, LogLevel::Log, message, DOMString::new());
+            Self::send_to_devtools(global, LogLevel::Log, message);
         };
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/group
     pub fn Group(global: &GlobalScope, label: Option<DOMString>) {
         let label = label.unwrap_or_else(|| DOMString::from("<no group label>"));
-        Self::send_to_devtools(global, LogLevel::Group, label.clone(), label);
+        Self::send_to_devtools(global, LogLevel::Group, label);
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/groupEnd
     pub fn GroupEnd(global: &GlobalScope) {
-        Self::send_to_devtools(global, LogLevel::GroupEnd, DOMString::new(), DOMString::new());
+        Self::send_to_devtools(global, LogLevel::GroupEnd, DOMString::new());
     }
 }
 
