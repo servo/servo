@@ -1709,6 +1709,7 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
         layout_parent_style: parent_style.unwrap_or(default_values),
         style: (**style).clone(),
         font_metrics_provider: &metrics,
+        in_media_query: false,
     };
 
     for (index, keyframe) in keyframes.iter().enumerate() {

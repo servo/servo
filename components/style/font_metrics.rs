@@ -9,7 +9,9 @@
 use Atom;
 use app_units::Au;
 use context::SharedStyleContext;
-use euclid::Size2D;
+use logical_geometry::WritingMode;
+use media_queries::Device;
+use properties::style_structs::Font;
 use std::fmt;
 
 /// Represents the font metrics that style needs from a font to compute the
@@ -18,8 +20,8 @@ use std::fmt;
 pub struct FontMetrics {
     /// The x-height of the font.
     pub x_height: Au,
-    /// The zero advance.
-    pub zero_advance_measure: Size2D<Au>,
+    /// The zero advance. This is usually writing mode dependent
+    pub zero_advance_measure: Au,
 }
 
 /// The result for querying font metrics for a given font family.
@@ -27,9 +29,28 @@ pub struct FontMetrics {
 pub enum FontMetricsQueryResult {
     /// The font is available, but we may or may not have found any font metrics
     /// for it.
-    Available(Option<FontMetrics>),
+    Available(FontMetrics),
     /// The font is not available.
     NotAvailable,
+}
+
+/// A trait used to represent something capable of providing us font metrics.
+pub trait FontMetricsProvider: fmt::Debug {
+    /// Obtain the metrics for given font family.
+    ///
+    /// TODO: We could make this take the full list, I guess, and save a few
+    /// virtual calls in the case we are repeatedly unable to find font metrics?
+    /// That is not too common in practice though.
+    fn query(&self, _font: &Font, _font_size: Au, _wm: WritingMode,
+             _in_media_query: bool, _device: &Device) -> FontMetricsQueryResult {
+        FontMetricsQueryResult::NotAvailable
+    }
+
+    /// Get default size of a given language and generic family
+    fn get_size(&self, font_name: &Atom, font_family: u8) -> Au;
+
+    /// Construct from a shared style context
+    fn create_from(context: &SharedStyleContext) -> Self where Self: Sized;
 }
 
 // TODO: Servo's font metrics provider will probably not live in this crate, so this will
@@ -67,22 +88,3 @@ pub fn get_metrics_provider_for_product() -> ::gecko::wrapper::GeckoFontMetricsP
 pub fn get_metrics_provider_for_product() -> ServoMetricsProvider {
     ServoMetricsProvider
 }
-
-/// A trait used to represent something capable of providing us font metrics.
-pub trait FontMetricsProvider: fmt::Debug {
-    /// Obtain the metrics for given font family.
-    ///
-    /// TODO: We could make this take the full list, I guess, and save a few
-    /// virtual calls in the case we are repeatedly unable to find font metrics?
-    /// That is not too common in practice though.
-    fn query(&self, _font_name: &Atom) -> FontMetricsQueryResult {
-        FontMetricsQueryResult::NotAvailable
-    }
-
-    /// Get default size of a given language and generic family
-    fn get_size(&self, font_name: &Atom, font_family: u8) -> Au;
-
-    /// Construct from a shared style context
-    fn create_from(context: &SharedStyleContext) -> Self where Self: Sized;
-}
-

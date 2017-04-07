@@ -683,6 +683,7 @@ impl MaybeNew for ViewportConstraints {
             layout_parent_style: device.default_computed_values(),
             style: device.default_computed_values().clone(),
             font_metrics_provider: &provider,
+            in_media_query: false,
         };
 
         // DEVICE-ADAPT § 9.3 Resolving 'extend-to-zoom'

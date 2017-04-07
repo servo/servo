@@ -513,6 +513,7 @@ impl Expression {
             // insists on having an actual ComputedValues inside itself.
             style: default_values.clone(),
             font_metrics_provider: &provider,
+            in_media_query: true,
         };
 
         let required_value = match self.value {

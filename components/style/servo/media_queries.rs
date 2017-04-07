@@ -190,6 +190,7 @@ impl Range<specified::Length> {
             // A real provider will be needed here once we do; since
             // ch units can exist in media queries.
             font_metrics_provider: &ServoMetricsProvider,
+            in_media_query: true,
         };
 
         match *self {

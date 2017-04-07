@@ -22,7 +22,7 @@ use dom::{self, AnimationRules, DescendantsBit, LayoutIterator, NodeInfo, TEleme
 use dom::{OpaqueNode, PresentationalHintsSynthetizer};
 use element_state::ElementState;
 use error_reporting::StdoutErrorReporter;
-use font_metrics::FontMetricsProvider;
+use font_metrics::{FontMetrics, FontMetricsProvider, FontMetricsQueryResult};
 use gecko::global_style_data::GLOBAL_STYLE_DATA;
 use gecko::selector_parser::{SelectorImpl, NonTSPseudoClass, PseudoElement};
 use gecko::snapshot_helpers;
@@ -51,10 +51,13 @@ use gecko_bindings::structs::NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO;
 use gecko_bindings::structs::NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE;
 use gecko_bindings::structs::NODE_IS_NATIVE_ANONYMOUS;
 use gecko_bindings::sugar::ownership::HasArcFFI;
+use logical_geometry::WritingMode;
+use media_queries::Device;
 use parking_lot::RwLock;
 use properties::{ComputedValues, parse_style_attribute};
 use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock};
 use properties::animated_properties::AnimationValueMap;
+use properties::style_structs::Font;
 use rule_tree::CascadeLevel as ServoCascadeLevel;
 use selector_parser::{ElementExt, Snapshot};
 use selectors::Element;
@@ -467,6 +470,24 @@ impl FontMetricsProvider for GeckoFontMetricsProvider {
         };
         cache.push((font_name.clone(), sizes));
         sizes.size_for_generic(font_family)
+    }
+
+    fn query(&self, font: &Font, font_size: Au, wm: WritingMode,
+             in_media_query: bool, device: &Device) -> FontMetricsQueryResult {
+        use gecko_bindings::bindings::Gecko_GetFontMetrics;
+        let gecko_metrics = unsafe {
+            Gecko_GetFontMetrics(&*device.pres_context,
+                                 wm.is_vertical() && !wm.is_sideways(),
+                                 font.gecko(),
+                                 font_size.0,
+                                 // we don't use the user font set in a media query
+                                 !in_media_query)
+        };
+        let metrics = FontMetrics {
+            x_height: Au(gecko_metrics.mXSize),
+            zero_advance_measure: Au(gecko_metrics.mChSize),
+        };
+        FontMetricsQueryResult::Available(metrics)
     }
 }
 
