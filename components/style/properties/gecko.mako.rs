@@ -2885,11 +2885,12 @@ fn static_assert() {
 
     pub fn clone_letter_spacing(&self) -> longhands::letter_spacing::computed_value::T {
         use properties::longhands::letter_spacing::computed_value::T;
-        match self.gecko.mLetterSpacing.as_value() {
-            CoordDataValue::Normal => T(None),
-            CoordDataValue::Coord(coord) => T(Some(Au(coord))),
-            _ => unreachable!("Unexpected computed value for letter-spacing"),
-        }
+        debug_assert!(
+            matches!(self.gecko.mLetterSpacing.as_value(),
+                     CoordDataValue::Normal |
+                     CoordDataValue::Coord(_)),
+            "Unexpected computed value for letter-spacing");
+        T(Au::from_gecko_style_coord(&self.gecko.mLetterSpacing))
     }
 
     <%call expr="impl_coord_copy('letter_spacing', 'mLetterSpacing')"></%call>
