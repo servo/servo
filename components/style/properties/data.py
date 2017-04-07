@@ -92,7 +92,7 @@ def arg_to_bool(arg):
 
 
 class Longhand(object):
-    def __init__(self, style_struct, name, spec=None, animatable=None, derived_from=None, keyword=None,
+    def __init__(self, style_struct, name, spec=None, animation_type=None, derived_from=None, keyword=None,
                  predefined_type=None, custom_cascade=False, experimental=False, internal=False,
                  need_clone=False, need_index=False, gecko_ffi_name=None, depend_on_viewport_size=False,
                  allowed_in_keyframe_block=True, complex_color=False, cast_type='u8',
@@ -134,9 +134,14 @@ class Longhand(object):
 
         # This is done like this since just a plain bool argument seemed like
         # really random.
-        if animatable is None:
-            raise TypeError("animatable should be specified for " + name + ")")
-        self.animatable = arg_to_bool(animatable)
+        if animation_type is None:
+            raise TypeError("animation_type should be specified for (" + name + ")")
+        animation_types = ["none", "normal", "discrete"]
+        if animation_type not in animation_types:
+            raise TypeError("animation_type should be one of (" + str(animation_types) + ")")
+        self.animation_type = animation_type
+
+        self.animatable = animation_type != "none"
         if self.logical:
             # Logical properties don't animate separately
             self.animatable = False

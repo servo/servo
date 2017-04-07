@@ -17,7 +17,7 @@
                               "parse_non_negative",
                               alias=maybe_moz_logical_alias(product, side, "-moz-padding-%s"),
                               needs_context=False,
-                              animatable=True,
+                              animation_type="normal",
                               logical = side[1],
                               spec = spec)}
 % endfor
