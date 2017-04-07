@@ -7,7 +7,7 @@
 
 <% data.new_style_struct("Font",
                          inherited=True) %>
-<%helpers:longhand name="font-family" animatable="False" need_index="True"
+<%helpers:longhand name="font-family" animation_type="none" need_index="True"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-family">
     use self::computed_value::{FontFamily, FamilyName};
     use values::HasViewportPercentage;
@@ -225,12 +225,12 @@ ${helpers.single_keyword("font-style",
                          gecko_constant_prefix="NS_FONT_STYLE",
                          gecko_ffi_name="mFont.style",
                          spec="https://drafts.csswg.org/css-fonts/#propdef-font-style",
-                         animatable=False)}
+                         animation_type="none")}
 
 ${helpers.single_keyword("font-variant",
                          "normal small-caps",
                          spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant",
-                         animatable=False)}
+                         animation_type="none")}
 
 
 <% font_variant_caps_custom_consts= { "small-caps": "SMALLCAPS",
@@ -246,9 +246,9 @@ ${helpers.single_keyword("font-variant-caps",
                          products="gecko",
                          spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-caps",
                          custom_consts=font_variant_caps_custom_consts,
-                         animatable=False)}
+                         animation_type="none")}
 
-<%helpers:longhand name="font-weight" need_clone="True" animatable="True"
+<%helpers:longhand name="font-weight" need_clone="True" animation_type="normal"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-weight">
     use std::fmt;
     use style_traits::ToCss;
@@ -409,7 +409,7 @@ ${helpers.single_keyword("font-variant-caps",
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="font-size" need_clone="True" animatable="True"
+<%helpers:longhand name="font-size" need_clone="True" animation_type="normal"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-size">
     use app_units::Au;
     use std::fmt;
@@ -674,7 +674,7 @@ ${helpers.single_keyword("font-variant-caps",
     }
 </%helpers:longhand>
 
-<%helpers:longhand products="gecko" name="font-size-adjust" animatable="True"
+<%helpers:longhand products="gecko" name="font-size-adjust" animation_type="normal"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-size-adjust">
     use std::fmt;
     use style_traits::ToCss;
@@ -775,7 +775,7 @@ ${helpers.single_keyword("font-variant-caps",
     }
 </%helpers:longhand>
 
-<%helpers:longhand products="gecko" name="font-synthesis" animatable="False"
+<%helpers:longhand products="gecko" name="font-synthesis" animation_type="none"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-synthesis">
     use std::fmt;
     use style_traits::ToCss;
@@ -847,7 +847,7 @@ ${helpers.single_keyword("font-stretch",
                          gecko_constant_prefix="NS_FONT_STRETCH",
                          cast_type='i16',
                          spec="https://drafts.csswg.org/css-fonts/#propdef-font-stretch",
-                         animatable=False)}
+                         animation_type="none")}
 
 ${helpers.single_keyword("font-kerning",
                          "auto none normal",
@@ -855,7 +855,7 @@ ${helpers.single_keyword("font-kerning",
                          gecko_ffi_name="mFont.kerning",
                          gecko_constant_prefix="NS_FONT_KERNING",
                          spec="https://drafts.csswg.org/css-fonts/#propdef-font-stretch",
-                         animatable=False)}
+                         animation_type="none")}
 
 ${helpers.single_keyword("font-variant-position",
                          "normal sub super",
@@ -863,9 +863,9 @@ ${helpers.single_keyword("font-variant-position",
                          gecko_ffi_name="mFont.variantPosition",
                          gecko_constant_prefix="NS_FONT_VARIANT_POSITION",
                          spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-position",
-                         animatable=False)}
+                         animation_type="none")}
 
-<%helpers:longhand name="font-feature-settings" products="none" animatable="False" extra_prefixes="moz"
+<%helpers:longhand name="font-feature-settings" products="none" animation_type="none" extra_prefixes="moz"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-feature-settings">
     use std::fmt;
     use style_traits::ToCss;
@@ -975,7 +975,7 @@ ${helpers.single_keyword("font-variant-position",
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="font-language-override" products="gecko" animatable="False" extra_prefixes="moz"
+<%helpers:longhand name="font-language-override" products="gecko" animation_type="none" extra_prefixes="moz"
                    spec="https://drafts.csswg.org/css-fonts-3/#propdef-font-language-override">
     use std::fmt;
     use style_traits::ToCss;
@@ -1093,7 +1093,7 @@ ${helpers.single_keyword("font-variant-position",
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="-x-lang" products="gecko" animatable="False" internal="True"
+<%helpers:longhand name="-x-lang" products="gecko" animation_type="none" internal="True"
                    spec="Internal (not web-exposed)"
                    internal="True">
     use values::HasViewportPercentage;

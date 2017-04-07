@@ -12,7 +12,7 @@
 // TODO(SimonSapin): don't parse `inline-table`, since we don't support it
 <%helpers:longhand name="display"
                    need_clone="True"
-                   animatable="False"
+                   animation_type="none"
                    custom_cascade="${product == 'servo'}"
                    spec="https://drafts.csswg.org/css-display/#propdef-display">
     <%
@@ -100,13 +100,13 @@
 ${helpers.single_keyword("-moz-top-layer", "none top",
                          gecko_constant_prefix="NS_STYLE_TOP_LAYER",
                          gecko_ffi_name="mTopLayer", need_clone=True,
-                         products="gecko", animatable=False, internal=True,
+                         products="gecko", animation_type="none", internal=True,
                          spec="Internal (not web-exposed)")}
 
 ${helpers.single_keyword("position", "static absolute relative fixed",
                          need_clone="True",
                          extra_gecko_values="sticky",
-                         animatable="False",
+                         animation_type="none",
                          creates_stacking_context="True",
                          abspos_cb="True",
                          spec="https://drafts.csswg.org/css-position/#position-property")}
@@ -116,7 +116,7 @@ ${helpers.single_keyword("position", "static absolute relative fixed",
                                   // https://drafts.csswg.org/css-logical-props/#float-clear
                                   extra_specified="inline-start inline-end"
                                   needs_conversion="True"
-                                  animatable="False"
+                                  animation_type="none"
                                   need_clone="True"
                                   gecko_enum_prefix="StyleFloat"
                                   gecko_inexhaustive="True"
@@ -157,7 +157,7 @@ ${helpers.single_keyword("position", "static absolute relative fixed",
                                   // https://drafts.csswg.org/css-logical-props/#float-clear
                                   extra_specified="inline-start inline-end"
                                   needs_conversion="True"
-                                  animatable="False"
+                                  animation_type="none"
                                   gecko_enum_prefix="StyleClear"
                                   gecko_ffi_name="mBreakType"
                                   spec="https://www.w3.org/TR/CSS2/visuren.html#flow-control">
@@ -192,7 +192,7 @@ ${helpers.single_keyword("position", "static absolute relative fixed",
 </%helpers:single_keyword_computed>
 
 <%helpers:longhand name="-servo-display-for-hypothetical-box"
-                   animatable="False"
+                   animation_type="none"
                    derived_from="display"
                    products="servo"
                    spec="Internal (not web-exposed)">
@@ -211,7 +211,7 @@ ${helpers.single_keyword("position", "static absolute relative fixed",
 
 </%helpers:longhand>
 
-<%helpers:longhand name="vertical-align" animatable="True"
+<%helpers:longhand name="vertical-align" animation_type="normal"
                    spec="https://www.w3.org/TR/CSS2/visudet.html#propdef-vertical-align">
     use std::fmt;
     use style_traits::ToCss;
@@ -342,23 +342,23 @@ ${helpers.single_keyword("position", "static absolute relative fixed",
 // CSS 2.1, Section 11 - Visual effects
 
 ${helpers.single_keyword("-servo-overflow-clip-box", "padding-box content-box",
-    products="servo", animatable=False, internal=True,
+    products="servo", animation_type="none", internal=True,
     spec="Internal, not web-exposed, \
           may be standardized in the future (https://developer.mozilla.org/en-US/docs/Web/CSS/overflow-clip-box)")}
 
 ${helpers.single_keyword("overflow-clip-box", "padding-box content-box",
-    products="gecko", animatable=False, internal=True,
+    products="gecko", animation_type="none", internal=True,
     spec="Internal, not web-exposed, \
           may be standardized in the future (https://developer.mozilla.org/en-US/docs/Web/CSS/overflow-clip-box)")}
 
 // FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
 ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
-                         need_clone=True, animatable=False,
+                         need_clone=True, animation_type="none",
                          gecko_constant_prefix="NS_STYLE_OVERFLOW",
                          spec="https://drafts.csswg.org/css-overflow/#propdef-overflow-x")}
 
 // FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
-<%helpers:longhand name="overflow-y" need_clone="True" animatable="False"
+<%helpers:longhand name="overflow-y" need_clone="True" animation_type="none"
                    spec="https://drafts.csswg.org/css-overflow/#propdef-overflow-y">
     use super::overflow_x;
 
@@ -405,7 +405,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
 <%helpers:vector_longhand name="transition-duration"
                           need_index="True"
-                          animatable="False"
+                          animation_type="none"
                           extra_prefixes="moz webkit"
                           spec="https://drafts.csswg.org/css-transitions/#propdef-transition-duration">
     use values::specified::Time;
@@ -436,7 +436,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 // TODO(pcwalton): Lots more timing functions.
 <%helpers:vector_longhand name="transition-timing-function"
                           need_index="True"
-                          animatable="False"
+                          animation_type="none"
                           extra_prefixes="moz webkit"
                           spec="https://drafts.csswg.org/css-transitions/#propdef-transition-timing-function">
     use self::computed_value::StartEnd;
@@ -728,7 +728,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 <%helpers:vector_longhand name="transition-property"
                           allow_empty="True"
                           need_index="True"
-                          animatable="False"
+                          animation_type="none"
                           extra_prefixes="moz webkit"
                           spec="https://drafts.csswg.org/css-transitions/#propdef-transition-property">
 
@@ -757,7 +757,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
 <%helpers:vector_longhand name="transition-delay"
                           need_index="True"
-                          animatable="False"
+                          animation_type="none"
                           extra_prefixes="moz webkit"
                           spec="https://drafts.csswg.org/css-transitions/#propdef-transition-delay">
     pub use properties::longhands::transition_duration::single_value::SpecifiedValue;
@@ -768,7 +768,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
 <%helpers:vector_longhand name="animation-name"
                           need_index="True"
-                          animatable="False",
+                          animation_type="none",
                           extra_prefixes="moz webkit"
                           allowed_in_keyframe_block="False"
                           spec="https://drafts.csswg.org/css-animations/#propdef-animation-name">
@@ -839,7 +839,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
 <%helpers:vector_longhand name="animation-duration"
                           need_index="True"
-                          animatable="False",
+                          animation_type="none",
                           extra_prefixes="moz webkit"
                           spec="https://drafts.csswg.org/css-animations/#propdef-animation-duration",
                           allowed_in_keyframe_block="False">
@@ -851,7 +851,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
 <%helpers:vector_longhand name="animation-timing-function"
                           need_index="True"
-                          animatable="False",
+                          animation_type="none",
                           extra_prefixes="moz webkit"
                           spec="https://drafts.csswg.org/css-animations/#propdef-animation-timing-function",
                           allowed_in_keyframe_block="True">
@@ -864,7 +864,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
 <%helpers:vector_longhand name="animation-iteration-count"
                           need_index="True"
-                          animatable="False",
+                          animation_type="none",
                           extra_prefixes="moz webkit"
                           spec="https://drafts.csswg.org/css-animations/#propdef-animation-iteration-count",
                           allowed_in_keyframe_block="False">
@@ -933,7 +933,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 ${helpers.single_keyword("animation-direction",
                          "normal reverse alternate alternate-reverse",
                          need_index=True,
-                         animatable=False,
+                         animation_type="none",
                          vector=True,
                          gecko_enum_prefix="PlaybackDirection",
                          custom_consts=animation_direction_custom_consts,
@@ -947,7 +947,7 @@ ${helpers.single_keyword("animation-play-state",
                          "running paused",
                          need_clone=True,
                          need_index=True,
-                         animatable=False,
+                         animation_type="none",
                          vector=True,
                          extra_prefixes="moz webkit",
                          spec="https://drafts.csswg.org/css-animations/#propdef-animation-play-state",
@@ -956,7 +956,7 @@ ${helpers.single_keyword("animation-play-state",
 ${helpers.single_keyword("animation-fill-mode",
                          "none forwards backwards both",
                          need_index=True,
-                         animatable=False,
+                         animation_type="none",
                          vector=True,
                          gecko_enum_prefix="FillMode",
                          extra_prefixes="moz webkit",
@@ -965,7 +965,7 @@ ${helpers.single_keyword("animation-fill-mode",
 
 <%helpers:vector_longhand name="animation-delay"
                           need_index="True"
-                          animatable="False",
+                          animation_type="none",
                           extra_prefixes="moz webkit",
                           spec="https://drafts.csswg.org/css-animations/#propdef-animation-delay",
                           allowed_in_keyframe_block="False">
@@ -975,7 +975,7 @@ ${helpers.single_keyword("animation-fill-mode",
     pub use properties::longhands::transition_duration::single_value::SpecifiedValue;
 </%helpers:vector_longhand>
 
-<%helpers:longhand products="gecko" name="scroll-snap-points-y" animatable="False"
+<%helpers:longhand products="gecko" name="scroll-snap-points-y" animation_type="none"
                    spec="Nonstandard (https://www.w3.org/TR/2015/WD-css-snappoints-1-20150326/#scroll-snap-points)">
     use std::fmt;
     use style_traits::ToCss;
@@ -1070,7 +1070,7 @@ ${helpers.single_keyword("animation-fill-mode",
     }
 </%helpers:longhand>
 
-<%helpers:longhand products="gecko" name="scroll-snap-points-x" animatable="False"
+<%helpers:longhand products="gecko" name="scroll-snap-points-x" animation_type="none"
                    spec="Nonstandard (https://www.w3.org/TR/2015/WD-css-snappoints-1-20150326/#scroll-snap-points)">
     pub use super::scroll_snap_points_y::SpecifiedValue;
     pub use super::scroll_snap_points_y::computed_value;
@@ -1085,7 +1085,7 @@ ${helpers.predefined_type("scroll-snap-destination",
                           products="gecko",
                           boxed="True",
                           spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-destination)",
-                          animatable=True)}
+                          animation_type="normal")}
 
 ${helpers.predefined_type("scroll-snap-coordinate",
                           "Position",
@@ -1093,14 +1093,14 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                           vector=True,
                           products="gecko",
                           spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-destination)",
-                          animatable=True,
+                          animation_type="normal",
                           allow_empty=True,
                           delegate_animate=True)}
 
 
 
 <%helpers:longhand name="transform" products="gecko servo" extra_prefixes="webkit"
-                   animatable="True"
+                   animation_type="normal"
                    creates_stacking_context="True"
                    fixpos_cb="True"
                    spec="https://drafts.csswg.org/css-transforms/#propdef-transform">
@@ -1789,16 +1789,16 @@ ${helpers.single_keyword("scroll-behavior",
                          "auto smooth",
                          products="gecko",
                          spec="https://drafts.csswg.org/cssom-view/#propdef-scroll-behavior",
-                         animatable=False)}
+                         animation_type="none")}
 
 ${helpers.single_keyword("scroll-snap-type-x",
                          "none mandatory proximity",
                          products="gecko",
                          gecko_constant_prefix="NS_STYLE_SCROLL_SNAP_TYPE",
                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-type-x)",
-                         animatable=False)}
+                         animation_type="none")}
 
-<%helpers:longhand products="gecko" name="scroll-snap-type-y" animatable="False"
+<%helpers:longhand products="gecko" name="scroll-snap-type-y" animation_type="none"
                    spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-type-x)">
     pub use super::scroll_snap_type_x::SpecifiedValue;
     pub use super::scroll_snap_type_x::computed_value;
@@ -1813,26 +1813,26 @@ ${helpers.single_keyword("isolation",
                          products="gecko",
                          spec="https://drafts.fxtf.org/compositing/#isolation",
                          creates_stacking_context=True,
-                         animatable=False)}
+                         animation_type="none")}
 
 // TODO add support for logical values recto and verso
 ${helpers.single_keyword("page-break-after",
                          "auto always avoid left right",
                          products="gecko",
                          spec="https://drafts.csswg.org/css2/page.html#propdef-page-break-after",
-                         animatable=False)}
+                         animation_type="none")}
 ${helpers.single_keyword("page-break-before",
                          "auto always avoid left right",
                          products="gecko",
                          spec="https://drafts.csswg.org/css2/page.html#propdef-page-break-before",
-                         animatable=False)}
+                         animation_type="none")}
 ${helpers.single_keyword("page-break-inside",
                          "auto avoid",
                          products="gecko",
                          gecko_ffi_name="mBreakInside",
                          gecko_constant_prefix="NS_STYLE_PAGE_BREAK",
                          spec="https://drafts.csswg.org/css2/page.html#propdef-page-break-inside",
-                         animatable=False)}
+                         animation_type="none")}
 
 // CSS Basic User Interface Module Level 3
 // http://dev.w3.org/csswg/css-ui
@@ -1841,7 +1841,7 @@ ${helpers.single_keyword("resize",
                          "none both horizontal vertical",
                          products="gecko",
                          spec="https://drafts.csswg.org/css-ui/#propdef-resize",
-                         animatable=False)}
+                         animation_type="none")}
 
 
 ${helpers.predefined_type("perspective",
@@ -1854,10 +1854,10 @@ ${helpers.predefined_type("perspective",
                           boxed=True,
                           creates_stacking_context=True,
                           fixpos_cb=True,
-                          animatable=True)}
+                          animation_type="normal")}
 
 // FIXME: This prop should be animatable
-<%helpers:longhand name="perspective-origin" boxed="True" animatable="False" extra_prefixes="moz webkit"
+<%helpers:longhand name="perspective-origin" boxed="True" animation_type="none" extra_prefixes="moz webkit"
                    spec="https://drafts.csswg.org/css-transforms/#perspective-origin-property">
     use std::fmt;
     use style_traits::ToCss;
@@ -1948,14 +1948,14 @@ ${helpers.single_keyword("backface-visibility",
                          "visible hidden",
                          spec="https://drafts.csswg.org/css-transforms/#backface-visibility-property",
                          extra_prefixes="moz webkit",
-                         animatable=False)}
+                         animation_type="none")}
 
 ${helpers.single_keyword("transform-box",
                          "border-box fill-box view-box",
                          gecko_enum_prefix="StyleGeometryBox",
                          products="gecko",
                          spec="https://drafts.csswg.org/css-transforms/#transform-box",
-                         animatable=False)}
+                         animation_type="none")}
 
 // `auto` keyword is not supported in gecko yet.
 ${helpers.single_keyword("transform-style",
@@ -1965,9 +1965,9 @@ ${helpers.single_keyword("transform-style",
                          extra_prefixes="moz webkit",
                          creates_stacking_context=True,
                          fixpos_cb=True,
-                         animatable=False)}
+                         animation_type="none")}
 
-<%helpers:longhand name="transform-origin" animatable="True" extra_prefixes="moz webkit" boxed="True"
+<%helpers:longhand name="transform-origin" animation_type="normal" extra_prefixes="moz webkit" boxed="True"
                    spec="https://drafts.csswg.org/css-transforms/#transform-origin-property">
     use app_units::Au;
     use std::fmt;
@@ -2075,7 +2075,7 @@ ${helpers.single_keyword("transform-style",
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="contain" animatable="False" products="none"
+<%helpers:longhand name="contain" animation_type="none" products="none"
                    spec="https://drafts.csswg.org/css-contain/#contain-property">
     use std::fmt;
     use style_traits::ToCss;
@@ -2185,7 +2185,7 @@ ${helpers.single_keyword("appearance",
                          products="gecko",
                          spec="https://drafts.csswg.org/css-ui-4/#appearance-switching",
                          alias="-webkit-appearance",
-                         animatable=False)}
+                         animation_type="none")}
 
 // Non-standard
 ${helpers.single_keyword("-moz-appearance",
@@ -2215,11 +2215,11 @@ ${helpers.single_keyword("-moz-appearance",
                          gecko_constant_prefix="NS_THEME",
                          products="gecko",
                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-appearance)",
-                         animatable=False)}
+                         animation_type="none")}
 
 ${helpers.predefined_type("-moz-binding", "UrlOrNone", "Either::Second(None_)",
                           products="gecko",
-                          animatable="False",
+                          animation_type="none",
                           gecko_ffi_name="mBinding",
                           spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-binding)",
                           disable_when_testing="True")}
@@ -2230,9 +2230,9 @@ ${helpers.single_keyword("-moz-orient",
                           gecko_ffi_name="mOrient",
                           gecko_enum_prefix="StyleOrient",
                           spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-orient)",
-                          animatable=False)}
+                          animation_type="none")}
 
-<%helpers:longhand name="will-change" products="gecko" animatable="False"
+<%helpers:longhand name="will-change" products="gecko" animation_type="none"
                    spec="https://drafts.csswg.org/css-will-change/#will-change">
     use cssparser::serialize_identifier;
     use std::fmt;
