@@ -9,10 +9,6 @@ publish = false
 name = "servo_config"
 path = "lib.rs"
 
-[features]
-# servo as opposed to geckolib
-servo = ["serde", "serde_derive", "servo_url/servo"]
-
 [dependencies]
 euclid = "0.11"
 getopts = "0.2.11"
@@ -20,8 +16,8 @@ lazy_static = "0.2"
 log = "0.3.5"
 num_cpus = "1.1.0"
 rustc-serialize = "0.3"
-serde = {version = "0.9", optional = true}
-serde_derive = {version = "0.9", optional = true}
+serde = {version = "0.9"}
+serde_derive = {version = "0.9"}
 servo_geometry = {path = "../geometry"}
 servo_url = {path = "../url"}
 url = "1.2"

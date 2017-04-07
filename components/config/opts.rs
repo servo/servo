@@ -25,8 +25,7 @@ use url::{self, Url};
 
 
 /// Global flags for Servo, currently set on the command line.
-#[derive(Clone)]
-#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct Opts {
     pub is_running_problem_test: bool,
 
@@ -446,8 +445,7 @@ fn print_debug_usage(app: &str) -> ! {
     process::exit(0)
 }
 
-#[derive(Clone)]
-#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(Clone, Deserialize, Serialize)]
 pub enum OutputOptions {
     FileName(String),
     Stdout(f64)

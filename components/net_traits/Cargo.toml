@@ -24,8 +24,8 @@ msg = {path = "../msg"}
 num-traits = "0.1.32"
 serde = "0.9"
 serde_derive = "0.9"
-servo_config = {path = "../config", features = ["servo"]}
-servo_url = {path = "../url", features = ["servo"]}
+servo_config = {path = "../config"}
+servo_url = {path = "../url"}
 url = {version = "1.2", features = ["heap_size"]}
 uuid = {version = "0.4", features = ["v4", "serde"]}
 webrender_traits = {git = "https://github.com/servo/webrender", features = ["ipc"]}

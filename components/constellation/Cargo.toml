@@ -33,10 +33,10 @@ script_traits = {path = "../script_traits"}
 serde = "0.9"
 serde_derive = "0.9"
 style_traits = {path = "../style_traits"}
-servo_config = {path = "../config", features = ["servo"]}
+servo_config = {path = "../config"}
 servo_rand = {path = "../rand"}
 servo_remutex = {path = "../remutex"}
-servo_url = {path = "../url", features = ["servo"]}
+servo_url = {path = "../url"}
 webvr_traits = {path = "../webvr_traits"}
 webrender_traits = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 

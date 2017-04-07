@@ -19,7 +19,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 use str::{HTML_SPACE_CHARACTERS, read_exponent, read_fraction};
 use str::{read_numbers, split_commas, split_html_space_chars};
-#[cfg(not(feature = "gecko"))] use str::str_join;
+use str::str_join;
 use values::specified::Length;
 
 // Duplicated from script::dom::values.
@@ -166,7 +166,6 @@ impl AttrValue {
         AttrValue::TokenList(tokens, atoms)
     }
 
-    #[cfg(not(feature = "gecko"))] // Gecko can't borrow atoms as UTF-8.
     pub fn from_atomic_tokens(atoms: Vec<Atom>) -> AttrValue {
         // TODO(ajeffrey): effecient conversion of Vec<Atom> to String
         let tokens = String::from(str_join(&atoms, "\x20"));
@@ -335,7 +334,6 @@ impl AttrValue {
     }
 }
 
-#[cfg(not(feature = "gecko"))] // Gecko can't borrow atoms as UTF-8.
 impl ::std::ops::Deref for AttrValue {
     type Target = str;
 

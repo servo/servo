@@ -17,7 +17,7 @@ log = "0.3.5"
 serde = "0.9"
 serde_derive = "0.9"
 serde_json = "0.9"
-servo_config = {path = "../config", features = ["servo"]}
+servo_config = {path = "../config"}
 time = "0.1.12"
 
 [target.'cfg(target_os = "macos")'.dependencies]

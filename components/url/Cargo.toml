@@ -9,15 +9,12 @@ publish = false
 name = "servo_url"
 path = "lib.rs"
 
-[features]
-servo = ["heapsize", "heapsize_derive", "serde", "serde_derive", "uuid/serde", "url/heap_size", "url_serde"]
-
 [dependencies]
-heapsize = {version = "0.3.0", optional = true}
-heapsize_derive = {version = "0.1", optional = true}
-serde = {version = "0.9", optional = true}
-serde_derive = {version = "0.9", optional = true}
+heapsize = {version = "0.3.0"}
+heapsize_derive = {version = "0.1"}
+serde = {version = "0.9"}
+serde_derive = {version = "0.9"}
 servo_rand = {path = "../rand"}
-url = "1.2"
-url_serde = {version = "0.1.3", optional = true}
-uuid = {version = "0.4.0", features = ["v4"]}
+url = {version = "1.2", features = ["heap_size"]}
+url_serde = {version = "0.1.3"}
+uuid = {version = "0.4.0", features = ["v4", "serde"]}
