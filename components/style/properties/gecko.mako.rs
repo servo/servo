@@ -1834,12 +1834,14 @@ fn static_assert() {
     <%def name="transform_function_arm(name, keyword, items)">
         <%
             pattern = None
-            if name == "matrix":
-                # m11, m12, m13, ..
-                indices = [str(i) + str(j) for i in range(1, 5) for j in range(1, 5)]
+            if keyword == "matrix3d":
                 # m11: number1, m12: number2, ..
-                single_patterns = ["m%s: number%s" % (index, i + 1) for (i, index) in enumerate(indices)]
-                pattern = "ComputedMatrix { %s }" % ", ".join(single_patterns)
+                single_patterns = ["m%s: %s" % (str(a / 4 + 1) + str(a % 4 + 1), b + str(a + 1)) for (a, b)
+                                   in enumerate(items)]
+                if name == "Matrix":
+                    pattern = "ComputedMatrix { %s }" % ", ".join(single_patterns)
+                else:
+                    pattern = "ComputedMatrixWithPercents { %s }" % ", ".join(single_patterns)
             else:
                 # Generate contents of pattern from items
                 pattern = ", ".join([b + str(a+1) for (a,b) in enumerate(items)])
@@ -1854,7 +1856,7 @@ fn static_assert() {
                 "number" : "bindings::Gecko_CSSValue_SetNumber(%s, %s)",
             }
         %>
-        longhands::transform::computed_value::ComputedOperation::${name.title()}(${pattern}) => {
+        longhands::transform::computed_value::ComputedOperation::${name}(${pattern}) => {
             bindings::Gecko_CSSValue_SetFunction(gecko_value, ${len(items) + 1});
             bindings::Gecko_CSSValue_SetKeyword(
                 bindings::Gecko_CSSValue_GetArrayItem(gecko_value, 0),
@@ -1873,6 +1875,7 @@ fn static_assert() {
         use gecko_bindings::structs::nsCSSKeyword::*;
         use gecko_bindings::sugar::refptr::RefPtr;
         use properties::longhands::transform::computed_value::ComputedMatrix;
+        use properties::longhands::transform::computed_value::ComputedMatrixWithPercents;
 
         unsafe { output.clear() };
 
@@ -1888,12 +1891,14 @@ fn static_assert() {
                                             value list of the same length as the transform vector");
             unsafe {
                 match servo {
-                    ${transform_function_arm("matrix", "matrix3d", ["number"] * 16)}
-                    ${transform_function_arm("skew", "skew", ["angle"] * 2)}
-                    ${transform_function_arm("translate", "translate3d", ["lop", "lop", "length"])}
-                    ${transform_function_arm("scale", "scale3d", ["number"] * 3)}
-                    ${transform_function_arm("rotate", "rotate3d", ["number"] * 3 + ["angle"])}
-                    ${transform_function_arm("perspective", "perspective", ["length"])}
+                    ${transform_function_arm("Matrix", "matrix3d", ["number"] * 16)}
+                    ${transform_function_arm("MatrixWithPercents", "matrix3d", ["number"] * 12 + ["lop"] * 2
+                                             + ["length"] + ["number"])}
+                    ${transform_function_arm("Skew", "skew", ["angle"] * 2)}
+                    ${transform_function_arm("Translate", "translate3d", ["lop", "lop", "length"])}
+                    ${transform_function_arm("Scale", "scale3d", ["number"] * 3)}
+                    ${transform_function_arm("Rotate", "rotate3d", ["number"] * 3 + ["angle"])}
+                    ${transform_function_arm("Perspective", "perspective", ["length"])}
                 }
                 cur = (*cur).mNext;
             }
@@ -1929,19 +1934,19 @@ fn static_assert() {
             }
         %>
         eCSSKeyword_${keyword} => {
-            ComputedOperation::${name.title()}(
-            % if name == "matrix":
+            ComputedOperation::${name}(
+            % if keyword == "matrix3d":
                 ComputedMatrix {
             % endif
             % for index, item in enumerate(items):
-                % if name == "matrix":
+                % if keyword == "matrix3d":
                     m${index / 4 + 1}${index % 4 + 1}:
                 % endif
                 ${css_value_getters[item] % (
                     "bindings::Gecko_CSSValue_GetArrayItemConst(gecko_value, %d)" % (index + 1)
                 )},
             % endfor
-            % if name == "matrix":
+            % if keyword == "matrix3d":
                 }
             % endif
             )
@@ -1968,12 +1973,12 @@ fn static_assert() {
             };
             let servo = unsafe {
                 match transform_function {
-                    ${computed_operation_arm("matrix", "matrix3d", ["number"] * 16)}
-                    ${computed_operation_arm("skew", "skew", ["angle"] * 2)}
-                    ${computed_operation_arm("translate", "translate3d", ["lop", "lop", "length"])}
-                    ${computed_operation_arm("scale", "scale3d", ["number"] * 3)}
-                    ${computed_operation_arm("rotate", "rotate3d", ["number"] * 3 + ["angle"])}
-                    ${computed_operation_arm("perspective", "perspective", ["length"])}
+                    ${computed_operation_arm("Matrix", "matrix3d", ["number"] * 16)}
+                    ${computed_operation_arm("Skew", "skew", ["angle"] * 2)}
+                    ${computed_operation_arm("Translate", "translate3d", ["lop", "lop", "length"])}
+                    ${computed_operation_arm("Scale", "scale3d", ["number"] * 3)}
+                    ${computed_operation_arm("Rotate", "rotate3d", ["number"] * 3 + ["angle"])}
+                    ${computed_operation_arm("Perspective", "perspective", ["length"])}
                     _ => panic!("We shouldn't set any other transform function types"),
                 }
             };

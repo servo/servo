@@ -476,6 +476,8 @@ bitflags! {
         /// This property has values that can establish a containing block for
         /// absolutely positioned elements.
         const ABSPOS_CB = 1 << 2,
+        /// This property(shorthand) is an alias of another property.
+        const ALIAS_PROPERTY = 1 << 3,
     }
 }
 
