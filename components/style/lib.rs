@@ -70,7 +70,7 @@ extern crate rayon;
 extern crate selectors;
 #[cfg(feature = "servo")] #[macro_use] extern crate serde_derive;
 #[cfg(feature = "servo")] #[macro_use] extern crate servo_atoms;
-extern crate servo_config;
+#[cfg(feature = "servo")] extern crate servo_config;
 #[cfg(feature = "servo")] extern crate servo_url;
 extern crate smallvec;
 #[macro_use]

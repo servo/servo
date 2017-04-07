@@ -17,10 +17,10 @@ use matching::StyleSharingCandidateCache;
 use parking_lot::RwLock;
 #[cfg(feature = "gecko")] use selector_parser::PseudoElement;
 use selectors::matching::ElementSelectorFlags;
-use servo_config::opts;
+#[cfg(feature = "servo")] use servo_config::opts;
 use shared_lock::StylesheetGuards;
 use std::collections::HashMap;
-use std::env;
+#[cfg(not(feature = "servo"))] use std::env;
 use std::fmt;
 use std::ops::Add;
 use std::sync::{Arc, Mutex};
@@ -170,6 +170,7 @@ impl fmt::Display for TraversalStatistics {
     }
 }
 
+#[cfg(not(feature = "servo"))]
 lazy_static! {
     /// Whether to dump style statistics, computed statically. We use an environmental
     /// variable so that this is easy to set for Gecko builds, and matches the
@@ -182,10 +183,20 @@ lazy_static! {
     };
 }
 
+#[cfg(feature = "servo")]
+fn shall_stat_style_sharing() -> bool {
+    opts::get().style_sharing_stats
+}
+
+#[cfg(not(feature = "servo"))]
+fn shall_stat_style_sharing() -> bool {
+    *DUMP_STYLE_STATISTICS
+}
+
 impl TraversalStatistics {
     /// Returns whether statistics dumping is enabled.
     pub fn should_dump() -> bool {
-        *DUMP_STYLE_STATISTICS || opts::get().style_sharing_stats
+        shall_stat_style_sharing()
     }
 
     /// Computes the traversal time given the start time in seconds.
