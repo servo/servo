@@ -491,7 +491,7 @@ ${helpers.single_keyword("text-align-last",
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="word-spacing" animation_type="none"
+<%helpers:longhand name="word-spacing" animation_type="normal"
                    spec="https://drafts.csswg.org/css-text/#propdef-word-spacing">
     use std::fmt;
     use style_traits::ToCss;
@@ -523,10 +523,13 @@ ${helpers.single_keyword("text-align-last",
     }
 
     pub mod computed_value {
+        use properties::animated_properties::Interpolate;
         use values::computed::LengthOrPercentage;
         #[derive(Debug, Clone, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T(pub Option<LengthOrPercentage>);
+
+        ${helpers.impl_interpolate_for_option_tuple('LengthOrPercentage::zero()')}
     }
 
     impl ToCss for computed_value::T {

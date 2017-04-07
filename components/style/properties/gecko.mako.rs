@@ -2902,6 +2902,19 @@ fn static_assert() {
         }
     }
 
+    pub fn clone_word_spacing(&self) -> longhands::word_spacing::computed_value::T {
+        use properties::longhands::word_spacing::computed_value::T;
+        use values::computed::LengthOrPercentage;
+        debug_assert!(
+            matches!(self.gecko.mWordSpacing.as_value(),
+                     CoordDataValue::Normal |
+                     CoordDataValue::Coord(_) |
+                     CoordDataValue::Percent(_) |
+                     CoordDataValue::Calc(_)),
+            "Unexpected computed value for word-spacing");
+        T(LengthOrPercentage::from_gecko_style_coord(&self.gecko.mWordSpacing))
+    }
+
     <%call expr="impl_coord_copy('word_spacing', 'mWordSpacing')"></%call>
 
     fn clear_text_emphasis_style_if_string(&mut self) {
