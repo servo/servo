@@ -233,9 +233,16 @@ impl AnimatedProperty {
             % for prop in data.longhands:
                 % if prop.animatable:
                     AnimatedProperty::${prop.camel_case}(ref from, ref to) => {
-                        if let Ok(value) = from.interpolate(to, progress) {
-                            style.mutate_${prop.style_struct.ident.strip("_")}().set_${prop.ident}(value);
-                        }
+                        // https://w3c.github.io/web-animations/#discrete-animation-type
+                        % if prop.animation_type == "discrete":
+                            let value = if progress < 0.5 { *from } else { *to };
+                        % else:
+                            let value = match from.interpolate(to, progress) {
+                                Ok(value) => value,
+                                Err(()) => return,
+                            };
+                        % endif
+                        style.mutate_${prop.style_struct.ident.strip("_")}().set_${prop.ident}(value);
                     }
                 % endif
             % endfor
@@ -425,7 +432,16 @@ impl Interpolate for AnimationValue {
                 % if prop.animatable:
                     (&AnimationValue::${prop.camel_case}(ref from),
                      &AnimationValue::${prop.camel_case}(ref to)) => {
-                        from.interpolate(to, progress).map(AnimationValue::${prop.camel_case})
+                        // https://w3c.github.io/web-animations/#discrete-animation-type
+                        % if prop.animation_type == "discrete":
+                            if progress < 0.5 {
+                                Ok(AnimationValue::${prop.camel_case}(*from))
+                            } else {
+                                Ok(AnimationValue::${prop.camel_case}(*to))
+                            }
+                        % else:
+                            from.interpolate(to, progress).map(AnimationValue::${prop.camel_case})
+                        % endif
                     }
                 % endif
             % endfor
