@@ -23,7 +23,7 @@ use hyper::status::StatusCode;
 use hyper::uri::RequestUri;
 use hyper_openssl;
 use msg::constellation_msg::TEST_PIPELINE_ID;
-use net::connector::{create_http_connector, create_ssl_client};
+use net::connector::create_ssl_client;
 use net::fetch::cors_cache::CorsCache;
 use net::fetch::methods::FetchContext;
 use net::filemanager_thread::FileManager;
@@ -532,14 +532,12 @@ fn test_fetch_with_hsts() {
 
     let ca_file = resources_dir_path().unwrap().join("self_signed_certificate_for_testing.crt");
     let ssl_client = create_ssl_client(&ca_file);
-    let connector = create_http_connector(ssl_client);
 
     let context =  FetchContext {
-        state: Arc::new(HttpState::new()),
+        state: Arc::new(HttpState::new(ssl_client)),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: None,
         filemanager: FileManager::new(),
-        connector: connector,
     };
 
     {

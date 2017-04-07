@@ -12,7 +12,6 @@ use openssl::ssl::{SslConnectorBuilder, SslMethod};
 use std::io;
 use std::net::TcpStream;
 use std::path::PathBuf;
-use std::sync::Arc;
 
 pub struct HttpsConnector {
     ssl: OpensslClient,
@@ -63,9 +62,9 @@ pub fn create_ssl_client(ca_file: &PathBuf) -> OpensslClient {
     OpensslClient::from(ssl_connector)
 }
 
-pub fn create_http_connector(ssl_client: OpensslClient) -> Arc<Pool<Connector>> {
+pub fn create_http_connector(ssl_client: OpensslClient) -> Pool<Connector> {
     let https_connector = HttpsConnector::new(ssl_client);
-    Arc::new(Pool::with_connector(Default::default(), https_connector))
+    Pool::with_connector(Default::default(), https_connector)
 }
 
 // The basic logic here is to prefer ciphers with ECDSA certificates, Forward
