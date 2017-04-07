@@ -20,8 +20,7 @@ lazy_static! {
     };
 }
 
-#[derive(PartialEq, Clone, Debug)]
-#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(PartialEq, Clone, Debug, Deserialize, Serialize)]
 pub enum PrefValue {
     Boolean(bool),
     String(String),
@@ -92,8 +91,7 @@ impl ToJson for PrefValue {
     }
 }
 
-#[derive(Clone, Debug)]
-#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum Pref {
     NoDefault(Arc<PrefValue>),
     WithDefault(Arc<PrefValue>, Option<Arc<PrefValue>>)

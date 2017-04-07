@@ -77,7 +77,7 @@ script_traits = {path = "../script_traits"}
 selectors = { path = "../selectors" }
 serde = "0.9"
 servo_atoms = {path = "../atoms"}
-servo_config = {path = "../config", features = ["servo"] }
+servo_config = {path = "../config"}
 servo_geometry = {path = "../geometry" }
 servo_rand = {path = "../rand"}
 servo_url = {path = "../url", features = ["servo"]}
