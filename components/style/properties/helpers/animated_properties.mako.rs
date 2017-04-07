@@ -17,7 +17,7 @@ use properties::longhands::text_shadow::computed_value::T as TextShadowList;
 use properties::longhands::text_shadow::computed_value::TextShadow;
 use properties::longhands::box_shadow::computed_value::T as BoxShadowList;
 use properties::longhands::box_shadow::single_value::computed_value::T as BoxShadow;
-use properties::longhands::transform::computed_value::ComputedMatrix;
+use properties::longhands::transform::computed_value::{ComputedMatrix, NumberPercentage};
 use properties::longhands::transform::computed_value::ComputedOperation as TransformOperation;
 use properties::longhands::transform::computed_value::T as TransformList;
 use properties::longhands::vertical_align::computed_value::T as VerticalAlign;
@@ -1111,8 +1111,8 @@ fn interpolate_transform_list(from_list: &[TransformOperation],
                  &TransformOperation::Perspective(_td)) => {
                     let mut fd_matrix = ComputedMatrix::identity();
                     let mut td_matrix = ComputedMatrix::identity();
-                    fd_matrix.m43 = -1. / fd.to_f32_px();
-                    td_matrix.m43 = -1. / _td.to_f32_px();
+                    fd_matrix.m43.number = -1. / fd.to_f32_px();
+                    td_matrix.m43.number = -1. / _td.to_f32_px();
                     let interpolated = fd_matrix.interpolate(&td_matrix, progress).unwrap();
                     result.push(TransformOperation::Matrix(interpolated));
                 }
@@ -1152,9 +1152,9 @@ fn rotate_to_matrix(x: f32, y: f32, z: f32, a: Angle) -> ComputedMatrix {
         m33: 1.0 - 2.0 * (x * x + y * y) * sq,
         m34: 0.0,
 
-        m41: 0.0,
-        m42: 0.0,
-        m43: 0.0,
+        m41: NumberPercentage::new(0.0, None),
+        m42: NumberPercentage::new(0.0, None),
+        m43: NumberPercentage::new(0.0, None),
         m44: 1.0
     }
 }
@@ -1269,6 +1269,11 @@ impl Interpolate for MatrixDecomposed2D {
 
 impl Interpolate for ComputedMatrix {
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
+        // Don't interpolate if matrix have percentage values.
+        if self.has_percentage() || other.has_percentage() {
+            return Err(());
+        }
+
         if self.is_3d() || other.is_3d() {
             let decomposed_from = decompose_3d_matrix(*self);
             let decomposed_to = decompose_3d_matrix(*other);
@@ -1300,7 +1305,7 @@ impl From<ComputedMatrix> for MatrixDecomposed2D {
         let mut row1x = matrix.m21;
         let mut row1y = matrix.m22;
 
-        let translate = Translate2D(matrix.m41, matrix.m42);
+        let translate = Translate2D(matrix.m41.number, matrix.m42.number);
         let mut scale = Scale2D((row0x * row0x + row0y * row0y).sqrt(),
                                 (row1x * row1x + row1y * row1y).sqrt());
 
@@ -1366,8 +1371,8 @@ impl From<MatrixDecomposed2D> for ComputedMatrix {
         computed_matrix.m22 = decomposed.matrix.m22;
 
         // Translate matrix.
-        computed_matrix.m41 = decomposed.translate.0;
-        computed_matrix.m42 = decomposed.translate.1;
+        computed_matrix.m41.number = decomposed.translate.0;
+        computed_matrix.m42.number = decomposed.translate.1;
 
         // Rotate matrix.
         let angle = decomposed.angle.to_radians();
@@ -1442,11 +1447,15 @@ fn decompose_3d_matrix(mut matrix: ComputedMatrix) -> Result<MatrixDecomposed3D,
     }
 
     let scaling_factor = matrix.m44;
-    % for i in range(1, 5):
+    % for i in range(1, 4):
         % for j in range(1, 5):
             matrix.m${i}${j} /= scaling_factor;
         % endfor
     % endfor
+    matrix.m41.number /= scaling_factor;
+    matrix.m42.number /= scaling_factor;
+    matrix.m43.number /= scaling_factor;
+    matrix.m44 /= scaling_factor;
 
     // perspective_matrix is used to solve for perspective, but it also provides
     // an easy way to test for singularity of the upper 3x3 component.
@@ -1474,20 +1483,35 @@ fn decompose_3d_matrix(mut matrix: ComputedMatrix) -> Result<MatrixDecomposed3D,
 
         // Transpose perspective_matrix
         perspective_matrix = ComputedMatrix {
-            % for i in range(1, 5):
+            % for i in range(1, 4):
                 % for j in range(1, 5):
-                    m${i}${j}: perspective_matrix.m${j}${i},
+                    % if j == 4 and i < 4:
+                        m${i}${j}: perspective_matrix.m${j}${i}.number,
+                    % else:
+                        m${i}${j}: perspective_matrix.m${j}${i},
+                    % endif
                 % endfor
             % endfor
+            m41: NumberPercentage::new(perspective_matrix.m14, None),
+            m42: NumberPercentage::new(perspective_matrix.m24, None),
+            m43: NumberPercentage::new(perspective_matrix.m34, None),
+            m44: perspective_matrix.m44,
         };
 
         // Multiply right_hand_side with perspective_matrix
         let mut tmp: [f32; 4] = [0.0; 4];
         % for i in range(1, 5):
-            tmp[${i - 1}] = (right_hand_side[0] * perspective_matrix.m1${i}) +
-                            (right_hand_side[1] * perspective_matrix.m2${i}) +
-                            (right_hand_side[2] * perspective_matrix.m3${i}) +
-                            (right_hand_side[3] * perspective_matrix.m4${i});
+            % if i == 4:
+                tmp[${i - 1}] = (right_hand_side[0] * perspective_matrix.m1${i}) +
+                                (right_hand_side[1] * perspective_matrix.m2${i}) +
+                                (right_hand_side[2] * perspective_matrix.m3${i}) +
+                                (right_hand_side[3] * perspective_matrix.m4${i});
+            % else:
+                tmp[${i - 1}] = (right_hand_side[0] * perspective_matrix.m1${i}) +
+                                (right_hand_side[1] * perspective_matrix.m2${i}) +
+                                (right_hand_side[2] * perspective_matrix.m3${i}) +
+                                (right_hand_side[3] * perspective_matrix.m4${i}.number);
+            % endif
         % endfor
 
         Perspective(tmp[0], tmp[1], tmp[2], tmp[3])
@@ -1497,9 +1521,9 @@ fn decompose_3d_matrix(mut matrix: ComputedMatrix) -> Result<MatrixDecomposed3D,
 
     // Next take care of translation
     let translate = Translate3D (
-        matrix.m41,
-        matrix.m42,
-        matrix.m43
+        matrix.m41.number,
+        matrix.m42.number,
+        matrix.m43.number
     );
 
     // Now get scale and shear. 'row' is a 3 element array of 3 component vectors
@@ -1696,7 +1720,7 @@ impl From<MatrixDecomposed3D> for ComputedMatrix {
         // Apply translation
         % for i in range(1, 4):
             % for j in range(1, 4):
-                matrix.m4${i} += decomposed.translate.${j - 1} * matrix.m${j}${i};
+                matrix.m4${i}.number += decomposed.translate.${j - 1} * matrix.m${j}${i};
             % endfor
         % endfor
 
@@ -1754,14 +1778,33 @@ impl From<MatrixDecomposed3D> for ComputedMatrix {
 // Multiplication of two 4x4 matrices.
 fn multiply(a: ComputedMatrix, b: ComputedMatrix) -> ComputedMatrix {
     let mut a_clone = a;
-    % for i in range(1, 5):
+    % for i in range(1, 4):
         % for j in range(1, 5):
-            a_clone.m${i}${j} = (a.m${i}1 * b.m1${j}) +
-                               (a.m${i}2 * b.m2${j}) +
-                               (a.m${i}3 * b.m3${j}) +
-                               (a.m${i}4 * b.m4${j});
+            % if j < 4:
+                a_clone.m${i}${j} = (a.m${i}1 * b.m1${j}) +
+                                    (a.m${i}2 * b.m2${j}) +
+                                    (a.m${i}3 * b.m3${j}) +
+                                    (a.m${i}4 * b.m4${j}.number);
+            % else:
+                a_clone.m${i}${j} = (a.m${i}1 * b.m1${j}) +
+                                    (a.m${i}2 * b.m2${j}) +
+                                    (a.m${i}3 * b.m3${j}) +
+                                    (a.m${i}4 * b.m4${j});
+            % endif
         % endfor
     % endfor
+
+    % for j in range(1, 4):
+        a_clone.m4${j}.number = (a.m41.number * b.m1${j}) +
+                                (a.m42.number * b.m2${j}) +
+                                (a.m43.number * b.m3${j}) +
+                                (a.m44 * b.m4${j}.number);
+    % endfor
+
+    a_clone.m44 = (a.m41.number * b.m14) +
+                  (a.m42.number * b.m24) +
+                  (a.m43.number * b.m34) +
+                  (a.m44 * b.m44);
     a_clone
 }
 
@@ -1770,28 +1813,28 @@ impl ComputedMatrix {
         self.m13 != 0.0 || self.m14 != 0.0 ||
         self.m23 != 0.0 || self.m24 != 0.0 ||
         self.m31 != 0.0 || self.m32 != 0.0 || self.m33 != 1.0 || self.m34 != 0.0 ||
-        self.m43 != 0.0 || self.m44 != 1.0
+        self.m43.number != 0.0 || self.m44 != 1.0
     }
 
     fn determinant(&self) -> CSSFloat {
-        self.m14 * self.m23 * self.m32 * self.m41 -
-        self.m13 * self.m24 * self.m32 * self.m41 -
-        self.m14 * self.m22 * self.m33 * self.m41 +
-        self.m12 * self.m24 * self.m33 * self.m41 +
-        self.m13 * self.m22 * self.m34 * self.m41 -
-        self.m12 * self.m23 * self.m34 * self.m41 -
-        self.m14 * self.m23 * self.m31 * self.m42 +
-        self.m13 * self.m24 * self.m31 * self.m42 +
-        self.m14 * self.m21 * self.m33 * self.m42 -
-        self.m11 * self.m24 * self.m33 * self.m42 -
-        self.m13 * self.m21 * self.m34 * self.m42 +
-        self.m11 * self.m23 * self.m34 * self.m42 +
-        self.m14 * self.m22 * self.m31 * self.m43 -
-        self.m12 * self.m24 * self.m31 * self.m43 -
-        self.m14 * self.m21 * self.m32 * self.m43 +
-        self.m11 * self.m24 * self.m32 * self.m43 +
-        self.m12 * self.m21 * self.m34 * self.m43 -
-        self.m11 * self.m22 * self.m34 * self.m43 -
+        self.m14 * self.m23 * self.m32 * self.m41.number -
+        self.m13 * self.m24 * self.m32 * self.m41.number -
+        self.m14 * self.m22 * self.m33 * self.m41.number +
+        self.m12 * self.m24 * self.m33 * self.m41.number +
+        self.m13 * self.m22 * self.m34 * self.m41.number -
+        self.m12 * self.m23 * self.m34 * self.m41.number -
+        self.m14 * self.m23 * self.m31 * self.m42.number +
+        self.m13 * self.m24 * self.m31 * self.m42.number +
+        self.m14 * self.m21 * self.m33 * self.m42.number -
+        self.m11 * self.m24 * self.m33 * self.m42.number -
+        self.m13 * self.m21 * self.m34 * self.m42.number +
+        self.m11 * self.m23 * self.m34 * self.m42.number +
+        self.m14 * self.m22 * self.m31 * self.m43.number -
+        self.m12 * self.m24 * self.m31 * self.m43.number -
+        self.m14 * self.m21 * self.m32 * self.m43.number +
+        self.m11 * self.m24 * self.m32 * self.m43.number +
+        self.m12 * self.m21 * self.m34 * self.m43.number -
+        self.m11 * self.m22 * self.m34 * self.m43.number -
         self.m13 * self.m22 * self.m31 * self.m44 +
         self.m12 * self.m23 * self.m31 * self.m44 +
         self.m13 * self.m21 * self.m32 * self.m44 -
@@ -1810,65 +1853,65 @@ impl ComputedMatrix {
         det = 1.0 / det;
         let x = ComputedMatrix {
             m11: det *
-            (self.m23*self.m34*self.m42 - self.m24*self.m33*self.m42 +
-             self.m24*self.m32*self.m43 - self.m22*self.m34*self.m43 -
+            (self.m23*self.m34*self.m42.number - self.m24*self.m33*self.m42.number +
+             self.m24*self.m32*self.m43.number - self.m22*self.m34*self.m43.number -
              self.m23*self.m32*self.m44 + self.m22*self.m33*self.m44),
             m12: det *
-            (self.m14*self.m33*self.m42 - self.m13*self.m34*self.m42 -
-             self.m14*self.m32*self.m43 + self.m12*self.m34*self.m43 +
+            (self.m14*self.m33*self.m42.number - self.m13*self.m34*self.m42.number -
+             self.m14*self.m32*self.m43.number + self.m12*self.m34*self.m43.number +
              self.m13*self.m32*self.m44 - self.m12*self.m33*self.m44),
             m13: det *
-            (self.m13*self.m24*self.m42 - self.m14*self.m23*self.m42 +
-             self.m14*self.m22*self.m43 - self.m12*self.m24*self.m43 -
+            (self.m13*self.m24*self.m42.number - self.m14*self.m23*self.m42.number +
+             self.m14*self.m22*self.m43.number - self.m12*self.m24*self.m43.number -
              self.m13*self.m22*self.m44 + self.m12*self.m23*self.m44),
             m14: det *
             (self.m14*self.m23*self.m32 - self.m13*self.m24*self.m32 -
              self.m14*self.m22*self.m33 + self.m12*self.m24*self.m33 +
              self.m13*self.m22*self.m34 - self.m12*self.m23*self.m34),
             m21: det *
-            (self.m24*self.m33*self.m41 - self.m23*self.m34*self.m41 -
-             self.m24*self.m31*self.m43 + self.m21*self.m34*self.m43 +
+            (self.m24*self.m33*self.m41.number - self.m23*self.m34*self.m41.number -
+             self.m24*self.m31*self.m43.number + self.m21*self.m34*self.m43.number +
              self.m23*self.m31*self.m44 - self.m21*self.m33*self.m44),
             m22: det *
-            (self.m13*self.m34*self.m41 - self.m14*self.m33*self.m41 +
-             self.m14*self.m31*self.m43 - self.m11*self.m34*self.m43 -
+            (self.m13*self.m34*self.m41.number - self.m14*self.m33*self.m41.number +
+             self.m14*self.m31*self.m43.number - self.m11*self.m34*self.m43.number -
              self.m13*self.m31*self.m44 + self.m11*self.m33*self.m44),
             m23: det *
-            (self.m14*self.m23*self.m41 - self.m13*self.m24*self.m41 -
-             self.m14*self.m21*self.m43 + self.m11*self.m24*self.m43 +
+            (self.m14*self.m23*self.m41.number - self.m13*self.m24*self.m41.number -
+             self.m14*self.m21*self.m43.number + self.m11*self.m24*self.m43.number +
              self.m13*self.m21*self.m44 - self.m11*self.m23*self.m44),
             m24: det *
             (self.m13*self.m24*self.m31 - self.m14*self.m23*self.m31 +
              self.m14*self.m21*self.m33 - self.m11*self.m24*self.m33 -
              self.m13*self.m21*self.m34 + self.m11*self.m23*self.m34),
             m31: det *
-            (self.m22*self.m34*self.m41 - self.m24*self.m32*self.m41 +
-             self.m24*self.m31*self.m42 - self.m21*self.m34*self.m42 -
+            (self.m22*self.m34*self.m41.number - self.m24*self.m32*self.m41.number +
+             self.m24*self.m31*self.m42.number - self.m21*self.m34*self.m42.number -
              self.m22*self.m31*self.m44 + self.m21*self.m32*self.m44),
             m32: det *
-            (self.m14*self.m32*self.m41 - self.m12*self.m34*self.m41 -
-             self.m14*self.m31*self.m42 + self.m11*self.m34*self.m42 +
+            (self.m14*self.m32*self.m41.number - self.m12*self.m34*self.m41.number -
+             self.m14*self.m31*self.m42.number + self.m11*self.m34*self.m42.number +
              self.m12*self.m31*self.m44 - self.m11*self.m32*self.m44),
             m33: det *
-            (self.m12*self.m24*self.m41 - self.m14*self.m22*self.m41 +
-             self.m14*self.m21*self.m42 - self.m11*self.m24*self.m42 -
+            (self.m12*self.m24*self.m41.number - self.m14*self.m22*self.m41.number +
+             self.m14*self.m21*self.m42.number - self.m11*self.m24*self.m42.number -
              self.m12*self.m21*self.m44 + self.m11*self.m22*self.m44),
             m34: det *
             (self.m14*self.m22*self.m31 - self.m12*self.m24*self.m31 -
              self.m14*self.m21*self.m32 + self.m11*self.m24*self.m32 +
              self.m12*self.m21*self.m34 - self.m11*self.m22*self.m34),
-            m41: det *
-            (self.m23*self.m32*self.m41 - self.m22*self.m33*self.m41 -
-             self.m23*self.m31*self.m42 + self.m21*self.m33*self.m42 +
-             self.m22*self.m31*self.m43 - self.m21*self.m32*self.m43),
-            m42: det *
-            (self.m12*self.m33*self.m41 - self.m13*self.m32*self.m41 +
-             self.m13*self.m31*self.m42 - self.m11*self.m33*self.m42 -
-             self.m12*self.m31*self.m43 + self.m11*self.m32*self.m43),
-            m43: det *
-            (self.m13*self.m22*self.m41 - self.m12*self.m23*self.m41 -
-             self.m13*self.m21*self.m42 + self.m11*self.m23*self.m42 +
-             self.m12*self.m21*self.m43 - self.m11*self.m22*self.m43),
+            m41: NumberPercentage::new(det *
+            (self.m23*self.m32*self.m41.number - self.m22*self.m33*self.m41.number -
+             self.m23*self.m31*self.m42.number + self.m21*self.m33*self.m42.number +
+             self.m22*self.m31*self.m43.number - self.m21*self.m32*self.m43.number), None),
+            m42: NumberPercentage::new(det *
+            (self.m12*self.m33*self.m41.number - self.m13*self.m32*self.m41.number +
+             self.m13*self.m31*self.m42.number - self.m11*self.m33*self.m42.number -
+             self.m12*self.m31*self.m43.number + self.m11*self.m32*self.m43.number), None),
+            m43: NumberPercentage::new(det *
+            (self.m13*self.m22*self.m41.number - self.m12*self.m23*self.m41.number -
+             self.m13*self.m21*self.m42.number + self.m11*self.m23*self.m42.number +
+             self.m12*self.m21*self.m43.number - self.m11*self.m22*self.m43.number), None),
             m44: det *
             (self.m12*self.m23*self.m31 - self.m13*self.m22*self.m31 +
              self.m13*self.m21*self.m32 - self.m11*self.m23*self.m32 -

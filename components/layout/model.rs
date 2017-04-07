@@ -515,7 +515,8 @@ impl ToGfxMatrix for ComputedMatrix {
             self.m11 as f32, self.m12 as f32, self.m13 as f32, self.m14 as f32,
             self.m21 as f32, self.m22 as f32, self.m23 as f32, self.m24 as f32,
             self.m31 as f32, self.m32 as f32, self.m33 as f32, self.m34 as f32,
-            self.m41 as f32, self.m42 as f32, self.m43 as f32, self.m44 as f32)
+            self.m41.value() as f32, self.m42.value() as f32, self.m43.value() as f32,
+            self.m44 as f32)
     }
 }
 

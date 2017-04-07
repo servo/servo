@@ -1103,7 +1103,9 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                    flags="CREATES_STACKING_CONTEXT FIXPOS_CB"
                    spec="https://drafts.csswg.org/css-transforms/#propdef-transform">
     use app_units::Au;
-    use values::specified::{Angle, Length, LengthOrPercentage, Number};
+    use values::computed::LengthOrPercentageOrNumber as ComputedLoPoNumber;
+    use values::specified::{Angle, Length, LengthOrPercentage};
+    use values::specified::{LengthOrPercentageOrNumber as LoPoNumber, Number};
     use style_traits::ToCss;
     use style_traits::values::Css;
     use values::CSSFloat;
@@ -1112,8 +1114,12 @@ ${helpers.predefined_type("scroll-snap-coordinate",
     use std::fmt::{self, Display};
 
     pub mod computed_value {
-        use values::CSSFloat;
+        use app_units::Au;
+        use values::{CSSFloat, Either};
         use values::computed;
+        use values::computed::{CalcLengthOrPercentage, LengthOrPercentage};
+        use values::computed::{LengthOrPercentageOrNumber, Number};
+        use values::specified::Percentage;
 
         #[derive(Clone, Copy, Debug, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -1121,7 +1127,8 @@ ${helpers.predefined_type("scroll-snap-coordinate",
             pub m11: CSSFloat, pub m12: CSSFloat, pub m13: CSSFloat, pub m14: CSSFloat,
             pub m21: CSSFloat, pub m22: CSSFloat, pub m23: CSSFloat, pub m24: CSSFloat,
             pub m31: CSSFloat, pub m32: CSSFloat, pub m33: CSSFloat, pub m34: CSSFloat,
-            pub m41: CSSFloat, pub m42: CSSFloat, pub m43: CSSFloat, pub m44: CSSFloat,
+            pub m41: NumberPercentage, pub m42: NumberPercentage,
+            pub m43: NumberPercentage, pub m44: CSSFloat,
         }
 
         impl ComputedMatrix {
@@ -1130,8 +1137,81 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                     m11: 1.0, m12: 0.0, m13: 0.0, m14: 0.0,
                     m21: 0.0, m22: 1.0, m23: 0.0, m24: 0.0,
                     m31: 0.0, m32: 0.0, m33: 1.0, m34: 0.0,
-                    m41: 0.0, m42: 0.0, m43: 0.0, m44: 1.0
+                    m41: NumberPercentage::zero(), m42: NumberPercentage::zero(),
+                    m43: NumberPercentage::zero(), m44: 1.0
                 }
+            }
+
+            pub fn has_percentage(&self) -> bool {
+                self.m41.percentage.is_some() ||
+                self.m42.percentage.is_some() ||
+                self.m43.percentage.is_some()
+            }
+        }
+
+        #[derive(Clone, Copy, Debug, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        pub struct NumberPercentage {
+            pub number: CSSFloat,
+            pub percentage: Option<Percentage>,
+        }
+
+        impl NumberPercentage {
+            pub fn new(number: CSSFloat, percentage: Option<Percentage>) -> NumberPercentage {
+                NumberPercentage {
+                    number: number,
+                    percentage: percentage,
+                }
+            }
+
+            pub fn value(&self) -> CSSFloat {
+                if let Some(percentage) = self.percentage {
+                    return self.number + percentage.0;
+                }
+                self.number
+            }
+
+            pub fn zero() -> NumberPercentage {
+                NumberPercentage {
+                    number: 0.0,
+                    percentage: None,
+                }
+            }
+        }
+
+        impl From<LengthOrPercentageOrNumber> for NumberPercentage {
+            fn from(value: LengthOrPercentageOrNumber) -> NumberPercentage {
+                match value {
+                    Either::First(length) => {
+                        match length {
+                            computed::LengthOrPercentage::Length(len) => {
+                                NumberPercentage::new(len.to_f32_px(), None)
+                            },
+                            computed::LengthOrPercentage::Percentage(percentage) => {
+                                NumberPercentage::new(0.0, Some(Percentage(percentage)))
+                            },
+                            computed::LengthOrPercentage::Calc(calc) => {
+                                NumberPercentage::new(calc.length.to_f32_px(),
+                                                      calc.percentage.map(Percentage))
+                            },
+                        }
+                    },
+                    Either::Second(num) => NumberPercentage::new(num, None),
+                }
+            }
+        }
+
+        // TODO: these might be wrong or we can delete them altogether
+        impl From<NumberPercentage> for LengthOrPercentageOrNumber {
+            fn from(value: NumberPercentage) -> LengthOrPercentageOrNumber {
+                if let Some(percentage) = value.percentage {
+                    return Either::First(LengthOrPercentage::Calc(CalcLengthOrPercentage {
+                        length: Au::from_f32_px(value.number),
+                        percentage: Some(percentage.0),
+
+                    }));
+                }
+                Either::Second(value.number)
             }
         }
 
@@ -1163,13 +1243,13 @@ ${helpers.predefined_type("scroll-snap-coordinate",
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedOperation {
         /// Represents a 2D 2x3 matrix.
-        Matrix { a: Number, b: Number, c: Number, d: Number, e: Number, f: Number },
+        Matrix { a: Number, b: Number, c: Number, d: Number, e: LoPoNumber, f: LoPoNumber },
         /// Represents a 3D 4x4 matrix.
         Matrix3D {
-            m11: Number, m12: Number, m13: Number, m14: Number,
-            m21: Number, m22: Number, m23: Number, m24: Number,
-            m31: Number, m32: Number, m33: Number, m34: Number,
-            m41: Number, m42: Number, m43: Number, m44: Number,
+            m11: Number,     m12: Number,     m13: Number,     m14: Number,
+            m21: Number,     m22: Number,     m23: Number,     m24: Number,
+            m31: Number,     m32: Number,     m33: Number,     m34: Number,
+            m41: LoPoNumber, m42: LoPoNumber, m43: LoPoNumber, m44: Number,
         },
         /// A 2D skew.
         ///
@@ -1253,14 +1333,14 @@ ${helpers.predefined_type("scroll-snap-coordinate",
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             use self::SpecifiedOperation::*;
             match *self {
-                Matrix { a, b, c, d, e, f} => write!(
+                Matrix { a, b, c, d, ref e, ref f} => write!(
                     dest, "matrix({}, {}, {}, {}, {}, {})",
                     Css(a), Css(b), Css(c), Css(d), Css(e), Css(f)),
                 Matrix3D {
                     m11, m12, m13, m14,
                     m21, m22, m23, m24,
                     m31, m32, m33, m34,
-                    m41, m42, m43, m44 } => write!(
+                    ref m41, ref m42, ref m43, m44 } => write!(
                         dest, "matrix3d({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})",
                         Css(m11), Css(m12), Css(m13), Css(m14),
                         Css(m21), Css(m22), Css(m23), Css(m24),
@@ -1330,7 +1410,8 @@ ${helpers.predefined_type("scroll-snap-coordinate",
         computed_value::T(None)
     }
 
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+    fn parse_internal(context: &ParserContext, input: &mut Parser, prefixed: bool)
+        -> Result<SpecifiedValue,()> {
         if input.try(|input| input.expect_ident_matching("none")).is_ok() {
             return Ok(SpecifiedValue(Vec::new()))
         }
@@ -1345,34 +1426,69 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                 &name,
                 "matrix" => {
                     try!(input.parse_nested_block(|input| {
-                        let values = try!(input.parse_comma_separated(|input| {
-                            specified::parse_number(input)
-                        }));
-                        if values.len() != 6 {
-                            return Err(())
+                        let mut values = vec![];
+                        let mut lengths = vec![];
+
+                        // Consume first number
+                        values.push(specified::parse_number(input)?);
+
+                        // Parse other 5 number/LengthOrPercentageOrNumber
+                        for i in 0..5 {
+                            input.expect_comma()?;
+                            if i < 3 {
+                                values.push(specified::parse_number(input)?);
+                            } else {
+                                // -moz-transform accepts LengthOrPercentageOrNumber in the nondiagonal
+                                // homogeneous components. transform accepts only number.
+                                if prefixed {
+                                    lengths.push(LoPoNumber::parse(context, input)?)
+                                } else {
+                                    lengths.push(Either::Second(specified::parse_number(input)?));
+                                }
+                            }
                         }
+
                         result.push(SpecifiedOperation::Matrix {
                             a: values[0],
                             b: values[1],
                             c: values[2],
                             d: values[3],
-                            e: values[4],
-                            f: values[5]
+                            e: lengths[0].clone(),
+                            f: lengths[1].clone(),
                         });
                         Ok(())
                     }))
                 },
                 "matrix3d" => {
                     try!(input.parse_nested_block(|input| {
-                        let values = try!(input.parse_comma_separated(specified::parse_number));
-                        if values.len() != 16 {
-                            return Err(())
+                        let mut values = vec![];
+                        let mut lengths = vec![];
+
+                        // Parse first number
+                        values.push(specified::parse_number(input)?);
+
+                        // Parse other 15 number/LengthOrPercentageOrNumber
+                        for i in 0..15 {
+                            input.expect_comma()?;
+                            if i < 11 || i > 13 {
+                                values.push(specified::parse_number(input)?);
+                            } else {
+                                // -moz-transform accepts LengthOrPercentageOrNumber in the nondiagonal
+                                // homogeneous components. transform accepts only number.
+                                if prefixed {
+                                    lengths.push(LoPoNumber::parse(context, input)?)
+                                } else {
+                                    lengths.push(Either::Second(specified::parse_number(input)?));
+                                }
+                            }
                         }
+
                         result.push(SpecifiedOperation::Matrix3D {
                             m11: values[ 0], m12: values[ 1], m13: values[ 2], m14: values[ 3],
                             m21: values[ 4], m22: values[ 5], m23: values[ 6], m24: values[ 7],
                             m31: values[ 8], m32: values[ 9], m33: values[10], m34: values[11],
-                            m41: values[12], m42: values[13], m43: values[14], m44: values[15]
+                            m41: lengths[0].clone(), m42: lengths[1].clone(), m43: lengths[2].clone(),
+                            m44: values[15]
                         });
                         Ok(())
                     }))
@@ -1551,12 +1667,27 @@ ${helpers.predefined_type("scroll-snap-coordinate",
         }
     }
 
+    /// Parses `transform` property.
+    #[inline]
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+        parse_internal(context, input, false)
+    }
+
+    /// Parses `-moz-transform` property. This prefixed property also accepts LengthOrPercentage
+    /// in the nondiagonal homogeneous components of matrix and matrix3d.
+    #[inline]
+    pub fn parse_prefixed(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+        parse_internal(context, input, true)
+    }
+
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
 
         #[inline]
         fn to_computed_value(&self, context: &Context) -> computed_value::T {
             use self::SpecifiedOperation::*;
+            use self::computed_value::NumberPercentage;
+
             if self.0.is_empty() {
                 return computed_value::T(None)
             }
@@ -1564,21 +1695,21 @@ ${helpers.predefined_type("scroll-snap-coordinate",
             let mut result = vec!();
             for operation in &self.0 {
                 match *operation {
-                    Matrix { a, b, c, d, e, f } => {
+                    Matrix { a, b, c, d, ref e, ref f } => {
                         let mut comp = computed_value::ComputedMatrix::identity();
                         comp.m11 = a.to_computed_value(context);
                         comp.m12 = b.to_computed_value(context);
                         comp.m21 = c.to_computed_value(context);
                         comp.m22 = d.to_computed_value(context);
-                        comp.m41 = e.to_computed_value(context);
-                        comp.m42 = f.to_computed_value(context);
+                        comp.m41 = NumberPercentage::from(e.to_computed_value(context));
+                        comp.m42 = NumberPercentage::from(f.to_computed_value(context));
                         result.push(computed_value::ComputedOperation::Matrix(comp));
                     }
                     Matrix3D {
                         m11, m12, m13, m14,
                         m21, m22, m23, m24,
                         m31, m32, m33, m34,
-                        m41, m42, m43, m44 } => {
+                        ref m41, ref m42, ref m43, m44 } => {
                             let comp = computed_value::ComputedMatrix {
                                 m11: m11.to_computed_value(context),
                                 m12: m12.to_computed_value(context),
@@ -1592,9 +1723,9 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                                 m32: m32.to_computed_value(context),
                                 m33: m33.to_computed_value(context),
                                 m34: m34.to_computed_value(context),
-                                m41: m41.to_computed_value(context),
-                                m42: m42.to_computed_value(context),
-                                m43: m43.to_computed_value(context),
+                                m41: NumberPercentage::from(m41.to_computed_value(context)),
+                                m42: NumberPercentage::from(m42.to_computed_value(context)),
+                                m43: NumberPercentage::from(m43.to_computed_value(context)),
                                 m44: m44.to_computed_value(context),
                             };
                         result.push(computed_value::ComputedOperation::Matrix(comp));
@@ -1738,9 +1869,9 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                                 m32: Number::from_computed_value(&computed.m32),
                                 m33: Number::from_computed_value(&computed.m33),
                                 m34: Number::from_computed_value(&computed.m34),
-                                m41: Number::from_computed_value(&computed.m41),
-                                m42: Number::from_computed_value(&computed.m42),
-                                m43: Number::from_computed_value(&computed.m43),
+                                m41: LoPoNumber::from_computed_value(&ComputedLoPoNumber::from(computed.m41)),
+                                m42: LoPoNumber::from_computed_value(&ComputedLoPoNumber::from(computed.m42)),
+                                m43: LoPoNumber::from_computed_value(&ComputedLoPoNumber::from(computed.m43)),
                                 m44: Number::from_computed_value(&computed.m44),
                             });
                         }
@@ -1864,7 +1995,8 @@ ${helpers.predefined_type("perspective",
     use values::specified::{LengthOrPercentage, Percentage};
 
     pub mod computed_value {
-        use values::computed::LengthOrPercentage;
+        use values::computed::{LengthOrPercentage, LengthOrPercentageOrNumber};
+        use values::specified::Percentage;
 
         #[derive(Clone, Copy, Debug, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]

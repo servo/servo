@@ -1723,10 +1723,9 @@ fn static_assert() {
         <%
             pattern = None
             if name == "matrix":
-                # m11, m12, m13, ..
-                indices = [str(i) + str(j) for i in range(1, 5) for j in range(1, 5)]
                 # m11: number1, m12: number2, ..
-                single_patterns = ["m%s: number%s" % (index, i + 1) for (i, index) in enumerate(indices)]
+                single_patterns = ["m%s: %s" % (str(a / 4 + 1) + str(a % 4 + 1), b + str(a + 1)) for (a, b)
+                                   in enumerate(items)]
                 pattern = "ComputedMatrix { %s }" % ", ".join(single_patterns)
             else:
                 # Generate contents of pattern from items
@@ -1740,6 +1739,8 @@ fn static_assert() {
                 "lop" : "%s.set_lop(%s)",
                 "angle" : "bindings::Gecko_CSSValue_SetAngle(%s, %s.radians())",
                 "number" : "bindings::Gecko_CSSValue_SetNumber(%s, %s)",
+                "number_percentage" : "bindings::Gecko_CSSValue_SetNumber(%s, %s);\n \
+                                       bindings::Gecko_CSSValue_SetPercentage(%s, %s)",
             }
         %>
         longhands::transform::computed_value::ComputedOperation::${name.title()}(${pattern}) => {
@@ -1749,10 +1750,19 @@ fn static_assert() {
                 eCSSKeyword_${keyword}
             );
             % for index, item in enumerate(items):
-                ${css_value_setters[item] % (
-                    "bindings::Gecko_CSSValue_GetArrayItem(gecko_value, %d)" % (index + 1),
-                    item + str(index + 1)
-                )};
+                % if item == "number_percentage":
+                    ${css_value_setters[item] % (
+                        "bindings::Gecko_CSSValue_GetArrayItem(gecko_value, %d)" % (index + 1),
+                        item + str(index + 1) + ".number",
+                        "bindings::Gecko_CSSValue_GetArrayItem(gecko_value, %d)" % (index + 1),
+                        item + str(index + 1) + ".percentage.unwrap_or(Percentage(0.0)).0"
+                    )};
+                %else:
+                    ${css_value_setters[item] % (
+                        "bindings::Gecko_CSSValue_GetArrayItem(gecko_value, %d)" % (index + 1),
+                        item + str(index + 1)
+                    )};
+                % endif
             % endfor
         }
     </%def>
@@ -1761,6 +1771,7 @@ fn static_assert() {
         use gecko_bindings::structs::nsCSSKeyword::*;
         use gecko_bindings::sugar::refptr::RefPtr;
         use properties::longhands::transform::computed_value::ComputedMatrix;
+        use values::specified::Percentage;
 
         unsafe { output.clear() };
 
@@ -1776,7 +1787,8 @@ fn static_assert() {
                                             value list of the same length as the transform vector");
             unsafe {
                 match servo {
-                    ${transform_function_arm("matrix", "matrix3d", ["number"] * 16)}
+                    ${transform_function_arm("matrix", "matrix3d", ["number"] * 12 + ["number_percentage"] * 3
+                                             + ["number"])}
                     ${transform_function_arm("skew", "skew", ["angle"] * 2)}
                     ${transform_function_arm("translate", "translate3d", ["lop", "lop", "length"])}
                     ${transform_function_arm("scale", "scale3d", ["number"] * 3)}
@@ -1814,6 +1826,8 @@ fn static_assert() {
                 "lop" : "%s.get_lop()",
                 "angle" : "Angle::from_radians(bindings::Gecko_CSSValue_GetAngle(%s))",
                 "number" : "bindings::Gecko_CSSValue_GetNumber(%s)",
+                "number_percentage" : "bindings::Gecko_CSSValue_GetNumber(%s),\n \
+                                       Some(Percentage(bindings::Gecko_CSSValue_GetPercentage(%s)))",
             }
         %>
         eCSSKeyword_${keyword} => {
@@ -1823,11 +1837,24 @@ fn static_assert() {
             % endif
             % for index, item in enumerate(items):
                 % if name == "matrix":
-                    m${index / 4 + 1}${index % 4 + 1}:
+                    % if item == "number_percentage":
+                        m${index / 4 + 1}${index % 4 + 1}: NumberPercentage::new(
+                    % else:
+                        m${index / 4 + 1}${index % 4 + 1}:
+                    % endif
                 % endif
-                ${css_value_getters[item] % (
-                    "bindings::Gecko_CSSValue_GetArrayItemConst(gecko_value, %d)" % (index + 1)
-                )},
+
+                % if item == "number_percentage":
+                    ${css_value_getters[item] % (
+                        "bindings::Gecko_CSSValue_GetArrayItemConst(gecko_value, %d)" % (index + 1),
+                        "bindings::Gecko_CSSValue_GetArrayItemConst(gecko_value, %d)" % (index + 1)
+                    )})
+                % else:
+                    ${css_value_getters[item] % (
+                        "bindings::Gecko_CSSValue_GetArrayItemConst(gecko_value, %d)" % (index + 1)
+                    )}
+                % endif
+                ,
             % endfor
             % if name == "matrix":
                 }
@@ -1841,7 +1868,9 @@ fn static_assert() {
         use properties::longhands::transform::computed_value;
         use properties::longhands::transform::computed_value::ComputedMatrix;
         use properties::longhands::transform::computed_value::ComputedOperation;
+        use properties::longhands::transform::computed_value::NumberPercentage;
         use values::computed::Angle;
+        use values::specified::Percentage;
 
         if self.gecko.mSpecifiedTransform.mRawPtr.is_null() {
             return computed_value::T(None);
@@ -1856,7 +1885,8 @@ fn static_assert() {
             };
             let servo = unsafe {
                 match transform_function {
-                    ${computed_operation_arm("matrix", "matrix3d", ["number"] * 16)}
+                    ${computed_operation_arm("matrix", "matrix3d", ["number"] * 12 + ["number_percentage"] * 3
+                                             + ["number"])}
                     ${computed_operation_arm("skew", "skew", ["angle"] * 2)}
                     ${computed_operation_arm("translate", "translate3d", ["lop", "lop", "length"])}
                     ${computed_operation_arm("scale", "scale3d", ["number"] * 3)}

@@ -422,6 +422,8 @@ bitflags! {
         /// This property has values that can establish a containing block for
         /// absolutely positioned elements.
         const ABSPOS_CB = 1 << 2,
+        /// This property(shorthand) is an alias of another property.
+        const ALIAS_PROPERTY = 1 << 3,
     }
 }
 
@@ -561,6 +563,12 @@ impl ShorthandId {
             Some(declaration) => declaration,
             None => return None
         };
+
+        // Alias shorthand properties like -moz-transform should not be
+        // serialized as shorthand. They will be serialized as longhand.
+        if self.flags().contains(ALIAS_PROPERTY) {
+            return None;
+        }
 
         // https://drafts.csswg.org/css-variables/#variables-in-shorthands
         if let Some(css) = first_declaration.with_variables_from_shorthand(self) {
@@ -1791,7 +1799,7 @@ impl ComputedValues {
                         // See http://dev.w3.org/csswg/css-transforms/#2d-matrix
                         if m.m31 != 0.0 || m.m32 != 0.0 ||
                            m.m13 != 0.0 || m.m23 != 0.0 ||
-                           m.m43 != 0.0 || m.m14 != 0.0 ||
+                           m.m43.value() != 0.0 || m.m14 != 0.0 ||
                            m.m24 != 0.0 || m.m34 != 0.0 ||
                            m.m33 != 1.0 || m.m44 != 1.0 {
                             return true;
