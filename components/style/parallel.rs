@@ -39,7 +39,6 @@ pub const CHUNK_SIZE: usize = 64;
 #[allow(unsafe_code)]
 pub fn traverse_dom<E, D>(traversal: &D,
                           root: E,
-                          known_root_dom_depth: Option<usize>,
                           token: PreTraverseToken,
                           queue: &rayon::ThreadPool)
     where E: TElement,
@@ -60,9 +59,9 @@ pub fn traverse_dom<E, D>(traversal: &D,
                 children.push(unsafe { SendNode::new(kid) });
             }
         }
-        (children, known_root_dom_depth.map(|x| x + 1))
+        (children, root.depth() + 1)
     } else {
-        (vec![unsafe { SendNode::new(root.as_node()) }], known_root_dom_depth)
+        (vec![unsafe { SendNode::new(root.as_node()) }], root.depth())
     };
 
     let traversal_data = PerLevelTraversalData {
@@ -126,10 +125,7 @@ fn top_down_dom<'a, 'scope, E, D>(nodes: &'a [SendNode<E::ConcreteNode>],
         }
     }
 
-    if let Some(ref mut depth) = traversal_data.current_dom_depth {
-        *depth += 1;
-    }
-
+    traversal_data.current_dom_depth += 1;
     traverse_nodes(discovered_child_nodes, root, traversal_data, scope, traversal, tls);
 }
 

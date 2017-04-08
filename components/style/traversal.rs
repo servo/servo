@@ -23,11 +23,11 @@ use stylist::Stylist;
 /// NB: Keep this as small as possible, please!
 #[derive(Clone, Debug)]
 pub struct PerLevelTraversalData {
-    /// The current dom depth, if known, or `None` otherwise.
+    /// The current dom depth.
     ///
     /// This is kept with cooperation from the traversal code and the bloom
     /// filter.
-    pub current_dom_depth: Option<usize>,
+    pub current_dom_depth: usize,
 }
 
 bitflags! {
@@ -119,7 +119,7 @@ pub trait DomTraversal<E: TElement> : Sync {
     type ThreadLocalContext: Send + BorrowMut<ThreadLocalStyleContext<E>>;
 
     /// Process `node` on the way down, before its children have been processed.
-    fn process_preorder(&self, data: &mut PerLevelTraversalData,
+    fn process_preorder(&self, data: &PerLevelTraversalData,
                         thread_local: &mut Self::ThreadLocalContext,
                         node: E::ConcreteNode);
 
@@ -521,7 +521,7 @@ pub fn resolve_style<E, F, G, H>(context: &mut StyleContext<E>, element: E,
 #[inline]
 #[allow(unsafe_code)]
 pub fn recalc_style_at<E, D>(traversal: &D,
-                             traversal_data: &mut PerLevelTraversalData,
+                             traversal_data: &PerLevelTraversalData,
                              context: &mut StyleContext<E>,
                              element: E,
                              mut data: &mut AtomicRefMut<ElementData>)
@@ -619,7 +619,7 @@ pub fn recalc_style_at<E, D>(traversal: &D,
 }
 
 fn compute_style<E, D>(_traversal: &D,
-                       traversal_data: &mut PerLevelTraversalData,
+                       traversal_data: &PerLevelTraversalData,
                        context: &mut StyleContext<E>,
                        element: E,
                        mut data: &mut AtomicRefMut<ElementData>)
@@ -650,16 +650,8 @@ fn compute_style<E, D>(_traversal: &D,
     match kind {
         MatchAndCascade => {
             // Ensure the bloom filter is up to date.
-            let dom_depth =
-                context.thread_local.bloom_filter
-                       .insert_parents_recovering(element,
-                                                  traversal_data.current_dom_depth);
-
-            // Update the dom depth with the up-to-date dom depth.
-            //
-            // Note that this is always the same than the pre-existing depth,
-            // but it can change from unknown to known at this step.
-            traversal_data.current_dom_depth = Some(dom_depth);
+            context.thread_local.bloom_filter
+                   .insert_parents_recovering(element, traversal_data.current_dom_depth);
 
             context.thread_local.bloom_filter.assert_complete(element);
             context.thread_local.statistics.elements_matched += 1;

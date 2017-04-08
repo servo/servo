@@ -99,7 +99,7 @@ impl<E: TElement> StyleBloom<E> {
     }
 
     /// Rebuilds the bloom filter up to the parent of the given element.
-    pub fn rebuild(&mut self, mut element: E) -> usize {
+    pub fn rebuild(&mut self, mut element: E) {
         self.clear();
 
         while let Some(parent) = element.parent_element() {
@@ -110,7 +110,6 @@ impl<E: TElement> StyleBloom<E> {
 
         // Put them in the order we expect, from root to `element`'s parent.
         self.elements.reverse();
-        return self.elements.len();
     }
 
     /// In debug builds, asserts that all the parents of `element` are in the
@@ -139,12 +138,12 @@ impl<E: TElement> StyleBloom<E> {
     /// responsible to keep around if it wants to get an effective filter.
     pub fn insert_parents_recovering(&mut self,
                                      element: E,
-                                     element_depth: Option<usize>)
-                                     -> usize
+                                     element_depth: usize)
     {
         // Easy case, we're in a different restyle, or we're empty.
         if self.elements.is_empty() {
-            return self.rebuild(element);
+            self.rebuild(element);
+            return;
         }
 
         let parent_element = match element.parent_element() {
@@ -152,23 +151,19 @@ impl<E: TElement> StyleBloom<E> {
             None => {
                 // Yay, another easy case.
                 self.clear();
-                return 0;
+                return;
             }
         };
 
         if self.elements.last().map(|el| **el) == Some(parent_element) {
             // Ta da, cache hit, we're all done.
-            return self.elements.len();
+            return;
         }
 
-        let element_depth = match element_depth {
-            Some(depth) => depth,
-            // If we don't know the depth of `element`, we'd rather don't try
-            // fixing up the bloom filter, since it's quadratic.
-            None => {
-                return self.rebuild(element);
-            }
-        };
+        if element_depth == 0 {
+            self.clear();
+            return;
+        }
 
         // We should've early exited above.
         debug_assert!(element_depth != 0,
@@ -250,6 +245,5 @@ impl<E: TElement> StyleBloom<E> {
         debug_assert_eq!(self.elements.len(), element_depth);
 
         // We're done! Easy.
-        return self.elements.len();
     }
 }
