@@ -9,9 +9,10 @@
 #![allow(non_snake_case, missing_docs)]
 
 use gecko_bindings::bindings::{RawServoMediaList, RawServoMediaRule, RawServoNamespaceRule};
-use gecko_bindings::bindings::{RawServoStyleSheet, RawServoStyleRule, RawServoImportRule};
+use gecko_bindings::bindings::{RawServoStyleSheet, RawServoImportRule};
 use gecko_bindings::bindings::{ServoComputedValues, ServoCssRules};
-use gecko_bindings::structs::{RawServoAnimationValue, RawServoAnimationValueMap, RawServoDeclarationBlock};
+use gecko_bindings::structs::{RawServoAnimationValue, RawServoAnimationValueMap};
+use gecko_bindings::structs::{RawServoDeclarationBlock, RawServoStyleRule};
 use gecko_bindings::sugar::ownership::{HasArcFFI, HasFFI};
 use media_queries::MediaList;
 use parking_lot::RwLock;
