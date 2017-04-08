@@ -22,6 +22,7 @@ use gecko_bindings::structs::RawGeckoStyleAnimationList;
 use gecko_bindings::structs::RawGeckoURLExtraData;
 use gecko_bindings::structs::RefPtr;
 use gecko_bindings::structs::CSSPseudoClassType;
+use gecko_bindings::structs::TraversalRestyleBehavior;
 use gecko_bindings::structs::TraversalRootBehavior;
 use gecko_bindings::structs::ComputedTimingFunction_BeforeFlag;
 use gecko_bindings::structs::FontFamilyList;
@@ -1395,6 +1396,12 @@ extern "C" {
     pub fn Gecko_Construct_nsStyleVariables(ptr: *mut nsStyleVariables);
 }
 extern "C" {
+    pub fn Gecko_RegisterProfilerThread(name: *const ::std::os::raw::c_char);
+}
+extern "C" {
+    pub fn Gecko_UnregisterProfilerThread();
+}
+extern "C" {
     pub fn Servo_Element_ClearData(node: RawGeckoElementBorrowed);
 }
 extern "C" {
@@ -1894,7 +1901,8 @@ extern "C" {
 extern "C" {
     pub fn Servo_TraverseSubtree(root: RawGeckoElementBorrowed,
                                  set: RawServoStyleSetBorrowed,
-                                 root_behavior: TraversalRootBehavior)
+                                 root_behavior: TraversalRootBehavior,
+                                 restyle_behavior: TraversalRestyleBehavior)
      -> bool;
 }
 extern "C" {
