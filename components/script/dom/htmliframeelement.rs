@@ -41,7 +41,7 @@ use ipc_channel::ipc;
 use js::jsapi::{JSAutoCompartment, JSContext, MutableHandleValue};
 use js::jsval::{NullValue, UndefinedValue};
 use msg::constellation_msg::{FrameType, FrameId, PipelineId, TraversalDirection};
-use net_traits::response::HttpsState;
+use net_traits::HttpsState;
 use script_layout_interface::message::ReflowQueryType;
 use script_thread::{ScriptThread, Runnable};
 use script_traits::{IFrameLoadInfo, IFrameLoadInfoWithData, LoadData};
