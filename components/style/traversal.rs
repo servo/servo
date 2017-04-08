@@ -9,7 +9,7 @@
 use atomic_refcell::{AtomicRefCell, AtomicRefMut};
 use context::{SharedStyleContext, StyleContext, ThreadLocalStyleContext};
 use data::{ElementData, ElementStyles, StoredRestyleHint};
-use dom::{DirtyDescendants, NodeInfo, TElement, TNode};
+use dom::{DirtyDescendants, NodeInfo, OpaqueNode, TElement, TNode};
 use matching::{MatchMethods, StyleSharingBehavior};
 use restyle_hints::{RESTYLE_DESCENDANTS, RESTYLE_SELF};
 use selector_parser::RestyleDamage;
@@ -135,6 +135,56 @@ pub trait DomTraversal<E: TElement> : Sync {
     ///
     /// If it's false, then process_postorder has no effect at all.
     fn needs_postorder_traversal() -> bool { true }
+
+    /// Handles the postorder step of the traversal, if it exists, by bubbling
+    /// up the parent chain.
+    ///
+    /// If we are the last child that finished processing, recursively process
+    /// our parent. Else, stop. Also, stop at the root.
+    ///
+    /// Thus, if we start with all the leaves of a tree, we end up traversing
+    /// the whole tree bottom-up because each parent will be processed exactly
+    /// once (by the last child that finishes processing).
+    ///
+    /// The only communication between siblings is that they both
+    /// fetch-and-subtract the parent's children count. This makes it safe to
+    /// call durign the parallel traversal.
+    fn handle_postorder_traversal(&self,
+                                  thread_local: &mut Self::ThreadLocalContext,
+                                  root: OpaqueNode,
+                                  mut node: E::ConcreteNode,
+                                  children_to_process: isize)
+    {
+        // If the postorder step is a no-op, don't bother.
+        if !Self::needs_postorder_traversal() {
+            return;
+        }
+
+        if children_to_process == 0 {
+            // We are a leaf. Walk up the chain.
+            loop {
+                self.process_postorder(thread_local, node);
+                if node.opaque() == root {
+                    break;
+                }
+                let parent = node.parent_element().unwrap();
+                let remaining = parent.did_process_child();
+                if remaining != 0 {
+                    // The parent has other unprocessed descendants. We only
+                    // perform postorder processing after the last descendant
+                    // has been processed.
+                    break
+                }
+
+                node = parent.as_node();
+            }
+        } else {
+            // Otherwise record the number of children to process when the
+            // time comes.
+            node.as_element().unwrap()
+                .store_children_to_process(children_to_process);
+        }
+    }
 
     /// Must be invoked before traversing the root element to determine whether
     /// a traversal is needed. Returns a token that allows the caller to prove
