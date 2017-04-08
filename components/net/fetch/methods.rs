@@ -395,18 +395,14 @@ fn basic_fetch(request: &mut Request,
         },
 
         "data" => {
-            if request.method == Method::Get {
-                match decode(&url) {
-                    Ok((mime, bytes)) => {
-                        let mut response = Response::new(url);
-                        *response.body.lock().unwrap() = ResponseBody::Done(bytes);
-                        response.headers.set(ContentType(mime));
-                        response
-                    },
-                    Err(_) => Response::network_error(NetworkError::Internal("Decoding data URL failed".into()))
-                }
-            } else {
-                Response::network_error(NetworkError::Internal("Unexpected method for data".into()))
+            match decode(&url) {
+                Ok((mime, bytes)) => {
+                    let mut response = Response::new(url);
+                    *response.body.lock().unwrap() = ResponseBody::Done(bytes);
+                    response.headers.set(ContentType(mime));
+                    response
+                },
+                Err(_) => Response::network_error(NetworkError::Internal("Decoding data URL failed".into()))
             }
         },
 
