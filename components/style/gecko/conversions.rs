@@ -11,7 +11,7 @@
 use app_units::Au;
 use gecko::values::{convert_rgba_to_nscolor, GeckoStyleCoordConvertible};
 use gecko_bindings::bindings::{Gecko_CreateGradient, Gecko_SetGradientImageValue, Gecko_SetUrlImageValue};
-use gecko_bindings::bindings::Gecko_InitializeImageCropRect;
+use gecko_bindings::bindings::{Gecko_InitializeImageCropRect, Gecko_SetImageElement};
 use gecko_bindings::structs::{nsStyleCoord_CalcValue, nsStyleImage};
 use gecko_bindings::structs::{nsresult, SheetType};
 use gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordDataMut};
@@ -141,6 +141,11 @@ impl nsStyleImage {
                     image_rect.left.to_gecko_style_coord(&mut rect.data_at_mut(3));
                 }
             }
+            Image::Element(ref element) => {
+                unsafe {
+                    Gecko_SetImageElement(self, element.as_ptr());
+                }
+            },
             _ => (),
         }
     }

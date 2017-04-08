@@ -7,7 +7,8 @@
 //!
 //! [image]: https://drafts.csswg.org/css-images/#image-values
 
-use cssparser::Parser;
+use Atom;
+use cssparser::{Parser, Token, serialize_identifier};
 use parser::{Parse, ParserContext};
 #[cfg(feature = "servo")]
 use servo_url::ServoUrl;
@@ -28,6 +29,8 @@ pub enum Image {
     Gradient(Gradient),
     /// A `-moz-image-rect` image
     ImageRect(ImageRect),
+    /// A `-moz-element(# <element-id>)`
+    Element(Atom),
 }
 
 impl ToCss for Image {
@@ -36,6 +39,12 @@ impl ToCss for Image {
             Image::Url(ref url_value) => url_value.to_css(dest),
             Image::Gradient(ref gradient) => gradient.to_css(dest),
             Image::ImageRect(ref image_rect) => image_rect.to_css(dest),
+            Image::Element(ref selector) => {
+                dest.write_str("-moz-element(#")?;
+                // FIXME: We should get rid of these intermediate strings.
+                serialize_identifier(&*selector.to_string(), dest)?;
+                dest.write_str(")")
+            },
         }
     }
 }
@@ -49,8 +58,11 @@ impl Image {
         if let Ok(gradient) = input.try(|input| Gradient::parse_function(context, input)) {
             return Ok(Image::Gradient(gradient));
         }
+        if let Ok(image_rect) = input.try(|input| ImageRect::parse(context, input)) {
+            return Ok(Image::ImageRect(image_rect));
+        }
 
-        Ok(Image::ImageRect(ImageRect::parse(context, input)?))
+        Ok(Image::Element(Image::parse_element(input)?))
     }
 
     /// Creates an already specified image value from an already resolved URL
@@ -58,6 +70,20 @@ impl Image {
     #[cfg(feature = "servo")]
     pub fn for_cascade(url: ServoUrl) -> Self {
         Image::Url(SpecifiedUrl::for_cascade(url))
+    }
+
+    /// Parses a `-moz-element(# <element-id>)`.
+    fn parse_element(input: &mut Parser) -> Result<Atom, ()> {
+        if input.try(|i| i.expect_function_matching("-moz-element")).is_ok() {
+            input.parse_nested_block(|i| {
+                match i.next()? {
+                    Token::IDHash(id) => Ok(Atom::from(id)),
+                    _ => Err(()),
+                }
+            })
+        } else {
+            Err(())
+        }
     }
 }
 
