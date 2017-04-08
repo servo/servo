@@ -21,6 +21,7 @@ matrix:
          - bash etc/ci/check_no_panic.sh
          - bash etc/ci/lockfile_changed.sh
          - bash etc/ci/manifest_changed.sh
+         - ./mach cargo test -p selectors
       cache:
         directories:
           - .cargo

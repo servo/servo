@@ -5,6 +5,7 @@
 //! A type to represent a namespace.
 
 use gecko_bindings::structs::nsIAtom;
+use precomputed_hash::PrecomputedHash;
 use std::borrow::{Borrow, Cow};
 use std::fmt;
 use std::ops::Deref;
@@ -19,9 +20,26 @@ macro_rules! ns {
 #[derive(Debug, PartialEq, Eq, Clone, Default, Hash)]
 pub struct Namespace(pub Atom);
 
+impl PrecomputedHash for Namespace {
+    #[inline]
+    fn precomputed_hash(&self) -> u32 {
+        self.0.precomputed_hash()
+    }
+}
+
 /// A Gecko WeakNamespace is a wrapped WeakAtom.
 #[derive(Hash)]
 pub struct WeakNamespace(WeakAtom);
+
+impl Deref for WeakNamespace {
+    type Target = WeakAtom;
+
+    #[inline]
+    fn deref(&self) -> &WeakAtom {
+        &self.0
+    }
+}
+
 
 impl Deref for Namespace {
     type Target = WeakNamespace;

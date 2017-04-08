@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::{Token, Parser as CssParser, parse_nth, ToCss, serialize_identifier, CssStringWriter};
+use precomputed_hash::PrecomputedHash;
 use std::ascii::AsciiExt;
 use std::borrow::{Borrow, Cow};
 use std::cmp;
@@ -39,10 +40,10 @@ macro_rules! with_all_bounds {
         /// of pseudo-classes/elements
         pub trait SelectorImpl: Sized {
             type AttrValue: $($InSelector)*;
-            type Identifier: $($InSelector)*;
-            type ClassName: $($InSelector)*;
-            type LocalName: $($InSelector)* + Borrow<Self::BorrowedLocalName>;
-            type NamespaceUrl: $($CommonBounds)* + Default + Borrow<Self::BorrowedNamespaceUrl>;
+            type Identifier: $($InSelector)* + PrecomputedHash;
+            type ClassName: $($InSelector)* + PrecomputedHash;
+            type LocalName: $($InSelector)* + Borrow<Self::BorrowedLocalName> + PrecomputedHash;
+            type NamespaceUrl: $($CommonBounds)* + Default + Borrow<Self::BorrowedNamespaceUrl> + PrecomputedHash;
             type NamespacePrefix: $($InSelector)* + Default;
             type BorrowedNamespaceUrl: ?Sized + Eq;
             type BorrowedLocalName: ?Sized + Eq + Hash;
@@ -1184,21 +1185,48 @@ pub mod tests {
 
     #[derive(Default)]
     pub struct DummyParser {
-        default_ns: Option<String>,
-        ns_prefixes: HashMap<String, String>,
+        default_ns: Option<DummyAtom>,
+        ns_prefixes: HashMap<DummyAtom, DummyAtom>,
     }
 
     impl SelectorImpl for DummySelectorImpl {
-        type AttrValue = String;
-        type Identifier = String;
-        type ClassName = String;
-        type LocalName = String;
-        type NamespaceUrl = String;
-        type NamespacePrefix = String;
-        type BorrowedLocalName = str;
-        type BorrowedNamespaceUrl = str;
+        type AttrValue = DummyAtom;
+        type Identifier = DummyAtom;
+        type ClassName = DummyAtom;
+        type LocalName = DummyAtom;
+        type NamespaceUrl = DummyAtom;
+        type NamespacePrefix = DummyAtom;
+        type BorrowedLocalName = DummyAtom;
+        type BorrowedNamespaceUrl = DummyAtom;
         type NonTSPseudoClass = PseudoClass;
         type PseudoElement = PseudoElement;
+    }
+
+    #[derive(Default, Debug, Hash, Clone, PartialEq, Eq)]
+    pub struct DummyAtom(String);
+
+    impl fmt::Display for DummyAtom {
+        fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+            <String as fmt::Display>::fmt(&self.0, fmt)
+        }
+    }
+
+    impl From<String> for DummyAtom {
+        fn from(string: String) -> Self {
+            DummyAtom(string)
+        }
+    }
+
+    impl<'a> From<&'a str> for DummyAtom {
+        fn from(string: &'a str) -> Self {
+            DummyAtom(string.into())
+        }
+    }
+
+    impl PrecomputedHash for DummyAtom {
+        fn precomputed_hash(&self) -> u32 {
+            return 0
+        }
     }
 
     impl Parser for DummyParser {
@@ -1230,11 +1258,11 @@ pub mod tests {
             }
         }
 
-        fn default_namespace(&self) -> Option<String> {
+        fn default_namespace(&self) -> Option<DummyAtom> {
             self.default_ns.clone()
         }
 
-        fn namespace_for_prefix(&self, prefix: &str) -> Option<String> {
+        fn namespace_for_prefix(&self, prefix: &DummyAtom) -> Option<DummyAtom> {
             self.ns_prefixes.get(prefix).cloned()
         }
     }
@@ -1274,8 +1302,8 @@ pub mod tests {
         assert_eq!(parse("EeÉ"), Ok(SelectorList(vec!(Selector {
             complex_selector: Arc::new(ComplexSelector {
                 compound_selector: vec!(SimpleSelector::LocalName(LocalName {
-                    name: String::from("EeÉ"),
-                    lower_name: String::from("eeÉ") })),
+                    name: DummyAtom::from("EeÉ"),
+                    lower_name: DummyAtom::from("eeÉ") })),
                 next: None,
             }),
             pseudo_element: None,
@@ -1284,7 +1312,7 @@ pub mod tests {
         assert_eq!(parse(".foo:lang(en-US)"), Ok(SelectorList(vec!(Selector {
             complex_selector: Arc::new(ComplexSelector {
                 compound_selector: vec![
-                    SimpleSelector::Class(String::from("foo")),
+                    SimpleSelector::Class(DummyAtom::from("foo")),
                     SimpleSelector::NonTSPseudoClass(PseudoClass::Lang("en-US".to_owned()))
                 ],
                 next: None,
@@ -1294,7 +1322,7 @@ pub mod tests {
         }))));
         assert_eq!(parse("#bar"), Ok(SelectorList(vec!(Selector {
             complex_selector: Arc::new(ComplexSelector {
-                compound_selector: vec!(SimpleSelector::ID(String::from("bar"))),
+                compound_selector: vec!(SimpleSelector::ID(DummyAtom::from("bar"))),
                 next: None,
             }),
             pseudo_element: None,
@@ -1303,10 +1331,10 @@ pub mod tests {
         assert_eq!(parse("e.foo#bar"), Ok(SelectorList(vec!(Selector {
             complex_selector: Arc::new(ComplexSelector {
                 compound_selector: vec!(SimpleSelector::LocalName(LocalName {
-                                            name: String::from("e"),
-                                            lower_name: String::from("e") }),
-                                       SimpleSelector::Class(String::from("foo")),
-                                       SimpleSelector::ID(String::from("bar"))),
+                                            name: DummyAtom::from("e"),
+                                            lower_name: DummyAtom::from("e") }),
+                                       SimpleSelector::Class(DummyAtom::from("foo")),
+                                       SimpleSelector::ID(DummyAtom::from("bar"))),
                 next: None,
             }),
             pseudo_element: None,
@@ -1314,12 +1342,12 @@ pub mod tests {
         }))));
         assert_eq!(parse("e.foo #bar"), Ok(SelectorList(vec!(Selector {
             complex_selector: Arc::new(ComplexSelector {
-                compound_selector: vec!(SimpleSelector::ID(String::from("bar"))),
+                compound_selector: vec!(SimpleSelector::ID(DummyAtom::from("bar"))),
                 next: Some((Arc::new(ComplexSelector {
                     compound_selector: vec!(SimpleSelector::LocalName(LocalName {
-                                                name: String::from("e"),
-                                                lower_name: String::from("e") }),
-                                           SimpleSelector::Class(String::from("foo"))),
+                                                name: DummyAtom::from("e"),
+                                                lower_name: DummyAtom::from("e") }),
+                                           SimpleSelector::Class(DummyAtom::from("foo"))),
                     next: None,
                 }), Combinator::Descendant)),
             }),
@@ -1332,8 +1360,8 @@ pub mod tests {
         assert_eq!(parse_ns("[Foo]", &parser), Ok(SelectorList(vec!(Selector {
             complex_selector: Arc::new(ComplexSelector {
                 compound_selector: vec!(SimpleSelector::AttrExists(AttrSelector {
-                    name: String::from("Foo"),
-                    lower_name: String::from("foo"),
+                    name: DummyAtom::from("Foo"),
+                    lower_name: DummyAtom::from("foo"),
                     namespace: NamespaceConstraint::Specific(Namespace {
                         prefix: None,
                         url: "".into(),
@@ -1345,17 +1373,17 @@ pub mod tests {
             specificity: specificity(0, 1, 0),
         }))));
         assert_eq!(parse_ns("svg|circle", &parser), Err(()));
-        parser.ns_prefixes.insert("svg".into(), SVG.into());
+        parser.ns_prefixes.insert(DummyAtom("svg".into()), DummyAtom(SVG.into()));
         assert_eq!(parse_ns("svg|circle", &parser), Ok(SelectorList(vec![Selector {
             complex_selector: Arc::new(ComplexSelector {
                 compound_selector: vec![
                     SimpleSelector::Namespace(Namespace {
-                        prefix: Some("svg".into()),
+                        prefix: Some(DummyAtom("svg".into())),
                         url: SVG.into(),
                     }),
                     SimpleSelector::LocalName(LocalName {
-                        name: String::from("circle"),
-                        lower_name: String::from("circle")
+                        name: DummyAtom::from("circle"),
+                        lower_name: DummyAtom::from("circle"),
                     })
                 ],
                 next: None,
@@ -1376,8 +1404,8 @@ pub mod tests {
                         url: MATHML.into(),
                     }),
                     SimpleSelector::AttrExists(AttrSelector {
-                        name: String::from("Foo"),
-                        lower_name: String::from("foo"),
+                        name: DummyAtom::from("Foo"),
+                        lower_name: DummyAtom::from("foo"),
                         namespace: NamespaceConstraint::Specific(Namespace {
                             prefix: None,
                             url: "".into(),
@@ -1398,8 +1426,8 @@ pub mod tests {
                         url: MATHML.into(),
                     }),
                     SimpleSelector::LocalName(LocalName {
-                        name: String::from("e"),
-                        lower_name: String::from("e") }),
+                        name: DummyAtom::from("e"),
+                        lower_name: DummyAtom::from("e") }),
                 ),
                 next: None,
             }),
@@ -1410,13 +1438,13 @@ pub mod tests {
             complex_selector: Arc::new(ComplexSelector {
                 compound_selector: vec![
                     SimpleSelector::AttrDashMatch(AttrSelector {
-                        name: String::from("attr"),
-                        lower_name: String::from("attr"),
+                        name: DummyAtom::from("attr"),
+                        lower_name: DummyAtom::from("attr"),
                         namespace: NamespaceConstraint::Specific(Namespace {
                             prefix: None,
                             url: "".into(),
                         }),
-                    }, "foo".to_owned())
+                    }, DummyAtom::from("foo"))
                 ],
                 next: None,
             }),
@@ -1439,8 +1467,8 @@ pub mod tests {
                 compound_selector: vec!(),
                 next: Some((Arc::new(ComplexSelector {
                     compound_selector: vec!(SimpleSelector::LocalName(LocalName {
-                        name: String::from("div"),
-                        lower_name: String::from("div") })),
+                        name: DummyAtom::from("div"),
+                        lower_name: DummyAtom::from("div") })),
                     next: None,
                 }), Combinator::Descendant)),
             }),
@@ -1450,11 +1478,11 @@ pub mod tests {
         assert_eq!(parse("#d1 > .ok"), Ok(SelectorList(vec![Selector {
             complex_selector: Arc::new(ComplexSelector {
                 compound_selector: vec![
-                    SimpleSelector::Class(String::from("ok")),
+                    SimpleSelector::Class(DummyAtom::from("ok")),
                 ],
                 next: Some((Arc::new(ComplexSelector {
                     compound_selector: vec![
-                        SimpleSelector::ID(String::from("d1")),
+                        SimpleSelector::ID(DummyAtom::from("d1")),
                     ],
                     next: None,
                 }), Combinator::Child)),
@@ -1467,13 +1495,13 @@ pub mod tests {
                 compound_selector: vec!(SimpleSelector::Negation(
                     vec!(
                         Arc::new(ComplexSelector {
-                            compound_selector: vec!(SimpleSelector::Class(String::from("babybel"))),
+                            compound_selector: vec!(SimpleSelector::Class(DummyAtom::from("babybel"))),
                             next: None
                         }),
                         Arc::new(ComplexSelector {
                             compound_selector: vec!(
-                                SimpleSelector::ID(String::from("provel")),
-                                SimpleSelector::Class(String::from("old")),
+                                SimpleSelector::ID(DummyAtom::from("provel")),
+                                SimpleSelector::Class(DummyAtom::from("old")),
                             ),
                             next: None
                         }),
