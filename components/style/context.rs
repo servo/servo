@@ -29,7 +29,7 @@ use stylist::Stylist;
 use thread_state;
 use time;
 use timer::Timer;
-use traversal::DomTraversal;
+use traversal::{DomTraversal, TraversalFlags};
 
 /// This structure is used to create a local style context from a shared one.
 pub struct ThreadLocalStyleContextCreationInfo {
@@ -89,8 +89,8 @@ pub struct SharedStyleContext<'a> {
     /// The QuirksMode state which the document needs to be rendered with
     pub quirks_mode: QuirksMode,
 
-    /// True if the traversal is processing only animation restyles.
-    pub animation_only_restyle: bool,
+    /// Flags controlling how we traverse the tree.
+    pub traversal_flags: TraversalFlags,
 }
 
 impl<'a> SharedStyleContext<'a> {

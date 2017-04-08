@@ -175,7 +175,7 @@ pub trait DomTraversal<E: TElement> : Sync {
         }
 
         PreTraverseToken {
-            traverse: Self::node_needs_traversal(root.as_node(), traversal_flags.for_animation_only()),
+            traverse: Self::node_needs_traversal(root.as_node(), traversal_flags),
             unstyled_children_only: false,
         }
     }
@@ -189,7 +189,7 @@ pub trait DomTraversal<E: TElement> : Sync {
     }
 
     /// Returns true if traversal is needed for the given node and subtree.
-    fn node_needs_traversal(node: E::ConcreteNode, animation_only: bool) -> bool {
+    fn node_needs_traversal(node: E::ConcreteNode, traversal_flags: TraversalFlags) -> bool {
         // Non-incremental layout visits every node.
         if is_servo_nonincremental_layout() {
             return true;
@@ -216,7 +216,7 @@ pub trait DomTraversal<E: TElement> : Sync {
                 // In case of animation-only traversal we need to traverse
                 // the element if the element has animation only dirty
                 // descendants bit, animation-only restyle hint or recascade.
-                if animation_only {
+                if traversal_flags.for_animation_only() {
                     if el.has_animation_only_dirty_descendants() {
                         return true;
                     }
@@ -341,7 +341,7 @@ pub trait DomTraversal<E: TElement> : Sync {
         }
 
         for kid in parent.as_node().children() {
-            if Self::node_needs_traversal(kid, self.shared_context().animation_only_restyle) {
+            if Self::node_needs_traversal(kid, self.shared_context().traversal_flags) {
                 let el = kid.as_element();
                 if el.as_ref().and_then(|el| el.borrow_data())
                               .map_or(false, |d| d.has_styles())
@@ -517,7 +517,7 @@ pub fn recalc_style_at<E, D>(traversal: &D,
     let propagated_hint = match data.get_restyle_mut() {
         None => StoredRestyleHint::empty(),
         Some(r) => {
-            debug_assert!(context.shared.animation_only_restyle ||
+            debug_assert!(context.shared.traversal_flags.for_animation_only() ||
                           !r.hint.has_animation_hint(),
                           "animation restyle hint should be handled during \
                            animation-only restyles");
@@ -525,13 +525,14 @@ pub fn recalc_style_at<E, D>(traversal: &D,
             r.hint.propagate()
         },
     };
-    debug_assert!(data.has_current_styles() || context.shared.animation_only_restyle,
+    debug_assert!(data.has_current_styles() ||
+                  context.shared.traversal_flags.for_animation_only(),
                   "Should have computed style or haven't yet valid computed style in case of animation-only restyle");
     trace!("propagated_hint={:?}, inherited_style_changed={:?}",
            propagated_hint, inherited_style_changed);
 
     let has_dirty_descendants_for_this_restyle =
-        if context.shared.animation_only_restyle {
+        if context.shared.traversal_flags.for_animation_only() {
             element.has_animation_only_dirty_descendants()
         } else {
             element.has_dirty_descendants()
@@ -556,7 +557,7 @@ pub fn recalc_style_at<E, D>(traversal: &D,
                             inherited_style_changed);
     }
 
-    if context.shared.animation_only_restyle {
+    if context.shared.traversal_flags.for_animation_only() {
         unsafe { element.unset_animation_only_dirty_descendants(); }
     }
 

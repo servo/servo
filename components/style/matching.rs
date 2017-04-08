@@ -1038,7 +1038,7 @@ pub trait MatchMethods : TElement {
             // in the name of animation-only traversal. Rest of restyle hints
             // will be processed in a subsequent normal traversal.
             if hint.contains(RESTYLE_CSS_ANIMATIONS) {
-                debug_assert!(context.shared.animation_only_restyle);
+                debug_assert!(context.shared.traversal_flags.for_animation_only());
 
                 let animation_rule = self.get_animation_rule(None);
                 replace_rule_node(CascadeLevel::Animations,
