@@ -1246,4 +1246,21 @@ mod shorthand_serialization {
             assert_eq!(counter_increment.to_css_string(), counter_increment_css);
         }
     }
+
+    #[test]
+    fn place_content_serialize_all_available_properties() {
+        use style::properties::longhands::align_content::SpecifiedValue as AlignContent;
+        use style::properties::longhands::justify_content::SpecifiedValue as JustifyContent;
+
+        let mut properties = Vec::new();
+
+        let align = AlignContent::stretch;
+        let justify = JustifyContent::center;
+
+        properties.push(PropertyDeclaration::AlignContent(align));
+        properties.push(PropertyDeclaration::JustifyContent(justify));
+
+        let serialization = shorthand_properties_to_string(properties);
+        assert_eq!(serialization, "place-content: stretch center;");
+    }
 }

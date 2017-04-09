@@ -137,3 +137,52 @@
   }
 
 </%helpers:shorthand>
+
+<%helpers:shorthand name="place-content" sub_properties="align-content justify-content"
+                    spec="https://drafts.csswg.org/css-align/#propdef-place-content"
+                    products="gecko">
+    use properties::longhands::align_content;
+    use properties::longhands::justify_content;
+
+% if product == "servo":
+    impl From<align_content::SpecifiedValue> for justify_content::SpecifiedValue {
+        fn from(align: align_content::SpecifiedValue) ->
+            justify_content::SpecifiedValue {
+            match align {
+                align_content::SpecifiedValue::stretch =>
+                    justify_content::SpecifiedValue::stretch,
+                align_content::SpecifiedValue::flex_start =>
+                    justify_content::SpecifiedValue::flex_start,
+                align_content::SpecifiedValue::flex_end =>
+                    justify_content::SpecifiedValue::flex_end,
+                align_content::SpecifiedValue::center =>
+                    justify_content::SpecifiedValue::center,
+                align_content::SpecifiedValue::space_between =>
+                    justify_content::SpecifiedValue::space_between,
+                align_content::SpecifiedValue::space_around =>
+                    justify_content::SpecifiedValue::space_around,
+            }
+        }
+    }
+% endif
+
+    pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+        let align = align_content::parse(context, input)?;
+        let justify = input.try(|input| justify_content::parse(context, input))
+                           .unwrap_or(justify_content::SpecifiedValue::from(align));
+
+        Ok(Longhands {
+            align_content: align,
+            justify_content: justify,
+        })
+    }
+
+    impl<'a> ToCss for LonghandsToSerialize<'a> {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            self.align_content.to_css(dest)?;
+            dest.write_str(" ")?;
+            self.justify_content.to_css(dest)
+        }
+    }
+</%helpers:shorthand>
+
