@@ -67,7 +67,7 @@ pub mod image {
 }
 
 /// [HTTPS state value](https://fetch.spec.whatwg.org/#concept-https-state-value)
-#[derive(Debug, Clone, Copy, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, HeapSizeOf, PartialEq, Serialize)]
 pub enum HttpsState {
     None,
     Deprecated,
