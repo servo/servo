@@ -514,6 +514,9 @@ impl GlobalScope {
     pub fn get_request_client(&self) -> Client {
         Client {
             https_state: self.https_state(),
+            prohibit_mixed_security_contexts: self.prohibit_mixed_security_contexts(),
+            target_browsing_context_has_parent_browsing_context:
+                self.target_browsing_context_has_parent_browsing_context(),
         }
     }
 
@@ -523,6 +526,26 @@ impl GlobalScope {
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             return worker.https_state();
+        }
+        unreachable!()
+    }
+
+    pub fn prohibit_mixed_security_contexts(&self) -> bool {
+        if let Some(window) = self.downcast::<Window>() {
+            return window.prohibit_mixed_security_contexts();
+        }
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            return worker.prohibit_mixed_security_contexts();
+        }
+        unreachable!()
+    }
+
+    pub fn target_browsing_context_has_parent_browsing_context(&self) -> bool {
+        if let Some(window) = self.downcast::<Window>() {
+            return window.target_browsing_context_has_parent_browsing_context();
+        }
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            return worker.target_browsing_context_has_parent_browsing_context();
         }
         unreachable!()
     }

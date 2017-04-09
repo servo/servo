@@ -14,6 +14,11 @@ use std::default::Default;
 pub struct Client {
     /// https://html.spec.whatwg.org/multipage/#https-state
     pub https_state: HttpsState,
+    /// https://w3c.github.io/webappsec-mixed-content/#categorize-settings-object
+    pub prohibit_mixed_security_contexts: bool,
+    /// https://w3c.github.io/webappsec-mixed-content/#should-block-fetch step 1.4.
+    /// https://w3c.github.io/webappsec-mixed-content/#should-block-response step 1.4.
+    pub target_browsing_context_has_parent_browsing_context: bool,
 }
 
 /// An [initiator](https://fetch.spec.whatwg.org/#concept-request-initiator)

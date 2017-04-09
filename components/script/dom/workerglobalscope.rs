@@ -176,6 +176,18 @@ impl WorkerGlobalScope {
         // TODO: proper value.
         HttpsState::None
     }
+
+    /// https://w3c.github.io/webappsec-mixed-content/#categorize-settings-object
+    pub fn prohibit_mixed_security_contexts(&self) -> bool {
+        // TODO: proper value.
+        self.https_state() != HttpsState::None
+    }
+
+    /// https://w3c.github.io/webappsec-mixed-content/#categorize-settings-object
+    pub fn target_browsing_context_has_parent_browsing_context(&self) -> bool {
+        // TODO: proper value.
+        false
+    }
 }
 
 impl WorkerGlobalScopeMethods for WorkerGlobalScope {

@@ -76,8 +76,8 @@ use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse, Lay
 use script_layout_interface::rpc::{MarginStyleResponse, NodeScrollRootIdResponse};
 use script_layout_interface::rpc::{ResolvedStyleResponse, TextIndexResponse};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, ScriptThreadEventCategory};
-use script_thread::{MainThreadScriptChan, MainThreadScriptMsg, Runnable, RunnableWrapper};
-use script_thread::{SendableMainThreadScriptChan, ImageCacheMsg};
+use script_thread::{ImageCacheMsg, MainThreadScriptChan, MainThreadScriptMsg, Runnable};
+use script_thread::{RunnableWrapper, ScriptThread, SendableMainThreadScriptChan};
 use script_traits::{ConstellationControlMsg, LoadData, MozBrowserEvent, UntrustedNodeAddress};
 use script_traits::{DocumentState, TimerEvent, TimerEventId};
 use script_traits::{ScriptMsg as ConstellationMsg, TimerSchedulerMsg, WindowSizeData, WindowSizeType};
@@ -385,6 +385,27 @@ impl Window {
 
     pub fn https_state(&self) -> HttpsState {
         self.Document().https_state()
+    }
+
+    /// https://w3c.github.io/webappsec-mixed-content/#categorize-settings-object
+    pub fn prohibit_mixed_security_contexts(&self) -> bool {
+        let mut responsible_document = self.Document();
+        loop {
+            if responsible_document.https_state() != HttpsState::None {
+                return true;
+            }
+            match responsible_document.window().parent_info() {
+                Some((parent_id, FrameType::IFrame)) => {
+                    responsible_document = ScriptThread::find_document(parent_id).unwrap();
+                },
+                _ => return false,
+            }
+        }
+    }
+
+    /// https://w3c.github.io/webappsec-mixed-content/#categorize-settings-object
+    pub fn target_browsing_context_has_parent_browsing_context(&self) -> bool {
+        self.is_top_level()
     }
 }
 
