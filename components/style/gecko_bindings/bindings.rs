@@ -98,6 +98,9 @@ unsafe impl Sync for nsStyleGradient {}
 use gecko_bindings::structs::nsStyleGradientStop;
 unsafe impl Send for nsStyleGradientStop {}
 unsafe impl Sync for nsStyleGradientStop {}
+use gecko_bindings::structs::nsStyleGridTemplate;
+unsafe impl Send for nsStyleGridTemplate {}
+unsafe impl Sync for nsStyleGridTemplate {}
 use gecko_bindings::structs::nsStyleImage;
 unsafe impl Send for nsStyleImage {}
 unsafe impl Sync for nsStyleImage {}
@@ -778,6 +781,12 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_DropElementSnapshot(snapshot: ServoElementSnapshotOwned);
+}
+extern "C" {
+    pub fn Gecko_CopyStyleGridTemplateValues(grid_template:
+                                                 *mut nsStyleGridTemplate,
+                                             other:
+                                                 *const nsStyleGridTemplate);
 }
 extern "C" {
     pub fn Gecko_ClearAndResizeStyleContents(content: *mut nsStyleContent,
