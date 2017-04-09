@@ -10,6 +10,7 @@ use {Atom, LocalName};
 use data::ComputedStyle;
 use dom::{AnimationRules, PresentationalHintsSynthetizer, TElement};
 use error_reporting::StdoutErrorReporter;
+use font_metrics::FontMetricsProvider;
 use keyframes::KeyframesAnimation;
 use media_queries::Device;
 use pdqsort::sort_by;
@@ -345,7 +346,8 @@ impl Stylist {
                                          guards: &StylesheetGuards,
                                          pseudo: &PseudoElement,
                                          parent: Option<&Arc<ComputedValues>>,
-                                         cascade_flags: CascadeFlags)
+                                         cascade_flags: CascadeFlags,
+                                         font_metrics: &FontMetricsProvider)
                                          -> ComputedStyle {
         debug_assert!(pseudo.is_precomputed());
 
@@ -381,6 +383,7 @@ impl Stylist {
                                 parent.map(|p| &**p),
                                 None,
                                 &StdoutErrorReporter,
+                                font_metrics,
                                 cascade_flags);
         ComputedStyle::new(rule_node, Arc::new(computed))
     }
@@ -392,6 +395,8 @@ impl Stylist {
                                pseudo: &PseudoElement,
                                parent_style: &Arc<ComputedValues>)
                                -> Arc<ComputedValues> {
+        use font_metrics::ServoMetricsProvider;
+
         // For most (but not all) pseudo-elements, we inherit all values from the parent.
         let inherit_all = match *pseudo {
             PseudoElement::ServoText |
@@ -416,7 +421,8 @@ impl Stylist {
         if inherit_all {
             cascade_flags.insert(INHERIT_ALL);
         }
-        self.precomputed_values_for_pseudo(guards, &pseudo, Some(parent_style), cascade_flags)
+        self.precomputed_values_for_pseudo(guards, &pseudo, Some(parent_style), cascade_flags,
+                                           &ServoMetricsProvider)
             .values.unwrap()
     }
 
@@ -431,7 +437,8 @@ impl Stylist {
                                                   guards: &StylesheetGuards,
                                                   element: &E,
                                                   pseudo: &PseudoElement,
-                                                  parent: &Arc<ComputedValues>)
+                                                  parent: &Arc<ComputedValues>,
+                                                  font_metrics: &FontMetricsProvider)
                                                   -> Option<ComputedStyle>
         where E: TElement +
                  fmt::Debug +
@@ -494,6 +501,7 @@ impl Stylist {
                                 Some(&**parent),
                                 None,
                                 &StdoutErrorReporter,
+                                font_metrics,
                                 CascadeFlags::empty());
 
         Some(ComputedStyle::new(rule_node, Arc::new(computed)))

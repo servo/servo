@@ -7,6 +7,7 @@
 use app_units::Au;
 use cssparser::{CssStringWriter, Parser, Token};
 use euclid::Size2D;
+use font_metrics::get_metrics_provider_for_product;
 use gecko_bindings::bindings;
 use gecko_bindings::structs::{nsCSSValue, nsCSSUnit, nsStringBuffer};
 use gecko_bindings::structs::{nsMediaExpression_Range, nsMediaFeature};
@@ -499,6 +500,8 @@ impl Expression {
 
         let default_values = device.default_computed_values();
 
+        let provider = get_metrics_provider_for_product();
+
         // http://dev.w3.org/csswg/mediaqueries3/#units
         // em units are relative to the initial font-size.
         let context = computed::Context {
@@ -509,7 +512,7 @@ impl Expression {
             // This cloning business is kind of dumb.... It's because Context
             // insists on having an actual ComputedValues inside itself.
             style: default_values.clone(),
-            font_metrics_provider: None,
+            font_metrics_provider: &provider,
         };
 
         let required_value = match self.value {

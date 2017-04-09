@@ -13,6 +13,7 @@ use app_units::Au;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser, parse_important};
 use cssparser::ToCss as ParserToCss;
 use euclid::size::TypedSize2D;
+use font_metrics::get_metrics_provider_for_product;
 use media_queries::Device;
 use parser::{Parse, ParserContext, log_css_error};
 use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
@@ -672,6 +673,8 @@ impl MaybeNew for ViewportConstraints {
         // resolved against initial values
         let initial_viewport = device.au_viewport_size();
 
+        let provider = get_metrics_provider_for_product();
+
         // TODO(emilio): Stop cloning `ComputedValues` around!
         let context = Context {
             is_root_element: false,
@@ -679,7 +682,7 @@ impl MaybeNew for ViewportConstraints {
             inherited_style: device.default_computed_values(),
             layout_parent_style: device.default_computed_values(),
             style: device.default_computed_values().clone(),
-            font_metrics_provider: None, // TODO: Should have!
+            font_metrics_provider: &provider,
         };
 
         // DEVICE-ADAPT § 9.3 Resolving 'extend-to-zoom'

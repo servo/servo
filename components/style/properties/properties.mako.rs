@@ -1944,6 +1944,7 @@ pub fn cascade(device: &Device,
                layout_parent_style: Option<<&ComputedValues>,
                cascade_info: Option<<&mut CascadeInfo>,
                error_reporter: &ParseErrorReporter,
+               font_metrics_provider: &FontMetricsProvider,
                flags: CascadeFlags)
                -> ComputedValues {
     debug_assert_eq!(parent_style.is_some(), layout_parent_style.is_some());
@@ -1988,7 +1989,7 @@ pub fn cascade(device: &Device,
                        layout_parent_style,
                        cascade_info,
                        error_reporter,
-                       None,
+                       font_metrics_provider,
                        flags)
 }
 
@@ -2002,7 +2003,7 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
                                     layout_parent_style: &ComputedValues,
                                     mut cascade_info: Option<<&mut CascadeInfo>,
                                     error_reporter: &ParseErrorReporter,
-                                    font_metrics_provider: Option<<&FontMetricsProvider>,
+                                    font_metrics_provider: &FontMetricsProvider,
                                     flags: CascadeFlags)
                                     -> ComputedValues
     where F: Fn() -> I,
@@ -2109,6 +2110,7 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
                     | LonghandId::TextOrientation
                     | LonghandId::AnimationName
                     | LonghandId::TransitionProperty
+                    | LonghandId::XLang
                 % endif
             );
             if

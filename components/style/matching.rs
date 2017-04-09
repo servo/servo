@@ -15,6 +15,7 @@ use cascade_info::CascadeInfo;
 use context::{SequentialTask, SharedStyleContext, StyleContext};
 use data::{ComputedStyle, ElementData, ElementStyles, RestyleData};
 use dom::{AnimationRules, SendElement, TElement, TNode};
+use font_metrics::FontMetricsProvider;
 use properties::{CascadeFlags, ComputedValues, SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP, cascade};
 use properties::longhands::display::computed_value as display;
 use restyle_hints::{RESTYLE_STYLE_ATTRIBUTE, RESTYLE_CSS_ANIMATIONS, RestyleHint};
@@ -323,6 +324,7 @@ trait PrivateMatchMethods: TElement {
 
     fn cascade_with_rules(&self,
                           shared_context: &SharedStyleContext,
+                          font_metrics_provider: &FontMetricsProvider,
                           rule_node: &StrongRuleNode,
                           primary_style: &ComputedStyle,
                           cascade_flags: CascadeFlags,
@@ -388,6 +390,7 @@ trait PrivateMatchMethods: TElement {
                              layout_parent_style,
                              Some(&mut cascade_info),
                              &*shared_context.error_reporter,
+                             font_metrics_provider,
                              cascade_flags));
 
         cascade_info.finish(&self.as_node());
@@ -406,7 +409,8 @@ trait PrivateMatchMethods: TElement {
 
         // Grab the rule node.
         let rule_node = &pseudo_style.as_ref().map_or(primary_style, |p| &*p.1).rules;
-        self.cascade_with_rules(context.shared, rule_node, primary_style, cascade_flags, pseudo_style.is_some())
+        self.cascade_with_rules(context.shared, &context.thread_local.font_metrics_provider,
+                                rule_node, primary_style, cascade_flags, pseudo_style.is_some())
     }
 
     /// Computes values and damage for the primary or pseudo style of an element,
@@ -470,6 +474,7 @@ trait PrivateMatchMethods: TElement {
             cascade_flags.insert(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP)
         }
         self.cascade_with_rules(context.shared,
+                                &context.thread_local.font_metrics_provider,
                                 &without_transition_rules,
                                 primary_style,
                                 cascade_flags,
@@ -531,7 +536,8 @@ trait PrivateMatchMethods: TElement {
         let shared_context = context.shared;
         if let Some(ref mut old) = *old_values {
             self.update_animations_for_cascade(shared_context, old,
-                                               possibly_expired_animations);
+                                               possibly_expired_animations,
+                                               &context.thread_local.font_metrics_provider);
         }
 
         let new_animations_sender = &context.thread_local.new_animations_sender;
@@ -606,7 +612,8 @@ trait PrivateMatchMethods: TElement {
     fn update_animations_for_cascade(&self,
                                      context: &SharedStyleContext,
                                      style: &mut Arc<ComputedValues>,
-                                     possibly_expired_animations: &mut Vec<PropertyAnimation>) {
+                                     possibly_expired_animations: &mut Vec<PropertyAnimation>,
+                                     font_metrics: &FontMetricsProvider) {
         // Finish any expired transitions.
         let this_opaque = self.as_node().opaque();
         animation::complete_expired_transitions(this_opaque, style, context);
@@ -633,7 +640,8 @@ trait PrivateMatchMethods: TElement {
                 if !running_animation.is_expired() {
                     animation::update_style_for_animation(context,
                                                           running_animation,
-                                                          style);
+                                                          style,
+                                                          font_metrics);
                     if let Animation::Transition(_, _, _, ref frame, _) = *running_animation {
                         possibly_expired_animations.push(frame.property_animation.clone())
                     }
@@ -1145,6 +1153,7 @@ pub trait MatchMethods : TElement {
     /// Returns computed values without animation and transition rules.
     fn get_base_style(&self,
                       shared_context: &SharedStyleContext,
+                      font_metrics_provider: &FontMetricsProvider,
                       primary_style: &ComputedStyle,
                       pseudo_style: &Option<(&PseudoElement, &ComputedStyle)>)
                       -> Arc<ComputedValues> {
@@ -1163,6 +1172,7 @@ pub trait MatchMethods : TElement {
             cascade_flags.insert(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP)
         }
         self.cascade_with_rules(shared_context,
+                                font_metrics_provider,
                                 &without_animation_rules,
                                 primary_style,
                                 cascade_flags,

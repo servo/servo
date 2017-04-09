@@ -53,6 +53,7 @@ impl<'a> RecalcStyleAndConstructFlows<'a> {
 impl<'a, E> DomTraversal<E> for RecalcStyleAndConstructFlows<'a>
     where E: TElement,
           E::ConcreteNode: LayoutNode,
+          E::FontMetricsProvider: Send,
 {
     type ThreadLocalContext = ScopedThreadLocalLayoutContext<E>;
 

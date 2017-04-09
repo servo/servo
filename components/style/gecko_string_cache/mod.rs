@@ -186,10 +186,11 @@ impl fmt::Display for WeakAtom {
 
 impl Atom {
     /// Execute a callback with the atom represented by `ptr`.
-    pub unsafe fn with<F>(ptr: *mut nsIAtom, callback: &mut F) where F: FnMut(&Atom) {
+    pub unsafe fn with<F, R: 'static>(ptr: *mut nsIAtom, callback: &mut F) -> R where F: FnMut(&Atom) -> R {
         let atom = Atom(WeakAtom::new(ptr));
-        callback(&atom);
+        let ret = callback(&atom);
         mem::forget(atom);
+        ret
     }
 
     /// Creates an atom from an static atom pointer without checking in release

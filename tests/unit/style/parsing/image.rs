@@ -6,6 +6,7 @@ use cssparser::Parser;
 use euclid::size::TypedSize2D;
 use media_queries::CSSErrorReporterTest;
 use std::f32::consts::PI;
+use style::font_metrics::ServoMetricsProvider;
 use style::media_queries::{Device, MediaType};
 use style::parser::ParserContext;
 use style::properties::ComputedValues;
@@ -51,7 +52,7 @@ fn test_linear_gradient() {
         inherited_style: initial_style,
         layout_parent_style: initial_style,
         style: initial_style.clone(),
-        font_metrics_provider: None,
+        font_metrics_provider: &ServoMetricsProvider,
     };
     assert_eq!(specified::AngleOrCorner::None.to_computed_value(&specified_context),
                computed::AngleOrCorner::Angle(Angle::from_radians(PI)));

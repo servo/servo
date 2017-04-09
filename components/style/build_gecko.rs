@@ -308,6 +308,7 @@ mod bindings {
             "mozilla::SERVO_PREF_.*",
             "kNameSpaceID_.*",
             "kGenericFont_.*",
+            "kPresContext_.*",
         ];
         let whitelist = [
             "RawGecko.*",
@@ -338,6 +339,7 @@ mod bindings {
             "FontFamilyListRefCnt",
             "FontFamilyName",
             "FontFamilyType",
+            "FontSizePrefs",
             "FragmentOrURL",
             "FrameRequestCallback",
             "GeckoParserExtraData",
@@ -623,6 +625,7 @@ mod bindings {
             "ComputedTimingFunction_BeforeFlag",
             "FontFamilyList",
             "FontFamilyType",
+            "FontSizePrefs",
             "Keyframe",
             "ServoBundledURI",
             "ServoElementSnapshot",

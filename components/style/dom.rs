@@ -12,6 +12,7 @@ use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 #[cfg(feature = "gecko")] use context::UpdateAnimationsTasks;
 use data::ElementData;
 use element_state::ElementState;
+use font_metrics::FontMetricsProvider;
 use properties::{ComputedValues, PropertyDeclarationBlock};
 use selector_parser::{ElementExt, PreExistingComputedValues, PseudoElement};
 use selectors::matching::ElementSelectorFlags;
@@ -277,6 +278,12 @@ pub struct AnimationRules(pub Option<Arc<Locked<PropertyDeclarationBlock>>>,
 pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + PresentationalHintsSynthetizer {
     /// The concrete node type.
     type ConcreteNode: TNode<ConcreteElement = Self>;
+
+    /// Type of the font metrics provider
+    ///
+    /// XXXManishearth It would be better to make this a type parameter on
+    /// ThreadLocalStyleContext and StyleContext
+    type FontMetricsProvider: FontMetricsProvider;
 
     /// Get this element as a node.
     fn as_node(&self) -> Self::ConcreteNode;

@@ -73,11 +73,9 @@ impl FontRelativeLength {
     /// font-family list.
     pub fn find_first_available_font_metrics(context: &Context) -> Option<FontMetrics> {
         use font_metrics::FontMetricsQueryResult::*;
-        if let Some(ref metrics_provider) = context.font_metrics_provider {
-            for family in context.style().get_font().font_family_iter() {
-                if let Available(metrics) = metrics_provider.query(family.atom()) {
-                    return metrics;
-                }
+        for family in context.style().get_font().font_family_iter() {
+            if let Available(metrics) = context.font_metrics_provider.query(family.atom()) {
+                return metrics;
             }
         }
 

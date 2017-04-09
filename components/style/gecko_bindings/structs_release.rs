@@ -18981,6 +18981,8 @@ pub mod root {
     #[repr(C)]
     #[derive(Debug, Copy, Clone)]
     pub struct gfxMissingFontRecorder([u8; 0]);
+    pub const kPresContext_DefaultVariableFont_ID: u8 = 0;
+    pub const kPresContext_DefaultFixedFont_ID: u8 = 1;
     #[repr(C)]
     #[derive(Debug)]
     pub struct nsRootPresContext {
@@ -26488,6 +26490,67 @@ pub mod root {
                     "::" , stringify ! ( mExtraData ) ));
     }
     impl Clone for ServoBundledURI {
+        fn clone(&self) -> Self { *self }
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy)]
+    pub struct FontSizePrefs {
+        pub mDefaultVariableSize: root::nscoord,
+        pub mDefaultFixedSize: root::nscoord,
+        pub mDefaultSerifSize: root::nscoord,
+        pub mDefaultSansSerifSize: root::nscoord,
+        pub mDefaultMonospaceSize: root::nscoord,
+        pub mDefaultCursiveSize: root::nscoord,
+        pub mDefaultFantasySize: root::nscoord,
+    }
+    #[test]
+    fn bindgen_test_layout_FontSizePrefs() {
+        assert_eq!(::std::mem::size_of::<FontSizePrefs>() , 28usize , concat !
+                   ( "Size of: " , stringify ! ( FontSizePrefs ) ));
+        assert_eq! (::std::mem::align_of::<FontSizePrefs>() , 4usize , concat
+                    ! ( "Alignment of " , stringify ! ( FontSizePrefs ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const FontSizePrefs ) ) .
+                    mDefaultVariableSize as * const _ as usize } , 0usize ,
+                    concat ! (
+                    "Alignment of field: " , stringify ! ( FontSizePrefs ) ,
+                    "::" , stringify ! ( mDefaultVariableSize ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const FontSizePrefs ) ) . mDefaultFixedSize
+                    as * const _ as usize } , 4usize , concat ! (
+                    "Alignment of field: " , stringify ! ( FontSizePrefs ) ,
+                    "::" , stringify ! ( mDefaultFixedSize ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const FontSizePrefs ) ) . mDefaultSerifSize
+                    as * const _ as usize } , 8usize , concat ! (
+                    "Alignment of field: " , stringify ! ( FontSizePrefs ) ,
+                    "::" , stringify ! ( mDefaultSerifSize ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const FontSizePrefs ) ) .
+                    mDefaultSansSerifSize as * const _ as usize } , 12usize ,
+                    concat ! (
+                    "Alignment of field: " , stringify ! ( FontSizePrefs ) ,
+                    "::" , stringify ! ( mDefaultSansSerifSize ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const FontSizePrefs ) ) .
+                    mDefaultMonospaceSize as * const _ as usize } , 16usize ,
+                    concat ! (
+                    "Alignment of field: " , stringify ! ( FontSizePrefs ) ,
+                    "::" , stringify ! ( mDefaultMonospaceSize ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const FontSizePrefs ) ) .
+                    mDefaultCursiveSize as * const _ as usize } , 20usize ,
+                    concat ! (
+                    "Alignment of field: " , stringify ! ( FontSizePrefs ) ,
+                    "::" , stringify ! ( mDefaultCursiveSize ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const FontSizePrefs ) ) .
+                    mDefaultFantasySize as * const _ as usize } , 24usize ,
+                    concat ! (
+                    "Alignment of field: " , stringify ! ( FontSizePrefs ) ,
+                    "::" , stringify ! ( mDefaultFantasySize ) ));
+    }
+    impl Clone for FontSizePrefs {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
