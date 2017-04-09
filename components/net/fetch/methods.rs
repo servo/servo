@@ -386,6 +386,9 @@ fn basic_fetch(request: &mut Request,
         "about" if url.path() == "blank" => {
             let mut response = Response::new(url);
             response.headers.set(ContentType(mime!(Text / Html; Charset = Utf8)));
+            if let Some(ref client) = request.client {
+                response.https_state = client.https_state;
+            }
             *response.body.lock().unwrap() = ResponseBody::Done(vec![]);
             response
         },
@@ -400,6 +403,9 @@ fn basic_fetch(request: &mut Request,
                     let mut response = Response::new(url);
                     *response.body.lock().unwrap() = ResponseBody::Done(bytes);
                     response.headers.set(ContentType(mime));
+                    if let Some(ref client) = request.client {
+                        response.https_state = client.https_state;
+                    }
                     response
                 },
                 Err(_) => Response::network_error(NetworkError::Internal("Decoding data URL failed".into()))

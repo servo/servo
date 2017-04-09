@@ -160,6 +160,7 @@ impl ServiceWorkerGlobalScope {
 
             let request = RequestInit {
                 url: script_url.clone(),
+                // TODO: handle request's client.
                 type_: RequestType::Script,
                 destination: Destination::ServiceWorker,
                 credentials_mode: CredentialsMode::Include,

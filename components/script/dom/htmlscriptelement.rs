@@ -31,7 +31,8 @@ use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsval::UndefinedValue;
 use net_traits::{FetchMetadata, FetchResponseListener, Metadata, NetworkError};
-use net_traits::request::{CorsSettings, CredentialsMode, Destination, RequestInit, RequestMode, Type as RequestType};
+use net_traits::request::{Client, CorsSettings, CredentialsMode, Destination};
+use net_traits::request::{RequestInit, RequestMode, Type as RequestType};
 use network_listener::{NetworkListener, PreInvoke};
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
@@ -225,6 +226,7 @@ impl PreInvoke for ScriptContext {}
 fn fetch_a_classic_script(script: &HTMLScriptElement,
                           kind: ExternalScriptKind,
                           url: ServoUrl,
+                          client: Client,
                           cors_setting: Option<CorsSettings>,
                           integrity_metadata: String,
                           character_encoding: EncodingRef) {
@@ -233,6 +235,7 @@ fn fetch_a_classic_script(script: &HTMLScriptElement,
     // Step 1, 2.
     let request = RequestInit {
         url: url.clone(),
+        client: Some(client),
         type_: RequestType::Script,
         destination: Destination::Script,
         // https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
@@ -387,9 +390,6 @@ impl HTMLScriptElement {
         // Step 19.
         // TODO: handle parser state.
 
-        // Step 20.
-        // TODO: handle environment settings object.
-
         let base_url = doc.base_url();
         if let Some(src) = element.get_attribute(&ns!(), &local_name!("src")) {
             // Step 21.
@@ -432,8 +432,11 @@ impl HTMLScriptElement {
                 ExternalScriptKind::Asap
             };
 
+            // Step 20.
+            let client = self.global().get_request_client();
+
             // Step 21.6.
-            fetch_a_classic_script(self, kind, url, cors_setting, integrity_metadata.to_owned(), encoding);
+            fetch_a_classic_script(self, kind, url, client, cors_setting, integrity_metadata.to_owned(), encoding);
 
             // Step 23.
             match kind {
