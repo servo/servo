@@ -12,6 +12,7 @@ use std::hash::Hash;
 use std::ops::Add;
 use std::sync::Arc;
 use tree::SELECTOR_WHITESPACE;
+use visitor::SelectorVisitor;
 
 macro_rules! with_all_bounds {
     (
@@ -50,26 +51,10 @@ macro_rules! with_all_bounds {
 
             /// non tree-structural pseudo-classes
             /// (see: https://drafts.csswg.org/selectors/#structural-pseudos)
-            type NonTSPseudoClass: $($CommonBounds)* + Sized + ToCss + SelectorMethods;
+            type NonTSPseudoClass: $($CommonBounds)* + Sized + ToCss + SelectorMethods<Impl = Self>;
 
             /// pseudo-elements
             type PseudoElement: $($CommonBounds)* + Sized + ToCss;
-
-            /// Declares if the following "attribute exists" selector is considered
-            /// "common" enough to be shareable. If that's not the case, when matching
-            /// over an element, the relation
-            /// AFFECTED_BY_NON_COMMON_STYLE_AFFECTING_ATTRIBUTE would be set.
-            fn attr_exists_selector_is_shareable(_attr_selector: &AttrSelector<Self>) -> bool {
-                false
-            }
-
-            /// Declares if the following "equals" attribute selector is considered
-            /// "common" enough to be shareable.
-            fn attr_equals_selector_is_shareable(_attr_selector: &AttrSelector<Self>,
-                                                 _value: &Self::AttrValue)
-                                                 -> bool {
-                false
-            }
         }
     }
 }
@@ -143,93 +128,91 @@ pub struct Selector<Impl: SelectorImpl> {
     pub specificity: u32,
 }
 
-fn affects_sibling<Impl: SelectorImpl>(simple_selector: &SimpleSelector<Impl>) -> bool {
-    match *simple_selector {
-        SimpleSelector::Negation(ref negated) => {
-            negated.iter().any(|ref selector| selector.affects_siblings())
-        }
-
-        SimpleSelector::FirstChild |
-        SimpleSelector::LastChild |
-        SimpleSelector::OnlyChild |
-        SimpleSelector::NthChild(..) |
-        SimpleSelector::NthLastChild(..) |
-        SimpleSelector::NthOfType(..) |
-        SimpleSelector::NthLastOfType(..) |
-        SimpleSelector::FirstOfType |
-        SimpleSelector::LastOfType |
-        SimpleSelector::OnlyOfType => true,
-
-        SimpleSelector::NonTSPseudoClass(ref pseudo_class) => pseudo_class.affects_siblings(),
-
-        _ => false,
-    }
-}
-
-fn matches_non_common_style_affecting_attribute<Impl: SelectorImpl>(simple_selector: &SimpleSelector<Impl>) -> bool {
-    match *simple_selector {
-        SimpleSelector::Negation(ref negated) => {
-            negated.iter().any(|ref selector| selector.matches_non_common_style_affecting_attribute())
-        }
-        SimpleSelector::AttrEqual(ref attr, ref val, _) => {
-            !Impl::attr_equals_selector_is_shareable(attr, val)
-        }
-        SimpleSelector::AttrExists(ref attr) => {
-            !Impl::attr_exists_selector_is_shareable(attr)
-        }
-        SimpleSelector::AttrIncludes(..) |
-        SimpleSelector::AttrDashMatch(..) |
-        SimpleSelector::AttrPrefixMatch(..) |
-        SimpleSelector::AttrSuffixMatch(..) |
-        SimpleSelector::AttrSubstringMatch(..) => true,
-
-        SimpleSelector::NonTSPseudoClass(ref pseudo_class) =>
-            pseudo_class.matches_non_common_style_affecting_attribute(),
-
-        // This deliberately includes Attr*NeverMatch
-        // which never match regardless of element attributes.
-        _ => false,
-    }
-}
-
 pub trait SelectorMethods {
-    fn affects_siblings(&self) -> bool;
-    fn matches_non_common_style_affecting_attribute(&self) -> bool;
+    type Impl: SelectorImpl;
+
+    fn visit<V>(&self, visitor: &mut V) -> bool
+        where V: SelectorVisitor<Impl = Self::Impl>;
 }
 
 impl<Impl: SelectorImpl> SelectorMethods for Selector<Impl> {
-    /// Whether this selector, if matching on a set of siblings, could affect
-    /// other sibling's style.
-    fn affects_siblings(&self) -> bool {
-        self.complex_selector.affects_siblings()
-    }
+    type Impl = Impl;
 
-    fn matches_non_common_style_affecting_attribute(&self) -> bool {
-        self.complex_selector.matches_non_common_style_affecting_attribute()
+    fn visit<V>(&self, visitor: &mut V) -> bool
+        where V: SelectorVisitor<Impl = Impl>,
+    {
+        self.complex_selector.visit(visitor)
     }
 }
 
-impl<Impl: SelectorImpl> SelectorMethods for ComplexSelector<Impl> {
-    /// Whether this complex selector, if matching on a set of siblings,
-    /// could affect other sibling's style.
-    fn affects_siblings(&self) -> bool {
-        match self.next {
-            Some((_, Combinator::NextSibling)) |
-            Some((_, Combinator::LaterSibling)) => return true,
-            _ => {},
+impl<Impl: SelectorImpl> SelectorMethods for Arc<ComplexSelector<Impl>> {
+    type Impl = Impl;
+
+    fn visit<V>(&self, visitor: &mut V) -> bool
+        where V: SelectorVisitor<Impl = Impl>,
+    {
+        let mut current = self;
+        let mut combinator = None;
+        loop {
+            if !visitor.visit_complex_selector(current, combinator) {
+                return false;
+            }
+
+            for selector in &current.compound_selector {
+                if !selector.visit(visitor) {
+                    return false;
+                }
+            }
+
+            match current.next {
+                Some((ref next, next_combinator)) => {
+                    current = next;
+                    combinator = Some(next_combinator);
+                }
+                None => break,
+            }
         }
 
-        match self.compound_selector.last() {
-            Some(ref selector) => affects_sibling(selector),
-            None => false,
-        }
+        true
     }
+}
 
-    fn matches_non_common_style_affecting_attribute(&self) -> bool {
-        match self.compound_selector.last() {
-            Some(ref selector) => matches_non_common_style_affecting_attribute(selector),
-            None => false,
+impl<Impl: SelectorImpl> SelectorMethods for SimpleSelector<Impl> {
+    type Impl = Impl;
+
+    fn visit<V>(&self, visitor: &mut V) -> bool
+        where V: SelectorVisitor<Impl = Impl>,
+    {
+        use self::SimpleSelector::*;
+
+        match *self {
+            Negation(ref negated) => {
+                for selector in negated {
+                    if !selector.visit(visitor) {
+                        return false;
+                    }
+                }
+            }
+            AttrExists(ref selector) |
+            AttrEqual(ref selector, _, _) |
+            AttrIncludes(ref selector, _) |
+            AttrDashMatch(ref selector, _) |
+            AttrPrefixMatch(ref selector, _) |
+            AttrSubstringMatch(ref selector, _) |
+            AttrSuffixMatch(ref selector, _) => {
+                if !visitor.visit_attribute_selector(selector) {
+                    return false;
+                }
+            }
+            NonTSPseudoClass(ref pseudo_class) => {
+                if !pseudo_class.visit(visitor) {
+                    return false;
+                }
+            },
+            _ => {}
         }
+
+        true
     }
 }
 
@@ -1023,9 +1006,8 @@ fn parse_functional_pseudo_class<P, Impl>(parser: &P,
         "not" => {
             if inside_negation {
                 return Err(())
-            } else {
-                return parse_negation(parser, input)
             }
+            return parse_negation(parser, input)
         },
         _ => {}
     }
@@ -1127,7 +1109,8 @@ fn parse_simple_pseudo_class<P, Impl>(parser: &P, name: Cow<str>) -> Result<Simp
         "only-of-type"  => Ok(SimpleSelector::OnlyOfType),
         _ => Err(())
     }).or_else(|()| {
-        P::parse_non_ts_pseudo_class(parser, name).map(|pc| SimpleSelector::NonTSPseudoClass(pc))
+        P::parse_non_ts_pseudo_class(parser, name)
+            .map(SimpleSelector::NonTSPseudoClass)
     })
 }
 
@@ -1176,8 +1159,10 @@ pub mod tests {
     }
 
     impl SelectorMethods for PseudoClass {
-        fn affects_siblings(&self) -> bool { false }
-        fn matches_non_common_style_affecting_attribute(&self) -> bool { false }
+        type Impl = DummySelectorImpl;
+
+        fn visit<V>(&self, visitor: &mut V) -> bool
+            where V: SelectorVisitor<Impl = Self::Impl> { true }
     }
 
     #[derive(PartialEq, Debug)]

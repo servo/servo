@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 use bloom::BloomFilter;
 use parser::{CaseSensitivity, Combinator, ComplexSelector, LocalName};
-use parser::{SimpleSelector, Selector, SelectorImpl};
+use parser::{SimpleSelector, Selector};
 use precomputed_hash::PrecomputedHash;
 use std::borrow::Borrow;
 use tree::Element;
@@ -34,10 +34,6 @@ bitflags! {
 
         /// Whether this element is affected by an ID selector.
         const AFFECTED_BY_ID_SELECTOR = 1 << 3,
-
-        /// Whether this element is affected by a non-common style-affecting
-        /// attribute.
-        const AFFECTED_BY_NON_COMMON_STYLE_AFFECTING_ATTRIBUTE_SELECTOR = 1 << 4,
 
         /// Whether this element matches the :empty pseudo class.
         const AFFECTED_BY_EMPTY = 1 << 5,
@@ -367,45 +363,28 @@ fn matches_simple_selector<E, F>(
             element.has_class(class)
         }
         SimpleSelector::AttrExists(ref attr) => {
-            let matches = element.match_attr_has(attr);
-
-            if matches && !E::Impl::attr_exists_selector_is_shareable(attr) {
-                *relations |= AFFECTED_BY_NON_COMMON_STYLE_AFFECTING_ATTRIBUTE_SELECTOR;
-            }
-
-            matches
+            element.match_attr_has(attr)
         }
         SimpleSelector::AttrEqual(ref attr, ref value, case_sensitivity) => {
-            let matches = match case_sensitivity {
+            match case_sensitivity {
                 CaseSensitivity::CaseSensitive => element.match_attr_equals(attr, value),
                 CaseSensitivity::CaseInsensitive => element.match_attr_equals_ignore_ascii_case(attr, value),
-            };
-
-            if matches && !E::Impl::attr_equals_selector_is_shareable(attr, value) {
-                *relations |= AFFECTED_BY_NON_COMMON_STYLE_AFFECTING_ATTRIBUTE_SELECTOR;
             }
-
-            matches
         }
         SimpleSelector::AttrIncludes(ref attr, ref value) => {
-            relation_if!(element.match_attr_includes(attr, value),
-                         AFFECTED_BY_NON_COMMON_STYLE_AFFECTING_ATTRIBUTE_SELECTOR)
+            element.match_attr_includes(attr, value)
         }
         SimpleSelector::AttrDashMatch(ref attr, ref value) => {
-            relation_if!(element.match_attr_dash(attr, value),
-                         AFFECTED_BY_NON_COMMON_STYLE_AFFECTING_ATTRIBUTE_SELECTOR)
+            element.match_attr_dash(attr, value)
         }
         SimpleSelector::AttrPrefixMatch(ref attr, ref value) => {
-            relation_if!(element.match_attr_prefix(attr, value),
-                         AFFECTED_BY_NON_COMMON_STYLE_AFFECTING_ATTRIBUTE_SELECTOR)
+            element.match_attr_prefix(attr, value)
         }
         SimpleSelector::AttrSubstringMatch(ref attr, ref value) => {
-            relation_if!(element.match_attr_substring(attr, value),
-                         AFFECTED_BY_NON_COMMON_STYLE_AFFECTING_ATTRIBUTE_SELECTOR)
+            element.match_attr_substring(attr, value)
         }
         SimpleSelector::AttrSuffixMatch(ref attr, ref value) => {
-            relation_if!(element.match_attr_suffix(attr, value),
-                         AFFECTED_BY_NON_COMMON_STYLE_AFFECTING_ATTRIBUTE_SELECTOR)
+            element.match_attr_suffix(attr, value)
         }
         SimpleSelector::AttrIncludesNeverMatch(..) |
         SimpleSelector::AttrPrefixNeverMatch(..) |

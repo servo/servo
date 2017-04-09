@@ -17,7 +17,7 @@ use properties::{self, CascadeFlags, ComputedValues};
 #[cfg(feature = "servo")]
 use properties::INHERIT_ALL;
 use properties::PropertyDeclarationBlock;
-use restyle_hints::{RestyleHint, DependencySet};
+use restyle_hints::{RestyleHint, DependencySet, SelectorDependencyVisitor};
 use rule_tree::{CascadeLevel, RuleTree, StrongRuleNode, StyleSource};
 use selector_parser::{SelectorImpl, PseudoElement, Snapshot};
 use selectors::Element;
@@ -117,7 +117,7 @@ pub struct Stylist {
     /// Selectors in the page matching elements with non-common style-affecting
     /// attributes.
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
-    non_common_style_affecting_attributes_selectors: Vec<Selector<SelectorImpl>>,
+    style_affecting_attributes_selectors: Vec<Selector<SelectorImpl>>,
 }
 
 /// This struct holds data which user of Stylist may want to extract
@@ -169,9 +169,8 @@ impl Stylist {
             rule_tree: RuleTree::new(),
             state_deps: DependencySet::new(),
 
-            // XXX remember resetting them!
             sibling_affecting_selectors: vec![],
-            non_common_style_affecting_attributes_selectors: vec![]
+            style_affecting_attributes_selectors: vec![]
         };
 
         SelectorImpl::each_eagerly_cascaded_pseudo_element(|pseudo| {
@@ -226,7 +225,7 @@ impl Stylist {
         self.animations.clear();
 
         self.sibling_affecting_selectors.clear();
-        self.non_common_style_affecting_attributes_selectors.clear();
+        self.style_affecting_attributes_selectors.clear();
 
         extra_data.clear_font_faces();
 
@@ -249,7 +248,7 @@ impl Stylist {
         debug!(" - Got {} sibling-affecting selectors",
                self.sibling_affecting_selectors.len());
         debug!(" - Got {} non-common-style-attribute-affecting selectors",
-               self.non_common_style_affecting_attributes_selectors.len());
+               self.style_affecting_attributes_selectors.len());
         debug!(" - Got {} deps for style-hint calculation",
                self.state_deps.len());
 
@@ -300,13 +299,16 @@ impl Stylist {
                     self.rules_source_order += 1;
 
                     for selector in &style_rule.selectors.0 {
-                        self.state_deps.note_selector(&selector.complex_selector);
-                        if selector.affects_siblings() {
+                        let mut visitor =
+                            SelectorDependencyVisitor::new(&mut self.state_deps);
+                        selector.visit(&mut visitor);
+
+                        if visitor.affects_siblings() {
                             self.sibling_affecting_selectors.push(selector.clone());
                         }
 
-                        if selector.matches_non_common_style_affecting_attribute() {
-                            self.non_common_style_affecting_attributes_selectors.push(selector.clone());
+                        if visitor.affected_by_attribute() {
+                            self.style_affecting_attributes_selectors.push(selector.clone());
                         }
                     }
                 }
@@ -765,9 +767,9 @@ impl Stylist {
     ///
     /// This is used to test elements and candidates in the style-sharing
     /// candidate cache.
-    pub fn match_same_not_common_style_affecting_attributes_rules<E>(&self,
-                                                                     element: &E,
-                                                                     candidate: &E) -> bool
+    pub fn match_same_style_affecting_attributes_rules<E>(&self,
+                                                          element: &E,
+                                                          candidate: &E) -> bool
         where E: TElement,
     {
         use selectors::matching::StyleRelations;
@@ -779,7 +781,7 @@ impl Stylist {
         //
         // TODO(emilio): Use the bloom filter, since they contain the element's
         // ancestor chain and it's correct for the candidate too.
-        for ref selector in self.non_common_style_affecting_attributes_selectors.iter() {
+        for ref selector in self.style_affecting_attributes_selectors.iter() {
             let element_matches =
                 matches_complex_selector(&selector.complex_selector, element,
                                          None, &mut StyleRelations::empty(),

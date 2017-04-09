@@ -12,6 +12,7 @@ pub mod bloom;
 pub mod matching;
 pub mod parser;
 mod tree;
+pub mod visitor;
 
 pub use parser::{SelectorImpl, Parser, SelectorList};
 pub use tree::Element;

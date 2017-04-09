@@ -332,6 +332,23 @@ impl AttrValue {
             panic!("Uint not found");
         }
     }
+
+    /// Return the AttrValue as a dimension computed from its integer
+    /// representation, assuming that integer representation specifies pixels.
+    ///
+    /// This corresponds to attribute values returned as `AttrValue::UInt(_)`
+    /// by `VirtualMethods::parse_plain_attribute()`.
+    ///
+    /// ## Panics
+    ///
+    /// Panics if the `AttrValue` is not a `UInt`
+    pub fn as_uint_px_dimension(&self) -> LengthOrPercentageOrAuto {
+        if let AttrValue::UInt(_, value) = *self {
+            LengthOrPercentageOrAuto::Length(Au::from_px(value as i32))
+        } else {
+            panic!("Uint not found");
+        }
+    }
 }
 
 impl ::std::ops::Deref for AttrValue {

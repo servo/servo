@@ -41,6 +41,7 @@ use dom::eventtarget::EventTarget;
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlbodyelement::{HTMLBodyElement, HTMLBodyElementLayoutHelpers};
 use dom::htmlbuttonelement::HTMLButtonElement;
+use dom::htmlcanvaselement::{HTMLCanvasElement, LayoutHTMLCanvasElementHelpers};
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElement;
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
@@ -100,7 +101,6 @@ use std::sync::Arc;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::context::{QuirksMode, ReflowGoal};
 use style::element_state::*;
-use style::matching::{common_style_affecting_attributes, rare_style_affecting_attributes};
 use style::properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock, parse_style_attribute};
 use style::properties::longhands::{self, background_image, border_spacing, font_family, font_size, overflow_x};
 use style::restyle_hints::RESTYLE_SELF;
@@ -382,6 +382,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
     unsafe fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
         where V: Push<ApplicableDeclarationBlock>
     {
+        // FIXME(emilio): Just a single PDB should be enough.
         #[inline]
         fn from_declaration(shared_lock: &SharedRwLock, declaration: PropertyDeclaration)
                             -> ApplicableDeclarationBlock {
@@ -542,10 +543,13 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         } else if let Some(this) = self.downcast::<HTMLHRElement>() {
             // https://html.spec.whatwg.org/multipage/#the-hr-element-2:attr-hr-width
             this.get_width()
+        } else if let Some(this) = self.downcast::<HTMLCanvasElement>() {
+            this.get_width()
         } else {
             LengthOrPercentageOrAuto::Auto
         };
 
+        // FIXME(emilio): Use from_computed value here and below.
         match width {
             LengthOrPercentageOrAuto::Auto => {}
             LengthOrPercentageOrAuto::Percentage(percentage) => {
@@ -568,6 +572,8 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         let height = if let Some(this) = self.downcast::<HTMLIFrameElement>() {
             this.get_height()
         } else if let Some(this) = self.downcast::<HTMLImageElement>() {
+            this.get_height()
+        } else if let Some(this) = self.downcast::<HTMLCanvasElement>() {
             this.get_height()
         } else {
             LengthOrPercentageOrAuto::Auto
@@ -2153,10 +2159,6 @@ impl ElementMethods for Element {
     }
 }
 
-pub fn fragment_affecting_attributes() -> [LocalName; 3] {
-    [local_name!("width"), local_name!("height"), local_name!("src")]
-}
-
 impl VirtualMethods for Element {
     fn super_type(&self) -> Option<&VirtualMethods> {
         Some(self.upcast::<Node>() as &VirtualMethods)
@@ -2236,15 +2238,14 @@ impl VirtualMethods for Element {
                     }
                 }
             },
-            _ if attr.namespace() == &ns!() => {
-                if fragment_affecting_attributes().iter().any(|a| a == attr.local_name()) ||
-                   common_style_affecting_attributes().iter().any(|a| &a.attr_name == attr.local_name()) ||
-                   rare_style_affecting_attributes().iter().any(|a| a == attr.local_name())
-                {
+            _ => {
+                // FIXME(emilio): This is pretty dubious, and should be done in
+                // the relevant super-classes.
+                if attr.namespace() == &ns!() &&
+                   attr.local_name() == &local_name!("src") {
                     node.dirty(NodeDamage::OtherNodeDamage);
                 }
             },
-            _ => {},
         };
 
         // Make sure we rev the version even if we didn't dirty the node. If we

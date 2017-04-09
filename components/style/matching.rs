@@ -7,7 +7,7 @@
 #![allow(unsafe_code)]
 #![deny(missing_docs)]
 
-use {Atom, LocalName};
+use Atom;
 use animation::{self, Animation, PropertyAnimation};
 use atomic_refcell::AtomicRefMut;
 use cache::{LRUCache, LRUCacheMutIterator};
@@ -38,26 +38,6 @@ fn relations_are_shareable(relations: &StyleRelations) -> bool {
                           AFFECTED_BY_PRESENTATIONAL_HINTS)
 }
 
-fn create_common_style_affecting_attributes_from_element<E: TElement>(element: &E)
-                                                         -> CommonStyleAffectingAttributes {
-    let mut flags = CommonStyleAffectingAttributes::empty();
-    for attribute_info in &common_style_affecting_attributes() {
-        match attribute_info.mode {
-            CommonStyleAffectingAttributeMode::IsPresent(flag) => {
-                if element.has_attr(&ns!(), &attribute_info.attr_name) {
-                    flags.insert(flag)
-                }
-            }
-            CommonStyleAffectingAttributeMode::IsEqual(ref target_value, flag) => {
-                if element.attr_equals(&ns!(), &attribute_info.attr_name, target_value) {
-                    flags.insert(flag)
-                }
-            }
-        }
-    }
-    flags
-}
-
 /// Information regarding a style sharing candidate.
 ///
 /// Note that this information is stored in TLS and cleared after the traversal,
@@ -70,16 +50,13 @@ struct StyleSharingCandidate<E: TElement> {
     /// The element. We use SendElement here so that the cache may live in
     /// ScopedTLS.
     element: SendElement<E>,
-    /// The cached common style affecting attribute info.
-    common_style_affecting_attributes: Option<CommonStyleAffectingAttributes>,
     /// The cached class names.
     class_attributes: Option<Vec<Atom>>,
 }
 
 impl<E: TElement> PartialEq<StyleSharingCandidate<E>> for StyleSharingCandidate<E> {
     fn eq(&self, other: &Self) -> bool {
-        self.element == other.element &&
-            self.common_style_affecting_attributes == other.common_style_affecting_attributes
+        self.element == other.element
     }
 }
 
@@ -115,17 +92,14 @@ pub enum CacheMiss {
     StyleAttr,
     /// The element and the candidate class names didn't match.
     Class,
-    /// The element and the candidate common style affecting attributes didn't
-    /// match.
-    CommonStyleAffectingAttributes,
     /// The presentation hints didn't match.
     PresHints,
     /// The element and the candidate didn't match the same set of
     /// sibling-affecting rules.
     SiblingRules,
-    /// The element and the candidate didn't match the same set of non-common
-    /// style affecting attribute selectors.
-    NonCommonAttrRules,
+    /// The element and the candidate didn't match the same set of style
+    /// affecting attribute selectors.
+    AttrRules,
 }
 
 fn element_matches_candidate<E: TElement>(element: &E,
@@ -175,12 +149,6 @@ fn element_matches_candidate<E: TElement>(element: &E,
         miss!(Class)
     }
 
-    if !have_same_common_style_affecting_attributes(element,
-                                                    candidate,
-                                                    candidate_element) {
-        miss!(CommonStyleAffectingAttributes)
-    }
-
     if !have_same_presentational_hints(element, candidate_element) {
         miss!(PresHints)
     }
@@ -191,10 +159,10 @@ fn element_matches_candidate<E: TElement>(element: &E,
         miss!(SiblingRules)
     }
 
-    if !match_same_not_common_style_affecting_attributes_rules(element,
-                                                               candidate_element,
-                                                               shared_context) {
-        miss!(NonCommonAttrRules)
+    if !match_same_style_affecting_attributes_rules(element,
+                                                    candidate_element,
+                                                    shared_context) {
+        miss!(AttrRules)
     }
 
     let data = candidate_element.borrow_data().unwrap();
@@ -204,20 +172,10 @@ fn element_matches_candidate<E: TElement>(element: &E,
     Ok(current_styles.primary.clone())
 }
 
-fn have_same_common_style_affecting_attributes<E: TElement>(element: &E,
-                                                            candidate: &mut StyleSharingCandidate<E>,
-                                                            candidate_element: &E) -> bool {
-    if candidate.common_style_affecting_attributes.is_none() {
-        candidate.common_style_affecting_attributes =
-            Some(create_common_style_affecting_attributes_from_element(candidate_element))
-    }
-    create_common_style_affecting_attributes_from_element(element) ==
-        candidate.common_style_affecting_attributes.unwrap()
-}
-
 fn have_same_presentational_hints<E: TElement>(element: &E, candidate: &E) -> bool {
     let mut first = ForgetfulSink::new();
     element.synthesize_presentational_hints_for_legacy_attributes(&mut first);
+
     if cfg!(debug_assertions) {
         let mut second = vec![];
         candidate.synthesize_presentational_hints_for_legacy_attributes(&mut second);
@@ -226,82 +184,6 @@ fn have_same_presentational_hints<E: TElement>(element: &E, candidate: &E) -> bo
     }
 
     first.is_empty()
-}
-
-bitflags! {
-    /// A set of common style-affecting attributes we check separately to
-    /// optimize the style sharing cache.
-    pub flags CommonStyleAffectingAttributes: u8 {
-        /// The `hidden` attribute.
-        const HIDDEN_ATTRIBUTE = 0x01,
-        /// The `nowrap` attribute.
-        const NO_WRAP_ATTRIBUTE = 0x02,
-        /// The `align="left"` attribute.
-        const ALIGN_LEFT_ATTRIBUTE = 0x04,
-        /// The `align="center"` attribute.
-        const ALIGN_CENTER_ATTRIBUTE = 0x08,
-        /// The `align="right"` attribute.
-        const ALIGN_RIGHT_ATTRIBUTE = 0x10,
-    }
-}
-
-/// The information of how to match a given common-style affecting attribute.
-pub struct CommonStyleAffectingAttributeInfo {
-    /// The attribute name.
-    pub attr_name: LocalName,
-    /// The matching mode for the attribute.
-    pub mode: CommonStyleAffectingAttributeMode,
-}
-
-/// How should we match a given common style-affecting attribute?
-#[derive(Clone)]
-pub enum CommonStyleAffectingAttributeMode {
-    /// Just for presence?
-    IsPresent(CommonStyleAffectingAttributes),
-    /// For presence and equality with a given value.
-    IsEqual(Atom, CommonStyleAffectingAttributes),
-}
-
-/// The common style affecting attribute array.
-///
-/// TODO: This should be a `const static` or similar, but couldn't be because
-/// `Atom`s have destructors.
-#[inline]
-pub fn common_style_affecting_attributes() -> [CommonStyleAffectingAttributeInfo; 5] {
-    [
-        CommonStyleAffectingAttributeInfo {
-            attr_name: local_name!("hidden"),
-            mode: CommonStyleAffectingAttributeMode::IsPresent(HIDDEN_ATTRIBUTE),
-        },
-        CommonStyleAffectingAttributeInfo {
-            attr_name: local_name!("nowrap"),
-            mode: CommonStyleAffectingAttributeMode::IsPresent(NO_WRAP_ATTRIBUTE),
-        },
-        CommonStyleAffectingAttributeInfo {
-            attr_name: local_name!("align"),
-            mode: CommonStyleAffectingAttributeMode::IsEqual(atom!("left"), ALIGN_LEFT_ATTRIBUTE),
-        },
-        CommonStyleAffectingAttributeInfo {
-            attr_name: local_name!("align"),
-            mode: CommonStyleAffectingAttributeMode::IsEqual(atom!("center"), ALIGN_CENTER_ATTRIBUTE),
-        },
-        CommonStyleAffectingAttributeInfo {
-            attr_name: local_name!("align"),
-            mode: CommonStyleAffectingAttributeMode::IsEqual(atom!("right"), ALIGN_RIGHT_ATTRIBUTE),
-        }
-    ]
-}
-
-/// Attributes that, if present, disable style sharing. All legacy HTML
-/// attributes must be in either this list or
-/// `common_style_affecting_attributes`. See the comment in
-/// `synthesize_presentational_hints_for_legacy_attributes`.
-///
-/// TODO(emilio): This is not accurate now, we don't disable style sharing for
-/// this now since we check for attribute selectors in the stylesheet. Consider
-/// removing this.
-pub fn rare_style_affecting_attributes() -> [LocalName; 4] {
-    [local_name!("bgcolor"), local_name!("border"), local_name!("colspan"), local_name!("rowspan")]
 }
 
 fn have_same_class<E: TElement>(element: &E,
@@ -322,10 +204,10 @@ fn have_same_class<E: TElement>(element: &E,
 
 // TODO: These re-match the candidate every time, which is suboptimal.
 #[inline]
-fn match_same_not_common_style_affecting_attributes_rules<E: TElement>(element: &E,
-                                                                       candidate: &E,
-                                                                       ctx: &SharedStyleContext) -> bool {
-    ctx.stylist.match_same_not_common_style_affecting_attributes_rules(element, candidate)
+fn match_same_style_affecting_attributes_rules<E: TElement>(element: &E,
+                                                            candidate: &E,
+                                                            ctx: &SharedStyleContext) -> bool {
+    ctx.stylist.match_same_style_affecting_attributes_rules(element, candidate)
 }
 
 #[inline]
@@ -387,7 +269,6 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
 
         self.cache.insert(StyleSharingCandidate {
             element: unsafe { SendElement::new(*element) },
-            common_style_affecting_attributes: None,
             class_attributes: None,
         });
     }
@@ -1143,10 +1024,9 @@ pub trait MatchMethods : TElement {
                         },
                         // Too expensive failure, give up, we don't want another
                         // one of these.
-                        CacheMiss::CommonStyleAffectingAttributes |
                         CacheMiss::PresHints |
                         CacheMiss::SiblingRules |
-                        CacheMiss::NonCommonAttrRules => break,
+                        CacheMiss::AttrRules => break,
                         _ => {}
                     }
                 }
