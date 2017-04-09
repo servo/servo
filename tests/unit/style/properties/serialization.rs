@@ -1280,4 +1280,21 @@ mod shorthand_serialization {
         let serialization = shorthand_properties_to_string(properties);
         assert_eq!(serialization, "place-self: auto baseline;");
     }
+
+    #[test]
+    fn place_items_serialize_all_available_properties() {
+        use style::properties::longhands::align_items::SpecifiedValue as AlignItems;
+        use style::properties::longhands::justify_items::SpecifiedValue as JustifyItems;
+
+        let mut properties = Vec::new();
+
+        let align = AlignItems::flex_start;
+        let justify = JustifyItems::baseline;
+
+        properties.push(PropertyDeclaration::AlignItems(align));
+        properties.push(PropertyDeclaration::JustifyItems(justify));
+
+        let serialization = shorthand_properties_to_string(properties);
+        assert_eq!(serialization, "place-items: flex-start baseline;");
+    }
 }

@@ -210,3 +210,35 @@
         }
     }
 </%helpers:shorthand>
+
+<%helpers:shorthand name="place-items" sub_properties="align-items justify-items"
+                    spec="https://drafts.csswg.org/css-align/#place-items-property"
+                    products="gecko">
+    use values::specified::align::{AlignItems, JustifyItems};
+    use parser::Parse;
+
+    impl From<AlignItems> for JustifyItems {
+        fn from(align: AlignItems) -> JustifyItems {
+            JustifyItems(align.0)
+        }
+    }
+
+    pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+        let align = AlignItems::parse(context, input)?;
+        let justify = input.try(|input| JustifyItems::parse(context, input))
+                           .unwrap_or(JustifyItems::from(align));
+
+        Ok(Longhands {
+            align_items: align,
+            justify_items: justify,
+        })
+    }
+
+    impl<'a> ToCss for LonghandsToSerialize<'a> {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            self.align_items.to_css(dest)?;
+            dest.write_str(" ")?;
+            self.justify_items.to_css(dest)
+        }
+    }
+</%helpers:shorthand>
