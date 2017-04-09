@@ -185,10 +185,6 @@ impl<Impl: SelectorImpl> SelectorMethods for SimpleSelector<Impl> {
     {
         use self::SimpleSelector::*;
 
-        if !visitor.visit_simple_selector(self) {
-            return false;
-        }
-
         match *self {
             Negation(ref negated) => {
                 for selector in negated {

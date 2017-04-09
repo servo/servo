@@ -6,7 +6,7 @@
 
 #![deny(missing_docs)]
 
-use parser::{AttrSelector, Combinator, ComplexSelector, SelectorImpl, SimpleSelector};
+use parser::{AttrSelector, Combinator, ComplexSelector, SelectorImpl};
 use std::sync::Arc;
 
 /// A trait to visit selector properties.
@@ -32,11 +32,6 @@ pub trait SelectorVisitor {
                               _: &Arc<ComplexSelector<Self::Impl>>,
                               _combinator_to_right: Option<Combinator>)
                               -> bool {
-        true
-    }
-
-    /// Visits a simple selector.
-    fn visit_simple_selector(&mut self, _: &SimpleSelector<Self::Impl>) -> bool {
         true
     }
 }
