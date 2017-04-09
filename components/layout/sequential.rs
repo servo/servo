@@ -7,12 +7,13 @@
 use app_units::Au;
 use context::LayoutContext;
 use display_list_builder::DisplayListBuildState;
+use euclid::Matrix4D;
 use euclid::point::Point2D;
 use floats::SpeculatedFloatPlacement;
 use flow::{self, Flow, ImmutableFlowUtils, InorderFlowTraversal, MutableFlowUtils};
 use flow::{PostorderFlowTraversal, PreorderFlowTraversal};
 use flow::IS_ABSOLUTELY_POSITIONED;
-use fragment::FragmentBorderBoxIterator;
+use fragment::{FragmentBorderBoxIterator, CoordinateSystem};
 use generated_content::ResolveGeneratedContent;
 use servo_config::opts;
 use style::servo::restyle_damage::{REFLOW, STORE_OVERFLOW};
@@ -23,7 +24,7 @@ pub use style::sequential::traverse_dom;
 pub fn resolve_generated_content(root: &mut Flow, layout_context: &LayoutContext) {
     fn doit(flow: &mut Flow, level: u32, traversal: &mut ResolveGeneratedContent) {
         if !traversal.should_process(flow) {
-            return
+            return;
         }
 
         traversal.process(flow, level);
@@ -37,11 +38,8 @@ pub fn resolve_generated_content(root: &mut Flow, layout_context: &LayoutContext
     doit(root, 0, &mut traversal)
 }
 
-pub fn traverse_flow_tree_preorder(root: &mut Flow,
-                                   layout_context: &LayoutContext) {
-    fn doit(flow: &mut Flow,
-            assign_inline_sizes: AssignISizes,
-            assign_block_sizes: AssignBSizes) {
+pub fn traverse_flow_tree_preorder(root: &mut Flow, layout_context: &LayoutContext) {
+    fn doit(flow: &mut Flow, assign_inline_sizes: AssignISizes, assign_block_sizes: AssignBSizes) {
         if assign_inline_sizes.should_process(flow) {
             assign_inline_sizes.process(flow);
         }
@@ -56,15 +54,21 @@ pub fn traverse_flow_tree_preorder(root: &mut Flow,
     }
 
     if opts::get().bubble_inline_sizes_separately {
-        let bubble_inline_sizes = BubbleISizes { layout_context: &layout_context };
+        let bubble_inline_sizes = BubbleISizes {
+            layout_context: &layout_context,
+        };
         {
             let root: &mut Flow = root;
             root.traverse_postorder(&bubble_inline_sizes);
         }
     }
 
-    let assign_inline_sizes = AssignISizes { layout_context: &layout_context };
-    let assign_block_sizes  = AssignBSizes { layout_context: &layout_context };
+    let assign_inline_sizes = AssignISizes {
+        layout_context: &layout_context,
+    };
+    let assign_block_sizes = AssignBSizes {
+        layout_context: &layout_context,
+    };
 
     doit(root, assign_inline_sizes, assign_block_sizes);
 }
@@ -75,13 +79,14 @@ pub fn build_display_list_for_subtree<'a>(flow_root: &mut Flow,
     let mut state = DisplayListBuildState::new(layout_context);
     flow_root.collect_stacking_contexts(&mut state);
 
-    let mut build_display_list = BuildDisplayList { state: state };
+    let mut build_display_list = BuildDisplayList {
+        state: state,
+    };
     build_display_list.traverse(flow_root);
     build_display_list.state
 }
 
-pub fn iterate_through_flow_tree_fragment_border_boxes(root: &mut Flow,
-                                                       iterator: &mut FragmentBorderBoxIterator) {
+pub fn iterate_through_flow_tree_fragment_border_boxes(root: &mut Flow, iterator: &mut FragmentBorderBoxIterator) {
     fn doit(flow: &mut Flow,
             level: i32,
             iterator: &mut FragmentBorderBoxIterator,
@@ -89,13 +94,39 @@ pub fn iterate_through_flow_tree_fragment_border_boxes(root: &mut Flow,
         flow.iterate_through_fragment_border_boxes(iterator, level, stacking_context_position);
 
         for kid in flow::mut_base(flow).child_iter_mut() {
-            let stacking_context_position =
-                if kid.is_block_flow() && kid.as_block().fragment.establishes_stacking_context() {
-                    let margin = Point2D::new(kid.as_block().fragment.margin.inline_start, Au(0));
-                    *stacking_context_position + flow::base(kid).stacking_relative_position + margin
-                } else {
-                    *stacking_context_position
-                };
+            let stacking_context_position = if kid.is_block_flow() &&
+                                               kid.as_block().fragment.establishes_stacking_context() {
+                let mut margin = Point2D::new(kid.as_block().fragment.margin.inline_start, Au(0));
+                let fragment = kid.as_block();
+                if fragment.fragment.style.get_box().transform.0.is_some() {
+                    let relative_position = fragment
+                        .fragment
+                        .stacking_relative_border_box(&fragment.base.stacking_relative_position,
+                                                      &fragment
+                                                           .base
+                                                           .early_absolute_position_info
+                                                           .relative_containing_block_size,
+                                                      fragment
+                                                          .base
+                                                          .early_absolute_position_info
+                                                          .relative_containing_block_mode,
+                                                      CoordinateSystem::Own);
+
+                    let transform = fragment
+                        .fragment
+                        .transform_matrix(&relative_position)
+                        .unwrap_or(Matrix4D::identity())
+                        .to_2d();
+
+                    let transform_point = transform.transform_point(&Point2D::new(0.0, 0.0));
+                    margin = margin +
+                             Point2D::new(Au::from_f32_px(transform_point.x),
+                                          Au::from_f32_px(transform_point.y));
+                }
+                *stacking_context_position + flow::base(kid).stacking_relative_position + margin
+            } else {
+                *stacking_context_position
+            };
 
             // FIXME(#2795): Get the real container size.
             doit(kid, level + 1, iterator, &stacking_context_position);
@@ -107,7 +138,7 @@ pub fn iterate_through_flow_tree_fragment_border_boxes(root: &mut Flow,
 
 pub fn store_overflow(layout_context: &LayoutContext, flow: &mut Flow) {
     if !flow::base(flow).restyle_damage.contains(STORE_OVERFLOW) {
-        return
+        return;
     }
 
     for mut kid in flow::mut_base(flow).child_iter_mut() {
@@ -116,7 +147,9 @@ pub fn store_overflow(layout_context: &LayoutContext, flow: &mut Flow) {
 
     flow.store_overflow(layout_context);
 
-    flow::mut_base(flow).restyle_damage.remove(STORE_OVERFLOW);
+    flow::mut_base(flow)
+        .restyle_damage
+        .remove(STORE_OVERFLOW);
 }
 
 /// Guesses how much inline size will be taken up by floats on the left and right sides of the
@@ -124,7 +157,7 @@ pub fn store_overflow(layout_context: &LayoutContext, flow: &mut Flow) {
 /// contexts. The speculation typically succeeds, but if it doesn't we have to lay it out again.
 pub fn guess_float_placement(flow: &mut Flow) {
     if !flow::base(flow).restyle_damage.intersects(REFLOW) {
-        return
+        return;
     }
 
     let mut floats_in = SpeculatedFloatPlacement::compute_floats_in_for_first_child(flow);
