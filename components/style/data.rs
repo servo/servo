@@ -223,6 +223,13 @@ impl StoredRestyleHint {
         StoredRestyleHint(RESTYLE_SELF | RESTYLE_DESCENDANTS)
     }
 
+    /// Creates a restyle hint that forces the element and all its later
+    /// siblings to have their whole subtrees restyled, including the elements
+    /// themselves.
+    pub fn subtree_and_later_siblings() -> Self {
+        StoredRestyleHint(RESTYLE_SELF | RESTYLE_DESCENDANTS | RESTYLE_LATER_SIBLINGS)
+    }
+
     /// Returns true if the hint indicates that our style may be invalidated.
     pub fn has_self_invalidations(&self) -> bool {
         self.0.intersects(RestyleHint::for_self())

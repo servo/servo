@@ -85,7 +85,7 @@ use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
 use style::supports::parse_condition_or_declaration;
 use style::thread_state;
 use style::timer::Timer;
-use style::traversal::{ANIMATION_ONLY, UNSTYLED_CHILDREN_ONLY};
+use style::traversal::{ANIMATION_ONLY, FOR_RECONSTRUCT, UNSTYLED_CHILDREN_ONLY};
 use style::traversal::{resolve_style, DomTraversal, TraversalDriver, TraversalFlags};
 use style_traits::ToCss;
 use super::stylesheet_loader::StylesheetLoader;
@@ -141,7 +141,7 @@ unsafe fn dummy_url_data() -> &'static RefPtr<URLExtraData> {
 
 fn create_shared_context<'a>(guard: &'a SharedRwLockReadGuard,
                              per_doc_data: &PerDocumentStyleDataImpl,
-                             animation_only: bool) -> SharedStyleContext<'a> {
+                             traversal_flags: TraversalFlags) -> SharedStyleContext<'a> {
     let local_context_data =
         ThreadLocalStyleContextCreationInfo::new(per_doc_data.new_animations_sender.clone());
 
@@ -156,7 +156,7 @@ fn create_shared_context<'a>(guard: &'a SharedRwLockReadGuard,
         timer: Timer::new(),
         // FIXME Find the real QuirksMode information for this document
         quirks_mode: QuirksMode::NoQuirks,
-        animation_only_restyle: animation_only,
+        traversal_flags: traversal_flags,
     }
 }
 
@@ -183,8 +183,7 @@ fn traverse_subtree(element: GeckoElement, raw_data: RawServoStyleSetBorrowed,
 
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
-    let shared_style_context = create_shared_context(&guard, &per_doc_data,
-                                                     traversal_flags.for_animation_only());
+    let shared_style_context = create_shared_context(&guard, &per_doc_data, traversal_flags);
 
     let traversal_driver = if global_style_data.style_thread_pool.is_none() {
         TraversalDriver::Sequential
@@ -208,13 +207,20 @@ fn traverse_subtree(element: GeckoElement, raw_data: RawServoStyleSetBorrowed,
 #[no_mangle]
 pub extern "C" fn Servo_TraverseSubtree(root: RawGeckoElementBorrowed,
                                         raw_data: RawServoStyleSetBorrowed,
-                                        behavior: structs::TraversalRootBehavior) -> bool {
+                                        root_behavior: structs::TraversalRootBehavior,
+                                        restyle_behavior: structs::TraversalRestyleBehavior)
+                                        -> bool {
+    use self::structs::TraversalRestyleBehavior as Restyle;
+    use self::structs::TraversalRootBehavior as Root;
+
     let element = GeckoElement(root);
     debug!("Servo_TraverseSubtree: {:?}", element);
 
-    let traversal_flags = match behavior {
-        structs::TraversalRootBehavior::UnstyledChildrenOnly => UNSTYLED_CHILDREN_ONLY,
-        _ => TraversalFlags::empty(),
+    let traversal_flags = match (root_behavior, restyle_behavior) {
+        (Root::Normal, Restyle::Normal) => TraversalFlags::empty(),
+        (Root::UnstyledChildrenOnly, Restyle::Normal) => UNSTYLED_CHILDREN_ONLY,
+        (Root::Normal, Restyle::ForReconstruct) => FOR_RECONSTRUCT,
+        _ => panic!("invalid combination of TraversalRootBehavior and TraversalRestyleBehavior"),
     };
 
     if element.has_animation_only_dirty_descendants() ||
@@ -398,7 +404,7 @@ pub extern "C" fn Servo_StyleSet_GetBaseComputedValuesForElement(raw_data: RawSe
     let doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow();
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
-    let shared_context = &create_shared_context(&guard, &doc_data, false);
+    let shared_context = &create_shared_context(&guard, &doc_data, TraversalFlags::empty());
 
     let element = GeckoElement(element);
     let element_data = element.borrow_data().unwrap();
@@ -1631,7 +1637,7 @@ pub extern "C" fn Servo_ResolveStyleLazily(element: RawGeckoElementBorrowed,
     }
 
     // We don't have the style ready. Go ahead and compute it as necessary.
-    let shared = create_shared_context(&guard, &mut doc_data.borrow_mut(), false);
+    let shared = create_shared_context(&guard, &mut doc_data.borrow_mut(), TraversalFlags::empty());
     let mut tlc = ThreadLocalStyleContext::new(&shared);
     let mut context = StyleContext {
         shared: &shared,
