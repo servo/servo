@@ -1953,6 +1953,11 @@ impl Document {
 
         self.window.layout().nodes_from_point_response()
     }
+
+    /// https://html.spec.whatwg.org/multipage/#concept-document-https-state
+    pub fn https_state(&self) -> HttpsState {
+        self.https_state.get()
+    }
 }
 
 #[derive(PartialEq, HeapSizeOf)]

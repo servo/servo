@@ -214,6 +214,7 @@ impl FontCache {
 
                 let request = RequestInit {
                     url: url.clone(),
+                    // TODO: handle request's client.
                     type_: RequestType::Font,
                     destination: Destination::Font,
                     origin: url.clone(),

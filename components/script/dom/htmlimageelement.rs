@@ -260,6 +260,7 @@ impl HTMLImageElement {
 
         let request = RequestInit {
             url: img_url.clone(),
+            client: Some(self.global().get_request_client()),
             origin: document.url().clone(),
             type_: RequestType::Image,
             pipeline_id: Some(document.global().pipeline_id()),
