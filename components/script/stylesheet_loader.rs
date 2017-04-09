@@ -242,6 +242,7 @@ impl<'a> StylesheetLoader<'a> {
 
         let request = RequestInit {
             url: url.clone(),
+            client: Some(self.elem.global().get_request_client()),
             type_: RequestType::Style,
             destination: Destination::Style,
             // https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request

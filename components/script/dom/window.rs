@@ -61,7 +61,7 @@ use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use layout_image::fetch_image_for_layout;
 use msg::constellation_msg::{FrameType, PipelineId};
-use net_traits::{ResourceThreads, ReferrerPolicy};
+use net_traits::{HttpsState, ReferrerPolicy, ResourceThreads};
 use net_traits::image_cache::{ImageCache, ImageResponder, ImageResponse};
 use net_traits::image_cache::{PendingImageId, PendingImageResponse};
 use net_traits::storage_thread::StorageType;
@@ -379,6 +379,10 @@ impl Window {
             ImageResponse::None => { nodes.remove(); }
         }
         self.add_pending_reflow();
+    }
+
+    pub fn https_state(&self) -> HttpsState {
+        self.Document().https_state()
     }
 }
 

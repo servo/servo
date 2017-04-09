@@ -541,6 +541,7 @@ impl HTMLMediaElement {
 
             let request = RequestInit {
                 url: url.clone(),
+                client: Some(self.global().get_request_client()),
                 type_: ty,
                 destination: Destination::Media,
                 credentials_mode: CredentialsMode::Include,
