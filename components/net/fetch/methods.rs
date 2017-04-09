@@ -16,9 +16,9 @@ use hyper::method::Method;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper::status::StatusCode;
 use mime_guess::guess_mime_type;
-use net_traits::{FetchTaskTarget, NetworkError, ReferrerPolicy};
-use net_traits::request::{Referrer, Request, RequestMode, ResponseTainting};
-use net_traits::request::{Type, Origin, Window};
+use net_traits::{FetchTaskTarget, HttpsState, NetworkError, ReferrerPolicy};
+use net_traits::request::{Client, Destination, Initiator, Origin, Referrer};
+use net_traits::request::{Request, RequestMode, ResponseTainting, Type, Window};
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use servo_url::ServoUrl;
 use std::borrow::Cow;
@@ -30,6 +30,7 @@ use std::str;
 use std::sync::Arc;
 use std::sync::mpsc::{Sender, Receiver};
 use subresource_integrity::is_response_integrity_valid;
+use url::{Url, Host as UrlHost, Origin as UrlOrigin};
 
 pub type Target<'a> = &'a mut (FetchTaskTarget + Send);
 
@@ -122,7 +123,15 @@ pub fn main_fetch(request: &mut Request,
     if should_be_blocked_due_to_bad_port(&request.url()) {
         response = Some(Response::network_error(NetworkError::Internal("Request attempted on bad port".into())));
     }
-    // TODO: handle blocking as mixed content.
+    if should_request_be_blocked_as_mixed_content(request.client.as_ref(),
+                                                  request.initiator,
+                                                  request.type_,
+                                                  request.destination,
+                                                  request.mode,
+                                                  &request.url()) {
+        response = Some(Response::network_error(NetworkError::Internal(
+            "Request blocked as mixed content.".into())));
+    }
     // TODO: handle blocking by content security policy.
 
     // Step 6
@@ -232,6 +241,13 @@ pub fn main_fetch(request: &mut Request,
     let internal_error = {
         // Tests for steps 17 and 18, before step 15 for borrowing concerns.
         let response_is_network_error = response.is_network_error();
+        let should_replace_with_mixed_content_error =
+            !response_is_network_error &&
+            should_response_be_blocked_as_mixed_content(response.https_state,
+                                                        request.client.as_ref(),
+                                                        request.initiator,
+                                                        request.type_,
+                                                        request.destination);
         let should_replace_with_nosniff_error =
             !response_is_network_error && should_be_blocked_due_to_nosniff(request.type_, &response.headers);
         let should_replace_with_mime_type_error =
@@ -255,7 +271,12 @@ pub fn main_fetch(request: &mut Request,
         // TODO: handle blocking by content security policy.
         let blocked_error_response;
         let internal_response =
-            if should_replace_with_nosniff_error {
+            if should_replace_with_mixed_content_error {
+                // Defer rebinding result
+                blocked_error_response = Response::network_error(NetworkError::Internal(
+                    "Blocked as mixed content.".into()));
+                &blocked_error_response
+            } else if should_replace_with_nosniff_error {
                 // Defer rebinding result
                 blocked_error_response = Response::network_error(NetworkError::Internal("Blocked by nosniff".into()));
                 &blocked_error_response
@@ -650,4 +671,172 @@ fn is_bad_port(port: u16) -> bool {
     ];
 
     BAD_PORTS.binary_search(&port).is_ok()
+}
+
+/// https://w3c.github.io/webappsec-mixed-content/#should-block-fetch
+fn should_request_be_blocked_as_mixed_content(client: Option<&Client>,
+                                              initiator: Initiator,
+                                              type_: Type,
+                                              destination: Destination,
+                                              mode: RequestMode,
+                                              url: &ServoUrl)
+                                              -> bool {
+    // Step 1.1.
+    if !client.map_or(false, does_settings_prohibit_mixed_security_contexts) {
+        return false;
+    }
+
+    // Step 1.2.
+    if is_a_priori_authenticated_url(url) {
+        return false;
+    }
+
+    // Step 1.3.
+    // TODO: handle user agent instructed to allow mixed content.
+
+    // Step 1.4.
+    // TODO: request's target browsing context has no parent browsing context.
+    // https://github.com/servo/servo/issues/16354
+    if destination == Destination::Document {
+        return false;
+    }
+
+    // Step 2.
+    // TODO: handle request's client's CSP list.
+
+    // Step 3.1.
+    // TODO: handle user agent configured to block optionally-blockable
+    // mixed content.
+
+    // Step 3.2.
+    // TODO: handle request’s client’s strict mixed content checking flag.
+
+    // Step 3.3.
+    if mode == RequestMode::CorsMode {
+        return true;
+    }
+
+    // Steps 4-5.
+    match type_ {
+        Type::Image if initiator != Initiator::ImageSet => false,
+        Type::Video | Type::Audio => false,
+        _ => true,
+    }
+}
+
+/// https://w3c.github.io/webappsec-mixed-content/#should-block-response
+fn should_response_be_blocked_as_mixed_content(response_https_state: HttpsState,
+                                               request_client: Option<&Client>,
+                                               initiator: Initiator,
+                                               type_: Type,
+                                               destination: Destination)
+                                               -> bool {
+    // Step 1.1.
+    if !request_client.map_or(false, does_settings_prohibit_mixed_security_contexts) {
+        return false;
+    }
+
+    // Step 1.2.
+    if response_https_state == HttpsState::Modern {
+        return false;
+    }
+
+    // Step 1.3.
+    // TODO: handle user agent instructed to allow mixed content.
+
+    // Step 1.4.
+    // TODO: request's target browsing context has no parent browsing context.
+    // https://github.com/servo/servo/issues/16354
+    if destination == Destination::Document {
+        return false;
+    }
+
+    // Step 2.1.
+    // TODO: handle user agent configured to block optionally-blockable
+    // mixed content.
+
+    // Step 2.2.
+    // TODO: handle request’s client’s strict mixed content checking flag.
+
+    // Steps 3-4.
+    // TODO: handle whether response is an opaque filtered response.
+    // https://github.com/servo/servo/issues/16355
+    match type_ {
+        Type::Image if initiator != Initiator::ImageSet => false,
+        Type::Video | Type::Audio => false,
+        _ => true,
+    }
+}
+
+/// https://w3c.github.io/webappsec-mixed-content/#categorize-settings-object
+fn does_settings_prohibit_mixed_security_contexts(client: &Client) -> bool {
+    // Step 1.
+    if client.https_state != HttpsState::None {
+        return true;
+    }
+
+    // Step 2.
+    // TODO: handle embedding documents' HTTPS states.
+    // https://github.com/servo/servo/issues/16356
+
+    // Step 3.
+    false
+}
+
+/// https://w3c.github.io/webappsec-mixed-content/#a-priori-authenticated-url
+fn is_a_priori_authenticated_url(url: &ServoUrl) -> bool {
+    is_potentially_trustworthy_url(url.as_url()) || url.scheme() == "data"
+}
+
+/// https://www.w3.org/TR/secure-contexts/#is-url-trustworthy
+fn is_potentially_trustworthy_url(url: &Url) -> bool {
+    // Step 1.
+    if url.scheme() == "data" {
+        return false;
+    }
+
+    // Step 2.
+    if url.as_str() == "about:blank" || url.as_str() == "about:srcdoc" {
+        return true;
+    }
+
+    // Step 3.
+    is_potentially_trustworthy_origin(url.origin())
+}
+
+/// https://www.w3.org/TR/secure-contexts/#is-origin-trustworthy
+fn is_potentially_trustworthy_origin(origin: UrlOrigin) -> bool {
+    // Steps 1-2.
+    let (scheme, host) = match origin {
+        UrlOrigin::Opaque(_) => return false,
+        UrlOrigin::Tuple(scheme, host, _) => (scheme, host),
+    };
+
+    // Step 3.
+    if scheme == "https" || scheme == "wss" {
+        return true;
+    }
+
+    // Step 4.
+    match host {
+        UrlHost::Ipv4(ip) if ip.is_loopback() => return true,
+        UrlHost::Ipv6(ip) if ip.is_loopback() => return true,
+        _ => {},
+    }
+
+    // Step 5.
+    if scheme == "file" {
+        return true;
+    }
+
+    // Step 6.
+    if scheme == "chrome" {
+        return true;
+    }
+
+    // Step 7.
+    // TODO: allow users to configure origin as a trustworthy origin.
+
+    // Step 8.
+    false
 }

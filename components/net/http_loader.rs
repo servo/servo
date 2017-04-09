@@ -1113,6 +1113,7 @@ fn http_network_fetch(request: &Request,
         if let HttpsStream::Https(ref ssl_stream) = *pooled_stream.get_ref() {
             // As per connector::DEFAULT_CIPHERS, we don't currently accept
             // any deprecated cipher.
+            // https://github.com/servo/servo/issues/16357
             response.https_state = HttpsState::Modern;
         }
     }
