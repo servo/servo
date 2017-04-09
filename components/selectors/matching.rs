@@ -35,9 +35,6 @@ bitflags! {
         /// Whether this element is affected by an ID selector.
         const AFFECTED_BY_ID_SELECTOR = 1 << 3,
 
-        /// Whether this element matches attribute selectors.
-        const AFFECTED_BY_ATTRIBUTE_SELECTOR = 1 << 4,
-
         /// Whether this element matches the :empty pseudo class.
         const AFFECTED_BY_EMPTY = 1 << 5,
 
@@ -363,38 +360,31 @@ fn matches_simple_selector<E, F>(
                          AFFECTED_BY_ID_SELECTOR)
         }
         SimpleSelector::Class(ref class) => {
-            relation_if!(element.has_class(class),
-                         AFFECTED_BY_ATTRIBUTE_SELECTOR)
+            element.has_class(class)
         }
         SimpleSelector::AttrExists(ref attr) => {
-            relation_if!(element.match_attr_has(attr),
-                         AFFECTED_BY_ATTRIBUTE_SELECTOR)
+            element.match_attr_has(attr)
         }
         SimpleSelector::AttrEqual(ref attr, ref value, case_sensitivity) => {
-            relation_if!(match case_sensitivity {
+            match case_sensitivity {
                 CaseSensitivity::CaseSensitive => element.match_attr_equals(attr, value),
                 CaseSensitivity::CaseInsensitive => element.match_attr_equals_ignore_ascii_case(attr, value),
-            }, AFFECTED_BY_ATTRIBUTE_SELECTOR)
+            }
         }
         SimpleSelector::AttrIncludes(ref attr, ref value) => {
-            relation_if!(element.match_attr_includes(attr, value),
-                         AFFECTED_BY_ATTRIBUTE_SELECTOR)
+            element.match_attr_includes(attr, value)
         }
         SimpleSelector::AttrDashMatch(ref attr, ref value) => {
-            relation_if!(element.match_attr_dash(attr, value),
-                         AFFECTED_BY_ATTRIBUTE_SELECTOR)
+            element.match_attr_dash(attr, value)
         }
         SimpleSelector::AttrPrefixMatch(ref attr, ref value) => {
-            relation_if!(element.match_attr_prefix(attr, value),
-                         AFFECTED_BY_ATTRIBUTE_SELECTOR)
+            element.match_attr_prefix(attr, value)
         }
         SimpleSelector::AttrSubstringMatch(ref attr, ref value) => {
-            relation_if!(element.match_attr_substring(attr, value),
-                         AFFECTED_BY_ATTRIBUTE_SELECTOR)
+            element.match_attr_substring(attr, value)
         }
         SimpleSelector::AttrSuffixMatch(ref attr, ref value) => {
-            relation_if!(element.match_attr_suffix(attr, value),
-                         AFFECTED_BY_ATTRIBUTE_SELECTOR)
+            element.match_attr_suffix(attr, value)
         }
         SimpleSelector::AttrIncludesNeverMatch(..) |
         SimpleSelector::AttrPrefixNeverMatch(..) |
