@@ -15,6 +15,7 @@ use hsts::HstsList;
 use hyper::Error as HttpError;
 use hyper::LanguageTag;
 use hyper::client::{Pool, Request as HyperRequest, Response as HyperResponse};
+use hyper::client::pool::PooledStream;
 use hyper::header::{Accept, AccessControlAllowCredentials, AccessControlAllowHeaders};
 use hyper::header::{AccessControlAllowMethods, AccessControlAllowOrigin};
 use hyper::header::{AccessControlMaxAge, AccessControlRequestHeaders};
@@ -25,9 +26,11 @@ use hyper::header::{Host, Origin as HyperOrigin, IfMatch, IfRange};
 use hyper::header::{IfUnmodifiedSince, IfModifiedSince, IfNoneMatch, Location};
 use hyper::header::{Pragma, Quality, QualityItem, Referer, SetCookie};
 use hyper::header::{UserAgent, q, qitem};
+use hyper::http::h1::Http11Message;
 use hyper::method::Method;
+use hyper::net::{HttpStream, HttpsStream};
 use hyper::status::StatusCode;
-use hyper_openssl::OpensslClient;
+use hyper_openssl::{OpensslClient, SslStream};
 use hyper_serde::Serde;
 use log;
 use msg::constellation_msg::PipelineId;
@@ -1080,6 +1083,19 @@ fn http_network_fetch(request: &Request,
     response.headers = res.headers.clone();
     response.referrer = request.referrer.to_url().cloned();
 
+    {
+        let http_message = res.get_ref().downcast_ref::<Http11Message>().unwrap();
+        let pooled_stream = http_message.get_ref()
+            .downcast_ref::<PooledStream<HttpsStream<SslStream<HttpStream>>>>()
+            .unwrap();
+        if let HttpsStream::Https(_) = *pooled_stream.get_ref() {
+            // As per connector::DEFAULT_CIPHERS, we don't currently accept
+            // any deprecated cipher.
+            // https://github.com/servo/servo/issues/16357
+            response.https_state = HttpsState::Modern;
+        }
+    }
+
     let res_body = response.body.clone();
 
     // We're about to spawn a thread to be waited on here
@@ -1148,10 +1164,6 @@ fn http_network_fetch(request: &Request,
         // Substep 1
 
         // Substep 2
-
-    // TODO Determine if response was retrieved over HTTPS
-    // TODO Servo needs to decide what ciphers are to be treated as "deprecated"
-    response.https_state = HttpsState::None;
 
     // TODO Read request
 
