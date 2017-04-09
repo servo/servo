@@ -32,7 +32,8 @@ use js::rust::{CompileOptionsWrapper, Runtime, get_object_class};
 use libc;
 use microtask::Microtask;
 use msg::constellation_msg::PipelineId;
-use net_traits::{CoreResourceThread, ResourceThreads, IpcSend};
+use net_traits::{CoreResourceThread, HttpsState, IpcSend, ResourceThreads};
+use net_traits::request::Client;
 use profile_traits::{mem, time};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
 use script_thread::{MainThreadScriptChan, RunnableWrapper, ScriptThread};
@@ -507,6 +508,23 @@ impl GlobalScope {
             return worker.file_reading_task_source();
         }
         unreachable!();
+    }
+
+    /// Returns this global as a value suitable for a Fetch request's client.
+    pub fn get_request_client(&self) -> Client {
+        Client {
+            https_state: self.https_state(),
+        }
+    }
+
+    pub fn https_state(&self) -> HttpsState {
+        if let Some(window) = self.downcast::<Window>() {
+            return window.https_state();
+        }
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            return worker.https_state();
+        }
+        unreachable!()
     }
 
     /// Returns the ["current"] global object.

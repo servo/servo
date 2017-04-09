@@ -2,12 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use ReferrerPolicy;
+use {HttpsState, ReferrerPolicy};
 use hyper::header::Headers;
 use hyper::method::Method;
 use msg::constellation_msg::PipelineId;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use std::default::Default;
+
+/// A [client](https://fetch.spec.whatwg.org/#concept-request-client)
+#[derive(Clone, Debug, Deserialize, HeapSizeOf, Serialize)]
+pub struct Client {
+    pub https_state: HttpsState,
+}
 
 /// An [initiator](https://fetch.spec.whatwg.org/#concept-request-initiator)
 #[derive(Copy, Clone, PartialEq, HeapSizeOf)]
@@ -140,7 +146,7 @@ pub struct RequestInit {
     pub headers: Headers,
     pub unsafe_request: bool,
     pub body: Option<Vec<u8>>,
-    // TODO: client object
+    pub client: Option<Client>,
     pub type_: Type,
     pub destination: Destination,
     pub synchronous: bool,
@@ -168,6 +174,7 @@ impl Default for RequestInit {
             headers: Headers::new(),
             unsafe_request: false,
             body: None,
+            client: None,
             type_: Type::None,
             destination: Destination::None,
             synchronous: false,
@@ -204,7 +211,8 @@ pub struct Request {
     pub unsafe_request: bool,
     /// https://fetch.spec.whatwg.org/#concept-request-body
     pub body: Option<Vec<u8>>,
-    // TODO: client object
+    /// https://fetch.spec.whatwg.org/#concept-request-client
+    pub client: Option<Client>,
     pub is_service_worker_global_scope: bool,
     pub window: Window,
     // TODO: target browsing context
@@ -264,6 +272,7 @@ impl Request {
             headers: Headers::new(),
             unsafe_request: false,
             body: None,
+            client: None,
             is_service_worker_global_scope: is_service_worker_global_scope,
             window: Window::Client,
             keep_alive: false,
@@ -298,6 +307,7 @@ impl Request {
         req.headers = init.headers;
         req.unsafe_request = init.unsafe_request;
         req.body = init.body;
+        req.client = init.client;
         req.type_ = init.type_;
         req.destination = init.destination;
         req.synchronous = init.synchronous;

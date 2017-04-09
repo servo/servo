@@ -583,9 +583,11 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             method: self.request_method.borrow().clone(),
             url: self.request_url.borrow().clone().unwrap(),
             headers: (*self.request_headers.borrow()).clone(),
+            client: Some(self.global().get_request_client()),
             unsafe_request: true,
             // XXXManishearth figure out how to avoid this clone
             body: extracted_or_serialized.as_ref().map(|e| e.0.clone()),
+            // TODO: handle request's client.
             // XXXManishearth actually "subresource", but it doesn't exist
             // https://github.com/whatwg/xhr/issues/71
             destination: Destination::None,

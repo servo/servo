@@ -31,7 +31,7 @@ use js::jsval::UndefinedValue;
 use js::panic::maybe_resume_unwind;
 use js::rust::Runtime;
 use microtask::{MicrotaskQueue, Microtask};
-use net_traits::{IpcSend, load_whole_resource};
+use net_traits::{HttpsState, IpcSend, load_whole_resource};
 use net_traits::request::{CredentialsMode, Destination, RequestInit as NetRequestInit, Type as RequestType};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
 use script_thread::RunnableWrapper;
@@ -170,6 +170,11 @@ impl WorkerGlobalScope {
             assert_eq!(global.pipeline_id(), id);
             Some(Root::from_ref(global))
         });
+    }
+
+    pub fn https_state(&self) -> HttpsState {
+        // TODO: proper value.
+        HttpsState::None
     }
 }
 

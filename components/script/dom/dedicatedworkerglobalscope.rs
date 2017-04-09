@@ -175,6 +175,7 @@ impl DedicatedWorkerGlobalScope {
 
             let request = RequestInit {
                 url: worker_url.clone(),
+                // TODO: handle request's client.
                 type_: RequestType::Script,
                 destination: Destination::Worker,
                 credentials_mode: CredentialsMode::Include,
