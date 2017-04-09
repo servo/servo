@@ -298,7 +298,7 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
         }
 
         let box_style = style.get_box();
-        if box_style.transition_property_count() > 0 {
+        if box_style.specifies_transitions() {
             debug!("Failing to insert to the cache: transitions");
             return;
         }

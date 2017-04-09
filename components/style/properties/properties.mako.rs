@@ -1509,6 +1509,12 @@ pub mod style_structs {
             pub fn specifies_animations(&self) -> bool {
                 self.animation_name_iter().any(|name| name.0 != atom!(""))
             }
+
+            /// Returns whether there are any transitions specified.
+            #[cfg(feature = "servo")]
+            pub fn specifies_transitions(&self) -> bool {
+                self.transition_property_count() > 0
+            }
         % endif
     }
 
