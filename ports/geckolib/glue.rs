@@ -192,9 +192,8 @@ fn traverse_subtree(element: GeckoElement, raw_data: RawServoStyleSetBorrowed,
     };
 
     let traversal = RecalcStyleOnly::new(shared_style_context, traversal_driver);
-    let known_depth = None;
     if traversal_driver.is_parallel() {
-        parallel::traverse_dom(&traversal, element, known_depth, token,
+        parallel::traverse_dom(&traversal, element, token,
                                global_style_data.style_thread_pool.as_ref().unwrap());
     } else {
         sequential::traverse_dom(&traversal, element, token);

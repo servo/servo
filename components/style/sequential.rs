@@ -9,8 +9,11 @@
 use context::TraversalStatistics;
 use dom::{TElement, TNode};
 use std::borrow::BorrowMut;
+use std::collections::VecDeque;
 use time;
 use traversal::{DomTraversal, PerLevelTraversalData, PreTraverseToken};
+
+struct WorkItem<N: TNode>(N, usize);
 
 /// Do a sequential DOM traversal for layout or styling, generic over `D`.
 pub fn traverse_dom<E, D>(traversal: &D,
@@ -25,44 +28,37 @@ pub fn traverse_dom<E, D>(traversal: &D,
     debug_assert!(!traversal.is_parallel());
     debug_assert!(token.should_traverse());
 
-    fn doit<E, D>(traversal: &D, traversal_data: &mut PerLevelTraversalData,
-                  thread_local: &mut D::ThreadLocalContext, node: E::ConcreteNode)
-        where E: TElement,
-              D: DomTraversal<E>
-    {
-        traversal.process_preorder(traversal_data, thread_local, node);
-        if let Some(el) = node.as_element() {
-            if let Some(ref mut depth) = traversal_data.current_dom_depth {
-                *depth += 1;
-            }
-
-            traversal.traverse_children(thread_local, el, |tlc, kid| {
-                doit(traversal, traversal_data, tlc, kid)
-            });
-
-            if let Some(ref mut depth) = traversal_data.current_dom_depth {
-                *depth -= 1;
-            }
-        }
-
-        if D::needs_postorder_traversal() {
-            traversal.process_postorder(thread_local, node);
-        }
-    }
-
-    let mut traversal_data = PerLevelTraversalData {
-        current_dom_depth: None,
-    };
-
+    let mut discovered = VecDeque::<WorkItem<E::ConcreteNode>>::with_capacity(16);
     let mut tlc = traversal.create_thread_local_context();
+    let root_depth = root.depth();
+
     if token.traverse_unstyled_children_only() {
         for kid in root.as_node().children() {
             if kid.as_element().map_or(false, |el| el.get_data().is_none()) {
-                doit(traversal, &mut traversal_data, &mut tlc, kid);
+                discovered.push_back(WorkItem(kid, root_depth + 1));
             }
         }
     } else {
-        doit(traversal, &mut traversal_data, &mut tlc, root.as_node());
+        discovered.push_back(WorkItem(root.as_node(), root_depth));
+    }
+
+    // Process the nodes breadth-first, just like the parallel traversal does.
+    // This helps keep similar traversal characteristics for the style sharing
+    // cache.
+    while let Some(WorkItem(node, depth)) = discovered.pop_front() {
+        let mut children_to_process = 0isize;
+        let traversal_data = PerLevelTraversalData { current_dom_depth: depth };
+        traversal.process_preorder(&traversal_data, &mut tlc, node);
+
+        if let Some(el) = node.as_element() {
+            traversal.traverse_children(&mut tlc, el, |_tlc, kid| {
+                children_to_process += 1;
+                discovered.push_back(WorkItem(kid, depth + 1))
+            });
+        }
+
+        traversal.handle_postorder_traversal(&mut tlc, root.as_node().opaque(),
+                                             node, children_to_process);
     }
 
     // Dump statistics to stdout if requested.

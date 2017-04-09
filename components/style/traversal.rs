@@ -9,7 +9,7 @@
 use atomic_refcell::{AtomicRefCell, AtomicRefMut};
 use context::{SharedStyleContext, StyleContext, ThreadLocalStyleContext};
 use data::{ElementData, ElementStyles, StoredRestyleHint};
-use dom::{DirtyDescendants, NodeInfo, TElement, TNode};
+use dom::{DirtyDescendants, NodeInfo, OpaqueNode, TElement, TNode};
 use matching::{MatchMethods, StyleSharingBehavior};
 use restyle_hints::{RESTYLE_DESCENDANTS, RESTYLE_SELF};
 use selector_parser::RestyleDamage;
@@ -23,11 +23,11 @@ use stylist::Stylist;
 /// NB: Keep this as small as possible, please!
 #[derive(Clone, Debug)]
 pub struct PerLevelTraversalData {
-    /// The current dom depth, if known, or `None` otherwise.
+    /// The current dom depth.
     ///
     /// This is kept with cooperation from the traversal code and the bloom
     /// filter.
-    pub current_dom_depth: Option<usize>,
+    pub current_dom_depth: usize,
 }
 
 bitflags! {
@@ -126,7 +126,7 @@ pub trait DomTraversal<E: TElement> : Sync {
     type ThreadLocalContext: Send + BorrowMut<ThreadLocalStyleContext<E>>;
 
     /// Process `node` on the way down, before its children have been processed.
-    fn process_preorder(&self, data: &mut PerLevelTraversalData,
+    fn process_preorder(&self, data: &PerLevelTraversalData,
                         thread_local: &mut Self::ThreadLocalContext,
                         node: E::ConcreteNode);
 
@@ -142,6 +142,56 @@ pub trait DomTraversal<E: TElement> : Sync {
     ///
     /// If it's false, then process_postorder has no effect at all.
     fn needs_postorder_traversal() -> bool { true }
+
+    /// Handles the postorder step of the traversal, if it exists, by bubbling
+    /// up the parent chain.
+    ///
+    /// If we are the last child that finished processing, recursively process
+    /// our parent. Else, stop. Also, stop at the root.
+    ///
+    /// Thus, if we start with all the leaves of a tree, we end up traversing
+    /// the whole tree bottom-up because each parent will be processed exactly
+    /// once (by the last child that finishes processing).
+    ///
+    /// The only communication between siblings is that they both
+    /// fetch-and-subtract the parent's children count. This makes it safe to
+    /// call durign the parallel traversal.
+    fn handle_postorder_traversal(&self,
+                                  thread_local: &mut Self::ThreadLocalContext,
+                                  root: OpaqueNode,
+                                  mut node: E::ConcreteNode,
+                                  children_to_process: isize)
+    {
+        // If the postorder step is a no-op, don't bother.
+        if !Self::needs_postorder_traversal() {
+            return;
+        }
+
+        if children_to_process == 0 {
+            // We are a leaf. Walk up the chain.
+            loop {
+                self.process_postorder(thread_local, node);
+                if node.opaque() == root {
+                    break;
+                }
+                let parent = node.parent_element().unwrap();
+                let remaining = parent.did_process_child();
+                if remaining != 0 {
+                    // The parent has other unprocessed descendants. We only
+                    // perform postorder processing after the last descendant
+                    // has been processed.
+                    break
+                }
+
+                node = parent.as_node();
+            }
+        } else {
+            // Otherwise record the number of children to process when the
+            // time comes.
+            node.as_element().unwrap()
+                .store_children_to_process(children_to_process);
+        }
+    }
 
     /// Must be invoked before traversing the root element to determine whether
     /// a traversal is needed. Returns a token that allows the caller to prove
@@ -506,7 +556,7 @@ pub fn resolve_style<E, F, G, H>(context: &mut StyleContext<E>, element: E,
 #[inline]
 #[allow(unsafe_code)]
 pub fn recalc_style_at<E, D>(traversal: &D,
-                             traversal_data: &mut PerLevelTraversalData,
+                             traversal_data: &PerLevelTraversalData,
                              context: &mut StyleContext<E>,
                              element: E,
                              mut data: &mut AtomicRefMut<ElementData>)
@@ -619,7 +669,7 @@ pub fn recalc_style_at<E, D>(traversal: &D,
 }
 
 fn compute_style<E, D>(_traversal: &D,
-                       traversal_data: &mut PerLevelTraversalData,
+                       traversal_data: &PerLevelTraversalData,
                        context: &mut StyleContext<E>,
                        element: E,
                        mut data: &mut AtomicRefMut<ElementData>)
@@ -650,16 +700,8 @@ fn compute_style<E, D>(_traversal: &D,
     match kind {
         MatchAndCascade => {
             // Ensure the bloom filter is up to date.
-            let dom_depth =
-                context.thread_local.bloom_filter
-                       .insert_parents_recovering(element,
-                                                  traversal_data.current_dom_depth);
-
-            // Update the dom depth with the up-to-date dom depth.
-            //
-            // Note that this is always the same than the pre-existing depth,
-            // but it can change from unknown to known at this step.
-            traversal_data.current_dom_depth = Some(dom_depth);
+            context.thread_local.bloom_filter
+                   .insert_parents_recovering(element, traversal_data.current_dom_depth);
 
             context.thread_local.bloom_filter.assert_complete(element);
             context.thread_local.statistics.elements_matched += 1;

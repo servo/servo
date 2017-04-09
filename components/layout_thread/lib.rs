@@ -1146,7 +1146,6 @@ impl LayoutThread {
         };
 
         let traversal = RecalcStyleAndConstructFlows::new(layout_context, traversal_driver);
-        let dom_depth = Some(0); // This is always the root node.
         let token = {
             let stylist = &<RecalcStyleAndConstructFlows as
                             DomTraversal<ServoLayoutElement>>::shared_context(&traversal).stylist;
@@ -1165,7 +1164,7 @@ impl LayoutThread {
                     let pool = self.parallel_traversal.as_mut().unwrap();
                     // Parallel mode
                     parallel::traverse_dom::<ServoLayoutElement, RecalcStyleAndConstructFlows>(
-                        &traversal, element, dom_depth, token, pool);
+                        &traversal, element, token, pool);
                 } else {
                     // Sequential mode
                     sequential::traverse_dom::<ServoLayoutElement, RecalcStyleAndConstructFlows>(

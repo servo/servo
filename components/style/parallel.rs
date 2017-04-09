@@ -39,7 +39,6 @@ pub const CHUNK_SIZE: usize = 64;
 #[allow(unsafe_code)]
 pub fn traverse_dom<E, D>(traversal: &D,
                           root: E,
-                          known_root_dom_depth: Option<usize>,
                           token: PreTraverseToken,
                           queue: &rayon::ThreadPool)
     where E: TElement,
@@ -60,9 +59,9 @@ pub fn traverse_dom<E, D>(traversal: &D,
                 children.push(unsafe { SendNode::new(kid) });
             }
         }
-        (children, known_root_dom_depth.map(|x| x + 1))
+        (children, root.depth() + 1)
     } else {
-        (vec![unsafe { SendNode::new(root.as_node()) }], known_root_dom_depth)
+        (vec![unsafe { SendNode::new(root.as_node()) }], root.depth())
     };
 
     let traversal_data = PerLevelTraversalData {
@@ -121,25 +120,12 @@ fn top_down_dom<'a, 'scope, E, D>(nodes: &'a [SendNode<E::ConcreteNode>],
                 });
             }
 
-            // Reset the count of children if we need to do a bottom-up traversal
-            // after the top up.
-            if D::needs_postorder_traversal() {
-                if children_to_process == 0 {
-                    // If there were no more children, start walking back up.
-                    bottom_up_dom(traversal, &mut *tlc, root, node)
-                } else {
-                    // Otherwise record the number of children to process when the
-                    // time comes.
-                    node.as_element().unwrap().store_children_to_process(children_to_process);
-                }
-            }
+            traversal.handle_postorder_traversal(&mut *tlc, root, node,
+                                                 children_to_process);
         }
     }
 
-    if let Some(ref mut depth) = traversal_data.current_dom_depth {
-        *depth += 1;
-    }
-
+    traversal_data.current_dom_depth += 1;
     traverse_nodes(discovered_child_nodes, root, traversal_data, scope, traversal, tls);
 }
 
@@ -171,47 +157,5 @@ fn traverse_nodes<'a, 'scope, E, D>(nodes: Vec<SendNode<E::ConcreteNode>>, root:
             let nodes = nodes;
             top_down_dom(&nodes, root, traversal_data, scope, traversal, tls)
         })
-    }
-}
-
-/// Process current node and potentially traverse its ancestors.
-///
-/// If we are the last child that finished processing, recursively process
-/// our parent. Else, stop. Also, stop at the root.
-///
-/// Thus, if we start with all the leaves of a tree, we end up traversing
-/// the whole tree bottom-up because each parent will be processed exactly
-/// once (by the last child that finishes processing).
-///
-/// The only communication between siblings is that they both
-/// fetch-and-subtract the parent's children count.
-fn bottom_up_dom<E, D>(traversal: &D,
-                       thread_local: &mut D::ThreadLocalContext,
-                       root: OpaqueNode,
-                       mut node: E::ConcreteNode)
-    where E: TElement,
-          D: DomTraversal<E>,
-{
-    loop {
-        // Perform the appropriate operation.
-        traversal.process_postorder(thread_local, node);
-
-        if node.opaque() == root {
-            break;
-        }
-
-        let parent = match node.parent_element() {
-            None => unreachable!("How can this happen after the break above?"),
-            Some(parent) => parent,
-        };
-
-        let remaining = parent.did_process_child();
-        if remaining != 0 {
-            // Get out of here and find another node to work on.
-            break
-        }
-
-        // We were the last child of our parent. Construct flows for our parent.
-        node = parent.as_node();
     }
 }

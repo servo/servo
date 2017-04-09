@@ -281,6 +281,18 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
     /// Get this element as a node.
     fn as_node(&self) -> Self::ConcreteNode;
 
+    /// Returns the depth of this element in the DOM.
+    fn depth(&self) -> usize {
+        let mut depth = 0;
+        let mut curr = *self;
+        while let Some(parent) = curr.parent_element() {
+            depth += 1;
+            curr = parent;
+        }
+
+        depth
+    }
+
     /// While doing a reflow, the element at the root has no parent, as far as we're
     /// concerned. This method returns `None` at the reflow root.
     fn layout_parent_element(self, reflow_root: OpaqueNode) -> Option<Self> {
