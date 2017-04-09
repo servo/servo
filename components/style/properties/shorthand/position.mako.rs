@@ -186,3 +186,27 @@
     }
 </%helpers:shorthand>
 
+<%helpers:shorthand name="place-self" sub_properties="align-self justify-self"
+                    spec="https://drafts.csswg.org/css-align/#place-self-property"
+                    products="gecko">
+    use values::specified::align::AlignJustifySelf;
+    use parser::Parse;
+
+    pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+        let align = AlignJustifySelf::parse(context, input)?;
+        let justify = input.try(|input| AlignJustifySelf::parse(context, input)).unwrap_or(align.clone());
+
+        Ok(Longhands {
+            align_self: align,
+            justify_self: justify,
+        })
+    }
+
+    impl<'a> ToCss for LonghandsToSerialize<'a> {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            self.align_self.to_css(dest)?;
+            dest.write_str(" ")?;
+            self.justify_self.to_css(dest)
+        }
+    }
+</%helpers:shorthand>
