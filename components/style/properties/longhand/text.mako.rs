@@ -233,7 +233,7 @@ ${helpers.predefined_type(
 
 <%helpers:longhand name="initial-letter"
                    animation_type="none"
-                   products="none"
+                   products="gecko"
                    spec="https://drafts.csswg.org/css-inline/#sizing-drop-initials">
     use std::fmt;
     use style_traits::ToCss;
