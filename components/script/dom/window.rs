@@ -1214,16 +1214,16 @@ impl Window {
 
         debug!("script: layout forked");
 
-        match join_port.try_recv() {
+        let complete = match join_port.try_recv() {
             Err(Empty) => {
                 info!("script: waiting on layout");
-                join_port.recv().unwrap();
+                join_port.recv().unwrap()
             }
-            Ok(_) => {}
+            Ok(reflow_complete) => reflow_complete,
             Err(Disconnected) => {
                 panic!("Layout thread failed while script was waiting for a result.");
             }
-        }
+        };
 
         debug!("script: layout joined");
 
@@ -1237,8 +1237,7 @@ impl Window {
             self.emit_timeline_marker(marker.end());
         }
 
-        let pending_images = self.layout_rpc.pending_images();
-        for image in pending_images {
+        for image in complete.pending_images {
             let id = image.id;
             let js_runtime = self.js_runtime.borrow();
             let js_runtime = js_runtime.as_ref().unwrap();
@@ -1262,8 +1261,7 @@ impl Window {
             }
         }
 
-        let newly_transitioning_nodes = self.layout_rpc.newly_transitioning_nodes();
-        ScriptThread::note_newly_transitioning_nodes(newly_transitioning_nodes);
+        ScriptThread::note_newly_transitioning_nodes(complete.newly_transitioning_nodes);
 
         true
     }

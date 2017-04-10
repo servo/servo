@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use {OpaqueStyleAndLayoutData, TrustedNodeAddress};
+use {OpaqueStyleAndLayoutData, TrustedNodeAddress, PendingImage};
 use app_units::Au;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
@@ -12,7 +12,7 @@ use msg::constellation_msg::PipelineId;
 use net_traits::image_cache::ImageCache;
 use profile_traits::mem::ReportsChan;
 use rpc::LayoutRPC;
-use script_traits::{ConstellationControlMsg, LayoutControlMsg};
+use script_traits::{ConstellationControlMsg, LayoutControlMsg, UntrustedNodeAddress};
 use script_traits::{LayoutMsg as ConstellationMsg, StackingContextScrollState, WindowSizeData};
 use servo_url::ServoUrl;
 use std::sync::Arc;
@@ -109,6 +109,15 @@ pub struct Reflow {
     pub page_clip_rect: Rect<Au>,
 }
 
+/// Information derived from a layout pass that needs to be returned to the script thread.
+#[derive(Default)]
+pub struct ReflowComplete {
+    /// The list of images that were encountered that are in progress.
+    pub pending_images: Vec<PendingImage>,
+    /// The list of nodes that initiated a CSS transition.
+    pub newly_transitioning_nodes: Vec<UntrustedNodeAddress>,
+}
+
 /// Information needed for a script-initiated reflow.
 pub struct ScriptReflow {
     /// General reflow data.
@@ -122,17 +131,11 @@ pub struct ScriptReflow {
     /// The current window size.
     pub window_size: WindowSizeData,
     /// The channel that we send a notification to.
-    pub script_join_chan: Sender<()>,
+    pub script_join_chan: Sender<ReflowComplete>,
     /// The type of query if any to perform during this reflow.
     pub query_type: ReflowQueryType,
     /// The number of objects in the dom #10110
     pub dom_count: u32,
-}
-
-impl Drop for ScriptReflow {
-    fn drop(&mut self) {
-        self.script_join_chan.send(()).unwrap();
-    }
 }
 
 pub struct NewLayoutThreadInfo {
