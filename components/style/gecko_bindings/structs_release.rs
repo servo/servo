@@ -26000,6 +26000,9 @@ pub mod root {
     pub struct RawServoDeclarationBlock([u8; 0]);
     #[repr(C)]
     #[derive(Debug, Copy, Clone)]
+    pub struct RawServoStyleRule([u8; 0]);
+    #[repr(C)]
+    #[derive(Debug, Copy, Clone)]
     pub struct RawServoAnimationValue([u8; 0]);
     #[repr(C)]
     #[derive(Debug, Copy, Clone)]
@@ -26021,6 +26024,8 @@ pub mod root {
     pub type RawGeckoAnimationPropertySegment =
         root::mozilla::AnimationPropertySegment;
     pub type RawGeckoComputedTiming = root::mozilla::ComputedTiming;
+    pub type RawGeckoServoStyleRuleList =
+        root::nsTArray<*const root::RawServoStyleRule>;
     pub type RawServoAnimationValueMapBorrowed =
         *const root::RawServoAnimationValueMap;
     pub type RawGeckoNodeBorrowed = *const root::RawGeckoNode;
@@ -26047,6 +26052,8 @@ pub mod root {
         *const root::RawGeckoAnimationPropertySegment;
     pub type RawGeckoComputedTimingBorrowed =
         *const root::RawGeckoComputedTiming;
+    pub type RawGeckoServoStyleRuleListBorrowedMut =
+        *mut root::RawGeckoServoStyleRuleList;
     #[repr(C)]
     #[derive(Debug, Copy, Clone)]
     pub struct nsSVGAngle([u8; 0]);
