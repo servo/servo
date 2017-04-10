@@ -213,7 +213,7 @@ impl Declaration {
         };
         let mut input = Parser::new(&self.val);
         let context = ParserContext::new_with_rule_type(cx, Some(CssRuleType::Style));
-        let res = ParsedDeclaration::parse(id, &context, &mut input, /* in_keyframe */ false);
+        let res = ParsedDeclaration::parse(id, &context, &mut input);
         let _ = input.try(parse_important);
         res.is_ok() && input.is_exhausted()
     }

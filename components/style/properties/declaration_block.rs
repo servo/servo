@@ -628,7 +628,7 @@ pub fn parse_one_declaration(id: PropertyId,
                              -> Result<ParsedDeclaration, ()> {
     let context = ParserContext::new(Origin::Author, url_data, error_reporter, Some(CssRuleType::Style));
     Parser::new(input).parse_entirely(|parser| {
-        ParsedDeclaration::parse(id, &context, parser, false)
+        ParsedDeclaration::parse(id, &context, parser)
             .map_err(|_| ())
     })
 }
@@ -653,7 +653,7 @@ impl<'a, 'b> DeclarationParser for PropertyDeclarationParser<'a, 'b> {
                    -> Result<(ParsedDeclaration, Importance), ()> {
         let id = try!(PropertyId::parse(name.into()));
         let parsed = input.parse_until_before(Delimiter::Bang, |input| {
-            ParsedDeclaration::parse(id, self.context, input, false)
+            ParsedDeclaration::parse(id, self.context, input)
                 .map_err(|_| ())
         })?;
         let importance = match input.try(parse_important) {

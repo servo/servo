@@ -952,7 +952,7 @@ pub extern "C" fn Servo_ParseProperty(property: *const nsACString, value: *const
     let reporter = StdoutErrorReporter;
     let context = ParserContext::new(Origin::Author, url_data, &reporter, Some(CssRuleType::Style));
 
-    match ParsedDeclaration::parse(id, &context, &mut Parser::new(value), false) {
+    match ParsedDeclaration::parse(id, &context, &mut Parser::new(value)) {
         Ok(parsed) => {
             let global_style_data = &*GLOBAL_STYLE_DATA;
             let mut block = PropertyDeclarationBlock::new();
