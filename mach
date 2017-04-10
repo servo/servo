@@ -25,6 +25,7 @@ def main(args):
 
 
 if __name__ == '__main__':
+    sys.dont_write_bytecode = True
     if sys.platform == 'win32':
         # This is a complete hack to work around the fact that Windows
         # multiprocessing needs to import the original module (ie: this
