@@ -235,6 +235,11 @@ pub type RawServoNamespaceRuleBorrowed<'a> = &'a RawServoNamespaceRule;
 pub type RawServoNamespaceRuleBorrowedOrNull<'a> = Option<&'a RawServoNamespaceRule>;
 enum RawServoNamespaceRuleVoid { }
 pub struct RawServoNamespaceRule(RawServoNamespaceRuleVoid);
+pub type RawServoPageRuleStrong = ::gecko_bindings::sugar::ownership::Strong<RawServoPageRule>;
+pub type RawServoPageRuleBorrowed<'a> = &'a RawServoPageRule;
+pub type RawServoPageRuleBorrowedOrNull<'a> = Option<&'a RawServoPageRule>;
+enum RawServoPageRuleVoid { }
+pub struct RawServoPageRule(RawServoPageRuleVoid);
 pub type RawServoStyleSetOwned = ::gecko_bindings::sugar::ownership::Owned<RawServoStyleSet>;
 pub type RawServoStyleSetOwnedOrNull = ::gecko_bindings::sugar::ownership::OwnedOrNull<RawServoStyleSet>;
 pub type RawServoStyleSetBorrowed<'a> = &'a RawServoStyleSet;
@@ -379,6 +384,12 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_NamespaceRule_Release(ptr: RawServoNamespaceRuleBorrowed);
+}
+extern "C" {
+    pub fn Servo_PageRule_AddRef(ptr: RawServoPageRuleBorrowed);
+}
+extern "C" {
+    pub fn Servo_PageRule_Release(ptr: RawServoPageRuleBorrowed);
 }
 extern "C" {
     pub fn Servo_StyleSet_Drop(ptr: RawServoStyleSetOwned);
@@ -1557,6 +1568,18 @@ extern "C" {
                                           result: *mut nsAString);
 }
 extern "C" {
+    pub fn Servo_CssRules_GetPageRuleAt(rules: ServoCssRulesBorrowed,
+                                        index: u32) -> RawServoPageRuleStrong;
+}
+extern "C" {
+    pub fn Servo_PageRule_Debug(rule: RawServoPageRuleBorrowed,
+                                result: *mut nsACString);
+}
+extern "C" {
+    pub fn Servo_PageRule_GetCssText(rule: RawServoPageRuleBorrowed,
+                                     result: *mut nsAString);
+}
+extern "C" {
     pub fn Servo_CssRules_GetFontFaceRuleAt(rules: ServoCssRulesBorrowed,
                                             index: u32)
      -> *mut nsCSSFontFaceRule;
@@ -1589,6 +1612,15 @@ extern "C" {
 extern "C" {
     pub fn Servo_NamespaceRule_GetURI(rule: RawServoNamespaceRuleBorrowed)
      -> *mut nsIAtom;
+}
+extern "C" {
+    pub fn Servo_PageRule_GetStyle(rule: RawServoPageRuleBorrowed)
+     -> RawServoDeclarationBlockStrong;
+}
+extern "C" {
+    pub fn Servo_PageRule_SetStyle(rule: RawServoPageRuleBorrowed,
+                                   declarations:
+                                       RawServoDeclarationBlockBorrowed);
 }
 extern "C" {
     pub fn Servo_ParseProperty(property: *const nsACString,
