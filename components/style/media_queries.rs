@@ -56,10 +56,10 @@ impl ToCss for Qualifier {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result
         where W: fmt::Write
     {
-        match *self {
-            Qualifier::Not => write!(dest, "not"),
-            Qualifier::Only => write!(dest, "only"),
-        }
+        dest.write_str(match *self {
+            Qualifier::Not => "not",
+            Qualifier::Only => "only",
+        })
     }
 }
 
@@ -152,15 +152,26 @@ pub enum MediaQueryType {
 }
 
 impl MediaQueryType {
-    fn parse(ident: &str) -> Self {
+    fn parse(ident: &str) -> Result<Self, ()> {
         if ident.eq_ignore_ascii_case("all") {
-            return MediaQueryType::All;
+            return Ok(MediaQueryType::All);
         }
 
-        match MediaType::parse(ident) {
+        // From https://drafts.csswg.org/mediaqueries/#mq-syntax:
+        //
+        //   The <media-type> production does not include the keywords only,
+        //   not, and, and or.
+        if ident.eq_ignore_ascii_case("not") ||
+           ident.eq_ignore_ascii_case("or") ||
+           ident.eq_ignore_ascii_case("and") ||
+           ident.eq_ignore_ascii_case("only") {
+            return Err(())
+        }
+
+        Ok(match MediaType::parse(ident) {
             Some(media_type) => MediaQueryType::Known(media_type),
             None => MediaQueryType::Unknown(Atom::from(ident)),
-        }
+        })
     }
 
     fn matches(&self, other: MediaType) -> bool {
@@ -207,7 +218,7 @@ impl MediaQuery {
         };
 
         let media_type = match input.try(|input| input.expect_ident()) {
-            Ok(ident) => MediaQueryType::parse(&*ident),
+            Ok(ident) => try!(MediaQueryType::parse(&*ident)),
             Err(()) => {
                 // Media type is only optional if qualifier is not specified.
                 if qualifier.is_some() {

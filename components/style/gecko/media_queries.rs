@@ -409,11 +409,12 @@ impl Expression {
             // If there's no colon, this is a media query of the form
             // '(<feature>)', that is, there's no value specified.
             //
-            // FIXME(emilio): We need to check for range operators too here when
-            // we support them, see:
-            //
-            // https://drafts.csswg.org/mediaqueries/#mq-ranges
+            // Gecko doesn't allow ranged expressions without a value, so just
+            // reject them here too.
             if input.try(|i| i.expect_colon()).is_err() {
+                if range != nsMediaExpression_Range::eEqual {
+                    return Err(())
+                }
                 return Ok(Expression::new(feature, None, range));
             }
 
