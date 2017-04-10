@@ -111,9 +111,10 @@ pub struct Stylist {
     /// Selector dependencies used to compute restyle hints.
     state_deps: DependencySet,
 
-    /// Selectors in the page affecting siblings
+    /// Selectors that require explicit cache revalidation (i.e. which depend
+    /// on state that is not otherwise visible to the cache, like child index).
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
-    sibling_affecting_selectors: Vec<Selector<SelectorImpl>>,
+    selectors_for_cache_revalidation: Vec<Selector<SelectorImpl>>,
 
     /// Selectors in the page matching elements with non-common style-affecting
     /// attributes.
@@ -170,7 +171,7 @@ impl Stylist {
             rule_tree: RuleTree::new(),
             state_deps: DependencySet::new(),
 
-            sibling_affecting_selectors: vec![],
+            selectors_for_cache_revalidation: vec![],
             style_affecting_attributes_selectors: vec![]
         };
 
@@ -225,7 +226,7 @@ impl Stylist {
         self.state_deps.clear();
         self.animations.clear();
 
-        self.sibling_affecting_selectors.clear();
+        self.selectors_for_cache_revalidation.clear();
         self.style_affecting_attributes_selectors.clear();
 
         extra_data.clear_font_faces();
@@ -246,8 +247,8 @@ impl Stylist {
         }
 
         debug!("Stylist stats:");
-        debug!(" - Got {} sibling-affecting selectors",
-               self.sibling_affecting_selectors.len());
+        debug!(" - Got {} selectors for cache revalidation",
+               self.selectors_for_cache_revalidation.len());
         debug!(" - Got {} non-common-style-attribute-affecting selectors",
                self.style_affecting_attributes_selectors.len());
         debug!(" - Got {} deps for style-hint calculation",
@@ -304,8 +305,8 @@ impl Stylist {
                             SelectorDependencyVisitor::new(&mut self.state_deps);
                         selector.visit(&mut visitor);
 
-                        if visitor.affects_siblings() {
-                            self.sibling_affecting_selectors.push(selector.clone());
+                        if visitor.needs_cache_revalidation() {
+                            self.selectors_for_cache_revalidation.push(selector.clone());
                         }
 
                         if visitor.affected_by_attribute() {
@@ -813,12 +814,13 @@ impl Stylist {
         self.rule_tree.root()
     }
 
-    /// Returns whether two elements match the same sibling-affecting rules.
+    /// Returns whether two elements match the same set of revalidation-
+    /// requiring rules.
     ///
     /// This is also for the style sharing candidate cache.
-    pub fn match_same_sibling_affecting_rules<E>(&self,
-                                                 element: &E,
-                                                 candidate: &E) -> bool
+    pub fn revalidate_entry_for_cache<E>(&self,
+                                         element: &E,
+                                         candidate: &E) -> bool
         where E: TElement,
     {
         use selectors::matching::StyleRelations;
@@ -828,7 +830,7 @@ impl Stylist {
         //
         // TODO(emilio): Use the bloom filter, since they contain the element's
         // ancestor chain and it's correct for the candidate too.
-        for ref selector in self.sibling_affecting_selectors.iter() {
+        for ref selector in self.selectors_for_cache_revalidation.iter() {
             let element_matches =
                 matches_complex_selector(&selector.complex_selector, element,
                                          None, &mut StyleRelations::empty(),

@@ -154,9 +154,7 @@ fn element_matches_candidate<E: TElement>(element: &E,
         miss!(PresHints)
     }
 
-    if !match_same_sibling_affecting_rules(element,
-                                           candidate_element,
-                                           shared_context) {
+    if !revalidate(element, candidate_element, shared_context) {
         miss!(SiblingRules)
     }
 
@@ -212,10 +210,10 @@ fn match_same_style_affecting_attributes_rules<E: TElement>(element: &E,
 }
 
 #[inline]
-fn match_same_sibling_affecting_rules<E: TElement>(element: &E,
-                                                   candidate: &E,
-                                                   ctx: &SharedStyleContext) -> bool {
-    ctx.stylist.match_same_sibling_affecting_rules(element, candidate)
+fn revalidate<E: TElement>(element: &E,
+                           candidate: &E,
+                           ctx: &SharedStyleContext) -> bool {
+    ctx.stylist.revalidate_entry_for_cache(element, candidate)
 }
 
 static STYLE_SHARING_CANDIDATE_CACHE_SIZE: usize = 8;
