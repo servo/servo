@@ -115,11 +115,15 @@ pub fn update_animation_state(constellation_chan: &IpcSender<ConstellationMsg>,
 
     // Add new running animations.
     for new_running_animation in new_running_animations {
-        match newly_transitioning_nodes {
-            Some(ref mut nodes) if new_running_animation.is_transition() => {
-                nodes.push(new_running_animation.node().to_untrusted_node_address());
+        if new_running_animation.is_transition() {
+            match newly_transitioning_nodes {
+                Some(ref mut nodes) => {
+                    nodes.push(new_running_animation.node().to_untrusted_node_address());
+                }
+                None => {
+                    warn!("New transition encountered from compositor-initiated layout.");
+                }
             }
-            _ => ()
         }
 
         running_animations.entry(*new_running_animation.node())
