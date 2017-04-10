@@ -1193,6 +1193,14 @@ pub extern "C" fn Servo_DeclarationBlock_RemovePropertyById(declarations: RawSer
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_MediaList_Create() -> RawServoMediaListStrong {
+
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    Arc::new(global_style_data.shared_lock.wrap(MediaList::default())).into_strong()
+
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_MediaList_GetText(list: RawServoMediaListBorrowed, result: *mut nsAString) {
     read_locked_arc(list, |list: &MediaList| {
         list.to_css(unsafe { result.as_mut().unwrap() }).unwrap();
