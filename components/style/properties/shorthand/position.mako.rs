@@ -140,7 +140,7 @@
 
 <%helpers:shorthand name="place-content" sub_properties="align-content justify-content"
                     spec="https://drafts.csswg.org/css-align/#propdef-place-content"
-                    products="gecko">
+                    products="gecko" disable_when_testing="True">
     use properties::longhands::align_content;
     use properties::longhands::justify_content;
 
@@ -188,7 +188,7 @@
 
 <%helpers:shorthand name="place-self" sub_properties="align-self justify-self"
                     spec="https://drafts.csswg.org/css-align/#place-self-property"
-                    products="gecko">
+                    products="gecko" disable_when_testing="True">
     use values::specified::align::AlignJustifySelf;
     use parser::Parse;
 
@@ -213,7 +213,7 @@
 
 <%helpers:shorthand name="place-items" sub_properties="align-items justify-items"
                     spec="https://drafts.csswg.org/css-align/#place-items-property"
-                    products="gecko">
+                    products="gecko" disable_when_testing="True">
     use values::specified::align::{AlignItems, JustifyItems};
     use parser::Parse;
 
