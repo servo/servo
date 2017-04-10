@@ -1585,6 +1585,33 @@ pub extern "C" fn Servo_DeclarationBlock_SetFontFamily(declarations:
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_DeclarationBlock_SetBackgroundImage(declarations:
+                                                            RawServoDeclarationBlockBorrowed,
+                                                            value: *const nsAString,
+                                                            raw_extra_data: *mut URLExtraData) {
+    use style::properties::PropertyDeclaration;
+    use style::properties::longhands::background_image::SpecifiedValue as BackgroundImage;
+    use style::properties::longhands::background_image::single_value::SpecifiedValue as SingleBackgroundImage;
+    use style::values::specified::image::Image;
+    use style::values::specified::url::SpecifiedUrl;
+
+    let url_data = unsafe { RefPtr::from_ptr_ref(&raw_extra_data) };
+    let string = unsafe { (*value).to_string() };
+    let error_reporter = StdoutErrorReporter;
+    let context = ParserContext::new(Origin::Author, url_data, &error_reporter, Some(CssRuleType::Style));
+    if let Ok(url) = SpecifiedUrl::parse_from_string(string.into(), &context) {
+        let decl = PropertyDeclaration::BackgroundImage(BackgroundImage(
+            vec![SingleBackgroundImage(
+                Some(Image::Url(url))
+            )]
+        ));
+        write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
+            decls.push(decl, Importance::Normal);
+        })
+    }
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_DeclarationBlock_SetTextDecorationColorOverride(declarations:
                                                                 RawServoDeclarationBlockBorrowed) {
     use style::properties::PropertyDeclaration;
