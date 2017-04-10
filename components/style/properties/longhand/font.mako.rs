@@ -225,7 +225,8 @@ ${helpers.single_keyword("font-style",
                          gecko_constant_prefix="NS_FONT_STYLE",
                          gecko_ffi_name="mFont.style",
                          spec="https://drafts.csswg.org/css-fonts/#propdef-font-style",
-                         animation_type="none")}
+                         animation_type="none",
+                         needs_conversion=True)}
 
 ${helpers.single_keyword("font-variant",
                          "normal small-caps",
@@ -292,19 +293,24 @@ ${helpers.single_keyword("font-variant-caps",
                 _ => Err(())
             }
         }).or_else(|()| {
-            match try!(input.expect_integer()) {
-                100 => Ok(SpecifiedValue::Weight100),
-                200 => Ok(SpecifiedValue::Weight200),
-                300 => Ok(SpecifiedValue::Weight300),
-                400 => Ok(SpecifiedValue::Weight400),
-                500 => Ok(SpecifiedValue::Weight500),
-                600 => Ok(SpecifiedValue::Weight600),
-                700 => Ok(SpecifiedValue::Weight700),
-                800 => Ok(SpecifiedValue::Weight800),
-                900 => Ok(SpecifiedValue::Weight900),
+            SpecifiedValue::from_int(input.expect_integer()?)
+        })
+    }
+
+    impl SpecifiedValue {
+        pub fn from_int(kw: i32) -> Result<Self, ()> {
+            match kw {
+                % for weight in range(100, 901, 100):
+                    ${weight} => Ok(SpecifiedValue::Weight${weight}),
+                % endfor
                 _ => Err(())
             }
-        })
+        }
+
+        pub fn from_gecko_keyword(kw: u32) -> Self {
+            Self::from_int(kw as i32).expect("Found unexpected value in style
+                                              struct for font-weight property")
+        }
     }
 
     /// Used in @font-face, where relative keywords are not allowed.

@@ -1327,6 +1327,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetKeywordValue(declarations:
     let prop = match_wrap_declared! { long,
         MozUserModify => longhands::_moz_user_modify::SpecifiedValue::from_gecko_keyword(value),
         // TextEmphasisPosition => FIXME implement text-emphasis-position
+        Direction => longhands::direction::SpecifiedValue::from_gecko_keyword(value),
         Display => longhands::display::SpecifiedValue::from_gecko_keyword(value),
         Float => longhands::float::SpecifiedValue::from_gecko_keyword(value),
         VerticalAlign => longhands::vertical_align::SpecifiedValue::from_gecko_keyword(value),
@@ -1337,6 +1338,8 @@ pub extern "C" fn Servo_DeclarationBlock_SetKeywordValue(declarations:
             // We rely on Gecko passing in font-size values (0...7) here.
             longhands::font_size::SpecifiedValue::from_html_size(value as u8)
         },
+        FontStyle => longhands::font_style::SpecifiedValue::from_gecko_keyword(value),
+        FontWeight => longhands::font_weight::SpecifiedValue::from_gecko_keyword(value),
         ListStyleType => longhands::list_style_type::SpecifiedValue::from_gecko_keyword(value),
         MozMathVariant => longhands::_moz_math_variant::SpecifiedValue::from_gecko_keyword(value),
         WhiteSpace => longhands::white_space::SpecifiedValue::from_gecko_keyword(value),
