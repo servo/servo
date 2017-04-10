@@ -825,8 +825,8 @@ pub trait StylesheetLoader {
     /// before they’re locked, while keeping the trait object-safe.
     fn request_stylesheet(
         &self,
-        media: MediaList,
-        make_import: &mut FnMut(MediaList) -> ImportRule,
+        media: Arc<Locked<MediaList>>,
+        make_import: &mut FnMut(Arc<Locked<MediaList>>) -> ImportRule,
         make_arc: &mut FnMut(ImportRule) -> Arc<Locked<ImportRule>>,
     ) -> Arc<Locked<ImportRule>>;
 }
@@ -836,8 +836,8 @@ struct NoOpLoader;
 impl StylesheetLoader for NoOpLoader {
     fn request_stylesheet(
         &self,
-        media: MediaList,
-        make_import: &mut FnMut(MediaList) -> ImportRule,
+        media: Arc<Locked<MediaList>>,
+        make_import: &mut FnMut(Arc<Locked<MediaList>>) -> ImportRule,
         make_arc: &mut FnMut(ImportRule) -> Arc<Locked<ImportRule>>,
     ) -> Arc<Locked<ImportRule>> {
         make_arc(make_import(media))
@@ -906,6 +906,7 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
                     let specified_url = SpecifiedUrl::parse_from_string(url_string, &self.context)?;
 
                     let media = parse_media_query_list(&self.context, input);
+                    let media = Arc::new(self.shared_lock.wrap(media));
 
                     let noop_loader = NoOpLoader;
                     let loader = if !specified_url.is_invalid() {
@@ -920,7 +921,7 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
                             url: specified_url.take().unwrap(),
                             stylesheet: Arc::new(Stylesheet {
                                 rules: CssRules::new(Vec::new(), self.shared_lock),
-                                media: Arc::new(self.shared_lock.wrap(media)),
+                                media: media,
                                 shared_lock: self.shared_lock.clone(),
                                 origin: self.context.stylesheet_origin,
                                 url_data: self.context.url_data.clone(),
