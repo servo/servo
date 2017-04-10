@@ -18,7 +18,7 @@ use shared_lock::{SharedRwLock, SharedRwLockReadGuard, Locked, ToCssWithGuard};
 use std::fmt;
 use std::sync::Arc;
 use style_traits::ToCss;
-use stylesheets::{MemoryHoleReporter, Stylesheet};
+use stylesheets::{CssRuleType, MemoryHoleReporter, Stylesheet};
 
 /// A number from 0 to 1, indicating the percentage of the animation when this
 /// keyframe should run.
@@ -403,7 +403,7 @@ impl<'a, 'b> DeclarationParser for KeyframeDeclarationParser<'a, 'b> {
 
     fn parse_value(&mut self, name: &str, input: &mut Parser) -> Result<ParsedDeclaration, ()> {
         let id = try!(PropertyId::parse(name.into()));
-        match ParsedDeclaration::parse(id, self.context, input, true) {
+        match ParsedDeclaration::parse(id, self.context, input, true, CssRuleType::Keyframe) {
             Ok(parsed) => {
                 // In case there is still unparsed text in the declaration, we should roll back.
                 if !input.is_exhausted() {

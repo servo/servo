@@ -258,9 +258,11 @@ pub enum CssRule {
     Viewport(Arc<Locked<ViewportRule>>),
     Keyframes(Arc<Locked<KeyframesRule>>),
     Supports(Arc<Locked<SupportsRule>>),
+    Page(Arc<Locked<PageRule>>),
 }
 
 #[allow(missing_docs)]
+#[derive(PartialEq, Eq, Copy, Clone)]
 pub enum CssRuleType {
     // https://drafts.csswg.org/cssom/#the-cssrule-interface
     Style               = 1,
@@ -316,6 +318,7 @@ impl CssRule {
             CssRule::Namespace(_) => CssRuleType::Namespace,
             CssRule::Viewport(_)  => CssRuleType::Viewport,
             CssRule::Supports(_)  => CssRuleType::Supports,
+            CssRule::Page(_)      => CssRuleType::Page,
         }
     }
 
@@ -349,7 +352,8 @@ impl CssRule {
             CssRule::Style(_) |
             CssRule::FontFace(_) |
             CssRule::Viewport(_) |
-            CssRule::Keyframes(_) => {
+            CssRule::Keyframes(_) |
+            CssRule::Page(_) => {
                 f(&[], None)
             }
             CssRule::Media(ref lock) => {
@@ -422,6 +426,7 @@ impl ToCssWithGuard for CssRule {
             CssRule::Keyframes(ref lock) => lock.read_with(guard).to_css(guard, dest),
             CssRule::Media(ref lock) => lock.read_with(guard).to_css(guard, dest),
             CssRule::Supports(ref lock) => lock.read_with(guard).to_css(guard, dest),
+            CssRule::Page(ref lock) => lock.read_with(guard).to_css(guard, dest),
         }
     }
 }
@@ -557,6 +562,28 @@ impl ToCssWithGuard for SupportsRule {
             try!(rule.to_css(guard, dest));
         }
         dest.write_str(" }")
+    }
+}
+
+/// A [`@page`][page] rule.  This implements only a limited subset of the CSS 2.2 syntax.  In this
+/// subset, [page selectors][page-selectors] are not implemented.
+///
+/// [page]: https://drafts.csswg.org/css2/page.html#page-box
+/// [page-selectors]: https://drafts.csswg.org/css2/page.html#page-selectors
+#[derive(Debug)]
+pub struct PageRule(pub Arc<Locked<PropertyDeclarationBlock>>);
+
+impl ToCssWithGuard for PageRule {
+    // Serialization of PageRule is not specced, adapted from steps for StyleRule.
+    fn to_css<W>(&self, guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
+    where W: fmt::Write {
+        dest.write_str("@page { ")?;
+        let declaration_block = self.0.read_with(guard);
+        declaration_block.to_css(dest)?;
+        if declaration_block.declarations().len() > 0 {
+            write!(dest, " ")?;
+        }
+        dest.write_str("}")
     }
 }
 
@@ -782,6 +809,7 @@ rule_filter! {
     effective_viewport_rules(Viewport => ViewportRule),
     effective_keyframes_rules(Keyframes => KeyframesRule),
     effective_supports_rules(Supports => SupportsRule),
+    effective_page_rules(Page => PageRule),
 }
 
 /// The stylesheet loader is the abstraction used to trigger network requests
@@ -858,6 +886,8 @@ enum AtRulePrelude {
     Viewport,
     /// A @keyframes rule, with its animation name.
     Keyframes(Atom),
+    /// A @page rule prelude.
+    Page,
 }
 
 
@@ -1043,6 +1073,13 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
 
                 Ok(AtRuleType::WithBlock(AtRulePrelude::Keyframes(Atom::from(name))))
             },
+            "page" => {
+                if cfg!(feature = "gecko") {
+                    Ok(AtRuleType::WithBlock(AtRulePrelude::Page))
+                } else {
+                    Err(())
+                }
+            },
             _ => Err(())
         }
     }
@@ -1077,6 +1114,12 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
                     keyframes: parse_keyframe_list(&self.context, input, self.shared_lock),
                 }))))
             }
+            AtRulePrelude::Page => {
+                let declarations = parse_property_declaration_list(self.context, input, CssRuleType::Page);
+                Ok(CssRule::Page(Arc::new(self.shared_lock.wrap(PageRule(
+                    Arc::new(self.shared_lock.wrap(declarations))
+                )))))
+            }
         }
     }
 }
@@ -1095,7 +1138,7 @@ impl<'a, 'b> QualifiedRuleParser for NestedRuleParser<'a, 'b> {
 
     fn parse_block(&mut self, prelude: SelectorList<SelectorImpl>, input: &mut Parser)
                    -> Result<CssRule, ()> {
-        let declarations = parse_property_declaration_list(self.context, input);
+        let declarations = parse_property_declaration_list(self.context, input, CssRuleType::Style);
         Ok(CssRule::Style(Arc::new(self.shared_lock.wrap(StyleRule {
             selectors: prelude,
             block: Arc::new(self.shared_lock.wrap(declarations))
