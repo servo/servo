@@ -5,7 +5,7 @@
 use cssparser::Parser;
 use media_queries::CSSErrorReporterTest;
 use style::parser::ParserContext;
-use style::stylesheets::Origin;
+use style::stylesheets::{CssRuleType, Origin};
 
 #[test]
 fn image_orientation_longhand_should_parse_properly() {

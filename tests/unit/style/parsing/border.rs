@@ -9,14 +9,14 @@ use style::parser::{ParserContext, Parse};
 use style::properties::longhands::{border_image_outset, border_image_repeat, border_image_slice};
 use style::properties::longhands::{border_image_source, border_image_width};
 use style::properties::shorthands::border_image;
-use style::stylesheets::Origin;
+use style::stylesheets::{CssRuleType, Origin};
 use style_traits::ToCss;
 
 #[test]
 fn border_image_shorthand_should_parse_when_all_properties_specified() {
     let url = ServoUrl::parse("http://localhost").unwrap();
     let reporter = CSSErrorReporterTest;
-    let context = ParserContext::new(Origin::Author, &url, &reporter);
+    let context = ParserContext::new(Origin::Author, &url, &reporter, Some(CssRuleType::Style));
     let mut parser = Parser::new("linear-gradient(red, blue) 30 30% 45 fill / 20px 40px / 10px \
                                  round stretch");
     let result = border_image::parse_value(&context, &mut parser).unwrap();
@@ -33,7 +33,7 @@ fn border_image_shorthand_should_parse_when_all_properties_specified() {
 fn border_image_shorthand_should_parse_without_width() {
     let url = ServoUrl::parse("http://localhost").unwrap();
     let reporter = CSSErrorReporterTest;
-    let context = ParserContext::new(Origin::Author, &url, &reporter);
+    let context = ParserContext::new(Origin::Author, &url, &reporter, Some(CssRuleType::Style));
     let mut parser = Parser::new("linear-gradient(red, blue) 30 30% 45 fill / / 10px round stretch");
     let result = border_image::parse_value(&context, &mut parser).unwrap();
 
@@ -49,7 +49,7 @@ fn border_image_shorthand_should_parse_without_width() {
 fn border_image_shorthand_should_parse_without_outset() {
     let url = ServoUrl::parse("http://localhost").unwrap();
     let reporter = CSSErrorReporterTest;
-    let context = ParserContext::new(Origin::Author, &url, &reporter);
+    let context = ParserContext::new(Origin::Author, &url, &reporter, Some(CssRuleType::Style));
     let mut parser = Parser::new("linear-gradient(red, blue) 30 30% 45 fill / 20px 40px round");
     let result = border_image::parse_value(&context, &mut parser).unwrap();
 
@@ -65,7 +65,7 @@ fn border_image_shorthand_should_parse_without_outset() {
 fn border_image_shorthand_should_parse_without_width_or_outset() {
     let url = ServoUrl::parse("http://localhost").unwrap();
     let reporter = CSSErrorReporterTest;
-    let context = ParserContext::new(Origin::Author, &url, &reporter);
+    let context = ParserContext::new(Origin::Author, &url, &reporter, Some(CssRuleType::Style));
     let mut parser = Parser::new("linear-gradient(red, blue) 30 30% 45 fill round");
     let result = border_image::parse_value(&context, &mut parser).unwrap();
 
@@ -81,7 +81,7 @@ fn border_image_shorthand_should_parse_without_width_or_outset() {
 fn border_image_shorthand_should_parse_with_just_source() {
     let url = ServoUrl::parse("http://localhost").unwrap();
     let reporter = CSSErrorReporterTest;
-    let context = ParserContext::new(Origin::Author, &url, &reporter);
+    let context = ParserContext::new(Origin::Author, &url, &reporter, Some(CssRuleType::Style));
     let mut parser = Parser::new("linear-gradient(red, blue)");
     let result = border_image::parse_value(&context, &mut parser).unwrap();
 
@@ -97,7 +97,7 @@ fn border_image_shorthand_should_parse_with_just_source() {
 fn border_image_outset_should_error_on_negative_length() {
     let url = ServoUrl::parse("http://localhost").unwrap();
     let reporter = CSSErrorReporterTest;
-    let context = ParserContext::new(Origin::Author, &url, &reporter);
+    let context = ParserContext::new(Origin::Author, &url, &reporter, Some(CssRuleType::Style));
     let mut parser = Parser::new("-1em");
     let result = border_image_outset::parse(&context, &mut parser);
     assert_eq!(result, Err(()));
@@ -107,7 +107,7 @@ fn border_image_outset_should_error_on_negative_length() {
 fn border_image_outset_should_error_on_negative_number() {
     let url = ServoUrl::parse("http://localhost").unwrap();
     let reporter = CSSErrorReporterTest;
-    let context = ParserContext::new(Origin::Author, &url, &reporter);
+    let context = ParserContext::new(Origin::Author, &url, &reporter, Some(CssRuleType::Style));
     let mut parser = Parser::new("-15");
     let result = border_image_outset::parse(&context, &mut parser);
     assert_eq!(result, Err(()));
@@ -117,7 +117,7 @@ fn border_image_outset_should_error_on_negative_number() {
 fn border_image_outset_should_return_number_on_plain_zero() {
     let url = ServoUrl::parse("http://localhost").unwrap();
     let reporter = CSSErrorReporterTest;
-    let context = ParserContext::new(Origin::Author, &url, &reporter);
+    let context = ParserContext::new(Origin::Author, &url, &reporter, Some(CssRuleType::Style));
     let mut parser = Parser::new("0");
     let result = border_image_outset::parse(&context, &mut parser);
     assert_eq!(result.unwrap(), parse_longhand!(border_image_outset, "0"));
@@ -127,7 +127,7 @@ fn border_image_outset_should_return_number_on_plain_zero() {
 fn border_image_outset_should_return_length_on_length_zero() {
     let url = ServoUrl::parse("http://localhost").unwrap();
     let reporter = CSSErrorReporterTest;
-    let context = ParserContext::new(Origin::Author, &url, &reporter);
+    let context = ParserContext::new(Origin::Author, &url, &reporter, Some(CssRuleType::Style));
     let mut parser = Parser::new("0em");
     let result = border_image_outset::parse(&context, &mut parser);
     assert_eq!(result.unwrap(), parse_longhand!(border_image_outset, "0em"));

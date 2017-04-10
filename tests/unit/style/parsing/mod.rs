@@ -7,12 +7,12 @@
 use cssparser::Parser;
 use media_queries::CSSErrorReporterTest;
 use style::parser::ParserContext;
-use style::stylesheets::Origin;
+use style::stylesheets::{CssRuleType, Origin};
 
 fn parse<T, F: Fn(&ParserContext, &mut Parser) -> Result<T, ()>>(f: F, s: &str) -> Result<T, ()> {
     let url = ::servo_url::ServoUrl::parse("http://localhost").unwrap();
     let reporter = CSSErrorReporterTest;
-    let context = ParserContext::new(Origin::Author, &url, &reporter);
+    let context = ParserContext::new(Origin::Author, &url, &reporter, Some(CssRuleType::Style));
     let mut parser = Parser::new(s);
     f(&context, &mut parser)
 }
@@ -26,7 +26,7 @@ macro_rules! assert_roundtrip_with_context {
     ($fun:expr,$input:expr, $output:expr) => {
         let url = ::servo_url::ServoUrl::parse("http://localhost").unwrap();
         let reporter = CSSErrorReporterTest;
-        let context = ParserContext::new(Origin::Author, &url, &reporter);
+        let context = ParserContext::new(Origin::Author, &url, &reporter, Some(CssRuleType::Style));
         let mut parser = Parser::new($input);
         let parsed = $fun(&context, &mut parser)
                      .expect(&format!("Failed to parse {}", $input));
@@ -64,7 +64,7 @@ macro_rules! assert_parser_exhausted {
     ($name:ident, $string:expr, $should_exhausted:expr) => {{
         let url = ::servo_url::ServoUrl::parse("http://localhost").unwrap();
         let reporter = CSSErrorReporterTest;
-        let context = ParserContext::new(Origin::Author, &url, &reporter);
+        let context = ParserContext::new(Origin::Author, &url, &reporter, Some(CssRuleType::Style));
         let mut parser = Parser::new($string);
         let parsed = $name::parse(&context, &mut parser);
         assert_eq!(parsed.is_ok(), true);
@@ -76,7 +76,7 @@ macro_rules! parse_longhand {
     ($name:ident, $s:expr) => {{
         let url = ::servo_url::ServoUrl::parse("http://localhost").unwrap();
         let reporter = CSSErrorReporterTest;
-        let context = ParserContext::new(Origin::Author, &url, &reporter);
+        let context = ParserContext::new(Origin::Author, &url, &reporter, Some(CssRuleType::Style));
         $name::parse(&context, &mut Parser::new($s)).unwrap()
     }};
 }

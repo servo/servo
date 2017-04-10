@@ -387,7 +387,8 @@ impl CssRule {
         let mut namespaces = parent_stylesheet.namespaces.write();
         let context = ParserContext::new(parent_stylesheet.origin,
                                          &parent_stylesheet.url_data,
-                                         &error_reporter);
+                                         &error_reporter,
+                                         None);
         let mut input = Parser::new(css);
 
         // nested rules are in the body state
@@ -658,7 +659,7 @@ impl Stylesheet {
             namespaces: namespaces,
             shared_lock: shared_lock,
             loader: stylesheet_loader,
-            context: ParserContext::new(origin, url_data, error_reporter),
+            context: ParserContext::new(origin, url_data, error_reporter, None),
             state: Cell::new(State::Start),
         };
 
@@ -1115,7 +1116,8 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
                 }))))
             }
             AtRulePrelude::Page => {
-                let declarations = parse_property_declaration_list(self.context, input, CssRuleType::Page);
+                let context = ParserContext::new_with_rule_type(self.context, Some(CssRuleType::Page));
+                let declarations = parse_property_declaration_list(&context, input);
                 Ok(CssRule::Page(Arc::new(self.shared_lock.wrap(PageRule(
                     Arc::new(self.shared_lock.wrap(declarations))
                 )))))
@@ -1138,7 +1140,8 @@ impl<'a, 'b> QualifiedRuleParser for NestedRuleParser<'a, 'b> {
 
     fn parse_block(&mut self, prelude: SelectorList<SelectorImpl>, input: &mut Parser)
                    -> Result<CssRule, ()> {
-        let declarations = parse_property_declaration_list(self.context, input, CssRuleType::Style);
+        let context = ParserContext::new_with_rule_type(self.context, Some(CssRuleType::Style));
+        let declarations = parse_property_declaration_list(&context, input);
         Ok(CssRule::Style(Arc::new(self.shared_lock.wrap(StyleRule {
             selectors: prelude,
             block: Arc::new(self.shared_lock.wrap(declarations))

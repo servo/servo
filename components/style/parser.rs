@@ -9,7 +9,7 @@
 use cssparser::{Parser, SourcePosition, UnicodeRange};
 use error_reporting::ParseErrorReporter;
 use style_traits::OneOrMoreCommaSeparated;
-use stylesheets::{Origin, UrlExtraData};
+use stylesheets::{CssRuleType, Origin, UrlExtraData};
 
 /// The data that the parser needs from outside in order to parse a stylesheet.
 pub struct ParserContext<'a> {
@@ -20,26 +20,46 @@ pub struct ParserContext<'a> {
     pub url_data: &'a UrlExtraData,
     /// An error reporter to report syntax errors.
     pub error_reporter: &'a ParseErrorReporter,
+    /// The current rule type, if any.
+    pub rule_type: Option<CssRuleType>,
 }
 
 impl<'a> ParserContext<'a> {
     /// Create a parser context.
     pub fn new(stylesheet_origin: Origin,
                url_data: &'a UrlExtraData,
-               error_reporter: &'a ParseErrorReporter)
+               error_reporter: &'a ParseErrorReporter,
+               rule_type: Option<CssRuleType>)
                -> ParserContext<'a> {
         ParserContext {
             stylesheet_origin: stylesheet_origin,
             url_data: url_data,
             error_reporter: error_reporter,
+            rule_type: rule_type,
         }
     }
 
     /// Create a parser context for on-the-fly parsing in CSSOM
     pub fn new_for_cssom(url_data: &'a UrlExtraData,
-                         error_reporter: &'a ParseErrorReporter)
+                         error_reporter: &'a ParseErrorReporter,
+                         rule_type: Option<CssRuleType>)
                          -> ParserContext<'a> {
-        Self::new(Origin::Author, url_data, error_reporter)
+        Self::new(Origin::Author, url_data, error_reporter, rule_type)
+    }
+
+    /// Create a parser context based on a previous context, but with a modified rule type.
+    pub fn new_with_rule_type(context: &'a ParserContext,
+                              rule_type: Option<CssRuleType>)
+                              -> ParserContext<'a> {
+        Self::new(context.stylesheet_origin,
+                  context.url_data,
+                  context.error_reporter,
+                  rule_type)
+    }
+
+    /// Get the rule type, which assumes that one is available.
+    pub fn rule_type(&self) -> CssRuleType {
+        self.rule_type.expect("Rule type expected, but none was found.")
     }
 }
 
