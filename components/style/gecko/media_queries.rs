@@ -413,7 +413,12 @@ impl Expression {
             // we support them, see:
             //
             // https://drafts.csswg.org/mediaqueries/#mq-ranges
+            //
+            // Gecko also rejects ranged expressions here, so do the same.
             if input.try(|i| i.expect_colon()).is_err() {
+                if range != nsMediaExpression_Range::eEqual {
+                    return Err(())
+                }
                 return Ok(Expression::new(feature, None, range));
             }
 
