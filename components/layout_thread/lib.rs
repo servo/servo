@@ -511,7 +511,7 @@ impl LayoutThread {
     fn build_layout_context<'a>(&self,
                                 guards: StylesheetGuards<'a>,
                                 rw_data: &LayoutThreadData,
-                                request_images: bool,
+                                script_initiated_layout: bool,
                                 snapshot_map: &'a SnapshotMap)
                                 -> LayoutContext<'a> {
         let thread_local_style_context_creation_data =
@@ -535,7 +535,8 @@ impl LayoutThread {
             image_cache: self.image_cache.clone(),
             font_cache_thread: Mutex::new(self.font_cache_thread.clone()),
             webrender_image_cache: self.webrender_image_cache.clone(),
-            pending_images: if request_images { Some(Mutex::new(vec![])) } else { None },
+            pending_images: if script_initiated_layout { Some(Mutex::new(vec![])) } else { None },
+            newly_transitioning_nodes: if script_initiated_layout { Some(Mutex::new(vec![])) } else { None },
         }
     }
 
@@ -1254,6 +1255,12 @@ impl LayoutThread {
         };
         rw_data.pending_images = pending_images;
 
+        let newly_transitioning_nodes = match context.newly_transitioning_nodes {
+            Some(ref nodes) => std_mem::replace(&mut *nodes.lock().unwrap(), vec![]),
+            None => vec![],
+        };
+        rw_data.newly_transitioning_nodes = newly_transitioning_nodes;
+
         let mut root_flow = match self.root_flow.clone() {
             Some(root_flow) => root_flow,
             None => return,
@@ -1430,6 +1437,7 @@ impl LayoutThread {
                                                          &mut *rw_data,
                                                          &mut layout_context);
             assert!(layout_context.pending_images.is_none());
+            assert!(layout_context.newly_transitioning_nodes.is_none());
         }
     }
 
@@ -1440,17 +1448,24 @@ impl LayoutThread {
                                                document: Option<&ServoLayoutDocument>,
                                                rw_data: &mut LayoutThreadData,
                                                context: &mut LayoutContext) {
-        assert!(rw_data.newly_transitioning_nodes.is_empty());
-
-        // Kick off animations if any were triggered, expire completed ones.
-        animation::update_animation_state(&self.constellation_chan,
-                                          &self.script_chan,
-                                          &mut *self.running_animations.write(),
-                                          &mut *self.expired_animations.write(),
-                                          &mut rw_data.newly_transitioning_nodes,
-                                          &self.new_animations_receiver,
-                                          self.id,
-                                          &self.timer);
+        {
+            let mut newly_transitioning_nodes = context
+                .newly_transitioning_nodes
+                .as_ref()
+                .map(|nodes| nodes.lock().unwrap());
+            let newly_transitioning_nodes = newly_transitioning_nodes
+                .as_mut()
+                .map(|nodes| &mut **nodes);
+            // Kick off animations if any were triggered, expire completed ones.
+            animation::update_animation_state(&self.constellation_chan,
+                                              &self.script_chan,
+                                              &mut *self.running_animations.write(),
+                                              &mut *self.expired_animations.write(),
+                                              newly_transitioning_nodes,
+                                              &self.new_animations_receiver,
+                                              self.id,
+                                              &self.timer);
+        }
 
         profile(time::ProfilerCategory::LayoutRestyleDamagePropagation,
                 self.profiler_metadata(),
