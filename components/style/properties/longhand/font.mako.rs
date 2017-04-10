@@ -459,6 +459,12 @@ ${helpers.single_keyword("font-variant-caps",
         Larger,
     }
 
+    impl From<specified::LengthOrPercentage> for SpecifiedValue {
+        fn from(other: specified::LengthOrPercentage) -> Self {
+            SpecifiedValue::Length(other)
+        }
+    }
+
     pub mod computed_value {
         use app_units::Au;
         pub type T = Au;
@@ -1283,3 +1289,31 @@ ${helpers.single_keyword("-moz-math-variant",
                          spec="Internal (not web-exposed)",
                          animation_type="none",
                          needs_conversion=True)}
+
+<%helpers:longhand name="-moz-script-min-size" products="gecko" animation_type="none"
+                   predefined_type="Length" gecko_ffi_name="mScriptMinSize"
+                   spec="Internal (not web-exposed)"
+                   internal="True" disable_when_testing="True">
+    use app_units::Au;
+    use gecko_bindings::structs::NS_MATHML_DEFAULT_SCRIPT_MIN_SIZE_PT;
+    use values::HasViewportPercentage;
+    use values::computed::ComputedValueAsSpecified;
+    use values::specified::length::{AU_PER_PT, Length};
+
+    pub type SpecifiedValue = Length;
+
+    pub mod computed_value {
+        pub type T = super::Au;
+    }
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        Au((NS_MATHML_DEFAULT_SCRIPT_MIN_SIZE_PT as f32 * AU_PER_PT) as i32)
+    }
+
+    pub fn parse(_context: &ParserContext, _input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        debug_assert!(false, "Should be set directly by presentation attributes only.");
+        Err(())
+    }
+</%helpers:longhand>
+
