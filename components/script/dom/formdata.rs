@@ -7,6 +7,7 @@ use dom::bindings::codegen::Bindings::FormDataBinding::FormDataMethods;
 use dom::bindings::codegen::Bindings::FormDataBinding::FormDataWrap;
 use dom::bindings::codegen::UnionTypes::FileOrUSVString;
 use dom::bindings::error::Fallible;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::iterable::Iterable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
@@ -79,7 +80,7 @@ impl FormDataMethods for FormData {
         let datum = FormDatum {
             ty: DOMString::from("file"),
             name: DOMString::from(name.0.clone()),
-            value: FormDatumValue::File(Root::from_ref(&*self.get_file(blob, filename))),
+            value: FormDatumValue::File(Root::from_ref(&*self.create_an_entry(blob, filename))),
         };
 
         let mut data = self.data.borrow_mut();
@@ -137,7 +138,7 @@ impl FormDataMethods for FormData {
         self.data.borrow_mut().insert(LocalName::from(name.0.clone()), vec![FormDatum {
             ty: DOMString::from("file"),
             name: DOMString::from(name.0),
-            value: FormDatumValue::File(Root::from_ref(&*self.get_file(blob, filename))),
+            value: FormDatumValue::File(Root::from_ref(&*self.create_an_entry(blob, filename))),
         }]);
     }
 
@@ -145,15 +146,18 @@ impl FormDataMethods for FormData {
 
 
 impl FormData {
-    fn get_file(&self, blob: &Blob, opt_filename: Option<USVString>) -> Root<File> {
+    // https://xhr.spec.whatwg.org/#create-an-entry
+    // Steps 3-4.
+    fn create_an_entry(&self, blob: &Blob, opt_filename: Option<USVString>) -> Root<File> {
         let name = match opt_filename {
             Some(filename) => DOMString::from(filename.0),
+            None if blob.downcast::<File>().is_none() => DOMString::from("blob"),
             None => DOMString::from(""),
         };
 
         let bytes = blob.get_bytes().unwrap_or(vec![]);
 
-        File::new(&self.global(), BlobImpl::new_from_bytes(bytes), name, None, "")
+        File::new(&self.global(), BlobImpl::new_from_bytes(bytes), name, None, &blob.type_string())
     }
 
     pub fn datums(&self) -> Vec<FormDatum> {

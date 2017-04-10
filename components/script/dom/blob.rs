@@ -164,7 +164,7 @@ impl Blob {
     }
 
     /// Get a copy of the type_string
-    pub fn get_type_string(&self) -> String {
+    pub fn type_string(&self) -> String {
         self.type_string.clone()
     }
 
