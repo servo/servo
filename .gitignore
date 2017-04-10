@@ -27,3 +27,5 @@ Servo.app
 
 # VSCode
 .vscode
+
+/unminified-js
