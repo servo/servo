@@ -157,3 +157,22 @@ fn test_border_spacing() {
     assert_parser_exhausted!(border_spacing, "1px", true);
     assert_parser_exhausted!(border_spacing, "1px 2px", true);
 }
+
+#[test]
+fn test_border_radius() {
+    use style::values::specified::basic_shape::BorderRadius;
+
+    assert_roundtrip_with_context!(BorderRadius::parse, r#"1px"#);
+    assert_roundtrip_with_context!(BorderRadius::parse, r#"1px 2px"#);
+    assert_roundtrip_with_context!(BorderRadius::parse, r#"1px 2px 3px"#);
+    assert_roundtrip_with_context!(BorderRadius::parse, r#"1px 2px 3px 4px"#);
+    assert_roundtrip_with_context!(BorderRadius::parse, r#"1px 2px 3px 4px / 5px"#);
+    assert_roundtrip_with_context!(BorderRadius::parse, r#"1px 2px 3px 4px / 5px 6px"#);
+    assert_roundtrip_with_context!(BorderRadius::parse, r#"1px 2px 3px 4px / 5px 6px 7px"#);
+    assert_roundtrip_with_context!(BorderRadius::parse, r#"1px 2px 3px 4px / 5px 6px 7px 8px"#);
+    assert_roundtrip_with_context!(BorderRadius::parse, r#"1px / 2px"#);
+
+    assert_roundtrip_with_context!(BorderRadius::parse, r#"1px 2px 3px 2px"#, r#"1px 2px 3px"#);
+    assert_roundtrip_with_context!(BorderRadius::parse, r#"1px 2px 1px 2px"#, r#"1px 2px"#);
+    assert_roundtrip_with_context!(BorderRadius::parse, r#"1px 2px 3px 2px / 1px 1px 1px 1px"#, r#"1px 2px 3px / 1px"#);
+}

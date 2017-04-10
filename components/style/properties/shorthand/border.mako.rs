@@ -183,6 +183,7 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
      for corner in ['top-left', 'top-right', 'bottom-right', 'bottom-left']
 )}" extra_prefixes="webkit" spec="https://drafts.csswg.org/css-backgrounds/#border-radius">
     use values::specified::basic_shape::BorderRadius;
+    use properties::shorthands::{serialize_four_sides};
     use parser::Parse;
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
@@ -195,21 +196,30 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
         })
     }
 
-    // TODO: I do not understand how border radius works with respect to the slashes /,
-    // so putting a default generic impl for now
-    // https://developer.mozilla.org/en-US/docs/Web/CSS/border-radius
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            try!(self.border_top_left_radius.to_css(dest));
-            try!(write!(dest, " "));
-
-            try!(self.border_top_right_radius.to_css(dest));
-            try!(write!(dest, " "));
-
-            try!(self.border_bottom_right_radius.to_css(dest));
-            try!(write!(dest, " "));
-
-            self.border_bottom_left_radius.to_css(dest)
+            if self.border_top_left_radius.0.width == self.border_top_left_radius.0.height &&
+               self.border_top_right_radius.0.width == self.border_top_right_radius.0.height &&
+               self.border_bottom_right_radius.0.width == self.border_bottom_right_radius.0.height &&
+               self.border_bottom_left_radius.0.width == self.border_bottom_left_radius.0.height {
+                serialize_four_sides(dest,
+                                     &self.border_top_left_radius.0.width,
+                                     &self.border_top_right_radius.0.width,
+                                     &self.border_bottom_right_radius.0.width,
+                                     &self.border_bottom_left_radius.0.width)
+            } else {
+                try!(serialize_four_sides(dest,
+                                          &self.border_top_left_radius.0.width,
+                                          &self.border_top_right_radius.0.width,
+                                          &self.border_bottom_right_radius.0.width,
+                                          &self.border_bottom_left_radius.0.width));
+                try!(dest.write_str(" / "));
+                serialize_four_sides(dest,
+                                     &self.border_top_left_radius.0.height,
+                                     &self.border_top_right_radius.0.height,
+                                     &self.border_bottom_right_radius.0.height,
+                                     &self.border_bottom_left_radius.0.height)
+            }
         }
     }
 </%helpers:shorthand>
