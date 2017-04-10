@@ -1197,7 +1197,16 @@ pub extern "C" fn Servo_MediaList_Create() -> RawServoMediaListStrong {
 
     let global_style_data = &*GLOBAL_STYLE_DATA;
     Arc::new(global_style_data.shared_lock.wrap(MediaList::default())).into_strong()
+}
 
+#[no_mangle]
+pub extern "C" fn Servo_MediaList_Matches(list: RawServoMediaListBorrowed,
+                                          raw_data: RawServoStyleSetBorrowed)
+                                          -> bool {
+    let per_doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow();
+    read_locked_arc(list, |list: &MediaList| {
+        list.evaluate(&per_doc_data.stylist.device)
+    })
 }
 
 #[no_mangle]
