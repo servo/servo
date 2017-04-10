@@ -7,7 +7,8 @@
 //!
 //! [image]: https://drafts.csswg.org/css-images/#image-values
 
-use cssparser::Color as CSSColor;
+use Atom;
+use cssparser::{Color as CSSColor, serialize_identifier};
 use std::f32::consts::PI;
 use std::fmt;
 use style_traits::ToCss;
@@ -31,6 +32,9 @@ impl ToComputedValue for specified::Image {
             },
             specified::Image::ImageRect(ref image_rect) => {
                 Image::ImageRect(image_rect.to_computed_value(context))
+            },
+            specified::Image::Element(ref selector) => {
+                Image::Element(selector.clone())
             }
         }
     }
@@ -51,6 +55,9 @@ impl ToComputedValue for specified::Image {
                     ToComputedValue::from_computed_value(image_rect)
                 )
             },
+            Image::Element(ref selector) => {
+                specified::Image::Element(selector.clone())
+            },
         }
     }
 }
@@ -64,6 +71,7 @@ pub enum Image {
     Url(SpecifiedUrl),
     Gradient(Gradient),
     ImageRect(ImageRect),
+    Element(Atom),
 }
 
 impl fmt::Debug for Image {
@@ -80,6 +88,11 @@ impl fmt::Debug for Image {
                 }
             },
             Image::ImageRect(ref image_rect) => write!(f, "{:?}", image_rect),
+            Image::Element(ref selector) => {
+                f.write_str("-moz-element(#")?;
+                serialize_identifier(&*selector.to_string(), f)?;
+                f.write_str(")")
+            },
         }
     }
 }
@@ -90,6 +103,12 @@ impl ToCss for Image {
             Image::Url(ref url) => url.to_css(dest),
             Image::Gradient(ref gradient) => gradient.to_css(dest),
             Image::ImageRect(ref image_rect) => image_rect.to_css(dest),
+            Image::Element(ref selector) => {
+                dest.write_str("-moz-element(#")?;
+                // FIXME: We should get rid of these intermediate strings.
+                serialize_identifier(&*selector.to_string(), dest)?;
+                dest.write_str(")")
+            },
         }
     }
 }

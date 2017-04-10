@@ -723,6 +723,10 @@ extern "C" {
                                   uri: ServoBundledURI);
 }
 extern "C" {
+    pub fn Gecko_SetImageElement(image: *mut nsStyleImage,
+                                 atom: *mut nsIAtom);
+}
+extern "C" {
     pub fn Gecko_CopyImageValueFrom(image: *mut nsStyleImage,
                                     other: *const nsStyleImage);
 }
