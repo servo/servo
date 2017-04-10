@@ -87,7 +87,7 @@ unsafe fn write_blob(blob: Root<Blob>,
                      -> Result<(), ()> {
     let blob_vec = try!(blob.get_bytes());
     let blob_length = blob_vec.len();
-    let type_string_bytes = blob.get_type_string().as_bytes().to_vec();
+    let type_string_bytes = blob.type_string().as_bytes().to_vec();
     let type_string_length = type_string_bytes.len();
     assert!(JS_WriteUint32Pair(w, StructuredCloneTags::DomBlob as u32, 0));
     write_length(w, blob_length);
