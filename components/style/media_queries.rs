@@ -20,7 +20,7 @@ pub use servo::media_queries::{Device, Expression};
 pub use gecko::media_queries::{Device, Expression};
 
 /// A type that encapsulates a media query list.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct MediaList {
     /// The list of media queries.

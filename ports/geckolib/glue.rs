@@ -1194,9 +1194,17 @@ pub extern "C" fn Servo_DeclarationBlock_RemovePropertyById(declarations: RawSer
 
 #[no_mangle]
 pub extern "C" fn Servo_MediaList_Create() -> RawServoMediaListStrong {
-
     let global_style_data = &*GLOBAL_STYLE_DATA;
     Arc::new(global_style_data.shared_lock.wrap(MediaList::default())).into_strong()
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_MediaList_DeepClone(list: RawServoMediaListBorrowed) -> RawServoMediaListStrong {
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    read_locked_arc(list, |list: &MediaList| {
+        Arc::new(global_style_data.shared_lock.wrap(list.clone()))
+            .into_strong()
+    })
 }
 
 #[no_mangle]
