@@ -299,7 +299,10 @@ impl Window {
             println!("{}", gl.get_string(gl::VERSION));
         }
 
-        #[cfg(not(target_os = "windows"))]
+        gl.clear_color(0.6, 0.6, 0.6, 1.0);
+        gl.clear(gl::COLOR_BUFFER_BIT);
+        gl.finish();
+
         let window = Window {
             kind: window_kind,
             event_queue: RefCell::new(vec!()),
@@ -310,29 +313,15 @@ impl Window {
             key_modifiers: Cell::new(KeyModifiers::empty()),
             current_url: RefCell::new(None),
 
+            #[cfg(not(target_os = "windows"))]
             pending_key_event_char: Cell::new(None),
+            #[cfg(not(target_os = "windows"))]
             pressed_key_map: RefCell::new(vec![]),
-            gl: gl.clone(),
-        };
-
-        #[cfg(target_os = "windows")]
-        let window = Window {
-            kind: window_kind,
-            event_queue: RefCell::new(vec!()),
-            mouse_down_button: Cell::new(None),
-            mouse_down_point: Cell::new(Point2D::new(0, 0)),
-
-            mouse_pos: Cell::new(Point2D::new(0, 0)),
-            key_modifiers: Cell::new(KeyModifiers::empty()),
-            current_url: RefCell::new(None),
-
+            #[cfg(target_os = "windows")]
             last_pressed_key: Cell::new(None),
             gl: gl.clone(),
         };
 
-        gl::clear_color(0.6, 0.6, 0.6, 1.0);
-        gl::clear(gl::COLOR_BUFFER_BIT);
-        gl::finish();
         window.present();
 
         Rc::new(window)
@@ -369,14 +358,14 @@ impl Window {
     }
 
     #[cfg(not(target_os = "windows"))]
-	fn handle_received_character(&self, ch: char) {
+    fn handle_received_character(&self, ch: char) {
         if !ch.is_control() {
             self.pending_key_event_char.set(Some(ch));
-        }	
-	}
+        }
+    }
 
     #[cfg(target_os = "windows")]
-	fn handle_received_character(&self, ch: char) {
+    fn handle_received_character(&self, ch: char) {
         let modifiers = Window::glutin_mods_to_script_mods(self.key_modifiers.get());
         if let Some(last_pressed_key) = self.last_pressed_key.get() {
             let event = WindowEvent::KeyEvent(Some(ch), last_pressed_key, KeyState::Pressed, modifiers);
@@ -392,7 +381,7 @@ impl Window {
             }
         }
         self.last_pressed_key.set(None);
-	}
+    }
 
     fn toggle_keyboard_modifiers(&self, virtual_key_code: VirtualKeyCode) {
         match virtual_key_code {
@@ -409,7 +398,7 @@ impl Window {
     }
 
     #[cfg(not(target_os = "windows"))]
-	fn handle_keyboard_input(&self, element_state: ElementState, _scan_code: u8, virtual_key_code: VirtualKeyCode) {
+    fn handle_keyboard_input(&self, element_state: ElementState, _scan_code: u8, virtual_key_code: VirtualKeyCode) {
         self.toggle_keyboard_modifiers(virtual_key_code);
 
         let ch = match element_state {
@@ -450,7 +439,7 @@ impl Window {
     }
 
     #[cfg(target_os = "windows")]
-	fn handle_keyboard_input(&self, element_state: ElementState, _scan_code:u8, virtual_key_code: VirtualKeyCode) {
+    fn handle_keyboard_input(&self, element_state: ElementState, _scan_code: u8, virtual_key_code: VirtualKeyCode) {
         self.toggle_keyboard_modifiers(virtual_key_code);
 
         if let Ok(key) = Window::glutin_key_to_script_key(virtual_key_code) {
