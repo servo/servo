@@ -26,7 +26,7 @@ pub fn update_animation_state(constellation_chan: &IpcSender<ConstellationMsg>,
                               script_chan: &IpcSender<ConstellationControlMsg>,
                               running_animations: &mut HashMap<OpaqueNode, Vec<Animation>>,
                               expired_animations: &mut HashMap<OpaqueNode, Vec<Animation>>,
-                              newly_transitioning_nodes: &mut Vec<UntrustedNodeAddress>,
+                              mut newly_transitioning_nodes: Option<&mut Vec<UntrustedNodeAddress>>,
                               new_animations_receiver: &Receiver<Animation>,
                               pipeline_id: PipelineId,
                               timer: &Timer) {
@@ -115,8 +115,11 @@ pub fn update_animation_state(constellation_chan: &IpcSender<ConstellationMsg>,
 
     // Add new running animations.
     for new_running_animation in new_running_animations {
-        if new_running_animation.is_transition() {
-            newly_transitioning_nodes.push(new_running_animation.node().to_untrusted_node_address());
+        match newly_transitioning_nodes {
+            Some(ref mut nodes) if new_running_animation.is_transition() => {
+                nodes.push(new_running_animation.node().to_untrusted_node_address());
+            }
+            _ => ()
         }
 
         running_animations.entry(*new_running_animation.node())

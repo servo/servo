@@ -15,6 +15,7 @@ use net_traits::image_cache::{ImageOrMetadataAvailable, UsePlaceholder};
 use opaque_node::OpaqueNodeMethods;
 use parking_lot::RwLock;
 use script_layout_interface::{PendingImage, PendingImageState};
+use script_traits::UntrustedNodeAddress;
 use servo_url::ServoUrl;
 use std::borrow::{Borrow, BorrowMut};
 use std::cell::{RefCell, RefMut};
@@ -96,7 +97,11 @@ pub struct LayoutContext<'a> {
 
     /// A list of in-progress image loads to be shared with the script thread.
     /// A None value means that this layout was not initiated by the script thread.
-    pub pending_images: Option<Mutex<Vec<PendingImage>>>
+    pub pending_images: Option<Mutex<Vec<PendingImage>>>,
+
+    /// A list of nodes that have just initiated a CSS transition.
+    /// A None value means that this layout was not initiated by the script thread.
+    pub newly_transitioning_nodes: Option<Mutex<Vec<UntrustedNodeAddress>>>,
 }
 
 impl<'a> Drop for LayoutContext<'a> {
