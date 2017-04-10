@@ -53,6 +53,7 @@ fn test_linear_gradient() {
         layout_parent_style: initial_style,
         style: initial_style.clone(),
         font_metrics_provider: &ServoMetricsProvider,
+        in_media_query: false,
     };
     assert_eq!(specified::AngleOrCorner::None.to_computed_value(&specified_context),
                computed::AngleOrCorner::Angle(Angle::from_radians(PI)));

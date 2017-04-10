@@ -28,6 +28,7 @@ use gecko_bindings::structs::ComputedTimingFunction_BeforeFlag;
 use gecko_bindings::structs::FontFamilyList;
 use gecko_bindings::structs::FontFamilyType;
 use gecko_bindings::structs::FontSizePrefs;
+use gecko_bindings::structs::GeckoFontMetrics;
 use gecko_bindings::structs::Keyframe;
 use gecko_bindings::structs::ServoBundledURI;
 use gecko_bindings::structs::ServoElementSnapshot;
@@ -1075,6 +1076,12 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_GetBaseSize(lang: *mut nsIAtom) -> FontSizePrefs;
+}
+extern "C" {
+    pub fn Gecko_GetFontMetrics(pres_context: RawGeckoPresContextBorrowed,
+                                is_vertical: bool, font: *const nsStyleFont,
+                                font_size: nscoord, use_user_font_set: bool)
+     -> GeckoFontMetrics;
 }
 extern "C" {
     pub fn Gecko_GetMediaFeatures() -> *const nsMediaFeature;

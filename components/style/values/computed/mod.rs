@@ -58,6 +58,9 @@ pub struct Context<'a> {
     /// A font metrics provider, used to access font metrics to implement
     /// font-relative units.
     pub font_metrics_provider: &'a FontMetricsProvider,
+
+    /// Whether or not we are computing the media list in a media query
+    pub in_media_query: bool,
 }
 
 impl<'a> Context<'a> {

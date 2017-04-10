@@ -27213,6 +27213,33 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
+    #[derive(Debug, Copy)]
+    pub struct GeckoFontMetrics {
+        pub mChSize: root::nscoord,
+        pub mXSize: root::nscoord,
+    }
+    #[test]
+    fn bindgen_test_layout_GeckoFontMetrics() {
+        assert_eq!(::std::mem::size_of::<GeckoFontMetrics>() , 8usize , concat
+                   ! ( "Size of: " , stringify ! ( GeckoFontMetrics ) ));
+        assert_eq! (::std::mem::align_of::<GeckoFontMetrics>() , 4usize ,
+                    concat ! (
+                    "Alignment of " , stringify ! ( GeckoFontMetrics ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const GeckoFontMetrics ) ) . mChSize as *
+                    const _ as usize } , 0usize , concat ! (
+                    "Alignment of field: " , stringify ! ( GeckoFontMetrics )
+                    , "::" , stringify ! ( mChSize ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const GeckoFontMetrics ) ) . mXSize as *
+                    const _ as usize } , 4usize , concat ! (
+                    "Alignment of field: " , stringify ! ( GeckoFontMetrics )
+                    , "::" , stringify ! ( mXSize ) ));
+    }
+    impl Clone for GeckoFontMetrics {
+        fn clone(&self) -> Self { *self }
+    }
+    #[repr(C)]
     #[derive(Debug, Copy, Clone)]
     pub struct nsROCSSPrimitiveValue([u8; 0]);
     #[repr(C)]

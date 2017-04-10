@@ -2072,6 +2072,7 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
         layout_parent_style: layout_parent_style,
         style: starting_style,
         font_metrics_provider: font_metrics_provider,
+        in_media_query: false,
     };
 
     // Set computed values, overwriting earlier declarations for the same
