@@ -1338,6 +1338,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetKeywordValue(declarations:
             longhands::font_size::SpecifiedValue::from_html_size(value as u8)
         },
         ListStyleType => longhands::list_style_type::SpecifiedValue::from_gecko_keyword(value),
+        MozMathVariant => longhands::_moz_math_variant::SpecifiedValue::from_gecko_keyword(value),
         WhiteSpace => longhands::white_space::SpecifiedValue::from_gecko_keyword(value),
         CaptionSide => longhands::caption_side::SpecifiedValue::from_gecko_keyword(value),
         BorderTopStyle => BorderStyle::from_gecko_keyword(value),
@@ -1355,11 +1356,14 @@ pub extern "C" fn Servo_DeclarationBlock_SetIntValue(declarations: RawServoDecla
                                                      property: nsCSSPropertyID,
                                                      value: i32) {
     use style::properties::{PropertyDeclaration, LonghandId};
+    use style::properties::longhands::_moz_script_level::SpecifiedValue as MozScriptLevel;
     use style::properties::longhands::_x_span::computed_value::T as Span;
 
     let long = get_longhand_from_id!(property);
     let prop = match_wrap_declared! { long,
         XSpan => Span(value),
+        // Gecko uses Integer values to signal that it is relative
+        MozScriptLevel => MozScriptLevel::Relative(value),
     };
     write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
         decls.push(prop, Importance::Normal);
@@ -1400,6 +1404,26 @@ pub extern "C" fn Servo_DeclarationBlock_SetPixelValue(declarations:
                 vertical: None,
             }
         ),
+    };
+    write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
+        decls.push(prop, Importance::Normal);
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_DeclarationBlock_SetNumberValue(declarations:
+                                                       RawServoDeclarationBlockBorrowed,
+                                                       property: nsCSSPropertyID,
+                                                       value: f32) {
+    use style::properties::{PropertyDeclaration, LonghandId};
+    use style::properties::longhands::_moz_script_level::SpecifiedValue as MozScriptLevel;
+
+    let long = get_longhand_from_id!(property);
+
+    let prop = match_wrap_declared! { long,
+        MozScriptSizeMultiplier => value,
+        // Gecko uses Number values to signal that it is absolute
+        MozScriptLevel => MozScriptLevel::Absolute(value as i32),
     };
     write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
         decls.push(prop, Importance::Normal);

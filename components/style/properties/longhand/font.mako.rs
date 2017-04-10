@@ -1118,8 +1118,7 @@ ${helpers.single_keyword("font-variant-position",
 </%helpers:longhand>
 
 <%helpers:longhand name="-x-lang" products="gecko" animation_type="none" internal="True"
-                   spec="Internal (not web-exposed)"
-                   internal="True">
+                   spec="Internal (not web-exposed)">
     use values::HasViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
     pub use self::computed_value::T as SpecifiedValue;
@@ -1153,3 +1152,128 @@ ${helpers.single_keyword("font-variant-position",
         Err(())
     }
 </%helpers:longhand>
+
+// MathML properties
+<%helpers:longhand name="-moz-script-size-multiplier" products="gecko" animation_type="none"
+                   predefined_type="Number" gecko_ffi_name="mScriptSizeMultiplier"
+                   spec="Internal (not web-exposed)"
+                   internal="True" disable_when_testing="True">
+    use values::HasViewportPercentage;
+    use values::computed::ComputedValueAsSpecified;
+    pub use self::computed_value::T as SpecifiedValue;
+
+    impl ComputedValueAsSpecified for SpecifiedValue {}
+    no_viewport_percentage!(SpecifiedValue);
+
+    pub mod computed_value {
+        pub type T = f32;
+    }
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        ::gecko_bindings::structs::NS_MATHML_DEFAULT_SCRIPT_SIZE_MULTIPLIER
+    }
+
+    pub fn parse(_context: &ParserContext, _input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        debug_assert!(false, "Should be set directly by presentation attributes only.");
+        Err(())
+    }
+</%helpers:longhand>
+
+<%helpers:longhand name="-moz-script-level" products="gecko" animation_type="none"
+                   predefined_type="Integer" gecko_ffi_name="mScriptLevel"
+                   spec="Internal (not web-exposed)"
+                   internal="True" disable_when_testing="True" need_clone="True">
+    use std::fmt;
+    use style_traits::ToCss;
+    use values::HasViewportPercentage;
+
+    no_viewport_percentage!(SpecifiedValue);
+
+    pub mod computed_value {
+        pub type T = i8;
+    }
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        0
+    }
+
+    #[derive(Copy, Clone, PartialEq, Debug)]
+    pub enum SpecifiedValue {
+        Relative(i32),
+        Absolute(i32),
+        Auto
+    }
+
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match *self {
+                SpecifiedValue::Auto => dest.write_str("auto"),
+                SpecifiedValue::Relative(rel) => write!(dest, "{}", rel),
+                // can only be specified by pres attrs; should not
+                // serialize to anything else
+                SpecifiedValue::Absolute(_) => Ok(()),
+            }
+        }
+    }
+
+    impl ToComputedValue for SpecifiedValue {
+        type ComputedValue = computed_value::T;
+
+        fn to_computed_value(&self, cx: &Context) -> i8 {
+            use properties::longhands::_moz_math_display::SpecifiedValue as DisplayValue;
+            use std::{cmp, i8};
+
+            let int = match *self {
+                SpecifiedValue::Auto => {
+                    let parent = cx.inherited_style().get_font().clone__moz_script_level() as i32;
+                    let display = cx.inherited_style().get_font().clone__moz_math_display();
+                    if display == DisplayValue::inline {
+                        parent + 1
+                    } else {
+                        parent
+                    }
+                }
+                SpecifiedValue::Relative(rel) => {
+                    let parent = cx.inherited_style().get_font().clone__moz_script_level();
+                    parent as i32 + rel
+                }
+                SpecifiedValue::Absolute(abs) => abs,
+            };
+            cmp::min(int, i8::MAX as i32) as i8
+        }
+        fn from_computed_value(other: &computed_value::T) -> Self {
+            SpecifiedValue::Absolute(*other as i32)
+        }
+    }
+
+    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        if let Ok(i) = input.try(|i| i.expect_integer()) {
+            return Ok(SpecifiedValue::Relative(i))
+        }
+        input.expect_ident_matching("auto")?;
+        Ok(SpecifiedValue::Auto)
+    }
+</%helpers:longhand>
+
+${helpers.single_keyword("-moz-math-display",
+                         "inline block",
+                         gecko_constant_prefix="NS_MATHML_DISPLAYSTYLE",
+                         gecko_ffi_name="mMathDisplay",
+                         products="gecko",
+                         spec="Internal (not web-exposed)",
+                         animation_type="none",
+                         need_clone="True")}
+
+${helpers.single_keyword("-moz-math-variant",
+                         """normal bold italic bold-italic script bold-script
+                            fraktur double-struck bold-fraktur sans-serif
+                            bold-sans-serif sans-serif-italic sans-serif-bold-italic
+                            monospace initial tailed looped stretched""",
+                         gecko_constant_prefix="NS_MATHML_MATHVARIANT",
+                         gecko_ffi_name="mMathVariant",
+                         products="gecko",
+                         spec="Internal (not web-exposed)",
+                         animation_type="none",
+                         needs_conversion=True)}
