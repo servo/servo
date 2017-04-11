@@ -83,8 +83,9 @@ use style::selector_parser::PseudoElementCascadeType;
 use style::sequential;
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards, ToCssWithGuard, Locked};
 use style::string_cache::Atom;
-use style::stylesheets::{CssRule, CssRules, CssRuleType, ImportRule, MediaRule, NamespaceRule, PageRule};
-use style::stylesheets::{Origin, Stylesheet, StyleRule};
+use style::stylesheets::{CssRule, CssRules, CssRuleType, CssRulesHelpers};
+use style::stylesheets::{ImportRule, MediaRule, NamespaceRule, Origin};
+use style::stylesheets::{PageRule, Stylesheet, StyleRule};
 use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
 use style::supports::parse_condition_or_declaration;
 use style::thread_state;
@@ -698,15 +699,20 @@ pub extern "C" fn Servo_CssRules_InsertRule(rules: ServoCssRulesBorrowed,
     };
     let loader = loader.as_ref().map(|loader| loader as &StyleStylesheetLoader);
     let rule = unsafe { rule.as_ref().unwrap().as_str_unchecked() };
-    write_locked_arc(rules, |rules: &mut CssRules| {
-        match rules.insert_rule(rule, sheet, index as usize, nested, loader) {
-            Ok(new_rule) => {
-                *unsafe { rule_type.as_mut().unwrap() } = new_rule.rule_type() as u16;
-                nsresult::NS_OK
-            }
-            Err(err) => err.into()
+
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    match Locked::<CssRules>::as_arc(&rules).insert_rule(&global_style_data.shared_lock,
+                                                         rule,
+                                                         sheet,
+                                                         index as usize,
+                                                         nested,
+                                                         loader) {
+        Ok(new_rule) => {
+            *unsafe { rule_type.as_mut().unwrap() } = new_rule.rule_type() as u16;
+            nsresult::NS_OK
         }
-    })
+        Err(err) => err.into(),
+    }
 }
 
 #[no_mangle]
