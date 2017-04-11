@@ -768,11 +768,13 @@ impl Stylist {
 
     /// Computes the match results of a given element against the set of
     /// revalidation selectors.
-    pub fn match_revalidation_selectors<E>(&self,
-                                           element: &E,
-                                           bloom: &BloomFilter)
-                                           -> BitVec
+    pub fn match_revalidation_selectors<E, F>(&self,
+                                              element: &E,
+                                              bloom: &BloomFilter,
+                                              flags_setter: &mut F)
+                                              -> BitVec
         where E: TElement,
+              F: FnMut(&E, ElementSelectorFlags)
     {
         use selectors::matching::StyleRelations;
         use selectors::matching::matches_complex_selector;
@@ -786,7 +788,7 @@ impl Stylist {
                                                     element,
                                                     Some(bloom),
                                                     &mut StyleRelations::empty(),
-                                                    &mut |_, _| {}));
+                                                    flags_setter));
         }
 
         results

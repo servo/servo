@@ -108,7 +108,8 @@ fn element_matches_candidate<E: TElement>(element: &E,
                                           candidate_element: &E,
                                           shared: &SharedStyleContext,
                                           bloom: &BloomFilter,
-                                          info: &mut CurrentElementInfo)
+                                          info: &mut CurrentElementInfo,
+                                          tasks: &mut Vec<SequentialTask<E>>)
                                           -> Result<ComputedStyle, CacheMiss> {
     macro_rules! miss {
         ($miss: ident) => {
@@ -156,7 +157,8 @@ fn element_matches_candidate<E: TElement>(element: &E,
         miss!(PresHints)
     }
 
-    if !revalidate(element, candidate, candidate_element, shared, bloom, info) {
+    if !revalidate(element, candidate, candidate_element,
+                   shared, bloom, info, tasks) {
         miss!(Revalidation)
     }
 
@@ -203,7 +205,8 @@ fn revalidate<E: TElement>(element: &E,
                            candidate_element: &E,
                            shared: &SharedStyleContext,
                            bloom: &BloomFilter,
-                           info: &mut CurrentElementInfo)
+                           info: &mut CurrentElementInfo,
+                           tasks: &mut Vec<SequentialTask<E>>)
                            -> bool {
     // NB: We could avoid matching ancestor selectors entirely (rather than
     // just depending on the bloom filter), at the expense of some complexity.
@@ -217,13 +220,33 @@ fn revalidate<E: TElement>(element: &E,
     let stylist = &shared.stylist;
 
     if info.revalidation_match_results.is_none() {
+        // It's important to set the selector flags. Otherwise, if we succeed in
+        // sharing the style, we may not set the slow selector flags for the
+        // right elements (which may not necessarily be |element|), causing missed
+        // restyles after future DOM mutations.
+        //
+        // Gecko's test_bug534804.html exercises this. A minimal testcase is:
+        // <style> #e:empty + span { ... } </style>
+        // <span id="e">
+        //   <span></span>
+        // </span>
+        // <span></span>
+        //
+        // The style sharing cache will get a hit for the second span. When the
+        // child span is subsequently removed from the DOM, missing selector
+        // flags would cause us to miss the restyle on the second span.
+        let mut set_selector_flags = |el: &E, flags: ElementSelectorFlags| {
+            element.apply_selector_flags(tasks, el, flags);
+        };
         info.revalidation_match_results =
-            Some(stylist.match_revalidation_selectors(element, bloom));
+            Some(stylist.match_revalidation_selectors(element, bloom,
+                                                      &mut set_selector_flags));
     }
 
     if candidate.revalidation_match_results.is_none() {
         candidate.revalidation_match_results =
-            Some(stylist.match_revalidation_selectors(candidate_element, bloom));
+            Some(stylist.match_revalidation_selectors(candidate_element, bloom,
+                                                      &mut |_, _| {}));
     }
 
     let for_element = info.revalidation_match_results.as_ref().unwrap();
@@ -670,11 +693,12 @@ trait PrivateMatchMethods: TElement {
                                               candidate: &mut StyleSharingCandidate<Self>,
                                               shared: &SharedStyleContext,
                                               bloom: &BloomFilter,
-                                              info: &mut CurrentElementInfo)
+                                              info: &mut CurrentElementInfo,
+                                              tasks: &mut Vec<SequentialTask<Self>>)
                                               -> Result<ComputedStyle, CacheMiss> {
         let candidate_element = *candidate.element;
         element_matches_candidate(self, candidate, &candidate_element,
-                                  shared, bloom, info)
+                                  shared, bloom, info, tasks)
     }
 }
 
@@ -1024,13 +1048,15 @@ pub trait MatchMethods : TElement {
         let current_element_info =
             &mut context.thread_local.current_element_info.as_mut().unwrap();
         let bloom = context.thread_local.bloom_filter.filter();
+        let tasks = &mut context.thread_local.tasks;
         let mut should_clear_cache = false;
         for (i, candidate) in cache.iter_mut().enumerate() {
             let sharing_result =
                 self.share_style_with_candidate_if_possible(candidate,
                                                             &context.shared,
                                                             bloom,
-                                                            current_element_info);
+                                                            current_element_info,
+                                                            tasks);
             match sharing_result {
                 Ok(shared_style) => {
                     // Yay, cache hit. Share the style.
