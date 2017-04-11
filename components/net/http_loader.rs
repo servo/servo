@@ -89,39 +89,6 @@ fn precise_time_ms() -> u64 {
     time::precise_time_ns() / (1000 * 1000)
 }
 
-pub struct WrappedHttpResponse {
-    pub response: HyperResponse
-}
-
-impl Read for WrappedHttpResponse {
-    #[inline]
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        self.response.read(buf)
-    }
-}
-
-impl WrappedHttpResponse {
-    fn headers(&self) -> &Headers {
-        &self.response.headers
-    }
-
-    fn content_encoding(&self) -> Option<Encoding> {
-        let encodings = match self.headers().get::<ContentEncoding>() {
-            Some(&ContentEncoding(ref encodings)) => encodings,
-            None => return None,
-        };
-        if encodings.contains(&Encoding::Gzip) {
-            Some(Encoding::Gzip)
-        } else if encodings.contains(&Encoding::Deflate) {
-            Some(Encoding::Deflate)
-        } else if encodings.contains(&Encoding::EncodingExt("br".to_owned())) {
-            Some(Encoding::EncodingExt("br".to_owned()))
-        } else {
-            None
-        }
-    }
-}
-
 // Step 3 of https://fetch.spec.whatwg.org/#concept-fetch.
 pub fn set_default_accept(type_: Type, destination: Destination, headers: &mut Headers) {
     if headers.has::<Accept>() {
@@ -314,8 +281,24 @@ impl Read for StreamedResponse {
 }
 
 impl StreamedResponse {
-    fn from_http_response(response: WrappedHttpResponse) -> io::Result<StreamedResponse> {
-        let decoder = match response.content_encoding() {
+    fn content_encoding(response: &HyperResponse) -> Option<Encoding> {
+        let encodings = match response.headers.get::<ContentEncoding>() {
+            Some(encodings) => encodings,
+            None => return None,
+        };
+        if encodings.contains(&Encoding::Gzip) {
+            Some(Encoding::Gzip)
+        } else if encodings.contains(&Encoding::Deflate) {
+            Some(Encoding::Deflate)
+        } else if encodings.contains(&Encoding::EncodingExt("br".to_owned())) {
+            Some(Encoding::EncodingExt("br".to_owned()))
+        } else {
+            None
+        }
+    }
+
+    fn from_http_response(response: HyperResponse) -> io::Result<StreamedResponse> {
+        let decoder = match StreamedResponse::content_encoding(&response) {
             Some(Encoding::Gzip) => {
                 Decoder::Gzip(try!(GzDecoder::new(response)))
             }
@@ -334,10 +317,10 @@ impl StreamedResponse {
 }
 
 enum Decoder {
-    Gzip(GzDecoder<WrappedHttpResponse>),
-    Deflate(DeflateDecoder<WrappedHttpResponse>),
-    Brotli(Decompressor<WrappedHttpResponse>),
-    Plain(WrappedHttpResponse)
+    Gzip(GzDecoder<HyperResponse>),
+    Deflate(DeflateDecoder<HyperResponse>),
+    Brotli(Decompressor<HyperResponse>),
+    Plain(HyperResponse),
 }
 
 fn prepare_devtools_request(request_id: String,
@@ -404,7 +387,7 @@ fn obtain_response(connector: &Pool<Connector>,
                    iters: u32,
                    request_id: Option<&str>,
                    is_xhr: bool)
-                   -> Result<(WrappedHttpResponse, Option<ChromeToDevtoolsControlMsg>), NetworkError> {
+                   -> Result<(HyperResponse, Option<ChromeToDevtoolsControlMsg>), NetworkError> {
     let null_data = None;
 
     // loop trying connections in connection pool
@@ -498,7 +481,7 @@ fn obtain_response(connector: &Pool<Connector>,
             None
         };
 
-        return Ok((WrappedHttpResponse { response: response }, msg));
+        return Ok((response, msg));
     }
 }
 
@@ -1096,10 +1079,10 @@ fn http_network_fetch(request: &Request,
     };
 
     let mut response = Response::new(url.clone());
-    response.status = Some(res.response.status);
-    response.raw_status = Some((res.response.status_raw().0,
-                                res.response.status_raw().1.as_bytes().to_vec()));
-    response.headers = res.response.headers.clone();
+    response.status = Some(res.status);
+    response.raw_status = Some((res.status_raw().0,
+                                res.status_raw().1.as_bytes().to_vec()));
+    response.headers = res.headers.clone();
     response.referrer = request.referrer.to_url().cloned();
 
     let res_body = response.body.clone();
