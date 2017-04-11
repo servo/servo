@@ -83,7 +83,7 @@ ${helpers.single_keyword("image-rendering",
 
 // Image Orientation
 <%helpers:longhand name="image-orientation"
-                   products="None"
+                   products="gecko"
                    animation_type="none"
     spec="https://drafts.csswg.org/css-images/#propdef-image-orientation, \
       /// additional values in https://developer.mozilla.org/en-US/docs/Web/CSS/image-orientation">
@@ -199,21 +199,23 @@ ${helpers.single_keyword("image-rendering",
         }
     }
 
+    // from-image | <angle> | [<angle>? flip]
     pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
         if input.try(|input| input.expect_ident_matching("from-image")).is_ok() {
             // Handle from-image
             Ok(SpecifiedValue { angle: None, flipped: false })
+        } else if input.try(|input| input.expect_ident_matching("flip")).is_ok() {
+            // Handle flip
+            Ok(SpecifiedValue { angle: Some(Angle::zero()), flipped: true })
         } else {
-            // Handle <angle> | <angle>? flip
+            // Handle <angle> | <angle> flip
             let angle = input.try(|input| Angle::parse(context, input)).ok();
-            let flipped = input.try(|input| input.expect_ident_matching("flip")).is_ok();
-            let explicit_angle = if angle.is_none() && !flipped {
-                Some(Angle::zero())
-            } else {
-                angle
-            };
+            if angle.is_none() {
+                return Err(());
+            }
 
-            Ok(SpecifiedValue { angle: explicit_angle, flipped: flipped })
+            let flipped = input.try(|input| input.expect_ident_matching("flip")).is_ok();
+            Ok(SpecifiedValue { angle: angle, flipped: flipped })
         }
     }
 </%helpers:longhand>

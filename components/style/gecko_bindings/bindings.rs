@@ -705,6 +705,18 @@ extern "C" {
     pub fn Gecko_CopyFontFamilyFrom(dst: *mut nsFont, src: *const nsFont);
 }
 extern "C" {
+    pub fn Gecko_SetImageOrientation(aVisibility: *mut nsStyleVisibility,
+                                     aRadians: f64, aFlip: bool);
+}
+extern "C" {
+    pub fn Gecko_SetImageOrientationAsFromImage(aVisibility:
+                                                    *mut nsStyleVisibility);
+}
+extern "C" {
+    pub fn Gecko_CopyImageOrientationFrom(aDst: *mut nsStyleVisibility,
+                                          aSrc: *const nsStyleVisibility);
+}
+extern "C" {
     pub fn Gecko_SetListStyleType(style_struct: *mut nsStyleList, type_: u32);
 }
 extern "C" {
