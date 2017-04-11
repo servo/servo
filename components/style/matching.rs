@@ -10,9 +10,10 @@
 use Atom;
 use animation::{self, Animation, PropertyAnimation};
 use atomic_refcell::AtomicRefMut;
+use bit_vec::BitVec;
 use cache::{LRUCache, LRUCacheMutIterator};
 use cascade_info::CascadeInfo;
-use context::{SequentialTask, SharedStyleContext, StyleContext};
+use context::{CurrentElementInfo, SequentialTask, SharedStyleContext, StyleContext};
 use data::{ComputedStyle, ElementData, ElementStyles, RestyleData};
 use dom::{AnimationRules, SendElement, TElement, TNode};
 use font_metrics::FontMetricsProvider;
@@ -53,6 +54,8 @@ struct StyleSharingCandidate<E: TElement> {
     element: SendElement<E>,
     /// The cached class names.
     class_attributes: Option<Vec<Atom>>,
+    /// The cached result of matching this entry against the revalidation selectors.
+    revalidation_match_results: Option<BitVec>,
 }
 
 impl<E: TElement> PartialEq<StyleSharingCandidate<E>> for StyleSharingCandidate<E> {
@@ -103,7 +106,9 @@ pub enum CacheMiss {
 fn element_matches_candidate<E: TElement>(element: &E,
                                           candidate: &mut StyleSharingCandidate<E>,
                                           candidate_element: &E,
-                                          shared_context: &SharedStyleContext)
+                                          shared: &SharedStyleContext,
+                                          bloom: &BloomFilter,
+                                          info: &mut CurrentElementInfo)
                                           -> Result<ComputedStyle, CacheMiss> {
     macro_rules! miss {
         ($miss: ident) => {
@@ -151,7 +156,7 @@ fn element_matches_candidate<E: TElement>(element: &E,
         miss!(PresHints)
     }
 
-    if !revalidate(element, candidate_element, shared_context) {
+    if !revalidate(element, candidate, candidate_element, shared, bloom, info) {
         miss!(Revalidation)
     }
 
@@ -194,9 +199,37 @@ fn have_same_class<E: TElement>(element: &E,
 
 #[inline]
 fn revalidate<E: TElement>(element: &E,
-                           candidate: &E,
-                           ctx: &SharedStyleContext) -> bool {
-    ctx.stylist.revalidate_entry_for_cache(element, candidate)
+                           candidate: &mut StyleSharingCandidate<E>,
+                           candidate_element: &E,
+                           shared: &SharedStyleContext,
+                           bloom: &BloomFilter,
+                           info: &mut CurrentElementInfo)
+                           -> bool {
+    // NB: We could avoid matching ancestor selectors entirely (rather than
+    // just depending on the bloom filter), at the expense of some complexity.
+    // Gecko bug 1354965 tracks this.
+    //
+    // We could also be even more careful about only matching the minimal number
+    // of revalidation selectors until we find a mismatch. Gecko bug 1355668
+    // tracks this.
+    //
+    // These potential optimizations may not be worth the complexity.
+    let stylist = &shared.stylist;
+
+    if info.revalidation_match_results.is_none() {
+        info.revalidation_match_results =
+            Some(stylist.match_revalidation_selectors(element, bloom));
+    }
+
+    if candidate.revalidation_match_results.is_none() {
+        candidate.revalidation_match_results =
+            Some(stylist.match_revalidation_selectors(candidate_element, bloom));
+    }
+
+    let for_element = info.revalidation_match_results.as_ref().unwrap();
+    let for_candidate = candidate.revalidation_match_results.as_ref().unwrap();
+    debug_assert!(for_element.len() == for_candidate.len());
+    for_element == for_candidate
 }
 
 static STYLE_SHARING_CANDIDATE_CACHE_SIZE: usize = 8;
@@ -219,7 +252,8 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
     pub fn insert_if_possible(&mut self,
                               element: &E,
                               style: &Arc<ComputedValues>,
-                              relations: StyleRelations) {
+                              relations: StyleRelations,
+                              revalidation_match_results: Option<BitVec>) {
         let parent = match element.parent_element() {
             Some(element) => element,
             None => {
@@ -252,6 +286,7 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
         self.cache.insert(StyleSharingCandidate {
             element: unsafe { SendElement::new(*element) },
             class_attributes: None,
+            revalidation_match_results: revalidation_match_results,
         });
     }
 
@@ -632,11 +667,14 @@ trait PrivateMatchMethods: TElement {
     }
 
     fn share_style_with_candidate_if_possible(&self,
-                                              shared_context: &SharedStyleContext,
-                                              candidate: &mut StyleSharingCandidate<Self>)
+                                              candidate: &mut StyleSharingCandidate<Self>,
+                                              shared: &SharedStyleContext,
+                                              bloom: &BloomFilter,
+                                              info: &mut CurrentElementInfo)
                                               -> Result<ComputedStyle, CacheMiss> {
         let candidate_element = *candidate.element;
-        element_matches_candidate(self, candidate, &candidate_element, shared_context)
+        element_matches_candidate(self, candidate, &candidate_element,
+                                  shared, bloom, info)
     }
 }
 
@@ -699,11 +737,23 @@ pub trait MatchMethods : TElement {
 
         // If the style is shareable, add it to the LRU cache.
         if sharing == StyleSharingBehavior::Allow && relations_are_shareable(&primary_relations) {
+            // If we previously tried to match this element against the cache,
+            // the revalidation match results will already be cached. Otherwise
+            // we'll have None, and compute them later on-demand.
+            //
+            // If we do have the results, grab them here to satisfy the borrow
+            // checker.
+            let revalidation_match_results = context.thread_local
+                                                    .current_element_info
+                                                    .as_mut().unwrap()
+                                                    .revalidation_match_results
+                                                    .take();
             context.thread_local
                    .style_sharing_candidate_cache
                    .insert_if_possible(self,
                                        data.styles().primary.values(),
-                                       primary_relations);
+                                       primary_relations,
+                                       revalidation_match_results);
         }
     }
 
@@ -951,9 +1001,7 @@ pub trait MatchMethods : TElement {
     /// live nodes in it, and we have no way to guarantee that at the type
     /// system level yet.
     unsafe fn share_style_if_possible(&self,
-                                      style_sharing_candidate_cache:
-                                        &mut StyleSharingCandidateCache<Self>,
-                                      shared_context: &SharedStyleContext,
+                                      context: &mut StyleContext<Self>,
                                       data: &mut AtomicRefMut<ElementData>)
                                       -> StyleSharingResult {
         if is_share_style_cache_disabled() {
@@ -972,11 +1020,17 @@ pub trait MatchMethods : TElement {
             return StyleSharingResult::CannotShare
         }
 
+        let cache = &mut context.thread_local.style_sharing_candidate_cache;
+        let current_element_info =
+            &mut context.thread_local.current_element_info.as_mut().unwrap();
+        let bloom = context.thread_local.bloom_filter.filter();
         let mut should_clear_cache = false;
-        for (i, candidate) in style_sharing_candidate_cache.iter_mut().enumerate() {
+        for (i, candidate) in cache.iter_mut().enumerate() {
             let sharing_result =
-                self.share_style_with_candidate_if_possible(shared_context,
-                                                            candidate);
+                self.share_style_with_candidate_if_possible(candidate,
+                                                            &context.shared,
+                                                            bloom,
+                                                            current_element_info);
             match sharing_result {
                 Ok(shared_style) => {
                     // Yay, cache hit. Share the style.
@@ -986,7 +1040,8 @@ pub trait MatchMethods : TElement {
                     let old_values = data.get_styles_mut()
                                          .and_then(|s| s.primary.values.take());
                     if let Some(old) = old_values {
-                        self.accumulate_damage(shared_context, data.restyle_mut(), &old,
+                        self.accumulate_damage(&context.shared,
+                                               data.restyle_mut(), &old,
                                                shared_style.values(), None);
                     }
 
@@ -1021,7 +1076,7 @@ pub trait MatchMethods : TElement {
             }
         }
         if should_clear_cache {
-            style_sharing_candidate_cache.clear();
+            cache.clear();
         }
 
         StyleSharingResult::CannotShare

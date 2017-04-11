@@ -7,6 +7,7 @@
 #![deny(missing_docs)]
 
 use {Atom, LocalName};
+use bit_vec::BitVec;
 use data::ComputedStyle;
 use dom::{AnimationRules, PresentationalHintsSynthetizer, TElement};
 use error_reporting::StdoutErrorReporter;
@@ -765,41 +766,30 @@ impl Stylist {
         self.rule_tree.root()
     }
 
-    /// Returns whether two elements match the same set of revalidation-
-    /// requiring rules.
-    ///
-    /// This is also for the style sharing candidate cache.
-    pub fn revalidate_entry_for_cache<E>(&self,
-                                         element: &E,
-                                         candidate: &E) -> bool
+    /// Computes the match results of a given element against the set of
+    /// revalidation selectors.
+    pub fn match_revalidation_selectors<E>(&self,
+                                           element: &E,
+                                           bloom: &BloomFilter)
+                                           -> BitVec
         where E: TElement,
     {
         use selectors::matching::StyleRelations;
         use selectors::matching::matches_complex_selector;
-        // TODO(emilio): we can probably do better, the candidate should already
-        // know what rules it matches.
-        //
-        // TODO(emilio): Use the bloom filter, since they contain the element's
-        // ancestor chain and it's correct for the candidate too.
-        for ref selector in self.selectors_for_cache_revalidation.iter() {
-            let element_matches =
-                matches_complex_selector(&selector.complex_selector, element,
-                                         None, &mut StyleRelations::empty(),
-                                         &mut |_, _| {});
 
-            let candidate_matches =
-                matches_complex_selector(&selector.complex_selector, candidate,
-                                         None, &mut StyleRelations::empty(),
-                                         &mut |_, _| {});
+        let len = self.selectors_for_cache_revalidation.len();
+        let mut results = BitVec::from_elem(len, false);
 
-            if element_matches != candidate_matches {
-                debug!("match_same_sibling_affecting_rules: Failure due to {:?}",
-                       selector.complex_selector);
-                return false;
-            }
+        for (i, ref selector) in self.selectors_for_cache_revalidation
+                                     .iter().enumerate() {
+            results.set(i, matches_complex_selector(&selector.complex_selector,
+                                                    element,
+                                                    Some(bloom),
+                                                    &mut StyleRelations::empty(),
+                                                    &mut |_, _| {}));
         }
 
-        true
+        results
     }
 
     /// Given an element, and a snapshot that represents a previous state of the

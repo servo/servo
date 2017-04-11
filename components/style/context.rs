@@ -7,6 +7,7 @@
 
 use animation::{Animation, PropertyAnimation};
 use app_units::Au;
+use bit_vec::BitVec;
 use bloom::StyleBloom;
 use data::ElementData;
 use dom::{OpaqueNode, TNode, TElement, SendElement};
@@ -111,6 +112,9 @@ pub struct CurrentElementInfo {
     element: OpaqueNode,
     /// Whether the element is being styled for the first time.
     is_initial_style: bool,
+    /// Lazy cache of the result of matching the current element against the
+    /// revalidation selectors.
+    pub revalidation_match_results: Option<BitVec>,
     /// A Vec of possibly expired animations. Used only by Servo.
     #[allow(dead_code)]
     pub possibly_expired_animations: Vec<PropertyAnimation>,
@@ -317,6 +321,7 @@ impl<E: TElement> ThreadLocalStyleContext<E> {
         self.current_element_info = Some(CurrentElementInfo {
             element: element.as_node().opaque(),
             is_initial_style: !data.has_styles(),
+            revalidation_match_results: None,
             possibly_expired_animations: Vec::new(),
         });
     }
