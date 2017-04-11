@@ -7,11 +7,17 @@ use std::path::Path;
 use std::process;
 use std::process::{Command, Stdio};
 
+#[cfg(windows)]
+extern crate winres;
+
 fn main() {
     // build.rs is not platform-specific, so we have to check the target here.
     let target = env::var("TARGET").unwrap();
     if target.contains("android") {
         android_main()
+    }
+    if cfg!(target_os = "windows") {
+        windows_main()
     }
 }
 
@@ -82,4 +88,11 @@ fn android_main() {
     println!("cargo:rustc-link-search=native={}", out_dir);
     println!("cargo:rustc-link-lib=log");
     println!("cargo:rustc-link-lib=android");
+}
+
+fn windows_main() {
+    let mut res = winres::WindowsResource::new();
+    res.set_resource_file("windows.rc");
+    res.set_manifest_file("app.manifest");
+    res.compile().unwrap();
 }

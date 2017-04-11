@@ -1,0 +1,3 @@
+#include "resource.h"
+ 
+WINDOWS ICON "../../resources/Servo.ico"
