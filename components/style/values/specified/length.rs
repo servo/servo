@@ -16,6 +16,7 @@ use std::ascii::AsciiExt;
 use std::ops::Mul;
 use style_traits::ToCss;
 use style_traits::values::specified::AllowedNumericType;
+use stylesheets::CssRuleType;
 use super::{Angle, Number, SimplifiedValueNode, SimplifiedSumNode, Time, ToComputedValue};
 use values::{Auto, CSSFloat, Either, FONT_MEDIUM_PX, HasViewportPercentage, None_, Normal};
 use values::ExtremumLength;
@@ -373,7 +374,8 @@ impl Mul<CSSFloat> for NoCalcLength {
 
 impl NoCalcLength {
     /// Parse a given absolute or relative dimension.
-    pub fn parse_dimension(_context: &ParserContext, value: CSSFloat, unit: &str) -> Result<NoCalcLength, ()> {
+    pub fn parse_dimension(context: &ParserContext, value: CSSFloat, unit: &str) -> Result<NoCalcLength, ()> {
+        let in_page_rule = context.rule_type.map_or(false, |rule_type| rule_type == CssRuleType::Page);
         match_ignore_ascii_case! { unit,
             "px" => Ok(NoCalcLength::Absolute(AbsoluteLength::Px(value))),
             "in" => Ok(NoCalcLength::Absolute(AbsoluteLength::In(value))),
@@ -388,10 +390,30 @@ impl NoCalcLength {
             "ch" => Ok(NoCalcLength::FontRelative(FontRelativeLength::Ch(value))),
             "rem" => Ok(NoCalcLength::FontRelative(FontRelativeLength::Rem(value))),
             // viewport percentages
-            "vw" => Ok(NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vw(value))),
-            "vh" => Ok(NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vh(value))),
-            "vmin" => Ok(NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vmin(value))),
-            "vmax" => Ok(NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vmax(value))),
+            "vw" => {
+                if in_page_rule {
+                    return Err(())
+                }
+                Ok(NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vw(value)))
+            },
+            "vh" => {
+                if in_page_rule {
+                    return Err(())
+                }
+                Ok(NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vh(value)))
+            },
+            "vmin" => {
+                if in_page_rule {
+                    return Err(())
+                }
+                Ok(NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vmin(value)))
+            },
+            "vmax" => {
+                if in_page_rule {
+                    return Err(())
+                }
+                Ok(NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vmax(value)))
+            },
             _ => Err(())
         }
     }
