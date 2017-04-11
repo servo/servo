@@ -5,6 +5,7 @@
 from __future__ import absolute_import, print_function
 
 from distutils.spawn import find_executable
+from distutils.version import StrictVersion
 import json
 import os
 import platform
@@ -204,10 +205,19 @@ def windows_msvc(context, force=False):
     def package_dir(package):
         return os.path.join(deps_dir, package, version(package))
 
+    def check_cmake(version):
+        cmake_path = find_executable("cmake")
+        if cmake_path:
+            cmake = subprocess.Popen([cmake_path, "--version"], stdout=PIPE)
+            cmake_version = cmake.stdout.read().splitlines()[0].replace("cmake version ", "")
+            if StrictVersion(cmake_version) >= StrictVersion(version):
+                return True
+        return False
+
     to_install = {}
     for package in packages.WINDOWS_MSVC:
         # Don't install CMake if it already exists in PATH
-        if package == "cmake" and find_executable(package):
+        if package == "cmake" and check_cmake(version("cmake")):
             continue
 
         if not os.path.isdir(package_dir(package)):
