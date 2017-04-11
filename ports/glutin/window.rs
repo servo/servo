@@ -433,7 +433,7 @@ impl Window {
                 ElementState::Released => KeyState::Released,
             };
             let modifiers = Window::glutin_mods_to_script_mods(self.key_modifiers.get());
-            self.event_queue.borrow_mut().push(WindowEvent::KeyEvent(None, key, state, modifiers));
+            //self.event_queue.borrow_mut().push(WindowEvent::KeyEvent(None, key, state, modifiers));
             self.event_queue.borrow_mut().push(WindowEvent::KeyEvent(ch, key, state, modifiers));
         }
     }
@@ -448,7 +448,7 @@ impl Window {
                 ElementState::Released => KeyState::Released,
             };
             if element_state == ElementState::Pressed {
-                if filter_nonprintable('0' /* unused */, virtual_key_code).is_some() {
+                if is_printable(virtual_key_code) {
                     self.last_pressed_key.set(Some(key));
                 }
             }
@@ -1233,7 +1233,7 @@ fn glutin_pressure_stage_to_touchpad_pressure_phase(stage: i64) -> TouchpadPress
     }
 }
 
-fn filter_nonprintable(ch: char, key_code: VirtualKeyCode) -> Option<char> {
+fn is_printable(key_code: VirtualKeyCode) -> bool {
     use glutin::VirtualKeyCode::*;
     match key_code {
         Escape |
@@ -1299,8 +1299,15 @@ fn filter_nonprintable(ch: char, key_code: VirtualKeyCode) -> Option<char> {
         WebHome |
         WebRefresh |
         WebSearch |
-        WebStop => None,
-        _ => Some(ch),
+        WebStop => false,
+        _ => true,
+    }
+}
+fn filter_nonprintable(ch: char, key_code: VirtualKeyCode) -> Option<char> {
+    if is_printable(key_code) {
+        Some(ch)
+    } else {
+        None
     }
 }
 
