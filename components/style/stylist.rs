@@ -112,14 +112,10 @@ pub struct Stylist {
     state_deps: DependencySet,
 
     /// Selectors that require explicit cache revalidation (i.e. which depend
-    /// on state that is not otherwise visible to the cache, like child index).
+    /// on state that is not otherwise visible to the cache, like attributes or
+    /// tree-structural state like child index and pseudos).
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
     selectors_for_cache_revalidation: Vec<Selector<SelectorImpl>>,
-
-    /// Selectors in the page matching elements with non-common style-affecting
-    /// attributes.
-    #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
-    style_affecting_attributes_selectors: Vec<Selector<SelectorImpl>>,
 }
 
 /// This struct holds data which user of Stylist may want to extract
@@ -172,7 +168,6 @@ impl Stylist {
             state_deps: DependencySet::new(),
 
             selectors_for_cache_revalidation: vec![],
-            style_affecting_attributes_selectors: vec![]
         };
 
         SelectorImpl::each_eagerly_cascaded_pseudo_element(|pseudo| {
@@ -227,7 +222,6 @@ impl Stylist {
         self.animations.clear();
 
         self.selectors_for_cache_revalidation.clear();
-        self.style_affecting_attributes_selectors.clear();
 
         extra_data.clear_font_faces();
 
@@ -249,8 +243,6 @@ impl Stylist {
         debug!("Stylist stats:");
         debug!(" - Got {} selectors for cache revalidation",
                self.selectors_for_cache_revalidation.len());
-        debug!(" - Got {} non-common-style-attribute-affecting selectors",
-               self.style_affecting_attributes_selectors.len());
         debug!(" - Got {} deps for style-hint calculation",
                self.state_deps.len());
 
@@ -307,10 +299,6 @@ impl Stylist {
 
                         if visitor.needs_cache_revalidation() {
                             self.selectors_for_cache_revalidation.push(selector.clone());
-                        }
-
-                        if visitor.affected_by_attribute() {
-                            self.style_affecting_attributes_selectors.push(selector.clone());
                         }
                     }
                 }
@@ -769,43 +757,6 @@ impl Stylist {
     #[inline]
     pub fn animations(&self) -> &FnvHashMap<Atom, KeyframesAnimation> {
         &self.animations
-    }
-
-    /// Whether two elements match the same not-common style-affecting attribute
-    /// rules.
-    ///
-    /// This is used to test elements and candidates in the style-sharing
-    /// candidate cache.
-    pub fn match_same_style_affecting_attributes_rules<E>(&self,
-                                                          element: &E,
-                                                          candidate: &E) -> bool
-        where E: TElement,
-    {
-        use selectors::matching::StyleRelations;
-        use selectors::matching::matches_complex_selector;
-        // TODO(emilio): we can probably do better, the candidate should already
-        // know what rules it matches. Also, we should only match until we find
-        // a descendant combinator, the rest should be ok, since the parent is
-        // the same.
-        //
-        // TODO(emilio): Use the bloom filter, since they contain the element's
-        // ancestor chain and it's correct for the candidate too.
-        for ref selector in self.style_affecting_attributes_selectors.iter() {
-            let element_matches =
-                matches_complex_selector(&selector.complex_selector, element,
-                                         None, &mut StyleRelations::empty(),
-                                         &mut |_, _| {});
-            let candidate_matches =
-                matches_complex_selector(&selector.complex_selector, candidate,
-                                         None, &mut StyleRelations::empty(),
-                                         &mut |_, _| {});
-
-            if element_matches != candidate_matches {
-                return false;
-            }
-        }
-
-        true
     }
 
     /// Returns the rule root node.

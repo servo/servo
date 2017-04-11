@@ -95,12 +95,9 @@ pub enum CacheMiss {
     Class,
     /// The presentation hints didn't match.
     PresHints,
-    /// The element and the candidate didn't match the same set of
-    /// sibling-affecting rules.
-    SiblingRules,
-    /// The element and the candidate didn't match the same set of style
-    /// affecting attribute selectors.
-    AttrRules,
+    /// The element and the candidate didn't match the same set of revalidation
+    /// selectors.
+    Revalidation,
 }
 
 fn element_matches_candidate<E: TElement>(element: &E,
@@ -155,13 +152,7 @@ fn element_matches_candidate<E: TElement>(element: &E,
     }
 
     if !revalidate(element, candidate_element, shared_context) {
-        miss!(SiblingRules)
-    }
-
-    if !match_same_style_affecting_attributes_rules(element,
-                                                    candidate_element,
-                                                    shared_context) {
-        miss!(AttrRules)
+        miss!(Revalidation)
     }
 
     let data = candidate_element.borrow_data().unwrap();
@@ -199,14 +190,6 @@ fn have_same_class<E: TElement>(element: &E,
     }
 
     element_class_attributes == *candidate.class_attributes.as_ref().unwrap()
-}
-
-// TODO: These re-match the candidate every time, which is suboptimal.
-#[inline]
-fn match_same_style_affecting_attributes_rules<E: TElement>(element: &E,
-                                                            candidate: &E,
-                                                            ctx: &SharedStyleContext) -> bool {
-    ctx.stylist.match_same_style_affecting_attributes_rules(element, candidate)
 }
 
 #[inline]
@@ -1031,8 +1014,7 @@ pub trait MatchMethods : TElement {
                         // Too expensive failure, give up, we don't want another
                         // one of these.
                         CacheMiss::PresHints |
-                        CacheMiss::SiblingRules |
-                        CacheMiss::AttrRules => break,
+                        CacheMiss::Revalidation => break,
                         _ => {}
                     }
                 }

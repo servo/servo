@@ -490,7 +490,6 @@ struct Dependency {
 pub struct SelectorDependencyVisitor<'a> {
     dependency_set: &'a mut DependencySet,
     needs_cache_revalidation: bool,
-    affected_by_attribute: bool,
 }
 
 impl<'a> SelectorDependencyVisitor<'a> {
@@ -499,7 +498,6 @@ impl<'a> SelectorDependencyVisitor<'a> {
         SelectorDependencyVisitor {
             dependency_set: dependency_set,
             needs_cache_revalidation: false,
-            affected_by_attribute: false,
         }
     }
 
@@ -507,12 +505,6 @@ impl<'a> SelectorDependencyVisitor<'a> {
     /// cache revalidation.
     pub fn needs_cache_revalidation(&self) -> bool {
         self.needs_cache_revalidation
-    }
-
-    /// Returns whether this visitor has known of a attribute-dependent
-    /// selector.
-    pub fn affected_by_attribute(&self) -> bool {
-        self.affected_by_attribute
     }
 }
 
@@ -537,7 +529,7 @@ impl<'a> SelectorVisitor for SelectorDependencyVisitor<'a> {
 
         let hint = combinator_to_restyle_hint(combinator);
 
-        self.affected_by_attribute |= sensitivities.attrs;
+        self.needs_cache_revalidation |= sensitivities.attrs;
         self.needs_cache_revalidation |= hint.intersects(RESTYLE_LATER_SIBLINGS);
 
         if !sensitivities.is_empty() {
