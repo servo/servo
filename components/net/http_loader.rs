@@ -263,24 +263,14 @@ fn set_cookies_from_headers(url: &ServoUrl, headers: &Headers, cookie_jar: &RwLo
     }
 }
 
-struct StreamedResponse {
-    decoder: Decoder,
+enum Decoder {
+    Gzip(GzDecoder<HyperResponse>),
+    Deflate(DeflateDecoder<HyperResponse>),
+    Brotli(Decompressor<HyperResponse>),
+    Plain(HyperResponse),
 }
 
-
-impl Read for StreamedResponse {
-    #[inline]
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        match self.decoder {
-            Decoder::Gzip(ref mut d) => d.read(buf),
-            Decoder::Deflate(ref mut d) => d.read(buf),
-            Decoder::Brotli(ref mut d) => d.read(buf),
-            Decoder::Plain(ref mut d) => d.read(buf)
-        }
-    }
-}
-
-impl StreamedResponse {
+impl Decoder {
     fn content_encoding(response: &HyperResponse) -> Option<Encoding> {
         let encodings = match response.headers.get::<ContentEncoding>() {
             Some(encodings) => encodings,
@@ -297,8 +287,8 @@ impl StreamedResponse {
         }
     }
 
-    fn from_http_response(response: HyperResponse) -> io::Result<StreamedResponse> {
-        let decoder = match StreamedResponse::content_encoding(&response) {
+    fn from_http_response(response: HyperResponse) -> io::Result<Self> {
+        let decoder = match Decoder::content_encoding(&response) {
             Some(Encoding::Gzip) => {
                 Decoder::Gzip(try!(GzDecoder::new(response)))
             }
@@ -312,15 +302,20 @@ impl StreamedResponse {
                 Decoder::Plain(response)
             }
         };
-        Ok(StreamedResponse { decoder: decoder })
+        Ok(decoder)
     }
 }
 
-enum Decoder {
-    Gzip(GzDecoder<HyperResponse>),
-    Deflate(DeflateDecoder<HyperResponse>),
-    Brotli(Decompressor<HyperResponse>),
-    Plain(HyperResponse),
+impl Read for Decoder {
+    #[inline]
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        match *self {
+            Decoder::Gzip(ref mut d) => d.read(buf),
+            Decoder::Deflate(ref mut d) => d.read(buf),
+            Decoder::Brotli(ref mut d) => d.read(buf),
+            Decoder::Plain(ref mut d) => d.read(buf)
+        }
+    }
 }
 
 fn prepare_devtools_request(request_id: String,
@@ -1098,7 +1093,7 @@ fn http_network_fetch(request: &Request,
     let meta_status = meta.status.clone();
     let meta_headers = meta.headers.clone();
     thread::Builder::new().name(format!("fetch worker thread")).spawn(move || {
-        match StreamedResponse::from_http_response(res) {
+        match Decoder::from_http_response(res) {
             Ok(mut res) => {
                 *res_body.lock().unwrap() = ResponseBody::Receiving(vec![]);
 
