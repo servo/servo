@@ -433,7 +433,7 @@ trait PrivateMatchMethods: TElement {
                                                    &pseudo_style);
 
         // Handle animations.
-        if animate {
+        if animate && !context.shared.traversal_flags.for_animation_only() {
             self.process_animations(context,
                                     &mut old_values,
                                     &mut new_values,
