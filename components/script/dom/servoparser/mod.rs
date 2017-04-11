@@ -585,6 +585,9 @@ impl FetchResponseListener for ParserContext {
                 }
             },
             Some(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _))) => {}, // Handle text/xml
+
+            Some(ContentType(Mime(TopLevel::Application, SubLevel::Xml, _))) => {}, // Handle application/xml
+
             Some(ContentType(Mime(toplevel, sublevel, _))) => {
                 if toplevel.as_str() == "application" && sublevel.as_str() == "xhtml+xml" {
                     // Handle xhtml (application/xhtml+xml).
