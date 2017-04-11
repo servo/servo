@@ -339,7 +339,7 @@ ${helpers.predefined_type("clip",
             if let Ok(function_name) = input.try(|input| input.expect_function()) {
                 filters.push(try!(input.parse_nested_block(|input| {
                     match_ignore_ascii_case! { &function_name,
-                        "blur" => specified::Length::parse_non_negative(input).map(SpecifiedFilter::Blur),
+                        "blur" => specified::Length::parse_non_negative(context, input).map(SpecifiedFilter::Blur),
                         "brightness" => parse_factor(input).map(SpecifiedFilter::Brightness),
                         "contrast" => parse_factor(input).map(SpecifiedFilter::Contrast),
                         "grayscale" => parse_factor(input).map(SpecifiedFilter::Grayscale),

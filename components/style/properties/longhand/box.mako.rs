@@ -558,20 +558,20 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     }
 
     impl Parse for SpecifiedValue {
-        fn parse(_context: &ParserContext, input: &mut ::cssparser::Parser) -> Result<Self, ()> {
+        fn parse(context: &ParserContext, input: &mut ::cssparser::Parser) -> Result<Self, ()> {
             if let Ok(function_name) = input.try(|input| input.expect_function()) {
                 return match_ignore_ascii_case! { &function_name,
                     "cubic-bezier" => {
                         let (mut p1x, mut p1y, mut p2x, mut p2y) =
                             (Number::new(0.0), Number::new(0.0), Number::new(0.0), Number::new(0.0));
                         try!(input.parse_nested_block(|input| {
-                            p1x = try!(specified::parse_number(input));
+                            p1x = try!(specified::parse_number(context, input));
                             try!(input.expect_comma());
-                            p1y = try!(specified::parse_number(input));
+                            p1y = try!(specified::parse_number(context, input));
                             try!(input.expect_comma());
-                            p2x = try!(specified::parse_number(input));
+                            p2x = try!(specified::parse_number(context, input));
                             try!(input.expect_comma());
-                            p2y = try!(specified::parse_number(input));
+                            p2y = try!(specified::parse_number(context, input));
                             Ok(())
                         }));
                         if p1x.value < 0.0 || p1x.value > 1.0 ||
@@ -585,7 +585,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                     "steps" => {
                         let (mut step_count, mut start_end) = (specified::Integer::new(0), StartEnd::End);
                         try!(input.parse_nested_block(|input| {
-                            step_count = try!(specified::parse_integer(input));
+                            step_count = try!(specified::parse_integer(context, input));
                             if step_count.value() < 1 {
                                 return Err(())
                             }
@@ -1057,12 +1057,12 @@ ${helpers.single_keyword("animation-fill-mode",
         }
     }
 
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
         if input.try(|input| input.expect_ident_matching("none")).is_ok() {
             Ok(SpecifiedValue::None)
         } else if input.try(|input| input.expect_function_matching("repeat")).is_ok() {
             input.parse_nested_block(|input| {
-                LengthOrPercentage::parse_non_negative(input).map(SpecifiedValue::Repeat)
+                LengthOrPercentage::parse_non_negative(context, input).map(SpecifiedValue::Repeat)
             })
         } else {
             Err(())
@@ -1349,7 +1349,7 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                 "matrix" => {
                     try!(input.parse_nested_block(|input| {
                         let values = try!(input.parse_comma_separated(|input| {
-                            specified::parse_number(input)
+                            specified::parse_number(context, input)
                         }));
                         if values.len() != 6 {
                             return Err(())
@@ -1367,7 +1367,7 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                 },
                 "matrix3d" => {
                     try!(input.parse_nested_block(|input| {
-                        let values = try!(input.parse_comma_separated(specified::parse_number));
+                        let values = try!(input.parse_comma_separated(|i| specified::parse_number(context, i)));
                         if values.len() != 16 {
                             return Err(())
                         }
@@ -1426,9 +1426,9 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                 },
                 "scale" => {
                     try!(input.parse_nested_block(|input| {
-                        let sx = try!(specified::parse_number(input));
+                        let sx = try!(specified::parse_number(context, input));
                         if input.try(|input| input.expect_comma()).is_ok() {
-                            let sy = try!(specified::parse_number(input));
+                            let sy = try!(specified::parse_number(context, input));
                             result.push(SpecifiedOperation::Scale(sx, Some(sy)));
                         } else {
                             result.push(SpecifiedOperation::Scale(sx, None));
@@ -1438,32 +1438,32 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                 },
                 "scalex" => {
                     try!(input.parse_nested_block(|input| {
-                        let sx = try!(specified::parse_number(input));
+                        let sx = try!(specified::parse_number(context, input));
                         result.push(SpecifiedOperation::ScaleX(sx));
                         Ok(())
                     }))
                 },
                 "scaley" => {
                     try!(input.parse_nested_block(|input| {
-                        let sy = try!(specified::parse_number(input));
+                        let sy = try!(specified::parse_number(context, input));
                         result.push(SpecifiedOperation::ScaleY(sy));
                         Ok(())
                     }))
                 },
                 "scalez" => {
                     try!(input.parse_nested_block(|input| {
-                        let sz = try!(specified::parse_number(input));
+                        let sz = try!(specified::parse_number(context, input));
                         result.push(SpecifiedOperation::ScaleZ(sz));
                         Ok(())
                     }))
                 },
                 "scale3d" => {
                     try!(input.parse_nested_block(|input| {
-                        let sx = try!(specified::parse_number(input));
+                        let sx = try!(specified::parse_number(context, input));
                         try!(input.expect_comma());
-                        let sy = try!(specified::parse_number(input));
+                        let sy = try!(specified::parse_number(context, input));
                         try!(input.expect_comma());
-                        let sz = try!(specified::parse_number(input));
+                        let sz = try!(specified::parse_number(context, input));
                         result.push(SpecifiedOperation::Scale3D(sx, sy, sz));
                         Ok(())
                     }))
@@ -1498,11 +1498,11 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                 },
                 "rotate3d" => {
                     try!(input.parse_nested_block(|input| {
-                        let ax = try!(specified::parse_number(input));
+                        let ax = try!(specified::parse_number(context, input));
                         try!(input.expect_comma());
-                        let ay = try!(specified::parse_number(input));
+                        let ay = try!(specified::parse_number(context, input));
                         try!(input.expect_comma());
-                        let az = try!(specified::parse_number(input));
+                        let az = try!(specified::parse_number(context, input));
                         try!(input.expect_comma());
                         let theta = try!(specified::Angle::parse_with_unitless(context,input));
                         // TODO(gw): Check the axis can be normalized!!
@@ -1538,7 +1538,7 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                 },
                 "perspective" => {
                     try!(input.parse_nested_block(|input| {
-                        let d = try!(specified::Length::parse_non_negative(input));
+                        let d = try!(specified::Length::parse_non_negative(context, input));
                         result.push(SpecifiedOperation::Perspective(d));
                         Ok(())
                     }))

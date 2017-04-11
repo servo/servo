@@ -95,14 +95,12 @@ ${helpers.predefined_type("flex-grow", "Number",
                           "0.0", "parse_non_negative",
                           spec="https://drafts.csswg.org/css-flexbox/#flex-grow-property",
                           extra_prefixes="webkit",
-                          needs_context=False,
                           animation_type="normal")}
 
 ${helpers.predefined_type("flex-shrink", "Number",
                           "1.0", "parse_non_negative",
                           spec="https://drafts.csswg.org/css-flexbox/#flex-shrink-property",
                           extra_prefixes="webkit",
-                          needs_context=False,
                           animation_type="normal")}
 
 // https://drafts.csswg.org/css-align/#align-self-property
@@ -142,7 +140,6 @@ ${helpers.predefined_type("flex-basis",
                           "computed::LengthOrPercentageOrAuto::Auto" if product == "gecko" else
                           "computed::LengthOrPercentageOrAutoOrContent::Auto",
                           "parse_non_negative",
-                          needs_context=False,
                           spec="https://drafts.csswg.org/css-flexbox/#flex-basis-property",
                           extra_prefixes="webkit",
                           animation_type="normal" if product == "gecko" else "none")}
@@ -158,7 +155,6 @@ ${helpers.predefined_type("flex-basis",
                               "LengthOrPercentageOrAuto",
                               "computed::LengthOrPercentageOrAuto::Auto",
                               "parse_non_negative",
-                              needs_context=False,
                               spec=spec % size,
                               animation_type="normal", logical = logical)}
     % if product == "gecko":
@@ -255,14 +251,12 @@ ${helpers.predefined_type("flex-basis",
                                   "LengthOrPercentage",
                                   "computed::LengthOrPercentage::Length(Au(0))",
                                   "parse_non_negative",
-                                  needs_context=False,
                                   spec=spec % ("min-%s" % size),
                                   animation_type="normal", logical = logical)}
         ${helpers.predefined_type("max-%s" % size,
                                   "LengthOrPercentageOrNone",
                                   "computed::LengthOrPercentageOrNone::None",
                                   "parse_non_negative",
-                                  needs_context=False,
                                   spec=spec % ("min-%s" % size),
                                   animation_type="normal", logical = logical)}
     % endif

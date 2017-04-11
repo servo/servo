@@ -50,10 +50,10 @@
                     spec="https://drafts.csswg.org/css-flexbox/#flex-property">
     use values::specified::Number;
 
-    fn parse_flexibility(input: &mut Parser)
+    fn parse_flexibility(context: &ParserContext, input: &mut Parser)
                          -> Result<(Number, Option<Number>),()> {
-        let grow = try!(Number::parse_non_negative(input));
-        let shrink = input.try(Number::parse_non_negative).ok();
+        let grow = try!(Number::parse_non_negative(context, input));
+        let shrink = input.try(|i| Number::parse_non_negative(context, i)).ok();
         Ok((grow, shrink))
     }
 
@@ -71,7 +71,7 @@
         }
         loop {
             if grow.is_none() {
-                if let Ok((flex_grow, flex_shrink)) = input.try(parse_flexibility) {
+                if let Ok((flex_grow, flex_shrink)) = input.try(|i| parse_flexibility(context, i)) {
                     grow = Some(flex_grow);
                     shrink = flex_shrink;
                     continue

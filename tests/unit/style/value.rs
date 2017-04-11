@@ -4,6 +4,9 @@
 
 use app_units::Au;
 use cssparser::Parser;
+use media_queries::CSSErrorReporterTest;
+use style::parser::ParserContext;
+use style::stylesheets::{CssRuleType, Origin};
 use style::values::HasViewportPercentage;
 use style::values::specified::{AbsoluteLength, ViewportPercentageLength, NoCalcLength};
 use style::values::specified::length::{CalcLengthOrPercentage, CalcUnit};
@@ -19,8 +22,11 @@ fn length_has_viewport_percentage() {
 #[test]
 fn calc_top_level_number_with_unit() {
     fn parse(text: &str, unit: CalcUnit) -> Result<CalcLengthOrPercentage, ()> {
+        let url = ::servo_url::ServoUrl::parse("http://localhost").unwrap();
+        let reporter = CSSErrorReporterTest;
+        let context = ParserContext::new(Origin::Author, &url, &reporter, Some(CssRuleType::Style));
         let mut parser = Parser::new(text);
-        CalcLengthOrPercentage::parse(&mut parser, unit)
+        CalcLengthOrPercentage::parse(&context, &mut parser, unit)
     }
     assert_eq!(parse("1", CalcUnit::Length), Err(()));
     assert_eq!(parse("1", CalcUnit::LengthOrPercentage), Err(()));

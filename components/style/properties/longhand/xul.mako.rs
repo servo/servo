@@ -25,7 +25,6 @@ ${helpers.single_keyword("-moz-box-direction", "normal reverse",
 
 ${helpers.predefined_type("-moz-box-flex", "Number", "0.0", "parse_non_negative",
                           products="gecko", gecko_ffi_name="mBoxFlex",
-                          needs_context=False,
                           animation_type="none",
                           alias="-webkit-box-flex",
                           spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/box-flex)")}
@@ -52,7 +51,6 @@ ${helpers.single_keyword("-moz-stack-sizing", "stretch-to-fit ignore",
 
 ${helpers.predefined_type("-moz-box-ordinal-group", "Integer", "0",
                           parse_method="parse_non_negative",
-                          needs_context=False,
                           products="gecko",
                           alias="-webkit-box-ordinal-group",
                           gecko_ffi_name="mBoxOrdinal",

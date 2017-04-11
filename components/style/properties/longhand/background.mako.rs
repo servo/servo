@@ -482,7 +482,7 @@ ${helpers.single_keyword("background-origin",
         })
     }
 
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
         if input.try(|input| input.expect_ident_matching("cover")).is_ok() {
             return Ok(SpecifiedValue::Cover);
         }
@@ -492,12 +492,12 @@ ${helpers.single_keyword("background-origin",
         }
 
         let width =
-            try!(specified::LengthOrPercentageOrAuto::parse_non_negative(input));
+            try!(specified::LengthOrPercentageOrAuto::parse_non_negative(context, input));
 
         let height = if input.is_exhausted() {
             specified::LengthOrPercentageOrAuto::Auto
         } else {
-            try!(specified::LengthOrPercentageOrAuto::parse_non_negative(input))
+            try!(specified::LengthOrPercentageOrAuto::parse_non_negative(context, input))
         };
 
         Ok(SpecifiedValue::Explicit(ExplicitSize {

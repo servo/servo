@@ -45,18 +45,18 @@
         }
     }
     /// normal | <number> | <length> | <percentage>
-    pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
         use cssparser::Token;
         use std::ascii::AsciiExt;
 
         // We try to parse as a Number first because, for 'line-height', we want
         // "0" to be parsed as a plain Number rather than a Length (0px); this
         // matches the behaviour of all major browsers
-        if let Ok(number) = input.try(specified::Number::parse_non_negative) {
+        if let Ok(number) = input.try(|i| specified::Number::parse_non_negative(context, i)) {
             return Ok(SpecifiedValue::Number(number))
         }
 
-        if let Ok(lop) = input.try(specified::LengthOrPercentage::parse_non_negative) {
+        if let Ok(lop) = input.try(|i| specified::LengthOrPercentage::parse_non_negative(context, i)) {
             return Ok(SpecifiedValue::LengthOrPercentage(lop))
         }
 

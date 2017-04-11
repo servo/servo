@@ -32,8 +32,9 @@ use std::default::Default;
 use std::sync::Arc;
 use style::attr::AttrValue;
 use style::media_queries::parse_media_query_list;
+use style::parser::ParserContext as CssParserContext;
 use style::str::HTML_SPACE_CHARACTERS;
-use style::stylesheets::Stylesheet;
+use style::stylesheets::{CssRuleType, Stylesheet};
 use stylesheet_loader::{StylesheetLoader, StylesheetContextSource, StylesheetOwner};
 
 unsafe_no_jsmanaged_fields!(Stylesheet);
@@ -255,7 +256,7 @@ impl HTMLLinkElement {
         }
 
         // Step 2.
-        let url = match document.base_url().join(href) {
+        let link_url = match document.base_url().join(href) {
             Ok(url) => url,
             Err(e) => {
                 debug!("Parsing url {} failed: {}", href, e);
@@ -276,7 +277,10 @@ impl HTMLLinkElement {
         };
 
         let mut css_parser = CssParser::new(&mq_str);
-        let media = parse_media_query_list(&mut css_parser);
+        let win = document.window();
+        let doc_url = document.url();
+        let context = CssParserContext::new_for_cssom(&doc_url, win.css_error_reporter(), Some(CssRuleType::Media));
+        let media = parse_media_query_list(&context, &mut css_parser);
 
         let im_attribute = element.get_attribute(&ns!(), &local_name!("integrity"));
         let integrity_val = im_attribute.r().map(|a| a.value());
@@ -292,7 +296,7 @@ impl HTMLLinkElement {
         let loader = StylesheetLoader::for_element(self.upcast());
         loader.load(StylesheetContextSource::LinkElement {
             media: Some(media),
-        }, url, cors_setting, integrity_metadata.to_owned());
+        }, link_url, cors_setting, integrity_metadata.to_owned());
     }
 
     fn handle_favicon_url(&self, rel: &str, href: &str, sizes: &Option<String>) {

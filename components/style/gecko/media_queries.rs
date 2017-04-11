@@ -14,6 +14,7 @@ use gecko_bindings::structs::{nsMediaExpression_Range, nsMediaFeature};
 use gecko_bindings::structs::{nsMediaFeature_ValueType, nsMediaFeature_RangeType, nsMediaFeature_RequirementFlags};
 use gecko_bindings::structs::RawGeckoPresContextOwned;
 use media_queries::MediaType;
+use parser::ParserContext;
 use properties::ComputedValues;
 use std::ascii::AsciiExt;
 use std::fmt::{self, Write};
@@ -366,7 +367,7 @@ impl Expression {
     /// ```
     /// (media-feature: media-value)
     /// ```
-    pub fn parse(input: &mut Parser) -> Result<Self, ()> {
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         try!(input.expect_parenthesis_block());
         input.parse_nested_block(|input| {
             let ident = try!(input.expect_ident());
@@ -421,7 +422,7 @@ impl Expression {
             let value = match feature.mValueType {
                 nsMediaFeature_ValueType::eLength => {
                     MediaExpressionValue::Length(
-                        specified::Length::parse_non_negative(input)?)
+                        specified::Length::parse_non_negative(context, input)?)
                 },
                 nsMediaFeature_ValueType::eInteger => {
                     let i = input.expect_integer()?;

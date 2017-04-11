@@ -905,7 +905,7 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
                     let url_string = input.expect_url_or_string()?;
                     let specified_url = SpecifiedUrl::parse_from_string(url_string, &self.context)?;
 
-                    let media = parse_media_query_list(input);
+                    let media = parse_media_query_list(&self.context, input);
 
                     let noop_loader = NoOpLoader;
                     let loader = if !specified_url.is_invalid() {
@@ -1054,7 +1054,7 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
                      -> Result<AtRuleType<AtRulePrelude, CssRule>, ()> {
         match_ignore_ascii_case! { name,
             "media" => {
-                let media_queries = parse_media_query_list(input);
+                let media_queries = parse_media_query_list(self.context, input);
                 let arc = Arc::new(self.shared_lock.wrap(media_queries));
                 Ok(AtRuleType::WithBlock(AtRulePrelude::Media(arc)))
             },

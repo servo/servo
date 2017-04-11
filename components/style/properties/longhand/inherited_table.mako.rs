@@ -114,14 +114,14 @@ ${helpers.single_keyword("caption-side", "top bottom",
         }
     }
 
-    pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
         let mut first = None;
         let mut second = None;
-        match specified::Length::parse_non_negative(input) {
+        match specified::Length::parse_non_negative(context, input) {
             Err(()) => (),
             Ok(length) => {
                 first = Some(length);
-                if let Ok(len) = input.try(|input| specified::Length::parse_non_negative(input)) {
+                if let Ok(len) = input.try(|input| specified::Length::parse_non_negative(context, input)) {
                     second = Some(len);
                 }
             }

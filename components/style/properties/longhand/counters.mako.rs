@@ -330,11 +330,11 @@
         }
     }
 
-    pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        parse_common(1, input)
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        parse_common(context, 1, input)
     }
 
-    pub fn parse_common(default_value: i32, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse_common(context: &ParserContext, default_value: i32, input: &mut Parser) -> Result<SpecifiedValue, ()> {
         if input.try(|input| input.expect_ident_matching("none")).is_ok() {
             return Ok(SpecifiedValue(Vec::new()))
         }
@@ -349,8 +349,8 @@
             if content::counter_name_is_illegal(&counter_name) {
                 return Err(())
             }
-            let counter_delta =
-                input.try(|input| specified::parse_integer(input)).unwrap_or(specified::Integer::new(default_value));
+            let counter_delta = input.try(|input| specified::parse_integer(context, input))
+                                     .unwrap_or(specified::Integer::new(default_value));
             counters.push((counter_name, counter_delta))
         }
 
@@ -367,7 +367,7 @@
     pub use super::counter_increment::{SpecifiedValue, computed_value, get_initial_value};
     use super::counter_increment::parse_common;
 
-    pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
-        parse_common(0, input)
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+        parse_common(context, 0, input)
     }
 </%helpers:longhand>
