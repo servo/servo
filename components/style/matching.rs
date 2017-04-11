@@ -265,6 +265,11 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
         }
     }
 
+    /// Returns the number of entries in the cache.
+    pub fn num_entries(&self) -> usize {
+        self.cache.num_entries()
+    }
+
     fn iter_mut(&mut self) -> LRUCacheMutIterator<StyleSharingCandidate<E>> {
         self.cache.iter_mut()
     }
@@ -1029,18 +1034,22 @@ pub trait MatchMethods : TElement {
                                       data: &mut AtomicRefMut<ElementData>)
                                       -> StyleSharingResult {
         if is_share_style_cache_disabled() {
+            debug!("{:?} Cannot share style: style sharing cache disabled", self);
             return StyleSharingResult::CannotShare
         }
 
         if self.parent_element().is_none() {
+            debug!("{:?} Cannot share style: element has style attribute", self);
             return StyleSharingResult::CannotShare
         }
 
         if self.style_attribute().is_some() {
+            debug!("{:?} Cannot share style: element has style attribute", self);
             return StyleSharingResult::CannotShare
         }
 
         if self.has_attr(&ns!(), &local_name!("id")) {
+            debug!("{:?} Cannot share style: element has id", self);
             return StyleSharingResult::CannotShare
         }
 
@@ -1101,6 +1110,9 @@ pub trait MatchMethods : TElement {
                 }
             }
         }
+
+        debug!("{:?} Cannot share style: {} cache entries", self, cache.num_entries());
+
         if should_clear_cache {
             cache.clear();
         }

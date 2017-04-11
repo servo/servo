@@ -31,6 +31,11 @@ impl<K: PartialEq> LRUCache<K> {
         }
     }
 
+    /// Returns the number of elements in the cache.
+    pub fn num_entries(&self) -> usize {
+        self.entries.len()
+    }
+
     #[inline]
     /// Touch a given position, and put it in the last item on the list.
     pub fn touch(&mut self, pos: usize) {
