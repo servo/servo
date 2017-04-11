@@ -128,10 +128,10 @@ class MachCommands(CommandBase):
 
                         if version != max_version:
                             outdated_packages += 1
-                            version_split = version.split(".")
-                            max_split = max_version.split(".")
+                            version_major, version_minor = (version.split("."))[:2]
+                            max_major, max_minor = (max_version.split("."))[:2]
 
-                            if version_split[0] == max_split[0] and version_split[1] == max_split[1]:
+                            if version_major == max_major and version_minor == max_minor and "alpha" not in version:
                                 msg = "minor update"
                                 msg_color = "\033[93m"
                             else:
