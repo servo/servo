@@ -271,8 +271,8 @@ impl<'a> StylesheetLoader<'a> {
 impl<'a> StyleStylesheetLoader for StylesheetLoader<'a> {
     fn request_stylesheet(
         &self,
-        media: Arc<Locked<MediaList>>,
-        make_import: &mut FnMut(Arc<Locked<MediaList>>) -> ImportRule,
+        media: Arc<StyleLocked<MediaList>>,
+        make_import: &mut FnMut(Arc<StyleLocked<MediaList>>) -> ImportRule,
         make_arc: &mut FnMut(ImportRule) -> Arc<StyleLocked<ImportRule>>,
     ) -> Arc<StyleLocked<ImportRule>> {
         let import = make_import(media);

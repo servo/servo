@@ -723,7 +723,7 @@ impl Stylesheet {
     pub fn from_str(css: &str,
                     url_data: UrlExtraData,
                     origin: Origin,
-                    media: MediaList,
+                    media: Arc<Locked<MediaList>>,
                     shared_lock: SharedRwLock,
                     stylesheet_loader: Option<&StylesheetLoader>,
                     error_reporter: &ParseErrorReporter) -> Stylesheet {
@@ -737,7 +737,7 @@ impl Stylesheet {
             url_data: url_data,
             namespaces: RwLock::new(namespaces),
             rules: CssRules::new(rules, &shared_lock),
-            media: Arc::new(shared_lock.wrap(media)),
+            media: media,
             shared_lock: shared_lock,
             dirty_on_viewport_size_change: AtomicBool::new(dirty_on_viewport_size_change),
             disabled: AtomicBool::new(false),

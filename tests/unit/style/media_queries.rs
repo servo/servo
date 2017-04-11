@@ -6,6 +6,7 @@ use cssparser::{Parser, SourcePosition};
 use euclid::size::TypedSize2D;
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
+use std::sync::Arc;
 use style::Atom;
 use style::error_reporting::ParseErrorReporter;
 use style::media_queries::*;
@@ -28,8 +29,10 @@ fn test_media_rule<F>(css: &str, callback: F)
 {
     let url = ServoUrl::parse("http://localhost").unwrap();
     let css_str = css.to_owned();
+    let lock = SharedRwLock::new();
+    let media_list = Arc::new(lock.wrap(MediaList::empty()));
     let stylesheet = Stylesheet::from_str(
-        css, url, Origin::Author, Default::default(), SharedRwLock::new(),
+        css, url, Origin::Author, media_list, lock,
         None, &CSSErrorReporterTest);
     let mut rule_count = 0;
     let guard = stylesheet.shared_lock.read();
@@ -55,8 +58,10 @@ fn media_queries<F>(guard: &SharedRwLockReadGuard, rules: &[CssRule], f: &mut F)
 
 fn media_query_test(device: &Device, css: &str, expected_rule_count: usize) {
     let url = ServoUrl::parse("http://localhost").unwrap();
+    let lock = SharedRwLock::new();
+    let media_list = Arc::new(lock.wrap(MediaList::empty()));
     let ss = Stylesheet::from_str(
-        css, url, Origin::Author, Default::default(), SharedRwLock::new(),
+        css, url, Origin::Author, media_list, lock,
         None, &CSSErrorReporterTest);
     let mut rule_count = 0;
     ss.effective_style_rules(device, &ss.shared_lock.read(), |_| rule_count += 1);

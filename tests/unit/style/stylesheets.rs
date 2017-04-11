@@ -15,6 +15,7 @@ use std::sync::Mutex;
 use std::sync::atomic::AtomicBool;
 use style::error_reporting::ParseErrorReporter;
 use style::keyframes::{Keyframe, KeyframeSelector, KeyframePercentage};
+use style::media_queries::MediaList;
 use style::properties::Importance;
 use style::properties::{CSSWideKeyword, DeclaredValueOwned, PropertyDeclaration, PropertyDeclarationBlock};
 use style::properties::longhands;
@@ -61,14 +62,15 @@ fn test_parse_stylesheet() {
             }
         }";
     let url = ServoUrl::parse("about::test").unwrap();
-    let stylesheet = Stylesheet::from_str(css, url.clone(), Origin::UserAgent, Default::default(),
-                                          SharedRwLock::new(), None,
-                                          &CSSErrorReporterTest);
+    let lock = SharedRwLock::new();
+    let media = Arc::new(lock.wrap(MediaList::empty()));
+    let stylesheet = Stylesheet::from_str(css, url.clone(), Origin::UserAgent, media, lock,
+                                          None, &CSSErrorReporterTest);
     let mut namespaces = Namespaces::default();
     namespaces.default = Some(ns!(html));
     let expected = Stylesheet {
         origin: Origin::UserAgent,
-        media: Arc::new(stylesheet.shared_lock.wrap(Default::default())),
+        media: Arc::new(stylesheet.shared_lock.wrap(MediaList::empty())),
         shared_lock: stylesheet.shared_lock.clone(),
         namespaces: RwLock::new(namespaces),
         url_data: url,
@@ -323,9 +325,10 @@ fn test_report_error_stylesheet() {
 
     let errors = error_reporter.errors.clone();
 
-    Stylesheet::from_str(css, url.clone(), Origin::UserAgent, Default::default(),
-                         SharedRwLock::new(), None,
-                         &error_reporter);
+    let lock = SharedRwLock::new();
+    let media = Arc::new(lock.wrap(MediaList::empty()));
+    Stylesheet::from_str(css, url.clone(), Origin::UserAgent, media, lock,
+                         None, &error_reporter);
 
     let mut errors = errors.lock().unwrap();
 

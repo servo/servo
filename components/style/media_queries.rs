@@ -35,8 +35,9 @@ impl ToCss for MediaList {
     }
 }
 
-impl Default for MediaList {
-    fn default() -> MediaList {
+impl MediaList {
+    /// Create an empty MediaList.
+    pub fn empty() -> Self {
         MediaList { media_queries: vec![] }
     }
 }
@@ -251,7 +252,7 @@ impl MediaQuery {
 /// https://drafts.csswg.org/mediaqueries/#error-handling
 pub fn parse_media_query_list(context: &ParserContext, input: &mut Parser) -> MediaList {
     if input.is_exhausted() {
-        return Default::default()
+        return MediaList::empty()
     }
 
     let mut media_queries = vec![];

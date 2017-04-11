@@ -30,7 +30,7 @@ use style::gecko::wrapper::GeckoElement;
 use style::gecko_bindings::bindings;
 use style::gecko_bindings::bindings::{RawGeckoKeyframeListBorrowed, RawGeckoKeyframeListBorrowedMut};
 use style::gecko_bindings::bindings::{RawServoDeclarationBlockBorrowed, RawServoDeclarationBlockStrong};
-use style::gecko_bindings::bindings::{RawServoMediaListBorrowed, RawServoMediaListStrong};
+use style::gecko_bindings::bindings::{RawServoMediaList, RawServoMediaListBorrowed, RawServoMediaListStrong};
 use style::gecko_bindings::bindings::{RawServoMediaRule, RawServoMediaRuleBorrowed};
 use style::gecko_bindings::bindings::{RawServoNamespaceRule, RawServoNamespaceRuleBorrowed};
 use style::gecko_bindings::bindings::{RawServoPageRule, RawServoPageRuleBorrowed};
@@ -495,7 +495,8 @@ pub extern "C" fn Servo_StyleSheet_Empty(mode: SheetParsingMode) -> RawServoStyl
     let shared_lock = global_style_data.shared_lock.clone();
     Arc::new(Stylesheet::from_str(
         "", unsafe { dummy_url_data() }.clone(), origin,
-        Default::default(), shared_lock, None, &StdoutErrorReporter)
+        Arc::new(shared_lock.wrap(MediaList::empty())),
+        shared_lock, None, &StdoutErrorReporter)
     ).into_strong()
 }
 
@@ -504,6 +505,7 @@ pub extern "C" fn Servo_StyleSheet_FromUTF8Bytes(loader: *mut Loader,
                                                  stylesheet: *mut ServoStyleSheet,
                                                  data: *const nsACString,
                                                  mode: SheetParsingMode,
+                                                 media_list: *const RawServoMediaList,
                                                  extra_data: *mut URLExtraData)
                                                  -> RawServoStyleSheetStrong {
     let global_style_data = &*GLOBAL_STYLE_DATA;
@@ -529,8 +531,14 @@ pub extern "C" fn Servo_StyleSheet_FromUTF8Bytes(loader: *mut Loader,
     };
 
     let shared_lock = global_style_data.shared_lock.clone();
+    let media = if media_list.is_null() {
+        Arc::new(shared_lock.wrap(MediaList::empty()))
+    } else {
+        Locked::<MediaList>::as_arc(unsafe { &&*media_list }).clone()
+    };
+
     Arc::new(Stylesheet::from_str(
-        input, url_data.clone(), origin, Default::default(),
+        input, url_data.clone(), origin, media,
         shared_lock, loader, &StdoutErrorReporter)
     ).into_strong()
 }
@@ -1201,7 +1209,7 @@ pub extern "C" fn Servo_DeclarationBlock_RemovePropertyById(declarations: RawSer
 #[no_mangle]
 pub extern "C" fn Servo_MediaList_Create() -> RawServoMediaListStrong {
     let global_style_data = &*GLOBAL_STYLE_DATA;
-    Arc::new(global_style_data.shared_lock.wrap(MediaList::default())).into_strong()
+    Arc::new(global_style_data.shared_lock.wrap(MediaList::empty())).into_strong()
 }
 
 #[no_mangle]

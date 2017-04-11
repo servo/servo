@@ -86,8 +86,9 @@ impl HTMLStyleElement {
         let context = CssParserContext::new_for_cssom(&url,
                                                       win.css_error_reporter(),
                                                       Some(CssRuleType::Media));
-        let mq = parse_media_query_list(&context, &mut CssParser::new(&mq_str));
         let shared_lock = node.owner_doc().style_shared_lock().clone();
+        let mq = Arc::new(shared_lock.wrap(
+                    parse_media_query_list(&context, &mut CssParser::new(&mq_str))));
         let loader = StylesheetLoader::for_element(self.upcast());
         let sheet = Stylesheet::from_str(&data, win.get_url(), Origin::Author, mq,
                                          shared_lock, Some(&loader),

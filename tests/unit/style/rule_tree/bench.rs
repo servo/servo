@@ -42,13 +42,14 @@ impl<'a> Drop for AutoGCRuleTree<'a> {
 }
 
 fn parse_rules(css: &str) -> Vec<(StyleSource, CascadeLevel)> {
+    let lock = SharedRwLock::new();
+    let media = Arc::new(lock.wrap(MediaList::empty()));
+
     let s = Stylesheet::from_str(css,
                                  ServoUrl::parse("http://localhost").unwrap(),
                                  Origin::Author,
-                                 MediaList {
-                                     media_queries: vec![],
-                                 },
-                                 SharedRwLock::new(),
+                                 media,
+                                 lock,
                                  None,
                                  &ErrorringErrorReporter);
     let guard = s.shared_lock.read();
