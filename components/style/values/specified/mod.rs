@@ -18,6 +18,7 @@ use std::f32::consts::PI;
 use std::fmt;
 use std::ops::Mul;
 use style_traits::ToCss;
+use style_traits::values::specified::AllowedNumericType;
 use super::{Auto, CSSFloat, CSSInteger, HasViewportPercentage, Either, None_};
 use super::computed::{self, Context};
 use super::computed::{Shadow as ComputedShadow, ToComputedValue};
@@ -237,11 +238,18 @@ pub fn parse_integer(input: &mut Parser) -> Result<Integer, ()> {
 
 #[allow(missing_docs)]
 pub fn parse_number(input: &mut Parser) -> Result<Number, ()> {
+    parse_number_with_clamping_mode(input, AllowedNumericType::All)
+}
+
+#[allow(missing_docs)]
+pub fn parse_number_with_clamping_mode(input: &mut Parser,
+                                       clamping_mode: AllowedNumericType)
+                                       -> Result<Number, ()> {
     match try!(input.next()) {
-        Token::Number(ref value) => {
+        Token::Number(ref value) if clamping_mode.is_ok(value.value) => {
             Ok(Number {
                 value: value.value.min(f32::MAX).max(f32::MIN),
-                was_calc: false,
+                calc_clamping_mode: None,
             })
         },
         Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
@@ -261,7 +269,7 @@ pub fn parse_number(input: &mut Parser) -> Result<Number, ()> {
                 Some(result) => {
                     Ok(Number {
                         value: result.min(f32::MAX).max(f32::MIN),
-                        was_calc: true,
+                        calc_clamping_mode: Some(clamping_mode),
                     })
                 },
                 _ => Err(())
@@ -690,11 +698,11 @@ impl ToCss for Time {
 #[allow(missing_docs)]
 pub struct Number {
     /// The numeric value itself.
-    pub value: CSSFloat,
+    value: CSSFloat,
     /// Whether this came from a `calc()` expression. This is needed for
     /// serialization purposes, since `calc(1)` should still serialize to
     /// `calc(1)`, not just `1`.
-    was_calc: bool,
+    calc_clamping_mode: Option<AllowedNumericType>,
 }
 
 no_viewport_percentage!(Number);
@@ -706,29 +714,27 @@ impl Parse for Number {
 }
 
 impl Number {
-    fn parse_with_minimum(input: &mut Parser, min: CSSFloat) -> Result<Number, ()> {
-        match parse_number(input) {
-            Ok(value) if value.value >= min => Ok(value),
-            _ => Err(()),
-        }
-    }
-
     /// Returns a new number with the value `val`.
     pub fn new(val: CSSFloat) -> Self {
         Number {
             value: val,
-            was_calc: false,
+            calc_clamping_mode: None,
         }
+    }
+
+    /// Returns the numeric value, clamped if needed.
+    pub fn get(&self) -> f32 {
+        self.calc_clamping_mode.map_or(self.value, |mode| mode.clamp(self.value))
     }
 
     #[allow(missing_docs)]
     pub fn parse_non_negative(input: &mut Parser) -> Result<Number, ()> {
-        Number::parse_with_minimum(input, 0.0)
+        parse_number_with_clamping_mode(input, AllowedNumericType::NonNegative)
     }
 
     #[allow(missing_docs)]
     pub fn parse_at_least_one(input: &mut Parser) -> Result<Number, ()> {
-        Number::parse_with_minimum(input, 1.0)
+        parse_number_with_clamping_mode(input, AllowedNumericType::AtLeastOne)
     }
 }
 
@@ -736,13 +742,13 @@ impl ToComputedValue for Number {
     type ComputedValue = CSSFloat;
 
     #[inline]
-    fn to_computed_value(&self, _: &Context) -> CSSFloat { self.value }
+    fn to_computed_value(&self, _: &Context) -> CSSFloat { self.get() }
 
     #[inline]
     fn from_computed_value(computed: &CSSFloat) -> Self {
         Number {
             value: *computed,
-            was_calc: false,
+            calc_clamping_mode: None,
         }
     }
 }
@@ -751,11 +757,11 @@ impl ToCss for Number {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result
         where W: fmt::Write,
     {
-        if self.was_calc {
+        if self.calc_clamping_mode.is_some() {
             dest.write_str("calc(")?;
         }
         self.value.to_css(dest)?;
-        if self.was_calc {
+        if self.calc_clamping_mode.is_some() {
             dest.write_str(")")?;
         }
         Ok(())
