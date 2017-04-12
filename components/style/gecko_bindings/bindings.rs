@@ -1693,6 +1693,13 @@ extern "C" {
      -> RawServoAnimationValueStrong;
 }
 extern "C" {
+    pub fn Servo_AnimationValues_IsInterpolable(from:
+                                                    RawServoAnimationValueBorrowed,
+                                                to:
+                                                    RawServoAnimationValueBorrowed)
+     -> bool;
+}
+extern "C" {
     pub fn Servo_AnimationValue_Serialize(value:
                                               RawServoAnimationValueBorrowed,
                                           property: nsCSSPropertyID,

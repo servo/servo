@@ -257,6 +257,15 @@ pub extern "C" fn Servo_AnimationValues_Interpolate(from: RawServoAnimationValue
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_AnimationValues_IsInterpolable(from: RawServoAnimationValueBorrowed,
+                                                       to: RawServoAnimationValueBorrowed)
+                                                       -> bool {
+    let from_value = AnimationValue::as_arc(&from);
+    let to_value = AnimationValue::as_arc(&to);
+    from_value.interpolate(to_value, 0.5).is_ok()
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_AnimationValueMap_Push(value_map: RawServoAnimationValueMapBorrowed,
                                                property: nsCSSPropertyID,
                                                value: RawServoAnimationValueBorrowed)
