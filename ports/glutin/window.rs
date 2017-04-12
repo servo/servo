@@ -373,11 +373,16 @@ impl Window {
         } else {
             // Only send the character if we can print it (by ignoring characters like backspace)
             if !ch.is_control() {
-                let event = WindowEvent::KeyEvent(Some(ch),
-                                                  Window::char_to_script_key(ch).unwrap(),
-                                                  KeyState::Pressed,
-                                                  modifiers);
-                self.event_queue.borrow_mut().push(event);
+                match Window::char_to_script_key(ch) {
+                    Some(key) => {
+                        let event = WindowEvent::KeyEvent(Some(ch),
+                                                          key,
+                                                          KeyState::Pressed,
+                                                          modifiers);
+                        self.event_queue.borrow_mut().push(event);
+                    }
+                    None => {}
+                }
             }
         }
         self.last_pressed_key.set(None);
