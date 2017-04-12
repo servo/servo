@@ -31,7 +31,7 @@ use std::fmt;
 use style_traits::ToCss;
 use super::ComputedValues;
 use values::CSSFloat;
-use values::{Auto, Either, Normal};
+use values::{Auto, Either, Normal, generics};
 use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 use values::computed::{BorderRadiusSize, ClipRect, LengthOrNone};
 use values::computed::{CalcLengthOrPercentage, Context, LengthOrPercentage};
@@ -685,7 +685,7 @@ impl<T: Interpolate + Copy> Interpolate for Point2D<T> {
 impl Interpolate for BorderRadiusSize {
     #[inline]
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-        self.0.interpolate(&other.0, progress).map(BorderRadiusSize)
+        self.0.interpolate(&other.0, progress).map(generics::BorderRadiusSize)
     }
 }
 
