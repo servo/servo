@@ -78,18 +78,28 @@ def salt(context, force=False):
     # Hence, dynamically generate the config with an appropriate `root_dir`
     # and serialize it as JSON (which is valid YAML).
     config = {
-        'fileserver_backend': ['git'],
-        'gitfs_env_whitelist': 'base',
-        'gitfs_provider': 'gitpython',
-        'gitfs_remotes': [
-            'https://github.com/servo/saltfs.git',
-        ],
         'hash_type': 'sha384',
         'master': 'localhost',
         'root_dir': salt_root,
         'state_output': 'changes',
         'state_tabular': True,
     }
+    if 'SERVO_SALTFS_ROOT' in os.environ:
+        config.update({
+            'fileserver_backend': ['roots'],
+            'file_roots': {
+                'base': [os.path.abspath(os.environ['SERVO_SALTFS_ROOT'])],
+            },
+        })
+    else:
+        config.update({
+            'fileserver_backend': ['git'],
+            'gitfs_env_whitelist': 'base',
+            'gitfs_provider': 'gitpython',
+            'gitfs_remotes': [
+                'https://github.com/servo/saltfs.git',
+            ],
+        })
 
     if not os.path.exists(config_dir):
         os.makedirs(config_dir, mode=0o700)
