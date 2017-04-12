@@ -678,6 +678,7 @@ impl<'le> TElement for GeckoElement<'le> {
         let atom_ptr = PseudoElement::ns_atom_or_null_from_opt(pseudo);
         unsafe {
             Gecko_UpdateAnimations(self.0, atom_ptr,
+                                   None,
                                    computed_values_opt,
                                    parent_values_opt,
                                    tasks.bits());

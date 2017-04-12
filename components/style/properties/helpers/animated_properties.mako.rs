@@ -104,6 +104,31 @@ impl TransitionProperty {
             _ => None,
         }
     }
+
+    /// Returns true if this TransitionProperty is one of the discrete animatable properties.
+    pub fn is_discrete(&self) -> bool {
+        match *self {
+            % for prop in data.longhands:
+                % if prop.animation_type == "discrete":
+                    TransitionProperty::${prop.camel_case} => true,
+                % endif
+            % endfor
+            _ => false
+        }
+    }
+}
+
+/// Returns true if this nsCSSPropertyID is one of the animatable properties.
+#[cfg(feature = "gecko")]
+pub fn nscsspropertyid_is_animatable(property: nsCSSPropertyID) -> bool {
+    match property {
+        % for prop in data.longhands:
+            % if prop.animatable:
+                ${helpers.to_nscsspropertyid(prop.ident)} => true,
+            % endif
+        % endfor
+        _ => false
+    }
 }
 
 impl ToCss for TransitionProperty {

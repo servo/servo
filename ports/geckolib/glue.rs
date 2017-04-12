@@ -257,6 +257,15 @@ pub extern "C" fn Servo_AnimationValues_Interpolate(from: RawServoAnimationValue
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_AnimationValues_IsInterpolable(from: RawServoAnimationValueBorrowed,
+                                                       to: RawServoAnimationValueBorrowed)
+                                                       -> bool {
+    let from_value = AnimationValue::as_arc(&from);
+    let to_value = AnimationValue::as_arc(&to);
+    from_value.interpolate(to_value, 0.5).is_ok()
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_AnimationValueMap_Push(value_map: RawServoAnimationValueMapBorrowed,
                                                property: nsCSSPropertyID,
                                                value: RawServoAnimationValueBorrowed)
@@ -402,6 +411,15 @@ pub extern "C" fn Servo_AnimationValue_DeepEqual(this: RawServoAnimationValueBor
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_AnimationValue_Uncompute(value: RawServoAnimationValueBorrowed)
+                                                 -> RawServoDeclarationBlockStrong {
+    let value = AnimationValue::as_arc(&value);
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    Arc::new(global_style_data.shared_lock.wrap(
+        PropertyDeclarationBlock::with_one(value.uncompute(), Importance::Normal))).into_strong()
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_StyleSet_GetBaseComputedValuesForElement(raw_data: RawServoStyleSetBorrowed,
                                                                  element: RawGeckoElementBorrowed,
                                                                  pseudo_tag: *mut nsIAtom)
@@ -441,6 +459,18 @@ pub extern "C" fn Servo_ComputedValues_ExtractAnimationValue(computed_values: Se
 {
     let computed_values = ComputedValues::as_arc(&computed_values);
     Arc::new(AnimationValue::from_computed_values(&property_id.into(), computed_values)).into_strong()
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_Property_IsAnimatable(property: nsCSSPropertyID) -> bool {
+    use style::properties::animated_properties;
+    animated_properties::nscsspropertyid_is_animatable(property)
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_Property_IsDiscreteAnimatable(property: nsCSSPropertyID) -> bool {
+    let property: TransitionProperty = property.into();
+    property.is_discrete()
 }
 
 #[no_mangle]

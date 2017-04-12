@@ -630,6 +630,8 @@ extern "C" {
 extern "C" {
     pub fn Gecko_UpdateAnimations(aElement: RawGeckoElementBorrowed,
                                   aPseudoTagOrNull: *mut nsIAtom,
+                                  aOldComputedValues:
+                                      ServoComputedValuesBorrowedOrNull,
                                   aComputedValues:
                                       ServoComputedValuesBorrowedOrNull,
                                   aParentComputedValues:
@@ -1685,12 +1687,26 @@ extern "C" {
      -> RawServoAnimationValueStrong;
 }
 extern "C" {
+    pub fn Servo_Property_IsAnimatable(property: nsCSSPropertyID) -> bool;
+}
+extern "C" {
+    pub fn Servo_Property_IsDiscreteAnimatable(property: nsCSSPropertyID)
+     -> bool;
+}
+extern "C" {
     pub fn Servo_AnimationValues_Interpolate(from:
                                                  RawServoAnimationValueBorrowed,
                                              to:
                                                  RawServoAnimationValueBorrowed,
                                              progress: f64)
      -> RawServoAnimationValueStrong;
+}
+extern "C" {
+    pub fn Servo_AnimationValues_IsInterpolable(from:
+                                                    RawServoAnimationValueBorrowed,
+                                                to:
+                                                    RawServoAnimationValueBorrowed)
+     -> bool;
 }
 extern "C" {
     pub fn Servo_AnimationValue_Serialize(value:
@@ -1715,6 +1731,11 @@ extern "C" {
                                           arg2:
                                               RawServoAnimationValueBorrowed)
      -> bool;
+}
+extern "C" {
+    pub fn Servo_AnimationValue_Uncompute(value:
+                                              RawServoAnimationValueBorrowed)
+     -> RawServoDeclarationBlockStrong;
 }
 extern "C" {
     pub fn Servo_ParseStyleAttribute(data: *const nsACString,
