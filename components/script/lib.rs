@@ -97,6 +97,7 @@ extern crate style_traits;
 extern crate time;
 #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
 extern crate tinyfiledialogs;
+extern crate unicode_segmentation;
 extern crate url;
 extern crate uuid;
 extern crate webrender_traits;

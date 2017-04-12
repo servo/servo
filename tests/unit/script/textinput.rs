@@ -7,11 +7,8 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+use msg::constellation_msg::{ALT, CONTROL, SUPER};
 use msg::constellation_msg::{Key, KeyModifiers};
-#[cfg(not(target_os = "macos"))]
-use msg::constellation_msg::CONTROL;
-#[cfg(target_os = "macos")]
-use msg::constellation_msg::SUPER;
 use script::clipboard_provider::DummyClipboardContext;
 use script::test::DOMString;
 use script::textinput::{TextInput, TextPoint, Selection, Lines, Direction, SelectionDirection};
@@ -347,6 +344,115 @@ fn test_textinput_adjust_horizontal() {
     textinput.adjust_horizontal(-1, Selection::NotSelected);
     assert_eq!(textinput.edit_point.line, 1);
     assert_eq!(textinput.edit_point.index, 2);
+}
+
+#[test]
+fn test_textinput_adjust_horizontal_by_word() {
+    // Test basic case of movement word by word based on UAX#29 rules
+    let mut textinput = text_input(Lines::Single, "abc def");
+    textinput.adjust_horizontal_by_word(Direction::Forward, Selection::NotSelected);
+    textinput.adjust_horizontal_by_word(Direction::Forward, Selection::NotSelected);
+    assert_eq!(textinput.edit_point.line, 0);
+    assert_eq!(textinput.edit_point.index, 7);
+    textinput.adjust_horizontal_by_word(Direction::Backward, Selection::NotSelected);
+    assert_eq!(textinput.edit_point.line, 0);
+    assert_eq!(textinput.edit_point.index, 4);
+    textinput.adjust_horizontal_by_word(Direction::Backward, Selection::NotSelected);
+    assert_eq!(textinput.edit_point.line, 0);
+    assert_eq!(textinput.edit_point.index, 0);
+
+    // Test new line case of movement word by word based on UAX#29 rules
+    let mut textinput_2 = text_input(Lines::Multiple, "abc\ndef");
+    textinput_2.adjust_horizontal_by_word(Direction::Forward, Selection::NotSelected);
+    textinput_2.adjust_horizontal_by_word(Direction::Forward, Selection::NotSelected);
+    assert_eq!(textinput_2.edit_point.line, 1);
+    assert_eq!(textinput_2.edit_point.index, 3);
+    textinput_2.adjust_horizontal_by_word(Direction::Backward, Selection::NotSelected);
+    assert_eq!(textinput_2.edit_point.line, 1);
+    assert_eq!(textinput_2.edit_point.index, 0);
+    textinput_2.adjust_horizontal_by_word(Direction::Backward, Selection::NotSelected);
+    assert_eq!(textinput_2.edit_point.line, 0);
+    assert_eq!(textinput_2.edit_point.index, 0);
+
+    // Test non-standard sized characters case of movement word by word based on UAX#29 rules
+    let mut textinput_3 = text_input(Lines::Single, "áéc d🌠bc");
+    textinput_3.adjust_horizontal_by_word(Direction::Forward, Selection::NotSelected);
+    assert_eq!(textinput_3.edit_point.line, 0);
+    assert_eq!(textinput_3.edit_point.index, 5);
+    textinput_3.adjust_horizontal_by_word(Direction::Forward, Selection::NotSelected);
+    assert_eq!(textinput_3.edit_point.line, 0);
+    assert_eq!(textinput_3.edit_point.index, 7);
+    textinput_3.adjust_horizontal_by_word(Direction::Forward, Selection::NotSelected);
+    assert_eq!(textinput_3.edit_point.line, 0);
+    assert_eq!(textinput_3.edit_point.index, 13);
+    textinput_3.adjust_horizontal_by_word(Direction::Backward, Selection::NotSelected);
+    assert_eq!(textinput_3.edit_point.line, 0);
+    assert_eq!(textinput_3.edit_point.index, 11);
+    textinput_3.adjust_horizontal_by_word(Direction::Backward, Selection::NotSelected);
+    assert_eq!(textinput_3.edit_point.line, 0);
+    assert_eq!(textinput_3.edit_point.index, 6);
+}
+
+#[test]
+fn test_textinput_adjust_horizontal_to_line_end() {
+    // Test standard case of movement to end based on UAX#29 rules
+    let mut textinput = text_input(Lines::Single, "abc def");
+    textinput.adjust_horizontal_to_line_end(Direction::Forward, Selection::NotSelected);
+    assert_eq!(textinput.edit_point.line, 0);
+    assert_eq!(textinput.edit_point.index, 7);
+
+    // Test new line case of movement to end based on UAX#29 rules
+    let mut textinput_2 = text_input(Lines::Multiple, "abc\ndef");
+    textinput_2.adjust_horizontal_to_line_end(Direction::Forward, Selection::NotSelected);
+    assert_eq!(textinput_2.edit_point.line, 0);
+    assert_eq!(textinput_2.edit_point.index, 3);
+    textinput_2.adjust_horizontal_to_line_end(Direction::Forward, Selection::NotSelected);
+    assert_eq!(textinput_2.edit_point.line, 0);
+    assert_eq!(textinput_2.edit_point.index, 3);
+    textinput_2.adjust_horizontal_to_line_end(Direction::Backward, Selection::NotSelected);
+    assert_eq!(textinput_2.edit_point.line, 0);
+    assert_eq!(textinput_2.edit_point.index, 0);
+
+    // Test non-standard sized characters case of movement to end based on UAX#29 rules
+    let mut textinput_3 = text_input(Lines::Single, "áéc d🌠bc");
+    textinput_3.adjust_horizontal_to_line_end(Direction::Forward, Selection::NotSelected);
+    assert_eq!(textinput_3.edit_point.line, 0);
+    assert_eq!(textinput_3.edit_point.index, 13);
+    textinput_3.adjust_horizontal_to_line_end(Direction::Backward, Selection::NotSelected);
+    assert_eq!(textinput_3.edit_point.line, 0);
+    assert_eq!(textinput_3.edit_point.index, 0);
+}
+
+#[test]
+#[cfg(target_os = "macos")]
+fn test_navigation_keyboard_shortcuts() {
+    let mut textinput = text_input(Lines::Multiple, "hello áéc");
+
+    // Test that CMD + Right moves to the end of the current line.
+    textinput.handle_keydown_aux(None, Key::Right, SUPER);
+    assert_eq!(textinput.edit_point.index, 11);
+    // Test that CMD + Right moves to the beginning of the current line.
+    textinput.handle_keydown_aux(None, Key::Left, SUPER);
+    assert_eq!(textinput.edit_point.index, 0);
+    // Test that CTRL + ALT + E moves to the end of the current line also.
+    textinput.handle_keydown_aux(None, Key::E, CONTROL | ALT);
+    assert_eq!(textinput.edit_point.index, 11);
+    // Test that CTRL + ALT + A moves to the beginning of the current line also.
+    textinput.handle_keydown_aux(None, Key::A, CONTROL | ALT);
+    assert_eq!(textinput.edit_point.index, 0);
+
+    // Test that ALT + Right moves to the end of the word.
+    textinput.handle_keydown_aux(None, Key::Right, ALT);
+    assert_eq!(textinput.edit_point.index, 5);
+    // Test that CTRL + ALT + F moves to the end of the word also.
+    textinput.handle_keydown_aux(None, Key::F, CONTROL | ALT);
+    assert_eq!(textinput.edit_point.index, 11);
+    // Test that ALT + Left moves to the end of the word.
+    textinput.handle_keydown_aux(None, Key::Left, ALT);
+    assert_eq!(textinput.edit_point.index, 6);
+    // Test that CTRL + ALT + B moves to the end of the word also.
+    textinput.handle_keydown_aux(None, Key::B, CONTROL | ALT);
+    assert_eq!(textinput.edit_point.index, 0);
 }
 
 #[test]

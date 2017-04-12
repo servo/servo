@@ -85,6 +85,7 @@ smallvec = "0.3"
 style = {path = "../style"}
 style_traits = {path = "../style_traits"}
 time = "0.1.12"
+unicode-segmentation = "1.1.0"
 url = {version = "1.2", features = ["heap_size", "query_encoding"]}
 uuid = {version = "0.4", features = ["v4"]}
 xml5ever = {version = "0.5", features = ["unstable"]}
