@@ -329,6 +329,7 @@ pub mod basic_shape {
     use values::computed::basic_shape::*;
     use values::computed::position;
     use values::generics::BorderRadiusSize as GenericBorderRadiusSize;
+    use values::generics::basic_shape::FillRule;
 
     // using Borrow so that we can have a non-moving .into()
     impl<T: Borrow<StyleBasicShape>> From<T> for BasicShape {
