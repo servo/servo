@@ -574,8 +574,8 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                             p2y = try!(specified::parse_number(context, input));
                             Ok(())
                         }));
-                        if p1x.value < 0.0 || p1x.value > 1.0 ||
-                           p2x.value < 0.0 || p2x.value > 1.0 {
+                        if p1x.get() < 0.0 || p1x.get() > 1.0 ||
+                           p2x.get() < 0.0 || p2x.get() > 1.0 {
                             return Err(())
                         }
 
