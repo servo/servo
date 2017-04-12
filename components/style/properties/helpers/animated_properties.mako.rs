@@ -118,6 +118,19 @@ impl TransitionProperty {
     }
 }
 
+/// Returns true if this nsCSSPropertyID is one of the animatable properties.
+#[cfg(feature = "gecko")]
+pub fn nscsspropertyid_is_animatable(property: nsCSSPropertyID) -> bool {
+    match property {
+        % for prop in data.longhands:
+            % if prop.animatable:
+                ${helpers.to_nscsspropertyid(prop.ident)} => true,
+            % endif
+        % endfor
+        _ => false
+    }
+}
+
 impl ToCss for TransitionProperty {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result
         where W: fmt::Write,

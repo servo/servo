@@ -462,6 +462,12 @@ pub extern "C" fn Servo_ComputedValues_ExtractAnimationValue(computed_values: Se
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_Property_IsAnimatable(property: nsCSSPropertyID) -> bool {
+    use style::properties::animated_properties;
+    animated_properties::nscsspropertyid_is_animatable(property)
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_Property_IsDiscreteAnimatable(property: nsCSSPropertyID) -> bool {
     let property: TransitionProperty = property.into();
     property.is_discrete()
