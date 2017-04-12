@@ -71,8 +71,11 @@ class MachCommands(CommandBase):
     @CommandArgument(
         '--all-packages', '-a', action='store_true',
         help='Updates all packages')
-    def cargo_update(self, params=None, package=None, all_packages=None):
-        self.update_cargo(params, package, all_packages)
+    @CommandArgument(
+        '--dry-run', '-d', action='store_true',
+        help='Show outdated packages.')
+    def cargo_update(self, params=None, package=None, all_packages=None, dry_run=None):
+        self.update_cargo(params, package, all_packages, dry_run)
 
     @Command('update-cargo',
              description='Update Cargo dependencies',
@@ -88,11 +91,62 @@ class MachCommands(CommandBase):
         help='Updates all packages. NOTE! This is very likely to break your ' +
              'working copy, making it impossible to build servo. Only do ' +
              'this if you really know what you are doing.')
-    def update_cargo(self, params=None, package=None, all_packages=None):
+    @CommandArgument(
+        '--dry-run', '-d', action='store_true',
+        help='Show outdated packages.')
+    def update_cargo(self, params=None, package=None, all_packages=None, dry_run=None):
         if not params:
             params = []
 
-        if package:
+        if dry_run:
+            import toml
+            import json
+            import httplib
+            import colorama
+
+            cargo_file = open(path.join(self.context.topdir, "Cargo.lock"))
+            content = toml.load(cargo_file)
+
+            packages = {}
+            outdated_packages = 0
+            conn = httplib.HTTPSConnection("crates.io")
+            for package in content.get("package", []):
+                if "replace" in package:
+                    continue
+                source = package.get("source", "")
+                if source == r"registry+https://github.com/rust-lang/crates.io-index":
+                    version = package["version"]
+                    name = package["name"]
+                    if not packages.get(name, "") or packages[name] > version:
+                        packages[name] = package["version"]
+                        conn.request('GET', '/api/v1/crates/{}/versions'.format(package["name"]))
+                        r = conn.getresponse()
+                        json_content = json.load(r)
+                        for v in json_content.get("versions"):
+                            if not v.get("yanked"):
+                                max_version = v.get("num")
+                                break
+
+                        if version != max_version:
+                            outdated_packages += 1
+                            version_major, version_minor = (version.split("."))[:2]
+                            max_major, max_minor = (max_version.split("."))[:2]
+
+                            if version_major == max_major and version_minor == max_minor and "alpha" not in version:
+                                msg = "minor update"
+                                msg_color = "\033[93m"
+                            else:
+                                msg = "update, which may contain breaking changes"
+                                msg_color = "\033[91m"
+
+                            colorama.init()
+                            print("{}Outdated package `{}`, available {}\033[0m".format(msg_color, name, msg),
+                                  "\n\tCurrent version: {}".format(version),
+                                  "\n\t Latest version: {}".format(max_version))
+            conn.close()
+
+            print("\nFound {} outdated packages from crates.io".format(outdated_packages))
+        elif package:
             params += ["-p", package]
         elif all_packages:
             params = []
@@ -101,11 +155,12 @@ class MachCommands(CommandBase):
             print("flag or update all packages with --all-packages (-a) flag")
             sys.exit(1)
 
-        self.ensure_bootstrapped()
+        if params or all_packages:
+            self.ensure_bootstrapped()
 
-        with cd(self.context.topdir):
-            call(["cargo", "update"] + params,
-                 env=self.build_env())
+            with cd(self.context.topdir):
+                call(["cargo", "update"] + params,
+                     env=self.build_env())
 
     @Command('rustc',
              description='Run the Rust compiler',
