@@ -630,6 +630,8 @@ extern "C" {
 extern "C" {
     pub fn Gecko_UpdateAnimations(aElement: RawGeckoElementBorrowed,
                                   aPseudoTagOrNull: *mut nsIAtom,
+                                  aOldComputedValues:
+                                      ServoComputedValuesBorrowedOrNull,
                                   aComputedValues:
                                       ServoComputedValuesBorrowedOrNull,
                                   aParentComputedValues:
