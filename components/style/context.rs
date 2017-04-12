@@ -223,6 +223,12 @@ impl TraversalStatistics {
         self.is_parallel = Some(traversal.is_parallel());
         self.traversal_time_ms = (time::precise_time_s() - start) * 1000.0;
     }
+
+    /// Returns whether this traversal is 'large' in order to avoid console spam
+    /// from lots of tiny traversals.
+    pub fn is_large_traversal(&self) -> bool {
+        self.elements_traversed >= 50
+    }
 }
 
 #[cfg(feature = "gecko")]
