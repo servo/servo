@@ -402,6 +402,15 @@ pub extern "C" fn Servo_AnimationValue_DeepEqual(this: RawServoAnimationValueBor
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_AnimationValue_Uncompute(value: RawServoAnimationValueBorrowed)
+                                                 -> RawServoDeclarationBlockStrong {
+    let value = AnimationValue::as_arc(&value);
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    Arc::new(global_style_data.shared_lock.wrap(
+        PropertyDeclarationBlock::with_one(value.uncompute(), Importance::Normal))).into_strong()
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_StyleSet_GetBaseComputedValuesForElement(raw_data: RawServoStyleSetBorrowed,
                                                                  element: RawGeckoElementBorrowed,
                                                                  pseudo_tag: *mut nsIAtom)

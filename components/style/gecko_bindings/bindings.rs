@@ -1717,6 +1717,11 @@ extern "C" {
      -> bool;
 }
 extern "C" {
+    pub fn Servo_AnimationValue_Uncompute(value:
+                                              RawServoAnimationValueBorrowed)
+     -> RawServoDeclarationBlockStrong;
+}
+extern "C" {
     pub fn Servo_ParseStyleAttribute(data: *const nsACString,
                                      extra_data: *mut RawGeckoURLExtraData)
      -> RawServoDeclarationBlockStrong;
