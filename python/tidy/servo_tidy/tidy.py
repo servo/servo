@@ -1067,7 +1067,7 @@ def check_commits(path='.'):
             yield ('.', 0, 'no commits should contain WIP')
 
     if last_merge_author != 'bors-servo':
-        yield ('.', 0, 'no merge commits allowed by authors other than bors-servo')
+        yield ('.', 0, 'no merge commits allowed by authors other than bors-servo ' + last_merge_author)
 
     raise StopIteration
 
