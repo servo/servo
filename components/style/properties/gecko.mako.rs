@@ -2374,8 +2374,8 @@ fn static_assert() {
             % else:
                 use properties::longhands::mask_image::single_value::computed_value::T;
                 match image {
-                    T::Image(image) => geckoimage.mImage.set(image, false, cacheable),
-                    _ => () // we need to support url valeus
+                    T::Image(image) => geckoimage.mImage.set(image, true, cacheable),
+                    _ => ()
                 }
             % endif
 

@@ -218,7 +218,6 @@ ${helpers.single_keyword("mask-composite",
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub enum T {
             Image(computed::Image),
-            Url(SpecifiedUrl),
             None
         }
 
@@ -227,7 +226,6 @@ ${helpers.single_keyword("mask-composite",
                 match *self {
                     T::None => dest.write_str("none"),
                     T::Image(ref image) => image.to_css(dest),
-                    T::Url(ref url) => url.to_css(dest),
                 }
             }
         }
@@ -239,7 +237,6 @@ ${helpers.single_keyword("mask-composite",
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedValue {
         Image(Image),
-        Url(SpecifiedUrl),
         None
     }
 
@@ -247,7 +244,6 @@ ${helpers.single_keyword("mask-composite",
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match *self {
                 SpecifiedValue::Image(ref image) => image.to_css(dest),
-                SpecifiedValue::Url(ref url) => url.to_css(dest),
                 SpecifiedValue::None => dest.write_str("none"),
             }
         }
@@ -268,11 +264,7 @@ ${helpers.single_keyword("mask-composite",
             let image = try!(Image::parse(context, input));
             match image {
                 Image::Url(url_value) => {
-                    if url_value.is_fragment() {
-                        Ok(SpecifiedValue::Url(url_value))
-                    } else {
-                        Ok(SpecifiedValue::Image(Image::Url(url_value)))
-                    }
+                    Ok(SpecifiedValue::Image(Image::Url(url_value)))
                 }
                 image => Ok(SpecifiedValue::Image(image))
             }
@@ -287,8 +279,6 @@ ${helpers.single_keyword("mask-composite",
                 SpecifiedValue::None => computed_value::T::None,
                 SpecifiedValue::Image(ref image) =>
                     computed_value::T::Image(image.to_computed_value(context)),
-                SpecifiedValue::Url(ref url) =>
-                    computed_value::T::Url(url.clone()),
             }
         }
 
@@ -298,8 +288,6 @@ ${helpers.single_keyword("mask-composite",
                 computed_value::T::None => SpecifiedValue::None,
                 computed_value::T::Image(ref image) =>
                     SpecifiedValue::Image(ToComputedValue::from_computed_value(image)),
-                computed_value::T::Url(ref url) =>
-                    SpecifiedValue::Url(url.clone()),
             }
         }
     }
