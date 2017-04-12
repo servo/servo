@@ -30,7 +30,7 @@ use style::gecko::wrapper::GeckoElement;
 use style::gecko_bindings::bindings;
 use style::gecko_bindings::bindings::{RawGeckoKeyframeListBorrowed, RawGeckoKeyframeListBorrowedMut};
 use style::gecko_bindings::bindings::{RawServoDeclarationBlockBorrowed, RawServoDeclarationBlockStrong};
-use style::gecko_bindings::bindings::{RawServoMediaListBorrowed, RawServoMediaListStrong};
+use style::gecko_bindings::bindings::{RawServoMediaList, RawServoMediaListBorrowed, RawServoMediaListStrong};
 use style::gecko_bindings::bindings::{RawServoMediaRule, RawServoMediaRuleBorrowed};
 use style::gecko_bindings::bindings::{RawServoNamespaceRule, RawServoNamespaceRuleBorrowed};
 use style::gecko_bindings::bindings::{RawServoPageRule, RawServoPageRuleBorrowed};
@@ -83,8 +83,9 @@ use style::selector_parser::PseudoElementCascadeType;
 use style::sequential;
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards, ToCssWithGuard, Locked};
 use style::string_cache::Atom;
-use style::stylesheets::{CssRule, CssRules, CssRuleType, ImportRule, MediaRule, NamespaceRule, PageRule};
-use style::stylesheets::{Origin, Stylesheet, StyleRule};
+use style::stylesheets::{CssRule, CssRules, CssRuleType, CssRulesHelpers};
+use style::stylesheets::{ImportRule, MediaRule, NamespaceRule, Origin};
+use style::stylesheets::{PageRule, Stylesheet, StyleRule};
 use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
 use style::supports::parse_condition_or_declaration;
 use style::thread_state;
@@ -494,7 +495,8 @@ pub extern "C" fn Servo_StyleSheet_Empty(mode: SheetParsingMode) -> RawServoStyl
     let shared_lock = global_style_data.shared_lock.clone();
     Arc::new(Stylesheet::from_str(
         "", unsafe { dummy_url_data() }.clone(), origin,
-        Default::default(), shared_lock, None, &StdoutErrorReporter)
+        Arc::new(shared_lock.wrap(MediaList::empty())),
+        shared_lock, None, &StdoutErrorReporter)
     ).into_strong()
 }
 
@@ -503,6 +505,7 @@ pub extern "C" fn Servo_StyleSheet_FromUTF8Bytes(loader: *mut Loader,
                                                  stylesheet: *mut ServoStyleSheet,
                                                  data: *const nsACString,
                                                  mode: SheetParsingMode,
+                                                 media_list: *const RawServoMediaList,
                                                  extra_data: *mut URLExtraData)
                                                  -> RawServoStyleSheetStrong {
     let global_style_data = &*GLOBAL_STYLE_DATA;
@@ -528,8 +531,14 @@ pub extern "C" fn Servo_StyleSheet_FromUTF8Bytes(loader: *mut Loader,
     };
 
     let shared_lock = global_style_data.shared_lock.clone();
+    let media = if media_list.is_null() {
+        Arc::new(shared_lock.wrap(MediaList::empty()))
+    } else {
+        Locked::<MediaList>::as_arc(unsafe { &&*media_list }).clone()
+    };
+
     Arc::new(Stylesheet::from_str(
-        input, url_data.clone(), origin, Default::default(),
+        input, url_data.clone(), origin, media,
         shared_lock, loader, &StdoutErrorReporter)
     ).into_strong()
 }
@@ -698,15 +707,20 @@ pub extern "C" fn Servo_CssRules_InsertRule(rules: ServoCssRulesBorrowed,
     };
     let loader = loader.as_ref().map(|loader| loader as &StyleStylesheetLoader);
     let rule = unsafe { rule.as_ref().unwrap().as_str_unchecked() };
-    write_locked_arc(rules, |rules: &mut CssRules| {
-        match rules.insert_rule(rule, sheet, index as usize, nested, loader) {
-            Ok(new_rule) => {
-                *unsafe { rule_type.as_mut().unwrap() } = new_rule.rule_type() as u16;
-                nsresult::NS_OK
-            }
-            Err(err) => err.into()
+
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    match Locked::<CssRules>::as_arc(&rules).insert_rule(&global_style_data.shared_lock,
+                                                         rule,
+                                                         sheet,
+                                                         index as usize,
+                                                         nested,
+                                                         loader) {
+        Ok(new_rule) => {
+            *unsafe { rule_type.as_mut().unwrap() } = new_rule.rule_type() as u16;
+            nsresult::NS_OK
         }
-    })
+        Err(err) => err.into(),
+    }
 }
 
 #[no_mangle]
@@ -1190,6 +1204,31 @@ pub extern "C" fn Servo_DeclarationBlock_RemoveProperty(declarations: RawServoDe
 pub extern "C" fn Servo_DeclarationBlock_RemovePropertyById(declarations: RawServoDeclarationBlockBorrowed,
                                                             property: nsCSSPropertyID) {
     remove_property(declarations, get_property_id_from_nscsspropertyid!(property, ()))
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_MediaList_Create() -> RawServoMediaListStrong {
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    Arc::new(global_style_data.shared_lock.wrap(MediaList::empty())).into_strong()
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_MediaList_DeepClone(list: RawServoMediaListBorrowed) -> RawServoMediaListStrong {
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    read_locked_arc(list, |list: &MediaList| {
+        Arc::new(global_style_data.shared_lock.wrap(list.clone()))
+            .into_strong()
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_MediaList_Matches(list: RawServoMediaListBorrowed,
+                                          raw_data: RawServoStyleSetBorrowed)
+                                          -> bool {
+    let per_doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow();
+    read_locked_arc(list, |list: &MediaList| {
+        list.evaluate(&per_doc_data.stylist.device)
+    })
 }
 
 #[no_mangle]

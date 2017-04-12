@@ -15,7 +15,7 @@ use dom::window::Window;
 use dom_struct::dom_struct;
 use std::sync::Arc;
 use style::shared_lock::Locked;
-use style::stylesheets::{CssRules, KeyframesRule, RulesMutateError};
+use style::stylesheets::{CssRules, CssRulesHelpers, KeyframesRule, RulesMutateError};
 
 #[allow(unsafe_code)]
 unsafe_no_jsmanaged_fields!(RulesSource);
@@ -90,15 +90,13 @@ impl CSSRuleList {
         let index = idx as usize;
 
         let parent_stylesheet = self.parent_stylesheet.style_stylesheet();
-        let new_rule = {
-            let mut guard = parent_stylesheet.shared_lock.write();
-            // FIXME We should probably pass in a proper StylesheetLoader.
-            //       See servo/servo#16240
-            css_rules.write_with(&mut guard).insert_rule(rule, parent_stylesheet,
-                                                         index, nested, None)?
-            // Drop `guard` here,
-            // CSSRule::new_specific re-acquires the lock for @support and @media.
-        };
+        let new_rule =
+            css_rules.insert_rule(&parent_stylesheet.shared_lock,
+                                  rule,
+                                  parent_stylesheet,
+                                  index,
+                                  nested,
+                                  None)?;
 
         let parent_stylesheet = &*self.parent_stylesheet;
         let dom_rule = CSSRule::new_specific(&window, parent_stylesheet, new_rule);

@@ -113,7 +113,7 @@ use style::data::StoredRestyleHint;
 use style::dom::{ShowSubtree, ShowSubtreeDataAndPrimaryValues, TElement, TNode};
 use style::error_reporting::StdoutErrorReporter;
 use style::logical_geometry::LogicalPoint;
-use style::media_queries::{Device, MediaType};
+use style::media_queries::{Device, MediaList, MediaType};
 use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, REPOSITION, STORE_OVERFLOW};
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards};
 use style::stylesheets::{Origin, Stylesheet, UserAgentStylesheets};
@@ -1583,7 +1583,7 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
             None,
             None,
             Origin::UserAgent,
-            Default::default(),
+            MediaList::empty(),
             shared_lock.clone(),
             None,
             &StdoutErrorReporter))
@@ -1598,7 +1598,7 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
     }
     for &(ref contents, ref url) in &opts::get().user_stylesheets {
         user_or_user_agent_stylesheets.push(Stylesheet::from_bytes(
-            &contents, url.clone(), None, None, Origin::User, Default::default(),
+            &contents, url.clone(), None, None, Origin::User, MediaList::empty(),
             shared_lock.clone(), None, &StdoutErrorReporter));
     }
 

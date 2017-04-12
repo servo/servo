@@ -24,6 +24,7 @@ use std::ascii::AsciiExt;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use style::attr::AttrValue;
+use style::media_queries::MediaList;
 use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::{Stylesheet, CssRule, CssRules, Origin};
 use style::viewport::ViewportRule;
@@ -107,7 +108,7 @@ impl HTMLMetaElement {
                         shared_lock: shared_lock.clone(),
                         url_data: window_from_node(self).get_url(),
                         namespaces: Default::default(),
-                        media: Arc::new(shared_lock.wrap(Default::default())),
+                        media: Arc::new(shared_lock.wrap(MediaList::empty())),
                         // Viewport constraints are always recomputed on resize; they don't need to
                         // force all styles to be recomputed.
                         dirty_on_viewport_size_change: AtomicBool::new(false),

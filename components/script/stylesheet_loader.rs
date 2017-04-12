@@ -271,15 +271,15 @@ impl<'a> StylesheetLoader<'a> {
 impl<'a> StyleStylesheetLoader for StylesheetLoader<'a> {
     fn request_stylesheet(
         &self,
-        media: MediaList,
-        make_import: &mut FnMut(MediaList) -> ImportRule,
+        media: Arc<StyleLocked<MediaList>>,
+        make_import: &mut FnMut(Arc<StyleLocked<MediaList>>) -> ImportRule,
         make_arc: &mut FnMut(ImportRule) -> Arc<StyleLocked<ImportRule>>,
     ) -> Arc<StyleLocked<ImportRule>> {
         let import = make_import(media);
         let url = import.url.url().expect("Invalid urls shouldn't enter the loader").clone();
 
-        //TODO (mrnayak) : Whether we should use the original loader's CORS setting?
-        //Fix this when spec has more details.
+        // TODO (mrnayak) : Whether we should use the original loader's CORS
+        // setting? Fix this when spec has more details.
         let source = StylesheetContextSource::Import(import.stylesheet.clone());
         self.load(source, url, None, "".to_owned());
 

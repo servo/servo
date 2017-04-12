@@ -7,7 +7,8 @@ use euclid::size::TypedSize2D;
 use media_queries::CSSErrorReporterTest;
 use servo_config::prefs::{PREFS, PrefValue};
 use servo_url::ServoUrl;
-use style::media_queries::{Device, MediaType};
+use std::sync::Arc;
+use style::media_queries::{Device, MediaList, MediaType};
 use style::parser::{Parse, ParserContext};
 use style::shared_lock::SharedRwLock;
 use style::stylesheets::{CssRuleType, Stylesheet, Origin};
@@ -27,7 +28,7 @@ macro_rules! stylesheet {
             $css,
             ServoUrl::parse("http://localhost").unwrap(),
             Origin::$origin,
-            Default::default(),
+            Arc::new($shared_lock.wrap(MediaList::empty())),
             $shared_lock,
             None,
             &$error_reporter

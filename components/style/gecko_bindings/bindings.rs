@@ -463,7 +463,7 @@ extern "C" {
                                 child_sheet: RawServoStyleSheetBorrowed,
                                 base_url_data: *mut RawGeckoURLExtraData,
                                 url_bytes: *const u8, url_length: u32,
-                                media_bytes: *const u8, media_length: u32);
+                                media_list: RawServoMediaListStrong);
 }
 extern "C" {
     pub fn Gecko_MaybeCreateStyleChildrenIterator(node: RawGeckoNodeBorrowed)
@@ -1461,6 +1461,8 @@ extern "C" {
                                               *mut ServoStyleSheet,
                                           data: *const nsACString,
                                           parsing_mode: SheetParsingMode,
+                                          media_list:
+                                              *const RawServoMediaList,
                                           extra_data:
                                               *mut RawGeckoURLExtraData)
      -> RawServoStyleSheetStrong;
@@ -1913,6 +1915,17 @@ extern "C" {
 extern "C" {
     pub fn Servo_DeclarationBlock_SetTextDecorationColorOverride(declarations:
                                                                      RawServoDeclarationBlockBorrowed);
+}
+extern "C" {
+    pub fn Servo_MediaList_Create() -> RawServoMediaListStrong;
+}
+extern "C" {
+    pub fn Servo_MediaList_DeepClone(list: RawServoMediaListBorrowed)
+     -> RawServoMediaListStrong;
+}
+extern "C" {
+    pub fn Servo_MediaList_Matches(list: RawServoMediaListBorrowed,
+                                   set: RawServoStyleSetBorrowed) -> bool;
 }
 extern "C" {
     pub fn Servo_MediaList_GetText(list: RawServoMediaListBorrowed,
