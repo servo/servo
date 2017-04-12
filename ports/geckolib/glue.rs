@@ -462,6 +462,12 @@ pub extern "C" fn Servo_ComputedValues_ExtractAnimationValue(computed_values: Se
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_Property_IsDiscreteAnimatable(property: nsCSSPropertyID) -> bool {
+    let property: TransitionProperty = property.into();
+    property.is_discrete()
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_StyleWorkerThreadCount() -> u32 {
     GLOBAL_STYLE_DATA.num_threads as u32
 }

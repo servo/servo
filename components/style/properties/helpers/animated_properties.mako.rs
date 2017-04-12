@@ -104,6 +104,18 @@ impl TransitionProperty {
             _ => None,
         }
     }
+
+    /// Returns true if this TransitionProperty is one of the discrete animatable properties.
+    pub fn is_discrete(&self) -> bool {
+        match *self {
+            % for prop in data.longhands:
+                % if prop.animation_type == "discrete":
+                    TransitionProperty::${prop.camel_case} => true,
+                % endif
+            % endfor
+            _ => false
+        }
+    }
 }
 
 impl ToCss for TransitionProperty {

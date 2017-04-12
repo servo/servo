@@ -1685,6 +1685,10 @@ extern "C" {
      -> RawServoAnimationValueStrong;
 }
 extern "C" {
+    pub fn Servo_Property_IsDiscreteAnimatable(property: nsCSSPropertyID)
+     -> bool;
+}
+extern "C" {
     pub fn Servo_AnimationValues_Interpolate(from:
                                                  RawServoAnimationValueBorrowed,
                                              to:
