@@ -25,7 +25,7 @@ use gfx::display_list::{BLUR_INFLATION_FACTOR, BaseDisplayItem, BorderDetails};
 use gfx::display_list::{BorderDisplayItem, ImageBorder, NormalBorder};
 use gfx::display_list::{BorderRadii, BoxShadowClipMode, BoxShadowDisplayItem, ClippingRegion};
 use gfx::display_list::{DisplayItem, DisplayItemMetadata, DisplayList, DisplayListSection};
-use gfx::display_list::{GradientDisplayItem, IframeDisplayItem, ImageDisplayItem};
+use gfx::display_list::{GradientDisplayItem, RadialGradientDisplayItem, IframeDisplayItem, ImageDisplayItem};
 use gfx::display_list::{LineDisplayItem, OpaqueNode};
 use gfx::display_list::{SolidColorDisplayItem, ScrollRoot, StackingContext, StackingContextType};
 use gfx::display_list::{TextDisplayItem, TextOrientation, WebGLDisplayItem, WebRenderImageInfo};
@@ -33,7 +33,7 @@ use gfx_traits::{combine_id_with_fragment_type, FragmentType, StackingContextId}
 use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFlow, LAST_FRAGMENT_OF_ELEMENT};
 use ipc_channel::ipc;
 use list_item::ListItemFlow;
-use model::{self, MaybeAuto};
+use model::{self, MaybeAuto, specified};
 use msg::constellation_msg::PipelineId;
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::UsePlaceholder;
@@ -58,8 +58,9 @@ use style::properties::longhands::border_image_repeat::computed_value::RepeatKey
 use style::properties::style_structs;
 use style::servo::restyle_damage::REPAINT;
 use style::values::{Either, RGBA, computed};
-use style::values::computed::{AngleOrCorner, Gradient, GradientItem, GradientKind};
-use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto, NumberOrPercentage};
+use style::values::computed::{AngleOrCorner, Gradient, GradientKind, LengthOrPercentage, LengthOrPercentageOrAuto};
+use style::values::computed::{LengthOrKeyword, LengthOrPercentageOrKeyword, NumberOrPercentage};
+use style::values::computed::image::{ColorStop, EndingShape, SizeKeyword};
 use style::values::specified::{HorizontalDirection, VerticalDirection};
 use style_traits::CSSPixel;
 use style_traits::cursor::Cursor;
@@ -391,6 +392,12 @@ pub trait FragmentDisplayListBuilding {
                         style: &ServoComputedValues)
                         -> Option<display_list::Gradient>;
 
+    fn convert_radial_gradient(&self,
+                        absolute_bounds: &Rect<Au>,
+                        gradient: &Gradient,
+                        style: &ServoComputedValues)
+                        -> Option<display_list::RadialGradient>;
+
     /// Adds the display items necessary to paint the background linear gradient of this fragment
     /// to the appropriate section of the display list.
     fn build_display_list_for_background_gradient(&self,
@@ -588,6 +595,85 @@ fn build_border_radius_for_inner_rect(outer_rect: &Rect<Au>,
     radii
 }
 
+fn convert_gradient_stops(gradient_stops: &[ColorStop],
+                          length: Au,
+                          style: &ServoComputedValues) -> Vec<GradientStop> {
+    // Determine the position of each stop per CSS-IMAGES § 3.4.
+    //
+    // FIXME(#3908, pcwalton): Make sure later stops can't be behind earlier stops.
+    let stop_items = gradient.items.iter().filter_map(|item| {
+        match *item {
+            GradientItem::ColorStop(ref stop) => Some(stop),
+            _ => None,
+        }
+    }).collect::<Vec<_>>();
+    let mut stops = Vec::with_capacity(stop_items.len());
+    let mut stop_run = None;
+    for (i, stop) in stop_items.iter().enumerate() {
+        let offset = match stop.position {
+            None => {
+                if stop_run.is_none() {
+                    // Initialize a new stop run.
+                    let start_offset = if i == 0 {
+                        0.0
+                    } else {
+                        // `unwrap()` here should never fail because this is the beginning of
+                        // a stop run, which is always bounded by a length or percentage.
+                        position_to_offset(stop_items[i - 1].position.unwrap(), length)
+                    };
+                    let (end_index, end_offset) =
+                        match stop_items[i..]
+                                        .iter()
+                                        .enumerate()
+                                        .find(|&(_, ref stop)| stop.position.is_some()) {
+                            None => (stop_items.len() - 1, 1.0),
+                            Some((end_index, end_stop)) => {
+                                // `unwrap()` here should never fail because this is the end of
+                                // a stop run, which is always bounded by a length or
+                                // percentage.
+                                (end_index,
+                                    position_to_offset(end_stop.position.unwrap(), length))
+                            }
+                        };
+                    stop_run = Some(StopRun {
+                        start_offset: start_offset,
+                        end_offset: end_offset,
+                        start_index: i,
+                        stop_count: end_index - i,
+                    })
+                }
+
+                let stop_run = stop_run.unwrap();
+                let stop_run_length = stop_run.end_offset - stop_run.start_offset;
+                if stop_run.stop_count == 0 {
+                    stop_run.end_offset
+                } else {
+                    stop_run.start_offset +
+                        stop_run_length * (i - stop_run.start_index) as f32 /
+                            (stop_run.stop_count as f32)
+                }
+            }
+            Some(position) => {
+                stop_run = None;
+                position_to_offset(position, length)
+            }
+        };
+        stops.push(GradientStop {
+            offset: offset,
+            color: style.resolve_color(stop.color).to_gfx_color()
+        })
+    }
+    stops
+}
+
+fn convert_size_keyword(_keyword: SizeKeyword,
+                        _circle: bool,
+                        _size: &Size2D<Au>,
+                        _center: &Point2D<Au>) -> Size2D<Au> {
+    println!("TODO Implement size-keyword for radial gradients.");
+    return Size2D::zero();
+}
+
 impl FragmentDisplayListBuilding for Fragment {
     fn build_display_list_for_background_if_applicable(&self,
                                                        state: &mut DisplayListBuildState,
@@ -653,15 +739,12 @@ impl FragmentDisplayListBuilding for Fragment {
             match background_image.0 {
                 None => {}
                 Some(computed::Image::Gradient(ref gradient)) => {
-                    // FIXME: Radial gradients aren't implemented yet.
-                    if let GradientKind::Linear(_) = gradient.gradient_kind {
-                        self.build_display_list_for_background_gradient(state,
-                                                                        display_list_section,
-                                                                        &bounds,
-                                                                        &clip,
-                                                                        gradient,
-                                                                        style);
-                    }
+                    self.build_display_list_for_background_gradient(state,
+                                                                    display_list_section,
+                                                                    &bounds,
+                                                                    &clip,
+                                                                    gradient,
+                                                                    style);
                 }
                 Some(computed::Image::Url(ref image_url)) => {
                     if let Some(url) = image_url.url() {
@@ -923,7 +1006,6 @@ impl FragmentDisplayListBuilding for Fragment {
                 }
             }
         } else {
-            // FIXME: Radial gradients aren't implemented yet.
             return None;
         };
 
@@ -945,71 +1027,9 @@ impl FragmentDisplayListBuilding for Fragment {
         let length = Au::from_f32_px(
             (delta.x.to_f32_px() * 2.0).hypot(delta.y.to_f32_px() * 2.0));
 
-        // Determine the position of each stop per CSS-IMAGES § 3.4.
-        //
-        // FIXME(#3908, pcwalton): Make sure later stops can't be behind earlier stops.
-        let stop_items = gradient.items.iter().filter_map(|item| {
-            match *item {
-                GradientItem::ColorStop(ref stop) => Some(stop),
-                _ => None,
-            }
-        }).collect::<Vec<_>>();
-        let mut stops = Vec::with_capacity(stop_items.len());
-        let mut stop_run = None;
-        for (i, stop) in stop_items.iter().enumerate() {
-            let offset = match stop.position {
-                None => {
-                    if stop_run.is_none() {
-                        // Initialize a new stop run.
-                        let start_offset = if i == 0 {
-                            0.0
-                        } else {
-                            // `unwrap()` here should never fail because this is the beginning of
-                            // a stop run, which is always bounded by a length or percentage.
-                            position_to_offset(stop_items[i - 1].position.unwrap(), length)
-                        };
-                        let (end_index, end_offset) =
-                            match stop_items[i..]
-                                          .iter()
-                                          .enumerate()
-                                          .find(|&(_, ref stop)| stop.position.is_some()) {
-                                None => (stop_items.len() - 1, 1.0),
-                                Some((end_index, end_stop)) => {
-                                    // `unwrap()` here should never fail because this is the end of
-                                    // a stop run, which is always bounded by a length or
-                                    // percentage.
-                                    (end_index,
-                                     position_to_offset(end_stop.position.unwrap(), length))
-                                }
-                            };
-                        stop_run = Some(StopRun {
-                            start_offset: start_offset,
-                            end_offset: end_offset,
-                            start_index: i,
-                            stop_count: end_index - i,
-                        })
-                    }
-
-                    let stop_run = stop_run.unwrap();
-                    let stop_run_length = stop_run.end_offset - stop_run.start_offset;
-                    if stop_run.stop_count == 0 {
-                        stop_run.end_offset
-                    } else {
-                        stop_run.start_offset +
-                            stop_run_length * (i - stop_run.start_index) as f32 /
-                                (stop_run.stop_count as f32)
-                    }
-                }
-                Some(position) => {
-                    stop_run = None;
-                    position_to_offset(position, length)
-                }
-            };
-            stops.push(GradientStop {
-                offset: offset,
-                color: style.resolve_color(stop.color).to_gfx_color()
-            })
-        }
+        let stops = convert_gradient_stops(&gradient.stops[..],
+                                           length,
+                                           style);
 
         let center = Point2D::new(absolute_bounds.size.width / 2,
                                   absolute_bounds.size.height / 2);
@@ -1019,6 +1039,43 @@ impl FragmentDisplayListBuilding for Fragment {
             end_point: center + delta,
             stops: stops,
         })
+    }
+
+    fn convert_radial_gradient(&self,
+                               absolute_bounds: &Rect<Au>,
+                               gradient: &Gradient,
+                               style: &ServoComputedValues) -> Option<display_list::RadialGradient> {
+        // FIXME: Repeating gradients aren't implemented yet.
+        if gradient.repeating {
+          return None;
+        }
+        if let GradientKind::Radial(ref shape, ref center) = gradient.gradient_kind {
+            let center = Point2D::new(specified(center.horizontal, absolute_bounds.size.width),
+                                      specified(center.vertical, absolute_bounds.size.height));
+            let radius = match *shape {
+                EndingShape::Circle(LengthOrKeyword::Length(length))
+                    => Size2D::new(length, length),
+                EndingShape::Circle(LengthOrKeyword::Keyword(word))
+                    => convert_size_keyword(word, true, &absolute_bounds.size, &center),
+                EndingShape::Ellipse(LengthOrPercentageOrKeyword::LengthOrPercentage(horizontal,
+                                                                                     vertical))
+                     => Size2D::new(specified(horizontal, absolute_bounds.size.width),
+                                    specified(vertical, absolute_bounds.size.height)),
+                EndingShape::Ellipse(LengthOrPercentageOrKeyword::Keyword(word))
+                    => convert_size_keyword(word, false, &absolute_bounds.size, &center),
+            };
+            let length = Au::from_f32_px(radius.width.to_f32_px().hypot(radius.height.to_f32_px()));
+            let stops = convert_gradient_stops(&gradient.stops[..],
+                                               length,
+                                               style);
+            Some(display_list::RadialGradient {
+                center: absolute_bounds.origin + center,
+                radius: radius,
+                stops: stops,
+            })
+        } else {
+            None
+        }
     }
 
     fn build_display_list_for_background_gradient(&self,
@@ -1031,9 +1088,7 @@ impl FragmentDisplayListBuilding for Fragment {
         let mut clip = clip.clone();
         clip.intersect_rect(absolute_bounds);
 
-        let grad = self.convert_gradient(absolute_bounds, gradient, style);
-
-        if let Some(x) = grad {
+        if let Some(x) = self.convert_gradient(absolute_bounds, gradient, style) {
             let base = state.create_base_display_item(absolute_bounds,
                                                       &clip,
                                                       self.node,
@@ -1041,6 +1096,19 @@ impl FragmentDisplayListBuilding for Fragment {
                                                       display_list_section);
 
             let gradient_display_item = DisplayItem::Gradient(box GradientDisplayItem {
+                base: base,
+                gradient: x,
+            });
+
+            state.add_display_item(gradient_display_item);
+        } else if let Some(x) = self.convert_radial_gradient(absolute_bounds, gradient, style) {
+            let base = state.create_base_display_item(absolute_bounds,
+                                                      &clip,
+                                                      self.node,
+                                                      style.get_cursor(Cursor::Default),
+                                                      display_list_section);
+
+            let gradient_display_item = DisplayItem::RadialGradient(box RadialGradientDisplayItem {
                 base: base,
                 gradient: x,
             });
