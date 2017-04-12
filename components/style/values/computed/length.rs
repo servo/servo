@@ -188,6 +188,13 @@ pub enum LengthOrPercentage {
     Calc(CalcLengthOrPercentage),
 }
 
+impl Default for LengthOrPercentage {
+    #[inline]
+    fn default() -> Self {
+        LengthOrPercentage::zero()
+    }
+}
+
 impl LengthOrPercentage {
     #[inline]
     #[allow(missing_docs)]

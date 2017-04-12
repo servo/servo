@@ -82,6 +82,7 @@ macro_rules! add_impls_for_keyword_enum {
 }
 
 pub mod computed;
+pub mod generics;
 pub mod specified;
 
 /// A CSS float value.

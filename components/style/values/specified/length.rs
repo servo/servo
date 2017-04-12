@@ -1129,7 +1129,16 @@ impl ToCss for LengthOrPercentage {
         }
     }
 }
+
+impl Default for LengthOrPercentage {
+    #[inline]
+    fn default() -> Self {
+        LengthOrPercentage::zero()
+    }
+}
+
 impl LengthOrPercentage {
+    #[inline]
     /// Returns a `zero` length.
     pub fn zero() -> LengthOrPercentage {
         LengthOrPercentage::Length(NoCalcLength::zero())

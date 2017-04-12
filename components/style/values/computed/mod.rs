@@ -11,7 +11,9 @@ use media_queries::Device;
 use properties::ComputedValues;
 use std::fmt;
 use style_traits::ToCss;
-use super::{CSSFloat, CSSInteger, RGBA, specified};
+use super::{CSSFloat, CSSInteger, RGBA};
+use super::generics::BorderRadiusSize as GenericBorderRadiusSize;
+use super::specified;
 use super::specified::grid::{TrackBreadth as GenericTrackBreadth, TrackSize as GenericTrackSize};
 
 pub use cssparser::Color as CSSColor;
@@ -297,43 +299,10 @@ impl ComputedValueAsSpecified for specified::AlignJustifyContent {}
 impl ComputedValueAsSpecified for specified::AlignJustifySelf {}
 impl ComputedValueAsSpecified for specified::BorderStyle {}
 
-#[derive(Debug, PartialEq, Clone, Copy)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-pub struct BorderRadiusSize(pub Size2D<LengthOrPercentage>);
+/// The computed value of `BorderRadiusSize`
+pub type BorderRadiusSize = GenericBorderRadiusSize<LengthOrPercentage>;
 
-impl BorderRadiusSize {
-    #[allow(missing_docs)]
-    pub fn zero() -> BorderRadiusSize {
-        BorderRadiusSize(Size2D::new(LengthOrPercentage::Length(Au(0)), LengthOrPercentage::Length(Au(0))))
-    }
-}
-
-impl ToComputedValue for specified::BorderRadiusSize {
-    type ComputedValue = BorderRadiusSize;
-
-    #[inline]
-    fn to_computed_value(&self, context: &Context) -> BorderRadiusSize {
-        let w = self.0.width.to_computed_value(context);
-        let h = self.0.height.to_computed_value(context);
-        BorderRadiusSize(Size2D::new(w, h))
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &BorderRadiusSize) -> Self {
-        let w = ToComputedValue::from_computed_value(&computed.0.width);
-        let h = ToComputedValue::from_computed_value(&computed.0.height);
-        specified::BorderRadiusSize(Size2D::new(w, h))
-    }
-}
-
-impl ToCss for BorderRadiusSize {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        try!(self.0.width.to_css(dest));
-        try!(dest.write_str("/"));
-        self.0.height.to_css(dest)
-    }
-}
+impl Copy for BorderRadiusSize {}
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]

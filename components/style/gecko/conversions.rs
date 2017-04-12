@@ -318,7 +318,6 @@ impl nsStyleImage {
 pub mod basic_shape {
     //! Conversions from and to CSS shape representations.
 
-    use euclid::size::Size2D;
     use gecko::values::GeckoStyleCoordConvertible;
     use gecko_bindings::structs;
     use gecko_bindings::structs::{StyleBasicShape, StyleBasicShapeType, StyleFillRule};
@@ -329,6 +328,7 @@ pub mod basic_shape {
     use values::computed::{BorderRadiusSize, LengthOrPercentage};
     use values::computed::basic_shape::*;
     use values::computed::position;
+    use values::generics::BorderRadiusSize as GenericBorderRadiusSize;
 
     // using Borrow so that we can have a non-moving .into()
     impl<T: Borrow<StyleBasicShape>> From<T> for BasicShape {
@@ -391,11 +391,11 @@ pub mod basic_shape {
         fn from(other: T) -> Self {
             let other = other.borrow();
             let get_corner = |index| {
-                BorderRadiusSize(Size2D::new(
+                GenericBorderRadiusSize::new(
                     LengthOrPercentage::from_gecko_style_coord(&other.data_at(index))
                         .expect("<border-radius> should be a length, percentage, or calc value"),
                     LengthOrPercentage::from_gecko_style_coord(&other.data_at(index + 1))
-                        .expect("<border-radius> should be a length, percentage, or calc value")))
+                        .expect("<border-radius> should be a length, percentage, or calc value"))
             };
 
             BorderRadius {
