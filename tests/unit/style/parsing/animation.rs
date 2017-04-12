@@ -9,7 +9,7 @@ use servo_atoms::Atom;
 use style::parser::{Parse, ParserContext};
 use style::properties::longhands::animation_iteration_count::single_value::computed_value::T as AnimationIterationCount;
 use style::properties::longhands::animation_name;
-use style::stylesheets::Origin;
+use style::stylesheets::{CssRuleType, Origin};
 use style_traits::ToCss;
 
 #[test]

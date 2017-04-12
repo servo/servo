@@ -5,7 +5,7 @@
 use cssparser::Parser;
 use media_queries::CSSErrorReporterTest;
 use style::parser::ParserContext;
-use style::stylesheets::Origin;
+use style::stylesheets::{CssRuleType, Origin};
 use style_traits::ToCss;
 
 #[test]
@@ -29,7 +29,7 @@ fn test_outline_style() {
 
         let url = ::servo_url::ServoUrl::parse("http://localhost").unwrap();
         let reporter = CSSErrorReporterTest;
-        let context = ParserContext::new(Origin::Author, &url, &reporter);
+        let context = ParserContext::new(Origin::Author, &url, &reporter, Some(CssRuleType::Style));
         let mut parser = Parser::new(r#"hidden"#);
         let parsed = outline_style::parse(&context, &mut parser);
         assert!(parsed.is_err());

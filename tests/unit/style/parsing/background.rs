@@ -10,13 +10,13 @@ use style::properties::longhands::{background_attachment, background_clip, backg
 use style::properties::longhands::{background_origin, background_position_x, background_position_y, background_repeat};
 use style::properties::longhands::background_size;
 use style::properties::shorthands::background;
-use style::stylesheets::Origin;
+use style::stylesheets::{CssRuleType, Origin};
 
 #[test]
 fn background_shorthand_should_parse_all_available_properties_when_specified() {
     let url = ServoUrl::parse("http://localhost").unwrap();
     let reporter = CSSErrorReporterTest;
-    let context = ParserContext::new(Origin::Author, &url, &reporter);
+    let context = ParserContext::new(Origin::Author, &url, &reporter, Some(CssRuleType::Style));
     let mut parser = Parser::new("url(\"http://servo/test.png\") top center / 200px 200px repeat-x fixed padding-box \
         content-box red");
     let result = background::parse_value(&context, &mut parser).unwrap();
@@ -36,7 +36,7 @@ fn background_shorthand_should_parse_all_available_properties_when_specified() {
 fn background_shorthand_should_parse_when_some_fields_set() {
     let url = ServoUrl::parse("http://localhost").unwrap();
     let reporter = CSSErrorReporterTest;
-    let context = ParserContext::new(Origin::Author, &url, &reporter);
+    let context = ParserContext::new(Origin::Author, &url, &reporter, Some(CssRuleType::Style));
     let mut parser = Parser::new("14px 40px repeat-y");
     let result = background::parse_value(&context, &mut parser).unwrap();
 
@@ -67,7 +67,7 @@ fn background_shorthand_should_parse_when_some_fields_set() {
 fn background_shorthand_should_parse_comma_separated_declarations() {
     let url = ServoUrl::parse("http://localhost").unwrap();
     let reporter = CSSErrorReporterTest;
-    let context = ParserContext::new(Origin::Author, &url, &reporter);
+    let context = ParserContext::new(Origin::Author, &url, &reporter, Some(CssRuleType::Style));
     let mut parser = Parser::new("url(\"http://servo/test.png\") top left no-repeat, url(\"http://servo/test.png\") \
         center / 100% 100% no-repeat, white");
     let result = background::parse_value(&context, &mut parser).unwrap();
@@ -89,7 +89,7 @@ fn background_shorthand_should_parse_comma_separated_declarations() {
 fn background_shorthand_should_parse_position_and_size_correctly() {
     let url = ServoUrl::parse("http://localhost").unwrap();
     let reporter = CSSErrorReporterTest;
-    let context = ParserContext::new(Origin::Author, &url, &reporter);
+    let context = ParserContext::new(Origin::Author, &url, &reporter, Some(CssRuleType::Style));
     let mut parser = Parser::new("7px 4px");
     let result = background::parse_value(&context, &mut parser).unwrap();
 
@@ -114,7 +114,7 @@ fn background_shorthand_should_parse_position_and_size_correctly() {
 fn background_shorthand_should_parse_origin_and_clip_correctly() {
     let url = ServoUrl::parse("http://localhost").unwrap();
     let reporter = CSSErrorReporterTest;
-    let context = ParserContext::new(Origin::Author, &url, &reporter);
+    let context = ParserContext::new(Origin::Author, &url, &reporter, Some(CssRuleType::Style));
     let mut parser = Parser::new("padding-box content-box");
     let result = background::parse_value(&context, &mut parser).unwrap();
 

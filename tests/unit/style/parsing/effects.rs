@@ -8,7 +8,7 @@ use parsing::parse;
 use servo_url::ServoUrl;
 use style::parser::ParserContext;
 use style::properties::longhands::{self, perspective_origin, transform_origin};
-use style::stylesheets::Origin;
+use style::stylesheets::{CssRuleType, Origin};
 use style_traits::ToCss;
 
 #[test]
@@ -39,7 +39,7 @@ fn test_clip() {
 fn test_longhands_parse_origin() {
     let url = ServoUrl::parse("http://localhost").unwrap();
     let reporter = CSSErrorReporterTest;
-    let context = ParserContext::new(Origin::Author, &url, &reporter);
+    let context = ParserContext::new(Origin::Author, &url, &reporter, Some(CssRuleType::Style));
 
     let mut parser = Parser::new("1px some-rubbish");
     let parsed = longhands::parse_origin(&context, &mut parser);

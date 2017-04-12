@@ -6,13 +6,13 @@ use cssparser::Parser;
 use media_queries::CSSErrorReporterTest;
 use style::parser::ParserContext;
 use style::properties::longhands::background_size;
-use style::stylesheets::Origin;
+use style::stylesheets::{CssRuleType, Origin};
 
 #[test]
 fn background_size_should_reject_negative_values() {
     let url = ::servo_url::ServoUrl::parse("http://localhost").unwrap();
     let reporter = CSSErrorReporterTest;
-    let context = ParserContext::new(Origin::Author, &url, &reporter);
+    let context = ParserContext::new(Origin::Author, &url, &reporter, Some(CssRuleType::Style));
 
     let parse_result = background_size::parse(&context, &mut Parser::new("-40% -40%"));
 

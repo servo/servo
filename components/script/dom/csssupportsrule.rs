@@ -16,7 +16,7 @@ use dom_struct::dom_struct;
 use std::sync::Arc;
 use style::parser::ParserContext;
 use style::shared_lock::{Locked, ToCssWithGuard};
-use style::stylesheets::SupportsRule;
+use style::stylesheets::{CssRuleType, SupportsRule};
 use style::supports::SupportsCondition;
 use style_traits::ToCss;
 
@@ -61,7 +61,7 @@ impl CSSSupportsRule {
             let global = self.global();
             let win = global.as_window();
             let url = win.Document().url();
-            let context = ParserContext::new_for_cssom(&url, win.css_error_reporter());
+            let context = ParserContext::new_for_cssom(&url, win.css_error_reporter(), Some(CssRuleType::Supports));
             let enabled = cond.eval(&context);
             let mut guard = self.cssconditionrule.shared_lock().write();
             let rule = self.supportsrule.write_with(&mut guard);

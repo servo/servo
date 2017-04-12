@@ -7,7 +7,7 @@ use media_queries::CSSErrorReporterTest;
 use selectors::parser::SelectorList;
 use style::parser::ParserContext;
 use style::selector_parser::{SelectorImpl, SelectorParser};
-use style::stylesheets::{Origin, Namespaces};
+use style::stylesheets::{CssRuleType, Origin, Namespaces};
 
 fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SelectorList<SelectorImpl>, ()> {
     let mut ns = Namespaces::default();

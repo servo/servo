@@ -71,7 +71,6 @@ ${helpers.predefined_type(
     "parse_numbers_are_pixels_non_negative",
     products="gecko",
     animation_type="normal",
-    needs_context=False,
     spec="https://www.w3.org/TR/SVG2/painting.html#StrokeWidth")}
 
 ${helpers.single_keyword("stroke-linecap", "butt round square",
@@ -84,7 +83,6 @@ ${helpers.single_keyword("stroke-linejoin", "miter round bevel",
 
 ${helpers.predefined_type("stroke-miterlimit", "Number", "4.0",
                           "parse_at_least_one", products="gecko",
-                          needs_context=False,
                           animation_type="none",
                           spec="https://www.w3.org/TR/SVG11/painting.html#StrokeMiterlimitProperty")}
 
@@ -108,7 +106,6 @@ ${helpers.predefined_type(
     "parse_numbers_are_pixels",
     products="gecko",
     animation_type="normal",
-    needs_context=False,
     spec="https://www.w3.org/TR/SVG2/painting.html#StrokeDashing")}
 
 // Section 14 - Clipping, Masking and Compositing

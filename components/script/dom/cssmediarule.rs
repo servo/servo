@@ -16,8 +16,9 @@ use dom::window::Window;
 use dom_struct::dom_struct;
 use std::sync::Arc;
 use style::media_queries::parse_media_query_list;
+use style::parser::ParserContext;
 use style::shared_lock::{Locked, ToCssWithGuard};
-use style::stylesheets::MediaRule;
+use style::stylesheets::{CssRuleType, MediaRule};
 use style_traits::ToCss;
 
 #[dom_struct]
@@ -68,7 +69,11 @@ impl CSSMediaRule {
     /// https://drafts.csswg.org/css-conditional-3/#the-cssmediarule-interface
     pub fn set_condition_text(&self, text: DOMString) {
         let mut input = Parser::new(&text);
-        let new_medialist = parse_media_query_list(&mut input);
+        let global = self.global();
+        let win = global.as_window();
+        let url = win.get_url();
+        let context = ParserContext::new_for_cssom(&url, win.css_error_reporter(), Some(CssRuleType::Media));
+        let new_medialist = parse_media_query_list(&context, &mut input);
         let mut guard = self.cssconditionrule.shared_lock().write();
 
         // Clone an Arc because we can’t borrow `guard` twice at the same time.

@@ -288,7 +288,7 @@ ${helpers.predefined_type(
             return Ok(SpecifiedValue::Normal);
         }
 
-        let size = try!(Number::parse_at_least_one(input));
+        let size = try!(Number::parse_at_least_one(context, input));
 
         match input.try(|input| Integer::parse(context, input)) {
             Ok(number) => {

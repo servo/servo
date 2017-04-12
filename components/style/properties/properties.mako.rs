@@ -330,7 +330,7 @@ impl PropertyDeclarationIdSet {
                     //
                     // FIXME(pcwalton): Cloning the error reporter is slow! But so are custom
                     // properties, so whatever...
-                    let context = ParserContext::new(Origin::Author, url_data, error_reporter);
+                    let context = ParserContext::new(Origin::Author, url_data, error_reporter, None);
                     Parser::new(&css).parse_entirely(|input| {
                         match from_shorthand {
                             None => {
@@ -976,9 +976,9 @@ impl ParsedDeclaration {
     /// This will not actually parse Importance values, and will always set things
     /// to Importance::Normal. Parsing Importance values is the job of PropertyDeclarationParser,
     /// we only set them here so that we don't have to reallocate
-    pub fn parse(id: PropertyId, context: &ParserContext, input: &mut Parser,
-                 in_keyframe_block: bool, rule_type: CssRuleType)
+    pub fn parse(id: PropertyId, context: &ParserContext, input: &mut Parser)
                  -> Result<ParsedDeclaration, PropertyDeclarationParseError> {
+        let rule_type = context.rule_type();
         debug_assert!(rule_type == CssRuleType::Keyframe ||
                       rule_type == CssRuleType::Page ||
                       rule_type == CssRuleType::Style,
@@ -999,7 +999,7 @@ impl ParsedDeclaration {
                 LonghandId::${property.camel_case} => {
                     % if not property.derived_from:
                         % if not property.allowed_in_keyframe_block:
-                            if in_keyframe_block {
+                            if rule_type == CssRuleType::Keyframe {
                                 return Err(PropertyDeclarationParseError::AnimationPropertyInKeyframeBlock)
                             }
                         % endif
@@ -1032,7 +1032,7 @@ impl ParsedDeclaration {
             % for shorthand in data.shorthands:
                 ShorthandId::${shorthand.camel_case} => {
                     % if not shorthand.allowed_in_keyframe_block:
-                        if in_keyframe_block {
+                        if rule_type == CssRuleType::Keyframe {
                             return Err(PropertyDeclarationParseError::AnimationPropertyInKeyframeBlock)
                         }
                     % endif

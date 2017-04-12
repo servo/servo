@@ -77,8 +77,8 @@ ${helpers.predefined_type("outline-color", "CSSColor", "computed::CSSColor::Curr
         }
     }
 
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        specified::parse_border_width(input).map(SpecifiedValue)
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        specified::parse_border_width(context, input).map(SpecifiedValue)
     }
 
     impl HasViewportPercentage for SpecifiedValue {

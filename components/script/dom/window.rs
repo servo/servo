@@ -103,10 +103,12 @@ use std::sync::mpsc::TryRecvError::{Disconnected, Empty};
 use style::context::ReflowGoal;
 use style::error_reporting::ParseErrorReporter;
 use style::media_queries;
+use style::parser::ParserContext as CssParserContext;
 use style::properties::PropertyId;
 use style::properties::longhands::overflow_x;
 use style::selector_parser::PseudoElement;
 use style::str::HTML_SPACE_CHARACTERS;
+use style::stylesheets::CssRuleType;
 use task_source::dom_manipulation::DOMManipulationTaskSource;
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::history_traversal::HistoryTraversalTaskSource;
@@ -963,7 +965,9 @@ impl WindowMethods for Window {
     // https://drafts.csswg.org/cssom-view/#dom-window-matchmedia
     fn MatchMedia(&self, query: DOMString) -> Root<MediaQueryList> {
         let mut parser = Parser::new(&query);
-        let media_query_list = media_queries::parse_media_query_list(&mut parser);
+        let url = self.get_url();
+        let context = CssParserContext::new_for_cssom(&url, self.css_error_reporter(), Some(CssRuleType::Media));
+        let media_query_list = media_queries::parse_media_query_list(&context, &mut parser);
         let document = self.Document();
         let mql = MediaQueryList::new(&document, media_query_list);
         self.media_query_lists.push(&*mql);

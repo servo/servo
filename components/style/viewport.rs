@@ -166,10 +166,10 @@ impl FromMeta for ViewportLength {
 }
 
 impl ViewportLength {
-    fn parse(input: &mut Parser) -> Result<Self, ()> {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         // we explicitly do not accept 'extend-to-zoom', since it is a UA
         // internal value for <META> viewport translation
-        LengthOrPercentageOrAuto::parse_non_negative(input).map(ViewportLength::Specified)
+        LengthOrPercentageOrAuto::parse_non_negative(context, input).map(ViewportLength::Specified)
     }
 }
 
@@ -245,9 +245,9 @@ impl ToCss for ViewportDescriptorDeclaration {
     }
 }
 
-fn parse_shorthand(input: &mut Parser) -> Result<(ViewportLength, ViewportLength), ()> {
-    let min = try!(ViewportLength::parse(input));
-    match input.try(ViewportLength::parse) {
+fn parse_shorthand(context: &ParserContext, input: &mut Parser) -> Result<(ViewportLength, ViewportLength), ()> {
+    let min = try!(ViewportLength::parse(context, input));
+    match input.try(|i| ViewportLength::parse(context, i)) {
         Err(()) => Ok((min.clone(), min)),
         Ok(max) => Ok((min, max))
     }
@@ -263,7 +263,7 @@ impl<'a, 'b> DeclarationParser for ViewportRuleParser<'a, 'b> {
 
     fn parse_value(&mut self, name: &str, input: &mut Parser) -> Result<Vec<ViewportDescriptorDeclaration>, ()> {
         macro_rules! declaration {
-            ($declaration:ident($parse:path)) => {
+            ($declaration:ident($parse:expr)) => {
                 declaration!($declaration(value: try!($parse(input)),
                                           important: input.try(parse_important).is_ok()))
             };
@@ -276,11 +276,11 @@ impl<'a, 'b> DeclarationParser for ViewportRuleParser<'a, 'b> {
         }
 
         macro_rules! ok {
-            ($declaration:ident($parse:path)) => {
+            ($declaration:ident($parse:expr)) => {
                 Ok(vec![declaration!($declaration($parse))])
             };
             (shorthand -> [$min:ident, $max:ident]) => {{
-                let shorthand = try!(parse_shorthand(input));
+                let shorthand = try!(parse_shorthand(self.context, input));
                 let important = input.try(parse_important).is_ok();
 
                 Ok(vec![declaration!($min(value: shorthand.0, important: important)),
@@ -289,11 +289,11 @@ impl<'a, 'b> DeclarationParser for ViewportRuleParser<'a, 'b> {
         }
 
         match_ignore_ascii_case! { name,
-            "min-width" => ok!(MinWidth(ViewportLength::parse)),
-            "max-width" => ok!(MaxWidth(ViewportLength::parse)),
+            "min-width" => ok!(MinWidth(|i| ViewportLength::parse(self.context, i))),
+            "max-width" => ok!(MaxWidth(|i| ViewportLength::parse(self.context, i))),
             "width" => ok!(shorthand -> [MinWidth, MaxWidth]),
-            "min-height" => ok!(MinHeight(ViewportLength::parse)),
-            "max-height" => ok!(MaxHeight(ViewportLength::parse)),
+            "min-height" => ok!(MinHeight(|i| ViewportLength::parse(self.context, i))),
+            "max-height" => ok!(MaxHeight(|i| ViewportLength::parse(self.context, i))),
             "height" => ok!(shorthand -> [MinHeight, MaxHeight]),
             "zoom" => ok!(Zoom(Zoom::parse)),
             "min-zoom" => ok!(MinZoom(Zoom::parse)),

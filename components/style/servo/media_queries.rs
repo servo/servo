@@ -9,6 +9,7 @@ use cssparser::Parser;
 use euclid::{Size2D, TypedSize2D};
 use font_metrics::ServoMetricsProvider;
 use media_queries::MediaType;
+use parser::ParserContext;
 use properties::ComputedValues;
 use std::fmt;
 use style_traits::{CSSPixel, ToCss};
@@ -104,7 +105,7 @@ impl Expression {
     /// ```
     ///
     /// Only supports width and width ranges for now.
-    pub fn parse(input: &mut Parser) -> Result<Self, ()> {
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         try!(input.expect_parenthesis_block());
         input.parse_nested_block(|input| {
             let name = try!(input.expect_ident());
@@ -112,13 +113,13 @@ impl Expression {
             // TODO: Handle other media features
             Ok(Expression(match_ignore_ascii_case! { &name,
                 "min-width" => {
-                    ExpressionKind::Width(Range::Min(try!(specified::Length::parse_non_negative(input))))
+                    ExpressionKind::Width(Range::Min(try!(specified::Length::parse_non_negative(context, input))))
                 },
                 "max-width" => {
-                    ExpressionKind::Width(Range::Max(try!(specified::Length::parse_non_negative(input))))
+                    ExpressionKind::Width(Range::Max(try!(specified::Length::parse_non_negative(context, input))))
                 },
                 "width" => {
-                    ExpressionKind::Width(Range::Eq(try!(specified::Length::parse_non_negative(input))))
+                    ExpressionKind::Width(Range::Eq(try!(specified::Length::parse_non_negative(context, input))))
                 },
                 _ => return Err(())
             }))

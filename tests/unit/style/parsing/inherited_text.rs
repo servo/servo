@@ -5,7 +5,7 @@
 use cssparser::Parser;
 use media_queries::CSSErrorReporterTest;
 use style::parser::ParserContext;
-use style::stylesheets::Origin;
+use style::stylesheets::{CssRuleType, Origin};
 
 #[test]
 fn negative_letter_spacing_should_parse_properly() {
@@ -112,7 +112,7 @@ fn webkit_text_stroke_shorthand_should_parse_properly() {
 
     let url = ServoUrl::parse("http://localhost").unwrap();
     let reporter = CSSErrorReporterTest;
-    let context = ParserContext::new(Origin::Author, &url, &reporter);
+    let context = ParserContext::new(Origin::Author, &url, &reporter, Some(CssRuleType::Style));
 
     let mut parser = Parser::new("thin red");
     let result = _webkit_text_stroke::parse_value(&context, &mut parser).unwrap();
@@ -134,7 +134,7 @@ fn line_height_should_return_number_on_plain_zero() {
 
     let url = ServoUrl::parse("http://localhost").unwrap();
     let reporter = CSSErrorReporterTest;
-    let context = ParserContext::new(Origin::Author, &url, &reporter);
+    let context = ParserContext::new(Origin::Author, &url, &reporter, Some(CssRuleType::Style));
     let mut parser = Parser::new("0");
     let result = line_height::parse(&context, &mut parser);
     assert_eq!(result.unwrap(), parse_longhand!(line_height, "0"));
@@ -148,7 +148,7 @@ fn line_height_should_return_length_on_length_zero() {
 
     let url = ServoUrl::parse("http://localhost").unwrap();
     let reporter = CSSErrorReporterTest;
-    let context = ParserContext::new(Origin::Author, &url, &reporter);
+    let context = ParserContext::new(Origin::Author, &url, &reporter, Some(CssRuleType::Style));
     let mut parser = Parser::new("0px");
     let result = line_height::parse(&context, &mut parser);
     assert_eq!(result.unwrap(), parse_longhand!(line_height, "0px"));

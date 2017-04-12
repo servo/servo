@@ -7,7 +7,7 @@ use media_queries::CSSErrorReporterTest;
 use parsing::parse;
 use style::parser::ParserContext;
 use style::properties::longhands::transition_timing_function;
-use style::stylesheets::Origin;
+use style::stylesheets::{CssRuleType, Origin};
 use style_traits::ToCss;
 
 #[test]

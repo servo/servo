@@ -6,7 +6,7 @@ use cssparser::Parser;
 use media_queries::CSSErrorReporterTest;
 use parsing::parse;
 use style::parser::{Parse, ParserContext};
-use style::stylesheets::Origin;
+use style::stylesheets::{CssRuleType, Origin};
 use style::values::specified::position::*;
 use style_traits::ToCss;
 

@@ -681,8 +681,8 @@ ${helpers.single_keyword("font-variant-caps",
         }
     }
     /// <length> | <percentage> | <absolute-size> | <relative-size>
-    pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        if let Ok(lop) = input.try(specified::LengthOrPercentage::parse_non_negative) {
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        if let Ok(lop) = input.try(|i| specified::LengthOrPercentage::parse_non_negative(context, i)) {
             return Ok(SpecifiedValue::Length(lop))
         }
 
@@ -788,14 +788,14 @@ ${helpers.single_keyword("font-variant-caps",
     }
 
     /// none | <number>
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
         use values::specified::Number;
 
         if input.try(|input| input.expect_ident_matching("none")).is_ok() {
             return Ok(SpecifiedValue::None);
         }
 
-        Ok(SpecifiedValue::Number(try!(Number::parse_non_negative(input))))
+        Ok(SpecifiedValue::Number(try!(Number::parse_non_negative(context, input))))
     }
 </%helpers:longhand>
 

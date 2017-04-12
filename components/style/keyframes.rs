@@ -128,7 +128,8 @@ impl Keyframe {
         let error_reporter = MemoryHoleReporter;
         let context = ParserContext::new(parent_stylesheet.origin,
                                          &parent_stylesheet.url_data,
-                                         &error_reporter);
+                                         &error_reporter,
+                                         Some(CssRuleType::Keyframe));
         let mut input = Parser::new(css);
 
         let mut rule_parser = KeyframeListParser {
@@ -364,8 +365,9 @@ impl<'a> QualifiedRuleParser for KeyframeListParser<'a> {
 
     fn parse_block(&mut self, prelude: Self::Prelude, input: &mut Parser)
                    -> Result<Self::QualifiedRule, ()> {
+        let context = ParserContext::new_with_rule_type(self.context, Some(CssRuleType::Keyframe));
         let parser = KeyframeDeclarationParser {
-            context: self.context,
+            context: &context,
         };
         let mut iter = DeclarationListParser::new(input, parser);
         let mut block = PropertyDeclarationBlock::new();
@@ -376,7 +378,7 @@ impl<'a> QualifiedRuleParser for KeyframeListParser<'a> {
                     let pos = range.start;
                     let message = format!("Unsupported keyframe property declaration: '{}'",
                                           iter.input.slice(range));
-                    log_css_error(iter.input, pos, &*message, self.context);
+                    log_css_error(iter.input, pos, &*message, &context);
                 }
             }
             // `parse_important` is not called here, `!important` is not allowed in keyframe blocks.
@@ -403,7 +405,7 @@ impl<'a, 'b> DeclarationParser for KeyframeDeclarationParser<'a, 'b> {
 
     fn parse_value(&mut self, name: &str, input: &mut Parser) -> Result<ParsedDeclaration, ()> {
         let id = try!(PropertyId::parse(name.into()));
-        match ParsedDeclaration::parse(id, self.context, input, true, CssRuleType::Keyframe) {
+        match ParsedDeclaration::parse(id, self.context, input) {
             Ok(parsed) => {
                 // In case there is still unparsed text in the declaration, we should roll back.
                 if !input.is_exhausted() {

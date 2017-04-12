@@ -6,7 +6,7 @@ use cssparser::Parser;
 use media_queries::CSSErrorReporterTest;
 use servo_url::ServoUrl;
 use style::parser::ParserContext;
-use style::stylesheets::Origin;
+use style::stylesheets::{CssRuleType, Origin};
 use style_traits::ToCss;
 
 #[test]
@@ -20,7 +20,7 @@ fn test_column_width() {
 
     let url = ServoUrl::parse("http://localhost").unwrap();
     let reporter = CSSErrorReporterTest;
-    let context = ParserContext::new(Origin::Author, &url, &reporter);
+    let context = ParserContext::new(Origin::Author, &url, &reporter, Some(CssRuleType::Style));
 
     let mut negative = Parser::new("-6px");
     assert!(column_width::parse(&context, &mut negative).is_err());
@@ -37,7 +37,7 @@ fn test_column_gap() {
 
     let url = ServoUrl::parse("http://localhost").unwrap();
     let reporter = CSSErrorReporterTest;
-    let context = ParserContext::new(Origin::Author, &url, &reporter);
+    let context = ParserContext::new(Origin::Author, &url, &reporter, Some(CssRuleType::Style));
 
     let mut negative = Parser::new("-6px");
     assert!(column_gap::parse(&context, &mut negative).is_err());

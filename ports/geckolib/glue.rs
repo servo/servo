@@ -957,9 +957,9 @@ pub extern "C" fn Servo_ParseProperty(property: *const nsACString, value: *const
 
     let url_data = unsafe { RefPtr::from_ptr_ref(&data) };
     let reporter = StdoutErrorReporter;
-    let context = ParserContext::new(Origin::Author, url_data, &reporter);
+    let context = ParserContext::new(Origin::Author, url_data, &reporter, Some(CssRuleType::Style));
 
-    match ParsedDeclaration::parse(id, &context, &mut Parser::new(value), false, CssRuleType::Style) {
+    match ParsedDeclaration::parse(id, &context, &mut Parser::new(value)) {
         Ok(parsed) => {
             let global_style_data = &*GLOBAL_STYLE_DATA;
             let mut block = PropertyDeclarationBlock::new();
@@ -979,7 +979,7 @@ pub extern "C" fn Servo_ParseEasing(easing: *const nsAString,
 
     let url_data = unsafe { RefPtr::from_ptr_ref(&data) };
     let reporter = StdoutErrorReporter;
-    let context = ParserContext::new(Origin::Author, url_data, &reporter);
+    let context = ParserContext::new(Origin::Author, url_data, &reporter, Some(CssRuleType::Style));
     let easing = unsafe { (*easing).to_string() };
     match transition_timing_function::single_value::parse(&context, &mut Parser::new(&easing)) {
         Ok(parsed_easing) => {
@@ -1173,8 +1173,11 @@ pub extern "C" fn Servo_MediaList_GetText(list: RawServoMediaListBorrowed, resul
 pub extern "C" fn Servo_MediaList_SetText(list: RawServoMediaListBorrowed, text: *const nsACString) {
     let text = unsafe { text.as_ref().unwrap().as_str_unchecked() };
     let mut parser = Parser::new(&text);
-    write_locked_arc(list, |list: &mut MediaList| {
-        *list = parse_media_query_list(&mut parser);
+    let url_data = unsafe { dummy_url_data() };
+    let reporter = StdoutErrorReporter;
+    let context = ParserContext::new_for_cssom(url_data, &reporter, Some(CssRuleType::Media));
+     write_locked_arc(list, |list: &mut MediaList| {
+        *list = parse_media_query_list(&context, &mut parser);
     })
 }
 
@@ -1200,8 +1203,11 @@ pub extern "C" fn Servo_MediaList_GetMediumAt(list: RawServoMediaListBorrowed, i
 pub extern "C" fn Servo_MediaList_AppendMedium(list: RawServoMediaListBorrowed,
                                                new_medium: *const nsACString) {
     let new_medium = unsafe { new_medium.as_ref().unwrap().as_str_unchecked() };
+    let url_data = unsafe { dummy_url_data() };
+    let reporter = StdoutErrorReporter;
+    let context = ParserContext::new_for_cssom(url_data, &reporter, Some(CssRuleType::Media));
     write_locked_arc(list, |list: &mut MediaList| {
-        list.append_medium(new_medium);
+        list.append_medium(&context, new_medium);
     })
 }
 
@@ -1209,7 +1215,10 @@ pub extern "C" fn Servo_MediaList_AppendMedium(list: RawServoMediaListBorrowed,
 pub extern "C" fn Servo_MediaList_DeleteMedium(list: RawServoMediaListBorrowed,
                                                old_medium: *const nsACString) -> bool {
     let old_medium = unsafe { old_medium.as_ref().unwrap().as_str_unchecked() };
-    write_locked_arc(list, |list: &mut MediaList| list.delete_medium(old_medium))
+    let url_data = unsafe { dummy_url_data() };
+    let reporter = StdoutErrorReporter;
+    let context = ParserContext::new_for_cssom(url_data, &reporter, Some(CssRuleType::Media));
+    write_locked_arc(list, |list: &mut MediaList| list.delete_medium(&context, old_medium))
 }
 
 macro_rules! get_longhand_from_id {
@@ -1518,7 +1527,7 @@ pub extern "C" fn Servo_CSSSupports(cond: *const nsACString) -> bool {
     if let Ok(cond) = cond {
         let url_data = unsafe { dummy_url_data() };
         let reporter = StdoutErrorReporter;
-        let context = ParserContext::new_for_cssom(url_data, &reporter);
+        let context = ParserContext::new_for_cssom(url_data, &reporter, Some(CssRuleType::Style));
         cond.eval(&context)
     } else {
         false

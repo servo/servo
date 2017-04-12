@@ -6,7 +6,7 @@ use cssparser::{Color, Parser, RGBA};
 use media_queries::CSSErrorReporterTest;
 use servo_url::ServoUrl;
 use style::parser::ParserContext;
-use style::stylesheets::Origin;
+use style::stylesheets::{CssRuleType, Origin};
 use style::values::{Auto, Either};
 use style::values::specified::CSSColor;
 use style_traits::ToCss;
@@ -28,7 +28,7 @@ fn test_moz_user_select() {
 
     let url = ServoUrl::parse("http://localhost").unwrap();
     let reporter = CSSErrorReporterTest;
-    let context = ParserContext::new(Origin::Author, &url, &reporter);
+    let context = ParserContext::new(Origin::Author, &url, &reporter, Some(CssRuleType::Style));
 
     let mut negative = Parser::new("potato");
     assert!(_moz_user_select::parse(&context, &mut negative).is_err());

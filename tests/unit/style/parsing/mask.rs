@@ -9,13 +9,13 @@ use style::parser::ParserContext;
 use style::properties::longhands::{mask_clip, mask_composite, mask_image, mask_mode};
 use style::properties::longhands::{mask_origin, mask_position_x, mask_position_y, mask_repeat, mask_size};
 use style::properties::shorthands::mask;
-use style::stylesheets::Origin;
+use style::stylesheets::{CssRuleType, Origin};
 
 #[test]
 fn mask_shorthand_should_parse_all_available_properties_when_specified() {
     let url = ServoUrl::parse("http://localhost").unwrap();
     let reporter = CSSErrorReporterTest;
-    let context = ParserContext::new(Origin::Author, &url, &reporter);
+    let context = ParserContext::new(Origin::Author, &url, &reporter, Some(CssRuleType::Style));
     let mut parser = Parser::new("url(\"http://servo/test.png\") luminance 7px 4px / 70px 50px \
                                  repeat-x padding-box border-box subtract");
     let result = mask::parse_value(&context, &mut parser).unwrap();
@@ -35,7 +35,7 @@ fn mask_shorthand_should_parse_all_available_properties_when_specified() {
 fn mask_shorthand_should_parse_when_some_fields_set() {
     let url = ServoUrl::parse("http://localhost").unwrap();
     let reporter = CSSErrorReporterTest;
-    let context = ParserContext::new(Origin::Author, &url, &reporter);
+    let context = ParserContext::new(Origin::Author, &url, &reporter, Some(CssRuleType::Style));
     let mut parser = Parser::new("14px 40px repeat-y");
     let result = mask::parse_value(&context, &mut parser).unwrap();
 
@@ -65,7 +65,7 @@ fn mask_shorthand_should_parse_when_some_fields_set() {
 fn mask_shorthand_should_parse_position_and_size_correctly() {
     let url = ServoUrl::parse("http://localhost").unwrap();
     let reporter = CSSErrorReporterTest;
-    let context = ParserContext::new(Origin::Author, &url, &reporter);
+    let context = ParserContext::new(Origin::Author, &url, &reporter, Some(CssRuleType::Style));
     let mut parser = Parser::new("7px 4px");
     let result = mask::parse_value(&context, &mut parser).unwrap();
 
@@ -90,7 +90,7 @@ fn mask_shorthand_should_parse_position_and_size_correctly() {
 fn mask_shorthand_should_parse_origin_and_clip_correctly() {
     let url = ServoUrl::parse("http://localhost").unwrap();
     let reporter = CSSErrorReporterTest;
-    let context = ParserContext::new(Origin::Author, &url, &reporter);
+    let context = ParserContext::new(Origin::Author, &url, &reporter, Some(CssRuleType::Style));
     let mut parser = Parser::new("padding-box content-box");
     let result = mask::parse_value(&context, &mut parser).unwrap();
 
@@ -114,7 +114,7 @@ fn mask_shorthand_should_parse_origin_and_clip_correctly() {
 fn mask_shorthand_should_parse_mode_everywhere() {
     let url = ServoUrl::parse("http://localhost").unwrap();
     let reporter = CSSErrorReporterTest;
-    let context = ParserContext::new(Origin::Author, &url, &reporter);
+    let context = ParserContext::new(Origin::Author, &url, &reporter, Some(CssRuleType::Style));
     let mut parser = Parser::new("luminance 7px 4px repeat-x padding-box");
     assert!(mask::parse_value(&context, &mut parser).is_ok());
 
@@ -155,7 +155,7 @@ fn mask_repeat_should_parse_longhand_correctly() {
 
     let url = ServoUrl::parse("http://localhost").unwrap();
     let reporter = CSSErrorReporterTest;
-    let context = ParserContext::new(Origin::Author, &url, &reporter);
+    let context = ParserContext::new(Origin::Author, &url, &reporter, Some(CssRuleType::Style));
 
     // repeat-x is not available in longhand form.
     let mut parser = Parser::new("repeat-x no-repeat");
