@@ -181,6 +181,17 @@ class CheckTidiness(unittest.TestCase):
         self.assertEqual('emacs file variables present', errors.next()[2])
         self.assertNoMoreErrors(errors)
 
+    def test_html_with_empty_title_tag(self):
+        errors = tidy.collect_errors_for_files(iterFile('empty_title_tag.html'), [tidy.check_html_title_tag], [], print_text=False)
+        error = errors.next()
+        self.assertEqual(error[1], 2)
+        self.assertEqual(error[2], 'Found empty title tag. Please add descriptive title.')
+        self.assertNoMoreErrors(errors)
+
+    def test_html_with_no_title_tag(self):
+        errors = tidy.collect_errors_for_files(iterFile('no_title_tag.html'), [tidy.check_html_title_tag], [], print_text=False)
+        self.assertNoMoreErrors(errors)
+
     def test_malformed_json(self):
         errors = tidy.collect_errors_for_files(iterFile('malformed_json.json'), [tidy.check_json], [], print_text=False)
         self.assertEqual('Invalid control character at: line 3 column 40 (char 61)', errors.next()[2])
