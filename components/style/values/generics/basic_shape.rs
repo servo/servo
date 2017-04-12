@@ -75,3 +75,51 @@ impl<L: ToComputedValue> ToComputedValue for BorderRadius<L> {
         }
     }
 }
+
+/// https://drafts.csswg.org/css-shapes/#typedef-shape-radius
+#[derive(Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
+pub enum ShapeRadius<L> {
+    Length(L),
+    ClosestSide,
+    FarthestSide,
+}
+
+impl<L> Default for ShapeRadius<L> {
+    #[inline]
+    fn default() -> Self { ShapeRadius::ClosestSide }
+}
+
+impl<L: ToCss> ToCss for ShapeRadius<L> {
+    #[inline]
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            ShapeRadius::Length(ref lop) => lop.to_css(dest),
+            ShapeRadius::ClosestSide => dest.write_str("closest-side"),
+            ShapeRadius::FarthestSide => dest.write_str("farthest-side"),
+        }
+    }
+}
+
+impl<L: ToComputedValue> ToComputedValue for ShapeRadius<L> {
+    type ComputedValue = ShapeRadius<L::ComputedValue>;
+
+    #[inline]
+    fn to_computed_value(&self, cx: &Context) -> Self::ComputedValue {
+        match *self {
+            ShapeRadius::Length(ref lop) => ShapeRadius::Length(lop.to_computed_value(cx)),
+            ShapeRadius::ClosestSide => ShapeRadius::ClosestSide,
+            ShapeRadius::FarthestSide => ShapeRadius::FarthestSide,
+        }
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        match *computed {
+            ShapeRadius::Length(ref lop) => ShapeRadius::Length(ToComputedValue::from_computed_value(lop)),
+            ShapeRadius::ClosestSide => ShapeRadius::ClosestSide,
+            ShapeRadius::FarthestSide => ShapeRadius::FarthestSide,
+        }
+    }
+}
