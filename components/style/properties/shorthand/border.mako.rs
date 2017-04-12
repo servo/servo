@@ -203,7 +203,8 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
     'border-%s-radius' % (corner)
      for corner in ['top-left', 'top-right', 'bottom-right', 'bottom-left']
 )}" extra_prefixes="webkit" spec="https://drafts.csswg.org/css-backgrounds/#border-radius">
-    use values::specified::basic_shape::{BorderRadius, serialize_radius_values};
+    use values::generics::serialize_radius_values;
+    use values::specified::basic_shape::BorderRadius;
     use parser::Parse;
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
