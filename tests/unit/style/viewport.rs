@@ -31,7 +31,8 @@ macro_rules! stylesheet {
             Arc::new($shared_lock.wrap(MediaList::empty())),
             $shared_lock,
             None,
-            &$error_reporter
+            &$error_reporter,
+            0u64
         ))
     }
 }

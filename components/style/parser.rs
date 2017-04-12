@@ -22,6 +22,8 @@ pub struct ParserContext<'a> {
     pub error_reporter: &'a ParseErrorReporter,
     /// The current rule type, if any.
     pub rule_type: Option<CssRuleType>,
+    ///  line number offsets for inline stylesheets
+    pub line_number_offset: u64,
 }
 
 impl<'a> ParserContext<'a> {
@@ -36,6 +38,7 @@ impl<'a> ParserContext<'a> {
             url_data: url_data,
             error_reporter: error_reporter,
             rule_type: rule_type,
+            line_number_offset: 0u64,
         }
     }
 
@@ -51,15 +54,33 @@ impl<'a> ParserContext<'a> {
     pub fn new_with_rule_type(context: &'a ParserContext,
                               rule_type: Option<CssRuleType>)
                               -> ParserContext<'a> {
-        Self::new(context.stylesheet_origin,
-                  context.url_data,
-                  context.error_reporter,
-                  rule_type)
+        ParserContext {
+            stylesheet_origin: context.stylesheet_origin,
+            url_data: context.url_data,
+            error_reporter: context.error_reporter,
+            rule_type: rule_type,
+            line_number_offset: context.line_number_offset,
+        }
     }
 
     /// Get the rule type, which assumes that one is available.
     pub fn rule_type(&self) -> CssRuleType {
         self.rule_type.expect("Rule type expected, but none was found.")
+    }
+
+    /// Create a parser context for inline CSS which accepts additional line offset argument.
+    pub fn new_with_line_number_offset(stylesheet_origin: Origin,
+                                       url_data: &'a UrlExtraData,
+                                       error_reporter: &'a ParseErrorReporter,
+                                       line_number_offset: u64)
+                                       -> ParserContext<'a> {
+        ParserContext {
+            stylesheet_origin: stylesheet_origin,
+            url_data: url_data,
+            error_reporter: error_reporter,
+            rule_type: None,
+            line_number_offset: line_number_offset,
+        }
     }
 }
 
@@ -71,7 +92,10 @@ pub fn log_css_error(input: &mut Parser,
                      message: &str,
                      parsercontext: &ParserContext) {
     let url_data = parsercontext.url_data;
-    parsercontext.error_reporter.report_error(input, position, message, url_data);
+    let line_number_offset = parsercontext.line_number_offset;
+    parsercontext.error_reporter.report_error(input, position,
+                                              message, url_data,
+                                              line_number_offset);
 }
 
 // XXXManishearth Replace all specified value parse impls with impls of this

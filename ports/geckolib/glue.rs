@@ -496,7 +496,7 @@ pub extern "C" fn Servo_StyleSheet_Empty(mode: SheetParsingMode) -> RawServoStyl
     Arc::new(Stylesheet::from_str(
         "", unsafe { dummy_url_data() }.clone(), origin,
         Arc::new(shared_lock.wrap(MediaList::empty())),
-        shared_lock, None, &StdoutErrorReporter)
+        shared_lock, None, &StdoutErrorReporter, 0u64)
     ).into_strong()
 }
 
@@ -1001,7 +1001,7 @@ pub extern "C" fn Servo_ParseProperty(property: *const nsACString, value: *const
 
     let url_data = unsafe { RefPtr::from_ptr_ref(&data) };
     let reporter = StdoutErrorReporter;
-    let context = ParserContext::new(Origin::Author, url_data, &reporter, Some(CssRuleType::Style));
+    let context = ParserContext::new(Origin::Author, url_data, &reporter, Some(CssRuleType::Style), 0u64);
 
     match ParsedDeclaration::parse(id, &context, &mut Parser::new(value)) {
         Ok(parsed) => {
