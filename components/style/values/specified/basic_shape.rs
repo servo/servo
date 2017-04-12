@@ -8,6 +8,7 @@
 //! [basic-shape]: https://drafts.csswg.org/css-shapes/#typedef-basic-shape
 
 use cssparser::Parser;
+use euclid::size::Size2D;
 use parser::{Parse, ParserContext};
 use properties::shorthands::{parse_four_sides, serialize_four_sides};
 use std::fmt;
@@ -721,30 +722,41 @@ pub struct BorderRadius {
     pub bottom_left: BorderRadiusSize,
 }
 
+/// Serialization helper for types of longhands like `border-radius` and `outline-radius`
+pub fn serialize_radius_values<L, W>(dest: &mut W, top_left: &Size2D<L>,
+                                     top_right: &Size2D<L>, bottom_right: &Size2D<L>,
+                                     bottom_left: &Size2D<L>) -> fmt::Result
+    where L: ToCss + PartialEq, W: fmt::Write
+{
+    if top_left.width == top_left.height &&
+       top_right.width == top_right.height &&
+       bottom_right.width == bottom_right.height &&
+       bottom_left.width == bottom_left.height {
+        serialize_four_sides(dest,
+                             &top_left.width,
+                             &top_right.width,
+                             &bottom_right.width,
+                             &bottom_left.width)
+    } else {
+        serialize_four_sides(dest,
+                             &top_left.width,
+                             &top_right.width,
+                             &bottom_right.width,
+                             &bottom_left.width)?;
+        dest.write_str(" / ")?;
+        serialize_four_sides(dest,
+                             &top_left.height,
+                             &top_right.height,
+                             &bottom_right.height,
+                             &bottom_left.height)
+    }
+}
+
 impl ToCss for BorderRadius {
+    #[inline]
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        if self.top_left.0.width == self.top_left.0.height &&
-           self.top_right.0.width == self.top_right.0.height &&
-           self.bottom_right.0.width == self.bottom_right.0.height &&
-           self.bottom_left.0.width == self.bottom_left.0.height {
-            serialize_four_sides(dest,
-                                 &self.top_left.0.width,
-                                 &self.top_right.0.width,
-                                 &self.bottom_right.0.width,
-                                 &self.bottom_left.0.width)
-        } else {
-            try!(serialize_four_sides(dest,
-                                      &self.top_left.0.width,
-                                      &self.top_right.0.width,
-                                      &self.bottom_right.0.width,
-                                      &self.bottom_left.0.width));
-            try!(dest.write_str(" / "));
-            serialize_four_sides(dest,
-                                 &self.top_left.0.height,
-                                 &self.top_right.0.height,
-                                 &self.bottom_right.0.height,
-                                 &self.bottom_left.0.height)
-        }
+        serialize_radius_values(dest, &self.top_left.0, &self.top_right.0,
+                                &self.bottom_right.0, &self.bottom_left.0)
     }
 }
 
