@@ -8,7 +8,6 @@ use cssparser::{Parser, ToCss};
 use element_state::ElementState;
 use gecko_bindings::structs::CSSPseudoClassType;
 use gecko_bindings::structs::nsIAtom;
-use restyle_hints::complex_selector_to_state;
 use selector_parser::{SelectorParser, PseudoElementCascadeType};
 use selectors::parser::{ComplexSelector, SelectorMethods};
 use selectors::visitor::SelectorVisitor;
@@ -313,11 +312,7 @@ impl NonTSPseudoClass {
                 match *self {
                     $(NonTSPseudoClass::$name => flag!($state),)*
                     $(NonTSPseudoClass::$s_name(..) => flag!($s_state),)*
-                    NonTSPseudoClass::MozAny(ref selectors) => {
-                        selectors.iter().fold(ElementState::empty(), |state, s| {
-                            state | complex_selector_to_state(s)
-                        })
-                    }
+                    NonTSPseudoClass::MozAny(..) => ElementState::empty(),
                 }
             }
         }

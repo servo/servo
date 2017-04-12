@@ -1,0 +1,15 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: Negation with attribute dependence correctly restyle siblings.</title>
+<link rel="match" href="negation-attr-dependence-ref.html">
+<style>
+  :not(.foo) + div { background: green; width: 100px; height: 100px; }
+</style>
+<link rel="matches" href="negation-attr-dependence-ref.html">
+<div class="foo"></div>
+<div>Should be green</div>
+<script>
+window.onload = function() {
+  document.querySelector('div').className = "";
+}
+</script>

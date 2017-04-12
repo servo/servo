@@ -184,6 +184,9 @@ impl<Impl: SelectorImpl> SelectorMethods for SimpleSelector<Impl> {
         where V: SelectorVisitor<Impl = Impl>,
     {
         use self::SimpleSelector::*;
+        if !visitor.visit_simple_selector(self) {
+            return false;
+        }
 
         match *self {
             Negation(ref negated) => {
