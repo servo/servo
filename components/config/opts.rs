@@ -228,6 +228,9 @@ pub struct Opts {
 
     /// Path to SSL certificates.
     pub certificate_path: Option<String>,
+
+    /// Unminify Javascript.
+    pub unminify_js: bool,
 }
 
 fn print_usage(app: &str, opts: &Options) {
@@ -559,6 +562,7 @@ pub fn default_opts() -> Opts {
         precache_shaders: false,
         signpost: false,
         certificate_path: None,
+        unminify_js: false,
     }
 }
 
@@ -619,6 +623,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     opts.optopt("", "config-dir",
                     "config directory following xdg spec on linux platform", "");
     opts.optflag("v", "version", "Display servo version information");
+    opts.optflag("", "unminify-js", "Unminify Javascript");
 
     let opt_match = match opts.parse(args) {
         Ok(m) => m,
@@ -862,6 +867,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         precache_shaders: debug_options.precache_shaders,
         signpost: debug_options.signpost,
         certificate_path: opt_match.opt_str("certificate-path"),
+        unminify_js: opt_match.opt_present("unminify-js"),
     };
 
     set_defaults(opts);
