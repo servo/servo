@@ -6,7 +6,7 @@
 
 #![deny(missing_docs)]
 
-use parser::{AttrSelector, Combinator, ComplexSelector, SelectorImpl};
+use parser::{AttrSelector, Combinator, ComplexSelector, SelectorImpl, SimpleSelector};
 use std::sync::Arc;
 
 /// A trait to visit selector properties.
@@ -21,6 +21,11 @@ pub trait SelectorVisitor {
     /// that may never match, like those containing whitespace or the empty
     /// string).
     fn visit_attribute_selector(&mut self, _: &AttrSelector<Self::Impl>) -> bool {
+        true
+    }
+
+    /// Visit a simple selector.
+    fn visit_simple_selector(&mut self, _: &SimpleSelector<Self::Impl>) -> bool {
         true
     }
 

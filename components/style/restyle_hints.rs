@@ -17,7 +17,7 @@ use selector_parser::{AttrValue, NonTSPseudoClass, Snapshot, SelectorImpl};
 use selectors::{Element, MatchAttr};
 use selectors::matching::{ElementSelectorFlags, StyleRelations};
 use selectors::matching::matches_complex_selector;
-use selectors::parser::{AttrSelector, Combinator, ComplexSelector, SimpleSelector};
+use selectors::parser::{AttrSelector, Combinator, ComplexSelector, SelectorMethods, SimpleSelector};
 use selectors::visitor::SelectorVisitor;
 use std::clone::Clone;
 use std::sync::Arc;
@@ -283,6 +283,21 @@ impl<'a, E> Element for ElementWrapper<'a, E>
                                     -> bool
         where F: FnMut(&Self, ElementSelectorFlags),
     {
+        // :moz-any is quite special, because we need to keep matching as a
+        // snapshot.
+        #[cfg(feature = "gecko")]
+        {
+            if let NonTSPseudoClass::MozAny(ref selectors) = *pseudo_class {
+                return selectors.iter().any(|s| {
+                    matches_complex_selector(s,
+                                             self,
+                                             None,
+                                             relations,
+                                             setter)
+                })
+            }
+        }
+
         let flag = SelectorImpl::pseudo_class_state_flag(pseudo_class);
         if flag.is_empty() {
             return self.element.match_non_ts_pseudo_class(pseudo_class,
@@ -365,22 +380,9 @@ impl<'a, E> Element for ElementWrapper<'a, E>
     }
 }
 
-/// Returns the union of any `ElementState` flags for components of a
-/// `ComplexSelector`.
-pub fn complex_selector_to_state(sel: &ComplexSelector<SelectorImpl>) -> ElementState {
-    sel.compound_selector.iter().fold(ElementState::empty(), |state, s| {
-        state | selector_to_state(s)
-    })
-}
-
 fn selector_to_state(sel: &SimpleSelector<SelectorImpl>) -> ElementState {
     match *sel {
         SimpleSelector::NonTSPseudoClass(ref pc) => SelectorImpl::pseudo_class_state_flag(pc),
-        SimpleSelector::Negation(ref negated) => {
-            negated.iter().fold(ElementState::empty(), |state, s| {
-                state | complex_selector_to_state(s)
-            })
-        }
         _ => ElementState::empty(),
     }
 }
@@ -483,10 +485,35 @@ struct Dependency {
     sensitivities: Sensitivities,
 }
 
+
+/// The following visitor visits all the simple selectors for a given complex
+/// selector, taking care of :not and :any combinators, collecting whether any
+/// of them is sensitive to attribute or state changes.
+struct SensitivitiesVisitor {
+    sensitivities: Sensitivities,
+}
+
+impl SelectorVisitor for SensitivitiesVisitor {
+    type Impl = SelectorImpl;
+
+    fn visit_simple_selector(&mut self, s: &SimpleSelector<SelectorImpl>) -> bool {
+        self.sensitivities.states.insert(selector_to_state(s));
+
+        if !self.sensitivities.attrs {
+            self.sensitivities.attrs = is_attr_selector(s);
+        }
+
+        true
+    }
+}
+
 /// A visitor struct that collects information for a given selector.
 ///
 /// This is the struct responsible of adding dependencies for a given complex
-/// selector.
+/// selector and all the selectors to its left.
+///
+/// This uses a `SensitivitiesVisitor` internally to collect all the
+/// dependencies inside the given complex selector.
 pub struct SelectorDependencyVisitor<'a> {
     dependency_set: &'a mut DependencySet,
     needs_cache_revalidation: bool,
@@ -511,32 +538,37 @@ impl<'a> SelectorDependencyVisitor<'a> {
 impl<'a> SelectorVisitor for SelectorDependencyVisitor<'a> {
     type Impl = SelectorImpl;
 
+    fn visit_simple_selector(&mut self, s: &SimpleSelector<SelectorImpl>) -> bool {
+        if !self.needs_cache_revalidation {
+            self.needs_cache_revalidation = needs_cache_revalidation(s);
+        }
+
+        true
+    }
+
     fn visit_complex_selector(&mut self,
                               selector: &Arc<ComplexSelector<SelectorImpl>>,
                               combinator: Option<Combinator>)
                               -> bool
     {
-        let mut sensitivities = Sensitivities::new();
+        let mut sensitivity_visitor = SensitivitiesVisitor {
+            sensitivities: Sensitivities::new(),
+        };
+
         for s in &selector.compound_selector {
-            sensitivities.states.insert(selector_to_state(s));
-            if !self.needs_cache_revalidation {
-                self.needs_cache_revalidation = needs_cache_revalidation(s);
-            }
-            if !sensitivities.attrs {
-                sensitivities.attrs = is_attr_selector(s);
-            }
+            s.visit(&mut sensitivity_visitor);
         }
 
         let hint = combinator_to_restyle_hint(combinator);
 
-        self.needs_cache_revalidation |= sensitivities.attrs;
+        self.needs_cache_revalidation |= sensitivity_visitor.sensitivities.attrs;
         self.needs_cache_revalidation |= hint.intersects(RESTYLE_LATER_SIBLINGS);
 
-        if !sensitivities.is_empty() {
+        if !sensitivity_visitor.sensitivities.is_empty() {
             self.dependency_set.add_dependency(Dependency {
                 selector: selector.clone(),
                 hint: hint,
-                sensitivities: sensitivities,
+                sensitivities: sensitivity_visitor.sensitivities,
             });
         }
 
