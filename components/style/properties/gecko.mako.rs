@@ -664,6 +664,7 @@ impl Debug for ${style_struct.gecko_struct_name} {
         "MaxLength": impl_style_coord,
         "MinLength": impl_style_coord,
         "Number": impl_simple,
+        "Integer": impl_simple,
         "Opacity": impl_simple,
         "CSSColor": impl_color,
         "SVGPaint": impl_svg_paint,
@@ -1259,8 +1260,12 @@ fn static_assert() {
     }
 </%self:impl_trait>
 
+<%
+    skip_font_longhands = """font-family font-size font-size-adjust font-weight
+                             font-synthesis -x-lang font-language-override"""
+%>
 <%self:impl_trait style_struct_name="Font"
-    skip_longhands="font-family font-size font-size-adjust font-weight font-synthesis -x-lang font-language-override"
+    skip_longhands="${skip_font_longhands}"
     skip_additionals="*">
 
     pub fn set_font_family(&mut self, v: longhands::font_family::computed_value::T) {

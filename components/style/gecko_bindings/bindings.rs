@@ -1872,6 +1872,18 @@ extern "C" {
                                                 value: f32);
 }
 extern "C" {
+    pub fn Servo_DeclarationBlock_SetLengthValue(declarations:
+                                                     RawServoDeclarationBlockBorrowed,
+                                                 property: nsCSSPropertyID,
+                                                 value: f32, unit: nsCSSUnit);
+}
+extern "C" {
+    pub fn Servo_DeclarationBlock_SetNumberValue(declarations:
+                                                     RawServoDeclarationBlockBorrowed,
+                                                 property: nsCSSPropertyID,
+                                                 value: f32);
+}
+extern "C" {
     pub fn Servo_DeclarationBlock_SetPercentValue(declarations:
                                                       RawServoDeclarationBlockBorrowed,
                                                   property: nsCSSPropertyID,

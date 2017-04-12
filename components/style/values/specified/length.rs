@@ -26,13 +26,20 @@ pub use super::image::{AngleOrCorner, ColorStop, EndingShape as GradientEndingSh
 pub use super::image::{GradientKind, HorizontalDirection, Image, LengthOrKeyword, LengthOrPercentageOrKeyword};
 pub use super::image::{SizeKeyword, VerticalDirection};
 
-const AU_PER_PX: CSSFloat = 60.;
-const AU_PER_IN: CSSFloat = AU_PER_PX * 96.;
-const AU_PER_CM: CSSFloat = AU_PER_IN / 2.54;
-const AU_PER_MM: CSSFloat = AU_PER_IN / 25.4;
-const AU_PER_Q: CSSFloat = AU_PER_MM / 4.;
-const AU_PER_PT: CSSFloat = AU_PER_IN / 72.;
-const AU_PER_PC: CSSFloat = AU_PER_PT * 12.;
+/// Number of app units per pixel
+pub const AU_PER_PX: CSSFloat = 60.;
+/// Number of app units per inch
+pub const AU_PER_IN: CSSFloat = AU_PER_PX * 96.;
+/// Number of app units per centimeter
+pub const AU_PER_CM: CSSFloat = AU_PER_IN / 2.54;
+/// Number of app units per millimeter
+pub const AU_PER_MM: CSSFloat = AU_PER_IN / 25.4;
+/// Number of app units per quarter
+pub const AU_PER_Q: CSSFloat = AU_PER_MM / 4.;
+/// Number of app units per point
+pub const AU_PER_PT: CSSFloat = AU_PER_IN / 72.;
+/// Number of app units per pica
+pub const AU_PER_PC: CSSFloat = AU_PER_PT * 12.;
 
 /// Same as Gecko's AppUnitsToIntCSSPixels
 ///

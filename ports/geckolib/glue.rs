@@ -1327,6 +1327,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetKeywordValue(declarations:
     let prop = match_wrap_declared! { long,
         MozUserModify => longhands::_moz_user_modify::SpecifiedValue::from_gecko_keyword(value),
         // TextEmphasisPosition => FIXME implement text-emphasis-position
+        Direction => longhands::direction::SpecifiedValue::from_gecko_keyword(value),
         Display => longhands::display::SpecifiedValue::from_gecko_keyword(value),
         Float => longhands::float::SpecifiedValue::from_gecko_keyword(value),
         VerticalAlign => longhands::vertical_align::SpecifiedValue::from_gecko_keyword(value),
@@ -1337,7 +1338,10 @@ pub extern "C" fn Servo_DeclarationBlock_SetKeywordValue(declarations:
             // We rely on Gecko passing in font-size values (0...7) here.
             longhands::font_size::SpecifiedValue::from_html_size(value as u8)
         },
+        FontStyle => longhands::font_style::SpecifiedValue::from_gecko_keyword(value),
+        FontWeight => longhands::font_weight::SpecifiedValue::from_gecko_keyword(value),
         ListStyleType => longhands::list_style_type::SpecifiedValue::from_gecko_keyword(value),
+        MozMathVariant => longhands::_moz_math_variant::SpecifiedValue::from_gecko_keyword(value),
         WhiteSpace => longhands::white_space::SpecifiedValue::from_gecko_keyword(value),
         CaptionSide => longhands::caption_side::SpecifiedValue::from_gecko_keyword(value),
         BorderTopStyle => BorderStyle::from_gecko_keyword(value),
@@ -1355,11 +1359,14 @@ pub extern "C" fn Servo_DeclarationBlock_SetIntValue(declarations: RawServoDecla
                                                      property: nsCSSPropertyID,
                                                      value: i32) {
     use style::properties::{PropertyDeclaration, LonghandId};
+    use style::properties::longhands::_moz_script_level::SpecifiedValue as MozScriptLevel;
     use style::properties::longhands::_x_span::computed_value::T as Span;
 
     let long = get_longhand_from_id!(property);
     let prop = match_wrap_declared! { long,
         XSpan => Span(value),
+        // Gecko uses Integer values to signal that it is relative
+        MozScriptLevel => MozScriptLevel::Relative(value),
     };
     write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
         decls.push(prop, Importance::Normal);
@@ -1406,13 +1413,68 @@ pub extern "C" fn Servo_DeclarationBlock_SetPixelValue(declarations:
     })
 }
 
+
+#[no_mangle]
+pub extern "C" fn Servo_DeclarationBlock_SetLengthValue(declarations:
+                                                        RawServoDeclarationBlockBorrowed,
+                                                        property: nsCSSPropertyID,
+                                                        value: f32,
+                                                        unit: structs::nsCSSUnit) {
+    use style::properties::{PropertyDeclaration, LonghandId};
+    use style::values::specified::length::{AbsoluteLength, FontRelativeLength};
+    use style::values::specified::length::{LengthOrPercentage, NoCalcLength};
+
+    let long = get_longhand_from_id!(property);
+    let nocalc = match unit {
+        structs::nsCSSUnit::eCSSUnit_EM => NoCalcLength::FontRelative(FontRelativeLength::Em(value)),
+        structs::nsCSSUnit::eCSSUnit_XHeight => NoCalcLength::FontRelative(FontRelativeLength::Ex(value)),
+        structs::nsCSSUnit::eCSSUnit_Pixel => NoCalcLength::Absolute(AbsoluteLength::Px(value)),
+        structs::nsCSSUnit::eCSSUnit_Inch => NoCalcLength::Absolute(AbsoluteLength::In(value)),
+        structs::nsCSSUnit::eCSSUnit_Centimeter => NoCalcLength::Absolute(AbsoluteLength::Cm(value)),
+        structs::nsCSSUnit::eCSSUnit_Millimeter => NoCalcLength::Absolute(AbsoluteLength::Mm(value)),
+        structs::nsCSSUnit::eCSSUnit_Point => NoCalcLength::Absolute(AbsoluteLength::Pt(value)),
+        structs::nsCSSUnit::eCSSUnit_Pica => NoCalcLength::Absolute(AbsoluteLength::Pc(value)),
+        structs::nsCSSUnit::eCSSUnit_Quarter => NoCalcLength::Absolute(AbsoluteLength::Q(value)),
+        _ => unreachable!("Unknown unit {:?} passed to SetLengthValue", unit)
+    };
+
+    let prop = match_wrap_declared! { long,
+        Width => nocalc.into(),
+        FontSize => LengthOrPercentage::from(nocalc).into(),
+        MozScriptMinSize => nocalc.into(),
+    };
+    write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
+        decls.push(prop, Importance::Normal);
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_DeclarationBlock_SetNumberValue(declarations:
+                                                       RawServoDeclarationBlockBorrowed,
+                                                       property: nsCSSPropertyID,
+                                                       value: f32) {
+    use style::properties::{PropertyDeclaration, LonghandId};
+    use style::properties::longhands::_moz_script_level::SpecifiedValue as MozScriptLevel;
+
+    let long = get_longhand_from_id!(property);
+
+    let prop = match_wrap_declared! { long,
+        MozScriptSizeMultiplier => value,
+        // Gecko uses Number values to signal that it is absolute
+        MozScriptLevel => MozScriptLevel::Absolute(value as i32),
+    };
+    write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
+        decls.push(prop, Importance::Normal);
+    })
+}
+
 #[no_mangle]
 pub extern "C" fn Servo_DeclarationBlock_SetPercentValue(declarations:
                                                          RawServoDeclarationBlockBorrowed,
                                                          property: nsCSSPropertyID,
                                                          value: f32) {
     use style::properties::{PropertyDeclaration, LonghandId};
-    use style::values::specified::length::Percentage;
+    use style::values::specified::length::{LengthOrPercentage, Percentage};
 
     let long = get_longhand_from_id!(property);
     let pc = Percentage(value);
@@ -1424,6 +1486,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetPercentValue(declarations:
         MarginRight => pc.into(),
         MarginBottom => pc.into(),
         MarginLeft => pc.into(),
+        FontSize => LengthOrPercentage::from(pc).into(),
     };
     write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
         decls.push(prop, Importance::Normal);
@@ -1518,6 +1581,33 @@ pub extern "C" fn Servo_DeclarationBlock_SetFontFamily(declarations:
                 decls.push(decl, Importance::Normal);
             })
         }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_DeclarationBlock_SetBackgroundImage(declarations:
+                                                            RawServoDeclarationBlockBorrowed,
+                                                            value: *const nsAString,
+                                                            raw_extra_data: *mut URLExtraData) {
+    use style::properties::PropertyDeclaration;
+    use style::properties::longhands::background_image::SpecifiedValue as BackgroundImage;
+    use style::properties::longhands::background_image::single_value::SpecifiedValue as SingleBackgroundImage;
+    use style::values::specified::image::Image;
+    use style::values::specified::url::SpecifiedUrl;
+
+    let url_data = unsafe { RefPtr::from_ptr_ref(&raw_extra_data) };
+    let string = unsafe { (*value).to_string() };
+    let error_reporter = StdoutErrorReporter;
+    let context = ParserContext::new(Origin::Author, url_data, &error_reporter, Some(CssRuleType::Style));
+    if let Ok(url) = SpecifiedUrl::parse_from_string(string.into(), &context) {
+        let decl = PropertyDeclaration::BackgroundImage(BackgroundImage(
+            vec![SingleBackgroundImage(
+                Some(Image::Url(url))
+            )]
+        ));
+        write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
+            decls.push(decl, Importance::Normal);
+        })
     }
 }
 

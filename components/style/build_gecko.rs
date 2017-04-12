@@ -302,6 +302,7 @@ mod bindings {
             "NODE_.*",
             "NS_FONT_.*",
             "NS_STYLE_.*",
+            "NS_MATHML_.*",
             "NS_RADIUS_.*",
             "BORDER_COLOR_.*",
             "BORDER_STYLE_.*",

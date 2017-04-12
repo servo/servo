@@ -24,7 +24,8 @@ ${helpers.single_keyword("writing-mode",
                          spec="https://drafts.csswg.org/css-writing-modes/#propdef-writing-mode")}
 
 ${helpers.single_keyword("direction", "ltr rtl", need_clone=True, animation_type="none",
-                         spec="https://drafts.csswg.org/css-writing-modes/#propdef-direction")}
+                         spec="https://drafts.csswg.org/css-writing-modes/#propdef-direction",
+                         needs_conversion=True)}
 
 <%helpers:single_keyword_computed
     name="text-orientation"

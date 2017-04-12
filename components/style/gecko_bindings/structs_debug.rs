@@ -540,6 +540,35 @@ pub mod root {
     pub const NS_STYLE_GRID_TEMPLATE_SUBGRID: ::std::os::raw::c_uint = 0;
     pub const NS_STYLE_GRID_REPEAT_AUTO_FILL: ::std::os::raw::c_uint = 0;
     pub const NS_STYLE_GRID_REPEAT_AUTO_FIT: ::std::os::raw::c_uint = 1;
+    pub const NS_MATHML_DEFAULT_SCRIPT_SIZE_MULTIPLIER: f32 = 0.71;
+    pub const NS_MATHML_DEFAULT_SCRIPT_MIN_SIZE_PT: ::std::os::raw::c_uint =
+        8;
+    pub const NS_MATHML_MATHVARIANT_NONE: ::std::os::raw::c_uint = 0;
+    pub const NS_MATHML_MATHVARIANT_NORMAL: ::std::os::raw::c_uint = 1;
+    pub const NS_MATHML_MATHVARIANT_BOLD: ::std::os::raw::c_uint = 2;
+    pub const NS_MATHML_MATHVARIANT_ITALIC: ::std::os::raw::c_uint = 3;
+    pub const NS_MATHML_MATHVARIANT_BOLD_ITALIC: ::std::os::raw::c_uint = 4;
+    pub const NS_MATHML_MATHVARIANT_SCRIPT: ::std::os::raw::c_uint = 5;
+    pub const NS_MATHML_MATHVARIANT_BOLD_SCRIPT: ::std::os::raw::c_uint = 6;
+    pub const NS_MATHML_MATHVARIANT_FRAKTUR: ::std::os::raw::c_uint = 7;
+    pub const NS_MATHML_MATHVARIANT_DOUBLE_STRUCK: ::std::os::raw::c_uint = 8;
+    pub const NS_MATHML_MATHVARIANT_BOLD_FRAKTUR: ::std::os::raw::c_uint = 9;
+    pub const NS_MATHML_MATHVARIANT_SANS_SERIF: ::std::os::raw::c_uint = 10;
+    pub const NS_MATHML_MATHVARIANT_BOLD_SANS_SERIF: ::std::os::raw::c_uint =
+        11;
+    pub const NS_MATHML_MATHVARIANT_SANS_SERIF_ITALIC: ::std::os::raw::c_uint
+              =
+        12;
+    pub const NS_MATHML_MATHVARIANT_SANS_SERIF_BOLD_ITALIC:
+              ::std::os::raw::c_uint =
+        13;
+    pub const NS_MATHML_MATHVARIANT_MONOSPACE: ::std::os::raw::c_uint = 14;
+    pub const NS_MATHML_MATHVARIANT_INITIAL: ::std::os::raw::c_uint = 15;
+    pub const NS_MATHML_MATHVARIANT_TAILED: ::std::os::raw::c_uint = 16;
+    pub const NS_MATHML_MATHVARIANT_LOOPED: ::std::os::raw::c_uint = 17;
+    pub const NS_MATHML_MATHVARIANT_STRETCHED: ::std::os::raw::c_uint = 18;
+    pub const NS_MATHML_DISPLAYSTYLE_INLINE: ::std::os::raw::c_uint = 0;
+    pub const NS_MATHML_DISPLAYSTYLE_BLOCK: ::std::os::raw::c_uint = 1;
     pub const NS_STYLE_WIDTH_MAX_CONTENT: ::std::os::raw::c_uint = 0;
     pub const NS_STYLE_WIDTH_MIN_CONTENT: ::std::os::raw::c_uint = 1;
     pub const NS_STYLE_WIDTH_FIT_CONTENT: ::std::os::raw::c_uint = 2;
