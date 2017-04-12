@@ -145,7 +145,7 @@ impl<Impl: SelectorImpl> SelectorMethods for Selector<Impl> {
     }
 }
 
-impl<Impl: SelectorImpl> SelectorMethods for Arc<ComplexSelector<Impl>> {
+impl<Impl: SelectorImpl> SelectorMethods for ComplexSelector<Impl> {
     type Impl = Impl;
 
     fn visit<V>(&self, visitor: &mut V) -> bool

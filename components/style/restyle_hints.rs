@@ -421,6 +421,8 @@ fn needs_cache_revalidation(sel: &SimpleSelector<SelectorImpl>) -> bool {
         SimpleSelector::FirstOfType |
         SimpleSelector::LastOfType |
         SimpleSelector::OnlyOfType => true,
+        // FIXME(emilio): This sets the "revalidation" flag for :any, which is
+        // probably expensive given we use it a lot in UA sheets.
         SimpleSelector::NonTSPseudoClass(ref p) => p.state_flag().is_empty(),
         _ => false,
     }
@@ -491,85 +493,31 @@ struct Dependency {
 /// of them is sensitive to attribute or state changes.
 struct SensitivitiesVisitor {
     sensitivities: Sensitivities,
+    hint: RestyleHint,
+    needs_revalidation: bool,
 }
 
 impl SelectorVisitor for SensitivitiesVisitor {
     type Impl = SelectorImpl;
+
+    fn visit_complex_selector(&mut self,
+                              _: &ComplexSelector<SelectorImpl>,
+                              combinator: Option<Combinator>) -> bool {
+        self.hint |= combinator_to_restyle_hint(combinator);
+        self.needs_revalidation |= self.hint.contains(RESTYLE_LATER_SIBLINGS);
+        true
+    }
 
     fn visit_simple_selector(&mut self, s: &SimpleSelector<SelectorImpl>) -> bool {
         self.sensitivities.states.insert(selector_to_state(s));
 
         if !self.sensitivities.attrs {
             self.sensitivities.attrs = is_attr_selector(s);
+            self.needs_revalidation = true;
         }
 
-        true
-    }
-}
-
-/// A visitor struct that collects information for a given selector.
-///
-/// This is the struct responsible of adding dependencies for a given complex
-/// selector and all the selectors to its left.
-///
-/// This uses a `SensitivitiesVisitor` internally to collect all the
-/// dependencies inside the given complex selector.
-pub struct SelectorDependencyVisitor<'a> {
-    dependency_set: &'a mut DependencySet,
-    needs_cache_revalidation: bool,
-}
-
-impl<'a> SelectorDependencyVisitor<'a> {
-    /// Create a new `SelectorDependencyVisitor`.
-    pub fn new(dependency_set: &'a mut DependencySet) -> Self {
-        SelectorDependencyVisitor {
-            dependency_set: dependency_set,
-            needs_cache_revalidation: false,
-        }
-    }
-
-    /// Returns whether this visitor has encountered a simple selector that needs
-    /// cache revalidation.
-    pub fn needs_cache_revalidation(&self) -> bool {
-        self.needs_cache_revalidation
-    }
-}
-
-impl<'a> SelectorVisitor for SelectorDependencyVisitor<'a> {
-    type Impl = SelectorImpl;
-
-    fn visit_simple_selector(&mut self, s: &SimpleSelector<SelectorImpl>) -> bool {
-        if !self.needs_cache_revalidation {
-            self.needs_cache_revalidation = needs_cache_revalidation(s);
-        }
-
-        true
-    }
-
-    fn visit_complex_selector(&mut self,
-                              selector: &Arc<ComplexSelector<SelectorImpl>>,
-                              combinator: Option<Combinator>)
-                              -> bool
-    {
-        let mut sensitivity_visitor = SensitivitiesVisitor {
-            sensitivities: Sensitivities::new(),
-        };
-
-        for s in &selector.compound_selector {
-            s.visit(&mut sensitivity_visitor);
-        }
-
-        let hint = combinator_to_restyle_hint(combinator);
-
-        self.needs_cache_revalidation |= sensitivity_visitor.sensitivities.attrs;
-        self.needs_cache_revalidation |= hint.intersects(RESTYLE_LATER_SIBLINGS);
-
-        if !sensitivity_visitor.sensitivities.is_empty() {
-            self.dependency_set.add_dependency(Dependency {
-                selector: selector.clone(),
-                hint: hint,
-                sensitivities: sensitivity_visitor.sensitivities,
-            });
+        if !self.needs_revalidation {
+            self.needs_revalidation = needs_cache_revalidation(s);
         }
 
         true
@@ -604,6 +552,52 @@ impl DependencySet {
         } else {
             self.state_deps.push(dep)
         }
+    }
+
+    /// Adds a selector to this `DependencySet`, and returns whether it may need
+    /// cache revalidation, that is, whether two siblings of the same "shape"
+    /// may have different style due to this selector.
+    pub fn note_selector(&mut self,
+                         selector: &Arc<ComplexSelector<SelectorImpl>>)
+                         -> bool
+    {
+        let mut combinator = None;
+        let mut current = selector;
+
+        let mut needs_revalidation = false;
+
+        loop {
+            let mut sensitivities_visitor = SensitivitiesVisitor {
+                sensitivities: Sensitivities::new(),
+                hint: RestyleHint::empty(),
+                needs_revalidation: false,
+            };
+
+            for ss in &current.compound_selector {
+                ss.visit(&mut sensitivities_visitor);
+            }
+
+            sensitivities_visitor.hint |= combinator_to_restyle_hint(combinator);
+            needs_revalidation |= sensitivities_visitor.needs_revalidation;
+
+            if !sensitivities_visitor.sensitivities.is_empty() {
+                self.add_dependency(Dependency {
+                    sensitivities: sensitivities_visitor.sensitivities,
+                    hint: sensitivities_visitor.hint,
+                    selector: current.clone(),
+                })
+            }
+
+            match current.next {
+                Some((ref next, next_combinator)) => {
+                    combinator = Some(next_combinator);
+                    current = next;
+                }
+                None => break,
+            }
+        }
+
+        needs_revalidation
     }
 
     /// Create an empty `DependencySet`.
