@@ -15,7 +15,7 @@ use std::{cmp, fmt, mem};
 use std::ascii::AsciiExt;
 use std::ops::Mul;
 use style_traits::ToCss;
-use style_traits::values::specified::AllowedNumericType;
+use style_traits::values::specified::AllowedLengthType;
 use stylesheets::CssRuleType;
 use super::{Angle, Number, SimplifiedValueNode, SimplifiedSumNode, Time, ToComputedValue};
 use values::{Auto, CSSFloat, Either, FONT_MEDIUM_PX, HasViewportPercentage, None_, Normal};
@@ -465,7 +465,7 @@ pub enum Length {
     /// A calc expression.
     ///
     /// https://drafts.csswg.org/css-values/#calc-notation
-    Calc(Box<CalcLengthOrPercentage>, AllowedNumericType),
+    Calc(Box<CalcLengthOrPercentage>, AllowedLengthType),
 }
 
 impl From<NoCalcLength> for Length {
@@ -546,7 +546,7 @@ impl Length {
     }
 
     #[inline]
-    fn parse_internal(context: &ParserContext, input: &mut Parser, num_context: AllowedNumericType)
+    fn parse_internal(context: &ParserContext, input: &mut Parser, num_context: AllowedLengthType)
                       -> Result<Length, ()> {
         match try!(input.next()) {
             Token::Dimension(ref value, ref unit) if num_context.is_ok(value.value) =>
@@ -563,7 +563,7 @@ impl Length {
     /// Parse a non-negative length
     #[inline]
     pub fn parse_non_negative(context: &ParserContext, input: &mut Parser) -> Result<Length, ()> {
-        Self::parse_internal(context, input, AllowedNumericType::NonNegative)
+        Self::parse_internal(context, input, AllowedLengthType::NonNegative)
     }
 
     /// Get an absolute length from a px value.
@@ -583,7 +583,7 @@ impl Length {
 
 impl Parse for Length {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        Self::parse_internal(context, input, AllowedNumericType::All)
+        Self::parse_internal(context, input, AllowedLengthType::All)
     }
 }
 
@@ -605,7 +605,7 @@ impl Either<Length, Normal> {
         if input.try(|input| Normal::parse(context, input)).is_ok() {
             return Ok(Either::Second(Normal));
         }
-        Length::parse_internal(context, input, AllowedNumericType::NonNegative).map(Either::First)
+        Length::parse_internal(context, input, AllowedLengthType::NonNegative).map(Either::First)
     }
 }
 
@@ -616,7 +616,7 @@ impl Either<Length, Auto> {
         if input.try(|input| Auto::parse(context, input)).is_ok() {
             return Ok(Either::Second(Auto));
         }
-        Length::parse_internal(context, input, AllowedNumericType::NonNegative).map(Either::First)
+        Length::parse_internal(context, input, AllowedLengthType::NonNegative).map(Either::First)
     }
 }
 
@@ -843,7 +843,7 @@ impl CalcLengthOrPercentage {
 
     fn parse_length(context: &ParserContext,
                     input: &mut Parser,
-                    num_context: AllowedNumericType) -> Result<Length, ()> {
+                    num_context: AllowedLengthType) -> Result<Length, ()> {
         CalcLengthOrPercentage::parse(context, input, CalcUnit::Length).map(|calc| {
             Length::Calc(Box::new(calc), num_context)
         })
@@ -1068,7 +1068,7 @@ impl ToCss for Percentage {
 }
 
 impl Percentage {
-    fn parse_internal(input: &mut Parser, context: AllowedNumericType) -> Result<Self, ()> {
+    fn parse_internal(input: &mut Parser, context: AllowedLengthType) -> Result<Self, ()> {
         match try!(input.next()) {
             Token::Percentage(ref value) if context.is_ok(value.unit_value) => {
                 Ok(Percentage(value.unit_value))
@@ -1079,14 +1079,14 @@ impl Percentage {
 
     /// Parses a percentage token, but rejects it if it's negative.
     pub fn parse_non_negative(input: &mut Parser) -> Result<Self, ()> {
-        Self::parse_internal(input, AllowedNumericType::NonNegative)
+        Self::parse_internal(input, AllowedLengthType::NonNegative)
     }
 }
 
 impl Parse for Percentage {
     #[inline]
     fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        Self::parse_internal(input, AllowedNumericType::All)
+        Self::parse_internal(input, AllowedLengthType::All)
     }
 }
 
@@ -1152,7 +1152,7 @@ impl LengthOrPercentage {
         LengthOrPercentage::Length(NoCalcLength::zero())
     }
 
-    fn parse_internal(context: &ParserContext, input: &mut Parser, num_context: AllowedNumericType)
+    fn parse_internal(context: &ParserContext, input: &mut Parser, num_context: AllowedLengthType)
                       -> Result<LengthOrPercentage, ()>
     {
         match try!(input.next()) {
@@ -1175,14 +1175,14 @@ impl LengthOrPercentage {
     /// Parse a non-negative length.
     #[inline]
     pub fn parse_non_negative(context: &ParserContext, input: &mut Parser) -> Result<LengthOrPercentage, ()> {
-        Self::parse_internal(context, input, AllowedNumericType::NonNegative)
+        Self::parse_internal(context, input, AllowedLengthType::NonNegative)
     }
 
     /// Parse a length, treating dimensionless numbers as pixels
     ///
     /// https://www.w3.org/TR/SVG2/types.html#presentation-attribute-css-value
     pub fn parse_numbers_are_pixels(context: &ParserContext, input: &mut Parser) -> Result<LengthOrPercentage, ()> {
-        if let Ok(lop) = input.try(|i| Self::parse_internal(context, i, AllowedNumericType::All)) {
+        if let Ok(lop) = input.try(|i| Self::parse_internal(context, i, AllowedLengthType::All)) {
             return Ok(lop)
         }
 
@@ -1198,7 +1198,7 @@ impl LengthOrPercentage {
     pub fn parse_numbers_are_pixels_non_negative(context: &ParserContext,
                                                  input: &mut Parser)
                                                  -> Result<LengthOrPercentage, ()> {
-        if let Ok(lop) = input.try(|i| Self::parse_internal(context, i, AllowedNumericType::NonNegative)) {
+        if let Ok(lop) = input.try(|i| Self::parse_internal(context, i, AllowedLengthType::NonNegative)) {
             return Ok(lop)
         }
 
@@ -1224,7 +1224,7 @@ impl LengthOrPercentage {
 impl Parse for LengthOrPercentage {
     #[inline]
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        Self::parse_internal(context, input, AllowedNumericType::All)
+        Self::parse_internal(context, input, AllowedLengthType::All)
     }
 }
 
@@ -1277,7 +1277,7 @@ impl ToCss for LengthOrPercentageOrAuto {
 }
 
 impl LengthOrPercentageOrAuto {
-    fn parse_internal(context: &ParserContext, input: &mut Parser, num_context: AllowedNumericType)
+    fn parse_internal(context: &ParserContext, input: &mut Parser, num_context: AllowedLengthType)
                       -> Result<Self, ()> {
         match try!(input.next()) {
             Token::Dimension(ref value, ref unit) if num_context.is_ok(value.value) =>
@@ -1301,7 +1301,7 @@ impl LengthOrPercentageOrAuto {
     /// Parse a non-negative length, percentage, or auto.
     #[inline]
     pub fn parse_non_negative(context: &ParserContext, input: &mut Parser) -> Result<LengthOrPercentageOrAuto, ()> {
-        Self::parse_internal(context, input, AllowedNumericType::NonNegative)
+        Self::parse_internal(context, input, AllowedLengthType::NonNegative)
     }
 
     /// Returns the `auto` value.
@@ -1318,7 +1318,7 @@ impl LengthOrPercentageOrAuto {
 impl Parse for LengthOrPercentageOrAuto {
     #[inline]
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        Self::parse_internal(context, input, AllowedNumericType::All)
+        Self::parse_internal(context, input, AllowedLengthType::All)
     }
 }
 
@@ -1355,7 +1355,7 @@ impl ToCss for LengthOrPercentageOrNone {
     }
 }
 impl LengthOrPercentageOrNone {
-    fn parse_internal(context: &ParserContext, input: &mut Parser, num_context: AllowedNumericType)
+    fn parse_internal(context: &ParserContext, input: &mut Parser, num_context: AllowedLengthType)
                       -> Result<LengthOrPercentageOrNone, ()>
     {
         match try!(input.next()) {
@@ -1379,14 +1379,14 @@ impl LengthOrPercentageOrNone {
     /// Parse a non-negative LengthOrPercentageOrNone.
     #[inline]
     pub fn parse_non_negative(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        Self::parse_internal(context, input, AllowedNumericType::NonNegative)
+        Self::parse_internal(context, input, AllowedLengthType::NonNegative)
     }
 }
 
 impl Parse for LengthOrPercentageOrNone {
     #[inline]
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        Self::parse_internal(context, input, AllowedNumericType::All)
+        Self::parse_internal(context, input, AllowedLengthType::All)
     }
 }
 
@@ -1421,7 +1421,7 @@ pub enum LengthOrPercentageOrAutoOrContent {
 impl LengthOrPercentageOrAutoOrContent {
     /// Parse a non-negative LengthOrPercentageOrAutoOrContent.
     pub fn parse_non_negative(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        let num_context = AllowedNumericType::NonNegative;
+        let num_context = AllowedLengthType::NonNegative;
         match try!(input.next()) {
             Token::Dimension(ref value, ref unit) if num_context.is_ok(value.value) =>
                 NoCalcLength::parse_dimension(context, value.value, unit)

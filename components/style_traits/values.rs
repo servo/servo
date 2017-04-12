@@ -150,35 +150,70 @@ macro_rules! __define_css_keyword_enum__actual {
 /// Helper types for the handling of specified values.
 pub mod specified {
     use app_units::Au;
+    use std::cmp;
 
-    /// Whether to allow negative values or not.
+    /// Whether to allow negative lengths or not.
     #[repr(u8)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-    pub enum AllowedNumericType {
-        /// Allow all kind of numeric values.
+    pub enum AllowedLengthType {
+        /// Allow all kind of lengths.
         All,
-        /// Allow only non-negative values.
+        /// Allow only non-negative lengths.
         NonNegative
     }
 
-    impl AllowedNumericType {
-        /// Whether value is valid for this allowed numeric type.
+    impl AllowedLengthType {
+        /// Whether value is valid for this allowed length type.
         #[inline]
         pub fn is_ok(&self, value: f32) -> bool {
             match *self {
-                AllowedNumericType::All => true,
-                AllowedNumericType::NonNegative => value >= 0.,
+                AllowedLengthType::All => true,
+                AllowedLengthType::NonNegative => value >= 0.,
             }
         }
 
         /// Clamp the value following the rules of this numeric type.
         #[inline]
         pub fn clamp(&self, val: Au) -> Au {
-            use std::cmp;
             match *self {
-                AllowedNumericType::All => val,
-                AllowedNumericType::NonNegative => cmp::max(Au(0), val),
+                AllowedLengthType::All => val,
+                AllowedLengthType::NonNegative => cmp::max(Au(0), val),
+            }
+        }
+    }
+
+    /// Whether to allow negative lengths or not.
+    #[repr(u8)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd)]
+    pub enum AllowedNumericType {
+        /// Allow all kind of numeric values.
+        All,
+        /// Allow only non-negative numeric values.
+        NonNegative,
+        /// Allow only numeric values greater or equal to 1.0.
+        AtLeastOne,
+    }
+
+    impl AllowedNumericType {
+        /// Whether the value fits the rules of this numeric type.
+        #[inline]
+        pub fn is_ok(&self, val: f32) -> bool {
+            match *self {
+                AllowedNumericType::All => true,
+                AllowedNumericType::NonNegative => val >= 0.0,
+                AllowedNumericType::AtLeastOne => val >= 1.0,
+            }
+        }
+
+        /// Clamp the value following the rules of this numeric type.
+        #[inline]
+        pub fn clamp(&self, val: f32) -> f32 {
+            match *self {
+                AllowedNumericType::NonNegative if val < 0. => 0.,
+                AllowedNumericType::AtLeastOne if val < 1. => 1.,
+                _ => val,
             }
         }
     }

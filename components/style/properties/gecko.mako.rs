@@ -3160,11 +3160,11 @@ fn static_assert() {
                 self.gecko.mInitialLetterSink = 0;
             },
             T::Specified(size, sink) => {
-                self.gecko.mInitialLetterSize = size.value;
+                self.gecko.mInitialLetterSize = size.get();
                 if let Some(sink) = sink {
                     self.gecko.mInitialLetterSink = sink.value();
                 } else {
-                    self.gecko.mInitialLetterSink = size.value.floor() as i32;
+                    self.gecko.mInitialLetterSink = size.get().floor() as i32;
                 }
             }
         }
