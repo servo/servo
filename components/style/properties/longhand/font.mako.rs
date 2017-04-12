@@ -415,13 +415,14 @@ ${helpers.single_keyword("font-variant-caps",
     use std::fmt;
     use style_traits::ToCss;
     use values::{FONT_MEDIUM_PX, HasViewportPercentage};
-    use values::specified::{LengthOrPercentage, Length, NoCalcLength, Percentage};
+    use values::specified::{FontRelativeLength, LengthOrPercentage, Length};
+    use values::specified::{NoCalcLength, Percentage};
 
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match *self {
                 SpecifiedValue::Length(ref lop) => lop.to_css(dest),
-                SpecifiedValue::Keyword(kw) => kw.to_css(dest),
+                SpecifiedValue::Keyword(kw, _) => kw.to_css(dest),
                 SpecifiedValue::Smaller => dest.write_str("smaller"),
                 SpecifiedValue::Larger => dest.write_str("larger"),
             }
@@ -441,7 +442,13 @@ ${helpers.single_keyword("font-variant-caps",
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedValue {
         Length(specified::LengthOrPercentage),
-        Keyword(KeywordSize),
+        /// A keyword value, along with a ratio.
+        /// The ratio in any specified keyword value
+        /// will be 1, but we cascade keywordness even
+        /// after font-relative (percent and em) values
+        /// have been applied, which is where the keyword
+        /// comes in. See bug 1355707
+        Keyword(KeywordSize, f32),
         Smaller,
         Larger,
     }
@@ -596,7 +603,22 @@ ${helpers.single_keyword("font-variant-caps",
                 6 => XXLarge,
                 // If value is greater than 7, let it be 7.
                 _ => XXXLarge,
-            })
+            }, 1.)
+        }
+
+        /// If this value is specified as a ratio of the parent font (em units or percent)
+        /// return the ratio
+        pub fn as_font_ratio(&self) -> Option<f32> {
+            if let SpecifiedValue::Length(ref lop) = *self {
+                if let LengthOrPercentage::Percentage(pc) = *lop {
+                    return Some(pc.0)
+                } else if let LengthOrPercentage::Length(ref nocalc) = *lop {
+                    if let NoCalcLength::FontRelative(FontRelativeLength::Em(em)) = *nocalc {
+                        return Some(em)
+                    }
+                }
+            }
+            None
         }
     }
 
@@ -608,7 +630,7 @@ ${helpers.single_keyword("font-variant-caps",
 
     #[inline]
     pub fn get_initial_specified_value() -> SpecifiedValue {
-        SpecifiedValue::Keyword(Medium)
+        SpecifiedValue::Keyword(Medium, 1.)
     }
 
     impl ToComputedValue for SpecifiedValue {
@@ -637,8 +659,8 @@ ${helpers.single_keyword("font-variant-caps",
                     calc.length() + context.inherited_style().get_font().clone_font_size()
                                            .scale_by(calc.percentage())
                 }
-                SpecifiedValue::Keyword(ref key) => {
-                    key.to_computed_value(context)
+                SpecifiedValue::Keyword(ref key, fraction) => {
+                    key.to_computed_value(context).scale_by(fraction)
                 }
                 SpecifiedValue::Smaller => {
                     FontRelativeLength::Em(0.85).to_computed_value(context,
@@ -665,7 +687,7 @@ ${helpers.single_keyword("font-variant-caps",
         }
 
         if let Ok(kw) = input.try(KeywordSize::parse) {
-            return Ok(SpecifiedValue::Keyword(kw))
+            return Ok(SpecifiedValue::Keyword(kw, 1.))
         }
 
         match_ignore_ascii_case! {&*input.expect_ident()?,

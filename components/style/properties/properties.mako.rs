@@ -1569,7 +1569,7 @@ pub struct ComputedValues {
     /// The root element's computed font size.
     pub root_font_size: Au,
     /// The keyword behind the current font-size property, if any
-    pub font_size_keyword: Option<longhands::font_size::KeywordSize>,
+    pub font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
 }
 
 #[cfg(feature = "servo")]
@@ -1578,7 +1578,7 @@ impl ComputedValues {
     pub fn new(custom_properties: Option<Arc<::custom_properties::ComputedValuesMap>>,
                writing_mode: WritingMode,
                root_font_size: Au,
-               font_size_keyword: Option<longhands::font_size::KeywordSize>,
+               font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
             % for style_struct in data.active_style_structs():
                ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
             % endfor
@@ -1910,7 +1910,7 @@ mod lazy_static_module {
             custom_properties: None,
             writing_mode: WritingMode::empty(),
             root_font_size: longhands::font_size::get_initial_value(),
-            font_size_keyword: Some(Default::default()),
+            font_size_keyword: Some((Default::default(), 1.)),
         };
     }
 }
@@ -2205,12 +2205,12 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
                                                  &mut cacheable,
                                                  &mut cascade_info,
                                                  error_reporter);
-            } else if let Some(kw) = inherited_style.font_size_keyword {
+            } else if let Some((kw, fraction)) = inherited_style.font_size_keyword {
                 // Font size keywords will inherit as keywords and be recomputed
                 // each time.
                 let discriminant = LonghandId::FontSize as usize;
                 let size = PropertyDeclaration::FontSize(
-                    longhands::font_size::SpecifiedValue::Keyword(kw)
+                    longhands::font_size::SpecifiedValue::Keyword(kw, fraction)
                 );
                 (CASCADE_PROPERTY[discriminant])(&size,
                                                  inherited_style,
