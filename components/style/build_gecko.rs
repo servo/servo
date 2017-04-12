@@ -31,7 +31,7 @@ mod common {
 #[cfg(feature = "bindgen")]
 mod bindings {
     use bindgen::{Builder, CodegenConfig};
-    use bindgen::chooser::{EnumVariantCustomBehavior, EnumVariantValue, TypeChooser};
+    use bindgen::callbacks::{EnumVariantCustomBehavior, EnumVariantValue, ParseCallbacks};
     use regex::Regex;
     use std::cmp;
     use std::collections::HashSet;
@@ -261,7 +261,7 @@ mod bindings {
 
     #[derive(Debug)]
     struct Callbacks;
-    impl TypeChooser for Callbacks {
+    impl ParseCallbacks for Callbacks {
         fn enum_variant_behavior(&self,
                                  enum_name: Option<&str>,
                                  variant_name: &str,
@@ -284,10 +284,10 @@ mod bindings {
                 vars: true,
                 ..CodegenConfig::nothing()
             })
-            .include(add_include("nsCSSPseudoClasses.h"))   // servo/rust-bindgen#599
-            .header(add_include("nsStyleStruct.h"))
+            .header(add_include("nsCSSPseudoClasses.h"))   // servo/rust-bindgen#599
+            .include(add_include("nsStyleStruct.h"))
             .include(add_include("mozilla/ServoPropPrefList.h"))
-            .header(add_include("mozilla/StyleAnimationValue.h"))
+            .include(add_include("mozilla/StyleAnimationValue.h"))
             .include(add_include("gfxFontConstants.h"))
             .include(add_include("nsThemeConstants.h"))
             .include(add_include("mozilla/dom/AnimationEffectReadOnlyBinding.h"))
@@ -315,7 +315,7 @@ mod bindings {
             .bitfield_enum("nsChangeHint")
             .bitfield_enum("nsRestyleHint")
             .constified_enum("UpdateAnimationsTasks")
-            .type_chooser(Box::new(Callbacks));
+            .parse_callbacks(Box::new(Callbacks));
         let whitelist_vars = [
             "NS_THEME_.*",
             "NODE_.*",
@@ -508,8 +508,8 @@ mod bindings {
             "StyleAnimationValue", // pulls in a whole bunch of stuff we don't need in the bindings
         ];
         let blacklist = [
-            ".*_char_traits",
-            ".*_incompatible_char_type",
+            ".*char_traits",
+            ".*incompatible_char_type",
         ];
 
         struct MappedGenericType {
