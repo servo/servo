@@ -1890,6 +1890,19 @@ fn static_assert() {
             self.gecko.mTransitions[0].mProperty = nsCSSPropertyID_eCSSPropertyExtra_no_properties;
         }
     }
+
+    /// Returns whether there are any transitions specified.
+    pub fn specifies_transitions(&self) -> bool {
+        use gecko_bindings::structs::nsCSSPropertyID::eCSSPropertyExtra_all_properties;
+        if self.gecko.mTransitionPropertyCount == 1 &&
+            self.gecko.mTransitions[0].mProperty == eCSSPropertyExtra_all_properties &&
+            self.gecko.mTransitions[0].mDuration.max(0.0) + self.gecko.mTransitions[0].mDelay <= 0.0f32 {
+            return false;
+        }
+
+        self.gecko.mTransitionPropertyCount > 0
+    }
+
     pub fn transition_property_at(&self, index: usize)
         -> longhands::transition_property::computed_value::SingleComputedValue {
         self.gecko.mTransitions[index].mProperty.into()

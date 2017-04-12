@@ -400,8 +400,15 @@ fn is_attr_selector(sel: &SimpleSelector<SelectorImpl>) -> bool {
     }
 }
 
-fn is_sibling_affecting_selector(sel: &SimpleSelector<SelectorImpl>) -> bool {
+/// Whether a selector containing this simple selector needs to be explicitly
+/// matched against both the style sharing cache entry and the candidate.
+///
+///
+/// We use this for selectors that can have different matching behavior between
+/// siblings that are otherwise identical as far as the cache is concerned.
+fn needs_cache_revalidation(sel: &SimpleSelector<SelectorImpl>) -> bool {
     match *sel {
+        SimpleSelector::Empty |
         SimpleSelector::FirstChild |
         SimpleSelector::LastChild |
         SimpleSelector::OnlyChild |
@@ -412,6 +419,7 @@ fn is_sibling_affecting_selector(sel: &SimpleSelector<SelectorImpl>) -> bool {
         SimpleSelector::FirstOfType |
         SimpleSelector::LastOfType |
         SimpleSelector::OnlyOfType => true,
+        SimpleSelector::NonTSPseudoClass(ref p) => p.state_flag().is_empty(),
         _ => false,
     }
 }
@@ -481,8 +489,7 @@ struct Dependency {
 /// selector.
 pub struct SelectorDependencyVisitor<'a> {
     dependency_set: &'a mut DependencySet,
-    affects_siblings: bool,
-    affected_by_attribute: bool,
+    needs_cache_revalidation: bool,
 }
 
 impl<'a> SelectorDependencyVisitor<'a> {
@@ -490,20 +497,14 @@ impl<'a> SelectorDependencyVisitor<'a> {
     pub fn new(dependency_set: &'a mut DependencySet) -> Self {
         SelectorDependencyVisitor {
             dependency_set: dependency_set,
-            affects_siblings: false,
-            affected_by_attribute: false,
+            needs_cache_revalidation: false,
         }
     }
 
-    /// Returns whether this visitor has known of a sibling-dependent selector.
-    pub fn affects_siblings(&self) -> bool {
-        self.affects_siblings
-    }
-
-    /// Returns whether this visitor has known of a attribute-dependent
-    /// selector.
-    pub fn affected_by_attribute(&self) -> bool {
-        self.affected_by_attribute
+    /// Returns whether this visitor has encountered a simple selector that needs
+    /// cache revalidation.
+    pub fn needs_cache_revalidation(&self) -> bool {
+        self.needs_cache_revalidation
     }
 }
 
@@ -518,8 +519,8 @@ impl<'a> SelectorVisitor for SelectorDependencyVisitor<'a> {
         let mut sensitivities = Sensitivities::new();
         for s in &selector.compound_selector {
             sensitivities.states.insert(selector_to_state(s));
-            if !self.affects_siblings {
-                self.affects_siblings = is_sibling_affecting_selector(s);
+            if !self.needs_cache_revalidation {
+                self.needs_cache_revalidation = needs_cache_revalidation(s);
             }
             if !sensitivities.attrs {
                 sensitivities.attrs = is_attr_selector(s);
@@ -528,8 +529,8 @@ impl<'a> SelectorVisitor for SelectorDependencyVisitor<'a> {
 
         let hint = combinator_to_restyle_hint(combinator);
 
-        self.affected_by_attribute |= sensitivities.attrs;
-        self.affects_siblings |= hint.intersects(RESTYLE_LATER_SIBLINGS);
+        self.needs_cache_revalidation |= sensitivities.attrs;
+        self.needs_cache_revalidation |= hint.intersects(RESTYLE_LATER_SIBLINGS);
 
         if !sensitivities.is_empty() {
             self.dependency_set.add_dependency(Dependency {
