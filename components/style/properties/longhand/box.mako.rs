@@ -220,7 +220,7 @@ ${helpers.single_keyword("position", "static absolute relative fixed",
     <% vertical_align = data.longhands_by_name["vertical-align"] %>
     <% vertical_align.keyword = Keyword("vertical-align",
                                         "baseline sub super top text-top middle bottom text-bottom",
-                                        extra_gecko_values="middle-with-baseline") %>
+                                        extra_gecko_values="-moz-middle-with-baseline") %>
     <% vertical_align_keywords = vertical_align.keyword.values_for(product) %>
 
     ${helpers.gecko_keyword_conversion(vertical_align.keyword)}
