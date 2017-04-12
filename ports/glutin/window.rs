@@ -17,7 +17,9 @@ use gdi32;
 use gleam::gl;
 use glutin;
 use glutin::{Api, ElementState, Event, GlRequest, MouseButton, MouseScrollDelta, VirtualKeyCode};
-use glutin::{ScanCode, TouchPhase};
+#[cfg(not(target_os = "windows"))]
+use glutin::ScanCode;
+use glutin::TouchPhase;
 #[cfg(target_os = "macos")]
 use glutin::os::macos::{ActivationPolicy, WindowBuilderExt};
 use msg::constellation_msg::{self, Key};
@@ -186,10 +188,16 @@ pub struct Window {
     key_modifiers: Cell<KeyModifiers>,
     current_url: RefCell<Option<ServoUrl>>,
 
+    #[cfg(not(target_os = "windows"))]
     /// The contents of the last ReceivedCharacter event for use in a subsequent KeyEvent.
     pending_key_event_char: Cell<Option<char>>,
+
+    #[cfg(target_os = "windows")]
+    last_pressed_key: Cell<Option<constellation_msg::Key>>,
+
     /// The list of keys that have been pressed but not yet released, to allow providing
     /// the equivalent ReceivedCharacter data as was received for the press event.
+    #[cfg(not(target_os = "windows"))]
     pressed_key_map: RefCell<Vec<(ScanCode, char)>>,
 
     gl: Rc<gl::Gl>,
@@ -291,6 +299,10 @@ impl Window {
             println!("{}", gl.get_string(gl::VERSION));
         }
 
+        gl.clear_color(0.6, 0.6, 0.6, 1.0);
+        gl.clear(gl::COLOR_BUFFER_BIT);
+        gl.finish();
+
         let window = Window {
             kind: window_kind,
             event_queue: RefCell::new(vec!()),
@@ -301,14 +313,15 @@ impl Window {
             key_modifiers: Cell::new(KeyModifiers::empty()),
             current_url: RefCell::new(None),
 
+            #[cfg(not(target_os = "windows"))]
             pending_key_event_char: Cell::new(None),
+            #[cfg(not(target_os = "windows"))]
             pressed_key_map: RefCell::new(vec![]),
+            #[cfg(target_os = "windows")]
+            last_pressed_key: Cell::new(None),
             gl: gl.clone(),
         };
 
-        gl.clear_color(0.6, 0.6, 0.6, 1.0);
-        gl.clear(gl::COLOR_BUFFER_BIT);
-        gl.finish();
         window.present();
 
         Rc::new(window)
@@ -344,60 +357,113 @@ impl Window {
         GlRequest::Specific(Api::OpenGlEs, (3, 0))
     }
 
+    #[cfg(not(target_os = "windows"))]
+    fn handle_received_character(&self, ch: char) {
+        if !ch.is_control() {
+            self.pending_key_event_char.set(Some(ch));
+        }
+    }
+
+    #[cfg(target_os = "windows")]
+    fn handle_received_character(&self, ch: char) {
+        let modifiers = Window::glutin_mods_to_script_mods(self.key_modifiers.get());
+        if let Some(last_pressed_key) = self.last_pressed_key.get() {
+            let event = WindowEvent::KeyEvent(Some(ch), last_pressed_key, KeyState::Pressed, modifiers);
+            self.event_queue.borrow_mut().push(event);
+        } else {
+            // Only send the character if we can print it (by ignoring characters like backspace)
+            if ch >= ' ' {
+                let event = WindowEvent::KeyEvent(Some(ch),
+                                                  Key::A /* unused */,
+                                                  KeyState::Pressed,
+                                                  modifiers);
+                self.event_queue.borrow_mut().push(event);
+            }
+        }
+        self.last_pressed_key.set(None);
+    }
+
+    fn toggle_keyboard_modifiers(&self, virtual_key_code: VirtualKeyCode) {
+        match virtual_key_code {
+            VirtualKeyCode::LControl => self.toggle_modifier(LEFT_CONTROL),
+            VirtualKeyCode::RControl => self.toggle_modifier(RIGHT_CONTROL),
+            VirtualKeyCode::LShift => self.toggle_modifier(LEFT_SHIFT),
+            VirtualKeyCode::RShift => self.toggle_modifier(RIGHT_SHIFT),
+            VirtualKeyCode::LAlt => self.toggle_modifier(LEFT_ALT),
+            VirtualKeyCode::RAlt => self.toggle_modifier(RIGHT_ALT),
+            VirtualKeyCode::LWin => self.toggle_modifier(LEFT_SUPER),
+            VirtualKeyCode::RWin => self.toggle_modifier(RIGHT_SUPER),
+            _ => {}
+        }
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    fn handle_keyboard_input(&self, element_state: ElementState, _scan_code: u8, virtual_key_code: VirtualKeyCode) {
+        self.toggle_keyboard_modifiers(virtual_key_code);
+
+        let ch = match element_state {
+            ElementState::Pressed => {
+                // Retrieve any previously stored ReceivedCharacter value.
+                // Store the association between the scan code and the actual
+                // character value, if there is one.
+                let ch = self.pending_key_event_char
+                            .get()
+                            .and_then(|ch| filter_nonprintable(ch, virtual_key_code));
+                self.pending_key_event_char.set(None);
+                if let Some(ch) = ch {
+                    self.pressed_key_map.borrow_mut().push((_scan_code, ch));
+                }
+                ch
+            }
+
+            ElementState::Released => {
+                // Retrieve the associated character value for this release key,
+                // if one was previously stored.
+                let idx = self.pressed_key_map
+                            .borrow()
+                            .iter()
+                            .position(|&(code, _)| code == _scan_code);
+                idx.map(|idx| self.pressed_key_map.borrow_mut().swap_remove(idx).1)
+            }
+        };
+
+        if let Ok(key) = Window::glutin_key_to_script_key(virtual_key_code) {
+            let state = match element_state {
+                ElementState::Pressed => KeyState::Pressed,
+                ElementState::Released => KeyState::Released,
+            };
+            let modifiers = Window::glutin_mods_to_script_mods(self.key_modifiers.get());
+            //self.event_queue.borrow_mut().push(WindowEvent::KeyEvent(None, key, state, modifiers));
+            self.event_queue.borrow_mut().push(WindowEvent::KeyEvent(ch, key, state, modifiers));
+        }
+    }
+
+    #[cfg(target_os = "windows")]
+    fn handle_keyboard_input(&self, element_state: ElementState, _scan_code: u8, virtual_key_code: VirtualKeyCode) {
+        self.toggle_keyboard_modifiers(virtual_key_code);
+
+        if let Ok(key) = Window::glutin_key_to_script_key(virtual_key_code) {
+            let state = match element_state {
+                ElementState::Pressed => KeyState::Pressed,
+                ElementState::Released => KeyState::Released,
+            };
+            if element_state == ElementState::Pressed {
+                if is_printable(virtual_key_code) {
+                    self.last_pressed_key.set(Some(key));
+                }
+            }
+            let modifiers = Window::glutin_mods_to_script_mods(self.key_modifiers.get());
+            self.event_queue.borrow_mut().push(WindowEvent::KeyEvent(None, key, state, modifiers));
+        }
+    }
+
     fn handle_window_event(&self, event: glutin::Event) -> bool {
         match event {
             Event::ReceivedCharacter(ch) => {
-                if !ch.is_control() {
-                    self.pending_key_event_char.set(Some(ch));
-                }
+                self.handle_received_character(ch)
             }
-            Event::KeyboardInput(element_state, scan_code, Some(virtual_key_code)) => {
-                match virtual_key_code {
-                    VirtualKeyCode::LControl => self.toggle_modifier(LEFT_CONTROL),
-                    VirtualKeyCode::RControl => self.toggle_modifier(RIGHT_CONTROL),
-                    VirtualKeyCode::LShift => self.toggle_modifier(LEFT_SHIFT),
-                    VirtualKeyCode::RShift => self.toggle_modifier(RIGHT_SHIFT),
-                    VirtualKeyCode::LAlt => self.toggle_modifier(LEFT_ALT),
-                    VirtualKeyCode::RAlt => self.toggle_modifier(RIGHT_ALT),
-                    VirtualKeyCode::LWin => self.toggle_modifier(LEFT_SUPER),
-                    VirtualKeyCode::RWin => self.toggle_modifier(RIGHT_SUPER),
-                    _ => {}
-                }
-
-                let ch = match element_state {
-                    ElementState::Pressed => {
-                        // Retrieve any previosly stored ReceivedCharacter value.
-                        // Store the association between the scan code and the actual
-                        // character value, if there is one.
-                        let ch = self.pending_key_event_char
-                                     .get()
-                                     .and_then(|ch| filter_nonprintable(ch, virtual_key_code));
-                        self.pending_key_event_char.set(None);
-                        if let Some(ch) = ch {
-                            self.pressed_key_map.borrow_mut().push((scan_code, ch));
-                        }
-                        ch
-                    }
-
-                    ElementState::Released => {
-                        // Retrieve the associated character value for this release key,
-                        // if one was previously stored.
-                        let idx = self.pressed_key_map
-                                      .borrow()
-                                      .iter()
-                                      .position(|&(code, _)| code == scan_code);
-                        idx.map(|idx| self.pressed_key_map.borrow_mut().swap_remove(idx).1)
-                    }
-                };
-
-                if let Ok(key) = Window::glutin_key_to_script_key(virtual_key_code) {
-                    let state = match element_state {
-                        ElementState::Pressed => KeyState::Pressed,
-                        ElementState::Released => KeyState::Released,
-                    };
-                    let modifiers = Window::glutin_mods_to_script_mods(self.key_modifiers.get());
-                    self.event_queue.borrow_mut().push(WindowEvent::KeyEvent(ch, key, state, modifiers));
-                }
+            Event::KeyboardInput(element_state, _scan_code, Some(virtual_key_code)) => {
+                self.handle_keyboard_input(element_state, _scan_code, virtual_key_code);
             }
             Event::KeyboardInput(_, _, None) => {
                 debug!("Keyboard input without virtual key.");
@@ -1167,7 +1233,7 @@ fn glutin_pressure_stage_to_touchpad_pressure_phase(stage: i64) -> TouchpadPress
     }
 }
 
-fn filter_nonprintable(ch: char, key_code: VirtualKeyCode) -> Option<char> {
+fn is_printable(key_code: VirtualKeyCode) -> bool {
     use glutin::VirtualKeyCode::*;
     match key_code {
         Escape |
@@ -1233,8 +1299,15 @@ fn filter_nonprintable(ch: char, key_code: VirtualKeyCode) -> Option<char> {
         WebHome |
         WebRefresh |
         WebSearch |
-        WebStop => None,
-        _ => Some(ch),
+        WebStop => false,
+        _ => true,
+    }
+}
+fn filter_nonprintable(ch: char, key_code: VirtualKeyCode) -> Option<char> {
+    if is_printable(key_code) {
+        Some(ch)
+    } else {
+        None
     }
 }
 
