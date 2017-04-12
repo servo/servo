@@ -39,7 +39,7 @@ use style_traits::viewport::ViewportConstraints;
 use time::{precise_time_ns, precise_time_s};
 use touch::{TouchHandler, TouchAction};
 use webrender;
-use webrender_traits::{self, LayoutPoint, ScrollEventPhase, ScrollLayerId, ScrollLocation};
+use webrender_traits::{self, LayoutPoint, ScrollEventPhase, ClipId, ScrollLocation};
 use windowing::{self, MouseWindowEvent, WindowEvent, WindowMethods, WindowNavigateMsg};
 
 #[derive(Debug, PartialEq)]
@@ -797,8 +797,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                 pipeline_id: PipelineId,
                                 scroll_root_id: ScrollRootId,
                                 point: Point2D<f32>) {
-        let id = ScrollLayerId::new(scroll_root_id.0 as u64, pipeline_id.to_webrender());
-        self.webrender_api.scroll_layer_with_id(LayoutPoint::from_untyped(&point), id);
+        let id = ClipId::new(scroll_root_id.0 as u64, pipeline_id.to_webrender());
+        self.webrender_api.scroll_node_with_id(LayoutPoint::from_untyped(&point), id);
     }
 
     fn handle_window_message(&mut self, event: WindowEvent) {
@@ -1389,7 +1389,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn send_viewport_rects(&self) {
         let mut stacking_context_scroll_states_per_pipeline = HashMap::new();
-        for scroll_layer_state in self.webrender_api.get_scroll_layer_state() {
+        for scroll_layer_state in self.webrender_api.get_scroll_node_state() {
             let external_id = match scroll_layer_state.id.external_id() {
                 Some(id) => id,
                 None => continue,

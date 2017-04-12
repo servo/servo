@@ -16,7 +16,7 @@ use msg::constellation_msg::PipelineId;
 use style::computed_values::{image_rendering, mix_blend_mode};
 use style::computed_values::filter::{self, Filter};
 use style::values::computed::BorderStyle;
-use webrender_traits::{self, DisplayListBuilder, ExtendMode, LayoutTransform, ScrollLayerId};
+use webrender_traits::{self, DisplayListBuilder, ExtendMode, LayoutTransform, ClipId};
 
 pub trait WebRenderDisplayListConverter {
     fn convert_to_webrender(&self, pipeline_id: PipelineId) -> DisplayListBuilder;
@@ -374,7 +374,11 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                                        end_point,
                                                        item.gradient.stops.clone(),
                                                        ExtendMode::Clamp);
-                builder.push_gradient(rect, clip, gradient);
+                builder.push_gradient(rect,
+                                      clip,
+                                      gradient,
+                                      rect.size,
+                                      webrender_traits::LayoutSize::zero());
             }
             DisplayItem::Line(..) => {
                 println!("TODO DisplayItem::Line");
@@ -421,7 +425,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
             }
             DisplayItem::PopStackingContext(_) => builder.pop_stacking_context(),
             DisplayItem::PushScrollRoot(ref item) => {
-                let our_id = ScrollLayerId::new(item.scroll_root.id.0 as u64, builder.pipeline_id);
+                let our_id = ClipId::new(item.scroll_root.id.0 as u64, builder.pipeline_id);
                 let clip = item.scroll_root.clip.to_clip_region(builder);
                 let content_rect = item.scroll_root.content_rect.to_rectf();
                 let webrender_id = builder.define_clip(content_rect, clip, Some(our_id));
@@ -432,15 +436,15 @@ impl WebRenderDisplayItemConverter for DisplayItem {
     }
 }
 trait WebRenderScrollRootIdConverter {
-    fn convert_to_webrender(&self, pipeline_id: webrender_traits::PipelineId) -> ScrollLayerId;
+    fn convert_to_webrender(&self, pipeline_id: webrender_traits::PipelineId) -> ClipId;
 }
 
 impl WebRenderScrollRootIdConverter for ScrollRootId {
-    fn convert_to_webrender(&self, pipeline_id: webrender_traits::PipelineId) -> ScrollLayerId {
+    fn convert_to_webrender(&self, pipeline_id: webrender_traits::PipelineId) -> ClipId {
         if *self == ScrollRootId::root() {
-            ScrollLayerId::root_scroll_layer(pipeline_id)
+            ClipId::root_scroll_node(pipeline_id)
         } else {
-            ScrollLayerId::new(self.0 as u64, pipeline_id)
+            ClipId::new(self.0 as u64, pipeline_id)
         }
     }
 }

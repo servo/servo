@@ -985,8 +985,8 @@ impl FragmentDisplayListBuilding for Fragment {
             })
         }
 
-        let center = Point2D::new(absolute_bounds.origin.x + absolute_bounds.size.width / 2,
-                                  absolute_bounds.origin.y + absolute_bounds.size.height / 2);
+        let center = Point2D::new(absolute_bounds.size.width / 2,
+                                  absolute_bounds.size.height / 2);
 
         Some(display_list::Gradient {
             start_point: center - delta,
