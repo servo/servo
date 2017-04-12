@@ -7,7 +7,6 @@
 #![deny(missing_docs)]
 
 use parser::{AttrSelector, Combinator, ComplexSelector, SelectorImpl, SimpleSelector};
-use std::sync::Arc;
 
 /// A trait to visit selector properties.
 ///

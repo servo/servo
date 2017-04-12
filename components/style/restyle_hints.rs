@@ -279,7 +279,7 @@ impl<'a, E> Element for ElementWrapper<'a, E>
     fn match_non_ts_pseudo_class<F>(&self,
                                     pseudo_class: &NonTSPseudoClass,
                                     relations: &mut StyleRelations,
-                                    _: &mut F)
+                                    _setter: &mut F)
                                     -> bool
         where F: FnMut(&Self, ElementSelectorFlags),
     {
@@ -293,12 +293,12 @@ impl<'a, E> Element for ElementWrapper<'a, E>
                                              self,
                                              None,
                                              relations,
-                                             setter)
+                                             _setter)
                 })
             }
         }
 
-        let flag = SelectorImpl::pseudo_class_state_flag(pseudo_class);
+        let flag = pseudo_class.state_flag();
         if flag.is_empty() {
             return self.element.match_non_ts_pseudo_class(pseudo_class,
                                                           relations,
@@ -382,7 +382,7 @@ impl<'a, E> Element for ElementWrapper<'a, E>
 
 fn selector_to_state(sel: &SimpleSelector<SelectorImpl>) -> ElementState {
     match *sel {
-        SimpleSelector::NonTSPseudoClass(ref pc) => SelectorImpl::pseudo_class_state_flag(pc),
+        SimpleSelector::NonTSPseudoClass(ref pc) => pc.state_flag(),
         _ => ElementState::empty(),
     }
 }
@@ -505,6 +505,7 @@ impl SelectorVisitor for SensitivitiesVisitor {
                               combinator: Option<Combinator>) -> bool {
         self.hint |= combinator_to_restyle_hint(combinator);
         self.needs_revalidation |= self.hint.contains(RESTYLE_LATER_SIBLINGS);
+
         true
     }
 
@@ -577,21 +578,28 @@ impl DependencySet {
                 ss.visit(&mut sensitivities_visitor);
             }
 
-            sensitivities_visitor.hint |= combinator_to_restyle_hint(combinator);
             needs_revalidation |= sensitivities_visitor.needs_revalidation;
 
-            if !sensitivities_visitor.sensitivities.is_empty() {
+            let SensitivitiesVisitor {
+                sensitivities,
+                mut hint,
+                ..
+            } = sensitivities_visitor;
+
+            hint |= combinator_to_restyle_hint(combinator);
+
+            if !sensitivities.is_empty() {
                 self.add_dependency(Dependency {
-                    sensitivities: sensitivities_visitor.sensitivities,
-                    hint: sensitivities_visitor.hint,
+                    sensitivities: sensitivities,
+                    hint: hint,
                     selector: current.clone(),
                 })
             }
 
             match current.next {
                 Some((ref next, next_combinator)) => {
-                    combinator = Some(next_combinator);
                     current = next;
+                    combinator = Some(next_combinator);
                 }
                 None => break,
             }
@@ -696,4 +704,27 @@ impl DependencySet {
             }
         }
     }
+}
+
+#[test]
+#[cfg(all(test, feature = "servo"))]
+fn smoke_restyle_hints() {
+    use cssparser::Parser;
+    use selector_parser::SelectorParser;
+    use stylesheets::{Origin, Namespaces};
+    let namespaces = Namespaces::default();
+    let parser = SelectorParser {
+        stylesheet_origin: Origin::Author,
+        namespaces: &namespaces,
+    };
+
+    let mut dependencies = DependencySet::new();
+
+    let mut p = Parser::new(":not(:active) ~ label");
+    let selector = Arc::new(ComplexSelector::parse(&parser, &mut p).unwrap());
+    dependencies.note_selector(&selector);
+    assert_eq!(dependencies.len(), 1);
+    assert_eq!(dependencies.state_deps.len(), 1);
+    assert!(!dependencies.state_deps[0].sensitivities.states.is_empty());
+    assert!(dependencies.state_deps[0].hint.contains(RESTYLE_LATER_SIBLINGS));
 }

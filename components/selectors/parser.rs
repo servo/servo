@@ -1164,7 +1164,7 @@ pub mod tests {
     impl SelectorMethods for PseudoClass {
         type Impl = DummySelectorImpl;
 
-        fn visit<V>(&self, visitor: &mut V) -> bool
+        fn visit<V>(&self, _visitor: &mut V) -> bool
             where V: SelectorVisitor<Impl = Self::Impl> { true }
     }
 
@@ -1500,5 +1500,27 @@ pub mod tests {
             pseudo_element: None,
             specificity: specificity(1, 1, 0),
         }))));
+    }
+
+    struct TestVisitor {
+        seen: Vec<String>,
+    }
+
+    impl SelectorVisitor for TestVisitor {
+        type Impl = DummySelectorImpl;
+
+        fn visit_simple_selector(&mut self, s: &SimpleSelector<DummySelectorImpl>) -> bool {
+            let mut dest = String::new();
+            s.to_css(&mut dest).unwrap();
+            self.seen.push(dest);
+            true
+        }
+    }
+
+    #[test]
+    fn visitor() {
+        let mut test_visitor = TestVisitor { seen: vec![], };
+        parse(":not(:hover) ~ label").unwrap().0[0].visit(&mut test_visitor);
+        assert!(test_visitor.seen.contains(&":hover".into()));
     }
 }
