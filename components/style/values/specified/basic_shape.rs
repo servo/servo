@@ -8,16 +8,17 @@
 //! [basic-shape]: https://drafts.csswg.org/css-shapes/#typedef-basic-shape
 
 use cssparser::Parser;
-use euclid::size::Size2D;
 use parser::{Parse, ParserContext};
-use properties::shorthands::{parse_four_sides, serialize_four_sides};
+use properties::shorthands::parse_four_sides;
 use std::ascii::AsciiExt;
 use std::fmt;
 use style_traits::ToCss;
 use values::HasViewportPercentage;
 use values::computed::{ComputedValueAsSpecified, Context, ToComputedValue};
 use values::computed::basic_shape as computed_basic_shape;
-use values::specified::{BorderRadiusSize, LengthOrPercentage, Percentage};
+use values::generics::BorderRadiusSize;
+use values::generics::basic_shape::BorderRadius as GenericBorderRadius;
+use values::specified::{LengthOrPercentage, Percentage};
 use values::specified::position::{Keyword, Position};
 use values::specified::url::SpecifiedUrl;
 
@@ -682,66 +683,21 @@ impl ToComputedValue for ShapeRadius {
     }
 }
 
-/// https://drafts.csswg.org/css-backgrounds-3/#border-radius
-#[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-pub struct BorderRadius {
-    pub top_left: BorderRadiusSize,
-    pub top_right: BorderRadiusSize,
-    pub bottom_right: BorderRadiusSize,
-    pub bottom_left: BorderRadiusSize,
-}
-
-/// Serialization helper for types of longhands like `border-radius` and `outline-radius`
-pub fn serialize_radius_values<L, W>(dest: &mut W, top_left: &Size2D<L>,
-                                     top_right: &Size2D<L>, bottom_right: &Size2D<L>,
-                                     bottom_left: &Size2D<L>) -> fmt::Result
-    where L: ToCss + PartialEq, W: fmt::Write
-{
-    if top_left.width == top_left.height &&
-       top_right.width == top_right.height &&
-       bottom_right.width == bottom_right.height &&
-       bottom_left.width == bottom_left.height {
-        serialize_four_sides(dest,
-                             &top_left.width,
-                             &top_right.width,
-                             &bottom_right.width,
-                             &bottom_left.width)
-    } else {
-        serialize_four_sides(dest,
-                             &top_left.width,
-                             &top_right.width,
-                             &bottom_right.width,
-                             &bottom_left.width)?;
-        dest.write_str(" / ")?;
-        serialize_four_sides(dest,
-                             &top_left.height,
-                             &top_right.height,
-                             &bottom_right.height,
-                             &bottom_left.height)
-    }
-}
-
-impl ToCss for BorderRadius {
-    #[inline]
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        serialize_radius_values(dest, &self.top_left.0, &self.top_right.0,
-                                &self.bottom_right.0, &self.bottom_left.0)
-    }
-}
+/// The specified value of `BorderRadius`
+pub type BorderRadius = GenericBorderRadius<LengthOrPercentage>;
 
 impl Parse for BorderRadius {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        let mut widths = try!(parse_one_set_of_border_values(context, input));
+        let mut widths = parse_one_set_of_border_values(context, input)?;
         let mut heights = if input.try(|input| input.expect_delim('/')).is_ok() {
-            try!(parse_one_set_of_border_values(context, input))
+            parse_one_set_of_border_values(context, input)?
         } else {
             [widths[0].clone(),
              widths[1].clone(),
              widths[2].clone(),
              widths[3].clone()]
         };
+
         Ok(BorderRadius {
             top_left: BorderRadiusSize::new(widths[0].take(), heights[0].take()),
             top_right: BorderRadiusSize::new(widths[1].take(), heights[1].take()),
@@ -770,31 +726,6 @@ fn parse_one_set_of_border_values(context: &ParserContext, mut input: &mut Parse
         Ok([a, b, c, d])
     } else {
         Ok([a, b.clone(), c, b])
-    }
-}
-
-
-impl ToComputedValue for BorderRadius {
-    type ComputedValue = computed_basic_shape::BorderRadius;
-
-    #[inline]
-    fn to_computed_value(&self, cx: &Context) -> Self::ComputedValue {
-        computed_basic_shape::BorderRadius {
-            top_left: self.top_left.to_computed_value(cx),
-            top_right: self.top_right.to_computed_value(cx),
-            bottom_right: self.bottom_right.to_computed_value(cx),
-            bottom_left: self.bottom_left.to_computed_value(cx),
-        }
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        BorderRadius {
-            top_left: ToComputedValue::from_computed_value(&computed.top_left),
-            top_right: ToComputedValue::from_computed_value(&computed.top_right),
-            bottom_right: ToComputedValue::from_computed_value(&computed.bottom_right),
-            bottom_left: ToComputedValue::from_computed_value(&computed.bottom_left),
-        }
     }
 }
 

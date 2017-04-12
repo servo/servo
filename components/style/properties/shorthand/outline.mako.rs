@@ -68,7 +68,7 @@
     for corner in ['topleft', 'topright', 'bottomright', 'bottomleft']
 )}" products="gecko" spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-outline-radius)">
     use properties::shorthands;
-    use values::specified::basic_shape::serialize_radius_values;
+    use values::generics::serialize_radius_values;
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         // Re-use border-radius parsing.

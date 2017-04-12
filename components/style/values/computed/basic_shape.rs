@@ -9,8 +9,9 @@
 
 use std::fmt;
 use style_traits::ToCss;
-use values::computed::{BorderRadiusSize, LengthOrPercentage};
+use values::computed::LengthOrPercentage;
 use values::computed::position::Position;
+use values::generics::basic_shape::BorderRadius as GenericBorderRadius;
 use values::specified::url::SpecifiedUrl;
 
 pub use values::specified::basic_shape::{self, FillRule, GeometryBox, ShapeBox};
@@ -196,21 +197,5 @@ impl ToCss for ShapeRadius {
     }
 }
 
-/// https://drafts.csswg.org/css-backgrounds-3/#border-radius
-#[derive(Clone, PartialEq, Copy, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-pub struct BorderRadius {
-    pub top_left: BorderRadiusSize,
-    pub top_right: BorderRadiusSize,
-    pub bottom_right: BorderRadiusSize,
-    pub bottom_left: BorderRadiusSize,
-}
-
-impl ToCss for BorderRadius {
-    #[inline]
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        basic_shape::serialize_radius_values(dest, &self.top_left.0, &self.top_right.0,
-                                             &self.bottom_right.0, &self.bottom_left.0)
-    }
-}
+/// The computed value of `BorderRadius`
+pub type BorderRadius = GenericBorderRadius<LengthOrPercentage>;
