@@ -12,7 +12,7 @@ use stylesheets::UrlExtraData;
 
 /// A generic trait for an error reporter.
 pub trait ParseErrorReporter : Sync + Send {
-    /// Called the style engine detects an error.
+    /// Called when the style engine detects an error.
     ///
     /// Returns the current input being parsed, the source position it was
     /// reported from, and a message.
@@ -20,7 +20,8 @@ pub trait ParseErrorReporter : Sync + Send {
                     input: &mut Parser,
                     position: SourcePosition,
                     message: &str,
-                    url: &UrlExtraData);
+                    url: &UrlExtraData,
+                    line_number_offset: u64);
 }
 
 /// An error reporter that reports the errors to the `info` log channel.
@@ -32,10 +33,12 @@ impl ParseErrorReporter for StdoutErrorReporter {
                     input: &mut Parser,
                     position: SourcePosition,
                     message: &str,
-                    url: &UrlExtraData) {
+                    url: &UrlExtraData,
+                    line_number_offset: u64) {
         if log_enabled!(log::LogLevel::Info) {
             let location = input.source_location(position);
-            info!("Url:\t{}\n{}:{} {}", url.as_str(), location.line, location.column, message)
+            let line_offset = location.line + line_number_offset as usize;
+            info!("Url:\t{}\n{}:{} {}", url.as_str(), line_offset, location.column, message)
         }
     }
 }

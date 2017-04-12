@@ -26,12 +26,14 @@ impl ParseErrorReporter for CSSErrorReporter {
                      input: &mut Parser,
                      position: SourcePosition,
                      message: &str,
-                     url: &ServoUrl) {
+                     url: &ServoUrl,
+                     line_number_offset: u64) {
         let location = input.source_location(position);
+        let line_offset = location.line + line_number_offset as usize;
         if log_enabled!(log::LogLevel::Info) {
              info!("Url:\t{}\n{}:{} {}",
                    url.as_str(),
-                   location.line,
+                   line_offset,
                    location.column,
                    message)
         }

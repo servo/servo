@@ -496,7 +496,7 @@ pub extern "C" fn Servo_StyleSheet_Empty(mode: SheetParsingMode) -> RawServoStyl
     Arc::new(Stylesheet::from_str(
         "", unsafe { dummy_url_data() }.clone(), origin,
         Arc::new(shared_lock.wrap(MediaList::empty())),
-        shared_lock, None, &StdoutErrorReporter)
+        shared_lock, None, &StdoutErrorReporter, 0u64)
     ).into_strong()
 }
 
@@ -539,7 +539,7 @@ pub extern "C" fn Servo_StyleSheet_FromUTF8Bytes(loader: *mut Loader,
 
     Arc::new(Stylesheet::from_str(
         input, url_data.clone(), origin, media,
-        shared_lock, loader, &StdoutErrorReporter)
+        shared_lock, loader, &StdoutErrorReporter, 0u64)
     ).into_strong()
 }
 
