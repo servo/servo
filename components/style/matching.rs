@@ -25,7 +25,6 @@ use selector_parser::{PseudoElement, RestyleDamage, SelectorImpl};
 use selectors::bloom::BloomFilter;
 use selectors::matching::{ElementSelectorFlags, StyleRelations};
 use selectors::matching::AFFECTED_BY_PSEUDO_ELEMENTS;
-#[cfg(feature = "servo")] use servo_config::opts;
 use sink::ForgetfulSink;
 use std::sync::Arc;
 use stylist::ApplicableDeclarationBlock;
@@ -727,16 +726,6 @@ pub enum StyleSharingBehavior {
     Disallow,
 }
 
-#[cfg(feature = "servo")]
-fn is_share_style_cache_disabled() -> bool {
-    opts::get().disable_share_style_cache
-}
-
-#[cfg(not(feature = "servo"))]
-fn is_share_style_cache_disabled() -> bool {
-    false
-}
-
 /// The public API that elements expose for selector matching.
 pub trait MatchMethods : TElement {
     /// Performs selector matching and property cascading on an element and its eager pseudos.
@@ -1033,7 +1022,7 @@ pub trait MatchMethods : TElement {
                                       context: &mut StyleContext<Self>,
                                       data: &mut AtomicRefMut<ElementData>)
                                       -> StyleSharingResult {
-        if is_share_style_cache_disabled() {
+        if context.shared.options.disable_style_sharing_cache {
             debug!("{:?} Cannot share style: style sharing cache disabled", self);
             return StyleSharingResult::CannotShare
         }

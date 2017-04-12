@@ -61,6 +61,42 @@ pub enum QuirksMode {
     NoQuirks,
 }
 
+/// A global options structure for the style system. We use this instead of
+/// opts to abstract across Gecko and Servo.
+#[derive(Clone)]
+pub struct StyleSystemOptions {
+    /// Whether the style sharing cache is disabled.
+    pub disable_style_sharing_cache: bool,
+    /// Whether we should dump statistics about the style system.
+    pub dump_style_statistics: bool,
+}
+
+#[cfg(feature = "gecko")]
+fn get_env(name: &str) -> bool {
+    match env::var(name) {
+        Ok(s) => !s.is_empty(),
+        Err(_) => false,
+    }
+}
+
+impl Default for StyleSystemOptions {
+    #[cfg(feature = "servo")]
+    fn default() -> Self {
+        StyleSystemOptions {
+            disable_style_sharing_cache: opts::get().disable_share_style_cache,
+            dump_style_statistics: opts::get().style_sharing_stats,
+        }
+    }
+
+    #[cfg(feature = "gecko")]
+    fn default() -> Self {
+        StyleSystemOptions {
+            disable_style_sharing_cache: get_env("DISABLE_STYLE_SHARING_CACHE"),
+            dump_style_statistics: get_env("DUMP_STYLE_STATISTICS"),
+        }
+    }
+}
+
 /// A shared style context.
 ///
 /// There's exactly one of these during a given restyle traversal, and it's
@@ -68,6 +104,9 @@ pub enum QuirksMode {
 pub struct SharedStyleContext<'a> {
     /// The CSS selector stylist.
     pub stylist: Arc<Stylist>,
+
+    /// Configuration options.
+    pub options: StyleSystemOptions,
 
     /// Guards for pre-acquired locks
     pub guards: StylesheetGuards<'a>,
@@ -175,35 +214,7 @@ impl fmt::Display for TraversalStatistics {
     }
 }
 
-#[cfg(not(feature = "servo"))]
-lazy_static! {
-    /// Whether to dump style statistics, computed statically. We use an environmental
-    /// variable so that this is easy to set for Gecko builds, and matches the
-    /// mechanism we use to dump statistics on the Gecko style system.
-    static ref DUMP_STYLE_STATISTICS: bool = {
-        match env::var("DUMP_STYLE_STATISTICS") {
-            Ok(s) => !s.is_empty(),
-            Err(_) => false,
-        }
-    };
-}
-
-#[cfg(feature = "servo")]
-fn shall_stat_style_sharing() -> bool {
-    opts::get().style_sharing_stats
-}
-
-#[cfg(not(feature = "servo"))]
-fn shall_stat_style_sharing() -> bool {
-    *DUMP_STYLE_STATISTICS
-}
-
 impl TraversalStatistics {
-    /// Returns whether statistics dumping is enabled.
-    pub fn should_dump() -> bool {
-        shall_stat_style_sharing()
-    }
-
     /// Computes the traversal time given the start time in seconds.
     pub fn finish<E, D>(&mut self, traversal: &D, start: f64)
         where E: TElement,
