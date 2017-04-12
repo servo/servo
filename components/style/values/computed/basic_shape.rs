@@ -11,7 +11,7 @@ use std::fmt;
 use style_traits::ToCss;
 use values::computed::LengthOrPercentage;
 use values::computed::position::Position;
-use values::generics::basic_shape::BorderRadius as GenericBorderRadius;
+use values::generics::basic_shape::{BorderRadius as GenericBorderRadius, ShapeRadius as GenericShapeRadius};
 use values::specified::url::SpecifiedUrl;
 
 pub use values::specified::basic_shape::{self, FillRule, GeometryBox, ShapeBox};
@@ -171,31 +171,10 @@ impl ToCss for Polygon {
     }
 }
 
-/// https://drafts.csswg.org/css-shapes/#typedef-shape-radius
-#[derive(Clone, PartialEq, Copy, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-pub enum ShapeRadius {
-    Length(LengthOrPercentage),
-    ClosestSide,
-    FarthestSide,
-}
-
-impl Default for ShapeRadius {
-    fn default() -> Self {
-        ShapeRadius::ClosestSide
-    }
-}
-
-impl ToCss for ShapeRadius {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            ShapeRadius::Length(lop) => lop.to_css(dest),
-            ShapeRadius::ClosestSide => dest.write_str("closest-side"),
-            ShapeRadius::FarthestSide => dest.write_str("farthest-side"),
-        }
-    }
-}
-
 /// The computed value of `BorderRadius`
 pub type BorderRadius = GenericBorderRadius<LengthOrPercentage>;
+
+/// The computed value of `ShapeRadius`
+pub type ShapeRadius = GenericShapeRadius<LengthOrPercentage>;
+
+impl Copy for ShapeRadius {}

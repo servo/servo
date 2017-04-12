@@ -17,7 +17,7 @@ use values::HasViewportPercentage;
 use values::computed::{ComputedValueAsSpecified, Context, ToComputedValue};
 use values::computed::basic_shape as computed_basic_shape;
 use values::generics::BorderRadiusSize;
-use values::generics::basic_shape::BorderRadius as GenericBorderRadius;
+use values::generics::basic_shape::{BorderRadius as GenericBorderRadius, ShapeRadius as GenericShapeRadius};
 use values::specified::{LengthOrPercentage, Percentage};
 use values::specified::position::{Keyword, Position};
 use values::specified::url::SpecifiedUrl;
@@ -411,7 +411,7 @@ impl Parse for Circle {
 impl ToCss for Circle {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         try!(dest.write_str("circle("));
-        if ShapeRadius::ClosestSide != self.radius {
+        if GenericShapeRadius::ClosestSide != self.radius {
             try!(self.radius.to_css(dest));
             try!(dest.write_str(" "));
         }
@@ -485,7 +485,7 @@ impl Parse for Ellipse {
 impl ToCss for Ellipse {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         try!(dest.write_str("ellipse("));
-        if !self.semiaxis_x.is_default() || !self.semiaxis_y.is_default() {
+        if self.semiaxis_x != ShapeRadius::default() || self.semiaxis_y != ShapeRadius::default() {
             try!(self.semiaxis_x.to_css(dest));
             try!(dest.write_str(" "));
             try!(self.semiaxis_y.to_css(dest));
@@ -614,71 +614,19 @@ impl ToComputedValue for Polygon {
     }
 }
 
-/// https://drafts.csswg.org/css-shapes/#typedef-shape-radius
-#[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-pub enum ShapeRadius {
-    Length(LengthOrPercentage),
-    ClosestSide,
-    FarthestSide,
-}
-
-impl ShapeRadius {
-    fn is_default(&self) -> bool {
-        *self == ShapeRadius::ClosestSide
-    }
-}
-
-impl Default for ShapeRadius {
-    fn default() -> Self {
-        ShapeRadius::ClosestSide
-    }
-}
+/// The specified value of `ShapeRadius`
+pub type ShapeRadius = GenericShapeRadius<LengthOrPercentage>;
 
 impl Parse for ShapeRadius {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        input.try(|i| LengthOrPercentage::parse_non_negative(context, i)).map(ShapeRadius::Length).or_else(|_| {
-            match_ignore_ascii_case! { &try!(input.expect_ident()),
-                "closest-side" => Ok(ShapeRadius::ClosestSide),
-                "farthest-side" => Ok(ShapeRadius::FarthestSide),
-                _ => Err(())
-            }
-        })
-    }
-}
-
-impl ToCss for ShapeRadius {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            ShapeRadius::Length(ref lop) => lop.to_css(dest),
-            ShapeRadius::ClosestSide => dest.write_str("closest-side"),
-            ShapeRadius::FarthestSide => dest.write_str("farthest-side"),
+        if let Ok(lop) = input.try(|i| LengthOrPercentage::parse_non_negative(context, i)) {
+            return Ok(GenericShapeRadius::Length(lop))
         }
-    }
-}
 
-
-impl ToComputedValue for ShapeRadius {
-    type ComputedValue = computed_basic_shape::ShapeRadius;
-
-    #[inline]
-    fn to_computed_value(&self, cx: &Context) -> Self::ComputedValue {
-        match *self {
-            ShapeRadius::Length(ref lop) =>
-                computed_basic_shape::ShapeRadius::Length(lop.to_computed_value(cx)),
-            ShapeRadius::ClosestSide => computed_basic_shape::ShapeRadius::ClosestSide,
-            ShapeRadius::FarthestSide => computed_basic_shape::ShapeRadius::FarthestSide,
-        }
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        match *computed {
-            computed_basic_shape::ShapeRadius::Length(ref lop) =>
-                ShapeRadius::Length(ToComputedValue::from_computed_value(lop)),
-            computed_basic_shape::ShapeRadius::ClosestSide => ShapeRadius::ClosestSide,
-            computed_basic_shape::ShapeRadius::FarthestSide => ShapeRadius::FarthestSide,
+        match_ignore_ascii_case! { &input.expect_ident()?,
+            "closest-side" => Ok(GenericShapeRadius::ClosestSide),
+            "farthest-side" => Ok(GenericShapeRadius::FarthestSide),
+            _ => Err(())
         }
     }
 }
