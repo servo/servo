@@ -461,38 +461,41 @@ impl HTMLScriptElement {
             return;
         }
 
-        let process = Command::new("js-beautify")
-                              .stdin(Stdio::piped())
-                              .stdout(Stdio::piped())
-                              .spawn()
-                              .expect("Failed to execute js-beautify");
+        match Command::new("js-beautify")
+                      .stdin(Stdio::piped())
+                      .stdout(Stdio::piped())
+                      .spawn() {
+            Err(_) => {
+                warn!("Failed to execute js-beautify. Will store unmodified script");
+            },
+            Ok(process) => {
+                let mut script_content = String::from(script.text.clone());
+                let _ = process.stdin.unwrap().write_all(script_content.as_bytes());
+                script_content.clear();
+                let _ = process.stdout.unwrap().read_to_string(&mut script_content);
 
-        let mut script_content = String::from(script.text.clone());
-        let _ = process.stdin.unwrap().write_all(script_content.as_bytes());
-        script_content.clear();
-        let _ = process.stdout.unwrap().read_to_string(&mut script_content);
+                script.text = DOMString::from(script_content);
+            },
+        }
 
-        script.text = DOMString::from(script_content);
-
-        let unminified_js_dir = PathBuf::from(window_from_node(self).unminified_js_dir().unwrap());
+        let path = PathBuf::from(window_from_node(self).unminified_js_dir().unwrap());
         let path = if script.external {
             // External script.
-            debug!("unminifying script {:?}", script.url);
-            let url = script.url.clone().into_string();
-            let path_parts = url.split("/").collect::<Vec<&str>>();
+            let path_parts = script.url.path_segments().unwrap();
             match path_parts.last() {
-                Some(script_name) => unminified_js_dir.join(script_name),
-                None => unminified_js_dir.join(Uuid::new_v4().to_string()),
+                Some(script_name) => path.join(script_name),
+                None => path.join(Uuid::new_v4().to_string()),
             }
         } else {
             // Inline script.
-            debug!("unminifying inline script for {:?}", script.url);
-            unminified_js_dir.join(Uuid::new_v4().to_string())
+            path.join(Uuid::new_v4().to_string())
         };
 
-        debug!("unminified script will be stored in {:?}", path);
-        if let Ok(mut file) = File::create(&path) {
-            file.write_all(script.text.as_bytes()).unwrap();
+        debug!("script will be stored in {:?}", path);
+
+        match File::create(&path) {
+            Ok(mut file) => file.write_all(script.text.as_bytes()).unwrap(),
+            Err(why) => warn!("Could not store script {:?}", why),
         }
     }
 
