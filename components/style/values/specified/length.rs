@@ -551,7 +551,12 @@ impl Length {
         match try!(input.next()) {
             Token::Dimension(ref value, ref unit) if num_context.is_ok(value.value) =>
                 Length::parse_dimension(context, value.value, unit),
-            Token::Number(ref value) if value.value == 0. => Ok(Length::zero()),
+            Token::Number(ref value) => {
+                if value.value != 0. && !context.length_parsing_mode.allows_unitless_lengths() {
+                    return Err(())
+                }
+                Ok(Length::NoCalc(NoCalcLength::Absolute(AbsoluteLength::Px(value.value))))
+            },
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") =>
                 input.parse_nested_block(|input| {
                     CalcLengthOrPercentage::parse_length(context, input, num_context)

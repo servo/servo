@@ -33,7 +33,7 @@ use std::default::Default;
 use std::sync::Arc;
 use style::attr::AttrValue;
 use style::media_queries::parse_media_query_list;
-use style::parser::ParserContext as CssParserContext;
+use style::parser::{LengthParsingMode, ParserContext as CssParserContext};
 use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::{CssRuleType, Stylesheet};
 use stylesheet_loader::{StylesheetLoader, StylesheetContextSource, StylesheetOwner};
@@ -281,7 +281,8 @@ impl HTMLLinkElement {
         let mut css_parser = CssParser::new(&mq_str);
         let win = document.window();
         let doc_url = document.url();
-        let context = CssParserContext::new_for_cssom(&doc_url, win.css_error_reporter(), Some(CssRuleType::Media));
+        let context = CssParserContext::new_for_cssom(&doc_url, win.css_error_reporter(), Some(CssRuleType::Media),
+                                                      LengthParsingMode::Default);
         let media = parse_media_query_list(&context, &mut css_parser);
 
         let im_attribute = element.get_attribute(&ns!(), &local_name!("integrity"));

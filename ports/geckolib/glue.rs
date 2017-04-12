@@ -1003,7 +1003,8 @@ pub extern "C" fn Servo_ParseProperty(property: *const nsACString, value: *const
 
     let url_data = unsafe { RefPtr::from_ptr_ref(&data) };
     let reporter = StdoutErrorReporter;
-    let context = ParserContext::new(Origin::Author, url_data, &reporter, Some(CssRuleType::Style));
+    let context = ParserContext::new(Origin::Author, url_data, &reporter,
+                                     Some(CssRuleType::Style), LengthMode::Default);
 
     match ParsedDeclaration::parse(id, &context, &mut Parser::new(value)) {
         Ok(parsed) => {
@@ -1025,7 +1026,8 @@ pub extern "C" fn Servo_ParseEasing(easing: *const nsAString,
 
     let url_data = unsafe { RefPtr::from_ptr_ref(&data) };
     let reporter = StdoutErrorReporter;
-    let context = ParserContext::new(Origin::Author, url_data, &reporter, Some(CssRuleType::Style));
+    let context = ParserContext::new(Origin::Author, url_data, &reporter,
+                                     Some(CssRuleType::Style), LengthMode::Default);
     let easing = unsafe { (*easing).to_string() };
     match transition_timing_function::single_value::parse(&context, &mut Parser::new(&easing)) {
         Ok(parsed_easing) => {
@@ -1246,7 +1248,7 @@ pub extern "C" fn Servo_MediaList_SetText(list: RawServoMediaListBorrowed, text:
     let mut parser = Parser::new(&text);
     let url_data = unsafe { dummy_url_data() };
     let reporter = StdoutErrorReporter;
-    let context = ParserContext::new_for_cssom(url_data, &reporter, Some(CssRuleType::Media));
+    let context = ParserContext::new_for_cssom(url_data, &reporter, Some(CssRuleType::Media), LengthMode::Default);
      write_locked_arc(list, |list: &mut MediaList| {
         *list = parse_media_query_list(&context, &mut parser);
     })
@@ -1276,7 +1278,7 @@ pub extern "C" fn Servo_MediaList_AppendMedium(list: RawServoMediaListBorrowed,
     let new_medium = unsafe { new_medium.as_ref().unwrap().as_str_unchecked() };
     let url_data = unsafe { dummy_url_data() };
     let reporter = StdoutErrorReporter;
-    let context = ParserContext::new_for_cssom(url_data, &reporter, Some(CssRuleType::Media));
+    let context = ParserContext::new_for_cssom(url_data, &reporter, Some(CssRuleType::Media), LengthMode::Default);
     write_locked_arc(list, |list: &mut MediaList| {
         list.append_medium(&context, new_medium);
     })
@@ -1288,7 +1290,7 @@ pub extern "C" fn Servo_MediaList_DeleteMedium(list: RawServoMediaListBorrowed,
     let old_medium = unsafe { old_medium.as_ref().unwrap().as_str_unchecked() };
     let url_data = unsafe { dummy_url_data() };
     let reporter = StdoutErrorReporter;
-    let context = ParserContext::new_for_cssom(url_data, &reporter, Some(CssRuleType::Media));
+    let context = ParserContext::new_for_cssom(url_data, &reporter, Some(CssRuleType::Media), LengthMode::Default);
     write_locked_arc(list, |list: &mut MediaList| list.delete_medium(&context, old_medium))
 }
 
@@ -1639,7 +1641,8 @@ pub extern "C" fn Servo_DeclarationBlock_SetBackgroundImage(declarations:
     let url_data = unsafe { RefPtr::from_ptr_ref(&raw_extra_data) };
     let string = unsafe { (*value).to_string() };
     let error_reporter = StdoutErrorReporter;
-    let context = ParserContext::new(Origin::Author, url_data, &error_reporter, Some(CssRuleType::Style));
+    let context = ParserContext::new(Origin::Author, url_data, &error_reporter,
+                                     Some(CssRuleType::Style), LengthMode::Default);
     if let Ok(url) = SpecifiedUrl::parse_from_string(string.into(), &context) {
         let decl = PropertyDeclaration::BackgroundImage(BackgroundImage(
             vec![SingleBackgroundImage(
@@ -1688,7 +1691,7 @@ pub extern "C" fn Servo_CSSSupports(cond: *const nsACString) -> bool {
     if let Ok(cond) = cond {
         let url_data = unsafe { dummy_url_data() };
         let reporter = StdoutErrorReporter;
-        let context = ParserContext::new_for_cssom(url_data, &reporter, Some(CssRuleType::Style));
+        let context = ParserContext::new_for_cssom(url_data, &reporter, Some(CssRuleType::Style), LengthMode::Default);
         cond.eval(&context)
     } else {
         false

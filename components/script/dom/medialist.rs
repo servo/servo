@@ -15,7 +15,7 @@ use dom_struct::dom_struct;
 use std::sync::Arc;
 use style::media_queries::{MediaQuery, parse_media_query_list};
 use style::media_queries::MediaList as StyleMediaList;
-use style::parser::ParserContext;
+use style::parser::{LengthParsingMode, ParserContext};
 use style::shared_lock::{SharedRwLock, Locked};
 use style::stylesheets::CssRuleType;
 use style_traits::ToCss;
@@ -75,7 +75,8 @@ impl MediaListMethods for MediaList {
         let global = self.global();
         let win = global.as_window();
         let url = win.get_url();
-        let context = ParserContext::new_for_cssom(&url, win.css_error_reporter(), Some(CssRuleType::Media));
+        let context = ParserContext::new_for_cssom(&url, win.css_error_reporter(), Some(CssRuleType::Media),
+                                                   LengthParsingMode::Default);
         *media_queries = parse_media_query_list(&context, &mut parser);
     }
 
@@ -108,7 +109,8 @@ impl MediaListMethods for MediaList {
         let global = self.global();
         let win = global.as_window();
         let url = win.get_url();
-        let context = ParserContext::new_for_cssom(&url, win.css_error_reporter(), Some(CssRuleType::Media));
+        let context = ParserContext::new_for_cssom(&url, win.css_error_reporter(), Some(CssRuleType::Media),
+                                                   LengthParsingMode::Default);
         let m = MediaQuery::parse(&context, &mut parser);
         // Step 2
         if let Err(_) = m {
@@ -133,7 +135,8 @@ impl MediaListMethods for MediaList {
         let global = self.global();
         let win = global.as_window();
         let url = win.get_url();
-        let context = ParserContext::new_for_cssom(&url, win.css_error_reporter(), Some(CssRuleType::Media));
+        let context = ParserContext::new_for_cssom(&url, win.css_error_reporter(), Some(CssRuleType::Media),
+                                                   LengthParsingMode::Default);
         let m = MediaQuery::parse(&context, &mut parser);
         // Step 2
         if let Err(_) = m {
