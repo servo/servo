@@ -2081,7 +2081,7 @@ ${helpers.single_keyword_system("font-variant-position",
 
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
-        ::gecko_bindings::structs::NS_MATHML_DEFAULT_SCRIPT_SIZE_MULTIPLIER
+        ::gecko_bindings::structs::NS_MATHML_DEFAULT_SCRIPT_SIZE_MULTIPLIER as f32
     }
 
     pub fn parse(_context: &ParserContext, _input: &mut Parser) -> Result<SpecifiedValue, ()> {
