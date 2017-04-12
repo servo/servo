@@ -684,7 +684,7 @@ impl DependencySet {
             debug_assert!((!state_changes.is_empty() && !dep.sensitivities.states.is_empty()) ||
                           (attrs_changed && dep.sensitivities.attrs),
                           "Testing a known ineffective dependency?");
-            if (attrs_changed || state_changes.intersects(dep.sensitivities.states)) && !hint.intersects(dep.hint) {
+            if (attrs_changed || state_changes.intersects(dep.sensitivities.states)) && !hint.contains(dep.hint) {
                 // We can ignore the selector flags, since they would have already been set during
                 // original matching for any element that might change its matching behavior here.
                 let matched_then =
