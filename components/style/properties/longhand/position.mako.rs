@@ -201,7 +201,14 @@ ${helpers.predefined_type("flex-basis",
                     ${MinMax}Length::${initial}
                 }
                 fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-                    ${MinMax}Length::parse(context, input).map(SpecifiedValue)
+                    let ret = ${MinMax}Length::parse(context, input);
+                    // Keyword values don't make sense in the block direction; don't parse them
+                    % if "block" in size:
+                        if let Ok(${MinMax}Length::ExtremumLength(..)) = ret {
+                            return Err(())
+                        }
+                    % endif
+                    ret.map(SpecifiedValue)
                 }
 
                 impl ToCss for SpecifiedValue {
