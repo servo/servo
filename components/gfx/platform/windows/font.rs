@@ -299,8 +299,8 @@ impl FontHandleMethods for FontHandle {
         self.info.family_name.clone()
     }
 
-    fn face_name(&self) -> String {
-        self.info.face_name.clone()
+    fn face_name(&self) -> Option<String> {
+        Some(self.info.face_name.clone())
     }
 
     fn is_italic(&self) -> bool {
