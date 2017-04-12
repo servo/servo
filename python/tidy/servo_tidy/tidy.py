@@ -1053,15 +1053,21 @@ def run_lint_scripts(only_changed_files=False, progress=True, stylo=False):
 
 def check_commits(path='.'):
     """Gets all commits since the last merge."""
-    args = ['git', 'log', '-n1', '--merges', '--format=%H']
-    last_merge = subprocess.check_output(args, cwd=path).strip()
-    args = ['git', 'log', '{}..HEAD'.format(last_merge), '--format=%s']
+    args = ['git', 'log', '-n1', '--merges', '--format=%H %an']
+    # last_merge stores both the commit hash and the author name
+    last_merge = subprocess.check_output(args, cwd=path).strip().split()
+    last_merge_hash = last_merge[0]
+    last_merge_author = last_merge[1]
+    args = ['git', 'log', '{}..HEAD'.format(last_merge_hash), '--format=%s']
     commits = subprocess.check_output(args, cwd=path).lower().splitlines()
 
     for commit in commits:
         # .split() to only match entire words
         if 'wip' in commit.split():
             yield ('.', 0, 'no commits should contain WIP')
+
+    if last_merge_author != 'bors-servo':
+        yield ('.', 0, 'no merge commits allowed by authors other than bors-servo')
 
     raise StopIteration
 
