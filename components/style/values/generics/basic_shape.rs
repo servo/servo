@@ -5,11 +5,14 @@
 //! CSS handling for the [`basic-shape`](https://drafts.csswg.org/css-shapes/#typedef-basic-shape)
 //! types that are generic over their `ToCss` implementations.
 
+use cssparser::Parser;
 use euclid::size::Size2D;
+use parser::{Parse, ParserContext};
 use properties::shorthands::serialize_four_sides;
+use std::ascii::AsciiExt;
 use std::fmt;
 use style_traits::ToCss;
-use values::computed::{Context, ToComputedValue};
+use values::computed::{ComputedValueAsSpecified, Context, ToComputedValue};
 use values::generics::BorderRadiusSize;
 
 /// A generic type used for `border-radius`, `outline-radius` and `inset()` values.
@@ -120,6 +123,108 @@ impl<L: ToComputedValue> ToComputedValue for ShapeRadius<L> {
             ShapeRadius::Length(ref lop) => ShapeRadius::Length(ToComputedValue::from_computed_value(lop)),
             ShapeRadius::ClosestSide => ShapeRadius::ClosestSide,
             ShapeRadius::FarthestSide => ShapeRadius::FarthestSide,
+        }
+    }
+}
+
+// https://drafts.csswg.org/css-shapes/#typedef-fill-rule
+// NOTE: Basic shapes spec says that these are the only two values, however
+// https://www.w3.org/TR/SVG/painting.html#FillRuleProperty
+// says that it can also be `inherit`
+define_css_keyword_enum!(FillRule:
+    "nonzero" => NonZero,
+    "evenodd" => EvenOdd
+);
+
+impl ComputedValueAsSpecified for FillRule {}
+
+impl Default for FillRule {
+    #[inline]
+    fn default() -> Self { FillRule::NonZero }
+}
+
+#[derive(Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
+/// https://drafts.csswg.org/css-shapes/#funcdef-polygon
+pub struct Polygon<L> {
+    pub fill: FillRule,
+    pub coordinates: Vec<(L, L)>,
+}
+
+impl<L: Parse> Polygon<L> {
+    #[allow(missing_docs)]
+    pub fn parse_function_arguments(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        let fill = input.try(|i| {
+            let fill = FillRule::parse(i);
+            i.expect_comma()?;      // only eat the comma if there is something before it
+            fill
+        }).ok().unwrap_or_default();
+
+        let buf = input.parse_comma_separated(|i| {
+            Ok((L::parse(context, i)?, L::parse(context, i)?))
+        })?;
+
+        Ok(Polygon {
+            fill: fill,
+            coordinates: buf,
+        })
+    }
+}
+
+impl<L: Parse> Parse for Polygon<L> {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        match input.try(|i| i.expect_function()) {
+            Ok(ref s) if s.eq_ignore_ascii_case("polygon") =>
+                input.parse_nested_block(|i| Polygon::parse_function_arguments(context, i)),
+            _ => Err(())
+        }
+    }
+}
+
+impl<L: ToCss> ToCss for Polygon<L> {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        dest.write_str("polygon(")?;
+        if self.fill != FillRule::default() {
+            self.fill.to_css(dest)?;
+            dest.write_str(", ")?;
+        }
+
+        for (i, coord) in self.coordinates.iter().enumerate() {
+            if i > 0 {
+                dest.write_str(", ")?;
+            }
+
+            coord.0.to_css(dest)?;
+            dest.write_str(" ")?;
+            coord.1.to_css(dest)?;
+        }
+
+        dest.write_str(")")
+    }
+}
+
+impl<L: ToComputedValue> ToComputedValue for Polygon<L> {
+    type ComputedValue = Polygon<L::ComputedValue>;
+
+    #[inline]
+    fn to_computed_value(&self, cx: &Context) -> Self::ComputedValue {
+        Polygon {
+            fill: self.fill.to_computed_value(cx),
+            coordinates: self.coordinates.iter().map(|c| {
+                (c.0.to_computed_value(cx), c.1.to_computed_value(cx))
+            }).collect(),
+        }
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        Polygon {
+            fill: ToComputedValue::from_computed_value(&computed.fill),
+            coordinates: computed.coordinates.iter().map(|c| {
+                (ToComputedValue::from_computed_value(&c.0),
+                 ToComputedValue::from_computed_value(&c.1))
+            }).collect(),
         }
     }
 }

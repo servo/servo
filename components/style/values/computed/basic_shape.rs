@@ -12,9 +12,11 @@ use style_traits::ToCss;
 use values::computed::LengthOrPercentage;
 use values::computed::position::Position;
 use values::generics::basic_shape::{BorderRadius as GenericBorderRadius, ShapeRadius as GenericShapeRadius};
+use values::generics::basic_shape::Polygon as GenericPolygon;
 use values::specified::url::SpecifiedUrl;
 
-pub use values::specified::basic_shape::{self, FillRule, GeometryBox, ShapeBox};
+pub use values::generics::basic_shape::FillRule;
+pub use values::specified::basic_shape::{self, GeometryBox, ShapeBox};
 
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -141,35 +143,8 @@ impl ToCss for Ellipse {
     }
 }
 
-#[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-/// https://drafts.csswg.org/css-shapes/#funcdef-polygon
-pub struct Polygon {
-    pub fill: FillRule,
-    pub coordinates: Vec<(LengthOrPercentage, LengthOrPercentage)>,
-}
-
-impl ToCss for Polygon {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        try!(dest.write_str("polygon("));
-        let mut need_space = false;
-        if self.fill != Default::default() {
-            try!(self.fill.to_css(dest));
-            try!(dest.write_str(", "));
-        }
-        for coord in &self.coordinates {
-            if need_space {
-                try!(dest.write_str(", "));
-            }
-            try!(coord.0.to_css(dest));
-            try!(dest.write_str(" "));
-            try!(coord.1.to_css(dest));
-            need_space = true;
-        }
-        dest.write_str(")")
-    }
-}
+/// The computed value of `Polygon`
+pub type Polygon = GenericPolygon<LengthOrPercentage>;
 
 /// The computed value of `BorderRadius`
 pub type BorderRadius = GenericBorderRadius<LengthOrPercentage>;

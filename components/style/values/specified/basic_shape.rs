@@ -18,6 +18,7 @@ use values::computed::{ComputedValueAsSpecified, Context, ToComputedValue};
 use values::computed::basic_shape as computed_basic_shape;
 use values::generics::BorderRadiusSize;
 use values::generics::basic_shape::{BorderRadius as GenericBorderRadius, ShapeRadius as GenericShapeRadius};
+use values::generics::basic_shape::Polygon as GenericPolygon;
 use values::specified::{LengthOrPercentage, Percentage};
 use values::specified::position::{Keyword, Position};
 use values::specified::url::SpecifiedUrl;
@@ -520,99 +521,8 @@ impl ToComputedValue for Ellipse {
     }
 }
 
-
-#[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-/// https://drafts.csswg.org/css-shapes/#funcdef-polygon
-#[allow(missing_docs)]
-pub struct Polygon {
-    pub fill: FillRule,
-    pub coordinates: Vec<(LengthOrPercentage, LengthOrPercentage)>,
-}
-
-impl Polygon {
-    #[allow(missing_docs)]
-    pub fn parse_function_arguments(context: &ParserContext, input: &mut Parser) -> Result<Polygon, ()> {
-        let fill = input.try(|input| {
-            let fill = FillRule::parse(input);
-            // only eat the comma if there is something before it
-            try!(input.expect_comma());
-            fill
-        }).ok().unwrap_or_else(Default::default);
-
-        let buf = try!(input.parse_comma_separated(|input| {
-            Ok((try!(LengthOrPercentage::parse(context, input)),
-                try!(LengthOrPercentage::parse(context, input))))
-        }));
-
-        Ok(Polygon {
-            fill: fill,
-            coordinates: buf,
-        })
-    }
-}
-
-impl Parse for Polygon {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        match input.try(|i| i.expect_function()) {
-            Ok(ref s) if s.eq_ignore_ascii_case("polygon") =>
-                input.parse_nested_block(|i| Polygon::parse_function_arguments(context, i)),
-            _ => Err(())
-        }
-    }
-}
-
-impl ToCss for Polygon {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        try!(dest.write_str("polygon("));
-        let mut need_space = false;
-        if self.fill != Default::default() {
-            try!(self.fill.to_css(dest));
-            try!(dest.write_str(", "));
-        }
-
-        for coord in &self.coordinates {
-            if need_space {
-                try!(dest.write_str(", "));
-            }
-
-            try!(coord.0.to_css(dest));
-            try!(dest.write_str(" "));
-            try!(coord.1.to_css(dest));
-            need_space = true;
-        }
-
-        dest.write_str(")")
-    }
-}
-
-impl ToComputedValue for Polygon {
-    type ComputedValue = computed_basic_shape::Polygon;
-
-    #[inline]
-    fn to_computed_value(&self, cx: &Context) -> Self::ComputedValue {
-        computed_basic_shape::Polygon {
-            fill: self.fill.to_computed_value(cx),
-            coordinates: self.coordinates.iter()
-                                         .map(|c| {
-                                            (c.0.to_computed_value(cx),
-                                             c.1.to_computed_value(cx))
-                                         }).collect(),
-        }
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        Polygon {
-            fill: ToComputedValue::from_computed_value(&computed.fill),
-            coordinates: computed.coordinates.iter()
-                                             .map(|c| {
-                                                (ToComputedValue::from_computed_value(&c.0),
-                                                 ToComputedValue::from_computed_value(&c.1))
-                                             }).collect(),
-        }
-    }
-}
+/// The specified value of `Polygon`
+pub type Polygon = GenericPolygon<LengthOrPercentage>;
 
 /// The specified value of `ShapeRadius`
 pub type ShapeRadius = GenericShapeRadius<LengthOrPercentage>;
@@ -674,23 +584,6 @@ fn parse_one_set_of_border_values(context: &ParserContext, mut input: &mut Parse
         Ok([a, b, c, d])
     } else {
         Ok([a, b.clone(), c, b])
-    }
-}
-
-// https://drafts.csswg.org/css-shapes/#typedef-fill-rule
-// NOTE: Basic shapes spec says that these are the only two values, however
-// https://www.w3.org/TR/SVG/painting.html#FillRuleProperty
-// says that it can also be `inherit`
-define_css_keyword_enum!(FillRule:
-    "nonzero" => NonZero,
-    "evenodd" => EvenOdd
-);
-
-impl ComputedValueAsSpecified for FillRule {}
-
-impl Default for FillRule {
-    fn default() -> Self {
-        FillRule::NonZero
     }
 }
 
