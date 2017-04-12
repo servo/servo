@@ -331,7 +331,7 @@ pub extern "C" fn Servo_StyleSheet_Empty(mode: SheetParsingMode) -> RawServoStyl
     let shared_lock = global_style_data.shared_lock.clone();
     Arc::new(Stylesheet::from_str(
         "", unsafe { dummy_url_data() }.clone(), origin,
-        Default::default(), shared_lock, None, &StdoutErrorReporter)
+        Default::default(), shared_lock, None, &StdoutErrorReporter, 0u64)
     ).into_strong()
 }
 

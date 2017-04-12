@@ -18,8 +18,12 @@ use style_traits::ToCss;
 pub struct CSSErrorReporterTest;
 
 impl ParseErrorReporter for CSSErrorReporterTest {
-    fn report_error(&self, _input: &mut Parser, _position: SourcePosition, _message: &str,
-        _url: &ServoUrl) {
+    fn report_error(&self, 
+                    _input: &mut Parser,
+                    _position: SourcePosition,
+                    _message: &str,
+                    _url: &ServoUrl,
+                    _offset: u64) {
     }
 }
 
@@ -30,7 +34,7 @@ fn test_media_rule<F>(css: &str, callback: F)
     let css_str = css.to_owned();
     let stylesheet = Stylesheet::from_str(
         css, url, Origin::Author, Default::default(), SharedRwLock::new(),
-        None, &CSSErrorReporterTest);
+        None, &CSSErrorReporterTest, 0u64);
     let mut rule_count = 0;
     let guard = stylesheet.shared_lock.read();
     media_queries(&guard, &stylesheet.rules.read_with(&guard).0, &mut |mq| {
@@ -57,7 +61,7 @@ fn media_query_test(device: &Device, css: &str, expected_rule_count: usize) {
     let url = ServoUrl::parse("http://localhost").unwrap();
     let ss = Stylesheet::from_str(
         css, url, Origin::Author, Default::default(), SharedRwLock::new(),
-        None, &CSSErrorReporterTest);
+        None, &CSSErrorReporterTest, 0u64);
     let mut rule_count = 0;
     ss.effective_style_rules(device, &ss.shared_lock.read(), |_| rule_count += 1);
     assert!(rule_count == expected_rule_count, css.to_owned());

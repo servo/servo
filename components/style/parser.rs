@@ -20,6 +20,8 @@ pub struct ParserContext<'a> {
     pub url_data: &'a UrlExtraData,
     /// An error reporter to report syntax errors.
     pub error_reporter: &'a ParseErrorReporter,
+    ///  line number offsets for inline stylesheets
+    pub offset: u64, 
 }
 
 impl<'a> ParserContext<'a> {
@@ -32,6 +34,7 @@ impl<'a> ParserContext<'a> {
             stylesheet_origin: stylesheet_origin,
             url_data: url_data,
             error_reporter: error_reporter,
+            offset: 0u64,
         }
     }
 
@@ -40,6 +43,19 @@ impl<'a> ParserContext<'a> {
                          error_reporter: &'a ParseErrorReporter)
                          -> ParserContext<'a> {
         Self::new(Origin::Author, url_data, error_reporter)
+    }
+    /// Create a parser context for inline CSS which accepts additional line offset argument.
+    pub fn new_with_extra_data(stylesheet_origin: Origin,
+                               url_data: &'a UrlExtraData,
+                               error_reporter: &'a ParseErrorReporter,
+                               offset: u64)
+                               -> ParserContext<'a> {
+        ParserContext {
+            stylesheet_origin: stylesheet_origin,
+            url_data: url_data,
+            error_reporter: error_reporter,
+            offset: offset,
+        }
     }
 }
 
@@ -51,7 +67,10 @@ pub fn log_css_error(input: &mut Parser,
                      message: &str,
                      parsercontext: &ParserContext) {
     let url_data = parsercontext.url_data;
-    parsercontext.error_reporter.report_error(input, position, message, url_data);
+    let offset = parsercontext.offset;
+    parsercontext.error_reporter.report_error(input, position,
+                                              message, url_data,
+                                              offset);
 }
 
 // XXXManishearth Replace all specified value parse impls with impls of this

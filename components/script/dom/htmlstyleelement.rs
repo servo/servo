@@ -39,6 +39,7 @@ pub struct HTMLStyleElement {
     in_stack_of_open_elements: Cell<bool>,
     pending_loads: Cell<u32>,
     any_failed_load: Cell<bool>,
+    line_number: u64,
 }
 
 impl HTMLStyleElement {
@@ -54,6 +55,7 @@ impl HTMLStyleElement {
             in_stack_of_open_elements: Cell::new(creator.is_parser_created()),
             pending_loads: Cell::new(0),
             any_failed_load: Cell::new(false),
+            line_number: creator.return_line_number(),
         }
     }
 
@@ -87,7 +89,8 @@ impl HTMLStyleElement {
         let loader = StylesheetLoader::for_element(self.upcast());
         let sheet = Stylesheet::from_str(&data, url, Origin::Author, mq,
                                          shared_lock, Some(&loader),
-                                         win.css_error_reporter());
+                                         win.css_error_reporter(),
+                                         self.line_number);
 
         let sheet = Arc::new(sheet);
 

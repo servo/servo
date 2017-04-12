@@ -63,7 +63,7 @@ fn test_parse_stylesheet() {
     let url = ServoUrl::parse("about::test").unwrap();
     let stylesheet = Stylesheet::from_str(css, url.clone(), Origin::UserAgent, Default::default(),
                                           SharedRwLock::new(), None,
-                                          &CSSErrorReporterTest);
+                                          &CSSErrorReporterTest, 0u64);
     let mut namespaces = Namespaces::default();
     namespaces.default = Some(ns!(html));
     let expected = Stylesheet {
@@ -291,16 +291,18 @@ impl ParseErrorReporter for CSSInvalidErrorReporterTest {
                     input: &mut CssParser,
                     position: SourcePosition,
                     message: &str,
-                    url: &ServoUrl) {
+                    url: &ServoUrl,
+                    offset: u64) {
 
         let location = input.source_location(position);
+        let line_offset = location.line + offset as usize;
 
         let mut errors = self.errors.lock().unwrap();
 
         errors.push(
             CSSError{
                 url: url.clone(),
-                line: location.line,
+                line: line_offset,
                 column: location.column,
                 message: message.to_owned()
             }
@@ -325,18 +327,18 @@ fn test_report_error_stylesheet() {
 
     Stylesheet::from_str(css, url.clone(), Origin::UserAgent, Default::default(),
                          SharedRwLock::new(), None,
-                         &error_reporter);
+                         &error_reporter, 5u64);
 
     let mut errors = errors.lock().unwrap();
 
     let error = errors.pop().unwrap();
     assert_eq!("Unsupported property declaration: 'invalid: true;'", error.message);
-    assert_eq!(5, error.line);
+    assert_eq!(10, error.line);
     assert_eq!(9, error.column);
 
     let error = errors.pop().unwrap();
     assert_eq!("Unsupported property declaration: 'display: invalid;'", error.message);
-    assert_eq!(4, error.line);
+    assert_eq!(9, error.line);
     assert_eq!(9, error.column);
 
     // testing for the url
