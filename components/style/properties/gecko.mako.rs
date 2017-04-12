@@ -79,7 +79,21 @@ pub struct ComputedValues {
     custom_properties: Option<Arc<ComputedValuesMap>>,
     pub writing_mode: WritingMode,
     pub root_font_size: Au,
-    pub font_size_keyword: Option<longhands::font_size::KeywordSize>,
+    /// font-size keyword values (and font-size-relative values applied
+    /// to keyword values) need to preserve their identity as originating
+    /// from keywords and relative font sizes. We store this information
+    /// out of band in the ComputedValues. When None, the font size on the
+    /// current struct was computed from a value that was not a keyword
+    /// or a chain of font-size-relative values applying to successive parents
+    /// terminated by a keyword. When Some, this means the font-size was derived
+    /// from a keyword value or a keyword value on some ancestor with only
+    /// font-size-relative keywords and regular inheritance in between. The
+    /// integer stores the final ratio of the chain of font size relative values.
+    /// and is 1 when there was just a keyword and no relative values.
+    ///
+    /// When this is Some, we compute font sizes by computing the keyword against
+    /// the generic font, and then multiplying it by the ratio.
+    pub font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
 }
 
 impl ComputedValues {
@@ -102,7 +116,7 @@ impl ComputedValues {
     pub fn new(custom_properties: Option<Arc<ComputedValuesMap>>,
            writing_mode: WritingMode,
            root_font_size: Au,
-           font_size_keyword: Option<longhands::font_size::KeywordSize>,
+           font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
             % for style_struct in data.style_structs:
            ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
             % endfor
@@ -123,7 +137,7 @@ impl ComputedValues {
             custom_properties: None,
             writing_mode: WritingMode::empty(), // FIXME(bz): This seems dubious
             root_font_size: longhands::font_size::get_initial_value(), // FIXME(bz): Also seems dubious?
-            font_size_keyword: Some(Default::default()),
+            font_size_keyword: Some((Default::default(), 1.)),
             % for style_struct in data.style_structs:
                 ${style_struct.ident}: style_structs::${style_struct.name}::default(pres_context),
             % endfor
