@@ -4,6 +4,7 @@
 
 //! Global style data
 
+use context::StyleSystemOptions;
 use num_cpus;
 use rayon;
 use shared_lock::SharedRwLock;
@@ -20,6 +21,9 @@ pub struct GlobalStyleData {
 
     /// Shared RWLock for CSSOM objects
     pub shared_lock: SharedRwLock,
+
+    /// Global style system options determined by env vars.
+    pub options: StyleSystemOptions,
 }
 
 lazy_static! {
@@ -45,6 +49,7 @@ lazy_static! {
             num_threads: num_threads,
             style_thread_pool: pool,
             shared_lock: SharedRwLock::new(),
+            options: StyleSystemOptions::default(),
         }
     };
 }

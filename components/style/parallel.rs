@@ -44,7 +44,7 @@ pub fn traverse_dom<E, D>(traversal: &D,
     where E: TElement,
           D: DomTraversal<E>,
 {
-    let dump_stats = TraversalStatistics::should_dump();
+    let dump_stats = traversal.shared_context().options.dump_style_statistics;
     let start_time = if dump_stats { Some(time::precise_time_s()) } else { None };
 
     debug_assert!(traversal.is_parallel());

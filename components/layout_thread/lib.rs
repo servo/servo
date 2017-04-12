@@ -107,7 +107,8 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread;
 use style::animation::Animation;
-use style::context::{QuirksMode, ReflowGoal, SharedStyleContext, ThreadLocalStyleContextCreationInfo};
+use style::context::{QuirksMode, ReflowGoal, SharedStyleContext};
+use style::context::{StyleSystemOptions, ThreadLocalStyleContextCreationInfo};
 use style::data::StoredRestyleHint;
 use style::dom::{ShowSubtree, ShowSubtreeDataAndPrimaryValues, TElement, TNode};
 use style::error_reporting::StdoutErrorReporter;
@@ -516,6 +517,7 @@ impl LayoutThread {
         LayoutContext {
             style_context: SharedStyleContext {
                 stylist: rw_data.stylist.clone(),
+                options: StyleSystemOptions::default(),
                 guards: guards,
                 running_animations: self.running_animations.clone(),
                 expired_animations: self.expired_animations.clone(),
