@@ -8,6 +8,7 @@
 use animation::{Animation, PropertyAnimation};
 use app_units::Au;
 use bloom::StyleBloom;
+use config;
 use data::ElementData;
 use dom::{OpaqueNode, TNode, TElement, SendElement};
 use error_reporting::ParseErrorReporter;
@@ -18,7 +19,6 @@ use matching::StyleSharingCandidateCache;
 use parking_lot::RwLock;
 #[cfg(feature = "gecko")] use selector_parser::PseudoElement;
 use selectors::matching::ElementSelectorFlags;
-#[cfg(feature = "servo")] use servo_config::opts;
 use shared_lock::StylesheetGuards;
 use std::collections::HashMap;
 #[cfg(not(feature = "servo"))] use std::env;
@@ -184,20 +184,9 @@ lazy_static! {
     };
 }
 
-#[cfg(feature = "servo")]
-fn shall_stat_style_sharing() -> bool {
-    opts::get().style_sharing_stats
-}
-
-#[cfg(not(feature = "servo"))]
-fn shall_stat_style_sharing() -> bool {
-    *DUMP_STYLE_STATISTICS
-}
-
 impl TraversalStatistics {
     /// Returns whether statistics dumping is enabled.
-    pub fn should_dump() -> bool {
-        shall_stat_style_sharing()
+        *DUMP_STYLE_STATISTICS || config::style_sharing_stats_enabled()
     }
 
     /// Computes the traversal time given the start time in seconds.

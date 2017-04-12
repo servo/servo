@@ -7,13 +7,13 @@
 #![deny(missing_docs)]
 
 use atomic_refcell::{AtomicRefCell, AtomicRefMut};
+use config;
 use context::{SharedStyleContext, StyleContext, ThreadLocalStyleContext};
 use data::{ElementData, ElementStyles, StoredRestyleHint};
 use dom::{DirtyDescendants, NodeInfo, OpaqueNode, TElement, TNode};
 use matching::{MatchMethods, StyleSharingBehavior};
 use restyle_hints::{RESTYLE_DESCENDANTS, RESTYLE_SELF};
 use selector_parser::RestyleDamage;
-#[cfg(feature = "servo")] use servo_config::opts;
 use std::borrow::BorrowMut;
 use stylist::Stylist;
 
@@ -105,16 +105,6 @@ impl TraversalDriver {
     pub fn is_parallel(&self) -> bool {
         matches!(*self, TraversalDriver::Parallel)
     }
-}
-
-#[cfg(feature = "servo")]
-fn is_servo_nonincremental_layout() -> bool {
-    opts::get().nonincremental_layout
-}
-
-#[cfg(not(feature = "servo"))]
-fn is_servo_nonincremental_layout() -> bool {
-    false
 }
 
 /// A DOM Traversal trait, that is used to generically implement styling for
@@ -258,11 +248,8 @@ pub trait DomTraversal<E: TElement> : Sync {
     /// Returns true if traversal is needed for the given node and subtree.
     fn node_needs_traversal(node: E::ConcreteNode, traversal_flags: TraversalFlags) -> bool {
         // Non-incremental layout visits every node.
-        if is_servo_nonincremental_layout() {
-            return true;
-        }
 
-        if traversal_flags.for_reconstruct() {
+        if cfg!(feature = "servo") && config::nonincremental_layout_enabled() {
             return true;
         }
 
