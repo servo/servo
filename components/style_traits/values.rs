@@ -151,24 +151,24 @@ macro_rules! __define_css_keyword_enum__actual {
 pub mod specified {
     use app_units::Au;
 
-    /// Whether to allow negative values or not.
+    /// Whether to allow negative lengths or not.
     #[repr(u8)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-    pub enum AllowedNumericType {
-        /// Allow all kind of numeric values.
+    pub enum AllowedLengthType {
+        /// Allow all kind of lengths.
         All,
-        /// Allow only non-negative values.
+        /// Allow only non-negative lengths.
         NonNegative
     }
 
-    impl AllowedNumericType {
-        /// Whether value is valid for this allowed numeric type.
+    impl AllowedLengthType {
+        /// Whether value is valid for this allowed length type.
         #[inline]
         pub fn is_ok(&self, value: f32) -> bool {
             match *self {
-                AllowedNumericType::All => true,
-                AllowedNumericType::NonNegative => value >= 0.,
+                AllowedLengthType::All => true,
+                AllowedLengthType::NonNegative => value >= 0.,
             }
         }
 
@@ -177,8 +177,8 @@ pub mod specified {
         pub fn clamp(&self, val: Au) -> Au {
             use std::cmp;
             match *self {
-                AllowedNumericType::All => val,
-                AllowedNumericType::NonNegative => cmp::max(Au(0), val),
+                AllowedLengthType::All => val,
+                AllowedLengthType::NonNegative => cmp::max(Au(0), val),
             }
         }
     }

@@ -9,7 +9,7 @@ use cssparser::{Parser, ToCss};
 use euclid::size::TypedSize2D;
 use std::ascii::AsciiExt;
 use std::fmt;
-use values::specified::AllowedNumericType;
+use values::specified::AllowedLengthType;
 
 define_css_keyword_enum!(UserZoom:
                          "zoom" => Zoom,
@@ -95,9 +95,9 @@ impl Zoom {
         use cssparser::Token;
 
         match try!(input.next()) {
-            Token::Percentage(ref value) if AllowedNumericType::NonNegative.is_ok(value.unit_value) =>
+            Token::Percentage(ref value) if AllowedLengthType::NonNegative.is_ok(value.unit_value) =>
                 Ok(Zoom::Percentage(value.unit_value)),
-            Token::Number(ref value) if AllowedNumericType::NonNegative.is_ok(value.value) =>
+            Token::Number(ref value) if AllowedLengthType::NonNegative.is_ok(value.value) =>
                 Ok(Zoom::Number(value.value)),
             Token::Ident(ref value) if value.eq_ignore_ascii_case("auto") =>
                 Ok(Zoom::Auto),
