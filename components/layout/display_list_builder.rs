@@ -639,12 +639,81 @@ fn convert_gradient_stops(gradient_stops: &[ColorStop],
     stops
 }
 
-fn convert_size_keyword(_keyword: SizeKeyword,
-                        _circle: bool,
-                        _size: &Size2D<Au>,
-                        _center: &Point2D<Au>) -> Size2D<Au> {
-    println!("TODO Implement size-keyword for radial gradients.");
-    return Size2D::zero();
+/// Returns the the distance to the nearest or farthest corner depending on the comperator.
+fn get_distance_to_corner<F>(size: &Size2D<Au>, center: &Point2D<Au>, cmp: F) -> Au
+    where F: Fn(f32, f32) -> f32 {
+    let top_left = center.x.to_f32_px().hypot(center.y.to_f32_px());
+    let top_right = (size.width.to_f32_px() - center.x.to_f32_px()).hypot(center.y.to_f32_px());
+    let bottom_right = (size.width.to_f32_px() - center.x.to_f32_px())
+        .hypot(size.height.to_f32_px() - center.y.to_f32_px());
+    let bottom_left = center.x.to_f32_px().hypot(size.height.to_f32_px() - center.y.to_f32_px());
+    Au::from_f32_px(cmp(cmp(top_left, top_right), cmp(bottom_right, bottom_left)))
+}
+
+/// Returns the distance to the nearest or farthest sides depending on the comparator.
+///
+/// The first return value is horizontal distance the second vertical distance.
+fn get_distance_to_sides<F>(size: &Size2D<Au>, center: &Point2D<Au>, cmp: F) -> (Au, Au)
+    where F: Fn(Au, Au) -> Au {
+    let top_side = center.y;
+    let right_side = size.width - center.x;
+    let bottom_side = size.height - center.y;
+    let left_side = center.x;
+    (cmp(left_side, right_side), cmp(top_side, bottom_side))
+}
+
+/// Returns the radius for an ellipse with the same ratio as if it was matched to the sides.
+fn get_scaled_radius<F>(radius: Au, size: &Size2D<Au>, center: &Point2D<Au>, cmp: F) -> Size2D<Au>
+    where F: Fn(Au, Au) -> Au {
+    let (horizontal, vertical) = get_distance_to_sides(size, center, cmp);
+    let factor = horizontal.to_f32_px() / vertical.to_f32_px();
+    Size2D::new(radius.scale_by(factor), radius.scale_by(factor.recip()))
+}
+
+/// Determines the radius of a radial gradient if it was not explicitly provided.
+///
+/// https://drafts.csswg.org/css-images-3/#typedef-size
+fn convert_size_keyword(keyword: SizeKeyword,
+                        circle: bool,
+                        size: &Size2D<Au>,
+                        center: &Point2D<Au>) -> Size2D<Au> {
+    use style::values::computed::image::SizeKeyword::*;
+    match keyword {
+        ClosestSide => {
+            let (horizontal, vertical) = get_distance_to_sides(size, center, ::std::cmp::min);
+            if circle {
+                let radius = ::std::cmp::min(vertical, horizontal);
+                Size2D::new(radius, radius)
+            } else {
+                Size2D::new(horizontal, vertical)
+            }
+        },
+        FarthestSide => {
+            let (horizontal, vertical) = get_distance_to_sides(size, center, ::std::cmp::max);
+            if circle {
+                let radius = ::std::cmp::max(vertical, horizontal);
+                Size2D::new(radius, radius)
+            } else {
+                Size2D::new(horizontal, vertical)
+            }
+        },
+        ClosestCorner => {
+            let radius = get_distance_to_corner(size, center, f32::min);
+            if circle {
+                Size2D::new(radius, radius)
+            } else {
+                get_scaled_radius(radius, size, center, ::std::cmp::min)
+            }
+        }
+        FarthestCorner => {
+            let radius = get_distance_to_corner(size, center, f32::max);
+            if circle {
+                Size2D::new(radius, radius)
+            } else {
+                get_scaled_radius(radius, size, center, ::std::cmp::max)
+            }
+        }
+    }
 }
 
 impl FragmentDisplayListBuilding for Fragment {
