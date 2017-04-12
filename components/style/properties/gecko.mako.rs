@@ -2776,6 +2776,34 @@ fn static_assert() {
     }
 </%self:impl_trait>
 
+<%self:impl_trait style_struct_name="InheritedBox"
+                  skip_longhands="image-orientation">
+    // FIXME: Gecko uses a tricky way to store computed value of image-orientation
+    //        within an u8. We could inline following glue codes by implementing all
+    //        those tricky parts for Servo as well. But, it's not done yet just for
+    //        convenience.
+    pub fn set_image_orientation(&mut self, v: longhands::image_orientation::computed_value::T) {
+        use properties::longhands::image_orientation::computed_value::T;
+        match v {
+            T::FromImage => {
+                unsafe {
+                    bindings::Gecko_SetImageOrientationAsFromImage(&mut self.gecko);
+                }
+            },
+            T::AngleWithFlipped(ref angle, flipped) => {
+                unsafe {
+                    bindings::Gecko_SetImageOrientation(&mut self.gecko, angle.radians() as f64, flipped);
+                }
+            }
+        }
+    }
+
+    pub fn copy_image_orientation_from(&mut self, other: &Self) {
+        unsafe {
+            bindings::Gecko_CopyImageOrientationFrom(&mut self.gecko, &other.gecko);
+        }
+    }
+</%self:impl_trait>
 
 <%self:impl_trait style_struct_name="InheritedTable"
                   skip_longhands="border-spacing">
@@ -2789,7 +2817,6 @@ fn static_assert() {
         self.gecko.mBorderSpacingCol = other.gecko.mBorderSpacingCol;
         self.gecko.mBorderSpacingRow = other.gecko.mBorderSpacingRow;
     }
-
 </%self:impl_trait>
 
 
@@ -3012,7 +3039,7 @@ fn static_assert() {
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Text"
-                  skip_longhands="text-decoration-line text-overflow"
+                  skip_longhands="text-decoration-line text-overflow initial-letter"
                   skip_additionals="*">
 
     pub fn set_text_decoration_line(&mut self, v: longhands::text_decoration_line::computed_value::T) {
@@ -3091,6 +3118,29 @@ fn static_assert() {
         set(&mut self.gecko.mTextOverflow.mLeft, &other.gecko.mTextOverflow.mLeft);
         set(&mut self.gecko.mTextOverflow.mRight, &other.gecko.mTextOverflow.mRight);
         self.gecko.mTextOverflow.mLogicalDirections = other.gecko.mTextOverflow.mLogicalDirections;
+    }
+
+    pub fn set_initial_letter(&mut self, v: longhands::initial_letter::computed_value::T) {
+        use properties::longhands::initial_letter::computed_value::T;
+        match v {
+            T::Normal => {
+                self.gecko.mInitialLetterSize = 0.;
+                self.gecko.mInitialLetterSink = 0;
+            },
+            T::Specified(size, sink) => {
+                self.gecko.mInitialLetterSize = size.value;
+                if let Some(sink) = sink {
+                    self.gecko.mInitialLetterSink = sink.value();
+                } else {
+                    self.gecko.mInitialLetterSink = size.value.floor() as i32;
+                }
+            }
+        }
+    }
+
+    pub fn copy_initial_letter_from(&mut self, other: &Self) {
+        self.gecko.mInitialLetterSize = other.gecko.mInitialLetterSize;
+        self.gecko.mInitialLetterSink = other.gecko.mInitialLetterSink;
     }
 
     #[inline]

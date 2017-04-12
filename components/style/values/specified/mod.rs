@@ -430,7 +430,6 @@ impl Parse for Angle {
     fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         match try!(input.next()) {
             Token::Dimension(ref value, ref unit) => Angle::parse_dimension(value.value, unit),
-            Token::Number(ref value) if value.value == 0. => Ok(Angle::zero()),
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
                 input.parse_nested_block(CalcLengthOrPercentage::parse_angle)
             },
@@ -450,6 +449,22 @@ impl Angle {
              _ => return Err(())
         };
         Ok(angle)
+    }
+    /// Parse an angle, including unitless 0 degree.
+    /// Note that numbers without any AngleUnit, including unitless 0
+    /// angle, should be invalid. However, some properties still accept
+    /// unitless 0 angle and stores it as '0deg'. We can remove this and
+    /// get back to the unified version Angle::parse once
+    /// https://github.com/w3c/csswg-drafts/issues/1162 is resolved.
+    pub fn parse_with_unitless(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        match try!(input.next()) {
+            Token::Dimension(ref value, ref unit) => Angle::parse_dimension(value.value, unit),
+            Token::Number(ref value) if value.value == 0. => Ok(Angle::zero()),
+            Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
+                input.parse_nested_block(CalcLengthOrPercentage::parse_angle)
+            },
+            _ => Err(())
+        }
     }
 }
 

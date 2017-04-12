@@ -1654,7 +1654,8 @@ pub extern "C" fn Servo_ResolveStyle(element: RawGeckoElementBorrowed,
     };
 
     if !valid_styles {
-        warn!("Resolving style on element without current styles with lazy computation forbidden.");
+        debug_assert!(false, "Resolving style on element without current styles with lazy \
+                              computation forbidden.");
         let per_doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow();
         return per_doc_data.default_computed_values().clone().into_strong();
     }

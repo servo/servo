@@ -711,7 +711,7 @@ fn compute_style<E, D>(_traversal: &D,
         }
         CascadeWithReplacements(hint) => {
             let _rule_nodes_changed =
-                element.cascade_with_replacements(hint, context, &mut data);
+                element.replace_rules(hint, context, &mut data);
             element.cascade_primary_and_pseudos(context, &mut data);
         }
         CascadeOnly => {
