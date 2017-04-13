@@ -45,7 +45,7 @@ use dom::element::Element;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::globalscope::GlobalScope;
 use dom::htmlanchorelement::HTMLAnchorElement;
-use dom::htmliframeelement::{HTMLIFrameElement, NavigationType};
+use dom::htmliframeelement::{HTMLIFrameElement, TerminateLoadBlocker};
 use dom::mutationobserver::MutationObserver;
 use dom::node::{Node, NodeDamage, window_from_node};
 use dom::serviceworker::TrustedServiceWorkerAddress;
@@ -83,7 +83,7 @@ use profile_traits::time::{self, ProfilerCategory, profile};
 use script_layout_interface::message::{self, NewLayoutThreadInfo, ReflowQueryType};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
 use script_runtime::{ScriptPort, StackRootTLS, get_reports, new_rt_and_cx};
-use script_traits::{CompositorEvent, ConstellationControlMsg};
+use script_traits::{CompositorEvent, ConstellationControlMsg, DocumentType};
 use script_traits::{DocumentActivity, DiscardBrowsingContext, EventResult};
 use script_traits::{InitialScriptState, LayoutMsg, LoadData, MouseButton, MouseEventType, MozBrowserEvent};
 use script_traits::{NewLayoutInfo, ScriptMsg as ConstellationMsg};
@@ -1062,8 +1062,8 @@ impl ScriptThread {
                 self.handle_frame_load_event(parent_id, frame_id, child_id),
             ConstellationControlMsg::DispatchStorageEvent(pipeline_id, storage, url, key, old_value, new_value) =>
                 self.handle_storage_event(pipeline_id, storage, url, key, old_value, new_value),
-            ConstellationControlMsg::FramedContentChanged(parent_pipeline_id, frame_id) =>
-                self.handle_framed_content_changed(parent_pipeline_id, frame_id),
+            ConstellationControlMsg::FramedContentChanged(pipeline_id, parent_pipeline_id, frame_id) =>
+                self.handle_framed_content_changed(pipeline_id, parent_pipeline_id, frame_id),
             ConstellationControlMsg::ReportCSSError(pipeline_id, filename, line, column, msg) =>
                 self.handle_css_error_reporting(pipeline_id, filename, line, column, msg),
             ConstellationControlMsg::Reload(pipeline_id) =>
@@ -1400,11 +1400,13 @@ impl ScriptThread {
     }
 
     fn handle_framed_content_changed(&self,
+                                     pipeline_id: PipelineId,
                                      parent_pipeline_id: PipelineId,
                                      frame_id: FrameId) {
         let doc = self.documents.borrow().find_document(parent_pipeline_id).unwrap();
         let frame_element = doc.find_iframe(frame_id);
         if let Some(ref frame_element) = frame_element {
+            frame_element.update_pipeline_id(pipeline_id, TerminateLoadBlocker::No);
             frame_element.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
             let window = doc.window();
             window.reflow(ReflowGoal::ForDisplay,
@@ -1446,7 +1448,7 @@ impl ScriptThread {
                                  new_pipeline_id: PipelineId) {
         let frame_element = self.documents.borrow().find_iframe(parent_pipeline_id, frame_id);
         if let Some(frame_element) = frame_element {
-            frame_element.update_pipeline_id(new_pipeline_id, true);
+            frame_element.update_pipeline_id(new_pipeline_id, TerminateLoadBlocker::Yes);
         }
     }
 
@@ -2064,7 +2066,7 @@ impl ScriptThread {
             Some(frame_id) => {
                 let iframe = self.documents.borrow().find_iframe(parent_pipeline_id, frame_id);
                 if let Some(iframe) = iframe {
-                    iframe.navigate_or_reload_child_browsing_context(Some(load_data), NavigationType::Normal, replace);
+                    iframe.navigate_or_reload_child_browsing_context(Some(load_data), DocumentType::Normal, replace);
                 }
             }
             None => {
