@@ -267,31 +267,18 @@
                             DeclaredValue::Value(ref specified_value) => {
                                 let computed = specified_value.to_computed_value(context);
                                 % if property.ident == "font_size":
-                                    if let longhands::font_size::SpecifiedValue::Keyword(kw, fraction)
-                                                        = **specified_value {
-                                        context.mutate_style().font_size_keyword = Some((kw, fraction));
-                                    } else if let Some(ratio) = specified_value.as_font_ratio() {
-                                        // In case a font-size-relative value was applied to a keyword
-                                        // value, we must preserve this fact in case the generic font family
-                                        // changes. relative values (em and %) applied to keywords must be
-                                        // recomputed from the base size for the keyword and the relative size.
-                                        //
-                                        // See bug 1355707
-                                        if let Some((kw, fraction)) = context.inherited_style().font_size_keyword {
-                                            context.mutate_style().font_size_keyword = Some((kw, fraction * ratio));
-                                        } else {
-                                            context.mutate_style().font_size_keyword = None;
-                                        }
-                                    } else {
-                                        context.mutate_style().font_size_keyword = None;
-                                    }
-                                % endif
-                                % if property.has_uncacheable_values:
-                                context.mutate_style().mutate_${data.current_style_struct.name_lower}()
-                                                      .set_${property.ident}(computed, cacheable ${maybe_wm});
+                                    longhands::font_size::cascade_specified_font_size(context,
+                                                                                      specified_value,
+                                                                                      computed,
+                                                                                      inherited_style.get_font());
                                 % else:
-                                context.mutate_style().mutate_${data.current_style_struct.name_lower}()
-                                                      .set_${property.ident}(computed ${maybe_wm});
+                                    % if property.has_uncacheable_values:
+                                    context.mutate_style().mutate_${data.current_style_struct.name_lower}()
+                                                          .set_${property.ident}(computed, cacheable ${maybe_wm});
+                                    % else:
+                                    context.mutate_style().mutate_${data.current_style_struct.name_lower}()
+                                                          .set_${property.ident}(computed ${maybe_wm});
+                                    % endif
                                 % endif
                             }
                             DeclaredValue::WithVariables(_) => unreachable!(),
@@ -301,13 +288,7 @@
                                 % endif
                                 CSSWideKeyword::Initial => {
                                     % if property.ident == "font_size":
-                                        // font-size's default ("medium") does not always
-                                        // compute to the same value and depends on the font
-                                        let computed = longhands::font_size::get_initial_specified_value()
-                                                            .to_computed_value(context);
-                                        context.mutate_style().mutate_${data.current_style_struct.name_lower}()
-                                               .set_font_size(computed);
-                                        context.mutate_style().font_size_keyword = Some((Default::default(), 1.));
+                                        longhands::font_size::cascade_initial_font_size(context);
                                     % else:
                                         // We assume that it's faster to use copy_*_from rather than
                                         // set_*(get_initial_value());
@@ -328,11 +309,12 @@
                                     *cacheable = false;
                                     let inherited_struct =
                                         inherited_style.get_${data.current_style_struct.name_lower}();
-                                    context.mutate_style().mutate_${data.current_style_struct.name_lower}()
-                                        .copy_${property.ident}_from(inherited_struct ${maybe_wm});
+
                                     % if property.ident == "font_size":
-                                        context.mutate_style().font_size_keyword =
-                                            context.inherited_style.font_size_keyword;
+                                        longhands::font_size::cascade_inherit_font_size(context, inherited_struct);
+                                    % else:
+                                        context.mutate_style().mutate_${data.current_style_struct.name_lower}()
+                                            .copy_${property.ident}_from(inherited_struct ${maybe_wm});
                                     % endif
                                 }
                             }

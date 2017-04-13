@@ -1429,6 +1429,7 @@ pub use gecko_properties::style_structs;
 /// The module where all the style structs are defined.
 #[cfg(feature = "servo")]
 pub mod style_structs {
+    use app_units::Au;
     use fnv::FnvHasher;
     use super::longhands;
     use std::hash::{Hash, Hasher};
@@ -1526,6 +1527,23 @@ pub mod style_structs {
                     self.font_family.hash(&mut hasher);
                     self.hash = hasher.finish()
                 }
+
+                /// (Servo does not handle MathML, so this just calls copy_font_size_from)
+                pub fn inherit_font_size_from(&mut self, parent: &Self,
+                                              _: Option<Au>) {
+                    self.copy_font_size_from(parent);
+                }
+                /// (Servo does not handle MathML, so this just calls set_font_size)
+                pub fn apply_font_size(&mut self,
+                                       v: longhands::font_size::computed_value::T,
+                                       _: &Self) -> Option<Au> {
+                    self.set_font_size(v);
+                    None
+                }
+                /// (Servo does not handle MathML, so this does nothing)
+                pub fn apply_unconstrained_font_size(&mut self, _: Au) {
+                }
+
             % elif style_struct.name == "Outline":
                 /// Whether the outline-width property is non-zero.
                 #[inline]
@@ -2229,6 +2247,7 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
                     | LonghandId::AnimationName
                     | LonghandId::TransitionProperty
                     | LonghandId::XLang
+                    | LonghandId::MozScriptLevel
                 % endif
             );
             if
@@ -2300,12 +2319,12 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
                                                  &mut cacheable,
                                                  &mut cascade_info,
                                                  error_reporter);
-            } else if let Some((kw, fraction)) = inherited_style.font_size_keyword {
-                // Font size keywords will inherit as keywords and be recomputed
-                // each time.
+            } else {
+                // Font size must be explicitly inherited to handle keyword
+                // sizes and scriptlevel
                 let discriminant = LonghandId::FontSize as usize;
-                let size = PropertyDeclaration::FontSize(
-                    longhands::font_size::SpecifiedValue::Keyword(kw, fraction)
+                let size = PropertyDeclaration::CSSWideKeyword(
+                    LonghandId::FontSize, CSSWideKeyword::Inherit
                 );
                 (CASCADE_PROPERTY[discriminant])(&size,
                                                  inherited_style,

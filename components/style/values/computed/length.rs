@@ -25,7 +25,7 @@ impl ToComputedValue for specified::NoCalcLength {
             specified::NoCalcLength::Absolute(length) =>
                 length.to_computed_value(context),
             specified::NoCalcLength::FontRelative(length) =>
-                length.to_computed_value(context, /* base_size */ FontBaseSize::CurrentStyle),
+                length.to_computed_value(context, FontBaseSize::CurrentStyle),
             specified::NoCalcLength::ViewportPercentage(length) =>
                 length.to_computed_value(context.viewport_size()),
             specified::NoCalcLength::ServoCharacterWidth(length) =>
@@ -139,7 +139,6 @@ impl ToComputedValue for specified::CalcLengthOrPercentage {
     type ComputedValue = CalcLengthOrPercentage;
 
     fn to_computed_value(&self, context: &Context) -> CalcLengthOrPercentage {
-
         let mut length = Au(0);
 
         if let Some(absolute) = self.absolute {
@@ -160,7 +159,7 @@ impl ToComputedValue for specified::CalcLengthOrPercentage {
                      self.ex.map(FontRelativeLength::Ex),
                      self.rem.map(FontRelativeLength::Rem)] {
             if let Some(val) = *val {
-                length += val.to_computed_value(context, /* base_size */ FontBaseSize::CurrentStyle);
+                length += val.to_computed_value(context, FontBaseSize::CurrentStyle);
             }
         }
 

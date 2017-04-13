@@ -98,7 +98,7 @@ impl FontBaseSize {
 }
 
 impl FontRelativeLength {
-    /// Computes the font-relative length. We use the inherited_size
+    /// Computes the font-relative length. We use the base_size
     /// flag to pass a different size for computing font-size and unconstrained font-size
     pub fn to_computed_value(&self, context: &Context, base_size: FontBaseSize) -> Au {
         fn query_font_metrics(context: &Context, reference_font_size: Au) -> FontMetricsQueryResult {
