@@ -108,7 +108,14 @@ def copy_dependencies(binary_path, lib_path):
 
 def copy_windows_dependencies(binary_path, destination):
     try:
-        [shutil.copy(path.join(binary_path, d), destination) for d in ["libcryptoMD.dll", "libsslMD.dll"]]
+        deps = [
+            "api-ms-win-crt-runtime-l1-1-0.dll",
+            "libcryptoMD.dll",
+            "libsslMD.dll"
+            "msvcp140.dll",
+            "vcruntime140.dll",
+        ]
+        [shutil.copy(path.join(binary_path, d), destination) for d in deps]
     except:
         deps = [
             "libstdc++-6.dll",

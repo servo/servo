@@ -324,6 +324,20 @@ class MachCommands(CommandBase):
                     for ssl_lib in ["libcryptoMD.dll", "libsslMD.dll"]:
                         shutil.copy(path.join(env['OPENSSL_LIB_DIR'], "../bin" + msvc_x64, ssl_lib),
                                     servo_exe_dir)
+                    if os.environ.get("VS140COMNTOOLS", ""):
+                        vs_dir = os.environ["VS140COMNTOOLS"]
+                        vs_dll_dir = path.join(vs_dir, "..", "IDE", "Remote Debugger", os.environ["PLATFORM"].lower())
+                        os.environ['PATH'] = os.environ['PATH'] + os.pathsep + vs_dll_dir
+                    msvc_deps = [
+                        "api-ms-win-crt-runtime-l1-1-0.dll",
+                        "msvcp140.dll",
+                        "vcruntime140.dll",
+                    ]
+                    for msvc_dll in msvc_deps:
+                        from ctypes.util import find_library
+                        vs_dll = find_library(msvc_dll)
+                        if vs_dll:
+                            shutil.copy(vs_dll, servo_exe_dir)
 
                 elif sys.platform == "darwin":
                     # On the Mac, set a lovely icon. This makes it easier to pick out the Servo binary in tools
