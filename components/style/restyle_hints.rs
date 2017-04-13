@@ -17,7 +17,7 @@ use selector_parser::{AttrValue, NonTSPseudoClass, Snapshot, SelectorImpl};
 use selectors::{Element, MatchAttr};
 use selectors::matching::{ElementSelectorFlags, StyleRelations};
 use selectors::matching::matches_complex_selector;
-use selectors::parser::{AttrSelector, Combinator, ComplexSelector, SimpleSelector};
+use selectors::parser::{AttrSelector, Combinator, ComplexSelector, SelectorMethods, SimpleSelector};
 use selectors::visitor::SelectorVisitor;
 use std::clone::Clone;
 use std::sync::Arc;
@@ -279,11 +279,26 @@ impl<'a, E> Element for ElementWrapper<'a, E>
     fn match_non_ts_pseudo_class<F>(&self,
                                     pseudo_class: &NonTSPseudoClass,
                                     relations: &mut StyleRelations,
-                                    _: &mut F)
+                                    _setter: &mut F)
                                     -> bool
         where F: FnMut(&Self, ElementSelectorFlags),
     {
-        let flag = SelectorImpl::pseudo_class_state_flag(pseudo_class);
+        // :moz-any is quite special, because we need to keep matching as a
+        // snapshot.
+        #[cfg(feature = "gecko")]
+        {
+            if let NonTSPseudoClass::MozAny(ref selectors) = *pseudo_class {
+                return selectors.iter().any(|s| {
+                    matches_complex_selector(s,
+                                             self,
+                                             None,
+                                             relations,
+                                             _setter)
+                })
+            }
+        }
+
+        let flag = pseudo_class.state_flag();
         if flag.is_empty() {
             return self.element.match_non_ts_pseudo_class(pseudo_class,
                                                           relations,
@@ -365,22 +380,9 @@ impl<'a, E> Element for ElementWrapper<'a, E>
     }
 }
 
-/// Returns the union of any `ElementState` flags for components of a
-/// `ComplexSelector`.
-pub fn complex_selector_to_state(sel: &ComplexSelector<SelectorImpl>) -> ElementState {
-    sel.compound_selector.iter().fold(ElementState::empty(), |state, s| {
-        state | selector_to_state(s)
-    })
-}
-
 fn selector_to_state(sel: &SimpleSelector<SelectorImpl>) -> ElementState {
     match *sel {
-        SimpleSelector::NonTSPseudoClass(ref pc) => SelectorImpl::pseudo_class_state_flag(pc),
-        SimpleSelector::Negation(ref negated) => {
-            negated.iter().fold(ElementState::empty(), |state, s| {
-                state | complex_selector_to_state(s)
-            })
-        }
+        SimpleSelector::NonTSPseudoClass(ref pc) => pc.state_flag(),
         _ => ElementState::empty(),
     }
 }
@@ -419,6 +421,8 @@ fn needs_cache_revalidation(sel: &SimpleSelector<SelectorImpl>) -> bool {
         SimpleSelector::FirstOfType |
         SimpleSelector::LastOfType |
         SimpleSelector::OnlyOfType => true,
+        // FIXME(emilio): This sets the "revalidation" flag for :any, which is
+        // probably expensive given we use it a lot in UA sheets.
         SimpleSelector::NonTSPseudoClass(ref p) => p.state_flag().is_empty(),
         _ => false,
     }
@@ -483,61 +487,38 @@ struct Dependency {
     sensitivities: Sensitivities,
 }
 
-/// A visitor struct that collects information for a given selector.
-///
-/// This is the struct responsible of adding dependencies for a given complex
-/// selector.
-pub struct SelectorDependencyVisitor<'a> {
-    dependency_set: &'a mut DependencySet,
-    needs_cache_revalidation: bool,
+
+/// The following visitor visits all the simple selectors for a given complex
+/// selector, taking care of :not and :any combinators, collecting whether any
+/// of them is sensitive to attribute or state changes.
+struct SensitivitiesVisitor {
+    sensitivities: Sensitivities,
+    hint: RestyleHint,
+    needs_revalidation: bool,
 }
 
-impl<'a> SelectorDependencyVisitor<'a> {
-    /// Create a new `SelectorDependencyVisitor`.
-    pub fn new(dependency_set: &'a mut DependencySet) -> Self {
-        SelectorDependencyVisitor {
-            dependency_set: dependency_set,
-            needs_cache_revalidation: false,
-        }
-    }
-
-    /// Returns whether this visitor has encountered a simple selector that needs
-    /// cache revalidation.
-    pub fn needs_cache_revalidation(&self) -> bool {
-        self.needs_cache_revalidation
-    }
-}
-
-impl<'a> SelectorVisitor for SelectorDependencyVisitor<'a> {
+impl SelectorVisitor for SensitivitiesVisitor {
     type Impl = SelectorImpl;
 
     fn visit_complex_selector(&mut self,
-                              selector: &Arc<ComplexSelector<SelectorImpl>>,
-                              combinator: Option<Combinator>)
-                              -> bool
-    {
-        let mut sensitivities = Sensitivities::new();
-        for s in &selector.compound_selector {
-            sensitivities.states.insert(selector_to_state(s));
-            if !self.needs_cache_revalidation {
-                self.needs_cache_revalidation = needs_cache_revalidation(s);
-            }
-            if !sensitivities.attrs {
-                sensitivities.attrs = is_attr_selector(s);
-            }
+                              _: &ComplexSelector<SelectorImpl>,
+                              combinator: Option<Combinator>) -> bool {
+        self.hint |= combinator_to_restyle_hint(combinator);
+        self.needs_revalidation |= self.hint.contains(RESTYLE_LATER_SIBLINGS);
+
+        true
+    }
+
+    fn visit_simple_selector(&mut self, s: &SimpleSelector<SelectorImpl>) -> bool {
+        self.sensitivities.states.insert(selector_to_state(s));
+
+        if !self.sensitivities.attrs {
+            self.sensitivities.attrs = is_attr_selector(s);
+            self.needs_revalidation = true;
         }
 
-        let hint = combinator_to_restyle_hint(combinator);
-
-        self.needs_cache_revalidation |= sensitivities.attrs;
-        self.needs_cache_revalidation |= hint.intersects(RESTYLE_LATER_SIBLINGS);
-
-        if !sensitivities.is_empty() {
-            self.dependency_set.add_dependency(Dependency {
-                selector: selector.clone(),
-                hint: hint,
-                sensitivities: sensitivities,
-            });
+        if !self.needs_revalidation {
+            self.needs_revalidation = needs_cache_revalidation(s);
         }
 
         true
@@ -572,6 +553,59 @@ impl DependencySet {
         } else {
             self.state_deps.push(dep)
         }
+    }
+
+    /// Adds a selector to this `DependencySet`, and returns whether it may need
+    /// cache revalidation, that is, whether two siblings of the same "shape"
+    /// may have different style due to this selector.
+    pub fn note_selector(&mut self,
+                         selector: &Arc<ComplexSelector<SelectorImpl>>)
+                         -> bool
+    {
+        let mut combinator = None;
+        let mut current = selector;
+
+        let mut needs_revalidation = false;
+
+        loop {
+            let mut sensitivities_visitor = SensitivitiesVisitor {
+                sensitivities: Sensitivities::new(),
+                hint: RestyleHint::empty(),
+                needs_revalidation: false,
+            };
+
+            for ss in &current.compound_selector {
+                ss.visit(&mut sensitivities_visitor);
+            }
+
+            needs_revalidation |= sensitivities_visitor.needs_revalidation;
+
+            let SensitivitiesVisitor {
+                sensitivities,
+                mut hint,
+                ..
+            } = sensitivities_visitor;
+
+            hint |= combinator_to_restyle_hint(combinator);
+
+            if !sensitivities.is_empty() {
+                self.add_dependency(Dependency {
+                    sensitivities: sensitivities,
+                    hint: hint,
+                    selector: current.clone(),
+                })
+            }
+
+            match current.next {
+                Some((ref next, next_combinator)) => {
+                    current = next;
+                    combinator = Some(next_combinator);
+                }
+                None => break,
+            }
+        }
+
+        needs_revalidation
     }
 
     /// Create an empty `DependencySet`.
@@ -650,7 +684,7 @@ impl DependencySet {
             debug_assert!((!state_changes.is_empty() && !dep.sensitivities.states.is_empty()) ||
                           (attrs_changed && dep.sensitivities.attrs),
                           "Testing a known ineffective dependency?");
-            if (attrs_changed || state_changes.intersects(dep.sensitivities.states)) && !hint.intersects(dep.hint) {
+            if (attrs_changed || state_changes.intersects(dep.sensitivities.states)) && !hint.contains(dep.hint) {
                 // We can ignore the selector flags, since they would have already been set during
                 // original matching for any element that might change its matching behavior here.
                 let matched_then =
@@ -670,4 +704,27 @@ impl DependencySet {
             }
         }
     }
+}
+
+#[test]
+#[cfg(all(test, feature = "servo"))]
+fn smoke_restyle_hints() {
+    use cssparser::Parser;
+    use selector_parser::SelectorParser;
+    use stylesheets::{Origin, Namespaces};
+    let namespaces = Namespaces::default();
+    let parser = SelectorParser {
+        stylesheet_origin: Origin::Author,
+        namespaces: &namespaces,
+    };
+
+    let mut dependencies = DependencySet::new();
+
+    let mut p = Parser::new(":not(:active) ~ label");
+    let selector = Arc::new(ComplexSelector::parse(&parser, &mut p).unwrap());
+    dependencies.note_selector(&selector);
+    assert_eq!(dependencies.len(), 1);
+    assert_eq!(dependencies.state_deps.len(), 1);
+    assert!(!dependencies.state_deps[0].sensitivities.states.is_empty());
+    assert!(dependencies.state_deps[0].hint.contains(RESTYLE_LATER_SIBLINGS));
 }

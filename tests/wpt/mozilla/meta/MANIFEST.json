@@ -3743,6 +3743,18 @@
      {}
     ]
    ],
+   "css/negation-attr-dependence.html": [
+    [
+     "/_mozilla/css/negation-attr-dependence.html",
+     [
+      [
+       "/_mozilla/css/negation-attr-dependence-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "css/negative-calc-cv.html": [
     [
      "/_mozilla/css/negative-calc-cv.html",
@@ -8295,6 +8307,11 @@
     ]
    ],
    "css/multiple_css_class_b.html": [
+    [
+     {}
+    ]
+   ],
+   "css/negation-attr-dependence-ref.html": [
     [
      {}
     ]
@@ -22500,6 +22517,14 @@
   "css/multiple_css_class_b.html": [
    "a82c94a9a4a18cda6009e467993cace8babe7591",
    "support"
+  ],
+  "css/negation-attr-dependence-ref.html": [
+   "560c5d8b523f6d4cad6e15e5604f51646647d487",
+   "support"
+  ],
+  "css/negation-attr-dependence.html": [
+   "27bec4af590a2e6d5e88b54ed37fd254ef0f0a99",
+   "reftest"
   ],
   "css/negative-calc-cv-ref.html": [
    "a42f34470ead45d5865562618f6538fde263a359",

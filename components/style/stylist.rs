@@ -19,7 +19,7 @@ use properties::{self, CascadeFlags, ComputedValues};
 #[cfg(feature = "servo")]
 use properties::INHERIT_ALL;
 use properties::PropertyDeclarationBlock;
-use restyle_hints::{RestyleHint, DependencySet, SelectorDependencyVisitor};
+use restyle_hints::{RestyleHint, DependencySet};
 use rule_tree::{CascadeLevel, RuleTree, StrongRuleNode, StyleSource};
 use selector_parser::{SelectorImpl, PseudoElement, Snapshot};
 use selectors::Element;
@@ -28,7 +28,6 @@ use selectors::matching::{AFFECTED_BY_ANIMATIONS, AFFECTED_BY_TRANSITIONS};
 use selectors::matching::{AFFECTED_BY_STYLE_ATTRIBUTE, AFFECTED_BY_PRESENTATIONAL_HINTS};
 use selectors::matching::{ElementSelectorFlags, StyleRelations, matches_complex_selector};
 use selectors::parser::{Selector, SimpleSelector, LocalName as LocalNameSelector, ComplexSelector};
-use selectors::parser::SelectorMethods;
 use shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
 use sink::Push;
 use smallvec::VecLike;
@@ -294,11 +293,9 @@ impl Stylist {
                     self.rules_source_order += 1;
 
                     for selector in &style_rule.selectors.0 {
-                        let mut visitor =
-                            SelectorDependencyVisitor::new(&mut self.state_deps);
-                        selector.visit(&mut visitor);
-
-                        if visitor.needs_cache_revalidation() {
+                        let needs_cache_revalidation =
+                            self.state_deps.note_selector(&selector.complex_selector);
+                        if needs_cache_revalidation {
                             self.selectors_for_cache_revalidation.push(selector.clone());
                         }
                     }
