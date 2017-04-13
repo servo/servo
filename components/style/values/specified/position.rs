@@ -279,6 +279,23 @@ impl ToCss for HorizontalPosition {
     }
 }
 
+impl HorizontalPosition {
+    /// variant version of `to_css` with keyword
+    pub fn to_css_with_keyword<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        if let Some(keyword) = self.keyword {
+            keyword.to_css(dest)?;
+        } else {
+            Keyword::Left.to_css(dest)?;
+        }
+
+        if let Some(ref position) = self.position {
+            dest.write_str(" ")?;
+            position.to_css(dest)?;
+        };
+        Ok(())
+    }
+}
+
 impl Parse for HorizontalPosition {
     #[inline]
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
@@ -400,6 +417,24 @@ impl ToCss for VerticalPosition {
                 try!(dest.write_str(" "));
             }
             try!(position.to_css(dest));
+        };
+        Ok(())
+    }
+
+}
+
+impl VerticalPosition {
+    /// variant version of `to_css` with keyword
+    pub fn to_css_with_keyword<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        if let Some(keyword) = self.keyword {
+            keyword.to_css(dest)?;
+        } else {
+            Keyword::Top.to_css(dest)?;
+        }
+
+        if let Some(ref position) = self.position {
+            dest.write_str(" ")?;
+            position.to_css(dest)?;
         };
         Ok(())
     }

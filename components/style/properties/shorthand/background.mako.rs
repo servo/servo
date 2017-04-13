@@ -15,7 +15,7 @@
     use properties::longhands::background_clip;
     use properties::longhands::background_clip::single_value::computed_value::T as Clip;
     use properties::longhands::background_origin::single_value::computed_value::T as Origin;
-    use values::specified::position::Position;
+    use values::specified::position::{Position, HorizontalPosition, VerticalPosition};
     use parser::Parse;
 
     impl From<background_origin::single_value::SpecifiedValue> for background_clip::single_value::SpecifiedValue {
@@ -127,6 +127,30 @@
          })
     }
 
+    fn background_position_to_css<W>(x: &HorizontalPosition,
+                                     y: &VerticalPosition,
+                                     dest: &mut W)
+                                     -> fmt::Result where W: fmt::Write {
+        let mut is_keyword_needed = false;
+
+        if (x.keyword.is_some() && x.position.is_some()) ||
+            (y.keyword.is_some() && y.position.is_some()) {
+            is_keyword_needed = true;
+        }
+
+        if is_keyword_needed {
+            x.to_css_with_keyword(dest)?;
+            dest.write_str(" ")?;
+            y.to_css_with_keyword(dest)?;
+        } else {
+            x.to_css(dest)?;
+            dest.write_str(" ")?;
+            y.to_css(dest)?;
+        }
+
+        Ok(())
+    }
+
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             let len = self.background_image.0.len();
@@ -159,10 +183,13 @@
                 }
 
                 try!(image.to_css(dest));
-                % for name in "repeat attachment position_x position_y".split():
+                % for name in "repeat attachment".split():
                     try!(write!(dest, " "));
                     try!(${name}.to_css(dest));
                 % endfor
+
+                try!(write!(dest, " "));
+                try!(background_position_to_css(position_x, position_y, dest));
 
                 if *size != background_size::single_value::get_initial_specified_value() {
                     try!(write!(dest, " / "));
@@ -225,9 +252,26 @@
                 return Ok(());
             }
             for i in 0..len {
-                self.background_position_x.0[i].to_css(dest)?;
-                dest.write_str(" ")?;
-                self.background_position_y.0[i].to_css(dest)?;
+                let mut is_keyword_needed = false;
+
+                let x = &self.background_position_x.0[i];
+                let y = &self.background_position_y.0[i];
+
+                if (x.keyword.is_some() && x.position.is_some()) ||
+                   (y.keyword.is_some() && y.position.is_some()) {
+                    is_keyword_needed = true;
+                }
+
+                if is_keyword_needed {
+                    x.to_css_with_keyword(dest)?;
+                    dest.write_str(" ")?;
+                    y.to_css_with_keyword(dest)?;
+                } else {
+                    x.to_css(dest)?;
+                    dest.write_str(" ")?;
+                    y.to_css(dest)?;
+                }
+
                 if i < len - 1 {
                     dest.write_str(", ")?;
                 }
