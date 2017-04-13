@@ -148,9 +148,11 @@
                 dest.write_str(" ")?;
                 mode.to_css(dest)?;
                 dest.write_str(" ")?;
-                position_x.to_css(dest)?;
-                dest.write_str(" ")?;
-                position_y.to_css(dest)?;
+
+                let position = Position::new_from_components(position_x.clone(),
+                                                             position_y.clone()).unwrap();
+                position.to_css(dest)?;
+
                 if *size != mask_size::single_value::get_initial_specified_value() {
                     dest.write_str(" / ")?;
                     size.to_css(dest)?;
@@ -218,9 +220,12 @@
             }
 
             for i in 0..len {
-                self.mask_position_x.0[i].to_css(dest)?;
-                dest.write_str(" ")?;
-                self.mask_position_y.0[i].to_css(dest)?;
+                let position_x = &self.mask_position_x.0[i];
+                let position_y = &self.mask_position_y.0[i];
+                let position = Position::new_from_components(position_x.clone(),
+                                                             position_y.clone()).unwrap();
+                position.to_css(dest)?;
+
                 if i < len - 1 {
                     dest.write_str(", ")?;
                 }

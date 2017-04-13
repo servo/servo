@@ -32,27 +32,25 @@ pub struct Position {
 
 impl ToCss for Position {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        let mut space_present = false;
-        if let Some(horiz_key) = self.horizontal.keyword {
-            try!(horiz_key.to_css(dest));
-            try!(dest.write_str(" "));
-            space_present = true;
-        };
-        if let Some(ref horiz_pos) = self.horizontal.position {
-            try!(horiz_pos.to_css(dest));
-            try!(dest.write_str(" "));
-            space_present = true;
-        };
-        if let Some(vert_key) = self.vertical.keyword {
-            try!(vert_key.to_css(dest));
-            space_present = false;
-        };
-        if let Some(ref vert_pos) = self.vertical.position {
-            if space_present == false {
-                try!(dest.write_str(" "));
-            }
-            try!(vert_pos.to_css(dest));
-        };
+        let mut is_keyword_needed = false;
+        let position_x = &self.horizontal;
+        let position_y = &self.vertical;
+
+        if (position_x.keyword.is_some() && position_x.position.is_some()) ||
+           (position_y.keyword.is_some() && position_y.position.is_some()) {
+            is_keyword_needed = true;
+        }
+
+        if is_keyword_needed {
+            position_x.to_css_with_keyword(dest)?;
+            dest.write_str(" ")?;
+            position_y.to_css_with_keyword(dest)?;
+        } else {
+            position_x.to_css(dest)?;
+            dest.write_str(" ")?;
+            position_y.to_css(dest)?;
+        }
+
         Ok(())
     }
 }
@@ -64,6 +62,16 @@ impl HasViewportPercentage for Position {
 }
 
 impl Position {
+    /// Create a new position value from HorizontalPosition and VerticalPosition
+    pub fn new_from_components(position_x: HorizontalPosition,
+                               position_y: VerticalPosition)
+                               -> Result<Position, ()> {
+        Ok(Position {
+            horizontal: position_x,
+            vertical: position_y,
+        })
+    }
+
     /// Create a new position value.
     pub fn new(mut first_position: Option<PositionComponent>,
                mut second_position: Option<PositionComponent>,
@@ -279,6 +287,23 @@ impl ToCss for HorizontalPosition {
     }
 }
 
+impl HorizontalPosition {
+    /// variant version of `to_css` with keyword
+    pub fn to_css_with_keyword<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        if let Some(keyword) = self.keyword {
+            keyword.to_css(dest)?;
+        } else {
+            Keyword::Left.to_css(dest)?;
+        }
+
+        if let Some(ref position) = self.position {
+            dest.write_str(" ")?;
+            position.to_css(dest)?;
+        };
+        Ok(())
+    }
+}
+
 impl Parse for HorizontalPosition {
     #[inline]
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
@@ -400,6 +425,24 @@ impl ToCss for VerticalPosition {
                 try!(dest.write_str(" "));
             }
             try!(position.to_css(dest));
+        };
+        Ok(())
+    }
+
+}
+
+impl VerticalPosition {
+    /// variant version of `to_css` with keyword
+    pub fn to_css_with_keyword<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        if let Some(keyword) = self.keyword {
+            keyword.to_css(dest)?;
+        } else {
+            Keyword::Top.to_css(dest)?;
+        }
+
+        if let Some(ref position) = self.position {
+            dest.write_str(" ")?;
+            position.to_css(dest)?;
         };
         Ok(())
     }

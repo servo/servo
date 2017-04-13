@@ -159,10 +159,15 @@
                 }
 
                 try!(image.to_css(dest));
-                % for name in "repeat attachment position_x position_y".split():
+                % for name in "repeat attachment".split():
                     try!(write!(dest, " "));
                     try!(${name}.to_css(dest));
                 % endfor
+
+                let position = Position::new_from_components(position_x.clone(),
+                                                             position_y.clone()).unwrap();
+                try!(write!(dest, " "));
+                position.to_css(dest)?;
 
                 if *size != background_size::single_value::get_initial_specified_value() {
                     try!(write!(dest, " / "));
@@ -225,9 +230,12 @@
                 return Ok(());
             }
             for i in 0..len {
-                self.background_position_x.0[i].to_css(dest)?;
-                dest.write_str(" ")?;
-                self.background_position_y.0[i].to_css(dest)?;
+                let position_x = &self.background_position_x.0[i];
+                let position_y = &self.background_position_y.0[i];
+                let position = Position::new_from_components(position_x.clone(),
+                                                             position_y.clone()).unwrap();
+                position.to_css(dest)?;
+
                 if i < len - 1 {
                     dest.write_str(", ")?;
                 }
