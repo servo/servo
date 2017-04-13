@@ -51,10 +51,25 @@ fn test_longhands_parse_origin() {
     assert!(parsed.is_ok());
     assert_eq!(parser.is_exhausted(), true);
 
-    let mut parser = Parser::new("1px");
+    let mut parser = Parser::new("center left");
     let parsed = longhands::parse_origin(&context, &mut parser);
     assert!(parsed.is_ok());
     assert_eq!(parser.is_exhausted(), true);
+
+    let mut parser = Parser::new("center right");
+    let parsed = longhands::parse_origin(&context, &mut parser);
+    assert!(parsed.is_ok());
+    assert_eq!(parser.is_exhausted(), true);
+
+    let mut parser = Parser::new("center right 1px");
+    let parsed = longhands::parse_origin(&context, &mut parser);
+    assert!(parsed.is_ok());
+    assert_eq!(parser.is_exhausted(), true);
+
+    let mut parser = Parser::new("1% right");
+    let parsed = longhands::parse_origin(&context, &mut parser);
+    assert!(parsed.is_ok());
+    assert_eq!(parser.is_exhausted(), false);
 }
 
 #[test]
