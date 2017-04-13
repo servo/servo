@@ -60,6 +60,27 @@ macro_rules! no_viewport_percentage {
     };
 }
 
+/// A macro for implementing `ComputedValueAsSpecified`, `Parse`
+/// and `HasViewportPercentage` traits for the enums defined
+/// using `define_css_keyword_enum` macro.
+///
+/// NOTE: We should either move `Parse` trait to `style_traits`
+/// or `define_css_keyword_enum` macro to this crate, but that
+/// may involve significant cleanup in both the crates.
+macro_rules! add_impls_for_keyword_enum {
+    ($name:ident) => {
+        impl Parse for $name {
+            #[inline]
+            fn parse(_context: &ParserContext, input: &mut ::cssparser::Parser) -> Result<Self, ()> {
+                $name::parse(input)
+            }
+        }
+
+        impl ComputedValueAsSpecified for $name {}
+        no_viewport_percentage!($name);
+    };
+}
+
 pub mod computed;
 pub mod specified;
 

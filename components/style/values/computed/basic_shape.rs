@@ -7,14 +7,13 @@
 //!
 //! [basic-shape]: https://drafts.csswg.org/css-shapes/#typedef-basic-shape
 
-use properties::shorthands::serialize_four_sides;
 use std::fmt;
 use style_traits::ToCss;
 use values::computed::{BorderRadiusSize, LengthOrPercentage};
 use values::computed::position::Position;
 use values::specified::url::SpecifiedUrl;
 
-pub use values::specified::basic_shape::{FillRule, GeometryBox, ShapeBox};
+pub use values::specified::basic_shape::{self, FillRule, GeometryBox, ShapeBox};
 
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -209,28 +208,9 @@ pub struct BorderRadius {
 }
 
 impl ToCss for BorderRadius {
+    #[inline]
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        if self.top_left.0.width == self.top_left.0.height &&
-           self.top_right.0.width == self.top_right.0.height &&
-           self.bottom_right.0.width == self.bottom_right.0.height &&
-           self.bottom_left.0.width == self.bottom_left.0.height {
-            serialize_four_sides(dest,
-                                 &self.top_left.0.width,
-                                 &self.top_right.0.width,
-                                 &self.bottom_right.0.width,
-                                 &self.bottom_left.0.width)
-        } else {
-            try!(serialize_four_sides(dest,
-                                      &self.top_left.0.width,
-                                      &self.top_right.0.width,
-                                      &self.bottom_right.0.width,
-                                      &self.bottom_left.0.width));
-            try!(dest.write_str(" / "));
-            serialize_four_sides(dest,
-                                 &self.top_left.0.height,
-                                 &self.top_right.0.height,
-                                 &self.bottom_right.0.height,
-                                 &self.bottom_left.0.height)
-        }
+        basic_shape::serialize_radius_values(dest, &self.top_left.0, &self.top_right.0,
+                                             &self.bottom_right.0, &self.bottom_left.0)
     }
 }

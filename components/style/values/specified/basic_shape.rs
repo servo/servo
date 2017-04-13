@@ -8,14 +8,17 @@
 //! [basic-shape]: https://drafts.csswg.org/css-shapes/#typedef-basic-shape
 
 use cssparser::Parser;
+use euclid::size::Size2D;
 use parser::{Parse, ParserContext};
 use properties::shorthands::{parse_four_sides, serialize_four_sides};
+use std::ascii::AsciiExt;
 use std::fmt;
 use style_traits::ToCss;
+use values::HasViewportPercentage;
 use values::computed::{ComputedValueAsSpecified, Context, ToComputedValue};
 use values::computed::basic_shape as computed_basic_shape;
 use values::specified::{BorderRadiusSize, LengthOrPercentage, Percentage};
-use values::specified::position::{Keyword, Position, HorizontalPosition, VerticalPosition};
+use values::specified::position::{Keyword, Position};
 use values::specified::url::SpecifiedUrl;
 
 /// A shape source, for some reference box
@@ -55,36 +58,41 @@ impl<T: ToCss> ToCss for ShapeSource<T> {
     }
 }
 
-impl<T: Parse + PartialEq + Copy> ShapeSource<T> {
-    #[allow(missing_docs)]
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        if let Ok(_) = input.try(|input| input.expect_ident_matching("none")) {
-            Ok(ShapeSource::None)
-        } else if let Ok(url) = input.try(|input| SpecifiedUrl::parse(context, input)) {
-            Ok(ShapeSource::Url(url))
-        } else {
-            fn parse_component<U: Parse>(context: &ParserContext, input: &mut Parser,
-                                         component: &mut Option<U>) -> bool {
-                if component.is_some() {
-                    return false; // already parsed this component
-                }
-                *component = input.try(|i| U::parse(context, i)).ok();
-                component.is_some()
+impl<T: Parse> Parse for ShapeSource<T> {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        if input.try(|input| input.expect_ident_matching("none")).is_ok() {
+            return Ok(ShapeSource::None)
+        }
+
+        if let Ok(url) = input.try(|input| SpecifiedUrl::parse(context, input)) {
+            return Ok(ShapeSource::Url(url))
+        }
+
+        fn parse_component<U: Parse>(context: &ParserContext, input: &mut Parser,
+                                     component: &mut Option<U>) -> bool {
+            if component.is_some() {
+                return false            // already parsed this component
             }
 
-            let mut shape = None;
-            let mut reference = None;
-            loop {
-                if !parse_component(context, input, &mut shape) &&
-                   !parse_component(context, input, &mut reference) {
-                    break;
-                }
-            }
-            match (shape, reference) {
-                (Some(shape), _) => Ok(ShapeSource::Shape(shape, reference)),
-                (None, Some(reference)) => Ok(ShapeSource::Box(reference)),
-                (None, None) => Err(()),
-            }
+            *component = input.try(|i| U::parse(context, i)).ok();
+            component.is_some()
+        }
+
+        let mut shape = None;
+        let mut reference = None;
+
+        while parse_component(context, input, &mut shape) ||
+              parse_component(context, input, &mut reference) {
+            //
+        }
+
+        if let Some(shp) = shape {
+            return Ok(ShapeSource::Shape(shp, reference))
+        }
+
+        match reference {
+            Some(r) => Ok(ShapeSource::Box(r)),
+            None => Err(())
         }
     }
 }
@@ -95,17 +103,14 @@ impl<T: ToComputedValue> ToComputedValue for ShapeSource<T> {
     #[inline]
     fn to_computed_value(&self, cx: &Context) -> Self::ComputedValue {
         match *self {
-            ShapeSource::Url(ref url) => {
-                computed_basic_shape::ShapeSource::Url(url.to_computed_value(cx))
-            }
+            ShapeSource::Url(ref url) => computed_basic_shape::ShapeSource::Url(url.to_computed_value(cx)),
             ShapeSource::Shape(ref shape, ref reference) => {
                 computed_basic_shape::ShapeSource::Shape(
                     shape.to_computed_value(cx),
                     reference.as_ref().map(|ref r| r.to_computed_value(cx)))
-            }
-            ShapeSource::Box(ref reference) => {
-                computed_basic_shape::ShapeSource::Box(reference.to_computed_value(cx))
-            }
+            },
+            ShapeSource::Box(ref reference) =>
+                computed_basic_shape::ShapeSource::Box(reference.to_computed_value(cx)),
             ShapeSource::None => computed_basic_shape::ShapeSource::None,
         }
     }
@@ -113,17 +118,15 @@ impl<T: ToComputedValue> ToComputedValue for ShapeSource<T> {
     #[inline]
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
         match *computed {
-            computed_basic_shape::ShapeSource::Url(ref url) => {
-                ShapeSource::Url(SpecifiedUrl::from_computed_value(url))
-            }
+            computed_basic_shape::ShapeSource::Url(ref url) =>
+                ShapeSource::Url(SpecifiedUrl::from_computed_value(url)),
             computed_basic_shape::ShapeSource::Shape(ref shape, ref reference) => {
                 ShapeSource::Shape(
                     ToComputedValue::from_computed_value(shape),
                     reference.as_ref().map(|r| ToComputedValue::from_computed_value(r)))
             }
-            computed_basic_shape::ShapeSource::Box(ref reference) => {
-                ShapeSource::Box(ToComputedValue::from_computed_value(reference))
-            }
+            computed_basic_shape::ShapeSource::Box(ref reference) =>
+                ShapeSource::Box(ToComputedValue::from_computed_value(reference)),
             computed_basic_shape::ShapeSource::None => ShapeSource::None,
         }
     }
@@ -141,23 +144,19 @@ pub enum BasicShape {
 
 impl Parse for BasicShape {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<BasicShape, ()> {
-        match_ignore_ascii_case! { &try!(input.expect_function()),
-            "inset" => {
-                Ok(BasicShape::Inset(
-                   try!(input.parse_nested_block(|i| InsetRect::parse_function_arguments(context, i)))))
-            },
-            "circle" => {
-                Ok(BasicShape::Circle(
-                   try!(input.parse_nested_block(|i| Circle::parse_function_arguments(context, i)))))
-            },
-            "ellipse" => {
-                Ok(BasicShape::Ellipse(
-                   try!(input.parse_nested_block(|i| Ellipse::parse_function_arguments(context, i)))))
-            },
-            "polygon" => {
-                Ok(BasicShape::Polygon(
-                   try!(input.parse_nested_block(|i| Polygon::parse_function_arguments(context, i)))))
-            },
+        match_ignore_ascii_case! { &input.try(|i| i.expect_function())?,
+            "inset" =>
+                input.parse_nested_block(|i| InsetRect::parse_function_arguments(context, i))
+                     .map(BasicShape::Inset),
+            "circle" =>
+                input.parse_nested_block(|i| Circle::parse_function_arguments(context, i))
+                     .map(BasicShape::Circle),
+            "ellipse" =>
+                input.parse_nested_block(|i| Ellipse::parse_function_arguments(context, i))
+                     .map(BasicShape::Ellipse),
+            "polygon" =>
+                input.parse_nested_block(|i| Polygon::parse_function_arguments(context, i))
+                     .map(BasicShape::Polygon),
             _ => Err(())
         }
     }
@@ -189,18 +188,14 @@ impl ToComputedValue for BasicShape {
     #[inline]
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
         match *computed {
-            computed_basic_shape::BasicShape::Inset(ref rect) => {
-                BasicShape::Inset(ToComputedValue::from_computed_value(rect))
-            }
-            computed_basic_shape::BasicShape::Circle(ref circle) => {
-                BasicShape::Circle(ToComputedValue::from_computed_value(circle))
-            }
-            computed_basic_shape::BasicShape::Ellipse(ref e) => {
-                BasicShape::Ellipse(ToComputedValue::from_computed_value(e))
-            }
-            computed_basic_shape::BasicShape::Polygon(ref poly) => {
-                BasicShape::Polygon(ToComputedValue::from_computed_value(poly))
-            }
+            computed_basic_shape::BasicShape::Inset(ref rect) =>
+                BasicShape::Inset(ToComputedValue::from_computed_value(rect)),
+            computed_basic_shape::BasicShape::Circle(ref circle) =>
+                BasicShape::Circle(ToComputedValue::from_computed_value(circle)),
+            computed_basic_shape::BasicShape::Ellipse(ref e) =>
+                BasicShape::Ellipse(ToComputedValue::from_computed_value(e)),
+            computed_basic_shape::BasicShape::Polygon(ref poly) =>
+                BasicShape::Polygon(ToComputedValue::from_computed_value(poly)),
         }
     }
 }
@@ -228,20 +223,21 @@ impl InsetRect {
             left: l,
             round: None,
         };
-        if let Ok(_) = input.try(|input| input.expect_ident_matching("round")) {
-            rect.round = Some(try!(BorderRadius::parse(context, input)));
+
+        if input.try(|i| i.expect_ident_matching("round")).is_ok() {
+            rect.round = Some(BorderRadius::parse(context, input)?);
         }
+
         Ok(rect)
     }
 }
 
 impl Parse for InsetRect {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        match_ignore_ascii_case! { &try!(input.expect_function()),
-           "inset" => {
-               input.parse_nested_block(|i| InsetRect::parse_function_arguments(context, i))
-           },
-           _ => Err(())
+        match input.try(|i| i.expect_function()) {
+            Ok(ref s) if s.eq_ignore_ascii_case("inset") =>
+                input.parse_nested_block(|i| InsetRect::parse_function_arguments(context, i)),
+            _ => Err(())
         }
     }
 }
@@ -261,6 +257,7 @@ impl ToCss for InsetRect {
             try!(dest.write_str(" round "));
             try!(radius.to_css(dest));
         }
+
         dest.write_str(")")
     }
 }
@@ -297,83 +294,80 @@ impl ToComputedValue for InsetRect {
 /// are converted to percentages where possible. Only the two or four
 /// value forms are used. In case of two keyword-percentage pairs,
 /// the keywords are folded into the percentages
-fn serialize_basicshape_position<W>(position: &Position, dest: &mut W)
-    -> fmt::Result where W: fmt::Write {
-        use values::specified::position::Keyword;
-
-        // keyword-percentage pairs can be folded into a single percentage
-        fn fold_keyword(keyword: Option<Keyword>, length: Option<LengthOrPercentage>)
-            -> Option<LengthOrPercentage> {
-            let none = length.is_none();
-            let pc = match length.map(replace_with_percent) {
-                None => Percentage(0.0), // unspecified length = 0%
-                Some(LengthOrPercentage::Percentage(pc)) => pc,
-                _ => return None
-            };
-            let percent = match keyword {
-                Some(Keyword::Center) => {
-                    // center cannot pair with lengths
-                    assert!(none);
-                    Percentage(0.5)
-                },
-                Some(Keyword::Left) | Some(Keyword::Top) | None => pc,
-                Some(Keyword::Right) | Some(Keyword::Bottom) => Percentage(1.0 - pc.0),
-                _ => return None,
-            };
-            Some(LengthOrPercentage::Percentage(percent))
+fn serialize_basicshape_position<W>(position: &Position, dest: &mut W) -> fmt::Result
+    where W: fmt::Write
+{
+    // 0 length should be replaced with 0%
+    fn replace_with_percent(input: LengthOrPercentage) -> LengthOrPercentage {
+        match input {
+            LengthOrPercentage::Length(ref l) if l.is_zero() =>
+                LengthOrPercentage::Percentage(Percentage(0.0)),
+            _ => input
         }
+    }
 
-        // 0 length should be replaced with 0%
-        fn replace_with_percent(input: LengthOrPercentage) -> LengthOrPercentage {
-            match input {
-                LengthOrPercentage::Length(ref l) if l.is_zero() => {
-                    LengthOrPercentage::Percentage(Percentage(0.0))
-                }
-                _ => {
-                    input
-                }
+    // keyword-percentage pairs can be folded into a single percentage
+    fn fold_keyword(keyword: Option<Keyword>,
+                    length: Option<LengthOrPercentage>) -> Option<LengthOrPercentage> {
+        let is_length_none = length.is_none();
+        let pc = match length.map(replace_with_percent) {
+            Some(LengthOrPercentage::Percentage(pc)) => pc,
+            None => Percentage(0.0),        // unspecified length = 0%
+            _ => return None
+        };
+
+        let percent = match keyword {
+            Some(Keyword::Center) => {
+                assert!(is_length_none);        // center cannot pair with lengths
+                Percentage(0.5)
+            },
+            Some(Keyword::Left) | Some(Keyword::Top) | None => pc,
+            Some(Keyword::Right) | Some(Keyword::Bottom) => Percentage(1.0 - pc.0),
+            _ => return None,
+        };
+
+        Some(LengthOrPercentage::Percentage(percent))
+    }
+
+    fn serialize_position_pair<W>(x: LengthOrPercentage, y: LengthOrPercentage,
+                                  dest: &mut W) -> fmt::Result where W: fmt::Write {
+        replace_with_percent(x).to_css(dest)?;
+        dest.write_str(" ")?;
+        replace_with_percent(y).to_css(dest)
+    }
+
+    match (position.horizontal.keyword, position.horizontal.position.clone(),
+           position.vertical.keyword, position.vertical.position.clone()) {
+        (Some(hk), None, Some(vk), None) => {
+            // two keywords: serialize as two lengths
+            serialize_position_pair(hk.to_length_or_percentage(),
+                                    vk.to_length_or_percentage(),
+                                    dest)
+        }
+        (None, Some(hp), None, Some(vp)) => {
+            // two lengths: just serialize regularly
+            serialize_position_pair(hp, vp, dest)
+        }
+        (hk, hp, vk, vp) => {
+            // only fold if both fold; the three-value form isn't
+            // allowed here.
+            if let (Some(x), Some(y)) = (fold_keyword(hk, hp.clone()),
+                                         fold_keyword(vk, vp.clone())) {
+                serialize_position_pair(x, y, dest)
+            } else {
+                // We failed to reduce it to a two-value form,
+                // so we expand it to 4-value
+                let zero = LengthOrPercentage::Percentage(Percentage(0.0));
+                hk.unwrap_or(Keyword::Left).to_css(dest)?;
+                dest.write_str(" ")?;
+                replace_with_percent(hp.unwrap_or(zero.clone())).to_css(dest)?;
+                dest.write_str(" ")?;
+                vk.unwrap_or(Keyword::Top).to_css(dest)?;
+                dest.write_str(" ")?;
+                replace_with_percent(vp.unwrap_or(zero)).to_css(dest)
             }
         }
-
-        fn serialize_position_pair<W>(x: LengthOrPercentage, y: LengthOrPercentage,
-                                      dest: &mut W) -> fmt::Result where W: fmt::Write {
-            try!(replace_with_percent(x).to_css(dest));
-            try!(dest.write_str(" "));
-            replace_with_percent(y).to_css(dest)
-        }
-
-        match (position.horizontal.keyword, position.horizontal.position.clone(),
-               position.vertical.keyword, position.vertical.position.clone()) {
-            (Some(hk), None, Some(vk), None) => {
-                // two keywords: serialize as two lengths
-                serialize_position_pair(hk.to_length_or_percentage(),
-                                        vk.to_length_or_percentage(),
-                                        dest)
-            }
-            (None, Some(hp), None, Some(vp)) => {
-                // two lengths: just serialize regularly
-                serialize_position_pair(hp, vp, dest)
-            }
-            (hk, hp, vk, vp) => {
-                // only fold if both fold; the three-value form isn't
-                // allowed here.
-                if let (Some(x), Some(y)) = (fold_keyword(hk, hp.clone()),
-                                             fold_keyword(vk, vp.clone())) {
-                    serialize_position_pair(x, y, dest)
-                } else {
-                    // We failed to reduce it to a two-value form,
-                    // so we expand it to 4-value
-                    let zero = LengthOrPercentage::Percentage(Percentage(0.0));
-                    try!(hk.unwrap_or(Keyword::Left).to_css(dest));
-                    try!(dest.write_str(" "));
-                    try!(replace_with_percent(hp.unwrap_or(zero.clone())).to_css(dest));
-                    try!(dest.write_str(" "));
-                    try!(vk.unwrap_or(Keyword::Top).to_css(dest));
-                    try!(dest.write_str(" "));
-                    replace_with_percent(vp.unwrap_or(zero)).to_css(dest)
-                }
-            }
-        }
+    }
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -388,22 +382,13 @@ pub struct Circle {
 impl Circle {
     #[allow(missing_docs)]
     pub fn parse_function_arguments(context: &ParserContext, input: &mut Parser) -> Result<Circle, ()> {
-        let radius = input.try(|i| ShapeRadius::parse(context, i)).ok().unwrap_or_else(Default::default);
-        let position = if let Ok(_) = input.try(|input| input.expect_ident_matching("at")) {
-            try!(Position::parse(context, input))
+        let radius = input.try(|i| ShapeRadius::parse(context, i)).ok().unwrap_or_default();
+        let position = if input.try(|i| i.expect_ident_matching("at")).is_ok() {
+            Position::parse(context, input)?
         } else {
-            // Defaults to origin
-            Position {
-                horizontal: HorizontalPosition {
-                    keyword: Some(Keyword::Center),
-                    position: None,
-                },
-                vertical: VerticalPosition {
-                    keyword: Some(Keyword::Center),
-                    position: None,
-                },
-            }
+            Position::center()      // Defaults to origin
         };
+
         Ok(Circle {
             radius: radius,
             position: position,
@@ -429,6 +414,7 @@ impl ToCss for Circle {
             try!(self.radius.to_css(dest));
             try!(dest.write_str(" "));
         }
+
         try!(dest.write_str("at "));
         try!(serialize_basicshape_position(&self.position, dest));
         dest.write_str(")")
@@ -465,28 +451,18 @@ pub struct Ellipse {
     pub position: Position,
 }
 
-
 impl Ellipse {
     #[allow(missing_docs)]
     pub fn parse_function_arguments(context: &ParserContext, input: &mut Parser) -> Result<Ellipse, ()> {
-        let (a, b) = input.try(|input| -> Result<_, ()> {
-            Ok((try!(ShapeRadius::parse(context, input)), try!(ShapeRadius::parse(context, input))))
+        let (a, b) = input.try(|i| -> Result<_, ()> {
+            Ok((ShapeRadius::parse(context, i)?, ShapeRadius::parse(context, i)?))
         }).ok().unwrap_or_default();
-        let position = if let Ok(_) = input.try(|input| input.expect_ident_matching("at")) {
-            try!(Position::parse(context, input))
+        let position = if input.try(|i| i.expect_ident_matching("at")).is_ok() {
+            Position::parse(context, input)?
         } else {
-            // Defaults to origin
-            Position {
-                horizontal: HorizontalPosition {
-                    keyword: Some(Keyword::Center),
-                    position: None,
-                },
-                vertical: VerticalPosition {
-                    keyword: Some(Keyword::Center),
-                    position: None,
-                },
-            }
+            Position::center()      // Defaults to origin
         };
+
         Ok(Ellipse {
             semiaxis_x: a,
             semiaxis_y: b,
@@ -497,11 +473,10 @@ impl Ellipse {
 
 impl Parse for Ellipse {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        match_ignore_ascii_case! { &try!(input.expect_function()),
-           "ellipse" => {
-               input.parse_nested_block(|i| Ellipse::parse_function_arguments(context, i))
-           },
-           _ => Err(())
+        match input.try(|i| i.expect_function()) {
+            Ok(ref s) if s.eq_ignore_ascii_case("ellipse") =>
+                input.parse_nested_block(|i| Ellipse::parse_function_arguments(context, i)),
+            _ => Err(())
         }
     }
 }
@@ -515,6 +490,7 @@ impl ToCss for Ellipse {
             try!(self.semiaxis_y.to_css(dest));
             try!(dest.write_str(" "));
         }
+
         try!(dest.write_str("at "));
         try!(serialize_basicshape_position(&self.position, dest));
         dest.write_str(")")
@@ -557,15 +533,17 @@ impl Polygon {
     #[allow(missing_docs)]
     pub fn parse_function_arguments(context: &ParserContext, input: &mut Parser) -> Result<Polygon, ()> {
         let fill = input.try(|input| {
-            let fill = FillRule::parse(context, input);
+            let fill = FillRule::parse(input);
             // only eat the comma if there is something before it
             try!(input.expect_comma());
             fill
         }).ok().unwrap_or_else(Default::default);
+
         let buf = try!(input.parse_comma_separated(|input| {
             Ok((try!(LengthOrPercentage::parse(context, input)),
                 try!(LengthOrPercentage::parse(context, input))))
         }));
+
         Ok(Polygon {
             fill: fill,
             coordinates: buf,
@@ -575,11 +553,10 @@ impl Polygon {
 
 impl Parse for Polygon {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        match_ignore_ascii_case! { &try!(input.expect_function()),
-           "polygon" => {
-               input.parse_nested_block(|i| Polygon::parse_function_arguments(context, i))
-           },
-           _ => Err(())
+        match input.try(|i| i.expect_function()) {
+            Ok(ref s) if s.eq_ignore_ascii_case("polygon") =>
+                input.parse_nested_block(|i| Polygon::parse_function_arguments(context, i)),
+            _ => Err(())
         }
     }
 }
@@ -592,15 +569,18 @@ impl ToCss for Polygon {
             try!(self.fill.to_css(dest));
             try!(dest.write_str(", "));
         }
+
         for coord in &self.coordinates {
             if need_space {
                 try!(dest.write_str(", "));
             }
+
             try!(coord.0.to_css(dest));
             try!(dest.write_str(" "));
             try!(coord.1.to_css(dest));
             need_space = true;
         }
+
         dest.write_str(")")
     }
 }
@@ -616,8 +596,7 @@ impl ToComputedValue for Polygon {
                                          .map(|c| {
                                             (c.0.to_computed_value(cx),
                                              c.1.to_computed_value(cx))
-                                         })
-                                         .collect(),
+                                         }).collect(),
         }
     }
 
@@ -629,8 +608,7 @@ impl ToComputedValue for Polygon {
                                              .map(|c| {
                                                 (ToComputedValue::from_computed_value(&c.0),
                                                  ToComputedValue::from_computed_value(&c.1))
-                                             })
-                                         .collect(),
+                                             }).collect(),
         }
     }
 }
@@ -647,11 +625,7 @@ pub enum ShapeRadius {
 
 impl ShapeRadius {
     fn is_default(&self) -> bool {
-        if let ShapeRadius::ClosestSide = *self {
-            true
-        } else {
-            false
-        }
+        *self == ShapeRadius::ClosestSide
     }
 }
 
@@ -690,9 +664,8 @@ impl ToComputedValue for ShapeRadius {
     #[inline]
     fn to_computed_value(&self, cx: &Context) -> Self::ComputedValue {
         match *self {
-            ShapeRadius::Length(ref lop) => {
-                computed_basic_shape::ShapeRadius::Length(lop.to_computed_value(cx))
-            }
+            ShapeRadius::Length(ref lop) =>
+                computed_basic_shape::ShapeRadius::Length(lop.to_computed_value(cx)),
             ShapeRadius::ClosestSide => computed_basic_shape::ShapeRadius::ClosestSide,
             ShapeRadius::FarthestSide => computed_basic_shape::ShapeRadius::FarthestSide,
         }
@@ -701,9 +674,8 @@ impl ToComputedValue for ShapeRadius {
     #[inline]
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
         match *computed {
-            computed_basic_shape::ShapeRadius::Length(ref lop) => {
-                ShapeRadius::Length(ToComputedValue::from_computed_value(lop))
-            }
+            computed_basic_shape::ShapeRadius::Length(ref lop) =>
+                ShapeRadius::Length(ToComputedValue::from_computed_value(lop)),
             computed_basic_shape::ShapeRadius::ClosestSide => ShapeRadius::ClosestSide,
             computed_basic_shape::ShapeRadius::FarthestSide => ShapeRadius::FarthestSide,
         }
@@ -721,30 +693,41 @@ pub struct BorderRadius {
     pub bottom_left: BorderRadiusSize,
 }
 
+/// Serialization helper for types of longhands like `border-radius` and `outline-radius`
+pub fn serialize_radius_values<L, W>(dest: &mut W, top_left: &Size2D<L>,
+                                     top_right: &Size2D<L>, bottom_right: &Size2D<L>,
+                                     bottom_left: &Size2D<L>) -> fmt::Result
+    where L: ToCss + PartialEq, W: fmt::Write
+{
+    if top_left.width == top_left.height &&
+       top_right.width == top_right.height &&
+       bottom_right.width == bottom_right.height &&
+       bottom_left.width == bottom_left.height {
+        serialize_four_sides(dest,
+                             &top_left.width,
+                             &top_right.width,
+                             &bottom_right.width,
+                             &bottom_left.width)
+    } else {
+        serialize_four_sides(dest,
+                             &top_left.width,
+                             &top_right.width,
+                             &bottom_right.width,
+                             &bottom_left.width)?;
+        dest.write_str(" / ")?;
+        serialize_four_sides(dest,
+                             &top_left.height,
+                             &top_right.height,
+                             &bottom_right.height,
+                             &bottom_left.height)
+    }
+}
+
 impl ToCss for BorderRadius {
+    #[inline]
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        if self.top_left.0.width == self.top_left.0.height &&
-           self.top_right.0.width == self.top_right.0.height &&
-           self.bottom_right.0.width == self.bottom_right.0.height &&
-           self.bottom_left.0.width == self.bottom_left.0.height {
-            serialize_four_sides(dest,
-                                 &self.top_left.0.width,
-                                 &self.top_right.0.width,
-                                 &self.bottom_right.0.width,
-                                 &self.bottom_left.0.width)
-        } else {
-            try!(serialize_four_sides(dest,
-                                      &self.top_left.0.width,
-                                      &self.top_right.0.width,
-                                      &self.bottom_right.0.width,
-                                      &self.bottom_left.0.width));
-            try!(dest.write_str(" / "));
-            serialize_four_sides(dest,
-                                 &self.top_left.0.height,
-                                 &self.top_right.0.height,
-                                 &self.bottom_right.0.height,
-                                 &self.bottom_left.0.height)
-        }
+        serialize_radius_values(dest, &self.top_left.0, &self.top_right.0,
+                                &self.bottom_right.0, &self.bottom_left.0)
     }
 }
 
@@ -815,42 +798,20 @@ impl ToComputedValue for BorderRadius {
     }
 }
 
-/// https://drafts.csswg.org/css-shapes/#typedef-fill-rule
-#[derive(Clone, PartialEq, Copy, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-pub enum FillRule {
-    NonZero,
-    EvenOdd,
-    // basic-shapes spec says that these are the only two values, however
-    // https://www.w3.org/TR/SVG/painting.html#FillRuleProperty
-    // says that it can also be `inherit`
-}
+// https://drafts.csswg.org/css-shapes/#typedef-fill-rule
+// NOTE: Basic shapes spec says that these are the only two values, however
+// https://www.w3.org/TR/SVG/painting.html#FillRuleProperty
+// says that it can also be `inherit`
+define_css_keyword_enum!(FillRule:
+    "nonzero" => NonZero,
+    "evenodd" => EvenOdd
+);
 
 impl ComputedValueAsSpecified for FillRule {}
-
-impl Parse for FillRule {
-    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<FillRule, ()> {
-        match_ignore_ascii_case! { &try!(input.expect_ident()),
-            "nonzero" => Ok(FillRule::NonZero),
-            "evenodd" => Ok(FillRule::EvenOdd),
-            _ => Err(())
-        }
-    }
-}
 
 impl Default for FillRule {
     fn default() -> Self {
         FillRule::NonZero
-    }
-}
-
-impl ToCss for FillRule {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            FillRule::NonZero => dest.write_str("nonzero"),
-            FillRule::EvenOdd => dest.write_str("evenodd"),
-        }
     }
 }
 
@@ -866,16 +827,16 @@ pub enum GeometryBox {
 }
 
 impl Parse for GeometryBox {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        if let Ok(shape_box) = input.try(|i| ShapeBox::parse(context, i)) {
-            Ok(GeometryBox::ShapeBox(shape_box))
-        } else {
-            match_ignore_ascii_case! { &try!(input.expect_ident()),
-                "fill-box" => Ok(GeometryBox::FillBox),
-                "stroke-box" => Ok(GeometryBox::StrokeBox),
-                "view-box" => Ok(GeometryBox::ViewBox),
-                _ => Err(())
-            }
+    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        if let Ok(shape_box) = input.try(|i| ShapeBox::parse(i)) {
+            return Ok(GeometryBox::ShapeBox(shape_box))
+        }
+
+        match_ignore_ascii_case! { &input.expect_ident()?,
+            "fill-box" => Ok(GeometryBox::FillBox),
+            "stroke-box" => Ok(GeometryBox::StrokeBox),
+            "view-box" => Ok(GeometryBox::ViewBox),
+            _ => Err(())
         }
     }
 }
@@ -894,38 +855,11 @@ impl ToCss for GeometryBox {
 impl ComputedValueAsSpecified for GeometryBox {}
 
 // https://drafts.csswg.org/css-shapes-1/#typedef-shape-box
-#[derive(Clone, PartialEq, Copy, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-pub enum ShapeBox {
-    MarginBox,
-    // https://drafts.csswg.org/css-backgrounds-3/#box
-    BorderBox,
-    PaddingBox,
-    ContentBox,
-}
+define_css_keyword_enum!(ShapeBox:
+    "margin-box" => MarginBox,
+    "border-box" => BorderBox,
+    "padding-box" => PaddingBox,
+    "content-box" => ContentBox
+);
 
-impl Parse for ShapeBox {
-    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        match_ignore_ascii_case! { &try!(input.expect_ident()),
-            "margin-box" => Ok(ShapeBox::MarginBox),
-            "border-box" => Ok(ShapeBox::BorderBox),
-            "padding-box" => Ok(ShapeBox::PaddingBox),
-            "content-box" => Ok(ShapeBox::ContentBox),
-            _ => Err(())
-        }
-    }
-}
-
-impl ToCss for ShapeBox {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            ShapeBox::MarginBox => dest.write_str("margin-box"),
-            ShapeBox::BorderBox => dest.write_str("border-box"),
-            ShapeBox::PaddingBox => dest.write_str("padding-box"),
-            ShapeBox::ContentBox => dest.write_str("content-box"),
-        }
-    }
-}
-
-impl ComputedValueAsSpecified for ShapeBox {}
+add_impls_for_keyword_enum!(ShapeBox);
