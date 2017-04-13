@@ -270,7 +270,13 @@ def bootstrap(context, force=False):
         bootstrapper = windows_msvc
     elif "linux-gnu" in host_triple():
         distro, version, _ = platform.linux_distribution()
-        if distro in ['CentOS', 'CentOS Linux', 'Fedora', 'Ubuntu']:
+        if distro.lower() in [
+            'centos',
+            'centos linux',
+            'debian',
+            'fedora',
+            'ubuntu',
+        ]:
             context.distro = distro
             bootstrapper = salt
 
