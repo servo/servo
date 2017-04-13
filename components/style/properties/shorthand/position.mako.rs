@@ -176,6 +176,69 @@
 </%helpers:shorthand>
 % endfor
 
+<%helpers:shorthand name="grid-area"
+                    sub_properties="grid-row-start grid-row-end grid-column-start grid-column-end"
+                    spec="https://drafts.csswg.org/css-grid/#propdef-grid-area"
+                    products="gecko">
+    use values::specified::GridLine;
+    use parser::Parse;
+
+    // The code is the same as `grid-{row,column}` except that this can have four values at most.
+    pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+        let row_start = input.try(|i| GridLine::parse(context, i))?;
+        let (column_start, row_end, column_end) = if input.try(|i| i.expect_delim('/')).is_ok() {
+            let column_start = GridLine::parse(context, input)?;
+            let (row_end, column_end) = if input.try(|i| i.expect_delim('/')).is_ok() {
+                let row_end = GridLine::parse(context, input)?;
+                let column_end = if input.try(|i| i.expect_delim('/')).is_ok() {
+                    GridLine::parse(context, input)?
+                } else {        // grid-column-end has not been given
+                    let mut line = GridLine::default();
+                    line.ident = column_start.ident.clone();        // use ident from grid-column-start
+                    line
+                };
+
+                (row_end, column_end)
+            } else {        // grid-row-start and grid-column-start has been given
+                let mut row_end = GridLine::default();
+                row_end.ident = row_start.ident.clone();
+                let mut column_end = GridLine::default();
+                column_end.ident = column_start.ident.clone();
+                (row_end, column_end)       // use idents from their partners
+            };
+
+            (column_start, row_end, column_end)
+        } else {        // only grid-row-start is given
+            let mut line = GridLine::default();
+            line.ident = row_start.ident.clone();       // use the ident from grid-row-start
+            (line.clone(), line.clone(), line)
+        };
+
+        Ok(Longhands {
+            grid_row_start: row_start,
+            grid_row_end: row_end,
+            grid_column_start: column_start,
+            grid_column_end: column_end,
+        })
+    }
+
+    impl<'a> ToCss for LonghandsToSerialize<'a> {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            self.grid_row_start.to_css(dest)?;
+            let values = [&self.grid_column_start, &self.grid_row_end, &self.grid_column_end];
+            for value in &values {
+                if value.ident.is_some() || value.integer.is_some() {
+                    dest.write_str(" / ")?;
+                    value.to_css(dest)?;
+                }
+            }
+
+            Ok(())
+        }
+    }
+
+</%helpers:shorthand>
+
 <%helpers:shorthand name="place-content" sub_properties="align-content justify-content"
                     spec="https://drafts.csswg.org/css-align/#propdef-place-content"
                     products="gecko" disable_when_testing="True">
