@@ -9,10 +9,12 @@ use animation::{Animation, PropertyAnimation};
 use app_units::Au;
 use bit_vec::BitVec;
 use bloom::StyleBloom;
+use cache::LRUCache;
 use data::ElementData;
 use dom::{OpaqueNode, TNode, TElement, SendElement};
 use error_reporting::ParseErrorReporter;
 use euclid::Size2D;
+use fnv::FnvHashMap;
 use font_metrics::FontMetricsProvider;
 #[cfg(feature = "gecko")] use gecko_bindings::structs;
 use matching::StyleSharingCandidateCache;
@@ -281,10 +283,8 @@ bitflags! {
 /// is used by the style system to queue up work which is not safe to do during
 /// the parallel traversal.
 pub enum SequentialTask<E: TElement> {
-    /// Sets selector flags. This is used when we need to set flags on an
-    /// element that we don't have exclusive access to (i.e. the parent).
-    SetSelectorFlags(SendElement<E>, ElementSelectorFlags),
-
+    /// Entry to avoid an unused type parameter error on servo.
+    Unused(SendElement<E>),
     #[cfg(feature = "gecko")]
     /// Marks that we need to update CSS animations, update effect properties of
     /// any type of animations after the normal traversal.
@@ -297,20 +297,12 @@ impl<E: TElement> SequentialTask<E> {
         use self::SequentialTask::*;
         debug_assert!(thread_state::get() == thread_state::LAYOUT);
         match self {
-            SetSelectorFlags(el, flags) => {
-                unsafe { el.set_selector_flags(flags) };
-            }
+            Unused(_) => unreachable!(),
             #[cfg(feature = "gecko")]
             UpdateAnimations(el, pseudo, tasks) => {
                 unsafe { el.update_animations(pseudo.as_ref(), tasks) };
             }
         }
-    }
-
-    /// Creates a task to set the selector flags on an element.
-    pub fn set_selector_flags(el: E, flags: ElementSelectorFlags) -> Self {
-        use self::SequentialTask::*;
-        SetSelectorFlags(unsafe { SendElement::new(el) }, flags)
     }
 
     #[cfg(feature = "gecko")]
@@ -319,6 +311,59 @@ impl<E: TElement> SequentialTask<E> {
                              tasks: UpdateAnimationsTasks) -> Self {
         use self::SequentialTask::*;
         UpdateAnimations(unsafe { SendElement::new(el) }, pseudo, tasks)
+    }
+}
+
+/// Map from Elements to ElementSelectorFlags. Used to defer applying selector
+/// flags until after the traversal.
+pub struct SelectorFlagsMap<E: TElement> {
+    /// The hashmap storing the flags to apply.
+    map: FnvHashMap<SendElement<E>, ElementSelectorFlags>,
+    /// An LRU cache to avoid hashmap lookups, which can be slow if the map
+    /// gets big.
+    cache: LRUCache<(SendElement<E>, ElementSelectorFlags)>,
+}
+
+#[cfg(debug_assertions)]
+impl<E: TElement> Drop for SelectorFlagsMap<E> {
+    fn drop(&mut self) {
+        debug_assert!(self.map.is_empty());
+    }
+}
+
+impl<E: TElement> SelectorFlagsMap<E> {
+    /// Creates a new empty SelectorFlagsMap.
+    pub fn new() -> Self {
+        SelectorFlagsMap {
+            map: FnvHashMap::default(),
+            cache: LRUCache::new(4),
+        }
+    }
+
+    /// Inserts some flags into the map for a given element.
+    pub fn insert_flags(&mut self, element: E, flags: ElementSelectorFlags) {
+        let el = unsafe { SendElement::new(element) };
+        // Check the cache. If the flags have already been noted, we're done.
+        if self.cache.iter().find(|x| x.0 == el)
+               .map_or(ElementSelectorFlags::empty(), |x| x.1)
+               .contains(flags) {
+            return;
+        }
+
+        let f = self.map.entry(el).or_insert(ElementSelectorFlags::empty());
+        *f |= flags;
+
+        // Insert into the cache. We don't worry about duplicate entries,
+        // which lets us avoid reshuffling.
+        self.cache.insert((unsafe { SendElement::new(element) }, *f))
+    }
+
+    /// Applies the flags. Must be called on the main thread.
+    pub fn apply_flags(&mut self) {
+        debug_assert!(thread_state::get() == thread_state::LAYOUT);
+        for (el, flags) in self.map.drain() {
+            unsafe { el.set_selector_flags(flags); }
+        }
     }
 }
 
@@ -339,6 +384,11 @@ pub struct ThreadLocalStyleContext<E: TElement> {
     /// the rest of the styling is complete. This is useful for infrequently-needed
     /// non-threadsafe operations.
     pub tasks: Vec<SequentialTask<E>>,
+    /// ElementSelectorFlags that need to be applied after the traversal is
+    /// complete. This map is used in cases where the matching algorithm needs
+    /// to set flags on elements it doesn't have exclusive access to (i.e. other
+    /// than the current element).
+    pub selector_flags: SelectorFlagsMap<E>,
     /// Statistics about the traversal.
     pub statistics: TraversalStatistics,
     /// Information related to the current element, non-None during processing.
@@ -356,6 +406,7 @@ impl<E: TElement> ThreadLocalStyleContext<E> {
             bloom_filter: StyleBloom::new(),
             new_animations_sender: shared.local_context_creation_data.lock().unwrap().new_animations_sender.clone(),
             tasks: Vec::new(),
+            selector_flags: SelectorFlagsMap::new(),
             statistics: TraversalStatistics::default(),
             current_element_info: None,
             font_metrics_provider: E::FontMetricsProvider::create_from(shared),
@@ -393,9 +444,12 @@ impl<E: TElement> ThreadLocalStyleContext<E> {
 impl<E: TElement> Drop for ThreadLocalStyleContext<E> {
     fn drop(&mut self) {
         debug_assert!(self.current_element_info.is_none());
+        debug_assert!(thread_state::get() == thread_state::LAYOUT);
+
+        // Apply any slow selector flags that need to be set on parents.
+        self.selector_flags.apply_flags();
 
         // Execute any enqueued sequential tasks.
-        debug_assert!(thread_state::get() == thread_state::LAYOUT);
         for task in self.tasks.drain(..) {
             task.execute();
         }

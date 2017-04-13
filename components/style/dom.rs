@@ -20,6 +20,7 @@ use shared_lock::Locked;
 use sink::Push;
 use std::fmt;
 use std::fmt::Debug;
+use std::hash::Hash;
 use std::ops::Deref;
 use std::sync::Arc;
 use stylist::ApplicableDeclarationBlock;
@@ -275,7 +276,8 @@ pub struct AnimationRules(pub Option<Arc<Locked<PropertyDeclarationBlock>>>,
                           pub Option<Arc<Locked<PropertyDeclarationBlock>>>);
 
 /// The element trait, the main abstraction the style crate acts over.
-pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + PresentationalHintsSynthetizer {
+pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
+                     ElementExt + PresentationalHintsSynthetizer {
     /// The concrete node type.
     type ConcreteNode: TNode<ConcreteElement = Self>;
 
@@ -518,7 +520,7 @@ impl<N: TNode> Deref for SendNode<N> {
 
 /// Same reason as for the existence of SendNode, SendElement does the proper
 /// things for a given `TElement`.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Eq, Hash, PartialEq)]
 pub struct SendElement<E: TElement>(E);
 unsafe impl<E: TElement> Send for SendElement<E> {}
 impl<E: TElement> SendElement<E> {

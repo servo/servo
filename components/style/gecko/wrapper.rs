@@ -67,6 +67,7 @@ use shared_lock::Locked;
 use sink::Push;
 use std::cell::RefCell;
 use std::fmt;
+use std::hash::{Hash, Hasher};
 use std::ptr;
 use std::sync::Arc;
 use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
@@ -702,6 +703,14 @@ impl<'le> TElement for GeckoElement<'le> {
 impl<'le> PartialEq for GeckoElement<'le> {
     fn eq(&self, other: &Self) -> bool {
         self.0 as *const _ == other.0 as *const _
+    }
+}
+
+impl<'le> Eq for GeckoElement<'le> {}
+
+impl<'le> Hash for GeckoElement<'le> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        (self.0 as *const _).hash(state);
     }
 }
 
