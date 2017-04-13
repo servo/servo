@@ -2,6 +2,7 @@
   "dom.bluetooth.enabled": false,
   "dom.bluetooth.testing.enabled": false,
   "dom.forcetouch.enabled": false,
+  "dom.gamepad.enabled": false,
   "dom.mouseevent.which.enabled": false,
   "dom.mozbrowser.enabled": false,
   "dom.mutation_observer.enabled": false,
