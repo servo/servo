@@ -1917,6 +1917,13 @@ extern "C" {
                                                                      RawServoDeclarationBlockBorrowed);
 }
 extern "C" {
+    pub fn Servo_DeclarationBlock_SetBackgroundImage(declarations:
+                                                         RawServoDeclarationBlockBorrowed,
+                                                     value: *const nsAString,
+                                                     extra_data:
+                                                         *mut RawGeckoURLExtraData);
+}
+extern "C" {
     pub fn Servo_MediaList_Create() -> RawServoMediaListStrong;
 }
 extern "C" {
