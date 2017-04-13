@@ -2,29 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::Parser;
-use media_queries::CSSErrorReporterTest;
-use servo_url::ServoUrl;
+use properties::parse;
 use style::computed_values::display::T::inline_block;
-use style::parser::ParserContext;
-use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, Importance, PropertyId};
+use style::properties::{PropertyDeclaration, Importance, PropertyId};
 use style::properties::longhands::outline_color::computed_value::T as ComputedColor;
 use style::properties::parse_property_declaration_list;
-use style::stylesheets::{CssRuleType, Origin};
 use style::values::{RGBA, Auto};
 use style::values::specified::{BorderStyle, BorderWidth, CSSColor, Length, NoCalcLength};
 use style::values::specified::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrAutoOrContent};
 use style::values::specified::url::SpecifiedUrl;
 use style_traits::ToCss;
 use stylesheets::block_from;
-
-fn parse_declaration_block(css_properties: &str) -> PropertyDeclarationBlock {
-    let url = ServoUrl::parse("http://localhost").unwrap();
-    let reporter = CSSErrorReporterTest;
-    let context = ParserContext::new(Origin::Author, &url, &reporter, Some(CssRuleType::Style));
-    let mut parser = Parser::new(css_properties);
-    parse_property_declaration_list(&context, &mut parser)
-}
 
 #[test]
 fn property_declaration_block_should_serialize_correctly() {
@@ -626,7 +614,7 @@ mod shorthand_serialization {
                               font-language-override: normal; \
                               font-kerning: none";
 
-            let block = parse_declaration_block(block_text);
+            let block = parse(|c, i| Ok(parse_property_declaration_list(c, i)), block_text).unwrap();
 
             let mut s = String::new();
             let id = PropertyId::parse("font".into()).unwrap();
@@ -651,7 +639,7 @@ mod shorthand_serialization {
                               font-variant-position: normal; \
                               font-language-override: normal;";
 
-            let block = parse_declaration_block(block_text);
+            let block = parse(|c, i| Ok(parse_property_declaration_list(c, i)), block_text).unwrap();
 
             let serialization = block.to_css_string();
 
@@ -675,7 +663,8 @@ mod shorthand_serialization {
                 background-position-y: 4px; \
                 background-origin: border-box; \
                 background-clip: padding-box;";
-            let block = parse_declaration_block(block_text);
+
+            let block = parse(|c, i| Ok(parse_property_declaration_list(c, i)), block_text).unwrap();
 
             let serialization = block.to_css_string();
 
@@ -698,7 +687,8 @@ mod shorthand_serialization {
                 background-position-y: 4px; \
                 background-origin: padding-box; \
                 background-clip: padding-box;";
-            let block = parse_declaration_block(block_text);
+
+            let block = parse(|c, i| Ok(parse_property_declaration_list(c, i)), block_text).unwrap();
 
             let serialization = block.to_css_string();
 
@@ -721,7 +711,8 @@ mod shorthand_serialization {
                 background-position-y: 4px, 40px; \
                 background-origin: border-box, padding-box; \
                 background-clip: padding-box, padding-box;";
-            let block = parse_declaration_block(block_text);
+
+            let block = parse(|c, i| Ok(parse_property_declaration_list(c, i)), block_text).unwrap();
 
             let serialization = block.to_css_string();
 
@@ -751,7 +742,8 @@ mod shorthand_serialization {
                 background-position: 7px 4px, 5px 6px; \
                 background-origin: border-box; \
                 background-clip: padding-box, padding-box;";
-            let block = parse_declaration_block(block_text);
+
+            let block = parse(|c, i| Ok(parse_property_declaration_list(c, i)), block_text).unwrap();
 
             let serialization = block.to_css_string();
 
@@ -909,7 +901,7 @@ mod shorthand_serialization {
         #[test]
         fn serialize_mask_position_with_multiple_values() {
             let block_text = "mask-position: 1px 2px, 4px 3px;";
-            let block = parse_declaration_block(block_text);
+            let block = parse(|c, i| Ok(parse_property_declaration_list(c, i)), block_text).unwrap();
             let serialization = block.to_css_string();
             assert_eq!(serialization, block_text);
         }
@@ -967,22 +959,9 @@ mod shorthand_serialization {
 
         #[test]
         fn should_serialize_none_correctly() {
-            use cssparser::Parser;
-            use media_queries::CSSErrorReporterTest;
-            use style::parser::ParserContext;
             use style::properties::longhands::transform;
-            use style::stylesheets::Origin;
 
-            let mut s = String::new();
-            let url = ::servo_url::ServoUrl::parse("http://localhost").unwrap();
-            let reporter = CSSErrorReporterTest;
-            let context = ParserContext::new(Origin::Author, &url, &reporter, Some(CssRuleType::Style));
-
-            let parsed = transform::parse(&context, &mut Parser::new("none")).unwrap();
-            let try_serialize = parsed.to_css(&mut s);
-
-            assert_eq!(try_serialize.is_ok(), true);
-            assert_eq!(s, "none");
+            assert_roundtrip_with_context!(transform::parse, "none");
         }
 
         #[inline(always)]
@@ -1031,22 +1010,9 @@ mod shorthand_serialization {
 
         #[test]
         fn should_serialize_none_correctly() {
-            use cssparser::Parser;
-            use media_queries::CSSErrorReporterTest;
-            use style::parser::ParserContext;
             use style::properties::longhands::quotes;
-            use style::stylesheets::Origin;
 
-            let mut s = String::new();
-            let url = ::servo_url::ServoUrl::parse("http://localhost").unwrap();
-            let reporter = CSSErrorReporterTest;
-            let context = ParserContext::new(Origin::Author, &url, &reporter, Some(CssRuleType::Style));
-
-            let parsed = quotes::parse(&context, &mut Parser::new("none")).unwrap();
-            let try_serialize = parsed.to_css(&mut s);
-
-            assert_eq!(try_serialize.is_ok(), true);
-            assert_eq!(s, "none");
+            assert_roundtrip_with_context!(quotes::parse, "none");
         }
     }
 
@@ -1055,7 +1021,7 @@ mod shorthand_serialization {
 
         #[test]
         fn serialize_single_animation() {
-            let block = parse_declaration_block("\
+            let block_text = "\
                 animation-name: bounce;\
                 animation-duration: 1s;\
                 animation-timing-function: ease-in;\
@@ -1063,7 +1029,9 @@ mod shorthand_serialization {
                 animation-direction: normal;\
                 animation-fill-mode: forwards;\
                 animation-iteration-count: infinite;\
-                animation-play-state: paused;");
+                animation-play-state: paused;";
+
+            let block = parse(|c, i| Ok(parse_property_declaration_list(c, i)), block_text).unwrap();
 
             let serialization = block.to_css_string();
 
@@ -1072,7 +1040,7 @@ mod shorthand_serialization {
 
         #[test]
         fn serialize_multiple_animations() {
-            let block = parse_declaration_block("\
+            let block_text = "\
                 animation-name: bounce, roll;\
                 animation-duration: 1s, 0.2s;\
                 animation-timing-function: ease-in, linear;\
@@ -1080,7 +1048,9 @@ mod shorthand_serialization {
                 animation-direction: normal, reverse;\
                 animation-fill-mode: forwards, backwards;\
                 animation-iteration-count: infinite, 2;\
-                animation-play-state: paused, running;");
+                animation-play-state: paused, running;";
+
+            let block = parse(|c, i| Ok(parse_property_declaration_list(c, i)), block_text).unwrap();
 
             let serialization = block.to_css_string();
 
@@ -1105,7 +1075,8 @@ mod shorthand_serialization {
                 animation-fill-mode: forwards, backwards; \
                 animation-iteration-count: infinite, 2; \
                 animation-play-state: paused, running;";
-            let block = parse_declaration_block(block_text);
+
+            let block = parse(|c, i| Ok(parse_property_declaration_list(c, i)), block_text).unwrap();
 
             let serialization = block.to_css_string();
 
@@ -1121,7 +1092,8 @@ mod shorthand_serialization {
                               animation-fill-mode: forwards, backwards; \
                               animation-iteration-count: infinite, 2; \
                               animation-play-state: paused, running;";
-            let block = parse_declaration_block(block_text);
+
+            let block = parse(|c, i| Ok(parse_property_declaration_list(c, i)), block_text).unwrap();
 
             let serialization = block.to_css_string();
 
@@ -1138,7 +1110,8 @@ mod shorthand_serialization {
                               transition-duration: 3s; \
                               transition-delay: 4s; \
                               transition-timing-function: cubic-bezier(0.2, 5, 0.5, 2);";
-            let block = parse_declaration_block(block_text);
+
+            let block = parse(|c, i| Ok(parse_property_declaration_list(c, i)), block_text).unwrap();
 
             let serialization = block.to_css_string();
 
@@ -1151,7 +1124,8 @@ mod shorthand_serialization {
                               transition-duration: 3s, 2s; \
                               transition-delay: 4s, 5s; \
                               transition-timing-function: cubic-bezier(0.2, 5, 0.5, 2), ease;";
-            let block = parse_declaration_block(block_text);
+
+            let block = parse(|c, i| Ok(parse_property_declaration_list(c, i)), block_text).unwrap();
 
             let serialization = block.to_css_string();
 
@@ -1172,7 +1146,8 @@ mod shorthand_serialization {
                               transition-duration: 3s, 2s, 4s; \
                               transition-delay: 4s, 5s; \
                               transition-timing-function: cubic-bezier(0.2, 5, 0.5, 2), ease;";
-            let block = parse_declaration_block(block_text);
+
+            let block = parse(|c, i| Ok(parse_property_declaration_list(c, i)), block_text).unwrap();
 
             let serialization = block.to_css_string();
 
@@ -1185,7 +1160,7 @@ mod shorthand_serialization {
         #[test]
         fn css_wide_keywords_should_be_parsed() {
             let block_text = "--a:inherit;";
-            let block = parse_declaration_block(block_text);
+            let block = parse(|c, i| Ok(parse_property_declaration_list(c, i)), block_text).unwrap();
 
             let serialization = block.to_css_string();
             assert_eq!(serialization, "--a: inherit;");
@@ -1194,7 +1169,7 @@ mod shorthand_serialization {
         #[test]
         fn non_keyword_custom_property_should_be_unparsed() {
             let block_text = "--main-color: #06c;";
-            let block = parse_declaration_block(block_text);
+            let block = parse(|c, i| Ok(parse_property_declaration_list(c, i)), block_text).unwrap();
 
             let serialization = block.to_css_string();
             assert_eq!(serialization, block_text);
@@ -1214,7 +1189,7 @@ mod shorthand_serialization {
             let shadow_decl = BoxShadow(vec![shadow_val]);
             properties.push(PropertyDeclaration:: BoxShadow(shadow_decl));
             let shadow_css = "box-shadow: 1px 2px 3px 4px;";
-            let shadow  =  parse_declaration_block(shadow_css);
+            let shadow = parse(|c, i| Ok(parse_property_declaration_list(c, i)), shadow_css).unwrap();
 
             assert_eq!(shadow.to_css_string(), shadow_css);
         }

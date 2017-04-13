@@ -32,7 +32,6 @@ mod size_of;
 mod str;
 mod stylesheets;
 mod stylist;
-mod value;
 mod viewport;
 
 mod writing_modes {
