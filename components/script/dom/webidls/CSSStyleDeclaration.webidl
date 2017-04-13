@@ -33,6 +33,8 @@ interface CSSStyleDeclaration {
 };
 
 partial interface CSSStyleDeclaration {
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString all;
+
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString background;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString backgroundColor;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString background-color;
