@@ -136,41 +136,35 @@ impl ToCss for Gradient {
 impl Gradient {
     /// Parses a gradient from the given arguments.
     pub fn parse_function(context: &ParserContext, input: &mut Parser) -> Result<Gradient, ()> {
+        let parse_linear_gradient = |input: &mut Parser| {
+            input.parse_nested_block(|input| {
+                let kind = try!(GradientKind::parse_linear(context, input));
+                let stops = try!(input.parse_comma_separated(|i| ColorStop::parse(context, i)));
+                Ok((kind, stops))
+            })
+        };
+        let parse_radial_gradient = |input: &mut Parser| {
+            input.parse_nested_block(|input| {
+                let kind = try!(GradientKind::parse_radial(context, input));
+                let stops = try!(input.parse_comma_separated(|i| ColorStop::parse(context, i)));
+                Ok((kind, stops))
+            })
+        };
         let mut repeating = false;
         let (gradient_kind, stops) = match_ignore_ascii_case! { &try!(input.expect_function()),
             "linear-gradient" => {
-                try!(input.parse_nested_block(|input| {
-                        let kind = try!(GradientKind::parse_linear(context, input));
-                        let stops = try!(input.parse_comma_separated(|i| ColorStop::parse(context, i)));
-                        Ok((kind, stops))
-                    })
-                )
+                try!(parse_linear_gradient(input))
             },
             "repeating-linear-gradient" => {
                 repeating = true;
-                try!(input.parse_nested_block(|input| {
-                        let kind = try!(GradientKind::parse_linear(context, input));
-                        let stops = try!(input.parse_comma_separated(|i| ColorStop::parse(context, i)));
-                        Ok((kind, stops))
-                    })
-                )
+                try!(parse_linear_gradient(input))
             },
             "radial-gradient" => {
-                try!(input.parse_nested_block(|input| {
-                        let kind = try!(GradientKind::parse_radial(context, input));
-                        let stops = try!(input.parse_comma_separated(|i| ColorStop::parse(context, i)));
-                        Ok((kind, stops))
-                    })
-                )
+                try!(parse_radial_gradient(input))
             },
             "repeating-radial-gradient" => {
                 repeating = true;
-                try!(input.parse_nested_block(|input| {
-                        let kind = try!(GradientKind::parse_radial(context, input));
-                        let stops = try!(input.parse_comma_separated(|i| ColorStop::parse(context, i)));
-                        Ok((kind, stops))
-                    })
-                )
+                try!(parse_radial_gradient(input))
             },
             _ => { return Err(()); }
         };
