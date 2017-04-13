@@ -2042,6 +2042,19 @@
       {}
      ]
     ],
+    "empty_span_line_height.html": [
+     "245eb55ba516f67172d2ed07182e942bd90efd26",
+     [
+      null,
+      [
+       [
+        "/_mozilla/css/empty_span_line_height_ref.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ],
     "external_media_query_link.html": [
      "65baa6435c28bf07725e7657dcb83365886b73d7",
      [
@@ -5281,6 +5294,19 @@
       {}
      ]
     ],
+    "phantom_line_box.html": [
+     "f25db52d006da44da7097b34208b052b86c6e731",
+     [
+      null,
+      [
+       [
+        "/_mozilla/css/phantom_line_box_ref.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ],
     "pixel_snapping_border_a.html": [
      "c55be8adeb735cb5d187e82335d614885538ef58",
      [
@@ -6165,6 +6191,19 @@
       [
        [
         "/_mozilla/css/style_is_in_doc_ref.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ],
+    "styled_empty_inline_element.html": [
+     "40108d87a389ffafb5576e76690ab6d0970fa6ae",
+     [
+      null,
+      [
+       [
+        "/_mozilla/css/styled_empty_inline_element_ref.html",
         "=="
        ]
       ],
@@ -9068,6 +9107,10 @@
      "4c420045dcd53f67e53836e767bd898e32e9cc6f",
      []
     ],
+    "empty_span_line_height_ref.html": [
+     "dc27da6a4fd82c3bac0dfcd91877e64e8af4d10e",
+     []
+    ],
     "external_media_query_ref.html": [
      "6ac05f5f39418b98346dba114bef3eee267a65a2",
      []
@@ -10064,6 +10107,10 @@
      "3852154dd9db0aaf1bb576292cbdca90df8dfb91",
      []
     ],
+    "phantom_line_box_ref.html": [
+     "92eb97676c738bccf408bd025126ccf8ccd319ce",
+     []
+    ],
     "pixel_snapping_border_ref.html": [
      "483046f65cf2f701a7ffb98dcc162d003dc6b681",
      []
@@ -10346,6 +10393,10 @@
     ],
     "style_is_in_doc_ref.html": [
      "023768e8d77b0d9556b9853129d2f0366f6869b4",
+     []
+    ],
+    "styled_empty_inline_element_ref.html": [
+     "2e726358714f04b57deed1177da764989ff0275e",
      []
     ],
     "subdirectory": {

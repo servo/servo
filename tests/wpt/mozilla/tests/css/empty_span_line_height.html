@@ -1,0 +1,15 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Empty, unstyled inline elements should affect line height.</title>
+<link rel="match" href="empty_span_line_height_ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+div {
+  font: 16px/1 serif;
+  background-color: #bbb;
+}
+span {
+  font: 100px Ahem;
+}
+</style>
+<div>AB<span></span>CD</div>
