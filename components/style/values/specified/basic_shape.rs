@@ -14,6 +14,7 @@ use properties::shorthands::{parse_four_sides, serialize_four_sides};
 use std::ascii::AsciiExt;
 use std::fmt;
 use style_traits::ToCss;
+use values::HasViewportPercentage;
 use values::computed::{ComputedValueAsSpecified, Context, ToComputedValue};
 use values::computed::basic_shape as computed_basic_shape;
 use values::specified::{BorderRadiusSize, LengthOrPercentage, Percentage};
@@ -861,4 +862,4 @@ define_css_keyword_enum!(ShapeBox:
     "content-box" => ContentBox
 );
 
-impl ComputedValueAsSpecified for ShapeBox {}
+add_impls_for_keyword_enum!(ShapeBox);
