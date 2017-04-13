@@ -5,7 +5,7 @@
 from __future__ import absolute_import, print_function
 
 from distutils.spawn import find_executable
-from distutils.version import StrictVersion
+from distutils.version import LooseVersion
 import json
 import os
 import platform
@@ -187,7 +187,7 @@ def windows_msvc(context, force=False):
         if cmake_path:
             cmake = subprocess.Popen([cmake_path, "--version"], stdout=PIPE)
             cmake_version = cmake.stdout.read().splitlines()[0].replace("cmake version ", "")
-            if StrictVersion(cmake_version) >= StrictVersion(version):
+            if LooseVersion(cmake_version) >= LooseVersion(version):
                 return True
         return False
 
