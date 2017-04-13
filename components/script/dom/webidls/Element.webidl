@@ -91,6 +91,7 @@ partial interface Element {
   void scrollTo(unrestricted double x, unrestricted double y);
   void scrollBy(optional ScrollToOptions options);
   void scrollBy(unrestricted double x, unrestricted double y);
+
   attribute unrestricted double scrollTop;
   attribute unrestricted double scrollLeft;
   readonly attribute long scrollWidth;
@@ -113,6 +114,17 @@ partial interface Element {
 // https://fullscreen.spec.whatwg.org/#api
 partial interface Element {
   Promise<void> requestFullscreen();
+};
+
+// Extensions to the Element Interface
+// https://www.w3.org/TR/pointerevents/#pointer-event-types
+partial interface Element {
+  // void setPointerCapture(long pointerId);
+  // void releasePointerCapture(long pointerId);
+
+  // attribute EventHandler ongotpointercapture
+  // attribute EventHandler onLostPointerCapture
+
 };
 
 Element implements ChildNode;

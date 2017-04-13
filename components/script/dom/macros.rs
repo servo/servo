@@ -461,6 +461,16 @@ macro_rules! global_event_handlers(
         event_handler!(pause, GetOnpause, SetOnpause);
         event_handler!(play, GetOnplay, SetOnplay);
         event_handler!(playing, GetOnplaying, SetOnplaying);
+        // Pointer event handlers
+        event_handler!(pointercancel, GetOnpointercancel, SetOnpointercancel);
+        event_handler!(pointerdown, GetOnpointerdown, SetOnpointerdown);
+        event_handler!(pointerenter, GetOnpointerenter, SetOnpointerenter);
+        event_handler!(pointermove, GetOnpointermove, SetOnpointermove);
+        event_handler!(pointerover, GetOnpointerover, SetOnpointerover);
+        event_handler!(pointerup, GetOnpointerup, SetOnpointerup);
+        event_handler!(pointerout, GetOnpointerout, SetOnpointerout);
+        event_handler!(pointerleave, GetOnpointerleave, SetOnpointerleave);
+        // event_handler!(gotpointercapture, GetOn)
         event_handler!(progress, GetOnprogress, SetOnprogress);
         event_handler!(ratechange, GetOnratechange, SetOnratechange);
         event_handler!(reset, GetOnreset, SetOnreset);

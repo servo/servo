@@ -94,6 +94,18 @@ partial interface GlobalEventHandlers {
            attribute EventHandler ontransitionend;
 };
 
+// https://www.w3.org/TR/pointerevents/#extensions-to-the-globaleventhandlers-interface
+partial interface GlobalEventHandlers {
+    attribute EventHandler onpointerdown;
+    attribute EventHandler onpointermove;
+    attribute EventHandler onpointerup;
+    attribute EventHandler onpointercancel;
+    attribute EventHandler onpointerover;
+    attribute EventHandler onpointerout;
+    attribute EventHandler onpointerenter;
+    attribute EventHandler onpointerleave;
+};
+
 // https://html.spec.whatwg.org/multipage/#windoweventhandlers
 [NoInterfaceObject, Exposed=Window]
 interface WindowEventHandlers {

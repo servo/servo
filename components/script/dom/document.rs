@@ -73,6 +73,7 @@ use dom::node::VecPreOrderInsertionHelper;
 use dom::nodeiterator::NodeIterator;
 use dom::nodelist::NodeList;
 use dom::pagetransitionevent::PageTransitionEvent;
+use dom::pointerevent::PointerEvent;
 use dom::popstateevent::PopStateEvent;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::progressevent::ProgressEvent;
@@ -821,6 +822,17 @@ impl Document {
         for node in root.traverse_preorder() {
             node.dirty(NodeDamage::OtherNodeDamage)
         }
+    }
+
+    pub fn handle_pointer_event(&self,
+                                js_runtime: *mut JSRuntime) {
+                                // pointer_event_type: PointerEventType) {
+        // let pointer_type_string = match pointer_event_type {
+        //     PointerEventType::PointerDown => "pointerdown".to_owned()
+        // };
+
+        // debug!("{}: at {:?}", pointer_event_type_string)
+
     }
 
     pub fn handle_mouse_event(&self,

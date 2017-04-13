@@ -68,3 +68,7 @@ partial interface Navigator {
 partial interface Navigator {
   [Pref="dom.permissions.enabled"] readonly attribute Permissions permissions;
 };
+
+partial interface Navigator {
+  readonly    attribute long maxTouchPoints;
+};
