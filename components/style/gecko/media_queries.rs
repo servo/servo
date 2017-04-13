@@ -9,7 +9,7 @@ use cssparser::{CssStringWriter, Parser, Token};
 use euclid::Size2D;
 use font_metrics::get_metrics_provider_for_product;
 use gecko_bindings::bindings;
-use gecko_bindings::structs::{nsCSSValue, nsCSSUnit, nsStringBuffer};
+use gecko_bindings::structs::{nsCSSKeyword, nsCSSProps_KTableEntry, nsCSSValue, nsCSSUnit, nsStringBuffer};
 use gecko_bindings::structs::{nsMediaExpression_Range, nsMediaFeature};
 use gecko_bindings::structs::{nsMediaFeature_ValueType, nsMediaFeature_RangeType, nsMediaFeature_RequirementFlags};
 use gecko_bindings::structs::RawGeckoPresContextOwned;
@@ -138,7 +138,7 @@ impl ToCss for Expression {
 
         if let Some(ref val) = self.value {
             dest.write_str(": ")?;
-            val.to_css(dest)?;
+            val.to_css(dest, self)?;
         }
 
         dest.write_str(")")
@@ -232,7 +232,7 @@ pub enum MediaExpressionValue {
     Resolution(Resolution),
     /// An enumerated value, defined by the variant keyword table in the
     /// feature's `mData` member.
-    Enumerated(u32),
+    Enumerated(i16),
     /// An identifier.
     ///
     /// TODO(emilio): Maybe atomize?
@@ -273,10 +273,8 @@ impl MediaExpressionValue {
                 Some(MediaExpressionValue::Resolution(Resolution::Dpi(css_value.float_unchecked())))
             }
             nsMediaFeature_ValueType::eEnumerated => {
-                debug_assert!(css_value.mUnit == nsCSSUnit::eCSSUnit_Enumerated);
-                let value = css_value.integer_unchecked();
-                debug_assert!(value >= 0);
-                Some(MediaExpressionValue::Enumerated(value as u32))
+                let value = css_value.integer_unchecked() as i16;
+                Some(MediaExpressionValue::Enumerated(value))
             }
             nsMediaFeature_ValueType::eIdent => {
                 debug_assert!(css_value.mUnit == nsCSSUnit::eCSSUnit_Ident);
@@ -298,8 +296,8 @@ impl MediaExpressionValue {
     }
 }
 
-impl ToCss for MediaExpressionValue {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+impl MediaExpressionValue {
+    fn to_css<W>(&self, dest: &mut W, for_expr: &Expression) -> fmt::Result
         where W: fmt::Write,
     {
         match *self {
@@ -316,9 +314,27 @@ impl ToCss for MediaExpressionValue {
             MediaExpressionValue::Ident(ref ident) => {
                 CssStringWriter::new(dest).write_str(ident)
             }
-            MediaExpressionValue::Enumerated(..) => {
-                // TODO(emilio): Use the CSS keyword table.
-                unimplemented!()
+            MediaExpressionValue::Enumerated(value) => unsafe {
+                use std::{slice, str};
+                use std::os::raw::c_char;
+
+                // NB: All the keywords on nsMediaFeatures are static,
+                // well-formed utf-8.
+                let mut length = 0;
+
+                let (keyword, _value) =
+                    find_in_table(*for_expr.feature.mData.mKeywordTable.as_ref(),
+                                  |_kw, val| val == value)
+                        .expect("Value not found in the keyword table?");
+
+                let buffer: *const c_char =
+                    bindings::Gecko_CSSKeywordString(keyword, &mut length);
+                let buffer =
+                    slice::from_raw_parts(buffer as *const u8, length as usize);
+
+                let string = str::from_utf8_unchecked(buffer);
+
+                dest.write_str(string)
             }
         }
     }
@@ -348,6 +364,27 @@ fn find_feature<F>(mut f: F) -> Option<&'static nsMediaFeature>
     }
 
     None
+}
+
+unsafe fn find_in_table<F>(mut current_entry: *const nsCSSProps_KTableEntry,
+                           mut f: F)
+                           -> Option<(nsCSSKeyword, i16)>
+    where F: FnMut(nsCSSKeyword, i16) -> bool
+{
+    loop {
+        let value = (*current_entry).mValue;
+        let keyword = (*current_entry).mKeyword;
+
+        if value == -1 {
+            return None; // End of the table.
+        }
+
+        if f(keyword, value) {
+            return Some((keyword, value));
+        }
+
+        current_entry = current_entry.offset(1);
+    }
 }
 
 impl Expression {
@@ -459,9 +496,25 @@ impl Expression {
                     MediaExpressionValue::Resolution(Resolution::parse(input)?)
                 }
                 nsMediaFeature_ValueType::eEnumerated => {
-                    // TODO(emilio): Use Gecko's CSS keyword table to parse
-                    // this.
-                    return Err(())
+                    let keyword = input.expect_ident()?;
+                    let keyword = unsafe {
+                        bindings::Gecko_LookupCSSKeyword(keyword.as_bytes().as_ptr(),
+                                                         keyword.len() as u32)
+                    };
+
+                    let first_table_entry: *const nsCSSProps_KTableEntry = unsafe {
+                        *feature.mData.mKeywordTable.as_ref()
+                    };
+
+                    let value =
+                        match unsafe { find_in_table(first_table_entry, |kw, _| kw == keyword) } {
+                            Some((_kw, value)) => {
+                                value
+                            }
+                            None => return Err(()),
+                        };
+
+                    MediaExpressionValue::Enumerated(value)
                 }
                 nsMediaFeature_ValueType::eIdent => {
                     MediaExpressionValue::Ident(input.expect_ident()?.into_owned())
@@ -560,9 +613,9 @@ impl Expression {
                 debug_assert!(self.feature.mRangeType != nsMediaFeature_RangeType::eMinMaxAllowed);
                 return one == other;
             }
-            (&Enumerated(..), &Enumerated(..)) => {
-                // TODO(emilio)
-                unimplemented!();
+            (&Enumerated(one), &Enumerated(other)) => {
+                debug_assert!(self.feature.mRangeType != nsMediaFeature_RangeType::eMinMaxAllowed);
+                return one == other;
             }
             _ => unreachable!(),
         };
