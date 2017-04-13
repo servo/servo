@@ -134,11 +134,6 @@
         computed_value::T::normal
     }
 
-    pub fn counter_name_is_illegal(name: &str) -> bool {
-        name.eq_ignore_ascii_case("none") || name.eq_ignore_ascii_case("inherit") ||
-            name.eq_ignore_ascii_case("initial")
-    }
-
     // normal | none | [ <string> | <counter> | open-quote | close-quote | no-open-quote |
     // no-close-quote ]+
     // TODO: <uri>, attr(<identifier>)
@@ -335,6 +330,8 @@
     }
 
     pub fn parse_common(context: &ParserContext, default_value: i32, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        use std::ascii::AsciiExt;
+
         if input.try(|input| input.expect_ident_matching("none")).is_ok() {
             return Ok(SpecifiedValue(Vec::new()))
         }
@@ -342,13 +339,16 @@
         let mut counters = Vec::new();
         loop {
             let counter_name = match input.next() {
-                Ok(Token::Ident(ident)) => (*ident).to_owned(),
+                Ok(Token::Ident(ident)) => {
+                    if CSSWideKeyword::from_ident(&ident).is_some() || ident.eq_ignore_ascii_case("none") {
+                        // Don't accept CSS-wide keywords or none as the counter name.
+                        return Err(());
+                    }
+                    (*ident).to_owned()
+                }
                 Ok(_) => return Err(()),
                 Err(_) => break,
             };
-            if content::counter_name_is_illegal(&counter_name) {
-                return Err(())
-            }
             let counter_delta = input.try(|input| specified::parse_integer(context, input))
                                      .unwrap_or(specified::Integer::new(default_value));
             counters.push((counter_name, counter_delta))

@@ -390,6 +390,17 @@ impl CSSWideKeyword {
             CSSWideKeyword::Unset => "unset",
         }
     }
+
+    /// Takes the result of cssparser::Parser::expect_ident() and converts it
+    /// to a CSSWideKeyword.
+    pub fn from_ident<'i>(ident: &Cow<'i, str>) -> Option<Self> {
+        match_ignore_ascii_case! { ident,
+            "initial" => Some(CSSWideKeyword::Initial),
+            "inherit" => Some(CSSWideKeyword::Inherit),
+            "unset" => Some(CSSWideKeyword::Unset),
+            _ => None
+        }
+    }
 }
 
 impl ToCss for CSSWideKeyword {
@@ -402,12 +413,7 @@ impl Parse for CSSWideKeyword {
     fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         let ident = input.expect_ident()?;
         input.expect_exhausted()?;
-        match_ignore_ascii_case! { &ident,
-            "initial" => Ok(CSSWideKeyword::Initial),
-            "inherit" => Ok(CSSWideKeyword::Inherit),
-            "unset" => Ok(CSSWideKeyword::Unset),
-            _ => Err(())
-        }
+        CSSWideKeyword::from_ident(&ident).ok_or(())
     }
 }
 
