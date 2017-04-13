@@ -15,6 +15,7 @@ import os.path as path
 import platform
 import sys
 import shutil
+import stat
 
 from time import time
 
@@ -335,6 +336,49 @@ class MachCommands(CommandBase):
                 for ssl_lib in ["libcryptoMD.dll", "libsslMD.dll"]:
                     shutil.copy(path.join(env['OPENSSL_LIB_DIR'], "../bin" + msvc_x64, ssl_lib),
                                 servo_exe_dir)
+                vs_dll_dir = None
+                vs_platform = os.environ.get("PLATFORM", "").lower()
+                vc_dir = os.environ.get("VCINSTALLDIR", "")
+                vs_version = os.environ.get("VisualStudioVersion", "")
+                msvc_deps = [
+                    "api-ms-win-crt-runtime-l1-1-0.dll",
+                    "msvcp140.dll",
+                    "vcruntime140.dll",
+                ]
+                # Check if it's Visual C++ Build Tools or Visual Studio 2015
+                vs14_vcvars = path.join(vc_dir, "vcvarsall.bat")
+                is_vs14 = True if os.path.isfile(vs14_vcvars) or vs_version == "14.0" else False
+                if is_vs14:
+                    vs_dll_dir = path.join(vc_dir, "redist", vs_platform, "Microsoft.VC140.CRT")
+                elif vs_version == "15.0":
+                    redist_dir = os.environ["VCToolsRedistDir"]
+                    # there are two possible paths `x64\Microsoft.VC150.CRT` or `onecore\x64\Microsoft.VC150.CRT`
+                    redist1 = path.join(redist_dir, vs_platform, "Microsoft.VC150.CRT")
+                    redist2 = path.join(redist_dir, "onecore", vs_platform, "Microsoft.VC150.CRT")
+                    if os.path.isdir(redist1):
+                        vs_dll_dir = redist1
+                    elif os.path.isdir(redist2):
+                        vs_dll_dir = redist2
+                if vs_dll_dir:
+                    dll_dirs = [
+                        vs_dll_dir,
+                        path.join(os.environ["WindowsSdkDir"], "Redist", "ucrt", "DLLs", vs_platform),
+                    ]
+                    for msvc_dll in msvc_deps:
+                        dll_found = False
+                        for dll_dir in dll_dirs:
+                            dll = path.join(dll_dir, msvc_dll)
+                            servo_dir_dll = path.join(servo_exe_dir, msvc_dll)
+                            if os.path.isfile(dll):
+                                if os.path.isfile(servo_dir_dll):
+                                    # avoid permission denied error when overwrite dll in servo build directory
+                                    os.chmod(servo_dir_dll, stat.S_IWUSR)
+                                shutil.copy(dll, servo_exe_dir)
+                                dll_found = True
+                                break
+                        if not dll_found:
+                            print("DLL file `{}` not found!".format(msvc_dll))
+                            status = 1
 
             elif sys.platform == "darwin":
                 # On the Mac, set a lovely icon. This makes it easier to pick out the Servo binary in tools
