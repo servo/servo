@@ -5,26 +5,36 @@
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
 <%helpers:shorthand name="font"
-                    sub_properties="font-style font-variant font-weight font-stretch
+                    sub_properties="font-style font-variant-caps font-weight font-stretch
                                     font-size line-height font-family
                                     ${'font-size-adjust' if product == 'gecko' or data.testing else ''}
                                     ${'font-kerning' if product == 'gecko' or data.testing else ''}
-                                    ${'font-variant-caps' if product == 'gecko' or data.testing else ''}
+                                    ${'font-variant-alternates' if product == 'gecko' or data.testing else ''}
+                                    ${'font-variant-east-asian' if product == 'gecko' or data.testing else ''}
+                                    ${'font-variant-ligatures' if product == 'gecko' or data.testing else ''}
+                                    ${'font-variant-numeric' if product == 'gecko' or data.testing else ''}
                                     ${'font-variant-position' if product == 'gecko' or data.testing else ''}
                                     ${'font-language-override' if product == 'gecko' or data.testing else ''}"
                     spec="https://drafts.csswg.org/css-fonts-3/#propdef-font">
-    use properties::longhands::{font_style, font_variant, font_weight, font_stretch};
+    use properties::longhands::{font_style, font_variant_caps, font_weight, font_stretch};
     use properties::longhands::{font_size, line_height};
+    <%
+        gecko_sub_properties = "kerning language_override size_adjust \
+                                variant_alternates variant_east_asian \
+                                variant_ligatures variant_numeric \
+                                variant_position".split()
+    %>
     % if product == "gecko" or data.testing:
-    use properties::longhands::{font_size_adjust, font_kerning, font_variant_caps, font_variant_position,
-                                font_language_override};
+        % for prop in gecko_sub_properties:
+            use properties::longhands::font_${prop};
+        % endfor
     % endif
     use properties::longhands::font_family::SpecifiedValue as FontFamily;
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         let mut nb_normals = 0;
         let mut style = None;
-        let mut variant = None;
+        let mut variant_caps = None;
         let mut weight = None;
         let mut stretch = None;
         let size;
@@ -48,9 +58,9 @@
                     continue
                 }
             }
-            if variant.is_none() {
-                if let Ok(value) = input.try(|input| font_variant::parse(context, input)) {
-                    variant = Some(value);
+            if variant_caps.is_none() {
+                if let Ok(value) = input.try(|input| font_variant_caps::parse(context, input)) {
+                    variant_caps = Some(value);
                     continue
                 }
             }
@@ -67,7 +77,8 @@
         fn count<T>(opt: &Option<T>) -> u8 {
             if opt.is_some() { 1 } else { 0 }
         }
-        if size.is_none() || (count(&style) + count(&weight) + count(&variant) + count(&stretch) + nb_normals) > 4 {
+        if size.is_none() ||
+           (count(&style) + count(&weight) + count(&variant_caps) + count(&stretch) + nb_normals) > 4 {
             return Err(())
         }
         let line_height = if input.try(|input| input.expect_delim('/')).is_ok() {
@@ -77,13 +88,13 @@
         };
         let family = FontFamily::parse(input)?;
         Ok(Longhands {
-            % for name in "style variant weight stretch size".split():
+            % for name in "style variant_caps weight stretch size".split():
                 font_${name}: unwrap_or_initial!(font_${name}, ${name}),
             % endfor
             line_height: unwrap_or_initial!(line_height),
             font_family: family,
             % if product == "gecko" or data.testing:
-                % for name in "size_adjust kerning variant_caps variant_position language_override".split():
+                % for name in gecko_sub_properties:
                     font_${name}: font_${name}::get_initial_specified_value(),
                 % endfor
             % endif
@@ -95,14 +106,14 @@
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
 
     % if product == "gecko" or data.testing:
-        % for name in "size_adjust kerning variant_caps variant_position language_override".split():
+        % for name in gecko_sub_properties:
             if self.font_${name} != &font_${name}::get_initial_specified_value() {
                 return Ok(());
             }
         % endfor
     % endif
 
-    % for name in "style variant weight stretch".split():
+    % for name in "style variant_caps weight stretch".split():
             self.font_${name}.to_css(dest)?;
             dest.write_str(" ")?;
     % endfor
@@ -119,6 +130,79 @@
 
             dest.write_str(" ")?;
             self.font_family.to_css(dest)?;
+
+            Ok(())
+        }
+    }
+</%helpers:shorthand>
+
+<%helpers:shorthand name="font-variant"
+                    sub_properties="font-variant-caps
+                                    ${'font-variant-alternates' if product == 'gecko' or data.testing else ''}
+                                    ${'font-variant-east-asian' if product == 'gecko' or data.testing else ''}
+                                    ${'font-variant-ligatures' if product == 'gecko' or data.testing else ''}
+                                    ${'font-variant-numeric' if product == 'gecko' or data.testing else ''}
+                                    ${'font-variant-position' if product == 'gecko' or data.testing else ''}"
+                    spec="https://drafts.csswg.org/css-fonts-3/#propdef-font-variant">
+    use properties::longhands::font_variant_caps;
+    <% gecko_sub_properties = "alternates east_asian ligatures numeric position".split() %>
+    % if product == "gecko" or data.testing:
+        % for prop in gecko_sub_properties:
+            use properties::longhands::font_variant_${prop};
+        % endfor
+    % endif
+
+    pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+        let mut nb_normals = 0;
+        let mut caps = None;
+        loop {
+            // Special-case 'normal' because it is valid in each of
+            // all sub properties.
+            // Leaves the values to None, 'normal' is the initial value for each of them.
+            if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
+                nb_normals += 1;
+                continue;
+            }
+            if caps.is_none() {
+                if let Ok(value) = input.try(|input| font_variant_caps::parse(context, input)) {
+                    caps = Some(value);
+                    continue
+                }
+            }
+            break
+        }
+        #[inline]
+        fn count<T>(opt: &Option<T>) -> u8 {
+            if opt.is_some() { 1 } else { 0 }
+        }
+        let count = count(&caps) + nb_normals;
+        if count == 0 || count > 1 {
+            return Err(())
+        }
+        Ok(Longhands {
+            font_variant_caps: unwrap_or_initial!(font_variant_caps, caps),
+            // FIXME: Bug 1356134 - parse all sub properties.
+            % if product == "gecko" or data.testing:
+                % for name in gecko_sub_properties:
+                    font_variant_${name}: font_variant_${name}::get_initial_specified_value(),
+                % endfor
+            % endif
+        })
+    }
+
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+
+    % if product == "gecko" or data.testing:
+        % for name in gecko_sub_properties:
+            // FIXME: Bug 1356134 - handle all sub properties.
+            if self.font_variant_${name} != &font_variant_${name}::get_initial_specified_value() {
+                return Ok(());
+            }
+        % endfor
+    % endif
+
+            self.font_variant_caps.to_css(dest)?;
 
             Ok(())
         }

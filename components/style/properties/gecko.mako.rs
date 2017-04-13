@@ -666,8 +666,6 @@ impl Debug for ${style_struct.gecko_struct_name} {
     # Make a list of types we can't auto-generate.
     #
     force_stub = [];
-    # These live in an nsFont member in Gecko. Should be straightforward to do manually.
-    force_stub += ["font-variant"]
     # These have unusual representations in gecko.
     force_stub += ["list-style-type"]
 

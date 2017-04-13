@@ -228,11 +228,6 @@ ${helpers.single_keyword("font-style",
                          animation_type="none",
                          needs_conversion=True)}
 
-${helpers.single_keyword("font-variant",
-                         "normal small-caps",
-                         spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant",
-                         animation_type="none")}
-
 
 <% font_variant_caps_custom_consts= { "small-caps": "SMALLCAPS",
                                       "all-small": "ALLSMALL",
@@ -241,10 +236,10 @@ ${helpers.single_keyword("font-variant",
                                       "titling-caps": "TITLING" } %>
 
 ${helpers.single_keyword("font-variant-caps",
-                         "normal small-caps all-small petite-caps unicase titling-caps",
+                         "normal small-caps",
+                         extra_gecko_values="all-small petite-caps unicase titling-caps",
                          gecko_constant_prefix="NS_FONT_VARIANT_CAPS",
                          gecko_ffi_name="mFont.variantCaps",
-                         products="gecko",
                          spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-caps",
                          custom_consts=font_variant_caps_custom_consts,
                          animation_type="none")}
