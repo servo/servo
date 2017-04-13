@@ -32,27 +32,40 @@ pub struct Position {
 
 impl ToCss for Position {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        let mut space_present = false;
-        if let Some(horiz_key) = self.horizontal.keyword {
-            try!(horiz_key.to_css(dest));
-            try!(dest.write_str(" "));
-            space_present = true;
-        };
-        if let Some(ref horiz_pos) = self.horizontal.position {
-            try!(horiz_pos.to_css(dest));
-            try!(dest.write_str(" "));
-            space_present = true;
-        };
-        if let Some(vert_key) = self.vertical.keyword {
-            try!(vert_key.to_css(dest));
-            space_present = false;
-        };
-        if let Some(ref vert_pos) = self.vertical.position {
-            if space_present == false {
-                try!(dest.write_str(" "));
-            }
-            try!(vert_pos.to_css(dest));
-        };
+        macro_rules! to_css_with_keyword {
+            ($pos:expr, $dest:expr) => {
+                if let Some(keyword) = $pos.keyword {
+                    keyword.to_css($dest)?;
+                } else {
+                    $pos.get_default_keyword().to_css($dest)?;
+                }
+
+                if let Some(ref position) = $pos.position {
+                    $dest.write_str(" ")?;
+                    position.to_css($dest)?;
+                };
+            };
+        }
+
+        let mut is_keyword_needed = false;
+        let position_x = &self.horizontal;
+        let position_y = &self.vertical;
+
+        if (position_x.keyword.is_some() && position_x.position.is_some()) ||
+           (position_y.keyword.is_some() && position_y.position.is_some()) {
+            is_keyword_needed = true;
+        }
+
+        if is_keyword_needed {
+            to_css_with_keyword!(position_x, dest);
+            dest.write_str(" ")?;
+            to_css_with_keyword!(position_y, dest);
+        } else {
+            position_x.to_css(dest)?;
+            dest.write_str(" ")?;
+            position_y.to_css(dest)?;
+        }
+
         Ok(())
     }
 }
@@ -255,6 +268,13 @@ pub struct HorizontalPosition {
     pub position: Option<LengthOrPercentage>,
 }
 
+impl HorizontalPosition {
+    #[allow(missing_docs)]
+    fn get_default_keyword(&self) -> Keyword {
+        Keyword::Left
+    }
+}
+
 impl HasViewportPercentage for HorizontalPosition {
     fn has_viewport_percentage(&self) -> bool {
         self.position.as_ref().map_or(false, |pos| pos.has_viewport_percentage())
@@ -381,6 +401,13 @@ pub struct VerticalPosition {
     pub position: Option<LengthOrPercentage>,
 }
 
+impl VerticalPosition {
+    #[allow(missing_docs)]
+    fn get_default_keyword(&self) -> Keyword {
+        Keyword::Top
+    }
+}
+
 impl HasViewportPercentage for VerticalPosition {
     fn has_viewport_percentage(&self) -> bool {
         self.position.as_ref().map_or(false, |pos| pos.has_viewport_percentage())
@@ -403,6 +430,7 @@ impl ToCss for VerticalPosition {
         };
         Ok(())
     }
+
 }
 
 impl Parse for VerticalPosition {
