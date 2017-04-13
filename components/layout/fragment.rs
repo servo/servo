@@ -937,7 +937,7 @@ impl Fragment {
             }
 
             if self.style.get_position().box_sizing == box_sizing::T::border_box {
-                specified -= border_padding
+                specified = max(Au(0), specified - border_padding);
             }
         }
 

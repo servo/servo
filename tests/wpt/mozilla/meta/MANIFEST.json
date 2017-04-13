@@ -3131,6 +3131,18 @@
      {}
     ]
    ],
+   "css/intrinsic_border_box.html": [
+    [
+     "/_mozilla/css/intrinsic_border_box.html",
+     [
+      [
+       "/_mozilla/css/intrinsic_border_box_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "css/issue-1324.html": [
     [
      "/_mozilla/css/issue-1324.html",
@@ -8069,6 +8081,11 @@
     ]
    ],
    "css/inset_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/intrinsic_border_box_ref.html": [
     [
      {}
     ]
@@ -22113,6 +22130,14 @@
   ],
   "css/inset_ref.html": [
    "c78c6c992e47adb47ba00b621210ae8564d46389",
+   "support"
+  ],
+  "css/intrinsic_border_box.html": [
+   "261487f82f350ab020f49f362993b26711a89b5b",
+   "reftest"
+  ],
+  "css/intrinsic_border_box_ref.html": [
+   "9a8f19331c748658b71c85b823b5b3db68e4b7a4",
    "support"
   ],
   "css/issue-1324-ref.html": [
