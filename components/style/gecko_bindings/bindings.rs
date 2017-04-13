@@ -892,19 +892,19 @@ extern "C" {
                                         calc: nsStyleCoord_CalcValue);
 }
 extern "C" {
-    pub fn Gecko_CopyClipPathValueFrom(dst: *mut StyleShapeSource,
-                                       src: *const StyleShapeSource);
+    pub fn Gecko_CopyShapeSourceFrom(dst: *mut StyleShapeSource,
+                                     src: *const StyleShapeSource);
 }
 extern "C" {
-    pub fn Gecko_DestroyClipPath(clip: *mut StyleShapeSource);
+    pub fn Gecko_DestroyShapeSource(shape: *mut StyleShapeSource);
 }
 extern "C" {
     pub fn Gecko_NewBasicShape(type_: StyleBasicShapeType)
      -> *mut StyleBasicShape;
 }
 extern "C" {
-    pub fn Gecko_StyleClipPath_SetURLValue(clip: *mut StyleShapeSource,
-                                           uri: ServoBundledURI);
+    pub fn Gecko_StyleShapeSource_SetURLValue(shape: *mut StyleShapeSource,
+                                              uri: ServoBundledURI);
 }
 extern "C" {
     pub fn Gecko_ResetFilters(effects: *mut nsStyleEffects, new_len: usize);

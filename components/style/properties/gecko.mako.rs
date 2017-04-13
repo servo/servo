@@ -1548,7 +1548,8 @@ fn static_assert() {
                           page-break-before page-break-after
                           scroll-snap-points-x scroll-snap-points-y transform
                           scroll-snap-type-y scroll-snap-coordinate
-                          perspective-origin transform-origin -moz-binding will-change""" %>
+                          perspective-origin transform-origin -moz-binding will-change
+                          shape-outside""" %>
 <%self:impl_trait style_struct_name="Box" skip_longhands="${skip_box_longhands}">
 
     // We manually-implement the |display| property until we get general
@@ -2142,6 +2143,8 @@ fn static_assert() {
             Gecko_CopyWillChangeFrom(&mut self.gecko, &other.gecko as *const _ as *mut _);
         }
     }
+
+    <% impl_shape_source("shape_outside", "mShapeOutside") %>
 </%self:impl_trait>
 
 <%def name="simple_image_array_property(name, shorthand, field_name)">
@@ -3191,6 +3194,118 @@ fn static_assert() {
     }
 </%self:impl_trait>
 
+<%def name="impl_shape_source(ident, gecko_ffi_name)">
+    pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
+        use gecko_bindings::bindings::{Gecko_NewBasicShape, Gecko_DestroyShapeSource};
+        use gecko_bindings::structs::StyleGeometryBox;
+        use gecko_bindings::structs::{StyleBasicShape, StyleBasicShapeType, StyleShapeSourceType};
+        use gecko_bindings::structs::{StyleFillRule, StyleShapeSource};
+        use gecko::conversions::basic_shape::set_corners_from_radius;
+        use gecko::values::GeckoStyleCoordConvertible;
+        use values::computed::basic_shape::*;
+        let ref mut ${ident} = self.gecko.${gecko_ffi_name};
+        // clean up existing struct
+        unsafe { Gecko_DestroyShapeSource(${ident}) };
+
+        ${ident}.mType = StyleShapeSourceType::None;
+
+        match v {
+            ShapeSource::Url(ref url) => {
+                unsafe {
+                    bindings::Gecko_StyleShapeSource_SetURLValue(${ident}, url.for_ffi());
+                }
+            }
+            ShapeSource::None => {} // don't change the type
+            ShapeSource::Box(reference) => {
+                ${ident}.mReferenceBox = reference.into();
+                ${ident}.mType = StyleShapeSourceType::Box;
+            }
+            ShapeSource::Shape(servo_shape, maybe_box) => {
+                ${ident}.mReferenceBox = maybe_box.map(Into::into)
+                                                   .unwrap_or(StyleGeometryBox::NoBox);
+                ${ident}.mType = StyleShapeSourceType::Shape;
+
+                fn init_shape(${ident}: &mut StyleShapeSource, ty: StyleBasicShapeType) -> &mut StyleBasicShape {
+                    unsafe {
+                        // We have to be very careful to avoid a copy here!
+                        let ref mut union = ${ident}.__bindgen_anon_1;
+                        let mut shape: &mut *mut StyleBasicShape = union.mBasicShape.as_mut();
+                        *shape = Gecko_NewBasicShape(ty);
+                        &mut **shape
+                    }
+                }
+                match servo_shape {
+                    BasicShape::Inset(rect) => {
+                        let mut shape = init_shape(${ident}, StyleBasicShapeType::Inset);
+                        unsafe { shape.mCoordinates.set_len(4) };
+
+                        // set_len() can't call constructors, so the coordinates
+                        // can contain any value. set_value() attempts to free
+                        // allocated coordinates, so we don't want to feed it
+                        // garbage values which it may misinterpret.
+                        // Instead, we use leaky_set_value to blindly overwrite
+                        // the garbage data without
+                        // attempting to clean up.
+                        shape.mCoordinates[0].leaky_set_null();
+                        rect.top.to_gecko_style_coord(&mut shape.mCoordinates[0]);
+                        shape.mCoordinates[1].leaky_set_null();
+                        rect.right.to_gecko_style_coord(&mut shape.mCoordinates[1]);
+                        shape.mCoordinates[2].leaky_set_null();
+                        rect.bottom.to_gecko_style_coord(&mut shape.mCoordinates[2]);
+                        shape.mCoordinates[3].leaky_set_null();
+                        rect.left.to_gecko_style_coord(&mut shape.mCoordinates[3]);
+
+                        set_corners_from_radius(rect.round, &mut shape.mRadius);
+                    }
+                    BasicShape::Circle(circ) => {
+                        let mut shape = init_shape(${ident}, StyleBasicShapeType::Circle);
+                        unsafe { shape.mCoordinates.set_len(1) };
+                        shape.mCoordinates[0].leaky_set_null();
+                        circ.radius.to_gecko_style_coord(&mut shape.mCoordinates[0]);
+
+                        shape.mPosition = circ.position.into();
+                    }
+                    BasicShape::Ellipse(el) => {
+                        let mut shape = init_shape(${ident}, StyleBasicShapeType::Ellipse);
+                        unsafe { shape.mCoordinates.set_len(2) };
+                        shape.mCoordinates[0].leaky_set_null();
+                        el.semiaxis_x.to_gecko_style_coord(&mut shape.mCoordinates[0]);
+                        shape.mCoordinates[1].leaky_set_null();
+                        el.semiaxis_y.to_gecko_style_coord(&mut shape.mCoordinates[1]);
+
+                        shape.mPosition = el.position.into();
+                    }
+                    BasicShape::Polygon(poly) => {
+                        let mut shape = init_shape(${ident}, StyleBasicShapeType::Polygon);
+                        unsafe {
+                            shape.mCoordinates.set_len(poly.coordinates.len() as u32 * 2);
+                        }
+                        for (i, coord) in poly.coordinates.iter().enumerate() {
+                            shape.mCoordinates[2 * i].leaky_set_null();
+                            shape.mCoordinates[2 * i + 1].leaky_set_null();
+                            coord.0.to_gecko_style_coord(&mut shape.mCoordinates[2 * i]);
+                            coord.1.to_gecko_style_coord(&mut shape.mCoordinates[2 * i + 1]);
+                        }
+                        shape.mFillRule = if poly.fill == FillRule::EvenOdd {
+                            StyleFillRule::Evenodd
+                        } else {
+                            StyleFillRule::Nonzero
+                        };
+                    }
+                }
+            }
+        }
+
+    }
+
+    pub fn copy_${ident}_from(&mut self, other: &Self) {
+        use gecko_bindings::bindings::Gecko_CopyShapeSourceFrom;
+        unsafe {
+            Gecko_CopyShapeSourceFrom(&mut self.gecko.${gecko_ffi_name}, &other.gecko.${gecko_ffi_name});
+        }
+    }
+</%def>
+
 <% skip_svg_longhands = """
 mask-mode mask-repeat mask-clip mask-origin mask-composite mask-position-x mask-position-y mask-size mask-image
 clip-path
@@ -3221,115 +3336,8 @@ clip-path
             T::exclude => structs::NS_STYLE_MASK_COMPOSITE_EXCLUDE as u8,
         }
     </%self:simple_image_array_property>
-    pub fn set_clip_path(&mut self, v: longhands::clip_path::computed_value::T) {
-        use gecko_bindings::bindings::{Gecko_NewBasicShape, Gecko_DestroyClipPath};
-        use gecko_bindings::structs::StyleGeometryBox;
-        use gecko_bindings::structs::{StyleBasicShape, StyleBasicShapeType, StyleShapeSourceType};
-        use gecko_bindings::structs::{StyleFillRule, StyleShapeSource};
-        use gecko::conversions::basic_shape::set_corners_from_radius;
-        use gecko::values::GeckoStyleCoordConvertible;
-        use values::computed::basic_shape::*;
-        let ref mut clip_path = self.gecko.mClipPath;
-        // clean up existing struct
-        unsafe { Gecko_DestroyClipPath(clip_path) };
 
-        clip_path.mType = StyleShapeSourceType::None;
-
-        match v {
-            ShapeSource::Url(ref url) => {
-                unsafe {
-                    bindings::Gecko_StyleClipPath_SetURLValue(clip_path, url.for_ffi());
-                }
-            }
-            ShapeSource::None => {} // don't change the type
-            ShapeSource::Box(reference) => {
-                clip_path.mReferenceBox = reference.into();
-                clip_path.mType = StyleShapeSourceType::Box;
-            }
-            ShapeSource::Shape(servo_shape, maybe_box) => {
-                clip_path.mReferenceBox = maybe_box.map(Into::into)
-                                                   .unwrap_or(StyleGeometryBox::NoBox);
-                clip_path.mType = StyleShapeSourceType::Shape;
-
-                fn init_shape(clip_path: &mut StyleShapeSource, ty: StyleBasicShapeType) -> &mut StyleBasicShape {
-                    unsafe {
-                        // We have to be very careful to avoid a copy here!
-                        let ref mut union = clip_path.__bindgen_anon_1;
-                        let mut shape: &mut *mut StyleBasicShape = union.mBasicShape.as_mut();
-                        *shape = Gecko_NewBasicShape(ty);
-                        &mut **shape
-                    }
-                }
-                match servo_shape {
-                    BasicShape::Inset(rect) => {
-                        let mut shape = init_shape(clip_path, StyleBasicShapeType::Inset);
-                        unsafe { shape.mCoordinates.set_len(4) };
-
-                        // set_len() can't call constructors, so the coordinates
-                        // can contain any value. set_value() attempts to free
-                        // allocated coordinates, so we don't want to feed it
-                        // garbage values which it may misinterpret.
-                        // Instead, we use leaky_set_value to blindly overwrite
-                        // the garbage data without
-                        // attempting to clean up.
-                        shape.mCoordinates[0].leaky_set_null();
-                        rect.top.to_gecko_style_coord(&mut shape.mCoordinates[0]);
-                        shape.mCoordinates[1].leaky_set_null();
-                        rect.right.to_gecko_style_coord(&mut shape.mCoordinates[1]);
-                        shape.mCoordinates[2].leaky_set_null();
-                        rect.bottom.to_gecko_style_coord(&mut shape.mCoordinates[2]);
-                        shape.mCoordinates[3].leaky_set_null();
-                        rect.left.to_gecko_style_coord(&mut shape.mCoordinates[3]);
-
-                        set_corners_from_radius(rect.round, &mut shape.mRadius);
-                    }
-                    BasicShape::Circle(circ) => {
-                        let mut shape = init_shape(clip_path, StyleBasicShapeType::Circle);
-                        unsafe { shape.mCoordinates.set_len(1) };
-                        shape.mCoordinates[0].leaky_set_null();
-                        circ.radius.to_gecko_style_coord(&mut shape.mCoordinates[0]);
-
-                        shape.mPosition = circ.position.into();
-                    }
-                    BasicShape::Ellipse(el) => {
-                        let mut shape = init_shape(clip_path, StyleBasicShapeType::Ellipse);
-                        unsafe { shape.mCoordinates.set_len(2) };
-                        shape.mCoordinates[0].leaky_set_null();
-                        el.semiaxis_x.to_gecko_style_coord(&mut shape.mCoordinates[0]);
-                        shape.mCoordinates[1].leaky_set_null();
-                        el.semiaxis_y.to_gecko_style_coord(&mut shape.mCoordinates[1]);
-
-                        shape.mPosition = el.position.into();
-                    }
-                    BasicShape::Polygon(poly) => {
-                        let mut shape = init_shape(clip_path, StyleBasicShapeType::Polygon);
-                        unsafe {
-                            shape.mCoordinates.set_len(poly.coordinates.len() as u32 * 2);
-                        }
-                        for (i, coord) in poly.coordinates.iter().enumerate() {
-                            shape.mCoordinates[2 * i].leaky_set_null();
-                            shape.mCoordinates[2 * i + 1].leaky_set_null();
-                            coord.0.to_gecko_style_coord(&mut shape.mCoordinates[2 * i]);
-                            coord.1.to_gecko_style_coord(&mut shape.mCoordinates[2 * i + 1]);
-                        }
-                        shape.mFillRule = if poly.fill == FillRule::EvenOdd {
-                            StyleFillRule::Evenodd
-                        } else {
-                            StyleFillRule::Nonzero
-                        };
-                    }
-                }
-            }
-        }
-
-    }
-
-    pub fn copy_clip_path_from(&mut self, other: &Self) {
-        use gecko_bindings::bindings::Gecko_CopyClipPathValueFrom;
-        unsafe {
-            Gecko_CopyClipPathValueFrom(&mut self.gecko.mClipPath, &other.gecko.mClipPath);
-        }
-    }
+    <% impl_shape_source("clip_path", "mClipPath") %>
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="InheritedSVG"

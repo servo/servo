@@ -2298,3 +2298,30 @@ ${helpers.single_keyword("-moz-orient",
         }
     }
 </%helpers:longhand>
+
+<%helpers:longhand name="shape-outside" products="gecko" animation_type="none" boxed="True"
+                   spec="https://drafts.csswg.org/css-shapes/#shape-outside-property">
+    use std::fmt;
+    use style_traits::ToCss;
+    use values::specified::basic_shape::{ShapeBox, ShapeSource};
+    use values::HasViewportPercentage;
+
+    no_viewport_percentage!(SpecifiedValue);
+
+    pub mod computed_value {
+        use values::computed::basic_shape::{ShapeBox, ShapeSource};
+
+        pub type T = ShapeSource<ShapeBox>;
+    }
+
+    pub type SpecifiedValue = ShapeSource<ShapeBox>;
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        Default::default()
+    }
+
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        ShapeSource::parse(context, input)
+    }
+</%helpers:longhand>

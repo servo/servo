@@ -463,14 +463,23 @@ pub mod basic_shape {
         }
     }
 
+    impl From<ShapeBox> for StyleGeometryBox {
+        fn from(reference: ShapeBox) -> Self {
+            use gecko_bindings::structs::StyleGeometryBox::*;
+            match reference {
+                ShapeBox::ContentBox => ContentBox,
+                ShapeBox::PaddingBox => PaddingBox,
+                ShapeBox::BorderBox => BorderBox,
+                ShapeBox::MarginBox => MarginBox,
+            }
+        }
+    }
+
     impl From<GeometryBox> for StyleGeometryBox {
         fn from(reference: GeometryBox) -> Self {
             use gecko_bindings::structs::StyleGeometryBox::*;
             match reference {
-                GeometryBox::ShapeBox(ShapeBox::ContentBox) => ContentBox,
-                GeometryBox::ShapeBox(ShapeBox::PaddingBox) => PaddingBox,
-                GeometryBox::ShapeBox(ShapeBox::BorderBox) => BorderBox,
-                GeometryBox::ShapeBox(ShapeBox::MarginBox) => MarginBox,
+                GeometryBox::ShapeBox(shape_box) => From::from(shape_box),
                 GeometryBox::FillBox => FillBox,
                 GeometryBox::StrokeBox => StrokeBox,
                 GeometryBox::ViewBox => ViewBox,
