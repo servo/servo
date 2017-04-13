@@ -22,7 +22,6 @@ use ipc_channel::router::ROUTER;
 use net_traits::{FetchResponseListener, FetchMetadata, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy};
 use net_traits::request::{CorsSettings, CredentialsMode, Destination, RequestInit, RequestMode, Type as RequestType};
 use network_listener::{NetworkListener, PreInvoke};
-use script_layout_interface::message::Msg;
 use servo_url::ServoUrl;
 use std::mem;
 use std::sync::{Arc, Mutex};
@@ -151,9 +150,7 @@ impl FetchResponseListener for StylesheetContext {
                             sheet.set_disabled(true);
                         }
 
-                        link.set_stylesheet(sheet.clone());
-
-                        win.layout_chan().send(Msg::AddStylesheet(sheet)).unwrap();
+                        link.set_stylesheet(sheet);
                     }
                 }
                 StylesheetContextSource::Import(ref stylesheet) => {
