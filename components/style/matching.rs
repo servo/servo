@@ -930,8 +930,17 @@ pub trait MatchMethods : TElement {
         let self_flags = flags.for_self();
         if !self_flags.is_empty() {
             if element == self {
+                // If this is the element we're styling, we have exclusive
+                // access to the element, and thus it's fine inserting them,
+                // even from the worker.
                 unsafe { element.set_selector_flags(self_flags); }
             } else {
+                // Otherwise, this element is an ancestor of the current element
+                // we're styling, and thus multiple children could write to it
+                // if we did from here.
+                //
+                // Instead, we can read them, and post them if necessary as a
+                // sequential task in order for them to be processed later.
                 if !element.has_selector_flags(self_flags) {
                     let task =
                         SequentialTask::set_selector_flags(element.clone(),
