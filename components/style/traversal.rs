@@ -601,7 +601,7 @@ pub fn recalc_style_at<E, D>(traversal: &D,
                           "animation restyle hint should be handled during \
                            animation-only restyles");
             r.recascade = false;
-            r.hint.propagate()
+            r.hint.propagate(&context.shared.traversal_flags)
         },
     };
     debug_assert!(data.has_current_styles() ||
