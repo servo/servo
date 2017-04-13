@@ -60,6 +60,11 @@ impl fmt::Debug for PropertyDeclarationBlock {
 }
 
 impl PropertyDeclarationBlock {
+    /// Returns the number of declarations in the block.
+    pub fn len(&self) -> usize {
+        self.declarations.len()
+    }
+
     /// Create an empty block
     pub fn new() -> Self {
         PropertyDeclarationBlock {

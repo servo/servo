@@ -64,6 +64,8 @@ pub fn traverse_dom<E, D>(traversal: &D,
     if dump_stats {
         let tlsc = tlc.borrow_mut();
         tlsc.statistics.finish(traversal, start_time.unwrap());
-        println!("{}", tlsc.statistics);
+        if tlsc.statistics.is_large_traversal() {
+            println!("{}", tlsc.statistics);
+        }
     }
 }

@@ -86,7 +86,9 @@ pub fn traverse_dom<E, D>(traversal: &D,
             }
         });
         aggregate.finish(traversal, start_time.unwrap());
-        println!("{}", aggregate);
+        if aggregate.is_large_traversal() {
+            println!("{}", aggregate);
+        }
     }
 }
 

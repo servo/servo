@@ -171,6 +171,16 @@ pub struct TraversalStatistics {
     pub elements_matched: u32,
     /// The number of cache hits from the StyleSharingCache.
     pub styles_shared: u32,
+    /// The number of selectors in the stylist.
+    pub selectors: u32,
+    /// The number of revalidation selectors.
+    pub revalidation_selectors: u32,
+    /// The number of state/attr dependencies in the dependency set.
+    pub dependency_selectors: u32,
+    /// The number of declarations in the stylist.
+    pub declarations: u32,
+    /// The number of times the stylist was rebuilt.
+    pub stylist_rebuilds: u32,
     /// Time spent in the traversal, in milliseconds.
     pub traversal_time_ms: f64,
     /// Whether this was a parallel traversal.
@@ -183,11 +193,21 @@ impl<'a> Add for &'a TraversalStatistics {
     fn add(self, other: Self) -> TraversalStatistics {
         debug_assert!(self.traversal_time_ms == 0.0 && other.traversal_time_ms == 0.0,
                       "traversal_time_ms should be set at the end by the caller");
+        debug_assert!(self.selectors == 0, "set at the end");
+        debug_assert!(self.revalidation_selectors == 0, "set at the end");
+        debug_assert!(self.dependency_selectors == 0, "set at the end");
+        debug_assert!(self.declarations == 0, "set at the end");
+        debug_assert!(self.stylist_rebuilds == 0, "set at the end");
         TraversalStatistics {
             elements_traversed: self.elements_traversed + other.elements_traversed,
             elements_styled: self.elements_styled + other.elements_styled,
             elements_matched: self.elements_matched + other.elements_matched,
             styles_shared: self.styles_shared + other.styles_shared,
+            selectors: 0,
+            revalidation_selectors: 0,
+            dependency_selectors: 0,
+            declarations: 0,
+            stylist_rebuilds: 0,
             traversal_time_ms: 0.0,
             is_parallel: None,
         }
@@ -209,6 +229,11 @@ impl fmt::Display for TraversalStatistics {
         try!(writeln!(f, "[PERF],elements_styled,{}", self.elements_styled));
         try!(writeln!(f, "[PERF],elements_matched,{}", self.elements_matched));
         try!(writeln!(f, "[PERF],styles_shared,{}", self.styles_shared));
+        try!(writeln!(f, "[PERF],selectors,{}", self.selectors));
+        try!(writeln!(f, "[PERF],revalidation_selectors,{}", self.revalidation_selectors));
+        try!(writeln!(f, "[PERF],dependency_selectors,{}", self.dependency_selectors));
+        try!(writeln!(f, "[PERF],declarations,{}", self.declarations));
+        try!(writeln!(f, "[PERF],stylist_rebuilds,{}", self.stylist_rebuilds));
         try!(writeln!(f, "[PERF],traversal_time_ms,{}", self.traversal_time_ms));
         writeln!(f, "[PERF] perf block end")
     }
@@ -222,6 +247,17 @@ impl TraversalStatistics {
     {
         self.is_parallel = Some(traversal.is_parallel());
         self.traversal_time_ms = (time::precise_time_s() - start) * 1000.0;
+        self.selectors = traversal.shared_context().stylist.num_selectors() as u32;
+        self.revalidation_selectors = traversal.shared_context().stylist.num_revalidation_selectors() as u32;
+        self.dependency_selectors = traversal.shared_context().stylist.num_dependencies() as u32;
+        self.declarations = traversal.shared_context().stylist.num_declarations() as u32;
+        self.stylist_rebuilds = traversal.shared_context().stylist.num_rebuilds() as u32;
+    }
+
+    /// Returns whether this traversal is 'large' in order to avoid console spam
+    /// from lots of tiny traversals.
+    pub fn is_large_traversal(&self) -> bool {
+        self.elements_traversed >= 50
     }
 }
 
