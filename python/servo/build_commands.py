@@ -15,6 +15,7 @@ import os.path as path
 import platform
 import sys
 import shutil
+import subprocess
 
 from time import time
 
@@ -324,6 +325,21 @@ class MachCommands(CommandBase):
                     for ssl_lib in ["libcryptoMD.dll", "libsslMD.dll"]:
                         shutil.copy(path.join(env['OPENSSL_LIB_DIR'], "../bin" + msvc_x64, ssl_lib),
                                     servo_exe_dir)
+                    if os.environ["VisualStudioVersion"] == "14.0":
+                        vs_dir = os.environ["VS140COMNTOOLS"]
+                        vs_dll_dir = path.join(vs_dir, "..", "IDE", "Remote Debugger", os.environ["PLATFORM"].lower())
+                        for vs_dll in ["api-ms-win-crt-runtime-l1-1-0.dll"]:
+                            shutil.copy(path.join(vs_dll_dir, vs_dll), servo_exe_dir)
+                    msvc_deps = [
+                        "vcruntime140.dll",
+                        "msvcp140.dll",
+                        "api-ms-win-crt-runtime-l1-1-0.dll",
+                    ]
+                    for msvc_dll in msvc_deps:
+                        dll = subprocess.Popen(["where", msvc_dll], stdout=subprocess.PIPE)
+                        vs_dll = dll.stdout.read().splitlines()[0]
+                        if os.path.isfile(vs_dll):
+                            shutil.copy(vs_dll, servo_exe_dir)
 
                 elif sys.platform == "darwin":
                     # On the Mac, set a lovely icon. This makes it easier to pick out the Servo binary in tools
