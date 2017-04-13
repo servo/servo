@@ -365,7 +365,6 @@ pub trait FragmentDisplayListBuilding {
                         -> Option<display_list::Gradient>;
 
     fn convert_radial_gradient(&self,
-                        absolute_bounds: &Rect<Au>,
                         gradient: &Gradient,
                         style: &ServoComputedValues)
                         -> Option<display_list::RadialGradient>;
@@ -1085,34 +1084,38 @@ impl FragmentDisplayListBuilding for Fragment {
     }
 
     fn convert_radial_gradient(&self,
-                               absolute_bounds: &Rect<Au>,
                                gradient: &Gradient,
                                style: &ServoComputedValues) -> Option<display_list::RadialGradient> {
         // FIXME: Repeating gradients aren't implemented yet.
         if gradient.repeating {
           return None;
         }
+        // FIXME(pcwalton, #2795): Get the real container size.
+        let container_size = Size2D::zero();
+        let content_box = self.content_box().to_physical(style.writing_mode, container_size);
+        let origin = content_box.origin;
+        let size = content_box.size;
         if let GradientKind::Radial(ref shape, ref center) = gradient.gradient_kind {
-            let center = Point2D::new(specified(center.horizontal, absolute_bounds.size.width),
-                                      specified(center.vertical, absolute_bounds.size.height));
+            let center = Point2D::new(specified(center.horizontal, size.width),
+                                      specified(center.vertical, size.height));
             let radius = match *shape {
                 EndingShape::Circle(LengthOrKeyword::Length(length))
                     => Size2D::new(length, length),
                 EndingShape::Circle(LengthOrKeyword::Keyword(word))
-                    => convert_size_keyword(word, true, &absolute_bounds.size, &center),
+                    => convert_size_keyword(word, true, &size, &center),
                 EndingShape::Ellipse(LengthOrPercentageOrKeyword::LengthOrPercentage(horizontal,
                                                                                      vertical))
-                     => Size2D::new(specified(horizontal, absolute_bounds.size.width),
-                                    specified(vertical, absolute_bounds.size.height)),
+                     => Size2D::new(specified(horizontal, size.width),
+                                    specified(vertical, size.height)),
                 EndingShape::Ellipse(LengthOrPercentageOrKeyword::Keyword(word))
-                    => convert_size_keyword(word, false, &absolute_bounds.size, &center),
+                    => convert_size_keyword(word, false, &size, &center),
             };
             let length = Au::from_f32_px(radius.width.to_f32_px().hypot(radius.height.to_f32_px()));
             let stops = convert_gradient_stops(&gradient.stops[..],
                                                length,
                                                style);
             Some(display_list::RadialGradient {
-                center: absolute_bounds.origin + center,
+                center: origin + center,
                 radius: radius,
                 stops: stops,
             })
@@ -1144,7 +1147,7 @@ impl FragmentDisplayListBuilding for Fragment {
             });
 
             state.add_display_item(gradient_display_item);
-        } else if let Some(x) = self.convert_radial_gradient(absolute_bounds, gradient, style) {
+        } else if let Some(x) = self.convert_radial_gradient(gradient, style) {
             let base = state.create_base_display_item(absolute_bounds,
                                                       &clip,
                                                       self.node,
