@@ -281,6 +281,8 @@ partial interface CSSStyleDeclaration {
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString font-style;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString fontVariant;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString font-variant;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString fontVariantCaps;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString font-variant-caps;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString fontWeight;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString font-weight;
 

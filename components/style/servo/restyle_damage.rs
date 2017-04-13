@@ -201,7 +201,7 @@ fn compute_damage(old: &ServoComputedValues, new: &ServoComputedValues) -> Servo
         get_inheritedtext.text_transform, get_inheritedtext.word_spacing,
         get_inheritedtext.overflow_wrap, get_inheritedtext.text_justify,
         get_inheritedtext.white_space, get_inheritedtext.word_break, get_text.text_overflow,
-        get_font.font_family, get_font.font_style, get_font.font_variant, get_font.font_weight,
+        get_font.font_family, get_font.font_style, get_font.font_variant_caps, get_font.font_weight,
         get_font.font_size, get_font.font_stretch,
         get_inheritedbox.direction, get_inheritedbox.writing_mode,
         get_text.text_decoration_line, get_text.unicode_bidi,
