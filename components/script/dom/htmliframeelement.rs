@@ -45,7 +45,7 @@ use net_traits::response::HttpsState;
 use script_layout_interface::message::ReflowQueryType;
 use script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
 use script_thread::{MainThreadScriptMsg, ScriptThread, Runnable};
-use script_traits::{IFrameLoadInfo, IFrameLoadInfoWithData, LoadData};
+use script_traits::{IFrameLoadInfo, IFrameLoadInfoWithData, LoadData, DocumentType};
 use script_traits::{MozBrowserEvent, NewLayoutInfo, ScriptMsg as ConstellationMsg};
 use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use servo_atoms::Atom;
@@ -71,15 +71,15 @@ bitflags! {
 }
 
 #[derive(PartialEq)]
-enum ProcessingMode {
-    FirstTime,
-    NotFirstTime,
+pub enum TerminateLoadBlocker {
+    Yes,
+    No,
 }
 
 #[derive(PartialEq)]
-pub enum NavigationType {
-    InitialAboutBlank,
-    Normal,
+enum ProcessingMode {
+    FirstTime,
+    NotFirstTime,
 }
 
 #[dom_struct]
@@ -113,7 +113,7 @@ impl HTMLIFrameElement {
     }
 
     pub fn navigate_or_reload_child_browsing_context(&self, load_data: Option<LoadData>,
-                                                     nav_type: NavigationType,
+                                                     doc_type: DocumentType,
                                                      replace: bool) {
         let sandboxed = if self.is_sandboxed() {
             IFrameSandboxed
@@ -152,13 +152,13 @@ impl HTMLIFrameElement {
             replace: replace,
         };
 
-        if nav_type == NavigationType::InitialAboutBlank ||
+        if doc_type == DocumentType::InitialAboutBlank ||
             load_data.as_ref().map_or(false, |d| d.url.as_str() == "about:blank") {
             let (pipeline_sender, pipeline_receiver) = ipc::channel().unwrap();
 
             global_scope
                 .constellation_chan()
-                .send(ConstellationMsg::ScriptLoadedAboutBlankInIFrame(load_info, pipeline_sender))
+                .send(ConstellationMsg::ScriptLoadedAboutBlankInIFrame(load_info, doc_type, pipeline_sender))
                 .unwrap();
 
             let new_layout_info = NewLayoutInfo {
@@ -173,7 +173,7 @@ impl HTMLIFrameElement {
             };
 
             // Only the initial about:blank load is synchronous.
-            if nav_type == NavigationType::InitialAboutBlank {
+            if doc_type == DocumentType::InitialAboutBlank {
                 self.pipeline_id.set(Some(new_pipeline_id));
                 ScriptThread::process_attach_layout(new_layout_info, document.origin().clone());
             } else {
@@ -223,7 +223,7 @@ impl HTMLIFrameElement {
 
         let document = document_from_node(self);
         self.navigate_or_reload_child_browsing_context(Some(LoadData::new(
-            url, document.get_referrer_policy(), Some(document.url()))), NavigationType::Normal, false);
+            url, document.get_referrer_policy(), Some(document.url()))), DocumentType::Normal, false);
     }
 
     #[allow(unsafe_code)]
@@ -244,13 +244,13 @@ impl HTMLIFrameElement {
         let load_data = LoadData::new(url,
                                       document.get_referrer_policy(),
                                       Some(document.url().clone()));
-        self.navigate_or_reload_child_browsing_context(Some(load_data), NavigationType::InitialAboutBlank, false);
+        self.navigate_or_reload_child_browsing_context(Some(load_data), DocumentType::InitialAboutBlank, false);
     }
 
-    pub fn update_pipeline_id(&self, new_pipeline_id: PipelineId, terminate_load_blocker: bool) {
+    pub fn update_pipeline_id(&self, new_pipeline_id: PipelineId, terminate: TerminateLoadBlocker) {
         self.pipeline_id.set(Some(new_pipeline_id));
 
-        if terminate_load_blocker {
+        if terminate == TerminateLoadBlocker::Yes {
             let mut blocker = self.load_blocker.borrow_mut();
             LoadBlocker::terminate(&mut blocker);
         }
@@ -581,7 +581,7 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     fn Reload(&self, _hard_reload: bool) -> ErrorResult {
         if self.Mozbrowser() {
             if self.upcast::<Node>().is_in_doc_with_browsing_context() {
-                self.navigate_or_reload_child_browsing_context(None, NavigationType::Normal, true);
+                self.navigate_or_reload_child_browsing_context(None, DocumentType::Normal, true);
             }
             Ok(())
         } else {

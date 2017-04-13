@@ -194,6 +194,16 @@ pub enum DiscardBrowsingContext {
     No,
 }
 
+/// Represents whether a document/pipeline is an initial about:blank document.
+#[derive(Copy, Clone, PartialEq, Deserialize, Serialize)]
+pub enum DocumentType {
+    /// Initial about:blank document.
+    InitialAboutBlank,
+
+    /// Any other document.
+    Normal,
+}
+
 /// Is a document fully active, active or inactive?
 /// A document is active if it is the current active document in its session history,
 /// it is fuly active if it is active and all of its ancestors are active,
@@ -275,8 +285,8 @@ pub enum ConstellationControlMsg {
     /// The strings are key, old value and new value.
     DispatchStorageEvent(PipelineId, StorageType, ServoUrl, Option<String>, Option<String>, Option<String>),
     /// Notifies a parent pipeline that one of its child frames is now active.
-    /// PipelineId is for the parent, FrameId is the child frame.
-    FramedContentChanged(PipelineId, FrameId),
+    /// First PipelineId is for the child, second is for the parent, FrameId is the child frame.
+    FramedContentChanged(PipelineId, PipelineId, FrameId),
     /// Report an error from a CSS parser for the given pipeline
     ReportCSSError(PipelineId, String, usize, usize, String),
     /// Reload the given page.
