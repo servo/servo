@@ -780,7 +780,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
     #[inline]
     #[allow(unsafe_code)]
     fn insert_selector_flags(&self, flags: ElementSelectorFlags) {
-        debug_assert!(thread_state::get() == thread_state::LAYOUT);
+        debug_assert!(thread_state::get().is_layout());
         unsafe {
             let f = &(*self.unsafe_get()).selector_flags;
             f.set(f.get() | flags);
