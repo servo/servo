@@ -138,6 +138,45 @@
 
 </%helpers:shorthand>
 
+% for kind in ["row", "column"]:
+<%helpers:shorthand name="grid-${kind}" sub_properties="grid-${kind}-start grid-${kind}-end"
+                    spec="https://drafts.csswg.org/css-grid/#propdef-grid-${kind}"
+                    products="gecko">
+    use values::specified::GridLine;
+    use parser::Parse;
+
+    // NOTE: Since both the shorthands have the same code, we should (re-)use code from one to implement
+    // the other. This might not be a big deal for now, but we should consider looking into this in the future
+    // to limit the amount of code generated.
+    pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+        let start = input.try(|i| GridLine::parse(context, i))?;
+        let end = if input.try(|i| i.expect_delim('/')).is_ok() {
+            GridLine::parse(context, input)?
+        } else {
+            let mut line = GridLine::default();
+            if start.integer.is_none() && !start.is_span {
+                line.ident = start.ident.clone();       // ident from start value should be taken
+            }
+
+            line
+        };
+
+        Ok(Longhands {
+            grid_${kind}_start: start,
+            grid_${kind}_end: end,
+        })
+    }
+
+    impl<'a> ToCss for LonghandsToSerialize<'a> {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            self.grid_${kind}_start.to_css(dest)?;
+            dest.write_str(" / ")?;
+            self.grid_${kind}_end.to_css(dest)
+        }
+    }
+</%helpers:shorthand>
+% endfor
+
 <%helpers:shorthand name="place-content" sub_properties="align-content justify-content"
                     spec="https://drafts.csswg.org/css-align/#propdef-place-content"
                     products="gecko" disable_when_testing="True">
