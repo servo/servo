@@ -1,0 +1,15 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>CSS 2.1 § 9.4.2: Empty line boxes shouldn't affect the layout.</title>
+<link rel="match" href="phantom_line_box_ref.html">
+<style>
+span {
+  margin: 20px 0;
+  border: 16px solid black;
+  border-left: 0; border-right: 0;
+  padding: 12px 0;
+  font-size: 200px;
+}
+</style>
+<div><span></span></div>
+This text should be at the top of the page.

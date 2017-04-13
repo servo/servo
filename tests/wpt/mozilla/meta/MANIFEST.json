@@ -1799,6 +1799,18 @@
      {}
     ]
    ],
+   "css/empty_span_line_height.html": [
+    [
+     "/_mozilla/css/empty_span_line_height.html",
+     [
+      [
+       "/_mozilla/css/empty_span_line_height_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "css/external_media_query_link.html": [
     [
      "/_mozilla/css/external_media_query_link.html",
@@ -4751,6 +4763,18 @@
      {}
     ]
    ],
+   "css/phantom_line_box.html": [
+    [
+     "/_mozilla/css/phantom_line_box.html",
+     [
+      [
+       "/_mozilla/css/phantom_line_box_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "css/pixel_snapping_border_a.html": [
     [
      "/_mozilla/css/pixel_snapping_border_a.html",
@@ -5555,6 +5579,18 @@
      [
       [
        "/_mozilla/css/style_is_in_doc_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/styled_empty_inline_element.html": [
+    [
+     "/_mozilla/css/styled_empty_inline_element.html",
+     [
+      [
+       "/_mozilla/css/styled_empty_inline_element_ref.html",
        "=="
       ]
      ],
@@ -8646,6 +8682,11 @@
      {}
     ]
    ],
+   "css/empty_span_line_height_ref.html": [
+    [
+     {}
+    ]
+   ],
    "css/external_media_query_ref.html": [
     [
      {}
@@ -9876,6 +9917,11 @@
      {}
     ]
    ],
+   "css/phantom_line_box_ref.html": [
+    [
+     {}
+    ]
+   ],
    "css/pixel_snapping_border_ref.html": [
     [
      {}
@@ -10222,6 +10268,11 @@
     ]
    ],
    "css/style_is_in_doc_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/styled_empty_inline_element_ref.html": [
     [
      {}
     ]
@@ -23819,6 +23870,14 @@
    "a8ca0b4797ee433d399a8fdcddd91ed862b90b9e",
    "support"
   ],
+  "css/empty_span_line_height.html": [
+   "fbe44654b0d3f1f21d922939cff2d840332975ee",
+   "reftest"
+  ],
+  "css/empty_span_line_height_ref.html": [
+   "c877f5b2248385d6c9b4252919c7826e2ab3cb49",
+   "support"
+  ],
   "css/external_media_query_link.html": [
    "73ff67177f347863dcab738b5b84910b25cb49fa",
    "reftest"
@@ -25831,6 +25890,14 @@
    "b3fb5e49cdbd71d5bf3e399793a520b4bd02e596",
    "support"
   ],
+  "css/phantom_line_box.html": [
+   "fa074beb6953891ad11dbda5ab1e3ac034e0f22e",
+   "reftest"
+  ],
+  "css/phantom_line_box_ref.html": [
+   "5165171974f4fc98cf8467abb4c1eea6b4f29f94",
+   "support"
+  ],
   "css/pixel_snapping_border_a.html": [
    "bb3403ffb64edd9f1e60ad0a75feaeb7e42ab47b",
    "reftest"
@@ -26377,6 +26444,14 @@
   ],
   "css/style_is_in_doc_ref.html": [
    "80c8a349ef1df43ec338012545764b314015b272",
+   "support"
+  ],
+  "css/styled_empty_inline_element.html": [
+   "d368bf51e98abac6d31c7fa7885358d27817fc1a",
+   "reftest"
+  ],
+  "css/styled_empty_inline_element_ref.html": [
+   "a3b2432882916f943b86531330cca25ebffe31dd",
    "support"
   ],
   "css/stylesheet_media_queries.html": [
