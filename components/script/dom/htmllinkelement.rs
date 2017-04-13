@@ -24,6 +24,7 @@ use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever_atoms::LocalName;
 use net_traits::ReferrerPolicy;
+use script_layout_interface::message::Msg;
 use script_traits::{MozBrowserEvent, ScriptMsg as ConstellationMsg};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
@@ -97,8 +98,9 @@ impl HTMLLinkElement {
     }
 
     pub fn set_stylesheet(&self, s: Arc<Stylesheet>) {
-        assert!(self.stylesheet.borrow().is_none()); // Useful for catching timing issues.
-        *self.stylesheet.borrow_mut() = Some(s);
+        *self.stylesheet.borrow_mut() = Some(s.clone());
+        window_from_node(self).layout_chan().send(Msg::AddStylesheet(s)).unwrap();
+        document_from_node(self).invalidate_stylesheets();
     }
 
     pub fn get_stylesheet(&self) -> Option<Arc<Stylesheet>> {
