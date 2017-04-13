@@ -10,7 +10,7 @@ use std::fmt;
 use style_traits::ToCss;
 use super::{Number, ToComputedValue, Context};
 use values::{Auto, CSSFloat, Either, ExtremumLength, None_, Normal, specified};
-use values::specified::length::{AbsoluteLength, FontRelativeLength, ViewportPercentageLength};
+use values::specified::length::{AbsoluteLength, FontBaseSize, FontRelativeLength, ViewportPercentageLength};
 
 pub use super::image::{EndingShape as GradientShape, Gradient, GradientKind, Image};
 pub use super::image::{LengthOrKeyword, LengthOrPercentageOrKeyword};
@@ -25,7 +25,7 @@ impl ToComputedValue for specified::NoCalcLength {
             specified::NoCalcLength::Absolute(length) =>
                 length.to_computed_value(context),
             specified::NoCalcLength::FontRelative(length) =>
-                length.to_computed_value(context, /* use inherited */ false),
+                length.to_computed_value(context, /* base_size */ FontBaseSize::CurrentStyle),
             specified::NoCalcLength::ViewportPercentage(length) =>
                 length.to_computed_value(context.viewport_size()),
             specified::NoCalcLength::ServoCharacterWidth(length) =>
@@ -139,6 +139,7 @@ impl ToComputedValue for specified::CalcLengthOrPercentage {
     type ComputedValue = CalcLengthOrPercentage;
 
     fn to_computed_value(&self, context: &Context) -> CalcLengthOrPercentage {
+
         let mut length = Au(0);
 
         if let Some(absolute) = self.absolute {
@@ -159,7 +160,7 @@ impl ToComputedValue for specified::CalcLengthOrPercentage {
                      self.ex.map(FontRelativeLength::Ex),
                      self.rem.map(FontRelativeLength::Rem)] {
             if let Some(val) = *val {
-                length += val.to_computed_value(context, /* use inherited */ false);
+                length += val.to_computed_value(context, /* base_size */ FontBaseSize::CurrentStyle);
             }
         }
 

@@ -418,6 +418,7 @@ ${helpers.single_keyword("font-variant-caps",
     use values::{FONT_MEDIUM_PX, HasViewportPercentage};
     use values::specified::{FontRelativeLength, LengthOrPercentage, Length};
     use values::specified::{NoCalcLength, Percentage};
+    use values::specified::length::FontBaseSize;
 
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
@@ -627,6 +628,43 @@ ${helpers.single_keyword("font-variant-caps",
             }
             None
         }
+
+        /// Compute it against a given base font size
+        pub fn to_computed_value_against(&self, context: &Context, base_size: FontBaseSize) -> Au {
+            use values::specified::length::FontRelativeLength;
+            match *self {
+                SpecifiedValue::Length(LengthOrPercentage::Length(
+                        NoCalcLength::FontRelative(value))) => {
+                    value.to_computed_value(context, base_size)
+                }
+                SpecifiedValue::Length(LengthOrPercentage::Length(
+                        NoCalcLength::ServoCharacterWidth(value))) => {
+                    value.to_computed_value(base_size.resolve(context))
+                }
+                SpecifiedValue::Length(LengthOrPercentage::Length(ref l)) => {
+                    l.to_computed_value(context)
+                }
+                SpecifiedValue::Length(LengthOrPercentage::Percentage(Percentage(value))) => {
+                    base_size.resolve(context).scale_by(value)
+                }
+                SpecifiedValue::Length(LengthOrPercentage::Calc(ref calc)) => {
+                    let calc = calc.to_computed_value(context);
+                    calc.length() +base_size.resolve(context)
+                                           .scale_by(calc.percentage())
+                }
+                SpecifiedValue::Keyword(ref key, fraction) => {
+                    key.to_computed_value(context).scale_by(fraction)
+                }
+                SpecifiedValue::Smaller => {
+                    FontRelativeLength::Em(0.85)
+                        .to_computed_value(context, base_size)
+                }
+                SpecifiedValue::Larger => {
+                    FontRelativeLength::Em(1.2)
+                        .to_computed_value(context, base_size)
+                }
+            }
+        }
     }
 
     #[inline]
@@ -640,44 +678,13 @@ ${helpers.single_keyword("font-variant-caps",
         SpecifiedValue::Keyword(Medium, 1.)
     }
 
+
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
 
         #[inline]
         fn to_computed_value(&self, context: &Context) -> computed_value::T {
-            use values::specified::length::FontRelativeLength;
-            match *self {
-                SpecifiedValue::Length(LengthOrPercentage::Length(
-                        NoCalcLength::FontRelative(value))) => {
-                    value.to_computed_value(context, /* use inherited */ true)
-                }
-                SpecifiedValue::Length(LengthOrPercentage::Length(
-                        NoCalcLength::ServoCharacterWidth(value))) => {
-                    value.to_computed_value(context.inherited_style().get_font().clone_font_size())
-                }
-                SpecifiedValue::Length(LengthOrPercentage::Length(ref l)) => {
-                    l.to_computed_value(context)
-                }
-                SpecifiedValue::Length(LengthOrPercentage::Percentage(Percentage(value))) => {
-                    context.inherited_style().get_font().clone_font_size().scale_by(value)
-                }
-                SpecifiedValue::Length(LengthOrPercentage::Calc(ref calc)) => {
-                    let calc = calc.to_computed_value(context);
-                    calc.length() + context.inherited_style().get_font().clone_font_size()
-                                           .scale_by(calc.percentage())
-                }
-                SpecifiedValue::Keyword(ref key, fraction) => {
-                    key.to_computed_value(context).scale_by(fraction)
-                }
-                SpecifiedValue::Smaller => {
-                    FontRelativeLength::Em(0.85).to_computed_value(context,
-                                                                   /* use_inherited */ true)
-                }
-                SpecifiedValue::Larger => {
-                    FontRelativeLength::Em(1.2).to_computed_value(context,
-                                                                   /* use_inherited */ true)
-                }
-            }
+            self.to_computed_value_against(context, FontBaseSize::InheritedStyle)
         }
 
         #[inline]
