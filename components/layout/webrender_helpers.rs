@@ -389,7 +389,11 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                                               radius,
                                                               item.gradient.stops.clone(),
                                                               ExtendMode::Clamp);
-                builder.push_radial_gradient(rect, clip, gradient);
+                builder.push_radial_gradient(rect,
+                                             clip,
+                                             gradient,
+                                             rect.size,
+                                             webrender_traits::LayoutSize::zero());
             }
             DisplayItem::Line(..) => {
                 println!("TODO DisplayItem::Line");
