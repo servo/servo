@@ -816,16 +816,26 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     impl Parse for SpecifiedValue {
         fn parse(_context: &ParserContext, input: &mut ::cssparser::Parser) -> Result<Self, ()> {
             use cssparser::Token;
-            Ok(match input.next() {
-                Ok(Token::Ident(ref value)) => SpecifiedValue(if value == "none" {
-                    // FIXME We may want to support `@keyframes ""` at some point.
-                    atom!("")
-                } else {
-                    Atom::from(&**value)
-                }),
-                Ok(Token::QuotedString(value)) => SpecifiedValue(Atom::from(&*value)),
+            use properties::CSSWideKeyword;
+            use std::ascii::AsciiExt;
+
+            let atom = match input.next() {
+                Ok(Token::Ident(ref value)) => {
+                    if CSSWideKeyword::from_ident(value).is_some() {
+                        // We allow any ident for the animation-name except one
+                        // of the CSS-wide keywords.
+                        return Err(());
+                    } else if value.eq_ignore_ascii_case("none") {
+                        // FIXME We may want to support `@keyframes ""` at some point.
+                        atom!("")
+                    } else {
+                        Atom::from(&**value)
+                    }
+                }
+                Ok(Token::QuotedString(value)) => Atom::from(&*value),
                 _ => return Err(()),
-            })
+            };
+            Ok(SpecifiedValue(atom))
         }
     }
     no_viewport_percentage!(SpecifiedValue);
