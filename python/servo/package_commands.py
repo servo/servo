@@ -96,8 +96,11 @@ def copy_dependencies(binary_path, lib_path):
 
 def copy_windows_dependencies(binary_path, destination):
     deps = [
+        "api-ms-win-crt-runtime-l1-1-0.dll",
         "libcryptoMD.dll",
         "libsslMD.dll",
+        "msvcp140.dll",
+        "vcruntime140.dll",
     ]
     for d in deps:
         shutil.copy(path.join(binary_path, d), destination)
