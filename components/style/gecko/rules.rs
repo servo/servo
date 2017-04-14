@@ -141,7 +141,19 @@ pub type CounterStyleDescriptors = [nsCSSValue; nsCSSCounterDesc::eCSSCounterDes
 impl ToNsCssValue for System {
     fn convert(&self, v: &mut nsCSSValue) {
         match *self {
+            System::Cyclic => v.set_enum(structs::NS_STYLE_COUNTER_SYSTEM_CYCLIC as i32),
+            System::Numeric => v.set_enum(structs::NS_STYLE_COUNTER_SYSTEM_NUMERIC as i32),
+            System::Alphabetic => v.set_enum(structs::NS_STYLE_COUNTER_SYSTEM_ALPHABETIC as i32),
             System::Symbolic => v.set_enum(structs::NS_STYLE_COUNTER_SYSTEM_SYMBOLIC as i32),
+            System::Additive => v.set_enum(structs::NS_STYLE_COUNTER_SYSTEM_ADDITIVE as i32),
+            System::Fixed { first_symbol_value: _ } => {
+                // FIXME: add bindings for nsCSSValue::SetPairValue or equivalent
+                unimplemented!()
+            }
+            System::Extends(ref _other) => {
+                // FIXME: add bindings for nsCSSValue::SetPairValue or equivalent
+                unimplemented!()
+            }
         }
     }
 }

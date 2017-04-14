@@ -15,6 +15,11 @@ use std::fmt;
 use style_traits::ToCss;
 use values::CustomIdent;
 
+/// Parse the prelude of an @counter-style rule
+pub fn parse_counter_style_name(input: &mut Parser) -> Result<CustomIdent, ()> {
+    CustomIdent::from_ident(input.expect_ident()?, &["decimal", "none"])
+}
+
 /// Parse the body (inside `{}`) of an @counter-style rule
 pub fn parse_counter_style_body(name: CustomIdent, context: &ParserContext, input: &mut Parser)
                             -> Result<CounterStyleRule, ()> {
@@ -128,14 +133,41 @@ counter_style_descriptors! {
 /// Value of the 'system' descriptor
 #[derive(Debug)]
 pub enum System {
-    /// Cycles through provided symbols, doubling, tripling, etc.
+    /// 'cyclic'
+    Cyclic,
+    /// 'numeric'
+    Numeric,
+    /// 'alphabetic'
+    Alphabetic,
+    /// 'symbolic'
     Symbolic,
+    /// 'additive'
+    Additive,
+    /// 'fixed <integer>?'
+    Fixed {
+        /// '<integer>?'
+        first_symbol_value: Option<i32>
+    },
+    /// 'extends <counter-style-name>'
+    Extends(CustomIdent),
 }
 
 impl Parse for System {
     fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         match_ignore_ascii_case! { &input.expect_ident()?,
+            "cyclic" => Ok(System::Cyclic),
+            "numeric" => Ok(System::Numeric),
+            "alphabetic" => Ok(System::Alphabetic),
             "symbolic" => Ok(System::Symbolic),
+            "additive" => Ok(System::Additive),
+            "fixed" => {
+                let first_symbol_value = input.try(|i| i.expect_integer()).ok();
+                Ok(System::Fixed { first_symbol_value: first_symbol_value })
+            }
+            "extends" => {
+                let other = parse_counter_style_name(input)?;
+                Ok(System::Extends(other))
+            }
             _ => Err(())
         }
     }
@@ -144,7 +176,22 @@ impl Parse for System {
 impl ToCss for System {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
-            System::Symbolic => dest.write_str("symbolic")
+            System::Cyclic => dest.write_str("cyclic"),
+            System::Numeric => dest.write_str("numeric"),
+            System::Alphabetic => dest.write_str("alphabetic"),
+            System::Symbolic => dest.write_str("symbolic"),
+            System::Additive => dest.write_str("additive"),
+            System::Fixed { first_symbol_value } => {
+                if let Some(value) = first_symbol_value {
+                    write!(dest, "fixed {}", value)
+                } else {
+                    dest.write_str("fixed")
+                }
+            }
+            System::Extends(ref other) => {
+                dest.write_str("symbolic ")?;
+                other.to_css(dest)
+            }
         }
     }
 }

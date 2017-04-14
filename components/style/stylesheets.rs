@@ -7,7 +7,7 @@
 #![deny(missing_docs)]
 
 use {Atom, Prefix, Namespace};
-use counter_style::{CounterStyleRule, parse_counter_style_body};
+use counter_style::{CounterStyleRule, parse_counter_style_name, parse_counter_style_body};
 use cssparser::{AtRuleParser, Parser, QualifiedRuleParser};
 use cssparser::{AtRuleType, RuleListParser, SourcePosition, Token, parse_one_rule};
 use cssparser::ToCss as ParserToCss;
@@ -1118,7 +1118,7 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
                     // Support for this rule is not fully implemented in Servo yet.
                     return Err(())
                 }
-                let name = CustomIdent::from_ident(input.expect_ident()?, &["decimal", "none"])?;
+                let name = parse_counter_style_name(input)?;
                 Ok(AtRuleType::WithBlock(AtRulePrelude::CounterStyle(name)))
             },
             "viewport" => {
