@@ -66,6 +66,19 @@ impl TransitionProperty {
         % endfor
     }
 
+    /// Iterates over every property that is not TransitionProperty::All, stopping and returning
+    /// true when the provided callback returns true for the first time.
+    pub fn any<F: FnMut(TransitionProperty) -> bool>(mut cb: F) -> bool {
+        % for prop in data.longhands:
+            % if prop.animatable:
+                if cb(TransitionProperty::${prop.camel_case}) {
+                    return true;
+                }
+            % endif
+        % endfor
+        false
+    }
+
     /// Parse a transition-property value.
     pub fn parse(input: &mut Parser) -> Result<Self, ()> {
         match_ignore_ascii_case! { &try!(input.expect_ident()),
