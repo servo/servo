@@ -16,11 +16,11 @@ use dom::cssrulelist::{CSSRuleList, RulesSource};
 use dom::cssstylesheet::CSSStyleSheet;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use servo_atoms::Atom;
 use std::sync::Arc;
 use style::keyframes::{Keyframe, KeyframeSelector};
 use style::shared_lock::{Locked, ToCssWithGuard};
 use style::stylesheets::KeyframesRule;
+use style::values::CustomIdent;
 
 #[dom_struct]
 pub struct CSSKeyframesRule {
@@ -107,7 +107,7 @@ impl CSSKeyframesRuleMethods for CSSKeyframesRule {
     // https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-name
     fn Name(&self) -> DOMString {
         let guard = self.cssrule.shared_lock().read();
-        DOMString::from(&*self.keyframesrule.read_with(&guard).name)
+        DOMString::from(&*self.keyframesrule.read_with(&guard).name.0)
     }
 
     // https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-name
@@ -115,15 +115,9 @@ impl CSSKeyframesRuleMethods for CSSKeyframesRule {
         // https://github.com/w3c/csswg-drafts/issues/801
         // Setting this property to a CSS-wide keyword or `none` will
         // throw a Syntax Error.
-        match_ignore_ascii_case! { &value,
-            "initial" => return Err(Error::Syntax),
-            "inherit" => return Err(Error::Syntax),
-            "unset" => return Err(Error::Syntax),
-            "none" => return Err(Error::Syntax),
-            _ => ()
-        }
+        let name = CustomIdent::from_ident(value.into(), &["none"]).map_err(|()| Error::Syntax)?;
         let mut guard = self.cssrule.shared_lock().write();
-        self.keyframesrule.write_with(&mut guard).name = Atom::from(value);
+        self.keyframesrule.write_with(&mut guard).name = name;
         Ok(())
     }
 }
