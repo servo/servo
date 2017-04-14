@@ -16,7 +16,7 @@ use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use std::ascii::AsciiExt;
 use std::fmt;
 use std::ops::Range;
-use style_traits::ToCss;
+use style_traits::{ToCss, OneOrMoreCommaSeparated};
 use values::CustomIdent;
 
 /// Parse the prelude of an @counter-style rule
@@ -153,6 +153,9 @@ counter_style_descriptors! {
     /// https://drafts.csswg.org/css-counter-styles/#counter-style-fallback
     "fallback" fallback / eCSSCounterDesc_Fallback: Fallback =
         Fallback(CustomIdent(Atom::from("decimal")));
+
+    /// https://drafts.csswg.org/css-counter-styles/#counter-style-symbols
+    "symbols" symbols / eCSSCounterDesc_Symbols: Symbols = Symbols(Vec::new());
 }
 
 /// https://drafts.csswg.org/css-counter-styles/#counter-style-system
@@ -232,6 +235,8 @@ pub enum Symbol {
     // /// <image>
     // Image(Image),
 }
+
+impl OneOrMoreCommaSeparated for Symbol {}
 
 impl Parse for Symbol {
     fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
@@ -377,5 +382,39 @@ impl Parse for Fallback {
 impl ToCss for Fallback {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         self.0.to_css(dest)
+    }
+}
+
+/// https://drafts.csswg.org/css-counter-styles/#counter-style-symbols
+#[derive(Debug)]
+pub struct Symbols(pub Vec<Symbol>);
+
+impl Parse for Symbols {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        let mut symbols = Vec::new();
+        loop {
+            if let Ok(s) = input.try(|input| Symbol::parse(context, input)) {
+                symbols.push(s)
+            } else {
+                if symbols.is_empty() {
+                    return Err(())
+                } else {
+                    return Ok(Symbols(symbols))
+                }
+            }
+        }
+    }
+}
+
+impl ToCss for Symbols {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        let mut iter = self.0.iter();
+        let first = iter.next().expect("expected at least one symbol");
+        first.to_css(dest)?;
+        for item in iter {
+            dest.write_char(' ')?;
+            item.to_css(dest)?;
+        }
+        Ok(())
     }
 }
