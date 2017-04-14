@@ -98,10 +98,15 @@ pub struct Gradient {
     pub repeating: bool,
     /// Gradients can be linear or radial.
     pub gradient_kind: GradientKind,
+    /// Compatibility mode.
+    pub compat_mode: CompatMode,
 }
 
 impl ToCss for Gradient {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        if self.compat_mode == CompatMode::WebKit {
+            try!(dest.write_str("-webkit-"));
+        }
         if self.repeating {
             try!(dest.write_str("repeating-"));
         }
@@ -109,7 +114,7 @@ impl ToCss for Gradient {
         match self.gradient_kind {
             GradientKind::Linear(angle_or_corner) => {
                 try!(dest.write_str("linear-gradient("));
-                try!(angle_or_corner.to_css(dest));
+                try!(angle_or_corner.to_css(dest, self.compat_mode));
                 if angle_or_corner == AngleOrCorner::None {
                     skipcomma = true;
                 }
@@ -136,41 +141,45 @@ impl ToCss for Gradient {
 impl Gradient {
     /// Parses a gradient from the given arguments.
     pub fn parse_function(context: &ParserContext, input: &mut Parser) -> Result<Gradient, ()> {
+        let parse_linear_gradient = |input: &mut Parser, mode| {
+            input.parse_nested_block(|input| {
+                let kind = try!(GradientKind::parse_linear(context, input, mode));
+                let stops = try!(input.parse_comma_separated(|i| ColorStop::parse(context, i)));
+                Ok((kind, stops))
+            })
+        };
+        let parse_radial_gradient = |input: &mut Parser| {
+            input.parse_nested_block(|input| {
+                let kind = try!(GradientKind::parse_radial(context, input));
+                let stops = try!(input.parse_comma_separated(|i| ColorStop::parse(context, i)));
+                Ok((kind, stops))
+            })
+        };
         let mut repeating = false;
+        let mut compat_mode = CompatMode::Modern;
         let (gradient_kind, stops) = match_ignore_ascii_case! { &try!(input.expect_function()),
             "linear-gradient" => {
-                try!(input.parse_nested_block(|input| {
-                        let kind = try!(GradientKind::parse_linear(context, input));
-                        let stops = try!(input.parse_comma_separated(|i| ColorStop::parse(context, i)));
-                        Ok((kind, stops))
-                    })
-                )
+                try!(parse_linear_gradient(input, compat_mode))
+            },
+            "-webkit-linear-gradient" => {
+                compat_mode = CompatMode::WebKit;
+                try!(parse_linear_gradient(input, compat_mode))
             },
             "repeating-linear-gradient" => {
                 repeating = true;
-                try!(input.parse_nested_block(|input| {
-                        let kind = try!(GradientKind::parse_linear(context, input));
-                        let stops = try!(input.parse_comma_separated(|i| ColorStop::parse(context, i)));
-                        Ok((kind, stops))
-                    })
-                )
+                try!(parse_linear_gradient(input, compat_mode))
+            },
+            "-webkit-repeating-linear-gradient" => {
+                repeating = true;
+                compat_mode = CompatMode::WebKit;
+                try!(parse_linear_gradient(input, compat_mode))
             },
             "radial-gradient" => {
-                try!(input.parse_nested_block(|input| {
-                        let kind = try!(GradientKind::parse_radial(context, input));
-                        let stops = try!(input.parse_comma_separated(|i| ColorStop::parse(context, i)));
-                        Ok((kind, stops))
-                    })
-                )
+                try!(parse_radial_gradient(input))
             },
             "repeating-radial-gradient" => {
                 repeating = true;
-                try!(input.parse_nested_block(|input| {
-                        let kind = try!(GradientKind::parse_radial(context, input));
-                        let stops = try!(input.parse_comma_separated(|i| ColorStop::parse(context, i)));
-                        Ok((kind, stops))
-                    })
-                )
+                try!(parse_radial_gradient(input))
             },
             _ => { return Err(()); }
         };
@@ -184,6 +193,7 @@ impl Gradient {
             stops: stops,
             repeating: repeating,
             gradient_kind: gradient_kind,
+            compat_mode: compat_mode,
         })
     }
 }
@@ -204,10 +214,20 @@ pub enum GradientKind {
     Radial(EndingShape, Position),
 }
 
+#[derive(Clone, Copy, PartialEq, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+/// Whether we used the modern notation or the compatibility `-webkit` prefix.
+pub enum CompatMode {
+    /// Modern syntax.
+    Modern,
+    /// `-webkit` prefix.
+    WebKit,
+}
+
 impl GradientKind {
     /// Parses a linear gradient kind from the given arguments.
-    pub fn parse_linear(context: &ParserContext, input: &mut Parser) -> Result<GradientKind, ()> {
-        let angle_or_corner = try!(AngleOrCorner::parse(context, input));
+    fn parse_linear(context: &ParserContext, input: &mut Parser, mode: CompatMode) -> Result<GradientKind, ()> {
+        let angle_or_corner = try!(AngleOrCorner::parse(context, input, mode));
         Ok(GradientKind::Linear(angle_or_corner))
     }
 
@@ -348,13 +368,15 @@ pub enum AngleOrCorner {
     None,
 }
 
-impl ToCss for AngleOrCorner {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+impl AngleOrCorner {
+    fn to_css<W>(&self, dest: &mut W, compat_mode: CompatMode) -> fmt::Result where W: fmt::Write {
         match *self {
             AngleOrCorner::None => Ok(()),
             AngleOrCorner::Angle(angle) => angle.to_css(dest),
             AngleOrCorner::Corner(horizontal, vertical) => {
-                try!(dest.write_str("to "));
+                if compat_mode == CompatMode::Modern {
+                    try!(dest.write_str("to "));
+                }
                 let mut horizontal_present = false;
                 if let Some(horizontal) = horizontal {
                     try!(horizontal.to_css(dest));
@@ -372,21 +394,22 @@ impl ToCss for AngleOrCorner {
     }
 }
 
-impl Parse for AngleOrCorner {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        if input.try(|input| input.expect_ident_matching("to")).is_ok() {
+impl AngleOrCorner {
+    fn parse(context: &ParserContext, input: &mut Parser, mode: CompatMode) -> Result<Self, ()> {
+        if let Ok(angle) = input.try(|i| Angle::parse_with_unitless(context, i)) {
+            try!(input.expect_comma());
+            return Ok(AngleOrCorner::Angle(angle))
+        }
+        if mode == CompatMode::WebKit || input.try(|input| input.expect_ident_matching("to")).is_ok() {
             let (horizontal, vertical) =
-            if let Ok(value) = input.try(HorizontalDirection::parse) {
-                (Some(value), input.try(VerticalDirection::parse).ok())
-            } else {
-                let value = try!(VerticalDirection::parse(input));
-                (input.try(HorizontalDirection::parse).ok(), Some(value))
-            };
+                if let Ok(value) = input.try(HorizontalDirection::parse) {
+                    (Some(value), input.try(VerticalDirection::parse).ok())
+                } else {
+                    let value = try!(VerticalDirection::parse(input));
+                    (input.try(HorizontalDirection::parse).ok(), Some(value))
+                };
             try!(input.expect_comma());
             Ok(AngleOrCorner::Corner(horizontal, vertical))
-        } else if let Ok(angle) = input.try(|i| Angle::parse(context, i)) {
-            try!(input.expect_comma());
-            Ok(AngleOrCorner::Angle(angle))
         } else {
             Ok(AngleOrCorner::None)
         }

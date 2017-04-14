@@ -15,6 +15,7 @@ use style_traits::ToCss;
 use values::computed::{Angle, Context, Length, LengthOrPercentage, NumberOrPercentage, ToComputedValue};
 use values::computed::position::Position;
 use values::specified::{self, HorizontalDirection, SizeKeyword, VerticalDirection};
+use values::specified::image::CompatMode;
 use values::specified::url::SpecifiedUrl;
 
 
@@ -124,17 +125,22 @@ pub struct Gradient {
     pub repeating: bool,
     /// Gradient kind can be linear or radial.
     pub gradient_kind: GradientKind,
+    /// Compatibility mode.
+    pub compat_mode: CompatMode,
 }
 
 impl ToCss for Gradient {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        if self.compat_mode == CompatMode::WebKit {
+            try!(dest.write_str("-webkit-"));
+        }
         if self.repeating {
             try!(dest.write_str("repeating-"));
         }
         match self.gradient_kind {
             GradientKind::Linear(angle_or_corner) => {
                 try!(dest.write_str("linear-gradient("));
-                try!(angle_or_corner.to_css(dest));
+                try!(angle_or_corner.to_css(dest, self.compat_mode));
             },
             GradientKind::Radial(ref shape, position) => {
                 try!(dest.write_str("radial-gradient("));
@@ -178,25 +184,30 @@ impl ToComputedValue for specified::Gradient {
         let specified::Gradient {
             ref stops,
             repeating,
-            ref gradient_kind
+            ref gradient_kind,
+            compat_mode,
         } = *self;
         Gradient {
             stops: stops.iter().map(|s| s.to_computed_value(context)).collect(),
             repeating: repeating,
             gradient_kind: gradient_kind.to_computed_value(context),
+            compat_mode: compat_mode,
         }
     }
+
     #[inline]
     fn from_computed_value(computed: &Gradient) -> Self {
         let Gradient {
             ref stops,
             repeating,
-            ref gradient_kind
+            ref gradient_kind,
+            compat_mode,
         } = *computed;
         specified::Gradient {
             stops: stops.iter().map(ToComputedValue::from_computed_value).collect(),
             repeating: repeating,
             gradient_kind: ToComputedValue::from_computed_value(gradient_kind),
+            compat_mode: compat_mode,
         }
     }
 }
@@ -602,12 +613,14 @@ impl ToComputedValue for specified::AngleOrCorner {
     }
 }
 
-impl ToCss for AngleOrCorner {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+impl AngleOrCorner {
+    fn to_css<W>(&self, dest: &mut W, mode: CompatMode) -> fmt::Result where W: fmt::Write {
         match *self {
             AngleOrCorner::Angle(angle) => angle.to_css(dest),
             AngleOrCorner::Corner(horizontal, vertical) => {
-                try!(dest.write_str("to "));
+                if mode == CompatMode::Modern {
+                    try!(dest.write_str("to "));
+                }
                 try!(horizontal.to_css(dest));
                 try!(dest.write_str(" "));
                 try!(vertical.to_css(dest));
