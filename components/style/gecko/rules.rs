@@ -234,3 +234,10 @@ impl ToNsCssValue for counter_style::Symbols {
         // FIXME: add bindings for nsCSSValueList
     }
 }
+
+impl ToNsCssValue for Vec<counter_style::AdditiveSymbol> {
+    fn convert(&self, _nscssvalue: &mut nsCSSValue) {
+        debug_assert!(!self.is_empty());
+        // FIXME: add bindings for nsCSSValuePairList
+    }
+}
