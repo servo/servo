@@ -531,7 +531,7 @@ trait PrivateMatchMethods: TElement {
     }
 
     #[cfg(feature = "gecko")]
-    fn needs_update_animations(&self,
+    fn needs_animations_update(&self,
                                old_values: &Option<Arc<ComputedValues>>,
                                new_values: &Arc<ComputedValues>,
                                pseudo: Option<&PseudoElement>) -> bool {
@@ -567,7 +567,7 @@ trait PrivateMatchMethods: TElement {
 
         let pseudo = pseudo_style.map(|(p, _)| p);
         let mut tasks = UpdateAnimationsTasks::empty();
-        if self.needs_update_animations(old_values, new_values, pseudo) {
+        if self.needs_animations_update(old_values, new_values, pseudo) {
             tasks.insert(CSS_ANIMATIONS);
         }
 
