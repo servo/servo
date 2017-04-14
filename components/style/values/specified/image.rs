@@ -396,7 +396,7 @@ impl AngleOrCorner {
 
 impl AngleOrCorner {
     fn parse(context: &ParserContext, input: &mut Parser, mode: CompatMode) -> Result<Self, ()> {
-        if let Ok(angle) = input.try(|i| Angle::parse(context, i)) {
+        if let Ok(angle) = input.try(|i| Angle::parse_with_unitless(context, i)) {
             try!(input.expect_comma());
             return Ok(AngleOrCorner::Angle(angle))
         }
