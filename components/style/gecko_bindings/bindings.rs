@@ -1525,7 +1525,8 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_StyleSet_NoteStyleSheetsChanged(set:
-                                                     RawServoStyleSetBorrowed);
+                                                     RawServoStyleSetBorrowed,
+                                                 author_style_disabled: bool);
 }
 extern "C" {
     pub fn Servo_StyleSet_FillKeyframesForName(set: RawServoStyleSetBorrowed,
