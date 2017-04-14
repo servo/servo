@@ -235,9 +235,9 @@ impl ToNsCssValue for counter_style::Symbols {
     }
 }
 
-impl ToNsCssValue for Vec<counter_style::AdditiveSymbol> {
+impl ToNsCssValue for counter_style::AdditiveSymbols {
     fn convert(&self, _nscssvalue: &mut nsCSSValue) {
-        debug_assert!(!self.is_empty());
+        debug_assert!(!self.0.is_empty());
         // FIXME: add bindings for nsCSSValuePairList
     }
 }

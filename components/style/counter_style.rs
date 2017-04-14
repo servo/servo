@@ -234,7 +234,7 @@ counter_style_descriptors! {
     "symbols" symbols / eCSSCounterDesc_Symbols: Symbols = !
 
     /// https://drafts.csswg.org/css-counter-styles/#descdef-counter-style-additive-symbols
-    "additive-symbols" additive_symbols / eCSSCounterDesc_AdditiveSymbols: Vec<AdditiveSymbol> = !
+    "additive-symbols" additive_symbols / eCSSCounterDesc_AdditiveSymbols: AdditiveSymbols = !
 
     /// https://drafts.csswg.org/css-counter-styles/#counter-style-speak-as
     "speak-as" speak_as / eCSSCounterDesc_SpeakAs: SpeakAs = {
@@ -504,8 +504,29 @@ impl ToCss for Symbols {
 
 /// https://drafts.csswg.org/css-counter-styles/#descdef-counter-style-additive-symbols
 #[derive(Debug, Clone)]
+pub struct AdditiveSymbols(pub Vec<AdditiveSymbol>);
+
+impl Parse for AdditiveSymbols {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        let symbols = Vec::<AdditiveSymbol>::parse(context, input)?;
+        // FIXME maybe? https://github.com/w3c/csswg-drafts/issues/1220
+        if symbols.windows(2).any(|window| window[0].value <= window[1].value) {
+            return Err(())
+        }
+        Ok(AdditiveSymbols(symbols))
+    }
+}
+
+impl ToCss for AdditiveSymbols {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        self.0.to_css(dest)
+    }
+}
+
+/// <integer> && <symbol>
+#[derive(Debug, Clone)]
 pub struct AdditiveSymbol {
-    value: i32,
+    value: u32,
     symbol: Symbol,
 }
 
@@ -513,11 +534,14 @@ impl OneOrMoreCommaSeparated for AdditiveSymbol {}
 
 impl Parse for AdditiveSymbol {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        let value = input.try(|input| input.expect_integer());
-        let symbol = Symbol::parse(context, input)?;
-        let value = value.or_else(|()| input.expect_integer())?;
+        let symbol = input.try(|input| Symbol::parse(context, input));
+        let value = input.expect_integer()?;
+        if value < 0 {
+            return Err(())
+        }
+        let symbol = symbol.or_else(|()| Symbol::parse(context, input))?;
         Ok(AdditiveSymbol {
-            value: value,
+            value: value as u32,
             symbol: symbol,
         })
     }
