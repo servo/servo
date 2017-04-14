@@ -58,10 +58,29 @@ impl<'a, 'b> AtRuleParser for CounterStyleRuleParser<'a, 'b> {
     type AtRule = ();
 }
 
+macro_rules! accessor {
+    (#[$doc: meta] $name: tt $ident: ident: $ty: ty = !) => {
+        #[$doc]
+        pub fn $ident(&self) -> Option<&$ty> {
+            self.$ident.as_ref()
+        }
+    };
+
+    (#[$doc: meta] $name: tt $ident: ident: $ty: ty = $initial: expr) => {
+        #[$doc]
+        pub fn $ident(&self) -> Cow<$ty> {
+            if let Some(ref value) = self.$ident {
+                Cow::Borrowed(value)
+            } else {
+                Cow::Owned($initial)
+            }
+        }
+    }
+}
 
 macro_rules! counter_style_descriptors {
     (
-        $( #[$doc: meta] $name: tt $ident: ident / $gecko_ident: ident: $ty: ty = $initial: expr; )+
+        $( #[$doc: meta] $name: tt $ident: ident / $gecko_ident: ident: $ty: ty = $initial: tt )+
     ) => {
         /// An @counter-style rule
         #[derive(Debug)]
@@ -84,14 +103,7 @@ macro_rules! counter_style_descriptors {
             }
 
             $(
-                #[$doc]
-                pub fn $ident(&self) -> Cow<$ty> {
-                    if let Some(ref value) = self.$ident {
-                        Cow::Borrowed(value)
-                    } else {
-                        Cow::Owned($initial)
-                    }
-                }
+                accessor!(#[$doc] $name $ident: $ty = $initial);
             )+
 
             /// Convert to Gecko types
@@ -147,31 +159,42 @@ macro_rules! counter_style_descriptors {
 
 counter_style_descriptors! {
     /// https://drafts.csswg.org/css-counter-styles/#counter-style-system
-    "system" system / eCSSCounterDesc_System: System = System::Symbolic;
+    "system" system / eCSSCounterDesc_System: System = {
+        System::Symbolic
+    }
 
     /// https://drafts.csswg.org/css-counter-styles/#counter-style-negative
-    "negative" negative / eCSSCounterDesc_Negative: Negative =
-        Negative(Symbol::String("-".to_owned()), None);
+    "negative" negative / eCSSCounterDesc_Negative: Negative = {
+        Negative(Symbol::String("-".to_owned()), None)
+    }
 
     /// https://drafts.csswg.org/css-counter-styles/#counter-style-prefix
-    "prefix" prefix / eCSSCounterDesc_Prefix: Symbol = Symbol::String("".to_owned());
+    "prefix" prefix / eCSSCounterDesc_Prefix: Symbol = {
+        Symbol::String("".to_owned())
+    }
 
     /// https://drafts.csswg.org/css-counter-styles/#counter-style-suffix
-    "suffix" suffix / eCSSCounterDesc_Suffix: Symbol = Symbol::String(". ".to_owned());
+    "suffix" suffix / eCSSCounterDesc_Suffix: Symbol = {
+        Symbol::String(". ".to_owned())
+    }
 
     /// https://drafts.csswg.org/css-counter-styles/#counter-style-range
-    "range" range / eCSSCounterDesc_Range: Ranges =
-        Ranges(Vec::new());  // Empty Vec represents 'auto'
+    "range" range / eCSSCounterDesc_Range: Ranges = {
+        Ranges(Vec::new())  // Empty Vec represents 'auto'
+    }
 
     /// https://drafts.csswg.org/css-counter-styles/#counter-style-pad
-    "pad" pad / eCSSCounterDesc_Pad: Pad = Pad(0, Symbol::String("".to_owned()));
+    "pad" pad / eCSSCounterDesc_Pad: Pad = {
+        Pad(0, Symbol::String("".to_owned()))
+    }
 
     /// https://drafts.csswg.org/css-counter-styles/#counter-style-fallback
-    "fallback" fallback / eCSSCounterDesc_Fallback: Fallback =
-        Fallback(CustomIdent(Atom::from("decimal")));
+    "fallback" fallback / eCSSCounterDesc_Fallback: Fallback = {
+        Fallback(CustomIdent(Atom::from("decimal")))
+    }
 
     /// https://drafts.csswg.org/css-counter-styles/#counter-style-symbols
-    "symbols" symbols / eCSSCounterDesc_Symbols: Symbols = Symbols(Vec::new());
+    "symbols" symbols / eCSSCounterDesc_Symbols: Symbols = !
 }
 
 /// https://drafts.csswg.org/css-counter-styles/#counter-style-system

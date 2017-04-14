@@ -230,8 +230,7 @@ impl ToNsCssValue for counter_style::Fallback {
 
 impl ToNsCssValue for counter_style::Symbols {
     fn convert(&self, _nscssvalue: &mut nsCSSValue) {
-        if !self.0.is_empty() {
-            // FIXME: add bindings for nsCSSValueList
-        }
+        debug_assert!(!self.0.is_empty());
+        // FIXME: add bindings for nsCSSValueList
     }
 }
