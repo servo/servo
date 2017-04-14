@@ -2076,7 +2076,10 @@ ${helpers.single_keyword("transform-style",
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="contain" animation_type="none" products="none" need_clone="True"
+// FIXME: `size` and `content` values are not implemented and `strict` is implemented
+// like `content`(layout style paint) in gecko. We should implement `size` and `content`,
+// also update the glue once they are implemented in gecko.
+<%helpers:longhand name="contain" animation_type="none" products="gecko" need_clone="True"
                    spec="https://drafts.csswg.org/css-contain/#contain-property">
     use std::fmt;
     use style_traits::ToCss;
@@ -2093,14 +2096,11 @@ ${helpers.single_keyword("transform-style",
     bitflags! {
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub flags SpecifiedValue: u8 {
-            const SIZE = 0x01,
-            const LAYOUT = 0x02,
-            const STYLE = 0x04,
-            const PAINT = 0x08,
-            const STRICT = 0x10,
-            const STRICT_BITS = SIZE.bits | LAYOUT.bits | STYLE.bits | PAINT.bits,
-            const CONTENT = 0x20,
-            const CONTENT_BITS = LAYOUT.bits | STYLE.bits | PAINT.bits,
+            const LAYOUT = 0x01,
+            const STYLE = 0x02,
+            const PAINT = 0x04,
+            const STRICT = 0x8,
+            const STRICT_BITS = LAYOUT.bits | STYLE.bits | PAINT.bits,
         }
     }
 
@@ -2111,9 +2111,6 @@ ${helpers.single_keyword("transform-style",
             }
             if self.contains(STRICT) {
                 return dest.write_str("strict")
-            }
-            if self.contains(CONTENT) {
-                return dest.write_str("content")
             }
 
             let mut has_any = false;
@@ -2128,7 +2125,6 @@ ${helpers.single_keyword("transform-style",
                     }
                 }
             }
-            maybe_write_value!(SIZE => "size");
             maybe_write_value!(LAYOUT => "layout");
             maybe_write_value!(STYLE => "style");
             maybe_write_value!(PAINT => "paint");
@@ -2154,14 +2150,9 @@ ${helpers.single_keyword("transform-style",
             result.insert(STRICT | STRICT_BITS);
             return Ok(result)
         }
-        if input.try(|input| input.expect_ident_matching("content")).is_ok() {
-            result.insert(CONTENT | CONTENT_BITS);
-            return Ok(result)
-        }
 
         while let Ok(name) = input.try(|input| input.expect_ident()) {
             let flag = match_ignore_ascii_case! { &name,
-                "size" => SIZE,
                 "layout" => LAYOUT,
                 "style" => STYLE,
                 "paint" => PAINT,
