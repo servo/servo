@@ -6,7 +6,8 @@
 //!
 //! [counter-style]: https://drafts.csswg.org/css-counter-styles/
 
-use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
+use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser, Token};
+use cssparser::{serialize_string, serialize_identifier};
 #[cfg(feature = "gecko")] use gecko::rules::CounterStyleDescriptors;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::nsCSSCounterDesc;
 use parser::{ParserContext, log_css_error, Parse};
@@ -56,7 +57,7 @@ impl<'a, 'b> AtRuleParser for CounterStyleRuleParser<'a, 'b> {
 
 macro_rules! counter_style_descriptors {
     (
-        $( #[$doc: meta] $name: tt $ident: ident / $gecko_ident: ident: $ty: ty = $initial: expr, )+
+        $( #[$doc: meta] $name: tt $ident: ident / $gecko_ident: ident: $ty: ty = $initial: expr; )+
     ) => {
         /// An @counter-style rule
         #[derive(Debug)]
@@ -82,7 +83,7 @@ macro_rules! counter_style_descriptors {
             #[cfg(feature = "gecko")]
             pub fn set_descriptors(&self, descriptors: &mut CounterStyleDescriptors) {
                 $(
-                    descriptors[nsCSSCounterDesc::$gecko_ident as usize].set_from(&self.$ident)
+                    descriptors[nsCSSCounterDesc::$gecko_ident as usize].set_from(&self.$ident);
                 )*
             }
         }
@@ -126,11 +127,15 @@ macro_rules! counter_style_descriptors {
 }
 
 counter_style_descriptors! {
-    /// The algorithm for constructing a string representation of a counter value
-    "system" system / eCSSCounterDesc_System: System = System::Symbolic,
+    /// https://drafts.csswg.org/css-counter-styles/#counter-style-system
+    "system" system / eCSSCounterDesc_System: System = System::Symbolic;
+
+    /// https://drafts.csswg.org/css-counter-styles/#counter-style-negative
+    "negative" negative / eCSSCounterDesc_Negative: Negative =
+        Negative(Symbol::String("-".to_owned()), None);
 }
 
-/// Value of the 'system' descriptor
+/// https://drafts.csswg.org/css-counter-styles/#counter-style-system
 #[derive(Debug)]
 pub enum System {
     /// 'cyclic'
@@ -193,5 +198,60 @@ impl ToCss for System {
                 other.to_css(dest)
             }
         }
+    }
+}
+
+/// https://drafts.csswg.org/css-counter-styles/#typedef-symbol
+#[derive(Debug)]
+pub enum Symbol {
+    /// <string>
+    String(String),
+    /// <ident>
+    Ident(String),
+    // Not implemented:
+    // /// <image>
+    // Image(Image),
+}
+
+impl Parse for Symbol {
+    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        match input.next() {
+            Ok(Token::QuotedString(s)) => Ok(Symbol::String(s.into_owned())),
+            Ok(Token::Ident(s)) => Ok(Symbol::Ident(s.into_owned())),
+            _ => Err(())
+        }
+    }
+}
+
+impl ToCss for Symbol {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            Symbol::String(ref s) => serialize_string(s, dest),
+            Symbol::Ident(ref s) => serialize_identifier(s, dest),
+        }
+    }
+}
+
+/// https://drafts.csswg.org/css-counter-styles/#counter-style-negative
+#[derive(Debug)]
+pub struct Negative(pub Symbol, pub Option<Symbol>);
+
+impl Parse for Negative {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        Ok(Negative(
+            Symbol::parse(context, input)?,
+            input.try(|input| Symbol::parse(context, input)).ok(),
+        ))
+    }
+}
+
+impl ToCss for Negative {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        self.0.to_css(dest)?;
+        if let Some(ref symbol) = self.1 {
+            dest.write_char(' ')?;
+            symbol.to_css(dest)?
+        }
+        Ok(())
     }
 }
