@@ -133,6 +133,12 @@ counter_style_descriptors! {
     /// https://drafts.csswg.org/css-counter-styles/#counter-style-negative
     "negative" negative / eCSSCounterDesc_Negative: Negative =
         Negative(Symbol::String("-".to_owned()), None);
+
+    /// https://drafts.csswg.org/css-counter-styles/#counter-style-prefix
+    "prefix" prefix / eCSSCounterDesc_Prefix: Symbol = Symbol::String("".to_owned());
+
+    /// https://drafts.csswg.org/css-counter-styles/#counter-style-suffix
+    "suffix" suffix / eCSSCounterDesc_Suffix: Symbol = Symbol::String(". ".to_owned());
 }
 
 /// https://drafts.csswg.org/css-counter-styles/#counter-style-system
