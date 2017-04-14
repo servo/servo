@@ -14,6 +14,7 @@ use cssparser::{serialize_string, serialize_identifier};
 use parser::{ParserContext, log_css_error, Parse};
 use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use std::ascii::AsciiExt;
+use std::borrow::Cow;
 use std::fmt;
 use std::ops::Range;
 use style_traits::{ToCss, OneOrMoreCommaSeparated};
@@ -27,7 +28,7 @@ pub fn parse_counter_style_name(input: &mut Parser) -> Result<CustomIdent, ()> {
 /// Parse the body (inside `{}`) of an @counter-style rule
 pub fn parse_counter_style_body(name: CustomIdent, context: &ParserContext, input: &mut Parser)
                             -> Result<CounterStyleRule, ()> {
-    let mut rule = CounterStyleRule::initial(name);
+    let mut rule = CounterStyleRule::empty(name);
     {
         let parser = CounterStyleRuleParser {
             context: context,
@@ -68,25 +69,38 @@ macro_rules! counter_style_descriptors {
             name: CustomIdent,
             $(
                 #[$doc]
-                $ident: $ty,
+                $ident: Option<$ty>,
             )+
         }
 
         impl CounterStyleRule {
-            fn initial(name: CustomIdent) -> Self {
+            fn empty(name: CustomIdent) -> Self {
                 CounterStyleRule {
                     name: name,
                     $(
-                        $ident: $initial,
+                        $ident: None,
                     )+
                 }
             }
+
+            $(
+                #[$doc]
+                pub fn $ident(&self) -> Cow<$ty> {
+                    if let Some(ref value) = self.$ident {
+                        Cow::Borrowed(value)
+                    } else {
+                        Cow::Owned($initial)
+                    }
+                }
+            )+
 
             /// Convert to Gecko types
             #[cfg(feature = "gecko")]
             pub fn set_descriptors(&self, descriptors: &mut CounterStyleDescriptors) {
                 $(
-                    descriptors[nsCSSCounterDesc::$gecko_ident as usize].set_from(&self.$ident);
+                    if let Some(ref value) = self.$ident {
+                        descriptors[nsCSSCounterDesc::$gecko_ident as usize].set_from(value)
+                    }
                 )*
             }
         }
@@ -103,7 +117,7 @@ macro_rules! counter_style_descriptors {
                             // but in this case we do because we set the value as a side effect
                             // rather than returning it.
                             let value = input.parse_entirely(|i| Parse::parse(self.context, i))?;
-                            self.rule.$ident = value
+                            self.rule.$ident = Some(value)
                         }
                     )*
                     _ => return Err(())
@@ -119,9 +133,11 @@ macro_rules! counter_style_descriptors {
                 self.name.to_css(dest)?;
                 dest.write_str(" {\n")?;
                 $(
-                    dest.write_str(concat!("  ", $name, ": "))?;
-                    ToCss::to_css(&self.$ident, dest)?;
-                    dest.write_str(";\n")?;
+                    if let Some(ref value) = self.$ident {
+                        dest.write_str(concat!("  ", $name, ": "))?;
+                        ToCss::to_css(value, dest)?;
+                        dest.write_str(";\n")?;
+                    }
                 )+
                 dest.write_str("}")
             }
@@ -159,7 +175,7 @@ counter_style_descriptors! {
 }
 
 /// https://drafts.csswg.org/css-counter-styles/#counter-style-system
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum System {
     /// 'cyclic'
     Cyclic,
@@ -225,7 +241,7 @@ impl ToCss for System {
 }
 
 /// https://drafts.csswg.org/css-counter-styles/#typedef-symbol
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Symbol {
     /// <string>
     String(String),
@@ -258,7 +274,7 @@ impl ToCss for Symbol {
 }
 
 /// https://drafts.csswg.org/css-counter-styles/#counter-style-negative
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Negative(pub Symbol, pub Option<Symbol>);
 
 impl Parse for Negative {
@@ -284,7 +300,7 @@ impl ToCss for Negative {
 /// https://drafts.csswg.org/css-counter-styles/#counter-style-range
 ///
 /// Empty Vec represents 'auto'
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Ranges(pub Vec<Range<Option<i32>>>);
 
 impl Parse for Ranges {
@@ -346,7 +362,7 @@ fn bound_to_css<W>(range: Option<i32>, dest: &mut W) -> fmt::Result where W: fmt
 }
 
 /// https://drafts.csswg.org/css-counter-styles/#counter-style-pad
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Pad(pub u32, pub Symbol);
 
 impl Parse for Pad {
@@ -370,7 +386,7 @@ impl ToCss for Pad {
 }
 
 /// https://drafts.csswg.org/css-counter-styles/#counter-style-fallback
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Fallback(pub CustomIdent);
 
 impl Parse for Fallback {
@@ -386,7 +402,7 @@ impl ToCss for Fallback {
 }
 
 /// https://drafts.csswg.org/css-counter-styles/#counter-style-symbols
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Symbols(pub Vec<Symbol>);
 
 impl Parse for Symbols {
