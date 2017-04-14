@@ -198,6 +198,11 @@ counter_style_descriptors! {
 
     /// https://drafts.csswg.org/css-counter-styles/#descdef-counter-style-additive-symbols
     "additive-symbols" additive_symbols / eCSSCounterDesc_AdditiveSymbols: Vec<AdditiveSymbol> = !
+
+    /// https://drafts.csswg.org/css-counter-styles/#counter-style-speak-as
+    "speak-as" speak_as / eCSSCounterDesc_SpeakAs: SpeakAs = {
+        SpeakAs::Auto
+    }
 }
 
 /// https://drafts.csswg.org/css-counter-styles/#counter-style-system
@@ -485,5 +490,61 @@ impl ToCss for AdditiveSymbol {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         write!(dest, "{} ", self.value)?;
         self.symbol.to_css(dest)
+    }
+}
+
+/// https://drafts.csswg.org/css-counter-styles/#counter-style-speak-as
+#[derive(Debug, Clone)]
+pub enum SpeakAs {
+    /// auto
+    Auto,
+    /// bullets
+    Bullets,
+    /// numbers
+    Numbers,
+    /// words
+    Words,
+    // /// spell-out, not supported, see bug 1024178
+    // SpellOut,
+    /// <counter-style-name>
+    Other(CustomIdent),
+}
+
+impl Parse for SpeakAs {
+    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        let mut is_spell_out = false;
+        let result = input.try(|input| {
+            match_ignore_ascii_case! { &input.expect_ident()?,
+                "auto" => Ok(SpeakAs::Auto),
+                "bullets" => Ok(SpeakAs::Bullets),
+                "numbers" => Ok(SpeakAs::Numbers),
+                "words" => Ok(SpeakAs::Words),
+                "spell-out" => {
+                    is_spell_out = true;
+                    Err(())
+                }
+                _ => Err(())
+            }
+        });
+        if is_spell_out {
+            // spell-out is not supported, but don’t parse it as a <counter-style-name>.
+            // See bug 1024178.
+            return Err(())
+        }
+        result.or_else(|()| {
+            Ok(SpeakAs::Other(parse_counter_style_name(input)?))
+        })
+    }
+}
+
+impl ToCss for SpeakAs {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            SpeakAs::Auto => dest.write_str("auto"),
+            SpeakAs::Bullets => dest.write_str("bullets"),
+            SpeakAs::Numbers => dest.write_str("numbers"),
+            SpeakAs::Words => dest.write_str("words"),
+            SpeakAs::Other(ref other) => other.to_css(dest),
+        }
     }
 }
