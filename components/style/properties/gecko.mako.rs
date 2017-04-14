@@ -1986,7 +1986,7 @@ fn static_assert() {
     ${impl_transition_timing_function()}
 
     pub fn set_transition_property(&mut self, v: longhands::transition_property::computed_value::T) {
-        use gecko_bindings::structs::nsCSSPropertyID_eCSSPropertyExtra_no_properties;
+        use gecko_bindings::structs::nsCSSPropertyID::eCSSPropertyExtra_no_properties;
 
         if !v.0.is_empty() {
             unsafe { self.gecko.mTransitions.ensure_len(v.0.len()) };
@@ -1997,7 +1997,7 @@ fn static_assert() {
         } else {
             // In gecko |none| is represented by eCSSPropertyExtra_no_properties.
             self.gecko.mTransitionPropertyCount = 1;
-            self.gecko.mTransitions[0].mProperty = nsCSSPropertyID_eCSSPropertyExtra_no_properties;
+            self.gecko.mTransitions[0].mProperty = eCSSPropertyExtra_no_properties;
         }
     }
 

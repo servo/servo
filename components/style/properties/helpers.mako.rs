@@ -735,8 +735,6 @@
 
 <%def name="alias_to_nscsspropertyid(alias)">
     <%
-        if alias == "word-wrap":
-            return "nsCSSPropertyID_eCSSPropertyAlias_WordWrap"
         return "nsCSSPropertyID::eCSSPropertyAlias_%s" % to_camel_case(alias)
     %>
 </%def>

@@ -31,6 +31,7 @@ mod common {
 #[cfg(feature = "bindgen")]
 mod bindings {
     use bindgen::{Builder, CodegenConfig};
+    use bindgen::chooser::{EnumVariantCustomBehavior, EnumVariantValue, TypeChooser};
     use regex::Regex;
     use std::cmp;
     use std::collections::HashSet;
@@ -258,6 +259,23 @@ mod bindings {
             .collect()
     }
 
+    #[derive(Debug)]
+    struct Callbacks;
+    impl TypeChooser for Callbacks {
+        fn enum_variant_behavior(&self,
+                                 enum_name: Option<&str>,
+                                 variant_name: &str,
+                                 _variant_value: EnumVariantValue)
+                                 -> Option<EnumVariantCustomBehavior> {
+            if enum_name.map_or(false, |n| n == "nsCSSPropertyID") &&
+               variant_name.starts_with("eCSSProperty_COUNT") {
+                Some(EnumVariantCustomBehavior::Constify)
+            } else {
+                None
+            }
+        }
+    }
+
     pub fn generate_structs(build_type: BuildType) {
         let mut builder = Builder::get_initial_builder(build_type)
             .enable_cxx_namespaces()
@@ -296,7 +314,8 @@ mod bindings {
             .hide_type("nsString")
             .bitfield_enum("nsChangeHint")
             .bitfield_enum("nsRestyleHint")
-            .constified_enum("UpdateAnimationsTasks");
+            .constified_enum("UpdateAnimationsTasks")
+            .type_chooser(Box::new(Callbacks));
         let whitelist_vars = [
             "NS_THEME_.*",
             "NODE_.*",

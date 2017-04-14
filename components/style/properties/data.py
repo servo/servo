@@ -280,3 +280,6 @@ class PropertiesData(object):
         self.add_prefixed_aliases(shorthand)
         self.shorthands.append(shorthand)
         return shorthand
+
+    def shorthands_except_all(self):
+        return [s for s in self.shorthands if s.name != "all"]
