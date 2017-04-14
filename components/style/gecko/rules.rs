@@ -187,3 +187,26 @@ impl ToNsCssValue for counter_style::Symbol {
         }
     }
 }
+
+impl ToNsCssValue for counter_style::Ranges {
+    fn convert(&self, _nscssvalue: &mut nsCSSValue) {
+        if self.0.is_empty() {
+            //nscssvalue.set_auto();  // FIXME: add bindings for nsCSSValue::SetAutoValue
+        } else {
+            for range in &self.0 {
+                fn set_bound(bound: Option<i32>, nscssvalue: &mut nsCSSValue) {
+                    if let Some(finite) = bound {
+                        nscssvalue.set_integer(finite)
+                    } else {
+                        nscssvalue.set_enum(structs::NS_STYLE_COUNTER_RANGE_INFINITE as i32)
+                    }
+                }
+                let mut start = nsCSSValue::null();
+                let mut end = nsCSSValue::null();
+                set_bound(range.start, &mut start);
+                set_bound(range.end, &mut end);
+                // FIXME: add bindings for nsCSSValuePairList
+            }
+        }
+    }
+}
