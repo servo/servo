@@ -241,3 +241,16 @@ impl ToNsCssValue for Vec<counter_style::AdditiveSymbol> {
         // FIXME: add bindings for nsCSSValuePairList
     }
 }
+
+impl ToNsCssValue for counter_style::SpeakAs {
+    fn convert(&self, nscssvalue: &mut nsCSSValue) {
+        use counter_style::SpeakAs::*;
+        match *self {
+            Auto => {} //nscssvalue.set_auto(),  // FIXME: add bindings for nsCSSValue::SetAutoValue
+            Bullets => nscssvalue.set_enum(structs::NS_STYLE_COUNTER_SPEAKAS_BULLETS as i32),
+            Numbers => nscssvalue.set_enum(structs::NS_STYLE_COUNTER_SPEAKAS_NUMBERS as i32),
+            Words => nscssvalue.set_enum(structs::NS_STYLE_COUNTER_SPEAKAS_WORDS as i32),
+            Other(ref other) => nscssvalue.set_ident_from_atom(&other.0),
+        }
+    }
+}
