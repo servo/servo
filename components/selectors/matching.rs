@@ -122,6 +122,7 @@ fn may_match<E>(mut selector: &ComplexSelector<E::Impl>,
     loop {
          match selector.next {
              None => break,
+             Some((ref cs, Combinator::Child)) |
              Some((ref cs, Combinator::Descendant)) => selector = &**cs,
              Some((ref cs, _)) => {
                  selector = &**cs;
