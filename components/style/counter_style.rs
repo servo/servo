@@ -28,6 +28,7 @@ pub fn parse_counter_style_name(input: &mut Parser) -> Result<CustomIdent, ()> {
 /// Parse the body (inside `{}`) of an @counter-style rule
 pub fn parse_counter_style_body(name: CustomIdent, context: &ParserContext, input: &mut Parser)
                             -> Result<CounterStyleRule, ()> {
+    let start = input.position();
     let mut rule = CounterStyleRule::empty(name);
     {
         let parser = CounterStyleRuleParser {
@@ -44,7 +45,43 @@ pub fn parse_counter_style_body(name: CustomIdent, context: &ParserContext, inpu
             }
         }
     }
-    Ok(rule)
+    let error = match *rule.system() {
+        ref system @ System::Cyclic |
+        ref system @ System::Fixed { .. } |
+        ref system @ System::Symbolic |
+        ref system @ System::Alphabetic |
+        ref system @ System::Numeric
+        if rule.symbols.is_none() => {
+            let system = system.to_css_string();
+            Some(format!("Invalid @counter-style rule: 'system: {}' without 'symbols'", system))
+        }
+        ref system @ System::Alphabetic |
+        ref system @ System::Numeric
+        if rule.symbols().unwrap().0.len() < 2 => {
+            let system = system.to_css_string();
+            Some(format!("Invalid @counter-style rule: 'system: {}' less than two 'symbols'",
+                         system))
+        }
+        System::Additive if rule.additive_symbols.is_none() => {
+            let s = "Invalid @counter-style rule: 'system: additive' without 'additive-symbols'";
+            Some(s.to_owned())
+        }
+        System::Extends(_) if rule.symbols.is_some() => {
+            let s = "Invalid @counter-style rule: 'system: extends …' with 'symbols'";
+            Some(s.to_owned())
+        }
+        System::Extends(_) if rule.additive_symbols.is_some() => {
+            let s = "Invalid @counter-style rule: 'system: extends …' with 'additive-symbols'";
+            Some(s.to_owned())
+        }
+        _ => None
+    };
+    if let Some(message) = error {
+        log_css_error(input, start, &message, context);
+        Err(())
+    } else {
+        Ok(rule)
+    }
 }
 
 struct CounterStyleRuleParser<'a, 'b: 'a> {
