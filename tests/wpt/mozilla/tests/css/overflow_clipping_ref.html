@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <style>
+            .test { float: left; margin-right: 25px; }
+            .box { height: 50px; width: 50px; }
+            .smallbox { height: 40px; width: 40px; }
+            .grayer { background: rgb(80, 80, 80); }
+            .grayest { background: rgb(0, 0, 0); }
+        </style>
+    </head>
+
+    <body>
+        <div class="test grayest box">
+            <div class="grayer smallbox" style="margin-left: 10px; margin-top: 10px;"></div>
+        </div>
+
+        <!-- This box is positioned and sized very strangely because of
+             https://github.com/servo/servo/issues/16462. In Chrome this result
+             looks the same as for the previous case. In Firefox, it is a
+             50px tall box positioned at the top of the outer box and 10px
+             to the right. -->
+        <div class="test grayest box">
+            <div class="grayer smallbox" style="margin-left: 10px; margin-top: 25px; height: 25px;"></div>
+        </div>
+    </body>
+</html>
