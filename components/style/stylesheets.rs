@@ -39,6 +39,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use style_traits::ToCss;
 use stylist::FnvHashMap;
 use supports::SupportsCondition;
+use values::CustomIdent;
 use values::specified::url::SpecifiedUrl;
 use viewport::ViewportRule;
 
@@ -526,7 +527,7 @@ impl ToCssWithGuard for ImportRule {
 #[derive(Debug)]
 pub struct KeyframesRule {
     /// The name of the current animation.
-    pub name: Atom,
+    pub name: CustomIdent,
     /// The keyframes specified for this CSS rule.
     pub keyframes: Vec<Arc<Locked<Keyframe>>>,
 }
@@ -536,7 +537,7 @@ impl ToCssWithGuard for KeyframesRule {
     fn to_css<W>(&self, guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
     where W: fmt::Write {
         try!(dest.write_str("@keyframes "));
-        try!(dest.write_str(&*self.name.to_string()));
+        try!(self.name.to_css(dest));
         try!(dest.write_str(" { "));
         let iter = self.keyframes.iter();
         let mut first = true;
@@ -924,7 +925,7 @@ enum AtRulePrelude {
     /// A @viewport rule prelude.
     Viewport,
     /// A @keyframes rule, with its animation name.
-    Keyframes(Atom),
+    Keyframes(CustomIdent),
     /// A @page rule prelude.
     Page,
 }
@@ -1113,12 +1114,12 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
             },
             "keyframes" => {
                 let name = match input.next() {
-                    Ok(Token::Ident(ref value)) if value != "none" => Atom::from(&**value),
-                    Ok(Token::QuotedString(value)) => Atom::from(&*value),
+                    Ok(Token::Ident(value)) => CustomIdent::from_ident(value, &["none"])?,
+                    Ok(Token::QuotedString(value)) => CustomIdent(Atom::from(value)),
                     _ => return Err(())
                 };
 
-                Ok(AtRuleType::WithBlock(AtRulePrelude::Keyframes(Atom::from(name))))
+                Ok(AtRuleType::WithBlock(AtRulePrelude::Keyframes(name)))
             },
             "page" => {
                 if cfg!(feature = "gecko") {

@@ -777,7 +777,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     use std::ops::Deref;
     use style_traits::ToCss;
     use values::computed::ComputedValueAsSpecified;
-    use values::HasViewportPercentage;
+    use values::{HasViewportPercentage, CustomIdent};
 
     pub mod computed_value {
         pub use super::SpecifiedValue as T;
@@ -785,7 +785,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
     #[derive(Clone, Debug, Hash, Eq, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub struct SpecifiedValue(pub Atom);
+    pub struct SpecifiedValue(pub CustomIdent);
 
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
@@ -794,21 +794,21 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
     #[inline]
     pub fn get_initial_specified_value() -> SpecifiedValue {
-        SpecifiedValue(atom!(""))
+        SpecifiedValue(CustomIdent(atom!("")))
     }
 
     impl fmt::Display for SpecifiedValue {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            self.0.fmt(f)
+            self.0 .0.fmt(f)
         }
     }
 
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            if self.0 == atom!("") {
+            if self.0 .0 == atom!("") {
                 dest.write_str("none")
             } else {
-                dest.write_str(&*self.0.to_string())
+                self.0.to_css(dest)
             }
         }
     }
@@ -816,23 +816,19 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     impl Parse for SpecifiedValue {
         fn parse(_context: &ParserContext, input: &mut ::cssparser::Parser) -> Result<Self, ()> {
             use cssparser::Token;
-            use properties::CSSWideKeyword;
             use std::ascii::AsciiExt;
+            use values::CustomIdent;
 
             let atom = match input.next() {
-                Ok(Token::Ident(ref value)) => {
-                    if CSSWideKeyword::from_ident(value).is_some() {
-                        // We allow any ident for the animation-name except one
-                        // of the CSS-wide keywords.
-                        return Err(());
-                    } else if value.eq_ignore_ascii_case("none") {
+                Ok(Token::Ident(value)) => {
+                    if value.eq_ignore_ascii_case("none") {
                         // FIXME We may want to support `@keyframes ""` at some point.
-                        atom!("")
+                        CustomIdent(atom!(""))
                     } else {
-                        Atom::from(&**value)
+                        CustomIdent::from_ident(value, &[])?
                     }
                 }
-                Ok(Token::QuotedString(value)) => Atom::from(&*value),
+                Ok(Token::QuotedString(value)) => CustomIdent(Atom::from(value)),
                 _ => return Err(()),
             };
             Ok(SpecifiedValue(atom))

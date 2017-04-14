@@ -362,7 +362,7 @@ impl Stylist {
                     let animation = KeyframesAnimation::from_keyframes(
                         &keyframes_rule.keyframes, guard);
                     debug!("Found valid keyframe animation: {:?}", animation);
-                    self.animations.insert(keyframes_rule.name.clone(), animation);
+                    self.animations.insert(keyframes_rule.name.0.clone(), animation);
                 }
                 CssRule::FontFace(ref rule) => {
                     extra_data.add_font_face(&rule, stylesheet.origin);

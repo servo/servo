@@ -62,7 +62,7 @@ use std::ptr;
 use std::sync::Arc;
 use std::cmp;
 use values::computed::ToComputedValue;
-use values::{Either, Auto};
+use values::{Either, Auto, CustomIdent};
 use computed_values::border_style;
 
 pub mod style_structs {
@@ -2054,7 +2054,7 @@ fn static_assert() {
         self.gecko.mAnimationNameCount = v.0.len() as u32;
         for (servo, gecko) in v.0.into_iter().zip(self.gecko.mAnimations.iter_mut()) {
             // TODO This is inefficient. We should fix this in bug 1329169.
-            gecko.mName.assign_utf8(&nsCString::from(servo.0.to_string()));
+            gecko.mName.assign_utf8(&nsCString::from(servo.0 .0.to_string()));
         }
     }
     pub fn animation_name_at(&self, index: usize)
@@ -2062,7 +2062,8 @@ fn static_assert() {
         use Atom;
         use properties::longhands::animation_name::single_value::SpecifiedValue as AnimationName;
         // XXX: Is there any effective ways?
-        AnimationName(Atom::from(String::from_utf16_lossy(&self.gecko.mAnimations[index].mName[..])))
+        AnimationName(CustomIdent(Atom::from(
+            String::from_utf16_lossy(&self.gecko.mAnimations[index].mName[..]))))
     }
     pub fn copy_animation_name_from(&mut self, other: &Self) {
         unsafe { self.gecko.mAnimations.ensure_len(other.gecko.mAnimations.len()) };

@@ -459,8 +459,8 @@ pub fn maybe_start_animations(context: &SharedStyleContext,
             continue
         }
 
-        if let Some(ref anim) = context.stylist.animations().get(&name.0) {
-            debug!("maybe_start_animations: animation {} found", name);
+        if let Some(ref anim) = context.stylist.animations().get(&name.0 .0) {
+            debug!("maybe_start_animations: animation {} found", name.0 .0);
 
             // If this animation doesn't have any keyframe, we can just continue
             // without submitting it to the compositor, since both the first and
@@ -495,7 +495,7 @@ pub fn maybe_start_animations(context: &SharedStyleContext,
 
 
             new_animations_sender
-                .send(Animation::Keyframes(node, name.0.clone(), KeyframesAnimationState {
+                .send(Animation::Keyframes(node, name.0 .0.clone(), KeyframesAnimationState {
                     started_at: animation_start,
                     duration: duration as f64,
                     delay: delay as f64,
@@ -575,7 +575,7 @@ pub fn update_style_for_animation(context: &SharedStyleContext,
 
             let maybe_index = style.get_box()
                                    .animation_name_iter()
-                                   .position(|animation_name| *name == animation_name.0);
+                                   .position(|animation_name| *name == animation_name.0 .0);
 
             let index = match maybe_index {
                 Some(index) => index,
