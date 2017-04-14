@@ -1236,6 +1236,15 @@ pub extern "C" fn Servo_MediaList_Matches(list: RawServoMediaListBorrowed,
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_DeclarationBlock_HasCSSWideKeyword(declarations: RawServoDeclarationBlockBorrowed,
+                                                           property: nsCSSPropertyID) -> bool {
+    let property_id = get_property_id_from_nscsspropertyid!(property, false);
+    read_locked_arc(declarations, |decls: &PropertyDeclarationBlock| {
+        decls.has_css_wide_keyword(&property_id)
+    })
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_MediaList_GetText(list: RawServoMediaListBorrowed, result: *mut nsAString) {
     read_locked_arc(list, |list: &MediaList| {
         list.to_css(unsafe { result.as_mut().unwrap() }).unwrap();
