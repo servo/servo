@@ -6029,6 +6029,13 @@ pub mod root {
                         "Alignment of field: " , stringify ! ( URLExtraData )
                         , "::" , stringify ! ( mPrincipal ) ));
         }
+        pub mod dmd {
+            #[allow(unused_imports)]
+            use self::super::super::super::root;
+        }
+        #[repr(C)]
+        #[derive(Debug, Copy, Clone)]
+        pub struct JSONWriteFunc([u8; 0]);
         #[repr(u32)]
         #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
         pub enum ArenaObjectID {
@@ -6556,6 +6563,9 @@ pub mod root {
                   root::mozilla::UpdateAnimationsTasks =
             8;
         pub type UpdateAnimationsTasks = u8;
+        #[repr(i32)]
+        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        pub enum LengthParsingMode { Default = 0, SVG = 1, }
         pub type CSSPseudoElementTypeBase = u8;
         pub const CSSPseudoElementType_InheritingAnonBox:
                   root::mozilla::CSSPseudoElementType =

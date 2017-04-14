@@ -37,6 +37,9 @@
     pseudo_element!(":backdrop",
                     atom!(":backdrop"),
                     false);
+    pseudo_element!(":cue",
+                    atom!(":cue"),
+                    false);
     pseudo_element!(":first-letter",
                     atom!(":first-letter"),
                     false);
