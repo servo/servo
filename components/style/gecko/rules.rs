@@ -221,3 +221,9 @@ impl ToNsCssValue for counter_style::Pad {
         //nscssvalue.set_pair(min_length, pad_with);
     }
 }
+
+impl ToNsCssValue for counter_style::Fallback {
+    fn convert(&self, nscssvalue: &mut nsCSSValue) {
+        nscssvalue.set_ident_from_atom(&self.0 .0)
+    }
+}
