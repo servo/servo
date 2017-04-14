@@ -12,7 +12,9 @@ use cssparser::{serialize_string, serialize_identifier};
 #[cfg(feature = "gecko")] use gecko_bindings::structs::nsCSSCounterDesc;
 use parser::{ParserContext, log_css_error, Parse};
 use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
+use std::ascii::AsciiExt;
 use std::fmt;
+use std::ops::Range;
 use style_traits::ToCss;
 use values::CustomIdent;
 
@@ -139,6 +141,10 @@ counter_style_descriptors! {
 
     /// https://drafts.csswg.org/css-counter-styles/#counter-style-suffix
     "suffix" suffix / eCSSCounterDesc_Suffix: Symbol = Symbol::String(". ".to_owned());
+
+    /// https://drafts.csswg.org/css-counter-styles/#counter-style-range
+    "range" range / eCSSCounterDesc_Range: Ranges =
+        Ranges(Vec::new());  // Empty Vec represents 'auto'
 }
 
 /// https://drafts.csswg.org/css-counter-styles/#counter-style-system
@@ -259,5 +265,69 @@ impl ToCss for Negative {
             symbol.to_css(dest)?
         }
         Ok(())
+    }
+}
+
+/// https://drafts.csswg.org/css-counter-styles/#counter-style-range
+///
+/// Empty Vec represents 'auto'
+#[derive(Debug)]
+pub struct Ranges(pub Vec<Range<Option<i32>>>);
+
+impl Parse for Ranges {
+    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
+            Ok(Ranges(Vec::new()))
+        } else {
+            input.parse_comma_separated(|input| {
+                let opt_start = parse_bound(input)?;
+                let opt_end = parse_bound(input)?;
+                if let (Some(start), Some(end)) = (opt_start, opt_end) {
+                    if start > end {
+                        return Err(())
+                    }
+                }
+                Ok(opt_start..opt_end)
+            }).map(Ranges)
+        }
+    }
+}
+
+fn parse_bound(input: &mut Parser) -> Result<Option<i32>, ()> {
+    match input.next() {
+        Ok(Token::Number(ref v)) if v.int_value.is_some() => Ok(Some(v.int_value.unwrap())),
+        Ok(Token::Ident(ref ident)) if ident.eq_ignore_ascii_case("infinite") => Ok(None),
+        _ => Err(())
+    }
+}
+
+impl ToCss for Ranges {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        let mut iter = self.0.iter();
+        if let Some(first) = iter.next() {
+            range_to_css(first, dest)?;
+            for item in iter {
+                dest.write_str(", ")?;
+                range_to_css(item, dest)?;
+            }
+            Ok(())
+        } else {
+            dest.write_str("auto")
+        }
+    }
+}
+
+fn range_to_css<W>(range: &Range<Option<i32>>, dest: &mut W) -> fmt::Result
+where W: fmt::Write {
+    bound_to_css(range.start, dest)?;
+    dest.write_char(' ')?;
+    bound_to_css(range.end, dest)
+}
+
+fn bound_to_css<W>(range: Option<i32>, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    if let Some(finite) = range {
+        write!(dest, "{}", finite)
+    } else {
+        dest.write_str("infinite")
     }
 }
