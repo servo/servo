@@ -227,3 +227,11 @@ impl ToNsCssValue for counter_style::Fallback {
         nscssvalue.set_ident_from_atom(&self.0 .0)
     }
 }
+
+impl ToNsCssValue for counter_style::Symbols {
+    fn convert(&self, _nscssvalue: &mut nsCSSValue) {
+        if !self.0.is_empty() {
+            // FIXME: add bindings for nsCSSValueList
+        }
+    }
+}
