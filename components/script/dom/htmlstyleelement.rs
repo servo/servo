@@ -25,7 +25,7 @@ use script_layout_interface::message::Msg;
 use std::cell::Cell;
 use std::sync::Arc;
 use style::media_queries::parse_media_query_list;
-use style::parser::ParserContext as CssParserContext;
+use style::parser::{LengthParsingMode, ParserContext as CssParserContext};
 use style::stylesheets::{CssRuleType, Stylesheet, Origin};
 use stylesheet_loader::{StylesheetLoader, StylesheetOwner};
 
@@ -87,7 +87,8 @@ impl HTMLStyleElement {
         let url = win.get_url();
         let context = CssParserContext::new_for_cssom(&url,
                                                       win.css_error_reporter(),
-                                                      Some(CssRuleType::Media));
+                                                      Some(CssRuleType::Media),
+                                                      LengthParsingMode::Default);
         let shared_lock = node.owner_doc().style_shared_lock().clone();
         let mq = Arc::new(shared_lock.wrap(
                     parse_media_query_list(&context, &mut CssParser::new(&mq_str))));

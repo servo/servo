@@ -16,7 +16,7 @@ use dom::window::Window;
 use dom_struct::dom_struct;
 use std::sync::Arc;
 use style::media_queries::parse_media_query_list;
-use style::parser::ParserContext;
+use style::parser::{LengthParsingMode, ParserContext};
 use style::shared_lock::{Locked, ToCssWithGuard};
 use style::stylesheets::{CssRuleType, MediaRule};
 use style_traits::ToCss;
@@ -72,7 +72,8 @@ impl CSSMediaRule {
         let global = self.global();
         let win = global.as_window();
         let url = win.get_url();
-        let context = ParserContext::new_for_cssom(&url, win.css_error_reporter(), Some(CssRuleType::Media));
+        let context = ParserContext::new_for_cssom(&url, win.css_error_reporter(), Some(CssRuleType::Media),
+                                                   LengthParsingMode::Default);
         let new_medialist = parse_media_query_list(&context, &mut input);
         let mut guard = self.cssconditionrule.shared_lock().write();
 

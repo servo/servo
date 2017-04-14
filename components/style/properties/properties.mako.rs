@@ -27,7 +27,7 @@ use font_metrics::FontMetricsProvider;
 #[cfg(feature = "servo")] use logical_geometry::{LogicalMargin, PhysicalSide};
 use logical_geometry::WritingMode;
 use media_queries::Device;
-use parser::{Parse, ParserContext};
+use parser::{LengthParsingMode, Parse, ParserContext};
 use properties::animated_properties::TransitionProperty;
 #[cfg(feature = "servo")] use servo_config::prefs::PREFS;
 use shared_lock::StylesheetGuards;
@@ -369,7 +369,11 @@ impl PropertyDeclarationIdSet {
                     //
                     // FIXME(pcwalton): Cloning the error reporter is slow! But so are custom
                     // properties, so whatever...
-                    let context = ParserContext::new(Origin::Author, url_data, error_reporter, None);
+                    let context = ParserContext::new(Origin::Author,
+                                                     url_data,
+                                                     error_reporter,
+                                                     None,
+                                                     LengthParsingMode::Default);
                     Parser::new(&css).parse_entirely(|input| {
                         match from_shorthand {
                             None => {

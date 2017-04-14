@@ -2,11 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::{Color, Parser, RGBA};
-use media_queries::CSSErrorReporterTest;
-use servo_url::ServoUrl;
-use style::parser::ParserContext;
-use style::stylesheets::{CssRuleType, Origin};
+use cssparser::{Color, RGBA};
+use parsing::parse;
 use style::values::{Auto, Either};
 use style::values::specified::CSSColor;
 use style_traits::ToCss;
@@ -26,12 +23,7 @@ fn test_moz_user_select() {
     assert_roundtrip_with_context!(_moz_user_select::parse, "-moz-none");
     assert_roundtrip_with_context!(_moz_user_select::parse, "-moz-text");
 
-    let url = ServoUrl::parse("http://localhost").unwrap();
-    let reporter = CSSErrorReporterTest;
-    let context = ParserContext::new(Origin::Author, &url, &reporter, Some(CssRuleType::Style));
-
-    let mut negative = Parser::new("potato");
-    assert!(_moz_user_select::parse(&context, &mut negative).is_err());
+    assert!(parse(_moz_user_select::parse, "potato").is_err());
 }
 
 #[test]

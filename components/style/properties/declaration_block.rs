@@ -9,7 +9,7 @@
 use cssparser::{DeclarationListParser, parse_important};
 use cssparser::{Parser, AtRuleParser, DeclarationParser, Delimiter};
 use error_reporting::ParseErrorReporter;
-use parser::{ParserContext, log_css_error};
+use parser::{LengthParsingMode, ParserContext, log_css_error};
 use std::fmt;
 use style_traits::ToCss;
 use stylesheets::{CssRuleType, Origin, UrlExtraData};
@@ -617,7 +617,11 @@ pub fn parse_style_attribute(input: &str,
                              url_data: &UrlExtraData,
                              error_reporter: &ParseErrorReporter)
                              -> PropertyDeclarationBlock {
-    let context = ParserContext::new(Origin::Author, url_data, error_reporter, Some(CssRuleType::Style));
+    let context = ParserContext::new(Origin::Author,
+                                     url_data,
+                                     error_reporter,
+                                     Some(CssRuleType::Style),
+                                     LengthParsingMode::Default);
     parse_property_declaration_list(&context, &mut Parser::new(input))
 }
 
@@ -629,9 +633,14 @@ pub fn parse_style_attribute(input: &str,
 pub fn parse_one_declaration(id: PropertyId,
                              input: &str,
                              url_data: &UrlExtraData,
-                             error_reporter: &ParseErrorReporter)
+                             error_reporter: &ParseErrorReporter,
+                             length_parsing_mode: LengthParsingMode)
                              -> Result<ParsedDeclaration, ()> {
-    let context = ParserContext::new(Origin::Author, url_data, error_reporter, Some(CssRuleType::Style));
+    let context = ParserContext::new(Origin::Author,
+                                     url_data,
+                                     error_reporter,
+                                     Some(CssRuleType::Style),
+                                     length_parsing_mode);
     Parser::new(input).parse_entirely(|parser| {
         ParsedDeclaration::parse(id, &context, parser)
             .map_err(|_| ())

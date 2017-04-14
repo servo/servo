@@ -2,10 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::Parser;
-use media_queries::CSSErrorReporterTest;
-use style::parser::ParserContext;
-use style::stylesheets::{CssRuleType, Origin};
+use parsing::parse;
 
 #[test]
 fn negative_letter_spacing_should_parse_properly() {
@@ -104,52 +101,32 @@ fn test_text_emphasis_position() {
 
 #[test]
 fn webkit_text_stroke_shorthand_should_parse_properly() {
-    use media_queries::CSSErrorReporterTest;
-    use servo_url::ServoUrl;
     use style::properties::longhands::_webkit_text_stroke_color;
     use style::properties::longhands::_webkit_text_stroke_width;
     use style::properties::shorthands::_webkit_text_stroke;
 
-    let url = ServoUrl::parse("http://localhost").unwrap();
-    let reporter = CSSErrorReporterTest;
-    let context = ParserContext::new(Origin::Author, &url, &reporter, Some(CssRuleType::Style));
-
-    let mut parser = Parser::new("thin red");
-    let result = _webkit_text_stroke::parse_value(&context, &mut parser).unwrap();
+    let result = parse(_webkit_text_stroke::parse_value, "thin red").unwrap();
     assert_eq!(result._webkit_text_stroke_color, parse_longhand!(_webkit_text_stroke_color, "red"));
     assert_eq!(result._webkit_text_stroke_width, parse_longhand!(_webkit_text_stroke_width, "thin"));
 
     // ensure its no longer sensitive to order
-    let mut parser = Parser::new("red thin");
-    let result = _webkit_text_stroke::parse_value(&context, &mut parser).unwrap();
+    let result = parse(_webkit_text_stroke::parse_value, "red thin").unwrap();
     assert_eq!(result._webkit_text_stroke_color, parse_longhand!(_webkit_text_stroke_color, "red"));
     assert_eq!(result._webkit_text_stroke_width, parse_longhand!(_webkit_text_stroke_width, "thin"));
 }
 
 #[test]
 fn line_height_should_return_number_on_plain_zero() {
-    use media_queries::CSSErrorReporterTest;
-    use servo_url::ServoUrl;
     use style::properties::longhands::line_height;
 
-    let url = ServoUrl::parse("http://localhost").unwrap();
-    let reporter = CSSErrorReporterTest;
-    let context = ParserContext::new(Origin::Author, &url, &reporter, Some(CssRuleType::Style));
-    let mut parser = Parser::new("0");
-    let result = line_height::parse(&context, &mut parser);
-    assert_eq!(result.unwrap(), parse_longhand!(line_height, "0"));
+    let result = parse(line_height::parse, "0").unwrap();
+    assert_eq!(result, parse_longhand!(line_height, "0"));
 }
 
 #[test]
 fn line_height_should_return_length_on_length_zero() {
-    use media_queries::CSSErrorReporterTest;
-    use servo_url::ServoUrl;
     use style::properties::longhands::line_height;
 
-    let url = ServoUrl::parse("http://localhost").unwrap();
-    let reporter = CSSErrorReporterTest;
-    let context = ParserContext::new(Origin::Author, &url, &reporter, Some(CssRuleType::Style));
-    let mut parser = Parser::new("0px");
-    let result = line_height::parse(&context, &mut parser);
-    assert_eq!(result.unwrap(), parse_longhand!(line_height, "0px"));
+    let result = parse(line_height::parse, "0px").unwrap();
+    assert_eq!(result, parse_longhand!(line_height, "0px"));
 }

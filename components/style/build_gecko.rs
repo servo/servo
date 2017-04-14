@@ -467,6 +467,7 @@ mod bindings {
             "mozilla::Side",
             "mozilla::binding_danger::AssertAndSuppressCleanupPolicy",
             "RawServoAnimationValueMapBorrowed",
+            "mozilla::LengthParsingMode",
         ];
         let opaque_types = [
             "std::pair__PCCP",
@@ -721,6 +722,7 @@ mod bindings {
             "ServoStyleSheet",
             "EffectCompositor_CascadeLevel",
             "UpdateAnimationsTasks",
+            "LengthParsingMode",
         ];
         struct ArrayType {
             cpp_type: &'static str,

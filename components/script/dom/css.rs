@@ -9,7 +9,7 @@ use dom::bindings::reflector::Reflector;
 use dom::bindings::str::DOMString;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use style::parser::ParserContext;
+use style::parser::{LengthParsingMode, ParserContext};
 use style::stylesheets::CssRuleType;
 use style::supports::{Declaration, parse_condition_or_declaration};
 
@@ -30,7 +30,8 @@ impl CSS {
     pub fn Supports(win: &Window, property: DOMString, value: DOMString) -> bool {
         let decl = Declaration { prop: property.into(), val: value.into() };
         let url = win.Document().url();
-        let context = ParserContext::new_for_cssom(&url, win.css_error_reporter(), Some(CssRuleType::Supports));
+        let context = ParserContext::new_for_cssom(&url, win.css_error_reporter(), Some(CssRuleType::Supports),
+                                                   LengthParsingMode::Default);
         decl.eval(&context)
     }
 
@@ -40,7 +41,8 @@ impl CSS {
         let cond = parse_condition_or_declaration(&mut input);
         if let Ok(cond) = cond {
             let url = win.Document().url();
-            let context = ParserContext::new_for_cssom(&url, win.css_error_reporter(), Some(CssRuleType::Supports));
+            let context = ParserContext::new_for_cssom(&url, win.css_error_reporter(), Some(CssRuleType::Supports),
+                                                       LengthParsingMode::Default);
             cond.eval(&context)
         } else {
             false

@@ -8,7 +8,7 @@
 
 use cssparser::{AtRuleParser, Parser, QualifiedRuleParser, RuleListParser};
 use cssparser::{DeclarationListParser, DeclarationParser, parse_one_rule};
-use parser::{ParserContext, log_css_error};
+use parser::{LengthParsingMode, ParserContext, log_css_error};
 use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock, PropertyId};
 use properties::{PropertyDeclarationId, LonghandId, ParsedDeclaration};
 use properties::LonghandIdSet;
@@ -129,7 +129,8 @@ impl Keyframe {
         let context = ParserContext::new(parent_stylesheet.origin,
                                          &parent_stylesheet.url_data,
                                          &error_reporter,
-                                         Some(CssRuleType::Keyframe));
+                                         Some(CssRuleType::Keyframe),
+                                         LengthParsingMode::Default);
         let mut input = Parser::new(css);
 
         let mut rule_parser = KeyframeListParser {

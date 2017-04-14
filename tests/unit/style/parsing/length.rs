@@ -5,9 +5,9 @@
 use cssparser::Parser;
 use media_queries::CSSErrorReporterTest;
 use parsing::parse;
-use style::parser::{Parse, ParserContext};
+use style::parser::{LengthParsingMode, Parse, ParserContext};
 use style::stylesheets::{CssRuleType, Origin};
-use style::values::specified::length::Length;
+use style::values::specified::length::{AbsoluteLength, Length, NoCalcLength};
 use style_traits::ToCss;
 
 #[test]
@@ -27,4 +27,20 @@ fn test_length_literals() {
     assert_roundtrip_with_context!(Length::parse, "0.33q", "0.33q");
     assert_roundtrip_with_context!(Length::parse, "0.33pt", "0.33pt");
     assert_roundtrip_with_context!(Length::parse, "0.33pc", "0.33pc");
+}
+
+#[test]
+fn test_length_parsing_modes() {
+    // In default length mode, non-zero lengths must have a unit.
+    assert!(parse(Length::parse, "1").is_err());
+
+    // In SVG length mode, non-zero lengths are assumed to be px.
+    let url = ::servo_url::ServoUrl::parse("http://localhost").unwrap();
+    let reporter = CSSErrorReporterTest;
+    let context = ParserContext::new(Origin::Author, &url, &reporter,
+                                     Some(CssRuleType::Style), LengthParsingMode::SVG);
+    let mut parser = Parser::new("1");
+    let result = Length::parse(&context, &mut parser);
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap(), Length::NoCalc(NoCalcLength::Absolute(AbsoluteLength::Px(1.))));
 }

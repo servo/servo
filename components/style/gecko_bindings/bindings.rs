@@ -188,6 +188,7 @@ use gecko_bindings::structs::Loader;
 use gecko_bindings::structs::ServoStyleSheet;
 use gecko_bindings::structs::EffectCompositor_CascadeLevel;
 use gecko_bindings::structs::UpdateAnimationsTasks;
+use gecko_bindings::structs::LengthParsingMode;
 pub type nsTArrayBorrowed_uintptr_t<'a> = &'a mut ::gecko_bindings::structs::nsTArray<usize>;
 pub type ServoCssRulesStrong = ::gecko_bindings::sugar::ownership::Strong<ServoCssRules>;
 pub type ServoCssRulesBorrowed<'a> = &'a ServoCssRules;
@@ -1817,8 +1818,9 @@ extern "C" {
                                               property: *const nsACString,
                                               value: *const nsACString,
                                               is_important: bool,
-                                              data: *mut RawGeckoURLExtraData)
-     -> bool;
+                                              data: *mut RawGeckoURLExtraData,
+                                              length_parsing_mode:
+                                                  LengthParsingMode) -> bool;
 }
 extern "C" {
     pub fn Servo_DeclarationBlock_SetPropertyById(declarations:
@@ -1827,7 +1829,9 @@ extern "C" {
                                                   value: *const nsACString,
                                                   is_important: bool,
                                                   data:
-                                                      *mut RawGeckoURLExtraData)
+                                                      *mut RawGeckoURLExtraData,
+                                                  length_parsing_mode:
+                                                      LengthParsingMode)
      -> bool;
 }
 extern "C" {

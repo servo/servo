@@ -105,7 +105,7 @@ use std::sync::mpsc::TryRecvError::{Disconnected, Empty};
 use style::context::ReflowGoal;
 use style::error_reporting::ParseErrorReporter;
 use style::media_queries;
-use style::parser::ParserContext as CssParserContext;
+use style::parser::{LengthParsingMode, ParserContext as CssParserContext};
 use style::properties::PropertyId;
 use style::properties::longhands::overflow_x;
 use style::selector_parser::PseudoElement;
@@ -972,7 +972,8 @@ impl WindowMethods for Window {
     fn MatchMedia(&self, query: DOMString) -> Root<MediaQueryList> {
         let mut parser = Parser::new(&query);
         let url = self.get_url();
-        let context = CssParserContext::new_for_cssom(&url, self.css_error_reporter(), Some(CssRuleType::Media));
+        let context = CssParserContext::new_for_cssom(&url, self.css_error_reporter(), Some(CssRuleType::Media),
+                                                      LengthParsingMode::Default);
         let media_query_list = media_queries::parse_media_query_list(&context, &mut parser);
         let document = self.Document();
         let mql = MediaQueryList::new(&document, media_query_list);

@@ -71,7 +71,7 @@ use style::gecko_properties::{self, style_structs};
 use style::keyframes::KeyframesStepValue;
 use style::media_queries::{MediaList, parse_media_query_list};
 use style::parallel;
-use style::parser::ParserContext;
+use style::parser::{LengthParsingMode, ParserContext};
 use style::properties::{CascadeFlags, ComputedValues, Importance, ParsedDeclaration};
 use style::properties::{PropertyDeclarationBlock, PropertyId};
 use style::properties::SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP;
@@ -1003,7 +1003,8 @@ pub extern "C" fn Servo_ParseProperty(property: *const nsACString, value: *const
 
     let url_data = unsafe { RefPtr::from_ptr_ref(&data) };
     let reporter = StdoutErrorReporter;
-    let context = ParserContext::new(Origin::Author, url_data, &reporter, Some(CssRuleType::Style));
+    let context = ParserContext::new(Origin::Author, url_data, &reporter,
+                                     Some(CssRuleType::Style), LengthParsingMode::Default);
 
     match ParsedDeclaration::parse(id, &context, &mut Parser::new(value)) {
         Ok(parsed) => {
@@ -1025,7 +1026,8 @@ pub extern "C" fn Servo_ParseEasing(easing: *const nsAString,
 
     let url_data = unsafe { RefPtr::from_ptr_ref(&data) };
     let reporter = StdoutErrorReporter;
-    let context = ParserContext::new(Origin::Author, url_data, &reporter, Some(CssRuleType::Style));
+    let context = ParserContext::new(Origin::Author, url_data, &reporter,
+                                     Some(CssRuleType::Style), LengthParsingMode::Default);
     let easing = unsafe { (*easing).to_string() };
     match transition_timing_function::single_value::parse(&context, &mut Parser::new(&easing)) {
         Ok(parsed_easing) => {
@@ -1157,12 +1159,16 @@ pub extern "C" fn Servo_DeclarationBlock_GetPropertyIsImportant(declarations: Ra
 }
 
 fn set_property(declarations: RawServoDeclarationBlockBorrowed, property_id: PropertyId,
-                value: *const nsACString, is_important: bool, data: *mut URLExtraData) -> bool {
+                value: *const nsACString, is_important: bool, data: *mut URLExtraData,
+                length_parsing_mode: structs::LengthParsingMode) -> bool {
     let value = unsafe { value.as_ref().unwrap().as_str_unchecked() };
-
     let url_data = unsafe { RefPtr::from_ptr_ref(&data) };
-    if let Ok(parsed) = parse_one_declaration(property_id, value, url_data,
-                                              &StdoutErrorReporter) {
+    let length_parsing_mode = match length_parsing_mode {
+        structs::LengthParsingMode::Default => LengthParsingMode::Default,
+        structs::LengthParsingMode::SVG => LengthParsingMode::SVG,
+    };
+    if let Ok(parsed) = parse_one_declaration(property_id, value, url_data, &StdoutErrorReporter,
+                                              length_parsing_mode) {
         let importance = if is_important { Importance::Important } else { Importance::Normal };
         write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
             parsed.expand_set_into(decls, importance)
@@ -1175,19 +1181,19 @@ fn set_property(declarations: RawServoDeclarationBlockBorrowed, property_id: Pro
 #[no_mangle]
 pub extern "C" fn Servo_DeclarationBlock_SetProperty(declarations: RawServoDeclarationBlockBorrowed,
                                                      property: *const nsACString, value: *const nsACString,
-                                                     is_important: bool,
-                                                     data: *mut URLExtraData) -> bool {
+                                                     is_important: bool, data: *mut URLExtraData,
+                                                     length_parsing_mode: structs::LengthParsingMode) -> bool {
     set_property(declarations, get_property_id_from_property!(property, false),
-                 value, is_important, data)
+                 value, is_important, data, length_parsing_mode)
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_DeclarationBlock_SetPropertyById(declarations: RawServoDeclarationBlockBorrowed,
                                                          property: nsCSSPropertyID, value: *const nsACString,
-                                                         is_important: bool,
-                                                         data: *mut URLExtraData) -> bool {
+                                                         is_important: bool, data: *mut URLExtraData,
+                                                         length_parsing_mode: structs::LengthParsingMode) -> bool {
     set_property(declarations, get_property_id_from_nscsspropertyid!(property, false),
-                 value, is_important, data)
+                 value, is_important, data, length_parsing_mode)
 }
 
 fn remove_property(declarations: RawServoDeclarationBlockBorrowed, property_id: PropertyId) {
@@ -1246,7 +1252,8 @@ pub extern "C" fn Servo_MediaList_SetText(list: RawServoMediaListBorrowed, text:
     let mut parser = Parser::new(&text);
     let url_data = unsafe { dummy_url_data() };
     let reporter = StdoutErrorReporter;
-    let context = ParserContext::new_for_cssom(url_data, &reporter, Some(CssRuleType::Media));
+    let context = ParserContext::new_for_cssom(url_data, &reporter, Some(CssRuleType::Media),
+                                               LengthParsingMode::Default);
      write_locked_arc(list, |list: &mut MediaList| {
         *list = parse_media_query_list(&context, &mut parser);
     })
@@ -1276,7 +1283,8 @@ pub extern "C" fn Servo_MediaList_AppendMedium(list: RawServoMediaListBorrowed,
     let new_medium = unsafe { new_medium.as_ref().unwrap().as_str_unchecked() };
     let url_data = unsafe { dummy_url_data() };
     let reporter = StdoutErrorReporter;
-    let context = ParserContext::new_for_cssom(url_data, &reporter, Some(CssRuleType::Media));
+    let context = ParserContext::new_for_cssom(url_data, &reporter, Some(CssRuleType::Media),
+                                               LengthParsingMode::Default);
     write_locked_arc(list, |list: &mut MediaList| {
         list.append_medium(&context, new_medium);
     })
@@ -1288,7 +1296,8 @@ pub extern "C" fn Servo_MediaList_DeleteMedium(list: RawServoMediaListBorrowed,
     let old_medium = unsafe { old_medium.as_ref().unwrap().as_str_unchecked() };
     let url_data = unsafe { dummy_url_data() };
     let reporter = StdoutErrorReporter;
-    let context = ParserContext::new_for_cssom(url_data, &reporter, Some(CssRuleType::Media));
+    let context = ParserContext::new_for_cssom(url_data, &reporter, Some(CssRuleType::Media),
+                                               LengthParsingMode::Default);
     write_locked_arc(list, |list: &mut MediaList| list.delete_medium(&context, old_medium))
 }
 
@@ -1639,7 +1648,8 @@ pub extern "C" fn Servo_DeclarationBlock_SetBackgroundImage(declarations:
     let url_data = unsafe { RefPtr::from_ptr_ref(&raw_extra_data) };
     let string = unsafe { (*value).to_string() };
     let error_reporter = StdoutErrorReporter;
-    let context = ParserContext::new(Origin::Author, url_data, &error_reporter, Some(CssRuleType::Style));
+    let context = ParserContext::new(Origin::Author, url_data, &error_reporter,
+                                     Some(CssRuleType::Style), LengthParsingMode::Default);
     if let Ok(url) = SpecifiedUrl::parse_from_string(string.into(), &context) {
         let decl = PropertyDeclaration::BackgroundImage(BackgroundImage(
             vec![SingleBackgroundImage(
@@ -1677,7 +1687,7 @@ pub extern "C" fn Servo_CSSSupports2(property: *const nsACString, value: *const 
     let value = unsafe { value.as_ref().unwrap().as_str_unchecked() };
 
     let url_data = unsafe { dummy_url_data() };
-    parse_one_declaration(id, &value, url_data, &StdoutErrorReporter).is_ok()
+    parse_one_declaration(id, &value, url_data, &StdoutErrorReporter, LengthParsingMode::Default).is_ok()
 }
 
 #[no_mangle]
@@ -1688,7 +1698,8 @@ pub extern "C" fn Servo_CSSSupports(cond: *const nsACString) -> bool {
     if let Ok(cond) = cond {
         let url_data = unsafe { dummy_url_data() };
         let reporter = StdoutErrorReporter;
-        let context = ParserContext::new_for_cssom(url_data, &reporter, Some(CssRuleType::Style));
+        let context = ParserContext::new_for_cssom(url_data, &reporter, Some(CssRuleType::Style),
+                                                   LengthParsingMode::Default);
         cond.eval(&context)
     } else {
         false

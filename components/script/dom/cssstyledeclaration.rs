@@ -18,6 +18,7 @@ use servo_url::ServoUrl;
 use std::ascii::AsciiExt;
 use std::sync::Arc;
 use style::attr::AttrValue;
+use style::parser::LengthParsingMode;
 use style::properties::{Importance, PropertyDeclarationBlock, PropertyId, LonghandId, ShorthandId};
 use style::properties::{parse_one_declaration, parse_style_attribute};
 use style::selector_parser::PseudoElement;
@@ -257,7 +258,7 @@ impl CSSStyleDeclaration {
             let window = self.owner.window();
             let result =
                 parse_one_declaration(id, &value, &self.owner.base_url(),
-                                      window.css_error_reporter());
+                                      window.css_error_reporter(), LengthParsingMode::Default);
 
             // Step 7
             let parsed = match result {
