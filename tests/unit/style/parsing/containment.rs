@@ -16,16 +16,10 @@ fn contain_longhand_should_parse_correctly() {
     let strict = parse_longhand!(contain, "strict");
     assert_eq!(strict, contain::STRICT | contain::STRICT_BITS);
 
-    let strict = parse_longhand!(contain, "content");
-    assert_eq!(strict, contain::CONTENT | contain::CONTENT_BITS);
-
     let style_paint = parse_longhand!(contain, "style paint");
     assert_eq!(style_paint, contain::STYLE | contain::PAINT);
 
     assert_roundtrip_with_context!(contain::parse, "strict");
-    assert_roundtrip_with_context!(contain::parse, "size layout style paint");
-
-    assert_roundtrip_with_context!(contain::parse, "content");
     assert_roundtrip_with_context!(contain::parse, "layout style paint");
 
     // Assert that the `2px` is not consumed, which would trigger parsing failure in real use
