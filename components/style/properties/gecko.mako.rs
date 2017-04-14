@@ -1130,11 +1130,10 @@ fn static_assert() {
 
     % for value in GRID_LINES:
     pub fn set_${value.name}(&mut self, v: longhands::${value.name}::computed_value::T) {
-        use nsstring::nsCString;
         use gecko_bindings::structs::{nsStyleGridLine_kMinLine, nsStyleGridLine_kMaxLine};
 
         let ident = v.ident.unwrap_or(String::new());
-        self.gecko.${value.gecko}.mLineName.assign_utf8(&nsCString::from(&*ident));
+        self.gecko.${value.gecko}.mLineName.assign_utf8(&ident);
         self.gecko.${value.gecko}.mHasSpan = v.is_span;
         self.gecko.${value.gecko}.mInteger = v.integer.map(|i| {
             // clamping the integer between a range
@@ -2153,15 +2152,13 @@ fn static_assert() {
     }
 
     pub fn set_animation_name(&mut self, v: longhands::animation_name::computed_value::T) {
-        use nsstring::nsCString;
-
         debug_assert!(!v.0.is_empty());
         unsafe { self.gecko.mAnimations.ensure_len(v.0.len()) };
 
         self.gecko.mAnimationNameCount = v.0.len() as u32;
         for (servo, gecko) in v.0.into_iter().zip(self.gecko.mAnimations.iter_mut()) {
             // TODO This is inefficient. We should fix this in bug 1329169.
-            gecko.mName.assign_utf8(&nsCString::from(servo.0 .0.to_string()));
+            gecko.mName.assign(servo.0 .0.as_slice());
         }
     }
     pub fn animation_name_at(&self, index: usize)
@@ -2843,15 +2840,14 @@ fn static_assert() {
     pub fn set_quotes(&mut self, other: longhands::quotes::computed_value::T) {
         use gecko_bindings::bindings::Gecko_NewStyleQuoteValues;
         use gecko_bindings::sugar::refptr::UniqueRefPtr;
-        use nsstring::nsCString;
 
         let mut refptr = unsafe {
             UniqueRefPtr::from_addrefed(Gecko_NewStyleQuoteValues(other.0.len() as u32))
         };
 
         for (servo, gecko) in other.0.into_iter().zip(refptr.mQuotePairs.iter_mut()) {
-            gecko.first.assign_utf8(&nsCString::from(&*servo.0));
-            gecko.second.assign_utf8(&nsCString::from(&*servo.1));
+            gecko.first.assign_utf8(&servo.0);
+            gecko.second.assign_utf8(&servo.1);
         }
 
         unsafe { self.gecko.mQuotes.set_move(refptr.get()) }
@@ -3338,7 +3334,6 @@ fn static_assert() {
     <%call expr="impl_simple_copy('text_emphasis_position', 'mTextEmphasisPosition')"></%call>
 
     pub fn set_text_emphasis_style(&mut self, v: longhands::text_emphasis_style::computed_value::T) {
-        use nsstring::nsCString;
         use properties::longhands::text_emphasis_style::computed_value::T;
         use properties::longhands::text_emphasis_style::ShapeKeyword;
 
@@ -3365,7 +3360,7 @@ fn static_assert() {
                 (structs::NS_STYLE_TEXT_EMPHASIS_STYLE_STRING, &**s)
             },
         };
-        self.gecko.mTextEmphasisStyleString.assign_utf8(&nsCString::from(s));
+        self.gecko.mTextEmphasisStyleString.assign_utf8(s);
         self.gecko.mTextEmphasisStyle = te as u8;
     }
 
@@ -3446,12 +3441,11 @@ fn static_assert() {
         use properties::longhands::text_overflow::{SpecifiedValue, Side};
 
         fn set(side: &mut nsStyleTextOverflowSide, value: &Side) {
-            use nsstring::nsCString;
             let ty = match *value {
                 Side::Clip => structs::NS_STYLE_TEXT_OVERFLOW_CLIP,
                 Side::Ellipsis => structs::NS_STYLE_TEXT_OVERFLOW_ELLIPSIS,
                 Side::String(ref s) => {
-                    side.mString.assign_utf8(&nsCString::from(&**s));
+                    side.mString.assign_utf8(s);
                     structs::NS_STYLE_TEXT_OVERFLOW_STRING
                 }
             };
