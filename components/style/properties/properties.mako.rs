@@ -2203,6 +2203,7 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
                     | LonghandId::AnimationName
                     | LonghandId::TransitionProperty
                     | LonghandId::XLang
+                    | LonghandId::Contain
                 % endif
             );
             if

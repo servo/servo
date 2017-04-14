@@ -1639,7 +1639,7 @@ fn static_assert() {
                           scroll-snap-points-x scroll-snap-points-y transform
                           scroll-snap-type-y scroll-snap-coordinate
                           perspective-origin transform-origin -moz-binding will-change
-                          shape-outside""" %>
+                          shape-outside contain""" %>
 <%self:impl_trait style_struct_name="Box" skip_longhands="${skip_box_longhands}">
 
     // We manually-implement the |display| property until we get general
@@ -2235,6 +2235,36 @@ fn static_assert() {
     }
 
     <% impl_shape_source("shape_outside", "mShapeOutside") %>
+
+    pub fn set_contain(&mut self, v: longhands::contain::computed_value::T) {
+        use gecko_bindings::structs::NS_STYLE_CONTAIN_NONE;
+        use gecko_bindings::structs::NS_STYLE_CONTAIN_STRICT;
+        use gecko_bindings::structs::NS_STYLE_CONTAIN_LAYOUT;
+        use gecko_bindings::structs::NS_STYLE_CONTAIN_STYLE;
+        use gecko_bindings::structs::NS_STYLE_CONTAIN_PAINT;
+        use gecko_bindings::structs::NS_STYLE_CONTAIN_ALL_BITS;
+        use properties::longhands::contain;
+
+        self.gecko.mContain = if v.contains(contain::STRICT) {
+            NS_STYLE_CONTAIN_STRICT | NS_STYLE_CONTAIN_ALL_BITS
+        } else if v.contains(contain::LAYOUT) {
+            NS_STYLE_CONTAIN_LAYOUT
+        } else if v.contains(contain::STYLE) {
+            NS_STYLE_CONTAIN_STYLE
+        } else if v.contains(contain::PAINT) {
+            NS_STYLE_CONTAIN_PAINT
+        } else {
+            // FIXME: There is no other value left in contain for now,
+            // but gecko doesn't support `size` and `content` yet.
+            // We should update contain property and this glue after
+            // they are implemented.
+            debug_assert!(v.is_empty());
+            NS_STYLE_CONTAIN_NONE
+        } as u8;
+
+    }
+
+    ${impl_simple_copy("contain", "mContain")}
 </%self:impl_trait>
 
 <%def name="simple_image_array_property(name, shorthand, field_name)">

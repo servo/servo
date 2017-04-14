@@ -2088,7 +2088,10 @@ ${helpers.single_keyword("transform-style",
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="contain" animation_type="none" products="none"
+// FIXME: `size` and `content` values are not implemented and `strict` is implemented
+// like `content`(layout style paint) in gecko. We should remove mako guards
+// and update the gecko glue after they are implemented.
+<%helpers:longhand name="contain" animation_type="none" products="gecko"
                    spec="https://drafts.csswg.org/css-contain/#contain-property">
     use std::fmt;
     use style_traits::ToCss;
@@ -2105,12 +2108,18 @@ ${helpers.single_keyword("transform-style",
     bitflags! {
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub flags SpecifiedValue: u8 {
-            const SIZE = 0x01,
+            % if product != "gecko":
+                const SIZE = 0x01,
+            % endif
             const LAYOUT = 0x02,
             const STYLE = 0x04,
             const PAINT = 0x08,
-            const STRICT = SIZE.bits | LAYOUT.bits | STYLE.bits | PAINT.bits,
-            const CONTENT = LAYOUT.bits | STYLE.bits | PAINT.bits,
+            % if product == "gecko":
+                const STRICT = LAYOUT.bits | STYLE.bits | PAINT.bits,
+            % else:
+                const STRICT = SIZE.bits | LAYOUT.bits | STYLE.bits | PAINT.bits,
+                const CONTENT = LAYOUT.bits | STYLE.bits | PAINT.bits,
+            % endif
         }
     }
 
@@ -2122,9 +2131,11 @@ ${helpers.single_keyword("transform-style",
             if self.contains(STRICT) {
                 return dest.write_str("strict")
             }
-            if self.contains(CONTENT) {
-                return dest.write_str("content")
-            }
+            % if product != "gecko":
+                if self.contains(CONTENT) {
+                    return dest.write_str("content")
+                }
+            % endif
 
             let mut has_any = false;
             macro_rules! maybe_write_value {
@@ -2138,7 +2149,9 @@ ${helpers.single_keyword("transform-style",
                     }
                 }
             }
-            maybe_write_value!(SIZE => "size");
+            % if product != "gecko":
+                maybe_write_value!(SIZE => "size");
+            % endif
             maybe_write_value!(LAYOUT => "layout");
             maybe_write_value!(STYLE => "style");
             maybe_write_value!(PAINT => "paint");
@@ -2164,14 +2177,18 @@ ${helpers.single_keyword("transform-style",
             result.insert(STRICT);
             return Ok(result)
         }
-        if input.try(|input| input.expect_ident_matching("content")).is_ok() {
-            result.insert(CONTENT);
-            return Ok(result)
-        }
+        % if product != "gecko":
+            if input.try(|input| input.expect_ident_matching("content")).is_ok() {
+                result.insert(CONTENT);
+                return Ok(result)
+            }
+        % endif
 
         while let Ok(name) = input.try(|input| input.expect_ident()) {
             let flag = match_ignore_ascii_case! { &name,
-                "size" => SIZE,
+                % if product != "gecko":
+                    "size" => SIZE,
+                % endif
                 "layout" => LAYOUT,
                 "style" => STYLE,
                 "paint" => PAINT,
