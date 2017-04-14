@@ -210,3 +210,14 @@ impl ToNsCssValue for counter_style::Ranges {
         }
     }
 }
+
+impl ToNsCssValue for counter_style::Pad {
+    fn convert(&self, _nscssvalue: &mut nsCSSValue) {
+        let mut min_length = nsCSSValue::null();
+        let mut pad_with = nsCSSValue::null();
+        min_length.set_integer(self.0 as i32);
+        pad_with.set_from(&self.1);
+        // FIXME: add bindings for nsCSSValue::SetPairValue
+        //nscssvalue.set_pair(min_length, pad_with);
+    }
+}
