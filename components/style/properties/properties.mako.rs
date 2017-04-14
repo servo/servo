@@ -443,6 +443,7 @@ impl CSSWideKeyword {
     /// to a CSSWideKeyword.
     pub fn from_ident<'i>(ident: &Cow<'i, str>) -> Option<Self> {
         match_ignore_ascii_case! { ident,
+            // If modifying this set of keyword, also update values::CustomIdent::from_ident
             "initial" => Some(CSSWideKeyword::Initial),
             "inherit" => Some(CSSWideKeyword::Inherit),
             "unset" => Some(CSSWideKeyword::Unset),

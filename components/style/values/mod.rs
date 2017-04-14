@@ -8,8 +8,11 @@
 
 #![deny(missing_docs)]
 
-pub use cssparser::{RGBA, Parser};
+use Atom;
+pub use cssparser::{RGBA, Parser, serialize_identifier};
 use parser::{Parse, ParserContext};
+use std::ascii::AsciiExt;
+use std::borrow::Cow;
 use std::fmt::{self, Debug};
 use style_traits::ToCss;
 
@@ -209,6 +212,33 @@ impl<A: ToComputedValue, B: ToComputedValue> ToComputedValue for Either<A, B> {
         }
     }
 }
+
+/// https://drafts.csswg.org/css-values-4/#custom-idents
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub struct CustomIdent(pub Atom);
+
+impl CustomIdent {
+    /// Parse an already-tokenizer identifier
+    pub fn from_ident(ident: Cow<str>, excluding: &[&str]) -> Result<Self, ()> {
+        match_ignore_ascii_case! { &ident,
+            "initial" | "inherit" | "unset" | "default" => return Err(()),
+            _ => {}
+        };
+        if excluding.iter().any(|s| ident.eq_ignore_ascii_case(s)) {
+            Err(())
+        } else {
+            Ok(CustomIdent(ident.into()))
+        }
+    }
+}
+
+impl ToCss for CustomIdent {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        serialize_identifier(&self.0.to_string(), dest)
+    }
+}
+
 
 // A type for possible values for min- and max- flavors of width,
 // height, block-size, and inline-size.
