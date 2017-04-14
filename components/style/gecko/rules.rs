@@ -6,7 +6,7 @@
 
 use computed_values::{font_style, font_weight, font_stretch};
 use computed_values::font_family::FamilyName;
-use counter_style::System;
+use counter_style;
 use cssparser::UnicodeRange;
 use font_face::{FontFaceRuleData, Source};
 use gecko_bindings::bindings;
@@ -138,23 +138,52 @@ impl ToCssWithGuard for FontFaceRule {
 /// The type of nsCSSCounterStyleRule::mValues
 pub type CounterStyleDescriptors = [nsCSSValue; nsCSSCounterDesc::eCSSCounterDesc_COUNT as usize];
 
-impl ToNsCssValue for System {
-    fn convert(&self, v: &mut nsCSSValue) {
+impl ToNsCssValue for counter_style::System {
+    fn convert(&self, nscssvalue: &mut nsCSSValue) {
+        use counter_style::System::*;
         match *self {
-            System::Cyclic => v.set_enum(structs::NS_STYLE_COUNTER_SYSTEM_CYCLIC as i32),
-            System::Numeric => v.set_enum(structs::NS_STYLE_COUNTER_SYSTEM_NUMERIC as i32),
-            System::Alphabetic => v.set_enum(structs::NS_STYLE_COUNTER_SYSTEM_ALPHABETIC as i32),
-            System::Symbolic => v.set_enum(structs::NS_STYLE_COUNTER_SYSTEM_SYMBOLIC as i32),
-            System::Additive => v.set_enum(structs::NS_STYLE_COUNTER_SYSTEM_ADDITIVE as i32),
-            System::Fixed { first_symbol_value: _ } => {
-                // FIXME: add bindings for nsCSSValue::SetPairValue or equivalent
-                unimplemented!()
+            Cyclic => nscssvalue.set_enum(structs::NS_STYLE_COUNTER_SYSTEM_CYCLIC as i32),
+            Numeric => nscssvalue.set_enum(structs::NS_STYLE_COUNTER_SYSTEM_NUMERIC as i32),
+            Alphabetic => nscssvalue.set_enum(structs::NS_STYLE_COUNTER_SYSTEM_ALPHABETIC as i32),
+            Symbolic => nscssvalue.set_enum(structs::NS_STYLE_COUNTER_SYSTEM_SYMBOLIC as i32),
+            Additive => nscssvalue.set_enum(structs::NS_STYLE_COUNTER_SYSTEM_ADDITIVE as i32),
+            Fixed { first_symbol_value } => {
+                let mut a = nsCSSValue::null();
+                let mut b = nsCSSValue::null();
+                a.set_enum(structs::NS_STYLE_COUNTER_SYSTEM_FIXED as i32);
+                b.set_integer(first_symbol_value.unwrap_or(1));
+                //nscssvalue.set_pair(a, b);  // FIXME: add bindings for nsCSSValue::SetPairValue
             }
-            System::Extends(ref _other) => {
-                // FIXME: add bindings for nsCSSValue::SetPairValue or equivalent
-                unimplemented!()
+            Extends(ref other) => {
+                let mut a = nsCSSValue::null();
+                let mut b = nsCSSValue::null();
+                a.set_enum(structs::NS_STYLE_COUNTER_SYSTEM_EXTENDS as i32);
+                b.set_string_from_atom(&other.0);
+                //nscssvalue.set_pair(a, b);  // FIXME: add bindings for nsCSSValue::SetPairValue
             }
         }
     }
 }
 
+impl ToNsCssValue for counter_style::Negative {
+    fn convert(&self, nscssvalue: &mut nsCSSValue) {
+        if let Some(ref second) = self.1 {
+            let mut a = nsCSSValue::null();
+            let mut b = nsCSSValue::null();
+            a.set_from(&self.0);
+            b.set_from(second);
+            //nscssvalue.set_pair(a, b);  // FIXME: add bindings for nsCSSValue::SetPairValue
+        } else {
+            nscssvalue.set_from(&self.0)
+        }
+    }
+}
+
+impl ToNsCssValue for counter_style::Symbol {
+    fn convert(&self, nscssvalue: &mut nsCSSValue) {
+        match *self {
+            counter_style::Symbol::String(ref s) => nscssvalue.set_string(s),
+            counter_style::Symbol::Ident(ref s) => nscssvalue.set_ident(s),
+        }
+    }
+}
