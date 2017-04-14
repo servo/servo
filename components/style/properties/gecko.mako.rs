@@ -293,6 +293,26 @@ def set_gecko_property(ffi_name, expr):
     }
 </%def>
 
+<%def name="impl_bitflags_setter(ident, gecko_ffi_name, bit_map, gecko_bit_prefix, cast_type='u8')">
+    #[allow(non_snake_case)]
+    pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
+        % for gecko_bit in bit_map.values():
+        use gecko_bindings::structs::${gecko_bit_prefix}${gecko_bit};
+        % endfor
+
+        let mut bits: ${cast_type} = 0;
+        // FIXME: if we ensure that the Servo bitflags storage is the same
+        // as Gecko's one, we can just copy it.
+        % for servo_bit, gecko_bit in bit_map.iteritems():
+        if v.contains(longhands::${ident}::${servo_bit}) {
+            bits |= ${gecko_bit_prefix}${gecko_bit} as ${cast_type};
+        }
+        % endfor
+
+        self.gecko.${gecko_ffi_name} = bits as ${cast_type};
+    }
+</%def>
+
 
 /// Convert a Servo color into an nscolor; with currentColor as 0
 ///
@@ -646,8 +666,6 @@ impl Debug for ${style_struct.gecko_struct_name} {
     # Make a list of types we can't auto-generate.
     #
     force_stub = [];
-    # These live in an nsFont member in Gecko. Should be straightforward to do manually.
-    force_stub += ["font-variant"]
     # These have unusual representations in gecko.
     force_stub += ["list-style-type"]
 
@@ -1262,7 +1280,9 @@ fn static_assert() {
 
 <%
     skip_font_longhands = """font-family font-size font-size-adjust font-weight
-                             font-synthesis -x-lang font-language-override"""
+                             font-synthesis -x-lang font-variant-alternates
+                             font-variant-east-asian font-variant-ligatures
+                             font-variant-numeric font-language-override"""
 %>
 <%self:impl_trait style_struct_name="Font"
     skip_longhands="${skip_font_longhands}"
@@ -1408,6 +1428,76 @@ fn static_assert() {
         self.gecko.mFont.languageOverride = v.0;
     }
     ${impl_simple_copy('font_language_override', 'mFont.languageOverride')}
+
+    <% font_variant_alternates_map = { "HISTORICAL_FORMS": "HISTORICAL",
+                                       "STYLISTIC": "STYLISTIC",
+                                       "STYLESET": "STYLESET",
+                                       "CHARACTER_VARIANT": "CHARACTER_VARIANT",
+                                       "SWASH": "SWASH",
+                                       "ORNAMENTS": "ORNAMENTS",
+                                       "ANNOTATION": "ANNOTATION" } %>
+    // FIXME: Set alternateValues as well.
+    // self.gecko.mFont.alternateValues = xxx;
+    ${impl_bitflags_setter('font_variant_alternates',
+                           'mFont.variantAlternates',
+                           font_variant_alternates_map,
+                           'NS_FONT_VARIANT_ALTERNATES_',
+                           cast_type='u16')}
+    #[allow(non_snake_case)]
+    pub fn copy_font_variant_alternates_from(&mut self, other: &Self) {
+        self.gecko.mFont.variantAlternates = other.gecko.mFont.variantAlternates;
+        // FIXME: Copy alternateValues as well.
+        // self.gecko.mFont.alternateValues = other.gecko.mFont.alternateValues;
+    }
+
+    //                                 servo_bit: gecko_bit
+    <% font_variant_ligatures_map = { "NONE": "NONE",
+                                      "COMMON_LIGATURES": "COMMON",
+                                      "NO_COMMON_LIGATURES": "NO_COMMON",
+                                      "DISCRETIONARY_LIGATURES": "DISCRETIONARY",
+                                      "NO_DISCRETIONARY_LIGATURES": "NO_DISCRETIONARY",
+                                      "HISTORICAL_LIGATURES": "HISTORICAL",
+                                      "NO_HISTORICAL_LIGATURES": "NO_HISTORICAL",
+                                      "CONTEXTUAL": "CONTEXTUAL",
+                                      "NO_CONTEXTUAL": "NO_CONTEXTUAL" } %>
+    ${impl_bitflags_setter('font_variant_ligatures',
+                           'mFont.variantLigatures',
+                           font_variant_ligatures_map,
+                           'NS_FONT_VARIANT_LIGATURES_',
+                           cast_type='u16')}
+    ${impl_simple_copy('font_variant_ligatures', 'mFont.variantLigatures')}
+
+    //                                 servo_bit: gecko_bit
+    <% font_variant_east_asian_map = { "JIS78": "JIS78",
+                                       "JIS83": "JIS83",
+                                       "JIS90": "JIS90",
+                                       "JIS04": "JIS04",
+                                       "SIMPLIFIED": "SIMPLIFIED",
+                                       "TRADITIONAL": "TRADITIONAL",
+                                       "FULL_WIDTH": "FULL_WIDTH",
+                                       "PROPORTIONAL_WIDTH": "PROP_WIDTH",
+                                       "RUBY": "RUBY" } %>
+    ${impl_bitflags_setter('font_variant_east_asian',
+                           'mFont.variantEastAsian',
+                           font_variant_east_asian_map,
+                           'NS_FONT_VARIANT_EAST_ASIAN_',
+                           cast_type='u16')}
+    ${impl_simple_copy('font_variant_east_asian', 'mFont.variantEastAsian')}
+
+    //                              servo_bit: gecko_bit
+    <% font_variant_numeric_map = { "LINING_NUMS": "LINING",
+                                    "OLDSTYLE_NUMS": "OLDSTYLE",
+                                    "PROPORTIONAL_NUMS": "PROPORTIONAL",
+                                    "TABULAR_NUMS": "TABULAR",
+                                    "DIAGONAL_FRACTIONS": "DIAGONAL_FRACTIONS",
+                                    "STACKED_FRACTIONS": "STACKED_FRACTIONS",
+                                    "SLASHED_ZERO": "SLASHZERO",
+                                    "ORDINAL": "ORDINAL" } %>
+    ${impl_bitflags_setter('font_variant_numeric',
+                           'mFont.variantNumeric',
+                           font_variant_numeric_map,
+                           'NS_FONT_VARIANT_NUMERIC_')}
+    ${impl_simple_copy('font_variant_numeric', 'mFont.variantNumeric')}
 </%self:impl_trait>
 
 <%def name="impl_copy_animation_or_transition_value(type, ident, gecko_ffi_name)">

@@ -18,7 +18,7 @@ use std::rc::Rc;
 use std::str;
 use std::sync::Arc;
 use std::sync::atomic::{ATOMIC_USIZE_INIT, AtomicUsize, Ordering};
-use style::computed_values::{font_stretch, font_variant, font_weight};
+use style::computed_values::{font_stretch, font_variant_caps, font_weight};
 use text::Shaper;
 use text::glyph::{ByteIndex, GlyphData, GlyphId, GlyphStore};
 use text::shaping::ShaperMethods;
@@ -105,7 +105,7 @@ pub struct FontMetrics {
 pub struct Font {
     pub handle: FontHandle,
     pub metrics: FontMetrics,
-    pub variant: font_variant::T,
+    pub variant: font_variant_caps::T,
     pub descriptor: FontTemplateDescriptor,
     pub requested_pt_size: Au,
     pub actual_pt_size: Au,
@@ -117,7 +117,7 @@ pub struct Font {
 
 impl Font {
     pub fn new(handle: FontHandle,
-               variant: font_variant::T,
+               variant: font_variant_caps::T,
                descriptor: FontTemplateDescriptor,
                requested_pt_size: Au,
                actual_pt_size: Au,
@@ -262,8 +262,8 @@ impl Font {
     #[inline]
     pub fn glyph_index(&self, codepoint: char) -> Option<GlyphId> {
         let codepoint = match self.variant {
-            font_variant::T::small_caps => codepoint.to_uppercase().next().unwrap(), //FIXME: #5938
-            font_variant::T::normal => codepoint,
+            font_variant_caps::T::small_caps => codepoint.to_uppercase().next().unwrap(), //FIXME: #5938
+            font_variant_caps::T::normal => codepoint,
         };
         self.handle.glyph_index(codepoint)
     }
