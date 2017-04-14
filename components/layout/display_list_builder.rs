@@ -92,6 +92,13 @@ fn convert_repeat_mode(from: RepeatKeyword) -> RepeatMode {
     }
 }
 
+fn establishes_containing_block_for_absolute(positioning: position::T) -> bool {
+    match positioning {
+        position::T::absolute | position::T::relative | position::T::fixed => true,
+        _ => false,
+    }
+}
+
 trait RgbColor {
     fn rgb(r: u8, g: u8, b: u8) -> Self;
 }
@@ -1953,6 +1960,10 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         // we don't want it to be clipped by its own scroll root.
         let containing_scroll_root_id = self.setup_scroll_root_for_block(state);
 
+        if establishes_containing_block_for_absolute(self.positioning()) {
+            state.containing_block_scroll_root_id = state.current_scroll_root_id;
+        }
+
         match block_stacking_context_type {
             BlockStackingContextType::NonstackingContext => {
                 self.base.collect_stacking_contexts_for_children(state);
@@ -2037,12 +2048,6 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
 
         self.base.scroll_root_id = new_scroll_root_id;
         state.current_scroll_root_id = new_scroll_root_id;
-
-        match self.positioning() {
-            position::T::absolute | position::T::relative | position::T::fixed =>
-                state.containing_block_scroll_root_id = new_scroll_root_id,
-            _ => {}
-        }
 
         containing_scroll_root_id
     }
@@ -2153,12 +2158,21 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
         self.base.scroll_root_id = state.current_scroll_root_id;
 
         for mut fragment in self.fragments.fragments.iter_mut() {
+            let previous_containing_block_scroll_root_id = state.containing_block_scroll_root_id;
+            if establishes_containing_block_for_absolute(fragment.style.get_box().position) {
+                state.containing_block_scroll_root_id = state.current_scroll_root_id;
+            }
+
             match fragment.specific {
                 SpecificFragmentInfo::InlineBlock(ref mut block_flow) => {
                     let block_flow = FlowRef::deref_mut(&mut block_flow.flow_ref);
                     block_flow.collect_stacking_contexts(state);
                 }
                 SpecificFragmentInfo::InlineAbsoluteHypothetical(ref mut block_flow) => {
+                    let block_flow = FlowRef::deref_mut(&mut block_flow.flow_ref);
+                    block_flow.collect_stacking_contexts(state);
+                }
+                SpecificFragmentInfo::InlineAbsolute(ref mut block_flow) => {
                     let block_flow = FlowRef::deref_mut(&mut block_flow.flow_ref);
                     block_flow.collect_stacking_contexts(state);
                 }
@@ -2178,6 +2192,7 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
                 }
                 _ => fragment.stacking_context_id = state.current_stacking_context_id,
             }
+            state.containing_block_scroll_root_id = previous_containing_block_scroll_root_id;
         }
     }
 
