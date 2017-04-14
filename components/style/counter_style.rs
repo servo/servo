@@ -6,6 +6,7 @@
 //!
 //! [counter-style]: https://drafts.csswg.org/css-counter-styles/
 
+use Atom;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser, Token};
 use cssparser::{serialize_string, serialize_identifier};
 #[cfg(feature = "gecko")] use gecko::rules::CounterStyleDescriptors;
@@ -148,6 +149,10 @@ counter_style_descriptors! {
 
     /// https://drafts.csswg.org/css-counter-styles/#counter-style-pad
     "pad" pad / eCSSCounterDesc_Pad: Pad = Pad(0, Symbol::String("".to_owned()));
+
+    /// https://drafts.csswg.org/css-counter-styles/#counter-style-fallback
+    "fallback" fallback / eCSSCounterDesc_Fallback: Fallback =
+        Fallback(CustomIdent(Atom::from("decimal")));
 }
 
 /// https://drafts.csswg.org/css-counter-styles/#counter-style-system
@@ -356,5 +361,21 @@ impl ToCss for Pad {
         write!(dest, "{}", self.0)?;
         dest.write_char(' ')?;
         self.1.to_css(dest)
+    }
+}
+
+/// https://drafts.csswg.org/css-counter-styles/#counter-style-fallback
+#[derive(Debug)]
+pub struct Fallback(pub CustomIdent);
+
+impl Parse for Fallback {
+    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        parse_counter_style_name(input).map(Fallback)
+    }
+}
+
+impl ToCss for Fallback {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        self.0.to_css(dest)
     }
 }
