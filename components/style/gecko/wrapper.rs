@@ -775,7 +775,7 @@ impl<'le> TElement for GeckoElement<'le> {
                                 after_change_style: &Arc<ComputedValues>,
                                 pseudo: Option<&PseudoElement>) -> bool {
         use gecko_bindings::structs::nsCSSPropertyID;
-        use properties::animated_properties;
+        use properties::{PropertyId, animated_properties};
         use std::collections::HashSet;
 
         debug_assert!(self.might_need_transitions_update(&Some(before_change_style),
@@ -825,16 +825,24 @@ impl<'le> TElement for GeckoElement<'le> {
                 }
                 false
             };
-            // FIXME: Bug 1353628: Shorthand properties are parsed failed now, so after fixing
-            //        that, we have to handle shorthand.
             if property == nsCSSPropertyID::eCSSPropertyExtra_all_properties {
                 if TransitionProperty::any(property_check_helper) {
                     return true;
                 }
             } else {
-                if animated_properties::nscsspropertyid_is_animatable(property) &&
-                   property_check_helper(property.into()) {
-                    return true;
+                let is_shorthand = PropertyId::from_nscsspropertyid(property).ok().map_or(false, |p| {
+                        p.as_shorthand().is_ok()
+                });
+                if is_shorthand {
+                    let shorthand: TransitionProperty = property.into();
+                    if shorthand.longhands().iter().any(|&p| property_check_helper(p)) {
+                        return true;
+                    }
+                } else {
+                    if animated_properties::nscsspropertyid_is_animatable(property) &&
+                       property_check_helper(property.into()) {
+                        return true;
+                    }
                 }
             }
         }
