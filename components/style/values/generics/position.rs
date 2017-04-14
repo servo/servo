@@ -10,6 +10,7 @@ use parser::{Parse, ParserContext};
 use std::fmt;
 use style_traits::ToCss;
 use values::HasViewportPercentage;
+use values::computed::{ComputedValueAsSpecified, Context, ToComputedValue};
 use values::specified::{LengthOrPercentage, Percentage};
 
 define_css_keyword_enum!{ Keyword:
@@ -106,5 +107,143 @@ impl<L: ToCss> ToCss for PositionValue<L> {
         }
 
         Ok(())
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+/// A generic type for representing horizontal `<position>`
+pub struct HorizontalPosition<L>(pub L);
+
+impl<L: ToCss> ToCss for HorizontalPosition<L> {
+    #[inline]
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        self.0.to_css(dest)
+    }
+}
+
+impl<L: HasViewportPercentage> HasViewportPercentage for HorizontalPosition<L> {
+    #[inline]
+    fn has_viewport_percentage(&self) -> bool {
+        self.0.has_viewport_percentage()
+    }
+}
+
+impl<L: Parse> Parse for HorizontalPosition<PositionValue<L>> {
+    #[inline]
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        PositionValue::parse_internal(context, input, |keyword| {
+            match keyword {
+                Keyword::Left | Keyword::Right | Keyword::Center |
+                Keyword::XStart | Keyword::XEnd => true,
+                _ => false,
+            }
+        }).map(HorizontalPosition)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+/// A generic type for representing vertical `<position>`
+pub struct VerticalPosition<L>(pub L);
+
+impl<L: ToCss> ToCss for VerticalPosition<L> {
+    #[inline]
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        self.0.to_css(dest)
+    }
+}
+
+impl<L: HasViewportPercentage> HasViewportPercentage for VerticalPosition<L> {
+    #[inline]
+    fn has_viewport_percentage(&self) -> bool {
+        self.0.has_viewport_percentage()
+    }
+}
+
+impl<L: Parse> Parse for VerticalPosition<PositionValue<L>> {
+    #[inline]
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        PositionValue::parse_internal(context, input, |keyword| {
+            match keyword {
+                Keyword::Top | Keyword::Bottom | Keyword::Center |
+                Keyword::YStart | Keyword::YEnd => true,
+                _ => false,
+            }
+        }).map(VerticalPosition)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+/// A generic type for representing a CSS [position](https://drafts.csswg.org/css-values/#position).
+pub struct Position<H, V> {
+    /// The horizontal component of position.
+    pub horizontal: H,
+    /// The vertical component of position.
+    pub vertical: V,
+}
+
+/// A generic type for representing positions with keywords.
+pub type PositionWithKeyword<L> = Position<HorizontalPosition<L>, VerticalPosition<L>>;
+
+impl<H: HasViewportPercentage, V: HasViewportPercentage> HasViewportPercentage for Position<H, V> {
+    #[inline]
+    fn has_viewport_percentage(&self) -> bool {
+        self.horizontal.has_viewport_percentage() || self.vertical.has_viewport_percentage()
+    }
+}
+
+impl<L: ToCss> ToCss for Position<L, L> {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        self.horizontal.to_css(dest)?;
+        dest.write_str(" ")?;
+        self.vertical.to_css(dest)
+    }
+}
+
+impl<L: ToCss> ToCss for PositionWithKeyword<PositionValue<L>> {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        macro_rules! to_css_with_keyword {
+            ($pos:expr, $default:expr) => {
+                $pos.keyword.unwrap_or($default).to_css(dest)?;
+                if let Some(ref position) = $pos.position {
+                    dest.write_str(" ")?;
+                    position.to_css(dest)?;
+                }
+            }
+        }
+
+        if (self.horizontal.0.keyword.is_some() && self.horizontal.0.position.is_some()) ||
+           (self.vertical.0.keyword.is_some() && self.vertical.0.position.is_some()) {
+            to_css_with_keyword!(self.horizontal.0, Keyword::Left);
+            dest.write_str(" ")?;
+            to_css_with_keyword!(self.vertical.0, Keyword::Top);
+            return Ok(())
+        }
+
+        self.horizontal.to_css(dest)?;
+        dest.write_str(" ")?;
+        self.vertical.to_css(dest)
+    }
+}
+
+impl<H: ToComputedValue, V: ToComputedValue> ToComputedValue for Position<H, V> {
+    type ComputedValue = Position<H::ComputedValue, V::ComputedValue>;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        Position {
+            horizontal: self.horizontal.to_computed_value(context),
+            vertical: self.vertical.to_computed_value(context),
+        }
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        Position {
+            horizontal: ToComputedValue::from_computed_value(&computed.horizontal),
+            vertical: ToComputedValue::from_computed_value(&computed.vertical),
+        }
     }
 }
