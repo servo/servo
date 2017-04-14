@@ -633,13 +633,14 @@ pub fn parse_style_attribute(input: &str,
 pub fn parse_one_declaration(id: PropertyId,
                              input: &str,
                              url_data: &UrlExtraData,
-                             error_reporter: &ParseErrorReporter)
+                             error_reporter: &ParseErrorReporter,
+                             length_parsing_mode: LengthParsingMode)
                              -> Result<ParsedDeclaration, ()> {
     let context = ParserContext::new(Origin::Author,
                                      url_data,
                                      error_reporter,
                                      Some(CssRuleType::Style),
-                                     LengthParsingMode::Default);
+                                     length_parsing_mode);
     Parser::new(input).parse_entirely(|parser| {
         ParsedDeclaration::parse(id, &context, parser)
             .map_err(|_| ())
