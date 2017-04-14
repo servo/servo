@@ -4,8 +4,6 @@
 
 //! Traversing the DOM tree; the bloom filter.
 
-#![deny(missing_docs)]
-
 use atomic_refcell::{AtomicRefCell, AtomicRefMut};
 use context::{SharedStyleContext, StyleContext, ThreadLocalStyleContext};
 use data::{ElementData, ElementStyles, StoredRestyleHint};

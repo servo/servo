@@ -1109,6 +1109,14 @@ extern "C" {
     pub fn Gecko_GetMediaFeatures() -> *const nsMediaFeature;
 }
 extern "C" {
+    pub fn Gecko_LookupCSSKeyword(string: *const u8, len: u32)
+     -> nsCSSKeyword;
+}
+extern "C" {
+    pub fn Gecko_CSSKeywordString(keyword: nsCSSKeyword, len: *mut u32)
+     -> *const ::std::os::raw::c_char;
+}
+extern "C" {
     pub fn Gecko_CSSFontFaceRule_Create() -> *mut nsCSSFontFaceRule;
 }
 extern "C" {
