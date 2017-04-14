@@ -93,6 +93,9 @@ main() {
             "${platform}" == "windows-msvc" ]]; then
         extension=msi
         package=target/release/msi/*.msi
+        upload "${platform}" ${package} "${extension}" "${nightly_timestamp}"
+        extension=zip
+        package=target/release/msi/*.zip
     else
         usage >&2
         return 1
