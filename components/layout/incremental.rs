@@ -7,6 +7,12 @@ use style::computed_values::float;
 use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::{REFLOW, RECONSTRUCT_FLOW};
 
+#[derive(Clone, Copy, PartialEq)]
+pub enum RelayoutMode {
+    Incremental,
+    Force
+}
+
 bitflags! {
     pub flags SpecialRestyleDamage: u8 {
         #[doc = "If this flag is set, we need to reflow the entire document. This is more or less a \
