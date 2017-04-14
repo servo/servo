@@ -100,6 +100,12 @@ ${helpers.single_keyword("unicode-bidi",
                          animation_type="none",
                          spec="https://drafts.csswg.org/css-writing-modes/#propdef-unicode-bidi")}
 
+${helpers.single_keyword("text-combine-upright",
+                         "none all",
+                         products="gecko",
+                         animation_type="none",
+                         spec="https://drafts.csswg.org/css-writing-modes-3/#propdef-text-combine-upright")}
+
 // FIXME: This prop should be animatable.
 <%helpers:longhand name="text-decoration-line"
                    custom_cascade="${product == 'servo'}"
