@@ -193,8 +193,11 @@ counter_style_descriptors! {
         Fallback(CustomIdent(Atom::from("decimal")))
     }
 
-    /// https://drafts.csswg.org/css-counter-styles/#counter-style-symbols
+    /// https://drafts.csswg.org/css-counter-styles/#descdef-counter-style-symbols
     "symbols" symbols / eCSSCounterDesc_Symbols: Symbols = !
+
+    /// https://drafts.csswg.org/css-counter-styles/#descdef-counter-style-additive-symbols
+    "additive-symbols" additive_symbols / eCSSCounterDesc_AdditiveSymbols: Vec<AdditiveSymbol> = !
 }
 
 /// https://drafts.csswg.org/css-counter-styles/#counter-style-system
@@ -402,8 +405,7 @@ impl Parse for Pad {
 
 impl ToCss for Pad {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        write!(dest, "{}", self.0)?;
-        dest.write_char(' ')?;
+        write!(dest, "{} ", self.0)?;
         self.1.to_css(dest)
     }
 }
@@ -424,7 +426,7 @@ impl ToCss for Fallback {
     }
 }
 
-/// https://drafts.csswg.org/css-counter-styles/#counter-style-symbols
+/// https://drafts.csswg.org/css-counter-styles/#descdef-counter-style-symbols
 #[derive(Debug, Clone)]
 pub struct Symbols(pub Vec<Symbol>);
 
@@ -455,5 +457,33 @@ impl ToCss for Symbols {
             item.to_css(dest)?;
         }
         Ok(())
+    }
+}
+
+/// https://drafts.csswg.org/css-counter-styles/#descdef-counter-style-additive-symbols
+#[derive(Debug, Clone)]
+pub struct AdditiveSymbol {
+    value: i32,
+    symbol: Symbol,
+}
+
+impl OneOrMoreCommaSeparated for AdditiveSymbol {}
+
+impl Parse for AdditiveSymbol {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        let value = input.try(|input| input.expect_integer());
+        let symbol = Symbol::parse(context, input)?;
+        let value = value.or_else(|()| input.expect_integer())?;
+        Ok(AdditiveSymbol {
+            value: value,
+            symbol: symbol,
+        })
+    }
+}
+
+impl ToCss for AdditiveSymbol {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        write!(dest, "{} ", self.value)?;
+        self.symbol.to_css(dest)
     }
 }
