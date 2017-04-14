@@ -7,6 +7,7 @@
 #![deny(missing_docs)]
 
 use {Atom, Prefix, Namespace};
+use counter_style::{CounterStyleRule, parse_counter_style_body};
 use cssparser::{AtRuleParser, Parser, QualifiedRuleParser};
 use cssparser::{AtRuleType, RuleListParser, SourcePosition, Token, parse_one_rule};
 use cssparser::ToCss as ParserToCss;
@@ -289,6 +290,7 @@ pub enum CssRule {
     Style(Arc<Locked<StyleRule>>),
     Media(Arc<Locked<MediaRule>>),
     FontFace(Arc<Locked<FontFaceRule>>),
+    CounterStyle(Arc<Locked<CounterStyleRule>>),
     Viewport(Arc<Locked<ViewportRule>>),
     Keyframes(Arc<Locked<KeyframesRule>>),
     Supports(Arc<Locked<SupportsRule>>),
@@ -345,15 +347,16 @@ impl CssRule {
     #[allow(missing_docs)]
     pub fn rule_type(&self) -> CssRuleType {
         match *self {
-            CssRule::Style(_)     => CssRuleType::Style,
-            CssRule::Import(_)    => CssRuleType::Import,
-            CssRule::Media(_)     => CssRuleType::Media,
-            CssRule::FontFace(_)  => CssRuleType::FontFace,
+            CssRule::Style(_) => CssRuleType::Style,
+            CssRule::Import(_) => CssRuleType::Import,
+            CssRule::Media(_) => CssRuleType::Media,
+            CssRule::FontFace(_) => CssRuleType::FontFace,
+            CssRule::CounterStyle(_) => CssRuleType::CounterStyle,
             CssRule::Keyframes(_) => CssRuleType::Keyframes,
             CssRule::Namespace(_) => CssRuleType::Namespace,
-            CssRule::Viewport(_)  => CssRuleType::Viewport,
-            CssRule::Supports(_)  => CssRuleType::Supports,
-            CssRule::Page(_)      => CssRuleType::Page,
+            CssRule::Viewport(_) => CssRuleType::Viewport,
+            CssRule::Supports(_) => CssRuleType::Supports,
+            CssRule::Page(_) => CssRuleType::Page,
         }
     }
 
@@ -386,6 +389,7 @@ impl CssRule {
             CssRule::Namespace(_) |
             CssRule::Style(_) |
             CssRule::FontFace(_) |
+            CssRule::CounterStyle(_) |
             CssRule::Viewport(_) |
             CssRule::Keyframes(_) |
             CssRule::Page(_) => {
@@ -459,6 +463,7 @@ impl ToCssWithGuard for CssRule {
             CssRule::Import(ref lock) => lock.read_with(guard).to_css(guard, dest),
             CssRule::Style(ref lock) => lock.read_with(guard).to_css(guard, dest),
             CssRule::FontFace(ref lock) => lock.read_with(guard).to_css(guard, dest),
+            CssRule::CounterStyle(ref lock) => lock.read_with(guard).to_css(guard, dest),
             CssRule::Viewport(ref lock) => lock.read_with(guard).to_css(guard, dest),
             CssRule::Keyframes(ref lock) => lock.read_with(guard).to_css(guard, dest),
             CssRule::Media(ref lock) => lock.read_with(guard).to_css(guard, dest),
@@ -846,6 +851,7 @@ rule_filter! {
     effective_style_rules(Style => StyleRule),
     effective_media_rules(Media => MediaRule),
     effective_font_face_rules(FontFace => FontFaceRule),
+    effective_counter_style_rules(CounterStyle => CounterStyleRule),
     effective_viewport_rules(Viewport => ViewportRule),
     effective_keyframes_rules(Keyframes => KeyframesRule),
     effective_supports_rules(Supports => SupportsRule),
@@ -918,6 +924,8 @@ pub enum State {
 enum AtRulePrelude {
     /// A @font-face rule prelude.
     FontFace,
+    /// A @counter-style rule prelude, with its counter style name.
+    CounterStyle(CustomIdent),
     /// A @media rule prelude, with its media queries.
     Media(Arc<Locked<MediaList>>),
     /// An @supports rule, with its conditional
@@ -1105,6 +1113,14 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
             "font-face" => {
                 Ok(AtRuleType::WithBlock(AtRulePrelude::FontFace))
             },
+            "counter-style" => {
+                if !cfg!(feature = "gecko") {
+                    // Support for this rule is not fully implemented in Servo yet.
+                    return Err(())
+                }
+                let name = CustomIdent::from_ident(input.expect_ident()?, &["decimal", "none"])?;
+                Ok(AtRuleType::WithBlock(AtRulePrelude::CounterStyle(name)))
+            },
             "viewport" => {
                 if is_viewport_enabled() {
                     Ok(AtRuleType::WithBlock(AtRulePrelude::Viewport))
@@ -1138,6 +1154,11 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
                 let context = ParserContext::new_with_rule_type(self.context, Some(CssRuleType::FontFace));
                 Ok(CssRule::FontFace(Arc::new(self.shared_lock.wrap(
                    parse_font_face_block(&context, input).into()))))
+            }
+            AtRulePrelude::CounterStyle(name) => {
+                let context = ParserContext::new_with_rule_type(self.context, Some(CssRuleType::CounterStyle));
+                Ok(CssRule::CounterStyle(Arc::new(self.shared_lock.wrap(
+                   parse_counter_style_body(name, &context, input)?))))
             }
             AtRulePrelude::Media(media_queries) => {
                 Ok(CssRule::Media(Arc::new(self.shared_lock.wrap(MediaRule {

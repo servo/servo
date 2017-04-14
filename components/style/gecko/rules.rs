@@ -6,10 +6,11 @@
 
 use computed_values::{font_style, font_weight, font_stretch};
 use computed_values::font_family::FamilyName;
+use counter_style::System;
 use cssparser::UnicodeRange;
 use font_face::{FontFaceRuleData, Source};
 use gecko_bindings::bindings;
-use gecko_bindings::structs::{self, nsCSSFontFaceRule, nsCSSValue};
+use gecko_bindings::structs::{self, nsCSSFontFaceRule, nsCSSValue, nsCSSCounterDesc};
 use gecko_bindings::sugar::ns_css_value::ToNsCssValue;
 use gecko_bindings::sugar::refptr::{RefPtr, UniqueRefPtr};
 use shared_lock::{ToCssWithGuard, SharedRwLockReadGuard};
@@ -133,3 +134,15 @@ impl ToCssWithGuard for FontFaceRule {
         write!(dest, "{}", css_text)
     }
 }
+
+/// The type of nsCSSCounterStyleRule::mValues
+pub type CounterStyleDescriptors = [nsCSSValue; nsCSSCounterDesc::eCSSCounterDesc_COUNT as usize];
+
+impl ToNsCssValue for System {
+    fn convert(&self, v: &mut nsCSSValue) {
+        match *self {
+            System::Symbolic => v.set_enum(structs::NS_STYLE_COUNTER_SYSTEM_SYMBOLIC as i32),
+        }
+    }
+}
+
