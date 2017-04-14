@@ -145,6 +145,9 @@ counter_style_descriptors! {
     /// https://drafts.csswg.org/css-counter-styles/#counter-style-range
     "range" range / eCSSCounterDesc_Range: Ranges =
         Ranges(Vec::new());  // Empty Vec represents 'auto'
+
+    /// https://drafts.csswg.org/css-counter-styles/#counter-style-pad
+    "pad" pad / eCSSCounterDesc_Pad: Pad = Pad(0, Symbol::String("".to_owned()));
 }
 
 /// https://drafts.csswg.org/css-counter-styles/#counter-style-system
@@ -329,5 +332,29 @@ fn bound_to_css<W>(range: Option<i32>, dest: &mut W) -> fmt::Result where W: fmt
         write!(dest, "{}", finite)
     } else {
         dest.write_str("infinite")
+    }
+}
+
+/// https://drafts.csswg.org/css-counter-styles/#counter-style-pad
+#[derive(Debug)]
+pub struct Pad(pub u32, pub Symbol);
+
+impl Parse for Pad {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        let pad_with = input.try(|input| Symbol::parse(context, input));
+        let min_length = input.expect_integer()?;
+        if min_length < 0 {
+            return Err(())
+        }
+        let pad_with = pad_with.or_else(|()| Symbol::parse(context, input))?;
+        Ok(Pad(min_length as u32, pad_with))
+    }
+}
+
+impl ToCss for Pad {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        write!(dest, "{}", self.0)?;
+        dest.write_char(' ')?;
+        self.1.to_css(dest)
     }
 }
