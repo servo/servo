@@ -275,7 +275,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                     let clip = item.base.clip.to_clip_region(builder);
                     builder.push_text(item.base.bounds.to_rectf(),
                                       clip,
-                                      glyphs,
+                                      &glyphs,
                                       item.text_run.font_key,
                                       item.text_color,
                                       item.text_run.actual_pt_size,
