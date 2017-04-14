@@ -810,7 +810,7 @@ impl LayoutThread {
     fn solve_constraints(layout_root: &mut Flow,
                          layout_context: &LayoutContext) {
         let _scope = layout_debug_scope!("solve_constraints");
-        sequential::traverse_flow_tree_preorder(layout_root, layout_context);
+        sequential::traverse_flow_tree_preorder(layout_root, layout_context, false);
     }
 
     /// Performs layout constraint solving in parallel.

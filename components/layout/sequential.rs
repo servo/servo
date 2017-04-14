@@ -15,7 +15,7 @@ use flow::IS_ABSOLUTELY_POSITIONED;
 use fragment::FragmentBorderBoxIterator;
 use generated_content::ResolveGeneratedContent;
 use servo_config::opts;
-use style::servo::restyle_damage::{REFLOW, STORE_OVERFLOW};
+use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW, STORE_OVERFLOW};
 use traversal::{AssignBSizes, AssignISizes, BubbleISizes, BuildDisplayList};
 
 pub use style::sequential::traverse_dom;
@@ -38,16 +38,22 @@ pub fn resolve_generated_content(root: &mut Flow, layout_context: &LayoutContext
 }
 
 pub fn traverse_flow_tree_preorder(root: &mut Flow,
-                                   layout_context: &LayoutContext) {
+                                   layout_context: &LayoutContext,
+                                   force_reflow: bool) {
     fn doit(flow: &mut Flow,
             assign_inline_sizes: AssignISizes,
-            assign_block_sizes: AssignBSizes) {
+            assign_block_sizes: AssignBSizes,
+            force_reflow: bool) {
+        if force_reflow {
+            flow::mut_base(flow).restyle_damage.insert(REFLOW_OUT_OF_FLOW | REFLOW);
+        }
+
         if assign_inline_sizes.should_process(flow) {
             assign_inline_sizes.process(flow);
         }
 
         for kid in flow::child_iter_mut(flow) {
-            doit(kid, assign_inline_sizes, assign_block_sizes);
+            doit(kid, assign_inline_sizes, assign_block_sizes, force_reflow);
         }
 
         if assign_block_sizes.should_process(flow) {
@@ -66,7 +72,7 @@ pub fn traverse_flow_tree_preorder(root: &mut Flow,
     let assign_inline_sizes = AssignISizes { layout_context: &layout_context };
     let assign_block_sizes  = AssignBSizes { layout_context: &layout_context };
 
-    doit(root, assign_inline_sizes, assign_block_sizes);
+    doit(root, assign_inline_sizes, assign_block_sizes, force_reflow);
 }
 
 pub fn build_display_list_for_subtree<'a>(flow_root: &mut Flow,
