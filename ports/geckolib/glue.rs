@@ -990,15 +990,11 @@ pub extern "C" fn Servo_StyleSet_Drop(data: RawServoStyleSetOwned) {
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_ParseProperty(property: *const nsACString, value: *const nsACString,
+pub extern "C" fn Servo_ParseProperty(property: nsCSSPropertyID, value: *const nsACString,
                                       data: *mut URLExtraData)
                                       -> RawServoDeclarationBlockStrong {
-    let name = unsafe { property.as_ref().unwrap().as_str_unchecked() };
-    let id = if let Ok(id) = PropertyId::parse(name.into()) {
-        id
-    } else {
-        return RawServoDeclarationBlockStrong::null()
-    };
+    let id = get_property_id_from_nscsspropertyid!(property,
+                                                   RawServoDeclarationBlockStrong::null());
     let value = unsafe { value.as_ref().unwrap().as_str_unchecked() };
 
     let url_data = unsafe { RefPtr::from_ptr_ref(&data) };
