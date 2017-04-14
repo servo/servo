@@ -14,6 +14,7 @@ use super::computed::{Context, ToComputedValue};
 pub use self::basic_shape::serialize_radius_values;
 
 pub mod basic_shape;
+pub mod position;
 
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
