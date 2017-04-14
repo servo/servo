@@ -8,6 +8,7 @@ use style::properties::{PropertyDeclaration, Importance, PropertyId};
 use style::properties::longhands::outline_color::computed_value::T as ComputedColor;
 use style::properties::parse_property_declaration_list;
 use style::values::{RGBA, Auto};
+use style::values::CustomIdent;
 use style::values::specified::{BorderStyle, BorderWidth, CSSColor, Length, NoCalcLength};
 use style::values::specified::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrAutoOrContent};
 use style::values::specified::url::SpecifiedUrl;
@@ -1259,8 +1260,8 @@ mod shorthand_serialization {
         fn counter_increment_with_properties_should_serialize_correctly() {
             let mut properties = Vec::new();
 
-            properties.push(("counter1".to_owned(), Integer::new(1)));
-            properties.push(("counter2".to_owned(), Integer::new(-4)));
+            properties.push((CustomIdent("counter1".into()), Integer::new(1)));
+            properties.push((CustomIdent("counter2".into()), Integer::new(-4)));
 
             let counter_increment = CounterIncrement(properties);
             let counter_increment_css = "counter1 1 counter2 -4";
