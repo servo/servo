@@ -3752,9 +3752,9 @@ clip-path
             unsafe {
                 bindings::Gecko_ClearAndResizeCounter${counter_property}s(&mut self.gecko,
                                                                       v.0.len() as u32);
-                for (i, item) in v.0.into_iter().enumerate() {
-                    self.gecko.m${counter_property}s[i].mCounter.assign_utf8(&item.0);
-                    self.gecko.m${counter_property}s[i].mValue = item.1;
+                for (i, (name, value)) in v.0.into_iter().enumerate() {
+                    self.gecko.m${counter_property}s[i].mCounter.assign(name.0.as_slice());
+                    self.gecko.m${counter_property}s[i].mValue = value;
                 }
             }
         }
