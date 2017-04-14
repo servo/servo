@@ -660,7 +660,7 @@ mod shorthand_serialization {
                 background-attachment: scroll; \
                 background-size: 70px 50px; \
                 background-position-x: 7px; \
-                background-position-y: 4px; \
+                background-position-y: bottom 4px; \
                 background-origin: border-box; \
                 background-clip: padding-box;";
 
@@ -671,7 +671,7 @@ mod shorthand_serialization {
             assert_eq!(
                 serialization,
                 "background: rgb(255, 0, 0) url(\"http://servo/test.png\") repeat-x \
-                scroll 7px 4px / 70px 50px border-box padding-box;"
+                scroll left 7px bottom 4px / 70px 50px border-box padding-box;"
             );
         }
 
@@ -749,6 +749,27 @@ mod shorthand_serialization {
 
             assert_eq!(serialization, block_text);
         }
+
+        #[test]
+        fn background_position_should_be_a_valid_form_its_longhands() {
+            // If there is any longhand consisted of both keyword and position,
+            // the shorthand result should be the 4-value format.
+            let block_text = "\
+                background-position-x: 30px;\
+                background-position-y: bottom 20px;";
+            let block = parse(|c, i| Ok(parse_property_declaration_list(c, i)), block_text).unwrap();
+            let serialization = block.to_css_string();
+            assert_eq!(serialization, "background-position: left 30px bottom 20px;");
+
+            // If there is no longhand consisted of both keyword and position,
+            // the shorthand result should be the 2-value format.
+            let block_text = "\
+                background-position-x: center;\
+                background-position-y: 20px;";
+            let block = parse(|c, i| Ok(parse_property_declaration_list(c, i)), block_text).unwrap();
+            let serialization = block.to_css_string();
+            assert_eq!(serialization, "background-position: center 20px;");
+        }
     }
 
     mod mask {
@@ -762,7 +783,7 @@ mod shorthand_serialization {
         use style::properties::longhands::mask_repeat as repeat;
         use style::properties::longhands::mask_size as size;
         use style::values::specified::Image;
-        use style::values::specified::position::{HorizontalPosition, VerticalPosition};
+        use style::values::specified::position::{HorizontalPosition, VerticalPosition, Keyword};
         use super::*;
 
         macro_rules! single_vec_value_typedef {
@@ -805,7 +826,7 @@ mod shorthand_serialization {
             );
             let position_y = single_vec_value_typedef!(position_y,
                 VerticalPosition {
-                    keyword: None,
+                    keyword: Some(Keyword::Bottom),
                     position: Some(LengthOrPercentage::Length(NoCalcLength::from_px(4f32))),
                 }
             );
@@ -837,7 +858,7 @@ mod shorthand_serialization {
             let serialization = shorthand_properties_to_string(properties);
             assert_eq!(
                 serialization,
-                "mask: url(\"http://servo/test.png\") luminance 7px 4px / 70px 50px \
+                "mask: url(\"http://servo/test.png\") luminance left 7px bottom 4px / 70px 50px \
                 repeat-x padding-box border-box subtract;"
             );
         }
@@ -904,6 +925,27 @@ mod shorthand_serialization {
             let block = parse(|c, i| Ok(parse_property_declaration_list(c, i)), block_text).unwrap();
             let serialization = block.to_css_string();
             assert_eq!(serialization, block_text);
+        }
+
+        #[test]
+        fn mask_position_should_be_a_valid_form_its_longhands() {
+            // If there is any longhand consisted of both keyword and position,
+            // the shorthand result should be the 4-value format.
+            let block_text = "\
+                mask-position-x: 30px;\
+                mask-position-y: bottom 20px;";
+            let block = parse(|c, i| Ok(parse_property_declaration_list(c, i)), block_text).unwrap();
+            let serialization = block.to_css_string();
+            assert_eq!(serialization, "mask-position: left 30px bottom 20px;");
+
+            // If there is no longhand consisted of both keyword and position,
+            // the shorthand result should be the 2-value format.
+            let block_text = "\
+                mask-position-x: center;\
+                mask-position-y: 20px;";
+            let block = parse(|c, i| Ok(parse_property_declaration_list(c, i)), block_text).unwrap();
+            let serialization = block.to_css_string();
+            assert_eq!(serialization, "mask-position: center 20px;");
         }
     }
 
