@@ -9,23 +9,6 @@ mod common {
     lazy_static! {
         pub static ref OUTDIR_PATH: PathBuf = PathBuf::from(env::var("OUT_DIR").unwrap()).join("gecko");
     }
-
-    pub const STRUCTS_DEBUG_FILE: &'static str = "structs_debug.rs";
-    pub const STRUCTS_RELEASE_FILE: &'static str = "structs_release.rs";
-    pub const BINDINGS_FILE: &'static str = "bindings.rs";
-
-    #[derive(Clone, Copy, PartialEq)]
-    pub enum BuildType {
-        Debug,
-        Release,
-    }
-
-    pub fn structs_file(build_type: BuildType) -> &'static str {
-        match build_type {
-            BuildType::Debug => STRUCTS_DEBUG_FILE,
-            BuildType::Release => STRUCTS_RELEASE_FILE
-        }
-    }
 }
 
 #[cfg(feature = "bindgen")]
@@ -42,6 +25,23 @@ mod bindings {
     use std::sync::Mutex;
     use std::time::SystemTime;
     use super::common::*;
+
+    const STRUCTS_DEBUG_FILE: &'static str = "structs_debug.rs";
+    const STRUCTS_RELEASE_FILE: &'static str = "structs_release.rs";
+    const BINDINGS_FILE: &'static str = "bindings.rs";
+
+    #[derive(Clone, Copy, PartialEq)]
+    enum BuildType {
+        Debug,
+        Release,
+    }
+
+    fn structs_file(build_type: BuildType) -> &'static str {
+        match build_type {
+            BuildType::Debug => STRUCTS_DEBUG_FILE,
+            BuildType::Release => STRUCTS_RELEASE_FILE
+        }
+    }
 
     lazy_static! {
         static ref INCLUDE_RE: Regex = Regex::new(r#"#include\s*"(.+?)""#).unwrap();
@@ -839,30 +839,19 @@ mod bindings {
 #[cfg(not(feature = "bindgen"))]
 mod bindings {
     use std::fs;
-    use std::path::{Path, PathBuf};
+    use std::path::Path;
     use super::common::*;
 
-    lazy_static! {
-        static ref BINDINGS_PATH: PathBuf = Path::new(file!()).parent().unwrap().join("gecko_bindings");
-    }
-
-    fn generate_structs(build_type: BuildType) {
-        let file = structs_file(build_type);
-        let source = BINDINGS_PATH.join(file);
-        println!("cargo:rerun-if-changed={}", source.display());
-        fs::copy(source, OUTDIR_PATH.join(file)).unwrap();
-    }
-
-    fn generate_bindings() {
-        let source = BINDINGS_PATH.join(BINDINGS_FILE);
-        println!("cargo:rerun-if-changed={}", source.display());
-        fs::copy(source, OUTDIR_PATH.join(BINDINGS_FILE)).unwrap();
-    }
-
     pub fn generate() {
-        generate_structs(BuildType::Debug);
-        generate_structs(BuildType::Release);
-        generate_bindings();
+        let dir = Path::new(file!()).parent().unwrap().join("gecko/generated");
+        println!("cargo:rerun-if-changed={}", dir.display());
+        let entries = dir.read_dir().expect("Fail to list the generated directory");
+        for entry in entries {
+            let entry = entry.expect("Fail to get dir entry");
+            println!("cargo:rerun-if-changed={}", entry.path().display());
+            fs::copy(entry.path(), OUTDIR_PATH.join(entry.file_name()))
+                .expect("Fail to copy the file");
+        }
     }
 }
 
