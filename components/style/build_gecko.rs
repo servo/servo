@@ -276,7 +276,7 @@ mod bindings {
         }
     }
 
-    pub fn generate_structs(build_type: BuildType) {
+    fn generate_structs(build_type: BuildType) {
         let mut builder = Builder::get_initial_builder(build_type)
             .enable_cxx_namespaces()
             .with_codegen_config(CodegenConfig {
@@ -565,7 +565,7 @@ mod bindings {
         write_binding_file(builder, structs_file(build_type), &fixups);
     }
 
-    pub fn setup_logging() {
+    fn setup_logging() -> bool {
         use log;
 
         struct BuildLogger {
@@ -594,20 +594,23 @@ mod bindings {
             }
         }
 
-        log::set_logger(|log_level| {
-            log_level.set(log::LogLevelFilter::Debug);
-            Box::new(BuildLogger {
-                file: env::var("STYLO_BUILD_LOG").ok().and_then(|path| {
-                    fs::File::create(path).ok().map(Mutex::new)
-                }),
-                filter: env::var("STYLO_BUILD_FILTER").ok()
-                    .unwrap_or_else(|| "bindgen".to_owned()),
+        if let Ok(path) = env::var("STYLO_BUILD_LOG") {
+            log::set_logger(|log_level| {
+                log_level.set(log::LogLevelFilter::Debug);
+                Box::new(BuildLogger {
+                    file: fs::File::create(path).ok().map(Mutex::new),
+                    filter: env::var("STYLO_BUILD_FILTER").ok()
+                        .unwrap_or_else(|| "bindgen".to_owned()),
+                })
             })
-        })
-        .expect("Failed to set logger.");
+            .expect("Failed to set logger.");
+            true
+        } else {
+            false
+        }
     }
 
-    pub fn generate_bindings() {
+    fn generate_bindings() {
         let mut builder = Builder::get_initial_builder(BuildType::Release)
             .disable_name_namespacing()
             .with_codegen_config(CodegenConfig {
@@ -810,6 +813,27 @@ mod bindings {
         }
         write_binding_file(builder, BINDINGS_FILE, &Vec::new());
     }
+
+    pub fn generate() {
+        use std::thread;
+        macro_rules! run_tasks {
+            ($($task:expr,)+) => {
+                if setup_logging() {
+                    $($task;)+
+                } else {
+                    let threads = vec![$( thread::spawn(|| $task) ),+];
+                    for thread in threads.into_iter() {
+                        thread.join().unwrap();
+                    }
+                }
+            }
+        }
+        run_tasks! {
+            generate_structs(BuildType::Debug),
+            generate_structs(BuildType::Release),
+            generate_bindings(),
+        }
+    }
 }
 
 #[cfg(not(feature = "bindgen"))]
@@ -822,40 +846,30 @@ mod bindings {
         static ref BINDINGS_PATH: PathBuf = Path::new(file!()).parent().unwrap().join("gecko_bindings");
     }
 
-    pub fn setup_logging() {}
-
-    pub fn generate_structs(build_type: BuildType) {
+    fn generate_structs(build_type: BuildType) {
         let file = structs_file(build_type);
         let source = BINDINGS_PATH.join(file);
         println!("cargo:rerun-if-changed={}", source.display());
         fs::copy(source, OUTDIR_PATH.join(file)).unwrap();
     }
 
-    pub fn generate_bindings() {
+    fn generate_bindings() {
         let source = BINDINGS_PATH.join(BINDINGS_FILE);
         println!("cargo:rerun-if-changed={}", source.display());
         fs::copy(source, OUTDIR_PATH.join(BINDINGS_FILE)).unwrap();
+    }
+
+    pub fn generate() {
+        generate_structs(BuildType::Debug);
+        generate_structs(BuildType::Release);
+        generate_bindings();
     }
 }
 
 pub fn generate() {
     use self::common::*;
-    use std::{env, fs, thread};
+    use std::fs;
     println!("cargo:rerun-if-changed=build_gecko.rs");
     fs::create_dir_all(&*OUTDIR_PATH).unwrap();
-    bindings::setup_logging();
-    if env::var("STYLO_BUILD_LOG").is_ok() {
-        bindings::generate_structs(BuildType::Debug);
-        bindings::generate_structs(BuildType::Release);
-        bindings::generate_bindings();
-    } else {
-        let threads = vec![
-            thread::spawn(|| bindings::generate_structs(BuildType::Debug)),
-            thread::spawn(|| bindings::generate_structs(BuildType::Release)),
-            thread::spawn(|| bindings::generate_bindings()),
-        ];
-        for t in threads.into_iter() {
-            t.join().unwrap();
-        }
-    }
+    bindings::generate();
 }
