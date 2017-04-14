@@ -368,6 +368,29 @@ mod shorthand_serialization {
             let serialization = shorthand_properties_to_string(properties);
             assert_eq!(serialization, "border-style: solid dotted;");
         }
+
+        use style::values::specified::BorderRadiusSize;
+        use style::values::specified::length::Percentage;
+
+        #[test]
+        fn border_radius_should_serialize_correctly() {
+            let mut properties = Vec::new();
+            properties.push(PropertyDeclaration::BorderTopLeftRadius(Box::new(BorderRadiusSize::new(
+                Percentage(0.01).into(), Percentage(0.05).into()
+            ))));
+            properties.push(PropertyDeclaration::BorderTopRightRadius(Box::new(BorderRadiusSize::new(
+                Percentage(0.02).into(), Percentage(0.06).into()
+            ))));
+            properties.push(PropertyDeclaration::BorderBottomRightRadius(Box::new(BorderRadiusSize::new(
+                Percentage(0.03).into(), Percentage(0.07).into()
+            ))));
+            properties.push(PropertyDeclaration::BorderBottomLeftRadius(Box::new(BorderRadiusSize::new(
+                Percentage(0.04).into(), Percentage(0.08).into()
+            ))));
+
+            let serialization = shorthand_properties_to_string(properties);
+            assert_eq!(serialization, "border-radius: 1% 2% 3% 4% / 5% 6% 7% 8%;");
+        }
     }
 
 

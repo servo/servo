@@ -182,7 +182,7 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
     'border-%s-radius' % (corner)
      for corner in ['top-left', 'top-right', 'bottom-right', 'bottom-left']
 )}" extra_prefixes="webkit" spec="https://drafts.csswg.org/css-backgrounds/#border-radius">
-    use values::specified::basic_shape::BorderRadius;
+    use values::specified::basic_shape::{BorderRadius, serialize_radius_values};
     use parser::Parse;
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
@@ -195,21 +195,13 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
         })
     }
 
-    // TODO: I do not understand how border radius works with respect to the slashes /,
-    // so putting a default generic impl for now
-    // https://developer.mozilla.org/en-US/docs/Web/CSS/border-radius
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            try!(self.border_top_left_radius.to_css(dest));
-            try!(write!(dest, " "));
-
-            try!(self.border_top_right_radius.to_css(dest));
-            try!(write!(dest, " "));
-
-            try!(self.border_bottom_right_radius.to_css(dest));
-            try!(write!(dest, " "));
-
-            self.border_bottom_left_radius.to_css(dest)
+            serialize_radius_values(dest,
+                                    &self.border_top_left_radius.0,
+                                    &self.border_top_right_radius.0,
+                                    &self.border_bottom_right_radius.0,
+                                    &self.border_bottom_left_radius.0)
         }
     }
 </%helpers:shorthand>
