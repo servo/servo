@@ -2123,3 +2123,27 @@ pub extern "C" fn Servo_StyleSet_GetFontFaceRules(raw_data: RawServoStyleSetBorr
         dest.mSheetType = src.1.into();
     }
 }
+
+#[no_mangle]
+pub extern "C" fn Servo_StyleSet_ResolveForDeclarations(raw_data: RawServoStyleSetBorrowed,
+                                                        parent_style_or_null: ServoComputedValuesBorrowedOrNull,
+                                                        declarations: RawServoDeclarationBlockBorrowed)
+                                                        -> ServoComputedValuesStrong
+{
+    let doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow();
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
+    let guards = StylesheetGuards::same(&guard);
+
+    let parent_style = match ComputedValues::arc_from_borrowed(&parent_style_or_null) {
+        Some(parent) => &parent,
+        None => doc_data.default_computed_values(),
+    };
+
+    let declarations = Locked::<PropertyDeclarationBlock>::as_arc(&declarations);
+
+    doc_data.stylist.compute_for_declarations(&guards,
+                                              parent_style,
+                                              declarations.clone()).into_strong()
+}
+

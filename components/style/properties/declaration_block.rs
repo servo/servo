@@ -369,7 +369,7 @@ impl PropertyDeclarationBlock {
                 return false
             }
         }
-        self.declarations.iter().any(|&&(ref decl, _)|
+        self.declarations.iter().any(|&(ref decl, _)|
             decl.id().is_or_is_longhand_of(property) &&
             decl.get_css_wide_keyword().is_some()
         )
