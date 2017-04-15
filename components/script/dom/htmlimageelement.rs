@@ -798,12 +798,7 @@ impl HTMLImageElementMethods for HTMLImageElement {
         let request_state = request.state;
         match request_state {
             State::CompletelyAvailable | State::Broken => return true,
-            State::PartiallyAvailable | State::Unavailable => {
-                // NOTE: this is an attempt to comply with:
-                // "(return true if)The final task that is queued by the networking task source,
-                //  once the resource has been fetched, has been queued"
-                return request.parsed_url.is_some()
-            },
+            State::PartiallyAvailable | State::Unavailable => return false,
         }
     }
 
