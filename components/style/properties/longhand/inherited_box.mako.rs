@@ -18,6 +18,7 @@ ${helpers.single_keyword("visibility",
 // https://drafts.csswg.org/css-writing-modes-3
 ${helpers.single_keyword("writing-mode",
                          "horizontal-tb vertical-rl vertical-lr",
+                         extra_gecko_values="sideways-rl sideways-lr",
                          experimental=True,
                          need_clone=True,
                          animation_type="none",

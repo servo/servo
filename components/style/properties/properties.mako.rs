@@ -1936,16 +1936,33 @@ pub fn get_writing_mode(inheritedbox_style: &style_structs::InheritedBox) -> Wri
             flags.insert(logical_geometry::FLAG_VERTICAL);
             flags.insert(logical_geometry::FLAG_VERTICAL_LR);
         },
-    }
-    % if product == "gecko":
-    match inheritedbox_style.clone_text_orientation() {
-        computed_values::text_orientation::T::mixed => {},
-        computed_values::text_orientation::T::upright => {
-            flags.insert(logical_geometry::FLAG_UPRIGHT);
-        },
-        computed_values::text_orientation::T::sideways => {
+        % if product == "gecko":
+        computed_values::writing_mode::T::sideways_rl => {
+            flags.insert(logical_geometry::FLAG_VERTICAL);
             flags.insert(logical_geometry::FLAG_SIDEWAYS);
         },
+        computed_values::writing_mode::T::sideways_lr => {
+            flags.insert(logical_geometry::FLAG_VERTICAL);
+            flags.insert(logical_geometry::FLAG_VERTICAL_LR);
+            flags.insert(logical_geometry::FLAG_LINE_INVERTED);
+            flags.insert(logical_geometry::FLAG_SIDEWAYS);
+        },
+        % endif
+    }
+    % if product == "gecko":
+    // If FLAG_SIDEWAYS is already set, this means writing-mode is either
+    // sideways-rl or sideways-lr, and for both of these values,
+    // text-orientation has no effect.
+    if !flags.intersects(logical_geometry::FLAG_SIDEWAYS) {
+        match inheritedbox_style.clone_text_orientation() {
+            computed_values::text_orientation::T::mixed => {},
+            computed_values::text_orientation::T::upright => {
+                flags.insert(logical_geometry::FLAG_UPRIGHT);
+            },
+            computed_values::text_orientation::T::sideways => {
+                flags.insert(logical_geometry::FLAG_SIDEWAYS);
+            },
+        }
     }
     % endif
     flags
