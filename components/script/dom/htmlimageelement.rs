@@ -23,7 +23,7 @@ use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use dom::element::{reflect_cross_origin_attribute, set_cross_origin_attribute};
-use dom::event::Event;
+use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::htmlareaelement::HTMLAreaElement;
 use dom::htmlelement::HTMLElement;
@@ -31,6 +31,7 @@ use dom::htmlformelement::{FormControl, HTMLFormElement};
 use dom::htmlmapelement::HTMLMapElement;
 use dom::mouseevent::MouseEvent;
 use dom::node::{Node, NodeDamage, document_from_node, window_from_node};
+use dom::progressevent::ProgressEvent;
 use dom::values::UNSIGNED_LONG_MAX;
 use dom::virtualmethods::VirtualMethods;
 use dom::window::Window;
@@ -48,6 +49,7 @@ use net_traits::request::{RequestInit, Type as RequestType};
 use network_listener::{NetworkListener, PreInvoke};
 use num_traits::ToPrimitive;
 use script_thread::{Runnable, ScriptThread};
+use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::cell::{Cell, RefMut};
 use std::default::Default;
@@ -347,23 +349,11 @@ impl HTMLImageElement {
         pending_request.metadata = None;
     }
 
-    fn fire_progress_event(&self) {
-        struct FireProgressEventTask {
-            img: Trusted<HTMLImageElement>,
-        }
-        impl Runnable for FireProgressEventTask {
-            fn handler(self: Box<Self>) {
-                let img = self.img.root();
-                img.upcast::<EventTarget>().fire_event(atom!("progress"));
-            }
-        }
-        let task = box FireProgressEventTask {
-            img: Trusted::new(self),
-        };
-        let document = document_from_node(self);
-        let window = document.window();
-        let task_source = window.dom_manipulation_task_source();
-        let _ = task_source.queue(task, window.upcast());
+    fn dispatch_progress_event(&self, type_: Atom, loaded: u64, total: Option<u64>) {
+        let progressevent = ProgressEvent::new(&self.global(),
+            type_, EventBubbles::DoesNotBubble, EventCancelable::NotCancelable,
+            total.is_some(), loaded, total.unwrap_or(0));
+        progressevent.upcast::<Event>().fire(self.upcast());
     }
 
     /// https://html.spec.whatwg.org/multipage/#update-the-source-set
@@ -492,7 +482,7 @@ impl HTMLImageElement {
             return
         }
         // Step 10
-        self.fire_progress_event();
+        self.dispatch_progress_event(atom!("progress"), 0, None);
         // Step 11
         let elem = self.upcast::<Element>();
         let src = elem.get_string_attribute(&local_name!("src"));
