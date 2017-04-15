@@ -19,10 +19,6 @@ bitflags! {
     ///
     /// This is used to implement efficient sharing.
     pub flags StyleRelations: u16 {
-        /// Whether this element has matched any rule that is determined by a
-        /// sibling (when using the `+` or `~` combinators).
-        const AFFECTED_BY_SIBLINGS = 1 << 0,
-
         /// Whether this element has matched any rule whose matching is
         /// determined by its position in the tree (i.e., first-child,
         /// nth-child, etc.).
@@ -182,15 +178,7 @@ pub fn matches_complex_selector<E, F>(selector: &ComplexSelector<E::Impl>,
                                             element,
                                             relations,
                                             flags_setter) {
-        SelectorMatchingResult::Matched => {
-            match selector.next {
-                Some((_, Combinator::NextSibling)) |
-                Some((_, Combinator::LaterSibling)) => *relations |= AFFECTED_BY_SIBLINGS,
-                _ => {}
-            }
-
-            true
-        }
+        SelectorMatchingResult::Matched => true,
         _ => false
     }
 }
