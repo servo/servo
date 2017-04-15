@@ -559,10 +559,11 @@ impl HTMLImageElement {
                 if let Ok(ImageOrMetadataAvailable::ImageAvailable(image)) = response {
                     // Step 5.3
                     let metadata = ImageMetadata { height: image.height, width: image.width };
+                    // Step 5.3.2 abort requests
+                    self.abort_requests(State::CompletelyAvailable);
                     let mut current_request = self.current_request.borrow_mut();
                     current_request.image = Some(image.clone());
                     current_request.metadata = Some(metadata);
-                    current_request.state = State::CompletelyAvailable;
                     current_request.parsed_url = Some(img_url);
                     current_request.source_url = Some(src);
                     // TODO: queue a task to restart animation, if set
