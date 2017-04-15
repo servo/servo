@@ -566,7 +566,8 @@ impl HTMLImageElement {
                     current_request.state = State::CompletelyAvailable;
                     current_request.parsed_url = Some(img_url);
                     current_request.source_url = Some(src);
-                    self.upcast::<EventTarget>().fire_event(atom!("load"));
+                    // TODO: queue a task to restart animation, if set
+                    self.dispatch_event(atom!("load"));
                     return
                 }
             }
