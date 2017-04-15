@@ -116,8 +116,7 @@ impl Runnable for ImageResponseHandlerRunnable {
         let element = self.element.root();
         // Ignore any image response for a previous request that has been discarded.
         if element.generation.get() == self.generation {
-            let url = self.url.clone();
-            element.process_image_response(self.image, &url);
+            element.process_image_response(&self.image, &self.url);
         }
     }
 }
@@ -209,11 +208,11 @@ impl HTMLImageElement {
                                                CanRequestImages::Yes);
         match response {
             Ok(ImageOrMetadataAvailable::ImageAvailable(image)) => {
-                self.process_image_response(ImageResponse::Loaded(image), img_url);
+                self.process_image_response(&ImageResponse::Loaded(image), img_url);
             }
 
             Ok(ImageOrMetadataAvailable::MetadataAvailable(m)) => {
-                self.process_image_response(ImageResponse::MetadataLoaded(m), img_url);
+                self.process_image_response(&ImageResponse::MetadataLoaded(m), img_url);
             }
 
             Err(ImageState::Pending(id)) => {
@@ -221,7 +220,7 @@ impl HTMLImageElement {
             }
 
             Err(ImageState::LoadError) => {
-                self.process_image_response(ImageResponse::None, img_url);
+                self.process_image_response(&ImageResponse::None, img_url);
             }
 
             Err(ImageState::NotRequested(id)) => {
@@ -283,9 +282,9 @@ impl HTMLImageElement {
     }
 
     /// Step 14 of https://html.spec.whatwg.org/multipage/#update-the-image-data
-    fn process_image_response(&self, image: ImageResponse, url: &ServoUrl) {
-        let (trigger_image_load, trigger_image_error) = match image {
-            ImageResponse::Loaded(image) | ImageResponse::PlaceholderLoaded(image) => {
+    fn process_image_response(&self, image: &ImageResponse, url: &ServoUrl) {
+        let (trigger_image_load, trigger_image_error) = match *image {
+            ImageResponse::Loaded(ref image) | ImageResponse::PlaceholderLoaded(ref image) => {
                 let mut image_request = self.request_for_url(url);
                 image_request.state = State::CompletelyAvailable;
                 image_request.image = Some(image.clone());
@@ -293,11 +292,11 @@ impl HTMLImageElement {
                 LoadBlocker::terminate(&mut image_request.blocker);
                 (true, false)
             }
-            ImageResponse::MetadataLoaded(meta) => {
+            ImageResponse::MetadataLoaded(ref meta) => {
                 let mut image_request = self.request_for_url(url);
                 image_request.state = State::PartiallyAvailable;
                 image_request.image = None;
-                image_request.metadata = Some(meta);
+                image_request.metadata = Some(meta.clone());
                 (false, false)
             }
             ImageResponse::None => {
