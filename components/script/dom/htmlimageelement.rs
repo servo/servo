@@ -301,6 +301,7 @@ impl HTMLImageElement {
                 (false, false)
             }
             ImageResponse::None => {
+                // TODO: add relevant steps(abort/upgrade requests)
                 let mut image_request = self.request_for_url(url);
                 image_request.state = State::Broken;
                 image_request.image = None;
@@ -311,10 +312,12 @@ impl HTMLImageElement {
         };
 
         // Mark the node dirty
+        // TODO: only do this if we are using current request
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
 
         // Fire image.onload and loadend
         if trigger_image_load {
+            // TODO: https://html.spec.whatwg.org/multipage/#fire-a-progress-event-or-event
             self.upcast::<EventTarget>().fire_event(atom!("load"));
             self.upcast::<EventTarget>().fire_event(atom!("loadend"));
         }
