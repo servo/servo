@@ -25,6 +25,52 @@ define_css_keyword_enum!{ Keyword:
     "y-end" => YEnd
 }
 
+add_impls_for_keyword_enum!(Keyword);
+
+impl Keyword {
+    #[inline]
+    /// The defaults for position keywords are `left` and `top` (`x-start` and `y-start` for logical).
+    /// This method checks whether this keyword indicates their opposite sides. See the
+    /// `ToComputedValue` impl on `HorizontalPosition` and `VerticalPosition` for its use case.
+    pub fn is_other_side(&self) -> bool {
+        if self.is_horizontal() || self.is_logical_x() {
+            matches!(*self, Keyword::Right | Keyword::XEnd)
+        } else {
+            matches!(*self, Keyword::Bottom | Keyword::YEnd)
+        }
+    }
+
+    #[inline]
+    /// Check whether this is a keyword for horizontal position.
+    pub fn is_horizontal(&self) -> bool {
+        matches!(*self, Keyword::Left | Keyword::Right)
+    }
+
+    #[inline]
+    /// Check whether this is a keyword for vertical position.
+    pub fn is_vertical(&self) -> bool {
+        matches!(*self, Keyword::Top | Keyword::Bottom)
+    }
+
+    #[inline]
+    /// Check whether this is a horizontal logical keyword.
+    pub fn is_logical_x(&self) -> bool {
+        matches!(*self, Keyword::XStart | Keyword::XEnd)
+    }
+
+    #[inline]
+    /// Check whether this is a vertical logical keyword.
+    pub fn is_logical_y(&self) -> bool {
+        matches!(*self, Keyword::YStart | Keyword::YEnd)
+    }
+
+    #[inline]
+    /// Check whether this is a logical keyword.
+    pub fn is_logical(&self) -> bool {
+        self.is_logical_x() || self.is_logical_y()
+    }
+}
+
 impl From<Keyword> for LengthOrPercentage {
     fn from(val: Keyword) -> LengthOrPercentage {
         match val {

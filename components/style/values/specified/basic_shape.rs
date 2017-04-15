@@ -338,13 +338,11 @@ fn serialize_basicshape_position<W>(position: &Position, dest: &mut W) -> fmt::R
         replace_with_percent(y).to_css(dest)
     }
 
-    match (position.horizontal.keyword, position.horizontal.position.clone(),
-           position.vertical.keyword, position.vertical.position.clone()) {
+    match (position.horizontal.0.keyword, position.horizontal.0.position.clone(),
+           position.vertical.0.keyword, position.vertical.0.position.clone()) {
         (Some(hk), None, Some(vk), None) => {
             // two keywords: serialize as two lengths
-            serialize_position_pair(hk.to_length_or_percentage(),
-                                    vk.to_length_or_percentage(),
-                                    dest)
+            serialize_position_pair(hk.into(), vk.into(), dest)
         }
         (None, Some(hp), None, Some(vp)) => {
             // two lengths: just serialize regularly

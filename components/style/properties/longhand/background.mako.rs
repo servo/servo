@@ -111,26 +111,27 @@ ${helpers.predefined_type("background-color", "CSSColor",
     #[inline]
     #[allow(missing_docs)]
     pub fn get_initial_value() -> computed_value::T {
-        use values::computed::position::HorizontalPosition;
+        use values::generics::position::HorizontalPosition;
         HorizontalPosition(computed::LengthOrPercentage::Percentage(0.0))
     }
     #[inline]
     #[allow(missing_docs)]
     pub fn get_initial_specified_value() -> SpecifiedValue {
-        use values::specified::position::Keyword;
-        HorizontalPosition {
+        use values::generics::position::{HorizontalPosition, Keyword, PositionValue};
+        HorizontalPosition(PositionValue {
             keyword: Some(Keyword::Left),
             position: None,
-        }
+        })
     }
     #[inline]
     #[allow(missing_docs)]
     pub fn get_initial_position_value() -> SpecifiedValue {
+        use values::generics::position::{HorizontalPosition, PositionValue};
         use values::specified::{LengthOrPercentage, Percentage};
-        HorizontalPosition {
+        HorizontalPosition(PositionValue {
             keyword: None,
             position: Some(LengthOrPercentage::Percentage(Percentage(0.0))),
-        }
+        })
     }
 
     #[allow(missing_docs)]
@@ -162,26 +163,27 @@ ${helpers.predefined_type("background-color", "CSSColor",
     #[inline]
     #[allow(missing_docs)]
     pub fn get_initial_value() -> computed_value::T {
-        use values::computed::position::VerticalPosition;
+        use values::generics::position::VerticalPosition;
         VerticalPosition(computed::LengthOrPercentage::Percentage(0.0))
     }
     #[inline]
     #[allow(missing_docs)]
     pub fn get_initial_specified_value() -> SpecifiedValue {
-        use values::specified::position::Keyword;
-        VerticalPosition {
+        use values::generics::position::{Keyword, PositionValue, VerticalPosition};
+        VerticalPosition(PositionValue {
             keyword: Some(Keyword::Top),
             position: None,
-        }
+        })
     }
     #[inline]
     #[allow(missing_docs)]
     pub fn get_initial_position_value() -> SpecifiedValue {
+        use values::generics::position::{PositionValue, VerticalPosition};
         use values::specified::{LengthOrPercentage, Percentage};
-        VerticalPosition {
+        VerticalPosition(PositionValue {
             keyword: None,
             position: Some(LengthOrPercentage::Percentage(Percentage(0.0))),
-        }
+        })
     }
 
     #[inline]
