@@ -359,6 +359,21 @@ impl PropertyDeclarationBlock {
             longhands: longhands,
         }
     }
+
+    /// Returns true if the declaration block has a CSSWideKeyword for the given
+    /// property.
+    #[cfg(feature = "gecko")]
+    pub fn has_css_wide_keyword(&self, property: &PropertyId) -> bool {
+        if let PropertyId::Longhand(id) = *property {
+            if !self.longhands.contains(id) {
+                return false
+            }
+        }
+        self.declarations.iter().any(|&(ref decl, _)|
+            decl.id().is_or_is_longhand_of(property) &&
+            decl.get_css_wide_keyword().is_some()
+        )
+    }
 }
 
 impl ToCss for PropertyDeclarationBlock {

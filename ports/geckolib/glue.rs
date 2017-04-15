@@ -990,15 +990,11 @@ pub extern "C" fn Servo_StyleSet_Drop(data: RawServoStyleSetOwned) {
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_ParseProperty(property: *const nsACString, value: *const nsACString,
+pub extern "C" fn Servo_ParseProperty(property: nsCSSPropertyID, value: *const nsACString,
                                       data: *mut URLExtraData)
                                       -> RawServoDeclarationBlockStrong {
-    let name = unsafe { property.as_ref().unwrap().as_str_unchecked() };
-    let id = if let Ok(id) = PropertyId::parse(name.into()) {
-        id
-    } else {
-        return RawServoDeclarationBlockStrong::null()
-    };
+    let id = get_property_id_from_nscsspropertyid!(property,
+                                                   RawServoDeclarationBlockStrong::null());
     let value = unsafe { value.as_ref().unwrap().as_str_unchecked() };
 
     let url_data = unsafe { RefPtr::from_ptr_ref(&data) };
@@ -1236,6 +1232,15 @@ pub extern "C" fn Servo_MediaList_Matches(list: RawServoMediaListBorrowed,
     let per_doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow();
     read_locked_arc(list, |list: &MediaList| {
         list.evaluate(&per_doc_data.stylist.device)
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_DeclarationBlock_HasCSSWideKeyword(declarations: RawServoDeclarationBlockBorrowed,
+                                                           property: nsCSSPropertyID) -> bool {
+    let property_id = get_property_id_from_nscsspropertyid!(property, false);
+    read_locked_arc(declarations, |decls: &PropertyDeclarationBlock| {
+        decls.has_css_wide_keyword(&property_id)
     })
 }
 
@@ -2118,3 +2123,27 @@ pub extern "C" fn Servo_StyleSet_GetFontFaceRules(raw_data: RawServoStyleSetBorr
         dest.mSheetType = src.1.into();
     }
 }
+
+#[no_mangle]
+pub extern "C" fn Servo_StyleSet_ResolveForDeclarations(raw_data: RawServoStyleSetBorrowed,
+                                                        parent_style_or_null: ServoComputedValuesBorrowedOrNull,
+                                                        declarations: RawServoDeclarationBlockBorrowed)
+                                                        -> ServoComputedValuesStrong
+{
+    let doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow();
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
+    let guards = StylesheetGuards::same(&guard);
+
+    let parent_style = match ComputedValues::arc_from_borrowed(&parent_style_or_null) {
+        Some(parent) => &parent,
+        None => doc_data.default_computed_values(),
+    };
+
+    let declarations = Locked::<PropertyDeclarationBlock>::as_arc(&declarations);
+
+    doc_data.stylist.compute_for_declarations(&guards,
+                                              parent_style,
+                                              declarations.clone()).into_strong()
+}
+
