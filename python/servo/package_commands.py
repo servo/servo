@@ -107,25 +107,12 @@ def copy_dependencies(binary_path, lib_path):
 
 
 def copy_windows_dependencies(binary_path, destination):
-    try:
-        [shutil.copy(path.join(binary_path, d), destination) for d in ["libcryptoMD.dll", "libsslMD.dll"]]
-    except:
-        deps = [
-            "libstdc++-6.dll",
-            "libwinpthread-1.dll",
-            "libbz2-1.dll",
-            "libgcc_s_seh-1.dll",
-            "libexpat-1.dll",
-            "zlib1.dll",
-            "libiconv-2.dll",
-            "libintl-8.dll",
-            "libcryptoMD.dll",
-            "libsslMD.dll",
-        ]
-        for d in deps:
-            dep_path = path.join("C:\\msys64\\mingw64\\bin", d)
-            if path.exists(dep_path):
-                shutil.copy(dep_path, path.join(destination, d))
+    deps = [
+        "libcryptoMD.dll",
+        "libsslMD.dll",
+    ]
+    for d in deps:
+        shutil.copy(path.join(binary_path, d), destination)
 
 
 def change_prefs(resources_path, platform):

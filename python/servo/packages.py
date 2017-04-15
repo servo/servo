@@ -2,21 +2,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-WINDOWS_GNU = set([
-    "diffutils",
-    "make",
-    "mingw-w64-x86_64-toolchain",
-    "mingw-w64-x86_64-icu",
-    "mingw-w64-x86_64-nspr",
-    "mingw-w64-x86_64-ca-certificates",
-    "mingw-w64-x86_64-expat",
-    "mingw-w64-x86_64-cmake",
-    "patch",
-    "patchutils",
-    "python2-setuptools",
-    "tar",
-])
-
 WINDOWS_MSVC = {
     "cmake": "3.7.2",
     "moztools": "0.0.1-5",

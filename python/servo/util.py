@@ -32,12 +32,8 @@ def host_platform():
         # If we are in a Visual Studio environment, use msvc
         if os.getenv("PLATFORM") is not None:
             os_type = "pc-windows-msvc"
-        elif os.getenv("MSYSTEM") is not None:
-            os_type = "pc-windows-gnu"
         else:
             os_type = "unknown"
-    elif os_type.startswith("mingw64_nt-") or os_type.startswith("cygwin_nt-"):
-        os_type = "pc-windows-gnu"
     elif os_type == "freebsd":
         os_type = "unknown-freebsd"
     else:

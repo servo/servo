@@ -30,7 +30,6 @@ environment:
     C:\\Program Files\\AppVeyor\\BuildAgent;"
   matrix:
   - TARGET: nightly-x86_64-pc-windows-msvc
-  - TARGET: nightly-x86_64-pc-windows-gnu
 
 branches:
   only:
@@ -41,20 +40,6 @@ cache:
   - .cargo -> rust-commit-hash, cargo-commit-hash
   - .ccache
 
-install:
-  - if %TARGET:*-msvc=msvc%==msvc set BUILD_ENV=msvc
-  - if %TARGET:*-gnu=gnu%==gnu set BUILD_ENV=gnu
-  - if %BUILD_ENV%==gnu  set PATH=C:\msys64\mingw64\bin;C:\msys64\usr\bin\;%PATH%
-  - if %BUILD_ENV%==gnu  set MSYSTEM=MINGW64
-  - if %BUILD_ENV%==gnu  set MSYS=winsymlinks=lnk
-  - if %BUILD_ENV%==gnu  bash -lc "echo $MSYSTEM; pacman --needed --noconfirm -Sy pacman-mirrors"
-  - if %BUILD_ENV%==gnu  bash -lc "pacman --noconfirm -Sy"
-  - if %BUILD_ENV%==gnu  bash -lc "pacman -Sy --needed --noconfirm mingw-w64-x86_64-ccache mingw-w64-x86_64-toolchain mingw-w64-x86_64-icu mingw-w64-x86_64-nspr mingw-w64-x86_64-ca-certificates mingw-w64-x86_64-expat mingw-w64-x86_64-cmake tar diffutils patch patchutils make python2-setuptools"
-  # Downgrade msys2 build GCC to 5.4.0-1 - https://github.com/servo/servo/issues/12512
-  - if %BUILD_ENV%==gnu  set GCC_URL=http://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-gcc
-  - if %BUILD_ENV%==gnu  set GCC_EXT=5.4.0-1-any.pkg.tar.xz
-  - if %BUILD_ENV%==gnu  bash -lc "pacman -U --noconfirm $GCC_URL-$GCC_EXT $GCC_URL-ada-$GCC_EXT $GCC_URL-fortran-$GCC_EXT $GCC_URL-libgfortran-$GCC_EXT $GCC_URL-libs-$GCC_EXT $GCC_URL-objc-$GCC_EXT"
-
 # Uncomment these lines to expose RDP access information to the build machine in the build log.
 #init:
 #  - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
@@ -63,9 +48,6 @@ install:
 #  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 
 build_script:
-  - if %BUILD_ENV%==gnu  bash -lc "ccache -s"
-  - if %BUILD_ENV%==msvc mach build -d -v && mach test-unit
-  - if %BUILD_ENV%==gnu  bash -lc "export PATH=/c/Python27:$PATH; export CCACHE=/mingw64/bin/ccache; cd $APPVEYOR_BUILD_FOLDER; ./mach build -d -v && ./mach test-unit"
-  - if %BUILD_ENV%==gnu  bash -lc "ccache -s"
+  - mach build -d -v && mach test-unit
 
 test: off
