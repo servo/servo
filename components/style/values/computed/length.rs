@@ -46,7 +46,7 @@ impl ToComputedValue for specified::Length {
     fn to_computed_value(&self, context: &Context) -> Au {
         match *self {
             specified::Length::NoCalc(l) => l.to_computed_value(context),
-            specified::Length::Calc(ref calc, range) => range.clamp(calc.to_computed_value(context).length()),
+            specified::Length::Calc(range, ref calc) => range.clamp(calc.to_computed_value(context).length()),
         }
     }
 

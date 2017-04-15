@@ -1864,7 +1864,6 @@ ${helpers.predefined_type("perspective",
                           gecko_ffi_name="mChildPerspective",
                           spec="https://drafts.csswg.org/css-transforms/#perspective",
                           extra_prefixes="moz webkit",
-                          boxed=True,
                           creates_stacking_context=True,
                           fixpos_cb=True,
                           animation_type="normal")}

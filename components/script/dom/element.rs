@@ -649,16 +649,16 @@ impl LayoutElementHelpers for LayoutJS<Element> {
             let width_value = specified::BorderWidth::from_length(specified::Length::from_px(border as f32));
             hints.push(from_declaration(
                 shared_lock,
-                PropertyDeclaration::BorderTopWidth(Box::new(width_value.clone()))));
+                PropertyDeclaration::BorderTopWidth(width_value.clone())));
             hints.push(from_declaration(
                 shared_lock,
-                PropertyDeclaration::BorderLeftWidth(Box::new(width_value.clone()))));
+                PropertyDeclaration::BorderLeftWidth(width_value.clone())));
             hints.push(from_declaration(
                 shared_lock,
-                PropertyDeclaration::BorderBottomWidth(Box::new(width_value.clone()))));
+                PropertyDeclaration::BorderBottomWidth(width_value.clone())));
             hints.push(from_declaration(
                 shared_lock,
-                PropertyDeclaration::BorderRightWidth(Box::new(width_value))));
+                PropertyDeclaration::BorderRightWidth(width_value)));
         }
     }
 

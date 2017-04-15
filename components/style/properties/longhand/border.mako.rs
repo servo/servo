@@ -36,7 +36,7 @@ ${helpers.gecko_keyword_conversion(Keyword('border-style',
                                    "none solid double dotted dashed hidden groove ridge inset outset"),
                                    type="::values::specified::BorderStyle")}
 % for side in ALL_SIDES:
-    <%helpers:longhand name="border-${side[0]}-width" boxed="True" animation_type="normal" logical="${side[1]}"
+    <%helpers:longhand name="border-${side[0]}-width" animation_type="normal" logical="${side[1]}"
                        alias="${maybe_moz_logical_alias(product, side, '-moz-border-%s-width')}"
                        spec="${maybe_logical_spec(side, 'width')}">
         use app_units::Au;

@@ -11,17 +11,17 @@ use style::values::specified::{AbsoluteLength, Length, NoCalcLength, ViewportPer
 #[test]
 fn has_viewport_percentage_for_specified_value() {
     //TODO: test all specified value with a HasViewportPercentage impl
-    let pvw = PropertyDeclaration::BorderTopWidth(Box::new(
+    let pvw = PropertyDeclaration::BorderTopWidth(
         border_top_width::SpecifiedValue::from_length(
             Length::NoCalc(NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vw(100.)))
         )
-    ));
+    );
     assert!(pvw.has_viewport_percentage());
 
-    let pabs = PropertyDeclaration::BorderTopWidth(Box::new(
+    let pabs = PropertyDeclaration::BorderTopWidth(
         border_top_width::SpecifiedValue::from_length(
             Length::NoCalc(NoCalcLength::Absolute(AbsoluteLength::Px(Au(100).to_f32_px())))
         )
-    ));
+    );
     assert!(!pabs.has_viewport_percentage());
 }
