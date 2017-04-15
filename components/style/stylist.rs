@@ -26,8 +26,8 @@ use selectors::Element;
 use selectors::bloom::BloomFilter;
 use selectors::matching::{AFFECTED_BY_ANIMATIONS, AFFECTED_BY_TRANSITIONS};
 use selectors::matching::{AFFECTED_BY_STYLE_ATTRIBUTE, AFFECTED_BY_PRESENTATIONAL_HINTS};
-use selectors::matching::{ElementSelectorFlags, StyleRelations, matches_complex_selector};
-use selectors::parser::{Selector, SimpleSelector, LocalName as LocalNameSelector, ComplexSelector};
+use selectors::matching::{ElementSelectorFlags, StyleRelations, matches_selector};
+use selectors::parser::{Selector, SelectorInner, SimpleSelector, LocalName as LocalNameSelector};
 use shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
 use sink::Push;
 use smallvec::VecLike;
@@ -336,7 +336,7 @@ impl Stylist {
                         };
 
                         map.insert(Rule {
-                            selector: selector.complex_selector.clone(),
+                            selector: selector.inner.clone(),
                             style_rule: locked.clone(),
                             specificity: selector.specificity,
                             source_order: self.rules_source_order,
@@ -346,7 +346,7 @@ impl Stylist {
 
                     for selector in &style_rule.selectors.0 {
                         let needs_cache_revalidation =
-                            self.dependencies.note_selector(&selector.complex_selector);
+                            self.dependencies.note_selector(&selector.inner.complex);
                         if needs_cache_revalidation {
                             self.selectors_for_cache_revalidation.push(selector.clone());
                         }
@@ -826,18 +826,18 @@ impl Stylist {
               F: FnMut(&E, ElementSelectorFlags)
     {
         use selectors::matching::StyleRelations;
-        use selectors::matching::matches_complex_selector;
+        use selectors::matching::matches_selector;
 
         let len = self.selectors_for_cache_revalidation.len();
         let mut results = BitVec::from_elem(len, false);
 
         for (i, ref selector) in self.selectors_for_cache_revalidation
                                      .iter().enumerate() {
-            results.set(i, matches_complex_selector(&selector.complex_selector,
-                                                    element,
-                                                    Some(bloom),
-                                                    &mut StyleRelations::empty(),
-                                                    flags_setter));
+            results.set(i, matches_selector(&selector.inner,
+                                            element,
+                                            Some(bloom),
+                                            &mut StyleRelations::empty(),
+                                            flags_setter));
         }
 
         results
@@ -1081,8 +1081,8 @@ impl SelectorMap {
         // correct, and also to not trigger rule tree assertions.
         let mut important = vec![];
         for rule in self.other_rules.iter() {
-            if rule.selector.compound_selector.is_empty() &&
-               rule.selector.next.is_none() {
+            if rule.selector.complex.compound_selector.is_empty() &&
+               rule.selector.complex.next.is_none() {
                 let style_rule = rule.style_rule.read_with(guard);
                 let block = style_rule.block.read_with(guard);
                 if block.any_normal() {
@@ -1157,8 +1157,8 @@ impl SelectorMap {
                 block.any_normal()
             };
             if any_declaration_for_importance &&
-               matches_complex_selector(&*rule.selector, element, parent_bf,
-                                        relations, flags_setter) {
+               matches_selector(&rule.selector, element, parent_bf,
+                                relations, flags_setter) {
                 matching_rules.push(
                     rule.to_applicable_declaration_block(cascade_level));
             }
@@ -1191,7 +1191,7 @@ impl SelectorMap {
 
     /// Retrieve the first ID name in Rule, or None otherwise.
     pub fn get_id_name(rule: &Rule) -> Option<Atom> {
-        for ss in &rule.selector.compound_selector {
+        for ss in &rule.selector.complex.compound_selector {
             // TODO(pradeep): Implement case-sensitivity based on the
             // document type and quirks mode.
             if let SimpleSelector::ID(ref id) = *ss {
@@ -1204,7 +1204,7 @@ impl SelectorMap {
 
     /// Retrieve the FIRST class name in Rule, or None otherwise.
     pub fn get_class_name(rule: &Rule) -> Option<Atom> {
-        for ss in &rule.selector.compound_selector {
+        for ss in &rule.selector.complex.compound_selector {
             // TODO(pradeep): Implement case-sensitivity based on the
             // document type and quirks mode.
             if let SimpleSelector::Class(ref class) = *ss {
@@ -1217,7 +1217,7 @@ impl SelectorMap {
 
     /// Retrieve the name if it is a type selector, or None otherwise.
     pub fn get_local_name(rule: &Rule) -> Option<LocalNameSelector<SelectorImpl>> {
-        for ss in &rule.selector.compound_selector {
+        for ss in &rule.selector.complex.compound_selector {
             if let SimpleSelector::LocalName(ref n) = *ss {
                 return Some(LocalNameSelector {
                     name: n.name.clone(),
@@ -1245,7 +1245,7 @@ pub struct Rule {
     /// style rule was a generic parameter to it. It's not trivial though, due
     /// to the specificity.
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
-    pub selector: Arc<ComplexSelector<SelectorImpl>>,
+    pub selector: SelectorInner<SelectorImpl>,
     /// The actual style rule.
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
     pub style_rule: Arc<Locked<StyleRule>>,

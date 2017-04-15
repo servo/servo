@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 use bloom::BloomFilter;
 use parser::{CaseSensitivity, Combinator, ComplexSelector, LocalName};
-use parser::{SimpleSelector, Selector};
+use parser::{SimpleSelector, Selector, SelectorInner};
 use precomputed_hash::PrecomputedHash;
 use std::borrow::Borrow;
 use tree::Element;
@@ -92,27 +92,28 @@ impl ElementSelectorFlags {
     }
 }
 
-pub fn matches<E>(selector_list: &[Selector<E::Impl>],
-                  element: &E,
-                  parent_bf: Option<&BloomFilter>)
-                  -> bool
+pub fn matches_selector_list<E>(selector_list: &[Selector<E::Impl>],
+                                element: &E,
+                                parent_bf: Option<&BloomFilter>)
+                                -> bool
     where E: Element
 {
     selector_list.iter().any(|selector| {
         selector.pseudo_element.is_none() &&
-        matches_complex_selector(&*selector.complex_selector,
-                                 element,
-                                 parent_bf,
-                                 &mut StyleRelations::empty(),
-                                 &mut |_, _| {})
+        matches_selector(&selector.inner,
+                         element,
+                         parent_bf,
+                         &mut StyleRelations::empty(),
+                         &mut |_, _| {})
     })
 }
 
-fn may_match<E>(mut selector: &ComplexSelector<E::Impl>,
+fn may_match<E>(sel: &SelectorInner<E::Impl>,
                 bf: &BloomFilter)
                 -> bool
     where E: Element,
 {
+    let mut selector = &*sel.complex;
     // See if the bloom filter can exclude any of the descendant selectors, and
     // reject if we can.
     loop {
@@ -159,28 +160,24 @@ fn may_match<E>(mut selector: &ComplexSelector<E::Impl>,
 }
 
 /// Determines whether the given element matches the given complex selector.
-pub fn matches_complex_selector<E, F>(selector: &ComplexSelector<E::Impl>,
-                                      element: &E,
-                                      parent_bf: Option<&BloomFilter>,
-                                      relations: &mut StyleRelations,
-                                      flags_setter: &mut F)
-                                      -> bool
+pub fn matches_selector<E, F>(selector: &SelectorInner<E::Impl>,
+                              element: &E,
+                              parent_bf: Option<&BloomFilter>,
+                              relations: &mut StyleRelations,
+                              flags_setter: &mut F)
+                              -> bool
     where E: Element,
           F: FnMut(&E, ElementSelectorFlags),
 {
+    // Use the bloom filter to fast-reject.
     if let Some(filter) = parent_bf {
         if !may_match::<E>(selector, filter) {
             return false;
         }
     }
 
-    match matches_complex_selector_internal(selector,
-                                            element,
-                                            relations,
-                                            flags_setter) {
-        SelectorMatchingResult::Matched => true,
-        _ => false
-    }
+    // Match the selector.
+    matches_complex_selector(&selector.complex, element, relations, flags_setter)
 }
 
 /// A result of selector matching, includes 3 failure types,
@@ -231,6 +228,24 @@ enum SelectorMatchingResult {
     NotMatchedAndRestartFromClosestLaterSibling,
     NotMatchedAndRestartFromClosestDescendant,
     NotMatchedGlobally,
+}
+
+/// Matches a complex selector.
+pub fn matches_complex_selector<E, F>(selector: &ComplexSelector<E::Impl>,
+                                      element: &E,
+                                      relations: &mut StyleRelations,
+                                      flags_setter: &mut F)
+                                      -> bool
+     where E: Element,
+           F: FnMut(&E, ElementSelectorFlags),
+{
+    match matches_complex_selector_internal(selector,
+                                            element,
+                                            relations,
+                                            flags_setter) {
+        SelectorMatchingResult::Matched => true,
+        _ => false
+    }
 }
 
 fn matches_complex_selector_internal<E, F>(selector: &ComplexSelector<E::Impl>,

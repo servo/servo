@@ -35,7 +35,7 @@ fn get_mock_rules(css_selectors: &[&str]) -> (Vec<Vec<Rule>>, SharedRwLock) {
         let rule = locked.read_with(&guard);
         rule.selectors.0.iter().map(|s| {
             Rule {
-                selector: s.complex_selector.clone(),
+                selector: s.inner.clone(),
                 style_rule: locked.clone(),
                 specificity: s.specificity,
                 source_order: i,

@@ -121,9 +121,27 @@ impl<Impl: SelectorImpl> SelectorList<Impl> {
     }
 }
 
+/// The cores parts of a selector used for matching. This exists to make that
+/// information accessibly separately from the specificity and pseudo-element
+/// information that lives on |Selector| proper. We may want to refactor things
+/// and move that information elsewhere, at which point we could rename this
+/// to |Selector|.
+#[derive(PartialEq, Eq, Hash, Clone)]
+pub struct SelectorInner<Impl: SelectorImpl> {
+    pub complex: Arc<ComplexSelector<Impl>>,
+}
+
+impl<Impl: SelectorImpl> SelectorInner<Impl> {
+    pub fn new(c: Arc<ComplexSelector<Impl>>) -> Self {
+        SelectorInner {
+            complex: c,
+        }
+    }
+}
+
 #[derive(PartialEq, Eq, Hash, Clone)]
 pub struct Selector<Impl: SelectorImpl> {
-    pub complex_selector: Arc<ComplexSelector<Impl>>,
+    pub inner: SelectorInner<Impl>,
     pub pseudo_element: Option<Impl::PseudoElement>,
     pub specificity: u32,
 }
@@ -141,7 +159,7 @@ impl<Impl: SelectorImpl> SelectorMethods for Selector<Impl> {
     fn visit<V>(&self, visitor: &mut V) -> bool
         where V: SelectorVisitor<Impl = Impl>,
     {
-        self.complex_selector.visit(visitor)
+        self.inner.complex.visit(visitor)
     }
 }
 
@@ -321,6 +339,9 @@ impl<Impl: SelectorImpl> Debug for Selector<Impl> {
     }
 }
 
+impl<Impl: SelectorImpl> Debug for SelectorInner<Impl> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { self.complex.to_css(f) }
+}
 impl<Impl: SelectorImpl> Debug for ComplexSelector<Impl> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { self.to_css(f) }
 }
@@ -353,7 +374,7 @@ impl<Impl: SelectorImpl> ToCss for SelectorList<Impl> {
 
 impl<Impl: SelectorImpl> ToCss for Selector<Impl> {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        self.complex_selector.to_css(dest)?;
+        self.inner.complex.to_css(dest)?;
         if let Some(ref pseudo) = self.pseudo_element {
             pseudo.to_css(dest)?;
         }
@@ -672,7 +693,7 @@ fn parse_selector<P, Impl>(parser: &P, input: &mut CssParser) -> Result<Selector
         parse_complex_selector_and_pseudo_element(parser, input)?;
     Ok(Selector {
         specificity: specificity(&complex, pseudo_element.as_ref()),
-        complex_selector: Arc::new(complex),
+        inner: SelectorInner::new(Arc::new(complex)),
         pseudo_element: pseudo_element,
     })
 }
@@ -1305,48 +1326,48 @@ pub mod tests {
         assert_eq!(parse(":lang(4)"), Err(())) ;
         assert_eq!(parse(":lang(en US)"), Err(())) ;
         assert_eq!(parse("EeÉ"), Ok(SelectorList(vec!(Selector {
-            complex_selector: Arc::new(ComplexSelector {
+            inner: SelectorInner::new(Arc::new(ComplexSelector {
                 compound_selector: vec!(SimpleSelector::LocalName(LocalName {
                     name: DummyAtom::from("EeÉ"),
                     lower_name: DummyAtom::from("eeÉ") })),
                 next: None,
-            }),
+            })),
             pseudo_element: None,
             specificity: specificity(0, 0, 1),
         }))));
         assert_eq!(parse(".foo:lang(en-US)"), Ok(SelectorList(vec!(Selector {
-            complex_selector: Arc::new(ComplexSelector {
+            inner: SelectorInner::new(Arc::new(ComplexSelector {
                 compound_selector: vec![
                     SimpleSelector::Class(DummyAtom::from("foo")),
                     SimpleSelector::NonTSPseudoClass(PseudoClass::Lang("en-US".to_owned()))
                 ],
                 next: None,
-            }),
+            })),
             pseudo_element: None,
             specificity: specificity(0, 2, 0),
         }))));
         assert_eq!(parse("#bar"), Ok(SelectorList(vec!(Selector {
-            complex_selector: Arc::new(ComplexSelector {
+            inner: SelectorInner::new(Arc::new(ComplexSelector {
                 compound_selector: vec!(SimpleSelector::ID(DummyAtom::from("bar"))),
                 next: None,
-            }),
+            })),
             pseudo_element: None,
             specificity: specificity(1, 0, 0),
         }))));
         assert_eq!(parse("e.foo#bar"), Ok(SelectorList(vec!(Selector {
-            complex_selector: Arc::new(ComplexSelector {
+            inner: SelectorInner::new(Arc::new(ComplexSelector {
                 compound_selector: vec!(SimpleSelector::LocalName(LocalName {
                                             name: DummyAtom::from("e"),
                                             lower_name: DummyAtom::from("e") }),
                                        SimpleSelector::Class(DummyAtom::from("foo")),
                                        SimpleSelector::ID(DummyAtom::from("bar"))),
                 next: None,
-            }),
+            })),
             pseudo_element: None,
             specificity: specificity(1, 1, 1),
         }))));
         assert_eq!(parse("e.foo #bar"), Ok(SelectorList(vec!(Selector {
-            complex_selector: Arc::new(ComplexSelector {
+            inner: SelectorInner::new(Arc::new(ComplexSelector {
                 compound_selector: vec!(SimpleSelector::ID(DummyAtom::from("bar"))),
                 next: Some((Arc::new(ComplexSelector {
                     compound_selector: vec!(SimpleSelector::LocalName(LocalName {
@@ -1355,7 +1376,7 @@ pub mod tests {
                                            SimpleSelector::Class(DummyAtom::from("foo"))),
                     next: None,
                 }), Combinator::Descendant)),
-            }),
+            })),
             pseudo_element: None,
             specificity: specificity(1, 1, 1),
         }))));
@@ -1363,7 +1384,7 @@ pub mod tests {
         // https://github.com/mozilla/servo/pull/1652
         let mut parser = DummyParser::default();
         assert_eq!(parse_ns("[Foo]", &parser), Ok(SelectorList(vec!(Selector {
-            complex_selector: Arc::new(ComplexSelector {
+            inner: SelectorInner::new(Arc::new(ComplexSelector {
                 compound_selector: vec!(SimpleSelector::AttrExists(AttrSelector {
                     name: DummyAtom::from("Foo"),
                     lower_name: DummyAtom::from("foo"),
@@ -1373,14 +1394,14 @@ pub mod tests {
                     }),
                 })),
                 next: None,
-            }),
+            })),
             pseudo_element: None,
             specificity: specificity(0, 1, 0),
         }))));
         assert_eq!(parse_ns("svg|circle", &parser), Err(()));
         parser.ns_prefixes.insert(DummyAtom("svg".into()), DummyAtom(SVG.into()));
         assert_eq!(parse_ns("svg|circle", &parser), Ok(SelectorList(vec![Selector {
-            complex_selector: Arc::new(ComplexSelector {
+            inner: SelectorInner::new(Arc::new(ComplexSelector {
                 compound_selector: vec![
                     SimpleSelector::Namespace(Namespace {
                         prefix: Some(DummyAtom("svg".into())),
@@ -1392,7 +1413,7 @@ pub mod tests {
                     })
                 ],
                 next: None,
-            }),
+            })),
             pseudo_element: None,
             specificity: specificity(0, 0, 1),
         }])));
@@ -1402,7 +1423,7 @@ pub mod tests {
         // https://github.com/servo/rust-selectors/pull/82
         parser.default_ns = Some(MATHML.into());
         assert_eq!(parse_ns("[Foo]", &parser), Ok(SelectorList(vec!(Selector {
-            complex_selector: Arc::new(ComplexSelector {
+            inner: SelectorInner::new(Arc::new(ComplexSelector {
                 compound_selector: vec![
                     SimpleSelector::Namespace(Namespace {
                         prefix: None,
@@ -1418,13 +1439,13 @@ pub mod tests {
                     }),
                 ],
                 next: None,
-            }),
+            })),
             pseudo_element: None,
             specificity: specificity(0, 1, 0),
         }))));
         // Default namespace does apply to type selectors
         assert_eq!(parse_ns("e", &parser), Ok(SelectorList(vec!(Selector {
-            complex_selector: Arc::new(ComplexSelector {
+            inner: SelectorInner::new(Arc::new(ComplexSelector {
                 compound_selector: vec!(
                     SimpleSelector::Namespace(Namespace {
                         prefix: None,
@@ -1435,12 +1456,12 @@ pub mod tests {
                         lower_name: DummyAtom::from("e") }),
                 ),
                 next: None,
-            }),
+            })),
             pseudo_element: None,
             specificity: specificity(0, 0, 1),
         }))));
         assert_eq!(parse("[attr |= \"foo\"]"), Ok(SelectorList(vec![Selector {
-            complex_selector: Arc::new(ComplexSelector {
+            inner: SelectorInner::new(Arc::new(ComplexSelector {
                 compound_selector: vec![
                     SimpleSelector::AttrDashMatch(AttrSelector {
                         name: DummyAtom::from("attr"),
@@ -1452,23 +1473,23 @@ pub mod tests {
                     }, DummyAtom::from("foo"))
                 ],
                 next: None,
-            }),
+            })),
             pseudo_element: None,
             specificity: specificity(0, 1, 0),
         }])));
         // https://github.com/mozilla/servo/issues/1723
         assert_eq!(parse("::before"), Ok(SelectorList(vec!(Selector {
-            complex_selector: Arc::new(ComplexSelector {
+            inner: SelectorInner::new(Arc::new(ComplexSelector {
                 compound_selector: vec!(),
                 next: None,
-            }),
+            })),
             pseudo_element: Some(PseudoElement::Before),
             specificity: specificity(0, 0, 1),
         }))));
         // https://github.com/servo/servo/issues/15335
         assert_eq!(parse(":: before"), Err(()));
         assert_eq!(parse("div ::after"), Ok(SelectorList(vec!(Selector {
-            complex_selector: Arc::new(ComplexSelector {
+            inner: SelectorInner::new(Arc::new(ComplexSelector {
                 compound_selector: vec!(),
                 next: Some((Arc::new(ComplexSelector {
                     compound_selector: vec!(SimpleSelector::LocalName(LocalName {
@@ -1476,12 +1497,12 @@ pub mod tests {
                         lower_name: DummyAtom::from("div") })),
                     next: None,
                 }), Combinator::Descendant)),
-            }),
+            })),
             pseudo_element: Some(PseudoElement::After),
             specificity: specificity(0, 0, 2),
         }))));
         assert_eq!(parse("#d1 > .ok"), Ok(SelectorList(vec![Selector {
-            complex_selector: Arc::new(ComplexSelector {
+            inner: SelectorInner::new(Arc::new(ComplexSelector {
                 compound_selector: vec![
                     SimpleSelector::Class(DummyAtom::from("ok")),
                 ],
@@ -1491,12 +1512,12 @@ pub mod tests {
                     ],
                     next: None,
                 }), Combinator::Child)),
-            }),
+            })),
             pseudo_element: None,
             specificity: (1 << 20) + (1 << 10) + (0 << 0),
         }])));
         assert_eq!(parse(":not(.babybel, #provel.old)"), Ok(SelectorList(vec!(Selector {
-            complex_selector: Arc::new(ComplexSelector {
+            inner: SelectorInner::new(Arc::new(ComplexSelector {
                 compound_selector: vec!(SimpleSelector::Negation(
                     vec!(
                         Arc::new(ComplexSelector {
@@ -1513,7 +1534,7 @@ pub mod tests {
                     )
                 )),
                 next: None,
-            }),
+            })),
             pseudo_element: None,
             specificity: specificity(1, 1, 0),
         }))));

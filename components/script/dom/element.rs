@@ -86,7 +86,7 @@ use net_traits::request::CorsSettings;
 use ref_filter_map::ref_filter_map;
 use script_layout_interface::message::ReflowQueryType;
 use script_thread::Runnable;
-use selectors::matching::{ElementSelectorFlags, StyleRelations, matches};
+use selectors::matching::{ElementSelectorFlags, StyleRelations, matches_selector_list};
 use selectors::matching::{HAS_EDGE_CHILD_SELECTOR, HAS_SLOW_SELECTOR, HAS_SLOW_SELECTOR_LATER_SIBLINGS};
 use selectors::parser::{AttrSelector, NamespaceConstraint};
 use servo_atoms::Atom;
@@ -2050,7 +2050,7 @@ impl ElementMethods for Element {
         match SelectorParser::parse_author_origin_no_namespace(&selectors) {
             Err(()) => Err(Error::Syntax),
             Ok(selectors) => {
-                Ok(matches(&selectors.0, &Root::from_ref(self), None))
+                Ok(matches_selector_list(&selectors.0, &Root::from_ref(self), None))
             }
         }
     }
@@ -2068,7 +2068,7 @@ impl ElementMethods for Element {
                 let root = self.upcast::<Node>();
                 for element in root.inclusive_ancestors() {
                     if let Some(element) = Root::downcast::<Element>(element) {
-                        if matches(&selectors.0, &element, None)
+                        if matches_selector_list(&selectors.0, &element, None)
                         {
                             return Ok(Some(element));
                         }

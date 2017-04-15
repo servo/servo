@@ -16,8 +16,8 @@ use heapsize::HeapSizeOf;
 use selector_parser::{AttrValue, NonTSPseudoClass, Snapshot, SelectorImpl};
 use selectors::{Element, MatchAttr};
 use selectors::matching::{ElementSelectorFlags, StyleRelations};
-use selectors::matching::matches_complex_selector;
-use selectors::parser::{AttrSelector, Combinator, ComplexSelector, SelectorMethods, SimpleSelector};
+use selectors::matching::matches_selector;
+use selectors::parser::{AttrSelector, Combinator, ComplexSelector, SelectorInner, SelectorMethods, SimpleSelector};
 use selectors::visitor::SelectorVisitor;
 use std::clone::Clone;
 use std::sync::Arc;
@@ -298,13 +298,10 @@ impl<'a, E> Element for ElementWrapper<'a, E>
         // snapshot.
         #[cfg(feature = "gecko")]
         {
+            use selectors::matching::matches_complex_selector;
             if let NonTSPseudoClass::MozAny(ref selectors) = *pseudo_class {
                 return selectors.iter().any(|s| {
-                    matches_complex_selector(s,
-                                             self,
-                                             None,
-                                             relations,
-                                             _setter)
+                    matches_complex_selector(s, self, relations, _setter)
                 })
             }
         }
@@ -493,7 +490,7 @@ impl Sensitivities {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 struct Dependency {
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
-    selector: Arc<ComplexSelector<SelectorImpl>>,
+    selector: SelectorInner<SelectorImpl>,
     hint: RestyleHint,
     sensitivities: Sensitivities,
 }
@@ -603,7 +600,7 @@ impl DependencySet {
                 self.add_dependency(Dependency {
                     sensitivities: sensitivities,
                     hint: hint,
-                    selector: current.clone(),
+                    selector: SelectorInner::new(current.clone()),
                 })
             }
 
@@ -699,13 +696,13 @@ impl DependencySet {
                 // We can ignore the selector flags, since they would have already been set during
                 // original matching for any element that might change its matching behavior here.
                 let matched_then =
-                    matches_complex_selector(&dep.selector, snapshot, None,
-                                             &mut StyleRelations::empty(),
-                                             &mut |_, _| {});
+                    matches_selector(&dep.selector, snapshot, None,
+                                     &mut StyleRelations::empty(),
+                                     &mut |_, _| {});
                 let matches_now =
-                    matches_complex_selector(&dep.selector, element, None,
-                                             &mut StyleRelations::empty(),
-                                             &mut |_, _| {});
+                    matches_selector(&dep.selector, element, None,
+                                     &mut StyleRelations::empty(),
+                                     &mut |_, _| {});
                 if matched_then != matches_now {
                     hint.insert(dep.hint);
                 }
