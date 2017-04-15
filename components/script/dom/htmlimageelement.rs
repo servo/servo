@@ -322,6 +322,7 @@ impl HTMLImageElement {
         // Fire image.onerror
         if trigger_image_error {
             self.upcast::<EventTarget>().fire_event(atom!("error"));
+            self.upcast::<EventTarget>().fire_event(atom!("loadend"));
         }
 
         // Trigger reflow
