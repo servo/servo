@@ -273,8 +273,8 @@ impl nsStyleImage {
                     },
                 }
                 unsafe {
-                    (*gecko_gradient).mBgPosX.set(position.horizontal);
-                    (*gecko_gradient).mBgPosY.set(position.vertical);
+                    (*gecko_gradient).mBgPosX.set(position.horizontal.0);
+                    (*gecko_gradient).mBgPosY.set(position.vertical.0);
                 }
 
                 gecko_gradient
@@ -330,6 +330,7 @@ pub mod basic_shape {
     use values::computed::position;
     use values::generics::BorderRadiusSize as GenericBorderRadiusSize;
     use values::generics::basic_shape::FillRule;
+    use values::generics::position::{HorizontalPosition, VerticalPosition};
 
     // using Borrow so that we can have a non-moving .into()
     impl<T: Borrow<StyleBasicShape>> From<T> for BasicShape {
@@ -440,8 +441,8 @@ pub mod basic_shape {
     impl From<position::Position> for structs::Position {
         fn from(other: position::Position) -> Self {
             structs::Position {
-                mXPosition: other.horizontal.into(),
-                mYPosition: other.vertical.into()
+                mXPosition: other.horizontal.0.into(),
+                mYPosition: other.vertical.0.into()
             }
         }
     }
@@ -458,8 +459,8 @@ pub mod basic_shape {
         fn from(other: T) -> Self {
             let other = other.borrow();
             position::Position {
-                horizontal: other.mXPosition.into(),
-                vertical: other.mYPosition.into(),
+                horizontal: HorizontalPosition(other.mXPosition.into()),
+                vertical: VerticalPosition(other.mYPosition.into()),
             }
         }
     }

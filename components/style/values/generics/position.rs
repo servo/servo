@@ -25,6 +25,31 @@ define_css_keyword_enum!{ Keyword:
     "y-end" => YEnd
 }
 
+add_impls_for_keyword_enum!(Keyword);
+
+impl Keyword {
+    #[inline]
+    /// Check whether this is a keyword for horizontal position.
+    pub fn is_horizontal(&self) -> bool {
+        *self == Keyword::Left || *self == Keyword::Right
+    }
+
+    #[inline]
+    /// Check whether this is a keyword for vertical position.
+    pub fn is_vertical(&self) -> bool {
+        *self == Keyword::Top || *self == Keyword::Bottom
+    }
+
+    #[inline]
+    /// Check whether this is a logical keyword.
+    pub fn is_logical(&self) -> bool {
+        match *self {
+            Keyword::XStart | Keyword::XEnd | Keyword::YStart | Keyword::YEnd => true,
+            _ => false,
+        }
+    }
+}
+
 impl From<Keyword> for LengthOrPercentage {
     fn from(val: Keyword) -> LengthOrPercentage {
         match val {

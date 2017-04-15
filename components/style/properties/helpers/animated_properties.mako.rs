@@ -34,9 +34,9 @@ use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone
 use values::computed::{BorderRadiusSize, ClipRect, LengthOrNone};
 use values::computed::{CalcLengthOrPercentage, Context, LengthOrPercentage};
 use values::computed::{MaxLength, MinLength};
-use values::computed::position::{HorizontalPosition, Position, VerticalPosition};
+use values::computed::position::{HorizontalPosition, VerticalPosition};
 use values::computed::ToComputedValue;
-
+use values::generics::position as generic_position;
 
 
 /// A given transition property, that is either `All`, or an animatable
@@ -923,23 +923,24 @@ impl Interpolate for FontWeight {
 }
 
 /// https://drafts.csswg.org/css-transitions/#animtype-simple-list
-impl Interpolate for Position {
+impl<H: Interpolate, V: Interpolate> Interpolate for generic_position::Position<H, V> {
     #[inline]
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-        Ok(Position {
+        Ok(generic_position::Position {
             horizontal: try!(self.horizontal.interpolate(&other.horizontal, progress)),
             vertical: try!(self.vertical.interpolate(&other.vertical, progress)),
         })
     }
 }
 
-impl RepeatableListInterpolate for Position {}
+impl<H, V> RepeatableListInterpolate for generic_position::Position<H, V>
+    where H: RepeatableListInterpolate, V: RepeatableListInterpolate {}
 
 /// https://drafts.csswg.org/css-transitions/#animtype-simple-list
 impl Interpolate for HorizontalPosition {
     #[inline]
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-        Ok(HorizontalPosition(try!(self.0.interpolate(&other.0, progress))))
+        self.0.interpolate(&other.0, progress).map(generic_position::HorizontalPosition)
     }
 }
 
@@ -949,7 +950,7 @@ impl RepeatableListInterpolate for HorizontalPosition {}
 impl Interpolate for VerticalPosition {
     #[inline]
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-        Ok(VerticalPosition(try!(self.0.interpolate(&other.0, progress))))
+        self.0.interpolate(&other.0, progress).map(generic_position::VerticalPosition)
     }
 }
 
