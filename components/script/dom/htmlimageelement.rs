@@ -521,16 +521,6 @@ impl HTMLImageElement {
         }
     }
 
-    fn has_parent_image(&self) -> bool {
-        let node = self.upcast::<Node>();
-        if let Some(ref parent) = node.GetParentNode() {
-            if parent.is::<HTMLImageElement>() {
-                return true
-            }
-        }
-        return false
-    }
-
     /// https://html.spec.whatwg.org/multipage/#update-the-image-data
     fn update_the_image_data(&self) {
         let document = document_from_node(self);
@@ -547,8 +537,8 @@ impl HTMLImageElement {
         // NOTE: Servo only supports images, skipping this step
 
         // step 3, 4
-        // TODO: take srcset into account
-        if !src.is_empty() && !self.has_parent_image() {
+        // TODO: take srcset and parent images into account
+        if !src.is_empty() {
             // TODO: take pixel density into account
             if let Ok(img_url) = base_url.join(&src) {
                 // step 5, check the list of available images
