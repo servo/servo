@@ -2772,7 +2772,14 @@ impl DocumentMethods for Document {
         if self.is_html_document {
             local_name.make_ascii_lowercase();
         }
-        let name = QualName::new(ns!(html), LocalName::from(local_name));
+
+        let ns = if self.is_html_document || self.content_type == "application/xhtml+xml" {
+            ns!(html)
+        } else {
+            ns!()
+        };
+
+        let name = QualName::new(ns, LocalName::from(local_name));
         Ok(Element::create(name, None, self, ElementCreator::ScriptCreated))
     }
 
