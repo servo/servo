@@ -502,7 +502,7 @@ impl HTMLImageElement {
             return
         }
         // Step 10
-        self.dispatch_progress_event(atom!("progress"), 0, None);
+        self.dispatch_progress_event(atom!("loadstart"), 0, None);
         // Step 11
         let elem = self.upcast::<Element>();
         let src = elem.get_string_attribute(&local_name!("src"));
