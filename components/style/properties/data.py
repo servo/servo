@@ -33,10 +33,20 @@ def to_camel_case(ident):
     return re.sub("(^|_|-)([a-z])", lambda m: m.group(2).upper(), ident.strip("_").strip("-"))
 
 
+def parse_aliases(value):
+    aliases = {}
+    for pair in value.split():
+        [a, v] = pair.split("=")
+        aliases[a] = v
+    return aliases
+
+
 class Keyword(object):
     def __init__(self, name, values, gecko_constant_prefix=None,
                  gecko_enum_prefix=None, custom_consts=None,
                  extra_gecko_values=None, extra_servo_values=None,
+                 aliases=None,
+                 extra_gecko_aliases=None, extra_servo_aliases=None,
                  gecko_strip_moz_prefix=True,
                  gecko_inexhaustive=None):
         self.name = name
@@ -48,6 +58,9 @@ class Keyword(object):
         self.gecko_enum_prefix = gecko_enum_prefix
         self.extra_gecko_values = (extra_gecko_values or "").split()
         self.extra_servo_values = (extra_servo_values or "").split()
+        self.aliases = parse_aliases(aliases or "")
+        self.extra_gecko_aliases = parse_aliases(extra_gecko_aliases or "")
+        self.extra_servo_aliases = parse_aliases(extra_servo_aliases or "")
         self.consts_map = {} if custom_consts is None else custom_consts
         self.gecko_strip_moz_prefix = gecko_strip_moz_prefix
         self.gecko_inexhaustive = gecko_inexhaustive or (gecko_enum_prefix is None)
@@ -58,11 +71,29 @@ class Keyword(object):
     def servo_values(self):
         return self.values + self.extra_servo_values
 
+    def gecko_aliases(self):
+        aliases = self.aliases.copy()
+        aliases.update(self.extra_gecko_aliases)
+        return aliases
+
+    def servo_aliases(self):
+        aliases = self.aliases.copy()
+        aliases.update(self.extra_servo_aliases)
+        return aliases
+
     def values_for(self, product):
         if product == "gecko":
             return self.gecko_values()
         elif product == "servo":
             return self.servo_values()
+        else:
+            raise Exception("Bad product: " + product)
+
+    def aliases_for(self, product):
+        if product == "gecko":
+            return self.gecko_aliases()
+        elif product == "servo":
+            return self.servo_aliases()
         else:
             raise Exception("Bad product: " + product)
 

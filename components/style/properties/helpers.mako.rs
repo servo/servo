@@ -395,9 +395,33 @@
 
 <%def name="single_keyword(name, values, vector=False, **kwargs)">
     <%call expr="single_keyword_computed(name, values, vector, **kwargs)">
-        use values::computed::ComputedValueAsSpecified;
+        % if not "extra_specified" in kwargs and ("aliases" in kwargs or (("extra_%s_aliases" % product) in kwargs)):
+            impl ToComputedValue for SpecifiedValue {
+                type ComputedValue = computed_value::T;
+
+                #[inline]
+                fn to_computed_value(&self, _context: &Context) -> computed_value::T {
+                    match *self {
+                        % for value in data.longhands_by_name[name].keyword.values_for(product):
+                            SpecifiedValue::${to_rust_ident(value)} => computed_value::T::${to_rust_ident(value)},
+                        % endfor
+                    }
+                }
+                #[inline]
+                fn from_computed_value(computed: &computed_value::T) -> Self {
+                    match *computed {
+                        % for value in data.longhands_by_name[name].keyword.values_for(product):
+                            computed_value::T::${to_rust_ident(value)} => SpecifiedValue::${to_rust_ident(value)},
+                        % endfor
+                    }
+                }
+            }
+        % else:
+            use values::computed::ComputedValueAsSpecified;
+            impl ComputedValueAsSpecified for SpecifiedValue {}
+        % endif
+
         use values::HasViewportPercentage;
-        impl ComputedValueAsSpecified for SpecifiedValue {}
         no_viewport_percentage!(SpecifiedValue);
     </%call>
 </%def>
@@ -444,17 +468,25 @@
         keyword_kwargs = {a: kwargs.pop(a, None) for a in [
             'gecko_constant_prefix', 'gecko_enum_prefix',
             'extra_gecko_values', 'extra_servo_values',
+            'aliases', 'extra_gecko_aliases', 'extra_servo_aliases',
             'custom_consts', 'gecko_inexhaustive',
         ]}
     %>
 
     <%def name="inner_body(keyword, extra_specified=None, needs_conversion=False)">
-        % if extra_specified:
+        % if extra_specified or keyword.aliases_for(product):
             use style_traits::ToCss;
             define_css_keyword_enum! { SpecifiedValue:
-                % for value in keyword.values_for(product) + extra_specified.split():
-                    "${value}" => ${to_rust_ident(value)},
-                % endfor
+                values {
+                    % for value in keyword.values_for(product) + (extra_specified or "").split():
+                        "${value}" => ${to_rust_ident(value)},
+                    % endfor
+                }
+                aliases {
+                    % for alias, value in keyword.aliases_for(product).iteritems():
+                        "${alias}" => ${to_rust_ident(value)},
+                    % endfor
+                }
             }
         % else:
             pub use self::computed_value::T as SpecifiedValue;
@@ -493,6 +525,7 @@
                 conversion_values = keyword.values_for(product)
                 if extra_specified:
                     conversion_values += extra_specified.split()
+                conversion_values += keyword.aliases_for(product).keys()
             %>
             ${gecko_keyword_conversion(keyword, values=conversion_values)}
         % endif
