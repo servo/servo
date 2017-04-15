@@ -200,6 +200,7 @@ impl HTMLImageElement {
 
             image_cache.add_listener(id, ImageResponder::new(responder_sender, id));
         }
+
         let window = window_from_node(self);
         let image_cache = window.image_cache();
         let response =
