@@ -356,6 +356,26 @@ impl HTMLImageElement {
         progressevent.upcast::<Event>().fire(self.upcast());
     }
 
+    fn dispatch_event(&self, type_: Atom) {
+        struct FireEventTask {
+            img: Trusted<HTMLImageElement>,
+            type_: Atom
+        }
+        impl Runnable for FireEventTask {
+            fn handler(self: Box<Self>) {
+                self.img.root().upcast::<EventTarget>().fire_event(self.type_);
+            }
+        }
+        let runnable = box FireEventTask {
+            img: Trusted::new(self),
+            type_: type_
+        };
+        let document = document_from_node(self);
+        let window = document.window();
+        let task = window.dom_manipulation_task_source();
+        let _ = task.queue(runnable, window.upcast());
+    }
+
     /// https://html.spec.whatwg.org/multipage/#update-the-source-set
     fn update_source_set(&self) -> Vec<DOMString> {
         let elem = self.upcast::<Element>();
@@ -477,7 +497,7 @@ impl HTMLImageElement {
             self.set_current_request_url_to_none();
             let elem = self.upcast::<Element>();
             if elem.has_attribute(&local_name!("src")) {
-                self.upcast::<EventTarget>().fire_event(atom!("error"));
+                self.dispatch_event(atom!("error"));
             }
             return
         }
