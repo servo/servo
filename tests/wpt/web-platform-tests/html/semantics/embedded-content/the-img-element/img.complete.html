@@ -35,7 +35,7 @@
   t.step(function(){
     document.getElementById("imgTestTag3").onload = t.step_func(function(){
       assert_true(document.getElementById("imgTestTag3").complete);
-      assert_equals(document.getElementById("imgTestTag3").src.split("/").pop().split('?')[0], "3.jpg");
+      assert_equals(document.getElementById("imgTestTag3").currentSrc.split("/").pop().split('?')[0], "3.jpg");
       t.done();
     });
 
@@ -60,7 +60,7 @@
       loaded = true;
     });
     assert_false(imageInstance.complete, "imageInstance.complete should be false");
-    setTimeout(function(){
+    t.step_timeout(function(){
       assert_false(loaded, "image should not have loaded yet");
       assert_true(imageInstance.complete, "imageInstance.complete should be true");
       t.done();
