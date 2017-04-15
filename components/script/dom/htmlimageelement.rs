@@ -12,7 +12,6 @@ use dom::bindings::codegen::Bindings::ElementBinding::ElementBinding::ElementMet
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding;
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementMethods;
 use dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
-use dom::bindings::codegen::Bindings::NodeBinding::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
@@ -490,34 +489,36 @@ impl HTMLImageElement {
     fn update_the_image_data_sync_steps(&self) {
         let document = document_from_node(self);
         // Step 8
-        let image_source = self.select_image_source();
-        // Step 9
-        if image_source.is_none() {
-            self.abort_requests(State::Broken);
-            self.set_current_request_url_to_none();
-            let elem = self.upcast::<Element>();
-            if elem.has_attribute(&local_name!("src")) {
-                self.dispatch_event(atom!("error"));
-            }
-            return
-        }
-        // Step 10
-        self.dispatch_progress_event(atom!("loadstart"), 0, None);
-        // Step 11
-        let elem = self.upcast::<Element>();
-        let src = elem.get_string_attribute(&local_name!("src"));
-        let base_url = document.base_url();
-        let parsed_url = base_url.join(&src);
-        match parsed_url {
-            Ok(url) => {
-                 // Step 12
-                self.fetch_image(&url, &src);
+        // TODO: take pixel density into account
+        match self.select_image_source() {
+            Some(src) => {
+                // Step 10
+                self.dispatch_progress_event(atom!("loadstart"), 0, None);
+                // Step 11
+                let base_url = document.base_url();
+                let parsed_url = base_url.join(&src);
+                match parsed_url {
+                    Ok(url) => {
+                         // Step 12
+                        self.fetch_image(&url, &src);
+                    },
+                    Err(_) => {
+                        // Step 11.1-11.5
+                        self.abort_requests(State::Broken);
+                        self.set_current_request_url_to_selected_fire_error_loadend(src);
+                    }
+                }
             },
-            Err(_) => {
-                // Step 11.1-11.5
+            None => {
+                // Step 9
                 self.abort_requests(State::Broken);
-                self.set_current_request_url_to_selected_fire_error_loadend(src);
-            }
+                self.set_current_request_url_to_none();
+                let elem = self.upcast::<Element>();
+                if elem.has_attribute(&local_name!("src")) {
+                    self.dispatch_event(atom!("error"));
+                }
+                return
+            },
         }
     }
 
