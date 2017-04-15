@@ -1554,6 +1554,15 @@ extern "C" {
                                                RawGeckoFontFaceRuleListBorrowedMut);
 }
 extern "C" {
+    pub fn Servo_StyleSet_ResolveForDeclarations(set:
+                                                     RawServoStyleSetBorrowed,
+                                                 parent_style:
+                                                     ServoComputedValuesBorrowedOrNull,
+                                                 declarations:
+                                                     RawServoDeclarationBlockBorrowed)
+     -> ServoComputedValuesStrong;
+}
+extern "C" {
     pub fn Servo_CssRules_ListTypes(rules: ServoCssRulesBorrowed,
                                     result: nsTArrayBorrowed_uintptr_t);
 }
@@ -1664,7 +1673,7 @@ extern "C" {
                                        RawServoDeclarationBlockBorrowed);
 }
 extern "C" {
-    pub fn Servo_ParseProperty(property: *const nsACString,
+    pub fn Servo_ParseProperty(property: nsCSSPropertyID,
                                value: *const nsACString,
                                data: *mut RawGeckoURLExtraData)
      -> RawServoDeclarationBlockStrong;
@@ -1844,6 +1853,12 @@ extern "C" {
                                                          RawServoDeclarationBlockBorrowed,
                                                      property:
                                                          nsCSSPropertyID);
+}
+extern "C" {
+    pub fn Servo_DeclarationBlock_HasCSSWideKeyword(declarations:
+                                                        RawServoDeclarationBlockBorrowed,
+                                                    property: nsCSSPropertyID)
+     -> bool;
 }
 extern "C" {
     pub fn Servo_AnimationCompose(animation_values:
