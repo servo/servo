@@ -540,12 +540,11 @@ impl HTMLImageElement {
         let base_url = document.base_url();
         if !document.is_active() {
             // Step 1 (if the document is inactive)
-            // queue micro task to come back to this algorithm.
-            // NOTE: no task source for micro task on Window...
+            // TODO: use GlobalScope::enqueue_microtask,
+            // to queue micro task to come back to this algorithm
         }
         // Step 2 abort if user-agent does not supports images
-        // NOTE: how to check this?
-        // self.abort_requests(State::Unavailable)
+        // NOTE: Servo only supports images, skipping this step
 
         // step 3, 4
         // TODO: take srcset into account
