@@ -121,7 +121,7 @@ impl Runnable for ImageResponseHandlerRunnable {
         let element = self.element.root();
         // Ignore any image response for a previous request that has been discarded.
         if element.generation.get() == self.generation {
-            element.process_image_response(&self.image);
+            element.process_image_response(self.image);
         }
     }
 }
@@ -213,11 +213,11 @@ impl HTMLImageElement {
                                                CanRequestImages::Yes);
         match response {
             Ok(ImageOrMetadataAvailable::ImageAvailable(image)) => {
-                self.process_image_response(&ImageResponse::Loaded(image));
+                self.process_image_response(ImageResponse::Loaded(image));
             }
 
             Ok(ImageOrMetadataAvailable::MetadataAvailable(m)) => {
-                self.process_image_response(&ImageResponse::MetadataLoaded(m));
+                self.process_image_response(ImageResponse::MetadataLoaded(m));
             }
 
             Err(ImageState::Pending(id)) => {
@@ -225,7 +225,7 @@ impl HTMLImageElement {
             }
 
             Err(ImageState::LoadError) => {
-                self.process_image_response(&ImageResponse::None);
+                self.process_image_response(ImageResponse::None);
             }
 
             Err(ImageState::NotRequested(id)) => {
@@ -269,37 +269,54 @@ impl HTMLImageElement {
     }
 
     /// Step 14 of https://html.spec.whatwg.org/multipage/#update-the-image-data
-    fn process_image_response(&self, image: &ImageResponse) {
-        let (trigger_image_load, trigger_image_error) = match *image {
-            ImageResponse::Loaded(ref image) | ImageResponse::PlaceholderLoaded(ref image) => {
-                let mut image_request = self.current_request.borrow_mut();
-                image_request.state = State::CompletelyAvailable;
-                image_request.image = Some(image.clone());
-                image_request.metadata = Some(ImageMetadata { height: image.height, width: image.width });
-                LoadBlocker::terminate(&mut image_request.blocker);
-                (true, false)
-            }
-            ImageResponse::MetadataLoaded(ref meta) => {
-                let mut image_request = self.current_request.borrow_mut();
-                image_request.state = State::PartiallyAvailable;
-                image_request.image = None;
-                image_request.metadata = Some(meta.clone());
-                (false, false)
-            }
-            ImageResponse::None => {
-                // TODO: add relevant steps(abort/upgrade requests)
-                let mut image_request = self.current_request.borrow_mut();
-                image_request.state = State::Broken;
-                image_request.image = None;
-                image_request.metadata = None;
-                LoadBlocker::terminate(&mut image_request.blocker);
-                (false, true)
-            }
+    fn process_image_response(&self, image: ImageResponse) {
+        let (trigger_image_load, trigger_image_error) = match image {
+                    ImageResponse::Loaded(image) | ImageResponse::PlaceholderLoaded(image) => {
+                        match self.image_request.get() {
+                            ImageRequestType::Current => {
+                                self.current_request.borrow_mut().image = Some(image.clone());
+                                self.current_request.borrow_mut().metadata = Some(ImageMetadata {
+                                    height: image.height,
+                                    width: image.width
+                                });
+                                self.current_request.borrow_mut().state = State::CompletelyAvailable;
+                                LoadBlocker::terminate(&mut self.current_request.borrow_mut().blocker);
+                                // Mark the node dirty
+                                self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+                            },
+                            ImageRequestType::Pending => {
+                                self.abort_request(State::CompletelyAvailable, ImageRequestType::Current);
+                                self.image_request.set(ImageRequestType::Current);
+                            },
+                        }
+                        (true, false)
+                    },
+                    ImageResponse::MetadataLoaded(meta) => {
+                        match self.image_request.get() {
+                            ImageRequestType::Current => {
+                                self.current_request.borrow_mut().state = State::PartiallyAvailable;
+                                self.current_request.borrow_mut().metadata = Some(meta);
+                            },
+                            ImageRequestType::Pending => {
+                                self.pending_request.borrow_mut().state = State::PartiallyAvailable;
+                            },
+                        }
+                        (false, false)
+                    },
+                    ImageResponse::None => {
+                        match self.image_request.get() {
+                            ImageRequestType::Current => {
+                                self.abort_request(State::Broken, ImageRequestType::Current);
+                            },
+                            ImageRequestType::Pending => {
+                                self.abort_request(State::Broken, ImageRequestType::Current);
+                                self.abort_request(State::Broken, ImageRequestType::Pending);
+                                self.image_request.set(ImageRequestType::Current);
+                            },
+                        }
+                        (false, true)
+                    },
         };
-
-        // Mark the node dirty
-        // TODO: only do this if we are using current request
-        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
 
         // Fire image.onload and loadend
         if trigger_image_load {
@@ -320,12 +337,23 @@ impl HTMLImageElement {
     }
 
     /// https://html.spec.whatwg.org/multipage/#abort-the-image-request
-    fn abort_requests(&self, state: State) {
-        let mut current_request = self.current_request.borrow_mut();
-        LoadBlocker::terminate(&mut current_request.blocker);
-        current_request.state = state;
-        current_request.image = None;
-        current_request.metadata = None;
+    fn abort_request(&self, state: State, request: ImageRequestType) {
+        match request {
+            ImageRequestType::Current => {
+                let mut request = self.current_request.borrow_mut();
+                LoadBlocker::terminate(&mut request.blocker);
+                request.state = state;
+                request.image = None;
+                request.metadata = None;
+            },
+            ImageRequestType::Pending => {
+                let mut request = self.pending_request.borrow_mut();
+                LoadBlocker::terminate(&mut request.blocker);
+                request.state = state;
+                request.image = None;
+                request.metadata = None;
+            },
+        }
     }
 
     fn init_pending_request(&self,
@@ -496,14 +524,16 @@ impl HTMLImageElement {
                     },
                     Err(_) => {
                         // Step 11.1-11.5
-                        self.abort_requests(State::Broken);
+                        self.abort_request(State::Broken, ImageRequestType::Current);
+                        self.abort_request(State::Broken, ImageRequestType::Pending);
                         self.set_current_request_url_to_selected_fire_error_loadend(src);
                     }
                 }
             },
             None => {
                 // Step 9
-                self.abort_requests(State::Broken);
+                self.abort_request(State::Broken, ImageRequestType::Current);
+                self.abort_request(State::Broken, ImageRequestType::Pending);
                 self.set_current_request_url_to_none();
                 let elem = self.upcast::<Element>();
                 if elem.has_attribute(&local_name!("src")) {
@@ -543,7 +573,8 @@ impl HTMLImageElement {
                     // Step 5.3
                     let metadata = ImageMetadata { height: image.height, width: image.width };
                     // Step 5.3.2 abort requests
-                    self.abort_requests(State::CompletelyAvailable);
+                    self.abort_request(State::CompletelyAvailable, ImageRequestType::Current);
+                    self.abort_request(State::CompletelyAvailable, ImageRequestType::Pending);
                     let mut current_request = self.current_request.borrow_mut();
                     current_request.image = Some(image.clone());
                     current_request.metadata = Some(metadata);
