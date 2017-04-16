@@ -19,6 +19,9 @@ ${helpers.single_keyword("visibility",
 ${helpers.single_keyword("writing-mode",
                          "horizontal-tb vertical-rl vertical-lr",
                          extra_gecko_values="sideways-rl sideways-lr",
+                         extra_gecko_aliases="lr=horizontal-tb lr-tb=horizontal-tb \
+                                              rl=horizontal-tb rl-tb=horizontal-tb \
+                                              tb=vertical-rl   tb-rl=vertical-rl",
                          experimental=True,
                          need_clone=True,
                          animation_type="none",
