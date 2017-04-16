@@ -602,3 +602,13 @@ fn test_textinput_set_selection_with_direction() {
     assert_eq!(textinput.selection_begin.unwrap().line, 0);
     assert_eq!(textinput.selection_begin.unwrap().index, 6);
 }
+
+#[test]
+fn test_textinput_unicode_handling() {
+    let mut textinput = text_input(Lines::Single, "éèùµ$£");
+    assert_eq!(textinput.edit_point.index, 0);
+    textinput.set_edit_point_index(1);
+    assert_eq!(textinput.edit_point.index, 2);
+    textinput.set_edit_point_index(4);
+    assert_eq!(textinput.edit_point.index, 8);
+}
