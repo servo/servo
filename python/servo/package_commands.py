@@ -39,13 +39,7 @@ from servo.command_base import (
     get_browserhtml_path,
 )
 from servo.command_base import find_dep_path_newest
-
-
-def delete(path):
-    try:
-        os.remove(path)         # Succeeds if path was a file
-    except OSError:             # Or, if path was a directory...
-        shutil.rmtree(path)     # Remove it and all its contents.
+from servo.util import delete
 
 
 def otool(s):
