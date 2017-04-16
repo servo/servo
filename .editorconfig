@@ -1,0 +1,16 @@
+# EditorConfig is awesome: http://EditorConfig.org
+
+# Top-most EditorConfig file.
+root = true
+
+# Unix-style newlines with a newline ending every file.
+[*]
+end_of_line = lf
+indent_size = 4
+indent_style = space
+insert_final_newline = true
+
+# Makefiles use tab indention.
+[*.mk]
+indent_style = tab
+
