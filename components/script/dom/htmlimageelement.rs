@@ -500,8 +500,6 @@ impl HTMLImageElement {
                 self.image_request.set(ImageRequestType::Pending);
             },
         }
-        // Step 12.10 associate this instance of algorithm with "image_request"
-        // we do this via the url.
         self.update_image_with_url(&url);
     }
 
