@@ -10,14 +10,22 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 import os
-import os.path as path
+import os.path
 import platform
-import sys
+import shutil
 from socket import error as socket_error
 import StringIO
+import sys
 import tarfile
 import zipfile
 import urllib2
+
+
+def delete(path):
+    if os.path.isdir(path) and not os.path.islink(path):
+        shutil.rmtree(path)
+    else:
+        os.remove(path)
 
 
 def host_platform():
@@ -126,7 +134,7 @@ def download_bytes(desc, src):
 def download_file(desc, src, dst):
     tmp_path = dst + ".part"
     try:
-        start_byte = path.getsize(tmp_path)
+        start_byte = os.path.getsize(tmp_path)
         with open(tmp_path, 'ab') as fd:
             download(desc, src, fd, start_byte=start_byte)
     except os.error:
@@ -143,8 +151,8 @@ def extract(src, dst, movedir=None):
 
     if movedir:
         for f in os.listdir(movedir):
-            frm = path.join(movedir, f)
-            to = path.join(dst, f)
+            frm = os.path.join(movedir, f)
+            to = os.path.join(dst, f)
             os.rename(frm, to)
         os.rmdir(movedir)
 

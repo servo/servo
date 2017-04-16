@@ -33,13 +33,7 @@ from servo.command_base import (
     is_windows,
     get_browserhtml_path,
 )
-
-
-def delete(path):
-    try:
-        os.remove(path)         # Succeeds if path was a file
-    except OSError:             # Or, if path was a directory...
-        shutil.rmtree(path)     # Remove it and all its contents.
+from servo.util import delete
 
 
 def otool(s):
