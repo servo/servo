@@ -17,6 +17,7 @@ mac-rel-wpt2:
 mac-dev-unit:
   - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach build --dev
   - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach test-unit
+  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach package --dev
   - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach build-cef
   - ./mach build-geckolib
   - bash ./etc/ci/lockfile_changed.sh
@@ -49,6 +50,7 @@ linux-dev:
   - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach build --dev
   - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach test-compiletest
   - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach test-unit
+  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach package --dev
   - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach build-cef
   - ./mach build-geckolib
   - ./mach test-stylo
@@ -103,6 +105,7 @@ arm64:
 windows-msvc-dev:
   - mach.bat build --dev
   - mach.bat test-unit
+  - mach.bat package --dev
   - mach.bat build-geckolib
 
 windows-msvc-nightly:
