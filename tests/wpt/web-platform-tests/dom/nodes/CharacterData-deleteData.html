@@ -57,7 +57,7 @@ function testNode(create, type) {
     var node = create()
     assert_equals(node.data, "test")
 
-    node.deleteData(2, -1)
+    node.deleteData(2, -3)
     assert_equals(node.data, "te")
   }, type + ".deleteData() with small negative count")
 
