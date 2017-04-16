@@ -65,7 +65,7 @@ enum State {
     CompletelyAvailable,
     Broken,
 }
-#[derive(Clone)]
+#[derive(Copy, Clone, JSTraceable, HeapSizeOf)]
 enum ImageRequestType {
     Pending,
     Current
@@ -84,6 +84,7 @@ struct ImageRequest {
 #[dom_struct]
 pub struct HTMLImageElement {
     htmlelement: HTMLElement,
+    image_request: Cell<ImageRequestType>,
     current_request: DOMRefCell<ImageRequest>,
     pending_request: DOMRefCell<ImageRequest>,
     form_owner: MutNullableJS<HTMLFormElement>,
@@ -98,17 +99,15 @@ impl HTMLImageElement {
 
 struct ImageResponseHandlerRunnable {
     element: Trusted<HTMLImageElement>,
-    request_type: ImageRequestType,
     image: ImageResponse,
     generation: u32,
 }
 
 impl ImageResponseHandlerRunnable {
-    fn new(element: Trusted<HTMLImageElement>, request_type: ImageRequestType, image: ImageResponse, generation: u32)
+    fn new(element: Trusted<HTMLImageElement>, image: ImageResponse, generation: u32)
            -> ImageResponseHandlerRunnable {
         ImageResponseHandlerRunnable {
             element: element,
-            request_type: request_type,
             image: image,
             generation: generation,
         }
@@ -122,7 +121,7 @@ impl Runnable for ImageResponseHandlerRunnable {
         let element = self.element.root();
         // Ignore any image response for a previous request that has been discarded.
         if element.generation.get() == self.generation {
-            element.process_image_response(&self.image, &self.request_type);
+            element.process_image_response(&self.image);
         }
     }
 }
@@ -183,11 +182,10 @@ impl PreInvoke for ImageContext {}
 
 impl HTMLImageElement {
     /// Update the current image with a valid URL.
-    fn update_image_with_url(&self, img_url: &ServoUrl, request_type: &ImageRequestType) {
+    fn update_image_with_url(&self, img_url: &ServoUrl) {
         fn add_cache_listener_for_element(image_cache: Arc<ImageCache>,
                                           id: PendingImageId,
-                                          elem: &HTMLImageElement,
-                                          request_type: ImageRequestType) {
+                                          elem: &HTMLImageElement) {
             let trusted_node = Trusted::new(elem);
             let (responder_sender, responder_receiver) = ipc::channel().unwrap();
 
@@ -200,7 +198,7 @@ impl HTMLImageElement {
                 // Return the image via a message to the script thread, which marks
                 // the element as dirty and triggers a reflow.
                 let runnable = ImageResponseHandlerRunnable::new(
-                    trusted_node.clone(), request_type.clone(), message.to().unwrap(), generation);
+                    trusted_node.clone(), message.to().unwrap(), generation);
                 let _ = task_source.queue_with_wrapper(box runnable, &wrapper);
             });
 
@@ -215,23 +213,23 @@ impl HTMLImageElement {
                                                CanRequestImages::Yes);
         match response {
             Ok(ImageOrMetadataAvailable::ImageAvailable(image)) => {
-                self.process_image_response(&ImageResponse::Loaded(image), request_type);
+                self.process_image_response(&ImageResponse::Loaded(image));
             }
 
             Ok(ImageOrMetadataAvailable::MetadataAvailable(m)) => {
-                self.process_image_response(&ImageResponse::MetadataLoaded(m), request_type);
+                self.process_image_response(&ImageResponse::MetadataLoaded(m));
             }
 
             Err(ImageState::Pending(id)) => {
-                add_cache_listener_for_element(image_cache.clone(), id, self, request_type.clone());
+                add_cache_listener_for_element(image_cache.clone(), id, self);
             }
 
             Err(ImageState::LoadError) => {
-                self.process_image_response(&ImageResponse::None, request_type);
+                self.process_image_response(&ImageResponse::None);
             }
 
             Err(ImageState::NotRequested(id)) => {
-                add_cache_listener_for_element(image_cache, id, self, request_type.clone());
+                add_cache_listener_for_element(image_cache, id, self);
                 self.request_image(img_url, id);
             }
         }
@@ -271,7 +269,7 @@ impl HTMLImageElement {
     }
 
     /// Step 14 of https://html.spec.whatwg.org/multipage/#update-the-image-data
-    fn process_image_response(&self, image: &ImageResponse, request_type: &ImageRequestType) {
+    fn process_image_response(&self, image: &ImageResponse) {
         let (trigger_image_load, trigger_image_error) = match *image {
             ImageResponse::Loaded(ref image) | ImageResponse::PlaceholderLoaded(ref image) => {
                 let mut image_request = self.current_request.borrow_mut();
@@ -444,7 +442,7 @@ impl HTMLImageElement {
             }
         }
         // step 12.4, create a new "image_request"
-        let request_type = match (current_request.parsed_url.clone(), current_request.state) {
+        match (current_request.parsed_url.clone(), current_request.state) {
             (Some(parsed_url), State::PartiallyAvailable) => {
                 // Step 12.2
                 if parsed_url == *url {
@@ -457,7 +455,7 @@ impl HTMLImageElement {
                     return
                 }
                 self.init_pending_request(&url, &src);
-                ImageRequestType::Pending
+                self.image_request.set(ImageRequestType::Pending);
             },
             (_, State::Broken) | (_, State::Unavailable) => {
                 // Step 12.5
@@ -467,17 +465,16 @@ impl HTMLImageElement {
                 current_request.metadata = None;
                 let document = document_from_node(self);
                 current_request.blocker = Some(LoadBlocker::new(&*document, LoadType::Image(url.clone())));
-                ImageRequestType::Current
             },
             (_, _) => {
                 // step 12.6
                 self.init_pending_request(&url, &src);
-                ImageRequestType::Pending
+                self.image_request.set(ImageRequestType::Pending);
             },
-        };
+        }
         // Step 12.10 associate this instance of algorithm with "image_request"
         // we do this via the url.
-        self.update_image_with_url(&url, &request_type);
+        self.update_image_with_url(&url);
     }
 
     /// Step 8-12 of html.spec.whatwg.org/multipage/#update-the-image-data
@@ -583,6 +580,7 @@ impl HTMLImageElement {
     fn new_inherited(local_name: LocalName, prefix: Option<DOMString>, document: &Document) -> HTMLImageElement {
         HTMLImageElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
+            image_request: Cell::new(ImageRequestType::Current),
             current_request: DOMRefCell::new(ImageRequest {
                 state: State::Unavailable,
                 parsed_url: None,
