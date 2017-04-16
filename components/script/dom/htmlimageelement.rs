@@ -270,52 +270,50 @@ impl HTMLImageElement {
 
     /// Step 14 of https://html.spec.whatwg.org/multipage/#update-the-image-data
     fn process_image_response(&self, image: ImageResponse) {
-        let (trigger_image_load, trigger_image_error) = match image {
-                    ImageResponse::Loaded(image) | ImageResponse::PlaceholderLoaded(image) => {
-                        match self.image_request.get() {
-                            ImageRequestType::Current => {
-                                self.current_request.borrow_mut().image = Some(image.clone());
-                                self.current_request.borrow_mut().metadata = Some(ImageMetadata {
-                                    height: image.height,
-                                    width: image.width
-                                });
-                                self.current_request.borrow_mut().state = State::CompletelyAvailable;
-                                LoadBlocker::terminate(&mut self.current_request.borrow_mut().blocker);
-                                // Mark the node dirty
-                                self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
-                            },
-                            ImageRequestType::Pending => {
-                                self.abort_request(State::CompletelyAvailable, ImageRequestType::Current);
-                                self.image_request.set(ImageRequestType::Current);
-                            },
-                        }
-                        (true, false)
-                    },
-                    ImageResponse::MetadataLoaded(meta) => {
-                        match self.image_request.get() {
-                            ImageRequestType::Current => {
-                                self.current_request.borrow_mut().state = State::PartiallyAvailable;
-                                self.current_request.borrow_mut().metadata = Some(meta);
-                            },
-                            ImageRequestType::Pending => {
-                                self.pending_request.borrow_mut().state = State::PartiallyAvailable;
-                            },
-                        }
-                        (false, false)
-                    },
-                    ImageResponse::None => {
-                        match self.image_request.get() {
-                            ImageRequestType::Current => {
-                                self.abort_request(State::Broken, ImageRequestType::Current);
-                            },
-                            ImageRequestType::Pending => {
-                                self.abort_request(State::Broken, ImageRequestType::Current);
-                                self.abort_request(State::Broken, ImageRequestType::Pending);
-                                self.image_request.set(ImageRequestType::Current);
-                            },
-                        }
-                        (false, true)
-                    },
+        let (trigger_image_load, trigger_image_error) = match (image, self.image_request.get()) {
+            (ImageResponse::Loaded(image), ImageRequestType::Current) |
+            (ImageResponse::PlaceholderLoaded(image), ImageRequestType::Current) => {
+                self.current_request.borrow_mut().image = Some(image.clone());
+                self.current_request.borrow_mut().metadata = Some(ImageMetadata {
+                    height: image.height,
+                    width: image.width
+                });
+                self.current_request.borrow_mut().state = State::CompletelyAvailable;
+                LoadBlocker::terminate(&mut self.current_request.borrow_mut().blocker);
+                // Mark the node dirty
+                self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+                (true, false)
+            },
+            (ImageResponse::Loaded(image), ImageRequestType::Pending) |
+            (ImageResponse::PlaceholderLoaded(image), ImageRequestType::Pending) => {
+                self.abort_request(State::CompletelyAvailable, ImageRequestType::Current);
+                self.image_request.set(ImageRequestType::Current);
+                self.current_request.borrow_mut().image = Some(image.clone());
+                self.current_request.borrow_mut().metadata = Some(ImageMetadata {
+                    height: image.height,
+                    width: image.width
+                });
+                (true, false)
+            },
+            (ImageResponse::MetadataLoaded(meta), ImageRequestType::Current) => {
+                self.current_request.borrow_mut().state = State::PartiallyAvailable;
+                self.current_request.borrow_mut().metadata = Some(meta);
+                (false, false)
+            },
+            (ImageResponse::MetadataLoaded(_), ImageRequestType::Pending) => {
+                self.pending_request.borrow_mut().state = State::PartiallyAvailable;
+                (false, false)
+            },
+            (ImageResponse::None, ImageRequestType::Current) => {
+                self.abort_request(State::Broken, ImageRequestType::Current);
+                (false, true)
+            },
+            (ImageResponse::None, ImageRequestType::Pending) => {
+                self.abort_request(State::Broken, ImageRequestType::Current);
+                self.abort_request(State::Broken, ImageRequestType::Pending);
+                self.image_request.set(ImageRequestType::Current);
+                (false, true)
+            },
         };
 
         // Fire image.onload and loadend
