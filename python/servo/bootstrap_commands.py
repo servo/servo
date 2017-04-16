@@ -15,6 +15,7 @@ import os
 import os.path as path
 import re
 import shutil
+import subprocess
 import sys
 import urllib2
 
@@ -26,7 +27,7 @@ from mach.decorators import (
 
 import servo.bootstrap as bootstrap
 from servo.command_base import CommandBase, BIN_SUFFIX
-from servo.util import download_bytes, download_file, extract, host_triple
+from servo.util import delete, download_bytes, download_file, extract, host_triple
 
 
 @CommandProvider
@@ -285,26 +286,56 @@ class MachCommands(CommandBase):
     @CommandArgument('--force', '-f',
                      action='store_true',
                      help='Actually remove stuff')
-    def clean_nightlies(self, force=False):
-        rust_current = self.rust_path().split('/')[0]
+    @CommandArgument('--keep',
+                     default='1',
+                     help='Keep up to this many most recent nightlies')
+    def clean_nightlies(self, force=False, keep=None):
+        rust_current = self.rust_version()
         cargo_current = self.cargo_build_id()
-        print("Current Rust version: " + rust_current)
-        print("Current Cargo version: " + cargo_current)
+        print("Current Rust version: {}".format(rust_current))
+        print("Current Cargo version: {}".format(cargo_current))
+        to_keep = {
+            'rust': set(),
+            'cargo': set(),
+        }
+        if int(keep) == 1:
+            # Optimize keep=1 case to not invoke git
+            to_keep['rust'].add(rust_current)
+            to_keep['cargo'].add(cargo_current)
+        else:
+            for tool in ["rust", "cargo"]:
+                commit_file = '{}-commit-hash'.format(tool)
+                cmd = subprocess.Popen(
+                    ['git', 'log', '--pretty=format:%H', '-n', keep, commit_file],
+                    stdout=subprocess.PIPE,
+                    universal_newlines=True
+                )
+                stdout, _ = cmd.communicate()
+                for commit in stdout.splitlines():
+                    cmd = subprocess.Popen(
+                        ['git', 'show', '{}:{}'.format(commit, commit_file)],
+                        stdout=subprocess.PIPE,
+                        universal_newlines=True
+                    )
+                    commit_hash, _ = cmd.communicate()
+                    to_keep[tool].add(commit_hash.rstrip())
+
         removing_anything = False
-        for current, base in [(rust_current, "rust"), (cargo_current, "cargo")]:
-            base = path.join(self.context.sharedir, base)
+        for tool in ["rust", "cargo"]:
+            base = path.join(self.context.sharedir, tool)
             for name in os.listdir(base):
-                if name != current:
+                # We append `-alt` if LLVM assertions aren't enabled,
+                # so use just the commit hash itself.
+                # This may occasionally leave an extra nightly behind
+                # but won't remove too many nightlies.
+                if name.partition('-')[0] not in to_keep[tool]:
                     removing_anything = True
-                    name = path.join(base, name)
+                    full_path = path.join(base, name)
                     if force:
-                        print("Removing " + name)
-                        if os.path.isdir(name):
-                            shutil.rmtree(name)
-                        else:
-                            os.remove(name)
+                        print("Removing {}".format(full_path))
+                        delete(full_path)
                     else:
-                        print("Would remove " + name)
+                        print("Would remove {}".format(full_path))
         if not removing_anything:
             print("Nothing to remove.")
         elif not force:
