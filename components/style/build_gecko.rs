@@ -329,6 +329,7 @@ mod bindings {
             "NS_AUTHOR_SPECIFIED_.*",
             "NS_THEME_.*",
             "NODE_.*",
+            "ELEMENT_.*",
             "NS_FONT_.*",
             "NS_STYLE_.*",
             "NS_MATHML_.*",

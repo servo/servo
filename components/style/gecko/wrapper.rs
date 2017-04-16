@@ -47,9 +47,11 @@ use gecko_bindings::bindings::Gecko_UpdateAnimations;
 use gecko_bindings::structs;
 use gecko_bindings::structs::{RawGeckoElement, RawGeckoNode};
 use gecko_bindings::structs::{nsIAtom, nsIContent, nsStyleContext};
+use gecko_bindings::structs::ELEMENT_HANDLED_SNAPSHOT;
+use gecko_bindings::structs::ELEMENT_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO;
+use gecko_bindings::structs::ELEMENT_HAS_DIRTY_DESCENDANTS_FOR_SERVO;
+use gecko_bindings::structs::ELEMENT_HAS_SNAPSHOT;
 use gecko_bindings::structs::EffectCompositor_CascadeLevel as CascadeLevel;
-use gecko_bindings::structs::NODE_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO;
-use gecko_bindings::structs::NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO;
 use gecko_bindings::structs::NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE;
 use gecko_bindings::structs::NODE_IS_NATIVE_ANONYMOUS;
 use gecko_bindings::sugar::ownership::HasArcFFI;
@@ -590,13 +592,13 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     fn has_dirty_descendants(&self) -> bool {
-        self.flags() & (NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO as u32) != 0
+        self.flags() & (ELEMENT_HAS_DIRTY_DESCENDANTS_FOR_SERVO as u32) != 0
     }
 
     unsafe fn set_dirty_descendants(&self) {
         debug_assert!(self.get_data().is_some());
         debug!("Setting dirty descendants: {:?}", self);
-        self.set_flags(NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO as u32)
+        self.set_flags(ELEMENT_HAS_DIRTY_DESCENDANTS_FOR_SERVO as u32)
     }
 
     unsafe fn note_descendants<B: DescendantsBit<Self>>(&self) {
@@ -617,19 +619,19 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     unsafe fn unset_dirty_descendants(&self) {
-        self.unset_flags(NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO as u32)
+        self.unset_flags(ELEMENT_HAS_DIRTY_DESCENDANTS_FOR_SERVO as u32)
     }
 
     fn has_animation_only_dirty_descendants(&self) -> bool {
-        self.flags() & (NODE_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO as u32) != 0
+        self.flags() & (ELEMENT_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO as u32) != 0
     }
 
     unsafe fn set_animation_only_dirty_descendants(&self) {
-        self.set_flags(NODE_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO as u32)
+        self.set_flags(ELEMENT_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO as u32)
     }
 
     unsafe fn unset_animation_only_dirty_descendants(&self) {
-        self.unset_flags(NODE_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO as u32)
+        self.unset_flags(ELEMENT_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO as u32)
     }
 
     fn is_native_anonymous(&self) -> bool {
