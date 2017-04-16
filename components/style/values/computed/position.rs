@@ -59,7 +59,23 @@ pub type HorizontalPosition = GenericHorizontalPosition<LengthOrPercentage>;
 
 impl Copy for HorizontalPosition {}
 
+impl HorizontalPosition {
+    #[inline]
+    /// Create a zero position value.
+    pub fn zero() -> HorizontalPosition {
+        GenericHorizontalPosition(LengthOrPercentage::Percentage(0.0))
+    }
+}
+
 /// The computed value of a vertical `<position>`
 pub type VerticalPosition = GenericVerticalPosition<LengthOrPercentage>;
 
 impl Copy for VerticalPosition {}
+
+impl VerticalPosition {
+    #[inline]
+    /// Create a zero position value.
+    pub fn zero() -> VerticalPosition {
+        GenericVerticalPosition(LengthOrPercentage::Percentage(0.0))
+    }
+}

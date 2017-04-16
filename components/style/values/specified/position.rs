@@ -219,6 +219,18 @@ impl ToComputedValue for HorizontalPosition {
     }
 }
 
+impl HorizontalPosition {
+    #[inline]
+    /// Initial specified value for vertical position (`top` keyword).
+    pub fn left() -> HorizontalPosition {
+        GenericHorizontalPosition(PositionValue {
+            keyword: Some(Keyword::Left),
+            position: None,
+        })
+    }
+}
+
+
 /// The specified value of vertical `<position>`
 pub type VerticalPosition = GenericVerticalPosition<PositionValue<LengthOrPercentage>>;
 
@@ -235,6 +247,17 @@ impl ToComputedValue for VerticalPosition {
         GenericVerticalPosition(PositionValue {
             keyword: None,
             position: Some(ToComputedValue::from_computed_value(&computed.0)),
+        })
+    }
+}
+
+impl VerticalPosition {
+    #[inline]
+    /// Initial specified value for vertical position (`top` keyword).
+    pub fn top() -> VerticalPosition {
+        GenericVerticalPosition(PositionValue {
+            keyword: Some(Keyword::Top),
+            position: None,
         })
     }
 }
