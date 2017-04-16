@@ -182,7 +182,7 @@ impl PreInvoke for ImageContext {}
 
 impl HTMLImageElement {
     /// Update the current image with a valid URL.
-    fn update_image_with_url(&self, img_url: &ServoUrl) {
+    fn fetch_image(&self, img_url: &ServoUrl) {
         fn add_cache_listener_for_element(image_cache: Arc<ImageCache>,
                                           id: PendingImageId,
                                           elem: &HTMLImageElement) {
@@ -230,12 +230,12 @@ impl HTMLImageElement {
 
             Err(ImageState::NotRequested(id)) => {
                 add_cache_listener_for_element(image_cache, id, self);
-                self.request_image(img_url, id);
+                self.fetch_request(img_url, id);
             }
         }
     }
 
-    fn request_image(&self, img_url: &ServoUrl, id: PendingImageId) {
+    fn fetch_request(&self, img_url: &ServoUrl, id: PendingImageId) {
         let document = document_from_node(self);
         let window = window_from_node(self);
 
@@ -459,46 +459,54 @@ impl HTMLImageElement {
     }
 
     /// Step 12 of html.spec.whatwg.org/multipage/#update-the-image-data
-    fn fetch_image(&self, url: &ServoUrl, src: &DOMString) {
-        let mut current_request = self.current_request.borrow_mut();
-        if let Some(pending_url) = self.pending_request.borrow_mut().parsed_url.clone() {
-            // Step 12.1
-            if pending_url == *url {
-                return
+    fn prepare_image_request(&self, url: &ServoUrl, src: &DOMString) {
+        match self.image_request.get() {
+            ImageRequestType::Pending => {
+                if let Some(pending_url) = self.pending_request.borrow_mut().parsed_url.clone() {
+                    // Step 12.1
+                    if pending_url == *url {
+                        return
+                    }
+                }
+            },
+            ImageRequestType::Current => {
+                let mut current_request = self.current_request.borrow_mut();
+                // step 12.4, create a new "image_request"
+                match (current_request.parsed_url.clone(), current_request.state) {
+                    (Some(parsed_url), State::PartiallyAvailable) => {
+                        // Step 12.2
+                        if parsed_url == *url {
+                            // 12.3 abort pending request
+                            let mut pending_request = self.pending_request.borrow_mut();
+                            pending_request.image = None;
+                            pending_request.parsed_url = None;
+                            LoadBlocker::terminate(&mut pending_request.blocker);
+                            // TODO: queue a task to restart animation, if restart-animation is set
+                            return
+                        }
+                        self.init_pending_request(&url, &src);
+                        self.image_request.set(ImageRequestType::Pending);
+                        self.fetch_image(&url);
+                    },
+                    (_, State::Broken) | (_, State::Unavailable) => {
+                        // Step 12.5
+                        current_request.parsed_url = Some(url.clone());
+                        current_request.source_url = Some(src.clone());
+                        current_request.image = None;
+                        current_request.metadata = None;
+                        let document = document_from_node(self);
+                        current_request.blocker = Some(LoadBlocker::new(&*document, LoadType::Image(url.clone())));
+                        self.fetch_image(&url);
+                    },
+                    (_, _) => {
+                        // step 12.6
+                        self.init_pending_request(&url, &src);
+                        self.image_request.set(ImageRequestType::Pending);
+                        self.fetch_image(&url);
+                    },
+                }
             }
         }
-        // step 12.4, create a new "image_request"
-        match (current_request.parsed_url.clone(), current_request.state) {
-            (Some(parsed_url), State::PartiallyAvailable) => {
-                // Step 12.2
-                if parsed_url == *url {
-                    // 12.3 abort pending request
-                    let mut pending_request = self.pending_request.borrow_mut();
-                    pending_request.image = None;
-                    pending_request.parsed_url = None;
-                    LoadBlocker::terminate(&mut pending_request.blocker);
-                    // TODO: queue a task to restart animation, if restart-animation is set
-                    return
-                }
-                self.init_pending_request(&url, &src);
-                self.image_request.set(ImageRequestType::Pending);
-            },
-            (_, State::Broken) | (_, State::Unavailable) => {
-                // Step 12.5
-                current_request.parsed_url = Some(url.clone());
-                current_request.source_url = Some(src.clone());
-                current_request.image = None;
-                current_request.metadata = None;
-                let document = document_from_node(self);
-                current_request.blocker = Some(LoadBlocker::new(&*document, LoadType::Image(url.clone())));
-            },
-            (_, _) => {
-                // step 12.6
-                self.init_pending_request(&url, &src);
-                self.image_request.set(ImageRequestType::Pending);
-            },
-        }
-        self.update_image_with_url(&url);
     }
 
     /// Step 8-12 of html.spec.whatwg.org/multipage/#update-the-image-data
@@ -516,7 +524,7 @@ impl HTMLImageElement {
                 match parsed_url {
                     Ok(url) => {
                          // Step 12
-                        self.fetch_image(&url, &src);
+                        self.prepare_image_request(&url, &src);
                     },
                     Err(_) => {
                         // Step 11.1-11.5
