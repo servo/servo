@@ -211,6 +211,9 @@ class MachCommands(CommandBase):
             print("Please specify either --target or --android.")
             sys.exit(1)
 
+        if not release:
+            print("Warning: This is an un-optimized debug build. For performance testing, use ./mach build --release to enable compiler optimizations.")
+
         if release:
             opts += ["--release"]
             servo_path = release_path
