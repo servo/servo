@@ -270,6 +270,7 @@ impl HTMLImageElement {
 
     /// Step 14 of https://html.spec.whatwg.org/multipage/#update-the-image-data
     fn process_image_response(&self, image: ImageResponse) {
+        // TODO: Handle multipart/x-mixed-replace
         let (trigger_image_load, trigger_image_error) = match (image, self.image_request.get()) {
             (ImageResponse::Loaded(image), ImageRequestType::Current) |
             (ImageResponse::PlaceholderLoaded(image), ImageRequestType::Current) => {
