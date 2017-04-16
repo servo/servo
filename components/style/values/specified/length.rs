@@ -592,34 +592,12 @@ impl Parse for Length {
     }
 }
 
-impl Either<Length, None_> {
-    /// Parse a non-negative length or none
+impl<T: Parse> Either<Length, T> {
+    /// Parse a non-negative length
     #[inline]
     pub fn parse_non_negative_length(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        if input.try(|input| None_::parse(context, input)).is_ok() {
-            return Ok(Either::Second(None_));
-        }
-        Length::parse_non_negative(context, input).map(Either::First)
-    }
-}
-
-impl Either<Length, Normal> {
-    #[inline]
-    #[allow(missing_docs)]
-    pub fn parse_non_negative_length(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        if input.try(|input| Normal::parse(context, input)).is_ok() {
-            return Ok(Either::Second(Normal));
-        }
-        Length::parse_internal(context, input, AllowedLengthType::NonNegative).map(Either::First)
-    }
-}
-
-impl Either<Length, Auto> {
-    #[inline]
-    #[allow(missing_docs)]
-    pub fn parse_non_negative_length(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        if input.try(|input| Auto::parse(context, input)).is_ok() {
-            return Ok(Either::Second(Auto));
+        if let Ok(v) = input.try(|input| T::parse(context, input)) {
+            return Ok(Either::Second(v));
         }
         Length::parse_internal(context, input, AllowedLengthType::NonNegative).map(Either::First)
     }
