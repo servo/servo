@@ -1868,8 +1868,7 @@ ${helpers.predefined_type("perspective",
                           fixpos_cb=True,
                           animation_type="normal")}
 
-// FIXME: This prop should be animatable
-<%helpers:longhand name="perspective-origin" boxed="True" animation_type="none" extra_prefixes="moz webkit"
+<%helpers:longhand name="perspective-origin" boxed="True" animation_type="normal" extra_prefixes="moz webkit"
                    spec="https://drafts.csswg.org/css-transforms/#perspective-origin-property">
     use std::fmt;
     use style_traits::ToCss;
@@ -1877,22 +1876,11 @@ ${helpers.predefined_type("perspective",
     use values::specified::{LengthOrPercentage, Percentage};
 
     pub mod computed_value {
+        use properties::animated_properties::Interpolate;
         use values::computed::LengthOrPercentage;
+        use values::computed::Position;
 
-        #[derive(Clone, Copy, Debug, PartialEq)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct T {
-            pub horizontal: LengthOrPercentage,
-            pub vertical: LengthOrPercentage,
-        }
-    }
-
-    impl ToCss for computed_value::T {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            try!(self.horizontal.to_css(dest));
-            try!(dest.write_str(" "));
-            self.vertical.to_css(dest)
-        }
+        pub type T = Position;
     }
 
     impl HasViewportPercentage for SpecifiedValue {

@@ -2123,6 +2123,17 @@ fn static_assert() {
         self.gecko.mPerspectiveOrigin[1].copy_from(&other.gecko.mPerspectiveOrigin[1]);
     }
 
+    pub fn clone_perspective_origin(&self) -> longhands::perspective_origin::computed_value::T {
+        use properties::longhands::perspective_origin::computed_value::T;
+        use values::computed::LengthOrPercentage;
+        T {
+            horizontal: LengthOrPercentage::from_gecko_style_coord(&self.gecko.mPerspectiveOrigin[0])
+                .expect("Expected length or percentage for horizontal value of perspective-origin"),
+            vertical: LengthOrPercentage::from_gecko_style_coord(&self.gecko.mPerspectiveOrigin[1])
+                .expect("Expected length or percentage for vertical value of perspective-origin"),
+        }
+    }
+
     pub fn set_transform_origin(&mut self, v: longhands::transform_origin::computed_value::T) {
         self.gecko.mTransformOrigin[0].set(v.horizontal);
         self.gecko.mTransformOrigin[1].set(v.vertical);
