@@ -4,7 +4,6 @@
 
 //! Computed values.
 
-use app_units::Au;
 use euclid::size::Size2D;
 use font_metrics::FontMetricsProvider;
 use media_queries::Device;
@@ -16,6 +15,7 @@ use super::generics::BorderRadiusSize as GenericBorderRadiusSize;
 use super::specified;
 use super::specified::grid::{TrackBreadth as GenericTrackBreadth, TrackSize as GenericTrackSize};
 
+pub use app_units::Au;
 pub use cssparser::Color as CSSColor;
 pub use self::image::{AngleOrCorner, EndingShape as GradientShape, Gradient, GradientKind, Image, ImageRect};
 pub use self::image::{LengthOrKeyword, LengthOrPercentageOrKeyword};
