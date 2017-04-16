@@ -2773,7 +2773,7 @@ impl DocumentMethods for Document {
             local_name.make_ascii_lowercase();
         }
 
-        let ns = if self.is_html_document || self.content_type == DOMString::from("application/xhtml+xml") {
+        let ns = if self.is_html_document || self.content_type == "application/xhtml+xml" {
             ns!(html)
         } else {
             ns!()
