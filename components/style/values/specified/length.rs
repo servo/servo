@@ -465,7 +465,7 @@ pub enum Length {
     /// A calc expression.
     ///
     /// https://drafts.csswg.org/css-values/#calc-notation
-    Calc(Box<CalcLengthOrPercentage>, AllowedLengthType),
+    Calc(AllowedLengthType, Box<CalcLengthOrPercentage>),
 }
 
 impl From<NoCalcLength> for Length {
@@ -479,7 +479,7 @@ impl HasViewportPercentage for Length {
     fn has_viewport_percentage(&self) -> bool {
         match *self {
             Length::NoCalc(ref inner) => inner.has_viewport_percentage(),
-            Length::Calc(ref calc, _) => calc.has_viewport_percentage(),
+            Length::Calc(_, ref calc) => calc.has_viewport_percentage(),
         }
     }
 }
@@ -488,7 +488,7 @@ impl ToCss for Length {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
             Length::NoCalc(ref inner) => inner.to_css(dest),
-            Length::Calc(ref calc, _) => calc.to_css(dest),
+            Length::Calc(_, ref calc) => calc.to_css(dest),
         }
     }
 }
@@ -828,7 +828,7 @@ impl CalcLengthOrPercentage {
                     input: &mut Parser,
                     num_context: AllowedLengthType) -> Result<Length, ()> {
         CalcLengthOrPercentage::parse(context, input, CalcUnit::Length).map(|calc| {
-            Length::Calc(Box::new(calc), num_context)
+            Length::Calc(num_context, Box::new(calc))
         })
     }
 
@@ -1091,7 +1091,7 @@ impl From<Length> for LengthOrPercentage {
     fn from(len: Length) -> LengthOrPercentage {
         match len {
             Length::NoCalc(l) => LengthOrPercentage::Length(l),
-            Length::Calc(l, _) => LengthOrPercentage::Calc(l),
+            Length::Calc(_, l) => LengthOrPercentage::Calc(l),
         }
     }
 }

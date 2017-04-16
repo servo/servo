@@ -406,7 +406,7 @@ ${helpers.single_keyword("text-align-last",
     % endif
 </%helpers:longhand>
 
-<%helpers:longhand name="letter-spacing" boxed="True" animation_type="normal"
+<%helpers:longhand name="letter-spacing" animation_type="normal"
                    spec="https://drafts.csswg.org/css-text/#propdef-letter-spacing">
     use std::fmt;
     use style_traits::ToCss;
@@ -1211,7 +1211,7 @@ ${helpers.predefined_type(
     "-moz-tab-size", "LengthOrNumber",
     "::values::Either::Second(8.0)",
     "parse_non_negative",
-    products="gecko", boxed=True, animation_type="none",
+    products="gecko", animation_type="none",
     spec="https://drafts.csswg.org/css-text-3/#tab-size-property")}
 
 
@@ -1232,7 +1232,7 @@ ${helpers.predefined_type(
     complex_color=True, need_clone=True,
     spec="https://compat.spec.whatwg.org/#the-webkit-text-stroke-color")}
 
-<%helpers:longhand products="gecko" name="-webkit-text-stroke-width" boxed="True" animation_type="none"
+<%helpers:longhand products="gecko" name="-webkit-text-stroke-width" animation_type="none"
                    spec="https://compat.spec.whatwg.org/#the-webkit-text-stroke-width">
     use app_units::Au;
     use std::fmt;
