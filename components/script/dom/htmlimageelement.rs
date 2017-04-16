@@ -433,7 +433,7 @@ impl HTMLImageElement {
         let _ = task_source.queue(task, window.upcast());
     }
 
-    fn set_current_request_url_to_selected_fire_error_loadend(&self, src: DOMString) {
+    fn set_current_request_url_to_selected(&self, src: DOMString) {
         struct SetUrlToSelectedTask {
             img: Trusted<HTMLImageElement>,
             src: String,
@@ -443,9 +443,8 @@ impl HTMLImageElement {
                 // https://html.spec.whatwg.org/multipage/#update-the-image-data
                 // Step 11, substep 5
                 let img = self.img.root();
-                img.current_request.borrow_mut().source_url = Some(self.src.into());
-                img.upcast::<EventTarget>().fire_event(atom!("error"));
-                img.upcast::<EventTarget>().fire_event(atom!("loadend"));
+                let mut current_request = img.current_request.borrow_mut();
+                current_request.source_url = Some(self.src.into());
             }
         }
         let runnable = box SetUrlToSelectedTask {
@@ -522,7 +521,9 @@ impl HTMLImageElement {
                         // Step 11.1-11.5
                         self.abort_request(State::Broken, ImageRequestType::Current);
                         self.abort_request(State::Broken, ImageRequestType::Pending);
-                        self.set_current_request_url_to_selected_fire_error_loadend(src);
+                        self.set_current_request_url_to_selected(src);
+                        self.dispatch_event(atom!("error"));
+                        self.dispatch_event(atom!("loadend"));
                     }
                 }
             },
