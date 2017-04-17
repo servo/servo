@@ -577,6 +577,12 @@ def check_rust(file_name, lines):
             yield (idx + 1, "found an empty line following a {")
         prev_open_brace = line.endswith("{")
 
+        # ensure a line starting with { or } has a number of leading spaces that is a multiple of 4
+        if line.startswith(("{", "}")):
+            match = re.match(r"(?: {4})* {1,3}([{}])", original_line)
+            if match:
+                yield (idx + 1, "space before {} is not a multiple of 4".format(match.group(1)))
+
         # check alphabetical order of extern crates
         if line.startswith("extern crate "):
             # strip "extern crate " from the begin and ";" from the end

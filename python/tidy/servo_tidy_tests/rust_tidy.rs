@@ -63,4 +63,8 @@ impl test {
 
     let var
         = "val";
+
+    fn test_fun4()
+       {
+     }
 }
