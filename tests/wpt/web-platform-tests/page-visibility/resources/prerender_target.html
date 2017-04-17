@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Document has been prerendered</title>
+</head>
+<body>
+    <script type="text/javascript">
+    if(document.visibilityState) {
+        window.localStorage.setItem("visibilityState:" + document.visibilityState, "hit");
+    }
+</script>
+</body>
+</html>

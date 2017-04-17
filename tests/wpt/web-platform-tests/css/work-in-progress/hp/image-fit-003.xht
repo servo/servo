@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Image Fit - The 'image-fit' property is inherited.</title>
+  <link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#the-fit"/>
+  <meta name="assert" content="The 'image-fit' property is inherited."/>
+  <style type="text/css"><![CDATA[
+   html, body {image-fit: none;}
+   img {
+   		border: 5px solid blue;
+		height: 450px;
+		width: 450px;
+		overflow: hidden;
+	}
+  ]]></style>
+ </head>
+ <body>
+ 	<div>The image below should not fill the blue bordered box. Instead there should be whitespace between the border and image.</div>
+	<div><img src="intrinsic-size.jpg" alt="Failed: image missing" /></div>
+ </body>
+</html>

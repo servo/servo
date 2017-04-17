@@ -1,0 +1,28 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Counter-increment on pseudo-element and 'display: none' on element</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#content" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="An element that is set to 'display: none' does not increment counters when increment is on the pseudo-element." />
+        <style type="text/css">
+            #div1
+            {
+                display: none;
+            }
+            div:before
+            {
+                counter-increment: hidden 1;
+                content: counter(hidden);
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the numbers '1', '1' and '1' are below.</p>
+        <div></div>
+        <div id="div1"></div>
+        <div></div>
+        <div></div>
+    </body>
+</html>

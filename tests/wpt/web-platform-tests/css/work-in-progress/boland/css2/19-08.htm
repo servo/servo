@@ -1,0 +1,84 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Sixth Test of Section 19.4 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+p {pause: }
+h3 {pause: 20ms}
+h4 {pause: 20ms 40ms}
+strong {pause: 60ms}
+blockquote {pause: 50%}
+
+
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Sixth Testable Statement of Sec 19.4 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+6. The pause property has initial value of UA-dependent, it applies to all
+elements, it is not inherited, and percentage values are applicable.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p >
+NOTE: NEEDS TO BE TRANSLATED TO VOICE.
+If statement #6 above is passed, this paragraph should have a pause
+of UA-dependent.
+The rule applied is "p {pause: }".
+So the pause property applies to the "p" element.
+<h3>
+This h3 element should have a pause of 20ms
+<em>
+This emphasized text should have a pause of UA-default, since the 
+pause property is not inherited, and "em" is a child of 'h3".
+No explicit rule is applied for "em".
+</em>
+THe rule applied is 'h3 {pause: 20ms }".
+So the pause property applies to em and h3.
+</h3>
+<h4>
+THis h4 element should have a pause which is 20ms (pause left) and 40ms (pause right).
+The rule applied is "h4 {pause: 20ms 40ms}".
+So the pause property applies to h4.
+</h4>
+
+<strong>
+This strong text should have a pause of 60ms
+; so the pause property applies
+to the strong element.
+The rule applied is "strong {pause: 60ms}".
+</strong>
+<blockquote>
+This blockquote element should have a margin top of 50% of the
+reciprocal of the speech rate.
+The rule applied is "blockquote {pause: 50%}", which should be
+UA-default.
+</blockquote>
+All other properties of this page should be UA-default.
+
+
+
+
+
+</BODY>
+</HTML>
+

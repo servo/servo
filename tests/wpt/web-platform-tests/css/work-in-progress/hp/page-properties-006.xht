@@ -1,0 +1,30 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: page properties: counter-increment</title>
+<link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+<link rel="help" href="http://www.w3.org/TR/css3-page/#page-properties"/>
+<meta name="flags" content="paged" />
+<meta name="assert" content="The 'counter-increment' property applies to the page box."/>
+<style type="text/css">
+	@page {
+		counter-increment: page 2; 
+		@top-center { content: "Page " counter(page) }
+		@left-middle {
+			counter-increment: chapter none; 
+			content: "Chapter " counter(chapter);
+		}
+		@bottom-center {
+			counter-increment: section; 
+			content: "Section " counter(section);
+		}
+	}
+	p {page-break-after: always;}
+</style>
+</head>
+<body>
+	<p>This test requires three pages. The header above this sentence must read &quot;Page 2&quot;. The left side of the page must read &quot;Chapter 0&quot;. The bottom of the page must read &quot;Section 1&quot;.</p>
+	<p>The header above this sentence must read &quot;Page 4&quot;. The left side of the page must read &quot;Chapter 0&quot;. The bottom of the page must read &quot;Section 2&quot;.</p>
+	<p>The header above this sentence must read &quot;Page 6&quot;. The left side of the page must read &quot;Chapter 0&quot;. The bottom of the page must read &quot;Section 3&quot;.</p>
+</body>
+</html>

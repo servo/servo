@@ -1,0 +1,58 @@
+
+<HTML>
+<HEAD>
+<TITLE>Sixth Test of Section 4.1.2 of CSS1 Spec</TITLE>
+
+
+<STYLE TYPE="text/css">
+img {width: auto;
+     margin-left: auto;
+     border-width: auto;
+     padding-left: 1px;
+     border-left: 1px;
+     margin-right: 1px;
+     border-right: 1px;
+     padding-right: 1px;
+     border-style: solid;
+      }
+</STYLE>
+</HEAD>
+
+
+<BODY>
+
+<h1 >Testing Statement #6 Below of Section 4.1.2 of CSS1 Spec</h1>
+
+
+
+<p>
+6. For replaced elements, a value of "auto" on "width" is replaced by the 
+intrinsic width, so for them there can only be two "auto" values.
+
+<h2>PASS CRITERIA:
+<p>
+</h2>
+If statement #6 above is passed, then:
+
+<img src="ovalbbut.gif">
+The "img" element is a replaced element, so the rule for "img" {img:
+width: auto}" is replaced by the width of the oval button above.
+However, there are still two "auto" values for "img", "margin-left"
+and "border-width".  So the total rule for "img" is:
+img {width: auto;
+     margin-left: auto;
+     border-width: auto;
+     border-left: 1px;
+     padding-left: 1px;
+     margin-right: 1px;
+     border-right: 1px;
+     padding-right: 1px;
+     }
+Thus the margin and border on the oval button should be 1px and 1px,
+respectively, and the width of the paragraph above should be 7px.
+Also "border-style: solid" applies to the image.
+All other properties of this page should be UA-default.
+To move directly to the next test, click<a href="412-7.htm"> here</a>
+
+</BODY>
+</HTML>

@@ -1,0 +1,35 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: CSS: sanity tests for relative keyword values of font-size</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/fonts/size/003.xml" type="application/xhtml+xml"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-size-props" />
+  <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-size-prop"/>
+  <link rel="match" href="font-size-121-ref.xht" />
+
+  <meta name="flags" content="ahem" />
+  <style type="text/css"><![CDATA[
+
+    .tests { display: block; padding: 2em; font: 900 1em Ahem, Verdana, sans-serif; }
+    .tests > * { position: absolute; color: red; }
+    .tests > * + * { color: green; }
+
+    .smallest span { font-size: larger; }
+    .largest span { font-size: smaller; }
+
+    .smallest { font-size: xx-small; }
+    .largest { font-size: xx-large; }
+
+    .tests * { vertical-align: bottom; }
+
+  ]]></style>
+ </head>
+ <body>
+  <p>Test passes if there is <strong>no red</strong>, except for antialiasing issues.</p>
+  <div class="tests">
+   <span class="smallest">X<span>X<span>X<span>X<span>X<span>X<span>X</span></span></span></span></span></span></span>
+   <span class="largest"><span><span><span><span><span><span>X</span>X</span>X</span>X</span>X</span>X</span>X</span>
+  </div>
+ </body>
+</html>

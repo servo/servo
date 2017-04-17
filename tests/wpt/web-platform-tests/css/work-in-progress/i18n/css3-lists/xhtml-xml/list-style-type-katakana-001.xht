@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: list-style-type - katakana basic</title>
+<link rel='author' title='Richard Ishida' href='http://rishida.net' />
+<link rel='reviewer' title='Elika J. Etemad' href='http://fantasai.inkedblade.net/contact' />
+<link rel='help' href='http://www.w3.org/TR/CSS21/generate.html#list-style' />
+<link rel='alternate' href='http://www.w3.org/International/tests/tests-html-css/tests-list-style-type/generate?test=14' />
+<meta name='flags' content='' />
+<meta name="assert" content="Setting list-style-type to katakana will cause list numbering to format numbers as described in the CSS3 Lists module." />
+<style type='text/css'>
+ol { list-style-type: katakana; }
+
+/* the CSS below is not part of the test */
+.test { font-size: 24px; font-family: sans-serif; }
+ol { margin: 0; padding-left: 8em; }
+.alt { color: #ff6633; margin-left: 40px;}
+
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the numbering in the two columns is the same.</p>
+
+
+<div class="test"> 
+			<ol>
+				<li title="1">ア </li>
+				<li title="2">イ </li>
+				<li title="3">ウ </li>
+				<li title="4">エ </li>
+				<li title="5">オ </li>
+				<li title="6">カ </li>
+				<li title="7">キ </li>
+				<li title="8">ク </li>
+				<li title="9">ケ</li>
+				<li title="10">コ </li>
+				<li title="11">サ </li>
+				<li title="12">シ </li>
+				<li title="13">ス </li>
+				<li title="14">セ </li>
+				<li title="15">ソ </li>
+				<li title="16">タ </li>
+				<li title="17">チ </li>
+				<li title="18">ツ </li>
+				<li title="19">テ </li>
+				<li title="20">ト </li>
+				<li title="21">ナ </li>
+				<li title="22">ニ </li>
+				<li title="23">ヌ </li>
+				<li title="24">ネ </li>
+				<li title="25">ノ </li>
+				<li title="26">ハ </li>
+				<li title="27">ヒ </li>
+				<li title="28">フ </li>
+				<li title="29">ヘ </li>
+				<li title="30">ホ </li>
+				<li title="31">マ </li>
+				<li title="32">ミ </li>
+				<li title="33">ム </li>
+				<li title="34">メ </li>
+				<li title="35">モ </li>
+				<li title="36">ヤ </li>
+				<li title="37">ユ </li>
+				<li title="38">ヨ </li>
+				<li title="39">ラ </li>
+				<li title="40">リ </li>
+				<li title="41">ル </li>
+				<li title="42">レ </li>
+				<li title="43">ロ </li>
+				<li title="44">ワ </li>
+				<li title="45">ヰ </li>
+				<li title="46">ヱ </li>
+				<li title="47">ヲ </li>
+				<li title="48">ン</li>
+			</ol>
+		</div>
+
+
+<!--p class="notes">Notes: <br /><a href="http://www.w3.org/TR/CSS21/generate.html#propdef-list-style-type">CSS2.1</a> CR specifies a <span class="kw">katakana</span> value for the list-style-type property, but does not specify in any detail the mechanism for implementing it. Expectations for behavior in these tests are based on the rules specified in the version of the <a href="http://www.w3.org/TR/css3-lists/#katakana">CSS3 Lists module</a> current at the time this test was last updated.</p><p class="notes">The test uses the start attribute to reduce the size of the list.  This attribute is deprecated or unavailable in some formats, causing the test page not to validate, but appears to be supported in major browsers anyway (and will be reinstated in HTML5).</p-->
+</body>
+</html>

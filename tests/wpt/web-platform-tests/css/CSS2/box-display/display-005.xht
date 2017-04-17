@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Display set to 'inline-block'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#propdef-display" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#display-prop" />
+        <link rel="match" href="display-001-ref.xht" />
+
+        <meta name="flags" content="" />
+        <meta name="assert" content="The property 'display' set to 'inline-block' is formatted in layout as an inline-level element: it creates a new block formatting context for its descendants but it is laid out, flowed as an inline-level element. An inline-block does not begin on a new line and does not require to begin on a new line." />
+        <style type="text/css">
+            div div
+            {
+                display: inline-block;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the 2 "Filler text" are both <strong>on the same line</strong>.</p>
+        <div>
+            Filler text
+            <div>Filler text</div>
+        </div>
+    </body>
+</html>

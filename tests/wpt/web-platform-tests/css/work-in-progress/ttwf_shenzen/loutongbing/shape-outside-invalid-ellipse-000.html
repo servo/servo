@@ -1,0 +1,53 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+
+        <title>CSS Shapes Test: ellipse invalid cx value</title>
+        <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+        <link rel="author" title="Lou Tongbing" href="mailto:loutongbing:loutongbing@gmail.com">
+        
+        <link rel="help" href="http://www.w3.org/TR/css-shapes/#Supported Shapes">
+        <link rel="match" href="shape-ref.html"/>
+        <meta name="flags" content="dom">
+        <meta name="assert" content="ellipse invalid cx value.">
+        <style>
+          .ellipse {
+            float: left;
+            width: 600px;
+            height: 600px;
+            shape-outside: ellipse(200, 200px, 300px, 100px);
+            shape-margin: 20px;
+          }
+          .text {
+            width: 750px;
+            
+          }     
+        </style>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        
+    </head>
+    <body>
+        <p>Test passes if there is the invalid cx value.</p>
+        <div class="container">
+            <img id="shape" class="ellipse" src="http://adobe-webplatform.github.io/exclusionsrecipe/dish-isolated.png"></img>
+            <!--img id="shape" class="ellipse" src="dish-isolated.png">
+            </img-->
+            
+            <p class="text">
+                我非常高兴来深圳开会，深圳是个好地方。来几次都不过分。
+                我深深地爱上了这片土地。我非常高兴来深圳开会，深圳是个好地方。来几次都不过分。 我深深地爱上了这片土地。我非常高兴来深圳开会，深圳是个好地方。来几次都不过分。 我深深地爱上了这片土地。我非常高兴来深圳开会，深圳是个好地方。来几次都不过分。 我深深地爱上了这片土地。我非常高兴来深圳开会，深圳是个好地方。来几次都不过分。 我深深地爱上了这片土地。我非常高兴来深圳开会，深圳是个好地方。来几次都不过分。 我深深地爱上了这片土地。我非常高兴来深圳开会，深圳是个好地方。来几次都不过分。 我深深地爱上了这片土地。我非常高兴来深圳开会，深圳是个好地方。来几次都不过分。 我深深地爱上了这片土地。我非常高兴来深圳开会，深圳是个好地方。来几次都不过分。 我深深地爱上了这片土地。我非常高兴来深圳开会，深圳是个好地方。来几次都不过分。 我深深地爱上了这片土地。我非常高兴来深圳开会，深圳是个好地方。来几次都不过分。 我深深地爱上了这片土地。我非常高兴来深圳开会，深圳是个好地方。来几次都不过分。 我深深地爱上了这片土地。我非常高兴来深圳开会，深圳是个好地方。来几次都不过分。 我深深地爱上了这片土地。
+            </p>
+
+        </div>
+        <div id="log"></div>
+        <script type="text/javascript">
+            var obj = document.getElementById("shape");
+            var cx = getComputedStyle(obj).webkitShapeOutside;
+            test(function () {
+                assert_equals(cx,"auto","pass");
+            });
+        </script>
+    </body>
+
+</html>

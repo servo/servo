@@ -1,0 +1,57 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: float - nested floats and shrink-to-fit width calculation</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="author" title="James Hopkins" href="http://idreamincode.co.uk/css21testsuite" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#float-width" title="10.3.5 Floating, non-replaced elements" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#float-position" title="9.5.1 Positioning the float: the 'float' property" />
+
+  <meta content="" name="flags" />
+
+  <style type="text/css"><![CDATA[
+  div#floated-right-parent
+  {
+  background: green;  
+  float: right;
+  }
+
+  div#floated-left-child
+  {
+  background: white;
+  float: left;
+  height: 100px;
+  width: 100px;
+  }
+
+  div#floated-right-child
+  {
+  float: right;
+  width: 100px;
+  }
+  
+  /*
+  The right outer edge of a left-floating box may not be 
+  to the right of the left outer edge of any right-floating box 
+  that is next to it.
+  So, div#floated-right-parent's minimum preferred width should be 200px.
+  */
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a <strong>filled green square</strong>.</p>
+
+   <div id="floated-right-parent">
+     <div id="floated-left-child"></div>
+     <div id="floated-right-child"></div>
+   </div>
+
+ </body>
+</html>

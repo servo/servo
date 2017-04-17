@@ -1,0 +1,49 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head>
+    <title>CSS Test: generated content</title>
+    <link rel="author" title="Robert O'Callahan" href="mailto:robert@ocallahan.org" />
+    <link rel="author" title="Mozilla Corporation" href="http://mozilla.com/" />
+    <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#before-after-content" />
+    <link rel="match" href="before-after-display-types-001-ref.xht"/>
+    <meta name="flags" content="" />
+<style type="text/css">
+div { counter-reset:ctr; quotes:"\0022" "\0022" "\0022" "\0022"}
+
+div:before {
+  content:counter(ctr) url(support/square-outline-32x32.png) open-quote "Before " attr(class);
+  counter-increment:ctr;
+}
+div:after {
+  content:counter(ctr) url(support/square-outline-32x32.png) "After " attr(class) close-quote;
+  counter-increment:ctr;
+}
+
+.block:before, .block:after { display:block; }
+.inline:before, .inline:after { display:inline; }
+.inline-block:before, .inline-block:after { display:inline-block; }
+.table:before, .table:after { display:table; }
+.inline-table:before, .inline-table:after { display:inline-table; }
+.table-row-group:before, .table-row-group:after { display:table-row-group; }
+.table-row:before, .table-row:after { display:table-row; }
+.table-cell:before, .table-cell:after { display:table-cell; }
+.table-caption:before, .table-caption:after { display:table-caption; }
+
+div { border:1px solid green; margin:5px; }
+</style>
+</head>
+
+<body>
+<table width="100%"><tbody><tr><td valign="top">
+  <div class="block">Inner</div>
+  <div class="inline">Inner</div>
+  <div class="inline-block">Inner</div>
+  <div class="table">Inner</div>
+  <div class="inline-table">Inner</div>
+  <div class="table-row-group">Inner</div>
+</td><td valign="top">
+  <div class="table-row">Inner</div>
+  <div class="table-cell">Inner</div>
+  <div class="table-caption">Inner</div>
+</td></tr></tbody></table>
+
+
+</body></html>

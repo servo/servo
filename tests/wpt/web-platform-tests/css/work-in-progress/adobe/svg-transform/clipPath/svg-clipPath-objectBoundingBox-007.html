@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Transforms Test: SVG translate with relative value on clipPath with objectBoundingBox clipPathUnits</title>
+    <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+    <link rel="help" href="http://www.w3.org/TR/css3-transforms/#svg-transform">
+    <link rel="help" href="http://www.w3.org/TR/css3-transforms/#svg-user-coordinate-space">
+    <link rel="match" href="reference/svg-clipPath-objectBoundingBox-ref.html">
+    <meta name="flags" content="svg">
+    <meta name="assert" content="For the clipPath element the transform presentation attribute represents values in the current user coordinate system in place at the time when the clipPath’s element is referenced when the clipPathUnits are set to objectBoundingBox. The clipPath in this test should be 50 pixels to the right, which is 25% of 200. It should cover the red rect outside the group and clip the group's red rects from view.">
+    <style type="text/css">
+        svg {
+            width: 250px;
+            height: 250px;
+        }
+    </style>
+</head>
+<body>
+    <p>The test passes if there is a green square and no red.</p>
+    <svg>
+          <defs>
+              <clipPath id="clip" clipPathUnits="objectBoundingBox" transform="translate(25%)">
+                  <rect x="0" y="0" width="0.5" height="0.5"/> 
+              </clipPath>
+          </defs>
+          <rect x="51" y="1" width="98" height="98" fill="red"/>
+          <path d="M 0,0 51,0 51,99 149,99 149,0 200,0 200,200 0,200 Z" fill="green"/>
+          <g clip-path="url(#clip)">
+              <rect x="0" width="50" height="200" fill="red"/>
+              <rect x="50" width="100" height="100" fill="green"/>
+              <rect x="50" y="100" width="100" height="100" fill="red"/>
+              <rect x="150" width="50" height="200" fill="red"/>              
+          </g>
+    </svg>
+</body>
+</html>

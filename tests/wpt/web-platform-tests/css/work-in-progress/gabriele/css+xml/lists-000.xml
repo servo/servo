@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?xml-stylesheet href="css/lists-000.css" type="text/css"?>
+
+<root>
+
+
+	<document>
+	
+	
+		<info>You should see three unordered lists with three different list markers.
+		The lists should be nested.</info>
+		
+		
+		<list type="disc">
+		
+			<item>Item</item>
+			<item>Item</item>
+			<item class="none">
+			
+				<list type="circle">
+				
+					<item>Item</item>
+					<item>Item</item>
+					
+					<item class="none">
+					
+						<list type="square">
+						
+							<item>Item</item>
+							<item>Item</item>
+						
+						</list>
+					
+					</item>
+				
+				</list>
+			
+			</item>
+		
+		</list>
+	
+	
+	</document>
+
+
+
+
+</root>

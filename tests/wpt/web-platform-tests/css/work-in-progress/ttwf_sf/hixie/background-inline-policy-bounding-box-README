@@ -1,0 +1,6 @@
+-moz-background-inline-policy: bounding-box;
+
+   The background is tiled in a rectangle which is the union of all
+   inline boxes of the element. It is only visible within the content
+   and padding (and possibly border, depending on the 'background-
+   clip' property) areas of the inline boxes.

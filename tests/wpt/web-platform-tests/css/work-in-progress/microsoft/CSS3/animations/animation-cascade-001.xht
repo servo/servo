@@ -1,0 +1,47 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: When multiple animations specify behavior for the same property, the animation defined last will override the previously defined animation(s)</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css3-animations/#animation-behavior-" />
+        <meta name="flags" content="animated dom" />
+        <meta name="assert" content="When multiple animations specify behavior for the same property, the animation defined last will override the previously defined animation(s)." />
+        <style type="text/css">
+            @keyframes testAnimation1
+            {
+                from {background-color: yellow;}
+                to {background-color: black;} 
+            }
+            @keyframes testAnimation2
+            {
+               from {background-color: brown;}
+               to {background-color: purple;} 
+            }
+            @keyframes testAnimation3
+            {
+                from {background-color: blue;}
+                to {background-color: orange;} 
+            }
+            #div1
+            {
+                animation-duration: 5s, 5s, 5s;
+                animation-fill-mode: forwards;
+                height: 30px;
+                position: relative;
+                width: 30px;
+            }
+        </style>
+        <script type="text/javascript">
+            function startTest()
+            {
+                document.body.offsetWidth;
+                var element = document.getElementById("div1");
+                element.style["animationName"] = "testAnimation1, testAnimation2, testAnimation3";
+            }
+        </script>
+    </head>
+    <body onload="startTest()">
+        <p>Test passes if the square below changes color from blue to orange.</p>
+        <div id="div1"></div>
+    </body>
+</html>

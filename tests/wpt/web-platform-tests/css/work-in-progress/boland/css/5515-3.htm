@@ -1,0 +1,64 @@
+
+<html>
+
+<title>Third Test of Section 5.5.15 of CSS1 Spec</title>
+
+<style type="text/css">
+#id1 {border-width: 20px;
+      border-style: dotted;}
+#id2 {border-width-top: 20px;
+      border-width-right: 20px;
+      border-width-bottom: 20px;
+      border-width-left: 20px;
+      border-style: dotted;}
+</style>
+</head>
+
+
+
+<body>
+
+
+
+
+<h1 >Testing Statement #3 Below of Section 5.5.15 of CSS1 Spec</h1>
+
+
+
+
+
+
+<ul>
+<li>
+3. The "border-width" property is a shorthand property for setting "border-
+width-top", "border-width-right", "border-width-bottom", and "border-width-left"
+at the same place in the style sheet.
+</ul>
+
+
+
+
+
+<h2>
+PASS CRITERIA:
+</h2>
+<p ID=id1 >
+If statement #3 above is passed, this paragraph should have border widths
+of 20px all the way around.  THe rule applied is "#id1 {border-width: 20px}"
+<p ID=id2>
+This paragraph should have top border width, right border width, bottom
+border width, and left border width all with values of 20px.  It should
+look like the paragraph above.
+The rule applied is "#id2 {border-left-width: 20px;
+                           border-width-bottom; 20px;
+                           border-width-right; 20px;
+                           border-width-left; 20px}"
+<p>
+
+
+
+All other properties of this page should be UA-default.
+
+
+</body>
+</html>

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?xml-stylesheet href="css/lists-001.css" type="text/css"?>
+
+<root>
+
+
+	<document>
+	
+	
+		<info>You should see three ordered lists with progressive numbering.
+		The lists should be nested.</info>
+		
+		
+		<list level="first">
+		
+			<item>Item</item>
+			<item>Item</item>
+			<item class="none">
+			
+				<list level="second">
+				
+					<item>Item</item>
+					<item>Item</item>
+					
+					<item class="none">
+					
+						<list level="third">
+						
+							<item>Item</item>
+							<item>Item</item>
+						
+						</list>
+					
+					</item>
+				
+				</list>
+			
+			</item>
+		
+		</list>
+	
+	
+	</document>
+
+
+
+
+</root>

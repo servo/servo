@@ -1,0 +1,21 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Pseudo elements before child selector</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#first-line-pseudo" />
+        <link rel="match" href="../reference/no-red-filler-text-ref.xht"/>
+        <meta name="flags" content="" />
+        <meta name="assert" content="A pseudo-selector cannot be followed by a child selector." />
+        <style type="text/css">
+            p:first-line>p, #p1
+            {
+                color: red;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page.</p>
+        <p id="p1">Filler Text</p>
+    </body>
+</html>

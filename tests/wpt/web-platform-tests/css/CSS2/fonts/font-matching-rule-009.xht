@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Font Matching Algorithm, font-weight out of range</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#algorithm" />
+        <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-matching-algorithm" />
+        <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-style-matching" />
+        <link rel="match" href="font-weight-normal-ref.html" />
+        <meta name="flags" content="invalid" />
+        <meta name="assert" content="Invalid font weight values are set to the default weight of 400." />
+        <style type="text/css">
+            div
+            {
+                font-family: serif;
+            }
+            #span1
+            {
+                font-weight: 400;
+            }
+            #span2
+            {
+                font-weight: 9000;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the lines of "Filler Text" below match.</p>
+        <div id="span1">Filler Text</div>
+        <div id="span2">Filler Text</div>
+    </body>
+</html>

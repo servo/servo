@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?xml-stylesheet href="css/dropdown-menu-000.css" type="text/css"?>
+
+<root>
+
+
+
+	<document>
+	
+	
+		<info>You should see a normal dropdown menu below.</info>
+		
+		
+		<navigation type="dropdown">
+		
+		
+			<item><link>Link</link>
+			
+			
+				<navigation type="sub-menu">
+				
+					<item><link>Link</link></item>
+					<item><link>Link</link></item>
+					<item><link>Link</link></item>
+				
+				</navigation>
+			
+			
+			</item>
+			
+			<item><link>Link</link>
+			
+				<navigation type="sub-menu">
+				
+					<item><link>Link</link></item>
+					<item><link>Link</link></item>
+					<item><link>Link</link></item>
+				
+				</navigation>
+			
+			</item>
+		
+			<item><link>Link</link>
+			
+				<navigation type="sub-menu">
+				
+					<item><link>Link</link></item>
+					<item><link>Link</link></item>
+					<item><link>Link</link></item>
+				
+				</navigation>
+			
+			
+			</item>
+		
+		</navigation>
+	
+	
+	
+	</document>
+
+
+
+
+
+
+
+</root>

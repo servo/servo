@@ -1,0 +1,36 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Scaling replaced elements with a width specified can scale the image</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#the-width-property" />
+        <meta name="flags" content="image may" />
+        <meta name="assert" content="Replaced elements width may be scaled by the user agent when the value of the property is not 'auto'." />
+        <style type="text/css">
+            div
+            {
+                position: relative;
+            }
+            div div
+            {
+                background: orange;
+                height: 15px;
+                width: 15px;
+            }
+            img
+            {
+                position: absolute;
+                left: 0.25in;
+                top: 0;
+                width: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the blue square is the same size or larger than the orange square.</p>
+        <div>
+            <div></div>
+            <img alt="blue 15x15" src="support/blue15x15.png" />
+        </div>
+    </body>
+</html>

@@ -1,0 +1,65 @@
+
+<HTML>
+<HEAD>
+<TITLE>Fifteenth Test for Section 7.1 of CSS1 Spec</TITLE>
+
+
+<STYLE TYPE="text/css">
+H3 {color: silver}
+.-NEW {color: aqua}
+.RED-RED {color: red}
+#b109 {color: blue}
+#99 {color: purple}
+
+
+
+</STYLE>
+</head>
+
+
+
+
+<BODY>
+
+<h1 >Testing Statement #15 Below of Section 7.1 of CSS1 Spec</h1>
+
+
+
+<ul>
+<li>
+15. In CSS1, selectors can contain only the characters A-Z, 0-9, and Unicode
+characters 161-255, plus dash; they cannot start with a dash or a digit; they
+can also contain escaped characters and any Unicode character as a numeric
+code.
+</ul>
+
+
+
+
+<h2>PASS CRITERIA:
+</h2>
+<p CLASS=RED-RED>
+If statement #15 above is passed, this paragraph should be red.
+The rule applied is ".RED-RED {color: red}", where the CLASS name contains
+a dash, and letters from A-Z (any maximum length?).
+<p CLASS=-NEW>
+This paragraph should be UA-default.  The rule stated is ".-NEW {color: aqua}"
+ but the CLASS name has a dash in front, which is illegal.
+So the rule should be ignored.
+<p ID="b109">
+This paragraph should be blue.  THe rule applied is "#b109 {color: blue}",
+where the ID name has lowercase letter from a-z and digits from 0 to 9.
+<p ID=99>
+This paragraph should be purple.  The rule stated is "#99 {color:
+purple}".
+<h3>
+This h3 heading should be silver.  The rule applied is "h3 {color: silver}",
+where the element selector is legal (characters from a-z and digits from
+0-9).
+</h3>
+
+
+
+All other properties of this page should be UA-default.
+</BODY>
+</HTML>

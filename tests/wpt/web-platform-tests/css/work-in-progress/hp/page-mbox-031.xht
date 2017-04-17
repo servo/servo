@@ -1,0 +1,34 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Margin Boxes - Left Middle</title>
+  <link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#margin-boxes"/>
+  <meta name="flags" content="paged" />
+  <meta name="assert" content="If the left-middle box is not empty or its computed height is not 'auto' then the outer heights of the left-top and left-bottom boxes are equal"/>
+  <style type="text/css"><![CDATA[
+   @page {
+   		@left-middle { 
+			content: "";
+			border: 1pt solid black; 
+			margin-left: 0.25in;
+			height: 2in;
+		}
+		@left-top { 
+			content: "";
+			border: 1pt solid black; 
+			margin-left: 0.25in;
+		}
+		@left-bottom { 
+			content: "";
+			border: 1pt solid black; 
+			margin-left: 0.25in;
+			height: 3in;
+		}
+   }
+  ]]></style>
+ </head>
+ <body>
+  <div>There should be three boxes to the left of this text. The boxes on the top and bottom must be of equal height.</div>
+ </body>
+</html>

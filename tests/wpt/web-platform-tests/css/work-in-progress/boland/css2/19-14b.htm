@@ -1,0 +1,56 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Eighth Test of Section 19.5 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+
+
+h3 {cue: url(pop.au)}
+h4 {cue-before: url("pop.au"); cue-after: url("pop.au")}
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Eighth Testable Statement of Sec 19.5 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+8. The cue property is a shorthand for setting "cue-before" and "cue-after".
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p  >
+If statement #8 above is passed, this heading should have a cue
+of url("pop.au").
+The rule applied is "h3 {cue: url("pop.au")}".
+<h4>
+This h4 element should have a cue-before of url(pop.au)
+and a cue-after of url(pop.au), which should be the same as in the
+h3 heading above.
+The rule applied is "h4 {cue-before: url("pop.au"); cue-after: url("pop.au")}
+".
+</h4>
+All other properties of this page should be UA-default.
+Your browser rendering of this page should look similar to this <a href="c1914.gif"> 
+reference image </a> or to this <a href="d1914.gif">reference image</a>.
+
+
+</BODY>
+</HTML>
+

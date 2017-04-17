@@ -1,0 +1,36 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>CSS Test: Test for height:calc() on blocks</title>
+  <link rel="author" title="L. David Baron" href="https://dbaron.org/">
+  <link rel="help" href="http://www.w3.org/TR/css3-values/#calc-notation">
+  <link rel="match" href="calc-height-block-1-ref.html">
+  <meta name="flags" content="">
+<style type="text/css">
+body { margin: 0 }
+body > div { float: left; height: 100px; width: 1px; }
+body > div > div { background: blue }
+
+/* for auto-height tests */
+body > div > div > div > div { height: 10px }
+</style>
+</head>
+<body>
+
+<!-- tests with a fixed-height container -->
+<div><div style="height: calc(50px)"></div></div>
+<div><div style="height: calc(50%)"></div></div>
+<div><div style="height: calc(25px + 50%)"></div></div>
+<div><div style="height: calc(150% / 2 - 30px)"></div></div>
+<div><div style="height: calc(40px + 10% - 20% / 2)"></div></div>
+<div><div style="height: calc(40px - 10%)"></div></div>
+
+<!-- tests with an auto-height container -->
+<div><div><div style="height: calc(50px)"><div></div></div></div></div>
+<div><div><div style="height: calc(50%)"><div></div></div></div></div>
+<div><div><div style="height: calc(25px + 50%)"><div></div></div></div></div>
+<div><div><div style="height: calc(150% / 2 - 30px)"><div></div></div></div></div>
+<div><div><div style="height: calc(40px + 10% - 20% / 2)"><div></div></div></div></div>
+<div><div><div style="height: calc(40px - 10%)"><div></div></div></div></div>
+</body>
+</html>

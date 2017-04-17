@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <title>CSS Animations - animationiteration event with one iteration</title>
+   <link rel="author" title="Opera Software ASA" href="http://www.opera.com/">
+   <link rel="help" href="https://drafts.csswg.org/css3-animations/#animation-events-">
+   <meta name="flags" content="dom">
+   <meta name="assert" content="The animationiteration event does not occur for
+   animations with an iteration count of one.">
+   <script src="/resources/testharness.js"></script>
+   <script src="/resources/testharnessreport.js"></script>
+   <style type="text/css">
+      @keyframes colorize {
+         from {
+            background-color: gray;
+         }
+         to {
+            background-color: blue;
+         }
+      }
+      div {
+         width: 100px;
+         height: 100px;
+      }
+      .test {
+         animation: colorize 200ms 1;
+      }
+   </style>
+   <script type="text/javascript">
+      setup({explicit_done:true});
+      onload = function() {
+         var testName = document.querySelector('title').firstChild.data;
+         var div = document.querySelector('div');
+         var log = document.querySelectorAll('p')[0].firstChild;
+         var passed = undefined;
+         div.addEventListener('animationiteration', function() {
+            passed = false;
+         });
+         div.addEventListener('animationend', function() {
+            if (passed === undefined) {
+               passed = true;
+            }
+         });
+         setTimeout(function() {
+            test(function(){assert_true(passed);}, testName); done();
+            log.data = (passed ? 'PASS' : 'FAIL');
+         }, 500);
+         div.className = 'test';
+      };
+   </script>
+   <style>iframe{display:none}</style>
+</head>
+<body>
+   <p>Testing... (JavaScript required)</p>
+   <div></div>
+</body>
+</html>

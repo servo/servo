@@ -1,0 +1,65 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+
+  <title>CSS Reftest Reference</title>
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  div > p
+  {
+  background-color: #FFC;
+  border: solid;
+  margin: 1em;
+  padding: 0.5em;
+  white-space: nowrap;
+  }
+
+  span {line-height: 3em;}
+
+  span.top-left-bottom
+  {
+  border-style: solid none solid solid;
+  padding: 0.4em 0 0.4em 1em;
+  }
+
+  .navy {color: navy;}
+
+  .orange {color: orange;}
+
+  span.top-right-bottom
+  {
+  border-style: solid solid solid none;
+  padding: 0.4em 1em 0.4em 0;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>The following two blocks should be identical, including overflow. (Force bidi: &#x05D0;)</p>
+
+  <div>
+    <p>
+     <span class="top-left-bottom navy"> aaa bbb ccc </span>
+     <span class="top-left-bottom orange"> ddd eee fff </span>
+     ggg hhh iii
+     <span class="top-right-bottom navy">   jjj kkk lll </span>
+     <span class="top-right-bottom orange">   mmm nnn ooo </span>
+   </p>
+
+    <p>
+     <span class="top-left-bottom navy"> aaa bbb ccc </span>
+     <span class="top-left-bottom orange"> ddd eee fff </span>
+     ggg hhh iii
+     <span class="top-right-bottom navy">   jjj kkk lll </span>
+     <span class="top-right-bottom orange">   mmm nnn ooo </span>
+   </p>
+  </div>
+
+ </body>
+</html>

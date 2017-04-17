@@ -1,0 +1,20 @@
+﻿<!DOCTYPE html>
+<title>CSS Basic User Interface Test: Cursor property, url value, no fallback</title>
+<link rel="author" title="Chris Lilley" href="mailto:chris@w3.org">
+<link rel="reviewer" title="Florian Rivoal" href="http://florian.rivoal.net/"> <!-- 2015-04-12 -->
+<link rel="help" href="http://www.w3.org/TR/css3-ui/#cursor">
+<meta name="flags" content="interact image invalid">
+<meta charset="UTF-8">
+<meta name="assert" content="Test checks that a fallback cursor is required.">
+<style>
+	div.test{background: #D2B48C; border: 2px solid #555;
+	cursor:url(support/cursors/fail.cur);
+	width: 128px; height: 128px}
+</style>
+<body>
+  <p>The test passes if, when moved inside the the colored rectangle, the
+  cursor does not change.</p>
+  <p>If inside the rectangle the cursor changes to the word "FAIL" on a red
+  background, the test fails.</p>
+  <div class="test"> </div>
+</body>

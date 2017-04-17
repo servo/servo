@@ -1,0 +1,71 @@
+<!doctype html>
+<html>
+<head>
+    <meta http-equiv="Content-Security-Policy" content="style-src 'nonce-nonceynonce';">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+
+    <script>
+      var t_spv = async_test("Should fire a securitypolicyviolation event");
+
+      document.addEventListener("securitypolicyviolation", t_spv.step_func_done(function(e) {
+        assert_equals("style-src", e.violatedDirective);
+      }));
+    </script>
+    <style id="style1" nonce="not-nonceynonce"
+           onerror="styleError();">
+        #content {
+            margin-left: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div id='log'></div>
+
+    <div id="content">Lorem ipsum</div>
+
+    <script>
+        function verifyStep1() {
+            var marginLeft = getComputedStyle(document.querySelector("#content")).getPropertyValue('margin-left');
+            assert_false(marginLeft == '2px', "Content still does not have a 2px margin-left after initial style.");
+        }
+
+        function setupStep2() {
+            var sty = document.createElement("style");
+            sty.nonce = "not-nonceynonce";
+            sty.innerHTML = "#content { margin-left: 2px; }";
+            sty.onerror = styleError;
+            document.body.appendChild(sty);
+        }
+        function verifyStep2() {
+            var marginLeft = getComputedStyle(document.querySelector("#content")).getPropertyValue('margin-left');
+            assert_false(marginLeft == '2px', "Content still does not have a 2px margin-left after inserted style.");
+        }
+
+        function setupStep3() {
+            var e = document.getElementById('style1');
+            e.innerHTML = "#content { margin-left: 2px; }";
+        }
+        function verifyStep3() {
+            var marginLeft = getComputedStyle(document.querySelector("#content")).getPropertyValue('margin-left');
+            assert_false(marginLeft == '2px', "Content still does not have a 2px margin-left after changing style.");
+            test.done();
+        }
+
+        var verifySteps = [ verifyStep1, verifyStep2, verifyStep3 ];
+        var setupSteps = [ setupStep2, setupStep3 ];
+
+        var test = async_test("Test that paragraph remains unmodified and error events received.");
+
+        function styleError() {
+            test.step(function() {
+                verifySteps.shift()();
+                var nextSetup = setupSteps.shift();
+                if (nextSetup)
+                    nextSetup();
+            });
+        }
+    </script>
+
+</body>
+</html>

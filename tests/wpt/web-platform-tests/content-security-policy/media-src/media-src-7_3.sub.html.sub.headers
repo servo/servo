@@ -1,0 +1,6 @@
+Expires: Mon, 26 Jul 1997 05:00:00 GMT
+Cache-Control: no-store, no-cache, must-revalidate
+Cache-Control: post-check=0, pre-check=0, false
+Pragma: no-cache
+Set-Cookie: media-src-7_3={{$id:uuid()}}; Path=/content-security-policy/media-src/
+Content-Security-Policy: script-src * 'unsafe-inline'; media-src 'self' {{domains[www]}}:{{ports[http][0]}}; report-uri  ../support/report.py?op=put&reportID={{$id}}

@@ -24,19 +24,25 @@ interface WorkerNavigator {
 </pre>
 <pre id='idl'>
 dictionary MediaConfiguration {
-  required MediaConfigurationType type;
-
   VideoConfiguration video;
   AudioConfiguration audio;
 };
 
-enum MediaConfigurationType {
+dictionary MediaDecodingConfiguration : MediaConfiguration {
+  required MediaDecodingType type;
+};
+
+dictionary MediaEncodingConfiguration : MediaConfiguration {
+  required MediaEncodingType type;
+};
+
+enum MediaDecodingType {
   "file",
-  "MediaSource",
+  "media-source",
 };
 
 dictionary VideoConfiguration {
-  required DOMString type;
+  required DOMString contentType;
   required unsigned long width;
   required unsigned long height;
   required unsigned long bitrate;
@@ -44,13 +50,13 @@ dictionary VideoConfiguration {
 };
 
 dictionary AudioConfiguration {
-  required DOMString type;
+  required DOMString contentType;
   DOMString channels;
   unsigned long bitrate;
   unsigned long samplerate;
 };
 
-interface MediaDecodingAbility {
+interface MediaCapabilitiesInfo {
   readonly attribute boolean supported;
   readonly attribute boolean smooth;
   readonly attribute boolean powerEfficient;
@@ -58,17 +64,18 @@ interface MediaDecodingAbility {
 
 [Exposed=(Window)]
 partial interface Navigator {
-  readonly attribute MediaCapabilities mediaCapabilities;
+  [SameObject] readonly attribute MediaCapabilities mediaCapabilities;
 };
 
 [Exposed=(Worker)]
 partial interface WorkerNavigator {
-  readonly attribute MediaCapabilities mediaCapabilities;
+  [SameObject] readonly attribute MediaCapabilities mediaCapabilities;
 };
 
 [Exposed=(Window, Worker)]
 interface MediaCapabilities {
-  Promise<MediaDecodingAbility> query(MediaConfiguration configuration);
+  Promise<MediaCapabilitiesInfo> decodingInfo(MediaDecodingConfiguration configuration);
+  Promise<MediaCapabilitiesInfo> encodingInfo(MediaEncodingConfiguration configuration);
 };
 </pre>
 <script>

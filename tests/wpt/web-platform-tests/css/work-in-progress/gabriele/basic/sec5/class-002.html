@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS 2.1 Test Suite: Selectors: Class selectors: Multiple classes</title>
+  <link rel="author" title="Gabriele Romanato" href="mailto:gabriele.romanato@gmail.com" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#class-html" />
+  <meta name="flags" content="" />
+  <meta name="assert" content="Browsers should apply each rule to the elements which have the specified class or classes"/>
+<style type="text/css">
+.foo {color: fuchsia}
+.foo.moo {border: thin solid;}
+h4.title {color: blue; border: none;}
+
+</style>
+ </head>
+ <body>
+<p class="foo">This text should be fuchsia.</p>
+<div class="foo moo">This text should be fuchsia with a thin fuchsia border.</div>
+<h4 class="title moo">This text should be blue without any border.</h4>
+ </body>
+</html>

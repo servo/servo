@@ -1,0 +1,97 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: Margin Collapsing: effect of margins near float on collapsing-through</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/block/margin-collapse/054.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#collapsing-margins"/>
+
+  <meta name="flags" content="ahem" />
+
+  <style type="text/css">
+   td { border: solid; width: 4em; background: red; padding: 0; font: 2em/1 Ahem; }
+   .bg { background: orange; color: navy; }
+   .a { margin: 0 0 1em 0; background: yellow; }
+   .c { margin: 1em 0 0 0; background: aqua; }
+   span { float: right; background: lime; padding-right: 1em; }
+   .b1 { margin: 1em 0 1em 0; }
+   .b2 { margin: 0em 0 1em 0; }
+   .b3 { margin: 1em 0 0em 0; }
+   .b4 { margin: 0em 0 0em 0; }
+   .b5 { margin: 0.5em 0 0.5em 0; }
+   .b6 { margin: 0em 0 0.5em 0; }
+   .b7 { margin: 0.5em 0 0em 0; }
+   .control .a { margin: 0 0 1em 0; }
+   .control .b { height: 0; text-align: right; }
+   .control span { float: none; }
+   .control .c { margin: 0; }
+  </style>
+ </head>
+ <body>
+  <p>All the following should look the same (and all should look like
+  the first).</p>
+  <table>
+   <tr>
+    <td class="control">
+     <div class="bg">
+      <div class="a">A</div>
+      <div class="b"><span>B</span></div>
+      <div class="c">C</div>
+     </div>
+    </td>
+    <td>
+     <div class="bg">
+      <div class="a">A</div>
+      <div class="b1"><span>B</span></div>
+      <div class="c">C</div>
+     </div>
+    </td>
+    <td>
+     <div class="bg">
+      <div class="a">A</div>
+      <div class="b2"><span>B</span></div>
+      <div class="c">C</div>
+     </div>
+    </td>
+    <td>
+     <div class="bg">
+      <div class="a">A</div>
+      <div class="b3"><span>B</span></div>
+      <div class="c">C</div>
+     </div>
+    </td>
+    <td>
+     <div class="bg">
+      <div class="a">A</div>
+      <div class="b4"><span>B</span></div>
+      <div class="c">C</div>
+     </div>
+    </td>
+    <td>
+     <div class="bg">
+      <div class="a">A</div>
+      <div class="b5"><span>B</span></div>
+      <div class="c">C</div>
+     </div>
+    </td>
+    <td>
+     <div class="bg">
+      <div class="a">A</div>
+      <div class="b6"><span>B</span></div>
+      <div class="c">C</div>
+     </div>
+    </td>
+    <td>
+     <div class="bg">
+      <div class="a">A</div>
+      <div class="b7"><span>B</span></div>
+      <div class="c">C</div>
+     </div>
+    </td>
+   </tr>
+  </table>
+  <p>This test is meaningless if you don't pass <a href="margin-collapse-155">test 055</a>.</p>
+
+
+</body>
+</html>

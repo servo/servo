@@ -1,0 +1,19 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html><head>
+    <title>CSS 2.1 Test Suite: :first-line</title>
+    <link href="mailto:bzbarsky@mit.edu" rel="author" title="Boris Zbarsky" />
+    <link href="http://mozilla.com/" rel="author" title="Mozilla Corporation" />
+    <link href="http://www.w3.org/TR/CSS21/selector.html#first-line" rel="help" />
+    <link rel="match" href="parent-style-3-ref.xht"/>
+    <meta content="" name="flags" />
+    <style>
+      div, p { background: green; }
+      div:first-line, p:first-line { background-color: red; }
+      span.one { background: inherit; }
+      span.two { background-color: inherit; }
+    </style>
+  </head>
+  <body>
+    <div><p><span class="one">One</span><span class="two">Two</span></p></div>
+  
+</body></html>

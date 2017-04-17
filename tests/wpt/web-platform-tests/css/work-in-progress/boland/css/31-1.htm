@@ -1,0 +1,45 @@
+
+<HTML>
+<HEAD>
+<TITLE>First Test of Section 3.1 of CSS1 Spec</TITLE>
+
+
+<STYLE TYPE="text/css">
+
+
+H3 { color: red ! important; background: lime ! important }
+P { font-size: 12pt ! important;
+    font-style: italic }
+</STYLE>
+</HEAD>
+
+
+
+<BODY>
+
+<h1 >Testing Statement #1 Below of Section 3.1 of CSS1 Spec</h1>
+
+
+
+<ul>
+<li >
+1. Style sheet designers can increase the weights of their declarations.
+</ul>
+
+<h2 >PASS CRITERIA:
+</h2>
+<p>
+If statement #1 above is passed, this paragraph should be 12pt italic.
+The rule applied is "P {font-size: 12pt ! important; font-style: italic;}".
+Since the font-size of the rule above is important, it will resist attempts
+to change it in the presentation.
+All other properties of this paragraph should be UA-default.
+
+<h3>
+This h3 heading should be red with a lime background; the rule applied is
+"h3 {color: red ! important; background: lime ! important}" (the "important"
+delineation means that these rules resist change in the presentation)
+</h3>
+To move directly to the next test, click<a href="31-2.htm"> here</a>
+</BODY>
+</HTML>

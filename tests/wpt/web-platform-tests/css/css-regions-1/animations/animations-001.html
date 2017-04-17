@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Regions: animating content flowed into a region</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from">
+		<link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-functions">
+		<link rel="help" href="http://www.w3.org/TR/css3-animations/#animations">
+		<meta name="assert" content="Test checks that content that has an animated 3D transform renders and animates when flowed in a region.">
+		<meta name="flags" content="ahem animated">
+		<!-- TODO Determine if it's OK for this test to be a ref-test or it should only be a manual one. -->
+		<link rel="match" href="reference/animations-001-ref.html">
+		<link rel="stylesheet" href="support/animations.css">
+		<style>
+		.transformed {
+			transform: rotateZ(45deg);
+		}
+		.flow {
+			flow-into: f;
+			color: green;
+			font-family: Ahem;
+			font-size: 20px;
+			line-height: 1em;
+		}
+
+		.region {
+			flow-from: f;
+			width: 100px;
+			height: 100px;
+			background-color: lightblue;
+		}
+		.region p {
+			background-color: red;
+			height: 50%;
+		}
+		</style>
+	</head>
+	<body>
+		<p>Test passes if you see a green square rotating once on top of a static blue square and no red.</p>
+
+		<div class="region">
+			<p>&nbsp;</p>
+		</div>
+
+		<div class="transformed flow rotate once">
+			xxxxx<br>
+			xxxxx<br>
+			xxxxx<br>
+			xxxxx<br>
+			xxxxx<br>
+		</div>
+	</body>
+</html>

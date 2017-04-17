@@ -1,0 +1,34 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Inheritance</title>
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#inheritance"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+
+  <style type="text/css"><![CDATA[
+   body { color: navy; }
+   .a { text-decoration: underline; }
+   #a { font-style: italic; }
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html#inheritance" title="6.2 Inheritance"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#lining-striking-props" title="16.3.1 Underlining, overlining, striking, and blinking: the 'text-decoration' property"/>
+ </head>
+ <body>
+
+  <p class="a"> This should be blue and underlined. </p>
+
+  <p class="a"> This sentence should be underlined, including
+  <code>this part</code>, <cite>this part</cite>, <em>this part</em>,
+  and <strong>this part</strong>. </p>
+
+  <p class="a" id="a"> This sentence should also be underlined, as
+  well as italics, <strong>including this part</strong>. </p>
+
+  <p> This sentence should be blue but not underlined, like
+  <strong>this part</strong>, but <em style="text-decoration:
+  underline;">this part should be underlined</em>. </p>
+
+ </body>
+</html>

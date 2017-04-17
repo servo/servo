@@ -1,0 +1,46 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: padding</title>
+  <meta name="flags" content="ahem" />
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#padding"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-04-08 -->
+  <link rel="match" href="c5510-padn-001-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+   div.control { margin: 1.25em; }
+   p.criteria { color: navy; }
+   p, ul, li { margin: 0; padding: 0; list-style: none; }
+
+   div.test { border: solid black; width: 10em; background-color: orange; font: 1.25em/1 Ahem; color: teal; margin: 1em;}
+   ul.test, li.test { padding: 1em; }
+   li.test { background-color: aqua; }
+   ul.test { background-color: yellow; }
+
+   .control { border: solid; width: 12.5em; background: red; }
+   .control .yellow { border: solid 1.25em yellow; background: yellow; }
+   .control .teal { height: 1.25em; width: 1.25em; background: teal; }
+   .control .aqua { border: solid 1.25em aqua; background: aqua; }
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#padding-properties" title="8.4 Padding properties: 'padding-top', 'padding-right', 'padding-bottom', 'padding-left', and 'padding'"/>
+ </head>
+ <body>
+  <p class="criteria">The following two diagrams should look identical.</p>
+  <div class="test">
+   <ul class="test">
+    <li>-</li>
+    <li class="test">-</li>
+    <li>-</li>
+   </ul>
+  </div>
+  <div class="control">
+   <div class="yellow">
+    <div class="teal"></div>
+    <div class="aqua"><div class="teal"></div></div>
+    <div class="teal"></div>
+   </div>
+  </div>
+ </body>
+</html>

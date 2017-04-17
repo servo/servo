@@ -1,0 +1,85 @@
+
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+      PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+      "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<title>CSS3 Background Position Test</title>
+
+<style type="text/css">
+p {background-image: url(nist.gif);
+   background-position: 0%0%;}
+p {background-color: aqua;
+   background-repeat: no-repeat}
+</style>
+</head>
+
+<body>
+
+
+
+
+<h1>CSS3 Background Position Test</h1>
+
+
+
+
+
+<ul>
+<li >
+With a value pair of "0%0%", the upper left corner of the image is placed
+in the upper left corner of teh box that surrounds the content of the element
+(i.e., not the box that surrounds the padding, border or margin).
+</li>
+</ul>
+
+
+<h2>
+PASS CRITERIA:
+</h2>
+<p>
+If statement above is true, this paragraph should have a NIST pattern
+starting at the upper left corner of the paragraph text.
+The rules applied are "p {background-image: url(nist.gif);
+                          background-position: 0%0%;}".
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
+eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg
+Also rules "p {background-color: aqua}" and "p{background-repeat: no-repeat}"
+are applied.
+All other properties of this page should be UA-default.
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+cccccccccccccccccccccccccccccccccccc
+dddddddddddddddddddddddddddddddddddddd
+eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+ffffffffffffffffffffffffffffffffffff
+ggggggggggggggggggggggggggggggggggggg
+hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh
+iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii
+jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj
+kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk
+lllllllllllllllllllllllllllllllllllllllll
+mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm
+nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn
+ooooooooooooooooooooooooooooooooooooooo
+pppppppppppppppppppppppppppppppppppppppp
+qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq
+rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr
+ssssssssssssssssssssssssssssssssssssssssssss
+ttttttttttttttttttttttttttttttttttttttttttttuuu
+uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu
+vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvw
+wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxy
+yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
+zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
+</p>
+
+</body>
+</html>

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+	<head>
+	<title>CSSOM View Test: window pageXOffset attribute attribute must return the value returned by the scrollX attribute</title>
+	<link rel="author" title="jingke" href="mailto:jingkewhu@gmail.com">
+	<link rel="help" href="https://drafts.csswg.org/cssom-view/#widl-Window-pageXOffset">
+	<meta name="flags" content="dom">
+	<meta name="assert"
+		content="pageXOffset attribute attribute must return the value returned by the scrollX attribute.">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>  
+	</head>
+	<body>
+		<div id="myDiv"></div>
+        <div id="log"></div>
+		<script>	
+		test(function(){
+				assert_equals(window.scrollX, window.pageXOffset);
+				},
+				"window.pageXOffset must equals with window.scrollX");
+		</script>
+
+	</body>
+</html>

@@ -1,0 +1,52 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+<html lang="en">
+ <head>
+  <title>Test</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/table/positioning/001-demo.html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#dis-pos-flo" />
+  <style type="text/css">
+   * { border: solid; }
+   .table { display: table; }
+   .table-column { display: table-column; }
+   .table-row { display: table-row; }
+   .table-cell { display: table-cell; width: 5em; height: 5em; empty-cells: show; }
+   .absolute { position: absolute; height: 3em; width: 3em; background: aqua; }
+  </style>
+ </head>
+ <body>
+  <div class="table">
+   <div class="table-column">
+   </div>
+   <div class="table-column">
+    <div class="absolute"></div>
+   </div>
+   <div class="table-column">
+   </div>
+   <div class="table-row">
+    <div class="table-cell">
+    </div>
+    <div class="table-cell">
+    </div>
+    <div class="table-cell">
+    </div>
+   </div>
+   <div class="table-row">
+    <div class="table-cell">
+    </div>
+    <div class="table-cell">
+    </div>
+    <div class="table-cell">
+    </div>
+   </div>
+   <div class="table-row">
+    <div class="table-cell">
+    </div>
+    <div class="table-cell">
+    </div>
+    <div class="table-cell">
+    </div>
+   </div>
+  </div>
+ </body>
+</html>

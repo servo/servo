@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>CSS Regions OM Test: Region interface on non-Region</title>
+        <link rel="author" title="Alan Stearns" href="mailto:stearns@adobe.com">
+        <link rel="help" href="http://www.w3.org/TR/css3-regions/#the-region-interface">
+        <meta name="flags" content="dom">
+        <meta name="assert" content="The Region interface attributes and methods throw DOMExceptions on non-regions.">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>        
+    </head>
+    
+    <body>
+        <div id="log"></div>
+
+        <div id="non-region"><div id="content"></div></div>
+        
+        <script type="text/javascript">
+            function testRegionOversetAttribute(element_id) {
+                var non_region = document.getElementById(element_id);
+                non_region.regionOverset;
+            }
+
+            function testFlowFromAttribute(element_id) {
+                var non_region = document.getElementById(element_id);
+                non_region.flowFrom;
+            }
+
+            function testGetRegionFlowRanges(element_id) {
+                var non_region = document.getElementById(element_id);
+                non_region.getRegionFlowRanges();
+            }
+
+            function testGetComputedStyle(element_id) {
+                var non_region = document.getElementById(element_id);
+                non_region.getComputedStyle(non_region, "::before");
+                // need to add a ::before to check this? There is no element
+                // in the named flow to call this method with.
+            }
+
+            test( function() {assert_throws ("INVALID_ACCESS_ERR", 
+                testRegionOversetAttribute("non-region"));},
+                "Test regionOverset attribute throws on non-region."); 
+            test( function() {assert_throws ("INVALID_ACCESS_ERR", 
+                testFlowFromAttribute("non-region"));},
+                "Test flowFrom attribute throws on non-region."); 
+            test( function() {assert_throws ("INVALID_ACCESS_ERR", 
+                testGetRegionFlowRanges("non-region"));},
+                "Test getRegionFlowRanges method throws on non-region."); 
+            test( function() {assert_throws ("INVALID_ACCESS_ERR", 
+                testGetComputedStyle("non-region"));},
+                "Test getComputedStyle method throws on non-region."); 
+        </script>
+    </body>
+</html>

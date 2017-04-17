@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Test: GCPM formatting the footnote marker</title>
+<link rel="author" title="Dave Cramer" href="mailto:dauwhe@gmail.com">
+<link rel="help" href="http://www.w3.org/TR/css3-gcpm/#footnote-marker">
+
+<meta name="flags" content="paged">
+<meta name="assert" content="check ability to format footnote-marker pseudo-element">
+
+<style>
+  
+span.footnote { float: footnote; }
+
+::footnote-marker {
+  content: counter(footnote, upper-alpha);
+  vertical-align: baseline;
+  color: red;
+  font-size: 100%;
+}
+ 
+</style>
+</head>
+<body>
+
+<p>Test passes if the footnote marker (on the footnote itself) is a red “A”, on the baseline.</p>
+
+<p>This paragraph contains a footnote<span class="footnote">this is a footnote</span>.</p>
+
+</body>
+</html>

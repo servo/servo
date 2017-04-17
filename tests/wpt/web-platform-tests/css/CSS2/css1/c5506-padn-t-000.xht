@@ -1,0 +1,63 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: padding-top</title>
+  <meta name="flags" content="ahem invalid" />
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#padding-top"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-03-29 -->
+  <link rel="match" href="c5506-padn-t-000-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+   td { padding: 0; border: solid black; }
+   p { margin: 0; }
+   .test { font: 20px/1 Ahem; width: 5em; }
+   .zero {padding-top: 0; background-color: orange; color: blue;}
+   .one {padding-top: 0.20833in; background-color: yellow; color: aqua;}
+   .two {padding-top: 20px; background-color: lime; color: fuchsia;}
+   .three {padding-top: 1em; background-color: blue; color: orange;}
+   .four {padding-top: 20%; background-color: aqua; color: yellow;}
+   .five {padding-top: -20px; background-color: fuchsia; color: lime;}
+
+   .control { width: 100px; background: red; }
+   .control .blue { border-top: solid blue 20px; }
+   .control .yellow { border-top: solid yellow 20px; }
+   .control .aqua { border-top: solid aqua 20px; }
+   .control .lime { border-top: solid lime 20px; }
+   .control .fuchsia { border-top: solid fuchsia 20px; }
+   .control .orange { border-top: solid orange 20px; }
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#padding-properties" title="8.4 Padding properties: 'padding-top', 'padding-right', 'padding-bottom', 'padding-left', and 'padding'"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#length-units" title="4.3.2 Lengths"/>
+ </head>
+ <body>
+  <p>The next two columns should be identical.</p>
+  <table>
+   <tr>
+    <td>
+     <div class="test">
+      <p class="zero"> xxxxx </p>
+      <p class="one"> xxxxx </p>
+      <p class="two"> xxxxx </p>
+      <p class="three"> xxxxx </p>
+      <p class="four"> xxxxx </p>
+      <p class="five"> xxxxx </p>
+     </div>
+    </td>
+    <td class="control">
+     <div class="blue"></div>
+     <div class="yellow"></div>
+     <div class="aqua"></div>
+     <div class="lime"></div>
+     <div class="fuchsia"></div>
+     <div class="blue"></div>
+     <div class="orange"></div>
+     <div class="aqua"></div>
+     <div class="yellow"></div>
+     <div class="lime"></div>
+    </td>
+   </tr>
+  </table>
+ </body>
+</html>

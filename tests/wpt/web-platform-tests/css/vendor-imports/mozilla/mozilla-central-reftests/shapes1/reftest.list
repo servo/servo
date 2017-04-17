@@ -1,0 +1,114 @@
+
+# <shape-box> only
+== shape-outside-margin-box-001.html shape-outside-margin-box-001-ref.html
+== shape-outside-margin-box-002.html shape-outside-margin-box-002-ref.html
+== shape-outside-border-box-001.html shape-outside-border-box-001-ref.html
+== shape-outside-border-box-002.html shape-outside-border-box-002-ref.html
+== shape-outside-padding-box-001.html shape-outside-padding-box-001-ref.html
+== shape-outside-padding-box-002.html shape-outside-padding-box-002-ref.html
+== shape-outside-content-box-001.html shape-outside-content-box-001-ref.html
+== shape-outside-content-box-002.html shape-outside-content-box-002-ref.html
+
+# <shape-box> with border-radius
+== shape-outside-margin-box-border-radius-001.html shape-outside-margin-box-border-radius-001-ref.html
+== shape-outside-margin-box-border-radius-002.html shape-outside-margin-box-border-radius-002-ref.html
+== shape-outside-margin-box-border-radius-003.html shape-outside-margin-box-border-radius-003-ref.html
+== shape-outside-margin-box-border-radius-004.html shape-outside-margin-box-border-radius-004-ref.html
+== shape-outside-margin-box-border-radius-005.html shape-outside-margin-box-border-radius-005-ref.html
+== shape-outside-margin-box-border-radius-006.html shape-outside-margin-box-border-radius-006-ref.html
+== shape-outside-margin-box-border-radius-007.html shape-outside-margin-box-border-radius-007-ref.html
+== shape-outside-margin-box-border-radius-008.html shape-outside-margin-box-border-radius-008-ref.html
+== shape-outside-border-box-border-radius-001.html shape-outside-border-box-border-radius-001-ref.html
+== shape-outside-border-box-border-radius-002.html shape-outside-border-box-border-radius-002-ref.html
+== shape-outside-border-box-border-radius-003.html shape-outside-border-box-border-radius-003-ref.html
+== shape-outside-border-box-border-radius-004.html shape-outside-border-box-border-radius-004-ref.html
+== shape-outside-border-box-border-radius-005.html shape-outside-border-box-border-radius-005-ref.html
+== shape-outside-border-box-border-radius-006.html shape-outside-border-box-border-radius-006-ref.html
+== shape-outside-border-box-border-radius-007.html shape-outside-border-box-border-radius-007-ref.html
+== shape-outside-border-box-border-radius-008.html shape-outside-border-box-border-radius-008-ref.html
+== shape-outside-border-box-border-radius-009.html shape-outside-border-box-border-radius-009-ref.html
+== shape-outside-border-box-border-radius-010.html shape-outside-border-box-border-radius-010-ref.html
+== shape-outside-border-box-border-radius-011.html shape-outside-border-box-border-radius-011-ref.html
+== shape-outside-border-box-border-radius-012.html shape-outside-border-box-border-radius-012-ref.html
+== shape-outside-padding-box-border-radius-001.html shape-outside-padding-box-border-radius-001-ref.html
+== shape-outside-padding-box-border-radius-002.html shape-outside-padding-box-border-radius-002-ref.html
+== shape-outside-content-box-border-radius-001.html shape-outside-content-box-border-radius-001-ref.html
+== shape-outside-content-box-border-radius-002.html shape-outside-content-box-border-radius-002-ref.html
+
+# Basic shape: circle()
+== shape-outside-circle-032.html shape-outside-circle-032-ref.html
+== shape-outside-circle-033.html shape-outside-circle-033-ref.html
+== shape-outside-circle-034.html shape-outside-circle-034-ref.html
+== shape-outside-circle-035.html shape-outside-circle-035-ref.html
+== shape-outside-circle-036.html shape-outside-circle-036-ref.html
+== shape-outside-circle-037.html shape-outside-circle-036-ref.html
+== shape-outside-circle-038.html shape-outside-circle-036-ref.html
+== shape-outside-circle-039.html shape-outside-circle-039-ref.html
+== shape-outside-circle-040.html shape-outside-circle-039-ref.html
+== shape-outside-circle-041.html shape-outside-circle-041-ref.html
+== shape-outside-circle-042.html shape-outside-circle-042-ref.html
+== shape-outside-circle-043.html shape-outside-circle-042-ref.html
+== shape-outside-circle-044.html shape-outside-circle-042-ref.html
+== shape-outside-circle-045.html shape-outside-circle-045-ref.html
+== shape-outside-circle-046.html shape-outside-circle-045-ref.html
+== shape-outside-circle-047.html shape-outside-circle-047-ref.html
+== shape-outside-circle-048.html shape-outside-circle-048-ref.html
+== shape-outside-circle-049.html shape-outside-circle-049-ref.html
+== shape-outside-circle-050.html shape-outside-circle-050-ref.html
+== shape-outside-circle-051.html shape-outside-circle-051-ref.html
+== shape-outside-circle-052.html shape-outside-circle-052-ref.html
+== shape-outside-circle-053.html shape-outside-circle-053-ref.html
+== shape-outside-circle-054.html shape-outside-circle-054-ref.html
+== shape-outside-circle-055.html shape-outside-circle-055-ref.html
+
+# Basic shape: ellipse()
+== shape-outside-ellipse-032.html shape-outside-ellipse-032-ref.html
+== shape-outside-ellipse-033.html shape-outside-ellipse-033-ref.html
+== shape-outside-ellipse-034.html shape-outside-ellipse-034-ref.html
+== shape-outside-ellipse-035.html shape-outside-ellipse-035-ref.html
+== shape-outside-ellipse-036.html shape-outside-ellipse-036-ref.html
+== shape-outside-ellipse-037.html shape-outside-ellipse-037-ref.html
+== shape-outside-ellipse-038.html shape-outside-ellipse-038-ref.html
+== shape-outside-ellipse-039.html shape-outside-ellipse-039-ref.html
+== shape-outside-ellipse-040.html shape-outside-ellipse-040-ref.html
+== shape-outside-ellipse-041.html shape-outside-ellipse-040-ref.html
+== shape-outside-ellipse-042.html shape-outside-ellipse-042-ref.html
+== shape-outside-ellipse-043.html shape-outside-ellipse-042-ref.html
+== shape-outside-ellipse-044.html shape-outside-ellipse-044-ref.html
+== shape-outside-ellipse-045.html shape-outside-ellipse-045-ref.html
+== shape-outside-ellipse-046.html shape-outside-ellipse-046-ref.html
+== shape-outside-ellipse-047.html shape-outside-ellipse-047-ref.html
+== shape-outside-ellipse-048.html shape-outside-ellipse-048-ref.html
+== shape-outside-ellipse-049.html shape-outside-ellipse-049-ref.html
+== shape-outside-ellipse-050.html shape-outside-ellipse-050-ref.html
+== shape-outside-ellipse-051.html shape-outside-ellipse-051-ref.html
+
+# Basic shape: inset()
+== shape-outside-inset-016.html shape-outside-inset-016-ref.html
+== shape-outside-inset-017.html shape-outside-inset-017-ref.html
+== shape-outside-inset-018.html shape-outside-inset-018-ref.html
+== shape-outside-inset-019.html shape-outside-inset-019-ref.html
+== shape-outside-inset-020.html shape-outside-inset-020-ref.html
+== shape-outside-inset-021.html shape-outside-inset-021-ref.html
+== shape-outside-inset-022.html shape-outside-inset-022-ref.html
+== shape-outside-inset-023.html shape-outside-inset-023-ref.html
+== shape-outside-inset-024.html shape-outside-inset-024-ref.html
+== shape-outside-inset-025.html shape-outside-inset-025-ref.html
+== shape-outside-inset-026.html shape-outside-inset-026-ref.html
+== shape-outside-inset-027.html shape-outside-inset-027-ref.html
+
+# Basic shape: polygon()
+== shape-outside-polygon-018.html shape-outside-polygon-018-ref.html
+== shape-outside-polygon-019.html shape-outside-polygon-019-ref.html
+== shape-outside-polygon-020.html shape-outside-polygon-020-ref.html
+== shape-outside-polygon-021.html shape-outside-polygon-021-ref.html
+== shape-outside-polygon-022.html shape-outside-polygon-022-ref.html
+== shape-outside-polygon-023.html shape-outside-polygon-023-ref.html
+== shape-outside-polygon-024.html shape-outside-polygon-024-ref.html
+== shape-outside-polygon-025.html shape-outside-polygon-025-ref.html
+== shape-outside-polygon-026.html shape-outside-polygon-026-ref.html
+== shape-outside-polygon-027.html shape-outside-polygon-027-ref.html
+== shape-outside-polygon-028.html shape-outside-polygon-026-ref.html
+== shape-outside-polygon-029.html shape-outside-polygon-027-ref.html
+== shape-outside-polygon-030.html shape-outside-polygon-030-ref.html
+== shape-outside-polygon-031.html shape-outside-polygon-031-ref.html

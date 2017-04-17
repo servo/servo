@@ -1,0 +1,31 @@
+<title>Static Range IDL tests</title>
+<link rel="help" href="http://garykac.github.io/staticrange/index.html#interface-staticrange"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+
+<pre id="untested_idl">
+interface Node {
+};
+</pre>
+
+<pre id='idl'>
+interface StaticRange {
+    readonly attribute Node startContainer;
+    readonly attribute unsigned long startOffset;
+    readonly attribute Node endContainer;
+    readonly attribute unsigned long endOffset;
+    readonly attribute boolean collapsed;
+};
+</pre>
+
+<script>
+(function(){
+    "use strict";
+    const idl_array = new IdlArray();
+    idl_array.add_untested_idls(document.getElementById("untested_idl").textContent);
+    idl_array.add_idls(document.getElementById("idl").textContent);
+    idl_array.test();
+})();
+</script>

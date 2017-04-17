@@ -23,7 +23,7 @@
         assert_equals(typeof c, 'number', 'third arg');
     });
     interval = setInterval("{", 10);
-    setTimeout(function(){
+    step_timeout(function(){
         t.step(function(){
             clearInterval(interval);
             assert_true(ran, 'ran');

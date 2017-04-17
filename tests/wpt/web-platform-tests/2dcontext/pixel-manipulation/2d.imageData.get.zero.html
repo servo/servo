@@ -22,6 +22,10 @@ _addTest(function(canvas, ctx) {
 assert_throws("INDEX_SIZE_ERR", function() { ctx.getImageData(1, 1, 10, 0); });
 assert_throws("INDEX_SIZE_ERR", function() { ctx.getImageData(1, 1, 0, 10); });
 assert_throws("INDEX_SIZE_ERR", function() { ctx.getImageData(1, 1, 0, 0); });
+assert_throws("INDEX_SIZE_ERR", function() { ctx.getImageData(1, 1, 0.1, 10); });
+assert_throws("INDEX_SIZE_ERR", function() { ctx.getImageData(1, 1, 10, 0.99); });
+assert_throws("INDEX_SIZE_ERR", function() { ctx.getImageData(1, 1, -0.1, 10); });
+assert_throws("INDEX_SIZE_ERR", function() { ctx.getImageData(1, 1, 10, -0.99); });
 
 
 });

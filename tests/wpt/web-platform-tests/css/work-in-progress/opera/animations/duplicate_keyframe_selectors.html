@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <title>CSS Animations - duplicate keyframe selectors</title>
+   <link rel="author" title="Opera Software ASA" href="http://www.opera.com/">
+   <link rel="help" href="https://drafts.csswg.org/css3-animations/#keyframes">
+   <meta name="flags" content="dom">
+   <meta name="assert" content="If there are any duplicates, then the last
+   keyframe specified inside the @keyframes rule will be used to provide the
+   keyframe information for that time">
+   <script src="/resources/testharness.js"></script>
+   <script src="/resources/testharnessreport.js"></script>
+   <style type="text/css">
+      @keyframes slide {
+         to {
+            left: 100px;
+         }
+         0%, 100% {
+            left: 0px;
+         }
+         0% {
+            left: 100px;
+         }
+      }
+      div {
+         width: 100px;
+         height: 100px;
+         background: blue;
+         position: relative;
+      }
+      .test {
+         animation: slide 1s forwards;
+      }
+   </style>
+   <script type="text/javascript">
+      setup({explicit_done:true});
+      onload = function() {
+         var testName = document.querySelector('title').firstChild.data;
+         var div = document.querySelector('div');
+         var log = document.querySelectorAll('p')[1].firstChild;
+         var startOK = false;
+         var timeout = setTimeout(function() {
+            test(function(){assert_true(false);}, testName); done();
+            log.data = 'FAIL';
+         }, 1500);
+         div.addEventListener('animationstart', function() {
+            var leftInPx = parseFloat(getComputedStyle(div, null).left);
+            startOK = (leftInPx > 50 && leftInPx <= 100);
+         });
+         div.addEventListener('animationend', function() {
+            clearTimeout(timeout);
+            var passed = (startOK && getComputedStyle(div, null).left == '0px');
+            test(function(){assert_true(passed);}, testName); done();
+            log.data = passed ? 'PASS if the animation occurred.' : 'FAIL';
+         });
+         div.className = 'test';
+      }
+   </script>
+   <style>iframe{display:none}</style>
+</head>
+<body>
+   <p>The square below should slide from right to left for one second.</p>
+   <p>Testing...</p>
+   <div></div>
+</body>
+</html>

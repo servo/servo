@@ -1,0 +1,75 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  td
+  {
+  border: black solid medium;
+  font: 1em/1 monospace;
+  }
+
+  div {white-space: pre;}
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>The following two boxes should be perfectly <strong>identical</strong>,
+  <em>including</em> the blank lines and the margin between the edges
+  of the image and the border:</p>
+
+  <table>
+   <thead>
+    <tr>
+     <th> Test </th>
+     <th> Control </th>
+    </tr>
+   </thead>
+   <tbody>
+    <tr class="pre">
+     <td>
+<div>
+                  ,
+                _/((
+       _.---. .'   `\
+     .'      `     ^ T=
+    /     \       .--'
+   |      /       )'-.
+   ; ,   &lt;__..-(   '-.)
+    \ \-.__)    ``--._)
+ jgs '.'-.__.-.
+       '-...-'
+ </div>
+     </td>
+     <td>
+<div>
+                  ,
+                _/((
+       _.---. .'   `\
+     .'      `     ^ T=
+    /     \       .--'
+   |      /       )'-.
+   ; ,   &lt;__..-(   '-.)
+    \ \-.__)    ``--._)
+ jgs '.'-.__.-.
+       '-...-'
+ </div>
+     </td>
+    </tr>
+   </tbody>
+  </table>
+
+  <p>The cats should also be <strong>aligned vertically</strong>
+  (i.e. be at the same height); if they are not, then the test
+  has not passed.</p>
+
+ </body>
+</html>

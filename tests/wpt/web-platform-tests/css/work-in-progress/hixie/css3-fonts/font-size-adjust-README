@@ -1,0 +1,13 @@
+We need some Ahem versions of these tests to check that, assuming
+font-size: 1px; font-size-adjust: 8, the following all come out as
+exactly the same size:
+
+   line-height: 2;
+   line-height: 2em;
+   line-height: 200%;
+   line-height: 20px;
+
+   border: 20px;
+
+Also we need checks that font-size inherits the computed value not the
+actual value, and all the existing tests need Ahem versions for QA.

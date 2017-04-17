@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border-bottom-width set to thick</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-05-23 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#propdef-border-bottom-width" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-width-properties" />
+
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'border-bottom-width' property supports a value of thick." />
+        <style type="text/css">
+            div
+            {
+                border-bottom-style: solid;
+                border-bottom-width: thick;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a line.</p>
+        <div></div>
+    </body>
+</html>

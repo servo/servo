@@ -1,0 +1,14 @@
+<csstest def="Syntax and parsing" module="W3C Selectors" modulename="css3-modsel" number="157" rev="1.0" date="20-november-2001" xmlns="http://www.example.org/css3tests">
+
+<author>Ian Hickson</author>
+
+<cssrules>
+  p { background: lime; }
+  [*=test] { background: red; }
+</cssrules>
+
+<code>
+ <p class="test" xmlns="http://www.w3.org/1999/xhtml">This line should have a green background.</p>
+</code>
+
+</csstest>

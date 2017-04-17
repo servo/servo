@@ -1,0 +1,37 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: vertical-align</title>
+  <meta name="flags" content="ahem image" />
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#vertical-align"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="match" href="c544-valgn-001-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+   .test {font: 15px/1 Ahem; color: green; background: red url(support/css1test544b.png) no-repeat; width: 90px; margin: 0 1em;}
+   img {height: 30px;}
+   .big {font-size:200%;}
+   .three {vertical-align: top; font-size: 15px;}
+   .four {vertical-align: text-top; font-size: 15px;}
+   .five {vertical-align: middle; font-size: 15px;}
+   .six {vertical-align: bottom; font-size: 15px;}
+   .seven {vertical-align: text-bottom; font-size: 15px;}
+   .eight {vertical-align: baseline; font-size: 15px;}
+   .nine {vertical-align: 50%; font-size: 15px; line-height: 20px;}
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#leading" title="10.8.1 Leading and half-leading"/>
+ </head>
+ <body>
+  <p>Test passes if there is a filled green rectangle and no red.</p>
+  <div class="test">
+   <div><img src="support/swatch-green.png" alt="FAIL: Image support required."/><span class="three">X</span>X</div>
+   <div><img src="support/swatch-green.png" alt="FAIL: Image support required."/><span class="big"><span class="four">X</span>X</span></div>
+   <div><img src="support/swatch-green.png" alt="FAIL: Image support required." class="five"/>X</div>
+   <div><img src="support/swatch-green.png" alt="FAIL: Image support required."/><span class="big"><span class="six">X</span>X</span></div>
+   <div><img src="support/swatch-green.png" alt="FAIL: Image support required."/><span class="big"><span class="seven">X</span>X</span></div>
+   <div><img src="support/swatch-green.png" alt="FAIL: Image support required."/><span class="big"><span class="eight">X</span>X</span></div>
+   <div><img src="support/swatch-green.png" alt="FAIL: Image support required."/><span class="nine">X</span>X</div>
+  </div>
+ </body>
+</html>

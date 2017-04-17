@@ -1,0 +1,35 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Font-size 'em' unit value referring to parent</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-size-props" />
+        <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-size-prop"/>
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The 'em' unit refers to the computed font size of the parent element instead of the current element." />
+        <style type="text/css">
+            div
+            {
+                font-size: 18px;
+            }
+            span
+            {
+                font-family: Ahem;
+            }
+            #span1
+            {
+                font-size: 27px;
+            }
+            #span2
+            {
+                font-size: 1.5em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a single box below and the top edge is not jagged.</p>
+        <div>
+            <span id="span1">X</span><span id="span2">X</span>
+        </div>
+    </body>
+</html>

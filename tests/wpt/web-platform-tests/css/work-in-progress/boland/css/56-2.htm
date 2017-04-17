@@ -1,0 +1,58 @@
+
+<html>
+
+<title>Second Test of Section 5.6 of CSS1 Spec</title>
+
+<style type="text/css">
+p {list-style: circle outside}
+li {display: list-item;
+    list-style-type: square;
+    list-style-position: outside;
+   }
+</style>
+</head>
+
+
+
+<body>
+
+
+
+
+<h1 >Testing Statement #2 Below of Section 5.6 of CSS1 Spec</h1>
+
+
+
+
+
+
+<p>
+2. The list-style properties will only have effect on elements with a display
+value of list-item.  In HTML, this is typically the case for the "LI" element.
+
+
+
+
+<h2>
+PASS CRITERIA:
+</h2>
+<p >
+If statement #2 above is passed, this paragraph should be UA-default.  The 
+rule stated is "p {list-style: circle outside}" which should be ignored
+since the display value of p is not list-item.
+
+<ul>
+<li>
+This list item should have a square list style type and an outside list
+style position.  THe rule applied is "li {display: list-item; list-style-
+type: square; list-style-position: outside;}".
+</ul>
+
+
+
+<p>
+All other properties of this page should be UA-default.
+
+
+</body>
+</html>

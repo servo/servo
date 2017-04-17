@@ -1,0 +1,21 @@
+<csstest def="Syntax and parsing of class selectors" module="W3C Selectors" modulename="css3-modsel" number="183" rev="1.0" date="24-april-2004" xmlns="http://www.example.org/css3tests">
+
+<author>Ian Hickson</author>
+
+<cssrules>
+p { color: green; }
+..test { background: red; color: yellow; }
+.foo..quux { background: red; color: yellow; }
+.bar. { background: red; color: yellow; }
+</cssrules>
+
+<code>
+<p xmlns="http://www.w3.org/1999/xhtml" class="test">This text should be green.</p>
+<p xmlns="http://www.w3.org/1999/xhtml" class=".test">This text should be green.</p>
+<p xmlns="http://www.w3.org/1999/xhtml" class="foo">This text should be green.</p>
+<p xmlns="http://www.w3.org/1999/xhtml" class="foo quux">This text should be green.</p>
+<p xmlns="http://www.w3.org/1999/xhtml" class="foo  quux">This text should be green.</p>
+<p xmlns="http://www.w3.org/1999/xhtml" class=" bar ">This text should be green.</p>
+</code>
+
+</csstest>

@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Background initial transparency</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background-properties" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Background of the parent shines through the child if nothing is over it." />
+        <style type="text/css">
+            #div1
+            {
+                background: orange;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the background of the "Filler Text" below is orange.</p>
+        <div id="div1">
+             <div>Filler Text</div>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,41 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+                      "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: outside list-item marker position in BIDI</title>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#list-style"/>
+  <meta name="flags" content=""/>
+  <meta name="assert" content="The list-item marker is on the right side for an
+        RTL item and on the left side for an LTR one."/>
+  <style type="text/css">
+    ul {
+      margin: 0;
+      padding: 0;
+    }
+    .li {
+      display: list-item;
+    }
+    li, .li {
+      list-style: outside circle;
+      border: solid thin blue;
+      margin: 0.5em 4em;
+      padding: 0;
+    }
+  </style>
+ </head>
+ <body>
+  <ul dir="rtl">
+    <li dir="ltr">There must be a circle to the left of this box.</li>
+  </ul>
+  <ul dir="ltr">
+    <li dir="rtl"><span dir="ltr">There must be a circle to the right of this box.</span></li>
+  </ul>
+  <div dir="rtl">
+    <div class="li" dir="ltr">There must be a circle to the left of this box.</div>
+  </div>
+  <div dir="ltr">
+    <div class="li" dir="rtl"><span dir="ltr">There must be a circle to the right of this box.</span></div>
+  </div>
+ </body>
+</html>

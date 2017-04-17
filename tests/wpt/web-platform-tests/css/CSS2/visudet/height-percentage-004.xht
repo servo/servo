@@ -1,0 +1,33 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS test: inherited percentage height</title>
+
+    <link rel="help" href="http://www.w3.org/TR/CSS22/visudet.html#the-height-property" title="10.5 Content height: the 'height' property" />
+    <link rel="help" href="http://www.w3.org/TR/CSS22/changes.html#s.10.7" title="C.1 Changes since the Recommendation of 7 June 2011" />
+    <meta name="assert" content="If the resulting height is smaller than 'min-height', the rules above are applied again, but this time using the value of 'min-height' as the computed value for 'height'. Note: These steps do not affect the real computed value of 'height'." />
+    <link rel="match" href="height-percentage-004-ref.xht" />
+    <link rel="author" title="Bert Bos" href="mailto:bert@w3.org" />
+
+    <meta name="flags" content="" />
+
+    <style type="text/css">
+      p {margin-right: 7em}
+      #container {height: 100%; background: red}
+      #container div {position: absolute; top: 0; right: 0;
+        background: aqua; height: inherit}
+    </style>
+  </head>
+
+  <body>
+    <p>Test passes if the light blue box ("Block A") is the full height
+    of the viewport and there is no red.</p>
+
+    <div id="container">
+      <div>
+	Block A
+      </div>
+    </div>
+  </body>
+</html>

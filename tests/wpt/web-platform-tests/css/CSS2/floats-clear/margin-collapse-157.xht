@@ -1,0 +1,79 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<!-- This is similar to tests 022 and 023 --><head>
+  <title>CSS Test: Margin Collapsing: clear (varying margins)</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/block/margin-collapse/057.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#collapsing-margins"/>
+  <link rel="match" href="margin-collapse-157-ref.xht" />
+
+  <style type="text/css">
+   .test { border: solid; background: red; width: 8em; }
+   .container { background: lime; }
+   .float { float: left; height: 4em; width: 4em; background: aqua; }
+   .empty { margin: 1em; background: red; }
+   .clear { clear: left; border-bottom: 4em solid yellow; background: red; }
+   .a .clear { margin-top: 0em; }
+   .b .clear { margin-top: 1em; }
+   .c .clear { margin-top: 2em; }
+  </style>
+ </head>
+ <body>
+  <p>Test passes if there are 6 identical squares and <strong>no red</strong>.</p>
+  <table>
+   <tr>
+    <td>
+     <div class="test a">
+      <div class="container">
+       <div class="float"> </div>
+       <div class="clear"> </div>
+      </div>
+     </div>
+    </td>
+    <td>
+     <div class="test b">
+      <div class="container">
+       <div class="float"> </div>
+       <div class="clear"> </div>
+      </div>
+     </div>
+    </td>
+    <td>
+     <div class="test c">
+      <div class="container">
+       <div class="float"> </div>
+       <div class="clear"> </div>
+      </div>
+     </div>
+    </td>
+   </tr>
+   <tr>
+    <td>
+     <div class="test a">
+      <div class="container">
+       <div class="float"> </div>
+       <div class="clear"> <div class="empty"> </div> </div>
+      </div>
+     </div>
+    </td>
+    <td>
+     <div class="test b">
+      <div class="container">
+       <div class="float"> </div>
+       <div class="clear"> <div class="empty"> </div> </div>
+      </div>
+     </div>
+    </td>
+    <td>
+     <div class="test c">
+      <div class="container">
+       <div class="float"> </div>
+       <div class="clear"> <div class="empty"> </div> </div>
+      </div>
+     </div>
+    </td>
+   </tr>
+  </table>
+
+</body>
+</html>

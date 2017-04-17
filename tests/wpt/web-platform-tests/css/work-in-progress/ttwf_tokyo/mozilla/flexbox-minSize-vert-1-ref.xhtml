@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <style>
+      div.flexbox {
+        height: 140px;
+        margin-right: 5px;
+        font-size: 8px;
+        border: 1px dotted black;
+        float: left;
+      }
+      div.flexbox > * {
+        margin-bottom: 20px;
+        border: 1px dashed green;
+        background: lightblue;
+        width: 40px;
+      }
+      div.smallSize      { height: 5px; }
+      div.smallFlexBasis { height: 2px; }
+      div.zeroHeight     { height: 0; }
+
+    </style>
+  </head>
+  <body>
+
+    <div class="flexbox">
+      <div>a b</div>
+      <div>a b</div>
+      <div>a b</div>
+    </div>
+
+    <div class="flexbox smallSize">
+      <div>a b</div>
+      <div>a b</div>
+      <div>a b</div>
+    </div>
+
+    <div class="flexbox">
+      <div>a b</div>
+      <div class="smallSize">a b</div>
+      <div class="smallFlexBasis">a b</div>
+    </div>
+
+    <div class="flexbox smallSize">
+      <div class="zeroHeight">a b</div>
+      <div class="zeroHeight">a b</div>
+      <div class="zeroHeight">a b</div>
+    </div>
+
+  </body>
+</html>

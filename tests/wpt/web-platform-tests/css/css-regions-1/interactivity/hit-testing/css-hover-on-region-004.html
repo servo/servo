@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>CSS Regions: :hover on regions that have rounded corners</title>
+	<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+	<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+	<link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from">
+	<meta name="assert" content="CSS rules using the :hover pseudo class are applied to regions that have rounded borders.">
+	<meta name="flags" content="interact">
+	<style>
+	p {
+		margin: 0;
+	}
+
+	#content p{
+		font-family: Ahem;
+		font-size: 20px;
+		line-height: 1em;
+		flow-into: f;
+		color: yellow;
+	}
+
+	#parent {
+		background: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH3QMWCgYsObOZcQAAAB1pVFh0Q29tbWVudAAAAAAAQ3JlYXRlZCB3aXRoIEdJTVBkLmUHAAAAkUlEQVRYw+2Wuw6AMAhFL8T//2LlOjjooAnQKoOcyURpT3i0Ak3T/B3Jh652Pi/6kcBqgMp9GAEYozIBAaPvc+KQnCrg3Twuob60S6Ky1x4ZEtBko07LgLza3+oftdFRTWfgXcoFHIUiB5aXCRnI7s9ZJbCkgS+u/CQsvwsCU6ACbHyuLXG8j52c5f8DTdOUswNDYysBxD+bOgAAAABJRU5ErkJggg==") no-repeat 0px 0px, url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH3QMWCgYsObOZcQAAAB1pVFh0Q29tbWVudAAAAAAAQ3JlYXRlZCB3aXRoIEdJTVBkLmUHAAAAkUlEQVRYw+2Wuw6AMAhFL8T//2LlOjjooAnQKoOcyURpT3i0Ak3T/B3Jh652Pi/6kcBqgMp9GAEYozIBAaPvc+KQnCrg3Twuob60S6Ky1x4ZEtBko07LgLza3+oftdFRTWfgXcoFHIUiB5aXCRnI7s9ZJbCkgS+u/CQsvwsCU6ACbHyuLXG8j52c5f8DTdOUswNDYysBxD+bOgAAAABJRU5ErkJggg==") no-repeat 140px 140px, lightblue;
+		position: relative;
+		font-family: monospace;
+		margin: 1em;
+		width: 170px;
+		height: 170px;
+	}
+
+	#region {
+		width: 150px;
+		height: 150px;
+		border-radius: 50%;
+		border: 10px solid black;
+		background-color: yellow;
+		flow-from: f;
+		overflow: hidden; /*So that the content flowed does not go outside the rounded corners*/
+	}
+
+	#region:hover {
+		background-color: red;
+		border-color: red;
+	}
+
+	#parent:hover {
+		background-color: lime;
+	}
+
+	#region p {
+		width: 100%;
+		height: 50%;
+		background-color: red;
+	}
+	</style>
+</head>
+<body>
+	<ol>
+		<li>You should see a blue square, with a yellow circle inside it.</li>
+		<li>There should be two blue dots in side the square, near the top left and bottom right corners</li>
+		<li>Move the mouse over the top-left blue dot <strong>Expected:</strong> The color of the square turns green. No red.</li>
+		<li>Move the mouse over the bottom-right blue dot <strong>Expected:</strong> The color of the square turns green. No red.</li>
+	</ol>
+	<div id="content">
+		<p>xxxx<br>xxxx<br>xxxx<br>xxxx</p>
+	</div>
+	<div id="parent">
+		<div id="region">
+			<p></p>
+		</div>
+	</div>
+</body>
+</html>

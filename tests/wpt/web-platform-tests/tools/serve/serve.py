@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 
+import abc
 import argparse
 import json
 import os
@@ -19,11 +20,11 @@ from multiprocessing import Process, Event
 from ..localpaths import repo_root
 
 import sslutils
-from manifest.sourcefile import read_script_metadata
+from manifest.sourcefile import read_script_metadata, js_meta_re
 from wptserve import server as wptserve, handlers
 from wptserve import stash
 from wptserve.logger import set_logger
-from wptserve.handlers import filesystem_path
+from wptserve.handlers import filesystem_path, wrap_pipeline
 from mod_pywebsocket import standalone as pywebsocket
 
 def replace_end(s, old, new):
@@ -35,54 +36,123 @@ def replace_end(s, old, new):
     return s[:-len(old)] + new
 
 
-class WorkersHandler(object):
+class WrapperHandler(object):
+
+    __meta__ = abc.ABCMeta
+
     def __init__(self, base_path=None, url_base="/"):
         self.base_path = base_path
         self.url_base = url_base
         self.handler = handlers.handler(self.handle_request)
 
     def __call__(self, request, response):
-        return self.handler(request, response)
+        self.handler(request, response)
 
     def handle_request(self, request, response):
-        worker_path = replace_end(request.url_parts.path, ".worker.html", ".worker.js")
+        path = self._get_path(request.url_parts.path, True)
         meta = "\n".join(self._get_meta(request))
-        return """<!doctype html>
+        response.content = self.wrapper % {"meta": meta, "path": path}
+        wrap_pipeline(path, request, response)
+
+    def _get_path(self, path, resource_path):
+        """Convert the path from an incoming request into a path corresponding to an "unwrapped"
+        resource e.g. the file on disk that will be loaded in the wrapper.
+
+        :param path: Path from the HTTP request
+        :param resource_path: Boolean used to control whether to get the path for the resource that
+                              this wrapper will load or the associated file on disk.
+                              Typically these are the same but may differ when there are multiple
+                              layers of wrapping e.g. for a .any.worker.html input the underlying disk file is
+                              .any.js but the top level html file loads a resource with a
+                              .any.worker.js extension, which itself loads the .any.js file.
+                              If True return the path to the resource that the wrapper will load,
+                              otherwise return the path to the underlying file on disk."""
+        for item in self.path_replace:
+            if len(item) == 2:
+                src, dest = item
+            else:
+                assert len(item) == 3
+                src = item[0]
+                dest = item[2 if resource_path else 1]
+            if path.endswith(src):
+                path = replace_end(path, src, dest)
+        return path
+
+    def _get_meta(self, request):
+        """Get an iterator over strings to inject into the wrapper document
+        based on //META comments in the associated js file.
+
+        :param request: The Request being processed.
+        """
+        path = self._get_path(filesystem_path(self.base_path, request, self.url_base), False)
+        with open(path, "rb") as f:
+            for key, value in read_script_metadata(f, js_meta_re):
+                replacement = self._meta_replacement(key, value)
+                if replacement:
+                    yield replacement
+
+    @abc.abstractproperty
+    def path_replace(self):
+        # A list containing a mix of 2 item tuples with (input suffix, output suffix)
+        # and 3-item tuples with (input suffix, filesystem suffix, resource suffix)
+        # for the case where we want a different path in the generated resource to
+        # the actual path on the filesystem (e.g. when there is another handler
+        # that will wrap the file).
+        return None
+
+    @abc.abstractproperty
+    def wrapper(self):
+        # String template with variables path and meta for wrapper document
+        return None
+
+    @abc.abstractmethod
+    def _meta_replacement(self, key, value):
+        # Get the string to insert into the wrapper document, given
+        # a specific metadata key: value pair.
+        pass
+
+
+class HtmlWrapperHandler(WrapperHandler):
+    def _meta_replacement(self, key, value):
+        if key == b"timeout":
+            if value == b"long":
+                return '<meta name="timeout" content="long">'
+        if key == b"script":
+            attribute = value.decode('utf-8').replace('"', "&quot;").replace(">", "&gt;")
+            return '<script src="%s"></script>' % attribute
+        return None
+
+
+class WorkersHandler(HtmlWrapperHandler):
+    path_replace = [(".any.worker.html", ".any.js", ".any.worker.js"),
+                    (".worker.html", ".worker.js")]
+    wrapper = """<!doctype html>
 <meta charset=utf-8>
 %(meta)s
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <div id=log></div>
 <script>
-fetch_tests_from_worker(new Worker("%(worker_path)s"));
+fetch_tests_from_worker(new Worker("%(path)s"));
 </script>
-""" % {"meta": meta, "worker_path": worker_path}
-
-    def _get_meta(self, request):
-        path = filesystem_path(self.base_path, request, self.url_base)
-        path = path.replace(".any.worker.html", ".any.js")
-        path = path.replace(".worker.html", ".worker.js")
-        with open(path, "rb") as f:
-            for key, value in read_script_metadata(f):
-                if key == b"timeout":
-                    if value == b"long":
-                        yield '<meta name="timeout" content="long">'
+"""
 
 
-class AnyHtmlHandler(object):
-    def __init__(self, base_path=None, url_base="/"):
-        self.base_path = base_path
-        self.url_base = url_base
-        self.handler = handlers.handler(self.handle_request)
+class WindowHandler(HtmlWrapperHandler):
+    path_replace = [(".window.html", ".window.js")]
+    wrapper = """<!doctype html>
+<meta charset=utf-8>
+%(meta)s
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script src="%(path)s"></script>
+"""
 
-    def __call__(self, request, response):
-        return self.handler(request, response)
 
-    def handle_request(self, request, response):
-        test_path = replace_end(request.url_parts.path, ".any.html", ".any.js")
-        meta = "\n".join(self._get_meta(request))
-        return """\
-<!doctype html>
+class AnyHtmlHandler(HtmlWrapperHandler):
+    path_replace = [(".any.html", ".any.js")]
+    wrapper = """<!doctype html>
 <meta charset=utf-8>
 %(meta)s
 <script>
@@ -94,55 +164,29 @@ self.GLOBAL = {
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <div id=log></div>
-<script src="%(test_path)s"></script>
-""" % {"meta": meta, "test_path": test_path}
-
-    def _get_meta(self, request):
-        path = filesystem_path(self.base_path, request, self.url_base)
-        path = path.replace(".any.html", ".any.js")
-        with open(path, "rb") as f:
-            for key, value in read_script_metadata(f):
-                if key == b"timeout":
-                    if value == b"long":
-                        yield '<meta name="timeout" content="long">'
-                elif key == b"script":
-                    attribute = value.decode('utf-8').replace('"', "&quot;").replace(">", "&gt;")
-                    yield '<script src="%s"></script>' % attribute
+<script src="%(path)s"></script>
+"""
 
 
-class AnyWorkerHandler(object):
-    def __init__(self, base_path=None, url_base="/"):
-        self.base_path = base_path
-        self.url_base = url_base
-        self.handler = handlers.handler(self.handle_request)
-
-    def __call__(self, request, response):
-        return self.handler(request, response)
-
-    def handle_request(self, request, response):
-        test_path = replace_end(request.url_parts.path, ".any.worker.js", ".any.js")
-        meta = "\n".join(self._get_meta(request))
-        return """\
-%(meta)s
+class AnyWorkerHandler(WrapperHandler):
+    path_replace = [(".any.worker.js", ".any.js")]
+    wrapper = """%(meta)s
 self.GLOBAL = {
   isWindow: function() { return false; },
   isWorker: function() { return true; },
 };
 importScripts("/resources/testharness.js");
-importScripts("%(test_path)s");
+importScripts("%(path)s");
 done();
-""" % {"meta": meta, "test_path": test_path}
+"""
 
-    def _get_meta(self, request):
-        path = filesystem_path(self.base_path, request, self.url_base)
-        path = path.replace(".any.worker.js", ".any.js")
-        with open(path, "rb") as f:
-            for key, value in read_script_metadata(f):
-                if key == b"timeout":
-                    pass
-                elif key == b"script":
-                    attribute = value.decode('utf-8').replace("\\", "\\\\").replace('"', '\\"')
-                    yield 'importScripts("%s")' % attribute
+    def _meta_replacement(self, key, value):
+        if key == b"timeout":
+            return None
+        if key == b"script":
+            attribute = value.decode('utf-8').replace("\\", "\\\\").replace('"', '\\"')
+            return 'importScripts("%s")' % attribute
+        return None
 
 
 rewrites = [("GET", "/resources/WebIDLParser.js", "/resources/webidl2/lib/webidl2.js")]
@@ -190,6 +234,7 @@ class RoutesBuilder(object):
 
         routes = [
             ("GET", "*.worker.html", WorkersHandler),
+            ("GET", "*.window.html", WindowHandler),
             ("GET", "*.any.html", AnyHtmlHandler),
             ("GET", "*.any.worker.js", AnyWorkerHandler),
             ("GET", "*.asis", handlers.AsIsHandler),
@@ -240,12 +285,86 @@ def open_socket(port):
     sock.listen(5)
     return sock
 
+def bad_port(port):
+    """
+    Bad port as per https://fetch.spec.whatwg.org/#port-blocking
+    """
+    return port in [
+        1,     # tcpmux
+        7,     # echo
+        9,     # discard
+        11,    # systat
+        13,    # daytime
+        15,    # netstat
+        17,    # qotd
+        19,    # chargen
+        20,    # ftp-data
+        21,    # ftp
+        22,    # ssh
+        23,    # telnet
+        25,    # smtp
+        37,    # time
+        42,    # name
+        43,    # nicname
+        53,    # domain
+        77,    # priv-rjs
+        79,    # finger
+        87,    # ttylink
+        95,    # supdup
+        101,   # hostriame
+        102,   # iso-tsap
+        103,   # gppitnp
+        104,   # acr-nema
+        109,   # pop2
+        110,   # pop3
+        111,   # sunrpc
+        113,   # auth
+        115,   # sftp
+        117,   # uucp-path
+        119,   # nntp
+        123,   # ntp
+        135,   # loc-srv / epmap
+        139,   # netbios
+        143,   # imap2
+        179,   # bgp
+        389,   # ldap
+        465,   # smtp+ssl
+        512,   # print / exec
+        513,   # login
+        514,   # shell
+        515,   # printer
+        526,   # tempo
+        530,   # courier
+        531,   # chat
+        532,   # netnews
+        540,   # uucp
+        556,   # remotefs
+        563,   # nntp+ssl
+        587,   # smtp
+        601,   # syslog-conn
+        636,   # ldap+ssl
+        993,   # imap+ssl
+        995,   # pop3+ssl
+        2049,  # nfs
+        3659,  # apple-sasl
+        4045,  # lockd
+        6000,  # x11
+        6665,  # irc (alternate)
+        6666,  # irc (alternate)
+        6667,  # irc (default)
+        6668,  # irc (alternate)
+        6669,  # irc (alternate)
+    ]
 
 def get_port():
-    free_socket = open_socket(0)
-    port = free_socket.getsockname()[1]
+    port = 0
+    while True:
+        free_socket = open_socket(0)
+        port = free_socket.getsockname()[1]
+        free_socket.close()
+        if not bad_port(port):
+            break
     logger.debug("Going to use port %s" % port)
-    free_socket.close()
     return port
 
 
@@ -259,7 +378,8 @@ class ServerProc(object):
               ssl_config, **kwargs):
         self.proc = Process(target=self.create_daemon,
                             args=(init_func, host, port, paths, routes, bind_hostname,
-                                  external_config, ssl_config))
+                                  external_config, ssl_config),
+                            kwargs=kwargs)
         self.proc.daemon = True
         self.proc.start()
 

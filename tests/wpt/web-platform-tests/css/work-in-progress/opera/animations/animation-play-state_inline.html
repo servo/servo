@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <title>CSS Animations - animation-play-state and inline element</title>
+   <link rel="author" title="Opera Software ASA" href="http://www.opera.com/">
+   <link rel="help" href="https://drafts.csswg.org/css3-animations/#the-animation-play-state-property-">
+   <meta name="flags" content="dom">
+   <meta name="assert" content="animation-play-state applies to inline
+   elements">
+   <script src="/resources/testharness.js"></script>
+   <script src="/resources/testharnessreport.js"></script>
+   <style type="text/css">
+      @keyframes fade {
+         from, to {
+            opacity: 1;
+         }
+         40%, 60% {
+            opacity: 0;
+         }
+      }
+      span {
+         color: blue;
+      }
+      .test {
+         animation-duration: 2s;
+         animation-name: fade;
+      }
+   </style>
+   <script type="text/javascript">
+      setup({explicit_done:true});
+      onload = function() {
+         var testName = document.querySelector('title').firstChild.data;
+         var span = document.querySelector('span');
+         var log = document.querySelectorAll('p')[1].firstChild;
+         setTimeout(function() {
+            span.style.setProperty('animation-play-state', 'paused', '');
+         }, 1000);
+         setTimeout(function() {
+            var passed = (getComputedStyle(span, null).opacity == '0');
+            test(function(){assert_true(passed);}, testName); done();
+            log.data = (passed ? 'PASS if the animation occurred.' : 'FAIL');
+         }, 1600);
+         span.className = 'test';
+      }
+   </script>
+   <style>iframe{display:none}</style>
+</head>
+<body>
+   <p>The blue word below should fade out, and should not reappear.</p>
+   <p>Testing...</p>
+   <div>normal <span>FADE</span> normal</div>
+</body>
+</html>

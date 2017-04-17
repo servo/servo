@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Regions: regions wholly contain floates flowed in them</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+		<meta name="flags" content="ahem">
+		<meta name="assert" content="Test checks that regions create new block formatting contexts
+				that wholly contain the floats flowed in them.">
+		<link rel="match" href="reference/floats-in-named-flow-013-ref.html">
+		<style>
+		article {
+			color: gray;
+			font-family: Ahem;
+			font-size: 20px;
+			line-height: 1em;
+		}
+		.flow {
+			flow-into: f;
+		}
+		.float {
+			color: lightblue;
+			float: left;
+		}
+		.region-parent {
+			background-color: red;
+			width: 100px;
+		}
+		.region {
+			flow-from: f;
+			border-right: 20px solid lightblue;
+		}
+
+		.region > p {
+			background: red;
+		}
+		</style>
+	</head>
+	<body>
+		<p>
+			Test passes if you see a blue square and no red.
+		</p>
+
+		<article>
+			<div class="flow float">
+				<div>
+					xxxx<br>
+					xxxx<br>
+					xxxx<br>
+					xxxx<br>
+					xxxx
+				</div>
+			</div>
+		</article>
+
+		<div class="region-parent">
+			<div class="region">
+				<p>&nbsp;</p>
+			</div>
+		</div>
+	</body>
+</html>

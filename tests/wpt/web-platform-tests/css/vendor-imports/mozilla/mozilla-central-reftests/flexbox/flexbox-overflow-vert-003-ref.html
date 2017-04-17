@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+<head>
+ <title>CSS Reftest Reference</title>
+ <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <style>
+    .flexContainer {
+      background: purple;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-around;
+      width: 70px;
+      height: 70px;
+      margin-bottom: 5px;
+    }
+    .bigItem {
+      background: blue;
+      width: 200px;
+      height: 20px;
+    }
+    .smallItem {
+      background: teal;
+      width: 20px;
+      height: 20px;
+    }
+    .hidden > .bigItem {
+      /* To match the testcase's "overflow:hidden"-cropped flex item, we
+         just use a smaller width that exactly fits our container (and
+         doesn't overflow). */
+      width: 70px;
+    }
+  </style>
+</head>
+<body>
+  <div class="flexContainer"><!-- (overflow un-set) -->
+    <div class="bigItem"></div>
+    <div class="smallItem"></div>
+  </div>
+  <div class="flexContainer hidden">
+    <div class="bigItem"></div>
+    <div class="smallItem"></div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,64 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>FIrst Test of Section 2.3 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+H3[href] {color: blue}
+P[class=example] {color: red}
+
+
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing FIrst Testable Statement of Sec 2.3 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+1. An attribute selector can select on the simple presence or absence of an
+attribute, or on the attribute and its value.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p class=example>
+If statement #1 above is passed, then
+this paragraph should have a color of red.
+The rule specified is "p[class=example] {color: red}", where this paragrah
+has class example.
+<p>
+This paragraph should have color of UA-default, unlike above, because it
+doesn't have class example.
+<h3>
+This h3 heading should be blue, because it has an <a href="ovalbbut.gif">
+href attribute to a link</a>
+The rule applied is 'h3[href] {color: blue}".
+</h3>
+<h3>
+This h3 heading should have a color of UA-default, unlike above, because
+there is no href attribute included
+</h3>
+All other properties of this page should be UA-default.
+Your browser rendering of this page should look similar to this <a href="c51.gif"> 
+reference image </a> or to this <a href="d51.gif">reference image</a>.
+
+To move to next test, click <a href="5-02.htm"> here</a>
+
+</BODY>
+</HTML>
+

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>AppCache should not exist in shared workers, even though it was specced at some point</title>
+<link rel="help" href="https://github.com/whatwg/html/pull/2384">
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+
+if (typeof SharedWorker === "undefined") {
+  test(() => {
+  }, "This browser doesn't implement SharedWorker, and so passes this test automatically");
+} else {
+  fetch_tests_from_worker(new SharedWorker("no-appcache-in-shared-workers-historical.js"));
+}
+</script>

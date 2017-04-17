@@ -1,0 +1,30 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: List with background applied</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#lists" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Background properties only apply to the principal box and not the marker box when the marker is set to outside." />
+        <style type="text/css">
+            #div1
+            {
+                background: orange;
+                margin-left: 50px;
+                padding-left: 30px;
+            }
+            div div
+            {
+                display: list-item;
+                list-style-type: disc;
+                background: blue;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the text has a blue background and the marker has an orange background.</p>
+        <div id="div1">
+            <div>This text should have a blue background</div>
+        </div>
+    </body>
+</html>

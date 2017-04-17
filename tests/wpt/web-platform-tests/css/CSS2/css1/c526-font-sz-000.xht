@@ -1,0 +1,53 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: font-size</title>
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#font-size"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <style type="text/css"><![CDATA[
+   p { color: navy; margin: 10px; }
+   .one {font-size: medium;}
+   .two {font-size: larger;}
+   .three {font-size: smaller;}
+   .four {font-size: xx-small;}
+   .five {font-size: x-small;}
+   .six {font-size: small;}
+   .seven {font-size: large;}
+   .eight {font-size: x-large;}
+   .nine {font-size: xx-large;}
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-size-props" title="15.7 Font size: the 'font-size' property"/>
+  <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-size-prop" />
+ </head>
+ <body>
+  <p> This sentence should be normal. </p>
+  <p class="one"> This sentence should be the same. </p>
+  <p class="two"> This sentence should be larger than normal. </p>
+  <p class="three"> This sentence should be smaller than normal. </p>
+  <p class="four">
+   This sentence should be very small.
+   <span class="one">This sentence should be back to normal.</span>
+  </p>
+  <p class="five">
+   This sentence should be rather small.
+   <span class="one">This sentence should be back to normal.</span>
+  </p>
+  <p class="six">
+   This sentence should be small.
+   <span class="one">This sentence should be back to normal.</span>
+  </p>
+  <p class="seven">
+   This sentence should be large.
+   <span class="one">This sentence should be back to normal.</span>
+  </p>
+  <p class="eight">
+   This sentence should be rather large.
+   <span class="one">This sentence should be back to normal.</span>
+  </p>
+  <p class="nine">
+   This sentence should be very large.
+   <span class="one">This sentence should be back to normal.</span>
+  </p>
+ </body>
+</html>

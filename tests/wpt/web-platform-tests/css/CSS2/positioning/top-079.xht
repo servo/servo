@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Top using 'em' units with a nominal value, 6em</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-09-26 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#propdef-top" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#position-props" />
+		<link rel="match" href="top-079-ref.xht" />
+
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The 'top' property sets a nominal length value in 'em' units." />
+        <style type="text/css">
+            div
+            {
+                font: 20px/1 Ahem;
+                position: relative;
+            }
+            #div1
+            {
+                margin-top: -6em;
+            }
+            #div2
+            {
+                background: red;
+                height: 6em;
+                margin-top: 6em;
+                position: absolute;
+                width: 100%;
+            }
+            #div3
+            {
+                border-bottom: 6em solid black;
+                top: 6em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is <strong>no red</strong>.</p>
+        <div id="div1">
+            <div id="div2"></div>
+            <div id="div3"></div>
+        </div>
+    </body>
+</html>

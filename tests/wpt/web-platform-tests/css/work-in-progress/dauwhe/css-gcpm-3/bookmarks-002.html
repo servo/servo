@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Test: GCPM Bookmark labels using strings</title>
+<link rel="author" title="Dave Cramer" href="mailto:dauwhe@gmail.com">
+<link rel="help" href="http://www.w3.org/TR/css3-gcpm/#bookmark-label">
+<meta name="flags" content="paged">
+<meta name="assert" content="check that bookmark label with string value is supported">
+
+<style>
+
+h1 { 
+bookmark-level: 1;
+-ah-bookmark-level: 1;
+bookmark-label: 'first'; 
+-ah-bookmark-label: 'first'; 
+}
+
+
+
+</style>
+
+</head>
+<body>
+
+<h1>A</h1>
+
+
+<p>The test passes if the bookmark created for A is labelled "first".</p>
+
+</body>
+</html>

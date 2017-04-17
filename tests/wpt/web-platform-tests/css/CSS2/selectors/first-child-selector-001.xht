@@ -1,0 +1,21 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: First-child pseudo-class</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#first-child" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="First-child pseudo-class matches only the first element of its type." />
+        <style type="text/css">
+            div:first-child
+            {
+                color: green;
+            }
+        </style>
+    </head>
+    <body>
+        <div>Filler Text</div>
+        <div>Filler Text</div>
+        <p>Test passes if the first "Filler Text" above is green and the second one is black.</p>
+    </body>
+</html>

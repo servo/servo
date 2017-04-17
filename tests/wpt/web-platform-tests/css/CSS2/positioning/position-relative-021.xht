@@ -1,0 +1,33 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Relative positioning and overflow: scroll</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#relative-positioning" />
+        <meta name="flags" content="interact" />
+        <meta name="assert" content="If relative positioning causes overflow the user agent needs to provide a scrolling mechanism to all of the content at its offset position." />
+        <style type="text/css">
+            #div1
+            {
+                height: 1.5in;
+                position: relative;
+                overflow: scroll;
+                width: 1.5in;
+            }
+             div div
+            {
+                border: solid blue 5px;
+                height: 1in;
+                position: relative;
+                top: 1in;
+                width: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if, after scrolling down, all four edges of a blue square are visible.</p>
+        <div id="div1">
+            <div></div>
+        </div>
+    </body>
+</html>

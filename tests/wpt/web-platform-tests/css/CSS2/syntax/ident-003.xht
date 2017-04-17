@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Valid Identifiers (starting with -) as Classes and IDs</title>
+  <link rel="author" title="L. David Baron" href="https://dbaron.org/"/>
+  <link rel="author" title="Ray Kiddy" href="mailto:ray@ganymede.org"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#characters"/>
+  <link rel="match" href="ident-000-ref.xht"/>
+  <meta name="flags" content="invalid"/>
+  <style type="text/css">
+
+  .one { color: red; background: white; }
+  .-ident, .one { color: green; }
+
+  .two { color: red; background: white; }
+  #-ident, .two { color: green; }
+
+  .three { color: green; background: white; }
+  .-1ident, .three { color: red; }
+
+  .four { color: green; background: white; }
+  #-1ident, .four { color: red; }
+
+  .five { color: red; background: white; }
+  .-\31ident, .five { color: green; }
+
+  .six { color: red; background: white; }
+  #-\31ident, .six { color: green; }
+
+  </style>
+ </head>
+ <body>
+
+ <p class="one">This should be green.</p>
+ <p class="two">This should be green.</p>
+ <p class="three">This should be green.</p>
+ <p class="four">This should be green.</p>
+ <p class="five">This should be green.</p>
+ <p class="six">This should be green.</p>
+
+ </body>
+</html>

@@ -1,0 +1,23 @@
+# This file is an rsync filter.  See the "FILTER RULES" section of
+# 'man rsync'.
+
+##### Files not to touch at either end.
+- /README
+
+##### Files not to write or delete at the destination end
+P /sync-tests.sh
+P /sync-tests-filter
+
+##### Files not to read at the source end (and thus to delete from the
+##### destination end if present).
+H /test-template-001.xht
+H /references/test-template-001.xht
+H reftest-stylo.list
+
+# css-supports-027 uses @-moz-document, so we don't submit it.
+# css-supports-046 tests the equivalent with @media.
+H /conditional3/css-supports-027.xht
+
+# css-supports-028 uses @-moz-document, so we don't submit it.
+# css-supports-026 tests the equivalent with @media.
+H /conditional3/css-supports-028.xht

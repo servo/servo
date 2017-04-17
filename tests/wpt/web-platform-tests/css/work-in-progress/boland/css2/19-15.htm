@@ -1,0 +1,69 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>First Test of Section 19.6 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+
+
+#id1 {play-during: url(bell.aiff)}
+#id2 {play-during: none}
+#id3 {play-during: url("harp.wav") mix}
+#id4 {play-during: url("violins.aiff") repeat}
+#id5 {play-during: auto}
+#id6 {play-during: inherit}
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing First Testable Statement of Sec 19.6 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+1. The play-during property has possible values of "url mix? repeat? | auto
+| none | inherit".
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p ID=id1 >
+NOTE: NEEDS TO BE TRANSLATED TO VOICE.
+If statement #1 above is passed, then
+this paragraph should have a play-during property of url(bell.aiff).
+The rule applied is "#id1 {play-during: url(bell.aiff)}".
+<p ID=id2>
+This paragraph should have a play-during property of none.
+The rule applied is "#id2 {play-during: none}".
+<p ID=id3>
+This paragraph should have a play-during property of url("harp.wav") mix.
+The rule applied is "#id3 {play-during: url("harp.wav") mix}".
+<p ID=id4>
+This paragraph should have a play-during property of url("violins.aiff") repeat.
+The rule applied is "#id4 {play-during: url("violins.aiff") repeat}".
+<p ID=id5>
+This paragraph should have a play-during property of auto.
+THe rule applied is "#id5 {play-during: auto}".
+<p ID=id6>
+This paragraph should have a play-during property of inherit.
+The rule applied is "#id6 {play-during: inherit}".
+<p>
+All other properties of this page should be UA-default.
+
+
+</BODY>
+</HTML>
+

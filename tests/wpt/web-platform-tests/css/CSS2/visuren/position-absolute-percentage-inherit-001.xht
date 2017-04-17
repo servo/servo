@@ -1,0 +1,115 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: position absolute - dimensions and position given by offset percentages and inherit</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" title="9.3.2 Box offsets: 'top', 'right', 'bottom', 'left'" href="http://www.w3.org/TR/CSS21/visuren.html#position-props" />
+  <link rel="help" title="6.2.1 The 'inherit' value" href="http://www.w3.org/TR/CSS21/cascade.html#value-def-inherit" />
+  <link rel="help" title="4.3.2 Length" href="http://www.w3.org/TR/CSS21/syndata.html#length-units" />
+  <link rel="match" href="position-absolute-percentage-inherit-001-ref.xht" />
+
+  <meta content="" name="flags" />
+  <meta content="Absolutely positioned boxes can be dimensioned and positioned solely by setting offset 'top', 'right', 'bottom' and 'left' property values with percentage unit and then with inherit keyword. 'inherit' on a offset property makes such offset property take the same computed value as the offset property of the nearest positioned ancestor; in the case of a percentage value - like in this testcase - , the computed value is the specified percentage value of such nearest positioned ancestor." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  body {margin: 8px;}
+
+  p
+  {
+  font: 1em/1.25 serif;
+  margin: 1em 0em;
+  }
+
+  div#rel-pos-grand-parent
+  {
+  background-color: green;
+  height: 300px;
+  position: relative;
+  width: 400px;
+  }
+
+  div#abs-pos-parent
+  {
+  background-color: green;
+  bottom: 10%; /* 10% of 300px == 30px */
+  left: 15%; /* 15% of 400px == 60px */
+  position: absolute;
+  right: 20%; /* 20% of 400px == 80px */
+  top: 30%; /* 30% of 300px == 90px */
+  /*
+  height will be 300px minus 90px minus 30px == 180px
+  width will be 400px minus 60px minus 80px == 260px
+  */
+  }
+
+  div#abs-pos-child-red
+  {
+  background-color: red;
+  bottom: inherit; /* 10% of div#abs-pos-parent's height == 18px */
+  left: inherit; /* 15% of div#abs-pos-parent's width == 39px */
+  position: inherit;
+  right: inherit; /* 20% of div#abs-pos-parent's width == 52px */
+  top: inherit; /* 30% of div#abs-pos-parent's height == 54px */
+  /*
+  height will be 180px minus 54px minus 18px == 108px
+  width will be 260px minus 39px minus 52px == 169px
+  */
+  }
+
+  div#abs-pos-overlapping-green
+  {
+  background-color: green;
+  height: 108px;
+  left: 107px;
+  /*
+       8px (body's margin-left)
+    +
+      60px  (div#abs-pos-parent's left offset)
+    +
+      39px (div#abs-pos-child-red's left offset)
+  ==================
+     107px
+  */
+  position: absolute;
+  width: 169px;
+  top: 216px;
+  }
+
+  /*
+     max(8px, 16px) (margin collapsing between body's margin-top and p's margin-top)
+  +
+     20px (first line)
+  +
+     20px (second line)
+  +
+     16px (p's margin-bottom)
+  +
+     90px (div#abs-pos-parent's top offset)
+  +
+     54px (div#abs-pos-child-red's top offset)
+  ==================
+    216px
+  */
+  ]]></style>
+
+  </head>
+
+  <body>
+
+  <p>Test passes if there is a filled <br />
+  green rectangle and no red.</p>
+
+  <div id="rel-pos-grand-parent">
+    <div id="abs-pos-parent">
+      <div id="abs-pos-child-red"></div>
+    </div>
+  </div>
+
+  <div id="abs-pos-overlapping-green"></div>
+
+ </body>
+</html>

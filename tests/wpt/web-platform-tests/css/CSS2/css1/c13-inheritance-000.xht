@@ -1,0 +1,28 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Inheritance</title>
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#inheritance"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="match" href="c13-inheritance-000-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+   body { color: green; }
+   .a { background: green; color: white; }
+   .a1 { font-style: italic; }
+   .b { color: white; }
+   em { color: green; }
+   dfn { color: white; }
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html#inheritance" title="6.2 Inheritance"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#colors" title="14.1 Foreground color: the 'color' property"/>
+
+ </head>
+ <body>
+  <p> This sentence should be green. </p>
+  <p class="a"> This sentence <span class="a1">should be</span> white on green. </p>
+  <p class="b"> <em>PASS</em> <strong>FAIL</strong> </p>
+  <p class="c"> PASS <dfn>FAIL</dfn> </p>
+ </body>
+</html>

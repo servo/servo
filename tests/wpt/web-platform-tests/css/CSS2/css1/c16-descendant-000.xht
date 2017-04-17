@@ -1,0 +1,30 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Descendant selectors (Contextual selectors)</title>
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#contextual-selectors"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="match" href="c16-descendant-000-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+   body {color: red;}
+   p {color: green;}
+   li {list-style: none;}
+   html body div p {color: red;}
+   span, ul li li {color: green;}
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#descendant-selectors" title="5.5 Descendant selectors"/>
+ </head>
+ <body>
+  <p> This sentence should be green. </p>
+  <ul>
+   <li>
+    <span> This sentence should be green. </span>
+    <ul>
+     <li> This sentence should be green. </li>
+    </ul>
+   </li>
+  </ul>
+ </body>
+</html>

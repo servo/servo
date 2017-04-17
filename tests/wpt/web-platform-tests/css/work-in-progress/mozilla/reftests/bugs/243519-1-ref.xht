@@ -1,0 +1,23 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html><head>
+<title>CSS 2.1 Test Suite: Test for containing block for absolutely positioned elements being initial containing block</title>
+<link href="mailto:robert@ocallahan.org" rel="author" title="Robert O'Callahan" />
+<link href="http://mozilla.com/" rel="author" title="Mozilla Corporation" />
+<style>
+body { margin:0; }
+.pos { position:absolute; width:100px; height:100px; }
+</style>
+</head>
+<body>
+<div style="height:10000px; margin:0; margin:10px; border:20px solid black; padding:30px;"></div>
+<script>
+window.scrollTo(0,50);
+</script>
+<div class="pos" style="top:0; left:60px; background:yellow;"></div>
+<div class="pos" style="right:0; top:60px; background:orange;"></div>
+<div class="pos" style="bottom:0; left:60px; background:brown;"></div>
+<div class="pos" style="left:0; top:60px; background:pink;"></div>
+
+
+
+</body></html>

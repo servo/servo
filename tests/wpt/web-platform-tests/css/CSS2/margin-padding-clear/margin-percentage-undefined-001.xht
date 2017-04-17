@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Margin with percentage determined by containing block</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+         <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#margin-properties" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Potential circular reference cannot cause the user agent to crash or hang." />
+        <style type="text/css">
+            #div1
+            {
+                float: left;
+                border: 1px solid blue;
+            }
+            div div
+            {
+                margin: 50%;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the words "Filler Text" appear below.</p>
+        <div id="div1">
+            <div>Filler Text</div>
+        </div>
+    </body>
+</html>

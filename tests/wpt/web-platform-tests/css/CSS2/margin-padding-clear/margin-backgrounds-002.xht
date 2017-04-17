@@ -1,0 +1,59 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: transparency of margin area and background-color</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#mpb-examples" title="8.2 Example of margins, padding, and borders" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background" title="14.2 The background" />
+  <link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+
+  <meta content="" name="flags" />
+  <meta content="The margin area of an element is always transparent. The background-color of an element never paints its own margin area. The background-color of an element only paints its own border area (if any), its own padding area (if any) and its own content area (if any). Therefore the background-color of the content area (and of the padding area, if any, and of the border area, if any) of a parent element shines through the margin area of its child. In this test, div#parent is painted green and is 100px by 100px; its sole child has an 99px margin bottom and a 100px margin right margin which are transparent and through which we can see the background color of its parent." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  p {margin: 1em 0em;}
+
+  div#parent
+  {
+  background-color: green;
+  height: 100px;
+  width: 100px;
+  }
+
+  div#child
+  {
+  background-color: red;
+  height: 1px;
+  /*
+  'height: 1px' is set intentionally so that the
+  top margin (16px) and bottom margin (99px) of such child
+  box do not collapse through the element.
+  */
+  margin: 16px 100px 99px 0px;
+  /*
+  'margin-top: 16px' correspond to the margin-bottom of the
+  <p>. The margin-top of the child box collapses with the
+  margin-top of div#parent and then the collapsed margin-top
+  of div#parent then collapses in its turn with the
+  margin-bottom of the <p>.
+  */
+  width: auto;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+  <div id="parent">
+    <div id="child"></div>
+  </div>
+
+ </body>
+</html>

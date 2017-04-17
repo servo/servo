@@ -64,7 +64,10 @@ for (var i = 0; i < testData.length; ++i) {
   } else {
     t.step(function() {
       var w1;
-      this.add_cleanup(function() { w1.close(); });
+      this.add_cleanup(function() {
+        w1.close();
+        channel.postMessage(null);
+      });
 
       var windowName = this.windowName;
       var channel = new BroadcastChannel(windowName);

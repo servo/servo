@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Image Fit and Overflow</title>
+  <link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#the-fit"/>
+  <meta name="assert" content="The 'overflow' property determines how to render parts of the replaced element's content that extend beyond the edges of its box. "/>
+  <style type="text/css"><![CDATA[
+   div, p {margin-bottom: 2em;}
+   img {
+	   	border: 3pt solid orange;
+		height: 200px;
+   }
+   img.reference {border: none;}
+   img.hidden {
+		width: 100px;
+		image-fit: cover;
+		overflow: hidden;
+	}
+	img.visible {
+		width: 100px;
+		image-fit: cover;
+		overflow: visible;
+	}
+	img.scroll {
+		width: 100px;
+		image-fit: cover;
+		overflow: scroll;
+	}
+  ]]></style>
+ </head>
+ <body>
+ 	<div><img src="image-fit-stripes.jpg" alt="Failed: image missing" class="reference" /></div>
+	<p>This is the reference image.  All other images in this test have the same height as this one.</p>
+	
+	<div><img src="image-fit-stripes.jpg" alt="Failed: image missing" class="hidden" /></div>
+ 	<p>The orange box above should be half as wide as the reference image and be filled with the middle portion of the reference image. No blue should appear.</p>
+	
+	<div><img src="image-fit-stripes.jpg" alt="Failed: image missing" class="visible" /></div>
+ 	<p>The image above should match the reference image, except that it has orange bars centered along its top and bottom edges.</p>
+
+	<div><img src="image-fit-stripes.jpg" alt="Failed: image missing" class="scroll" /></div>
+ 	<p>The orange box above should be half as wide as the reference image.  If the UA is interactive, the middle portion of the image should be initially displayed, and scroll bars should provide access to the hidden parts of the image.  When printed, it should appear the same as either of the two preceding images.</p>
+ </body>
+</html>

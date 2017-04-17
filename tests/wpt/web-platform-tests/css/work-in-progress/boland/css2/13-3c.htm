@@ -1,0 +1,60 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Eleventh Test of Section 13.3 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+@page rotated {size: landscape}
+p {page: rotated}
+blockquote {page: auto}
+@page narrow {size: 9cm 18cm}
+div {page: narrow}
+
+
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Eleventh Testable Statement of Sec 13.3 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+11. The "page" property has the following values:
+"identifier | auto".
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p   >
+If statement #11 above is passed, then
+all paragraphs will be on a right-hand side landscape page (named "rotated").
+Rules applied are "@page rotated {size: landscape}".
+Also "p {page: rotated}".
+<div >
+This div should have a page of narrow (9cm by 18cm).
+The rule applied is "@page narrow {size: 9cm 18cm}", and
+"div {page: narrow}".
+<blockquote>
+THis blockquote should have a page of auto.
+The rule applied is "blockquote {page: auto}".
+</blockquote>
+All other properties of this page should be UA-default.
+
+
+</BODY>
+</HTML>
+

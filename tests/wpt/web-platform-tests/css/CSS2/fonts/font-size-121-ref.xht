@@ -1,0 +1,47 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  div
+  {
+  color: green;
+  font-family: Ahem;
+  font-weight: 900;
+  padding: 2em;
+  }
+
+  span
+  {
+  font-size: xx-small;
+  vertical-align: bottom;
+  }
+
+  span + span {font-size: x-small;}
+
+  span + span + span {font-size: small;}
+
+  span + span + span + span {font-size: medium;}
+
+  span + span + span + span + span {font-size: large;}
+
+  span + span + span + span + span + span {font-size: x-large;}
+
+  span + span + span + span + span + span + span {font-size: xx-large;}
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is <strong>no red</strong>, except for antialiasing issues.</p>
+
+  <div><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span></div>
+
+ </body>
+</html>

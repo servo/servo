@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!-- Testcase with flex items containing overlapping content, with
+     "z-index" set on some of them, which should make them create
+     stacking contexts. -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Test: Testing that 'z-index' property makes flex items form stacking contexts</title>
+    <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com"/>
+    <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#painting"/>
+    <link rel="match" href="flexbox-items-as-stacking-contexts-001-ref.xhtml"/>
+    <style>
+      .flexbox {
+        width: 90px;
+        height: 10px;
+        border: 2px solid gray;
+        display: flex;
+        margin-bottom: 10px;
+      }
+      .a {
+        width: 10px;
+        height: 10px;
+        background: lightblue;
+        min-width: 0;
+      }
+      .b {
+        width: 10px;
+        height: 10px;
+        background: pink;
+        min-width: 0;
+        margin-right: 10px;
+      }
+      .aKid {
+         margin-left: 3px;
+         margin-top:  3px;
+         width: 10px;
+         height: 10px;
+         background: steelblue;
+         border: 1px solid blue;
+      }
+      .bKid {
+         margin-left: 3px;
+         margin-top:  6px;
+         width: 10px;
+         height: 10px;
+         background: violet;
+         border: 1px solid purple;
+      }
+      .z0  { z-index: 0;  }
+      .z1  { z-index: 1; }
+      .zn1 { z-index: -1; }
+
+    </style>
+  </head>
+ <body>
+   <!-- No "z-index" -->
+    <div class="flexbox">
+      <div class="a"><div class="aKid"/></div>
+      <div class="b"><div class="bKid"/></div>
+    </div>
+
+    <!-- Various "z-index" just on the first item -->
+    <div class="flexbox">
+      <div class="a zn1"><div class="aKid"/></div>
+      <div class="b"><div class="bKid"/></div>
+
+      <div class="a z0"><div class="aKid"/></div>
+      <div class="b"><div class="bKid"/></div>
+
+      <div class="a z1"><div class="aKid"/></div>
+      <div class="b"><div class="bKid"/></div>
+    </div>
+
+    <!-- Various "z-index" just on the second item -->
+    <div class="flexbox">
+      <div class="a"><div class="aKid"/></div>
+      <div class="b zn1"><div class="bKid"/></div>
+
+      <div class="a"><div class="aKid"/></div>
+      <div class="b z0"><div class="bKid"/></div>
+
+      <div class="a"><div class="aKid"/></div>
+      <div class="b z1"><div class="bKid"/></div>
+    </div>
+
+    <!-- Various "z-index" on the first item, w/ "z-index:0" on second item -->
+    <div class="flexbox">
+      <div class="a zn1"><div class="aKid"/></div>
+      <div class="b z0"><div class="bKid"/></div>
+
+      <div class="a z0"><div class="aKid"/></div>
+      <div class="b z0"><div class="bKid"/></div>
+
+      <div class="a z1"><div class="aKid"/></div>
+      <div class="b z0"><div class="bKid"/></div>
+    </div>
+
+    <!-- Various "z-index" on the second item, w/ "z-index:0" on first item -->
+    <div class="flexbox">
+      <div class="a z0"><div class="aKid"/></div>
+      <div class="b zn1"><div class="bKid"/></div>
+
+      <div class="a z0"><div class="aKid"/></div>
+      <div class="b z0"><div class="bKid"/></div>
+
+      <div class="a z0"><div class="aKid"/></div>
+      <div class="b z1"><div class="bKid"/></div>
+    </div>
+
+  </body>
+</html>

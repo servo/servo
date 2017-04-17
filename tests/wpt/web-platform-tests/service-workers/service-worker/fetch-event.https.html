@@ -515,7 +515,7 @@ async_test(function(t) {
           return service_worker_unregister_and_done(t, scope);
         })
       .catch(unreached_rejection(t));
-  }, 'Service Worker must not expose FetchEvent URL fragments.');
+  }, 'Service Worker should expose FetchEvent URL fragments.');
 async_test(function(t) {
     var scope = 'resources/simple.html?cache';
     var frame;

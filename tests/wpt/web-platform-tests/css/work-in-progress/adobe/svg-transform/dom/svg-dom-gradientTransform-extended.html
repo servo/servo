@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Transforms: SVG DOM API - gradientTransform extended tests</title>
+    <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+    <link rel="help" href="http://www.w3.org/TR/css3-transforms/#svg-transform">
+    <link rel="help" href="http://www.w3.org/TR/css3-transforms/#transform-attribute-dom">
+    <link rel="help" href="http://www.w3.org/TR/SVG/coords.html#InterfaceSVGAnimatedTransformList">
+    <link rel="help" href="http://www.w3.org/TR/SVG/coords.html#InterfaceSVGTransformList">
+    <link rel="help" href="http://www.w3.org/TR/SVG/coords.html#InterfaceSVGTransform">
+    <meta name="flags" content="svg dom">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style type="text/css">
+       svg {
+           width: 300px;
+           height: 300px;
+       }
+    </style>
+</head>
+<body>
+    <svg id="svg">
+        <defs>
+            <linearGradient id="grad1" x1="0%" y1="0%">
+                <stop offset="50%" stop-color="green"/>
+                <stop offset="50%" stop-color="lime"/>
+            </linearGradient>
+            <linearGradient id="grad2" x1="0%" y1="0%">
+                <stop offset="75%" stop-color="green"/>
+                <stop offset="0%" stop-color="lime"/>
+            </linearGradient>
+        </defs>
+        <rect fill="url(#grad1)" x="0" y="0" width="100" height="100"/>
+        <rect fill="url(#grad2)" x="100" y="0" width="100" height="100"/>
+    </svg>
+    <div id="log"></div>
+    <script src="js/SVGTransformListExtendedCommon.js"></script>
+    <script src="js/SVGGradientTransformListExtendedTests.js"></script>
+</body>
+</html>

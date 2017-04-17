@@ -1,0 +1,52 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Seventh Test of Section 3.0 of CSS1 Spec</TITLE>
+<STYLE TYPE="text/css">
+ @import url(test3.css);
+ @import url(test4.css);
+P {color: yellow}
+</STYLE>
+</HEAD>
+
+
+
+
+
+
+<BODY>
+
+<h1 >Testing Seventh Testable Statement of Section 3.0 of CSS1 Spec</h1>
+
+
+
+
+<ul>
+<li >
+7. The imported style sheets also cascade with each other, in the order they
+are imported, according to the cascading rules.
+</ul>
+
+
+
+
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p>
+If statement #7 above is passed, this paragraph should be yellow.
+The rule applied (from the first imported style sheet) is "P {color: red;
+font-family: monospace;}".  This rule overrides the rule (from the second
+imported style sheet) "P {color: yellow; font-family: helvetica}".  The
+final rule "p {color: yellow}" overrides both of these.  The
+other properties should be UA-default.
+The two imported style sheets cascade with each other.
+
+To move directly to the next test, click<a href="30-8.htm"> here</a>
+</BODY>
+</HTML>

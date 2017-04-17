@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Font-family set to the keyword 'monospace'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#propdef-font-family" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-family-prop" />
+        <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-family-prop"/>
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The 'font-family' property set to 'monospace' correctly renders the user agent's monospace font." />
+        <style type="text/css">
+            div
+            {
+                font-family: Ahem;
+            }
+            #test
+            {
+                font-family: monospace;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the words "PASS PASS" appear below and there is a black box below.</p>
+        <div id="test">PASS PASS</div>
+        <div>X</div>
+    </body>
+</html>

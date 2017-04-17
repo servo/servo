@@ -1,0 +1,35 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<meta name="flags" content="dom">
+    <meta name="assert" content="shape-outside declaration is invalid if shape is invalid">
+	<title>CSS Shapes Test - shape-outside invalid shape</title>
+	<link rel="author" title="noonnightstorm" href="mailto:noonnightstorm@gmail.com">
+	<link rel="reviewer" title="Alan Stearns" href="mailto:stearns@adobe.com">
+	<link rel="help" href="http://www.w3.org/TR/css-shapes-1/#supported-basic-shapes">
+	<script src="/resources/testharness.js"></script>
+	<script src="/resources/testharnessreport.js"></script>
+
+	<style>
+#shape{
+	width: 300px;
+	height: 300px;
+	shape-outside: invalid(50px,50px,50px,50px);
+}
+	</style>
+</head>
+<body>
+
+	<div id="log"></div>
+
+	<div id="shape"></div>
+
+	<script>
+	var obj = document.getElementById('shape');
+	var shapeOutside = getComputedStyle(obj).shapeOutside;
+	test(function() {assert_equals(shapeOutside, "none", "declaration should be Invalid")});
+	</script>
+
+</body>
+</html>

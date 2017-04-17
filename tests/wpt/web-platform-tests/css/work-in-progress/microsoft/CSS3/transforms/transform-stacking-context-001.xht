@@ -1,0 +1,47 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Transform's 'z' position and stacking context</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css3-3d-transforms/#introduction" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="A transform's 'z' position does not affect the order within a stacking context." />
+        <style type="text/css">
+            #idcontainer
+            {
+                left: 100px;
+                position: absolute;
+            }
+            #idparent
+            {
+                transform: translate3d(100px,100px,0);
+            }
+            #idchild1
+            {
+                background-color: red;
+                height: 100px;
+                position: absolute;
+                transform: translate3d(0,0,100px);
+                width: 100px;
+            }
+            #idchild2
+            {
+                background-color: black;
+                height: 100px;
+                position: absolute;
+                transform: translate3d(0,0,10px);
+                width: 100px;
+            }
+        </style>
+            
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page.</p>
+        <div id="idcontainer">
+            <div id="idparent">
+                <div id="idchild1"></div>
+                <div id="idchild2"></div>
+            </div>
+        </div>
+    </body>
+</html>

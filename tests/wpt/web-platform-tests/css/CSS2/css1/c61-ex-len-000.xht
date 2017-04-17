@@ -1,0 +1,40 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Length Units</title>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-06-30 -->
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#length-units"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#length-units" title="4.3.2 Lengths"/>
+  <link rel="match" href="c61-ex-len-000-ref.xht" />
+
+  <meta name="flags" content="ahem" />
+
+  <style type="text/css"><![CDATA[
+   table { margin: 1em 5em; }
+   td { padding: 4px; vertical-align: top; }
+   .control { font: 40px/1 Ahem; color: navy; }
+   .test { font: 40px/1 Ahem; border-top: 1ex solid navy; width: 1em; }
+  ]]></style>
+ </head>
+ <body>
+  <p>Test passes if the 2 small rectangles have the <strong>same height</strong>.</p>
+  <table>
+   <tr>
+    <td>
+     <div class="control"> &Eacute; </div>
+    </td>
+    <td>
+     <div class="test"> </div>
+    </td>
+   </tr>
+  </table>
+
+<!--
+Latin capital letter E with acute 	&Eacute; 	&#201; 	&#xC9; 	É
+http://htmlhelp.com/reference/html40/entities/latin1.html
+-->
+
+ </body>
+</html>

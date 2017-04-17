@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!--
+     This reference case has inline blocks in a div, in place of
+     flex items in a flex container.
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <style>
+      body { margin: 0; }
+
+      div.flexbox {
+        width: -moz-max-content;
+        /* We give the flex container a border and background so we can easily
+         * see how large it is. */
+        border: 2px dotted black;
+        background: lime;
+
+        font-size: 0; /* to prevent whitespace from having an effect */
+      }
+
+      div.wrapper {
+        display: inline-block;
+        border: 5px solid teal;
+        width:  40px;
+        height: 16px;
+      }
+      div.blueBlock {
+        width:  16px;
+        height: 16px;
+        background: rgb(0, 19, 127); /* matches solidblue.png */
+      }
+  </style>
+</head>
+<body>
+  <div class="flexbox">
+    <div class="wrapper"><div class="blueBlock"/></div>
+    <div class="wrapper"><div class="blueBlock"/></div>
+    <div class="wrapper"><div class="blueBlock"/></div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,92 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: Margin Collapsing: effect of margins on collapsing-through</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-08-17 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/block/margin-collapse/055.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#collapsing-margins"/>
+  <link rel="match" href="margin-collapse-155-ref.xht" />
+
+  <meta name="flags" content="ahem" />
+
+  <style type="text/css">
+   td { border: solid; background: red; padding: 0; font: 3.125em/1 Ahem; }
+   .bg { background: orange; color: yellow; }
+   .a { margin: 0 0 1em 0; background: lime; }
+   .c { margin: 1em 0 0 0; background: aqua; }
+   .b1 { margin: 1em 0 1em 0; }
+   .b2 { margin: 0em 0 1em 0; }
+   .b3 { margin: 1em 0 0em 0; }
+   .b4 { margin: 0em 0 0em 0; }
+   .b5 { margin: 0.5em 0 0.5em 0; }
+   .b6 { margin: 0em 0 0.5em 0; }
+   .b7 { margin: 0.5em 0 0em 0; }
+   .control .a { margin: 0 0 1em 0; }
+   .control .c { margin: 0; }
+  </style>
+ </head>
+ <body>
+  <p>Test passes if all 8 yellow and orange rectangles <strong>look the same</strong> (and all should look like the first rectangle).</p>
+  <table>
+   <tr>
+    <td class="control">
+     <div class="bg">
+      <div class="a">A</div>
+      <div class="c">C</div>
+     </div>
+    </td>
+    <td>
+     <div class="bg">
+      <div class="a">A</div>
+      <div class="b1"></div>
+      <div class="c">C</div>
+     </div>
+    </td>
+    <td>
+     <div class="bg">
+      <div class="a">A</div>
+      <div class="b2"></div>
+      <div class="c">C</div>
+     </div>
+    </td>
+    <td>
+     <div class="bg">
+      <div class="a">A</div>
+      <div class="b3"></div>
+      <div class="c">C</div>
+     </div>
+    </td>
+    <td>
+     <div class="bg">
+      <div class="a">A</div>
+      <div class="b4"></div>
+      <div class="c">C</div>
+     </div>
+    </td>
+    <td>
+     <div class="bg">
+      <div class="a">A</div>
+      <div class="b5"></div>
+      <div class="c">C</div>
+     </div>
+    </td>
+    <td>
+     <div class="bg">
+      <div class="a">A</div>
+      <div class="b6"></div>
+      <div class="c">C</div>
+     </div>
+    </td>
+    <td>
+     <div class="bg">
+      <div class="a">A</div>
+      <div class="b7"></div>
+      <div class="c">C</div>
+     </div>
+    </td>
+   </tr>
+  </table>
+
+</body>
+</html>

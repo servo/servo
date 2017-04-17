@@ -1,0 +1,37 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+                      "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Margin at the start of document</title>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#spacing-props"/>
+  <meta name="flags" content="may paged"/>
+  <meta name="assert" content="The UA may preserve the margin after a forced
+    page break."/>
+  <style type="text/css">
+    .test {
+      line-height: 1em;
+      margin-top: 4em;
+      position: relative;
+      color: blue;
+      page-break-before: always;
+    }
+    .margin {
+      position: relative;
+      bottom: 6em;
+    }
+  </style>
+</head>
+<body>
+  <div>This test requires 2 pages. Test passes if lines A through E appear
+   in order on the second page.</div>
+
+  <div class="test">
+    <div>Page 2 Line D</div>
+    <div>Page 2 Line E</div>
+    <div class="margin">Page 2 Line A</div>
+    <div class="margin">Page 2 Line B</div>
+    <div class="margin">Page 2 Line C</div>
+  </div>
+</body>
+</html>

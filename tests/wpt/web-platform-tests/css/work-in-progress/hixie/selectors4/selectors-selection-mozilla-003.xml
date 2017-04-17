@@ -1,0 +1,80 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>Contextual ::-moz-selection</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/selectors/selection/mozilla/003.xml"/>    <style type="text/css"><![CDATA[
+  td > div { border: solid thick black; padding: 1em; line-height: 2; }
+  td > div > span { padding: 0.25em; }
+
+  /* test version */
+  .test > * { background: aqua; }
+  .test > div > ::-moz-selection { outline: solid thick green; }
+  .test > div > :nth-child(even)::-moz-selection { outline: solid thick yellow; }
+  .test > div > :empty::-moz-selection { outline: solid thick blue; background: red; }
+  .test > div *::-moz-selection { background: transparent; } /* applies to spans 4 to 6 and the strong */
+  .test span:first-child::-moz-selection { background: white; } /* selects "Cascadable" */
+  .test span[id=b]::-moz-selection { background: silver; } /* selects "Advanced" */
+  .test #b + * + * { background: green; color: white; } /* affects "Selectors"'s span, whose selection inherits the background-color (next rule) */
+  .test span[id=b] ~ ::-moz-selection { background: inherit; color: inherit; } /* selects "Tree", "Selectors" and "for CSS" but is overriden for "Tree" and "for CSS" */
+  .test span[id=b] + ::-moz-selection { background: yellow; cursor: crosshair; } /* selects "Tree" */
+  .test :not(#b):last-child::-moz-selection { background: transparent; } /* selects "for CSS" and "CSS" */
+  .test ::-moz-selection { color: black; } /* applies to all spans and the strong */
+  .test::-moz-selection { background: red ! important; } /* applies to the text in the cell and the div... so nothing. */
+  .test::-moz-selection { color: red ! important; background: aqua; } /* should end up doing nothing - no text at that level and background is aqua is already the background */
+  .test strong { color: red ! important; } /* should also end up doing nothing */
+
+  /* control version */
+  .control ::-moz-selection { background: transparent; color: inherit; cursor: inherit; outline: none; }
+  .control > div { background: aqua; color: black; }
+  .control > div > span { padding: 0; margin: 0.25em; }
+  .control > div > span.a { background: white; }
+  .control > div > span.b { background: silver; }
+  .control > div > span.c { background: yellow; cursor: crosshair; }
+  .control > div > span.d { background: green; color: white; padding: 0.25em; margin: 0; }
+  .control > div > span.green { outline: solid thick green; }
+  .control > div > span.yellow { outline: solid thick yellow; }
+  .control > div > span.blue { outline: solid thick blue; background: red; }
+
+]]></style>
+ </head>
+ <body>
+  <div>
+
+   <p>Select everything in this document. The following two constructs
+   (in the thick black borders) should end up looking identical. You
+   should also check that the cursor is the same on equivalent parts
+   (in particular the cursor should be a crosshair over &quot;Tree&quot; and the
+   default everywhere else.)</p>
+
+   <table>
+    <tr>
+     <td class="test">
+
+      <div>
+       <span>Cascadable</span>
+       <span id="b">Advanced</span>
+       <span>Tree</span>
+       <span>Selectors</span>
+       <span><!-- empty (this comment is not included in the actual tests) --></span>
+       <span>for <strong>CSS</strong></span>
+      </div>
+
+     </td>
+     <td class="control">
+
+      <div>
+       <span class="a green">Cascadable</span>
+       <span class="b yellow">Advanced</span>
+       <span class="c green">Tree</span>
+       <span class="d yellow">Selectors</span>
+       <span class="e blue"></span>
+       <span class="f yellow">for <strong>CSS</strong></span>
+      </div>
+
+     </td>
+    </tr>
+   </table>
+  </div>
+</body>
+</html>

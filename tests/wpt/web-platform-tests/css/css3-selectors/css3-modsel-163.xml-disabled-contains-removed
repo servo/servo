@@ -1,0 +1,20 @@
+<csstest def="Contextual :contains" module="W3C Selectors" modulename="css3-modsel" number="163" rev="1.0" date="21-november-2001" xmlns="http://www.example.org/css3tests">
+
+<author>Ian Hickson</author>
+
+<userinteraction/>
+
+<cssrules>
+  .float { float: right; }
+  :hover ~ :contains('green') { background: green; }
+</cssrules>
+
+<code>
+  <p  xmlns="http://www.w3.org/1999/xhtml" class="float">TEST</p>
+  <p xmlns="http://www.w3.org/1999/xhtml">TEST</p>
+  <p xmlns="http://www.w3.org/1999/xhtml"><strong>TEST</strong></p>
+  <table xmlns="http://www.w3.org/1999/xhtml"><tr><td>TEST</td></tr></table>
+  <p xmlns="http://www.w3.org/1999/xhtml">While you hover over any of the four instances of the word TEST above, this paragraph should turn green.</p>
+</code>
+
+</csstest>

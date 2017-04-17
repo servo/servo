@@ -1,0 +1,60 @@
+
+<html>
+<head>
+<title>Nineteenth Test of Section 5.3.6 of CSS1 Spec</title>
+
+<style type="text/css">
+p {background-image: url(flagbg.gif)}
+#id1 {background-position: bottom}
+#id2 {background-position: bottom center}
+#id3 {background-position: center bottom}
+#id4 {background-position: 50%100%}
+</style>
+</head>
+
+<body>
+
+
+
+
+<h1>Testing Statement #19 Below of Section 5.3.6 of CSS1 Spec</h1>
+
+
+
+
+
+<ul>
+<li >
+19. "bottom", "bottom center" and "center bottom" mean the same as"50%100%".
+</ul>
+
+<h2>
+PASS CRITERIA:
+</h2>
+<p ID=id1>
+If statement #19 above is passed, this paragraph should have a flag image
+which is at the bottom of this paragraph text.
+The rule applied is "#id1 {background-position: bottom}".
+<p ID=id2>
+This paragraph should have a flag image which is bottom centered with
+respect to this paragraph text.
+The rule applied is "#id2 {background-position: bottom center}".
+This paragraph should look like the one above.
+<p ID=id3>
+This paragraph should have a flag image which is centered at the bottom
+with respect to this paragraph text.
+The rule applied is "#id3 {background-position: center bottom}".
+This paragraph should look like the one above.
+<p ID=id4>
+This paragraph should have a flag image which is 50% across and 100% down
+this paragraph text.
+The rule applied is "#id4 {background-position: 50%100%}".
+This paragraph should look like the one above.
+
+<p>
+The rule "p {background-image: url(flagbg.gif)}" is also applied above.
+All other properties of this page should be UA-default.
+
+
+</body>
+</html>

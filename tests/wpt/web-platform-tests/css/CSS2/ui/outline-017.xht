@@ -1,0 +1,35 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Outline: inherit with two values</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/ui.html#propdef-outline" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/ui.html#dynamic-outlines" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Outline with value inherit uses its parent's outline values (2 values)." />
+        <style type="text/css">
+            body
+            {
+                background: white;
+            }
+            #test
+            {
+                border: 3px solid blue;
+                outline: red solid 10px;
+                outline: inherit;
+            }
+            #parent
+            {
+                outline: green dotted 10px;
+                padding: 50px;
+                border: 3px solid blue;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a dotted green outline closely surrounding both blue boxes. Both green outlines need to be the same width, style and color and there is no red visible on the page.</p>
+        <div id="parent">
+            <div id="test">Filler text</div>
+        </div>
+    </body>
+</html>

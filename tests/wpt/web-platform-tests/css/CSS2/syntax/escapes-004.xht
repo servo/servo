@@ -1,0 +1,20 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Unicode Escapes</title>
+  <link rel="author" title="L. David Baron" href="https://dbaron.org/"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#characters"/>
+  <link rel="match" href="../reference/ref-green-background.xht"/>
+  <style type="text/css">
+
+  p.class { background: red; color: white; }
+  p.c\00006Cas\000073 { back\000067round: gr\000065en; }
+
+  </style>
+ </head>
+ <body>
+
+ <p class="class">This should have a green background.</p>
+
+ </body>
+</html>

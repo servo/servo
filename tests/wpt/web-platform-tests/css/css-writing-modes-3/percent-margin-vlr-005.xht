@@ -1,0 +1,70 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Writing Modes Test: margin percentage and 'vertical-lr'</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#dimension-mapping" title="7.2 Dimensional Mapping" />
+  <link rel="match" href="margin-vrl-002-ref.xht" />
+
+  <meta content="image" name="flags" />
+  <meta content="This test checks that percentages on the margin are calculated with respect to the height (inline-size) of the containing block if the 'writing-mode' of such containing block is 'vertical-lr'." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  div.outer
+    {
+      background-color: blue;
+      border-top: blue solid 3px;
+      border-right: blue solid 3px;
+      border-bottom: blue solid 2px;
+      border-left: blue solid 3px;
+      height: 160px;
+      writing-mode: vertical-lr;
+    }
+
+  div.inner
+    {
+      background-color: yellow;
+      height: 50px;
+      width: 50px;
+    }
+
+  div.foo
+    {
+      margin-bottom: 0%; /* 0px */
+      margin-left: 31.25%; /* 31.25% mult by 160px == 50px */
+      margin-right: 0%; /* 0px */
+      margin-top: 55.625%; /* 20px + 50px + 19px == 89px ; 89px divided by 160px == 55.625% */
+    }
+
+  div.bar
+    {
+      margin-bottom: 0%; /* 0px */
+      margin-left: 0%; /* 0px */
+      margin-right: 31.25%; /* 31.25% mult by 160px == 50px */
+      margin-top: 12.5%; /* 12.5% mult by 160px == 20px */
+    }
+
+  div#reference
+    {
+      margin-top: 1em;
+    }
+  ]]></style>
+ </head>
+
+ <body>
+
+  <p>Test passes if there are 2 <strong>identical</strong> blue rectangles, each with 2 small yellow squares: the layout must be identical.</p>
+
+  <div class="outer">
+    <div class="inner foo"></div>
+    <div class="inner bar"></div>
+  </div>
+
+  <div id="reference"><img src="support/blue-yellow-206w-165h.png" width="206" height="165" alt="Image download support must be enabled" /></div>
+
+ </body>
+</html>

@@ -1,0 +1,59 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: clear</title>
+  <meta name="flags" content="ahem image" />
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#clear"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="match" href="c5526-fltclr-000-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+   div { font: 15px/1 Ahem; color: green; background: red url(support/css1test5526.png) no-repeat; width: 20em; border: solid black; }
+   p { margin: 1em 0; }
+   .left {float: left;}
+   .right {float: right;}
+   .one {clear: left;}
+   .two {clear: right;}
+   .three {clear: both;}
+   .four {clear: none;}
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats" title="9.5 Floats"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#flow-control" title="9.5.2 Controlling flow next to floats: the 'clear' property"/>
+ </head>
+ <body>
+  <p>There should be a big green box below.</p>
+  <div>
+   <img src="support/swatch-green.png" height="50" class="left" alt="[Image]" />
+   <p>
+    xxxxx xxxx xxx xx x xx xxx xxxx
+    xxxxx xxxx xxx xx x xx xxx xxxx
+    xxxxx xxxx xxx xx x xx xxx xxxx
+   </p>
+   <img src="support/swatch-green.png" height="50" class="left" alt="[Image]" />
+   <p class="one">
+    xxxxx xxxx xxx xx x xx xxx xxxx
+    xxxxx xxxx xxx xx x xx xxx xxxx
+   </p>
+   <img src="support/swatch-green.png" height="50" class="right" alt="[Image]" />
+   <p class="two">
+    xxxxx xxxx xxx xx x xx xxx xxxx
+    xxxxx xxxx xxx xx x xx xxx xxxx
+   </p>
+   <img src="support/swatch-green.png" height="50" class="left" alt="[Image]" />
+   <img src="support/swatch-green.png" height="50" class="right" alt="[Image]" />
+   <p class="three">
+    xxxxx xxxx xxx xx x xx xxx xxxx
+    xxxxx xxxx xxx xx x xx xxx xxxx
+   </p>
+   <img src="support/swatch-green.png" height="50" class="left" alt="[Image]" />
+   <img src="support/swatch-green.png" height="50" class="right" alt="[Image]" />
+   <p class="four">
+    xxxxx xxxx xxx xx x xx xxx xxxx
+    xxxxx xxxx xxx xx x xx xxx xxxx
+    xxxxx xxxx xxx xx x xx xxx xxxx
+    xxxxx xxxx xxx xx x xx xxx xxxx
+   </p>
+  </div>
+ </body>
+</html>

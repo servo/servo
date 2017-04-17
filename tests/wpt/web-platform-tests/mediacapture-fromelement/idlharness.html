@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset=utf-8>
+  <title>Media Capture from DOM Elements IDL test</title>
+  <link rel="help" href="https://w3c.github.io/mediacapture-fromelement/">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/WebIDLParser.js"></script>
+  <script src="/resources/idlharness.js"></script>
+</head>
+<body>
+  <media id='media' width=10 height=10/>
+  <canvas id='canvas' width=10 height=10/>
+
+  <pre id="untested_idl" style="display: none">
+    interface HTMLCanvasElement {};
+    interface HTMLMediaElement {};
+    interface MediaStream {};
+    interface MediaStreamTrack {};
+  </pre>
+  <pre id="idl" style="display: none">
+    // https://w3c.github.io/mediacapture-fromelement/
+
+    partial interface HTMLMediaElement {
+        MediaStream captureStream();
+    };
+
+    partial interface HTMLCanvasElement {
+        MediaStream captureStream(optional double frameRequestRate);
+    };
+
+    interface CanvasCaptureMediaStreamTrack : MediaStreamTrack {
+        readonly attribute HTMLCanvasElement canvas;
+        void requestFrame();
+    };
+
+  </pre>
+  <script>
+    var canvas = document.getElementById('canvas');
+    var media = document.getElementById('media');
+
+    var idl_array = new IdlArray();
+    idl_array.add_untested_idls(document.getElementById("untested_idl").textContent);
+    idl_array.add_idls(document.getElementById("idl").textContent);
+    idl_array.add_objects({
+        HTMLMediaElement: [media],
+        HTMLCanvasElement: [canvas],
+        CanvasCaptureMediaStreamTrack: [canvas.captureStream().getTracks()[0]],
+      });
+    idl_array.test();
+  </script>
+  <div id="log"></div>
+</body>
+</html>

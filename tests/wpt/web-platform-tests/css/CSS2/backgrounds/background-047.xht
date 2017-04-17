@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Background with (image position color)</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#propdef-background" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background-properties" />
+        <meta name="flags" content="image" />
+        <meta name="assert" content="Background with (image position color) sets the background of the element to the image specified. Since the initial value for background-repeat is repeat the position and color declarations will have no effect." />
+        <style type="text/css">
+            div
+            {
+                background: url("support/cat.png") right green;
+                height: 100px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a line of cat images, and the image on the right is not cut off.</p>
+        <div></div>
+    </body>
+</html>

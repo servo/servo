@@ -63,4 +63,12 @@ test(function() {
         t2.tHead = t2thead;
     });
 });
+
+test(function () {
+    var table = document.createElementNS("http://www.w3.org/1999/xhtml", "foo:table")
+    var thead = table.createTHead();
+
+    assert_equals(table.tHead, thead);
+    assert_equals(thead.prefix, null);
+});
 </script>

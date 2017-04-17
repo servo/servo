@@ -1,0 +1,34 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: page-break-after: auto</title>
+<link rel="author" title="Melinda Grant" href="mailto:melinda.grant@hp.com"/>
+<link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-break-props"/>
+<link rel="help" href="http://www.w3.org/TR/css3-page/#pg-br-before-after"/>
+<meta name="flags" content="paged" />
+<meta name="assert" content="The 'auto' value of the 'page-break-after' property neither forces nor forbids a page break after the box."/>
+<style type="text/css">
+	html, body {
+		height:100%;
+		line-height:1;
+		margin: 0;
+		padding: 0;
+	}
+	div {
+		page-break-after: auto;
+	}
+	div#first {height: 50%;}
+	div#second {
+		height: 50%;
+		margin-bottom: -4em;
+	}
+	div#third {width: 0;}
+</style>
+</head>
+<body>
+	<div id="first">This test produces two pages. The next paragraph should appear on the same page as this one.</div>
+
+	<div id="second">The letters 'a', 'b', 'c', and 'd' may appear below or on the next page.  The letters 'e' and 'f' must appear on the next page.</div>
+	<div id="third">a b c d e f</div>
+</body>
+</html>

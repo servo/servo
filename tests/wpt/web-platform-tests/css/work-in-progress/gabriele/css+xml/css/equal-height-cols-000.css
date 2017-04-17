@@ -1,0 +1,53 @@
+root, document {
+	display: table;
+	background: #fff;
+	color: #000;
+	width: 100%;
+	height: 100%;
+	min-height: 100%;
+	table-layout: fixed;
+}
+
+section[id="page-info"] {
+	display: table-caption;
+	background: black;
+	color: white;
+	padding: 0.5em;
+	font-weight: bold;
+}
+
+info {
+	display: block;
+	font-size: 1.5em;
+	text-align: center;
+}
+
+section[id="layout"] {
+	display: table-row;
+	width: 100%;
+	height: 100%;
+	min-height: 100%;
+}
+
+section[id="column-1"],
+section[id="column-2"],
+section[id="column-3"] {
+	display: table-cell;
+	width: 33%;
+}
+
+section[id="column-1"] {
+	background: grey;
+	color: white;
+}
+section[id="column-2"] {
+	background: silver;
+}
+section [id="column-3"] {
+	background: #eee;
+}
+
+para {
+	padding: 0.5em;
+	display: block;
+}

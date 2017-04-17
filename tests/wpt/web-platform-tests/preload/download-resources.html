@@ -8,10 +8,10 @@
 <link rel=preload href="resources/dummy.js" as=script>
 <link rel=preload href="resources/dummy.css" as=style>
 <link rel=preload href="resources/square.png" as=image>
-<link rel=preload href="/fonts/CanvasTest.ttf" as=font crossorigin>
-<link rel=preload href="/media/white.mp4" as=media>
-<link rel=preload href="/media/sound_5.oga" as=media>
-<link rel=preload href="/media/foo.vtt" as=media>
+<link rel=preload href="/media/CanvasTest.ttf" as=font crossorigin>
+<link rel=preload href="/media/white.mp4" as=video>
+<link rel=preload href="/media/sound_5.oga" as=audio>
+<link rel=preload href="/media/foo.vtt" as=track>
 <link rel=preload href="resources/dummy.xml?foo=bar" as=foobarxmlthing>
 <link rel=preload href="resources/dummy.xml">
 <body>
@@ -21,7 +21,7 @@
         verifyPreloadAndRTSupport()
         verifyNumberOfDownloads("resources/dummy.js", 1);
         verifyNumberOfDownloads("resources/dummy.css", 1);
-        verifyNumberOfDownloads("/fonts/CanvasTest.ttf", 1);
+        verifyNumberOfDownloads("/media/CanvasTest.ttf", 1);
         verifyNumberOfDownloads("/media/white.mp4", 1);
         verifyNumberOfDownloads("/media/sound_5.oga", 1);
         verifyNumberOfDownloads("/media/foo.vtt", 1);

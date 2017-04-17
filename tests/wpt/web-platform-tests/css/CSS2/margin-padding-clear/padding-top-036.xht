@@ -1,0 +1,51 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Padding-top using centimeters with a minimum plus one value, 1cm</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-08-25 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#propdef-padding-top" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#padding-properties" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'padding-top' property handles a minimum plus one length value in centimeters." />
+        <style type="text/css">
+            div
+            {
+                width: 50px;
+            }
+            .parent1
+            {
+                background: red;
+                min-height: 37px
+            }
+            .test1, .test2
+            {
+                padding-top: 1cm;
+            }
+            .test1
+            {
+                background: green;
+            }
+            .test2
+            {
+                background: red;
+            }
+            .child1
+            {
+                background: green;
+                height: 38px;
+                margin-top: -1cm;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is <strong>no red</strong>.</p>
+        <div class="parent1">
+            <div class="test1"></div>
+        </div>
+        <br />
+        <div class="test2">
+            <div class="child1"></div>
+        </div>
+    </body>
+</html>

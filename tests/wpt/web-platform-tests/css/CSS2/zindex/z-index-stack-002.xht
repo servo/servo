@@ -1,0 +1,51 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Z-index and similar stacking levels</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#layers" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Boxes with the same stack level in a stacking context are stacked back-to-front according to document tree order." />
+        <style type="text/css">
+            #div1
+            {
+                position: relative;
+            }
+            div div
+            {
+                height: 1in;
+                position: absolute;
+                width: 1in;
+            }
+            #div2
+            {
+                background: blue;
+                left: 0;
+                top: 0;
+                z-index: 1;
+            }
+            #div3
+            {
+                background: orange;
+                left: 30px;
+                top: 30px;
+                z-index: 1;
+            }
+            #div4
+            {
+                background: yellow;
+                left: 60px;
+                top: 60px;
+                z-index: 1;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the boxes are partially stacked on top of each other, and they are stacked in the following order from bottom to top: blue, orange, yellow.</p>
+        <div id="div1">
+            <div id="div2"></div>
+            <div id="div3"></div>
+            <div id="div4"></div>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,75 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" class="reftest-wait">
+
+ <head>
+
+  <title>CSS Test: Insert a block-level element	into an element that contains both blocks and inlines and directly into the block-of-blocks (and not into any anonymous block-of-inlines)	at the end of the block-of-blocks</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#anonymous-block-level" title="9.2.1.1 Anonymous block boxes" />
+  <link rel="match" href="insert-block-in-blocks-n-inlines-end-003-ref.xht" />
+
+  <meta http-equiv="Content-Script-Type" content="text/javascript" />
+  <meta content="ahem dom" name="flags" />
+
+  <style type="text/css"><![CDATA[
+  div.container
+  {
+  background-color: fuchsia;
+  color: black;
+  font: 20px/1 Ahem;
+  margin: 1em;
+  }
+
+  div > div {margin: 1em 0em;}
+
+  div.inserted
+  {
+  border-left: yellow solid 0.5em;
+  border-right: yellow solid 0.5em;
+  }
+  ]]></style>
+
+  <script type="text/javascript"><![CDATA[
+  function insertABlockAtEnd()
+  {
+  document.body.offsetHeight;
+
+  var newBlockNode = document.createElement("div");
+
+  newBlockNode.className = "inserted";
+
+  newBlockNode.appendChild(document.createTextNode("Inserted new block"));
+
+  document.getElementsByClassName("container")[0].appendChild(newBlockNode);
+
+  document.documentElement.className = "";
+  }
+  ]]></script>
+
+ </head>
+
+ <body onload="insertABlockAtEnd();">
+
+  <p>Test passes if the 2 colorized rectangles are <strong>identical</strong>.</p>
+
+  <div class="container"><div>1stBlock</div>
+  <div>ScndBlock</div><span>1stInline</span><div>FourthBlock</div>
+  <div>Fifth55Block</div><span>SecondInline</span><div>Seven777Block</div>
+  <div>Eight8888Block</div></div>
+
+  <div class="container">
+    <div>1stBlock</div>
+    <div>ScndBlock</div>
+    <span>1stInline</span>
+    <div>FourthBlock</div>
+    <div>Fifth55Block</div>
+    <span>SecondInline</span>
+    <div>Seven777Block</div>
+    <div>Eight8888Block</div>
+    <div class="inserted">Inserted new block</div>
+  </div>
+
+ </body>
+</html>

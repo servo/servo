@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>CSS Regions: CSS cursor on region</title>
+	<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+	<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+	<link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from">
+	<meta name="assert" content="CSS cursors are properly displayed even when an element is turned into a region">
+	<meta name="flags" content="interact ahem">
+	<style>
+	p {
+		margin: 0;
+	}
+	#content {
+		font-family: Ahem;
+		font-size: 20px;
+		line-height: 1em;
+		color: lightgreen;
+	}
+	#content p {
+		flow-into: f;
+	}
+	#region {
+		width: 100px;
+		height: 100px;
+		flow-from: f;
+		cursor: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAT0lEQVR42u2WMQoAIAwD+/9Px9VFoUJNhjvoKDmKhVQBQA9tYw3/LiGngJwChBN+CtfjWMOvEp0HIwL2DUT8gYgrQAKJyD4Q0YgiOiHACAvTEtAwKdXD6AAAAABJRU5ErkJggg==") 1 17, w-resize;
+		border-left: 100px solid lightblue;
+	}
+	#region p {
+		width: 100%;
+		height: 50%;
+		background-color: red;
+	}
+	</style>
+</head>
+<body>
+	<p>The test fails if you see any red or if any of the expected results below don't happen.</p>
+	<ol>
+		<li>You should see a green and a blue square below.</li>
+		<li>
+			Move the mouse over the blue square. <strong>Expected: </strong>The mouse cursor should change to a large, left pointing, black arrow.</li>
+		</li>
+	</ol>
+	<div id="content">
+		<p>xxxxx<br>xxxxx<br>xxxxx<br>xxxxx<br>xxxxx</p>
+	</div>
+	<div id="region">
+		<p></p>
+	</div>
+</body>
+</html>

@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Test: Applying color to elements split by bidi</title>
+    <link rel="author" title="Eira Monstad, Opera Software ASA" href="mailto:public-testsuites@opera.com"/>
+    <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#bidi-box-model"/>
+    <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#colors"/>
+    <meta name="flags" content=""/>
+    <meta name="assert" content="Color should be applied only to the part of the text it has been specified for, even after bidi has rearranged the words to be non-consecutive"/>
+    <style type="text/css"><![CDATA[
+      span {
+      color: blue;
+      }
+      ]]></style>
+  </head>
+
+  <body>
+    <p>
+      Words 2 and 4 from left should be <span>blue</span>:
+    </p>
+    <p>abc <span>def &#1604;&#1610;&#1589;</span> &#1575;&#1601;&#1578;</p>
+
+  </body>
+</html>

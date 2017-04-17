@@ -1,0 +1,30 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Attribute 'width' vs. CSS 'width' specificity</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html#preshint" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Attribute 'width' has a specificity of zero and is overridden by CSS." />
+        <style type="text/css">
+            html, body, p, table, tr
+            {
+                background: white;
+                width: auto;
+            }
+            *
+            {
+                background: blue;
+                width: 0;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the blue box below is only large enough to fit the "Filler Text".</p>
+        <table>
+            <tr>
+                <td width="5000">Filler Text</td>
+            </tr>
+        </table>
+    </body>
+</html>

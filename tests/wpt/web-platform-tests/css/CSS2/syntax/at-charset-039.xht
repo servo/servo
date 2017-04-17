@@ -1,0 +1,19 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Matching BOM and @charset (utf-8)</title>
+        <link rel="match" href="at-charset-039-ref.xht" />
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#charset" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The encoding is correctly interpreted from the matched BOM and @charset." />
+        <style type="text/css">
+            @import "support/at-charset-039.css";
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red on this page.</p>
+        <div class="平和">Filler Text</div>
+        <div id="div2">Filler Text</div>
+    </body>
+</html>

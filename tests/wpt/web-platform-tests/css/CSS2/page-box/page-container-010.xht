@@ -1,0 +1,49 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Paged Media Height (percent)</title>
+  <link rel="author" title="Melinda Grant" href="mailto:melinda.grant@hp.com" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-box" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#comp-abspos" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#the-height-property" />
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#page-box-page-rule" />
+  <meta name="flags" content="paged" />
+  <meta name="assert" content="For HTML documents in paged media, when the HTML and BODY elements have heights of 100%, a percentage height on a child of BODY is relative to the page area height. " />
+  <style type="text/css">
+
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+div {
+    height: 50%;
+    border-bottom: 10px red solid;
+}
+.test {
+    position: absolute;
+    top: 50%;
+    bottom: auto;
+    right: 0;
+    left: 0;
+    background: blue;
+    border: 0;
+    height: 10px;
+}
+p {
+    margin-top: 0;
+}
+  </style>
+ </head>
+ <body>
+   <div>
+     <p>
+     This test produces one page on paged media.
+     </p>
+     <p>
+     There is a horizontal blue line, half way down the page. There is no red on
+     the page.</p>
+     <div class="test"></div>
+   </div>
+ </body>
+</html>

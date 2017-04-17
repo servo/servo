@@ -9,7 +9,7 @@
 <script>
 async_test(function(t) {
   var ws = new WebSocket(SCHEME_DOMAIN_PORT+'/echo_close_data');
-  ws.onmessage = ws.onerror = t.step_func(function() {assert_unreached()});
+  ws.onmessage = ws.onerror = t.unreached_func();
 
   ws.onopen = t.step_func(function(e) {
     ws.send('Goodbye');
@@ -17,8 +17,8 @@ async_test(function(t) {
 
   ws.onclose = t.step_func(function(e) {
     assert_equals(e.wasClean, true);
-    ws.onclose = t.step_func(function() {assert_unreached()});
-    setTimeout(t.step_func(function() {t.done()}), 50);
+    ws.onclose = t.unreached_func();
+    t.step_timeout(() => t.done(), 50);
   })
 });
 </script>

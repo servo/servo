@@ -1,0 +1,40 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: White-space application to 'display: block' element</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#propdef-white-space" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#white-space-prop" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The 'white-space' property applies to 'display: block' elements." />
+        <style type="text/css">
+            div
+            {
+                font: 16px/1em Ahem;
+            }
+            span
+            {
+                display: block;
+                white-space: pre;
+            }
+            #div1, #div2
+            {
+                background: black;
+                display: inline-block;
+                height: 1em;
+                width: 2em;
+            }
+            #div2
+            {
+                margin-left: 3em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there are only two boxes below.</p>
+        <div>
+            <span>XX   XX</span>
+        </div>
+        <div id="div1"></div><div id="div2"></div>
+    </body>
+</html>

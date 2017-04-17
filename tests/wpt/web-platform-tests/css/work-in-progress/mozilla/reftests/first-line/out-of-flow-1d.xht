@@ -1,0 +1,28 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html><head>
+    <title>CSS 2.1 Test Suite: :first-line</title>
+    <link href="mailto:bzbarsky@mit.edu" rel="author" title="Boris Zbarsky" />
+    <link href="http://mozilla.com/" rel="author" title="Mozilla Corporation" />
+    <link href="http://www.w3.org/TR/CSS21/selector.html#first-line" rel="help" />
+    <link rel="match" href="out-of-flow-1-ref.xht"/>
+    <meta content="dom" name="flags" />
+    <style>
+      div { color: green }
+      div:first-line { color: red }
+    </style>
+    <script>
+      function runTest() {
+        var s = document.createElement("span");
+        s.setAttribute("style", "float: left");
+        s.appendChild(document.createTextNode("This should be green"));
+        var i = document.getElementById("i");
+        i.parentNode.insertBefore(s, i);
+      }
+    </script>
+  </head>
+  <body onload="runTest()">
+    <div><span id="i"></span></div>
+  
+
+
+</body></html>

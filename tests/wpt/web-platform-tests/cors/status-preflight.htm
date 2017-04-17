@@ -27,9 +27,10 @@ function statusAfterPreflight(method, code) {
                 return
             assert_equals(client.response, "", "response data")
             assert_equals(client.status, code, "response status")
-            if (client.readyState == client.DONE)
+            if (client.readyState == client.DONE) {
                 /* Wait for spurious error events */
-                setTimeout(this.step_func(function() { this.done() }), 10)
+                this.step_timeout(() => { this.done() }, 10)
+            }
         })
 
         client.onerror = this.step_func(function() {

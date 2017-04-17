@@ -1,0 +1,38 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Percentage Units</title>
+  <meta name="flags" content="ahem image" />
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#percentage-units"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="match" href="c62-percent-000-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+   p { margin: 1em 0; }
+   .zero { background: red url(support/css1test62-outer.png) no-repeat; width: 12em; font: 15px/1 Ahem; border: solid black; color: green ; }
+   .one { margin-left: 25%; margin-right: 25%; background: red url(support/css1test62-inner.png) no-repeat; }
+   .two { margin-left: 50%; margin-right: 0%; background: red url(support/css1test62-inner.png) no-repeat; }
+   .three { margin-left: 25%; }
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#percentage-units" title="4.3.3 Percentages"/>
+ </head>
+ <body>
+  <p>Test passes if there is a filled green rectangle with a black border and <strong>no red</strong>.</p>
+  <div class="zero">
+   <div class="one">
+    <p>
+     x x x x x x x x x x x x x x x
+    </p>
+   </div>
+   <div class="two">
+    <p>
+     x x x x x x x x x x x x x x x
+    </p>
+   </div>
+   <p class="three">
+    x x x x x x x x x x x x x x x x x x x x
+   </p>
+  </div>
+ </body>
+</html>

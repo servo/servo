@@ -1,0 +1,60 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: Z-index - stacking levels of positioned elements versus floated elements</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" title="Section 9.9.1 Specifying the stack level: the 'z-index' property" href="http://www.w3.org/TR/CSS21/visuren.html#z-index" />
+  <meta content="" name="flags" />
+  <meta content="Positioned elements should be painted over floated elements. A positioned descendant with 'z-index: auto' has a greater stacking level than non-positioned floated elements." name="assert" />
+
+  <style type="text/css"><![CDATA[
+   #rel-pos-containing-block {position: relative;}
+
+   #yellow-overlapping-abs-pos
+   {
+   background-color: yellow;
+   height: 100px;
+   left: 60px;
+   position: absolute;
+   top: 60px;
+   width: 100px;
+   z-index: auto;
+   }
+
+   #blue-first-float
+   {
+   background-color: blue;
+   float: left;
+   height: 100px;
+   width: 100px;
+   }
+
+   #orange-second-float
+   {
+   background-color: orange;
+   float: left;
+   height: 100px;
+   margin-left: -70px;
+   margin-top: 30px;
+   width: 100px;
+   }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if the boxes are partially stacked on top of each other and if they are stacked in the following order <strong>from bottom to top: blue, orange, yellow</strong>.</p>
+
+  <div id="rel-pos-containing-block">
+   <div id="yellow-overlapping-abs-pos"></div>
+   <div id="blue-first-float"></div>
+   <div id="orange-second-float"></div>
+  </div>
+
+ </body>
+</html>

@@ -1,0 +1,79 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Fourth Test of Section 10.7 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+
+
+
+p {max-height: 20px}
+strong {max-height: 200%}
+h3 {max-height: inherit}
+h4 {max-height: 20px}
+h5 {max-height: 200%}
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<!--
+<h1 >
+Testing Fourth Testable Statement of Sec 10.7 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+4. The 'max-height' property has initial 'none', it applies to all elements
+except certain ones, it is not inherited, percentages refer to width of 
+containing block, and media is visual.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p >
+If statement #4 above is passed, then
+-->
+<blockquote>
+This blockquote element has max-height none (initial value, no explicit CSS
+rule defined)
+</blockquote>
+<p>
+This paragraph has max-height of 20px.  This <em>emphasized text</em> has
+max-height of UA-default, even though em is descendant of p (property not
+inherited).</p>
+<strong>This strong text has max height of 200%</strong>
+<h3>This h3 heading has max height of inherit</h3>
+<h4>This h4 text has max height of 20px</h4>
+
+<h5>This h5 heading is max height 200%</h5>
+
+
+The rules applied are "p {max-height: 20px}",
+"strong {max-height: 200%}",
+h3 {max-height: inherit}",
+h4 {max-height: 20px}",
+h5 {max-height: 200%}".
+
+NOTE: From all elements listed above, max-height property should apply to all
+elements.
+<!--
+All other properties of this page should be UA-default.
+Your browser rendering of this page should look similar to this <a href="c83201.gif"> 
+reference image </a> or to this <a href="d83201.gif">reference image</a>.
+-->
+
+
+</BODY>
+</HTML>
+

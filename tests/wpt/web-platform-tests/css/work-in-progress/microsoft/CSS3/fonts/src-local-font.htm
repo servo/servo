@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <head>
+        <title>CSS Test: src: local(font)</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="https://drafts.csswg.org/css3-fonts/#src-desc" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="src descriptor is set to a local font." />
+        <style type="text/css">
+            @font-face
+            {
+                font-family: MyTestFont;
+                src: local(Arial);
+            }
+            #test
+            {
+                font-family: MyTestFont;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the below two lines are in different font face.</p>
+        <div id="test">ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz</div>
+        <div id="reference">ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz</div>
+    </body>
+</html>

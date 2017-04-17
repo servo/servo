@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Geometry Interfaces: DOMMatrix and DOMMatrixReadOnly constructors</title>
+    <link rel="author" title="Dirk Schulze" href="mailto:dschulze@adobe.com" />
+    <link rel="help" href="http://www.w3.org/TR/geometry-1/#DOMMatrix">
+    <link rel="help" href="http://www.w3.org/TR/geometry-1/#dommatrix-constructors">
+    <link rel="help" href="http://www.w3.org/TR/geometry-1/#dom-dommatrix-dommatrix">
+    <script src="support/dommatrix-test-util.js"></script>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+    <p>Test DOMMatrix and DOMMatrixReadOnly contructors</p>
+    <div id="log"></div>
+    <script>
+        initial = {
+            m11: 1, m21: 0, m31: 0, m41: 0,
+            m12: 0, m22: 1, m32: 0, m42: 0,
+            m13: 0, m23: 0, m33: 1, m43: 0,
+            m14: 0, m24: 0, m34: 0, m44: 1,
+            is2D: true,
+            isIdentity: true
+        };
+        scaleTranslate2D = {
+            m11: 2, m21: 0, m31: 0, m41: 10,
+            m12: 0, m22: 2, m32: 0, m42: 10,
+            m13: 0, m23: 0, m33: 1, m43: 0,
+            m14: 0, m24: 0, m34: 0, m44: 1,
+            is2D: false,
+            isIdentity: false
+        };
+
+        test(function() {
+            checkDOMMatrix(new DOMMatrix(), initial);
+        },'testConstructor0');
+        test(function() {
+            checkDOMMatrix(new DOMMatrix(new DOMMatrix()), initial);
+        },'testConstructor1');
+        test(function() {
+            var float32Array = new Float32Array(
+                2.0, 0.0, 0.0, 0.0,
+                0.0, 2.0, 0.0, 0.0,
+                0.0, 0.0, 1.0, 0.0,
+                10.0, 10.0, 0.0, 1.0);
+            checkDOMMatrix(new DOMMatrix(float32Array), scaleTranslate2D, false);
+        },'testConstructor2');
+        test(function() {
+            var float32Array = new Float32Array(2.0, 0.0, 0.0, 2.0, 10.0, 10.0);
+            checkDOMMatrix(new DOMMatrix(float32Array), scaleTranslate2D);
+        },'testConstructor3');
+        test(function() {
+            var float64Array = new Float64Array([
+                2.0, 0.0, 0.0, 0.0,
+                0.0, 2.0, 0.0, 0.0,
+                0.0, 0.0, 1.0, 0.0,
+                10.0, 10.0, 0.0, 1.0]);
+            checkDOMMatrix(new DOMMatrix(float64Array), scaleTranslate2D, false);
+        },'testConstructor4');
+        test(function() {
+            var float64Array = new Float64Array(2.0, 0.0, 0.0, 2.0, 10.0, 10.0);
+            checkDOMMatrix(new DOMMatrix(float64Array), scaleTranslate2D);
+        },'testConstructor5');
+        test(function() {
+            var sequence = [
+                2.0, 0.0, 0.0, 0.0,
+                0.0, 2.0, 0.0, 0.0,
+                0.0, 0.0, 1.0, 0.0,
+                10.0, 10.0, 0.0, 1.0];
+            checkDOMMatrix(new DOMMatrix(sequence), scaleTranslate2D, false);
+        },'testConstructor6');
+        test(function() {
+            var sequence = [ 2.0, 0.0, 0.0, 2.0, 10.0, 10.0];
+            checkDOMMatrix(new DOMMatrix(float64Array), scaleTranslate2D);
+        },'testConstructor7');
+        test(function() {
+            var string = 'scale(2) translateX(5px) translateY(5px)';
+            checkDOMMatrix(new DOMMatrix(string), scaleTranslate2D);
+        },'testConstructor8');
+        test(function() {
+            var string = 'scale(2 2) translateX(5) translateY(5)';
+            checkDOMMatrix(new DOMMatrix(string), scaleTranslate2D);
+        },'testConstructor9');
+        test(function() {
+            var string = 'scale(2, 2), translateX(5)  ,translateY(5)';
+            checkDOMMatrix(new DOMMatrix(string), scaleTranslate2D);
+        },'testConstructor10');
+        test(function() {
+            assert_throws('SyntaxError', function() { new DOMMatrix('translateX    (5px)'); });
+            assert_throws('SyntaxError', function() { new DOMMatrix('scale(2)translateX(5px)'); });
+            assert_throws('SyntaxError', function() { new DOMMatrix('translateX(5em)'); });
+            assert_throws('SyntaxError', function() { new DOMMatrix('translateX(5ex)'); });
+            assert_throws('SyntaxError', function() { new DOMMatrix('translateX(5ch)'); });
+            assert_throws('SyntaxError', function() { new DOMMatrix('translateX(5rem)'); });
+            assert_throws('SyntaxError', function() { new DOMMatrix('translateX(5vw)'); });
+            assert_throws('SyntaxError', function() { new DOMMatrix('translateX(5vh)'); });
+            assert_throws('SyntaxError', function() { new DOMMatrix('translateX(5vmin)'); });
+            assert_throws('SyntaxError', function() { new DOMMatrix('translateX(5vmax)'); });
+            assert_throws('SyntaxError', function() { new DOMMatrix('translateX(5%)'); });
+        },'testConstructor11');
+        test(function() {
+            var sequence = [
+                2.0, 1.0, 0.0, 0.0,
+                1.0, 2.0, 0.0, 0.0,
+                0.0, 0.0, 1.0, 0.0,
+                10.0, 10.0, 0.0, 1.0];
+            checkDOMMatrix(new DOMMatrix(sequence), {
+                m11: 2, m21: 1, m31: 0, m41: 10,
+                m12: 1, m22: 2, m32: 0, m42: 10,
+                m13: 0, m23: 0, m33: 1, m43: 0,
+                m14: 0, m24: 0, m34: 0, m44: 1,
+                is2D: false,
+                isIdentity: false
+            });
+        },'testConstructor12');
+        test(function() {
+            var matrix = new DOMMatrix([
+                2.0, 1.0, 0.0, 0.0,
+                1.0, 2.0, 0.0, 0.0,
+                0.0, 0.0, 1.0, 0.0,
+                10.0, 10.0, 0.0, 1.0]);
+            checkDOMMatrix(new DOMMatrix(matrix), {
+                m11: 2, m21: 1, m31: 0, m41: 10,
+                m12: 1, m22: 2, m32: 0, m42: 10,
+                m13: 0, m23: 0, m33: 1, m43: 0,
+                m14: 0, m24: 0, m34: 0, m44: 1,
+                is2D: false,
+                isIdentity: false
+            });
+        },'testConstructor13');
+        test(function() {
+            assert_throws(new TypeError(), function() { new DOMMatrixReadOnly(); });
+        },'testConstructorIllegal0');
+        test(function() {
+            var string = 'scale(2, 2), translateX(5px) translateY(5px)';
+            assert_throws(new TypeError(), function() { new DOMMatrixReadOnly(string); });
+        },'testConstructorIllegal1');
+        test(function() {
+            var sequence = [ 2.0, 0.0, 0.0, 2.0, 10.0];
+            assert_throws(new TypeError(), function() { new DOMMatrixReadOnly(sequence); });
+        },'testConstructorIllegal2');
+        
+    </script>
+</body>
+</html>

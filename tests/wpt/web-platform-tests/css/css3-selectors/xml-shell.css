@@ -1,0 +1,15 @@
+test { display: block; background: white; color: black; }
+ title { display: block; border-bottom: solid; margin: 0 0 0.5em 0; padding: 0.5em 1em 0 1em; font-size: 1.5em; }
+ author { display: none; }
+ metadata { display: table; border-spacing: 1em 0.4em; }
+  item { display: table-row; }
+   name { display: table-cell; }
+   data { display: table-cell; }
+   data:link { color: blue; text-decoration: underline; }
+   data:visited { color: navy; text-decoration: underline; }
+ requirement { display: block; margin: 1em; background: black; color: white; }
+ content { display: block; border: solid; margin: 1em; padding: 1em; }
+ source { display: block; font-family: monospace; }
+  css { display: block; white-space: pre; border: solid; margin: 1em; padding: 1em; }
+  xml { display: block; white-space: pre; border: solid; margin: 1em; padding: 1em; }
+

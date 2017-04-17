@@ -1,6 +1,11 @@
 "use strict";
 
 function testAddRange(exception, range, endpoints, qualifier, testName) {
+    if (!isSelectableNode(endpoints[0]) || !isSelectableNode(endpoints[2])) {
+        testAddRangeDoesNothing(exception, range, endpoints, qualifier, testName);
+        return;
+    }
+
     test(function() {
         assert_equals(exception, null, "Test setup must not throw exceptions");
 
@@ -110,6 +115,22 @@ function testAddRange(exception, range, endpoints, qualifier, testName) {
     }, testName + ": modifying the Selection's last Range must modify the " + qualifier + " added Range");
 }
 
+function testAddRangeDoesNothing(exception, range, endpoints, qualifier, testName) {
+    test(function() {
+        assert_equals(exception, null, "Test setup must not throw exceptions");
+
+        assertSelectionNoChange(function() { selection.addRange(range); });
+        assert_equals(range.startContainer, endpoints[0],
+            "addRange() must not modify the startContainer of the Range it's given");
+        assert_equals(range.startOffset, endpoints[1],
+            "addRange() must not modify the startOffset of the Range it's given");
+        assert_equals(range.endContainer, endpoints[2],
+            "addRange() must not modify the endContainer of the Range it's given");
+        assert_equals(range.endOffset, endpoints[3],
+            "addRange() must not modify the endOffset of the Range it's given");
+    }, testName + ": " + qualifier + " addRange() must do nothing");
+}
+
 // Do only n evals, not n^2
 var testRangesEvaled = testRanges.map(eval);
 
@@ -176,7 +197,8 @@ function testAddRangeSubSet(startIndex, optionalEndIndex) {
             }
 
             testAddRange(exception, range1, endpoints1, "first", testName);
-            testAddRange(exception, range2, endpoints2, "second", testName);
+            if (selection.rangeCount > 0)
+                testAddRangeDoesNothing(exception, range2, endpoints2, "second", testName);
         }
     }
 }

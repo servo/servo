@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Absolutely positioned inline replaced element with 'direction' as right-to-left, 'auto' specified for 'margin-left', 'margin-right', 'left', 'right' and width set to a percentage</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+		<link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-09-07 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#abs-replaced-width" />
+        <link rel="match" href="absolute-replaced-width-020-ref.xht" />
+
+        <meta name="flags" content="image" />
+        <meta name="assert" content="The width of an absolutely positioned inline replaced element set to a percentage is evaluated against the containing block's width. If both 'left' and 'right' have the value 'auto' and if the 'direction' property of the element establishing the static-position containing block is 'rtl', then set 'right' to the static position." />
+        <style type="text/css">
+            #div1
+            {
+                border: solid black;
+                direction: rtl;
+                height: 3in;
+                position: relative;
+                width: 2in;
+            }
+            img
+            {
+                margin-left: auto;
+                margin-right: auto;
+                left: auto;
+                position: absolute;
+                right: auto;
+            }
+            div div
+            {
+                background: orange;
+                height: 1in;
+                margin-top: 1in;
+                width: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the blue and orange squares have the same width and the blue square is in the upper-right corner of an hollow black rectangle.</p>
+        <div id="div1">
+            <img alt="blue 15x15" src="support/blue15x15.png" width="50%" />
+            <div></div>
+        </div>
+    </body>
+</html>

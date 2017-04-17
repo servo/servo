@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: padding-left</title>
+  <meta name="flags" content="ahem" />
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#padding-left"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="match" href="c5502-imrgn-r-003-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+   div { font: 15px/1 Ahem; margin: 1em; }
+   .four { width: 11em; color: white; background: navy; }
+   .four span { padding-left: 3em; }
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#padding-properties" title="8.4 Padding properties: 'padding-top', 'padding-right', 'padding-bottom', 'padding-left', and 'padding'"/>
+ </head>
+ <body>
+  <p>It should say "HI" below:</p>
+  <div class="four">
+   xx xx xx xx xx xx xx xx xx <span>xx xx xx xx xx xx</span> xx xx xx xx
+  </div>
+ </body>
+</html>

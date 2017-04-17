@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<head>
+  <title>CSS Test: Support calc() on gradient stop positions</title>
+  <link rel="author" title="Yu-Sian (Thomasy) Liu" href="https://bugzilla.mozilla.org/show_bug.cgi?id=594935">
+  <link rel="help" href="http://www.w3.org/TR/css3-values/#calc-notation">
+  <link rel="match" href="calc-background-linear-gradient-1-ref.html">
+  <meta name="flags" content="">
+<style type="text/css">
+div {
+ width:100px;
+ height:100px;
+ background:red;
+ margin:5px 0 0 5px;
+ float:left;
+}
+div#one {
+ background: linear-gradient(lime 0px, lime calc(100% - 10px), blue calc(100% - 10px), blue 100%);
+}
+div#two {
+ background: linear-gradient(blue calc(100% - 100px) ,green calc(10% + 20px) ,red 40px ,white calc(100% - 40px) , lime  80px);
+}
+div#three {
+ background: linear-gradient(blue calc(0px) ,purple calc(20%) ,red calc(10px + 10px + 20px) ,blue calc(30% + 30px) , lime  calc(180% - 100px));
+}
+div#four {
+ background: linear-gradient(blue calc(0% + 0px) ,green calc(10% + 20px) ,red 40px ,blue calc(200% / 2 - 40px) , yellow  80px);
+}
+div#five {
+ background: linear-gradient(red calc(100% - 100px) ,green calc(10% + 20px));
+}
+
+</style>
+</head>
+<body>
+<div id="one">1</div>
+<div id="two">2</div>
+<div id="three">3</div>
+<div id="four">4</div>
+<div id="five">5</div>
+</body>
+</html>

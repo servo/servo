@@ -1,0 +1,26 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>CSS Test: text-indent: calc() on blocks</title>
+  <link rel="author" title="L. David Baron" href="https://dbaron.org/">
+  <link rel="help" href="http://www.w3.org/TR/css3-values/#calc-notation">
+  <link rel="match" href="calc-text-indent-1-ref.html">
+  <meta name="flags" content="">
+<style type="text/css">
+
+body { width: 500px }
+p { font-size: 10px }
+
+</style>
+</head>
+<body>
+
+<p style="text-indent: calc(50% - 3px)">50% - 3px</p>
+<p style="text-indent: calc(25% - 3px + 25%)">25% - 3px + 25%</p>
+<p style="text-indent: calc(25% - 3px + 12.5% * 2)">25% - 3px + 12.5% * 2</p>
+<p style="text-indent: calc(25% - 3px + 12.5%*2)">25% - 3px + 12.5%*2</p>
+<p style="text-indent: calc(25% - 3px + 2*12.5%)">25% - 3px + 2*12.5%</p>
+<p style="text-indent: calc(25% - 3px + 2 * 12.5%)">25% - 3px + 2 * 12.5%</p>
+<p style="text-indent: calc(30% + 20%)">30% + 20%</p>
+</body>
+</html>

@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Reftest Reference</title>
+    <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com"/>
+    <style>
+      .flexbox {
+        width: 40px;
+        height: 40px;
+        border: 1px solid gray;
+        margin: 5px; /* just for visual separation */
+        float: left;
+      }
+
+      .flexbox > * {
+        background: yellow;
+        border: 1px solid black;
+        height: 20px;
+      }
+   </style>
+  </head>
+  <body>
+    <!-- ZEROTH ROW: NO MARGINS -->
+    <!-- No margins on flex item: -->
+    <div class="flexbox">
+      <div>a</div>
+    </div>
+
+
+    <!-- FIRST ROW: SETTING MARGIN-TOP: -->
+    <br style="clear: both"/>
+
+    <!-- auto: -->
+    <div class="flexbox">
+      <div style="margin-top: 18px">a</div>
+    </div>
+
+    <!-- Negative: -->
+    <div class="flexbox">
+      <div style="margin-top: -4px">a</div>
+    </div>
+
+    <!-- Small: -->
+    <div class="flexbox">
+      <div style="margin-top: 4px">a</div>
+    </div>
+
+    <!-- Large (pushing us out of container): -->
+    <div class="flexbox">
+      <div style="margin-top: 25px">a</div>
+    </div>
+
+
+    <!-- SECOND ROW: SETTING MARGIN-BOTTOM: -->
+    <br style="clear: both"/>
+
+    <!-- auto: -->
+    <div class="flexbox">
+      <div>a</div>
+    </div>
+
+    <!-- Negative: -->
+    <div class="flexbox">
+      <div>a</div>
+    </div>
+
+    <!-- Small: -->
+    <div class="flexbox">
+      <div>a</div>
+    </div>
+
+    <!-- Large: -->
+    <div class="flexbox">
+      <div>a</div>
+    </div>
+
+  </body>
+</html>

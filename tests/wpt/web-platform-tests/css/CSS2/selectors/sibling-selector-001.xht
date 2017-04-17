@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Simple sibling selector</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#adjacent-selectors" />
+        <link rel="match" href="sibling-selector-001-ref.xht"/>
+        <meta name="flags" content="" />
+        <meta name="assert" content="Sibling selector only applies to immediate siblings." />
+        <style type="text/css">
+            p + div
+            {
+                color: green;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the first line of "Filler Text" below is green, but the second line of "Filler Text" below is black.</p>
+        <div>Filler Text</div>
+        <div>Filler Text</div>
+    </body>
+</html>

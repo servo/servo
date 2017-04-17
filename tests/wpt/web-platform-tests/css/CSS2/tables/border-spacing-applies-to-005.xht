@@ -1,0 +1,41 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border-spacing and 'display: inline-block' elements</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#propdef-border-spacing" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#separated-borders" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Border-spacing does not apply to 'display: inline-block' elements." />
+        <style type="text/css">
+            #parent
+            {
+                width: 240px;
+            }
+            .inline
+            {
+                color: white;
+                display: inline-block;
+                height: 100px;
+                width: 100px;
+            }
+            .test
+            {
+                border: 10px solid blue;
+                border-spacing: 20px;
+            }
+            .reference
+            {
+                border: 10px solid orange;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the vertical space between the two blue boxes is the same as the space between the two orange boxes.</p>
+        <div id="parent">
+            <div class="inline test"></div><div class="inline reference"></div>
+            <div></div>
+            <div class="inline test"></div><div class="inline reference"></div>
+        </div>
+    </body>
+</html>

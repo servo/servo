@@ -1,0 +1,101 @@
+﻿
+
+<html>
+<head>
+<title>CSS3 Border Top Color Test</title>
+
+<style type="text/css">
+h3 {border-top-color: aqua; border-top-style: solid;}
+h4 {border-top-color: silver; border-top-style: solid;}
+em {border-top-color: green; border-top-style: solid;}
+blockquote {border-top-color: 200%; border-top-style: solid;}
+p {border-top-style: solid;}
+</style>
+</head>
+
+<body>
+
+
+
+
+<h1>CSS3 Border Top Color Test</h1>
+
+
+
+
+
+<ul>
+<li >
+For "border-top-color", initial is the value of the "color" property,
+ it applies to all elements,
+it is not inherited, percentage values are N/A, media is visual, and computed value is
+"color".
+</li>
+</ul>
+<h2>
+PASS CRITERIA:
+</h2>
+<p>
+If statement above is correct, this paragraph should be UA-default
+border top color.  A CSS rule of "border-top-style: solid" is applied.  However, the
+border top color property does apply to the p element.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+</p>
+<h3>
+This h3 heading has a border top color of aqua, but this <em>emphasized text
+</em> has a border top color of green; the rules applied are:
+"h3 {border-top-color: aqua;}"
+"em {border-top-color: green}"
+So the border top color property applies to the h3 and em elements.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+</h3>
+<h4>
+This h4 heading has a border top color property of silver (because of the
+rule "h4 {border-top-color: silver}", but these <i>italicized words</i>
+have a border top color of UA-default, because the border-top-color
+property does not inherit.  
+So the border top color property does apply to the h4 and i elements.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+</h4>
+<blockquote>
+This blockquote element should have a UA-default border top color.  The
+nonsensical rule "blockquote {border-top-color: 200%}" should be ignored,
+but the border-top-color property does apply to the blockquote element.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+</blockquote>
+<p>
+All other properties of this page should be UA-default.
+This is a paragraph, like the one above.  Border top style of solid is applied to all CSS rules,
+so that the top border is visible.
+</p>
+
+</body>
+</html>

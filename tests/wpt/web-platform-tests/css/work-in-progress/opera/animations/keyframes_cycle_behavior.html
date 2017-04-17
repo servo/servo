@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <title>CSS Animations - keyframes and multiple cycles</title>
+   <link rel="author" title="Opera Software ASA" href="http://www.opera.com/">
+   <link rel="help" href="https://drafts.csswg.org/css3-animations/#keyframes">
+   <meta name="flags" content="dom">
+   <meta name="assert" content="The keyframes specify the behavior of one
+   cycle of the animation">
+   <script src="/resources/testharness.js"></script>
+   <script src="/resources/testharnessreport.js"></script>
+   <style type="text/css">
+      @keyframes back-and-forth {
+         0% {
+            left: 0px;
+         }
+         50% {
+            left: 100px;
+         }
+         100% {
+            left: 0px;
+         }
+      }
+      div {
+         width: 100px;
+         height: 100px;
+         background: blue;
+         position: relative;
+      }
+      .test {
+         animation: back-and-forth 0.5s 2;
+      }
+   </style>
+   <script type="text/javascript">
+      setup({explicit_done:true});
+      onload = function() {
+         var testName = document.querySelector('title').firstChild.data;
+         var div = document.querySelector('div');
+         var log = document.querySelectorAll('p')[1].firstChild;
+         var iterations = 0;
+         var passed = false;
+         var timeout = setTimeout(function() {
+            test(function(){assert_true(false);}, testName); done();
+            log.data = 'FAIL';
+         }, 1500);
+         div.addEventListener('animationiteration', function() {
+            iterations++;
+            var offset = parseFloat(getComputedStyle(div, null).left);
+            if (iterations == 1) {
+               passed = offset < 50;
+            }
+         });
+         div.addEventListener('animationend', function() {
+            clearTimeout(timeout);
+            test(function(){assert_true(passed);}, testName); done();
+            log.data = passed ? 'PASS if the animation occurred.' : 'FAIL';
+         });
+         div.className = 'test';
+      }
+   </script>
+   <style>iframe{display:none}</style>
+</head>
+<body>
+   <p>The square below should slide right-left-right-left.</p>
+   <p>Testing...</p>
+   <div></div>
+</body>
+</html>

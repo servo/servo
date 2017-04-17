@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS 2.1 Test Suite: Acid test on floats</title>
+  <link rel="author" title="Gabriele Romanato" href="mailto:gabriele.romanato@gmail.com"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats"/>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta name="flags" content="Valid" />
+  <meta name="assert" content="UA should position the floats as specified"/>
+ <style type="text/css" media="screen">
+
+#symbol {
+	width: 5em;
+	float: left;
+}
+
+.row {
+	width: 100%;
+	height: 1em;
+}
+
+.square {
+	width: 1em;
+	height: 1em;
+	background-color: black;
+}
+
+.left {float: left;}
+
+.right {float: right;}
+
+.center-right {margin-right: 2em;}
+.center-left {margin-left: 2em;}
+.center {
+	margin: 0 auto;
+	width: 3em;
+}
+
+.center-vertical {
+	position: relative;
+	top: -3em;
+}
+
+ 
+  </style>
+
+</head>
+
+<body>
+
+<p>Please compare your result with the <a href="reference.png">reference rendering</a>.</p>
+
+
+<div id="symbol">
+
+	<div class="row">
+	  <div class="square left"></div>
+	  <div class="square left"></div>
+	  <div class="square left"></div>
+	  <div class="square left"></div>
+	  <div class="square left"></div>
+	</div>
+	
+	<div class="row">
+	  <div class="square left"></div>
+	  <div class="square right"></div>
+	</div>
+	
+	<div class="row">
+	  <div class="square left"></div>
+	  <div class="square right"></div>
+	</div>
+	
+	<div class="row">
+	  <div class="square left"></div>
+	  <div class="square right"></div>
+	</div>
+	
+	
+	<div class="row">
+	  <div class="square left"></div>
+	  <div class="square left"></div>
+	  <div class="square left"></div>
+	  <div class="square left"></div>
+	  <div class="square left"></div>
+	</div>
+	
+	<div class="row">
+	   <div class="square right center-right"></div>
+	</div>
+	<div class="row">
+	   <div class="square left center-left"></div>
+	</div>
+	<div class="row">
+	   <div class="square right center-right"></div>
+	</div>
+	<div class="row">
+	   <div class="square left center-left"></div>
+	</div>
+	<div class="row">
+	   <div class="square right center-right"></div>
+	</div>
+	
+	<div class="row">
+	  <div class="center center-vertical">
+	  <div class="square left"></div>
+	  <div class="square left"></div>
+	  <div class="square left"></div>
+	  </div>
+	</div>
+	
+</div>
+
+
+</body>
+</html>

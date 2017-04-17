@@ -1,0 +1,31 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Quotes with a value of 'none'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#propdef-quotes" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#quotes-specify" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'quotes' property set to 'none' does not allow quotes to be generated." />
+        <style type="text/css">
+            div:before
+            {
+                content: open-quote;
+            }
+            div:after
+            {
+                content: close-quote;
+            }
+            div
+            {
+                quotes: none;
+                border: 2px solid black;
+                height: 30px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if box below is empty.</p>
+        <div></div>
+    </body>
+</html>

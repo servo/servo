@@ -1,0 +1,27 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD//XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Default outlines and interactive media groups</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/ui.html#outline-focus" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/media.html#interactive-media-group" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#dynamic-pseudo-classes" />
+        <meta name="flags" content="interact may" />
+        <meta name="assert" content="Interactive media groups may show a focus outline to indicate that focus has been set on an element." />
+        <style type="text/css">
+            div
+            {
+                background: red;
+            }
+            div:focus
+            {
+                background: lime;
+            }
+        </style>
+    </head>
+    <body>
+        <p>PREREQUISITE: Set focus on the element below.</p>
+        <p>Test passes if the element below (when it has focus) has a green background and it may also have an indication that focus has been set to the element (typically a dotted outline or a different color outline).</p>
+        <div tabindex="0">Set focus here</div>
+    </body>
+</html>

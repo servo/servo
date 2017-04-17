@@ -1,0 +1,29 @@
+<csstest def="NEGATED type element selector with universal namespace" module="W3C Selectors" modulename="css3-modsel" number="119" rev="1.2" date="30-july-2002" xmlns:a="http://www.example.org/a" xmlns:b="http://www.example.org/b" xmlns:html="http://www.w3.org/1999/xhtml" xmlns="http://www.example.org/css3tests">
+
+<author>Daniel Glazman</author>
+<author>Ian Hickson</author>
+
+<cssrules>@namespace html url(http://www.w3.org/1999/xhtml);
+@namespace a url(http://www.example.org/a);
+@namespace b url(http://www.example.org/b);
+div.test *:not(*|div) { display : block ; margin-bottom : 1em ;
+                            background-color : red }
+div.test &gt; *:not(*|p):not(*|div) { background-color : lime }
+div.stub &gt; *:not(*|div) { background-color : lime }
+</cssrules>
+
+<code>
+<div class="test" xmlns="http://www.w3.org/1999/xhtml">
+<div class="stub">
+<p>This paragraph should have a green background.</p>
+<p xmlns="http://www.example.org/b">This paragraph should have a green background.</p>
+<p xmlns="">This paragraph should have a green background.</p>
+<p xmlns="http://www.example.org/a">This paragraph should have a green background.</p>
+</div>
+<address>This address should have a green background.</address>
+<s xmlns="http://www.example.org/b">This paragraph should have a green background.</s>
+<t xmlns="">This paragraph should have a green background.</t>
+<u xmlns="http://www.example.org/a">This paragraph should have a green background.</u>
+</div>
+</code>
+</csstest>

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Reftest Reference</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<style>
+		#outer-ordered-1 {
+			padding: 0;
+		}
+		#r2 ol, #r2 ul {
+			padding: 0;
+		}
+
+		#outer-ordered-1 ol,
+		#outer-ordered-2 ol {
+			color: blue;
+		}
+		#outer-ordered-2 ol ol {
+			color: green;
+		}
+
+		.region {
+			margin: 2em;
+			background-color: lightgray;
+			width: 20em;
+		}
+		</style>
+	</head>
+	<body>
+		<p>This test passes if there are two gray rectangles:  each with a list with another lists nested in it. The numbers for the black list in the first rectangle, and the numbers for all the lists in the second rectangle should be rendered outside of the gray boxes</p>
+		<p>The list in the first rectangle should be black, with two blue nested lists in it. The nested lists should appear after the first and the second items, they should be indented and numbered starting at 1.</p>
+		<p>The list in the second rectangle should be black, with a blue nested list in it that has in turn a nested green list in it. The numbers in the list items text should coincide with the list item numbers.</p>
+		<div class="region" id="r1">
+			<ol id="outer-ordered-1">
+				<li>First ordered list, item 1
+					<ol>
+						<li>First inner ordered list, item 1</li>
+						<li>First inner ordered list, item 2</li>
+						<li>First inner ordered list, item 3</li>
+					</ol>
+				</li>
+				<li>First ordered list, item 2
+					<ol>
+						<li>Second inner ordered list, item 1</li>
+						<li>Second inner ordered list, item 2</li>
+					</ol>
+				</li>
+				<li>First ordered list, item 3</li>
+			</ol>
+		</div>
+		<div class="region" id="r2">
+				<ol id="outer-ordered-2">
+				<li>Second ordered list, item 1</li>
+				<li>Second ordered list, item 2
+					<ol>
+						<li>Last inner ordered list, item 1</li>
+						<li>Last inner ordered list, item 2
+							<ol>
+								<li>Innermost ordered list, item 1</li>
+								<li>Innermost ordered list, item 2</li>
+							</ol>
+						</li>
+						<li>Last inner ordered list, item 3</li>
+						<li>Last inner ordered list, item 4</li>
+					</ol>
+				</li>
+				<li>Second ordered list, item 3</li>
+			</ol>
+		</div>
+	</body>
+</html>

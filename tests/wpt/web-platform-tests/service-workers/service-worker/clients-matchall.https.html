@@ -31,8 +31,8 @@ t.step(function() {
 
 var expected = [
     /* visibilityState, focused, url, frameType */
-    ['visible', true, new URL(scope + '#1', location).toString(), 'nested'],
-    ['visible', false, new URL(scope + '#2', location).toString(), 'nested']
+    ['visible', true, new URL(scope + '#1', location).toString(), 'window', 'nested'],
+    ['visible', false, new URL(scope + '#2', location).toString(), 'window', 'nested']
 ];
 
 function onMessage(e) {

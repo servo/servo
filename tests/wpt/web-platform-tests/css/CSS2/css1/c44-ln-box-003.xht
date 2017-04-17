@@ -1,0 +1,38 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: The Height of Lines</title>
+  <meta name="flags" content="ahem image" />
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#the-height-of-lines"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="match" href="c44-ln-box-002-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+   div { font: 20px/40px Ahem; color: white; background: red url(support/css1test44d.png) no-repeat;
+         width: 14em; padding: 0.5em 1em; border: 1em solid green; }
+   img.twoc { vertical-align: -0.7em
+              /* 0.4em is exactly equal to 0.5ex which is exactly equal to the distance that 'middle'
+                 causes the centerpoint of the image to be from the baseline. Since the centerpoint
+                 is 1em above the bottom of the image, that means the bottom of the image has to be
+                 moved -0.6em so that it is at the same position as it would be with 'vertical-align'
+                 set to 'middle'. The bottom of the image is a further 0.6em+1em-1.5em from the bottom
+                 margin edge of the whole replaced element, which is what needs to be moved away from
+                 the baseline. So -(0.6em+(0.6em+1em-1.5em)) = -0.7em is the distance to move. */;
+              width: 2em; height: 2em; padding: 0.4em 0.5em 0.6em; border: solid 1em; margin: -1.5em -0.5em; }
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#line-height" title="10.8 Line height calculations: the 'line-height' and 'vertical-align' properties"/>
+ </head>
+ <body>
+  <p>Test passes if there is an hollow green rectangle and <strong>no red</strong>.</p>
+  <div>
+   xxxx xxxx xxxx
+   xxxx xxxx xxxx
+   xxxx
+   <img src="support/swatch-white.png" alt="Image download support must be enabled" class="twoc" />
+             xxxx
+   xxxx xxxx xxxx
+   xxxx xxxx xxxx
+  </div>
+ </body>
+</html>

@@ -1,0 +1,14 @@
+<script src="/common/PrefixedLocalStorage.js"></script>
+<script>
+var prefixedLocalStorage = new PrefixedLocalStorageResource({
+  close_on_cleanup: true
+});
+
+if (window.opener) {
+  window.opener.postMessage ({
+    name      : window.name,
+    openerName: window.opener.name,
+    isTop     : window.top === window
+  }, '*');
+}
+</script>

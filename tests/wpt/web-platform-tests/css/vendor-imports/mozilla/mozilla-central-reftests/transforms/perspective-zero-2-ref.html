@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>CSS transforms: perspective: 0px reference</title>
+<link rel="author" title="Miko Mynttinen" href="mailto:mmynttinen@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<style type="text/css">
+.parent {
+  transform: perspective(0px);
+}
+.parent > div {
+  width: 200px;
+  height: 200px;
+  position: absolute;
+}
+.child-3d {
+  background: green;
+  transform: translateZ(1px);
+}
+</style>
+</head>
+<body>
+<p>Test passes if there is only green below.</p>
+<div class="parent">
+  <div class="child-3d"></div>
+</div>
+</body>
+</html>

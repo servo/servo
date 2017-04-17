@@ -18,6 +18,7 @@ testText("<pre>abc  def", "abc  def", "Internal whitespace preserved");
 testText("<pre>abc\ndef", "abc\ndef", "\\n preserved");
 testText("<pre>abc\rdef", "abc\ndef", "\\r converted to newline");
 testText("<pre>abc\tdef", "abc\tdef", "\\t preserved");
+testText("<div><pre>abc</pre><pre>def</pre>", "abc\ndef", "Two <pre> siblings");
 
 /**** <div style="white-space:pre"> ****/
 

@@ -1,0 +1,44 @@
+root, document, para, info, clear {
+	display: block;
+}
+
+root {
+	background: #fff;
+	color: #000;
+}
+
+document {
+	margin: 0.5em;
+}
+
+info {
+	margin: 1em 0;
+}
+
+image[type="sample"] {
+	width: 100px;
+	height: 137px;
+	background: #fff url("../img/sample.png") no-repeat 0 0;
+	float: left;
+	margin: 0.3em 0.3em 0 0;
+	padding: 0.2em;
+	border: 1px solid;
+}
+
+para {
+	background-color: lime;
+}
+
+para[class="clearfix"]:after {
+	content: ".";
+	display: block;
+	height: 0;
+	visibility: hidden;
+	clear: both;
+}
+
+clear {
+	background-color: fuchsia;
+	padding: 0.5em;
+	font-weight: bold;
+}

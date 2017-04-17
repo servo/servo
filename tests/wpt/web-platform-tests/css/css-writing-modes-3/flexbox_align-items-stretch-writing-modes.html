@@ -1,0 +1,58 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>CSS Test: Flexbox align-items: stretch with writing-mode vertical-lr and vertical-rl</title>
+    <link rel="author" title="Mitsuteru Sawa" href="mailto:mitsuteru.s@gmail.com">
+    <link rel="reviewer" title="Tab Atkins Jr." href="mailto:jackalmage@gmail.com">
+    <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#propdef-align-items">
+    <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#writing-mode">
+    <link rel="match" href="flexbox_align-items-stretch-writing-modes-ref.html">
+    <meta name="assert" content="vertical-writing-mode flex items should stretch">
+    <style>
+        .container {
+            display: flex;
+            width: 250px;
+        }
+        .vertical-rl {
+            writing-mode: vertical-rl;
+        }
+        .vertical-lr {
+            writing-mode: vertical-lr;
+        }
+        .item {
+            background-color: green;
+        }
+        .square {
+            height: 50px;
+            width: 50px;
+        }
+        .error {
+            position: absolute;
+            background-color: red;
+            height: 100px;
+            width: 250px;
+            z-index: -1;
+        }
+    </style>
+</head>
+<body>
+    <p>The test passes if you see a green rectangle and no red.</p>
+    <div class="test">
+        <div class="error"></div>
+        <div class="container">
+            <div class="horizontal item">
+                <div class="square"></div>
+                <div class="square"></div>
+            </div>
+            <div class="vertical-rl item">
+                <div class="square"></div>
+                <div class="square"></div>
+            </div>
+            <div class="vertical-lr item">
+                <div class="square"></div>
+                <div class="square"></div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

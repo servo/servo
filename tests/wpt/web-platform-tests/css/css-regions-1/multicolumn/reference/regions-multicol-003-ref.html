@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Test reference</title>
+    <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com"/>
+    <!-- Reviewed on Github on 09-26-2013: https://github.com/w3c/csswg-test/pull/89 -->
+    <link rel="reviewer" title="Mihai Balan" href="mailto:mibalan@adobe.com"/>
+    <style type="text/css">
+        .green {
+           position: absolute;
+           top: 70px;
+           background-color: green;
+           width: 100px;
+           height: 200px;
+        }
+        #rect-1 {
+            left: 20px;
+        }
+        #rect-2 {
+            left: 150px;
+        }
+        #rect-3 {
+            left: 280px;
+        }
+    </style>
+</head>
+<body>
+   <p>The test passes if there are three vertical green rectangles and no red.</p>
+   <div class="green" id="rect-1"></div>
+   <div class="green" id="rect-2"></div>
+   <div class="green" id="rect-3"></div>
+</body>
+</html>

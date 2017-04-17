@@ -1,0 +1,97 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Writing Modes Test: list and sideways-lr - block flow direction of block-level boxes</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#writing-mode" title="3.1 Block Flow Direction: the writing-mode property" />
+  <link rel="match" href="block-flow-direction-043-ref.xht" />
+
+  <meta content="ahem image" name="flags" />
+  <meta content="This test checks that block-level boxes in a block formating context with 'writing-mode' set to 'sideways-lr' are laid out one after the other with the first beginning at the left-hand side of its containing block; they are ordered from left to right meaning that the 1st block box is the leftmost one and then the 2nd block is juxtaposed to the right-hand side of 1st block, the 3rd block is juxtaposed to the 2nd block on its right-hand side, etc... " name="assert" />
+
+  <style type="text/css"><![CDATA[
+  html
+    {
+      writing-mode: sideways-lr;
+    }
+  /*
+  "
+  The principal writing mode of the document is determined by the writing-mode
+  and direction values specified on the root element.
+  "
+  */
+
+  body
+    {
+      color: yellow;
+      font: 20px/1 Ahem;
+      height: 9em;
+    }
+
+  ul
+    {
+      background-color: blue;
+      border-top: blue solid 1em;
+      list-style: none outside url("support/blue1x1.png");
+      margin: 0em;
+      padding-bottom: 1em; /* overriding default 40px in several browsers */
+    }
+
+  ul.left-border
+    {
+      border-left: blue solid 1em;
+    }
+
+  ul#right-border
+    {
+      border-right: blue solid 1em;
+    }
+  ]]></style>
+ </head>
+
+ <body>
+
+<!-- The 1st left-most line of "P" --> <ul class="left-border"><li>AAAAAAA</li></ul>
+
+<!-- The 2nd left-most line of "P" --> <ul><li>&nbsp;&nbsp; B &nbsp;C</li></ul>
+
+<!-- The 3rd left-most line of "P" --> <ul><li>&nbsp;&nbsp; D &nbsp;E</li></ul>
+
+<!-- The 4th left-most line of "P" --> <ul><li>&nbsp;&nbsp; FFFF</li></ul>
+
+
+
+<!-- The left-most line of "A" --> <ul class="left-border"><li>GGGGGGG</li></ul>
+
+<!-- The 2nd left-most line of "A" --> <ul><li>&nbsp;&nbsp; H &nbsp;J</li></ul>
+
+<!-- The 3rd left-most line of "A" --> <ul><li>&nbsp;&nbsp; K &nbsp;L</li></ul>
+
+<!-- The 4th left-most line of "A" --> <ul><li>MMMMMMM</li></ul>
+
+
+
+<!-- The 1st left-most line of left-most "S" --> <ul class="left-border"><li>N&nbsp; QQQQ</li></ul>
+
+<!-- The 2nd left-most line of left-most "S" --> <ul><li>R&nbsp; S&nbsp; T</li></ul>
+
+<!-- The 3rd left-most line of left-most "S" --> <ul><li>U&nbsp; V&nbsp; W</li></ul>
+
+<!-- The 4th left-most line of left-most "S" --> <ul><li>XXXX &nbsp;Y</li></ul>
+
+
+
+<!-- The left-most line of right-most "S" --> <ul class="left-border"><li>a&nbsp; bbbb</li></ul>
+
+<!-- The 2nd left-most line of right-most "S" --> <ul><li>c&nbsp; d&nbsp; e</li></ul>
+
+<!-- The 3rd left-most line of right-most "S" --> <ul><li>f&nbsp; g&nbsp; h</li></ul>
+
+<!-- The 4th left-most line of right-most "S" --> <ul id="right-border"><li>jjjj &nbsp;k</li></ul>
+
+ </body>
+</html>

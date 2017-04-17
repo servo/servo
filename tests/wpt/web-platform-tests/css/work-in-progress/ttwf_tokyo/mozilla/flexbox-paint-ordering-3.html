@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!-- Testcase for whether we honor "order" on absolutely-positioned elements
+     within a flex container. Specifically, we test whether it affects their
+     paint-order (as it should, since it reorders the frame tree).  -->
+<html>
+<head>
+  <style>
+    #container { display: flex; }
+    #lowOrdinal {
+      position: absolute;
+      order: 5;
+      background: red;
+      height: 100px; width: 100px;
+    }
+    #highOrdinal {
+      position: absolute;
+      order: 10;
+      background: lime;
+      height: 100px; width: 100px;
+    }
+    #noOrdinal {
+      position: absolute;
+      background: orange;
+      height: 100px; width: 100px;
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <div id="highOrdinal"></div>
+    <div id="lowOrdinal"></div>
+    <div id="noOrdinal"></div>
+  </div>
+</body>
+</html>

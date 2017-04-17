@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+ <head>
+  <title>CSS Test: Dynamic letter-spacing changes</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/text/letter-spacing/001.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#spacing-props" />
+  <meta name="flags" content="dom"/>
+  <style type="text/css">
+   #test, #control { color: blue; font-weight: bold; border: solid silver thick; }
+   #control { letter-spacing: 7em; }
+  </style>
+ </head>
+ <body onload="document.getElementById('alter').style.letterSpacing = '7em'">
+  <p>The contents of the two silver boxes must be identical.</p>
+  <p id="control">ab cd ef gh i j</p>
+  <p id="test">
+   <span id="alter"><span>ab cd ef gh i j</span></span>
+  </p>
+ </body>
+</html>

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
+<g id="testmeta">
+	<title>CSS Masking: Dynamic change of clipPath id</title>
+	<html:link rel="author" title="Dirk Schulze" href="mailto:dschulze@adobe.com"/>
+	<html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#svg-clipping-paths"/>
+	<html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#ClipPathElement"/>
+	<html:link rel="match" href="reference/clip-path-square-003-ref.svg" />
+	<metadata class="flags">svg</metadata>
+	<desc class="assert">The id of a clipPath element is changed
+	dynamically. This makes the previous invalid clip path reference
+	of the group valid. A green square should be visible.</desc>
+</g>
+<clipPath id="oldclip" clipPathUnits="userSpaceOnUse">
+	<rect width="200" height="200"/>
+</clipPath>
+<g clip-path="url(#newclip)">
+	<rect width="400" height="400" fill="red"/>
+	<rect width="200" height="200" fill="green"/>
+</g>
+<script>
+document.getElementsByTagName("clipPath")[0].setAttribute("id", "newclip");
+</script>
+</svg>

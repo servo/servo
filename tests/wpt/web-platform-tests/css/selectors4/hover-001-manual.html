@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>CSS Test (Selectors): hover pseudo-class when scrolling</title>
+    <link rel="author" title="Chris Rebert" href="http://chrisrebert.com" />
+    <link rel="help" href="https://drafts.csswg.org/selectors-4/#the-hover-pseudo" />
+    <link rel="help" href="http://www.w3.org/TR/selectors/#the-user-action-pseudo-classes-hover-act" />
+    <meta name="flags" content="interact scroll" />
+    <meta name="assert" content="Scrolling away from an element that was hovered over should cause the :hover pseudo-class to no longer match said element." />
+    <style>
+button {
+    background-color: white;
+    color: black;
+}
+button:hover {
+    background-color: blue;
+    color: white;
+}
+div {
+    height: 2000px;
+    width: 100px;
+}
+    </style>
+</head>
+<body>
+    <ol>
+        <li>If the user-agent does not claim to support the <code>:hover</code> pseudo-class (e.g. the pointing device cannot detect hovering), then SKIP this test.</li>
+        <li>If the user-agent does not allow scrolling the document while leaving the pointer in the same position relative to the viewport, then SKIP this test.</li>
+        <li>Ensure that this document is scrolled all the way to the top.</li>
+        <li>Hover the pointer device over the button below.</li>
+        <li>If the button is not blue, then the test result is FAILURE.</li>
+        <li>
+            Scroll this document down while not moving the pointer at all, until the pointer no longer touches the button. For example, on a traditional desktop or laptop computer, keep the mouse perfectly still and do one of the following:
+            <ul>
+                <li>Press the "Page Down" key on the keyboard.</li>
+                <li>Press the "↓" key on the keyboard.</li>
+                <li>Roll the mouse's scrollwheel.</li>
+                <li>Perform a "scroll down" gesture on the trackpad</li>
+            </ul>
+        </li>
+        <li>If the button is blue, then the test result is FAILURE. If the button is white, then the test result is SUCCESS.</li>
+    </ol>
+    <br />
+    <button>Hover over me.</button>
+    <div></div>
+</body>
+</html>

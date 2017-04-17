@@ -1,0 +1,64 @@
+
+<HTML>
+<HEAD>
+<TITLE>Sixth Test of Section 6.1</TITLE>
+
+
+<STYLE TYPE="text/css">
+#id1 {margin: 0.5em}
+#id2 {margin: 1.5em}
+#id3 {margin: 1ex}
+#id4 {margin: 2ex}
+</STYLE>
+</HEAD>
+
+
+
+
+
+<BODY>
+
+<h1>Testing Statement #6 Below of Section 6.1 of CSS1 Spec</h1>
+
+
+
+
+
+
+<ul>
+<li>
+6. The relative units "em" and "ex" are relative to the font size of the
+element itself.
+</ul>
+
+
+
+
+<h2>PASS CRITERIA:
+</h2>
+<p ID=id1>
+If statement #6 above is passed, this paragraph should have a margin of
+0.5em (relative to font size of this element).
+The rule applied is "#id1 {margin: 0.5em}".
+<p ID=id2>
+This paragraph should have a margin of 1.5em (relative to font size of p
+element, which should be the same as above).  Therefore, this margin should
+be bigger than that in the paragraph above.
+The rule applied is "#id2 {margin: 1.5em}".
+<p ID=id3>
+This paragarph should have a margin of the height of the letter "x"
+(relative to font size of this p element).
+The rule applied is "#id3 {margin: 1ex}".
+<p ID=id4>
+This paragraph should have a margin of twice the height of the letter "x"
+(relative to the font size of this p element, which should be the same as
+in the paragraph above).  Thus, the margin of this paragraph should be
+bigger than that of the paragraph above.
+The rule applied is "#id4 {margin: 2ex}".
+<p>
+
+All other properties of this page should be UA-default.
+
+
+</BODY>
+</HTML>

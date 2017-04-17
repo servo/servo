@@ -1,0 +1,46 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border Conflict Resolution (by border style): 'hidden' vs. 'groove' - border with highest priority border style should dominate</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#border-conflict-resolution" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'hidden' border is the dominant border when it is collapsed with a 'groove' border." />
+        <style type="text/css">
+            table
+            {
+                border-collapse: collapse;
+            }
+            td
+            {
+                border: 5px hidden red;
+                height: 3em;
+                width: 3em;
+            }
+            #center
+            {
+                border: 5px groove red;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the center box in the table below has no border.</p>
+        <table>
+            <tr>
+                <td>hidden</td>
+                <td>hidden</td>
+                <td>hidden</td>
+            </tr>
+            <tr>
+                <td>hidden</td>
+                <td id="center">groove</td>
+                <td>hidden</td>
+            </tr>
+            <tr>
+                <td>hidden</td>
+                <td>hidden</td>
+                <td>hidden</td>
+            </tr>
+        </table>
+    </body>
+</html>

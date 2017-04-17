@@ -1,0 +1,25 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>Dynamic sheet append (&lt;style&gt;)</title>
+  <link rel="author" title="Boris Zbarsky" href="mailto:bzbarsky@mit.edu"/>
+  <link rel="reviewer" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html" />
+  <link rel="match" href="../reference/ref-this-text-should-be-green.xht"/>
+  <script type="text/javascript">
+   var style = document.createElement("style");
+   var text = document.createTextNode("body { color: red; }");
+   style.appendChild(text);
+   document.getElementsByTagName("head")[0].appendChild(style);
+   // note: when this runs, we've only parsed as far as the next line,
+   // so the style element below doesn't exist, so we "append"
+   // before that element.
+  </script>
+  <style type="text/css">
+   body { color: green; }
+  </style>
+ </head>
+ <body>
+  <p>This text should be green.</p>
+ </body>
+</html>

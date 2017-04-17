@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Test reference</title>
+    <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com"/>
+    <!-- Reviewed on Github on 09-26-2013: https://github.com/w3c/csswg-test/pull/89 -->
+    <link rel="reviewer" title="Mihai Balan" href="mailto:mibalan@adobe.com"/>
+    <style type="text/css">
+
+        .green {
+            position: absolute;
+            top: 50px;
+            width: 50px;
+            height: 200px;
+            background-color: green;
+        }
+        #bar-1 {
+            left: 20px;
+        }
+        #bar-2 {
+            left: 80px;
+        }
+        #bar-3 {
+            left: 140px;
+        }
+        #bar-4 {
+            left: 200px;
+        }
+    </style>
+</head>
+<body>
+   <p>The test passes if there are four green vertical bars and no red.</p>
+   <div class="green" id="bar-1"></div>
+   <div class="green" id="bar-2"></div>
+   <div class="green" id="bar-3"></div>
+   <div class="green" id="bar-4"></div>
+</body>
+</html>

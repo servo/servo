@@ -1,0 +1,129 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: Auto-imported from Gecko test 277995-1.html</title>
+  <link rel="author" title="Boris Zbarsky" href="mailto:bzbarsky@mit.edu"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#anonymous-boxes"/>
+  <meta name="flags" content='dom'/>
+
+  <script type="text/javascript"><![CDATA[
+    function doMore(data) {
+      while(data.hasChildNodes())
+        data.removeChild(data.firstChild);
+      for (var i = 0; i < 10; i++) {
+	append(data);
+      }
+    }
+
+    function append(data) {
+      var row = document.createElement("div");
+      row.setAttribute("class", "row");
+
+      var cell = document.createElement("span");
+      cell.appendChild(document.createTextNode("More Data"));
+      cell.setAttribute("class", "cell");
+      row.appendChild(cell);
+      data.appendChild(row);
+    }
+
+    function doTest() {
+      for (var i = 0; i < 10; ++i) {
+        document.body.offsetWidth;
+        doMore(document.getElementById('data'));
+      }
+      document.documentElement.className = '';
+    }
+  ]]></script>
+  <style type="text/css">
+    .table {
+      display: table;
+    }
+    .row {
+      display: table-row;
+
+    }
+    .cell {
+      display: table-cell;
+    }
+  </style>
+</head>
+<body onload="doTest()">
+<p>There should be no red below, except for antialiasing issues.</p>
+<div style="position: relative; font-size: 2em;">
+<div style="position: absolute; z-index: 2; top: 0; color: green; padding: 1px;">
+
+<table>
+  <tr>
+    <td>
+      <div id="data" class="table">
+      </div>
+    </td>
+  </tr>
+</table>
+</div>
+<div style="position: relative; z-index: 1; color: red; padding: 1px;">
+
+<table>
+  <tr>
+    <td>
+      <div style="display: table">
+        <div style="display: table-row-group">
+          <div style="display: table-row">
+            <div style="display: table-cell">
+              More Data
+            </div>
+          </div>
+          <div style="display: table-row">
+            <div style="display: table-cell">
+              More Data
+            </div>
+          </div>
+          <div style="display: table-row">
+            <div style="display: table-cell">
+              More Data
+            </div>
+          </div>
+          <div style="display: table-row">
+            <div style="display: table-cell">
+              More Data
+            </div>
+          </div>
+          <div style="display: table-row">
+            <div style="display: table-cell">
+              More Data
+            </div>
+          </div>
+          <div style="display: table-row">
+            <div style="display: table-cell">
+              More Data
+            </div>
+          </div>
+          <div style="display: table-row">
+            <div style="display: table-cell">
+              More Data
+            </div>
+          </div>
+          <div style="display: table-row">
+            <div style="display: table-cell">
+              More Data
+            </div>
+          </div>
+          <div style="display: table-row">
+            <div style="display: table-cell">
+              More Data
+            </div>
+          </div>
+          <div style="display: table-row">
+            <div style="display: table-cell">
+              More Data
+            </div>
+          </div>
+        </div>
+      </div>
+    </td>
+  </tr>
+</table>
+</div>
+</div>
+</body>
+</html>

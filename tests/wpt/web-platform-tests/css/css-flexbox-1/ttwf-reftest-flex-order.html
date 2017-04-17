@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Flexible Box Test: order proprety - value</title>
+    <link rel="author" title="haosdent" href="mailto:haosdent@gmail.com">
+    <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#propdef-order">
+    <link rel="match" href="reference/ttwf-reftest-flex-order-ref.html">
+    <meta name="assert" content="Statement describing what the test case is asserting">
+    <style type="text/css">
+        .container {
+	position: relative;
+	height: 6em;
+	display: flex;
+	background: red;
+	margin: 1em;
+	border: 1px solid black;
+        }
+	span {
+	height: 2em;
+	display: inline-block;
+	background: green;
+	color: white;
+	margin: 1em;
+	width: 8em;
+	}
+	.first {
+	order: 1;
+	}
+	.second {
+	order: 2;
+	}
+	.third {
+	order: 3;
+	}
+	.forth {
+	order: 4;
+	}
+    </style>
+</head>
+<body>
+    <p>The test passed if all the cells are reversed.</p>
+    <div class="container">
+      <span class="forth">first</span>
+      <span class="third">second</span>
+      <span class="second">third</span>
+      <span class="first">forth</span>
+    </div>
+</body>
+</html>

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Background and Border Test:background-size conflicts with background-attachment</title>
+    <link rel="author" title="xiaochun" href="mailto:stenders@163.com">
+    <link rel="reviewer" title="Jinlong Zhang" href="mailto:jinlongz@oupeng.com"><!--2012/10/21-->
+    <link rel="help" href="http://www.w3.org/TR/css3-background/#the-background-size">
+    <link rel="match" href="reference/background-size-ref.html">
+    <meta name="assert" content="The test passes if we can see the background-image is exactly same as above.">
+    <style type="text/css">
+    .backgroundSize{
+        width:295px;
+        height:289px;
+
+        background-image:url(support/bg.jpg);
+        background-repeat:no-repeat;
+        background-size:cover;
+        background-attachment:fixed;
+    }
+    </style>
+</head>
+<body>
+    The image used as background-image is :<br />
+    <img src="support/bg.jpg" />
+
+    <p>The test passes if we can see the background-image is exactly same as above.</p>
+    <div class="container">
+        <!-- This is the box that should only contains an image if the test passes -->
+        <div class="backgroundSize">
+        </div>
+    </div>
+</body>
+</html>

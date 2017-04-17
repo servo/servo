@@ -1,0 +1,44 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<meta http-equiv="content-type" content="text/html;charset=UTF-8"/>
+		<title>WOFF Test: Valid license Element With class Attribute in span Element in text Element</title>
+		<link rel="author" title="Tal Leming" href="http://typesupply.com" />
+		<link rel="help" href="http://dev.w3.org/webfonts/WOFF2/spec/#Metadata" />
+		<link rel="help" href="http://www.w3.org/TR/WOFF/#conform-metadata-noeffect" />
+		<link rel="help" href="http://dev.w3.org/webfonts/WOFF2/spec/#Metadata" />
+<link  rel="reviewer" title="Chris Lilley" href="mailto:chris@w3.org" />
+		<meta name="flags" content="font" />
+		<meta name="assert" content="The license element contains a text element that contains a span element with &quot;class1 class2 class3&quot; as the value for the class attribute." />
+		<style type="text/css"><![CDATA[
+			body {
+				font-size: 20px;
+			}
+			pre {
+				font-size: 12px;
+			}
+			.test {
+				font-family: "WOFF Test CFF Reference";
+				font-size: 200px;
+				margin-top: 50px;
+			}
+		]]></style>
+	</head>
+	<body>
+		<p><a href="support/FontsToInstall">Test fonts</a> must be installed for this test. The WOFF being tested will be loaded over the network so please wait until the download is complete before determing the success of this test.</p>
+		<p>Test passes if the word PASS appears below.</p>
+		<p>The Extended Metadata Block is valid and may be displayed to the user upon request.</p>
+		<div class="test">P</div>
+		<p>The XML contained in the Extended Metadata Block is below.</p>
+		<pre>
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;metadata version="1.0"&gt;
+	&lt;license url="http://w3c.org/Fonts"&gt;
+		&lt;text&gt;
+			Text with &lt;span class="class1 class2 class3"&gt;span&lt;/span&gt;.
+		&lt;/text&gt;
+	&lt;/license&gt;
+&lt;/metadata&gt;
+		</pre>
+	</body>
+</html>

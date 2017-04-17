@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Counter-increment with an identifier and a number set to nominal value, ident 10, grouped twice</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#propdef-counter-increment" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#counters" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'counter-increment' property with an identifier and an integer value, grouped twice." />
+        <style type="text/css">
+            div
+            {
+                counter-increment: ident 10 ident 10;
+            }
+            div:before
+            {
+                font-size: 30px;
+                content: counter(ident);
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the number '20' appears below.</p>
+        <div></div>
+    </body>
+</html>

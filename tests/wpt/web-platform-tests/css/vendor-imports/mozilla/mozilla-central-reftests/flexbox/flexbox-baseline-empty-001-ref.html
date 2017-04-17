@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!-- In this reference case, we have inline-blocks instead of inline
+     flex containers.  Otherwise it's the same. -->
+<html>
+<head>
+  <title>CSS Reftest Reference</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <meta charset="utf-8">
+  <link rel="stylesheet" type="text/css" href="support/ahem.css" />
+  <style>
+    body {
+      font: 20px Ahem;
+    }
+    .flexContainer {
+      display: inline-block;
+      height: 16px;
+      width: 16px;
+      background: purple;
+      border: 0px dotted black;
+      /* (Elements that want a border will set their border-width.) */
+    }
+  </style>
+</head>
+<body>
+  A
+  <div class="flexContainer"></div>
+  <div class="flexContainer" style="padding-bottom: 20px"></div>
+  <div class="flexContainer" style="padding: 10px"></div>
+  <div class="flexContainer" style="border-width: 3px"></div>
+  <div class="flexContainer" style="border-bottom-width: 4px"></div>
+  <div class="flexContainer" style="border-bottom-width: 4px; margin: 2px"></div>
+</body>
+</html>

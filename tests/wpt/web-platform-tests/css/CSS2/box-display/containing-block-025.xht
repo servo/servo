@@ -1,0 +1,33 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Containing block and absolutely positioned element in paged media positioned off first page</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#containing-block-details" />
+        <meta name="flags" content="may paged" />
+        <meta name="assert" content="An absolutely positioned element positioned beyond the boundaries of the page being laid out can be omitted, rendered on the current page or on a following page." />
+        <style type="text/css">
+            @media print
+            {
+                #print
+                {
+                    display: none;
+                }
+                div
+                {
+                    border: solid black;
+                    height: 1in;
+                    left: 0;
+                    position: absolute;
+                    top: 50in;
+                    width: 1in;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <p id="print">PREREQUISITE: Switch to paged media view.</p>
+        <p>Test passes if there is no box below, or there is a box on page 1, or there is a box on a following page.</p>
+        <div></div>
+    </body>
+</html>

@@ -1,0 +1,81 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>FIrst Test of Section 18.1 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+#id1 {cursor: auto}
+#id2 {cursor: crosshair}
+#id3 {cursor: default}
+#id4 {cursor: pointer}
+#id5 {cursor: move}
+#id6 {cursor: e-resize}
+#id7 {cursor: text}
+#id8 {cursor: wait}
+#id9 {cursor: help}
+#ida {cursor: url(ovalbbut.gif) }
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing FIrst Testable Statement of Sec 18.1 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+1. The cursor property specifies the type of cursor to be displayed for the
+pointing device.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p ID=id1 >
+If statement #1 above is passed, then
+the UA determines the cursor to display based on the current context.
+The rule applied is "#id1 {cursor: auto}".
+<p ID=id2>
+A simple crosshair is used.  The rule applied is "#id2 {cursor: crosshair}".
+<p ID=id3>
+The platform-dependent default cursor is used.
+The rule applied is "#id3 {cursor: default}".
+<p ID=id4>
+Here the cursor should be a pointer that indicates a link.
+The rule applied is "#id4 {cursor: pointer}".
+<p ID=id5>
+Here it is indicated that something is to be moved.
+The rule applied is "#id5 {cursor: move}".
+<p ID=id6>
+Here it is indicated that an edge is to be moved.
+The rule applied is "#id6 {cursor: e-resize}".
+<p ID=id7>
+Here it is indicated the text that may be selected.
+The rule applied is "#id7 {cursor: text}".
+<p id="id8">
+Here it is indicated that the program is busy and the user should wait.
+The rule applied is "#id8 {cursor: wait}".
+<p id="id9">
+Here it is indicated that help is available for the object under the cursor.
+The rule applied is "#id9 {cursor: help}".
+<p id="ida">
+Here the user agent retrieves the cursor from "ovalbbut.gif".
+The rule applied is "#ida {cursor: url(ovalbbut.gif)}".
+<p>
+All other properties of this page should be UA-default.
+
+
+</BODY>
+</HTML>
+

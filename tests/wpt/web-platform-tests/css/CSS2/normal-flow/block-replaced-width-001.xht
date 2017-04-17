@@ -1,0 +1,37 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Block replaced elements and 'auto' specified for 'margin-left', 'margin-right' and intrinsic width</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#block-replaced-width" />
+        <meta name="flags" content="ahem image" />
+        <meta name="assert" content="Computed value of 'auto' for 'margin-left' or margin-right' on block replaced elements becomes a used value of '0'. The intrinsic width is also used if 'height' and 'width' are 'auto'." />
+        <style type="text/css">
+            #div1
+            {
+                border: solid black;
+                height: 2in;
+                width: 2in;
+            }
+            img
+            {
+                display: block;
+                margin-left: auto;
+                margin-right: auto;
+            }
+            div div
+            {
+                color: orange;
+                font: 15px/1em Ahem;
+                text-align: center;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the blue and orange squares have the same width and are horizontally centered inside the black hollow square.</p>
+        <div id="div1">
+            <img alt="blue 15x15" src="support/blue15x15.png" />
+            <div>X</div>
+        </div>
+    </body>
+</html>

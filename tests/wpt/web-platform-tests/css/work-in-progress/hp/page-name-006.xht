@@ -1,0 +1,23 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: Page Size and Named Pages</title>
+<link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+<link rel="help" href="http://www.w3.org/TR/css3-page/#page-size"/>
+<meta name="flags" content="paged" />
+<meta name="assert" content="The initial value of the 'size' property is 'auto'."/>
+<style type="text/css">
+	@page rotated { 
+		margin: 1cm;
+   		size: 4in 4in;
+		border: 2pt solid black;
+	}
+	div.shrunk { page: rotated }
+
+</style>
+</head>
+<body>
+	<div>This page must be printed in the default orientation of the browser.</div>
+	<div class="shrunk">This paragraph should appear on a new page. On sheets of paper larger than 4&quot;x4&quot;, the inside of this box must be 4&quot;x4&quot;, and it should either be centered on the page or placed in the upper left corner.</div>
+</body>
+</html>

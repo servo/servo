@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+                      "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Escaped url() functional notation</title>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#uri"/>
+  <link rel="match" href="../reference/ref-green-background.xht"/>
+  <meta name="flags" content=""/>
+  <meta name="assert" content="url() notation is case-insensitive and can be escaped."/>
+  <style type="text/css"><![CDATA[
+    p {
+      color: white;
+      background: red;
+      background: red U\r\4c ("support/swatch-green.png");
+    }
+  ]]></style>
+ </head>
+ <body>
+  <p>This should have a green background.</p>
+ </body>
+</html>

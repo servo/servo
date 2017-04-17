@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!--
+     This test verifies that 'float' on a grandchild of a flex container _will_
+     cause the element to be floated.
+
+     This differs from the "2a" variant in that the flex items are <div>s
+     rather than <span>s (though that shouldn't matter, because <span> as a
+     flex item should become "display:block").
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <style>
+      div.flexbox {
+        display: flex;
+        font-family: sans-serif;
+        width: 400px;
+        margin-bottom: 2px;
+        background: lightgreen;
+        justify-content: space-around;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- These cases have a floated span as a grandchild of the flex container.
+         The span should float within its flex item. -->
+    <div class="flexbox">
+      <div>aaa<span style="float: left">lll</span>bbb</div>
+    </div>
+    <div class="flexbox">
+      <div>aaa<span style="float: right">rrr</span>bbb</div>
+    </div>
+
+    <!-- These cases have a floated div as a grandchild of the flex container.
+         The div should float within its flex item. -->
+    <div class="flexbox">
+      <div>aaa<div style="float: left">lll</div>bbb</div>
+    </div>
+    <div class="flexbox">
+      <div>aaa<div style="float: right">rrr</div>bbb</div>
+    </div>
+  </body>
+</html>

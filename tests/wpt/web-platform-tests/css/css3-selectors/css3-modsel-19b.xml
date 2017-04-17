@@ -1,0 +1,12 @@
+<csstest def=":active pseudo-class on controls" module="W3C Selectors" modulename="css3-modsel" number="19b" rev="1.0" date="29-february-2004" xmlns:a="http://www.example.org/a" xmlns:b="http://www.example.org/b" xmlns:html="http://www.w3.org/1999/xhtml" xmlns="http://www.example.org/css3tests">
+
+<author>Ian Hickson</author>
+
+<userinteraction/>
+
+<cssrules>button:active { background: green; color: white; }</cssrules>
+
+<code>
+<p xmlns="http://www.w3.org/1999/xhtml"><button>Activating (e.g. holding the mouse button down on) this button should make it go green.</button></p>
+</code>
+</csstest>

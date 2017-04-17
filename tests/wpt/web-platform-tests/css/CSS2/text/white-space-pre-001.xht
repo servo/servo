@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: white-space pre: simple tests</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-06-29 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/text/white-space/pre/001.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#white-space-model" />
+  <link rel="match" href="white-space-pre-001-ref.xht" />
+
+  <meta name="flags" content="ahem" />
+
+  <style type="text/css">
+   pre { white-space: pre; font: 1.25em/1 Ahem; background: green; color: lime; }
+  </style>
+ </head>
+ <body>
+  <p>Test passes if the word PASS is drawn and if there is <strong>no red</strong>.</p>
+  <table><tr><td>
+   <pre>
+ xxxx xxxx xxxx xxxx
+ x  x x  x x    x
+ xxxx xxxx xxxx xxxx
+ x    x  x    x    x
+ x    x  x xxxx xxxx
+                     </pre>
+  </td></tr></table>
+ </body>
+</html>

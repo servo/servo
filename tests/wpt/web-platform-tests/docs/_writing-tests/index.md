@@ -47,7 +47,7 @@ however.
 
 ## Submitting Tests
 
-Once you're written tests, please submit them using
+Once you've written tests, please submit them using
 the [typical GitHub Pull Request workflow][submission-process]; please
 make sure you run the [`lint` script][lint-tool] before opening a pull request!
 

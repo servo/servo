@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>outline reference</title>
+<link rel="author" title="Justin Hill" href="http://www.justin-hill.com">
+<style>
+  .container {
+    width:220px;
+    background: red;
+  }
+
+  .child {
+    position:relative;
+    z-index: 1;
+    background:white;
+    float:left;
+  }
+
+  .first {
+    border: 10px solid blue;
+    border-right-width: 0px;
+    width:90px;
+  }
+
+  .second {
+    border: 10px solid orange;
+    width:100px;
+  }
+</style>
+<body>
+  <p>Test passes if no red visible and orange outline overlaps blue.</p>
+  <div class="container">
+    <div class="child first">
+      <p>left</p>
+    </div>
+    <div class="child second">
+      <p>right</p>
+    </div>
+  </div>
+</body>

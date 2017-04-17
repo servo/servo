@@ -4,8 +4,7 @@
     <title>XMLHttpRequest: send() - data argument</title>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
-    <link rel="help" href="https://xhr.spec.whatwg.org/#the-send()-method" data-tested-assertations="/following::ol/li[4]" />  
-    <link rel="help" href="https://xhr.spec.whatwg.org/#dom-XMLHttpRequest-send-a-string" data-tested-assertations="/following::dd" />  
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-send()-method" data-tested-assertations="/following::ol/li[4]" />
   </head>
   <body>
     <div id="log"></div>
@@ -23,6 +22,7 @@
       request([2,2], "2,2")
       request(false, "false")
       request("A\0A", "A\0A")
+      request(new URLSearchParams([[1, 2], [3, 4]]), "1=2&3=4")
     </script>
   </body>
 </html>

@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Test: unicode-bidi: bidi-override - rtl</title>
+    <link rel="author" title="Eira Monstad, Opera Software ASA" href="mailto:public-testsuites@opera.com"/>
+    <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#propdef-unicode-bidi"/>
+    <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#direction"/>
+    <meta name="flags" content=""/>
+    <meta name="assert" content="unicode-bidi: bidi-override should order characters strictly according to value of direction property"/>
+    <style type="text/css"><![CDATA[
+      .override {
+      direction: rtl;
+      unicode-bidi: bidi-override;
+      }
+      .passcond {direction:ltr;}
+      .control {direction:ltr;}
+    ]]></style>
+  </head>
+
+  <body>
+
+    <p class="passcond">The lines below should be identical:</p>
+    <p class="control">a b, c d.</p>
+
+    <p>a b, <span class="override">d c</span>.</p>
+
+  </body>
+</html>
+

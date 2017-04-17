@@ -1,0 +1,15 @@
+<csstest def="Default attribute value and negation pseudo-class" module="W3C Selectors" modulename="css3-modsel" number="58" rev="1.1" date="12-november-2001" xmlns:a="http://www.example.org/a" xmlns:b="http://www.example.org/b" xmlns:html="http://www.w3.org/1999/xhtml" xmlns="http://www.example.org/css3tests">
+
+<author>Daniel Glazman</author>
+<author>Ian Hickson</author>
+
+<cssrules>form { background-color : red }
+form:not([method]) { background-color : lime }
+</cssrules>
+
+<code> <!-- 'method' is an attribute with a default value in the XHTML DTD -->
+ <form action="http://www.example.org/foo.cgi" xmlns="http://www.w3.org/1999/xhtml">
+  <p>The paragraph should have a green background.</p>
+ </form>
+</code>
+</csstest>

@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: Margin Collapsing: top margins</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/block/margin-collapse/041.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#collapsing-margins"/>
+  <style type="text/css">
+   .test { background: aqua; margin: 0; width: 6em; border: solid; }
+   .test .a { height: 1em; background: fuchsia; margin: 0; }
+   .test .b { background: red; margin: 0; }
+   .test .c { float: left; height: 1em; width: 3em; background: orange; margin: 0; }
+   .test .d { height: 1em; background: yellow; margin: 1em 0 0 0; }
+   .control { width: 6em; border: solid; }
+   .control .a { border-top: fuchsia 1em solid; }
+   .control .b { border-top: aqua 1em solid; }
+   .control .c { border-left: orange 3em solid; border-right: yellow 3em solid; height: 1em; }
+  </style>
+ </head>
+ <body>
+  <p>The two boxes below should look identical.</p>
+  <table>
+   <tr>
+    <td>
+     <div class="test">
+      <div class="a"></div>
+      <div class="b">
+       <div class="c"></div>
+       <div class="d"></div>
+      </div>
+     </div>
+    </td>
+    <td>
+     <div class="control">
+      <div class="a"></div>
+      <div class="b"></div>
+      <div class="c"></div>
+     </div>
+    </td>
+   </tr>
+  </table>
+
+
+</body>
+</html>

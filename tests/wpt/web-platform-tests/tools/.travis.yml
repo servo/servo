@@ -12,6 +12,8 @@ matrix:
     env: TOXENV=py27 HYPOTHESIS_PROFILE=ci
   - python: 3.5
     env: TOXENV=py35 HYPOTHESIS_PROFILE=ci
+  - python: 3.6
+    env: TOXENV=py36 HYPOTHESIS_PROFILE=ci
   - python: pypy
     env: TOXENV=pypy HYPOTHESIS_PROFILE=ci_pypy
 

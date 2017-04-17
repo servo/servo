@@ -1,0 +1,22 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+ <head>
+  <title>Mozilla CSS: -moz-float-edge: margin-box and alignment (right)</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/mozilla/float-edge/012.html"/>
+    <style type="text/css">
+   p { margin: 0; }
+   div { border: ridge; }
+   .right { float: right; margin: 1em; width: 300px; }
+   .center { margin: 1em auto; width: 100px; -moz-float-edge: margin-box; }
+  </style>
+ </head>
+ <body>
+  <p>-moz-float-edge: margin-box -- the center box should be centered
+  relative to the remaining space and not the viewport. The center box
+  should not get inexplicably taller until the right floater is
+  touching it.</p>
+  <div class="right">right</div>
+  <div class="center">center</div>
+ </body>
+</html>

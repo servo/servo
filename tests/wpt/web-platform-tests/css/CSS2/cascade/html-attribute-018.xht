@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Attribute 'hspace' vs. CSS 'margin' specificity</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html#preshint" />
+        <meta name="flags" content="image" />
+        <meta name="assert" content="Attribute 'hspace' has a specificity of zero and is overridden by CSS." />
+        <style type="text/css">
+            html, body, p
+            {
+                margin: 10px;
+            }
+            *
+            {
+                margin: -5px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no space between the green and blue boxes below.</p>
+        <div>
+            <img hspace="200" alt="15x15 blue box" src="support/blue15x15.png" />
+            <img alt="15x15 green box" src="support/green15x15.png" />
+        </div>
+    </body>
+</html>

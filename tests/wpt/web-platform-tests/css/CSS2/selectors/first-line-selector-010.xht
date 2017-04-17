@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: First-line after a BR</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#first-line-pseudo" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The :first-line pseudo-element start tag is inserted right after the start tag of the block element." />
+        <style type="text/css">
+            div:first-line
+            {
+                color: red;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page.</p>
+        <div>
+            <br />Filler Text
+        </div>
+    </body>
+</html>

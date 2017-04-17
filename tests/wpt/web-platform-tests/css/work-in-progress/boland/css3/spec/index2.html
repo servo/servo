@@ -1,0 +1,1079 @@
+﻿<html>
+<head>
+  <title>W3C Backgrounds and Borders Tests</title>
+  <style type="text/css">
+    table { width : 100% }
+    table, td, th { border : thin solid black }
+    td { width : 75% ; font-weight : bold ; text-align : left }
+    td.lien { width : 25% ; text-align : center ; font-weight : normal }
+  </style>
+  <link rel="stylesheet" type="text/css" href="http://www.w3.org/StyleSheets/TR/W3C-CR.css" />
+</head>
+<body>
+<div class="head">
+<p><a href="http://www.w3.org/"><img src=
+"http://www.w3.org/Icons/w3c_home" alt="W3C Logo" border="0"
+height="48" width="72" /></a></p>
+
+<h1>W3C Backgrounds and Borders Tests</h1>
+
+<h2>December 1, 2005</h2>
+
+<dl>
+<dt>This version:</dt>
+
+<dd><a href="/~boland/css3/spec/index.htm">
+/~boland/css3/spec/index.htm</a></dd>
+
+<dt>Author</dt>
+
+<dd><a href=
+"mailto:frederick.boland@nist.gov">Tim Boland</a> (NIST)</dd>
+<!--
+
+<p class="copyright"><a href=
+"http://www.w3.org/Consortium/Legal/ipr-notice-20000612#Copyright">
+Copyright</a> &copy;2001 <a href="http://www.w3.org/"><abbr title=
+"World Wide Web Consortium">W3C</abbr></a><sup>&reg;</sup> (<a
+href="http://www.lcs.mit.edu/"><abbr title=
+"Massachusetts Institute of Technology">MIT</abbr></a>, <a href=
+"http://www.inria.fr/"><abbr lang="fr" title=
+"Institut National de Recherche en Informatique et Automatique">
+INRIA</abbr></a>, <a href="http://www.keio.ac.jp/">Keio</a>), All
+Rights Reserved. W3C <a href=
+"http://www.w3.org/Consortium/Legal/ipr-notice-20000612#Legal_Disclaimer">
+liability</a>, <a href=
+"http://www.w3.org/Consortium/Legal/ipr-notice-20000612#W3C_Trademarks">
+trademark</a>, <a href=
+"http://www.w3.org/Consortium/Legal/copyright-documents-19990405">
+document use</a> and <a href=
+"http://www.w3.org/Consortium/Legal/copyright-software-19980720">
+software licensing</a> rules apply.</p>
+-->
+<hr title="Separator from Header" />
+
+</div>
+
+<h2>W3C Backgrounds and Borders Property Tests</h2>
+<p>
+NOTE: The format of this cover page will soon change to reflect test 
+descriptions for each test, as well as creation of test ids.
+Additional tests will be created soon.
+As soon as a final test format is defined (as for CSS2.1?), this document will adhere
+to that format, as well as to the latest Test Case Authoring Guidelines. 
+ The tests are independent of one another, and contain no
+intrinsic navigation inside them.
+They are self-contained and autonomous, so may be navigated in any manner
+desired.
+One can "view source" to see names of tests for navigation purposes.
+For now, tests below are HTML, so your browser must support this
+capability to run these tests.
+There is a sample test of a different HTML format at the end,
+as well as some pure XML tests.  Finally, a few HTML TNG tests are presented.
+XHTML tests will be provided also</p>
+<p>
+The CSS3 Background and Borders Module referenced in these tests is
+<a href="http://www.w3.org/Style/Group/css3-src/css3-background/Overview.html">
+here (dated 14 October 2005). </a>
+NOTE: I put some additional letters at the end of some elements to test
+certain properties more effectively.
+Must support "gif" to run these tests; "jpg" also included, and other formats
+will be included soon.  Certain of these properties may not be implemented yet, and
+this is noted in each test description.  NOTE: Tests for layering multiple
+background images need to be included, as well as tests for the background of the canvas?
+.  Also, some properties/values may not be
+implemented yet in some of the tests, but the user agent is expected to parse 
+such unreognized information correctly according to error handling parsing requirements
+defined in CSS2.1.  When these properies/values are implemented, tests should pass as
+indicated in the prose. "First", "Second", "Third", etc., indicate different tests of a
+particular property (like background-color).
+</p>
+<p>
+<h3>Backgrounds Tests</h3>
+<p>
+
+<table border="1"><tbody><tr>
+   <td>Background Color-1 First test of the background color property</td>
+   <td class="lien">
+      <a href="bc1.html">bc1.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Color-2 Second test of the background color property</td>
+   <td class="lien">
+      <a href="bc2.html">bc2.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Color-3 Third test of the background color property</td>
+   <td class="lien">
+      <a href="bc3.html">bc3.html</a>
+   </td>
+</tr>
+<tr>
+    <td>Background Color-4 Fourth test of the background color property</td>
+    <td class="lien">
+       <a href="bc-red.html">bc-red.html</a>
+    </td>
+</tr>
+<tr>
+   <td>Background Image-1 First test of the background-image property</td>
+   <td class="lien">
+      <a href="bi1.html">bi1.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Image-2 Second test of the background-image property</td>
+   <td class="lien">
+      <a href="bi2.html">bi2.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Image-3 Third test of the background image property</td>
+   <td class="lien">
+      <a href="bi3.html">bi3.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Image-4 Fourth test of the background-image property</td>
+   <td class="lien">
+      <a href="bi4.html">bi4.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Image-5 Fifth test of the background-image property</td>
+   <td class="lien">
+      <a href="bi5.html">bi5.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Image-6 (N)Sixth test of the background-image property</td>
+   <td class="lien">
+      <a href="bi6.html">bi6.html</a>
+   </td>
+</tr>
+
+<tr>   
+   <td>Background Repeat-1 First test of the background-repeat property</td>
+   <td class="lien">
+      <a href="br1.html">br1.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Repeat-2 Second test of the background-repeat property</td>
+   <td class="lien">
+      <a href="br2.html">br2.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Repeat-3 Third test of the background-repeat property</td>
+   <td class="lien">
+      <a href="br3.html">br3.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Repeat-4 Fourth test of the background-repeat property</td>
+   <td class="lien">
+      <a href="br4.html">br4.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Repeat-5 Fifth test of the background-repeat property</td>
+   <td class="lien">
+      <a href="br5.html">br5.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Repeat-6 Sixth test of the background-repeat property</td>
+   <td class="lien">
+      <a href="br6.html">br6.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Repeat-7 (N)Seventh test of the background-repeat property</td>
+   <td class="lien">
+      <a href="br7.html">br7.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Attachment-1 First test of the background-attachment property</td>
+   <td class="lien">
+      <a href="ba1.html">ba1.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Attachment-2 Second test of the background-attachment property</td>
+   <td class="lien">
+      <a href="ba2.html">ba2.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Attachment-3 Third test of the background-attachment property</td>
+   <td class="lien">
+      <a href="ba3.html">ba3.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Attachment-4 Fourth test of the background-attachment property</td>
+   <td class="lien">
+      <a href="ba4.html">ba4.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Attachment-5 (N)Fifth test of the background-attachment property</td>
+   <td class="lien">
+      <a href="ba5.html">ba5.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Position-1 First test of the background-position property</td>
+   <td class="lien">
+      <a href="bp1.html">bp1.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Position-2 Second test of the background-position property</td>
+   <td class="lien">
+      <a href="bp2.html">bp2.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Position-3 Third test of the background-position property</td>
+   <td class="lien">
+      <a href="bp3.html">bp3.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Position-4 Fourth test of the background-position property</td>
+   <td class="lien">
+      <a href="bp4.html">bp4.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Position-5 Fifth test of the background-position property</td>
+   <td class="lien">
+      <a href="bp5.html">bp5.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Position-6 Sixth test of the background-position property</td>
+   <td class="lien">
+      <a href="bp6.html">bp6.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Position-7 Seventh test of the background-position property</td>
+   <td class="lien">
+      <a href="bp7.html">bp7.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Position-8 Eighth test of the background-position property</td>
+   <td class="lien">
+      <a href="bp8.html">bp8.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Position-9 Ninth test of the background-position property</td>
+   <td class="lien">
+      <a href="bp9.html">bp9.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Position-10 Tenth test of the background-position property</td>
+   <td class="lien">
+      <a href="bp10.html">bp10.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Position-11 Eleventh test of the background-position property</td>
+   <td class="lien">
+      <a href="bp11.html">bp11.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Position-12 Twelfth test of the background-position property</td>
+   <td class="lien">
+      <a href="bp12.html">bp12.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Position-13 Thirteenth test of the background-position property</td>
+   <td class="lien">
+      <a href="bp13.html">bp13.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Position-14 Fourteenth test of the background-position property</td>
+   <td class="lien">
+      <a href="bp14.html">bp14.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Position-15 Fifteenth test of the background-position property</td>
+   <td class="lien">
+      <a href="bp15.html">bp15.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Position-16 Sixteenth test of the background-position property</td>
+   <td class="lien">
+      <a href="bp16.html">bp16.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Position-17 Seventeenth test of the background-position property</td>
+   <td class="lien">
+      <a href="bp17.html">bp17.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Position-18 Eighteenth test of the background-position property</td>
+   <td class="lien">
+      <a href="bp18.html">bp18.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Position-19 Nineteenth test of the background-position property</td>
+   <td class="lien">
+      <a href="bp19.html">bp19.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Position-20 Twentieth test of the background-position property</td>
+   <td class="lien">
+      <a href="bp20.html">bp20.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Position-21 21st test of the background-position property</td>
+   <td class="lien">
+      <a href="bp21.html">bp21.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Position-22 22nd test of the background-position property</td>
+   <td class="lien">
+      <a href="bp22.html">bp22.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Position-23 23rd test of the background-position property</td>
+   <td class="lien">
+      <a href="bp23.html">bp23.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Position-24(N) 24th test of the background-position property</td>
+   <td class="lien">
+      <a href="bp24.html">bp24.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Clip-1 First test of the background-clip property</td>
+   <td class="lien">
+      <a href="bcl1.html">bcl1.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Clip-2 Second test of the background-clip property</td>
+   <td class="lien">
+      <a href="bcl2.html">bcl2.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Clip-3 Third test of the background-clip property</td>
+   <td class="lien">
+      <a href="bcl3.html">bcl3.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Clip-4(N) Fourth test of the background-clip property</td>
+   <td class="lien">
+      <a href="bcl4.html">bcl4.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Origin-1 First test of the background-origin property</td>
+   <td class="lien">
+      <a href="bo1.html">bo1.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Origin-2 Second test of the background-origin property</td>
+   <td class="lien">
+      <a href="bo2.html">bo2.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Origin-3 Third test of the background-origin property</td>
+   <td class="lien">
+      <a href="bo3.html">bo3.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Origin-4(N) Fourth test of the background-origin property</td>
+   <td class="lien">
+      <a href="bo4.html">bo4.html</a>
+   </td>
+</tr>
+
+<tr>
+   <td>Background Size-1 First test of the background-size property</td>
+   <td class="lien">
+      <a href="bs1.html">bs1.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Size-2 Second test of the background-size property</td>
+   <td class="lien">
+      <a href="bs2.html">bs2.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Size-3 Third test of the background-size property</td>
+   <td class="lien">
+      <a href="bs3.html">bs3.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Size-4(N) Fourth test of the background-size property</td>
+   <td class="lien">
+      <a href="bs4.html">bs4.html</a>
+   </td>
+</tr>
+
+<tr>
+   <td>Background-1 First test tests the background property</td>
+   <td class="lien">
+      <a href="b1.html">b1.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background-2 Second test tests the background property</td>
+   <td class="lien">
+      <a href="b2.html">b2.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background-3 Third test of the background property</td>
+   <td class="lien">
+      <a href="b3.html">b3.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background-4 Fourth test of the background property</td>
+   <td class="lien">
+      <a href="b4.html">b4.html</a>
+   </td>
+</tr>
+<!--
+<tr>
+   <td>Background-5 This test tests the background property</td>
+   <td class="lien">
+      <a href="b5.html">55</a>
+   </td>
+</tr>
+
+<tr>
+   <td>Background-6 (N) This test tests the background property</td>
+   <td class="lien">
+      <a href="b6.html">56</a>
+   </td>
+</tr>
+<tr>
+   <td>Background-7 (N)This test tests the background property</td>
+   <td class="lien">
+      <a href="b7.html">56-5</a>
+   </td>
+</tr>
+-->
+<tr>
+   <td>Background Break-1 First test of the background-break property</td>
+   <td class="lien">
+      <a href="bb1.html">bb1.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background Break-2 Second test of the background-break property</td>
+   <td class="lien">
+      <a href="bb2.html">bb2.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Background break-3 Third test of the background-break property</td>
+   <td class="lien">
+      <a href="bb3.html">bb3.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Special Background Test-1 Test of layering of multiple background images</td>
+   <td class="lien">
+      <a href="bspec1.html">bspec1.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Special Background Test-2 Test of background of the canvas</td>
+   <td class="lien">
+      <a href="bspec2.html">bspec2.html</a>
+   </td>
+</tr>
+
+</tbody></table>
+<p>
+An example of a different HTML format is <a href="bcex.html">here</a>.
+This format is similar to that in CSS1 Test Suite.
+<p>
+Some sample XML test cases (for background color) are
+<a href="mod14-1.xml">Test 1</a> and
+<a href="mod14-2.xml">Test 2</a>.
+This is in case one wants to use XML to access tests.
+More will be developed.
+<p>
+Some sample HTML test cases (in TNG Format) for background color are
+<a href="tng1.htm">Test 1</a> and
+<a href="tng2.htm">Test 2</a>, and
+<a href="tng3.htm">Test 3</a>.
+This is in case one wants to use HTML TNG to access tests.
+More can be developed.
+
+<p>
+<h3>Borders Tests</h3>
+<p>
+<table border="1"><tbody><tr>
+<td>Border Color-1 First test of the border color property</td>
+   <td class="lien">
+      <a href="bdc1.html">bdc1.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border Color-2 Second test of the border color property</td>
+   <td class="lien">
+      <a href="bdc2.html">bdc2.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border Color-3 Third test of the border color property</td>
+   <td class="lien">
+      <a href="bdc3.html">bdc3.html</a>
+   </td>
+</tr>
+
+<!--
+<tr>
+    <td>Border Color-4 This test tests the border color property</td>
+    <td class="lien">
+       <a href="bdc4.html">bdc4.htm</a>
+    </td>
+</tr>
+-->
+
+<tr>
+   <td>Border Style-1 First test of the border-style property</td>
+   <td class="lien">
+      <a href="bds1.html">bds1.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border Style-2 Second test of the border-style property</td>
+   <td class="lien">
+      <a href="bds2.html">bds2.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border Style-3 Third test of the border-style property</td>
+   <td class="lien">
+      <a href="bds3.html">bds3.html</a>
+   </td>
+</tr>
+
+<!--
+<tr>
+   <td>Border Style-4 This test tests the border-style property</td>
+   <td class="lien">
+      <a href="bds4.html">67</a>
+   </td>
+</tr>
+<tr>
+   <td>Border Style-5 This test tests the border-style property</td>
+   <td class="lien">
+      <a href="bds5.html">68</a>
+   </td>
+</tr>
+-->
+
+
+<tr>
+
+   <td>Border Radius-1 First test of the border radius property</td>
+   <td class="lien">
+      <a href="bdr1.html">bdr1.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border Radius-2 Second test of the border radius property</td>
+   <td class="lien">
+      <a href="bdr2.html">bdr2.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border Radius-3 Third test of the border radius property</td>
+   <td class="lien">
+      <a href="bdr3.html">bdr3.html</a>
+   </td>
+</tr>
+
+<!--
+<tr>
+    <td>Border Radius-4 This test tests the border radius property</td>
+    <td class="lien">
+       <a href="bdr4.html">72</a>
+    </td>
+</tr>
+-->
+
+<tr>
+   <td>Border Break-1 First test of the border-break property</td>
+   <td class="lien">
+      <a href="bdb1.html">bdb1.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border Break-2 Second test of the border-break property</td>
+   <td class="lien">
+      <a href="bdb2.html">bdb2.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border Break-3 Third test of the border-break property</td>
+   <td class="lien">
+      <a href="bdb3.html">bdb3.html</a>
+   </td>
+</tr>
+
+<!--
+<tr>
+   <td>Border Break-4 This test tests the border-break property</td>
+   <td class="lien">
+      <a href="bdb4.html">76</a>
+   </td>
+</tr>
+<tr>
+   <td>Border Break-5 This test tests the border-break property</td>
+   <td class="lien">
+      <a href="bdb5.html">77</a>
+   </td>
+</tr>
+-->
+
+<tr>
+   <td>Box Shadow-1 First test of the box-shadow property</td>
+   <td class="lien">
+      <a href="bdbs1.html">bdbs1.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Box Shadow-2 Second test of the box-shadow property</td>
+   <td class="lien">
+      <a href="bdbs2.html">bdbs2.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Box Shadow-3 Third test of the box-shadow property</td>
+   <td class="lien">
+      <a href="bdbs3.html">bdbs3.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border Top-1 First test of the border-top property</td>
+   <td class="lien">
+      <a href="bdtop1.html">bdtop1.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border Top-2 Second test of the border-top property</td>
+   <td class="lien">
+      <a href="bdtop2.html">bdtop2.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border Top-3 Third test of the border-top property</td>
+   <td class="lien">
+      <a href="bdtop3.html">bdtop3.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border Bottom-1 First test of the border-bottom property</td>
+   <td class="lien">
+      <a href="bdbottom1.html">bdbottom1.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border Bottom-2 Second test of the border-bottom property</td>
+   <td class="lien">
+      <a href="bdbottom2.html">bdbottom2.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border Bottom-3 Third test of the border-bottom property</td>
+   <td class="lien">
+      <a href="bdbottom3.html">bdbottom3.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border Right-1 First test of the border-right property</td>
+   <td class="lien">
+      <a href="bdright1.html">bdright1.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border Right-2 Second test of the border-right property</td>
+   <td class="lien">
+      <a href="bdright2.html">bdright2.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border Right-3 Third test of the border-right property</td>
+   <td class="lien">
+      <a href="bdright3.html">bdright3.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border Left-1 First test of the border-left property</td>
+   <td class="lien">
+      <a href="bdleft1.html">bdleft1.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border Left-2 Second test of the border-left property</td>
+   <td class="lien">
+      <a href="bdleft2.html">bdleft2.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border Left-3 Third test of the border-left property</td>
+   <td class="lien">
+      <a href="bdleft3.html">bdleft3.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border-1 First test of the border property</td>
+   <td class="lien">
+      <a href="bd1.html">bd1.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border-2 Second test of the border property</td>
+   <td class="lien">
+      <a href="bd2.html">bd2.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border-3 Third test of the border property</td>
+   <td class="lien">
+      <a href="bd3.html">bd3.html</a>
+   </td>
+</tr>
+
+<!--
+<tr>
+   <td>Border-4 This test tests the border property</td>
+   <td class="lien">
+      <a href="bd4.html">96</a>
+   </td>
+</tr>
+<tr>
+   <td>Border-5 This test tests the border property</td>
+   <td class="lien">
+      <a href="bd5.html">97</a>
+   </td>
+</tr>
+<tr>
+   <td>Border-6 This test tests the border property</td>
+   <td class="lien">
+      <a href="bd6.html">98</a>
+   </td>
+</tr>
+-->
+
+<tr>
+   <td>border-image-1 First test of the border-image property</td>
+   <td class="lien">
+      <a href="bdi1.html">bdi1.html</a>
+   </td>
+</tr>
+<tr>
+   <td>border-image-2 Second test of the border-image property</td>
+   <td class="lien">
+      <a href="bdi2.html">bdi2.html</a>
+   </td>
+</tr>
+<tr>
+   <td>border-image-3 Third test of the border-image property</td>
+   <td class="lien">
+      <a href="bdi3.html">bdi3.html</a>
+   </td>
+</tr>
+
+<tr>
+   <td>Border-left-color-1 First test of the border-left-color property</td>
+   <td class="lien">
+      <a href="bdcleft1.html">bdcleft1.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border-right-color-1 First test of the border-right-color property</td>
+   <td class="lien">
+      <a href="bdcright1.html">bdcright1.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border-bottom-color-1 First test of the border-bottom-color property</td>
+   <td class="lien">
+      <a href="bdcbottom1.html">bdcbottom1.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border-top-color-1 First test of the border-top-color property</td>
+   <td class="lien">
+      <a href="bdctop1.html">bdctop1.html</a>
+   </td>
+</tr>
+
+<tr>
+   <td>Border-left-color-2 Second test of the border-left-color property</td>
+   <td class="lien">
+      <a href="bdcleft2.html">bdcleft2.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border-right-color-2 Second test of the border-right-color property</td>
+   <td class="lien">
+      <a href="bdcright2.html">bdcright2.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border-bottom-color-2 Second test of the border-bottom-color property</td>
+   <td class="lien">
+      <a href="bdcbottom2.html">bdcbottom2.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border-top-color-2 Second test of the border-top-color property</td>
+   <td class="lien">
+      <a href="bdctop2.html">bdctop2.html</a>
+   </td>
+</tr>
+
+<tr>
+   <td>Border-left-color-3 Third test of the border-left-color property</td>
+   <td class="lien">
+      <a href="bdcleft3.html">bdcleft3.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border-right-color-3 Third test of the border-right-color property</td>
+   <td class="lien">
+      <a href="bdcright3.html">bdcright3.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border-bottom-color-3 Third test of the border-bottom-color property</td>
+   <td class="lien">
+      <a href="bdcbottom3.html">bdcbottom3.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border-top-color-3 Third test of the border-top-color property</td>
+   <td class="lien">
+      <a href="bdctop3.html">bdctop3.html</a>
+   </td>
+</tr>
+
+<tr>
+   <td>Border-left-style-1 First test of the border-left-style property</td>
+   <td class="lien">
+      <a href="bdsleft1.html">bdsleft1.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border-right-style-1 First test of the border-right-style property</td>
+   <td class="lien">
+      <a href="bdsright1.html">bdsright1.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border-bottom-style-1 First test of the border-bottom-style property</td>
+   <td class="lien">
+      <a href="bdsbottom1.html">bdsbottom1.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border-top-style-1 First test of the border-top-style property</td>
+   <td class="lien">
+      <a href="bdstop1.html">bdstop1.html</a>
+   </td>
+</tr>
+
+<tr>
+   <td>Border-left-style-2 Second test of the border-left-style property</td>
+   <td class="lien">
+      <a href="bdsleft2.html">bdsleft2.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border-right-style-2 Second test of the border-right-style property</td>
+   <td class="lien">
+      <a href="bdsright2.html">bdsright2.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border-bottom-style-2 Second test of the border-bottom-style property</td>
+   <td class="lien">
+      <a href="bdsbottom2.html">bdsbottom2.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border-top-style-2 Second test of the border-top-style property</td>
+   <td class="lien">
+      <a href="bdstop2.html">bdstop2.html</a>
+   </td>
+</tr>
+
+<tr>
+   <td>Border-left-style-3 Third test of the border-left-style property</td>
+   <td class="lien">
+      <a href="bdsleft3.html">bdsleft3.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border-right-style-3 Third test of the border-right-style property</td>
+   <td class="lien">
+       <a href="bdsright3.html">bdsright3.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border-bottom-style-3 Third test of the border-bottom-style property</td>
+   <td class="lien">
+        <a href="bdsbottom3.html">bdsbottom3.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border-top-style-3 Third test of the border-top-style property</td>
+   <td class="lien">
+      <a href="bdstop3.html">bdstop3.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border-left-width-1 First test of the border-left-width property</td>
+   <td class="lien">
+      <a href="bdwleft1.html">bdwleft1.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border-right-width-1 First test of the border-right-width property</td>
+   <td class="lien">
+      <a href="bdwright1.html">bdwright1.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border-bottom-width-1 First test of the border-bottom-width property</td>
+   <td class="lien">
+      <a href="bdwbottom1.html">bdwbottom1.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border-top-width-1 First test of the border-top-width property</td>
+   <td class="lien">
+      <a href="bdwtop1.html">bdwtop1.html</a>
+   </td>
+</tr>
+
+<tr>
+   <td>Border-left-width-2 Second test of the border-left-width property</td>
+   <td class="lien">
+      <a href="bdwleft2.html">bdwleft2.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border-right-width-2 Second test of the border-right-width property</td>
+   <td class="lien">
+      <a href="bdwright2.html">bdwright2.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border-bottom-width-2 Second test of the border-bottom-width property</td>
+   <td class="lien">
+      <a href="bdwbottom2.html">bdwbottom2.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border-top-width-2 Second test of the border-top-width property</td>
+   <td class="lien">
+      <a href="bdwtop2.html">bdwtop2.html</a>
+   </td>
+</tr>
+
+<tr>
+   <td>Border-left-width-3 Third test of the border-left-width property</td>
+   <td class="lien">
+      <a href="bdwleft3.html">bdwleft3.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border-right-width-3 Third test of the border-right-width property</td>
+   <td class="lien">
+      <a href="bdwright3.html">bdwright3.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border-bottom-width-3 Third test of the border-bottom-width property</td>
+   <td class="lien">
+      <a href="bdwbottom3.html">bdwbottom3.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border-top-width-3 Third test of the border-top-width property</td>
+   <td class="lien">
+      <a href="bdwtop3.html">bdwtop3.html</a>
+   </td>
+</tr>
+<td>Border Width-1 First test of the border width property</td>
+   <td class="lien">
+      <a href="bdw1.html">bdw1.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border Width-2 Second test of the border width property</td>
+   <td class="lien">
+      <a href="bdw2.html">bdw2.html</a>
+   </td>
+</tr>
+<tr>
+   <td>Border Width-3 Third test of the border width property</td>
+   <td class="lien">
+      <a href="bdw3.html">bdw3.html</a>
+   </td>
+</tr>
+
+</tbody></table>
+
+<p>
+
+<p>
+An example of a different HTML format is <a href="bdex.html">here</a>.
+This format is similar to that in CSS1 Test Suite.
+<p>
+A sample XML test case (for border color) is
+<a href="mod8-1.xml">Test 1</a>.
+This is in case one wants to use XML to access tests.
+More will be developed.
+<p>
+A sample HTML test case (in TNG Format) for border color is
+<a href="bdtng1.htm">Test 1</a>. 
+This is in case one wants to use HTML TNG to access tests.
+More can be developed.
+
+
+</body>
+</html>

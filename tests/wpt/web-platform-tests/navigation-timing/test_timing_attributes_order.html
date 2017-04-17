@@ -102,7 +102,7 @@
         <iframe id="frameContext"
                 onload="/* Need to make sure we don't examine loadEventEnd
                            until after the load event has finished firing */
-                        setTimeout(onload_test, 0);"
+                        step_timeout(onload_test, 0);"
                 src="resources/blank_page_unload.html"
                 style="width: 250px; height: 250px;"></iframe>
     </body>

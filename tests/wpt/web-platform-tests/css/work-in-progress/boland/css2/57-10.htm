@@ -1,0 +1,63 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Tenth Test of Section 5.7 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+div + p {text-indent: 0}
+h3 + h4 {margin-top: -5mm}
+h3.new + h4 {margin-top: 10mm}
+
+
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Tenth Testable Statement of Sec 5.7 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+10. This selector matches if E1 and E2 share the same parent in the document
+tree and E1 immediately precedes E2.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<h3 >
+If statement #10 above is passed, then
+this h3 heading should have a small vertical space between it and the h4
+heading below; this is because of rule
+"h3 + h4 {margin-top: -5mm}"
+<h4>This is h4 heading
+</h4>
+<div>
+<p>
+This paragraph should not be indented, because p follows div, and
+rule is "div + p {text-indent: 0}".
+<h3 class="new">
+This is h3 heading with class "new".
+</h3>
+<h4>
+This is h4 heading that follows it.  Margin top should be 10mm, because
+of rule "h3.new + h4 {margin-top: 10mm}".
+<p>
+All other properties of this page should be UA-default.
+
+
+</BODY>
+</HTML>
+

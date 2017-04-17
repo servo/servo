@@ -1,0 +1,44 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Position applied to element with 'display' set to 'table-cell'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+		<link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-09-20 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#propdef-position" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#dis-pos-flo" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#choose-position" />
+		<link rel="match" href="bottom-applies-to-001-ref.xht" />
+
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'position' property applies to elements with a display of 'table-cell'." />
+        <style type="text/css">
+			body {margin: 8px;}
+            #table
+            {
+                display: table;
+                table-layout: fixed;
+            }
+            #row
+            {
+                display: table-row;
+            }
+            #cell
+            {
+                background: green;
+                bottom: 0;
+                display: table-cell;
+                height: 100px;
+                position: absolute;
+                width: 100px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a filled green square at the bottom of the page.</p>
+        <div id="table">
+            <div id="row">
+                <div id="cell"></div>
+            </div>
+        </div>
+    </body>
+</html>

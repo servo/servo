@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<title>Reference File for line breaking tests using ideographic caracters</title>
+<link rel=author title="Florian Rivoal" href="http://florian.rivoal.net">
+<!--
+  As 口 is as a CJK ideograph, its advance is expected to be 1em,
+  and as both background and color are green
+  this file should typically render identically to line-breaking-001-ref.
+  However, depending on the particular font available,
+  the glyph could be missing or sized differently.
+
+  Also, there may be and anti-aliasing / font rendering differences between
+  a 1em × 1em green background (this file)
+  and a 1em × 1em green glyph from the Ahem font (line-breaking-001-ref).
+
+  Therefore, as both files are only likely, not certain, to render identically,
+  we need both.
+-->
+<style>
+div {
+    color: green;
+    background :green;
+    line-height: 1em;
+    width: 1em;
+    font-size: 20px;
+}
+</style>
+<body>
+    <p>There should be a green rectangle and no red.</p>
+    <div>口<br>口</div>
+</body>
+</html>

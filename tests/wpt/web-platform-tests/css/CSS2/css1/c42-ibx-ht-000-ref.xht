@@ -1,0 +1,47 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  div
+  {
+  color: green;
+  font: 10px/12px Ahem;
+  width: 20em;
+  }
+
+  span
+  {
+  background-color: lime;
+  color: lime;
+  }
+
+  span > span {padding: 0.2em 0em;}
+
+  span.green-square
+  {
+  color: green;
+  padding: 0em;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>There should be no red below, only green lines and dots.</p>
+
+  <div>1 3 <span>5 7 9 1 3 5 7 9
+   1 3 <span>5</span> 7 9 1 3 5 7 9
+   1 3 5 7 9 1 <span class="green-square">3</span> <span class="green-square">5</span> <span class="green-square">7</span> <span class="green-square">9</span>
+   <span class="green-square">1</span> <span class="green-square">3</span> <span class="green-square">5</span> <span class="green-square">7</span> <span class="green-square">9</span> <span>1</span> <span class="green-square">3</span> <span class="green-square">5</span> <span class="green-square">7</span> <span class="green-square">9</span>
+   <span class="green-square">1</span> <span class="green-square">3</span> <span class="green-square">5</span> <span class="green-square">7</span> <span class="green-square">9</span> <span class="green-square">1</span></span> 3 5 7 9</div>
+
+ </body>
+</html>

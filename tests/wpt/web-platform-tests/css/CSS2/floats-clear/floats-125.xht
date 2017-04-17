@@ -1,0 +1,28 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: CSS Floats: Bottom Padding on Inline Children</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/float/025.xml" type="application/xhtml+xml"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/float/025.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats" />
+  <link rel="match" href="floats-125-ref.xht" />
+
+  <style type="text/css">
+   /* reset everything to be sure we don't introduce oddities */
+   div { border: 0; padding: 0; margin: 0; line-height: 1; float: left; }
+   span { border: 0; padding: 0; margin: 0; line-height: 1; display: inline; }
+
+   /* the test */
+   body { margin-top: 12em; }
+   div { background: red; }
+   span.control { background: green; color: white; }
+   span.test { padding-top: 10em; }
+  </style>
+ </head>
+ <body>
+  <div>
+   <span class="test"><span class="control">There should be no red on this page.</span></span>
+  </div>
+ </body>
+</html>

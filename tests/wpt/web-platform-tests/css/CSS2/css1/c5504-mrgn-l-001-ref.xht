@@ -1,0 +1,68 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  p
+  {
+  color: navy;
+  margin: 0;
+  }
+
+  div.control
+  {
+  border: black solid medium;
+  margin: 1.25em;
+  width: 12.5em;
+  }
+
+  div.control div {height: 1.25em;}
+
+  div.a
+  {
+  border-left: orange solid 2.5em;
+  border-right: yellow solid 8.75em;
+  }
+
+  div.aa {border-right: teal solid 1.25em;}
+
+  div.b
+  {
+  border-left: orange solid 2.5em;
+  border-right: aqua solid 6.25em;
+  }
+
+  div.bb
+  {
+  border-left: yellow solid 2.5em;
+  border-right: teal solid 1.25em;
+  }
+  ]]>
+  </style>
+
+ </head>
+
+ <body>
+
+  <p>The following two diagrams should look identical.</p>
+
+  <div class="control">
+   <div class="a"><div class="aa"></div></div>
+   <div class="b"><div class="bb"></div></div>
+   <div class="a"><div class="aa"></div></div>
+  </div>
+
+  <div class="control">
+   <div class="a"><div class="aa"></div></div>
+   <div class="b"><div class="bb"></div></div>
+   <div class="a"><div class="aa"></div></div>
+  </div>
+
+ </body>
+</html>

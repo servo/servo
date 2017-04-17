@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<title>HTML Test: browsing context name - Empty string</title>
+<link rel="author" title="Intel" href="http://www.intel.com/">
+<body onload="followLink()">
+</body>
+<script>
+function followLink() {
+  var a = document.createElement('a');
+  a.href = 'post-to-top.html';
+  a.target = ''; // Target is empty string
+  document.body.appendChild(a);
+  a.click();
+}
+</script>
+</html>

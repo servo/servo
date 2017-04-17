@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Attribute 'cellpadding' vs. CSS 'padding' specificity</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html#preshint" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Attribute 'cellpadding' has a specificity of zero and is overridden by CSS." />
+        <style type="text/css">
+            html, body, p, table, tr
+            {
+                background: white;
+            }
+            *
+            {
+                background: blue;
+                padding: 0;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the blue boxes below are only large enough to fit the "Filler Text".</p>
+        <table cellpadding="100">
+            <tr>
+                <td>Filler Text Filler Text</td>
+            </tr>
+            <tr>
+                <td>Filler Text Filler Text</td>
+            </tr>
+        </table>
+    </body>
+</html>

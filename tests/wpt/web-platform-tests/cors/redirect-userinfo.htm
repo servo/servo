@@ -16,27 +16,27 @@
     // Test count for cache busting and easy identifying of request in traffic analyzer
     var num_test = 0
 
-    shouldFail("Disallow redirect with userinfo (//user:pass@)", [
+    shouldFail("Disallow redirect with userinfo (user:pass@)", [
                     CROSSDOMAIN + "resources/cors-makeheader.py?",
                     CROSSDOMAIN.replace("http://", "http://test:test@") + "resources/cors-makeheader.py?"]);
 
-    shouldFail("Disallow redirect with userinfo (//user:@)", [
+    shouldFail("Disallow redirect with userinfo (user:@)", [
                     CROSSDOMAIN + "resources/cors-makeheader.py?",
                     CROSSDOMAIN.replace("http://", "http://user:@") + "resources/cors-makeheader.py?"]);
 
-    shouldFail("Disallow redirect with userinfo (//user@)", [
+    shouldFail("Disallow redirect with userinfo (user@)", [
                     CROSSDOMAIN + "resources/cors-makeheader.py?",
                     CROSSDOMAIN.replace("http://", "http://user:@") + "resources/cors-makeheader.py?"]);
 
-    shouldFail("Disallow redirect with userinfo (//:@)", [
+    shouldPass("Allow redirect without userinfo (:@ is trimmed during URL parsing)", [
                     CROSSDOMAIN + "resources/cors-makeheader.py?",
                     CROSSDOMAIN.replace("http://", "http://:@") + "resources/cors-makeheader.py?"]);
 
-    shouldFail("Disallow redirect with userinfo (//:pass@)", [
+    shouldFail("Disallow redirect with userinfo (:pass@)", [
                     CROSSDOMAIN + "resources/cors-makeheader.py?",
                     CROSSDOMAIN.replace("http://", "http://:pass@") + "resources/cors-makeheader.py?"]);
 
-    shouldPass("Allow redirect with userinfo (//@)", [
+    shouldPass("Allow redirect without userinfo (@ is trimmed during URL parsing)", [
                     CROSSDOMAIN + "resources/cors-makeheader.py?",
                     CROSSDOMAIN.replace("http://", "http://@") + "resources/cors-makeheader.py?"]);
 
@@ -51,12 +51,8 @@
 
             client.open('GET', buildURL(urls, test_id));
 
-            client.onload = t.step_func(function() {
-                assert_false(!!client.response, "Got response");
-            });
-            client.onerror = t.step_func(function(e) {
-                t.done();
-            });
+            client.onload = t.unreached_func();
+            client.onerror = t.step_func_done();
 
             client.send(null)
         });
@@ -73,24 +69,17 @@
 
             client.open('GET', buildURL(urls, test_id));
 
-            client.onreadystatechange = t.step_func(function() {
-                if (client.readyState != client.DONE)
-                    return;
-                assert_true(!!client.response, "Got response");
+            client.onload = t.step_func_done(function() {
                 r = JSON.parse(client.response)
                 assert_equals(r['get_value'], 'last', 'get_value')
-                t.done();
             });
+            client.onerror = t.unreached_func()
             client.send(null)
         });
     }
 
     function buildURL(urls, id) {
         var tmp_url;
-
-        if (typeof(urls) == "string") {
-            return urls + "&" + id + "_0";
-        }
 
         for (var i = urls.length; i--; ) {
             if (!tmp_url)

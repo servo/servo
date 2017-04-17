@@ -1,0 +1,39 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+ <head>
+  <title>CSS Test: font-family and fallbacks</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/fonts/family/003.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-family-prop" />
+  <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-family-prop"/>
+  <link rel="match" href="font-family-013-ref.xht" />
+
+  <style type="text/css">
+   p { color: navy; font-size: 4em; margin: 0.25em; }
+   .a span.test { font-family: "Ahem", "Times New Roman"; }
+   .a span.control { font-family: "Times New Roman"; }
+   .b span.test { font-family: "Ahem", "Arial"; }
+   .b span.control { font-family: "Arial"; }
+   .c span.test { font-family: "Ahem", "Courier New"; }
+   .c span.control { font-family: "Courier New"; }
+  </style>
+ </head>
+ <body>
+  <div>In each of the three lines below, the two words should look identical.</div>
+  <p class="a">
+   <span class="test">&#x0162;&#x0119;&#x015F;&#x0163;</span>
+   &mdash;
+   <span class="control">&#x0162;&#x0119;&#x015F;&#x0163;</span>
+  </p>
+  <p class="b">
+   <span class="test">&#x0162;&#x0119;&#x015F;&#x0163;</span>
+   &mdash;
+   <span class="control">&#x0162;&#x0119;&#x015F;&#x0163;</span>
+  </p>
+  <p class="c">
+   <span class="test">&#x0162;&#x0119;&#x015F;&#x0163;</span>
+   &mdash;
+   <span class="control">&#x0162;&#x0119;&#x015F;&#x0163;</span>
+  </p>
+ </body>
+</html>

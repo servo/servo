@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Test: flow-into on ordered lists that use multiple CSS counters and ::before for list numbering</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#properties" />
+        <link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#propdef-counter-reset" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#propdef-counter-increment" />
+		<meta name="flags" content="">
+		<meta name="assert" content="The flow-into property can be applied to ordered lists. List items numbered using a single counter in nested scopes and extracted in a named flow should render in regions just as without regions.">
+		<link rel="match" href="reference/extract-ordered-lists-in-regions-explicit-counters-002-ref.html">
+		<style>
+		#list1 ol, ul {
+			counter-reset: items 0;
+			padding-left: 2em;
+		}
+		li {
+			counter-increment: items 1;
+			list-style-type: none;
+		}
+		.twice>li {
+			counter-increment: items 2;
+		}
+		li::before {
+			content: counters(items, ".") ". ";
+			display: inline-block;
+			margin-right: .3em;
+			text-align: right;
+		}
+		.roman>li::before {
+			content: counters(items, ".", upper-roman) ". ";
+		}
+		.disc>li::before {
+			content: counter(items, disc) " ";
+		}
+		#list1 {
+			flow-into: f1;
+		}
+
+		.region {
+			background-color: lightgray;
+			margin: 1em;
+			float: left;
+			width: 17em;
+			height: 15em;
+		}
+		#r1 {
+			flow-from: f1;
+		}
+		</style>
+	</head>
+	<body>
+		<p>This test passes if you see a gray rectangle with a list containing sublists as follows: the outermost list items should be numbered using roman numerals; the second-level list should be a bullet list with two items; the innermost list should be numbered using three levels of decimal numbers (<em>e.g.</em> 2.1.1).</p>
+		<ol class="roman" id="list1">
+			<li>Roman list, item I</li>
+			<li>Roman list, item II
+				<ul class="disc">
+					<li>Bullet 1
+						<ol>
+							<li>Sub-point 2.1.1</li>
+							<li>Sub-point 2.1.2</li>
+						</ol>
+					</li>
+					<li>Bullet 2
+						<ol>
+							<li>Sub-point 2.2.1</li>
+							<li>Sub-point 2.2.2</li>
+							<li>Sub-point 2.2.3</li>
+							<li>Sub-point 2.2.4</li>
+						</ol>
+					</li>
+				</ul>
+			</li>
+			<li>Roman list, item III</li>
+			<li>Roman list, item IV</li>
+		</ol>
+		<div class="region" id="r1"></div>
+	</body>
+</html>

@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Link charset attribute over referring document's codepage (set)</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#charset" />
+        <link rel="match" href="at-charset-001-ref.xht"/>
+        <meta name="flags" content="" />
+        <meta name="assert" content="The stylesheet's encoding is determined by the link element's charset attribute and not the referring document's code page." />
+        <meta http-equiv="Content-Type" content="text/html; charset=windows-1252" />
+        <link rel="stylesheet" href="support/at-charset-010.css" charset="shift-JIS" />
+        <style type="text/css">
+            div
+            {
+                color: red;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if both lines of "Filler Text" below are green.</p>
+        <div class="&#x5e73;&#x548c;">Filler Text</div>
+        <div id="div2">Filler Text</div>
+    </body>
+</html>

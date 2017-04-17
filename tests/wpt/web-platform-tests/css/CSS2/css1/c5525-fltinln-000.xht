@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: float</title>
+  <meta name="flags" content="ahem image" />
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#float"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="match" href="c5525-fltinln-000-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+   div { border: solid black; font: 15px/1 Ahem; width: 6em; margin: 1em; color: green; }
+   span { float: left; font-size: 200%; width: 1.5em; }
+   .a { background: red url(support/css1test5525ce-1.png) no-repeat; }
+   .b { background: red url(support/css1test5525ce-2.png) no-repeat; }
+   .b span { background-color: green; }
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats" title="9.5 Floats"/>
+ </head>
+ <body>
+  <p>Test passes if there are <strong>2 identical filled green rectangles with a black border</strong>.</p>
+  <div class="a">
+   <span>X</span> x x xx x x
+  </div>
+  <div class="b">
+   <span>X</span> x x xx x x
+  </div>
+ </body>
+</html>

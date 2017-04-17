@@ -1,0 +1,30 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS test: scientific notation</title>
+
+    <link rel="help" href="http://www.w3.org/TR/CSS22/syndata.html#tokenization" title="4.1.1 Tokenization" />
+    <link rel="help" href="http://www.w3.org/TR/CSS22/changes.html#s.4.1.1d" title="C.1 Changes since the Recommendation of 7 June 2011" />
+    <meta name="assert" content="num   [+-]?([0-9]+|[0-9]*\.[0-9]+)(e[+-]?[0-9]+)?" />
+    <link rel="match" href="scientific-notation-001-ref.xht" />
+    <link rel="author" title="Bert Bos" href="mailto:bert@w3.org" />
+
+    <meta name="flags" content="" />
+
+    <style type="text/css">
+      #container {height: 2em; background: red}
+      #child1 {height: 1e0em; background: green}
+      #child2 {height: 0.1e1em; background: green}
+    </style>
+  </head>
+
+  <body>
+    <p>There should be no red.</p>
+
+    <div id="container">
+      <div id="child1"></div>
+      <div id="child2"></div>
+    </div>
+  </body>
+</html>

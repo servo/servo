@@ -1,0 +1,34 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>CSS Test: Test for bottom:calc() on absolutely positioned elements</title>
+  <link rel="author" title="L. David Baron" href="https://dbaron.org/">
+  <link rel="help" href="http://www.w3.org/TR/css3-values/#calc-notation">
+  <link rel="match" href="calc-offsets-absolute-top-1-ref.html">
+  <meta name="flags" content="">
+<style type="text/css">
+body { margin: 0 }
+body > div { float: left; margin-top: -90px; height: 100px; margin-bottom: 90px; width: 3px; position: relative }
+div[style] { background: blue; position: absolute; height: 10px; width: 3px }
+div.space { height: 100px }
+</style>
+</head>
+<body>
+
+<!-- tests with a fixed-height container -->
+<div><div style="bottom: calc(-50px)"></div></div>
+<div><div style="bottom: calc(-50%)"></div></div>
+<div><div style="bottom: calc(-25px - 50%)"></div></div>
+<div><div style="bottom: calc(-150% / 2 + 30px)"></div></div>
+<div><div style="bottom: calc(-40px - 10% + 20% / 2)"></div></div>
+<div><div style="bottom: calc(-40px + 10%)"></div></div>
+
+<!-- tests with an auto-bottom container -->
+<div><div><div style="bottom: calc(-50px)"></div><div class="space"></div></div></div>
+<div><div><div style="bottom: calc(-50%)"></div><div class="space"></div></div></div>
+<div><div><div style="bottom: calc(-25px - 50%)"></div><div class="space"></div></div></div>
+<div><div><div style="bottom: calc(-150% / 2 + 30px)"></div><div class="space"></div></div></div>
+<div><div><div style="bottom: calc(-40px - 10% + 20% / 2)"></div><div class="space"></div></div></div>
+<div><div><div style="bottom: calc(-40px + 10%)"></div><div class="space"></div></div></div>
+</body>
+</html>
