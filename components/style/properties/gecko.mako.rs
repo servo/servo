@@ -44,6 +44,7 @@ use gecko_bindings::bindings::ServoComputedValuesBorrowedOrNull;
 use gecko_bindings::bindings::{Gecko_ResetFilters, Gecko_CopyFiltersFrom};
 use gecko_bindings::bindings::RawGeckoPresContextBorrowed;
 use gecko_bindings::structs::{self, StyleComplexColor};
+use gecko_bindings::structs::nsCSSPropertyID;
 use gecko_bindings::structs::nsStyleVariables;
 use gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordData, CoordDataMut};
 use gecko_bindings::sugar::ownership::HasArcFFI;
@@ -1986,6 +1987,11 @@ fn static_assert() {
     ${impl_transition_time_value('duration', 'Duration')}
     ${impl_transition_timing_function()}
 
+    pub fn transition_combined_duration_at(&self, index: usize) -> f32 {
+        // https://drafts.csswg.org/css-transitions/#transition-combined-duration
+        self.gecko.mTransitions[index].mDuration.max(0.0) + self.gecko.mTransitions[index].mDelay
+    }
+
     pub fn set_transition_property(&mut self, v: longhands::transition_property::computed_value::T) {
         use gecko_bindings::structs::nsCSSPropertyID::eCSSPropertyExtra_no_properties;
 
@@ -2017,6 +2023,10 @@ fn static_assert() {
     pub fn transition_property_at(&self, index: usize)
         -> longhands::transition_property::computed_value::SingleComputedValue {
         self.gecko.mTransitions[index].mProperty.into()
+    }
+
+    pub fn transition_nscsspropertyid_at(&self, index: usize) -> nsCSSPropertyID {
+        self.gecko.mTransitions[index].mProperty
     }
 
     pub fn copy_transition_property_from(&mut self, other: &Self) {

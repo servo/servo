@@ -649,6 +649,30 @@ extern "C" {
      -> bool;
 }
 extern "C" {
+    pub fn Gecko_ElementHasCSSTransitions(aElement: RawGeckoElementBorrowed,
+                                          aPseudoTagOrNull: *mut nsIAtom)
+     -> bool;
+}
+extern "C" {
+    pub fn Gecko_ElementTransitions_Length(aElement: RawGeckoElementBorrowed,
+                                           aPseudoTagOrNull: *mut nsIAtom)
+     -> usize;
+}
+extern "C" {
+    pub fn Gecko_ElementTransitions_PropertyAt(aElement:
+                                                   RawGeckoElementBorrowed,
+                                               aPseudoTagOrNull: *mut nsIAtom,
+                                               aIndex: usize)
+     -> nsCSSPropertyID;
+}
+extern "C" {
+    pub fn Gecko_ElementTransitions_EndValueAt(aElement:
+                                                   RawGeckoElementBorrowed,
+                                               aPseudoTagOrNull: *mut nsIAtom,
+                                               aIndex: usize)
+     -> RawServoAnimationValueBorrowedOrNull;
+}
+extern "C" {
     pub fn Gecko_GetProgressFromComputedTiming(aComputedTiming:
                                                    RawGeckoComputedTimingBorrowed)
      -> f64;

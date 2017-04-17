@@ -19,6 +19,7 @@ use font_metrics::FontMetricsProvider;
 #[cfg(feature = "gecko")] use gecko_bindings::structs;
 use matching::StyleSharingCandidateCache;
 use parking_lot::RwLock;
+#[cfg(feature = "gecko")] use properties::ComputedValues;
 #[cfg(feature = "gecko")] use selector_parser::PseudoElement;
 use selectors::matching::ElementSelectorFlags;
 #[cfg(feature = "servo")] use servo_config::opts;
@@ -285,10 +286,22 @@ bitflags! {
 pub enum SequentialTask<E: TElement> {
     /// Entry to avoid an unused type parameter error on servo.
     Unused(SendElement<E>),
+
+    /// Performs one of a number of possible tasks related to updating animations based on the
+    /// |tasks| field. These include updating CSS animations/transitions that changed as part
+    /// of the non-animation style traversal, and updating the computed effect properties.
     #[cfg(feature = "gecko")]
-    /// Marks that we need to update CSS animations, update effect properties of
-    /// any type of animations after the normal traversal.
-    UpdateAnimations(SendElement<E>, Option<PseudoElement>, UpdateAnimationsTasks),
+    UpdateAnimations {
+        /// The target element.
+        el: SendElement<E>,
+        /// The target pseudo element.
+        pseudo: Option<PseudoElement>,
+        /// The before-change style for transitions. We use before-change style as the initial
+        /// value of its Keyframe. Required if |tasks| includes CSSTransitions.
+        before_change_style: Option<Arc<ComputedValues>>,
+        /// The tasks which are performed in this SequentialTask.
+        tasks: UpdateAnimationsTasks
+    },
 }
 
 impl<E: TElement> SequentialTask<E> {
@@ -299,18 +312,24 @@ impl<E: TElement> SequentialTask<E> {
         match self {
             Unused(_) => unreachable!(),
             #[cfg(feature = "gecko")]
-            UpdateAnimations(el, pseudo, tasks) => {
-                unsafe { el.update_animations(pseudo.as_ref(), tasks) };
+            UpdateAnimations { el, pseudo, before_change_style, tasks } => {
+                unsafe { el.update_animations(pseudo.as_ref(), before_change_style, tasks) };
             }
         }
     }
 
+    /// Creates a task to update various animation-related state on
+    /// a given (pseudo-)element.
     #[cfg(feature = "gecko")]
-    /// Creates a task to update various animation state on a given (pseudo-)element.
-    pub fn update_animations(el: E, pseudo: Option<PseudoElement>,
+    pub fn update_animations(el: E,
+                             pseudo: Option<PseudoElement>,
+                             before_change_style: Option<Arc<ComputedValues>>,
                              tasks: UpdateAnimationsTasks) -> Self {
         use self::SequentialTask::*;
-        UpdateAnimations(unsafe { SendElement::new(el) }, pseudo, tasks)
+        UpdateAnimations { el: unsafe { SendElement::new(el) },
+                           pseudo: pseudo,
+                           before_change_style: before_change_style,
+                           tasks: tasks }
     }
 }
 

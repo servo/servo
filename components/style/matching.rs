@@ -19,7 +19,7 @@ use dom::{AnimationRules, SendElement, TElement, TNode};
 use font_metrics::FontMetricsProvider;
 use properties::{CascadeFlags, ComputedValues, SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP, cascade};
 use properties::longhands::display::computed_value as display;
-use restyle_hints::{RESTYLE_STYLE_ATTRIBUTE, RESTYLE_CSS_ANIMATIONS, RestyleHint};
+use restyle_hints::{RESTYLE_STYLE_ATTRIBUTE, RESTYLE_CSS_ANIMATIONS, RESTYLE_CSS_TRANSITIONS, RestyleHint};
 use rule_tree::{CascadeLevel, RuleTree, StrongRuleNode};
 use selector_parser::{PseudoElement, RestyleDamage, SelectorImpl};
 use selectors::bloom::BloomFilter;
@@ -477,10 +477,14 @@ trait PrivateMatchMethods: TElement {
 
         // Handle animations.
         if animate && !context.shared.traversal_flags.for_animation_only() {
+            let pseudo_style = pseudo_style.as_ref().map(|&(ref pseudo, ref computed_style)| {
+                (*pseudo, &**computed_style)
+            });
             self.process_animations(context,
                                     &mut old_values,
                                     &mut new_values,
-                                    pseudo);
+                                    primary_style,
+                                    &pseudo_style);
         }
 
         // Accumulate restyle damage.
@@ -496,32 +500,59 @@ trait PrivateMatchMethods: TElement {
         }
     }
 
+    /// get_after_change_style removes the transition rules from the ComputedValues.
+    /// If there is no transition rule in the ComputedValues, it returns None.
     #[cfg(feature = "gecko")]
     fn get_after_change_style(&self,
                               context: &mut StyleContext<Self>,
                               primary_style: &ComputedStyle,
                               pseudo_style: &Option<(&PseudoElement, &ComputedStyle)>)
-                              -> Arc<ComputedValues> {
+                              -> Option<Arc<ComputedValues>> {
         let style = &pseudo_style.as_ref().map_or(primary_style, |p| &*p.1);
         let rule_node = &style.rules;
         let without_transition_rules =
             context.shared.stylist.rule_tree.remove_transition_rule_if_applicable(rule_node);
         if without_transition_rules == *rule_node {
-            // Note that unwrapping here is fine, because the style is
-            // only incomplete during the styling process.
-            return style.values.as_ref().unwrap().clone();
+            // We don't have transition rule in this case, so return None to let the caller
+            // use the original ComputedValues.
+            return None;
         }
 
         let mut cascade_flags = CascadeFlags::empty();
         if self.skip_root_and_item_based_display_fixup() {
-            cascade_flags.insert(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP)
+            cascade_flags.insert(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP);
         }
-        self.cascade_with_rules(context.shared,
-                                &context.thread_local.font_metrics_provider,
-                                &without_transition_rules,
-                                primary_style,
-                                cascade_flags,
-                                pseudo_style.is_some())
+        Some(self.cascade_with_rules(context.shared,
+                                     &context.thread_local.font_metrics_provider,
+                                     &without_transition_rules,
+                                     primary_style,
+                                     cascade_flags,
+                                     pseudo_style.is_some()))
+    }
+
+    #[cfg(feature = "gecko")]
+    fn needs_animations_update(&self,
+                               old_values: &Option<Arc<ComputedValues>>,
+                               new_values: &Arc<ComputedValues>,
+                               pseudo: Option<&PseudoElement>) -> bool {
+        let ref new_box_style = new_values.get_box();
+        let has_new_animation_style = new_box_style.animation_name_count() >= 1 &&
+                                      new_box_style.animation_name_at(0).0.len() != 0;
+        let has_animations = self.has_css_animations(pseudo);
+
+        old_values.as_ref().map_or(has_new_animation_style, |ref old| {
+            let ref old_box_style = old.get_box();
+            let old_display_style = old_box_style.clone_display();
+            let new_display_style = new_box_style.clone_display();
+            // FIXME: Bug 1344581: We still need to compare keyframe rules.
+            !old_box_style.animations_equals(&new_box_style) ||
+             (old_display_style == display::T::none &&
+              new_display_style != display::T::none &&
+              has_new_animation_style) ||
+             (old_display_style != display::T::none &&
+              new_display_style == display::T::none &&
+              has_animations)
+        })
     }
 
     #[cfg(feature = "gecko")]
@@ -529,39 +560,63 @@ trait PrivateMatchMethods: TElement {
                           context: &mut StyleContext<Self>,
                           old_values: &mut Option<Arc<ComputedValues>>,
                           new_values: &mut Arc<ComputedValues>,
-                          pseudo: Option<&PseudoElement>) {
-        use context::{CSS_ANIMATIONS, EFFECT_PROPERTIES};
+                          primary_style: &ComputedStyle,
+                          pseudo_style: &Option<(&PseudoElement, &ComputedStyle)>) {
+        use context::{CSS_ANIMATIONS, CSS_TRANSITIONS, EFFECT_PROPERTIES};
         use context::UpdateAnimationsTasks;
 
-        let ref new_box_style = new_values.get_box();
-        let has_new_animation_style = new_box_style.animation_name_count() >= 1 &&
-                                      new_box_style.animation_name_at(0).0.len() != 0;
-        let has_animations = self.has_css_animations(pseudo);
-
+        let pseudo = pseudo_style.map(|(p, _)| p);
         let mut tasks = UpdateAnimationsTasks::empty();
-        let needs_update_animations =
-            old_values.as_ref().map_or(has_new_animation_style, |ref old| {
-                let ref old_box_style = old.get_box();
-                let old_display_style = old_box_style.clone_display();
-                let new_display_style = new_box_style.clone_display();
-                // FIXME: Bug 1344581: We still need to compare keyframe rules.
-                !old_box_style.animations_equals(&new_box_style) ||
-                 (old_display_style == display::T::none &&
-                  new_display_style != display::T::none &&
-                  has_new_animation_style) ||
-                 (old_display_style != display::T::none &&
-                  new_display_style == display::T::none &&
-                  has_animations)
-            });
-        if needs_update_animations {
+        if self.needs_animations_update(old_values, new_values, pseudo) {
             tasks.insert(CSS_ANIMATIONS);
         }
+
+        let before_change_style = if self.might_need_transitions_update(&old_values.as_ref(),
+                                                                        new_values,
+                                                                        pseudo) {
+            let after_change_style = if self.has_css_transitions(pseudo) {
+                self.get_after_change_style(context, primary_style, pseudo_style)
+            } else {
+                None
+            };
+
+            // In order to avoid creating a SequentialTask for transitions which may not be updated,
+            // we check it per property to make sure Gecko side will really update transition.
+            let needs_transitions_update = {
+                // We borrow new_values here, so need to add a scope to make sure we release it
+                // before assigning a new value to it.
+                let after_change_style_ref = match after_change_style {
+                    Some(ref value) => value,
+                    None => &new_values
+                };
+                self.needs_transitions_update(old_values.as_ref().unwrap(),
+                                              after_change_style_ref,
+                                              pseudo)
+            };
+
+            if needs_transitions_update {
+                if let Some(values_without_transitions) = after_change_style {
+                    *new_values = values_without_transitions;
+                }
+                tasks.insert(CSS_TRANSITIONS);
+
+                // We need to clone old_values into SequentialTask, so we can use it later.
+                old_values.clone()
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
         if self.has_animations(pseudo) {
             tasks.insert(EFFECT_PROPERTIES);
         }
+
         if !tasks.is_empty() {
             let task = ::context::SequentialTask::update_animations(*self,
                                                                     pseudo.cloned(),
+                                                                    before_change_style,
                                                                     tasks);
             context.thread_local.tasks.push(task);
         }
@@ -572,7 +627,8 @@ trait PrivateMatchMethods: TElement {
                           context: &mut StyleContext<Self>,
                           old_values: &mut Option<Arc<ComputedValues>>,
                           new_values: &mut Arc<ComputedValues>,
-                          _pseudo: Option<&PseudoElement>) {
+                          _primary_style: &ComputedStyle,
+                          _pseudo_style: &Option<(&PseudoElement, &ComputedStyle)>) {
         let possibly_expired_animations =
             &mut context.thread_local.current_element_info.as_mut().unwrap()
                         .possibly_expired_animations;
@@ -984,24 +1040,43 @@ pub trait MatchMethods : TElement {
                 }
             };
 
-            // RESTYLE_CSS_ANIMATIONS is processed prior to other restyle hints
-            // in the name of animation-only traversal. Rest of restyle hints
+            // RESTYLE_CSS_ANIMATIONS or RESTYLE_CSS_TRANSITIONS is processed prior to other
+            // restyle hints in the name of animation-only traversal. Rest of restyle hints
             // will be processed in a subsequent normal traversal.
-            if hint.contains(RESTYLE_CSS_ANIMATIONS) {
+            if hint.intersects(RestyleHint::for_animations()) {
                 debug_assert!(context.shared.traversal_flags.for_animation_only());
 
-                let animation_rule = self.get_animation_rule(None);
-                replace_rule_node(CascadeLevel::Animations,
-                                  animation_rule.as_ref(),
-                                  primary_rules);
-
-                let pseudos = &mut element_styles.pseudos;
-                for pseudo in pseudos.keys().iter().filter(|p| p.is_before_or_after()) {
-                    let animation_rule = self.get_animation_rule(Some(&pseudo));
-                    let pseudo_rules = &mut pseudos.get_mut(&pseudo).unwrap().rules;
-                    replace_rule_node(CascadeLevel::Animations,
+                use data::EagerPseudoStyles;
+                let mut replace_rule_node_for_animation = |level: CascadeLevel,
+                                                           primary_rules: &mut StrongRuleNode,
+                                                           pseudos: &mut EagerPseudoStyles| {
+                    let animation_rule = self.get_animation_rule_by_cascade(None, level);
+                    replace_rule_node(level,
                                       animation_rule.as_ref(),
-                                      pseudo_rules);
+                                      primary_rules);
+
+                    for pseudo in pseudos.keys().iter().filter(|p| p.is_before_or_after()) {
+                        let animation_rule = self.get_animation_rule_by_cascade(Some(&pseudo), level);
+                        let pseudo_rules = &mut pseudos.get_mut(&pseudo).unwrap().rules;
+                        replace_rule_node(level,
+                                          animation_rule.as_ref(),
+                                          pseudo_rules);
+                    }
+                };
+
+                // Apply Transition rules and Animation rules if the corresponding restyle hint
+                // is contained.
+                let pseudos = &mut element_styles.pseudos;
+                if hint.contains(RESTYLE_CSS_TRANSITIONS) {
+                    replace_rule_node_for_animation(CascadeLevel::Transitions,
+                                                    primary_rules,
+                                                    pseudos);
+                }
+
+                if hint.contains(RESTYLE_CSS_ANIMATIONS) {
+                    replace_rule_node_for_animation(CascadeLevel::Animations,
+                                                    primary_rules,
+                                                    pseudos);
                 }
             } else if hint.contains(RESTYLE_STYLE_ATTRIBUTE) {
                 let style_attribute = self.style_attribute();

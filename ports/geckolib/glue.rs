@@ -1788,12 +1788,15 @@ pub extern "C" fn Servo_NoteExplicitHints(element: RawGeckoElementBorrowed,
     debug!("Servo_NoteExplicitHints: {:?}, restyle_hint={:?}, change_hint={:?}",
            element, restyle_hint, change_hint);
     debug_assert!(restyle_hint == structs::nsRestyleHint_eRestyle_CSSAnimations ||
-                  (restyle_hint.0 & structs::nsRestyleHint_eRestyle_CSSAnimations.0) == 0,
-                  "eRestyle_CSSAnimations should only appear by itself");
+                  restyle_hint == structs::nsRestyleHint_eRestyle_CSSTransitions ||
+                  (restyle_hint.0 & (structs::nsRestyleHint_eRestyle_CSSAnimations.0 |
+                                     structs::nsRestyleHint_eRestyle_CSSTransitions.0)) == 0,
+                  "eRestyle_CSSAnimations or eRestyle_CSSTransitions should only appear by itself");
 
     let mut maybe_data = element.mutate_data();
     let maybe_restyle_data = maybe_data.as_mut().and_then(|d| unsafe {
-        maybe_restyle(d, element, restyle_hint == structs::nsRestyleHint_eRestyle_CSSAnimations)
+        maybe_restyle(d, element, restyle_hint == structs::nsRestyleHint_eRestyle_CSSAnimations ||
+                                  restyle_hint == structs::nsRestyleHint_eRestyle_CSSTransitions)
     });
     if let Some(restyle_data) = maybe_restyle_data {
         let restyle_hint: RestyleHint = restyle_hint.into();

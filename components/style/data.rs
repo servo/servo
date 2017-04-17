@@ -9,7 +9,7 @@
 use dom::TElement;
 use properties::ComputedValues;
 use properties::longhands::display::computed_value as display;
-use restyle_hints::{RESTYLE_CSS_ANIMATIONS, RESTYLE_DESCENDANTS, RESTYLE_LATER_SIBLINGS, RESTYLE_SELF, RestyleHint};
+use restyle_hints::{RESTYLE_DESCENDANTS, RESTYLE_LATER_SIBLINGS, RESTYLE_SELF, RestyleHint};
 use rule_tree::StrongRuleNode;
 use selector_parser::{EAGER_PSEUDO_COUNT, PseudoElement, RestyleDamage, Snapshot};
 #[cfg(feature = "servo")] use std::collections::HashMap;
@@ -199,13 +199,13 @@ impl StoredRestyleHint {
         // In the middle of an animation only restyle, we don't need to
         // propagate any restyle hints, and we need to remove ourselves.
         if traversal_flags.for_animation_only() {
-            if self.0.contains(RESTYLE_CSS_ANIMATIONS) {
-                self.0.remove(RESTYLE_CSS_ANIMATIONS);
+            if self.0.intersects(RestyleHint::for_animations()) {
+                self.0.remove(RestyleHint::for_animations());
             }
             return Self::empty();
         }
 
-        debug_assert!(!self.0.contains(RESTYLE_CSS_ANIMATIONS),
+        debug_assert!(!self.0.intersects(RestyleHint::for_animations()),
                       "There should not be any animation restyle hints \
                        during normal traversal");
 
@@ -259,7 +259,7 @@ impl StoredRestyleHint {
 
     /// Returns true if the hint has animation-only restyle.
     pub fn has_animation_hint(&self) -> bool {
-        self.0.contains(RESTYLE_CSS_ANIMATIONS)
+        self.0.intersects(RestyleHint::for_animations())
     }
 }
 

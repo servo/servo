@@ -34,6 +34,7 @@ use gecko_bindings::bindings::{Gecko_SetNodeFlags, Gecko_UnsetNodeFlags};
 use gecko_bindings::bindings::Gecko_ClassOrClassList;
 use gecko_bindings::bindings::Gecko_ElementHasAnimations;
 use gecko_bindings::bindings::Gecko_ElementHasCSSAnimations;
+use gecko_bindings::bindings::Gecko_ElementHasCSSTransitions;
 use gecko_bindings::bindings::Gecko_GetAnimationRule;
 use gecko_bindings::bindings::Gecko_GetExtraContentStyleDeclarations;
 use gecko_bindings::bindings::Gecko_GetHTMLPresentationAttrDeclarationBlock;
@@ -56,7 +57,7 @@ use media_queries::Device;
 use parking_lot::RwLock;
 use properties::{ComputedValues, parse_style_attribute};
 use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock};
-use properties::animated_properties::AnimationValueMap;
+use properties::animated_properties::{AnimationValue, AnimationValueMap, TransitionProperty};
 use properties::style_structs::Font;
 use rule_tree::CascadeLevel as ServoCascadeLevel;
 use selector_parser::{ElementExt, Snapshot};
@@ -66,6 +67,7 @@ use selectors::parser::{AttrSelector, NamespaceConstraint};
 use shared_lock::Locked;
 use sink::Push;
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::ptr;
@@ -528,6 +530,17 @@ impl<'le> TElement for GeckoElement<'le> {
                        self.get_transition_rule(pseudo))
     }
 
+    fn get_animation_rule_by_cascade(&self,
+                                     pseudo: Option<&PseudoElement>,
+                                     cascade_level: ServoCascadeLevel)
+                                     -> Option<Arc<Locked<PropertyDeclarationBlock>>> {
+        match cascade_level {
+            ServoCascadeLevel::Animations => self.get_animation_rule(pseudo),
+            ServoCascadeLevel::Transitions => self.get_transition_rule(pseudo),
+            _ => panic!("Unsupported cascade level for getting the animation rule")
+        }
+    }
+
     fn get_animation_rule(&self, pseudo: Option<&PseudoElement>)
                           -> Option<Arc<Locked<PropertyDeclarationBlock>>> {
         get_animation_rule(self, pseudo, CascadeLevel::Animations)
@@ -653,7 +666,9 @@ impl<'le> TElement for GeckoElement<'le> {
         (self.flags() & node_flags) == node_flags
     }
 
-    fn update_animations(&self, pseudo: Option<&PseudoElement>,
+    fn update_animations(&self,
+                         pseudo: Option<&PseudoElement>,
+                         before_change_style: Option<Arc<ComputedValues>>,
                          tasks: UpdateAnimationsTasks) {
         // We have to update animations even if the element has no computed style
         // since it means the element is in a display:none subtree, we should destroy
@@ -680,9 +695,10 @@ impl<'le> TElement for GeckoElement<'le> {
         );
 
         let atom_ptr = PseudoElement::ns_atom_or_null_from_opt(pseudo);
+        let before_change_values = before_change_style.as_ref().map(|v| *HasArcFFI::arc_as_borrowed(v));
         unsafe {
             Gecko_UpdateAnimations(self.0, atom_ptr,
-                                   None,
+                                   before_change_values,
                                    computed_values_opt,
                                    parent_values_opt,
                                    tasks.bits());
@@ -697,6 +713,167 @@ impl<'le> TElement for GeckoElement<'le> {
     fn has_css_animations(&self, pseudo: Option<&PseudoElement>) -> bool {
         let atom_ptr = PseudoElement::ns_atom_or_null_from_opt(pseudo);
         unsafe { Gecko_ElementHasCSSAnimations(self.0, atom_ptr) }
+    }
+
+    fn has_css_transitions(&self, pseudo: Option<&PseudoElement>) -> bool {
+        let atom_ptr = PseudoElement::ns_atom_or_null_from_opt(pseudo);
+        unsafe { Gecko_ElementHasCSSTransitions(self.0, atom_ptr) }
+    }
+
+    fn get_css_transitions_info(&self,
+                                pseudo: Option<&PseudoElement>)
+                                -> HashMap<TransitionProperty, Arc<AnimationValue>> {
+        use gecko_bindings::bindings::Gecko_ElementTransitions_EndValueAt;
+        use gecko_bindings::bindings::Gecko_ElementTransitions_Length;
+        use gecko_bindings::bindings::Gecko_ElementTransitions_PropertyAt;
+
+        let atom_ptr = PseudoElement::ns_atom_or_null_from_opt(pseudo);
+        let collection_length = unsafe { Gecko_ElementTransitions_Length(self.0, atom_ptr) };
+        let mut map = HashMap::with_capacity(collection_length);
+        for i in 0..collection_length {
+            let (property, raw_end_value) = unsafe {
+                (Gecko_ElementTransitions_PropertyAt(self.0, atom_ptr, i as usize).into(),
+                 Gecko_ElementTransitions_EndValueAt(self.0, atom_ptr, i as usize))
+            };
+            let end_value = AnimationValue::arc_from_borrowed(&raw_end_value);
+            debug_assert!(end_value.is_some());
+            map.insert(property, end_value.unwrap().clone());
+        }
+        map
+    }
+
+    fn might_need_transitions_update(&self,
+                                     old_values: &Option<&Arc<ComputedValues>>,
+                                     new_values: &Arc<ComputedValues>,
+                                     pseudo: Option<&PseudoElement>) -> bool {
+        use properties::longhands::display::computed_value as display;
+
+        if old_values.is_none() {
+            return false;
+        }
+
+        let ref new_box_style = new_values.get_box();
+        let transition_not_running = !self.has_css_transitions(pseudo) &&
+                                     new_box_style.transition_property_count() == 1 &&
+                                     new_box_style.transition_combined_duration_at(0) <= 0.0f32;
+        let new_display_style = new_box_style.clone_display();
+        let old_display_style = old_values.map(|ref old| old.get_box().clone_display()).unwrap();
+
+        new_box_style.transition_property_count() > 0 &&
+        !transition_not_running &&
+        (new_display_style != display::T::none &&
+         old_display_style != display::T::none)
+    }
+
+    // Detect if there are any changes that require us to update transitions. This is used as a
+    // more thoroughgoing check than the, cheaper might_need_transitions_update check.
+    // The following logic shadows the logic used on the Gecko side
+    // (nsTransitionManager::DoUpdateTransitions) where we actually perform the update.
+    // https://drafts.csswg.org/css-transitions/#starting
+    fn needs_transitions_update(&self,
+                                before_change_style: &Arc<ComputedValues>,
+                                after_change_style: &Arc<ComputedValues>,
+                                pseudo: Option<&PseudoElement>) -> bool {
+        use gecko_bindings::structs::nsCSSPropertyID;
+        use properties::animated_properties;
+        use std::collections::HashSet;
+
+        debug_assert!(self.might_need_transitions_update(&Some(before_change_style),
+                                                         after_change_style,
+                                                         pseudo),
+                      "We should only call needs_transitions_update if \
+                       might_need_transitions_update returns true");
+
+        let ref after_change_box_style = after_change_style.get_box();
+        let transitions_count = after_change_box_style.transition_property_count();
+        let existing_transitions = self.get_css_transitions_info(pseudo);
+        let mut transitions_to_keep = if !existing_transitions.is_empty() &&
+                                         (after_change_box_style.transition_nscsspropertyid_at(0) !=
+                                              nsCSSPropertyID::eCSSPropertyExtra_all_properties) {
+            Some(HashSet::<TransitionProperty>::with_capacity(transitions_count))
+        } else {
+            None
+        };
+
+        // Check if this property is none, custom or unknown.
+        let is_none_or_custom_property = |property: nsCSSPropertyID| -> bool {
+            return property == nsCSSPropertyID::eCSSPropertyExtra_no_properties ||
+                   property == nsCSSPropertyID::eCSSPropertyExtra_variable ||
+                   property == nsCSSPropertyID::eCSSProperty_UNKNOWN;
+        };
+
+        for i in 0..transitions_count {
+            let property = after_change_box_style.transition_nscsspropertyid_at(i);
+            let combined_duration = after_change_box_style.transition_combined_duration_at(i);
+
+            // We don't need to update transition for none/custom properties.
+            if is_none_or_custom_property(property) {
+                continue;
+            }
+
+            let mut property_check_helper = |property: TransitionProperty| -> bool {
+                if self.needs_transitions_update_per_property(property,
+                                                              combined_duration,
+                                                              before_change_style,
+                                                              after_change_style,
+                                                              &existing_transitions) {
+                    return true;
+                }
+
+                if let Some(set) = transitions_to_keep.as_mut() {
+                    set.insert(property);
+                }
+                false
+            };
+            // FIXME: Bug 1353628: Shorthand properties are parsed failed now, so after fixing
+            //        that, we have to handle shorthand.
+            if property == nsCSSPropertyID::eCSSPropertyExtra_all_properties {
+                if TransitionProperty::any(property_check_helper) {
+                    return true;
+                }
+            } else {
+                if animated_properties::nscsspropertyid_is_animatable(property) &&
+                   property_check_helper(property.into()) {
+                    return true;
+                }
+            }
+        }
+
+        // Check if we have to cancel the running transition because this is not a matching
+        // transition-property value.
+        transitions_to_keep.map_or(false, |set| {
+            existing_transitions.keys().any(|property| !set.contains(property))
+        })
+    }
+
+    fn needs_transitions_update_per_property(&self,
+                                             property: TransitionProperty,
+                                             combined_duration: f32,
+                                             before_change_style: &Arc<ComputedValues>,
+                                             after_change_style: &Arc<ComputedValues>,
+                                             existing_transitions: &HashMap<TransitionProperty,
+                                                                            Arc<AnimationValue>>)
+                                             -> bool {
+        use properties::animated_properties::AnimatedProperty;
+
+        // We don't allow transitions on properties that are not interpolable.
+        if property.is_discrete() {
+            return false;
+        }
+
+        if existing_transitions.contains_key(&property) {
+            // If there is an existing transition, update only if the end value differs.
+            // If the end value has not changed, we should leave the currently running
+            // transition as-is since we don't want to interrupt its timing function.
+            let after_value =
+                Arc::new(AnimationValue::from_computed_values(&property, after_change_style));
+            return existing_transitions.get(&property).unwrap() != &after_value;
+        }
+
+        combined_duration > 0.0f32 &&
+        AnimatedProperty::from_transition_property(&property,
+                                                   before_change_style,
+                                                   after_change_style).does_animate()
     }
 }
 
