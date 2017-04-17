@@ -66,7 +66,7 @@ enum State {
     Broken,
 }
 #[derive(Copy, Clone, JSTraceable, HeapSizeOf)]
-enum ImageRequestType {
+enum ImageRequestPhase {
     Pending,
     Current
 }
@@ -84,7 +84,7 @@ struct ImageRequest {
 #[dom_struct]
 pub struct HTMLImageElement {
     htmlelement: HTMLElement,
-    image_request: Cell<ImageRequestType>,
+    image_request: Cell<ImageRequestPhase>,
     current_request: DOMRefCell<ImageRequest>,
     pending_request: DOMRefCell<ImageRequest>,
     form_owner: MutNullableJS<HTMLFormElement>,
@@ -272,8 +272,8 @@ impl HTMLImageElement {
     fn process_image_response(&self, image: ImageResponse) {
         // TODO: Handle multipart/x-mixed-replace
         let (trigger_image_load, trigger_image_error) = match (image, self.image_request.get()) {
-            (ImageResponse::Loaded(image), ImageRequestType::Current) |
-            (ImageResponse::PlaceholderLoaded(image), ImageRequestType::Current) => {
+            (ImageResponse::Loaded(image), ImageRequestPhase::Current) |
+            (ImageResponse::PlaceholderLoaded(image), ImageRequestPhase::Current) => {
                 self.current_request.borrow_mut().image = Some(image.clone());
                 self.current_request.borrow_mut().metadata = Some(ImageMetadata {
                     height: image.height,
@@ -285,10 +285,10 @@ impl HTMLImageElement {
                 self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
                 (true, false)
             },
-            (ImageResponse::Loaded(image), ImageRequestType::Pending) |
-            (ImageResponse::PlaceholderLoaded(image), ImageRequestType::Pending) => {
-                self.abort_request(State::CompletelyAvailable, ImageRequestType::Current);
-                self.image_request.set(ImageRequestType::Current);
+            (ImageResponse::Loaded(image), ImageRequestPhase::Pending) |
+            (ImageResponse::PlaceholderLoaded(image), ImageRequestPhase::Pending) => {
+                self.abort_request(State::CompletelyAvailable, ImageRequestPhase::Current);
+                self.image_request.set(ImageRequestPhase::Current);
                 self.current_request.borrow_mut().image = Some(image.clone());
                 self.current_request.borrow_mut().metadata = Some(ImageMetadata {
                     height: image.height,
@@ -300,23 +300,23 @@ impl HTMLImageElement {
                 self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
                 (true, false)
             },
-            (ImageResponse::MetadataLoaded(meta), ImageRequestType::Current) => {
+            (ImageResponse::MetadataLoaded(meta), ImageRequestPhase::Current) => {
                 self.current_request.borrow_mut().state = State::PartiallyAvailable;
                 self.current_request.borrow_mut().metadata = Some(meta);
                 (false, false)
             },
-            (ImageResponse::MetadataLoaded(_), ImageRequestType::Pending) => {
+            (ImageResponse::MetadataLoaded(_), ImageRequestPhase::Pending) => {
                 self.pending_request.borrow_mut().state = State::PartiallyAvailable;
                 (false, false)
             },
-            (ImageResponse::None, ImageRequestType::Current) => {
-                self.abort_request(State::Broken, ImageRequestType::Current);
+            (ImageResponse::None, ImageRequestPhase::Current) => {
+                self.abort_request(State::Broken, ImageRequestPhase::Current);
                 (false, true)
             },
-            (ImageResponse::None, ImageRequestType::Pending) => {
-                self.abort_request(State::Broken, ImageRequestType::Current);
-                self.abort_request(State::Broken, ImageRequestType::Pending);
-                self.image_request.set(ImageRequestType::Current);
+            (ImageResponse::None, ImageRequestPhase::Pending) => {
+                self.abort_request(State::Broken, ImageRequestPhase::Current);
+                self.abort_request(State::Broken, ImageRequestPhase::Pending);
+                self.image_request.set(ImageRequestPhase::Current);
                 (false, true)
             },
         };
@@ -340,16 +340,16 @@ impl HTMLImageElement {
     }
 
     /// https://html.spec.whatwg.org/multipage/#abort-the-image-request
-    fn abort_request(&self, state: State, request: ImageRequestType) {
+    fn abort_request(&self, state: State, request: ImageRequestPhase) {
         match request {
-            ImageRequestType::Current => {
+            ImageRequestPhase::Current => {
                 let mut request = self.current_request.borrow_mut();
                 LoadBlocker::terminate(&mut request.blocker);
                 request.state = state;
                 request.image = None;
                 request.metadata = None;
             },
-            ImageRequestType::Pending => {
+            ImageRequestPhase::Pending => {
                 let mut request = self.pending_request.borrow_mut();
                 LoadBlocker::terminate(&mut request.blocker);
                 request.state = state;
@@ -465,7 +465,7 @@ impl HTMLImageElement {
     /// Step 12 of html.spec.whatwg.org/multipage/#update-the-image-data
     fn prepare_image_request(&self, url: &ServoUrl, src: &DOMString) {
         match self.image_request.get() {
-            ImageRequestType::Pending => {
+            ImageRequestPhase::Pending => {
                 if let Some(pending_url) = self.pending_request.borrow_mut().parsed_url.clone() {
                     // Step 12.1
                     if pending_url == *url {
@@ -473,7 +473,7 @@ impl HTMLImageElement {
                     }
                 }
             },
-            ImageRequestType::Current => {
+            ImageRequestPhase::Current => {
                 let mut current_request = self.current_request.borrow_mut();
                 // step 12.4, create a new "image_request"
                 match (current_request.parsed_url.clone(), current_request.state) {
@@ -489,7 +489,7 @@ impl HTMLImageElement {
                             return
                         }
                         self.init_pending_request(&url, &src);
-                        self.image_request.set(ImageRequestType::Pending);
+                        self.image_request.set(ImageRequestPhase::Pending);
                         self.fetch_image(&url);
                     },
                     (_, State::Broken) | (_, State::Unavailable) => {
@@ -505,7 +505,7 @@ impl HTMLImageElement {
                     (_, _) => {
                         // step 12.6
                         self.init_pending_request(&url, &src);
-                        self.image_request.set(ImageRequestType::Pending);
+                        self.image_request.set(ImageRequestPhase::Pending);
                         self.fetch_image(&url);
                     },
                 }
@@ -532,8 +532,8 @@ impl HTMLImageElement {
                     },
                     Err(_) => {
                         // Step 11.1-11.5
-                        self.abort_request(State::Broken, ImageRequestType::Current);
-                        self.abort_request(State::Broken, ImageRequestType::Pending);
+                        self.abort_request(State::Broken, ImageRequestPhase::Current);
+                        self.abort_request(State::Broken, ImageRequestPhase::Pending);
                         self.set_current_request_url_to_selected(src);
                         self.dispatch_event(atom!("error"));
                         self.dispatch_event(atom!("loadend"));
@@ -542,8 +542,8 @@ impl HTMLImageElement {
             },
             None => {
                 // Step 9
-                self.abort_request(State::Broken, ImageRequestType::Current);
-                self.abort_request(State::Broken, ImageRequestType::Pending);
+                self.abort_request(State::Broken, ImageRequestPhase::Current);
+                self.abort_request(State::Broken, ImageRequestPhase::Pending);
                 self.set_current_request_url_to_none();
                 let elem = self.upcast::<Element>();
                 if elem.has_attribute(&local_name!("src")) {
@@ -583,8 +583,8 @@ impl HTMLImageElement {
                     // Step 5.3
                     let metadata = ImageMetadata { height: image.height, width: image.width };
                     // Step 5.3.2 abort requests
-                    self.abort_request(State::CompletelyAvailable, ImageRequestType::Current);
-                    self.abort_request(State::CompletelyAvailable, ImageRequestType::Pending);
+                    self.abort_request(State::CompletelyAvailable, ImageRequestPhase::Current);
+                    self.abort_request(State::CompletelyAvailable, ImageRequestPhase::Pending);
                     let mut current_request = self.current_request.borrow_mut();
                     current_request.image = Some(image.clone());
                     current_request.metadata = Some(metadata);
@@ -621,7 +621,7 @@ impl HTMLImageElement {
     fn new_inherited(local_name: LocalName, prefix: Option<DOMString>, document: &Document) -> HTMLImageElement {
         HTMLImageElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
-            image_request: Cell::new(ImageRequestType::Current),
+            image_request: Cell::new(ImageRequestPhase::Current),
             current_request: DOMRefCell::new(ImageRequest {
                 state: State::Unavailable,
                 parsed_url: None,
