@@ -1095,6 +1095,13 @@ fn http_network_fetch(request: &Request,
         Err(error) => return Response::network_error(error),
     };
 
+    if log_enabled!(log::LogLevel::Info) {
+        info!("response for {}", url);
+        for header in res.response.headers.iter() {
+            info!(" - {}", header);
+        }
+    }
+
     let mut response = Response::new(url.clone());
     response.status = Some(res.response.status);
     response.raw_status = Some((res.response.status_raw().0,
