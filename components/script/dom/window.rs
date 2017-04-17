@@ -85,7 +85,7 @@ use servo_atoms::Atom;
 use servo_config::opts;
 use servo_config::prefs::PREFS;
 use servo_geometry::{f32_rect_to_au_rect, max_rect};
-use servo_url::{Host, MutableOrigin, ImmutableOrigin, ServoUrl};
+use servo_url::{Host, ImmutableOrigin, MutableOrigin, ServoUrl};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;
@@ -273,6 +273,9 @@ pub struct Window {
     /// Directory to store unminified scripts for this window if unminify-js
     /// opt is enabled.
     unminified_js_dir: DOMRefCell<Option<String>>,
+
+    /// origin for cross origin wrappers
+    origin: Box<MutableOrigin>
 }
 
 impl Window {
@@ -292,6 +295,10 @@ impl Window {
 
     pub fn get_cx(&self) -> *mut JSContext {
         self.js_runtime.borrow().as_ref().unwrap().cx()
+    }
+
+    pub fn get_origin(&self) -> Box<MutableOrigin> {
+        self.origin.clone()
     }
 
     pub fn dom_manipulation_task_source(&self) -> DOMManipulationTaskSource {
@@ -1824,11 +1831,16 @@ impl Window {
             permission_state_invocation_results: DOMRefCell::new(HashMap::new()),
             pending_layout_images: DOMRefCell::new(HashMap::new()),
             unminified_js_dir: DOMRefCell::new(None),
+            origin: Box::new(origin),
         };
 
         unsafe {
             WindowBinding::Wrap(runtime.cx(), win)
         }
+    }
+
+    pub fn origin(&self) -> Box<MutableOrigin> {
+        self.origin.clone()
     }
 }
 

@@ -10,8 +10,9 @@ use dom::bindings::constant::{ConstantSpec, define_constants};
 use dom::bindings::conversions::{DOM_OBJECT_SLOT, get_dom_class};
 use dom::bindings::guard::Guard;
 use dom::bindings::utils::{DOM_PROTOTYPE_SLOT, ProtoOrIfaceArray, get_proto_or_iface_array};
+use dom::window::Window;
 use js::error::throw_type_error;
-use js::glue::{RUST_SYMBOL_TO_JSID, UncheckedUnwrapObject};
+use js::glue::{CreateServoJSPrincipal, RUST_SYMBOL_TO_JSID, UncheckedUnwrapObject};
 use js::jsapi::{Class, ClassOps, CompartmentOptions, GetGlobalForObjectCrossCompartment};
 use js::jsapi::{GetWellKnownSymbol, HandleObject, HandleValue, JSAutoCompartment};
 use js::jsapi::{JSClass, JSContext, JSFUN_CONSTRUCTOR, JSFunctionSpec, JSObject};
@@ -138,9 +139,13 @@ pub unsafe fn create_global_object(
     options.creationOptions_.traceGlobal_ = Some(trace);
     options.creationOptions_.sharedMemoryAndAtomics_ = true;
 
+    let x = private.clone() as *const Window;
+    let obj = &*x;
+    let mut principal = CreateServoJSPrincipal(Box::into_raw(obj.origin()) as *const ::libc::c_void);
+
     rval.set(JS_NewGlobalObject(cx,
                                 class,
-                                ptr::null_mut(),
+                                principal,
                                 OnNewGlobalHookOption::DontFireOnNewGlobalHook,
                                 &options));
     assert!(!rval.is_null());

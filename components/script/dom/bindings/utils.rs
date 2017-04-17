@@ -18,6 +18,7 @@ use js;
 use js::JS_CALLEE;
 use js::glue::{CallJitGetterOp, CallJitMethodOp, CallJitSetterOp, IsWrapper};
 use js::glue::{GetCrossCompartmentWrapper, WrapperNew};
+use js::glue::getPrincipalOrigin;
 use js::glue::{RUST_FUNCTION_VALUE_TO_JITINFO, RUST_JSID_IS_INT, RUST_JSID_IS_STRING};
 use js::glue::{RUST_JSID_TO_INT, RUST_JSID_TO_STRING, UnwrapObject};
 use js::jsapi::{CallArgs, DOMCallbacks, GetGlobalForObjectCrossCompartment};
@@ -29,9 +30,11 @@ use js::jsapi::{JS_GetProperty, JS_GetPrototype, JS_GetReservedSlot, JS_HasPrope
 use js::jsapi::{JS_HasPropertyById, JS_IsExceptionPending, JS_IsGlobalObject};
 use js::jsapi::{JS_ResolveStandardClass, JS_SetProperty, ToWindowProxyIfWindow};
 use js::jsapi::{JS_StringHasLatin1Chars, MutableHandleValue, ObjectOpResult};
+use js::jsapi::JSPrincipals;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{GCMethods, ToString, get_object_class, is_dom_class};
 use libc;
+use servo_url::MutableOrigin;
 use std::ffi::CString;
 use std::os::raw::{c_char, c_void};
 use std::ptr;
@@ -44,6 +47,15 @@ impl HeapSizeOf for WindowProxyHandler {
     fn heap_size_of_children(&self) -> usize {
         // FIXME(#6907) this is a pointer to memory allocated by `new` in NewProxyHandler in rust-mozjs.
         0
+    }
+}
+
+struct ServoJSPrincipal(*mut JSPrincipals);
+
+impl ServoJSPrincipal {
+    pub unsafe fn origin(&self) -> MutableOrigin {
+        let origin = getPrincipalOrigin(self.0) as *mut MutableOrigin;
+        (*origin).clone()
     }
 }
 
