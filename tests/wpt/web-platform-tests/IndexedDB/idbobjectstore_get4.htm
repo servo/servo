@@ -17,7 +17,7 @@
                    .get(1);
         rq.onsuccess = t.step_func(function(e) {
             assert_equals(e.target.results, undefined);
-            setTimeout(function() { t.done(); }, 10);
+            step_timeout(function() { t.done(); }, 10);
         });
     };
 

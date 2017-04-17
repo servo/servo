@@ -1,0 +1,70 @@
+
+<html>
+<head>
+<title>Second Test of Section 5.3.4 of CSS1 Spec</title>
+
+<style type="text/css">
+p,h3 {background-image: url(flagbg.gif)}
+h4,em {background-image: url(ovalbbut.gif)}
+p {background-repeat: repeat}
+h3 {background-repeat: repeat-x}
+h4 {background-repeat: repeat-y}
+em {background-repeat: no-repeat}
+</style>
+</head>
+
+<body>
+
+
+
+
+<h1>Testing Statement #2 Below of Section 5.3.4 of CSS1 Spec</h1>
+
+
+
+
+
+<ul>
+<li >
+2. For "background-repeat", possible values are "repeat | repeat-x | repeat-y |
+no-repeat".
+</ul>
+
+
+<h2>
+PASS CRITERIA:
+</h2>
+<p>
+If statement #2 above is true, this paragraph should have a flag image
+which is repeated both horizontally and vertically.
+The rules applied are: "p {background-image; url(flagbg.gif)}"
+and "p {background-repeat: repeat}".
+Here is some extra text provided in order to test this more effectively.
+Here is some extra text provided in order to test this more effectively.
+<h3>
+This h3 heading has a flag image with the image repeating horizontally.
+The rules applied are "h3 {background-image; url(flagbg(gif)}" and
+"h3 {background-repeat: repeat-x}".
+Here is some extra text provided in order to test this more effectively.
+Here is some extra text provided in order to test this more effectively.
+</h3>
+<h4>
+This h4 heading hasgreen oval button image which repeats vertically.
+The rules applied are "h4 {background-image; url(ovalbbut.gif)}" and
+"h4 {background-repeat: repeat-y}".
+Here is some extra text provided in order to test this more effectively.
+Here is some extra text provided in order to test this more effectively.
+</h4>
+<em>
+This emphasized text should have a green oval button background image
+which does not repeat.
+The rules applied here are "em {background-image: url(ovalbbut.gif)}"
+and "em {background-repeat: no-repeat}".
+Here is some extra text provided in order to test this more effectively.
+Here is some extra text provided in order to test this more effectively.
+</em>
+
+All other properties of this page should be UA-default.
+
+</body>
+</html>

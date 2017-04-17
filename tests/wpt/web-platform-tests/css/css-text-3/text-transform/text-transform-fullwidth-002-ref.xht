@@ -1,0 +1,52 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reference Test</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <meta content="" name="flags" />
+
+  <meta name="DC.date.created" content="2017-01-11T09:54:03+11:00" scheme="W3CDTF" />
+  <meta name="DC.date.modified" content="2017-01-12T09:54:03+11:00" scheme="W3CDTF" />
+
+  <style type="text/css"><![CDATA[
+  div
+    {
+      font-size: 32px;
+      writing-mode: vertical-rl;
+    }
+  ]]></style>
+ </head>
+
+ <body>
+
+  <p>Test passes if the "Text sample" characters are translated upright and not rotated toward the righthand side.</p>
+
+  <div>&#xFF34;&#xFF45;&#xFF58;&#xFF54;&#x3000;&#xFF53;&#xFF41;&#xFF4D;&#xFF50;&#xFF4C;&#xFF45;</div>
+
+  <!--
+  T = U+FF34 is the FULLWIDTH LATIN CAPITAL LETTER T
+  e = U+FF45 is the FULLWIDTH LATIN SMALL LETTER E
+  x = U+FF58 is the FULLWIDTH LATIN SMALL LETTER X
+  t = U+FF54 is the FULLWIDTH LATIN SMALL LETTER T
+
+      U+3000 is the fullwidth space character
+
+  s = U+FF53 is the FULLWIDTH LATIN SMALL LETTER S
+  a = U+FF41 is the FULLWIDTH LATIN SMALL LETTER A
+  m = U+FF4D is the FULLWIDTH LATIN SMALL LETTER M
+  p = U+FF50 is the FULLWIDTH LATIN SMALL LETTER P
+  l = U+FF4C is the FULLWIDTH LATIN SMALL LETTER L
+  e = U+FF45 is the FULLWIDTH LATIN SMALL LETTER E
+
+  Halfwidth and Fullwidth Forms
+  Range: FF00–FFEF
+  http://www.unicode.org/charts/PDF/UFF00.pdf
+  -->
+
+ </body>
+</html>

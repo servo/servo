@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+ <head>
+  <title>CSS Test: :hover and font-weight</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/selectors/hover/002.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#dynamic-pseudo-classes" />
+  <meta name="flags" content="interact"/>
+  <style type="text/css">
+   p { color: blue; }
+   p + p { text-align: center; }
+   .serif { font: 1em serif; }
+   .sansSerif { font: 1em sans-serif; }
+   .monospace { font: 1em monospace; }
+   .test:hover { font-weight: bold; }
+  </style>
+ </head>
+ <body>
+  <p>When you hover over these lines they should go bold:</p>
+  <p>| <span class="serif test">test test</span> |</p>
+  <p>| <span class="sansSerif test">test test</span> |</p>
+  <p>| <span class="monospace test">test test</span> |</p>
+ </body>
+</html>

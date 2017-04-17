@@ -1,0 +1,68 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+<html>
+ <head>
+  <title>Overflow: Linking to overflowed anchors</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/overflow/001.html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visufx.html#overflow" />
+  <style type="text/css">
+   body > p { color: blue; }
+   #target { color: green; }
+   div { overflow: scroll; width: 16em; height: 9em; border: solid; padding: 1em; }
+  </style>
+ </head>
+ <body>
+
+  <p>When you follow <a href="#target">this link</a> the word PASS
+  should appear.</p>
+
+  <div>
+
+   <p>text text text text text text text text text text text text text
+   text text text text text text text text text text text text text
+   text text text text text text text text text text text text text
+   text text text text text text text text text text text text text
+   text text text text text text text text text text text text text
+   text text text text text text text text text text text text text
+   text text text text text text text text text text text text text
+   text text text text text text text text text text text text text
+   text text text text text text text text text text text text text
+   text text text text text text text text text text text text text
+   text text text text text text text text text text text text text
+   text text text text text text text text text text text text text
+   text text text text text text text text text text text text text
+   text text text text text text text text text text text text text
+   text text text text text text text text text text text text text
+   text text text text text text text text text text text text text
+   text text text text text text text text text text text text text
+   text text text text text text text text text text text text text
+   text text text text text text text text text text text text text
+   text text text text text text text text text text text text</p>
+
+   <p id="target">PASS: The test has passed if this becomes visible
+   when you follow the link.</p>
+
+   <p>text text text text text text text text text text text text text
+   text text text text text text text text text text text text text
+   text text text text text text text text text text text text text
+   text text text text text text text text text text text text text
+   text text text text text text text text text text text text text
+   text text text text text text text text text text text text text
+   text text text text text text text text text text text text text
+   text text text text text text text text text text text text text
+   text text text text text text text text text text text text text
+   text text text text text text text text text text text text text
+   text text text text text text text text text text text text text
+   text text text text text text text text text text text text text
+   text text text text text text text text text text text text text
+   text text text text text text text text text text text text text
+   text text text text text text text text text text text text text
+   text text text text text text text text text text text text text
+   text text text text text text text text text text text text text
+   text text text text text text text text text text text text text
+   text text text text text text text text text text text text text
+   text text text text text text text text text text text text</p>
+
+  </div>
+ </body>
+</html>

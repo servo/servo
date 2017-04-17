@@ -1,0 +1,21 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: Page Size - Handling Page Size - Letter</title>
+<link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+<link rel="help" href="http://www.w3.org/TR/css3-page/#page-size"/>
+<meta name="flags" content="paged" />
+<meta name="assert" content="If a preferred output media size is indicated via length or page-size values for the 'size' property, output must be rendered on the media size indicated if available." />
+<style type="text/css">
+	@page {
+		size: letter;
+		border:1px solid #000;
+	}
+
+</style>
+</head>
+<body>
+	<p>Test Precondition: If the printer can sense media size, load letter size (8.5in by 11in) media into one printer input bin, and load other sizes into other bins, if any. If the printer <em>cannot</em> sense media size, load letter size media into the default input bin.</p>
+	<p>If letter size paper is available, this page must be printed on letter size paper.  In that case, a rectangle delineated with a thin black line is centered on the page. If letter size paper is not available, a rectangle should still appear; but it might not be centered.</p>
+</body>
+</html>

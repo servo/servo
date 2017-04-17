@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Regions: Auto-height regions inside fixed sized flexbox with column flow</title>
+		<link rel="author" title="Catalin Badea" href="mailto:badea@adobe.com">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#rfcb-flow-fragment-height-resolution">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from">
+		<link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#layout-algorithm">
+		<link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#propdef-flex-grow">
+		<meta name="flags" content="ahem">
+		<meta name="assert" content="Test checks that auto-height regions placed inside a fixed sized flexbox with
+		column flow have the correct computed height. There are two regions placed inside the same flex container
+		having the same 'grow' value. The space should be distributed evenly between the two.">
+		<link rel="match" href="reference/autoheight-regions-in-fixed-sized-flexbox-002-ref.html">
+		<style>
+			.content1, .content2 {
+				font-family: Ahem;
+				line-height: 1em;
+				font-size: 20px;
+			}
+
+			.content1 {
+				color: green;
+				flow-into: flow1;
+			}
+
+			.content2 {
+				color: blue;
+				flow-into: flow2;
+			}
+
+			#fixed {
+				height: 100px;
+				width: 200px;
+				background-color: blue;
+				flex-grow: 0;
+			}
+
+			.flex {
+				display: flex;
+				height: 400px;
+				width: 200px;
+				flex-direction: column;
+			}
+
+			.fromFlow1 {
+				flow-from: flow1;
+				flex-grow: 1;
+			}
+
+			.fromFlow2 {
+				flow-from: flow2;
+				flex-grow: 1;
+			}
+
+			.red {
+				background-color: red;
+			}
+		</style>
+	</head>
+	<body>
+		<ul>
+			<li>Test passes if you can see two squares: a green square at the top and a blue square at the bottom.</li>
+			<li>The two squares should be of the same size.</li>
+			<li>You shouldn't see any red.</li>
+		</ul>
+		<div class="content1">
+			XXXXXXXXXX<br>XXXXXXXXXX<br>
+			XXXXXXXXXX<br>XXXXXXXXXX<br>
+			XXXXXXXXXX<br>XXXXXXXXXX<br>
+			XXXXXXXXXX<br>XXXXXXXXXX<br>
+			XXXXXXXXXX<br>XXXXXXXXXX
+		</div>
+		<div class="content2">
+			XXXXXXXXXX<br>XXXXXXXXXX<br>
+			XXXXXXXXXX<br>XXXXXXXXXX<br>
+			XXXXXXXXXX<br>
+		</div>
+		<div class="flex">
+			<div class="fromFlow1">
+			</div>
+			<div class="fromFlow2">
+			</div>
+			<div id='fixed'>
+			</div>
+			<!-- This shouldn't get any content if the flex container distributes space evenly between the first two
+				regions. -->
+			<div class="fromFlow1">
+				<p class="red">&nbsp;</p>
+			</div>
+		</div>
+	</body>
+</html>

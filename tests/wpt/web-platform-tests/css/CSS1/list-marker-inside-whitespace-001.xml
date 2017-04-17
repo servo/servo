@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: list-style</title>
+  <meta name="flags" content="ahem image" />
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#list-style"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <style type="text/css"><![CDATA[
+   ul {
+     margin: 1em 5em; border: solid black; padding: 0; width: 6em;
+     font: 15px/1 Ahem; color: lime; background: red url(support/css1test566a.png) no-repeat;
+     list-style: upper-alpha inside;
+   }
+   li { margin: 0; padding: 0; }
+  ]]></style>
+ </head>
+ <body>
+  <p>There should be no red below.</p>
+  <ul class="one">
+   <li> x x xx xx x x</li>
+  </ul>
+ </body>
+</html>

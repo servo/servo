@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Font shorthand set to 'inherit' inheriting four values</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#propdef-font" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-shorthand" />
+        <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-prop"/>
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The 'font' shorthand property set to 'inherit' inherits the parent element's values." />
+        <style type="text/css">
+            #wrapper
+            {
+                font: italic small-caps 1in serif;
+                position: relative;
+            }
+            #test
+            {
+                font: 0 Ahem;
+                font: inherit;
+                line-height: 1em;
+                position: absolute;
+            }
+            #reference
+            {
+                color: red;
+                font-family: serif;
+                font-size: 1in;
+                height: 1in;
+                left: 0;
+                line-height: 1em;
+                position: absolute;
+                top: 0;
+                width: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page.</p>
+        <div id="wrapper">
+            <div id="reference">xX1</div>
+            <div id="test">xX1</div>
+        </div>
+    </body>
+</html>

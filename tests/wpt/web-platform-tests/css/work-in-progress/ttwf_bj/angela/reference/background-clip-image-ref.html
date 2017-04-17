@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Test: background-clip Reference</title>
+    <link rel="author" title="angelazou" href="mailto:angela380in@hotmail.com">
+	<link rel="help" href="http://www.w3.org/TR/css3-background/#the-background-clip" />
+    <link rel="match" href="reference/background-clip-ref.html">
+    <meta name="assert" content="Test pass if the entire background is filled with image, including the border under background-clip: border-box rule">
+    <style type="text/css">
+    	* { padding: 0; margin: 0; }
+    	#test-image {
+    		width: 240px;
+    		height: 240px;
+    		background-image: url(../support/img_start.png);
+    		float: left;
+    		margin: 20px;
+    	}
+    </style>
+</head>
+<body>
+    <p>Test pass if the entire background is filled with image, including the border, spanning total of 240px, under background-clip: border-box rule</p>
+    <div id="test-image"></div>
+    </div>
+</body>
+</html>

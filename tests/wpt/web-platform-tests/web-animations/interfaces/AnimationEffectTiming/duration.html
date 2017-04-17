@@ -148,6 +148,25 @@ test(function(t) {
   });
 }, 'set duration string 100');
 
+promise_test(function(t) {
+  var anim = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  return anim.ready.then(function() {
+    var originalStartTime   = anim.startTime;
+    var originalCurrentTime = anim.currentTime;
+    assert_equals(anim.effect.getComputedTiming().duration, 100 * MS_PER_SEC,
+                  'Initial duration should be as set on KeyframeEffect');
+
+    anim.effect.timing.duration = 200 * MS_PER_SEC;
+    assert_equals(anim.effect.getComputedTiming().duration, 200 * MS_PER_SEC,
+                  'Effect duration should have been updated');
+    assert_times_equal(anim.startTime, originalStartTime,
+                       'startTime should be unaffected by changing effect ' +
+                       'duration');
+    assert_times_equal(anim.currentTime, originalCurrentTime,
+                       'currentTime should be unaffected by changing effect ' +
+                       'duration');
+  });
+}, 'Extending an effect\'s duration does not change the start or current time');
 
 </script>
 </body>

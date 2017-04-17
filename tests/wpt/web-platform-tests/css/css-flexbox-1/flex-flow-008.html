@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Flexbox Test: flex-flow - column wrap</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="author" title="Shiyou Tan" href="mailto:shiyoux.tan@intel.com">
+<link rel="help" title="5.3. Flex Direction and Wrap: the 'flex-flow' shorthand" href="http://www.w3.org/TR/css-flexbox-1/#propdef-flex-flow">
+<link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#flex-direction">
+<link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#propdef-flex-wrap">
+<link rel="match" href="flex-flow-002-ref.html">
+<meta name="flags" content="">
+<meta name="assert" content="The 'flex-flow' property set 'column wrap' controls the flex container is multi-line
+but the main axis is vertical">
+<style>
+  #test {
+    background-color: red;
+    display: flex;
+    flex-flow: column wrap;
+    height: 100px;
+    width: 100px;
+  }
+  #test div {
+    background-color: green;
+    height: 50px;
+    width: 50px;
+  }
+</style>
+<body>
+  <p>Test passes if there is a filled green square and <strong>no red</strong>, the number within square is '1 2 3 4'
+  from left to right, top to bottom.</p>
+  <div id="test">
+    <div>1</div>
+    <div>3</div>
+    <div>2</div>
+    <div>4</div>
+  </div>
+</body>

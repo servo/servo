@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!--
+     This reference case is like its textcase, but with the testcase's dynamic
+     modifications already performed.
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <style>
+      body {
+        font-size: 10px;
+      }
+
+      div.inserted {
+        background: teal; /* To make inserted div elements stand out. */
+      }
+
+      div.flexbox {
+        border: 1px dashed blue;
+        width: 300px;
+        display: flex;
+        justify-content: space-around;
+        margin-bottom: 1px;
+        white-space: pre;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="flexbox" id="f8"><div class="inserted">[NewDiv]</div>[OldText]</div>
+    <div class="flexbox" id="f9">[OldText]<div class="inserted">[NewDiv]</div></div>
+    <div class="flexbox" id="f10"><div class="inserted">[NewDiv]</div>  [OldText]</div>
+    <div class="flexbox" id="f11">  <div class="inserted">[NewDiv]</div>[OldText]</div>
+    <div class="flexbox" id="f12">[OldText]<div class="inserted">[NewDiv]</div>  </div>
+    <div class="flexbox" id="f13">[OldText]  <div class="inserted">[NewDiv]</div></div>
+    <div class="flexbox" id="f14"><div class="inserted">[NewDiv]</div>[NewText][OldText]</div>
+    <div class="flexbox" id="f15">[NewText]<div class="inserted">[NewDiv]</div>[OldText]</div>
+    <div class="flexbox" id="f16">[OldText]<div class="inserted">[NewDiv]</div>[NewText]</div>
+    <div class="flexbox" id="f17">[OldText][NewText]<div class="inserted">[NewDiv]</div></div>
+  </body>
+</html>
+

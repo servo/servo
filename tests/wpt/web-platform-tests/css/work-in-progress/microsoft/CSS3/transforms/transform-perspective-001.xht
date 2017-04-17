@@ -1,0 +1,53 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Perspective property basic application</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css3-3d-transforms/#perspective-property" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The perspective property applies same transform as perspective function and only on positioned and transformed children, not to the element itself." />
+        <style type="text/css">
+            .black
+            {
+                background-color: black;
+            }
+            .red
+            {
+                background-color: orange;
+            }
+            #sibling
+            {
+                height: 200px;
+                position: absolute;
+                perspective: 200px;
+                width: 200px;
+            }
+            .commonChildProps
+            {
+                height: 50px;
+                position: absolute;
+                transform-origin: 0% 0% 0;
+                width: 100px;
+            }
+            #childDiv1
+            {
+                left: 100px;
+                top: 100px;
+                transform: rotateX(45deg);
+            }
+            #sibling2
+            {
+                transform: translate(100px, 100px) perspective(200px) rotateX(45deg);
+            }
+        </style>
+            
+    </head>
+    <body>
+        <p>Test passes if there is 'Filler Text' and no orange on the page.</p>
+        <div id="sibling">
+            <div class="commonChildProps red" id="childDiv1"></div> 
+            <div>Filler Text.</div>
+        </div>
+        <div class="commonChildProps black" id="sibling2"></div>
+    </body>
+</html>

@@ -1,0 +1,26 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>Example with iframe that consolidates tests via fetch_tests_from_window</title>
+<script src="../testharness.js"></script>
+<script src="../testharnessreport.js"></script>
+<script>
+var parent_test = async_test("Test executing in parent context");
+</script>
+</head>
+<body onload="parent_test.done()">
+<h1>Fetching Tests From a Child Context</h1>
+<p>This test demonstrates the use of <tt>fetch_tests_from_window</tt> to pull
+tests from an <tt>iframe</tt> into the primary document.</p>
+<p>The test suite will not complete until tests in the child context have finished
+executing</p>
+<div id="log"></div>
+
+<iframe id="childContext" src="apisample10.html" style="display:none"></iframe>
+<!-- apisample10 has async tests with promises -->
+
+<script>
+	var childContext = document.getElementById("childContext");
+	fetch_tests_from_window(childContext.contentWindow);
+</script>
+</body>

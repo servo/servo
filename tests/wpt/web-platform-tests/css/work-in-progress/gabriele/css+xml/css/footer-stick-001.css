@@ -1,0 +1,36 @@
+root, document, section, info, para {
+	display: block;
+}
+
+root {
+	background: #fff;
+	color: #000;
+
+}
+
+root, document, section {
+	height: 100%;
+	min-height: 100%;
+}
+
+section {
+	position: relative;
+	padding-bottom: 2em;
+}
+
+para {
+	color: silver;
+}
+
+info {
+	background-color: green;
+	color: #fff;
+	font-weight: bold;
+	width: 100%;
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	height: 2em;
+	margin-bottom: -2em;
+
+}

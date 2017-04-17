@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>CSS Test: ::first-letter formatting</title>
+	<link rel="author" title="Florian Rivoal" href="mailto:florian@rivoal.net">
+	<link rel="match" href="first-letter-001-ref.html">
+	<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#first-letter-styling">
+	<meta name="flags" content="">
+	<meta name="assert" content="Test checks that a floated ::first-letter follows the usual formating rules for floats.">
+	<style>
+	div {
+		font-size: 50px;
+		position: absolute;
+		left: 30px;
+		top: 50px;
+		background: red;
+	}
+	span {
+		background : white;
+	}
+	div::first-letter {
+		color: green;
+		background: green;
+		float: left;
+	}
+	</style>
+</head>
+<body>
+	<p>Test passes if there is a <strong>filled green rectangle</strong> and <strong>no red</strong>.</p>
+	<div>a<span>&nbsp;</span></div>
+</body>
+</html>

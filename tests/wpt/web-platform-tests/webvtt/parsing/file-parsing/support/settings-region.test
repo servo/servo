@@ -1,0 +1,71 @@
+settings, region
+<link rel="help" href="https://w3c.github.io/webvtt/#collect-webvtt-cue-timings-and-settings">
+
+assert_equals(cues.length, 9);
+
+var fooRegion = cues[0].region;
+assert_true(!!fooRegion, 'Cue 0 has invalid region');
+
+var barRegion = cues[1].region;
+assert_true(!!barRegion, 'Cue 1 has invalid region');
+
+assert_not_equals(fooRegion, barRegion);
+
+var valid_regions = [
+    fooRegion,
+    barRegion,
+    barRegion,
+    null,
+    fooRegion
+];
+valid_regions.forEach(function(valid, index) {
+    assert_equals(cues[index].region, valid, 'Failed with cue ' + index);
+});
+
+for (var i = 0; i < 4; i++) {
+    var index = valid_regions.length + i;
+
+    assert_equals(cues[index].region, null);
+}
+
+===
+WEBVTT
+
+REGION
+id:foo
+
+REGION
+id:bar
+
+REGION
+id:foo
+
+REGION
+width:10%
+
+00:00:00.000 --> 00:00:01.000 region:foo
+text0
+
+00:00:00.000 --> 00:00:01.000 region:bar
+text1
+
+00:00:00.000 --> 00:00:01.000 region:foo region:bar
+text2
+
+00:00:00.000 --> 00:00:01.000 region:invalid
+text3
+
+00:00:00.000 --> 00:00:01.000 region:invalid region:foo
+text4
+
+00:00:00.000 --> 00:00:01.000 region:
+invalid5
+
+00:00:00.000 --> 00:00:01.000 region:\x20
+invalid6
+
+00:00:00.000 --> 00:00:01.000 region: foo
+invalid7
+
+00:00:00.000 --> 00:00:01.000 region :foo
+invalid8

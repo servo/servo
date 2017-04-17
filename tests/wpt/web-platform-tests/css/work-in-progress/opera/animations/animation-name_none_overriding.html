@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <title>CSS Animations - animation-name:none overriding in the cascade</title>
+   <link rel="author" title="Opera Software ASA" href="http://www.opera.com/">
+   <link rel="help" href="https://drafts.csswg.org/css3-animations/#the-animation-name-property-">
+   <meta name="flags" content="dom">
+   <meta name="assert" content="animation-name:none can be used to override any
+   animations coming from the cascade">
+   <script src="/resources/testharness.js"></script>
+   <script src="/resources/testharnessreport.js"></script>
+   <style type="text/css">
+      @keyframes grow-width {
+         from {
+            width: 100px;
+         }
+         to {
+            width: 200px;
+         }
+      }
+      @keyframes grow-height {
+         from {
+            height: 100px;
+         }
+         to {
+            height: 200px;
+         }
+      }
+      div {
+         width: 100px;
+         height: 100px;
+         background: blue;
+      }
+      .test {
+         animation-fill-mode: forwards, forwards;
+         animation-duration: 1s, 1s;
+         animation-name: grow-width, grow-height;
+      }
+      .test {
+         animation-name: grow-width, none;
+      }
+   </style>
+   <script type="text/javascript">
+      setup({explicit_done:true});
+      onload = function() {
+         var testName = document.querySelector('title').firstChild.data;
+         var div = document.querySelector('div');
+         var log = document.querySelectorAll('p')[1].firstChild;
+         var passed = undefined;
+         var timeout = setTimeout(function() {
+            test(function(){assert_true(false);}, testName); done();
+            log.data = 'FAIL';
+         }, 1500);
+         div.addEventListener('animationstart', function(evt) {
+            if (evt.animationName != 'grow-width') {
+               passed = false;
+            } else if (passed === undefined) {
+               passed = true;
+            }
+         });
+         div.addEventListener('animationend', function(evt) {
+            clearTimeout(timeout);
+            if (evt.animationName != 'grow-width') {
+               passed = false;
+            }
+            passed = passed && getComputedStyle(div, null).width == '200px';
+            test(function(){assert_true(passed);}, testName); done();
+            log.data = (passed ? 'PASS if the animation occurred.' : 'FAIL');
+         });
+         div.className = 'test';
+      }
+   </script>
+   <style>iframe{display:none}</style>
+</head>
+<body>
+   <p>The block below should grow in width and keep a constant height.</p>
+   <p>Testing...</p>
+   <div></div>
+</body>
+</html>

@@ -1,0 +1,65 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Absolute Replaced Elements: specified 'top' and 'bottom' with auto margins</title>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visufx.html#clipping"/>
+  <link rel="match" href="../reference/ref-if-there-is-no-red.xht" />
+
+  <meta name="flags" content="image"/>
+  <meta name="assert" content="If 'top' and 'bottom' are specified on an
+    absolutely-positioned replaced element, then any remaining space is
+    split amongst the 'auto' vertical margins."/>
+  <style type="text/css">
+    .container {
+      position: relative;
+      width: 45px;
+      height: 45px;
+      /* Uncomment for debugging:
+         border: solid silver;
+         background: aqua; */
+    }
+    .abspos {
+      position: absolute;
+      top: 0; bottom: 0;
+      background: red;
+    }
+    .one {
+      margin: auto;
+      left: 0;
+    }
+    .two {
+      margin-top: auto;
+      left: 15px;
+    }
+    .three {
+      margin-bottom: auto;
+      right: 0;
+    }
+    .control1 {
+      height: 15px;
+      border-right: 15px solid red;
+    }
+    .control2 {
+      height: 15px;
+      border-left: 15px solid red;
+    }
+    .control3 {
+      height: 15px;
+      margin: 0 15px;
+      background: red;
+    }
+  </style>
+ </head>
+ <body>
+    <p>Test passes if there is <strong>no red</strong>.</p>
+    <div class="container">
+      <img class="abspos one" src="support/swatch-white.png" alt="FAIL: image support required"/>
+      <img class="abspos two" src="support/swatch-white.png" alt="FAIL: image support required"/>
+      <img class="abspos three" src="support/swatch-white.png" alt="FAIL: image support required"/>
+      <div class="control1"></div>
+      <div class="control2"></div>
+      <div class="control3"></div>
+    </div>
+ </body>
+</html>

@@ -1,0 +1,36 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>CSS Test: white-space-collapsing - trim-inner - basic cases Reftest Reference</title>
+		<link rel="author" title="Satoshi Umehara" href="mailto:umehara@est.co.jp" />
+		<style type="text/css">
+			<![CDATA[
+				span {
+					color: Blue;
+				}
+			]]>
+		</style>
+	</head>
+	<body>
+		<p>
+			Test passes if each text positions in the first line match the corresponding positions in the second line.
+		</p>
+			<div>
+				<span>1        2</span>
+				<span>　　3　　4　　</span>
+				<span>5				6</span>
+				<span>7
+
+8</span>
+			</div>
+			<div>
+				<span>1        2</span>
+				<span>　　3　　4　　</span>
+				<span>5				6</span>
+				<span>7
+
+8</span>
+			</div>
+	</body>
+</html>

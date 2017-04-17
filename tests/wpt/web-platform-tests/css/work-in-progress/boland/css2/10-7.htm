@@ -1,0 +1,62 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>FIrst Test of Section 10.7 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+
+
+#id1 {min-height:10px;
+      max-height:20px;}
+#id2 {min-height: 50%;
+      max-height: 150%;}
+#id3 {min-height: 0;
+      max-height: none;}
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing FIrst Testable Statement of Sec 10.7 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+1. The "min-height" and "max-height" properties allow authors to constrain
+box heights to a certain range.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p id="id1" >
+If statement #1 above is passed, then
+this paragraph should have a minimum height of 10px and a maximum height of
+20px.
+The rule appleid is "#id1 {min-height: 10px; max-height; 20px;}".
+<p id="id2" >
+This paragraph should have a minimum height of 50% of containing block and
+maximum height of 150% of containing block.
+The rule applied is "#id2 {min-height: 50%; max-height: 150%;}".
+</p>
+<p id="id3">
+This paragraph should have a minimum height of 0 and a maximum height of
+none.
+The rule applied is "#id3 {min-height: 0; max-height: none}".
+<p>
+All other properties of this page should be UA-default.
+
+
+</BODY>
+</HTML>
+

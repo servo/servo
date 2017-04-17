@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+<head>
+  <title>CSS Test: Ensure that min-height is honored for vertical multi-line flex containers</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#flex-wrap-property">
+  <link rel="match" href="flexbox-flex-wrap-vert-002-ref.html">
+  <meta charset="utf-8">
+  <style>
+    div.flexbox {
+      display: flex;
+      flex-direction: column;
+      flex-wrap: wrap;
+      border: 1px dashed black;
+      width: 12px;
+      min-height: 100px;
+      margin-right: 2px;
+      float: left;
+    }
+    div.smallItem {
+      height: 30px;
+      border: 1px solid blue;
+      background: lightblue;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- No flex items -->
+  <div class="flexbox">
+  </div>
+
+  <!-- Single small flex item -->
+  <div class="flexbox">
+    <div class="smallItem"></div>
+  </div>
+
+  <!-- Multiple flex items, larger than flex container's min-size: -->
+  <div class="flexbox">
+    <div class="smallItem"></div>
+    <div class="smallItem"></div>
+    <div class="smallItem"></div>
+    <div class="smallItem"></div>
+    <div class="smallItem"></div>
+  </div>
+
+  <!--- ...and now with flex container constrained by both min and max-size -->
+  <div class="flexbox" style="max-height: 120px">
+    <div class="smallItem"></div>
+    <div class="smallItem"></div>
+    <div class="smallItem"></div>
+    <div class="smallItem"></div>
+    <div class="smallItem"></div>
+  </div>
+
+</body>
+</html>

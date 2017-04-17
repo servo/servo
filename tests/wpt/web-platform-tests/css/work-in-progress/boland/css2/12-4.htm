@@ -1,0 +1,58 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>First Test of Section 12.4 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+Q:lang(en) { quotes: '"' '"' "'" "'" }
+p {quotes: "*" "*"}
+blockquote {quotes: none}
+h3 {quotes: inherit}
+
+
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing First Testable Statement of Sec 12.4 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+1. Possible values for quotes: [string string]+|none|inherit
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p lang="en">
+If statement #1 above is passed, then
+this paragraph should have quote marks of * around it.
+Rule applied is "p {quote:"*" "*"}".
+</p>
+<Q>this quote</Q> should have English-style quotation marks.  The rule
+applied is "Q:lang(en) {quotes: '"' '"' "'" "'" }".
+<blockquote>
+This blockquote element should have no quotes around.  
+Rule applied is "blockquote {quote: none}".
+</blockquote>
+<h3>This h3 heading should have quote of inherit.
+Rule applied is "h3 {quote: inherit}".
+</h3>
+
+
+</BODY>
+</HTML>
+

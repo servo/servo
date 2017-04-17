@@ -1,0 +1,31 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>CSS Reference: Test for top:calc() on absolutely positioned elements</title>
+  <link rel="author" title="L. David Baron" href="https://dbaron.org/">
+  <meta name="flags" content="">
+<style type="text/css">
+body { margin: 0 }
+body > div { float: left; height: 100px; width: 3px; }
+div[style] { background: blue; position: relative; height: 10px; }
+</style>
+</head>
+<body>
+
+<!-- tests with a fixed-height container -->
+<div><div style="top: 50px"></div></div>
+<div><div style="top: 50px"></div></div>
+<div><div style="top: 75px"></div></div>
+<div><div style="top: 45px"></div></div>
+<div><div style="top: 40px"></div></div>
+<div><div style="top: 30px"></div></div>
+
+<!-- tests with an auto-top container -->
+<div><div style="top: 50px"></div></div>
+<div><div style="top: 50px"></div></div>
+<div><div style="top: 75px"></div></div>
+<div><div style="top: 45px"></div></div>
+<div><div style="top: 40px"></div></div>
+<div><div style="top: 30px"></div></div>
+</body>
+</html>

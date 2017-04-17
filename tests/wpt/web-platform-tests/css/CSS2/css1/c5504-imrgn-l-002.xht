@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: margin-left</title>
+  <meta name="flags" content="ahem image" />
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#margin-left"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="match" href="c5504-imrgn-l-002-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+   .three { background: url(support/swatch-red.png) no-repeat 6em 1em; font: 15px/1 Ahem; margin: 1em; }
+   .three p { width: 5em; color: white; }
+   .three span { margin-left: 4em; background: red; color: lime; }
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#margin-properties" title="8.3 Margin properties: 'margin-top',  'margin-right',  'margin-bottom', 'margin-left', and 'margin'"/>
+ </head>
+ <body>
+  <p>There should be a small light green square below:</p>
+  <div class="three">
+   <p>xx xx<span>x</span> xx xx</p>
+  </div>
+ </body>
+</html>

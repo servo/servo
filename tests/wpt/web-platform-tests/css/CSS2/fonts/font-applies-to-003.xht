@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Font and 'display: list-item' elements</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-12-15 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#propdef-font" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-shorthand" />
+        <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-prop"/>
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'font' property applies to 'display: list-item' elements." />
+        <style type="text/css">
+            body
+            {
+                margin-left: 2em;
+            }
+            div
+            {
+                font: italic small-caps bold 16px sans-serif;
+            }
+            #div1
+            {
+                display: list-item;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the 2 lines of "Filler Text" match styles and the bottom "Filler Text" has a marker bullet on its left-hand side.</p>
+        <div>Filler Text</div>
+        <div id="div1">Filler Text</div>
+    </body>
+</html>

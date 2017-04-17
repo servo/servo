@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Test: flowing content with position: absolute and clip</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from">
+		<meta name="flags" content="ahem">
+		<meta name="assert" content="Test checks that absolutely positioned content that has the clip property applied is correctly flowed into regions. This might fail on implementations that use layers for compositing but don't properly handle content flowing or the clipping shapes.">
+		<link rel="match" href="reference/content-node-layers-005-ref.html">
+		<style>
+		#content {
+			font-family: Ahem;
+			font-size: 20px;
+			line-height: 1em;
+			position: relative;
+			width: 125px;
+			height: 125px;
+			background-color: lightgreen;
+			flow-into: f;
+		}
+		#content-child {
+			position: absolute;
+			color: green;
+			top: 20px;
+			left: 0;
+			width: 180px;
+			clip: rect(0px, 100px, 80px, 20px);
+		}
+		.outside {
+			color: red;
+		}
+		#region {
+			width: 125px;
+			height: 125px;
+			background-color: red;
+			flow-from: f;
+		}
+		</style>
+	</head>
+	<body>
+		<ol>
+			<li>You should see no red.</li>
+			<li>Test passes if you see a dark green square in the middle of a light green square.</li>
+		</ol>
+		<div id="content">
+			<div id="content-child">
+				<span class="outside">x</span>xxxx<span class="outside">xxxx</span><br>
+				<span class="outside">x</span>xxxx<span class="outside">xxxx</span><br>
+				<span class="outside">x</span>xxxx<span class="outside">xxxx</span><br>
+				<span class="outside">x</span>xxxx<span class="outside">xxxx</span>
+			</div>
+		</div>
+		<div id="region"></div>
+	</body>
+</html>

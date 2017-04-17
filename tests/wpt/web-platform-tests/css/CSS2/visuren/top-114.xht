@@ -1,0 +1,87 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: position relative - top offset percentage and inherit</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" title="9.3.2 Box offsets: 'top', 'right', 'bottom', 'left'" href="http://www.w3.org/TR/CSS21/visuren.html#position-props" />
+  <link rel="help" title="6.2.1 The 'inherit' value" href="http://www.w3.org/TR/CSS21/cascade.html#value-def-inherit" />
+  <link rel="match" href="top-114-ref.xht" />
+
+  <meta content="" name="flags" />
+  <meta content="'top: inherit' makes the top property take the same computed value as the top property for the element's parent; in the case of a percentage value, the computed value is the specified percentage value. 'top: [percentage]' refers to height of containing block." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  div {position: relative;}
+
+  div#grand-parent-rel-pos
+  {
+  height: 400px;
+  width: 600px;
+  }
+
+  div#red-rel-pos-overlapped
+  {
+  background-color: red;
+  color: white;
+  height: 100px;
+  left: 300px;
+  top: 50px;
+  width: 100px;
+  }
+
+  div#parent-rel-pos
+  {
+  height: 0px;
+  left: 50%; /* 50% x 600px == 300px */
+  /* 'left: [percentage]' refers to width of containing block. */
+  top: -12.5%; /* -12.5% x 400px == -50px */
+  /* 'top: [percentage]' refers to height of containing block. */
+  width: 100px;
+  }
+
+  div#green-child-rel-pos-inherit-overlapping
+  {
+  background-color: green;
+  height: 100px;
+  left: 0px;
+  top: inherit;
+  /*
+  =====================================
+  top: inherit should resolve as top: -12.5% because
+  "the property takes the same computed value as the
+  property for the element's parent"
+  CSS 2.1, section 6.2.1 The 'inherit' value
+  http://www.w3.org/TR/CSS21/cascade.html#value-def-inherit
+  and
+  "Computed value: (...) if specified as a percentage, [then]
+  the specified [percentage] value"
+  http://www.w3.org/TR/CSS21/visuren.html#position-props
+
+  So, the top offset of #green-child-rel-pos-inherit-overlapping
+  should be -12.5%, which is -12.5% of the height of its containing
+  block (#parent-rel-pos) which is 0px.
+  =====================================
+  */
+  width: 100px;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+  <div id="grand-parent-rel-pos">
+    <div id="red-rel-pos-overlapped">test FAILED</div>
+    <div id="parent-rel-pos">
+      <div id="green-child-rel-pos-inherit-overlapping"></div>
+    </div>
+  </div>
+
+ </body>
+</html>

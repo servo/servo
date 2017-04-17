@@ -1,0 +1,440 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html lang="en">
+<!-- $Id: cover-info.src,v 1.5 1997/09/24 21:59:08 ian Exp $ -->
+<HEAD>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<TITLE>CSS2 Specification</TITLE>
+<LINK rel="next" href="about.html">
+<LINK rel="STYLESHEET" href="style/default.css" type="text/css">
+</HEAD>
+<body>
+<div class="navbar">
+<center><a href="about.html">next</a> &nbsp; <a href="#toc">go to the table of contents</a>
+</center>
+</div>
+
+
+<p align="right"><a href="http://www.w3.org/"><img
+src="./images/w3c_home.gif" alt="W3C" align="left" border="0"
+hspace="0"></a>CSS20-970924</p>
+
+<h1 align=center>CSS2 Specification</h1>
+<center><strong>W3C Working Draft <i>24-September-1997</i></strong></center>
+
+<!--
+<p>This is: <a href="http://www.w3.org/Style/Group/9709/css2-970924/">http://www.w3.org/Style/Group/9709/css2-970924/</a>
+-->
+
+<h2>Abstract</h2> 
+
+<p>This specification defines the Cascading Style Sheet language,
+Level 2.
+
+<h2>Status of this document</h2>
+<p>This is <em>[not yet]</em> a W3C Working Draft for review by W3C
+members and other interested parties. It is a draft document and may
+be updated, replaced or obsoleted by other documents at any time. It
+is inappropriate to use W3C Working Drafts as reference material or to
+cite them as other than "work in progress".  This is work in progress
+and does not imply endorsement by, or the consensus of, either W3C or
+members of the CSS working group.
+
+<p>This document has been produced as part of the <A
+HREF="http://www.w3.org/Style/Activity.html">W3C Style
+Activity</A>, and is intended as a draft of a proposed recommendation
+for CSS2.
+
+<P>If you did not get this document directly from the W3C website you may
+want to check whether you have the latest version of this document by
+looking at the list of W3C technical reports at &lt;<a
+href="http://www.w3.org/TR/">http://www.w3.org/TR/</a>&gt;.
+
+<P>CSS2 replaces CSS1, specified in <a
+href="http://www.w3.org/TR/REC-CSS1-961217">http://www.w3.org/TR/REC-CSS1-961217</a>
+
+<h2>Editors</h2>
+<UL>
+<LI><a href="http://www.w3.org/People/Bos/">Bert Bos</a>
+&lt;<a href="mailto:bbos@w3.org">bbos@w3.org</a>&gt;
+<LI><A HREF="http://www.w3.org/People/howcome/">H&aring;kon Wium Lie</A>
+&lt;<a href="mailto:howcome@w3.org">howcome@w3.org</a>&gt;
+<LI><A HREF="http://www.w3.org/People/Lilley/">Chris Lilley</A>
+&lt;<a href="mailto:clilley@w3.org">clilley@w3.org</a>&gt;
+<LI>Ian Jacobs &lt;<a href="mailto:ij@w3.org">ij@w3.org</a>&gt;
+</UL>
+
+<h2>Comments</h2>
+
+<p>Please send detailed comments on this document to <a
+href="mailto:howcome@w3.org">the editors</a>. We
+cannot guarantee a personal response but we will try when it is
+appropriate. Public discussion on CSS features takes place on
+www-style@w3.org and messages are archived at <a
+href="http://lists.w3.org/Archives/Public/www-style/">http://lists.w3.org/Archives/Public/www-style/</a>.
+</p>
+
+<h2><a name="toc">Table of Contents</a></h2>
+<DIV CLASS="toc"><P CLASS="tocline"><a href="about.html" rel="chapter"><strong>1 About the CSS2 Specification</strong></a>
+<BR><a href="about.html#h-1.1">1.1 How to read the specification</a>
+<BR><a href="about.html#h-1.2">1.2 How the specification is organized</a>
+<BR><a href="about.html#h-1.3">1.3 Acknowledgments</a>
+<P CLASS="tocline"><a href="intro.html" rel="chapter"><strong>2 Introduction to CSS2</strong></a>
+<BR><a href="intro.html#h-2.1">2.1 A brief CSS2 tutorial</a>
+<BR><a href="intro.html#h-2.2">2.2 Design principles behind CSS2</a>
+<BR><a href="intro.html#h-2.3">2.3 Tips for style sheet authors</a>
+<P CLASS="tocline"><a href="convent.html" rel="chapter"><strong>3 Definitions and document conventions</strong></a>
+<BR><a href="convent.html#h-3.1">3.1 Definitions</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="convent.html#h-3.1.1">3.1.1 <span class="index-def" title="object language">Object language</span></a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="convent.html#h-3.1.2">3.1.2 <span class="index-def" title="element">Element</span></a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="convent.html#h-3.1.3">3.1.3 Document tree</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="convent.html#h-3.1.4">3.1.4 <span class="index-def" title="inheritance">Inheritance</span></a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="convent.html#h-3.1.5">3.1.5 <span class="index-def" title="user agent|UA">User
+agent</span> (or UA)</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="convent.html#h-3.1.6">3.1.6 <span class="index-def" title="conformance">Conforming user
+agent</span></a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="convent.html#h-3.1.7">3.1.7 <span class="index-def" title="default style sheet">Default style
+			    sheet</span></a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="convent.html#h-3.1.8">3.1.8 <span class="index-def" title="canvas">Canvas</span></a>
+<BR><a href="convent.html#h-3.2">3.2 Conventions</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="convent.html#h-3.2.1">3.2.1 CSS property definitions</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="convent.html#h-3.2.2">3.2.2 HTML conventions</a>
+<P CLASS="tocline"><a href="syndata.html" rel="chapter"><strong>4 CSS2 syntax and basic data types</strong></a>
+<BR><a href="syndata.html#h-4.1">4.1 Syntax</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="syndata.html#h-4.1.1">4.1.1 Characters and case</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="syndata.html#h-4.1.2">4.1.2 Statements</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="syndata.html#h-4.1.3">4.1.3 At-rules</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="syndata.html#h-4.1.4">4.1.4 Blocks</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="syndata.html#h-4.1.5">4.1.5 Rule sets, declaration blocks, and selector-strings</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="syndata.html#h-4.1.6">4.1.6 Properties</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="syndata.html#h-4.1.7">4.1.7 Comments</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="syndata.html#h-4.1.8">4.1.8 Error handling</a>
+<BR><a href="syndata.html#h-4.2">4.2 Basic Data types</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="syndata.html#h-4.2.1">4.2.1 Integers and numbers</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="syndata.html#h-4.2.2">4.2.2 Lengths</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="syndata.html#h-4.2.3">4.2.3  Percentages</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="syndata.html#h-4.2.4">4.2.4 URLs</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="syndata.html#h-4.2.5">4.2.5 Colors</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="syndata.html#h-4.2.6">4.2.6 Angles</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="syndata.html#h-4.2.7">4.2.7 Time</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="syndata.html#h-4.2.8">4.2.8 Frequencies</a>
+<BR><a href="syndata.html#h-4.3">4.3 CSS and HTML</a>
+<P CLASS="tocline"><a href="selector.html" rel="chapter"><strong>5 Selectors</strong></a>
+<BR><a href="selector.html#h-5.1">5.1 Type selectors</a>
+<BR><a href="selector.html#h-5.2">5.2 Grouping</a>
+<BR><a href="selector.html#h-5.3">5.3 Contextual selectors</a>
+<BR><a href="selector.html#h-5.4">5.4 Sequential selectors</a>
+<BR><a href="selector.html#h-5.5">5.5 Pseudo-elements and pseudo-classes</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="selector.html#h-5.5.1">5.5.1 Overlapping pseudo-elements</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="selector.html#h-5.5.2">5.5.2 Pseudo-elements with contextual selectors</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="selector.html#h-5.5.3">5.5.3 Typographical pseudo-elements: :first-line and
+:first-letter</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="selector.html#h-5.5.3.1"><span class="index-def" title="pseudo-elements, :first-line|:first-line">:first-line</span></a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="selector.html#h-5.5.3.2"><span class="index-def" title="pseudo-elements,
+:first-letter|:first-letter">:first-letter</span></a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="selector.html#h-5.5.4">5.5.4 Anchor pseudo-classes in HTML:
+<span class="index-def" title="pseudo-classes, :link|:link">:link</span>,
+<span class="index-def" title="pseudo-classes, :visited|:visited">:visited</span>,
+and 
+<span class="index-def" title="pseudo-classes, :active|:active">:active</span>
+</a>
+<BR><a href="selector.html#h-5.6">5.6 Attribute selectors</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="selector.html#h-5.6.1">5.6.1 Attribute selectors in HTML</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="selector.html#h-5.6.2">5.6.2 The class attribute</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="selector.html#h-5.6.3">5.6.3 The class attribute in other object languages</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="selector.html#h-5.6.4">5.6.4 The id attribute</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="selector.html#h-5.6.5">5.6.5 Pseudo-elements and pseudo-classes with attribute selectors</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="selector.html#h-5.6.6">5.6.6 Colliding attribute selectors and pseudo-classes</a>
+<P CLASS="tocline"><a href="cascade.html" rel="chapter"><strong>6 Cascade</strong></a>
+<BR><a href="cascade.html#h-6.1">6.1 Cascading order</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="cascade.html#h-6.1.1">6.1.1 'Important' rules</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="cascade.html#h-6.1.2">6.1.2 Cascading order in HTML</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="cascade.html#h-6.1.2.1">Precedence of object language attributes</a>
+<P CLASS="tocline"><a href="media.html" rel="chapter"><strong>7 Media types</strong></a>
+<BR><a href="media.html#h-7.1">7.1 Specifying media-dependent style sheets</a>
+<BR><a href="media.html#h-7.2">7.2 Valid media types</a>
+<P CLASS="tocline"><a href="flowobj.html" rel="chapter"><strong>8 Visual flow model</strong></a>
+<BR><a href="flowobj.html#h-8.1">8.1 The box model</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="flowobj.html#h-8.1.1">8.1.1 Box dimensions</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="flowobj.html#h-8.1.2">8.1.2 Margin properties</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="flowobj.html#h-8.1.2.1">Values for <span class="index-def"
+title="&lt;margin-width&gt;, definition of">&lt;margin-width&gt;</span></a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="flowobj.html#h-8.1.2.2">'margin-top'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="flowobj.html#h-8.1.2.3">'margin-right'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="flowobj.html#h-8.1.2.4">'margin-bottom'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="flowobj.html#h-8.1.2.5">'margin-left'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="flowobj.html#h-8.1.2.6">'margin'</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="flowobj.html#h-8.1.3">8.1.3 Padding properties</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="flowobj.html#h-8.1.3.1">Values for <span class="index-def"
+title="&lt;padding-width&gt;, definition of">&lt;padding-width&gt;</span></a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="flowobj.html#h-8.1.3.2">'padding-top'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="flowobj.html#h-8.1.3.3">'padding-right'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="flowobj.html#h-8.1.3.4">'padding-bottom'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="flowobj.html#h-8.1.3.5">'padding-left'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="flowobj.html#h-8.1.3.6">'padding'</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="flowobj.html#h-8.1.4">8.1.4 Border properties</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="flowobj.html#h-8.1.4.1">Values for <span class="index-def"
+title="&lt;border-width&gt;, definition of">&lt;border-width&gt;</span></a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="flowobj.html#h-8.1.4.2">'border-top-width'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="flowobj.html#h-8.1.4.3">'border-right-width'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="flowobj.html#h-8.1.4.4">'border-bottom-width'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="flowobj.html#h-8.1.4.5">'border-left-width'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="flowobj.html#h-8.1.4.6">'border-width'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="flowobj.html#h-8.1.4.7">'border-color'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="flowobj.html#h-8.1.4.8">'border-style'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="flowobj.html#h-8.1.4.9">'border-top'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="flowobj.html#h-8.1.4.10">'border-bottom'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="flowobj.html#h-8.1.4.11">'border-right'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="flowobj.html#h-8.1.4.12">'border-left'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="flowobj.html#h-8.1.4.13">'border'</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="flowobj.html#h-8.1.5">8.1.5 Example of margins, padding, and borders</a>
+<BR><a href="flowobj.html#h-8.2">8.2 The flow model</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="flowobj.html#h-8.2.1">8.2.1 Block level layout</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="flowobj.html#h-8.2.1.1">List-item elements</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="flowobj.html#h-8.2.2">8.2.2 Inline layout</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="flowobj.html#h-8.2.3">8.2.3 Relative positioning</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="flowobj.html#h-8.2.4">8.2.4 Controlling layout behavior</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="flowobj.html#h-8.2.4.1">'display'</a>
+<BR><a href="flowobj.html#h-8.3">8.3 Outside the flow</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="flowobj.html#h-8.3.1">8.3.1 Floats</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="flowobj.html#h-8.3.1.1">'float'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="flowobj.html#h-8.3.1.2">'clear'</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="flowobj.html#h-8.3.2">8.3.2 Absolute positioning</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="flowobj.html#h-8.3.2.1">'left'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="flowobj.html#h-8.3.2.2">'top'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="flowobj.html#h-8.3.2.3">'right'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="flowobj.html#h-8.3.2.4">'bottom'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="flowobj.html#h-8.3.2.5">'position'</a>
+<BR><a href="flowobj.html#h-8.4">8.4 Comparison of normal, relative, floating, and absolute positioning</a>
+<BR><a href="flowobj.html#h-8.5">8.5 Z-order: Layered presentation</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="flowobj.html#h-8.5.1">8.5.1 Calculating the stack level</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="flowobj.html#h-8.5.1.1">'z-index'</a>
+<BR><a href="flowobj.html#h-8.6">8.6 Multicolumn layout</a>
+<P CLASS="tocline"><a href="flowobj2.html" rel="chapter"><strong>9 Visual flow model details</strong></a>
+<BR><a href="flowobj2.html#h-9.1">9.1 Box width calculations</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="flowobj2.html#h-9.1.0.1">'width'</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="flowobj2.html#h-9.1.1">9.1.1 Relationship of width dimensions</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="flowobj2.html#h-9.1.2">9.1.2 Width of floats and replaced elements</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="flowobj2.html#h-9.1.3">9.1.3 Width of absolutely positioned elements</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="flowobj2.html#h-9.1.4">9.1.4 Minimum and maximum widths</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="flowobj2.html#h-9.1.4.1">'min-width'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="flowobj2.html#h-9.1.4.2">'max-width'</a>
+<BR><a href="flowobj2.html#h-9.2">9.2 Box height calculations</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="flowobj2.html#h-9.2.0.1">'height'</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="flowobj2.html#h-9.2.1">9.2.1 Height of replaced elements</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="flowobj2.html#h-9.2.2">9.2.2 Height of absolutely positioned elements</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="flowobj2.html#h-9.2.3">9.2.3 Minimum and maximum heights</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="flowobj2.html#h-9.2.3.1">'min-height'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="flowobj2.html#h-9.2.3.2">'max-height'</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="flowobj2.html#h-9.2.4">9.2.4 Collapsing margins</a>
+<BR><a href="flowobj2.html#h-9.3">9.3 Scaling</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="flowobj2.html#h-9.3.0.1">'aspect-ratio'</a>
+<BR><a href="flowobj2.html#h-9.4">9.4 Line height calculations</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="flowobj2.html#h-9.4.0.1">'line-height'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="flowobj2.html#h-9.4.0.2">'vertical-align'</a>
+<BR><a href="flowobj2.html#h-9.5">9.5 Floating constraints</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="flowobj2.html#h-9.5.0.1">Float overlap</a>
+<BR><a href="flowobj2.html#h-9.6">9.6 Overflow and clipping</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="flowobj2.html#h-9.6.1">9.6.1 Overflow</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="flowobj2.html#h-9.6.1.1">'overflow'</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="flowobj2.html#h-9.6.2">9.6.2 Clipping</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="flowobj2.html#h-9.6.2.1">'clip'</a>
+<BR><a href="flowobj2.html#h-9.7">9.7 Visibility</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="flowobj2.html#h-9.7.0.1">'visibility'</a>
+<BR><a href="flowobj2.html#h-9.8">9.8 Dynamic positioning</a>
+<BR><a href="flowobj2.html#h-9.9">9.9 Filters</a>
+<P CLASS="tocline"><a href="colors.html" rel="chapter"><strong>10 Colors and Backgrounds</strong></a>
+<BR><a href="colors.html#h-10.1">10.1 Foreground properties</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="colors.html#h-10.1.0.1">'color'</a>
+<BR><a href="colors.html#h-10.2">10.2 Background properties</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="colors.html#h-10.2.0.1">'background-color'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="colors.html#h-10.2.0.2">'background-image'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="colors.html#h-10.2.0.3">'background-repeat'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="colors.html#h-10.2.0.4">'background-attachment'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="colors.html#h-10.2.0.5">'background-position'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="colors.html#h-10.2.0.6">'background'</a>
+<P CLASS="tocline"><a href="fonts.html" rel="chapter"><strong>11 Fonts</strong></a>
+<BR><a href="fonts.html#h-11.1">11.1 Font specification</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.1.1">11.1.1 Font family</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.1.1.1">'font-family'</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.1.2">11.1.2 Font style</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.1.2.1">'font-style'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.1.2.2">'font-variant'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.1.2.3">'font-weight'</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.1.3">11.1.3 Font size</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.1.3.1">'font-size'</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.1.4">11.1.4 The <span class="propinst-font">'font'</span> shorthand property</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.1.4.1">'font'</a>
+<BR><a href="fonts.html#h-11.2">11.2 Font selection</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.1">11.2.1 Font Descriptions and @font-face</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.2">11.2.2 Font-face Descriptors for Selecting a Font</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.2.1">'font-family'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.2.2">'font-style'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.2.3">'font-variant'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.2.4">'font-weight'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.2.5">'font-size'</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.3">11.2.3 Font-face Descriptors for Font Data Qualification</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.3.1">'unicode-range'</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.4">11.2.4 Font-face Descriptors for Numeric Values</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.4.1">'units-per-em'</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.5">11.2.5 Font-face Descriptors for Referencing</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.5.1">'src'</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.6">11.2.6 Font-face Descriptors for Matching</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.6.1">'panose-1'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.6.2">'stemv'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.6.3">'stemh'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.6.4">'slope'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.6.5">'cap-height'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.6.6">'x-height'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.6.7">'ascent'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.6.8">'descent'</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.7">11.2.7 Font-face Descriptors for Synthesis</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.7.1">'widths'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.7.2">'definition-src'</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.8">11.2.8 Font-face Descriptors for Alignment</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.8.1">'centerline'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.8.2">'mathline'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.8.3">'topline'</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.9">11.2.9 General Font Descriptors</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.9.1">Adorned font name</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.9.2">Central Baseline</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.9.3">Co-ordinate units on the em square</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.9.4">Font encoding tables</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.9.5">Font family name</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.9.6">Glyph Representation widths</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.9.7">Glyph Representation heights</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.9.8">Horizontal stem width</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.9.9">Height of capital glyph representations</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.9.10">Height of lowercase glyph representations</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.9.11">Mathematical Baseline</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.9.12">Maximal bounding box</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.9.13">Maximum unaccented height</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.9.14">Maximum unaccented depth</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.9.15">Panose-1 number</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.9.16">Range of Unicode characters</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.9.17">Top Baseline</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.9.18">Vertical stem width</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.9.19">Vertical stroke angle</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.2.10">11.2.10 Fonts for Multiple Media</a>
+<BR><a href="fonts.html#h-11.3">11.3 Font matching algorithm</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="fonts.html#h-11.3.1">11.3.1 Examples of font matching</a>
+<P CLASS="tocline"><a href="text.html" rel="chapter"><strong>12 Text</strong></a>
+<BR><a href="text.html#h-12.1">12.1 White space</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="text.html#h-12.1.0.1">'white-space'</a>
+<BR><a href="text.html#h-12.2">12.2 Case</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="text.html#h-12.2.1">12.2.1 Capitalization</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="text.html#h-12.2.1.1">'text-transform'</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="text.html#h-12.2.2">12.2.2 Special first letter/first line</a>
+<BR><a href="text.html#h-12.3">12.3 Letter and word spacing</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="text.html#h-12.3.0.1">'letter-spacing'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="text.html#h-12.3.0.2">'word-spacing'</a>
+<BR><a href="text.html#h-12.4">12.4 Indentation</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="text.html#h-12.4.0.1">'text-indent'</a>
+<BR><a href="text.html#h-12.5">12.5 Alignment</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="text.html#h-12.5.0.1">'alignment'</a>
+<BR><a href="text.html#h-12.6">12.6 Decoration</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="text.html#h-12.6.1">12.6.1 Underlining, over lining, striking, and blinking</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="text.html#h-12.6.1.1">'text-decoration'</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="text.html#h-12.6.2">12.6.2 Text shadows</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="text.html#h-12.6.2.1">text-shadow-color'</a>
+<BR><a href="text.html#h-12.7">12.7 Generated text</a>
+<BR><a href="text.html#h-12.8">12.8 Automatic numbering</a>
+<BR><a href="text.html#h-12.9">12.9 Text in HTML</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="text.html#h-12.9.1">12.9.1 Forcing a line break</a>
+<P CLASS="tocline"><a href="lists.html" rel="chapter"><strong>13 Lists</strong></a>
+<BR><a href="lists.html#h-13.1">13.1 Visual formatting of lists</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="lists.html#h-13.1.1">13.1.1 List properties</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="lists.html#h-13.1.1.1">'list-style-type'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="lists.html#h-13.1.1.2">'list-style-image'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="lists.html#h-13.1.1.3">'list-style-position'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="lists.html#h-13.1.1.4">'list-style'</a>
+<P CLASS="tocline"><a href="tables.html" rel="chapter"><strong>14 Tables</strong></a>
+<BR><a href="tables.html#h-14.1">14.1 Table layout</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="tables.html#h-14.1.0.1">'column-span'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="tables.html#h-14.1.0.2">'row-span'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="tables.html#h-14.1.0.3">'direction'</a>
+<BR><a href="tables.html#h-14.2">14.2 Computing widths and heights</a>
+<BR><a href="tables.html#h-14.3">14.3 Placement of the borders</a>
+<BR><a href="tables.html#h-14.4">14.4 Conflict resolution for borders</a>
+<BR><a href="tables.html#h-14.5">14.5 Properties for columns and rows</a>
+<BR><a href="tables.html#h-14.6">14.6 Vertical alignment of cells in a row</a>
+<BR><a href="tables.html#h-14.7">14.7 Horizontal alignment of cells in a column</a>
+<BR><a href="tables.html#h-14.8">14.8 Table captions</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="tables.html#h-14.8.0.1">'caption-side'</a>
+<BR><a href="tables.html#h-14.9">14.9 Floating elements inside cells</a>
+<BR><a href="tables.html#h-14.10">14.10 Generating speech</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="tables.html#h-14.10.0.1">'speak-header-cell'</a>
+<BR><a href="tables.html#h-14.11">14.11 Table implementation notes</a>
+<P CLASS="tocline"><a href="ui.html" rel="chapter"><strong>15 User interface</strong></a>
+<BR><a href="ui.html#h-15.1">15.1 Cursors</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="ui.html#h-15.1.0.1">'cursor'</a>
+<BR><a href="ui.html#h-15.2">15.2 User preferences for colors and fonts</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="ui.html#h-15.2.1">15.2.1 System Colors</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="ui.html#h-15.2.2">15.2.2 System fonts</a>
+<BR><a href="ui.html#h-15.3">15.3 Other rendering issues that depend on user agents</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="ui.html#h-15.3.1">15.3.1 Magnification</a>
+<P CLASS="tocline"><a href="aural.html" rel="chapter"><strong>16 Aural style sheets</strong></a>
+<BR><a href="aural.html#h-16.1">16.1 Aural cascading style sheet properties</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="aural.html#h-16.1.1">16.1.1 Volume properties</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="aural.html#h-16.1.1.1">'volume'</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="aural.html#h-16.1.2">16.1.2 Speaking properties</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="aural.html#h-16.1.2.1">'speak'</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="aural.html#h-16.1.3">16.1.3 Pause properties</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="aural.html#h-16.1.3.1">'pause-after'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="aural.html#h-16.1.3.2">'pause'</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="aural.html#h-16.1.4">16.1.4 Cue properties</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="aural.html#h-16.1.4.1">'cue-before'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="aural.html#h-16.1.4.2">'cue-after'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="aural.html#h-16.1.4.3">'cue'</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="aural.html#h-16.1.5">16.1.5 Mixing properties</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="aural.html#h-16.1.5.1">'play-during'</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="aural.html#h-16.1.6">16.1.6 Spatial properties</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="aural.html#h-16.1.6.1">'azimuth'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="aural.html#h-16.1.6.2">'elevation'</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="aural.html#h-16.1.7">16.1.7 Voice characteristic properties</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="aural.html#h-16.1.7.1">'speech-rate'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="aural.html#h-16.1.7.2">'voice-family'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="aural.html#h-16.1.7.3">'pitch'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="aural.html#h-16.1.7.4">'pitch-range'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="aural.html#h-16.1.7.5">'stress'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="aural.html#h-16.1.7.6">'richness'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="aural.html#h-16.1.7.7">'speak-punctuation'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="aural.html#h-16.1.7.8">'speak-date'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="aural.html#h-16.1.7.9">'speak-numeral'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="aural.html#h-16.1.7.10">'speak-time'</a>
+<P CLASS="tocline"><a href="print.html" rel="chapter"><strong>17 Printing with style sheets</strong></a>
+<BR><a href="print.html#h-17.1">17.1 Background to printing</a>
+<BR><a href="print.html#h-17.2">17.2 The page model</a>
+<BR><a href="print.html#h-17.3">17.3 Page breaks</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="print.html#h-17.3.1">17.3.1 Page break properties</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="print.html#h-17.3.1.1">'page-break-before'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="print.html#h-17.3.1.2">'page-break-after'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="print.html#h-17.3.1.3">'orphan'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="print.html#h-17.3.1.4">'widow'</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="print.html#h-17.3.2">17.3.2 Allowed page breaks</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="print.html#h-17.3.3">17.3.3 Forced page breaks</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="print.html#h-17.3.4">17.3.4 "Best" page breaks</a>
+<BR><a href="print.html#h-17.4">17.4 Page boxes: the @page rule</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="print.html#h-17.4.1">17.4.1 @page properties</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="print.html#h-17.4.1.1">'size'</a>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="print.html#h-17.4.1.2">'marks'</a>
+<BR><a href="print.html#h-17.5">17.5 Pseudo-class page boxes</a>
+<BR><a href="print.html#h-17.6">17.6 Cascading in the page context</a>
+<P CLASS="tocline"><a href="sample.html" rel="chapter"><strong>Appendix A: A sample style sheet for HTML 2.0</strong></a>
+<P CLASS="tocline"><a href="changes.html" rel="chapter"><strong>Appendix B: Changes from CSS1</strong></a>
+<P CLASS="tocline"><a href="notes.html" rel="chapter"><strong>Appendix C: Implementation and performance
+notes</strong></a>
+<BR><a href="notes.html#h-C.1">Colors</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="notes.html#h-C.1.1">Gamma Correction</a>
+<BR><a href="notes.html#h-C.2">Fonts</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="notes.html#h-C.2.1">Glossary of font terms</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="notes.html#h-C.2.2">Font retrieval</a>
+<BR><a href="notes.html#h-C.3">Printing</a>
+<BR>&nbsp;&nbsp;&nbsp;<a href="notes.html#h-C.3.1">Future extensions</a>
+<P CLASS="tocline"><a href="grammar.html" rel="chapter"><strong>Appendix D: The grammar of CSS2</strong></a>
+<P CLASS="tocline"><a href="refs.html" rel="chapter"><strong>References</strong></a>
+<BR><a href="refs.html#h-1.1">Normative references</a>
+<BR><a href="refs.html#h-1.2">Informative references</a>
+<P CLASS="tocline"><a href="index.html" rel="chapter"><strong>Index</strong></a>
+</DIV>
+</body>
+</html>

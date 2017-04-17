@@ -1,0 +1,24 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+<html lang="en">
+ <head>
+  <title>Preferred Stylesheets and the Disabled Attribute</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/cascade/alternates/006.html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS2/conform.html#conformance" />
+  <link rel="alternate stylesheet" title="Alternate One" href="006a.css">
+  <link rel="alternate stylesheet" title="Preferred" href="006b.css">
+  <script type="text/javascript">
+    document.getElementsByTagName('LINK')[0].disabled = false; // enables 006a
+  </script>
+  <link rel="stylesheet" title="Preferred" href="006c.css"> <!-- redisables 006a, enables 006b -->
+  <link rel="alternate stylesheet" title="Alternate One" href="006d.css">
+ </head>
+ <body>
+  <p class="a">This should be green.</p>
+  <p class="b">This should be green.</p>
+  <p class="c">This should be green.</p>
+  <p class="d">This should be green.</p>
+  <p>This test is meaningless if <a href="006.html">test 006-no-script</a> fails.</p>
+ </body>
+</html>
+

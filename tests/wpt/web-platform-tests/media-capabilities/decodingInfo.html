@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<title>MediaCapabilities.decodingInfo()</title>
+<script src=/resources/testharness.js></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+// Minimal VideoConfiguration that will be allowed per spec. All optional
+// properties are missing.
+var minimalVideoConfiguration = {
+  contentType: 'video/webm; codecs="vp9"',
+  width: 800,
+  height: 600,
+  bitrate: 3000,
+  framerate: 24,
+};
+
+// Minimal AudioConfiguration that will be allowed per spec. All optional
+// properties are missing.
+var minimalAudioConfiguration = {
+  contentType: 'audio/webm; codecs="opus"',
+};
+
+promise_test(t => {
+  return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.decodingInfo());
+}, "Test that decodingInfo rejects if it doesn't get a configuration");
+
+promise_test(t => {
+  return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.decodingInfo({}));
+}, "Test that decodingInfo rejects if the MediaConfiguration isn't valid");
+
+promise_test(t => {
+  return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.decodingInfo({
+    video: minimalVideoConfiguration,
+    audio: minimalAudioConfiguration,
+  }));
+}, "Test that decodingInfo rejects if the MediaConfiguration does not have a type");
+
+promise_test(t => {
+  return navigator.mediaCapabilities.decodingInfo({
+    type: 'file',
+    video: minimalVideoConfiguration,
+    audio: minimalAudioConfiguration,
+  }).then(ability => {
+    assert_idl_attribute(ability, 'supported');
+    assert_idl_attribute(ability, 'smooth');
+    assert_idl_attribute(ability, 'powerEfficient');
+  });
+}, "Test that decodingInfo returns a valid MediaCapabilitiesInfo objects");
+
+async_test(t => {
+  var validTypes = [ 'file', 'media-source' ];
+  var invalidTypes = [ undefined, null, '', 'foobar', 'mse', 'MediaSource' ];
+
+  var validPromises = [];
+  var invalidCaught = 0;
+
+  validTypes.forEach(type => {
+    validPromises.push(navigator.mediaCapabilities.decodingInfo({
+      type: type,
+      video: minimalVideoConfiguration,
+      audio: minimalAudioConfiguration,
+    }));
+  });
+
+  // validTypes are tested via Promise.all(validPromises) because if one of the
+  // promises fail, Promise.all() will reject. This mechanism can't be used for
+  // invalid types which will be tested individually and increment invalidCaught
+  // when rejected until the amount of rejection matches the expectation.
+  Promise.all(validPromises).then(t.step_func(() => {
+    for (var i = 0; i < invalidTypes.length; ++i) {
+      navigator.mediaCapabilities.decodingInfo({
+        type: invalidTypes[i],
+        video: minimalVideoConfiguration,
+        audio: minimalAudioConfiguration,
+      }).then(t.unreached_func(), t.step_func(e => {
+        assert_equals(e.name, 'TypeError');
+        ++invalidCaught;
+        if (invalidCaught == invalidTypes.length)
+          t.done();
+      }));
+    }
+  }), t.unreached_func('Promise.all should not reject for valid types'));
+}, "Test that decodingInfo rejects if the MediaConfiguration does not have a valid type");
+
+</script>

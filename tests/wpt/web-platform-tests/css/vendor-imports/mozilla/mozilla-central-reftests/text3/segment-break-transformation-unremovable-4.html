@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Text 4.1.2. Segment Break Transformation Rules</title>
+<link rel="author" title="Chun-Min (Jeremy) Chen" href="mailto:jeremychen@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#line-break-transform">
+<link rel="stylesheet" type="text/css" href="support/ahem.css">
+<link rel="match" href="segment-break-transformation-unremovable-ref.html">
+<meta name="assert" content="Test checks that a sequence which consists of multiple collapsible
+segment breaks mixed with multiple white spaces should be converted to a white space (U+0020),
+if both the character before/after the sequence is Hangul.">
+<style> p { font-family: ahem; } </style>
+</head>
+<body>
+<div>Test passes if there is <b>one</b> white space between 2nd and 3rd CJK character.
+<!--Some[WS][LF][WS][LF][WS][LF][WS]Hangul-->
+<p>&#x4e00;&#x4e9b;&#x0020;&#x000a;&#x0020;&#x000a;&#x0020;&#x000a;&#x0020;&#xc5b8;&#xbb38;</p>
+</div>
+</body>
+</html>

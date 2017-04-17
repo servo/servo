@@ -1,0 +1,31 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: margin-bottom</title>
+  <meta name="flags" content="ahem" />
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#margin-bottom"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-03-29 -->
+  <link rel="match" href="c5501-imrgn-t-000-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+   .test { background-color: yellow; color: orange; margin: 1em 0; width: 10em; font: 20px/1 Ahem; }
+   .one { margin-bottom: 25px; background-color: lime; }
+   .two { margin-bottom: -10px; background-color: lime; }
+   img.b { border: 20px yellow; border-style: solid none; }
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#margin-properties" title="8.3 Margin properties: 'margin-top',  'margin-right',  'margin-bottom', 'margin-left', and 'margin'"/>
+ </head>
+ <body>
+  <p>The three diagrams below should be identical:</p>
+  <p class="test"> xxx xxx <span class="one">xxx xxx</span> xxx xxx </p>
+  <p class="test"> xxx xxx <span class="two">xxx xxx</span> xxx xxx </p>
+  <div>
+     <img src="support/swatch-orange.png" alt="Image download support must be enabled" height="60" width="60"
+   /><img src="support/swatch-lime.png"   alt="Image download support must be enabled" height="20" width="20" class="b"
+   /><img src="support/swatch-orange.png" alt="Image download support must be enabled" height="60" width="60"
+   /><img src="support/swatch-yellow.png" alt="Image download support must be enabled" height="60" width="60"/>
+  </div>
+ </body>
+</html>

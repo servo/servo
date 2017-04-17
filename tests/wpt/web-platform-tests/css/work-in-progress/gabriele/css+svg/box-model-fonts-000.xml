@@ -1,0 +1,53 @@
+<?xml version="1.0" standalone="yes"?>
+<?xml-stylesheet href="css/box-model-fonts-000.css" type="text/css"?>
+
+<root>
+	
+	<document>
+	
+			<info>You should see a block with different lines. The block should be horizontally centered, with
+                                a thick green border, some padding and a lime background color.
+				The text should be in a sans-serif font  with a bold font weight.</info>
+
+
+		<svg width="400px" height="150px" version="1.1" xmlns="http://www.w3.org/2000/svg">
+
+			<desc>Translation example</desc>
+	
+
+	
+			<g fill="none" stroke="black" stroke-width="3">
+			
+			
+				<line x1="0" y1="1.5" x2="400" y2="1.5" />
+				<line x1="1.5" y1="0" x2="1.5" y2="150" />
+			
+			
+			</g>
+			
+			<g>
+			
+				<text x="30" y="30">Original coordinates system</text>
+				
+			</g>
+			
+			<g transform="translate(50,50)">
+			
+				<g fill="none" stroke="black" stroke-width="3">
+				
+					<line x1="0" y1="0" x2="50" y2="0" stroke="black" />
+					<line x1="0" y1="0" x2="0" y2="50" />
+				
+				</g>
+				
+				<text x="30" y="30">Translated coordinates system</text>
+			
+			</g>
+	
+		
+		</svg>
+		
+
+			
+	</document>
+</root>

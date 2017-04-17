@@ -1,0 +1,75 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+                      "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Vertical Alignment boxes: replaced elements</title>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#line-height"/>
+  <meta name="flags" content="ahem image"/>
+  <meta name="assert" content="Vertical alignment aligns the margin box of inline replaced elements."/>
+  <style type="text/css">
+    .test {
+        height: 2em;
+        font: 40px/60px Ahem; color: orange;
+    }
+
+    #control {
+      height: 40px;
+      margin-bottom: -18px;
+    }
+    #length {
+      vertical-align: -28px;
+      padding-top: 15px;
+      border-top: 10px solid;
+      margin: 10px 0;
+    }
+    #percent {
+      vertical-align: 50%;
+      padding-bottom: 15px;
+      border-bottom: 10px solid;
+      margin-bottom: -48px;
+    }
+    #text-bottom {
+      vertical-align: text-bottom;
+      padding-bottom: 10px;
+      border-bottom: 15px solid;
+      margin-bottom: -10px;
+    }
+    #text-top {
+      vertical-align: text-top;
+      padding-top: 15px;
+      border-top: 10px solid;
+      margin-top: 10px;
+    }
+    #middle {
+      vertical-align: middle;
+      padding-top: 15px;
+      border-top: 10px solid;
+      margin-bottom: -28px;
+    }
+    #baseline {
+      vertical-align: baseline;
+      padding-bottom: 10px;
+      border-bottom: 15px solid;
+      margin-bottom: -18px;
+    }
+
+    img {
+      background: orange;
+    }
+  </style>
+ </head>
+ <body>
+  <p>There should be a single orange rectangle with perfectly straight sides below.</p>
+  <div class="test">
+    <img id="control" src="support/swatch-orange.png" alt="FAIL"/><!--
+ --><img id="baseline" src="support/swatch-orange.png" alt="FAIL"/><!--
+ --><img id="middle" src="support/swatch-orange.png" alt="FAIL"/><!--
+ --><img id="text-top" src="support/swatch-orange.png" alt="FAIL"/><!--
+ --><img id="text-bottom" src="support/swatch-orange.png" alt="FAIL"/><!--
+ --><img id="percent" src="support/swatch-orange.png" alt="FAIL"/><!--
+ --><img id="length" src="support/swatch-orange.png" alt="FAIL"/>
+  </div>
+
+ </body>
+</html>

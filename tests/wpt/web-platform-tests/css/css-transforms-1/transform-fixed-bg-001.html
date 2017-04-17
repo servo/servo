@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test (Transforms): Fixed Background</title>
+    <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-rendering">
+    <meta name="assert" content='"Fixed backgrounds are affected by any
+    transform specified for the root element, and not by any other transforms."
+    Thus if we have a div that&apos;s 100px square aligned at the top left of
+    the page, giving it a fixed background and translating it 50px down and
+    right should be the same as giving it a non-fixed background that&apos;s
+    translated 50px down and right.'>
+    <meta name="flags" content="svg">
+    <link rel="match" href="transform-fixed-bg-ref.html">
+    <style>
+      body {
+        margin: 0;
+      }
+      div {
+        background: url(support/transform-triangle-left.svg) fixed;
+        width: 100px;
+        height: 100px;
+        transform: translate(50px, 50px);
+      }
+    </style>
+  </head>
+  <body>
+    <div></div>
+  </body>
+</html>

@@ -1,0 +1,63 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: content: counter() error cases</title>
+  <link rel="author" title="L. David Baron" href="https://dbaron.org/"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#propdef-content"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#counter"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#counter-styles"/>
+  <link rel="match" href="content-counter-000-ref.xht"/>
+  <meta name="flags" content="invalid"/>
+  <style type="text/css">
+
+  body { white-space: nowrap; }
+
+
+  #test { counter-reset: c 0 f 1000; }
+  #test span { counter-increment: c; }
+  #test span:before {
+    content: counter(c);
+    content: counter(f, ".");
+    content: counter(f, ".", decimal);
+    content: counter(f, decimal, ".");
+    content: counter(f, decimal, decimal);
+  }
+
+  </style>
+ </head>
+ <body>
+
+ <p>The following two lines should look the same:</p>
+
+ <div id="test">
+   <span></span>
+   <span></span>
+   <span></span>
+   <span></span>
+   <span></span>
+   <span></span>
+   <span></span>
+   <span></span>
+   <span></span>
+   <span></span>
+   <span></span>
+   <span></span>
+ </div>
+
+ <div>
+   1
+   2
+   3
+   4
+   5
+   6
+   7
+   8
+   9
+   10
+   11
+   12
+ </div>
+
+ </body>
+</html>

@@ -1,0 +1,67 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Order of 'counter-reset', 'counter-increment', and counter use, including pseudo-elements</title>
+  <link rel="author" title="L. David Baron" href="https://dbaron.org/"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#counters"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#propdef-content"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#counter"/>
+  <style type="text/css">
+
+  body { white-space: nowrap; }
+
+
+  span.c span:before { content: counter(c); }
+  span.c { counter-reset: c 0; }
+  span.one { counter-reset: c 1; }
+  span.two { counter-increment: c 2; }
+  span.four:before { counter-reset: c 4; }
+  span.eight:before { counter-increment: c 8; }
+  span.c span:after { counter-increment: c 100; counter-reset: c 200; }
+
+  </style>
+ </head>
+ <body>
+
+ <p>The following should be identical:</p>
+
+ <div>
+   <span class="c"><span class=""></span></span>
+   <span class="c"><span class="one"></span></span>
+   <span class="c"><span class="two"></span></span>
+   <span class="c"><span class="two one"></span></span>
+   <span class="c"><span class="four"></span></span>
+   <span class="c"><span class="four one"></span></span>
+   <span class="c"><span class="four two"></span></span>
+   <span class="c"><span class="four two one"></span></span>
+   <span class="c"><span class="eight"></span></span>
+   <span class="c"><span class="eight one"></span></span>
+   <span class="c"><span class="eight two"></span></span>
+   <span class="c"><span class="eight two one"></span></span>
+   <span class="c"><span class="eight four"></span></span>
+   <span class="c"><span class="eight four one"></span></span>
+   <span class="c"><span class="eight four two"></span></span>
+   <span class="c"><span class="eight four two one"></span></span>
+ </div>
+
+ <div>
+   0
+   1
+   2
+   3
+   4
+   4
+   4
+   4
+   8
+   9
+   10
+   11
+   12
+   12
+   12
+   12
+ </div>
+
+ </body>
+</html>

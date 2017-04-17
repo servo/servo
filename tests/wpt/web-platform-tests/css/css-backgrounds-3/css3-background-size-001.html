@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>CSS Backgrounds Test:background size property</title>
+    <link rel="author" title="yanshasha" href="mailto:yanshasha133@gmail.com" />
+    <link rel="reviewer" title="Dayang Shen" href="mailto:shendayang@baidu.com" /><!-- 2013-08-26 -->
+    <link rel="help" href="http://www.w3.org/TR/css3-background/#the-background-size" />
+    <link rel="match" href="reference/css3-background-size-ref.html" />
+    <style type="text/css">
+            div {
+                width: 150px;
+                height: 150px;
+                background-image: url(support/green-150-150.png);
+                background-repeat: no-repeat;
+            }
+            #div1 {
+                background-size: 30%;
+            }
+            #div2 {
+                background-size: 60%;
+            }
+    </style>
+  </head>
+  <body>
+    <p>
+      The test passes if the following three green squares have different size.
+    </p>
+    <div id="div1"></div>
+    <div id="div2"></div>
+    <div id="div3"></div>
+  </body>
+</html>

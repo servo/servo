@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Test: Static position of abspos replaced children in a grid container, with various "align-self" values</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <link rel="help" href="https://drafts.csswg.org/css-align-3/#align-abspos-static">
+  <link rel="match" href="grid-abspos-staticpos-align-self-img-001-ref.html">
+  <style>
+    .container {
+      display: grid;
+      padding: 1px 2px;
+      border: 1px solid black;
+      background: yellow;
+      margin-bottom: 5px;
+      margin-right: 5px;
+      float: left; /* For testing in "rows" of containers */
+      position: relative;
+    }
+    br { clear: both }
+
+    .big > .container {
+      height: 40px;
+      width: 22px;
+      grid: 2px 30px 2px / 3px 14px 3px;
+    }
+    .small > .container {
+      grid: 0px 2px 0px / 3px 2px 3px;
+      height: 2px;
+      width: 4px;
+      margin-bottom: 20px; /* to reduce overlap between overflowing images */
+    }
+
+    .container > * {
+      position: absolute;
+      grid-area: 2 / 2 / 3 / 3;
+    }
+  </style>
+</head>
+<body>
+  <div class="big">
+    <!-- The various align-self values, from
+         https://www.w3.org/TR/css-align-3/#propdef-align-self -->
+    <!-- auto | normal | stretch -->
+    <div class="container"><img src="support/colors-8x16.png"
+                                style="align-self: auto"></div>
+    <div class="container"><img src="support/colors-8x16.png"
+                                style="align-self: normal"></div>
+    <div class="container"><img src="support/colors-8x16.png"
+                                style="align-self: stretch"></div>
+    <br>
+    <!-- <baseline-position> -->
+    <div class="container"><img src="support/colors-8x16.png"
+                                style="align-self: baseline"></div>
+    <div class="container"><img src="support/colors-8x16.png"
+                                style="align-self: last baseline"></div>
+    <br>
+    <!-- <self-position>, part 1 -->
+    <div class="container"><img src="support/colors-8x16.png"
+                                style="align-self: center"></div>
+    <div class="container"><img src="support/colors-8x16.png"
+                                style="align-self: start"></div>
+    <div class="container"><img src="support/colors-8x16.png"
+                                style="align-self: end"></div>
+    <div class="container"><img src="support/colors-8x16.png"
+                                style="align-self: self-start"></div>
+    <div class="container"><img src="support/colors-8x16.png"
+                                style="align-self: self-end"></div>
+    <br>
+    <!-- <self-position>, part 2 -->
+    <div class="container"><img src="support/colors-8x16.png"
+                                style="align-self: flex-start"></div>
+    <div class="container"><img src="support/colors-8x16.png"
+                                style="align-self: flex-end"></div>
+    <div class="container"><img src="support/colors-8x16.png"
+                                style="align-self: left"></div>
+    <div class="container"><img src="support/colors-8x16.png"
+                                style="align-self: right"></div>
+    <br>
+  </div>
+  <div class="small">
+    <!-- The various align-self values, from
+         https://www.w3.org/TR/css-align-3/#propdef-align-self -->
+    <!-- auto | normal | stretch -->
+    <div class="container"><img src="support/colors-8x16.png"
+                                style="align-self: auto"></div>
+    <div class="container"><img src="support/colors-8x16.png"
+                                style="align-self: normal"></div>
+    <div class="container"><img src="support/colors-8x16.png"
+                                style="align-self: stretch"></div>
+    <br>
+    <!-- <baseline-position> -->
+    <div class="container"><img src="support/colors-8x16.png"
+                                style="align-self: baseline"></div>
+    <div class="container"><img src="support/colors-8x16.png"
+                                style="align-self: last baseline"></div>
+    <br>
+    <!-- <self-position>, part 1 -->
+    <div class="container"><img src="support/colors-8x16.png"
+                                style="align-self: center"></div>
+    <div class="container"><img src="support/colors-8x16.png"
+                                style="align-self: start"></div>
+    <div class="container"><img src="support/colors-8x16.png"
+                                style="align-self: end"></div>
+    <div class="container"><img src="support/colors-8x16.png"
+                                style="align-self: self-start"></div>
+    <div class="container"><img src="support/colors-8x16.png"
+                                style="align-self: self-end"></div>
+    <br>
+    <!-- <self-position>, part 2 -->
+    <div class="container"><img src="support/colors-8x16.png"
+                                style="align-self: flex-start"></div>
+    <div class="container"><img src="support/colors-8x16.png"
+                                style="align-self: flex-end"></div>
+    <div class="container"><img src="support/colors-8x16.png"
+                                style="align-self: left"></div>
+    <div class="container"><img src="support/colors-8x16.png"
+                                style="align-self: right"></div>
+    <br>
+  </div>
+</body>
+</html>

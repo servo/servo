@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>flexbox | justify-content: center / overflow</title>
+<link rel="author" href="http://opera.com" title="Opera Software">
+<style>
+div {
+	font-family: monospace;
+	background: blue;
+	margin: 1em 0 0 10em;
+	border: 1px solid black;
+	height: 8em;
+	width: 4em;
+	position: relative;
+}
+span {
+	background: yellow;
+	margin: 1em 0 0 -2.85em;
+	height: 6em;
+	display: inline-block;
+}
+span:nth-child(2) {
+	background: pink;
+	margin-left: 2em;
+}
+span:nth-child(3) {
+	background: lightblue;
+	margin-left: 0;
+	position: relative;
+	top: -7em;
+	left: 4.95em
+}
+</style>
+
+<div>
+	<span>dam</span><span>dam</span><span>dam</span>
+</div>

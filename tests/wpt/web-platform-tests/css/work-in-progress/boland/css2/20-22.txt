@@ -1,0 +1,8 @@
+<?xml#x20version=1?>
+<!DOCTYPE UID >
+<!--second test-->
+<tim/>
+<UID>
+<boland>
+</boland>
+</UID>

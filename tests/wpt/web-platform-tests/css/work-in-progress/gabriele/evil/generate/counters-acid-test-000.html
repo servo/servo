@@ -1,0 +1,74 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<title>Acid Test on counters</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="author" href="mailto:gabriele.romanato@gmail.com">
+<link rel="help" href="http://www.w3.org/TR/CSS21/generate.html">
+<meta name="flags" content="valid">
+<meta name="assert" content="UA should generate the correct number sequence">
+<style type="text/css" media="screen">
+
+div[id="exac"] {
+	counter-reset: bit0 -1 e2 total e10 -1;
+}
+
+span[class="bit0"]:before {
+	counter-increment: bit0;
+	content: counter(bit0);
+}
+
+span[class="bit1"]:before {
+	counter-reset: bit1;
+	counter-increment: bit1;
+	content: counter(bit1);
+}
+
+sub[class="e2"]:before {
+	counter-increment: e2 2;
+	content: counter(e2);
+}
+
+span[class="total"]:before {
+	counter-increment: total 15;
+	content: counter(total);
+}
+
+sub[class="e10"]:before {
+	counter-increment: e10 11;
+	content: counter(e10);
+}
+
+
+
+</style>
+</head>
+
+<body>
+
+<h1>Acid Test on counters</h1>
+
+<p><a href="counters-exac-000.png">Expected result</a></p>
+
+
+<div id="exac">
+<span class="bit0"></span>
+<span class="bit1"></span>
+<span class="bit1"></span>
+<span class="bit1"></span>
+<span class="bit1"></span>
+<span>=</span>
+<span>+</span>
+<span class="bit1"></span>
+<span class="bit1"></span>
+<span class="bit1"></span>
+<span class="bit1"></span>
+<sub class="e2"></sub>
+<span>=</span>
+<span class="total"></span>
+<sub class="e10"></sub>
+</div>
+
+
+</body>
+</html>

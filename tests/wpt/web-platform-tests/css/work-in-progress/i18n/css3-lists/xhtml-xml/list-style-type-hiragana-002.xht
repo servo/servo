@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: list-style-type - hiragana, over 48</title>
+<link rel='author' title='Richard Ishida' href='http://rishida.net' />
+<link rel='reviewer' title='Elika J. Etemad' href='http://fantasai.inkedblade.net/contact' />
+<link rel='help' href='http://www.w3.org/TR/CSS21/generate.html#list-style' />
+<link rel='alternate' href='http://www.w3.org/International/tests/tests-html-css/tests-list-style-type/generate?test=11' />
+<meta name='flags' content='' />
+<meta name="assert" content="Setting list-style-type to hiragana will cause list numbering to format numbers past the end of the hiragana alphabet as described in the CSS3 Lists module." />
+<style type='text/css'>
+ol { list-style-type: hiragana; }
+
+/* the CSS below is not part of the test */
+.test { font-size: 24px; font-family: sans-serif; }
+ol { margin: 0; padding-left: 8em; }
+.alt { color: #ff6633; margin-left: 40px;}
+
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the numbering in the two columns is the same.</p>
+
+
+<div class="test"> 
+			<ol class="hiragana" start="49">
+				<li title="49">ああ</li>
+				<li title="50">あい</li>
+				<li title="51">あう</li>
+				<li title="52">あえ</li>
+				<li title="53">あお</li>
+				<li title="54">あか</li>
+			</ol>
+			<ol class="hiragana" start="2351">
+				<li title="2351">んを</li>
+				<li title="2352">んん</li>
+				<li title="2353">あああ</li>
+				<li title="2354">ああい</li>
+			</ol>
+			<ol class="hiragana" start="5000">
+				<li title="5000">いくく</li>
+			</ol>
+		</div>
+
+
+<!--p class="notes">Notes: <br /><a href="http://www.w3.org/TR/CSS21/generate.html#propdef-list-style-type">CSS2.1</a> CR specifies a <span class="kw">hiragana</span> value for the list-style-type property, but does not specify in any detail the mechanism for implementing it. Expectations for behavior in these tests are based on the rules specified in the version of the <a href="http://www.w3.org/TR/css3-lists/#hiragana">CSS3 Lists module</a> current at the time this test was last updated.</p><p class="notes">The test uses the start attribute to reduce the size of the list.  This attribute is deprecated or unavailable in some formats, causing the test page not to validate, but appears to be supported in major browsers anyway (and will be reinstated in HTML5).</p-->
+</body>
+</html>

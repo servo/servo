@@ -1,0 +1,56 @@
+
+<HTML>
+<HEAD>
+<TITLE>Fourth Test of Section 4.4 of CSS1 Spec</TITLE>
+
+
+
+<STYLE TYPE="text/css">
+P {line-height: 14pt;
+   font-size: 12pt}
+em { line-height: 28pt; }
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+
+
+<BODY>
+
+<h1>Testing Statement #4 Below of Section 4.4 of CSS1 Spec</h1>
+
+
+
+
+
+
+<ul>
+<li>
+4. If a line of text contains sections with different "line-height" values 
+(because there are inline elements on the line), each of those sections has its
+own half-leading above and below.
+</ul>
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p >
+If statement #4 above is passed, then:
+<p>
+The section <em>happy holidays(em)</em>, which is emphasized, has a different
+line height than the rest of the text.  This is because there is an inline
+element (em) present.  The rule applied is "P {line-height: 14pt; font-
+size: 12pt}".
+Also "em {line-height: 28pt}".
+All other properties should be UA-default.
+
+
+To move directly to the next test, click<a href="44-5.htm"> here</a>
+</BODY>
+</HTML>

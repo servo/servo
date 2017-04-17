@@ -1,0 +1,35 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: float</title>
+  <meta name="flags" content="ahem image" />
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#float"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="match" href="c5525-fltblck-000-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+   div { font: 15px/1 Ahem; background: white url(support/css1test5525cf-0.png) top right no-repeat; height: 10em; }
+   p { margin: 0; padding: 0; }
+   .float { float: right; width: 20em; color: green; border: 3px solid green; padding: 5px; margin: 10px; }
+   .flow { background: white url(support/css1test5525cf-1.png) top right no-repeat; color: white; text-align: right; }
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats" title="9.5 Floats"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#normal-block" title="10.6.3 Block-level non-replaced elements in normal flow when 'overflow' computes to 'visible'"/>
+ </head>
+ <body>
+  <p>There should be a green box to the right. &#x2798;</p>
+  <div>
+   <p class="float">
+    x x xxxx xx xxxx x x
+    x xx xx xxxx xx xx x
+    x xxx xx xx xx xxx x
+    x xx xx xxxx xx xx x
+    x x xxxx xx xxxx x x
+   </p>
+   <p class="flow">
+    x<br/>x<br/>x
+   </p>
+  </div>
+ </body>
+</html>

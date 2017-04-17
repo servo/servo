@@ -1,0 +1,19 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Attribute 'background' vs. CSS 'background' specificity</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html#preshint" />
+        <meta name="flags" content="image" />
+        <meta name="assert" content="Attribute 'background' has a specificity of zero and is overridden by CSS." />
+        <style type="text/css">
+            *
+            {
+                background: green;
+            }
+        </style>
+    </head>
+    <body background="support/red15x15.png">
+        <p>Test passes if the background of this page is green.</p>
+    </body>
+</html>

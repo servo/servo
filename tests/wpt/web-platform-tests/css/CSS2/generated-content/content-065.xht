@@ -1,0 +1,30 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Content with a 'attr()' function as a value selecting 'colspan'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#propdef-content" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#content" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'content' property correctly handles the 'attr()' function when calling the attribute 'colspan'." />
+        <style type="text/css">
+            td:before
+            {
+                content: attr(colspan);
+                color: green;
+            }
+            td
+            {
+                border: 2px solid black;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the number "1" appears in the box below.</p>
+        <table>
+            <tr>
+                <td colspan="1"></td>
+            </tr>
+        </table>
+    </body>
+</html>

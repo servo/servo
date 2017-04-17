@@ -1,0 +1,35 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html><head>
+    <link rel="match" href="append-to-nested-split-inline-1-ref.xht"/>
+    <style>
+      .outermost { border: 2px solid; }
+      .outer { border: 4px solid yellow; }
+      .inner { border: 6px sold green; }
+    </style>
+  </head>
+  <body onload="doTest()">
+    <span class="outermost" style="border-right: none">
+      <span class="outer" style="border-right: none">
+        <span class="inner" style="border-right: none">
+        </span>
+      </span>
+    </span>
+    <span style="display: block"></span>
+    <span class="outermost" style="border-right: none; border-left: none">
+      <span class="outer" style="border-right: none; border-left: none">
+        <span class="inner" style="border-right: nonel border-left: none">
+          before span
+        </span>
+      </span>
+    </span>
+    <span style="display: block">span</span>
+    <span class="outermost" style="border-left: none">
+      <span class="outer" style="border-left: none">
+        <span class="inner" style="border-left: none">
+          after span
+        </span>
+      </span>
+    </span>
+  
+
+</body></html>

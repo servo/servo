@@ -1,0 +1,71 @@
+
+<!doctype html>
+<html>
+<head>
+  <title>CSS Backgrounds Test:  background-origin:padding-box & border-radius</title>
+  <link rel="author" title="finscn" href="mailto:finscn@gmail.com" >
+  <link rel="help" href="https://drafts.csswg.org/css3-background/#the-background-origin" >
+  <meta name="flags" content="" >
+  <meta name="assert" content="padding-box : The position is relative to the padding box. (For single boxes ‘0 0’ is the upper left corner of the padding edge, ‘100% 100%’ is the lower right corner.)" >
+
+  <meta charset="utf-8">
+  
+
+<style type="text/css">
+
+  .infomation {
+    padding : 10px;
+    font-size : 16pt;
+    margin : 5px;
+  }
+
+  .test-case {
+    padding : 5px;
+    margin : 5px;
+  }
+
+  .view {
+    border : 30px solid rgba(60,150,255,0.4);
+    width : 320px;
+    height : 240px;
+    padding : 30px;
+    margin : 10px;
+    font-size : 16pt;
+    color : #ff9933;
+    background-image : url("../resource/css3.png");
+  }
+  
+  .no-repeat {
+    background-repeat : no-repeat;
+  }
+
+  .case {
+    background-origin : padding-box;
+    border-radius: 60px;
+  }
+
+ </style>
+
+</head>
+<body>
+
+<div class="infomation">
+Test Passed If : The background is painted. The paint area is the area covered by border(includes padding-area ).<br>
+When border-radius is enabled, the browser should paint the background correctly.
+</div>
+
+<div class="test-case">
+
+  <div class="view case no-repeat" >
+      Test background-origin
+  </div>
+
+  <div class="view case" >
+      Test background-origin
+  </div>
+  
+</div>
+
+</body>
+
+</html>

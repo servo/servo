@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8">
+<title>White space collapse</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='https://drafts.csswg.org/css-text-3/#line-break-transform'>
+<meta name="assert" content="Every tab is converted to a space. Any space immediately following another collapsible space is collapsed to have zero advance width.">
+<style type='text/css'>
+.test span { font-size: 24px; font-family: sans-serif; background-color: #2AA5F7; color: white; }
+.ref span { font-size: 24px; font-family: sans-serif; background-color: #270CEF; color: white; }
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id='log'></div>
+<div id='test' class="test"><span>hello&#x20;&#x20;&#x20;&#x0009;&#x20;&#x20;&#x20;&#x20;&#x20;&#x20;&#x20;there</span></div>
+<div id="ref" class="ref"><span>hello&#x20;there</span></div>
+<div id='testW' class="test"><span>缔造真正全球通行&#x20;&#x20;&#x20;&#x20;&#x20;&#x20;&#x20;&#x0009;&#x20;&#x20;&#x20;的万维网</span></div>
+<div id="refW" class="ref"><span>缔造真正全球通行&#x20;的万维网</span></div>
+<div id='testF' class="test"><span>ＦＵＬＬ&#x20;&#x20;&#x20;&#x0009;&#x20;&#x20;&#x20;&#x20;&#x20;&#x20;&#x20;&#x20;ＷＩＤＴＨ</span></div>
+<div id="refF" class="ref"><span>ＦＵＬＬ&#x20;&#x20;ＷＩＤＴＨ</span></div>
+<div id='testH' class="test"><span>ﾊﾝ&#x20;&#x20;&#x20;&#x0009;&#x20;&#x20;&#x20;&#x20;&#x20;&#x20;&#x20;&#x20;&#x20;ｶｸ</span></div>
+<div id="refH" class="ref"><span>ﾊﾝ&#x20;&#x20;&#x20;ｶｸ</span></div>
+<script>
+test(function() {
+assert_equals(document.getElementById('test').firstChild.offsetWidth, document.getElementById('ref').firstChild.offsetWidth);
+}, "spaces removed");
+test(function() {
+assert_equals(document.getElementById('testW').firstChild.offsetWidth, document.getElementById('refW').firstChild.offsetWidth);
+}, "spaces removed between Wide characters");
+test(function() {
+assert_equals(document.getElementById('testF').firstChild.offsetWidth, document.getElementById('refF').firstChild.offsetWidth);
+}, "spaces removed between Fullwidth characters");
+test(function() {
+assert_equals(document.getElementById('testH').firstChild.offsetWidth, document.getElementById('refH').firstChild.offsetWidth);
+}, "spaces removed between Halfwidth characters");
+</script>
+<!-- Notes:
+The assertion will fail if space is produced for any line in the test paragraph.
+-->
+</body>
+</html>
+
+

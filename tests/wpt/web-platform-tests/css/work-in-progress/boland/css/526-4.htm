@@ -1,0 +1,72 @@
+
+<HTML>
+
+<HEAD>
+<TITLE>Fourth Test of Section 5.2.6 of CSS1 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+#id1 {font-size: medium}
+#id2 {font-size: 10pt}
+#id3 {font-size: large}
+#id4 {font-size: 15pt}
+</STYLE>
+</HEAD>
+
+
+
+
+
+
+<BODY>
+
+
+
+<h1 >Testing Statement #4 Below of Section 5.2.6 of CSS1 Spec</h1>
+
+
+
+
+
+
+
+
+<ul>
+<li>
+4. For "font-size", on a computer screen, a scaling factor of 1.5 is suggested
+between adjacent indexes; if the "medium" font is 10 points, the "large" font
+could be 15 points.
+</ul>
+
+
+
+
+<h2>
+PASS CRITERIA:
+</h2>
+If statement #4 above is passed, then:
+
+<p ID=id1>
+This paragraph should be "medium" font size.
+The rule applied is "#id1 {font-size: medium}".
+
+<p ID=id2>
+This paragraph should be "10pt" font size.
+This paragraph should have the same font size as the one above.
+The rule applied is "#id2 {font-size: 10pt}".
+
+<p ID=id3>
+This paragraph should be large font size.
+The rule applied is "#id3 {font-size: large}".
+
+<p ID=id4>
+This paragraph should be 15pt font size.
+This paragraph should have the same font size as the one above.
+The rule applied is "#id4 {font-size: 15pt}".
+
+<p>
+All other properties of this page should be UA-default.
+UAs may differ in their interpretation of "same".
+
+</BODY>
+</HTML>
+

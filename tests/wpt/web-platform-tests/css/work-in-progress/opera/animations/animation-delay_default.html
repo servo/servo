@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <title>CSS Animations - animation-delay default</title>
+   <link rel="author" title="Opera Software ASA" href="http://www.opera.com/">
+   <link rel="help" href="https://drafts.csswg.org/css3-animations/#the-animation-delay-property-">
+   <meta name="flags" content="dom">
+   <meta name="assert" content="animation-delay does not inherit by default">
+   <script src="/resources/testharness.js"></script>
+   <script src="/resources/testharnessreport.js"></script>
+   <style type="text/css">
+      @keyframes move {
+         from {
+            left: 0px;
+         }
+         to {
+            left: 100px;
+         }
+      }
+      div {
+         width: 100px;
+         height: 100px;
+         animation-duration: 200ms;
+         animation-fill-mode: forwards;
+         animation-timing-function: step-start;
+         position: relative;
+      }
+      div > div {
+         background: blue;
+      }
+      .test {
+         animation-delay: 0.5s;
+      }
+      .test, .test > div {
+         animation-name: move;
+      }
+   </style>
+   <script type="text/javascript">
+      setup({explicit_done:true});
+      onload = function() {
+         var testName = document.querySelector('title').firstChild.data;
+         var divs = document.querySelectorAll('div');
+         var log = document.querySelectorAll('p')[1].firstChild;
+         var outerStyle = getComputedStyle(divs[0], null);
+         var innerStyle = getComputedStyle(divs[1], null);
+         var passed = false;
+         setTimeout(function() {
+            divs[0].className = 'test';
+         }, 500);
+         setTimeout(function() {
+            passed = (outerStyle.left == 'auto' && innerStyle.left == '100px');
+         }, 600);
+         setTimeout(function() {
+            var innerDelay = innerStyle.getPropertyValue('animation-delay');
+            passed = (passed && outerStyle.left == '100px'
+                      && innerDelay == '0s' && innerStyle.left == '100px');
+            test(function(){assert_true(passed);}, testName); done();
+            log.data = (passed ? 'PASS if the animation occurred.' : 'FAIL');
+         }, 1100);
+      }
+   </script>
+   <style>iframe{display:none}</style>
+</head>
+<body>
+   <p>The blue square below should move rightwards in two steps.</p>
+   <p>Testing...</p>
+   <div>
+      <div></div>
+   </div>
+</body>
+</html>

@@ -1,0 +1,419 @@
+<!doctype html>
+<title>CSS 2D Transforms tests</title>
+<link rel=author title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<style>
+/* Everything we care about is relative to the border box: in particular,
+ * percentages are all computed relative to the border box, and
+ * getBoundingClientRect() is relative to the border box.  The default
+ * transform-origin is the center of the border box.
+ *
+ * Our setup is the test div is nested in two other divs nested in the body.
+ * The test div has width 80px and height 30px, then 5px each of padding,
+ * border, and margin.  (This is to catch UAs that compute things relative to
+ * the content, padding, or margin boxes instead of border.)  Thus its border
+ * box is 100px wide and 50px tall, and its margin box is 110px by 60px.
+ *
+ * The test div's parent has a content area large enough to contain its child,
+ * and then five pixels of padding.  The same holds for the test div's
+ * grandparent.  Finally, the body has a content area large enough to hold its
+ * div child, and -15px of margin so that the test div's border box lines up
+ * with the top left of the viewport (makes calculations easier).
+ *
+ * In this way, the border boxes of the test div and its parent and grandparent
+ * all have the same center, so the transform-origin is the same with no extra
+ * work.  However, they have different sizes, so percentages need to be
+ * computed differently. */
+body {
+	margin: -15px;
+	width: 130px;
+	height: 80px;
+}
+body > div {
+	width: 120px;
+	height: 70px;
+	padding: 5px;
+	background: orange;
+}
+body > div > div {
+	width: 110px;
+	height: 60px;
+	padding: 5px;
+	background: yellow;
+}
+body, div {
+	position: relative;
+}
+#test {
+	position: static;
+	height: 30px;
+	width: 80px;
+	padding: 5px;
+	border: 5px solid black;
+	margin: 5px;
+	background: blue;
+}
+#log { display: none }
+</style>
+<!-- Extra styles we switch between.  They should all look the same, so which
+one we use shouldn't affect results.  To ensure that they look the same even
+when transforms are applied to different divs, they're designed to not move the
+border box of any of the three nested divs. -->
+<style class=switch></style>
+<style class=switch>
+div { float: left }
+</style>
+<style class=switch>
+div { float: right }
+</style>
+<style class=switch>
+div { float: right }
+body { width: 180px; margin-left: -65px }
+</style>
+<style class=switch>
+#test { position: absolute }
+</style>
+<style class=switch>
+body > div > div { border-right: 10px solid transparent; width: 100px }
+#test { position: absolute; right: -5px }
+</style>
+<style class=switch>
+body > div > div { padding-left: 10px; width: 105px }
+#test { position: relative; left: -5px }
+</style>
+<style class=switch>
+#test { display: inline-block }
+</style>
+<style class=switch>
+#test { display: table }
+</style>
+<div><div><div id=test></div></div></div>
+<div id=log></div>
+<script src="transforms.js"></script>
+<script>
+"use strict";
+
+// Test case-sensitivity and other parsing issues
+section = "parsing";
+[
+	[["none", "NONE", " nOnE "], "none"],
+	[["inherit", "INHERIT", " iNhErIt "], "inherit"],
+	// Parse errors.  We prepend scale(2) to ensure that any resulting identity
+	// matrix is really due to a parse error and not just the function
+	// happening to evaluate to the identity matrix
+	[[
+	  // Gibberish
+	  "scale(2) quasit", "scale(2) QUASIT", "scale(2) qUaSiT",
+	  // No arguments
+	  "scale(2) matrix()", "scale(2) translate()", "scale(2) translateX()",
+	  "scale(2) translateY()", "scale(2) scale()", "scale(2) scaleX()",
+	  "scale(2) scaleY()", "scale(2) rotate()", "scale(2) skewX()",
+	  "scale(2) skewY()",
+	  // Too few arguments
+	  "scale(2) matrix(1)", "scale(2) matrix(1,2)", "scale(2) matrix(1,2,3)",
+	  "scale(2) matrix(1,2,3,4)", "scale(2) matrix(1,2,3,4,5)",
+	  // Too many arguments
+	  "scale(2) matrix(1,2,3,4,5,6,7)", "scale(2) translateX(0,0)",
+	  "scale(2) translateY(0,0)", "scale(2) scaleX(1,1)",
+	  "scale(2) scaleY(1,1)", "scale(2) rotate(90deg,90deg)",
+	  "scale(2) rotate(1,90deg)", "scale(2) rotate(90deg,1)",
+	  "scale(2) rotate(1,1,90deg)", "scale(2) rotate(90deg,1,1)",
+	  "scale(2) rotate(90deg,1,1,1)", "scale(2) skewX(90deg,90deg)",
+	  "scale(2) skewY(90deg,90deg)",
+	  // Wrong unit
+	 "scale(2) translate(10,10)", "scale(2) translate(10px,10)",
+	 "scale(2) translate(10,10px)", "scale(2) translateX(10)",
+	 "scale(2) translateY(10)",
+	 "scale(2) scale(10px,10px)", "scale(2) scale(10px,10)",
+	 "scale(2) scale(10,10px)", "scale(2) scale(10%,10%)",
+	 "scale(2) scale(10%,10)", "scale(2) scale(10,10%)",
+	 "scale(2) scaleX(10px)", "scale(2) scaleX(10%)",
+	 "scale(2) scaleY(10px)", "scale(2) scaleY(10%)",
+	 "scale(2) rotate(10px)", "scale(2) rotate(10%)", "scale(2) rotate(10)",
+	 "scale(2) skewX(10px)", "scale(2) skewX(10)",
+	 "scale(2) skewY(10px)", "scale(2) skewY(10)",
+	  // The spec says <number> for all entries, so lengths and percentages are
+	  // not allowed in the last two entries.
+	  "scale(2) matrix(1,2,3,4,5px,6)", "scale(2) matrix(1,2,3,4,5%,6)",
+	  "scale(2) matrix(1,2,3,4,5,6px)", "scale(2) matrix(1,2,3,4,5,6%)",
+	  "scale(2) matrix(1,2,3,4,5px,6px)", "scale(2) matrix(1,2,3,4,5%,6%)",
+	  // The 3D transform spec requires that the 3D versions of these all have
+	  // "3d" (matrix3d, translate3d, scale3d, rotate3d), so these are all
+	  // parse errors
+	  "scale(2) matrix(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16)",
+	  "scale(2) translate(1px,1px,1px)", "scale(2) scale(1,1,1)",
+	  "scale(2) rotate(1,1,1,90deg)",
+	  // skew() was removed, so let's make sure browsers really remove it.
+	  // https://www.w3.org/Bugs/Public/show_bug.cgi?id=16300#c17
+	  "scale(2) skew(45deg)", "scale(2) skew(45deg, 45deg)",
+	], ""],
+	// Case-sensitivity
+	[["matrix(1,2,3,4,5,6)", "MATRIX(1,2,3,4,5,6)", " mAtRiX(1, 2,3,4, 5,6 ) "],
+	 "matrix(1, 2, 3, 4, 5, 6)", 1, 2, 3, 4, 5, 6],
+	[["translate(1px)", "TRANSLATE(1PX)", " tRaNsLaTe( 1Px ) "],
+	 "translate(1px)", 1, 0, 0, 1, 1, 0],
+	[["translate(1px, 3pt)", "TRANSLATE(1PX, 3PT)", " tRaNsLaTe( 1Px,3Pt ) "],
+	 "translate(1px, 3pt)", 1, 0, 0, 1, 1, 4],
+	[["translatex(1pt)", "TRANSLATEX(1PT)", " tRaNsLaTeX( 1pT ) "],
+	 "translateX(1pt)", 1, 0, 0, 1, 1/0.75, 0],
+	[["translatey(1in)", "TRANSLATEY(1IN)", " tRaNsLaTeY( 1iN ) "],
+	 "translateY(1in)", 1, 0, 0, 1, 0, 96],
+	[["scale(2)", "SCALE(2)", " sCaLe( 2 ) "], "scale(2)", 2, 0, 0, 2, 0, 0],
+	[["scale(2, 3)", "SCALE(2, 3)", " sCaLe( 2,3 ) "],
+	 "scale(2, 3)", 2, 0, 0, 3, 0, 0],
+	[["scalex(2)", "SCALEX(2)", " sCaLeX( 2 ) "], "scaleX(2)", 2, 0, 0, 1, 0, 0],
+	[["scaley(2)", "SCALEY(2)", " sCaLeY( 2 ) "], "scaleY(2)", 1, 0, 0, 2, 0, 0],
+	// Nothing much uses angle units, so I'll test case-insensitivity for those
+	// while I'm here
+	[["rotate(90deg)", "ROTATE(90DEG)", " rOtAtE( 90dEg ) "],
+	 "rotate(90deg)", 0, 1, -1, 0, 0, 0],
+	[["rotate(100grad)", "ROTATE(100GRAD)", " rOtAtE( 100gRaD ) "],
+	 "rotate(100grad)", 0, 1, -1, 0, 0, 0],
+	[["rotate(1.57rad)", "ROTATE(1.57RAD)", " rOtAtE( 1.57rAd ) "],
+	 "rotate(1.57rad)", 0, 1, -1, 0, 0, 0],
+	[["rotate(0.25turn)", "ROTATE(0.25TURN)", " rOtAtE( 0.25tUrN )"],
+	 "rotate(0.25turn)", 0, 1, -1, 0, 0, 0],
+	[["skewx(45deg)", "SKEWX(45DEG)", " sKeWx( 45DeG ) "],
+	 "skewX(45deg)", 1, 0, 1, 1, 0, 0],
+	[["skewy(45deg)", "SKEWY(45DEG)", " sKeWy( 45DeG ) "],
+	 "skewY(45deg)", 1, 1, 0, 1, 0, 0],
+	// Serialization of unitless zeroes
+	[["translate(0)"], "translate(0px)", 1, 0, 0, 1, 0, 0],
+	[["translate(0,0)"], "translate(0px, 0px)", 1, 0, 0, 1, 0, 0],
+	[["translateX(0)"], "translateX(0px)", 1, 0, 0, 1, 0, 0],
+	[["translateY(0)"], "translateY(0px)", 1, 0, 0, 1, 0, 0],
+	[["rotate(0)"], "rotate(0deg)", 1, 0, 0, 1, 0, 0],
+	[["skewX(0)"], "skewX(0deg)", 1, 0, 0, 1, 0, 0],
+	[["skewY(0)"], "skewY(0deg)", 1, 0, 0, 1, 0, 0],
+].forEach(function(arr) {
+	arr[0].forEach(function(transform, i) {
+		div.setAttribute("style", "");
+		div.removeAttribute("style");
+		div.style[prefixProp("transform")] = transform;
+		test(function() {
+			testInlineTransform(arr[1]);
+		}, 'div.style.cssText and .transform ' + 'with "transform: ' + transform
+		+ '" set via CSSOM');
+		test(function() {
+			testComputedTransform(arr.slice(2));
+		}, 'getComputedStyle(div).transform with "transform: ' + transform
+		+ '" set via CSSOM');
+	});
+});
+
+testTransform("", []);
+testTransform("none", []);
+
+// Test style="transform: matrix(*)" (4^6 = 4096 permutations, but we only run
+// every 13th to avoid creating excessive numbers of tests)
+section = "matrix";
+(function(){
+var matrixValues = [-1, 0, 1, 1.72];
+var i = 0;
+matrixValues.forEach(function(a) {
+matrixValues.forEach(function(b) {
+matrixValues.forEach(function(c) {
+matrixValues.forEach(function(d) {
+matrixValues.forEach(function(e) {
+matrixValues.forEach(function(f) {
+	if (i % 13 == 0) {
+		testTransform(
+			"matrix(" + a + ", " + b + ", " + c + ", " + d + ", " + e + ", " + f + ")",
+			[a, b, c, d, e, f]
+		);
+	}
+	i++;
+	i %= 13;
+});
+});
+});
+});
+});
+});
+})();
+
+// Test translate()/translateX()/translateY()
+section = "translate";
+percentagesAndLengths.forEach(function(tx) {
+	testTransform(
+		"translateX(" + tx + ")",
+		[1, 0, 0, 1, convertToPx(tx, divWidth), 0]
+	);
+	// tx is poorly named, since it's used for y here.
+	testTransform(
+		"translateY(" + tx + ")",
+		[1, 0, 0, 1, 0, convertToPx(tx, divHeight)]
+	);
+	testTransform(
+		"translate(" + tx + ")",
+		[1, 0, 0, 1, convertToPx(tx, divWidth), 0]
+	);
+
+	percentagesAndLengths.forEach(function(ty) {
+		testTransform(
+			"translate(" + tx + ", " + ty + ")",
+			[1, 0, 0, 1, convertToPx(tx, divWidth), convertToPx(ty, divHeight)]
+		);
+	});
+});
+
+// Test scale()/scaleX()/scaleY()
+section = "scale";
+(function(){
+var scales = [-2, -1, -0.12, 0, 0.12, 1, 2];
+scales.forEach(function(sx) {
+	testTransform(
+		"scaleX(" + sx + ")",
+		[sx, 0, 0, 1, 0, 0]
+	);
+	// sx is poorly named, since it's used for y here, then for both x and y.
+	testTransform(
+		"scaleY(" + sx + ")",
+		[1, 0, 0, sx, 0, 0]
+	);
+	testTransform(
+		"scale(" + sx + ")",
+		[sx, 0, 0, sx, 0, 0]
+	);
+
+	scales.forEach(function(sy) {
+		testTransform(
+			"scale(" + sx + ", " + sy + ")",
+			[sx, 0, 0, sy, 0, 0]
+		);
+	});
+});
+})();
+
+// Test rotate()
+section = "rotate";
+rotateAngles.forEach(function(angle) {
+	var rads = convertToRad(angle);
+	testTransform(
+		"rotate(" + angle + ")",
+		[Math.cos(rads), Math.sin(rads), -Math.sin(rads), Math.cos(rads),
+		0, 0]
+	);
+});
+
+// Test skewX()/skewY()
+section = "skew";
+skewAngles.forEach(function(angle1) {
+	testTransform(
+		"skewX(" + angle1 + ")",
+		[1, 0, Math.tan(convertToRad(angle1)), 1, 0, 0]
+	);
+	testTransform(
+		"skewY(" + angle1 + ")",
+		[1, Math.tan(convertToRad(angle1)), 0, 1, 0, 0]
+	);
+});
+
+// Test multiple transformations
+section = "multiple";
+(function(){
+var transforms = [
+	["matrix(4, -7, 2.3, -3.8, 6, 6)", 4, -7, 2.3, -3.8, 6, 6],
+	["translate(0.23in, -17pt)",
+		1, 0, 0, 1, convertToPx("0.23in"), convertToPx("-17pt")],
+	["scale(1.3, -0.56)", 1.3, 0, 0, -0.56, 0, 0],
+	["rotate(0.759rad)", Math.cos(0.759), Math.sin(0.759),
+		-Math.sin(0.759), Math.cos(0.759), 0, 0],
+	["skewX(-0.221rad)", 1, 0, Math.tan(-0.221), 1, 0, 0],
+];
+transforms.forEach(function(trans1) {
+	testTransform(trans1[0], trans1.slice(1));
+
+	transforms.forEach(function(trans2) {
+		var mx = mxmul23(trans1.slice(1), trans2.slice(1));
+
+		// First put both transforms on the test div
+		testTransform(trans1[0] + " " + trans2[0], mx);
+
+		// Now put the first on its grandparent, and the second on its parent.
+		// No need to test parsing.
+		testTransformedBoundary([trans1[0], trans2[0], "none"], mx);
+
+		transforms.forEach(function(trans3) {
+			var mx = mxmul23(trans1.slice(1), trans2.slice(1), trans3.slice(1));
+			testTransform(trans1[0] + " " + trans2[0] + " " + trans3[0], mx);
+			testTransformedBoundary([trans1[0], trans2[0], trans3[0]], mx);
+		});
+	});
+});
+})();
+
+// Try to trigger rounding errors (although this is not precisely defined by
+// the spec)
+testTransform("translateX(-1000px) scaleX(1000000) "
+	+ "translateX(0.001px) scaleX(0.000001)",
+	[1, 0, 0, 1, 0, 0]);
+
+section = "origin";
+// Test transform-origin with one argument
+[
+	["none", "50%", "50%"],
+	["NONE", "50%", "50%"],
+	["nOnE", "50%", "50%"],
+	["quasit", "50%", "50%"],
+	["top", "50%", "0%"],
+	["TOP", "50%", "0%"],
+	["tOp", "50%", "0%"],
+	["right", "100%", "50%"],
+	["RIGHT", "100%", "50%"],
+	["rIgHt", "100%", "50%"],
+	["bottom", "50%", "100%"],
+	["BOTTOM", "50%", "100%"],
+	["bOtToM", "50%", "100%"],
+	["left", "0%", "50%"],
+	["LEFT", "0%", "50%"],
+	["lEfT", "0%", "50%"],
+	["center", "50%", "50%"],
+	["CENTER", "50%", "50%"],
+	["cEnTeR", "50%", "50%"],
+	["37%", "37%", "50%"],
+	["117%", "117%", "50%"],
+	["41.2px", "41.2px", "50%"],
+	["-31.8px", "-31.8px", "50%"],
+].forEach(function(arr) {
+	testTransformOrigin(arr[0], arr[1], arr[2]);
+});
+
+// Test transform-origin with two arguments.
+["left", "center", "right"].concat(percentagesAndLengths).forEach(function(arg1) {
+	["top", "center", "bottom"].concat(percentagesAndLengths).forEach(function(arg2) {
+		testTransformOrigin(arg1 + " " + arg2, arg1, arg2);
+	});
+});
+
+// Test inheritance.  Relative lengths need to be resolved to absolute, but
+// percentages must not be resolved.
+setStyles({}, {transformOrigin: "25px 25px"}, {});
+testTransformOrigin("inherit", "25px", "25px");
+setStyles({}, {transformOrigin: "0% 75%"}, {});
+testTransformOrigin("inherit", "0%", "75%");
+setStyles({},
+	{transformOrigin: "inherit", fontSize: "0.5em"},
+	{transformOrigin: "1em 1em", fontSize: "2em"});
+testTransformOrigin("inherit", "2em", "2em");
+setStyles({}, {}, {});
+
+section = "inheritance";
+// Likewise test inheritance of the transform property.  Here, again, relative
+// lengths are to be resolved but not percentages.  Note that the
+// transformations are cumulative in this case.
+testTransformedBoundary(["", "translate(25px)", "inherit"],
+	[1, 0, 0, 1, 50, 0]);
+testTransformedBoundary(["", "translate(50%)", "inherit"],
+	[1, 0, 0, 1,
+	convertToPx("50%", divParentWidth) + convertToPx("50%", divWidth),
+	0]);
+setStyles({},
+	{transform: "inherit", fontSize: "0.5em"},
+	{transform: "translate(1em)", fontSize: "2em"});
+testTransformedBoundary("inherit",
+	[1, 0, 0, 1, convertToPx("6em"), 0]);
+
+[].forEach.call(document.querySelectorAll("style"), function(style) {style.disabled = true});
+</script>

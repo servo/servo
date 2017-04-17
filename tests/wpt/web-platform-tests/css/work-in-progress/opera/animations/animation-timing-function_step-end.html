@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <title>CSS Animations - animation-timing-function: step-end</title>
+   <link rel="author" title="Opera Software ASA" href="http://www.opera.com/">
+   <link rel="help" href="https://drafts.csswg.org/css3-animations/#animation-timing-function_tag">
+   <meta name="flags" content="dom">
+   <meta name="assert" content="step-end is a valid animation-timing-function">
+   <script src="/resources/testharness.js"></script>
+   <script src="/resources/testharnessreport.js"></script>
+   <style type="text/css">
+      @keyframes move {
+         from {
+            left: 0px;
+         }
+         to {
+            left: 100px;
+         }
+      }
+      div {
+         width: 100px;
+         height: 100px;
+         background: blue;
+         position: relative;
+      }
+      .test {
+         animation-name: move;
+         animation-duration: 1s;
+         animation-fill-mode: forwards;
+         animation-timing-function: step-end;
+      }
+   </style>
+   <script type="text/javascript">
+      setup({explicit_done:true});
+      onload = function() {
+         var testName = document.querySelector('title').firstChild.data;
+         var div = document.querySelector('div');
+         var log = document.querySelectorAll('p')[1].firstChild;
+         setTimeout(function() {
+            var observed = getComputedStyle(div, null).left;
+            var passed = (observed == '0px');
+            test(function(){assert_true(passed);}, testName); done();
+            log.data = (passed ? 'PASS if the animation occurred.'
+               : 'FAIL (got ' + observed + ')');
+         }, 300);
+         div.className = 'test';
+      }
+   </script>
+   <style>iframe{display:none}</style>
+</head>
+<body>
+   <p>The square below should jump right after one second.</p>
+   <p>Testing...</p>
+   <div></div>
+</body>
+</html>

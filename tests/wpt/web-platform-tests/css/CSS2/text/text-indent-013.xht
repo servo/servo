@@ -1,0 +1,18 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+ <head>
+  <title>CSS Test: CSS text-indent: Floats</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/block/text-indent/003.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#indentation-prop" />
+  <style type="text/css">
+   .indent { text-indent: 10em; color: black; }
+   .float { float: left; width: 10em; }
+   .float span { background: black; }
+  </style>
+ </head>
+ <body>
+  <p>The word "PASS" should appear clearly on the next line (ignore the black bar).</p>
+  <div class="indent"><span class="float"><span>XXXXXXXX</span></span>PASS</div>
+ </body>
+</html>

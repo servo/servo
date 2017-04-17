@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: browsing context name - parent: top-level context</title>
+<iframe name="iframeParent" src="choose-_parent-002-iframe.html"></iframe>
+<script>
+// Relay a message from child context to opener context
+window.addEventListener('message', e => {
+  if (window.opener) {
+    window.opener.postMessage(e.data, '*');
+  }
+});
+</script>

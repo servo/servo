@@ -1,0 +1,25 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: CSS Tables: Font Inheritance</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/table/007.xml" type="application/xhtml+xml"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#table-layout" />
+  <meta name="flags" content="ahem" />
+
+  <style type="text/css">
+   div { font: 50px/1em Ahem; color: green; margin-left: 1em; }
+   div > * { display: table; background: red; }
+   td { padding: 0; }
+   table { border-spacing: 0; }
+  </style>
+ </head>
+ <body>
+
+  <p>There should be no red below, merely two big identical green blocks.</p>
+  <div>
+   <div class="table"><tr><td>Test<br/>Test</td></tr></div>
+   <p>Test<br/>Test</p>
+  </div>
+ </body>
+</html>

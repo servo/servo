@@ -1,0 +1,40 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: page-break-before: left</title>
+<link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+<link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-break-props"/>
+<link rel="help" href="http://www.w3.org/TR/css3-page/#pg-br-before-after"/>
+<meta name="flags" content="paged" />
+<meta name="assert" content=" - The 'left' value of the 'page-break-before' property forces one or two page breaks before the box so that the page after the break is formatted as a left page."/>
+<style type="text/css">
+	@page {margin: 7%;}
+	@page :left {
+		margin-right: 50%;
+	}
+	@page :right {
+		margin-left: 50%;
+		@top-center {
+           content: "[This page intentionally left blank]"
+        }
+	}
+	@page :first {
+		@top-center {
+           content: ""
+        }
+		border: 1em solid blue;
+		margin: 7%;
+	}
+	p.spacer {page-break-after: always;}
+	p.goLeft {
+		page-break-before: left;
+	}
+</style>
+</head>
+<body>
+	<p class="spacer">When printed, this test produces 4 or 5 pages of output. The next page may or may not be blank. This content must appear inside a blue box.</p>
+	<p class="spacer goLeft">When printed, this content should be on the left side of the page. The next page should be blank.</p>
+	<p class="goLeft">When printed, this content should appear on the fourth or fifth page. All content should be on the left side of the page.</p>
+	<p>Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Etiam diam erat, convallis fermentum, volutpat a, dignissim a, est. Proin vel lacus.</p>
+</body>
+</html>

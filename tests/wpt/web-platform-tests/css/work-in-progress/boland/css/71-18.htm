@@ -1,0 +1,53 @@
+
+<HTML>
+<HEAD>
+<TITLE>Eighteenth Test for Section 7.1 of CSS1 Spec</TITLE>
+
+
+<STYLE TYPE="text/css">
+#id1 {color: green}
+#id2 \7Bcolor: green}
+.\32AAA {color: purple}
+.2B {color: maroon}
+
+
+</STYLE>
+</head>
+
+
+
+
+<BODY>
+
+<h1 >Testing Statement #18 Below of Section 7.1 of CSS1 Spec</h1>
+
+
+
+<ul>
+<li>
+18. Backslash-escapes are always considered to be part of an identifier, except
+inside strings.
+</ul>
+
+
+<h2>PASS CRITERIA:
+</h2>
+<p ID=id1>
+If statement #18 above is passed, this paragraph should be green.
+The rule applied is '#id1 {color: green}".
+<p ID=id2>
+This paragraph should be UA-default.  THe rule stated is 
+"#id2 7Bcolor: green}", which should be illegal.
+<p CLASS=\32AAA>
+This paragraph should be UA-default.  The rule applied is
+".\32AAA {color: purple}".
+<p CLASS=2B>
+This paragraph should be maroon.  The rule applied is
+".2B {color: maroon}".
+<p>
+
+
+
+All other properties of this page should be UA-default.
+</BODY>
+</HTML>

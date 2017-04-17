@@ -1,0 +1,64 @@
+
+<html>
+
+<title>Third Test of Section 5.5.12 of CSS1 Spec</title>
+
+<style type="text/css">
+p {border-right-width: thick;
+   border-style: dotted;}
+h3 {border-right-width: thick;
+    border-style: dotted;}
+h4 {border-right-width: -5px;
+    border-style: dotted;}
+</style>
+</head>
+
+
+
+<body>
+
+
+
+
+<h1 >Testing Statement #3 Below of Section 5.5.12 of CSS1 Spec</h1>
+
+
+
+
+
+
+<ul>
+<li>
+3. The "border-right-width" property sets the width of an element's right border.
+Otherwise it is equivalent to the border-top-width.
+</ul>
+
+
+
+
+
+<h2>
+PASS CRITERIA:
+</h2>
+NOTE: border-style of dotted applies to all cases below.
+<p>
+If statement #3 above is passed, this paragraph should have a right border
+width of thick.  The rule applied is "p {border-right-width: thick}".
+<h3>
+This h3 element should also have a thick right border width, which should
+be the same as the paragraph above, regardless of font size.
+The rule is "h3 {border-right-width: thick}".
+</h3>
+<h4>
+This h4 element should have a UA-default border right width. 
+The rule stated is "h4 {border-right-width: -5px}", which should be ignored
+since the value is negative.
+</h4>
+
+
+
+All other properties of this page should be UA-default.
+
+
+</body>
+</html>

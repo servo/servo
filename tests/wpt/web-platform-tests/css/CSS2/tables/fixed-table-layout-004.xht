@@ -1,0 +1,56 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Fixed table layout</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#fixed-table-layout" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The width of a column-spanning cell (which determines column widths in fixed table layout) is divided over the columns it spans." />
+        <style type="text/css">
+            table
+            {
+                border-collapse: collapse;
+                margin: 0;
+                table-layout: fixed;
+                width: 100px;
+            }
+            #cell1
+            {
+                background: black;
+                width: 98px;
+            }
+            td
+            {
+                height: 20px;
+                padding: 0;
+            }
+            #cell2
+            {
+                background: silver;
+            }
+            #cell3
+            {
+                background: orange;
+            }
+            #div1
+            {
+                background: blue;
+                height: 20px;
+                width: 100px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the blue and black bars are the same width and the gray and orange boxes are half of that width.</p>
+        <table>
+            <tr>
+                <td id="cell1" colspan="2"></td>
+           </tr>
+           <tr>
+                <td id="cell2"></td>
+                <td id="cell3"></td>
+           </tr>
+        </table>
+        <div id="div1"></div>
+    </body>
+</html>

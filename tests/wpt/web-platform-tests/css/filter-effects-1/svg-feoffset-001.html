@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Filter Effects Test: feOffset applied to SVG rect element</title>
+    <link rel="author" title="Dirk Schulze" href="mailto:dschulze@adobe.com">
+    <link rel="help" href="http://www.w3.org/TR/filter-effects-1/#feOffsetElement">
+    <link rel="match" href="reference/svg-feoffset-ref.html">
+    <meta name="flags" content="svg">
+    <meta name="assert" content="The offset filter primitive will translate the rect by -100 pixels in each direction. - The rect is black to avoid color interpolation issues.">
+    <style type="text/css">
+    svg {
+        width: 500px;
+        height: 500px;
+    }
+    </style>
+</head>
+<body>
+    <p>The test passes if you see a black square and no red.</p>
+    <svg>
+        <defs>
+          <filter filterUnits="userSpaceOnUse" id="filter" x="0" y="0" width="400" height="400">
+            <feOffset dx="-100" dy="-100"/>
+          </filter>
+        </defs>
+        <rect x="1" y="1" width="298" height="298" fill="red"/>
+        <rect x="100" y="100" width="300" height="300" fill="black" filter="url(#filter)"/>
+    </svg>
+</body>
+</html>

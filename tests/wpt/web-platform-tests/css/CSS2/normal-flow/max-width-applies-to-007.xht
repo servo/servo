@@ -1,0 +1,39 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Max-width applied to elements with 'display' set to 'table-cell'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#propdef-max-width" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#min-max-widths" />
+        <link rel="match" href="../../reference/pass_if_square_96px_black.html"/>
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'max-width' property applies to elements with 'display' set to 'table-cell'." />
+        <style type="text/css">
+            #table
+            {
+                display: table;
+                table-layout: fixed;
+            }
+            #row
+            {
+                display: table-row;
+            }
+            #cell
+            {
+                background: black;
+                display: table-cell;
+                height: 1in;
+                max-width: 1in;
+                width: 3in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a square below.</p>
+        <div id="table">
+            <div id="row">
+                <div id="cell"></div>
+            </div>
+        </div>
+    </body>
+</html>

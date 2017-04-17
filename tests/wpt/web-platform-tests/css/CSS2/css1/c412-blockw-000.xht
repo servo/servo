@@ -1,0 +1,63 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Horizontal Formatting</title>
+  <meta name="flags" content="ahem image" />
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#horizontal-formatting"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="match" href="c412-blockw-000-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+   .test { font: 10px/1 Ahem; margin: 1em; border: solid 1em; width: 100px; background: red no-repeat; color: green; }
+   .test p, .test div { margin-top: 0; margin-bottom: 0; }
+   .test.a { background-image: url(support/css1test412b-a.png); }
+   .test.b { background-image: url(support/css1test412b-b.png); }
+   .test.b p { background-color: green; }
+   p.one {margin-left: 10px;}
+   div.two {margin-left: 10px;}
+   p.three {margin-left: 0; width: 50%; margin-right: auto;}
+   p.four {margin-left: auto; width: 50%; margin-right: auto;}
+   p.five {margin-left: auto; width: 50%; margin-right: 0;}
+   p.six {margin-left: auto; width: auto; margin-right: 0;}
+   p.seven {margin-left: 0; width: auto; margin-right: auto;}
+   p.eight {margin-left: auto; width: auto; margin-right: auto;}
+   p.nine {padding-left: auto; padding-right: auto; margin-left: 0; margin-right: 0; width: 50%;}
+   p.ten {margin-left: auto; width: 100%; margin-right: auto;}
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#blockwidth" title="10.3.3 Block-level, non-replaced elements in normal flow"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#the-width-property" title="10.2 Content width: the 'width' property"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#margin-properties" title="8.3 Margin properties: 'margin-top',  'margin-right',  'margin-bottom', 'margin-left', and 'margin'"/>
+ </head>
+ <body>
+  <p>Test passes if there are 2 identical filled green squares and <strong>no red</strong>.</p>
+  <div class="test a"> <!-- this tests the text alignment -->
+   <p class="one"> X </p>
+   <div class="two">
+    <p class="one"> X </p>
+   </div>
+   <p class="three"> X </p>
+   <p class="four"> X </p>
+   <p class="five"> X </p>
+   <p class="six"> X </p>
+   <p class="seven"> X </p>
+   <p class="eight"> X </p>
+   <p class="nine"> X </p>
+   <p class="ten"> X </p>
+  </div>
+  <div class="test b"> <!-- this tests the size of the content area -->
+   <p class="one"> X </p>
+   <div class="two">
+    <p class="one"> X </p>
+   </div>
+   <p class="three"> X </p>
+   <p class="four"> X </p>
+   <p class="five"> X </p>
+   <p class="six"> X </p>
+   <p class="seven"> X </p>
+   <p class="eight"> X </p>
+   <p class="nine"> X </p>
+   <p class="ten"> X </p>
+  </div>
+ </body>
+</html>

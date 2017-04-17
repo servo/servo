@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Test: left:auto offset of position:fixed box in a position:relative containing block</title>
+    <link rel="author" title="Chris Rebert" href="http://chrisrebert.com" />
+    <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />  <!-- 2015-09-17 -->
+    <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#position-props" title="9.3.2 Box offsets: 'top', 'right', 'bottom', 'left'" />
+    <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#abs-non-replaced-width" title="10.3.7 Absolutely positioned, non-replaced elements" />
+    <link rel="help" href="https://drafts.csswg.org/css2/visuren.html#position-props" />
+    <link rel="help" href="https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-width" />
+    <link rel="match" href="left-offset-position-fixed-001-ref.xht" />
+    <meta name="flags" content="" />
+    <meta name="assert" content="The 'left' box offset property, for fixed positioning, when set to 'auto' specifies the offset of the box from its 'static-position containing block'. Here, in this test, the 'static-position containing block' is #shifted-column and the containing block for #red is established by the viewport." />
+    <style type="text/css">
+#shifted-column {
+    left: 50%;
+    width: 50%;
+    position: relative;
+}
+.square {
+  width: 100px;
+  height: 100px;
+}
+#red {
+  background-color: red;
+  position: fixed;
+  left: auto;
+}
+#green {
+  background-color: green;
+  position: absolute;
+  left: 50%;
+}
+    </style>
+  </head>
+  <body>
+    <p>Test passes if there is a solid green square and <strong>no red</strong>.</p>
+
+    <div id="shifted-column">
+      <div id="red" class="square"></div>
+    </div>
+    <div id="green" class="square"></div>
+  </body>
+</html>

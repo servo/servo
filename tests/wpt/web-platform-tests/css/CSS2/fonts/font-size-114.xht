@@ -1,0 +1,30 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: CSS: sanity tests for relative keyword values of font-size</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/fonts/size/004.xml" type="application/xhtml+xml"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-size-props" />
+  <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-size-prop"/>
+  <style type="text/css">
+
+    .tests { display: block; padding: 2em; letter-spacing: 3px; }
+    .smallest { font-size: xx-small; }
+    span { font-size: larger; }
+    .tests * { vertical-align: bottom; }
+    .tests, span { font: 900 1em Ahem, Verdana, sans-serif; color: navy; }
+
+  </style>
+ </head>
+ <body class="test">
+
+  <p>Every <span>X</span> in the string below should be bigger than
+  the previous <span>X</span>. (Except at the start, where your UA may
+  be making changes that are smaller than a pixel.)</p>
+
+  <div class="tests">
+   <span class="smallest">X<span>X<span>X<span>X<span>X<span>X<span>X<span>X<span>X<span>X<span>X<span>X<span>X<span>X<span>X<span>X<span>X<span>X<span>X<span>X<span>X<span>X<span>X<span>X<span>X<span>X
+     </span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span>
+  </div>
+ </body>
+</html>

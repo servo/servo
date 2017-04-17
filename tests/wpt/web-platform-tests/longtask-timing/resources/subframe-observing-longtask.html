@@ -1,0 +1,20 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<meta name="viewport" content="width=device-width">
+<title>Child Iframe</title>
+<h1>Child Iframe observing long tasks</h1>
+
+<script>
+    var observer = new PerformanceObserver(function(entryList) {
+      for (i = 0; i < entryList.getEntries().length; i++) {
+      	var longtask = entryList.getEntries()[i];
+      	 // Ignore long task generated within here, as part of making this iframe.
+      	if (longtask.name == "same-origin-self")
+      	  return;
+      	// TODO(panicker): include frameId etc.
+        var entryContents = longtask.entryType + '+' + longtask.name + '+' + longtask.attribution[0].name;
+        top.postMessage(entryContents, '*');
+      }
+    });
+    observer.observe({entryTypes: ["longtask"]});
+</script>

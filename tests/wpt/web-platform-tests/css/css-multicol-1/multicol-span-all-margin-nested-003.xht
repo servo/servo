@@ -1,0 +1,39 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>multicolomn | column-span inside block</title>
+<link rel="author" title="Opera Software ASA" href="http://www.opera.com/"/>
+<link rel="help" href="http://www.w3.org/TR/css3-multicol/#spanning-columns"/>
+<link rel="match" href="multicol-span-all-margin-nested-3-ref.xht"/>
+<meta name="flags" content="ahem"/>
+<style type="text/css"><![CDATA[
+body>div {
+	font-family: ahem;
+	font-size: 1em;
+	line-height: 1em;
+	color: black;
+	background: black;
+	position: absolute;
+	orphans: 1;
+	widows: 1;
+
+	column-count: 4;
+}
+#spanned {
+	column-span: all;
+}
+]]></style>
+</head>
+
+<body>
+
+<div>
+	<div>
+		<div id="spanned">x</div>
+	</div>
+	FAIL FAIL FAIL FAIL
+</div>
+
+</body>
+</html>

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!--
+     Reference case, with inline-blocks instead of flexbox/flex items,
+     with positioning done using margins.
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Reftest Reference</title>
+    <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com"/>
+    <style>
+      div { height: 100px; }
+      div.flexbox {
+        border: 1px dashed blue;
+        width: 200px;
+      }
+      div.a {
+        width: 30px;
+        background: lightgreen;
+        display: inline-block;
+      }
+      div.b {
+        width: 20px;
+        background: lightblue;
+        display: inline-block;
+      }
+      img {
+        width: 40px;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="flexbox">
+      <div class="a" style="margin-left: 85px"/>
+    </div>
+
+    <div class="flexbox">
+      <div class="a" style="margin-left: 37.5px"
+           /><div class="b" style="margin-left: 75px"/>
+    </div>
+
+    <div class="flexbox">
+      <img src="support/solidblue.png" style="margin-left: 30px"
+           /><img src="support/solidblue.png" style="margin-left: 60px"/>
+    </div>
+  </body>
+</html>
+

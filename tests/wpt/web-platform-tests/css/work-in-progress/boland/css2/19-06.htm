@@ -1,0 +1,84 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Fourth Test of Section 19.4 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+p {pause-after: }
+h3 {pause-after: 20ms}
+h4 {pause-after: 40ms}
+strong {pause-after: 60ms}
+blockquote {pause-after: 50%}
+
+
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Fourth Testable Statement of Sec 19.4 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+4. The pause after property has initial value which is UA-dependent, it 
+applies to all elements, it is not inherited, and percentage values apply.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p >
+NOTE: NEEDS TO BE TRANSLATED TO VOICE.
+
+If statement #4 above is passed, this paragraph should have a pause-after
+of UA-dependent.
+The rule applied is "p {pause-after: }".
+So the pause-after property applies to the "p" element.
+<h3>
+This h3 element should have a pause-after of 20ms
+<em>
+This emphasized text should have a pause after of UA-default, since the 
+pause after property is not inherited, and "em" is a child of 'h3".
+No explicit rule is applied for "em".
+</em>
+THe rule applied is 'h3 {pause-after: 20ms}".
+So the pause-after property applies to em and h3.
+</h3>
+<h4>
+THis h4 element should have a pause after which is 40ms.
+The rule applied is "h4 {pause-after: 40ms}".
+So the pause after property applies to h4.
+</h4>
+
+<strong>
+This strong text should have a pause after of 60ms
+; so the pause after property applies
+to the strong element.
+The rule applied is "strong {pause-after: 60ms}".
+</strong>
+<blockquote>
+This blockquote element should have a pause after of 50% of the
+reciprocal of its speech rate.
+The rule applied is "blockquote {pause-after: 50%}".
+</blockquote>
+All other properties of this page should be UA-default.
+
+
+
+
+
+</BODY>
+</HTML>
+

@@ -1,0 +1,53 @@
+
+<html>
+<title>Third Test of Section 5.3 of CSS1 Spec</title>
+<head>
+
+<style type="text/css">
+
+
+body {background: yellow}
+p {color: silver}
+</style>
+</head>
+
+
+
+
+
+
+<body>
+
+
+
+<h1 >Testing Statement #3 Below for Section 5.3 of CSS1 Spec</h1>
+
+
+<ul>
+<li>
+3. The color property inherits normally.  The background properties do not 
+inherit, but the parent elemtn's background will shine through by default
+because of the initial transparent value on background-color.
+</ul>
+
+
+<h2>
+PASS CRITERIA:
+</h2>
+If statement #3 above is true:
+<p>
+This paragraph should be silver.  The <em>emphasized text</em> here should
+also be silver, because the color property inherits normally, and "em" is
+a descendant of "p".
+The rule applied is "p {color: silver}".
+The body background of this page should be yellow, because of the rule
+"body {background: yellow}".  The "p" element does not inherit this.
+
+<h3>
+This h3 element does not inherit the yellow color, but the yellow should
+shine through by default.
+</h3>
+
+All other properties of this page should be UA-default.
+</body>
+</html>

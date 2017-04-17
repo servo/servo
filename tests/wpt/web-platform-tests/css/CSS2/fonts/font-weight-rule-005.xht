@@ -1,0 +1,33 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Font-weight set to 'bolder' increasing the value above '900'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-boldness" />
+        <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-weight-prop" />
+        <link rel="match" href="font-weight-bold-ref.html" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'font-weight' property set to 'bolder' does not increase the value of font weight when the parent values is already set at 900." />
+        <style type="text/css">
+            #parent
+            {
+                font-weight: 900;
+            }
+            #reference
+            {
+                font-weight: 900;
+            }
+            div div
+            {
+                font-weight: bolder;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the lines of "Filler Text" below match.</p>
+        <div id="reference">Filler Text</div>
+        <div id="parent">
+            <div>Filler Text</div>
+        </div>
+    </body>
+</html>

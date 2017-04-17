@@ -1,0 +1,80 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Paged Media: Relatively Positioned Pages</title>
+  <link rel="author" title="Melinda Grant" href="mailto:melinda.grant@hp.com" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#comp-abspos" />
+  <meta name="flags" content="paged" />
+  <meta name="assert" content="When a relatively positioned element whose 'height' and 'width' match that of the page area has a corner positioned at a corner of the page area, any positioned children are positioned relative to the page area." />
+  <style type="text/css">
+
+    html, body, div.page {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+    }
+    body {
+        background: #ffb;
+    }
+    div.page {
+        position: relative;
+        page-break-after: always;
+        top: 0;
+    }
+    div {
+        padding: 2em;
+    }
+    p {
+        background: blue;
+        position: absolute;
+        width: .5em;
+        height: .5em;
+        margin: 0;
+    }
+
+    p.bottom {
+        bottom: 0;
+        left: 0;
+        width: 100%;
+    }
+    p.right {
+        top: 0;
+        right: 0;
+        height: 100%;
+    }
+    p.left {
+        top: 0;
+        left: 0;
+        height: 100%;
+    }
+    p.top {
+        top: 0;
+        left: 0;
+        width: 100%;
+    }
+
+  </style>
+ </head>
+ <body>
+   <div class="page">
+     <div>
+     This test produces two pages on paged media.
+     </div>
+     <div>
+     This page has a light yellow background which is surrounded by a blue
+     border.
+     </div>
+     <p class="bottom"></p>
+     <p class="right"></p>
+     <p class="left"></p>
+     <p class="top"></p>
+   </div>
+   <div class="page">
+     <div>
+     This is at the top of the second page.
+     There is a horizontal blue bar near the bottom of this page.
+     </div>
+     <p class="bottom"></p>
+   </div>
+ </body>
+</html>

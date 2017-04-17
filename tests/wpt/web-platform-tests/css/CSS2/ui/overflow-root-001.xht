@@ -1,0 +1,21 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Overflow on root propagates to viewport</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visufx.html#overflow" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'overflow' property set on the root propagates to the viewport." />
+        <style type="text/css">
+            html
+            {
+                height: 110%;
+                overflow: hidden;
+                width: 110%;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the horizontal and vertical scrolling mechanism is not available on the page.</p>
+    </body>
+</html>

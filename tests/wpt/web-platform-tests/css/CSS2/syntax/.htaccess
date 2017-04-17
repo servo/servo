@@ -1,0 +1,7 @@
+<files ~ '^character-encoding-03[1234567]\.(xht|xhtml|xml|html|htm)$'>
+AddCharset us-ascii .xht .xhtml .xml .html .htm
+</files>
+
+<files ~ '^at-charset-07[1234567]\.(xht|xhtml|xml|html|htm)$'>
+AddCharset us-ascii .xht .xhtml .xml .html .htm
+</files>

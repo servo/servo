@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>CSS Test: right float, polygon + content-box + shape-margin</title>
+        <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+        <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#funcdef-polygon">
+        <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shape-outside-property">
+        <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#content-box">
+        <link rel="match" href="reference/shape-outside-polygon-010-ref.html">
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The test verifies that text wraps around a
+                                     right float with a shape-outside defined as
+                                     an polygon from the content box wtih a shape margin.">
+    </head>
+    <style>
+        body {
+            margin: 0;
+        }
+        #container {
+            position: absolute;
+            top: 50px;
+            left: 10px;
+            font-size: 20px;
+            font-family: Ahem;
+            line-height: 20px;
+            width: 240px;
+            height: 240px;
+            background-color: red;
+            color: green;
+        }
+        #test-shape {
+            float: right;
+            width: 200px;
+            height: 200px;
+            margin: 5px;
+            border: 10px solid transparent;
+            padding: 5px;
+            shape-margin: 20px;
+            shape-outside: content-box polygon(30% 20%, 100% 20%, 100% 80%, 60% 80%, 60% 70%, 80% 70%, 80% 40%, 30% 40%);
+        }
+        .ref-shape {
+            position: absolute;
+            background-color: green;
+        }
+        #ref-1 {
+            top: 90px;
+            left: 70px;
+            width: 180px;
+            height: 80px;
+        }
+        #ref-2 {
+            top: 170px;
+            left: 170px;
+            width: 80px;
+            height: 20px;
+        }
+        #ref-3 {
+            top: 190px;
+            left: 130px;
+            width: 120px;
+            height: 60px;
+        }
+    </style>
+    <body>
+    <p>The test passes if there is green square and no red.</p>
+    <div id="container">
+        <div id="test-shape"></div>
+        XXXXXXXXXXXX XXXXXXXXXXXX XXX XXX XXX XXX XXXXXXXX XXXXXX XXXXXX XXXXXX XXXXXXXXXXXX XXXXXXXXXXXX
+    </div>
+    <div id="ref-1" class="ref-shape"></div>
+    <div id="ref-2" class="ref-shape"></div>
+    <div id="ref-3" class="ref-shape"></div>
+    </body>
+</html>

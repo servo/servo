@@ -1,0 +1,58 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  table
+  {
+  border-collapse: separate;
+  border: blue solid medium;
+  border-spacing: 0px;
+  margin-left: 10px;
+  padding: 1em;
+  table-layout: fixed;
+  width: 16.375em;
+  /*
+   14em (5em column + 5em column + 4em column)
+  + 2em (left and right horizontal padding)
+  + 6px (2 vertical 3px borders)
+  =====
+  16.375em
+  */
+  }
+
+  col {width: 5em;}
+
+  col#special {width: 4em;}
+
+  td
+  {
+  color: navy;
+  padding: 0;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>There should be five numbers, in numerical order, below: on the first line 1, 2 and 3, on the second, 4 and 5.</p>
+
+  <table>
+
+   <col></col> <col></col> <col id="special"></col>
+
+   <tr><td>1</td><td>2</td><td>3</td></tr>
+
+   <tr><td>4</td><td>5</td><td></td></tr>
+
+  </table>
+
+ </body>
+</html>

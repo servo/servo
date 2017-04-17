@@ -1,0 +1,43 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: float - non-positioned block box created after a float</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats" />
+  <link rel="match" href="float-005-ref.xht" />
+
+  <meta content="ahem" name="flags" />
+  <meta content="A non-positioned block box created after a float box should flow vertically as if the float did not exist. The line boxes created next to the float should be shortened to make room for that preceding floated box." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  div#left-floated-square
+  {
+  color: blue;
+  float: left;
+  font: 100px/1 Ahem;
+  }
+
+  div#non-positioned-block-square-after
+  {
+  background-color: black;
+  height: 200px;
+  width: 200px;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if a blue square fills the upper left corner of a bigger black square.</p>
+
+  <div id="left-floated-square">X</div>
+
+  <div id="non-positioned-block-square-after"></div>
+
+ </body>
+</html>

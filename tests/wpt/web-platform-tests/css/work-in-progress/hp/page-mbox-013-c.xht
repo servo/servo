@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Margin Boxes - Top Left, Right Margin</title>
+  <link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#margin-boxes"/>
+  <meta name="flags" content="paged" />
+  <meta name="assert" content="The used value of the top-left box's right margin is its computed value unless that value is 'auto' or unless honoring both this margin and the top-right box's computed left margin contradicts another constraint"/>
+  <style type="text/css"><![CDATA[
+  @page {
+       size: letter;
+       @top-center {
+           width: 12in;
+           text-align: right;
+           content: "Is this text truncated?  Is it in the top-right-corner margin box?"
+           }
+       }
+   html, body {
+   	margin: 0;
+	padding: 0;
+   }
+  ]]></style>
+ </head>
+ <body>
+  <p>There must be one box above this text. It should read &quot;Is this text truncated?  Is it in the top-right-corner margin box?&quot;.</p>
+ </body>
+</html>

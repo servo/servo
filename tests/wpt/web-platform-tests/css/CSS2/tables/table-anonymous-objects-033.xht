@@ -1,0 +1,57 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: Auto-imported from Gecko test 338735-1.html</title>
+  <link rel="author" title="Boris Zbarsky" href="mailto:bzbarsky@mit.edu"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#anonymous-boxes"/>
+  <meta name="flags" content='dom'/>
+
+<style type="text/css">
+  #t {
+    display: none;
+  }
+</style>
+<script type="text/javascript"><![CDATA[
+  function toggleLayer(id) {
+      var s = document.getElementById(id).style;
+      s.display = s.display ? "" : "block";
+  }
+
+  function doTest() {
+    toggleLayer('t');
+    document.body.offsetWidth;
+    toggleLayer('t');
+    document.body.offsetWidth;
+    toggleLayer('t');
+    document.documentElement.className = "";
+  }
+]]></script>
+</head>
+<body onload="doTest()">
+<p>There should be no red below, except for antialiasing issues.</p>
+<div style="position: relative; font-size: 2em;">
+<div style="position: absolute; width: 100%; z-index: 1; top: 0; color: red;">
+
+<table style="width: 100%;" border="5">
+  <tr>
+          <td id="t">First row</td>
+  </tr>
+  <tr>
+          <td>Second row</td>
+  </tr>
+</table>
+</div>
+<div style="position: absolute; width: 100%; z-index: 2; top: 0; color: green;">
+
+<table style="width: 100%;" border="5">
+  <tr>
+          <td>First row</td>
+  </tr>
+  <tr>
+          <td>Second row</td>
+  </tr>
+</table>
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,98 @@
+/* Styles for the notes on tests */
+
+body {
+	padding: 0;
+	margin-left: 2em;
+	margin-right: 2em;
+	background: #fff;
+	color: #000;
+	font: 100%/1.5 Arial, Helvetica, sans-serif;
+}
+
+a:link, a:visited {
+	color: #00c;
+}
+a:hover {
+	color: #00f;
+}
+
+h1, h2, h3, h4, h5, h6 {
+	margin-bottom: 0;
+	line-height: normal;
+}
+
+h5, h6 {
+	font-size: 1em;
+	font-weight: bold;
+}
+
+p {
+	margin-top: 0;
+	padding-top: 0.2em;
+}
+
+pre, code, samp, kbd {
+	font: 1em "Andale Mono", "Courier New", Courier, monospace;
+}
+
+acronym {
+	border-bottom: 1px dashed;
+	cursor: help;
+	font-variant: small-caps;
+}
+
+
+address {
+	margin-top: 0;
+	padding-top: 0.2em;
+	border-top: 2px solid gray;
+	width: 100%;
+	position: relative;
+}
+
+address span.update {
+	position: absolute;
+	right: 0;
+	top: 0.2em;
+}
+
+
+ol.notes li {
+	margin-bottom: 0.5em;
+}
+
+ol.notes li h3 {
+	margin-top: 0;
+}
+
+
+ol.code {
+	background: #e5ecf3;
+	color: #000;
+	list-style: none;
+	margin-left: 0;
+	padding-left: 0;
+}
+
+ol.code .indent1 {
+	padding-left: 1em;
+}
+ol.code .indent2 {
+	padding-left: 2em;
+}
+ol.code .indent3 {
+	padding-left: 3em;
+}
+ol.code .indent4 {
+	padding-left: 4em;
+}
+ol.code .indent5 {
+	padding-left: 5em;
+}
+
+
+
+div.figure img {
+	display: block;
+	margin: 0;
+}

@@ -1,0 +1,61 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>CSS Test: wrap-flow:none</title>
+    <link rel="author" title="Vincent Hardy, Adobe Systems" href="mailto:vhardy@adobe.com"/>
+    <link rel="help" href="http://www.w3.org/TR/css3-exclusions/#wrap-flow-property"/>
+    <link rel="match" href="exclusions-wrap-flow-01-ref.xht"/>
+    <meta name="flags" content=""/>
+    <meta name="assert" content=
+    "Tests that wrap-flow:both is implemented. The inline boxes defined in the container
+     with the exclusion element should wrap around the margin edges of the exclusion. Inline boxes
+     are flowing to the left and right of the exclusion element."/>
+    <style>
+    /*<![CDATA[*/
+
+#containing-block {
+    position: relative;
+    width: 400px;
+    height: 400px;
+    border: 1px solid #e0e0e0;
+    background: red;
+    font-size: 0px; /* collapses the 'strut' on each line, see CSS 2.1 section 10.8.1 */
+}
+
+#exclusion {
+    wrap-flow: both;
+}
+
+#top-fragment, #left-fragment, #right-fragment, #bottom-fragment {
+    display: inline-block;
+    background: black;
+}
+
+#top-fragment, #bottom-fragment {
+    width: 400px;
+    height: 150px;
+}
+
+#left-fragment, #right-fragment {
+    width: 150px;
+    height: 100px;
+}
+
+#exclusion {
+    position: absolute;
+    top: 150px;
+    left: 150px;
+    width: 100px;
+    height: 100px;
+    background: #0f0;
+}
+
+
+/*]]>*/
+</style>
+</head>
+<body>
+    <p>You should see a green square in a solid 400px by 400px black background. You should not see any red background.</p>
+    <div id="containing-block"><div id="exclusion"></div><div id="top-fragment"></div><div id="left-fragment"></div><div id="right-fragment"></div><div id="bottom-fragment"></div></div>
+</body>
+</html>

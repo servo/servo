@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8"/>
+<title>upper-roman, 10-3999</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='http://www.w3.org/TR/css-counter-styles-3/#simple-numeric'>
+<link rel="reviewer" title="Chris Lilley" href="mailto:chris@w3.org" />
+<meta name='flags' content='font'>
+<meta name="assert" content="list-style: upper-roman produces numbers after 9 items per the spec.">
+<style type='text/css'>
+ol li { list-style-type: upper-roman;  }
+/* the following CSS is not part of the test */
+.test { font-size: 25px; }
+ol { margin: 0; padding-left: 8em; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the two columns are the same, IGNORING the suffix.</p>
+<div class="test">
+<ol start='10'><li title='10'>X</li></ol>
+<ol start='11'><li title='11'>XI</li></ol>
+<ol start='12'><li title='12'>XII</li></ol>
+<ol start='43'><li title='43'>XLIII</li></ol>
+<ol start='77'><li title='77'>LXXVII</li></ol>
+<ol start='80'><li title='80'>LXXX</li></ol>
+<ol start='99'><li title='99'>XCIX</li></ol>
+<ol start='100'><li title='100'>C</li></ol>
+<ol start='101'><li title='101'>CI</li></ol>
+<ol start='222'><li title='222'>CCXXII</li></ol>
+<ol start='540'><li title='540'>DXL</li></ol>
+<ol start='999'><li title='999'>CMXCIX</li></ol>
+<ol start='1000'><li title='1000'>M</li></ol>
+<ol start='1005'><li title='1005'>MV</li></ol>
+<ol start='1060'><li title='1060'>MLX</li></ol>
+<ol start='1065'><li title='1065'>MLXV</li></ol>
+<ol start='1800'><li title='1800'>MDCCC</li></ol>
+<ol start='1860'><li title='1860'>MDCCCLX</li></ol>
+<ol start='1865'><li title='1865'>MDCCCLXV</li></ol>
+<ol start='2555'><li title='2555'>MMDLV</li></ol>
+<ol start='3000'><li title='3000'>MMM</li></ol>
+<ol start='3999'><li title='3999'>MMMCMXCIX</li></ol>
+</div>
+<!--Notes:
+You will need an appropriate font to run this test.
+To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
+-->
+</body>
+</html>

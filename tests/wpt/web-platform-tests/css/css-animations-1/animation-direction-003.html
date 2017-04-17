@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Animations Test: animation-direction - alternate-reverse</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="reviewer" title="Zhiqiang Zhang" href="mailto:zhiqiang.zhang@intel.com"> <!-- 2015-03-24 -->
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#animation-direction">
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#animation-name">
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#animation-duration">
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#animation-iteration-count">
+<meta name="flags" content="animated">
+<meta name="assert" content="When animation-direction is set to alternate-reverse,
+                             the animation cycle iterations that are
+                             odd counts are played in the normal direction,
+                             and the animation cycle iterations that are
+                             even counts are played in a reverse direction.">
+<style>
+  div {
+    animation-name: sample;
+    animation-duration: 10s;
+    animation-direction: alternate-reverse;
+    animation-iteration-count: infinite;
+
+    background-color: blue;
+    height: 100px;
+    width: 100px;
+    position: relative;
+  }
+
+  @keyframes sample {
+    from {
+      left: 0px;
+    }
+    to {
+      left: 150px;
+    }
+  }
+</style>
+<body>
+  <p>
+    Test passes if there is a filled blue square with 'Filler Text',
+    which starts moving from right to left on the page load,
+    and then moves from left to right. This cycle gets repeated.
+  </p>
+  <div>Filler Text</div>
+</body>
+

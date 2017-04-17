@@ -1,0 +1,64 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: height set to 0 to elements with 'display' set to 'list-item'</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="author" title="Boris Zbarsky" href="mailto:bzbarsky@MIT.EDU" />
+  <link rel="help" title="10.5 Content height: the 'height' property" href="http://www.w3.org/TR/CSS21/visudet.html#the-height-property" />
+  <link rel="help" title="11.1.1 Overflow: the 'overflow' property" href="http://www.w3.org/TR/CSS21/visufx.html#overflow" />
+  <link rel="match" href="height-applies-to-010a-ref.xht" />
+
+  <meta content="" name="flags" />
+  <meta content="If height of content exceeds the set height of a block-level non-replaced element in normal flow (like a list-item element such as in this test), then the content should overflow according to the 'overflow' property." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  div
+  {
+  color: green;
+  display: list-item;
+  font: 2em/1 serif;
+  height: 0px;
+  margin-left: 1.25em;
+  overflow: visible;
+  }
+
+  ul
+  {
+  height: auto;
+  margin-top: 3em;
+  overflow: visible;
+  }
+
+  li
+  {
+  color: green;
+  font: 2em/1 serif;
+  height: 0px;
+  overflow: visible;
+  }
+
+  ul#heightless {height: 0px;}
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if <strong>3 green "PASS"</strong> are each preceded by a filled disc.</p>
+
+  <div>PASS</div>
+
+  <ul>
+    <li>PASS</li>
+  </ul>
+
+  <ul id="heightless">
+    <li>PASS</li>
+  </ul>
+
+ </body>
+</html>

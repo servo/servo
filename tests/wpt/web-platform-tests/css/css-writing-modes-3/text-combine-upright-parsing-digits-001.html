@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Writing Modes: parsing text-combine-upright for digits</title>
+<link rel="author" title="Masataka Yakura" href="http://google.com/+MasatakaYakura">
+<link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#text-combine-upright">
+<meta name="assert" content="text-combine-upright supports `none`, `all`, `digits`, and `digits` followed by a digit in the range from 2 to 4.">
+<meta name="flags" content="dom">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+#valid_digits {
+  text-combine-upright: digits;
+}
+
+#valid_digits_2 {
+  text-combine-upright: digits 2;
+}
+
+#valid_digits_3 {
+  text-combine-upright: digits 3;
+}
+
+#valid_digits_4 {
+  text-combine-upright: digits 4;
+}
+
+#valid_digits_positive2 {
+  text-combine-upright: digits +2;
+}
+
+#valid_digits_positive3_nospace {
+  text-combine-upright: digits+3;
+}
+
+#valid_digits_tab_4_nospace {
+  text-combine-upright: digits	4;
+}
+
+#valid_digits_lf_2_nospace {
+  text-combine-upright: digits
+2;
+}
+
+#valid_digits_tab_3 {
+  text-combine-upright: digits 	3;
+}
+
+#valid_digits_tab_lf_4_nospace {
+  text-combine-upright: digits
+4;
+}
+</style>
+</head>
+<body>
+
+<div id="valid_digits"></div>
+<div id="valid_digits_2"></div>
+<div id="valid_digits_3"></div>
+<div id="valid_digits_4"></div>
+<div id="valid_digits_positive2"></div>
+<div id="valid_digits_positive3_nospace"></div>
+<div id="valid_digits_tab_4_nospace"></div>
+<div id="valid_digits_lf_2_nospace"></div>
+<div id="valid_digits_tab_3"></div>
+<div id="valid_digits_tab_lf_4_nospace"></div>
+
+<div id="log"></div>
+
+<script>
+var getComputedValueFor = function (id) {
+  var element = document.getElementById(id);
+  return window.getComputedStyle(element).textCombineUpright;
+};
+
+test(function () {
+  assert_equals(getComputedValueFor('valid_digits'), 'digits 2');
+}, 'Computed value for `text-combine-upright: digits` is `digits 2`');
+
+test(function () {
+  assert_equals(getComputedValueFor('valid_digits_2'), 'digits 2');
+}, 'Computed value for `text-combine-upright: digits 2` is `digits 2`');
+
+test(function () {
+  assert_equals(getComputedValueFor('valid_digits_3'), 'digits 3');
+}, 'Computed value for `text-combine-upright: digits 3` is `digits 3`');
+
+test(function () {
+  assert_equals(getComputedValueFor('valid_digits_4'), 'digits 4');
+}, 'Computed value for `text-combine-upright: digits 4` is `digits 4`');
+
+test(function () {
+  assert_equals(getComputedValueFor('valid_digits_positive2'), 'digits 2');
+}, 'Computed value for `text-combine-upright: digits +2` is `digits 2`');
+
+test(function () {
+  assert_equals(getComputedValueFor('valid_digits_positive3_nospace'), 'digits 3');
+}, 'Computed value for `text-combine-upright: digits+3` is `digits 3`');
+
+test(function () {
+  assert_equals(getComputedValueFor('valid_digits_tab_4_nospace'), 'digits 4');
+}, 'Computed value for `text-combine-upright: digits[TAB]4` is `digits 4`');
+
+test(function () {
+  assert_equals(getComputedValueFor('valid_digits_lf_2_nospace'), 'digits 2');
+}, 'Computed value for `text-combine-upright: digits[LF]2` is `digits 2`');
+
+test(function () {
+  assert_equals(getComputedValueFor('valid_digits_tab_3'), 'digits 3');
+}, 'Computed value for `text-combine-upright: digits [TAB]3` is `digits 3`');
+
+test(function () {
+  assert_equals(getComputedValueFor('valid_digits_tab_lf_4_nospace'), 'digits 4');
+}, 'Computed value for `text-combine-upright: digits[TAB][LF]4` is `digits 4`');
+</script>
+</body>
+</html>

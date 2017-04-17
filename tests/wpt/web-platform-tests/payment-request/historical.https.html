@@ -1,0 +1,27 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Historical Payment Request APIs</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+[
+  // https://github.com/w3c/browser-payment-api/pull/419
+  ["paymentRequestID", "PaymentRequest"],
+  ["paymentRequestID", "PaymentResponse"],
+
+  // https://github.com/w3c/browser-payment-api/pull/258
+  ["careOf", "PaymentAddress"],
+
+  // https://github.com/w3c/browser-payment-api/pull/219
+  ["totalAmount", "PaymentResponse"],
+
+  // https://github.com/w3c/browser-payment-api/pull/426
+  ["paymentRequestId", "PaymentRequest"],
+  ["paymentRequestId", "PaymentResponse"],
+
+].forEach(([member, interf]) => {
+  test(() => {
+    assert_false(member in window[interf].prototype);
+  }, member + ' in ' + interf);
+});
+</script>

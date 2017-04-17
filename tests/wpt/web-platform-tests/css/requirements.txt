@@ -1,0 +1,5 @@
+six==1.10.0
+Template-Python==0.1.post1
+html5lib==0.9999999
+lxml==3.7.3
+mercurial==4.1

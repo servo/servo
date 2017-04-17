@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<!-- Any copyright is dedicated to the Public Domain.
+   - http://creativecommons.org/publicdomain/zero/1.0/ -->
+
+<html>
+  <meta charset="utf-8">
+  <title>CSS Shape Test: vertical-lr, float right, ellipse(farthest-side closest-side at top 40px left 60px) border-box reference</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="http://www.mozilla.org/">
+  <style>
+  .container {
+    writing-mode: vertical-lr;
+    direction: rtl;
+    position: absolute;
+    inline-size: 200px;
+    line-height: 0;
+  }
+
+  .shape {
+    float: right;
+    /* Omit shape-outside */
+    clip-path: ellipse(farthest-side closest-side at top 40px left 60px) border-box;
+    box-sizing: content-box;
+    block-size: 40px;
+    inline-size: 40px;
+    padding: 10px 20px;
+    border: solid lightgreen;
+    border-width: 10px;
+    margin-block-end: 20px;
+    background-color: orange;
+  }
+
+  .box {
+    position: absolute;
+    inline-size: 80px;
+    background-color: blue;
+  }
+  </style>
+
+  <body class="container">
+    <div class="shape"></div>
+    <div class="box" style="block-size: 24px; offset-block-start: 0px; offset-inline-start: 72px;"></div> <!-- Box at corner -->
+    <div class="box" style="block-size: 36px; offset-block-start: 24px; offset-inline-start: 80px;"></div>
+    <div class="box" style="block-size: 36px; offset-block-start: 60px; offset-inline-start: 80px;"></div>
+    <div class="box" style="block-size: 24px; offset-block-start: 96px; offset-inline-start: 72px;"></div> <!-- Box at corner -->
+  </body>
+</html>

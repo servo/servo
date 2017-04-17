@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head> 
+    <title>CSS Backgrounds and Borders Test: background-clip_border-box</title>
+    <link rel="author" title="Xiaoyan Jiang" href="mailto:dajiangxiaoyan@126.com">
+    <link rel="help" href="http://www.w3.org/TR/css3-transforms/#transform-property">
+    <link rel="help" href="additional spec link">
+    <link rel="match" href="reference/background_clip_padding-box.html">
+    <meta name="assert" content="Test passes if border is blue and dotted without red background">
+    <style type="text/css">
+        /* Positioned container allows for the self-describing statement to still 
+           be visible in the case of failure */
+        .container {
+            position: absolute;
+        }
+        .test {
+			background-color: red;
+			height: 130px;
+			left: 5px;
+			top: 5px;
+			width: 130px;
+			border: blue dotted 5px ;
+			position: absolute;
+			background-clip: padding-box;
+         }
+  
+
+    </style>
+</head>
+<body>
+<p>Test passes if border is blue and dotted without red background </p>
+    <div class="container">
+        <div class="test"></div>
+    </div>
+</body>
+</html>

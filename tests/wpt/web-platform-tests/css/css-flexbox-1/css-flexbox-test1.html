@@ -1,0 +1,50 @@
+<!DOCTYPE html> <!-- coding:utf-8 -->
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>CSS Flexbox Test: flex direction: row, writing mode vertical</title>
+    <link rel="author" title="Tsutomu ogaoga Ogasawara" href="mailto:info@ogaoga.org" />
+    <link rel="reviewer" title="Elika J Etemad" href="http://fantasai.inkedblade.net/contact" />
+    <!-- You must have at least one spec link, but may have as many as are covered in the test. -->
+    <!-- Be sure to make the main testing area first in the order -->
+    <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#propdef-flex-flow">
+    <!-- The match link is only required if this is a reftest -->
+    <link rel="match" href="css-flexbox-test1-ref.html">
+    <meta name="flags" content="">
+    <meta name="assert" content="Test checks that when writing mode is vertical and flex-flow: row, the flex container is vertical.">
+    <style type="text/css">
+        .container {
+            display: flex;
+            flex-flow: row;
+            writing-mode: vertical-rl;
+            color: white;
+        }
+        .item {
+            background: green;
+            height: 3em;
+            width: 3em;
+
+            /* make sure UA that doesn't support writing mode and flexbox fails. */
+            float: right;
+        }
+        .error {
+            position: absolute;
+            background: red;
+            height: 9em;
+            width: 3em;
+            z-index: -1;
+        }
+    </style>
+</head>
+<body>
+  <p>The test passes if you see a tall green box with pairs of the digits 1-9 listed top to bottom in two columns.</p>
+
+  <div class="error"></div>
+  <div class="container">
+    <div class="item">１２３<br />１２３</div>
+    <div class="item">４５６<br />４５６</div>
+    <div class="item">７８９<br />７８９</div>
+  </div>
+
+</body>
+</html>

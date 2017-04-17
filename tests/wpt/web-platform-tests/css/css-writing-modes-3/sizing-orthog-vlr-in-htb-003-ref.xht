@@ -1,0 +1,75 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <meta name="DC.date.created" content="2016-10-04T09:54:03+11:00" scheme="W3CDTF" />
+  <meta name="DC.date.modified" content="2017-01-08T09:54:03+11:00" scheme="W3CDTF" />
+
+  <meta content="" name="flags" />
+
+  <style type="text/css"><![CDATA[
+  html
+    {
+      padding: 100px 0px;
+      writing-mode: vertical-lr;
+    }
+
+  body
+    {
+      font-size: 16px;
+      line-height: 1.25; /* therefore, each line box is 20px tall */
+    }
+
+  p
+    {
+      left: 8px;
+      position: absolute;
+      writing-mode: horizontal-tb;
+    }
+
+  p#sentence-before
+    {
+      margin-top: 0px;
+      top: 100px;
+    }
+
+  div
+    {
+      border: blue solid 3px;
+      height: auto;
+      left: 8px;
+      position: absolute;
+      top: 136px;
+    }
+
+  p#sentence-after
+    {
+      top: calc(136px + 3px + 15ch + 3px);
+      /*
+      15ch means 15 ch unit where each ch is equal to
+      the used advance measure of the "0" (ZERO, U+0030) glyph found
+      in the font used to render it.
+      5.1.1. Font-relative lengths: the em, ex, ch, rem units
+      https://www.w3.org/TR/css3-values/#ch
+      */
+      padding-bottom: 100px;
+    }
+  ]]></style>
+ </head>
+
+ <body>
+
+  <p id="sentence-before">Sentence before.</p>
+
+  <div>123456789012345</div>
+
+  <p id="sentence-after">Sentence after.</p>
+
+ </body>
+</html>

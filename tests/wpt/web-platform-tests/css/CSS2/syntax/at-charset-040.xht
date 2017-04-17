@@ -1,0 +1,23 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Non-matching @charset (UTF-16BE with UTF-8 @charset)</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#charset" />
+        <link rel="match" href="at-charset-001-ref.xht"/>
+        <meta name="flags" content="" />
+        <meta name="assert" content="The stylesheet is thrown out due to the mismatched @charset." />
+        <style type="text/css">
+            @import "support/at-charset-040.css";
+            div
+            {
+                color: green;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if both lines of "Filler Text" below are green.</p>
+        <div class="星期二价泌">Filler Text</div>
+        <div id="div1">Filler Text</div>
+    </body>
+</html>

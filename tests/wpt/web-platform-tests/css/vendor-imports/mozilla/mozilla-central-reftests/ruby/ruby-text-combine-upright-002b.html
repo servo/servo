@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>CSS Test: Ruby with text-combine-upright child in annotation</title>
+  <link rel="author" title="Xidorn Quan" href="mailto:csswg@upsuper.org">
+  <link rel="help" href="https://drafts.csswg.org/css-ruby-1/#ruby-align-property">
+  <link rel="match" href="ruby-text-combine-upright-002-ref.html">
+  <link rel="stylesheet" href="support/ahem.css">
+  <style>
+    .test {
+      font: 52px Ahem;
+      writing-mode: vertical-rl;
+    }
+  </style>
+</head>
+<body>
+  <p>Test passes if the two rectangles are vertically middle aligned.</p>
+  <div class="test">
+    <ruby><rb>XXXX</rb><rt><span style="text-combine-upright: all">X</span></rt></ruby>
+  </div>
+</body>
+</html>

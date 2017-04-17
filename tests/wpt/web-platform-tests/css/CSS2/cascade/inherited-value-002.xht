@@ -1,0 +1,34 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Inheriting computed values</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The computed value of a font-size with a percentage is the percentage of its parent's font-size value. A nested element which also has a percentage applies the parents' specified value (which is inherited)." />
+        <style type="text/css">
+            .container
+            {
+                font-family: Ahem;
+                font-size: 96px;
+            }
+            div div
+            {
+                background: blue;
+                height: 48px;
+                width: 48px;
+            }
+            div p
+            {
+                font-size: 50%;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the black box and the blue box are the same width.</p>
+        <div class="container">
+            <p>X</p>
+            <div></div>
+        </div>
+    </body>
+</html>

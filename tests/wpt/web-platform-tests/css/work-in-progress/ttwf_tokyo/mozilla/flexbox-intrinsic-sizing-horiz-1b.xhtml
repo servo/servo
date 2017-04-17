@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!--
+     This test has a number of tables, each with 2 flexboxes side-by-side,
+     whose "width" values depend on the flexbox's min and/or pref widths.
+
+     There's not enough space for both flexboxes to fit side-by-side, so their
+     width preferences must be balanced. This exercises
+     nsFlexContainerFrame::GetPrefWidth() & ::GetMinWidth().
+
+     IN EACH CASE, div.a has these intrinsic widths:
+       Pref width: 2*40 + 1*50 + 2*10 = 150px   (2*aaaa + 1*aaaaa + 2*space)
+       Min width: 50px  (width of "aaaaa")
+     and div.b has these intrinsic widths:
+       Pref width: 5*20 + 3*10 + 7*10 = 200px   (5*bb + 3*b + 7*space)
+       Min width: 20px  (width "bb")
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <link rel="stylesheet" type="text/css" href="ahem.css" />
+    <style>
+      table {
+        width: 300px;
+        font: 10px Ahem;
+        margin-bottom: 2px;
+        border: 1px dashed black;
+      }
+
+      div.a, div.b { display: flex; }
+
+      div.a { background: lightgreen; }
+      div.b { background: lightblue;  }
+
+      <!-- helper-classes for assigning pref / min / auto-width to our divs -->
+      div.prefWidth {
+        width: -moz-max-content;
+      }
+      div.minWidth {
+        width: -moz-min-content;
+      }
+      div.autoWidth {
+        width: auto;
+      }
+  </style>
+</head>
+<body>
+  <!-- both auto width -->
+   <table cellpadding="0" cellspacing="0"><tr>
+       <td><div class="a autoWidth"><div>aaaa aaaa aaaaa</div></div></td>
+       <td><div class="b autoWidth"><div>bb bb b bb bb b bb b</div></div></td>
+   </tr></table>
+
+   <!-- MIXING MIN WIDTH & AUTO -->
+   <!-- both min width -->
+   <table cellpadding="0" cellspacing="0"><tr>
+       <td><div class="a minWidth"><div>aaaa aaaa aaaaa</div></div></td>
+       <td><div class="b minWidth"><div>bb bb b bb bb b bb b</div></div></td>
+   </tr></table>
+   <!-- min,auto -->
+   <table cellpadding="0" cellspacing="0"><tr>
+       <td><div class="a minWidth"><div>aaaa aaaa aaaaa</div></div></td>
+       <td><div class="b autoWidth"><div>bb bb b bb bb b bb b</div></div></td>
+   </tr></table>
+   <!-- auto,min -->
+   <table cellpadding="0" cellspacing="0"><tr>
+       <td><div class="a autoWidth"><div>aaaa aaaa aaaaa</div></div></td>
+       <td><div class="b minWidth"><div>bb bb b bb bb b bb b</div></div></td>
+   </tr></table>
+
+   <!-- MIXING PREF WIDTH & AUTO -->
+   <!-- both prefWidth (NOTE: makes the table larger than it wants to be -->
+   <table cellpadding="0" cellspacing="0"><tr>
+       <td><div class="a prefWidth"><div>aaaa aaaa aaaaa</div></div></td>
+       <td><div class="b prefWidth"><div>bb bb b bb bb b bb b</div></div></td>
+   </tr></table>
+   <!-- pref,auto -->
+   <table cellpadding="0" cellspacing="0"><tr>
+       <td><div class="a prefWidth"><div>aaaa aaaa aaaaa</div></div></td>
+       <td><div class="b autoWidth"><div>bb bb b bb bb b bb b</div></div></td>
+   </tr></table>
+   <!-- auto,pref -->
+   <table cellpadding="0" cellspacing="0"><tr>
+       <td><div class="a autoWidth"><div>aaaa aaaa aaaaa</div></div></td>
+       <td><div class="b prefWidth"><div>bb bb b bb bb b bb b</div></div></td>
+   </tr></table>
+
+   <!-- MIXING PREF WIDTH & MIN WIDTH -->
+   <!-- min,pref -->
+   <table cellpadding="0" cellspacing="0"><tr>
+       <td><div class="a minWidth"><div>aaaa aaaa aaaaa</div></div></td>
+       <td><div class="b prefWidth"><div>bb bb b bb bb b bb b</div></div></td>
+   </tr></table>
+   <!-- pref,min -->
+   <table cellpadding="0" cellspacing="0"><tr>
+       <td><div class="a prefWidth"><div>aaaa aaaa aaaaa</div></div></td>
+       <td><div class="b minWidth"><div>bb bb b bb bb b bb b</div></div></td>
+   </tr></table>
+</body>
+</html>

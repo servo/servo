@@ -1,0 +1,20 @@
+<!-- Tag Soup -->
+<html>
+ <head>
+  <title>CSS Compatability: 'font' Parsing</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/parsing/compatibility/002.html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#fonts-intro" />
+  <style type="text/css">
+   div { font-size: 1px; }
+   .test { font: 100 serif; } /* invalid: missing font-size */
+   .control { font: 100px serif; } /* no font-weight */
+  </style>
+ </head>
+ <body>
+  <div>
+   <div class="test">FAIL</div>
+   <div class="control">PASS</div>
+  </div>
+ </body>
+</html>

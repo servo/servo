@@ -1,0 +1,40 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CSS Border-images Test File</title>
+    <link rel="author" title="babyliner" href="mailto:babyliner1026@gmail.com" />
+    <style type="text/css">
+        #main {
+            width: 400px;
+            height: 600px;
+            border: 1px red solid;
+            border-image-source: url(./images/border-image-002.jpg);
+            border-image-slice: 230 230 400 230;
+            border-image-repeat: stretch;
+            border-image-width: 115 115 200 115;
+        }
+    </style>
+    </head>
+<body>
+    <div id="main"></div>
+    <script type="text/javascript">
+        var minWidth = 230,
+            minHeight = 315,
+            change = 5,
+            main = document.getElementById('main');
+
+            main.style.width = minWidth + 'px';
+            main.style.height = minHeight + 'px';
+
+            setInterval(function() {
+                main.style.width = parseInt(main.style.width) + change + 'px';
+                main.style.height = parseInt(main.style.height) + change + 'px';
+                if (parseInt(main.style.width) > 500 ||
+                parseInt(main.style.width) < minWidth) {
+                    change = -change;
+                }
+            }, 1);
+    </script>
+</body>
+</html>

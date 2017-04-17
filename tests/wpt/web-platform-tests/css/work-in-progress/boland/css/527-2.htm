@@ -1,0 +1,64 @@
+
+<HTML>
+
+<HEAD>
+<TITLE>Second Test of Section 5.2.7 of CSS1 Spec</TITLE>
+
+<STYLE>
+
+p {font: 12pt sans-serif}
+em {font: 6pt sans-serif}
+</STYLE>
+</HEAD>
+
+
+
+
+
+<BODY>
+
+
+<h1 >Testing Statement #2 Below of Section 5.2.7 of CSS1 Spec</h1>
+
+
+
+
+
+<ul>
+<li>
+2. For "font", initial is "not defined for shorthand properties",
+it applies to all elements, it is
+inherited, and percentage values are allowed on font-size and line-height.
+</ul>
+
+<h2>
+PASS CRITERIA:
+</h2>
+If statement #2 above is passed, then:
+<blockquote>
+The font for this blockquote element is UA-default, or "not defined for
+shorthand elements".  No explicit CSS1 rules are applied here.
+</blockquote>
+
+<p>
+This paragraph should have a font of 12pt sans-serif.
+The rule applied is "p {font: 12pt sans-serif}".
+So the font property applies to the "p" element, and to the "blockquote"
+element above.  
+<em>Emphasized text</em> within this paragraph should have a font of 6pt
+sans-serif.  So the font property applies to the "em" element.
+The rule applied here is "em {font: 50% sans-serif}", where the 50%
+applies to the font size of the parent element; therefore the percentage
+value is allowed on "font-size".
+<strong>Strong text</strong> here has the same font as the parent element,
+because "strong" is a child of "p", and so the font property is inherited.
+
+
+
+All other properties of this page should be UA-default.
+NOTE: If specified font is not available, UA-default will be used.
+To move directly to the next test, click<a href="527-3.htm"> here</a>
+</BODY>
+</HTML>
+
+

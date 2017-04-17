@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Reftest Test: Segment Break Transformation Rules</title>
+<link rel="author" title="Chun-Min (Jeremy) Chen" href="mailto:jeremychen@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#line-break-transform">
+<meta name="assert" content="'segment-break-transformation-rules: with East Asian Ambiguous (A)/East Asian Narrow (Na) in front/back of the semgment break.">
+<link rel="stylesheet" type="text/css" href="support/ahem.css" />
+<link rel="match" href="segment-break-transformation-rules-032-ref.html">
+<style> p { font-family: ahem; } </style>
+<div>Pass if there is ONE white space between the two strings below.
+<p>■&#x000a;narrow</p>
+</div>

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!-- Reference case where we've swapped in actual divs (fakeBefore/fakeAfter)
+     for the testcase's ::before and ::after generated content.
+
+     fakeBefore div is always the first child; fakeAfter is always the last.
+-->
+<html>
+<head>
+  <title>CSS Reftest Reference</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <meta charset="utf-8">
+  <style>
+    .flexContainer {
+      display: flex;
+      margin-bottom: 2px;
+      background: lightgray;
+    }
+    .fakeBefore {
+      background: yellow;
+      /* This 'order' value should place us after the other elements, visually,
+         even though we're ::before. */
+      order: 1;
+    }
+    .fakeAfter {
+      background: lightblue;
+      order: -1;
+    }
+  </style>
+</head>
+<body>
+  <!-- 'b' should be at end, due to its high 'order' value: -->
+  <div class="flexContainer">
+    <div class="fakeBefore">b</div>
+    <div>I</div>
+  </div>
+
+  <!-- 'b' should be at beginning, since it's '::before' and the other item has
+        a matching 'order' value: -->
+  <div class="flexContainer">
+    <div class="fakeBefore">b</div>
+    <div style="order: 1">I</div>
+  </div>
+
+  <!-- 'a' should be at beginning, due to its low 'order' value: -->
+  <div class="flexContainer">
+    <div>I</div>
+    <div class="fakeAfter">a</div>
+  </div>
+
+  <!-- 'a' should be at end, since it's '::after' and the other item has
+        a matching 'order' value: -->
+  <div class="flexContainer">
+    <div style="order: -1">I</div>
+    <div class="fakeAfter">a</div>
+  </div>
+
+  <!-- As above, the ::after 'a' should be at beginning, and the ::before 'b'
+       should be at end, due to their 'order' values -->
+  <div class="flexContainer">
+    <div class="fakeBefore">b</div>
+    <div>I</div>
+    <div class="fakeAfter">a</div>
+  </div>
+
+  <!-- ...but now the normal item "I" has its order increased, so it'll go
+       at the end. -->
+  <div class="flexContainer">
+    <div class="fakeBefore">b</div>
+    <div style="order: 1">I</div>
+    <div class="fakeAfter">a</div>
+  </div>
+
+  <!-- ...and now the normal item "I" has its order reduced, so it'll go
+       at the beginning. -->
+  <div class="flexContainer">
+    <div class="fakeBefore">b</div>
+    <div style="order: -1">I</div>
+    <div class="fakeAfter">a</div>
+  </div>
+</body>
+</html>

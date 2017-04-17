@@ -1,0 +1,54 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Initial value of table-layout</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#propdef-table-layout" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#width-layout" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The initial value of table-layout is 'auto'." />
+        <style type="text/css">
+            table
+            {
+                background: black;
+                border-spacing: 0;
+                width: 10em;
+            }
+            colgroup
+            {
+                width: 5em;
+            }
+            td
+            {
+                overflow: hidden;
+                padding: 0;
+            }
+            #div1
+            {
+                background: blue;
+                height: 2em;
+                width: 20em;
+            }
+            td, #div1
+            {
+                font: 20px/1em Ahem;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the black bar is at least as wide as the blue bar.</p>
+        <table>
+            <colgroup></colgroup>
+            <colgroup></colgroup>
+            <tr>
+                <td>XXXXX</td>
+                <td>XXXXX</td>
+            </tr>
+            <tr>
+               <td>XXXXXXXXX0</td>
+               <td>XXXXXXXXX0</td>
+            </tr>
+        </table>
+        <div id="div1"></div>
+    </body>
+</html>

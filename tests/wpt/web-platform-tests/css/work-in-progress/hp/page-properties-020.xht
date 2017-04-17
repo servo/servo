@@ -1,0 +1,52 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: page properties: invalid properties</title>
+<link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+<link rel="help" href="http://www.w3.org/TR/css3-page/#page-properties"/>
+<meta name="flags" content="invalid paged" />
+<meta name="assert" content="Other properties are invalid within the margin context."/>
+<style type="text/css">
+	@page { 
+		margin: 1in;
+		@top-left {
+			position: absolute;
+			top: -10in;
+			left: -20in;
+			z-index: -1;
+			display: inline;
+			float: left;
+			clip: rect(1px, 1px, 1px, 1px);
+			content: "X";
+			background: lime;
+			border: 1pt solid black;
+		}	
+		@top-center {
+			position: absolute;
+			top: -10in;
+			left: -20in;
+			z-index: -1;
+			display: inline;
+			float: left;
+			content: "X";
+			background: lime;
+			border: 1pt solid black;
+		}	
+		@top-right {
+			position: absolute;
+			top: -10in;
+			right: 20in;
+			z-index: -1;
+			display: inline;
+			float: right;
+			content: "X";
+			background: lime;
+			border: 1pt solid black;
+		}	
+	}
+</style>
+</head>
+<body>
+	<p>There should be three Xs on a green background above this text. Each X should be centered within its respective black-bordered box.</p>
+</body>
+</html>

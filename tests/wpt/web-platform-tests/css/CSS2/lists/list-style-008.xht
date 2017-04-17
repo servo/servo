@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: List-style with list-style-image list-style-type as values</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#propdef-list-style" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#list-style" />
+        <meta name="flags" content="image" />
+        <meta name="assert" content="The shorthand property 'list-style' applies 'list-style-image' and 'list-style-type'." />
+        <style type="text/css">
+            body
+            {
+                margin: 50px;
+            }
+            div
+            {
+                display: list-item;
+                list-style: url('support/green15x15.png') square;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the first line of text has a green square bullet.</p>
+        <div>
+            This is the first line of text.<br />
+            This is the second line of text.
+        </div>
+    </body>
+</html>

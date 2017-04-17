@@ -37,9 +37,9 @@
                 reload_frame.onload = function() {
                     /* Need to make sure we don't examine loadEventEnd
                      until after the load event has finished firing */
-                    setTimeout(do_test, 0);
+                    step_timeout(do_test, 0);
                 }
-                setTimeout("reload_the_frame();", 100);
+                step_timeout(reload_the_frame, 100);
             }
 
             function reload_the_frame()

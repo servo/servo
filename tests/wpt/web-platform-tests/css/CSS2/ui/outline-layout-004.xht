@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Outline is connected and closed</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/ui.html#dynamic-outlines" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Outline is connected and encloses the appropriate content." />
+        <style type="text/css">
+            div
+            {
+                width: 200px;
+            }
+            span
+            {
+                outline: green solid 2px;
+            }
+        </style>
+    </head>
+    <body>
+    <p>Test passes if all "Filler Text" below is surrounded by a green outline and there is no hole or opening in the outline.</p>
+    <p>The outline is not required to be rectangular, nor is it required to be a single shape:
+    each line of "Filler Text" may have a separate outline,
+    or the whole block may share a common outline.</p>
+        <div>
+            <span>Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text</span>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>CSS Reftest Reference</title>
+        <link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+        <style>
+        .flow {
+            font-family: Ahem;
+            font-size: 20px;
+            line-height: 1em;
+            color: green;
+            position: relative;
+            top: 20px;
+            left: -20px;
+        }
+
+        .container {
+            display: inline-block;
+        }
+
+        .region {
+            margin: 0 0 0 20px;
+        }
+        .big {
+            width: 100px;
+            height: 100px;
+        }
+        .small {
+            width: 60px;
+            height: 60px;
+        }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if you see two green squares (one bigger and one smaller) and no red.</p>
+        <div class="container">
+            <div class="big region">
+                <div class="flow">
+                    xxxxx
+                    xxxxx
+                    xxxxx
+                    xxxxx
+                    xxxxx
+                </div>
+            </div>
+        </div>
+        <div class="container">
+            <div class="small region">
+                <div class="flow">
+                    xxx
+                    xxx
+                    xxx
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

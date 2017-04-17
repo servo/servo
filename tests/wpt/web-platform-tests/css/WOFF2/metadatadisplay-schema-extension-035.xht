@@ -1,0 +1,50 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<meta http-equiv="content-type" content="text/html;charset=UTF-8"/>
+		<title>WOFF Test: Valid name Element With lang Attribute in item Element in extension Element</title>
+		<link rel="author" title="Tal Leming" href="http://typesupply.com" />
+		<link rel="help" href="http://dev.w3.org/webfonts/WOFF2/spec/#Metadata" />
+		<link rel="help" href="http://www.w3.org/TR/WOFF/#conform-metadata-noeffect" />
+		<link rel="help" href="http://dev.w3.org/webfonts/WOFF2/spec/#Metadata" />
+<link  rel="reviewer" title="Chris Lilley" href="mailto:chris@w3.org" />
+		<meta name="flags" content="font" />
+		<meta name="assert" content="The name element in the item element in the extension element contains a lang attribute and it matches the schema." />
+		<style type="text/css"><![CDATA[
+			@font-face {
+				font-family: "WOFF Test";
+				src: url("support/metadatadisplay-schema-extension-035.woff2") format("woff2");
+			}
+			body {
+				font-size: 20px;
+			}
+			pre {
+				font-size: 12px;
+			}
+			.test {
+				font-family: "WOFF Test", "WOFF Test CFF Fallback";
+				font-size: 200px;
+				margin-top: 50px;
+			}
+		]]></style>
+	</head>
+	<body>
+		<p><a href="support/FontsToInstall">Test fonts</a> must be installed for this test. The WOFF being tested will be loaded over the network so please wait until the download is complete before determing the success of this test.</p>
+		<p>Test passes if the word PASS appears below.</p>
+		<p>The Extended Metadata Block is valid and may be displayed to the user upon request.</p>
+		<div class="test">P</div>
+		<p>The XML contained in the Extended Metadata Block is below.</p>
+		<pre>
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;metadata version="1.0"&gt;
+	&lt;extension id="Extension 1"&gt;
+		&lt;name&gt;Extension 1 - Name Without Language&lt;/name&gt;
+		&lt;item id="Extension 1 - Item 1 ID"&gt;
+			&lt;name lang="en"&gt;Extension 1 - Item 1 - Name With "en" Language&lt;/name&gt;
+			&lt;value&gt;Extension 1 - Item 1 - Value Without Language&lt;/value&gt;
+		&lt;/item&gt;
+	&lt;/extension&gt;
+&lt;/metadata&gt;
+		</pre>
+	</body>
+</html>

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Test: calling requestFullscreen() on image element inside a named flow</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property" />
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from" />
+		<link rel="help" href="http://www.w3.org/TR/fullscreen/#api" />
+		<meta name="flags" content="dom interact">
+		<meta name="assert" content="This test checks that calling the requestFullscreen() method
+				on an image element that's part of a named flow properly displays the image in
+				full screen">
+		<link rel="stylesheet" href="support/common.css" media="all">
+		<script src="support/util.js"></script>
+		<style>
+		#content {
+			flow-into: flow;
+		}
+		#region {
+			flow-from: flow;
+		}
+		#region > p {
+			background: red;
+
+		}
+		</style>
+	</head>
+	<body>
+		<section id="instructions">
+			<ol>
+				<li>You should see no red rectangles or squares before or during the text</li>
+				<li>You should see a picture of a cat below</li>
+				<li>Click the <em>Go full screen</em> button below
+					<ul>
+						<li>The page should enter full screen mode, with only the picture being showed.</li>
+						<li>The browser might display a permission window asking you to allow full
+						screen on this page. Allow it.</li>
+					</ul>
+				</li>
+				<li>Exit full screen (e.g. by pressing <em>Esc</em>)
+					<ul>
+						<li>The picture of the cat should be visible, along with all the other initial content.</li>
+					</ul>
+				</li>
+			</ol>
+			<button>Go full screen</button>
+		</section>
+
+		<div id="content">
+			<img src="support/cat.jpg" alt="A picture of a cat" width="320" height="240">
+		</div>
+		<div id="region">
+			<p>&nbsp;</p>
+		</div>
+		<div id="fail-marker"></div>
+
+		<script>
+		makeFullScreenToggle("button", "img");
+		</script>
+	</body>
+</html>

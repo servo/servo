@@ -1,0 +1,38 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: clip: Inheriting 'auto' arguments of rect()</title>
+  <link rel="author" title="Boris Zbarsky" href="mailto:bzbarsky@mit.edu"/>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visufx.html#clipping"/>
+  <meta name="assert" content="The 'auto' keywords in rect() resolve to a
+        used (not computed) value that aligns them with the border edges."/>
+  <style type="text/css">
+     .container {
+        position: relative;
+        width: 100px; height: 100px;
+        background: red; }
+     #outer {
+        position: absolute;
+        top: 50px; left: 50px;
+        clip: rect(-50px, auto, auto, -50px);
+        height: 40px; width: 40px;
+        border: solid 5px transparent; }
+     #inner {
+        position: absolute;
+        top: -55px; left: -55px;
+        width: 60px; height: 60px;
+        border: solid 20px green;
+        background: green; clip: inherit; }
+  </style>
+
+ </head>
+ <body>
+    <p>There must be a green box below and no red.</p>
+    <div class="container">
+      <div id="outer">
+        <div id="inner"></div>
+      </div>
+    </div>
+ </body>
+</html>

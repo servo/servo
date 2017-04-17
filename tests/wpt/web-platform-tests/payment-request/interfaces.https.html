@@ -12,56 +12,70 @@ interface EventInit {};
 interface EventTarget {};
 </script>
 <script type=text/plain>
-[Constructor(sequence<PaymentMethodData> methodData, PaymentDetails details, optional PaymentOptions options), SecureContext]
+[Constructor(sequence<PaymentMethodData> methodData, PaymentDetailsInit details, optional PaymentOptions options),
+ SecureContext]
 interface PaymentRequest : EventTarget {
     Promise<PaymentResponse> show();
     Promise<void>            abort();
+    Promise<boolean>         canMakePayment();
 
-    readonly attribute PaymentAddress? shippingAddress;
-    readonly attribute DOMString?      shippingOption;
+    readonly attribute DOMString            id;
+    readonly attribute PaymentAddress?      shippingAddress;
+    readonly attribute DOMString?           shippingOption;
+    readonly attribute PaymentShippingType? shippingType;
 
-    // Supports "shippingaddresschange" event
-             attribute EventHandler    onshippingaddresschange;
+             attribute EventHandler         onshippingaddresschange;
 
-    // Supports "shippingoptionchange" event
-             attribute EventHandler    onshippingoptionchange;
+             attribute EventHandler         onshippingoptionchange;
 };
-
 dictionary PaymentMethodData {
     required sequence<DOMString> supportedMethods;
              object              data;
 };
-
 dictionary PaymentCurrencyAmount {
     required DOMString currency;
     required DOMString value;
+             DOMString currencySystem = "urn:iso:std:iso:4217";
 };
-
-dictionary PaymentDetails {
-    PaymentItem                      total;
+dictionary PaymentDetailsBase {
     sequence<PaymentItem>            displayItems;
     sequence<PaymentShippingOption>  shippingOptions;
     sequence<PaymentDetailsModifier> modifiers;
 };
-
+dictionary PaymentDetailsInit : PaymentDetailsBase {
+             DOMString   id;
+    required PaymentItem total;
+};
+dictionary PaymentDetailsUpdate : PaymentDetailsBase {
+    DOMString   error;
+    PaymentItem total;
+};
 dictionary PaymentDetailsModifier {
     required sequence<DOMString>   supportedMethods;
              PaymentItem           total;
              sequence<PaymentItem> additionalDisplayItems;
+             object                data;
 };
-
+enum PaymentShippingType {
+    "shipping",
+    "delivery",
+    "pickup"
+};
 dictionary PaymentOptions {
-    boolean requestPayerEmail = false;
-    boolean requestPayerPhone = false;
-    boolean requestShipping = false;
+    boolean             requestPayerName = false;
+    boolean             requestPayerEmail = false;
+    boolean             requestPayerPhone = false;
+    boolean             requestShipping = false;
+    PaymentShippingType shippingType = "shipping";
 };
-
 dictionary PaymentItem {
     required DOMString             label;
     required PaymentCurrencyAmount amount;
+             boolean               pending = false;
 };
-
+[SecureContext]
 interface PaymentAddress {
+    serializer = {attribute};
     readonly attribute DOMString              country;
     readonly attribute FrozenArray<DOMString> addressLine;
     readonly attribute DOMString              region;
@@ -72,39 +86,39 @@ interface PaymentAddress {
     readonly attribute DOMString              languageCode;
     readonly attribute DOMString              organization;
     readonly attribute DOMString              recipient;
-    readonly attribute DOMString              careOf;
     readonly attribute DOMString              phone;
 };
-
 dictionary PaymentShippingOption {
     required DOMString             id;
     required DOMString             label;
     required PaymentCurrencyAmount amount;
              boolean               selected = false;
 };
-
 enum PaymentComplete {
-    "success",
     "fail",
-    ""
+    "success",
+    "unknown"
 };
-
+[SecureContext]
 interface PaymentResponse {
+    serializer = {attribute};
+
+    readonly attribute DOMString       requestId;
     readonly attribute DOMString       methodName;
     readonly attribute object          details;
     readonly attribute PaymentAddress? shippingAddress;
     readonly attribute DOMString?      shippingOption;
+    readonly attribute DOMString?      payerName;
     readonly attribute DOMString?      payerEmail;
     readonly attribute DOMString?      payerPhone;
 
-    Promise<void> complete(optional PaymentComplete result = "");
+    Promise<void> complete(optional PaymentComplete result = "unknown");
 };
-
-[Constructor(DOMString type, optional PaymentRequestUpdateEventInit eventInitDict)]
+[Constructor(DOMString type, optional PaymentRequestUpdateEventInit eventInitDict),
+ SecureContext]
 interface PaymentRequestUpdateEvent : Event {
-    void updateWith(Promise<PaymentDetails> d);
+    void updateWith(Promise<PaymentDetailsUpdate> detailsPromise);
 };
-
 dictionary PaymentRequestUpdateEventInit : EventInit {
 };
 </script>

@@ -1,0 +1,59 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Tenth Test of Section 5.11 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+A:focus {background: yellow}
+A:focus:hover {background: lime}
+a:link {color: red}
+a:visited {color: blue}
+a:hover {color: green}
+a:active {color: purple}
+
+
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Tenth Testable Statement of Sec 5.11 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+10. The :focus pseudo-class applies while an element has the focus.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p >
+If statement #10 above is passed, then
+this <a href="ovalbbut.gif">link may be focused over</a> whereas
+this <a href="ovalbbut.gif">link may be focused and hovered</a>.
+The rules applied are "A:focus {background: yellow}" and "A:focus:hover
+{background: lime}".
+<p>
+This <a href="http://www.w3.org">link</a> should be red if unvisited, blue
+if visited, green if hovered, and purple if active.
+Rules are "a:link {color: red}", "a:visited {color: blue}". a:hover {color:
+green}", and "a:active {color: blue}".
+<p>
+All other properties of this page should be UA-default.
+
+
+</BODY>
+</HTML>
+

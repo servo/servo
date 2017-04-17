@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Auxiliary Browing Contexts: window.opener noreferrer</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/PrefixedLocalStorage.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+    var prefixedLocalStorage;
+    setup(() => prefixedLocalStorage = new PrefixedLocalStorageTest());
+    async_test(t => {
+      t.add_cleanup(() => prefixedLocalStorage.cleanup());
+      var a       = document.createElement('a');
+      a.href      = prefixedLocalStorage.url('resources/no-opener.html');
+      a.target    = '_blank';
+      a.rel       = 'noreferrer';
+      window.name = 'topWindow';
+      document.body.appendChild(a);
+      prefixedLocalStorage.onSet('openerIsNull', t.step_func_done(e => {
+        assert_equals(e.newValue, 'true');
+      }));
+      a.click();
+    }, 'Auxiliary browsing context created with `rel="noreferrer"` should report `window.opener` `null`');
+    </script>
+  </body>
+</html>

@@ -1,0 +1,27 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>CSS Test: intrinsic width of width: calc() on blocks</title>
+  <link rel="author" title="L. David Baron" href="https://dbaron.org/">
+  <link rel="help" href="http://www.w3.org/TR/css3-values/#calc-notation">
+  <link rel="match" href="calc-width-block-intrinsic-1-ref.html">
+  <meta name="flags" content="">
+<style type="text/css">
+
+body { font-size: 10px }
+body > div { float: left; clear: left;
+             margin: 0 0 1px 0; background: blue; color: white; height: 5px }
+body > div > div > div { width: 200px }
+
+</style>
+</head>
+<body>
+
+<div><div style="width: calc(50% - 3px)"><div></div></div></div>
+<div><div style="width: calc(5em - 3px)"><div></div></div></div>
+<div><div style="width: calc(5em - 0%)"><div></div></div></div>
+<div><div style="width: calc(50%)"><div></div></div></div>
+<div><div style="width: calc(50px)"><div></div></div></div>
+<div><div style="width: calc(25% + 25%)"><div></div></div></div>
+</body>
+</html>

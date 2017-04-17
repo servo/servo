@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML: window.open `features`: tokenization -- size features `width` and `height`</title>
+<meta name=timeout content=long>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#apis-for-creating-and-navigating-browsing-contexts-by-name">
+
+<!-- user agents are not required to support open features other than `noopener`
+     and on some platforms position and size features don't make sense -->
+<meta name="flags" content="may" />
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/PrefixedPostMessage.js"></script>
+<script>
+var windowURL = 'resources/message-opener.html';
+var width = 'width=401,';
+var height = 'height=402,';
+
+[ 'width=401',
+  ' width = 401',
+  'width==401',
+  '\nwidth= 401',
+  ',width=401,,',
+  'WIDTH=401'
+].forEach((features, idx, arr) => {
+  async_test(t => {
+    var prefixedMessage = new PrefixedMessageTest();
+    prefixedMessage.onMessage(t.step_func_done((data, e) => {
+      e.source.close();
+      assert_equals(data.width, 401);
+    }));
+    var win = window.open(prefixedMessage.url(windowURL), '', height + features);
+  }, `${format_value(features)} should set width of opened window`);
+});
+
+[ 'height=402',
+  ' height = 402',
+  'height==402',
+  '\nheight= 402',
+  ',height=402,,',
+  'HEIGHT=402'
+].forEach((features, idx, arr) => {
+  async_test(t => {
+    var prefixedMessage = new PrefixedMessageTest();
+    prefixedMessage.onMessage(t.step_func_done((data, e) => {
+      e.source.close();
+      assert_equals(data.height, 402);
+    }));
+    var win = window.open(prefixedMessage.url(windowURL), '', width + features);
+  }, `${format_value(features)} should set height of opened window`);
+});
+
+[ 'height=402,width=401',
+  ' height = 402 , width = 401 ,',
+  'height==402 width = 401',
+  '\nheight= 402,,width=\n401',
+  ',height=402,,width==401',
+  'HEIGHT=402, WIDTH=401'
+].forEach((features, idx, arr) => {
+  async_test(t => {
+    var prefixedMessage = new PrefixedMessageTest();
+    prefixedMessage.onMessage(t.step_func_done((data, e) => {
+      e.source.close();
+      assert_equals(data.height, 402);
+      assert_equals(data.width, 401)
+    }));
+    var win = window.open(prefixedMessage.url(windowURL), '', features);
+  }, `${format_value(features)} should set height and width of opened window`);
+});
+
+</script>

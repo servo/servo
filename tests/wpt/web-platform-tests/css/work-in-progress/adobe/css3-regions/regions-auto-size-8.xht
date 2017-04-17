@@ -1,0 +1,57 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>CSS Test: width:auto and height:auto on single region box</title>
+    <link rel="author" title="Vincent Hardy, Adobe Systems" href="mailto:vhardy@adobe.com" />
+    <link rel="help" href="https://drafts.csswg.org/css3-regions/#rfcb-flow-fragment-height-resolution" />
+    <link rel="match" href="regions-auto-size-1-ref.xht" />
+    <meta name="flags" content="" />
+    <meta name="assert" content=
+    "The height of a region with height:auto is computed from the fragment content. Floats and relative positioned boxes are accounted for properly." />
+<style>
+    /*<![CDATA[*/
+#region {
+    border: 1px solid #a0a0a0;
+    flow-from: article;
+}
+
+#article {
+    flow-into: article;
+}
+
+.inline-box {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 1px solid #888;
+    background: #aaa;
+}
+
+.floater {
+    width: 50px;
+    height: 50px;
+    border: 1px solid #33a;
+    background: #66e;
+    float: left;
+}
+
+.offset {
+    position: relative;
+    top: 10px;
+}
+
+/*]]>*/
+</style>
+</head>
+<body>
+    <p>You should see a gray border box that that is as wide as the display area and tightly fits float blue blox but
+        the relatively positioned gray box (rightmost) should overflow.</p>
+    <div id="region"></div>
+    <div id="article">
+        <span class="inline-box"></span>
+        <span class="inline-box"></span>
+        <span class="inline-box offset"></span>
+        <div class="floater"></div>
+    </div>
+</body>
+</html>

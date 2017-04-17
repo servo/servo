@@ -11,6 +11,9 @@ def main(request, response):
         delay = int(request.GET.first("delay"))
         time.sleep(delay)
 
+    if "safelist_content_type" in request.GET:
+        headers.append(("Access-Control-Allow-Headers", "content-type"))
+
     headers.append(("X-Request-Method", request.method))
     headers.append(("X-Request-Query", request.url_parts.query if request.url_parts.query else "NO"))
     headers.append(("X-Request-Content-Length", request.headers.get("Content-Length", "NO")))

@@ -1,0 +1,48 @@
+
+<HTML>
+<HEAD>
+<TITLE>26th Test of Section 6.4 of CSS2 Spec</TITLE>
+
+
+<STYLE TYPE="text/css">
+
+h3 em {color: red}
+ul ol li.blue {color: blue}
+li.green.level {color: green}
+#x34y {color: yellow}
+</style>
+</head>
+
+
+
+<BODY>
+
+<h1 >Testing Statement #26 Below of Section 6.4 of CSS1 Spec</h1>
+
+
+
+<ul>
+<li >
+26. These examples of concatenation all give larger specificity values.
+
+<h2 >PASS CRITERIA:
+</h2>
+<p>
+If statement #26 above is passed, 
+<h3>This <em >emphasized text</em> within h3 element should be red;
+rule is "h3 em {color: red}".
+</h3>
+<ul><ol><li class="blue">This item should be blue because of rule
+"ul ol li.blue {color: blue}"</ol></ul>
+<ul><li class="green level">This item should be green because of
+rule "li.green.level {color: green}"</ul>
+<p id=x34y style="color: red">
+This paragraph should be red, because of rule
+"id-x34y style="color: red" in p tag above.
+</p>
+<p id=x34y>
+This paragraph should be yellow, because of 
+rule "#x34y {color: yellow}".
+All other properties of this page should be UA-default.
+</BODY>
+</HTML>

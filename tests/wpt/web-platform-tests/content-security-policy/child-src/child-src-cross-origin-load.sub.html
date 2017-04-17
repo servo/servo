@@ -58,11 +58,11 @@ child-src 'self' http://www1.{{host}}:{{ports[http][0]}}; script-src 'self' 'uns
 </head>
 
 <body>
-    <iframe src="/content-security-policy/blink-contrib/resources/postmessage-pass.html" onload="loadEvent()"></iframe>
-    <iframe src="http://www1.{{host}}:{{ports[http][0]}}/content-security-policy/blink-contrib/resources/postmessage-pass.html" onload="loadEvent()"></iframe>
-    <iframe src="http://www2.{{host}}:{{ports[http][0]}}/content-security-policy/blink-contrib/resources/postmessage-fail.html" onload="loadEvent()" onerror="log('FAIL')"></iframe>
+    <iframe src="/content-security-policy/support/postmessage-pass.html" onload="loadEvent()"></iframe>
+    <iframe src="http://{{domains[www1]}}:{{ports[http][0]}}/content-security-policy/support/postmessage-pass.html" onload="loadEvent()"></iframe>
+    <iframe src="http://{{domains[www2]}}:{{ports[http][0]}}/content-security-policy/support/postmessage-fail.html" onload="loadEvent()" onerror="log('FAIL')"></iframe>
     <div id="log"></div>
-    <script async defer src="../support/checkReport.sub.js?reportExists=true&amp;reportField=violated-directive&amp;reportValue=child-src%20&apos;self&apos;"></script>
+    <script async defer src="../support/checkReport.sub.js?reportExists=true&amp;reportField=violated-directive&amp;reportValue=frame-src%20&apos;self&apos;"></script>
 </body>
 
 </html>

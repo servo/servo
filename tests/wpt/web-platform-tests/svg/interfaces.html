@@ -1,5 +1,6 @@
 <!doctype html>
 <title>SVG interface tests</title>
+<meta name=timeout content=long>
 <div id=log></div>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
@@ -1432,7 +1433,7 @@ idlArray.add_idls(idls);
 idlArray.add_objects({
   SVGAnimatedBoolean: ['feConvolveMatrix.preserveAlpha'],
   SVGAnimatedString: ['a.target'],
-  SVGStringList: ['a.requiredFeatures'],
+  SVGStringList: ['a.requiredExtensions'],
   SVGAnimatedEnumeration: ['text.lengthAdjust'],
   SVGAnimatedInteger: ['feConvolveMatrix.orderX'],
   SVGNumber: ['svg.createSVGNumber()'],

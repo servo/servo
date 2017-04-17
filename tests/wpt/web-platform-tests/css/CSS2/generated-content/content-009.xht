@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Content using a 'counter()' function with a list style set to 'decimal'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#propdef-content" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#content" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'content' property properly handles a 'counter()' function with a list-style." />
+        <style type="text/css">
+            div:before
+            {
+                content: counter(test, decimal);
+            }
+            div
+            {
+                border: 2px solid black;
+                height: 30px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a zero "0" in the box below.</p>
+        <div></div>
+    </body>
+</html>

@@ -1,0 +1,31 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Margin-top and margin-bottom on inline elements</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+		<link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-08-17 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#margin-properties" />
+		<link rel="match" href="margin-inline-002-ref.xht" />
+
+        <meta name="flags" content="" />
+        <meta name="assert" content="Applying margin-top and margin-bottom to an inline element has no effect." />
+        <style type="text/css">
+            div
+            {
+                border: blue solid 3px;
+            }
+            span
+            {
+                background: orange;
+                margin-top: 20px;
+                margin-bottom: 20px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the top and bottom of the orange stripe is touching the inner edges of the hollow blue rectangle.</p>
+        <div>
+            <span>Filler Text</span>
+        </div>
+    </body>
+</html>

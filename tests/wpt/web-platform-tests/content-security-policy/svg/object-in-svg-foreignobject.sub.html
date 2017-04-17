@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Object inside SVG foreignobject respect csp</title>
+    <meta http-equiv="Content-Security-Policy" content="object-src 'none'">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script>
+      async_test(function(t) {
+        document.addEventListener("securitypolicyviolation", t.step_func(function(e) {
+          if (e.blockedURI != "{{location[scheme]}}://{{location[host]}}/content-security-policy/support/media/flash.swf")
+            return;
+
+          assert_equals(e.violatedDirective, "object-src");
+          t.done();
+        }));
+      }, "Should throw a securitypolicyviolation");
+    </script>
+</head>
+<body>
+    <svg>
+        <foreignObject>
+            <embed type="application/x-shockwave-flash" src="/content-security-policy/support/media/flash.swf">
+        </foreignObject>
+    </svg>
+</body>
+</html>

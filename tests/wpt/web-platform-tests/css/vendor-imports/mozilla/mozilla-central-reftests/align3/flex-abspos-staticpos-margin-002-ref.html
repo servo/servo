@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+<head>
+  <title>CSS Reference</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <meta charset="utf-8">
+  <style>
+    .container {
+      display: block;
+      padding: 1px 2px;
+      border: 1px solid black;
+      background: yellow;
+      margin-bottom: 5px;
+      margin-right: 10px;
+      float: left; /* For testing in "rows" of containers */
+    }
+    br { clear: both }
+
+    .big > .container {
+      height: 14px;
+      width: 20px;
+    }
+    .small > .container {
+      height: 2px;
+      width: 4px;
+    }
+
+    .container > * {
+      background: teal;
+      height: 6px;
+      width: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="big">
+    <!-- Margin just on one side: -->
+    <div class="container"><div style="margin: 3px 0 0 12px"></div></div>
+    <div class="container"><div style="margin: 0 0 0 9px"></div></div>
+    <div class="container"><div style="margin: 0 0 0 12px"></div></div>
+    <div class="container"><div style="margin: 0 0 0 12px"></div></div>
+    <!-- Margin on all sides: -->
+    <div class="container"><div style="margin: 1px 0 0 10px"></div></div>
+    <br>
+
+    <!-- "auto" margin on just one side (should be treated as 0): -->
+    <div class="container"><div style="margin: 0 0 0 12px"></div></div>
+    <div class="container"><div style="margin: 0 0 0 12px"></div></div>
+    <div class="container"><div style="margin: 0 0 0 12px"></div></div>
+    <div class="container"><div style="margin: 0 0 0 12px"></div></div>
+    <!-- "auto" margin on all sides (should be treated as 0): -->
+    <div class="container"><div style="margin: 0 0 0 12px"></div></div>
+    <br>
+  </div>
+  <div class="small">
+    <!-- Margin just on one side: -->
+    <div class="container"><div style="margin: 3px 0 0 -4px"></div></div>
+    <div class="container"><div style="margin: 0 0 0 -7px"></div></div>
+    <div class="container"><div style="margin: 0 0 0 -4px"></div></div>
+    <div class="container"><div style="margin: 0 0 0 -4px"></div></div>
+    <!-- Margin on all sides: -->
+    <div class="container"><div style="margin: 1px 0 0 -6px"></div></div>
+    <br>
+
+    <!-- "auto" margin on just one side (should be treated as 0): -->
+    <div class="container"><div style="margin: 0 0 0 -4px"></div></div>
+    <div class="container"><div style="margin: 0 0 0 -4px"></div></div>
+    <div class="container"><div style="margin: 0 0 0 -4px"></div></div>
+    <div class="container"><div style="margin: 0 0 0 -4px"></div></div>
+    <!-- "auto" margin on all sides (should be treated as 0): -->
+    <div class="container"><div style="margin: 0 0 0 -4px"></div></div>
+    <br>
+  </div>
+</body>
+</html>

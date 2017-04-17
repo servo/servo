@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+     <title>CSS Test: Test for background-position values</title>
+	  <link rel="author" title="david kim" href="mailto:kimdkim@yahoo.com OR http://findinbay.blogspot.com">
+	  <link rel="help" href="https://drafts.csswg.org/css3-background/#background-position">
+	  <meta name="flags" content="background-position image">
+	  <meta name="assert" content="To test propery display of 'background-position' center property.">
+     
+     <style type="text/css">
+     /* CSS FOR TEST */
+     
+     div {
+	  height: 100px;
+	  width: 100px;
+     }
+     
+     #reference {
+	  background-image: url('support/20x20-green.png');
+	  background-repeat: no-repeat;
+	  background-position: 50% 50%;
+	  z-index: 0;
+     }
+     
+     #test1 {
+	  background-image: url('support/20x20-red.png');
+	  background-repeat: no-repeat;
+	  background-position: center;
+	  z-index: -1;
+     }
+     
+     #test2 {
+	  background-image: url('support/20x20-red.png');
+	  background-repeat: no-repeat;
+	  background-position: left 40px top 40px; /* 40px, 40px */
+	  z-index: -1;
+     }
+
+     </style>
+
+</head>
+ 
+<body>
+     
+     <!-- test passes if no red shows through -->
+     <div id="test1">
+	  <div id="test2">
+	       <div id="reference"></div>
+	  </div>
+     </div>  
+     
+     
+</body>
+</html>

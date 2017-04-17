@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: White-space application to 'display: list-item' element</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#propdef-white-space" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#white-space-prop" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The 'white-space' property applies to display: list-item elements." />
+        <style type="text/css">
+            body
+            {
+                margin-left: 2em;
+            }
+            div
+            {
+                font: 16px/1em Ahem;
+            }
+            #test
+            {
+                display: list-item;
+                white-space: pre;
+            }
+            #ref1, #ref2
+            {
+                background: black;
+                display: inline-block;
+                height: 1em;
+                width: 2em;
+            }
+            #ref2
+            {
+                margin-left: 3em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there are two squares below and the left most square has a marker bullet on the left-hand side.</p>
+        <div id="test">XX   XX</div>
+        <div id="ref1"></div><div id="ref2"></div>
+    </body>
+</html>

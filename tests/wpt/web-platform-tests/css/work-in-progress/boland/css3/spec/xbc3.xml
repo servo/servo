@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+  <?xml-stylesheet href="./css3-test.css"?>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:a="http://www.example.org/a" xmlns:b="http://www.example.org/b" xmlns:css3="http://www.example.org/css3tests">
+   <head>
+      <title>Background Color 1</title>
+      <meta name="author" content="Tim Boland"/>
+      <style type="text/css">p { background-color: blue }
+                            h3 {background-color: red }
+      </style>
+   </head>
+   <body>
+      <table width="100%" border="0" class="testDescription">
+         <tr>
+            <th width="50%">CSS 3 Module</th>
+            <th width="100%" colspan="2">
+               <a href="index.htm">&lt;==</a>
+           Test #
+          <a href="css3-back.xml">==&gt;</a>
+            </th>
+         </tr>
+         <tr>
+            <td width="50%">W3C Background</td>
+            <td width="100%" colspan="2">1</td>
+         </tr>
+         <tr>
+            <th width="50%">Testing</th>
+            <th width="25%">Date</th>
+            <th width="25%">Revision</th>
+         </tr>
+         <tr>
+            <td width="50%">Background Color 1</td>
+            <td width="25%">30-july-2001</td>
+            <td width="25%">1.0</td>
+         </tr>
+      </table>
+      <div class="testSource">
+         <div class="testText">
+            <p xmlns:html="http://www.w3.org/1999/xhtml">The background of this paragraph should be blue.</p>
+            <h3 xmlns:html="http://www.w3.org/1999/xhtml">The background of thish3 element should be red.</h3>
+         </div>
+         <pre class="rules">p { background-color : blue }</pre>
+         <pre class="rules">&lt;p&gt;
+  &lt;p&gt;The background of this paragraph should be blue&lt;/p&gt;
+          </pre>
+
+         <pre class="rules">h3 { background-color : red }</pre>
+         <pre class="rules">&lt;h3&gt;
+  &lt;h3&gt;The background of this h3 element should be red&lt;/h3&gt;
+           </pre>
+      </div>
+   </body>
+</html>

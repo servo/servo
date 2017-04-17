@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: page properties: border properties</title>
+<link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+<link rel="help" href="http://www.w3.org/TR/css3-page/#page-properties"/>
+<meta name="flags" content="paged" />
+<meta name="assert" content="Border properties defined in CSS2.1 apply to margin boxes."/>
+<style type="text/css">
+	@page {
+		@top-left-corner {
+			margin-top: 0.5in;
+			border-top: 6pt solid green;
+			content: "";
+		}
+		@top-left {
+			margin-top: 0.5in;
+			border-top: 6pt solid green;
+			content: "";
+		}
+		@top-center {
+			margin-top: 0.5in;
+			border-top: 6pt solid green;
+			content: "";
+		}
+		@top-right {
+			margin-top: 0.5in;
+			border-top: 6pt solid green;
+			content: "";
+		}
+		@top-right-corner {
+			margin-top: 0.5in;
+			border-top: 6pt solid green;
+			content: "";
+		}
+	}
+</style>
+</head>
+<body>
+	<p>When printed, there must be a green bar running across the page, about one half inch down from the top.</p>
+</body>
+</html>

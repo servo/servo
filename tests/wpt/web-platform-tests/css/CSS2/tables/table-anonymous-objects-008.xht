@@ -1,0 +1,79 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: Auto-imported from Gecko test 156888-2.html</title>
+  <link rel="author" title="Boris Zbarsky" href="mailto:bzbarsky@mit.edu"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#anonymous-boxes"/>
+  <meta name="flags" content='dom'/>
+
+    <script type="text/javascript"><![CDATA[
+      function toggleRow(rowId)
+      {
+        var r = document.getElementById(rowId);
+        if (r.style.display == "none")
+          r.style.display = "inline";
+        else
+          r.style.display = "none";
+      }
+
+      function doTest() {
+        toggleRow('row4');
+        document.body.offsetWidth;
+        toggleRow('row4');
+        document.body.offsetWidth;
+        toggleRow('row4');
+        document.body.offsetWidth;
+        toggleRow('row4');
+        document.body.offsetWidth;
+        toggleRow('row4');
+        document.body.offsetWidth;
+        toggleRow('row4');
+        document.body.offsetWidth;
+        toggleRow('row4');
+        document.body.offsetWidth;
+        toggleRow('row4');
+        document.body.offsetWidth;
+        toggleRow('row4');
+      }
+    ]]></script>
+  </head>
+<body onload="doTest()">
+<p>There should be no red below, except for antialiasing issues.</p>
+<div style="position: relative; font-size: 2em;">
+<div style="position: absolute; z-index: 2; top: 0; color: green; padding: 1px;">
+
+    <table border="5">
+      <tr>
+        <td>Row 1</td>
+      </tr>
+      <tr>
+        <td>Row 2</td>
+      </tr>
+      <tr>
+        <td>Row 3</td>
+      </tr>
+      <tr id="row4" style="display: none">
+        <td>Row 4</td>
+      </tr>
+    </table>
+  </div>
+<div style="position: relative; z-index: 1; color: red; padding: 1px;">
+
+    <table border="5">
+      <tr>
+        <td>Row 1</td>
+      </tr>
+      <tr>
+        <td>Row 2</td>
+      </tr>
+      <tr>
+        <td>Row 3</td>
+      </tr>
+      <tr style="display: inline">
+        <td>Row 4</td>
+      </tr>
+    </table>
+  </div>
+</div>
+</body>
+</html>

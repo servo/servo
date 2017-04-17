@@ -1,0 +1,23 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: White-space 'pre-wrap' and line opportunity with sequence of spaces</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#white-space-model" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="A line breaking opportunity is introduced at the end of a sequence of spaces when 'white-space' is set to 'pre-wrap'." />
+        <style type="text/css">
+            div
+            {
+                font-family: Ahem;
+                line-height: 1em;
+                white-space: pre-wrap;
+                width: 5em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is one box below.</p>
+        <div>XX&#32;&#32;&#32;XX</div>
+    </body>
+</html>

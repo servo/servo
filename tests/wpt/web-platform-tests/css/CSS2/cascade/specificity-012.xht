@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Pseudo-class Specificity</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/cascade/specificity/002.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html#specificity" />
+
+  <meta name="flags" content="history interact" />
+
+  <style type="text/css">
+   a:link { color: yellow; background: red; }
+   a:hover { color: red; background: yellow; font-weight: bold; }
+   a:visited { color: green; background: white; }
+  </style>
+ </head>
+ <body>
+  <p><a href="002.html">This text should be green <strong>when you
+  hover over it</strong>.</a> (If it starts red, click the link to
+  make sure the link is marked visited.)</p>
+ </body>
+</html>

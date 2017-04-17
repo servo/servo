@@ -1,0 +1,80 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+<html lang="en">
+ <head>
+  <title>Alternates and generated content (poorly written test)</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/cascade/alternates/002.html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS2/conform.html#conformance" />
+  <style type="text/css">
+   table td { border: solid; padding: 1em; }
+  </style>
+  <style type="text/css" title="Alternate one (Preferred)">
+   #failed { display: none; }
+   #a:before { content: 'Welcome to an alternate stylesheet test.'; display: block;  }
+   #ac:before { display: block; content: '\A0'; border-top: solid orange thick; }
+   #b *, #b :before { float: left; border: solid; content: ' '; padding: 1em; margin: 1em; display: block; }
+   #b:after { content: 'All the content on this page is generated using :before and :after pseudo-elements.'
+                       'Switch to the other stylesheet, then switch back, then reload and see if anything changes.'
+                       'Note that there should be some brief text on the other sheet too.'; }
+   #c { float: right; border: dotted; }
+   #ca { float: left; margin: 1em; font: 900 3em cursive; border: solid navy; -moz-border-radius: 100% 100% 0 100%; padding: 0.25em 0.75em; background: blue ; color: white; }
+   #ca:before { content: 'M'; }
+   #ca :after { content: 'O'; }
+   #c:after { display: block; content: 'cow'; background: url(002a.jpeg); clear: left; margin: -6em 0 0 13em; width: 250px; height: 195px; }
+  </style>
+  <style type="text/css" title="Alternate two">
+   #failed { display: none; }
+   #ca:after { content: 'This is a different stylesheeet.'; }
+  </style>
+ </head>
+ <body>
+  <p id="failed">Failed.</p>
+  <div id="test">
+   <div id="a">
+    <div id="aa">
+    </div>
+    <div id="ab">
+     <span id="aba"></span>
+     <span id="abb"></span>
+    </div>
+    <div id="ac">
+    </div>
+    <div id="ad">
+    </div>
+   </div>
+   <div id="b">
+    <div id="bd">
+     <span id="baa"></span>
+    </div>
+    <div id="bb">
+    </div>
+    <div id="bc">
+    </div>
+    <div id="bd">
+    </div>
+   </div>
+   <div id="c">
+    <div id="ca">
+     <span id="caa"></span>
+     <span id="cab"></span>
+    </div>
+    <div id="cb">
+    </div>
+    <div id="cc">
+    </div>
+    <div id="cd">
+    </div>
+   <div id="d">
+    <div id="da">
+    </div>
+    <div id="db">
+    </div>
+    <div id="dc">
+    </div>
+    <div id="dd">
+    </div>
+   </div>
+   </div>
+  </div>
+ </body>
+</html>

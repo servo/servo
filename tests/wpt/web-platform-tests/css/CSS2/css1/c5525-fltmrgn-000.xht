@@ -1,0 +1,58 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: float</title>
+  <meta name="flags" content="ahem image" />
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#float"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="match" href="c5525-fltmrgn-000-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+   div { background: red url(support/css1test5525b-0.png) no-repeat; color: green;
+         font: 15px/1 Ahem; padding: 0; width: 8em; border: solid black; }
+   img { float: left; color: red; }
+   .test1 { margin: 1em; background: red url(support/css1test5525b-1.png) no-repeat; }
+   .test2 { margin: 1em; background: red url(support/css1test5525b-2.png) no-repeat; }
+   .test2 img { margin-top: 0px; margin-left: 0px; height: 3em; }
+   .test3 { margin: 1em; background: red url(support/css1test5525b-3.png) no-repeat; }
+   .test3 img { margin-top: 30px; margin-left: 30px; height: 3em; }
+   .test4 { margin: 3em 1em 1em 3em; background: red url(support/css1test5525b-4.png) no-repeat; }
+   .test4 img { margin-top: -30px; margin-left: -30px; height: 3em; }
+   .test5 { margin: 1em; background: red url(support/css1test5525b-5.png) no-repeat; }
+   .test5 img { margin-right: 30px; margin-bottom: 30px; height: 3em; }
+   .test6 { margin: 1em; background: red url(support/css1test5525b-6.png) no-repeat; }
+   .test6 img { margin-right: -30px; margin-bottom: -30px; } /* has right height */
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats" title="9.5 Floats"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#margin-properties" title="8.3 Margin properties: 'margin-top',  'margin-right',  'margin-bottom', 'margin-left', and 'margin'"/>
+ </head>
+ <body>
+  <p>Test passes if there is a tall filled green rectangle with a black border and <strong>no red</strong>.</p>
+  <div>
+   <p class="test1">
+    x x x xx x x x
+   </p>
+   <p class="test2">
+    <img src="support/swatch-green.png" alt="FAIL" />
+    x x x xx x x x
+   </p>
+   <p class="test3">
+    <img src="support/swatch-green.png" alt="FAIL" />
+    x x x xx x x x
+   </p>
+   <p class="test4">
+    <img src="support/swatch-green.png" alt="FAIL" />
+    x x x xx x x x
+   </p>
+   <p class="test5">
+    <img src="support/swatch-green.png" alt="FAIL" />
+    x x x xx x x x
+   </p>
+   <p class="test6">
+    <img src="support/pattern-grg-rrg-rgg.png" alt="FAIL" />
+    x x x xx x x x
+   </p>
+  </div>
+ </body>
+</html>

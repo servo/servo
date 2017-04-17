@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Reftest Reference</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<style>
+		ol, li {
+			margin: 0;
+			padding: 0;
+		}
+		.box {
+			float: left;
+			width: 20em;
+			height: 10em;
+			margin: 0 2em;
+		}
+		#container {
+			background-color: lightgray;
+		}
+		#region {
+			background-color: lightgreen;
+		}
+		</style>
+	</head>
+	<body>
+		<p>This test passes if you see two rectangles, each with a numbered list inside, as described below. The numbers for both of the lists should be rendered outside (to the left) of the respective rectangles.</p>
+		<p>The first rectangle should be lightgray and contain a numbered list with 5 items. The items should be numbered with 2, 3, 8, 10 and 11 respectively.</p>
+		<p>The second rectangle should be lightgreen and contain a numbered list with 4 items. The items should be numbered with 1, 6, 7 and 9 respectively.</p>
+		<div class="box" id="container">
+			<ol>
+				<li value="2">List item 2</li>
+				<li value="3">List item 3</li>
+				<li value="8">List item 8</li>
+				<li value="10">List item 10</li>
+				<li value="11">List item 11</li>
+			</ol>
+		</div>
+		<div class="box" id="region">
+			<ol>
+				<li value="1">List item 1</li>
+				<li value="6">List item 6</li>
+				<li value="7">List item 7</li>
+				<li value="9">List item 9</li>
+			</ol>
+		</div>
+	</body>
+</html>

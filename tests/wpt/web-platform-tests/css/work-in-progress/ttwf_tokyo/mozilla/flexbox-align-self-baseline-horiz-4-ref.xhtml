@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!-- Reference case for behavior of the 'baseline' value for align-items and
+     align-self.
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <style>
+      div.flexbox {
+        display: block;
+        border: 1px dashed blue;
+        font: 14px sans-serif;
+      }
+
+      div   { display: inline-block; }
+      table {
+        display: inline-table;
+        margin: 1px; /* to fix fuzziness from text overlapping table border */
+      }
+
+      .lime { background: lime; }
+      .pink { background: pink; }
+      .aqua { background: aqua; }
+   </style>
+  </head>
+  <body>
+    <div class="flexbox">
+      <div class="lime">text</div
+      ><table class="pink" border="1">
+        <tr><td>tr1</td></tr>
+        <tr><td>tr2</td></tr>
+      </table>
+    </div>
+  </body>
+</html>

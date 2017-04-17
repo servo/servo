@@ -1,0 +1,130 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: Margin collapsing with clearance - clearance may be negative</title>
+
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#collapsing-margins" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#normal-block" />
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="author" title="Bruno Fassino" href="fassino[at]gmail.com" />
+  <link rel="match" href="margin-collapse-clear-014-ref.xht" />
+
+  <meta content="Clearance is created above the top margin of the element with clear set. Clearance can be negative. Clearance stops the collapsing of the element's margins with the preceding siblings' margins and with the parent block's bottom margin." name="assert" />
+  <meta content="" name="flags" />
+
+  <style type="text/css"><![CDATA[
+  #rel-pos-wrapper {position: relative;}
+
+  #parent-lime
+  {
+  background-color: lime;
+  width: 50%;
+  }
+
+  #preceding-sibling-aqua
+  {
+  background-color: aqua;
+  height: 60px;
+  margin-bottom: 40px;
+  }
+
+  #float-left-blue
+  {
+  background-color: blue;
+  float: left;
+  height: 100px;
+  width: 100px;
+  }
+
+  #clear-left
+  {
+  clear: left;
+  margin-top: 120px;
+  }
+
+  #next-yellow
+  {
+  background-color: yellow;
+  height: 100px;
+  }
+
+  .ref-overlapped-red
+  {
+  background-color: red;
+  position: absolute;
+  z-index: -1;
+  }
+
+  #ref1
+  {
+  height: 200px;
+  top: 0px;
+  width: 50%;
+  }
+
+  #ref2
+  {
+  height: 100px;
+  top: 200px;
+  width: 100%;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is <strong>no red</strong>.</p>
+
+  <div id="rel-pos-wrapper">
+
+  <!--
+
+  #parent-lime should have height 200px, sum of:
+
+     60px  : height of #preceding-sibling-aqua
+  +
+     40px  : margin-bottom of #preceding-sibling-aqua
+  +
+    100px  : height of #float-left-blue
+  =====================================================
+    200px
+
+  -->
+
+    <div id="parent-lime">
+      <div id="preceding-sibling-aqua"></div>
+      <div id="float-left-blue"></div>
+      <div id="clear-left"></div>
+    </div>
+
+  <!--
+
+     clearance
+   +
+     margin-top of #clear-left (120px)
+   ====================================
+     height of #float-left-blue (100px)
+
+     therefore, clearance is equal to -20px
+
+  -->
+
+    <div id="next-yellow"></div>
+
+   <!--
+   #ref1 and #ref2 boxes create a sort of 'reference rendering'
+   where #ref1 should be covered, overlapped by #parent-lime
+   while #ref2 should be covered, overlapped by #next-yellow.
+   -->
+
+    <div id="ref1" class="ref-overlapped-red"></div>
+    <div id="ref2" class="ref-overlapped-red"></div>
+
+  </div>
+
+ </body>
+</html>

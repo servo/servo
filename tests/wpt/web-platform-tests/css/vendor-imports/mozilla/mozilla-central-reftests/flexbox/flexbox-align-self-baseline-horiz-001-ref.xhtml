@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!-- Reference case for behavior of the 'baseline' value for align-items and
+     align-self.
+
+     NOTE: For multi-line 'display: block' elements in the testcase (and inline
+     content that gets wrapped in an anonymous block), we add an inline-table
+     wrapper here in the reference case, so that we get first-line baseline
+     alignment instead of the last-line baseline-alignment that an inline-block
+     would give us.
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Reftest Reference</title>
+    <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com"/>
+    <style>
+      .flexbox {
+        display: block;
+        border: 1px dashed blue;
+        font: 14px sans-serif;
+      }
+
+      div   { display: inline-block; }
+      table { display: inline-table; }
+
+      .big {
+        height: 100px;
+        font: 24px sans-serif;
+        margin-top: 20px;
+      }
+      .super {
+        vertical-align: super;
+        font-size: 12px;
+      }
+      .sub {
+        vertical-align: sub;
+        font-size: 12px;
+      }
+
+      .lime   { background: lime;   }
+      .yellow { background: yellow; }
+      .orange { background: orange; }
+      .pink   { background: pink;   }
+      .aqua   { background: aqua;   }
+      .tan    { background: tan;    }
+   </style>
+  </head>
+  <body>
+    <div class="flexbox">
+      <div class="lime">blk_1line</div
+      ><table cellspacing="0" cellpadding="0"
+              class="yellow">blk<br/>2lines</table
+      ><div class="orange"><span class="super">super</span></div
+      ><div class="pink"><span class="sub">sub</span></div
+      ><table cellspacing="0" cellpadding="0"
+              class="aqua big">big<br/>text<br/>3lines</table
+      ><table class="tan" cellspacing="0" cellpadding="0">
+        <i>ital<br/>ic</i>
+      </table>
+    </div>
+    <div class="flexbox">
+      <div class="lime">blk_1line</div
+      ><div class="yellow">blk<br/>2lines</div
+      ><div class="orange"><span class="super">super</span></div
+      ><div class="pink"><span class="sub">sub</span></div
+      ><div class="aqua big">big<br/>text<br/>3lines</div
+      ><div class="tan"><i>ital<br/>ic</i></div>
+    </div>
+  </body>
+</html>

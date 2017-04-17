@@ -1,0 +1,4 @@
+<?xml-stylesheet href="support/selectors-namespace-003.css"?>
+<test xmlns="http://www.example.org/b">
+  This should be green.
+</test>

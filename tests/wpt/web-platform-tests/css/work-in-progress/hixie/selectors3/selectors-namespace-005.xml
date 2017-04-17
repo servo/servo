@@ -1,0 +1,37 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS: @namespace blocks across embedded stylesheets (part 2, negative tests)</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/selectors/namespace/005.xml"/>
+  <style type="text/css">
+    @namespace a url(http://www.example.org/2);
+    @namespace b url(http://www.example.org/1);
+    test3 { color: red; } /* this matches nothing */
+  </style>
+  <style type="text/css">
+    /* namespace declarations are reversed */
+    @namespace a url(http://www.example.org/2); 
+    @namespace b url(http://www.example.org/1);
+    a|test2 { color: red; } /* matches nothing either */
+  </style>
+  <style type="text/css">
+    /* set a default namespace declaration */
+    @namespace url(http://www.example.org/1); 
+    test1 { color: red; } /* still matches nothing */
+  </style>
+  <style type="text/css">
+    /* set the default to be red */
+    *|* { color:green; }
+    *|body *|* { display: block; }
+  </style>
+ </head>
+ <body>
+  <!-- tests *:3 are checked in 004.xml -->
+  <test2 xmlns="http://www.example.org/1"> This should be green. </test2>
+  <!-- test 2:2 is checked in 004.xml -->
+  <test2 xmlns="http://www.example.org/3"> This should be green. </test2>
+  <!-- test 1:1 is checked in 004.xml -->
+  <test1 xmlns="http://www.example.org/2"> This should be green. </test1>
+  <test1 xmlns="http://www.example.org/3"> This should be green. </test1>
+ </body>
+</html>

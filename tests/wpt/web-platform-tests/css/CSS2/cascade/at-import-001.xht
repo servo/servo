@@ -1,0 +1,21 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: @import not as the first declaration</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="An @import is ignored if it is not the first statement in a style block." />
+        <style type="text/css">
+            body
+            {
+                color: green;
+            }
+            @import url("support/at-import-001.css");
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page.</p>
+        <div>Filler Text</div>
+    </body>
+</html>

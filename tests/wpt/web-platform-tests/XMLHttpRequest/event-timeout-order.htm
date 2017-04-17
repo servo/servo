@@ -28,9 +28,9 @@
             xhr.timeout = 5;
             xhr.open("POST", "resources/delay.py?ms=20000");
             xhr.send("Test Message");
-            setTimeout(test.step_func(function () {
+            test.step_timeout(() => {
               assert_unreached("ontimeout not called.");
-            }), 10);
+            }, 10);
         });
     </script>
 </body>

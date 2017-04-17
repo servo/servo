@@ -1,0 +1,11 @@
+<html class="reftest-wait">
+<title>APNG: Second frame displays quickly, replacing red with green.</title>
+<link rel="match" href="animated-png-timeout-ref.html"/>
+<img src=../images/apng.png onload="loaded()"/>
+<script>
+  function loaded() {
+    setTimeout(function() {
+      document.documentElement.classList.remove("reftest-wait");
+    }, 1000);
+  }
+</script>

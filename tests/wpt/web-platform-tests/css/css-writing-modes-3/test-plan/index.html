@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Writing Modes testing strategy</title>
+    <meta http-equiv='Content-Type' content='text/html;charset=utf-8'/>
+    <!--
+      === NOTA BENE ===
+      For the three scripts below, if your spec resides on dev.w3 you can check them
+      out in the same tree and use relative links so that they'll work offline,
+     -->
+    <script src='http://www.w3.org/Tools/respec/respec-w3c-common' class='remove' async></script>
+    <script class='remove'>
+      var respecConfig = {
+          specStatus: "unofficial",
+          shortName: "css3-writingmodes-test-strategy",
+          editors: [
+            {
+              name: "Shinsuke Matsuki", mailto: "shinsuke.matsuki@access-company.com",
+              company: "ACCESS", companyURL: ""
+            },
+            {
+              name: "Masataka Yakura", mailto: "masataka.yakura@gmail.com",
+              company: "", companyURL: ""
+            },
+          ],
+          testSuiteURI: "http://test.csswg.org/suites/css3-writing-modes/nightly-unstable/",
+      };
+    </script>
+    <style>
+    a.bibref,
+    #references dt {
+      text-transform: uppercase;
+    }
+    </style>
+
+    <style>
+      table
+      {
+        border-collapse:collapse;
+      }
+      table, td, th
+      {
+        border:1px solid black;
+        padding: 13px;
+      }
+      table
+      {
+        width: 100%;
+      }
+      img
+      {
+        width: 400px;
+      }
+    </style>
+  <style>/*****************************************************************
+ * ReSpec 3 CSS
+ * Robin Berjon - http://berjon.com/
+ *****************************************************************/
+
+/* --- INLINES --- */
+em.rfc2119 {
+    text-transform:     lowercase;
+    font-variant:       small-caps;
+    font-style:         normal;
+    color:              #900;
+}
+
+h1 acronym, h2 acronym, h3 acronym, h4 acronym, h5 acronym, h6 acronym, a acronym,
+h1 abbr, h2 abbr, h3 abbr, h4 abbr, h5 abbr, h6 abbr, a abbr {
+    border: none;
+}
+
+dfn {
+    font-weight:    bold;
+}
+
+a.internalDFN {
+    color:  inherit;
+    border-bottom:  1px solid #99c;
+    text-decoration:    none;
+}
+
+a.externalDFN {
+    color:  inherit;
+    border-bottom:  1px dotted #ccc;
+    text-decoration:    none;
+}
+
+a.bibref {
+    text-decoration:    none;
+}
+
+cite .bibref {
+    font-style: normal;
+}
+
+code {
+    color:  #ff4500;
+}
+
+/* --- TOC --- */
+.toc a, .tof a {
+    text-decoration:    none;
+}
+
+a .secno, a .figno {
+    color:  #000;
+}
+
+ul.tof, ol.tof {
+    list-style: none outside none;
+}
+
+.caption {
+    margin-top: 0.5em;
+    font-style:   italic;
+}
+
+/* --- TABLE --- */
+table.simple {
+    border-spacing: 0;
+    border-collapse:    collapse;
+    border-bottom:  3px solid #005a9c;
+}
+
+.simple th {
+    background: #005a9c;
+    color:  #fff;
+    padding:    3px 5px;
+    text-align: left;
+}
+
+.simple th[scope="row"] {
+    background: inherit;
+    color:  inherit;
+    border-top: 1px solid #ddd;
+}
+
+.simple td {
+    padding:    3px 10px;
+    border-top: 1px solid #ddd;
+}
+
+.simple tr:nth-child(even) {
+    background: #f0f6ff;
+}
+
+/* --- DL --- */
+.section dd > p:first-child {
+    margin-top: 0;
+}
+
+.section dd > p:last-child {
+    margin-bottom: 0;
+}
+
+.section dd {
+    margin-bottom:  1em;
+}
+
+.section dl.attrs dd, .section dl.eldef dd {
+    margin-bottom:  0;
+}
+</style><link rel="stylesheet" href="https://www.w3.org/StyleSheets/TR/w3c-unofficial"><!--[if lt IE 9]><script src='https://www.w3.org/2008/site/js/html5shiv.js'></script><![endif]-->
+
+  </head>
+  <body>
+    <section id='abstract'>
+      <p>
+        This document is intended to be used as a guideline for the testing
+        activities related to the CSS Writing Modes spec [[!css3-writing-modes]]. Its main
+        goal is to provide an overview of the general testing areas, possible
+        caveats and testing aspects not immediately apparent from the spec.
+        Also, it provides a means of tracking the progress of the CSS Writing Modes
+        spec testing.
+      </p>
+      <p>
+        This document is not meant to replace the spec in determining the
+        normative and non-normative assertions to be tested, but rather
+        complement it.
+      </p>
+    </section>
+
+    <section>
+      <h2>Introduction</h2>
+      <p>
+        As CSS moved away from the monolithic development of CSS 2.1 to the
+        modular development of CSS 3, the number of proposed new features and
+        the complexity of the layout landscape have increased dramatically.
+        While this directly translates to increased flexibility and agility in
+        adopting and implementing new CSS features, it also increases the
+        complexity of testing CSS features and the need for coordinating the
+        testing efforts. Also, the need for testing coordination increases as
+        crowd-sourcing efforts like
+        <a href="http://testthewebforward.org/" target="_blank">Test the Web
+        Forward</a> present people less familiar with the processes and policies
+        of the W3C with the opportunity to contribute new tests.
+      </p>
+      <p>
+        Except when defining new behaviors or redefining old behaviors, the
+        implicit assumption for new CSS modules is that they play nicely with
+        other modules or properties defined in CSS&nbsp;2.1 [[CSS21]]. As CSS
+        Writing Modes is a spec that touches many aspects of layout, styling and CSSOM,
+        it's not unreasonable to want to test the spec against these implicit
+        assumptions, too.
+      </p>
+      <p>
+        This testing strategy document is meant to complement the CSS Writing Modes
+        spec and the existing test suite by providing an overview of the testing
+        areas (especially the less apparent ones) and tracking the progress of
+        the testing activities against these test areas.
+      </p>
+    </section>
+    <section>
+      <h2>Goals</h2>
+      <p>
+        To ensure a comprehensive test suite with useful, high quality tests, a
+        number of goals are proposed. They range from process goals (how to
+        conduct testing) to implementation goals (how to write good tests).
+      </p>
+      <section>
+        <h3>Enabling easy test contribution</h3>
+        <p>
+          An important vector in successfully testing CSS Writing Modes is to
+          enable easy test contributions, both from W3C partners and from
+          non-W3C members that wish to contribute. This is achieved by clearly
+          marking and explaining the areas that need testing, linked to existing
+          tests and general testing progress.
+        </p>
+      </section>
+      <section>
+        <h3>Providing guidance on testing</h3>
+        <p>
+          In order to increase the quality of the test contributions, this
+          document offers a set of guidelines for conducting testing (see
+          <a href="#approach" class="sectionRef"></a>) and a testing progress
+          tracker to increase the surface coverage of tests (see
+          <a href="#test-progress-tracking" class="sectionRef"></a>).
+        </p>
+      </section>
+      <section>
+        <h3>Creating automation-friendly tests</h3>
+        <p>
+          In terms of actual tests produced for the CSS Writing Modes, the main goal
+          is to ensure that most tests are automatable (i.e. they're either
+          reftests or use <code>testharness.js</code>). Even where manual tests
+          are absolutely necessary they should be written so that they can be
+          easily automated &ndash; as there are on-going efforts to make
+          WebDriver [[webdriver]] automated tests a first class citized in W3C
+          testing. This means that even if a manual test requires user
+          interaction, the validation or PASS/FAIL conditions should still be
+          clear enough as to allow automatic validation if said interaction is
+          later automated.
+        </p>
+
+        <p>
+          In particular need a special font in the test of CSS Writing Modes. Since these are is assumed of many tests, people who try to create the test now, check to see whether any available font.
+        </p>
+      </section>
+    </section>
+    <section>
+      <h2>Risks and mitigation</h2>
+      <p>
+        There are a number of risks associated with creating a high-quality
+        test suite for CSS Writing Modes. The most important ones are listed below.
+      </p>
+      <section>
+        <h3>Implicit interactions with a lot of other specs (and commonly accepted
+          browser behavior)</h3>
+        <p>
+          The CSS Writing Modes spec introduces a significant change in the way layout
+          can be done and as a consequence, many of the assumptions that hold in
+          the context of CSS&nbsp;2.1 must be re-validated in the context of CSS
+          Writing Modes. In the meanwhile, a lot of new layout modules have been
+          proposed, with various degrees of implementer support and maturity.
+          Also, non-CSS specific specs introduced concepts that affect how style
+          is propagated (e.g. Shadow DOM [[shadow-dom]]) or how elements are
+          rendered and interact with their containing documents (e.g.
+          <code>&lt;iframe seamless&gt;</code> in HTML 5 [[HTML5]]).
+        </p>
+        <p>
+          All the above factors increase the testing surface and the number of
+          the possible cases that might need an explicitly specified behavior in
+          order to ensure intuitive and predictable results as well as stable
+          interaction with widely used browser features (that might not be <em>yet</em>
+          so strictly specified).
+        </p>
+        <p>
+          In terms of specifying the expected behavior, the current approach is
+          to try and specify it for specs that are final or nearly-final and to
+          just make a note of the possible interactions and unspecified behaviors
+          in the case of specs that are still in flux. In exceptional cases, a
+          new spec might be created to cater for the needs of multiple specs
+          (e.g. the CSS Fragmentation spec [[css3-break]]).
+        </p>
+      </section>
+      <section>
+        <h3>Big number of tests required</h3>
+        <div class="note">
+          Add here the estimation of tests required produced by
+          <a href="https://github.com/w3c/web-platform-tests/tree/master/tools/coverage" target="_blank">W3C test coverage</a>
+          tool. If possible, provide a better informed guess on the number of tests.
+        </div>
+        <p>
+          Given the complexity of the spec, a big number of tests will need to
+          be created to produce a test suite that can ensure interoperability
+          between implementations.
+        </p>
+        <p>
+          In this context, the main purpose of this document is to provide
+          useful informations for creating and contributing tests in an effective
+          manner in terms of coverage and test quality.
+        </p>
+      </section>
+      <section>
+        <h3>Special fonts required</h3>
+        <p>
+          For building reftest, several special fonts are necessary.
+          If could not get some fonts, a test will be manual or reftest waiting fonts.
+        </p>
+      </section>
+    </section>
+    <section>
+      <h2>Approach</h2>
+      <p>
+        As spec testing cannot be realistically separated from testing a
+        particular implementation (except for the very simple cases), the
+        approach proposed for testing is one that tries to first cover as many
+        areas as possible, instead of deep diving on a certain feature or aspect
+        of the spec first. A side benefit of this approach is that the spec
+        tests can be used at any time to gauge the level of support of a certain
+        implementation.
+      </p>
+      <p>
+        Having this <em>breadth-first</em> approach in mind, tests will be
+        created for the testing areas listed in <a href="#testing-areas"
+        class="sectionRef"></a>. Testing will be done in multiple passes, each
+        aimed at covering more specific edge-cases.
+      </p>
+      <p>
+        The selection of test data, in terms of parsing, rendering, choose only one typical values ​​from the data set on the same effect (It is a test technique known "equivalence partitioning").
+      </p>
+
+    </section>
+    <section>
+      <h2>Testing areas</h2>
+      <section>
+        <h3>Explicit testing areas</h3>
+        <p>
+          These are testing areas normatively defined by the spec. They cover
+          things explicitly or implicitly defined in the CSS Writing Modes spec.
+          Please note that while detailed, this list is not necessarily
+          exhaustive and normative behaviors may not be contained in it.
+          When in doubt, consult the CSS Writing Modes spec or ask a question on the
+          <a href="http://lists.w3.org/Archives/Public/www-style/">mailing
+          list</a>.
+        </p>
+        <p>
+        <h4>Overview</h4>
+          Below is the list of explicit testing areas:
+          <ol>
+            <li>
+              Proper parsing of the CSS properties and rules, rendering
+              according to the spec.
+              <ul>
+                <li><code>direction</code></li>
+                <li><code>unicode-bidi</code></li>
+                <li><code>writing-mode</code></li>
+                <li><code>text-orientation</code></li>
+                <li><code>caption-side</code></li>
+                <li><code>text-combine-upright</code></li>
+              </ul>
+            </li>
+              Test the following set of elements as a group to the 'Applies to' description.
+              <ul>
+                <li>inline element, inline block, replaced elements, block element, list-item
+, table, inline-table, table-header-group, table-footer-group, table-cell, table-caption</li>
+                <li><code>display:none</code></li>
+                <li>inherit</li>
+              </ul>
+              Selected as a representative following four frequently used as 'replace element'.
+                <ul>
+                  <li><code>button</code></li>
+                  <li><code>input:text</code></li>
+                  <li><code>select</code></li>
+                  <li><code>text-area</code></li>
+                </ul>
+            </li>
+            <li>
+              Box related specifications that are affected as specified by <code>writing-mode</code>, <code>text-orientation</code>. The original definition about 'Box model' see [[CSS21]] for details. Calculation of the following in particular:
+                <ul>
+                  <li><code>margin</code></li>
+                  <li><code>border</code></li>
+                  <li><code>padding</code></li>
+                </ul>
+            </li>
+            <li>
+              Compression of the glyph in horizontal-in-vertical(tate-chu-yoko) when using the text-transform [[!css3-text]] and OpenType properties.
+            </li>
+            <li>
+              Positioning, sizing and Auto-sizing of the box in orthogonal flows.
+            </li>
+            <li>
+              Text Baselines in vertical writing mode.
+                <ul>
+                  <li>alphabetic</li>
+                  <li>central</li>
+                </ul>
+            </li>
+          </ol>
+        </p>
+        <h3>Each Section</h3>
+        <ol>
+            <h3>Sec 2.Inline Direction and Bidirectionality</h3>
+            <p>
+              Parse, Rendering fundamental when combined the <code>direction</code> property and the <code>unicode-bidi</code> property. Applying Unicode bidirectional algorithm, behavior when the value is a newline. Placement of split inline-box. Calculation positioning of the box element.
+            </p>
+            <h3>Sec 3.Introduction to Vertical Text</h3>
+            <p>
+              Parse, Rendering fundamental for the <code>writing-mode</code> property. Character should be considered in particular the placement in vertical writing mode(Punctuation, etc. Onbiki in Japanese). Rendering for principal writing mode. Handling of child block in the case of line feed direction different from the container block. Converte value of the SVG in the writing-mode.
+            </p>
+
+            <h3>Sec 4.Inline-level Alignment</h3>
+            <p>
+              Consider baseline alphabetic, central in this specification. Baseline in vertical alignment for glyph, processing of dominant baseline.
+              <div class="note">
+                'dominant baseline' testing in CSS21 side?
+              </div>
+            </p>
+            <h3>Sec 5.Introduction to Vertical Text Layout</h3>
+            <p>
+              Parse, Rendering fundamental for the <code>text-orientation</code> property. rendering when the vertical writing mode. Rules of Appendix C.
+            </p>
+            <h3>Sec 6.Abstract Box Terminology</h3>
+            <p>
+              Processing over and under in line-relative directions. left, right adding in vertical writing mode to line-box. The processing of before, after, start, end of each block-level-element, inline-level-element in flow-relative directions.
+            </p>
+            <h3>Sec 7.Abstract Box Layout</h3>
+            <p>
+              Layout rule that refers to property in the box when in vertical writing mode and margin collapsing. Sizing, auto-sizing of the writing modes in Orthogonal Flow. Margin calculation in the case of Flow-Relative. Position calculation in the case of Line-Relative. Properties that do not affect the WritingMode. rendering and parsing of <code>caption-side</code> property.
+            </p>
+            <h3>Sec 8.Page Flow: the page progression direction</h3>
+            <p>
+              It is a page feed flow specification of UA, is beyond the scope of the current test environment.
+            </p>
+            <h3>Sec 9.Glyph Composition</h3>
+            <p>
+              Parse, Rendering fundamental for the <code>text-combine-upright</code> property. rendering when the vertical writing mode.  Interrupted by a box boundary in text run-rules. Glyph of centering in 1em box. Several algorithms to compress the 1em glyph of multiple.
+            </p>
+        </ol>
+
+      </section>
+      <section>
+        <h3>Implicit testing areas</h3>
+        <p>
+          These are testing areas either normatively defined in other specs
+          that explicitly refer to the CSS Writing Modes spec (e.g. [[css3-text]])
+          or simply not explicitly defined, but implied by various aspects of
+          the spec (e.g. processing model, CSS 2.1 compliance, etc.).
+          Please note that while detailed, this list is not necessarily
+          exhaustive and normative behaviors may not be contained in it.
+          When in doubt, consult the CSS Writing Modes spec or ask a question on the
+          <a href="http://lists.w3.org/Archives/Public/www-style/">mailing
+          list</a>.
+        </p>
+        <p>
+          Below is the list of implicit testing areas:
+          <ol>
+            <li>
+              CSS Writing Modes and layout modules:
+              <ul>
+                <li><code>overflow</code></li>
+                <li><code>clip</code></li>
+                <li><code>line-height</code></li>
+                <li>the <code>alt</code> attribute </li>
+              </ul>
+            </li>
+          </ol>
+        </p>
+      </section>
+    </section>
+    <section>
+      <h2>People and responsibilities</h2>
+      <p>
+        Below is a list of people you should reach out to if you have any
+        questions related to this document or testing CSS Writing Modes in general:
+        <ul>
+          <li>fantasai &ndash; editor for CSS Writing Modes spec</li>
+          <li>Koji Ishii &ndash; editor for CSS Writing Modes spec</li>
+          <li>Rebecca Hauck &ndash; CSSWG testing owner</li>
+        </ul>
+      </p>
+    </section>
+    <section>
+      <h2>Test progress tracking</h2>
+      <p>
+        Currently test progress tracking is done via gitHub
+        <a href="https://github.com/w3c/csswg-test/issues/milestones?with_issues=yes">milestones</a>
+        and <a href="https://github.com/w3c/csswg-test/issues?milestone=9&state=open">issues</a>.
+      </p>
+    </section>
+  </body>
+</html>

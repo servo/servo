@@ -1,0 +1,48 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Cell with 'vertical-align: [percentage]' renders as 'vertical-align: baseline'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#height-layout" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="A cell with 'vertical-align: [percentage]' renders as if the value were 'baseline'." />
+        <style type="text/css">
+            table
+            {
+                height: 100px;
+            }
+            td
+            {
+                vertical-align: 50%;
+            }
+            #small
+            {
+                font-size: 10pt;
+            }
+            #medium
+            {
+                font-size: 20pt;
+            }
+            #large
+            {
+                font-size: 30pt;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the bottom of the "Filler Text" below is aligned.</p>
+        <table>
+            <tr>
+                <td>
+                    <div id="small">Filler Text</div>
+                </td>
+                <td>
+                    <div id="medium">Filler Text</div>
+                </td>
+                <td>
+                    <div id="large">Filler Text</div>
+                </td>
+            </tr>
+        </table>
+    </body>
+</html>

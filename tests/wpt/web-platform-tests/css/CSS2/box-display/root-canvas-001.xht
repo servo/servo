@@ -1,0 +1,58 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Canvas: Embedded documents</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact" />
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-03-11 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/model/canvas/001.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#viewport"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#containing-block-details"/>
+  <link rel="match" href="root-canvas-001-ref.xht" />
+
+    <style type="text/css">
+   div { width: 10em; height: 10em; border: solid lime; background: red; padding: 0; }
+   object { width: 10em; height: 10em; margin: 0; padding: 0; border: 0; }
+  </style>
+ </head>
+ <body>
+  <p>There should be no red, only a green square with white text and a lime green border.</p>
+  <div><object type="text/html" data="support/root-canvas-001a.html">FAIL</object></div>
+
+  <!-- reasoning:
+
+    Section 9.1.1:
+    # There is at most one viewport per canvas
+     -> http://www.w3.org/TR/CSS21/visuren.html#q2
+
+    Section 2.3.1:
+    # the term canvas describes "the space where the formatting
+    # structure is rendered."
+     -> http://www.w3.org/TR/CSS21/intro.html#q4
+
+    Section 2.3, item 5:
+    # From the annotated document tree, generate a formatting
+    # structure.
+     -> http://www.w3.org/TR/CSS21/intro.html#processing-model
+
+    Section 2.3, item 1:
+    # Parse the source document and create a document tree.
+     -> http://www.w3.org/TR/CSS21/intro.html#processing-model
+
+    ...therefore is a viewport per rendered document. Since there are
+    two documents on this page (the main one and the one in the
+    object) there are two viewports.
+
+    The question becomes, what size is the viewport on the object
+    element. The spec doesn't define this, but if we consider the
+    desired results of the following proposed rule:
+
+       @viewport { overflow: scroll; }
+
+    ...I don't think it makes sense for the viewport to be anything
+    other than the size of the object element's box.
+
+    -->
+
+ </body>
+</html>

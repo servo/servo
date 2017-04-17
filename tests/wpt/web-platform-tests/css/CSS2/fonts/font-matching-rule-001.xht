@@ -1,0 +1,28 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Font Matching Algorithm, Match Font-Family</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#algorithm" />
+        <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-matching-algorithm" />
+        <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-style-matching" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="If font property match then use the font specified by font-family, if font property doesn't match, don't even try to match font-family." />
+        <style type="text/css">
+            #wrapper
+            {
+                font-style: italic;
+            }
+            div
+            {
+                font-family: Ahem;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the box below slants to one side.</p>
+        <div id="wrapper">
+            <div>X</div>
+        </div>
+    </body>
+</html>

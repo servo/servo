@@ -1,0 +1,41 @@
+
+<HTML>
+<HEAD>
+<TITLE>Fourth Test of Section 3.2</TITLE>
+
+
+<STYLE TYPE="text/css">
+@import url(test5.css);
+P {color: aqua}
+</STYLE>
+</HEAD>
+
+
+
+<BODY>
+
+<h1 >Testing Statement #4 Below of Section 3.2 of CSS1 Spec</h1>
+
+
+
+<ul>
+<li >
+4. Sort by origin: the author's style sheets override the reader's style sheets,
+which override the UA's default values.
+</ul>
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p ID="test5">
+If statement #4 above is passed, this paragraph should be aqua oblique with
+a font size of 36pt.
+The author rules applied are "P {color: aqua}" (defined in this style sheet)
+and "P {font-size: 36pt}" (from imported style sheet); each of these has
+the same importance.
+All other properties of this paragraph are UA-default.
+
+
+To move directly to the next test, click<a href="32-5.htm"> here</a>
+</BODY>
+</HTML>

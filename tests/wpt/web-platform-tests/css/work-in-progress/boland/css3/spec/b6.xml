@@ -1,0 +1,62 @@
+
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+      PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+      "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+
+<head>
+<title>CSS3 Background Test</title>
+
+<style type="text/css">
+body {background-image: url("flagbg.gif");
+      background-position: 100% 100%;
+      background-repeat: no-repeat;}
+p {background: gray 50% repeat fixed}
+
+
+
+</style>
+</head>
+
+
+
+
+<body>
+<h1 >
+CSS3 Background Test
+</h1>
+
+
+<ul>
+<li  >
+The background property first sets all the individual background 
+properties to their initial values, then assigns explicit values given in
+the declaration.
+</li>
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p>
+If statement above is passed, then
+the background of this page should be a single flag pattern, with position of
+100% 100%.
+The rule applied is "body {background-image: url("flagbg.gif") ;
+background-position: 100% 100%}".
+Also "background-repeat: no-repeat;".
+This paragraph should have background of gray 50% repeat fixed.
+The rule applied is "p {background: gray 50% repeat fixed}".
+However, only the "gray" value may be interpreted here, since the other
+values apply to images, of which there are none for the paragraph.
+All other properties of this page should be UA-default.
+</p>
+
+
+</body>
+</html>
+

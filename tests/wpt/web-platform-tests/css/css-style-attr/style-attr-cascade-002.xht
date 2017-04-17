@@ -1,0 +1,16 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS: style attribute (normal vs. important)</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/cascade/style/002.xml"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html#important-rules" />
+  <link rel="help" href="http://www.w3.org/TR/css-style-attr/#interpret"/>
+  <link rel="match" href="reference/ref-green.html" />
+ </head>
+ <body>
+  <!--It has a style attribute with "color: red" preceeded by an important "color: green".-->
+  <div style="color: green ! important; color: red">This should be green.</div>
+ </body>
+</html>

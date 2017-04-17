@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Backgrounds and Borders Test: border_style_shorthand</title>
+    <link rel="author" title="disound" href="mailto:disound@gmail.com" />
+    <link rel="help" href="http://www.w3.org/TR/css3-background/#the-border-style" />
+    <meta name="flags" content="image" />
+    <meta name="assert" content="'Border-style' is a shorthand for the other four. Its four values set the top, right, bottom and left border respectively. A missing left is the same as right, a missing bottom is the same as top, and a missing right is also the same as top." />
+    <style>
+        #ref {
+            background-color: white;
+            height: 160px;
+            width: 160px;
+        }
+        #test {
+            border: black solid 5px;
+            border-style: solid dotted dashed double;
+            bottom: 160px;
+            height: 100px;
+            padding: 25px;
+            position: relative;
+            width: 100px;
+        }
+    </style>
+  </head>
+  <body>
+    <p>Test passes if there is a white square, left border style is double, bottom border style is dashed, right border style is dotted, top border style is solid.</p>
+    <div id="ref"></div>
+    <div id="test"></div>
+  </body>
+</html>

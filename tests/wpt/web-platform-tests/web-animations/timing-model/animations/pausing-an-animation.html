@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Pausing an animation</title>
+<link rel="help"
+  href="https://w3c.github.io/web-animations/#finishing-an-animation-section">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+promise_test(function(t) {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  const promise = animation.ready;
+  animation.pause();
+  return promise.then(p => {
+    assert_equals(p, animation);
+    assert_equals(animation.ready, promise);
+    assert_equals(animation.playState, 'paused');
+  });
+}, 'A pending ready promise should be resolved and not replaced when the'
+   + ' animation is paused');
+
+</script>
+</body>

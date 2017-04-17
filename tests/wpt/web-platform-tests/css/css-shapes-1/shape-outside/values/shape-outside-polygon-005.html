@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Shape Outside Polygon Valid Points</title>
+        <link rel="author" title="Adobe" href="http://html.adobe.com/">
+        <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+        <link rel="reviewer" title="Alan Stearns" href="mailto:stearns@adobe.com"> <!-- 2014-03-04 -->
+        <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#funcdef-polygon">
+        <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shape-outside-property">
+        <meta name="assert" content="A polygon's vertices can be in signed positive/negative or decimal/non-decimal format">
+        <meta name="flags" content="dom">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="support/parsing-utils.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script type="text/javascript">
+            var valid_polygon_points_tests = [
+                {
+                  "actual": "polygon(+1px +2px, +3px +4px, +5px +6px)",
+                  "expected_inline": "polygon(1px 2px, 3px 4px, 5px 6px)",
+                  "expected_computed": "polygon(1px 2px, 3px 4px, 5px 6px)"
+                },
+                {
+                  "actual": "polygon(-1px -2px, -3px -4px, -5px -6px)",
+                  "expected_inline": "polygon(-1px -2px, -3px -4px, -5px -6px)",
+                  "expected_computed": "polygon(-1px -2px, -3px -4px, -5px -6px)"
+                },
+                {
+                  "actual": "polygon(+1px +2px, -3px -4px, +5px +6px)",
+                  "expected_inline": "polygon(1px 2px, -3px -4px, 5px 6px)",
+                  "expected_computed": "polygon(1px 2px, -3px -4px, 5px 6px)"
+                },
+                {
+                  "actual": "polygon(-1px -2px, +3px +4px, -5px -6px)",
+                  "expected_inline": "polygon(-1px -2px, 3px 4px, -5px -6px)",
+                  "expected_computed": "polygon(-1px -2px, 3px 4px, -5px -6px)"
+                },
+                {
+                  "actual": "polygon(1.0px 2.22px, 3.40px 4.555px, 5.607px 6.99px)",
+                  "expected_inline": "polygon(1px 2.22px, 3.4px 4.555px, 5.607px 6.99px)",
+                  "expected_computed": "polygon(1px 2.22px, 3.4px 4.555px, 5.607px 6.99px)"
+                },
+                {
+                  "actual": "polygon(+1.0px -2.22px, +3.40px -4.550px, 5.67px -6.99px)",
+                  "expected_inline": "polygon(1px -2.22px, 3.4px -4.55px, 5.67px -6.99px)",
+                  "expected_computed": "polygon(1px -2.22px, 3.4px -4.55px, 5.67px -6.99px)"
+                }
+            ];
+            generate_tests( ParsingUtils.testInlineStyle,
+                            ParsingUtils.buildTestCases(valid_polygon_points_tests, "inline") );
+            generate_tests( ParsingUtils.testComputedStyle,
+                            ParsingUtils.buildTestCases(valid_polygon_points_tests, "computed") );
+        </script>
+    </body>
+</html>

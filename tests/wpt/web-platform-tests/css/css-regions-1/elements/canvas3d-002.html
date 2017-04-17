@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>CSS Regions: rendering text flowed in a region on top of 3D content</title>
+        <link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+        <link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+        <link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from">
+        <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-functions">
+        <meta name="assert" content="Test checks that text flowed in a region renders without artifacts when the region overlaps a 3D (webGL) canvas element. This can be problematic in browsers that don't handle layers and/or 3D acceleration correctly.">
+        <meta name="flags" content="dom">
+        <link rel="match" href="reference/canvas3d-002-ref.html">
+        <script type="text/javascript" src="support/Three.js"></script>
+		<script type="text/javascript" src="support/static-cube.js"></script>
+        <style>
+        .flow {
+            flow-into: f;
+        }
+
+        #container {
+            width: 400px;
+            height: 300px;
+        }
+
+        .region {
+            flow-from: f;
+            width: 200px;
+            height: 300px;
+            margin: -250px 100px 0px 100px;
+        }
+        .region p {
+            background-color: red;
+            height: 50%;
+        }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if you see a continuous run of text over a cube (with blue, teal and purple sides) and no red.</p>
+
+        <div class="flow">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Culpa, veniam, dolorum earum molestias iusto corrupti quaerat unde. Nihil, ex, architecto enim doloremque amet ipsa distinctio quibusdam iste eveniet minima quisquam.</div>
+        <div id="container">
+        	<!-- A WebGL <canvas> will be created here, via script (see static-cube.js) -->
+        </div>
+        <div class="region">
+            <p>&nbsp;</p>
+        </div>
+    </body>
+</html>

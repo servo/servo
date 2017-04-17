@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta http-equiv="Content-Security-Policy" content="connect-src 'self'">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+    async_test(t => {
+      document.addEventListener("securitypolicyviolation", t.step_func_done(e => {
+        if (e.blockedURI != "http://{{domains[www]}}:{{ports[http][0]}}/common/text-plain.txt")
+            return;
+
+        assert_equals(e.violatedDirective, "connect-src");
+      }));
+
+      assert_true(navigator.sendBeacon("http://{{domains[www]}}:{{ports[http][0]}}/common/text-plain.txt"));
+    }, "sendBeacon should not throw.");
+</script>

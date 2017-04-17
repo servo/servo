@@ -19974,7 +19974,7 @@
  },
  "paths": {
   "./lint.whitelist": [
-   "dda02f5662390c7b09417454f97ba06876e7ce31",
+   "05d60cf6c75b15a18cbd0b0526ea9edea7d933f9",
    "support"
   ],
   "css/100x100_green.png": [
@@ -25722,7 +25722,7 @@
    "testharness"
   ],
   "mozilla/interfaces.js": [
-   "f218b241a43dbc8d8d9e2422b5b7999c0a0d95a8",
+   "de8259360671809646a21a5af3d7d87fd1da91a7",
    "support"
   ],
   "mozilla/interfaces.worker.js": [

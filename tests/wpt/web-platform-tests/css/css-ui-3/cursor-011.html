@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>CSS Basic User Interface Test: cursor: ew-resize</title>
+<link rel="author" title="Florian Rivoal" href="mailto:florian@rivoal.net">
+<link rel="help" href="http://www.w3.org/TR/css3-ui/#cursor">
+<meta name="flags" content="interact">
+<meta charset="UTF-8">
+<meta name="assert" content="The 'ew-resize' cursor value is supported">
+<style>
+div {
+  cursor: url("support/cursors/fail.png"), help;
+  cursor: ew-resize;
+  width: 100px;
+  height: 100px;
+  border: solid blue;
+}
+</style>
+<body>
+  <p>The test passes if, when moved inside the blue box, the cursor indicates that something can be resized horizontally, bidirectionally.
+  Often rendered as arrows pointing left and right.</p>
+  <div></div>
+</body>

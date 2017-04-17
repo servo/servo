@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: White-space 'pre-wrap' and space at end of line</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#white-space-model" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="Space is not removed at the end of the line when 'white-space' is set to 'pre-wrap'." />
+        <style type="text/css">
+            span
+            {
+                background-color: black;
+                font-family: Ahem;
+                white-space: pre-wrap;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a box below.</p>
+        <div>
+            <span>&#32;</span>
+        </div>
+    </body>
+</html>

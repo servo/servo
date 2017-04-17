@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Vertical-align applied to 'inline-block' and baseline alignment</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-03-03 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#propdef-vertical-align" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#leading" />
+        <link rel="match" href="vertical-align-baseline-003-ref.xht" />
+
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'vertical-align' property aligns the last line box of 'inline-block' elements with the baseline." />
+        <style type="text/css">
+            #span1
+            {
+                font-size: 16px;
+            }
+            #span2
+            {
+                background: orange;
+                display: inline-block;
+                width: 5em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the last line of "Filler Text" inside the orange rectangle is on the same line as the arrows "--&gt;" "&lt;--".</p>
+        <div>
+            <span id="span1">--&gt; <span id="span2">Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text</span> &lt;--</span>
+        </div>
+    </body>
+</html>

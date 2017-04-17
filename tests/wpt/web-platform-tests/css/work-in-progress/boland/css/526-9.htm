@@ -1,0 +1,69 @@
+
+<HTML>
+
+<HEAD>
+<TITLE>Ninth Test of Section 5.2.6 of CSS1 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+P {font-size: 12pt}
+EM {font-size: 150%}
+STRONG {font-size: 1.5em;
+        font-weight: 1.5ex}
+</STYLE>
+</HEAD>
+
+
+
+
+
+
+<BODY>
+
+
+
+<h1 >Testing Statement #9 Below of Section 5.2.6 of CSS1 Spec</h1>
+
+
+
+
+
+
+
+
+<ul>
+<li>
+9. On the "font-size" property, "em" and "ex" length values refer to the font
+size of the parent's element.
+</ul>
+
+
+
+
+<h2>
+PASS CRITERIA
+</h2>
+<p>
+If statement #9 above is passed, then:
+
+<p>
+This paragraph should have a font-size of 12pt.
+The rule applied is "p {font-size: 12pt}".
+This <em>emphasized text</em> within this paragraph should have a font size
+of 150%, because "em" is a child of "p".
+The rule applied here is "em {font-size: 150%}".
+This <strong>strong text</strong> within this paragraph should have a font
+size of 18pt (150% of parent's), because of the value of 1.5em.
+The rule applied here is "strong {font-size: 1.5em}", which is relative
+to the parent's font size.
+The font size of the emphasized and the strong text should be the same.
+
+The font weight of the "strong" element should be 1.5ex relative to the
+default font weight of the "strong" element, because of the rule
+"strong {font-weight: 1.5ex}"; thus, for othe properties, "ex" and "em"
+apply to the element itself.
+
+All other properties of this page should be UA-default.
+
+</BODY>
+</HTML>
+

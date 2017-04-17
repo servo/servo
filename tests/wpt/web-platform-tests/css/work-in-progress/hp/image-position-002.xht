@@ -1,0 +1,37 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Image Position Syntax - Replaced Elements Only</title>
+  <link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#img-fit-img-posn"/>
+  <meta name="assert" content="The 'image-position' property applies to replaced elements and does not apply to non-replaced elements."/>
+  <style type="text/css"><![CDATA[
+  	img {
+		height: 200px;
+		width: 200px;
+		margin-bottom: 10px;
+		image-fit: contain;
+		border: 2pt solid black;
+		background: #FFFEB3;
+	}
+	.offsetPosition {
+		height: 200px;
+		width: 200px;
+		margin-bottom: 10px;
+		image-position: 100% 100%;
+	}
+	div p {
+		height: 4em;
+		border: 1px solid black;
+	}
+  ]]></style>
+ </head>
+ <body>
+ 	<p>The first green arrow below should be centered within its box, with a yellow background showing above and below. The second should fit against the bottom edge of its box, with a yellow background showing above it. Both arrows are the same size.</p>
+	<div><img src="intrinsic-size.png" alt="FAIL: missing image" /></div>
+	<div><img src="intrinsic-size.png" alt="FAIL: missing image" class="offsetPosition" /></div>
+	<div>
+		<p class="offsetPosition">The text in this box should be aligned to the top of the box.</p>
+	</div>
+ </body>
+ </html>

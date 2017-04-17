@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <title>CSS Regions - CSS Object Model : Document.getFlowByName Test</title>
+   <link rel="author" title="Vincent Hardy, Adobe Systems" href="http://www.adobe.com/">
+   <link rel="help" href="https://drafts.csswg.org/css3-regions/#cssom_view_and_css_regions">
+   <meta name="flags" content="dom">
+   <meta name="assert" content="getFlowByName is implemented and works as expected">
+   <script src="/resources/testharness.js"></script>
+   <script src="/resources/testharnessreport.js"></script>
+   <style type="text/css">
+      #flow-A {
+          flow-into: flowA;
+          background: red;
+      }
+      
+      #flow-B {
+          flow-into: flowB;
+          background: red;
+      }
+      
+      #flow-C {
+          flow-into: flowC;
+          background: red;
+      }
+      
+   </style>
+   <script type="text/javascript">
+      async_test(function() {
+          function isNamedFlow (f) {
+              return typeof f === 'object' &&
+                     typeof f.overflow === 'boolean';
+          }
+
+          window.onload = this.step_func_done(function() {
+              var expectedFlows = ['flowA', 'flowB', 'flowC'];
+              expectedFlows.forEach(function (flowName) {
+                  var flow = document.getFlowByName(flowName);
+                  assert_not_equals(flow, null, "document.getFlowByName(" + flowName + ") did not return a NamedFlow instance as expected. Returned null.");
+                  assert_true(isNamedFlow(flow), "document.getFlowByName(" + flowName + ") did not return a NamedFlow instance as expected. Returned an object with unexpected interface.");
+              });
+          });
+      });
+   </script>
+</head>
+<body>
+    <div id="flow-A">This is flow-A content. Should not show.</div>
+    <div id="flow-B">This is flow-B content. Should not show.</div>
+    <div id="flow-C">This is flow-C content. Should not show.</div>
+    
+    <div id="log"></div>
+
+</body>
+</html>

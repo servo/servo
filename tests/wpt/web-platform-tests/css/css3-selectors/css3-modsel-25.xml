@@ -1,0 +1,14 @@
+<csstest def=":checked pseudo-class" module="W3C Selectors" modulename="css3-modsel" number="25" rev="1.1" date="29-may-2004" xmlns:a="http://www.example.org/a" xmlns:b="http://www.example.org/b" xmlns:html="http://www.w3.org/1999/xhtml" xmlns="http://www.example.org/css3tests">
+
+<author>Daniel Glazman</author>
+<author>Ian Hickson</author>
+
+<cssrules>input, span { background-color : red }
+input:checked, input:checked + span { background-color : lime}
+</cssrules>
+
+<code>
+<p xmlns="http://www.w3.org/1999/xhtml">
+<input type="checkbox" checked="checked"/> <span>Everything in this paragraph should have a green background</span></p>
+</code>
+</csstest>

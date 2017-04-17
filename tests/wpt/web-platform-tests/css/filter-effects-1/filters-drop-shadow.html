@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Writing Modes Test: drop-shadow offset test</title>
+    <link rel="author" title="Jun Ichikawa" href="mailto:jun1ka0@gmail.com">
+    <link rel="reviewer" title="Dirk Schulze" href="mailto:dschulze@adobe.com">
+    <link rel="help" href="http://www.w3.org/TR/filter-effects-1/#funcdef-drop-shadow">
+    <link rel="help" href="http://www.w3.org/TR/filter-effects-1/#dropshadowEquivalent">
+    <link rel="match" href="filters-drop-shadow-ref.html">
+    <meta name="flags" content="">
+    <meta name="assert" content="This test verifies that the drop-shadow shorthand works. Green box with green shadow.
+    The shadows appear 10px down and 20px right under the Green box. The red box must not appear under the Green box.">
+    <style type="text/css">
+
+        #ok {
+            position: absolute;
+            top: 100px;
+            left:0px;
+            width: 200px;
+            height: 200px;
+            background-color: rgb(0, 255,0);
+            filter: drop-shadow(20px 10px rgb(0, 255, 0));
+        }
+        #ng {
+            position: absolute;
+            top: 110px;
+            left:20px;
+            width: 200px;
+            height: 200px;
+            background-color: rgb(255, 0, 0);
+        }
+    </style>
+</head>
+<body>
+    <p>You should see two green overlapping rectangles and no red.</p>
+    <div id="ng"></div>
+    <div id="ok"></div>
+
+</body>
+</html>

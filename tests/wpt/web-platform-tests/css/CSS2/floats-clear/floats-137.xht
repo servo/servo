@@ -1,0 +1,87 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Wrapping text around multiple floats</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/float/wrapping/001.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats" />
+  <meta name="flags" content="ahem animated"/>
+    <style type="text/css">
+   .ahem { font: 1.25em/1 Ahem; background: yellow; color: navy; }
+   div.ahem { border: solid 1em navy; width: 10em; height: 10em; }
+   pre.ahem { width: 12em; height: 12em; }
+   span { font: 0.75em/1 serif; }
+
+   body.a .ahem, body.b .ahem { position: absolute; margin: 1em; }
+   body.a div.ahem { display: none; }
+   body.b pre.ahem { display: none; }
+
+   .aleft { text-align: left; }
+   .aright { text-align: right; }
+   .acenter { text-align: center; }
+   .ajustify { text-align: justify; }
+
+   .fleft { float: left; }
+   .fright { float: right; }
+   .fleft, .fright { background: navy; }
+
+   .cleft { clear: left; }
+   .cright { clear: right; }
+   .cleft.cright { clear: both; }
+
+   .w1 { width: 1em; }  .h1 { height: 1em; }
+   .w2 { width: 2em; }  .h2 { height: 2em; }
+   .w3 { width: 3em; }  .h3 { height: 3em; }
+   .w4 { width: 4em; }  .h4 { height: 4em; }
+   .w5 { width: 5em; }  .h5 { height: 5em; }
+
+  </style>
+ </head>
+ <body class="test">
+  <p>If scripting is supported: there should be only a single static jumble below with the word
+  "Control" blinking steadily. If there are two squares, or if the
+  square is animated, then the test has failed.</p>
+
+  <p>If scripting is unsupported: there should be two identical
+   patterned squares below.</p>
+
+  <script type="text/javascript">
+   var body = document.body;
+   var timer;
+   function toggle() {
+     body.className = body.className == 'a' ? 'b' : 'a';
+     timer = window.setTimeout(toggle, 500);
+   }
+   toggle();
+  </script>
+
+  <p><button onclick="clearTimeout(timer); body.className = 'test';"> Examine </button></p>
+
+   <div class="ahem">
+     1
+     <div class="fleft w2 h2"></div>
+     222222222
+     <div class="fleft w1 h2"></div>
+     <div class="fleft w1 h5"></div>
+     <div class="fleft w1 h1"></div>
+     <div class="fleft w2 h2"></div>
+     <div class="fleft w1 h1"></div>
+     3 444 55555555 66666 777777777
+   </div>
+
+   <pre class="ahem">############
+#AA1       #
+#AA        #
+#B222222222#
+#BCDEEF3   #
+# C EE444  #
+# C55555555#
+# C66666   #
+# C        #
+#777777777 #
+#          #
+############ <span>Control</span>
+</pre>
+
+ </body>
+</html>

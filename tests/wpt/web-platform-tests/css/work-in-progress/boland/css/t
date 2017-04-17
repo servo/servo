@@ -1,0 +1,19 @@
+The headings and description for each subsection below describe the
+functionality being tested.  The syntax of the test names below is
+as follows(for xx-y): xx refers to the CSS1 unit identifier, and y
+refers to the position of the testable statement within that 
+identifier, where "1" is the first testable statement reading 
+through the unit, "2" is the second, and so on.   Each of the tests
+is designed so as to give assistance to the user.  The format of
+each test is as follows: (1) at the top, a statement as to what is
+being tested (no CSS1 rules here), (2) below this, the actual
+testable statement from the spec (again, no CSS1 rules), (3) a heading
+"pass criteria" to introduce the CSS1 material to be passed below, and
+(4) below the heading, the CSS1 rendering for this particular UA.  (1)
+through (3) above should look the same for every test (no CSS1); only
+(4) should look different for each test, depending on the particular
+CSS1 rendering.  The rendering is described entirely in terms of CSS1
+properties, and at the bottom of each test it is possible to access
+two different reference renderings for comparison.  Also, the CSS1
+rules applied for that particular test are given as a part of the
+rendering, so it should not be necessary to consult the source.

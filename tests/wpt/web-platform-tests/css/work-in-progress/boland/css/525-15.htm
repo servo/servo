@@ -1,0 +1,61 @@
+
+<HTML>
+
+<HEAD>
+<TITLE>Fifteenth Test of Section 5.2.5 of CSS1 Spec</TITLE>
+
+<STYLE>
+#id2 { font-weight: bold }
+#id3 { font-weight: lighter }
+#id7 { font-weight: 300 }
+
+</STYLE>
+</HEAD>
+
+
+
+
+
+<BODY>
+
+
+<h1 >Testing Statement #15 Below of Section 5.2.5 of CSS1 Spec</h1>
+
+<ul>
+<li>
+15. Precise meaning; "lighter" selects the next lighter keyword with a different
+font from the inherited one, unless there is no such font, in which case, it
+selects the next liehgter numerical value (and keeps the font unchanged).
+</ul>
+
+
+
+<h2>
+PASS CRITERIA:
+</h2>
+<p>
+If statement #15 above is passed, then:
+<p ID=id2>
+This paragraph should have a font weight of bold.  This strong<strong>
+word</strong> also has a font weight of bold, since "strong" inherits
+from the "p" element.
+The rule applied here is "#id2 {font-weight: bold}".
+This <em ID=id3>emphasized text</em> has a lighter font weight.
+This is relative to the "bold" designation for "p".
+The rule applied to "em" is "#id3 {font-weight: lighter}".
+
+<p ID=id7>
+This paragraph has a font weight of 300 (light).
+The rule applied is "#id7 {font-weight: 300}".
+This <em ID=id3>emphasized text</em> has a lighter font weight,
+relative to the "300" (light) designation for "p".
+The rule applied to "em" is the same as in the above paragraph.
+
+
+
+
+
+All other properties of this page should be UA-default.
+</BODY>
+</HTML>
+

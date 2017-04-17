@@ -1,0 +1,57 @@
+
+<HTML>
+<TITLE>First Test of Section 6.2</TITLE>
+
+
+<STYLE TYPE="text/css">
+#id1 {line-height: +150%}
+#id2 {line-height: 150%}
+#id3 {line-height: 150.%}
+#id4 {line-height: -150%}
+</style>
+</HEAD>
+
+
+
+
+<BODY>
+
+<h2>Testing Statement #1 Below of Section 6.2 of CSS1 Spec</h2>
+
+
+
+<ul>
+<li>
+1. The format of a percentage value is an optional sign character immediately
+followed by a number immediately followed by "%".
+</ul>
+
+<h2>PASS CRITERIA:
+</h2>
+<p ID=id1>
+If statement #1 above is passed, this paragraph should have a line height
+of 150% of element's font size.  The rule applied is "#id1 {line-height: 
+ +150%}".
+There is an explicit "+" sign here.
+<p ID=id2>
+This paragraph should have a line height of 150% of element's font size.
+It should look like paragraph above.
+The rule applied is "#id2 {line-height: 150%}".
+There is an implied "+" sign here.
+<p ID=id3>
+This paragraph should have a line height of 150% of element's font size.
+It should look like the paragraph above.
+The rule applied is "#id3 {line-height: 150.%}".
+The number has a decimal point included.
+<p ID=id4>
+This paragraph should have a line height of -150% (or UA-default)? based
+on element's font size.  
+The rule applied is "#id4 {line-height: -150%}".
+The rule is like the first paragraph rule above but instead of a "+" sign
+there is a "-" sign.
+<p>
+
+All other properties of this page should be UA-default.
+
+</BODY>
+</HTML>

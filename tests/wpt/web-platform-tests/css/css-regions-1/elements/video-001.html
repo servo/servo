@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>CSS Regions: flowing a video in a region</title>
+        <link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+        <link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+        <link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from">
+        <meta name="assert" content="Test checks videos flowed in regions render smoothly and without artifacts.">
+        <style>
+        .flow {
+            flow-into: f;
+        }
+
+        .region {
+            flow-from: f;
+            width: 400px;
+            height: 300px;
+        }
+        .region p {
+            background-color: red;
+            height: 50%;
+        }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if you see two identical videos playing smoothly.<br>
+        Test fails if you see a red rectangle or if videos are out of sync.</p>
+
+        <video controls autoplay width="432" height="240" muted class="flow">
+            <source type="video/mp4" src="support/green-at-15.mp4"></source>
+            <source type="video/ogg" src="support/green-at-15.ogv"></source>
+        </video>
+        <video controls autoplay width="432" height="240">
+            <source type="video/mp4" src="support/green-at-15.mp4"></source>
+            <source type="video/ogg" src="support/green-at-15.ogv"></source>
+        </video>
+        <div class="region">
+            <p>&nbsp;</p>
+        </div>
+    </body>
+</html>

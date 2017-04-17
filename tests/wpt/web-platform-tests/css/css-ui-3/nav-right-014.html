@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>CSS Basic User Interface Test: Directional Focus Navigation - missing target element for 'nav-right'</title>
+<link rel="author" title="Jorrit Vermeiren" href="mailto:jorritv@opera.com">
+<link rel="author" title="Daniel Glazman" href="mailto:d.glazman@partner.samsung.com">
+<link rel="help" href="http://www.w3.org/TR/css3-ui/#nav-dir">
+<meta name="flags" content="interact">
+<meta name="assert" content="Test checks that focus does not change to a different frame if the identifier is missing from the target frame for 'nav-right'.">
+<style>
+    #start {
+        nav-right: #finish current;
+    }
+    #intermediate {
+        nav-right: #end;
+    }
+</style>
+<body>
+    <p>First, use directional navigation to navigate the focus to the "START" link below.</p>
+    <!-- In Opera 12.16, directional navigation may be done using Shift+<arrow key>.
+         In the SmartTV emulator, use the keypad in the GUI. -->
+    <p>Test passes if navigating right twice moves the focus to the "FINISH" link.</p>
+
+    <p>
+      <a href="" id="start">START</a>
+      <a href="" id="intermediate">ignore</a>
+      <a href="">ignore</a>
+    </p>
+
+    <iframe src="support/nav-right-009-frame.html"></iframe>
+
+    <p><a href="" id="end">FINISH</a></p>
+</body>

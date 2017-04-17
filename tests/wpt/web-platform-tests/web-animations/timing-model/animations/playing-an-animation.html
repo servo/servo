@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Playing an animation</title>
+<link rel="help"
+      href="https://w3c.github.io/web-animations/#playing-an-animation-section">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+test(function(t) {
+  var animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  animation.currentTime = 1 * MS_PER_SEC;
+  assert_times_equal(animation.currentTime, 1 * MS_PER_SEC);
+  animation.play();
+  assert_times_equal(animation.currentTime, 1 * MS_PER_SEC);
+}, 'Playing a running animation leaves the current time unchanged');
+
+test(function(t) {
+  var animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  animation.finish();
+  assert_times_equal(animation.currentTime, 100 * MS_PER_SEC);
+  animation.play();
+  assert_times_equal(animation.currentTime, 0);
+}, 'Playing a finished animation seeks back to the start');
+
+test(function(t) {
+  var animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  animation.playbackRate = -1;
+  animation.currentTime = 0;
+  assert_times_equal(animation.currentTime, 0);
+  animation.play();
+  assert_times_equal(animation.currentTime, 100 * MS_PER_SEC);
+}, 'Playing a finished and reversed animation seeks to end');
+
+test(function(t) {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  animation.cancel();
+  const promise = animation.ready;
+  animation.play();
+  assert_not_equals(animation.ready, promise);
+}, 'The ready promise should be replaced if the animation is not already'
+   + ' pending');
+
+promise_test(function(t) {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  const promise = animation.ready;
+  return promise.then(p => {
+    assert_equals(p, animation);
+    assert_equals(animation.ready, promise);
+  });
+}, 'A pending ready promise should be resolved and not replaced when the'
+   + ' animation enters the running state');
+
+</script>
+</body>

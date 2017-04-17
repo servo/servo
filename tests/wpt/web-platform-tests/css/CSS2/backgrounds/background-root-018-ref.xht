@@ -1,0 +1,56 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css">
+  html, body {height: 100%;}
+
+  body
+  {
+  margin: 0px;
+  overflow: hidden;
+  }
+
+  div#grand-parent
+  {
+  background: url("support/cat.png") 21px 21px;
+  height: 100%;
+  padding: 1em;
+  }
+
+  div#parent
+  {
+  border: blue solid 5px;
+  padding: 2em;
+  }
+
+  div#child
+  {
+  border: gray solid medium;
+  padding: 3em;
+  }
+
+  span
+  {
+  background-color: yellow;
+  font-size: large;
+  }
+  </style>
+
+ </head>
+
+ <body>
+
+  <div id="grand-parent">
+    <div id="parent">
+      <div id="child"><span>There should be lots of cats in the background, covering the entire page, excluding the yellow background of this text, but <em>including the area outside the blue box</em>. One of the cats should start exactly inside the top left corner of the blue box (the HTML box).</span></div>
+     </div>
+  </div>
+
+ </body>
+</html>

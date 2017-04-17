@@ -1,0 +1,58 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: top and left - inherit keyword on element with statically positioned parent</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#position-props" title="9.3.2 Box offsets: 'top', 'right', 'bottom', 'left'" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html#value-def-inherit" title="6.2.1 The 'inherit' value" />
+  <link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+
+  <meta content="image" name="flags" />
+  <meta content="When using the 'inherit' reserved keyword value, the property takes the same specified value as the property for the element's parent, even in cases where such property does not apply. This test covers the case where the parent has absolute value lengths for left and top." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  div#parent
+  {
+  background: red url("support/pattern-gg-gr-100x100.png") no-repeat;
+  height: 100px;
+  left: 50px;
+  position: static;
+  top: 50px;
+  /*
+  The 'top', 'right', 'bottom', and 'left' properties
+  do not apply on a statically positioned element
+  */
+  width: 100px;
+  }
+
+  div#child
+  {
+  background-color: green;
+  height: 50px;
+  left: inherit;
+  position: relative;
+  top: inherit;
+  width: 50px;
+  }
+
+  /*
+  In this test, left and top offset values will be inherited
+  */
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+  <div id="parent">
+    <div id="child"></div>
+  </div>
+
+ </body>
+</html>

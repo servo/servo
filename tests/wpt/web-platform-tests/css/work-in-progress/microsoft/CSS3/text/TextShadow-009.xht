@@ -1,0 +1,38 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Default inheritance of the 'text-shadow' property via DOM</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css3-text/#text-shadow" />
+        <meta name="flags" content="dom" />
+        <meta name="assert" content="Retrieving the 'text-shadow' property value inherited from the parent element is supported." />
+        <style type="text/css">
+            div
+            {
+                font-size: 60px;
+            }
+            #failText
+            {
+                color: red;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page.</p>
+        <div style="text-shadow: 5px 22.5px blue;">FillerText
+            <div id="test">FillerText</div>
+            FillerText
+        </div>
+        <div id="failText">FAIL</div>
+        <script type="text/javascript">
+            var elem = document.getElementById("test");
+            var expected = "";
+            var actual = elem.style.textShadow;
+            if (actual == expected)
+             {
+                var failElement = document.getElementById("failText");
+                failElement.style.display = "none";
+            }
+        </script>
+    </body>
+</html>

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<meta http-equiv="Content-Security-Policy" content="connect-src 'self'">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+    async_test(t => {
+      var errorEvent = false;
+      var cspEvent = false;
+
+      var xhr = new XMLHttpRequest;
+      xhr.open("GET", "http://{{domains[www]}}:{{ports[http][0]}}/common/text-plain.txt");
+      xhr.onload = t.unreached_func("Load should not fire.");
+      xhr.onerror = t.step_func(e => {
+        assert_equals(xhr.readyState, XMLHttpRequest.DONE);
+
+        assert_false(errorEvent);
+        errorEvent = true;
+        if (cspEvent)
+            t.done();
+      });
+
+      document.addEventListener("securitypolicyviolation", t.step_func(e => {
+        if (e.blockedURI != "http://{{domains[www]}}:{{ports[http][0]}}/common/text-plain.txt")
+            return;
+
+        assert_equals(xhr.readyState, XMLHttpRequest.DONE);
+        assert_equals(e.violatedDirective, "connect-src");
+
+        assert_false(cspEvent);
+        cspEvent = true;
+        if (errorEvent)
+            t.done();
+      }));
+
+      xhr.send();
+    }, "XHR should fire onerror.");
+
+    async_test(t => {
+      var errorEvent = false;
+      var cspEvent = false;
+
+      var xhr = new XMLHttpRequest;
+      xhr.open("GET", "/common/redirect-opt-in.py?status=307&location=http://{{domains[www]}}:{{ports[http][0]}}/common/text-plain.txt");
+      xhr.onload = t.unreached_func("Load should not fire.");
+      xhr.onerror = t.step_func(e => {
+        assert_equals(xhr.readyState, XMLHttpRequest.DONE);
+
+        assert_false(errorEvent);
+        errorEvent = true;
+        if (cspEvent)
+            t.done();
+      });
+
+      document.addEventListener("securitypolicyviolation", t.step_func(e => {
+        if (e.blockedURI != "http://{{domains[www]}}:{{ports[http][0]}}")
+            return;
+
+        assert_equals(xhr.readyState, XMLHttpRequest.DONE);
+        assert_equals(e.violatedDirective, "connect-src");
+
+        assert_false(cspEvent);
+        cspEvent = true;
+        if (errorEvent)
+            t.done();
+      }));
+
+      xhr.send();
+    }, "XHR should fire onerror after a redirect.");
+</script>

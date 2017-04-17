@@ -1,0 +1,64 @@
+
+<html>
+
+<title>First Test of Section 5.5.10 of CSS1 Spec</title>
+
+<style type="text/css">
+#id1 {padding: 1em}
+#id2 {padding: 1em 3em}
+#id3 {padding: 1em 3em 50%}
+#id4 {padding: 1em 3em 50% 150%}
+</style>
+</head>
+
+
+
+<body>
+
+
+
+
+<h1 >Testing Statement #1 Below of Section 5.5.10 of CSS1 Spec</h1>
+
+
+
+
+
+
+<ul>
+<li>
+1. "padding" has possible values of "[length | percentage]{1,4}".
+</ul>
+
+
+
+
+
+<h2>
+PASS CRITERIA:
+</h2>
+<p ID=id1 >
+If statement #1 above is passed, this paragraph should have padding of 1em
+all around.  The rule applied is "p {padding: 1em}".
+<p ID=id2>
+This paragraph should have a 1em padding vertically and a 3em padding
+horizontally.
+The rule applied is "#id2 {padding: 1em 3em}".
+<p ID=id3>
+This paragraph should have a top padding of 1em, a right padding of 3em,
+a bottom padding of 50% (relative to parent), and a left padding of 3em.
+The rule applied is "#id3 {padding: 1em 3em 50%}".
+<p ID=id4>
+This paragraph should have a top padding of 1em, a right padding of 3em,
+a bottom padding of 50% (relative to parent), and a left padding of 150%
+(relative to parent).
+The rule applied is "#id4 {padding: 1em 3em 50% 150%}".
+<p>
+
+
+
+All other properties of this page should be UA-default.
+
+
+</body>
+</html>

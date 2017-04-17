@@ -1,0 +1,31 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border-spacing set to zero using centimeters with a minus sign, -0cm</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#propdef-border-spacing" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#separated-borders" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="Border-spacing can be set to the minimum value, using zero with a minus sign, with centimeters." />
+        <style type="text/css">
+            table
+            {
+                border-spacing: -0cm;
+                font: 20px/1 Ahem;
+            }
+            td
+            {
+                padding: 0;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is only one bar below this line.</p>
+        <table>
+            <tr>
+                <td>XXXXX</td>
+                <td>XXXXX</td>
+            </tr>
+        </table>
+    </body>
+</html>

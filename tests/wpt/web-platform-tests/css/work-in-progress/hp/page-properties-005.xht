@@ -1,0 +1,19 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: page properties: counter-reset</title>
+<link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+<link rel="help" href="http://www.w3.org/TR/css3-page/#page-properties"/>
+<meta name="flags" content="paged" />
+<meta name="assert" content="The 'counter-reset' property applies to the page box."/>
+<style type="text/css">
+	@page { 
+		@top-center { content: "Chapter " counter(chapter) }
+	}
+	body {counter-reset: chapter 2;}
+</style>
+</head>
+<body>
+	<p>The box above this sentence must say &quot;Chapter 2&quot;.</p>
+</body>
+</html>

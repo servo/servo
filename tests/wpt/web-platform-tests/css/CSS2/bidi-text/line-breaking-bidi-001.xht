@@ -1,0 +1,36 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+ <head>
+
+  <title>CSS Test: Line breaking and the bidi algorithm</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-03-14 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/text/white-space/normal/line-breaking/bidi/001.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#white-space-model" />
+  <link rel="match" href="line-breaking-bidi-001-ref.xht" />
+
+  <meta name="flags" content="ahem" />
+  <style type="text/css">
+   .test { color: green; background: red; font: 1.25em/1 Ahem; white-space: normal; }
+  </style>
+ </head>
+ <body>
+
+  <p>Test passes if there are only 4 very long green bars and <strong>no red</strong>.</p>
+  <p class="test"> xxxxxxxxxxxxxxxxxxxx&#x202A;xxxxxxxxxxxxxxxxxxxx&#x202C;xxxxxxxxxxxxxxxxxxxx&#x202A;xxxxxxxxxxxxxxxxxxxx&#x202C;xxxxxxxxxxxxxxxxxxxx&#x202A;xxxxxxxxxxxxxxxxxxxx&#x202C;xxxxxxxxxxxxxxxxxxxx&#x202A;xxxxxxxxxxxxxxxxxxxx&#x202C;xxxxxxxxxxxxxxxxxxxx </p>
+  <p class="test"> xxxxxxxxxxxxxxxxxxxx&#x202B;xxxxxxxxxxxxxxxxxxxx&#x202C;xxxxxxxxxxxxxxxxxxxx&#x202B;xxxxxxxxxxxxxxxxxxxx&#x202C;xxxxxxxxxxxxxxxxxxxx&#x202B;xxxxxxxxxxxxxxxxxxxx&#x202C;xxxxxxxxxxxxxxxxxxxx&#x202B;xxxxxxxxxxxxxxxxxxxx&#x202C;xxxxxxxxxxxxxxxxxxxx </p>
+  <p class="test"> xxxxxxxxxxxxxxxxxxxx&#x202D;xxxxxxxxxxxxxxxxxxxx&#x202C;xxxxxxxxxxxxxxxxxxxx&#x202D;xxxxxxxxxxxxxxxxxxxx&#x202C;xxxxxxxxxxxxxxxxxxxx&#x202D;xxxxxxxxxxxxxxxxxxxx&#x202C;xxxxxxxxxxxxxxxxxxxx&#x202D;xxxxxxxxxxxxxxxxxxxx&#x202C;xxxxxxxxxxxxxxxxxxxx </p>
+  <p class="test"> xxxxxxxxxxxxxxxxxxxx&#x202E;xxxxxxxxxxxxxxxxxxxx&#x202C;xxxxxxxxxxxxxxxxxxxx&#x202E;xxxxxxxxxxxxxxxxxxxx&#x202C;xxxxxxxxxxxxxxxxxxxx&#x202E;xxxxxxxxxxxxxxxxxxxx&#x202C;xxxxxxxxxxxxxxxxxxxx&#x202E;xxxxxxxxxxxxxxxxxxxx&#x202C;xxxxxxxxxxxxxxxxxxxx </p>
+
+  <!--
+Char
+name Unicode       Function                 Equivalent Markup
+LRE	  U+202A	Left-to-Right Embedding	DIR attribute e.g. DIR="LTR"
+RLE	  U+202B	Right-to-Left Embedding	DIR attribute e.g. DIR="RTL"
+PDF	  U+202C	Pop Directional Format	No Equivalent </BDO> ends override
+LRO	  U+202D	Left-to-Right Override 	BDO Element e.g. <BDO dir="LTR">
+RLO	  U+202E	Right-to-Left Override	BDO Element e.g. <BDO dir="RTL">
+  -->
+
+ </body>
+</html>

@@ -1,0 +1,163 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD//XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSSOM - CSSNamespaceRule - Instance</title>
+    <link rel="author" title="Glenn Adams" href="mailto:glenn@skynav.com"/>
+    <link rel="help" href="http://www.w3.org/TR/cssom-1/#the-cssnamespacerule-interface"/>
+    <meta name="flags" content="dom"/>
+    <script src="/resources/testharness.js"/>
+    <script src="/resources/testharnessreport.js"/>
+    <style id="sheet1">
+      @namespace "http://www.w3.org/1999/xhtml";
+    </style>
+    <style id="sheet2">
+      @namespace svg "http://www.w3.org/2000/svg";
+    </style>
+  </head>
+  <body>
+    <div id="log"></div>
+    <div id="box"></div>
+    <script><![CDATA[
+
+      var doc = window.document;
+
+      test(function(){
+
+        assert_true('styleSheets' in doc);
+
+      }, '\'styleSheets\' in doc');
+
+      var sheets = doc.styleSheets;
+
+      test(function(){
+
+        assert_equals(sheets.length, 2);
+
+      }, 'doc.styleSheets.length == 2');
+
+      var sheet1 = doc.styleSheets[0];
+
+      test(function(){
+
+        assert_true(sheet1 instanceof CSSStyleSheet);
+
+      }, 'doc.styleSheets[0] instanceof CSSStyleSheet');
+
+      test(function(){
+
+        assert_true('cssRules' in sheet1);
+
+      }, '\'cssRules\' in doc.styleSheets[0]');
+
+      test(function(){
+
+        assert_true(sheet1.cssRules instanceof CSSRuleList);
+
+      }, 'doc.styleSheets[0].cssRules instanceof CSSRuleList');
+
+      test(function(){
+
+        assert_true(sheet1.cssRules.length > 0);
+
+      }, 'doc.styleSheets[0].cssRules.length > 0');
+
+      var rule1 = sheet1.cssRules[0];
+
+      test(function(){
+
+        assert_true(rule1 instanceof CSSRule);
+
+      }, 'doc.styleSheets[0].cssRules[0] instanceof CSSRule');
+
+      test(function(){
+
+        assert_true(rule1 instanceof CSSNamespaceRule);
+
+      }, 'doc.styleSheets[0].cssRules[0] instanceof CSSNamespaceRule');
+
+      test(function(){
+
+        assert_equals(rule1.toString(), '[object CSSNamespaceRule]');
+
+      }, 'doc.styleSheets[0].cssRules[0].toString() == \'[object CSSNamespaceRule]\'');
+
+      test(function(){
+
+        assert_true('type' in rule1);
+
+      }, '\'type\' in doc.styleSheets[0].cssRules[0]');
+
+      test(function(){
+
+        assert_equals(rule1.type, 10);
+
+      }, 'doc.styleSheets[0].cssRules[0].type == 10');
+
+      test(function(){
+
+        assert_true('namespaceURI' in rule1);
+
+      }, '\'namespaceURI\' in doc.styleSheets[0].cssRules[0]');
+
+      test(function(){
+
+        assert_true(typeof(rule1.namespaceURI) == 'string');
+
+      }, 'typeof(doc.styleSheets[0].cssRules[0].namespaceURI) == \'string\'');
+
+      test(function(){
+
+        assert_equals(rule1.namespaceURI, 'http://www.w3.org/1999/xhtml');
+
+      }, 'doc.styleSheets[0].cssRules[0].namespaceURI == \'http://www.w3.org/1999/xhtml\'');
+
+      test(function(){
+
+        assert_true('prefix' in rule1);
+
+      }, '\'prefix\' in doc.styleSheets[0].cssRules[0]');
+
+      test(function(){
+
+        assert_true(typeof(rule1.prefix) == 'string');
+
+      }, 'typeof(doc.styleSheets[0].cssRules[0].prefix) == \'string\'');
+
+      test(function(){
+
+        assert_equals(rule1.prefix, '');
+
+      }, 'doc.styleSheets[0].cssRules[0].prefix == \'\'');
+
+      test(function(){
+
+        assert_equals(rule1.cssText, '@namespace url(\"http://www.w3.org/1999/xhtml\");');
+
+      }, 'doc.styleSheets[0].cssRules[0].cssText == \'@namespace url(\"http://www.w3.org/1999/xhtml\");\'');
+
+      var sheet2 = doc.styleSheets[1];
+
+      var rule2 = sheet2.cssRules[0];
+
+      test(function(){
+
+        assert_equals(rule2.namespaceURI, 'http://www.w3.org/2000/svg');
+
+      }, 'doc.styleSheets[1].cssRules[0].namespaceURI == \'http://www.w3.org/2000/svg\'');
+
+      test(function(){
+
+        assert_equals(rule2.prefix, 'svg');
+
+      }, 'doc.styleSheets[1].cssRules[0].prefix == \'\'');
+
+      test(function(){
+
+        assert_equals(rule2.cssText, '@namespace svg url(\"http://www.w3.org/2000/svg\");');
+
+      }, 'doc.styleSheets[1].cssRules[0].cssText == \'@namespace svg url(\"http://www.w3.org/2000/\");\'');
+
+    ]]>
+    </script>
+  </body>
+</html>

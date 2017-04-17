@@ -1,0 +1,66 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  p.eight:before
+  {
+  color: aqua;
+  content: "generated content before";
+  display: inline-block;
+  width: 50%;
+  }
+
+  p.eight {background-color: aqua;}
+
+  p.one-first
+  {
+  background-color: aqua;
+  margin-bottom: 0em;
+  padding-left: 5em;
+  }
+
+  p.one
+  {
+  background-color: aqua;
+  margin-top: 0em;
+  }
+
+  div#X
+  {
+  float: left;
+  margin-left: 50%;
+  }
+
+  div#after-X
+  {
+  background-color: aqua;
+  width: 25%;
+  }
+  ]]>
+  </style>
+
+ </head>
+
+ <body>
+
+  <p class="eight">The first line of this sentence should be indented halfway across the page, but the rest of it should be flush with the normal left margin of the page.</p>
+
+  <p class="one-first">Only the first line of this sentence</p>
+
+  <p class="one">should be indented,<br />
+  the others should all be<br />
+  <em>aligned on the left</em> of the window.</p>
+
+  <div id="X">X</div>
+
+  <div id="after-X"><br />The X on the previous line should be centered across the window.</div>
+
+ </body>
+</html>

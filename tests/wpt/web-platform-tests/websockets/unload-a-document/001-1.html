@@ -17,12 +17,12 @@ t.step(function() {
     sessionStorage[uuid] = 'true';
     var ws = new WebSocket(SCHEME_DOMAIN_PORT+'/echo');
     ws.onopen = t.step_func(function(e) {
-      setTimeout(t.step_func(function() {
+      t.step_timeout(function() {
         assert_unreached('document was not discarded');
-      }), 1000);
+      }, 1000);
       controller.navigate();
     })
-    ws.onerror = ws.onmessage = ws.onclose = t.step_func(function(e) {assert_unreached("Got unexpected event " + e.type)});
+    ws.onerror = ws.onmessage = ws.onclose = t.step_func(e => assert_unreached("Got unexpected event " + e.type));
   }
 });
 </script>

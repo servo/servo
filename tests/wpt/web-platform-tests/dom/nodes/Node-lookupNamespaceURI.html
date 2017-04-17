@@ -32,7 +32,15 @@ isDefaultNamespace(frag, '', true, 'DocumentFragment is in default namespace, pr
 isDefaultNamespace(frag, 'foo', false, 'DocumentFragment is in default namespace, prefix "foo"');
 isDefaultNamespace(frag, 'xmlns', false, 'DocumentFragment is in default namespace, prefix "xmlns"');
 
-
+var docType = document.doctype;
+lookupNamespaceURI(docType, null, null, 'DocumentType should have null nemspace, prefix null');
+lookupNamespaceURI(docType, '', null, 'DocumentType should have null namespace, prefix ""');
+lookupNamespaceURI(docType, 'foo', null, 'DocumentType should have null namespace, prefix "foo"');
+lookupNamespaceURI(docType, 'xmlns', null, 'DocumentType should have null namespace, prefix "xmlns"');
+isDefaultNamespace(docType, null, true, 'DocumentType is in default namespace, prefix null');
+isDefaultNamespace(docType, '', true, 'DocumentType is in default namespace, prefix ""');
+isDefaultNamespace(docType, 'foo', false, 'DocumentType is in default namespace, prefix "foo"');
+isDefaultNamespace(docType, 'xmlns', false, 'DocumentType is in default namespace, prefix "xmlns"');
 
 var fooElem = document.createElementNS('fooNamespace', 'prefix:elem');
 fooElem.setAttribute('bar', 'value');
