@@ -297,10 +297,6 @@ class MachCommands(CommandBase):
 
         cargo_binary = "cargo" + BIN_SUFFIX
 
-        if sys.platform in ("win32", "msys"):
-            if "msvc" not in host_triple():
-                env[b'RUSTFLAGS'] = b'-C link-args=-Wl,--subsystem,windows'
-
         status = call(
             [cargo_binary, "build"] + opts,
             env=env, cwd=self.servo_crate(), verbose=verbose)
@@ -308,36 +304,36 @@ class MachCommands(CommandBase):
 
         # Do some additional things if the build succeeded
         if status == 0:
-            if sys.platform in ("win32", "msys"):
+            if sys.platform == "win32":
                 servo_exe_dir = path.join(base_path, "debug" if dev else "release")
                 # On windows, copy in our manifest
                 shutil.copy(path.join(self.get_top_dir(), "components", "servo", "servo.exe.manifest"),
                             servo_exe_dir)
-                if "msvc" in (target or host_triple()):
-                    msvc_x64 = "64" if "x86_64" in (target or host_triple()) else ""
-                    # on msvc builds, use editbin to change the subsystem to windows, but only
-                    # on release builds -- on debug builds, it hides log output
-                    if not dev:
-                        call(["editbin", "/nologo", "/subsystem:windows", path.join(servo_exe_dir, "servo.exe")],
-                             verbose=verbose)
-                    # on msvc, we need to copy in some DLLs in to the servo.exe dir
-                    for ssl_lib in ["libcryptoMD.dll", "libsslMD.dll"]:
-                        shutil.copy(path.join(env['OPENSSL_LIB_DIR'], "../bin" + msvc_x64, ssl_lib),
-                                    servo_exe_dir)
 
-                elif sys.platform == "darwin":
-                    # On the Mac, set a lovely icon. This makes it easier to pick out the Servo binary in tools
-                    # like Instruments.app.
-                    try:
-                        import Cocoa
-                        icon_path = path.join(self.get_top_dir(), "resources", "servo.png")
-                        icon = Cocoa.NSImage.alloc().initWithContentsOfFile_(icon_path)
-                        if icon is not None:
-                            Cocoa.NSWorkspace.sharedWorkspace().setIcon_forFile_options_(icon,
-                                                                                         servo_path,
-                                                                                         0)
-                    except ImportError:
-                        pass
+                msvc_x64 = "64" if "x86_64" in (target or host_triple()) else ""
+                # on msvc builds, use editbin to change the subsystem to windows, but only
+                # on release builds -- on debug builds, it hides log output
+                if not dev:
+                    call(["editbin", "/nologo", "/subsystem:windows", path.join(servo_exe_dir, "servo.exe")],
+                         verbose=verbose)
+                # on msvc, we need to copy in some DLLs in to the servo.exe dir
+                for ssl_lib in ["libcryptoMD.dll", "libsslMD.dll"]:
+                    shutil.copy(path.join(env['OPENSSL_LIB_DIR'], "../bin" + msvc_x64, ssl_lib),
+                                servo_exe_dir)
+
+            elif sys.platform == "darwin":
+                # On the Mac, set a lovely icon. This makes it easier to pick out the Servo binary in tools
+                # like Instruments.app.
+                try:
+                    import Cocoa
+                    icon_path = path.join(self.get_top_dir(), "resources", "servo.png")
+                    icon = Cocoa.NSImage.alloc().initWithContentsOfFile_(icon_path)
+                    if icon is not None:
+                        Cocoa.NSWorkspace.sharedWorkspace().setIcon_forFile_options_(icon,
+                                                                                     servo_path,
+                                                                                     0)
+                except ImportError:
+                    pass
 
         # Generate Desktop Notification if elapsed-time > some threshold value
         notify_build_done(self.config, elapsed, status == 0)
