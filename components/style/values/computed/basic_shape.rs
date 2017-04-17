@@ -12,45 +12,16 @@ use style_traits::ToCss;
 use values::computed::LengthOrPercentage;
 use values::computed::position::Position;
 use values::generics::basic_shape::{BorderRadius as GenericBorderRadius, ShapeRadius as GenericShapeRadius};
-use values::generics::basic_shape::{InsetRect as GenericInsetRect, Polygon as GenericPolygon};
-use values::specified::url::SpecifiedUrl;
+use values::generics::basic_shape::{InsetRect as GenericInsetRect, Polygon as GenericPolygon, ShapeSource};
 
 pub use values::generics::basic_shape::FillRule;
 pub use values::specified::basic_shape::{self, GeometryBox, ShapeBox};
 
-#[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-pub enum ShapeSource<T> {
-    Url(SpecifiedUrl),
-    Shape(BasicShape, Option<T>),
-    Box(T),
-    None,
-}
+/// The computed value used by `clip-path`
+pub type ShapeWithGeometryBox = ShapeSource<BasicShape, GeometryBox>;
 
-impl<T> Default for ShapeSource<T> {
-    fn default() -> Self {
-        ShapeSource::None
-    }
-}
-
-impl<T: ToCss> ToCss for ShapeSource<T> {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            ShapeSource::Url(ref url) => url.to_css(dest),
-            ShapeSource::Shape(ref shape, Some(ref reference)) => {
-                try!(shape.to_css(dest));
-                try!(dest.write_str(" "));
-                reference.to_css(dest)
-            }
-            ShapeSource::Shape(ref shape, None) => shape.to_css(dest),
-            ShapeSource::Box(ref reference) => reference.to_css(dest),
-            ShapeSource::None => dest.write_str("none"),
-
-        }
-    }
-}
-
+/// The computed value used by `shape-outside`
+pub type ShapeWithShapeBox = ShapeSource<BasicShape, ShapeBox>;
 
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]

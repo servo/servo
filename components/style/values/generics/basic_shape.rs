@@ -12,8 +12,10 @@ use properties::shorthands::serialize_four_sides;
 use std::ascii::AsciiExt;
 use std::fmt;
 use style_traits::ToCss;
+use values::HasViewportPercentage;
 use values::computed::{ComputedValueAsSpecified, Context, ToComputedValue};
 use values::generics::BorderRadiusSize;
+use values::specified::url::SpecifiedUrl;
 
 /// A generic type used for `border-radius`, `outline-radius` and `inset()` values.
 ///
@@ -289,6 +291,112 @@ impl<L: ToComputedValue> ToComputedValue for InsetRect<L> {
             bottom: ToComputedValue::from_computed_value(&computed.bottom),
             left: ToComputedValue::from_computed_value(&computed.left),
             round: computed.round.as_ref().map(|r| ToComputedValue::from_computed_value(r)),
+        }
+    }
+}
+
+/// A shape source, for some reference box
+///
+/// `clip-path` uses ShapeSource<BasicShape, GeometryBox>,
+/// `shape-outside` uses ShapeSource<BasicShape, ShapeBox>
+#[derive(Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
+pub enum ShapeSource<B, T> {
+    Url(SpecifiedUrl),
+    Shape(B, Option<T>),
+    Box(T),
+    None,
+}
+
+impl<B, T> HasViewportPercentage for ShapeSource<B, T> {
+    #[inline]
+    fn has_viewport_percentage(&self) -> bool { false }
+}
+
+impl<B, T> Default for ShapeSource<B, T> {
+    #[inline]
+    fn default() -> Self { ShapeSource::None }
+}
+
+impl<B: ToCss, T: ToCss> ToCss for ShapeSource<B, T> {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            ShapeSource::Url(ref url) => url.to_css(dest),
+            ShapeSource::Shape(ref shape, Some(ref ref_box)) => {
+                shape.to_css(dest)?;
+                dest.write_str(" ")?;
+                ref_box.to_css(dest)
+            },
+            ShapeSource::Shape(ref shape, None) => shape.to_css(dest),
+            ShapeSource::Box(ref val) => val.to_css(dest),
+            ShapeSource::None => dest.write_str("none"),
+        }
+    }
+}
+
+impl<B: Parse, T: Parse> Parse for ShapeSource<B, T> {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        if input.try(|i| i.expect_ident_matching("none")).is_ok() {
+            return Ok(ShapeSource::None)
+        }
+
+        if let Ok(url) = input.try(|i| SpecifiedUrl::parse(context, i)) {
+            return Ok(ShapeSource::Url(url))
+        }
+
+        fn parse_component<U: Parse>(context: &ParserContext, input: &mut Parser,
+                                     component: &mut Option<U>) -> bool {
+            if component.is_some() {
+                return false            // already parsed this component
+            }
+
+            *component = input.try(|i| U::parse(context, i)).ok();
+            component.is_some()
+        }
+
+        let mut shape = None;
+        let mut ref_box = None;
+
+        while parse_component(context, input, &mut shape) ||
+              parse_component(context, input, &mut ref_box) {
+            //
+        }
+
+        if let Some(shp) = shape {
+            return Ok(ShapeSource::Shape(shp, ref_box))
+        }
+
+        ref_box.map(|v| ShapeSource::Box(v)).ok_or(())
+    }
+}
+
+impl<B: ToComputedValue, T: ToComputedValue> ToComputedValue for ShapeSource<B, T> {
+    type ComputedValue = ShapeSource<B::ComputedValue, T::ComputedValue>;
+
+    #[inline]
+    fn to_computed_value(&self, cx: &Context) -> Self::ComputedValue {
+        match *self {
+            ShapeSource::Url(ref url) => ShapeSource::Url(url.to_computed_value(cx)),
+            ShapeSource::Shape(ref shape, ref ref_box) => {
+                ShapeSource::Shape(shape.to_computed_value(cx),
+                                   ref_box.as_ref().map(|ref val| val.to_computed_value(cx)))
+            },
+            ShapeSource::Box(ref ref_box) => ShapeSource::Box(ref_box.to_computed_value(cx)),
+            ShapeSource::None => ShapeSource::None,
+        }
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        match *computed {
+            ShapeSource::Url(ref url) => ShapeSource::Url(SpecifiedUrl::from_computed_value(url)),
+            ShapeSource::Shape(ref shape, ref ref_box) => {
+                ShapeSource::Shape(ToComputedValue::from_computed_value(shape),
+                                    ref_box.as_ref().map(|val| ToComputedValue::from_computed_value(val)))
+            },
+            ShapeSource::Box(ref ref_box) => ShapeSource::Box(ToComputedValue::from_computed_value(ref_box)),
+            ShapeSource::None => ShapeSource::None,
         }
     }
 }
