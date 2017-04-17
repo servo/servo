@@ -477,10 +477,14 @@ trait PrivateMatchMethods: TElement {
 
         // Handle animations.
         if animate && !context.shared.traversal_flags.for_animation_only() {
+            let pseudo_style = pseudo_style.as_ref().map(|&(ref pseudo, ref computed_style)| {
+                (*pseudo, &**computed_style)
+            });
             self.process_animations(context,
                                     &mut old_values,
                                     &mut new_values,
-                                    pseudo);
+                                    primary_style,
+                                    &pseudo_style);
         }
 
         // Accumulate restyle damage.
@@ -556,20 +560,63 @@ trait PrivateMatchMethods: TElement {
                           context: &mut StyleContext<Self>,
                           old_values: &mut Option<Arc<ComputedValues>>,
                           new_values: &mut Arc<ComputedValues>,
-                          pseudo: Option<&PseudoElement>) {
-        use context::{CSS_ANIMATIONS, EFFECT_PROPERTIES};
+                          primary_style: &ComputedStyle,
+                          pseudo_style: &Option<(&PseudoElement, &ComputedStyle)>) {
+        use context::{CSS_ANIMATIONS, CSS_TRANSITIONS, EFFECT_PROPERTIES};
         use context::UpdateAnimationsTasks;
 
+        let pseudo = pseudo_style.map(|(p, _)| p);
         let mut tasks = UpdateAnimationsTasks::empty();
         if self.needs_update_animations(old_values, new_values, pseudo) {
             tasks.insert(CSS_ANIMATIONS);
         }
+
+        let before_change_style = if self.might_need_transitions_update(&old_values.as_ref(),
+                                                                        new_values,
+                                                                        pseudo) {
+            let after_change_style = if self.has_css_transitions(pseudo) {
+                self.get_after_change_style(context, primary_style, pseudo_style)
+            } else {
+                None
+            };
+
+            // In order to avoid creating a SequentialTask for transitions which may not be updated,
+            // we check it per property to make sure Gecko side will really update transition.
+            let needs_transitions_update = {
+                // We borrow new_values here, so need to add a scope to make sure we release it
+                // before assigning a new value to it.
+                let after_change_style_ref = match after_change_style {
+                    Some(ref value) => value,
+                    None => &new_values
+                };
+                self.needs_transitions_update(old_values.as_ref().unwrap(),
+                                              after_change_style_ref,
+                                              pseudo)
+            };
+
+            if needs_transitions_update {
+                if let Some(values_without_transitions) = after_change_style {
+                    *new_values = values_without_transitions;
+                }
+                tasks.insert(CSS_TRANSITIONS);
+
+                // We need to clone old_values into SequentialTask, so we can use it later.
+                old_values.clone()
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
         if self.has_animations(pseudo) {
             tasks.insert(EFFECT_PROPERTIES);
         }
+
         if !tasks.is_empty() {
             let task = ::context::SequentialTask::update_animations(*self,
                                                                     pseudo.cloned(),
+                                                                    before_change_style,
                                                                     tasks);
             context.thread_local.tasks.push(task);
         }
@@ -580,7 +627,8 @@ trait PrivateMatchMethods: TElement {
                           context: &mut StyleContext<Self>,
                           old_values: &mut Option<Arc<ComputedValues>>,
                           new_values: &mut Arc<ComputedValues>,
-                          _pseudo: Option<&PseudoElement>) {
+                          _primary_style: &ComputedStyle,
+                          _pseudo_style: &Option<(&PseudoElement, &ComputedStyle)>) {
         let possibly_expired_animations =
             &mut context.thread_local.current_element_info.as_mut().unwrap()
                         .possibly_expired_animations;
