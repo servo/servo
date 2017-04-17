@@ -29,7 +29,7 @@ use std::fmt;
 use style_traits::ToCss;
 use super::ComputedValues;
 use values::CSSFloat;
-use values::{Auto, Either};
+use values::{Auto, Either, Normal};
 use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 use values::computed::{BorderRadiusSize, ClipRect, LengthOrNone};
 use values::computed::{CalcLengthOrPercentage, Context, LengthOrPercentage};
@@ -512,6 +512,13 @@ impl Interpolate for Auto {
     #[inline]
     fn interpolate(&self, _other: &Self, _progress: f64) -> Result<Self, ()> {
         Ok(Auto)
+    }
+}
+
+impl Interpolate for Normal {
+    #[inline]
+    fn interpolate(&self, _other: &Self, _progress: f64) -> Result<Self, ()> {
+        Ok(Normal)
     }
 }
 
