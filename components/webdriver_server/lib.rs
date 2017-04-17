@@ -357,7 +357,7 @@ impl Handler {
 
         let (sender, receiver) = ipc::channel().unwrap();
 
-        let load_data = LoadData::new(url, None, None);
+        let load_data = LoadData::new(url, Some(pipeline_id), None, None);
         let cmd_msg = WebDriverCommandMsg::LoadUrl(pipeline_id, load_data, sender.clone());
         self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
 

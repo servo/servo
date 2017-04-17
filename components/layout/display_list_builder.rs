@@ -34,7 +34,7 @@ use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFlow, LAST_FRAGMENT_OF_ELEMENT};
 use ipc_channel::ipc;
 use list_item::ListItemFlow;
 use model::{self, MaybeAuto, specified};
-use msg::constellation_msg::PipelineId;
+use msg::constellation_msg::FrameId;
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::UsePlaceholder;
 use range::Range;
@@ -173,7 +173,7 @@ pub struct DisplayListBuildState<'a> {
 
     /// Vector containing iframe sizes, used to inform the constellation about
     /// new iframe sizes
-    pub iframe_sizes: Vec<(PipelineId, TypedSize2D<f32, CSSPixel>)>,
+    pub iframe_sizes: Vec<(FrameId, TypedSize2D<f32, CSSPixel>)>,
 
     /// A stack of clips used to cull display list entries that are outside the
     /// rendered region.
@@ -1809,7 +1809,7 @@ impl FragmentDisplayListBuilding for Fragment {
 
                     let size = Size2D::new(item.bounds().size.width.to_f32_px(),
                                            item.bounds().size.height.to_f32_px());
-                    state.iframe_sizes.push((fragment_info.pipeline_id, TypedSize2D::from_untyped(&size)));
+                    state.iframe_sizes.push((fragment_info.frame_id, TypedSize2D::from_untyped(&size)));
 
                     state.add_display_item(item);
                 }

@@ -61,7 +61,7 @@ use heapsize::{HeapSizeOf, heap_size_of};
 use html5ever::{Prefix, Namespace, QualName};
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 use libc::{self, c_void, uintptr_t};
-use msg::constellation_msg::PipelineId;
+use msg::constellation_msg::{FrameId, PipelineId};
 use ref_slice::ref_slice;
 use script_layout_interface::{HTMLCanvasData, OpaqueStyleAndLayoutData, SVGSVGData};
 use script_layout_interface::{LayoutElementType, LayoutNodeType, TrustedNodeAddress};
@@ -970,6 +970,7 @@ pub trait LayoutNodeHelpers {
     fn image_url(&self) -> Option<ServoUrl>;
     fn canvas_data(&self) -> Option<HTMLCanvasData>;
     fn svg_data(&self) -> Option<SVGSVGData>;
+    fn iframe_frame_id(&self) -> FrameId;
     fn iframe_pipeline_id(&self) -> PipelineId;
     fn opaque(&self) -> OpaqueNode;
 }
@@ -1118,6 +1119,12 @@ impl LayoutNodeHelpers for LayoutJS<Node> {
     fn svg_data(&self) -> Option<SVGSVGData> {
         self.downcast::<SVGSVGElement>()
             .map(|svg| svg.data())
+    }
+
+    fn iframe_frame_id(&self) -> FrameId {
+        let iframe_element = self.downcast::<HTMLIFrameElement>()
+            .expect("not an iframe element!");
+        iframe_element.frame_id()
     }
 
     fn iframe_pipeline_id(&self) -> PipelineId {
