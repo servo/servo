@@ -472,6 +472,9 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     /// Returns true if the element has a CSS animation.
     fn has_css_animations(&self, _pseudo: Option<&PseudoElement>) -> bool;
 
+    /// Returns true if the element has a CSS transition.
+    fn has_css_transitions(&self, _pseudo: Option<&PseudoElement>) -> bool;
+
     /// Returns true if the element has animation restyle hints.
     fn has_animation_restyle_hints(&self) -> bool {
         let data = match self.borrow_data() {

@@ -34,6 +34,7 @@ use gecko_bindings::bindings::{Gecko_SetNodeFlags, Gecko_UnsetNodeFlags};
 use gecko_bindings::bindings::Gecko_ClassOrClassList;
 use gecko_bindings::bindings::Gecko_ElementHasAnimations;
 use gecko_bindings::bindings::Gecko_ElementHasCSSAnimations;
+use gecko_bindings::bindings::Gecko_ElementHasCSSTransitions;
 use gecko_bindings::bindings::Gecko_GetAnimationRule;
 use gecko_bindings::bindings::Gecko_GetExtraContentStyleDeclarations;
 use gecko_bindings::bindings::Gecko_GetHTMLPresentationAttrDeclarationBlock;
@@ -708,6 +709,11 @@ impl<'le> TElement for GeckoElement<'le> {
     fn has_css_animations(&self, pseudo: Option<&PseudoElement>) -> bool {
         let atom_ptr = PseudoElement::ns_atom_or_null_from_opt(pseudo);
         unsafe { Gecko_ElementHasCSSAnimations(self.0, atom_ptr) }
+    }
+
+    fn has_css_transitions(&self, pseudo: Option<&PseudoElement>) -> bool {
+        let atom_ptr = PseudoElement::ns_atom_or_null_from_opt(pseudo);
+        unsafe { Gecko_ElementHasCSSTransitions(self.0, atom_ptr) }
     }
 }
 

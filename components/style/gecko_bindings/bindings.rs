@@ -649,6 +649,11 @@ extern "C" {
      -> bool;
 }
 extern "C" {
+    pub fn Gecko_ElementHasCSSTransitions(aElement: RawGeckoElementBorrowed,
+                                          aPseudoTagOrNull: *mut nsIAtom)
+     -> bool;
+}
+extern "C" {
     pub fn Gecko_GetProgressFromComputedTiming(aComputedTiming:
                                                    RawGeckoComputedTimingBorrowed)
      -> f64;
