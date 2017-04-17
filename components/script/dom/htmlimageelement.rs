@@ -294,6 +294,10 @@ impl HTMLImageElement {
                     height: image.height,
                     width: image.width
                 });
+                self.current_request.borrow_mut().state = State::CompletelyAvailable;
+                LoadBlocker::terminate(&mut self.current_request.borrow_mut().blocker);
+                // Mark the node dirty
+                self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
                 (true, false)
             },
             (ImageResponse::MetadataLoaded(meta), ImageRequestType::Current) => {
