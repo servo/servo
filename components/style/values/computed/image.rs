@@ -20,7 +20,6 @@ use values::specified::url::SpecifiedUrl;
 
 pub use values::specified::SizeKeyword;
 
-
 impl ToComputedValue for specified::Image {
     type ComputedValue = Image;
 

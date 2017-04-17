@@ -890,6 +890,9 @@ pub struct Gradient {
 
     /// A list of color stops.
     pub stops: Vec<GradientStop>,
+
+    /// True if gradient repeats infinitly.
+    pub repeating: bool,
 }
 
 #[derive(Clone, Deserialize, HeapSizeOf, Serialize)]
@@ -912,6 +915,9 @@ pub struct RadialGradient {
 
     /// A list of color stops.
     pub stops: Vec<GradientStop>,
+
+    /// True if gradient repeats infinitly.
+    pub repeating: bool,
 }
 
 #[derive(Clone, Deserialize, HeapSizeOf, Serialize)]
@@ -922,7 +928,6 @@ pub struct RadialGradientDisplayItem {
     /// Contains all gradient data.
     pub gradient: RadialGradient,
 }
-
 
 /// A normal border, supporting CSS border styles.
 #[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
