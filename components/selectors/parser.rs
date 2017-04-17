@@ -363,12 +363,29 @@ impl<Impl: SelectorImpl> ToCss for Selector<Impl> {
 
 impl<Impl: SelectorImpl> ToCss for ComplexSelector<Impl> {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        if let Some((ref next, ref combinator)) = self.next {
-            next.to_css(dest)?;
-            combinator.to_css(dest)?;
-        }
-        for simple in &self.compound_selector {
-            simple.to_css(dest)?;
+       use smallvec::SmallVec;
+       let mut current = self;
+       let mut nodes = SmallVec::<[&Self;8]>::new();
+       nodes.push(current);
+
+       loop {
+           match current.next {
+               None => break,
+               Some((ref next, _)) => {
+                   current = &**next;
+                   nodes.push(next);
+               }
+           }
+       }
+
+       for selector in nodes.iter().rev() {
+           if let Some((_, ref combinator)) = selector.next {
+               combinator.to_css(dest)?;
+           }
+
+           for simple in &selector.compound_selector {
+               simple.to_css(dest)?;
+           }
         }
         Ok(())
     }

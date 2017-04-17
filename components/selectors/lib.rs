@@ -7,6 +7,7 @@
 #[macro_use] extern crate matches;
 extern crate fnv;
 extern crate precomputed_hash;
+extern crate smallvec;
 
 pub mod bloom;
 pub mod matching;
