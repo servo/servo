@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <link rel='match' href='overflow_clipping_ref.html'>
+        <style>
+            .test { float: left; margin-right: 25px; }
+            .box { height: 50px; width: 50px; }
+            .grayer { background: rgb(80, 80, 80); }
+            .grayest { background: rgb(0, 0, 0); }
+
+            .overflowing-absolute-child {
+                position: absolute;
+                left: 10px;
+                top: 10px;
+                width: 200px;
+                height: 200px;
+            }
+        </style>
+    </head>
+    <body>
+
+        <div class="test grayest box" style="overflow: scroll">
+            <div style="position: relative;">
+                <div class="overflowing-absolute-child grayer"></div>
+            </div>
+        </div>
+
+        <!-- This box is positioned and sized very strangely because of
+             https://github.com/servo/servo/issues/16462. For now we diable
+             this test until the bug is fixed.
+        <div class="test grayest box" style="overflow: scroll">
+            <span style="position: relative;">
+                <div class="overflowing-absolute-child grayer"></div>
+            </span>
+        </div>
+        -->
+
+    </body>
+</html>
