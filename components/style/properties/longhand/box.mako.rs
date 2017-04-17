@@ -2096,8 +2096,10 @@ ${helpers.single_keyword("transform-style",
             const LAYOUT = 0x02,
             const STYLE = 0x04,
             const PAINT = 0x08,
-            const STRICT = SIZE.bits | LAYOUT.bits | STYLE.bits | PAINT.bits,
-            const CONTENT = LAYOUT.bits | STYLE.bits | PAINT.bits,
+            const STRICT = 0x10,
+            const STRICT_BITS = SIZE.bits | LAYOUT.bits | STYLE.bits | PAINT.bits,
+            const CONTENT = 0x20,
+            const CONTENT_BITS = LAYOUT.bits | STYLE.bits | PAINT.bits,
         }
     }
 
@@ -2148,11 +2150,11 @@ ${helpers.single_keyword("transform-style",
             return Ok(result)
         }
         if input.try(|input| input.expect_ident_matching("strict")).is_ok() {
-            result.insert(STRICT);
+            result.insert(STRICT | STRICT_BITS);
             return Ok(result)
         }
         if input.try(|input| input.expect_ident_matching("content")).is_ok() {
-            result.insert(CONTENT);
+            result.insert(CONTENT | CONTENT_BITS);
             return Ok(result)
         }
 
