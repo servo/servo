@@ -325,19 +325,19 @@ class MachCommands(CommandBase):
                         shutil.copy(path.join(env['OPENSSL_LIB_DIR'], "../bin" + msvc_x64, ssl_lib),
                                     servo_exe_dir)
 
-                elif sys.platform == "darwin":
-                    # On the Mac, set a lovely icon. This makes it easier to pick out the Servo binary in tools
-                    # like Instruments.app.
-                    try:
-                        import Cocoa
-                        icon_path = path.join(self.get_top_dir(), "resources", "servo.png")
-                        icon = Cocoa.NSImage.alloc().initWithContentsOfFile_(icon_path)
-                        if icon is not None:
-                            Cocoa.NSWorkspace.sharedWorkspace().setIcon_forFile_options_(icon,
-                                                                                         servo_path,
-                                                                                         0)
-                    except ImportError:
-                        pass
+            elif sys.platform == "darwin":
+                # On the Mac, set a lovely icon. This makes it easier to pick out the Servo binary in tools
+                # like Instruments.app.
+                try:
+                    import Cocoa
+                    icon_path = path.join(self.get_top_dir(), "resources", "servo.png")
+                    icon = Cocoa.NSImage.alloc().initWithContentsOfFile_(icon_path)
+                    if icon is not None:
+                        Cocoa.NSWorkspace.sharedWorkspace().setIcon_forFile_options_(icon,
+                                                                                     servo_path,
+                                                                                     0)
+                except ImportError:
+                    pass
 
         # Generate Desktop Notification if elapsed-time > some threshold value
         notify_build_done(self.config, elapsed, status == 0)
