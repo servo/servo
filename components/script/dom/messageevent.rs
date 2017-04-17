@@ -41,11 +41,14 @@ impl MessageEvent {
                            lastEventId: DOMString) -> Root<MessageEvent> {
         let ev = box MessageEvent {
             event: Event::new_inherited(),
-            data: Heap::new(data.get()),
+            data: Heap::default(),
             origin: origin,
             lastEventId: lastEventId,
         };
-        reflect_dom_object(ev, global, MessageEventBinding::Wrap)
+        let root = reflect_dom_object(ev, global, MessageEventBinding::Wrap);
+        root.data.set(data.get());
+
+        root
     }
 
     pub fn new(global: &GlobalScope, type_: Atom,

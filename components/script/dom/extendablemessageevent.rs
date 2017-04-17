@@ -35,16 +35,18 @@ impl ExtendableMessageEvent {
                -> Root<ExtendableMessageEvent> {
         let ev = box ExtendableMessageEvent {
             event: ExtendableEvent::new_inherited(),
-            data: Heap::new(data.get()),
+            data: Heap::default(),
             origin: origin,
             lastEventId: lastEventId,
         };
-        let ev = reflect_dom_object(ev, global, ExtendableMessageEventBinding::Wrap);
+        let root = reflect_dom_object(ev, global, ExtendableMessageEventBinding::Wrap);
         {
-            let event = ev.upcast::<Event>();
+            let event = root.upcast::<Event>();
             event.init_event(type_, bubbles, cancelable);
         }
-        ev
+        root.data.set(data.get());
+
+        root
     }
 
     pub fn Constructor(worker: &ServiceWorkerGlobalScope,

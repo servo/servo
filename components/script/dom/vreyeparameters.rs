@@ -14,6 +14,7 @@ use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSContext, JSObject};
 use js::typedarray::{Float32Array, CreateWith};
 use std::default::Default;
+use std::ptr;
 use webvr_traits::WebVREyeParameters;
 
 #[dom_struct]
@@ -28,29 +29,31 @@ pub struct VREyeParameters {
 unsafe_no_jsmanaged_fields!(WebVREyeParameters);
 
 impl VREyeParameters {
-    #[allow(unsafe_code)]
-    #[allow(unrooted_must_root)]
-    fn new_inherited(parameters: WebVREyeParameters, global: &GlobalScope) -> VREyeParameters {
-        let fov = VRFieldOfView::new(&global, parameters.field_of_view.clone());
-        let result = VREyeParameters {
+    fn new_inherited(parameters: WebVREyeParameters, fov: &VRFieldOfView) -> VREyeParameters {
+        VREyeParameters {
             reflector_: Reflector::new(),
             parameters: DOMRefCell::new(parameters),
             offset: Heap::default(),
             fov: JS::from_ref(&*fov)
-        };
-
-        unsafe {
-            let _ = Float32Array::create(global.get_cx(),
-                                         CreateWith::Slice(&result.parameters.borrow().offset),
-                                         result.offset.handle_mut());
         }
-        result
     }
 
+    #[allow(unsafe_code)]
     pub fn new(parameters: WebVREyeParameters, global: &GlobalScope) -> Root<VREyeParameters> {
-        reflect_dom_object(box VREyeParameters::new_inherited(parameters, global),
-                           global,
-                           VREyeParametersBinding::Wrap)
+        let fov = VRFieldOfView::new(&global, parameters.field_of_view.clone());
+
+        let cx = global.get_cx();
+        rooted!(in (cx) let mut array = ptr::null_mut());
+        unsafe {
+            let _ = Float32Array::create(cx, CreateWith::Slice(&parameters.offset), array.handle_mut());
+        }
+
+        let root = reflect_dom_object(box VREyeParameters::new_inherited(parameters, &fov),
+                                      global,
+                                      VREyeParametersBinding::Wrap);
+        root.offset.set(array.get());
+
+        root
     }
 }
 
