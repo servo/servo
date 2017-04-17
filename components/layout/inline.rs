@@ -1690,8 +1690,7 @@ impl Flow for InlineFlow {
                              &fragment.stacking_relative_border_box(stacking_relative_position,
                                                                     relative_containing_block_size,
                                                                     relative_containing_block_mode,
-                                                                    CoordinateSystem::Own)
-                                      .translate(stacking_context_position))
+                                                                    CoordinateSystem::Parent));
         }
     }
 

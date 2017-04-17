@@ -2258,8 +2258,7 @@ impl Flow for BlockFlow {
                                                             self.base
                                                                 .early_absolute_position_info
                                                                 .relative_containing_block_mode,
-                                                            CoordinateSystem::Own)
-                              .translate(stacking_context_position));
+                                                            CoordinateSystem::Parent));
     }
 
     fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
