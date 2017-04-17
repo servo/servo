@@ -101,7 +101,7 @@ use script_traits::{IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSandboxState, 
 use script_traits::{LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg, ScriptThreadFactory};
 use script_traits::{LogEntry, ServiceWorkerMsg, webdriver_msg};
 use script_traits::{MozBrowserErrorType, MozBrowserEvent, WebDriverCommandMsg, WindowSizeData};
-use script_traits::{SWManagerMsg, ScopeThings, WindowSizeType};
+use script_traits::{SWManagerMsg, ScopeThings, UpdatePipelineIdReason, WindowSizeType};
 use serde::{Deserialize, Serialize};
 use servo_config::opts;
 use servo_config::prefs::PREFS;
@@ -2101,7 +2101,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // Update the owning iframe to point to the new pipeline id.
         // This makes things like contentDocument work correctly.
         if let Some((parent_pipeline_id, _)) = parent_info {
-            let msg = ConstellationControlMsg::UpdatePipelineId(parent_pipeline_id, frame_id, pipeline_id);
+            let msg = ConstellationControlMsg::UpdatePipelineId(parent_pipeline_id,
+                frame_id, pipeline_id, UpdatePipelineIdReason::Traversal);
             let result = match self.pipelines.get(&parent_pipeline_id) {
                 None => return warn!("Pipeline {:?} child traversed after closure.", parent_pipeline_id),
                 Some(pipeline) => pipeline.event_loop.send(msg),
@@ -2275,7 +2276,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
             if let Some((parent_pipeline_id, _)) = pipeline.parent_info {
                 if let Some(parent_pipeline) = self.pipelines.get(&parent_pipeline_id) {
-                    let msg = ConstellationControlMsg::FramedContentChanged(parent_pipeline_id, pipeline.frame_id);
+                    let msg = ConstellationControlMsg::UpdatePipelineId(parent_pipeline_id,
+                        pipeline.frame_id, pipeline_id, UpdatePipelineIdReason::Navigation);
                     let _ = parent_pipeline.event_loop.send(msg);
                 }
             }
