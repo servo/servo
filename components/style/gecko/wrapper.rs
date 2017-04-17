@@ -528,6 +528,17 @@ impl<'le> TElement for GeckoElement<'le> {
                        self.get_transition_rule(pseudo))
     }
 
+    fn get_animation_rule_by_cascade(&self,
+                                     pseudo: Option<&PseudoElement>,
+                                     cascade_level: ServoCascadeLevel)
+                                     -> Option<Arc<Locked<PropertyDeclarationBlock>>> {
+        match cascade_level {
+            ServoCascadeLevel::Animations => self.get_animation_rule(pseudo),
+            ServoCascadeLevel::Transitions => self.get_transition_rule(pseudo),
+            _ => panic!("Unsupported cascade level for getting the animation rule")
+        }
+    }
+
     fn get_animation_rule(&self, pseudo: Option<&PseudoElement>)
                           -> Option<Arc<Locked<PropertyDeclarationBlock>>> {
         get_animation_rule(self, pseudo, CascadeLevel::Animations)

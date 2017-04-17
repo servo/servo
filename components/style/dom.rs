@@ -14,6 +14,7 @@ use data::ElementData;
 use element_state::ElementState;
 use font_metrics::FontMetricsProvider;
 use properties::{ComputedValues, PropertyDeclarationBlock};
+use rule_tree::CascadeLevel;
 use selector_parser::{ElementExt, PreExistingComputedValues, PseudoElement};
 use selectors::matching::ElementSelectorFlags;
 use shared_lock::Locked;
@@ -318,6 +319,14 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     /// Get this element's animation rules.
     fn get_animation_rules(&self, _pseudo: Option<&PseudoElement>) -> AnimationRules {
         AnimationRules(None, None)
+    }
+
+    /// Get this element's animation rule by the cascade level.
+    fn get_animation_rule_by_cascade(&self,
+                                     _pseudo: Option<&PseudoElement>,
+                                     _cascade_level: CascadeLevel)
+                                     -> Option<Arc<Locked<PropertyDeclarationBlock>>> {
+        None
     }
 
     /// Get this element's animation rule.

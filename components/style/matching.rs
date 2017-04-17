@@ -19,7 +19,7 @@ use dom::{AnimationRules, SendElement, TElement, TNode};
 use font_metrics::FontMetricsProvider;
 use properties::{CascadeFlags, ComputedValues, SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP, cascade};
 use properties::longhands::display::computed_value as display;
-use restyle_hints::{RESTYLE_STYLE_ATTRIBUTE, RESTYLE_CSS_ANIMATIONS, RestyleHint};
+use restyle_hints::{RESTYLE_STYLE_ATTRIBUTE, RESTYLE_CSS_ANIMATIONS, RESTYLE_CSS_TRANSITIONS, RestyleHint};
 use rule_tree::{CascadeLevel, RuleTree, StrongRuleNode};
 use selector_parser::{PseudoElement, RestyleDamage, SelectorImpl};
 use selectors::bloom::BloomFilter;
@@ -984,24 +984,43 @@ pub trait MatchMethods : TElement {
                 }
             };
 
-            // RESTYLE_CSS_ANIMATIONS is processed prior to other restyle hints
-            // in the name of animation-only traversal. Rest of restyle hints
+            // RESTYLE_CSS_ANIMATIONS or RESTYLE_CSS_TRANSITIONS is processed prior to other
+            // restyle hints in the name of animation-only traversal. Rest of restyle hints
             // will be processed in a subsequent normal traversal.
-            if hint.contains(RESTYLE_CSS_ANIMATIONS) {
+            if hint.intersects(RestyleHint::for_animations()) {
                 debug_assert!(context.shared.traversal_flags.for_animation_only());
 
-                let animation_rule = self.get_animation_rule(None);
-                replace_rule_node(CascadeLevel::Animations,
-                                  animation_rule.as_ref(),
-                                  primary_rules);
-
-                let pseudos = &mut element_styles.pseudos;
-                for pseudo in pseudos.keys().iter().filter(|p| p.is_before_or_after()) {
-                    let animation_rule = self.get_animation_rule(Some(&pseudo));
-                    let pseudo_rules = &mut pseudos.get_mut(&pseudo).unwrap().rules;
-                    replace_rule_node(CascadeLevel::Animations,
+                use data::EagerPseudoStyles;
+                let mut replace_rule_node_for_animation = |level: CascadeLevel,
+                                                           primary_rules: &mut StrongRuleNode,
+                                                           pseudos: &mut EagerPseudoStyles| {
+                    let animation_rule = self.get_animation_rule_by_cascade(None, level);
+                    replace_rule_node(level,
                                       animation_rule.as_ref(),
-                                      pseudo_rules);
+                                      primary_rules);
+
+                    for pseudo in pseudos.keys().iter().filter(|p| p.is_before_or_after()) {
+                        let animation_rule = self.get_animation_rule_by_cascade(Some(&pseudo), level);
+                        let pseudo_rules = &mut pseudos.get_mut(&pseudo).unwrap().rules;
+                        replace_rule_node(level,
+                                          animation_rule.as_ref(),
+                                          pseudo_rules);
+                    }
+                };
+
+                // Apply Transition rules and Animation rules if the corresponding restyle hint
+                // is contained.
+                let pseudos = &mut element_styles.pseudos;
+                if hint.contains(RESTYLE_CSS_TRANSITIONS) {
+                    replace_rule_node_for_animation(CascadeLevel::Transitions,
+                                                    primary_rules,
+                                                    pseudos);
+                }
+
+                if hint.contains(RESTYLE_CSS_ANIMATIONS) {
+                    replace_rule_node_for_animation(CascadeLevel::Animations,
+                                                    primary_rules,
+                                                    pseudos);
                 }
             } else if hint.contains(RESTYLE_STYLE_ATTRIBUTE) {
                 let style_attribute = self.style_attribute();
