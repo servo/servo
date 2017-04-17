@@ -3415,12 +3415,12 @@ fn static_assert() {
 <%def name="impl_shape_source(ident, gecko_ffi_name)">
     pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
         use gecko_bindings::bindings::{Gecko_NewBasicShape, Gecko_DestroyShapeSource};
-        use gecko_bindings::structs::StyleGeometryBox;
         use gecko_bindings::structs::{StyleBasicShape, StyleBasicShapeType, StyleShapeSourceType};
-        use gecko_bindings::structs::{StyleFillRule, StyleShapeSource};
+        use gecko_bindings::structs::{StyleFillRule, StyleGeometryBox, StyleShapeSource};
         use gecko::conversions::basic_shape::set_corners_from_radius;
         use gecko::values::GeckoStyleCoordConvertible;
-        use values::computed::basic_shape::*;
+        use values::computed::basic_shape::BasicShape;
+        use values::generics::basic_shape::{ShapeSource, FillRule};
         let ref mut ${ident} = self.gecko.${gecko_ffi_name};
         // clean up existing struct
         unsafe { Gecko_DestroyShapeSource(${ident}) };
@@ -3430,7 +3430,7 @@ fn static_assert() {
         match v {
             ShapeSource::Url(ref url) => {
                 unsafe {
-                    bindings::Gecko_StyleShapeSource_SetURLValue(${ident}, url.for_ffi());
+                    bindings::Gecko_StyleShapeSource_SetURLValue(${ident}, url.for_ffi())
                 }
             }
             ShapeSource::None => {} // don't change the type
