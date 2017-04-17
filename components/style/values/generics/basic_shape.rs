@@ -234,3 +234,61 @@ impl<L: ToComputedValue> ToComputedValue for Polygon<L> {
         }
     }
 }
+
+#[derive(Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+/// https://drafts.csswg.org/css-shapes/#funcdef-inset
+#[allow(missing_docs)]
+pub struct InsetRect<L> {
+    pub top: L,
+    pub right: L,
+    pub bottom: L,
+    pub left: L,
+    pub round: Option<BorderRadius<L>>,
+}
+
+impl<L: ToCss + PartialEq> ToCss for InsetRect<L> {
+    // XXXManishearth We should try to reduce the number of values printed here
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        dest.write_str("inset(")?;
+        self.top.to_css(dest)?;
+        dest.write_str(" ")?;
+        self.right.to_css(dest)?;
+        dest.write_str(" ")?;
+        self.bottom.to_css(dest)?;
+        dest.write_str(" ")?;
+        self.left.to_css(dest)?;
+        if let Some(ref radius) = self.round {
+            dest.write_str(" round ")?;
+            radius.to_css(dest)?;
+        }
+
+        dest.write_str(")")
+    }
+}
+
+impl<L: ToComputedValue> ToComputedValue for InsetRect<L> {
+    type ComputedValue = InsetRect<L::ComputedValue>;
+
+    #[inline]
+    fn to_computed_value(&self, cx: &Context) -> Self::ComputedValue {
+        InsetRect {
+            top: self.top.to_computed_value(cx),
+            right: self.right.to_computed_value(cx),
+            bottom: self.bottom.to_computed_value(cx),
+            left: self.left.to_computed_value(cx),
+            round: self.round.as_ref().map(|r| r.to_computed_value(cx)),
+        }
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        InsetRect {
+            top: ToComputedValue::from_computed_value(&computed.top),
+            right: ToComputedValue::from_computed_value(&computed.right),
+            bottom: ToComputedValue::from_computed_value(&computed.bottom),
+            left: ToComputedValue::from_computed_value(&computed.left),
+            round: computed.round.as_ref().map(|r| ToComputedValue::from_computed_value(r)),
+        }
+    }
+}

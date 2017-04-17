@@ -18,7 +18,7 @@ use values::computed::{ComputedValueAsSpecified, Context, ToComputedValue};
 use values::computed::basic_shape as computed_basic_shape;
 use values::generics::BorderRadiusSize;
 use values::generics::basic_shape::{BorderRadius as GenericBorderRadius, ShapeRadius as GenericShapeRadius};
-use values::generics::basic_shape::Polygon as GenericPolygon;
+use values::generics::basic_shape::{InsetRect as GenericInsetRect, Polygon as GenericPolygon};
 use values::specified::{LengthOrPercentage, Percentage};
 use values::specified::position::{Keyword, Position};
 use values::specified::url::SpecifiedUrl;
@@ -202,23 +202,14 @@ impl ToComputedValue for BasicShape {
     }
 }
 
-#[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-/// https://drafts.csswg.org/css-shapes/#funcdef-inset
-#[allow(missing_docs)]
-pub struct InsetRect {
-    pub top: LengthOrPercentage,
-    pub right: LengthOrPercentage,
-    pub bottom: LengthOrPercentage,
-    pub left: LengthOrPercentage,
-    pub round: Option<BorderRadius>,
-}
+/// The specified value of `inset()`
+pub type InsetRect = GenericInsetRect<LengthOrPercentage>;
 
 impl InsetRect {
-    #[allow(missing_docs)]
+    /// Parse the inner function arguments of `inset()`
     pub fn parse_function_arguments(context: &ParserContext, input: &mut Parser) -> Result<InsetRect, ()> {
-        let (t, r, b, l) = try!(parse_four_sides(input, |i| LengthOrPercentage::parse(context, i)));
-        let mut rect = InsetRect {
+        let (t, r, b, l) = parse_four_sides(input, |i| LengthOrPercentage::parse(context, i))?;
+        let mut rect = GenericInsetRect {
             top: t,
             right: r,
             bottom: b,
@@ -238,54 +229,8 @@ impl Parse for InsetRect {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         match input.try(|i| i.expect_function()) {
             Ok(ref s) if s.eq_ignore_ascii_case("inset") =>
-                input.parse_nested_block(|i| InsetRect::parse_function_arguments(context, i)),
+                input.parse_nested_block(|i| GenericInsetRect::parse_function_arguments(context, i)),
             _ => Err(())
-        }
-    }
-}
-
-impl ToCss for InsetRect {
-    // XXXManishearth again, we should try to reduce the number of values printed here
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        try!(dest.write_str("inset("));
-        try!(self.top.to_css(dest));
-        try!(dest.write_str(" "));
-        try!(self.right.to_css(dest));
-        try!(dest.write_str(" "));
-        try!(self.bottom.to_css(dest));
-        try!(dest.write_str(" "));
-        try!(self.left.to_css(dest));
-        if let Some(ref radius) = self.round {
-            try!(dest.write_str(" round "));
-            try!(radius.to_css(dest));
-        }
-
-        dest.write_str(")")
-    }
-}
-
-impl ToComputedValue for InsetRect {
-    type ComputedValue = computed_basic_shape::InsetRect;
-
-    #[inline]
-    fn to_computed_value(&self, cx: &Context) -> Self::ComputedValue {
-        computed_basic_shape::InsetRect {
-            top: self.top.to_computed_value(cx),
-            right: self.right.to_computed_value(cx),
-            bottom: self.bottom.to_computed_value(cx),
-            left: self.left.to_computed_value(cx),
-            round: self.round.as_ref().map(|r| r.to_computed_value(cx)),
-        }
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        InsetRect {
-            top: ToComputedValue::from_computed_value(&computed.top),
-            right: ToComputedValue::from_computed_value(&computed.right),
-            bottom: ToComputedValue::from_computed_value(&computed.bottom),
-            left: ToComputedValue::from_computed_value(&computed.left),
-            round: computed.round.map(|ref r| ToComputedValue::from_computed_value(r)),
         }
     }
 }
