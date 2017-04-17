@@ -18,6 +18,10 @@ ${helpers.single_keyword("visibility",
 // https://drafts.csswg.org/css-writing-modes-3
 ${helpers.single_keyword("writing-mode",
                          "horizontal-tb vertical-rl vertical-lr",
+                         extra_gecko_values="sideways-rl sideways-lr",
+                         extra_gecko_aliases="lr=horizontal-tb lr-tb=horizontal-tb \
+                                              rl=horizontal-tb rl-tb=horizontal-tb \
+                                              tb=vertical-rl   tb-rl=vertical-rl",
                          experimental=True,
                          need_clone=True,
                          animation_type="none",
@@ -27,42 +31,13 @@ ${helpers.single_keyword("direction", "ltr rtl", need_clone=True, animation_type
                          spec="https://drafts.csswg.org/css-writing-modes/#propdef-direction",
                          needs_conversion=True)}
 
-<%helpers:single_keyword_computed
-    name="text-orientation"
-    values="mixed upright sideways"
-    extra_specified="sideways-right"
-    products="gecko"
-    need_clone="True"
-    animation_type="none"
-    spec="https://drafts.csswg.org/css-writing-modes/#propdef-text-orientation"
->
-    use values::HasViewportPercentage;
-    no_viewport_percentage!(SpecifiedValue);
-
-    impl ToComputedValue for SpecifiedValue {
-        type ComputedValue = computed_value::T;
-
-        #[inline]
-        fn to_computed_value(&self, _: &Context) -> computed_value::T {
-            match *self {
-                % for value in "mixed upright sideways".split():
-                    SpecifiedValue::${value} => computed_value::T::${value},
-                % endfor
-                // https://drafts.csswg.org/css-writing-modes-3/#valdef-text-orientation-sideways-right
-                SpecifiedValue::sideways_right => computed_value::T::sideways,
-            }
-        }
-
-        #[inline]
-        fn from_computed_value(computed: &computed_value::T) -> SpecifiedValue {
-            match *computed {
-                % for value in "mixed upright sideways".split():
-                    computed_value::T::${value} => SpecifiedValue::${value},
-                % endfor
-            }
-        }
-    }
-</%helpers:single_keyword_computed>
+${helpers.single_keyword("text-orientation",
+                         "mixed upright sideways",
+                         extra_gecko_aliases="sideways-right=sideways",
+                         products="gecko",
+                         need_clone=True,
+                         animation_type="none",
+                         spec="https://drafts.csswg.org/css-writing-modes/#propdef-text-orientation")}
 
 // CSS Color Module Level 4
 // https://drafts.csswg.org/css-color/
