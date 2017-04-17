@@ -12,7 +12,7 @@ use style_traits::ToCss;
 use values::computed::LengthOrPercentage;
 use values::computed::position::Position;
 use values::generics::basic_shape::{BorderRadius as GenericBorderRadius, ShapeRadius as GenericShapeRadius};
-use values::generics::basic_shape::Polygon as GenericPolygon;
+use values::generics::basic_shape::{InsetRect as GenericInsetRect, Polygon as GenericPolygon};
 use values::specified::url::SpecifiedUrl;
 
 pub use values::generics::basic_shape::FillRule;
@@ -73,35 +73,8 @@ impl ToCss for BasicShape {
     }
 }
 
-#[derive(Clone, PartialEq, Copy, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-pub struct InsetRect {
-    pub top: LengthOrPercentage,
-    pub right: LengthOrPercentage,
-    pub bottom: LengthOrPercentage,
-    pub left: LengthOrPercentage,
-    pub round: Option<BorderRadius>,
-}
-
-impl ToCss for InsetRect {
-    // XXXManishearth again, we should try to reduce the number of values printed here
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        try!(dest.write_str("inset("));
-        try!(self.top.to_css(dest));
-        try!(dest.write_str(" "));
-        try!(self.right.to_css(dest));
-        try!(dest.write_str(" "));
-        try!(self.bottom.to_css(dest));
-        try!(dest.write_str(" "));
-        try!(self.left.to_css(dest));
-        if let Some(ref radius) = self.round {
-            try!(dest.write_str(" round "));
-            try!(radius.to_css(dest));
-        }
-        dest.write_str(")")
-    }
-}
+/// The computed value of `inset()`
+pub type InsetRect = GenericInsetRect<LengthOrPercentage>;
 
 #[derive(Clone, PartialEq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
