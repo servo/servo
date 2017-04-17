@@ -62,6 +62,8 @@ sudo apt install git curl freeglut3-dev autoconf \
 If you using a version prior to **Ubuntu 17.04** or **Debian Sid**, replace `libssl1.0-dev` with `libssl-dev`.
 
 If you are on **Ubuntu 14.04** and encountered errors on installing these dependencies involving `libcheese`, see [#6158](https://github.com/servo/servo/issues/6158) for a workaround.
+If you failed compiling `harfbuzz-sys`, see [#8890](https://github.com/servo/servo/issues/8890) for a workaround.
+
 
 If `virtualenv` does not exist, try `python-virtualenv`.
 
