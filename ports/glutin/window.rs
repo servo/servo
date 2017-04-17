@@ -540,10 +540,10 @@ impl Window {
     }
 
     /// Helper function to send a scroll event.
-    fn scroll_window(&self, scroll_location: ScrollLocation, phase: TouchEventType) {
+    fn scroll_window(&self, mut scroll_location: ScrollLocation, phase: TouchEventType) {
         // Scroll events snap to the major axis of movement, with vertical
         // preferred over horizontal.
-        if let ScrollLocation::Delta(mut delta) = scroll_location {
+        if let ScrollLocation::Delta(ref mut delta) = scroll_location {
             if delta.y.abs() >= delta.x.abs() {
                 delta.x = 0.0;
             } else {
