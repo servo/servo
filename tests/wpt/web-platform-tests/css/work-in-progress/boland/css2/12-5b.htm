@@ -1,0 +1,77 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Third Test of Section 12.5 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+p:before{content: "paragraph" counter()";
+         counter-increment: 2;
+         counter-reset: paragraph }
+blockquote:before{content: "quote" counter();
+          counter-increment: quote;
+         counter-reset: word }
+h3:before{content: heading;
+        counter-increment: none;
+        counter-reset: none}
+h4:before{content: heading;
+        counter-increment: inherit;
+        counter-reset: inherit}
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Third Testable Statement of Sec 12.5 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+3. Possible values of 'counter-increment' are "[identifier integer?]+|none|
+inherit".
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p>
+If statement #3 above is passed, then
+<p>
+This p element should have a content of "paragraph".
+The counter should increment 2 and reset to paragraph.
+The rule applied is "p:before {content: "paragraph" counter() ;
+counter-increment: 2; counter-reset: paragraph }
+</p>
+<blockquote>
+This blockquote element should have content of "quote", counter-increment
+of 'quote' and counter-reset of "word".
+Rule applied is "blockquote:before {content: "quote" counter();
+counter-increment: quote;
+counter-reset: word}"
+<h3>
+This h3 heading should have content of 
+"heading", counter-increment of none, and counter-reset of none.
+Rule applied is "h3:before {content: "heading";
+counter-increment: none;
+counter-reset: none}"
+</h3>
+<h4>
+This h4 heading should have content of
+"heading", counter-increment of inherit and counter-reset of inherit.
+Rule applied is "h4:before {content: "heading";
+counter-increment: inherit;
+counter-reset: inherit}"
+</h4>
+All other properties of this page should be UA-default.
+
+
+</BODY>
+</HTML>
+

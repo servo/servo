@@ -1,0 +1,28 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border set using border-width</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/"/>
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/"/> <!-- 2012-05-16 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#propdef-border"/>
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-shorthand-properties"/>
+        <link rel="help" href="http://www.w3.org/TR/css3-background/#borders"/>
+        <link rel="help" href="http://www.w3.org/TR/css3-background/#the-border-shorthands"/>
+        <link rel="match" href="border-001-ref.xht"/>
+        <meta name="flags" content=""/>
+        <meta name="assert" content="The 'border' shorthand property properly accepts and sets border-width."/>
+        <style type="text/css">
+            div
+            {
+                border: 25px;
+                border-style: solid;
+                height: 100px;
+                width: 100px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a hollow black square.</p>
+        <div></div>
+    </body>
+</html>

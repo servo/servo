@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8">
+<title>text-align: start, pre, dir=ltr inherited</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='https://drafts.csswg.org/css-text-3/#text-align-property'>
+<link rel='match' href='reference/text-align-start-ref-015.html'>
+<meta name="assert" content="text-align:start aligns inline-level content to the start edge of the line box – ie. left when base  direction is  ltr.">
+<style type='text/css'>
+.test { text-align: start; }
+/* the CSS below is not part of the test */
+.test, .ref { border: 1px solid orange;  margin: 20px; width: 290px; color: orange; font: 24px/24px ahem; }
+.ref { position: relative;  height: 48px; }
+#rb1 { position: absolute; top: 0; left: 0; background-color: orange; width: 72px;  height: 48px; }
+</style>
+</head>
+<body>
+<div id='instructions'>Test passes if shading in both orange boxes is identical.</div>
+<div dir="ltr">
+<pre class="test">XXX
+&rlm;XXX</pre>
+<div class="ref"><div id="rb1"></div></div>
+</div>
+<!-- Notes:
+The &rlm isn't in the Ahem font, so it may cause a spurious effect, such as a thin white line in the middle of a block in IE. This should be ignored. The test needs a RTL character in the Ahem font, so that the &RLM can be removed.
+-->
+</body>
+</html>

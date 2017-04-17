@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html onclick="fail()">
+<title>CSS Basic User Interface Test: cursor hotspot coordinates clamping</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="http://www.w3.org/TR/css3-ui/#cursor">
+<meta name="flags" content="interact dom">
+<meta charset="UTF-8">
+<meta name="assert" content="The coordinates of the hotspot must be clamped if they fall outside of the range of the image.">
+<style>
+body, html {
+  cursor: url("support/cursors/arrows.png") 100 100, url("support/cursors/arrows.ico") 100 100, help;
+}
+div {
+  margin: 30px;
+  width: 15px;
+  height: 15px;
+  background: green;
+}
+#fail, #pass { display: none; }
+</style>
+
+<p>If you are on a device without a cursor, skip this test.
+<p>Otherwise, if the cursor does not look like a red and a green arrow, the test has failed.
+<p>Place the cursor so that the tip of the <strong>green arrow</strong> is on the <strong>green box</strong>, then click.
+<p>If nothing happens when you click, the test has failed.
+<div onclick="pass(event)"></div>
+<p id=fail>The test has failed.
+<p id=pass>The test passes.
+
+<script>
+function pass(e) {
+  document.getElementById("pass").style.display="block";
+  e.stopPropagation();
+}
+function fail() {
+  document.getElementById("fail").style.display="block";
+}
+</script>

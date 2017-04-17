@@ -1,0 +1,23 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: CSS Tables: Captions in the middle of tables</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/table/caption/002.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#anonymous-boxes" />
+  <style type="text/css">
+   .table { display: table; width: 100%; }
+   .caption { display: table-caption; }
+   .cell { display: table-cell; }
+   .green { color: green; }
+  </style>
+ </head>
+ <body>
+  <p>There should be two green lines below.</p>
+  <div class="table">
+   <div class="green cell"> 2. This line sho</div>
+   <div class="green caption"> 1. This line should be green. </div>
+   <div class="green cell">uld be green. </div>
+  </div>
+ </body>
+</html>

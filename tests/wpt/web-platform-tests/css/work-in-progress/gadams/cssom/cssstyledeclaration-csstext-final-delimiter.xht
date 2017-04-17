@@ -1,0 +1,70 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD//XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSSOM - CSSStyleDeclaration - Text - Serialization - Delimiters</title>
+    <link rel="author" title="Glenn Adams" href="mailto:glenn@skynav.com"/>
+    <link rel="help" href="http://www.w3.org/TR/cssom-1/#the-cssstyledeclaration-interface"/>
+    <meta name="flags" content="dom"/>
+    <script src="/resources/testharness.js"/>
+    <script src="/resources/testharnessreport.js"/>
+  </head>
+  <body>
+    <div id="log"></div>
+    <div id="box"></div>
+    <script><![CDATA[
+      var style = document.getElementById('box').style;
+      var delim = new RegExp ( /(\s*\;\s*)/ );
+
+      function countDelimiters(s) {
+        var k = ( s.split(delim).length - 1 ) / 2;
+        return k;
+      }
+
+      function getNthDelimiter(s,n) {
+        if ( n > 0 ) {
+          var sa = s.split(delim);
+          var k = 1;
+          for ( var i in sa ) {
+            var s = sa[i];
+            var m = delim.exec(s);
+            if ( m && ( m.length > 1 ) ) {
+              if ( k++ == n ) {
+                return s;
+              }                          
+            }
+          }
+        }
+        return '';
+      }
+
+      test(function(){
+
+        style.cssText = "";
+        assert_equals(countDelimiters(style.cssText), 0);
+        assert_equals(getNthDelimiter(style.cssText,0), "");
+        assert_equals(style.cssText, "");
+
+      }, 'inline style - text - delimiters - zero declarations');
+
+      test(function(){
+
+        style.cssText = "left: 10px";
+        assert_equals(countDelimiters(style.cssText), 1);
+        assert_equals(getNthDelimiter(style.cssText,1), ";");
+        assert_equals(style.cssText, "left: 10px;");
+
+      }, 'inline style - text - delimiters - one declaration');
+
+      test(function(){
+
+        style.cssText = "left: 10px; right: 20px";
+        assert_equals(countDelimiters(style.cssText), 2);
+        assert_equals(getNthDelimiter(style.cssText,1), "; ");
+        assert_equals(getNthDelimiter(style.cssText,2), ";");
+        assert_equals(style.cssText, "left: 10px; right: 20px;");
+
+      }, 'inline style - text - delimiters - two declarations');
+    ]]>
+    </script>
+  </body>
+</html>

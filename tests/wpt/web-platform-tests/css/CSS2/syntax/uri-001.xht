@@ -1,0 +1,20 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Parsing valid URIs with white space and no quotes</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#uri" />
+        <link rel="match" href="../reference/filler-text-below-green.xht"/>
+        <meta name="flags" content="" />
+        <meta name="assert" content="A url function is valid if it is 'url(', followed by the URI, followed by ')', even with white space between." />
+        <style type="text/css">
+            @import url(
+            support/uri-001.css
+            );
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the "Filler Text" below is green.</p>
+        <p id="p1">Filler Text</p>
+    </body>
+</html>

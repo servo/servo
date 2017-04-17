@@ -1,0 +1,34 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: A spanning cell that originates from a 'visibility: collapse' row</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#dynamic-effects" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="A row-spanning cell which originates in a collapsed row is completely collapsed along with its row." />
+        <style type="text/css">
+            #row
+            {
+                visibility: collapse;
+            }
+            td
+            {
+                background: blue;
+                height: 2em;
+                width: 2em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a single blue box below with a letter "X" aligned to its left side.</p>
+        <table>
+            <tr id="row">
+                <td rowspan="2">X</td>
+                <td>X</td>
+            </tr>
+            <tr>
+                <td>X</td>
+            </tr>
+        </table>
+    </body>
+</html>

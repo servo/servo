@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!--
+     This test verifies that a flex container which only contains text
+     will render correctly. We use justify-content to position the text
+     in the center of the flex container, as a sanity-check to be sure we
+     are in fact getting a flex container.
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <style>
+      div.flexbox {
+        width: 200px;
+        height: 100px;
+        background: lightgreen;
+        justify-content: center;
+        display: flex;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="flexbox">text</div>
+  </body>
+</html>

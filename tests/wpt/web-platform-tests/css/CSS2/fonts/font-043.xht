@@ -1,0 +1,48 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Font shorthand set to 'inherit' inheriting six values</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#propdef-font" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-shorthand" />
+        <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-prop"/>
+        <link rel="match" href="../reference/no_red_bold_italic_small-caps_ahem.html"/>
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The 'font' shorthand property set to 'inherit' inherits the parent element's values." />
+        <style type="text/css">
+            #wrapper
+            {
+                font: italic small-caps bold 1in/1em Ahem;
+                position: relative;
+            }
+            #test
+            {
+                font: 0 Ahem;
+                font: inherit;
+                position: absolute;
+            }
+            #reference
+            {
+                color: red;
+                font-family: Ahem;
+                font-size: 1in;
+                font-style: italic;
+                font-variant: small-caps;
+                font-weight: bold;
+                height: 1in;
+                left: 0;
+                line-height: 1em;
+                position: absolute;
+                top: 0;
+                width: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page except for antialiasing.</p>
+        <div id="wrapper">
+            <div id="reference">x</div>
+            <div id="test">x</div>
+        </div>
+    </body>
+</html>

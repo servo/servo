@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+                      "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Unquoted commas in url()</title>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#uri"/>
+  <link rel="match" href="../reference/ref-green-background.xht"/>
+  <meta name="flags" content=""/>
+  <meta name="assert" content="Unquoted commas inside url() are valid."/>
+  <style type="text/css"><![CDATA[
+    p {
+      background: red;
+      background: red url(support/,uri-014.png);
+      color: white;
+    }
+  ]]></style>
+ </head>
+ <body>
+  <p>This should have a green background.</p>
+ </body>
+</html>

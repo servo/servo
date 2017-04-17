@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+ <head>
+  <title>CSS Test: vertical-align: bottom on :first-line</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2013-06-03 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/block/first-line/016.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#first-line-pseudo" />
+  <link rel="match" href="first-line-pseudo-015-ref.xht" />
+
+  <meta name="flags" content="ahem may"/>
+
+  <style type="text/css">
+  .control, .test { font: 1.25em/1 Ahem; color: green; margin: 0 2em; }
+  .first-line, .test:first-line { background: red; vertical-align: bottom; }
+  .inner { font-size: 5em; vertical-align: top; }
+  </style>
+ </head>
+ <body>
+  <p>Test passes if there are 2 unbroken green stripes.</p>
+  <p class="control"><span class="first-line">X<span class="inner">p</span>X</span></p>
+  <p class="test">X<span class="inner">p</span>X</p>
+ </body>
+</html>

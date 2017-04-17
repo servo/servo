@@ -1,0 +1,113 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Third Test of Section 17.7 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+
+table {speak-header: once}
+
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Third Testable Statement of Sec 17.7 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+3. Image of a table with header cells that are not in the same column or row
+as the data they apply to.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p >
+If statement #3 above is passed, then
+speech-enabled browsers could explore the table below in different ways.
+For example, each cell could be spoken as a list,or the headers could only
+be spoken when they change.
+<table>
+<caption>Travel Expense Report</caption>
+<tr> 
+   <th></th>
+   <th>Meals</th>
+   <th>Hotels</th>
+   <th>Transport</th>
+   <th>Subtotal</th>
+</tr>
+<tr>
+   <th id="san-jose" axis="san-jose">San Jose</th>
+</tr>
+<tr>
+   <th headers="san-jose">25-Aug-97</th>
+   <td>37.74</td>
+   <td>112.00</td>
+   <td>45.00</td>
+   <td></td>
+</tr>
+<tr>
+   <th headers="san jose">26-Aug-97</th>
+   <td>27.28</td>
+   <td>112.00</td>
+   <td>45.00</td>
+   <td></td>
+</tr>
+<tr>
+   <th headers="san-jose'>subtotal</th>
+   <td>65.02</td>
+   <td>224.00</td>
+   <td>90.00</td>
+   <td>379.02</td>
+</tr>
+  <th id="seattle" axis="seattle">Seattle</th>
+</tr>
+<tr>
+  <th headers="seattle">27-Aug-97</th>
+  <td>96.25</td>
+  <td>109.00</td>
+  <td>36.00</td>
+  <td></td>
+</tr>
+<tr>
+  <th headers-"seattle">28-Aug-97</th>
+  <td>35.00</td>
+  <td>109.00</td>
+  <td>36.00</td>
+  <td></td>
+</tr>
+<tr>
+  <th headers="seattle">subtotal</th>
+  <td>131.25</td>
+  <td>218.00</td>
+  <td>72.00</td>
+  <td>421.25</td>
+</tr>
+<tr>
+  <th>Totals</th>
+  <td>196.27</td>
+  <td>442.00</td>
+  <td>162.00</td>
+  <td>800.27</td>
+</tr>
+</table>
+Rule applied is "table {speak-header: once}".
+All other properties of this page should be UA-default.
+
+
+</BODY>
+</HTML>
+

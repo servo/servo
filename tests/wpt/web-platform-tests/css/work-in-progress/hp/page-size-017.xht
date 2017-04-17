@@ -1,0 +1,36 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: Page Size - size property</title>
+<link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+<link rel="help" href="http://www.w3.org/TR/css3-page/#page-size"/>
+<meta name="flags" content="paged" />
+<meta name="assert" content="The 'size' value only applies to the page context."/>
+<style type="text/css">
+	@page { 
+		margin: 1cm;
+	}
+	
+	html, body, div { 
+		margin: 0;
+	}
+	
+	div {
+		width: 2in;
+		border-bottom: medium solid black;
+		size: 8in 4in;
+	}
+	p {
+		size: 2in;
+	}
+	span {
+		color: gray;
+	}
+	
+</style>
+</head>
+<body>
+	<div></div>
+	<p>This content should stretch across the page, extending beyond the line above. <span>Dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text dummy text </span></p>
+</body>
+</html>

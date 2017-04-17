@@ -1,0 +1,55 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: first-line</title>
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#the-first-line-pseudo-element"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <style type="text/css"><![CDATA[
+   body { color: blue; }
+   p:first-line { color: green; }
+   .two:first-line { font-size: 200%; }
+   .three:first-line { font-variant: small-caps; }
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#first-line-pseudo" title="5.12.1 The :first-line pseudo-element"/>
+ </head>
+ <body>
+  <p>
+   The <strong>first line</strong> of this paragraph, and only that
+   one, should be <strong>green</strong>. If this precise combination
+   does not occur, then the user agent has failed this test. Remember
+   that in order to ensure a complete test, the paragraph must be
+   displayed on more than one line. Dummy text. Dummy text. Dummy
+   text. Dummy text. Dummy text. Dummy text. Dummy text. Dummy text.
+   Dummy text. Dummy text. Dummy text. Dummy text. Dummy text. Dummy
+   text. Dummy text. Dummy text. Dummy text. Dummy text. Dummy text.
+   Dummy text. Dummy text. Dummy text. Dummy text. Dummy text. Dummy
+   text. Dummy text. Dummy text. Dummy text.
+  </p>
+  <p class="two">
+   The <strong>first line</strong> of this paragraph, and only that
+   one, should be a <strong>larger</strong> font size as well as
+   <strong>green</strong>. If this precise combination does not occur,
+   then the user agent has failed this test. Remember that in order to
+   ensure a complete test, the paragraph must be displayed on more
+   than one line. Dummy text. Dummy text. Dummy text. Dummy text.
+   Dummy text. Dummy text. Dummy text. Dummy text. Dummy text. Dummy
+   text. Dummy text. Dummy text. Dummy text. Dummy text. Dummy text.
+   Dummy text. Dummy text. Dummy text. Dummy text. Dummy text. Dummy
+   text. Dummy text. Dummy text. Dummy text. Dummy text. Dummy text.
+   Dummy text. Dummy text.
+  </p>
+  <p class="three">
+   The <strong>first line</strong> of this paragraph, and only that
+   one, should be displayed in <strong>small-caps</strong> style as
+   well as <strong>green</strong>. Thus, if the first line is not in
+   small-caps style, or if the entire paragraph turns out in
+   small-caps, then the user agent has failed this test. Dummy text.
+   Dummy text. Dummy text. Dummy text. Dummy text. Dummy text. Dummy
+   text. Dummy text. Dummy text. Dummy text. Dummy text. Dummy text.
+   Dummy text. Dummy text. Dummy text. Dummy text. Dummy text. Dummy
+   text. Dummy text. Dummy text. Dummy text. Dummy text. Dummy text.
+   Dummy text. Dummy text. Dummy text. Dummy text. Dummy text.
+  </p>
+ </body>
+</html>

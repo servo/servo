@@ -1,0 +1,40 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>CSS Regions: Transform region with position:absolute and transform-origin</title>
+    <link rel="author" title="David Alcala" href="mailto:dalcala@adobe.com">
+    <link rel="reviewer" title="Rebecca Hauck" href="mailto:rhauck@adobe.com"> <!-- 07-15-2013 -->
+    <link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+    <link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#two-d-transform-functions">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-origin-property">
+    <link rel="match" href="reference/regions-transforms-014-ref.html">
+    <meta name="assert" content="This test checks that the transform and transform-origin are applied to a region
+                                with absolute positioning.">
+    <style>
+    #named-flow {
+        width: 50px;
+        height: 50px;
+        background-color: green;
+        flow-into: f;
+    }
+    #region {
+        width: 50px;
+        height: 50px;
+        background-color: red;
+        position: absolute;
+        left: 58px;
+        top: 100px;
+        flow-from: f;
+        transform: scale(2);
+        transform-origin: left top;
+    }
+    </style>
+</head>
+<body>
+    <p>The test passes if you see a green square and no red.</p>
+    <div id="named-flow"></div>
+    <div id="region"></div>
+</body>
+</html>

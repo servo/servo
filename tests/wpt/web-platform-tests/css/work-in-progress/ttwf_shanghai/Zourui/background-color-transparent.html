@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Background-origin Test</title>
+    <link rel="author" title="Jacky Xiao" href="mailto:foot3188@aliyun.com">
+    <link rel="reviewer" title="" href="">
+    <link rel="help" href="http://www.w3.org/TR/compositing-1/">
+    <link rel="match" href="reference/rotateY-ref.html">
+    <meta name="assert" content="There is a green background and white padding.">
+    <style type="text/css">
+        .yellowSquare {
+			width:240px;
+			height:240px;
+			padding:10px;
+            background-image:url(support/bg_flower.gif);
+			background-repeat:no-repeat;
+			background-color:rgba(255,255,2,.5);
+			background-blend-mode:difference;
+        }
+    </style>
+</head>
+<body>
+    <p>The test passes if there is a yellow background.</p>
+    <div class="yellowSquare"></div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,25 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: Positioning replaced elements with four offsets</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/absolute/025.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#abs-non-replaced-width"/>
+  <link rel="match" href="abspos-025-ref.xht" />
+
+  <style type="text/css">
+   body {margin: 8px; font: 1em/1.25 serif;}
+   strong {line-height: 1;}
+   img { position: absolute; left: 4em; right: 4em; top: 4em; bottom: 4em; }
+   div { position: absolute; left: 4em; top: 4em; height: 15px; width: 15px; background: green; }
+}
+  </style>
+ </head>
+ <body>
+  <p>Test passes if there is a green square and <strong>no red</strong>. <img src="support/swatch-red.png" alt="FAIL" /></p>
+  <div></div>
+
+
+</body>
+</html>

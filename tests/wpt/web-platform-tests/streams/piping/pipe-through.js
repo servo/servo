@@ -37,7 +37,7 @@ promise_test(() => {
     assert_array_equals(chunks, [1, 2, 3, 4, 5]), 'chunks should match');
 }, 'Piping through a duck-typed pass-through transform stream should work');
 
-promise_test(t => {
+promise_test(() => {
   const transform = {
     writable: new WritableStream({
       start(c) {
@@ -77,7 +77,7 @@ test(() => {
 
 test(() => {
   const dummy = {
-    pipeTo(args) {
+    pipeTo() {
       return { not: 'a promise' };
     }
   };
@@ -90,7 +90,7 @@ test(() => {
 
 test(() => {
   const dummy = {
-    pipeTo(args) {
+    pipeTo() {
       return {
         then() {},
         this: 'is not a real promise'
@@ -103,5 +103,45 @@ test(() => {
   // Test passes if this doesn't throw or crash.
 
 }, 'pipeThrough can handle calling a pipeTo that returns a non-promise thenable object');
+
+promise_test(() => {
+  const dummy = {
+    pipeTo() {
+      return Promise.reject(new Error('this rejection should not be reported as unhandled'));
+    }
+  };
+
+  ReadableStream.prototype.pipeThrough.call(dummy, { });
+
+  // The test harness should complain about unhandled rejections by then.
+  return flushAsyncEvents();
+
+}, 'pipeThrough should mark a real promise from a fake readable as handled');
+
+test(() => {
+  let thenCalled = false
+  let catchCalled = false;
+  const dummy = {
+    pipeTo() {
+      const fakePromise = Object.create(Promise.prototype);
+      fakePromise.then = () => {
+        thenCalled = true;
+      };
+      fakePromise.catch = () => {
+        catchCalled = true;
+      };
+      assert_true(fakePromise instanceof Promise, 'fakePromise fools instanceof');
+      return fakePromise;
+    }
+  };
+
+  // An incorrect implementation which uses an internal method to mark the promise as handled will throw or crash here.
+  ReadableStream.prototype.pipeThrough.call(dummy, { });
+
+  // An incorrect implementation that tries to mark the promise as handled by calling .then() or .catch() on the object
+  // will fail these tests.
+  assert_false(thenCalled, 'then should not be called');
+  assert_false(catchCalled, 'catch should not be called');
+}, 'pipeThrough should not be fooled by an object whose instanceof Promise returns true');
 
 done();

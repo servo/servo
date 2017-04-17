@@ -1,0 +1,12 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD Compact HTML 1.0 draft//EN">
+<html>
+ <head> <!-- the lowercase "draft" is not in any of the listed FPIs -->
+  <title>Media type selection non-triggers (CHTML) (Handheld devices only)</title>
+   </head>
+ <body>
+  <p><font color="red">This should be in SSR mode, it should not be in
+  handheld mode.</font></p>
+  <!-- Technically <font> is invalid in CHTML but unless it causes a
+       problem, I see no other way of testing this. -->
+ </body>
+</html>

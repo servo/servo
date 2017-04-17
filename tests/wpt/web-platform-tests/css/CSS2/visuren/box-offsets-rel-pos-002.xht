@@ -1,0 +1,54 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+   <title>CSS Test: box offsets - position relative</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" title="9.3.2 Box offsets: 'top', 'right', 'bottom', 'left'" href="http://www.w3.org/TR/CSS21/visuren.html#position-props" />
+  <link rel="match" href="box-offsets-rel-pos-002-ref.xht" />
+
+  <meta content="image" name="flags" />
+  <meta content="The 'top', 'right', 'bottom', 'left' property, for relative positioning, specify the offset of the box itself from its normal in-flow position, from the position it would have had if it had been static." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  img
+  {
+  position: relative;
+  vertical-align: bottom;
+  /* so that images do not "sit" on the
+  baseline but at bottom of line box */
+  }
+
+  img.moves-toward-left {right: 100px;}
+
+  img.moves-toward-top {bottom: 100px;}
+
+  img.moves-toward-right {left: 100px;}
+
+  img.moves-toward-bottom {top: 100px;}
+
+  /*
+  In this testcase, 7 red 100px wide by 100px squares overlap
+  another red 100px wide by 100px square (placed in the center of
+  a 3 by 3 grid of squares) and then, at the end, one single
+  green 100px wide by 100px square overlaps all 8 other red boxes.
+  */
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+  <div><img class="moves-toward-right moves-toward-bottom" src="support/100x100-red.png" width="100" height="100" alt="Image download support must be enabled" /><img class="moves-toward-bottom" src="support/100x100-red.png" width="100" height="100" alt="Image download support must be enabled" /><img class="moves-toward-left moves-toward-bottom" src="support/100x100-red.png" width="100" height="100" alt="Image download support must be enabled" /></div>
+
+  <div><img class="moves-toward-right" src="support/100x100-red.png" width="100" height="100" alt="Image download support must be enabled" /><img src="support/100x100-red.png" width="100" height="100" alt="Image download support must be enabled" /><img class="moves-toward-left" src="support/100x100-red.png" width="100" height="100" alt="Image download support must be enabled" /></div>
+
+  <div><img class="moves-toward-right moves-toward-top" src="support/100x100-red.png" width="100" height="100" alt="Image download support must be enabled" /><img class="moves-toward-top" src="support/100x100-red.png" width="100" height="100" alt="Image download support must be enabled" /><img class="moves-toward-left moves-toward-top" src="support/green_box.png" width="100" height="100" alt="Image download support must be enabled" /></div>
+
+ </body>
+</html>

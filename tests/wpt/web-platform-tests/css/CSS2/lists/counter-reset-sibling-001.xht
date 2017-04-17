@@ -1,0 +1,30 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Counter-reset on later siblings</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#scope" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Setting 'counter-reset' on later siblings does not have an effect on previous counters." />
+        <style type="text/css">
+            div
+            {
+                counter-increment: test 5;
+            }
+            #test
+            {
+                counter-reset: test 5;
+            }
+            div:before
+            {
+                content: counter(test);
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the numbers below are ordered, from top to bottom, "5", "10", "15".</p>
+        <div></div>
+        <div id="test"></div>
+        <div></div>
+    </body>
+</html>

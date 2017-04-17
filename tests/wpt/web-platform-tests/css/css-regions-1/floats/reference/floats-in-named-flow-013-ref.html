@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Reftest Reference</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<style>
+		article {
+			color: gray;
+			font-family: Ahem;
+			font-size: 20px;
+			line-height: 1em;
+		}
+		.float {
+			color: lightblue;
+			float: left;
+		}
+		.region-parent {
+			width: 100px;
+		}
+		.region {
+			border-right: 20px solid lightblue;
+			overflow: hidden;
+		}
+		</style>
+	</head>
+	<body>
+		<p>
+			Test passes if you see a blue square and no red.
+		</p>
+
+
+		<div class="region-parent">
+			<div class="region">
+				<article>
+					<div class="flow float">
+						<div>
+							xxxx<br>
+							xxxx<br>
+							xxxx<br>
+							xxxx<br>
+							xxxx
+						</div>
+					</div>
+				</article>
+			</div>
+		</div>
+	</body>
+</html>

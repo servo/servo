@@ -1,0 +1,35 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: 'left' and 'top' do not apply to (non-positioned) transformed elements</title>
+  <link rel="author" title="Apple Inc." href="http://www.apple.com/"/>
+  <link rel="help" href="RELEVANT_SPEC_SECTION"/>
+  <link rel="match" href="reftest/transform-stacking-context-002-ref.xht"/>
+  <meta name="flags" content="" />
+  <meta name="assert" content="'left' and 'top' do not apply to (non-positioned) transformed elements"/>
+  <style type="text/css"><![CDATA[
+      div {
+        width: 100px;
+        height: 100px;
+      }
+      #container {
+        background-color: red;
+      }
+      #transformed {
+        background-color: green;
+        transform: translate(0,0);
+        left: 10px;
+        top: 10px;
+      }
+  ]]></style>
+ </head>
+ <body>
+    <p>
+      There is a green box. There is no red.
+    </p>
+    <div id="container">
+      <div id="transformed">
+      </div>
+    </div>
+ </body>
+</html>

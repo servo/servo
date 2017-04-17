@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>CSS Transitions Test: transitionend event with property specificity</title>
+        <meta name="assert" content="Test checks that property specificity is properly resolved">
+        <link rel="help" title="2.1. The 'transition-property' Property" href="http://www.w3.org/TR/css3-transitions/#transition-property-property">
+        <link rel="help" title="5. Transition Events" href="http://www.w3.org/TR/css3-transitions/#transition-events">
+        <link rel="author" title="Rodney Rehm" href="http://rodneyrehm.de/en/">
+        <meta name="flags" content="dom">
+
+        <script src="/resources/testharness.js" type="text/javascript"></script>
+        <script src="/resources/testharnessreport.js" type="text/javascript"></script>
+
+        <script src="./support/vendorPrefix.js" type="text/javascript"></script>
+        <script src="./support/helper.js" type="text/javascript"></script>
+        <script src="./support/runParallelAsyncHarness.js" type="text/javascript"></script>
+        <script src="./support/generalParallelTest.js" type="text/javascript"></script>
+        <script src="./support/properties.js" type="text/javascript"></script>
+
+        <style type="text/css">
+            #offscreen {
+                position: absolute;
+                top: -100000px;
+                left: -100000px;
+                width: 100000px;
+                height: 100000px;
+            }
+        </style>
+
+        <script id="metadata_cache">/*
+        {
+          "property repetition / events": {},
+          "padding, padding-left / events": {},
+          "padding-left, padding / events": {}
+        }
+        */</script>
+    </head>
+    <body>
+        <!-- required by testharnessreport.js -->
+        <div id="log"></div>
+        <!-- elements used for testing -->
+        <div id="fixture" class="fixture">
+            <div class="container">
+                <div class="transition">Text sample</div>
+            </div>
+        </div>
+        <div id="offscreen"></div>
+
+        <!--
+            SEE ./support/README.md for an abstract explanation of the test procedure
+            http://test.csswg.org/source/contributors/rodneyrehm/submitted/css3-transitions/README.md
+        -->
+
+        <script>
+            // If a property is specified multiple times in the value of ‘transition-property’ (either on its own, via a shorthand that
+            // contains it, or via the ‘all’ value), then the transition that starts uses the duration, delay, and timing function at
+            // the index corresponding to the last item in the value of ‘transition-property’ that calls for animating that property.
+
+            // this test takes its time, give it a minute to run
+            var timeout = 60000;
+            setup({timeout: timeout});
+
+            var tests = [
+                {
+                    name: "property repetition",
+                    transitions: 'padding-left .1s linear 0s, padding-left .15s linear 0s',
+                    from: {'padding-left': '1px'},
+                    to: {'padding-left': '10px'},
+                    expect: [
+                        'padding-left:0.15s'
+                    ]
+                }, {
+                    name: "padding, padding-left",
+                    transitions: 'padding .1s linear 0s, padding-left .15s linear 0s',
+                    from: {'padding-left': '1px'},
+                    to: {'padding-left': '10px'},
+                    expect: [
+                        'padding-left:0.15s'
+                    ]
+                }, {
+                    name: "padding-left, padding",
+                    transitions: 'padding-left .1s linear 0s, padding .15s linear 0s',
+                    from: {'padding-left': '1px'},
+                    to: {'padding-left': '10px'},
+                    expect: [
+                        'padding-left:0.15s'
+                    ]
+                }
+            ];
+
+            // general transition-duration
+            var duration = '0.5s';
+
+            runParallelAsyncHarness({
+                // array of test data
+                tests: tests,
+                // the number of tests to run in parallel
+                testsPerSlice: 50,
+                // milliseconds to wait before calling teardown and ending test
+                duration: parseFloat(duration) * 1000,
+                // the global suite timeout
+                timeout: timeout,
+                // prepare individual test
+                setup: function(data, options) {
+                    var styles = {
+                        '.fixture': {},
+
+                        '.container': {},
+                        '.container.to': {},
+                        '.container.how': {},
+
+                        '.transition': data.from,
+                        '.transition.to' : data.to,
+                        '.transition.how' : {transition: data.transitions}
+                    };
+
+                    generalParallelTest.setup(data, options);
+                    generalParallelTest.addStyles(data, options, styles);
+                },
+                // cleanup after individual test
+                teardown: generalParallelTest.teardown,
+                // invoked prior to running a slice of tests
+                sliceStart: generalParallelTest.sliceStart,
+                // invoked after running a slice of tests
+                sliceDone: generalParallelTest.sliceDone,
+                // test cases, make them as granular as possible
+                cases: {
+                    // test TransitionEnd events
+                    'events': {
+                        start: function(test, data, options) {
+                            // kick off the transition
+                            generalParallelTest.startTransition(data);
+                        },
+                        done: function(test, data, options) {
+                            // make sure we got the event for the tested property only
+                            test.step(generalParallelTest.assertExpectedEventsFunc(data, 'transition', data.expect));
+                        }
+                    }
+                },
+                // called once all tests are done
+                done: generalParallelTest.done
+            });
+        </script>
+    </body>
+</html>

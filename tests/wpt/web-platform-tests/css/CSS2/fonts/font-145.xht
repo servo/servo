@@ -1,0 +1,34 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: The 'font' property with line-height: normal</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/fonts/003.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-shorthand" />
+  <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-prop"/>
+
+  <meta name="flags" content="ahem"/>
+  <style type="text/css">
+   .container { background: red; height: 1em; width: 6em; }
+   .test { font: 2em/0 Ahem; background: green; color: green; }
+   .test { font: 2em/normal Ahem; } /* should override previous line */
+  </style>
+ </head>
+ <body>
+
+  <p>Test passes if there is a small filled green rectangle and <strong>no red</strong>.</p>
+  <div class="container"><div class="test">ppp</div></div>
+
+  <!-- "p" is like an underscore in Ahem. -->
+
+  <!-- the result will be that if the line-height is 0, then the
+       container will be visible as the test will be height:0 and the
+       text will overflow the test with a small green line, leaving
+       the red of the container visible. otherwise, line-height is
+       normal, the test block will grow to be bigger than the
+       container, overflowing it, and hiding the red. -->
+
+  <!-- see line-height/001.html -->
+
+ </body>
+</html>

@@ -1,0 +1,44 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: The anonymous block box around a table is not used for table percentage height</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#model" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Percentage height of table is relative to its anonymous box's containing block." />
+        <style type="text/css">
+            #div1
+            {
+                height: 400px;
+            }
+            #div2
+            {
+                background: blue;
+                float: left;
+                height: 200px;
+                width: 1ex;
+            }
+            table
+            {
+                border-spacing: 0;
+                height: 50%;
+            }
+            td
+            {
+                background: black;
+                padding: 0;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the boxes below are the same height.</p>
+        <div id="div1">
+            <div id="div2"></div>
+            <table>
+                <tr>
+                    <td>X</td>
+                </tr>
+            </table>
+        </div>
+    </body>
+</html>

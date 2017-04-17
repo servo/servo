@@ -1,0 +1,31 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Background with (image attachment position)</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#propdef-background" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background-properties" />
+        <meta name="flags" content="image interact" />
+        <meta name="assert" content="Background with (image attachment position) sets the background to the image specified, the image is positioned at the bottom, and scrolls with the box." />
+        <style type="text/css">
+            #div1
+            {
+                height: 200px;
+                width: 200px;
+                overflow: scroll;
+            }
+            div div
+            {
+                background: url("support/cat.png") scroll bottom left;
+                width: 400px;
+                height: 400px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the box below is filled with cat images, and when the box is scrolled down, the cat images move. Also, the cat in the left bottom corner is not cut off.</p>
+        <div id="div1">
+            <div></div>
+        </div>
+    </body>
+</html>

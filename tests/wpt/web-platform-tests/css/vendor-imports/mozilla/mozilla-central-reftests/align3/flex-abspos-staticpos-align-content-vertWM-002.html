@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+<head>
+  <title>CSS Test: Static position of abspos children in a vertical-rl column flex container, with various "align-content" values</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <link rel="help" href="https://drafts.csswg.org/css-align-3/#align-abspos-static">
+  <link rel="match" href="flex-abspos-staticpos-align-content-vertWM-002-ref.html">
+  <meta charset="utf-8">
+  <style>
+    .container {
+      display: flex;
+      flex-flow: column wrap;
+      writing-mode: vertical-rl;
+      padding: 1px 2px;
+      border: 1px solid black;
+      background: yellow;
+      margin-bottom: 5px;
+      margin-right: 5px;
+      float: left; /* For testing in "rows" of containers */
+    }
+    br { clear: both }
+
+    .big > .container {
+      height: 10px;
+      width: 16px;
+    }
+    .small > .container {
+      height: 2px;
+      width: 4px;
+    }
+
+    .container > * {
+      position: absolute;
+      background: teal;
+      height: 6px;
+      width: 8px;
+      /* This "align-self" only gets a chance to take effect when our container
+         has "align-content: stretch". In that case, it helps us verify that
+         the container's "align-content: stretch" is actually taking effect
+         and stretching the flex line (and giving us space to center in). */
+      align-self: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="big">
+    <!-- The various align-content values, from
+         https://www.w3.org/TR/css-align-3/#propdef-align-content -->
+    <!-- normal -->
+    <div class="container" style="align-content: normal"><div></div></div>
+    <br>
+    <!-- <baseline-position> -->
+    <div class="container" style="align-content: baseline"><div></div></div>
+    <div class="container" style="align-content: last baseline"><div></div></div>
+    <br>
+    <!-- <content-distribution> -->
+    <div class="container" style="align-content: space-between"><div></div></div>
+    <div class="container" style="align-content: space-around"><div></div></div>
+    <div class="container" style="align-content: space-evenly"><div></div></div>
+    <div class="container" style="align-content: stretch"><div></div></div>
+    <br>
+    <!-- <content-position>, part 1 -->
+    <div class="container" style="align-content: center"><div></div></div>
+    <div class="container" style="align-content: start"><div></div></div>
+    <div class="container" style="align-content: end"><div></div></div>
+    <br>
+    <!-- <content-position>, part 2 -->
+    <div class="container" style="align-content: flex-start"><div></div></div>
+    <div class="container" style="align-content: flex-end"><div></div></div>
+    <div class="container" style="align-content: left"><div></div></div>
+    <div class="container" style="align-content: right"><div></div></div>
+    <br>
+  </div>
+  <div class="small">
+    <!-- The various align-content values, from
+         https://www.w3.org/TR/css-align-3/#propdef-align-content -->
+    <!-- normal -->
+    <div class="container" style="align-content: normal"><div></div></div>
+    <br>
+    <!-- <baseline-position> -->
+    <div class="container" style="align-content: baseline"><div></div></div>
+    <div class="container" style="align-content: last baseline"><div></div></div>
+    <br>
+    <!-- <content-distribution> -->
+    <div class="container" style="align-content: space-between"><div></div></div>
+    <div class="container" style="align-content: space-around"><div></div></div>
+    <div class="container" style="align-content: space-evenly"><div></div></div>
+    <div class="container" style="align-content: stretch"><div></div></div>
+    <br>
+    <!-- <content-position>, part 1 -->
+    <div class="container" style="align-content: center"><div></div></div>
+    <div class="container" style="align-content: start"><div></div></div>
+    <div class="container" style="align-content: end"><div></div></div>
+    <br>
+    <!-- <content-position>, part 2 -->
+    <div class="container" style="align-content: flex-start"><div></div></div>
+    <div class="container" style="align-content: flex-end"><div></div></div>
+    <div class="container" style="align-content: left"><div></div></div>
+    <div class="container" style="align-content: right"><div></div></div>
+    <br>
+  </div>
+</body>
+</html>

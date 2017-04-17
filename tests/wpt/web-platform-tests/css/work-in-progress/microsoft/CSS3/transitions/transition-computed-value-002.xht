@@ -1,0 +1,75 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: A transition is not started when the computed value of a property changes because it is directly inherited from another element that is transitioning the same property.</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css3-transitions/#starting" />
+        <meta name="flags" content="animated dom" />
+        <meta name="assert" content="A transition is not started when the computed value of a property changes because it is directly inherited from another element that is transitioning the same property." />
+        <style type="text/css">
+            #numEvents
+            {
+                position: relative;
+                top: 120px;
+            }
+            #parent
+            {
+                background-color: orange;
+                height: 100px;
+                left: 5px;
+                position: absolute;
+                transition-property: left;
+                transition-duration: 4s;
+                width: 100px;
+            }
+            #testDiv
+            {
+                background-color: blue;
+                height: 50px;
+                left: inherit;
+                position: absolute;
+                transition-property: left;
+                transition-duration: 4s;
+                width: 50px;
+            }
+        </style>
+        <script type="text/javascript">
+            var VARIANCE_ALLOWED = 100; //The allowable variance in transition delay and duration (ms).
+            var parent;
+            var testDiv;
+            var count = 0;
+
+            function printCount()
+            {
+                var numEvents = document.getElementById("numEvents");
+                numEvents.innerHTML = numEvents.innerHTML + count;
+                numEvents.value = numEvents.value + count;
+            }
+
+            function transitionEvent_start()
+            {
+                ++count;
+            }
+             
+            function startTest()
+            {
+                document.body.offsetWidth;
+                testDiv = document.getElementById("testDiv");
+                parent = document.getElementById("parent");
+
+                // add event listener
+                testDiv.addEventListener('TransitionStart', transitionEvent_start, true);
+                
+                setTimeout("parent.style['left'] = '400px'", 1000);
+                setTimeout("printCount()", 4000 + VARIANCE_ALLOWED + 100);
+            }
+        </script>
+    </head>
+    <body onload="startTest()">
+        <p>Test passes if after the orange and blue blocks move gradually right, the value printed to the page for "Number of events" is equal to "0".</p>
+        <div id="parent">
+    <div id="testDiv"></div>
+</div>
+<div id="numEvents">Number of events: </div>
+    </body>
+</html>

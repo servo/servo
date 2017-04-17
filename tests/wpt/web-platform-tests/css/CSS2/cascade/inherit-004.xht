@@ -1,0 +1,19 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: CSS inheritance: basic test</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-04-08 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/inheritance/001.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#fonts-intro" />
+
+  <style type="text/css">
+   p { color: blue; }
+   .test { font-weight: inherit; font-style: inherit; color: inherit; }
+   .test span { font-weight: bold; font-style: italic; color: red; }
+  </style>
+ </head>
+ <body>
+  <p> <span class="test"> This sentence should be <span> </span> the same throughout. </span> </p>
+ </body>
+</html>

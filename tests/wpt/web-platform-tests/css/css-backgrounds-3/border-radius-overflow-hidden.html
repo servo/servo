@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<!-- Submitted from TestTWF Paris -->
+
+<head>
+
+<title>CSS Backgrounds and Borders Test: Clipping to the border-radius curve</title>
+<link rel="author" title="Lea Verou" href="http://lea.verou.me" />
+<link rel="help" href="http://www.w3.org/TR/css3-background/#corner-clipping" />
+<meta name="flags" content="" />
+<meta name="assert" content="Effects that clip to the border or padding edge (such as 'overflow' other than 'visible') must clip to the curve" />
+<style>
+div {
+	position: absolute;
+}
+
+.ref,
+.test {
+	border-radius: 30px;
+}
+
+.ref {
+	width: 104px;
+	height: 104px;
+	left: -2px;
+	top: -2px;
+	background-color: green;
+}
+
+.test,
+.contents {
+	background-color: red;
+	width: 100px;
+	height: 100px;
+}
+
+.test {
+	overflow: hidden;
+}
+
+</style>
+
+</head>
+<body>
+
+<p>Test passes if there is one filled green rounded square and <strong>no red</strong>.</p>
+<div class="container">
+  <div class="test">
+  	<div class="contents"></div>
+  </div>
+  <div class="ref"></div>
+</div>
+
+</body>
+</html>

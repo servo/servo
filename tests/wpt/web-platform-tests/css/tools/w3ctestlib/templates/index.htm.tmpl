@@ -1,0 +1,20 @@
+[% PROCESS "suitedata.tmpl" %]
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html lang="en">
+ <head>
+[% IF official %]
+  <title>[% suites.$suite.title %]</title>
+[% ELSE %]
+  <title>Unofficial [% suites.$suite.title %]</title>
+[% END %]
+  <style type="text/css">
+    @import "http://www.w3.org/StyleSheets/TR/base.css";
+    @import "indices.css";
+  </style>
+ </head>
+ <body>
+
+[% INCLUDE "index.content.tmpl" %]
+
+</body>
+</html>

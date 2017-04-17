@@ -18,9 +18,9 @@ async_test(function(t) {
     assert_equals(sent, undefined);
   });
   ws.onclose = t.step_func(function(e) {
-    ws.onclose = t.step_func(function() {assert_unreached()});
-    setTimeout(function() {t.done()}, 50);
+    ws.onclose = t.unreached_func();
+    t.step_timeout(() => t.done(), 50);
   });
-  ws.onerror = ws.onmessage = t.step_func(function() {assert_unreached()});
+  ws.onerror = ws.onmessage = t.unreached_func();
 });
 </script>

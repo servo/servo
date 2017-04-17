@@ -1,0 +1,61 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Third Test of Section 9.4 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+em {padding: 2px;
+    margin: 1em;
+    border-width: medium;
+    border-style: dashed;
+    line-height: 2.4em;}
+
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Third Testable Statement of Sec 9.4 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+3. In an inline formatting context, boxes are laid out horizontally, one
+after the other, beginning at the top of a containing block.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p>
+If statement #3 is passed, then:
+<p>
+Several <em>emphasized words</em> appear
+<strong> in this </strong> sentence, dear.</p>
+<p>
+The above text will be flowed into line boxes, according to the width of
+the containing block(p).  The margin may be inserted before "emphasized"
+and after "words".  The padding may be inserted before, above, and below
+"emphasized" and after, above, and below "words".  A dashed border should
+be rendered on all sides.
+The words "in this" should be strong.
+<p>
+The rules applied are "em {padding: 2px; margin: 1em; border-width: medium;
+border-style: dashed;line-height: 2.4em}".
+All other properties of this page should be UA-default.
+
+
+</BODY>
+</HTML>
+

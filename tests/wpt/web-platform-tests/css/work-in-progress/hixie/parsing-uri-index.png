@@ -1,0 +1,13 @@
+#!/usr/bin/perl -wT
+use strict;
+
+print "Content-Type: image/png\n\n";
+
+if ($ENV{PATH_INFO} eq '/**/') {
+    open(FILE, '/home/ianh/hixie.ch/resources/images/patterns/busy-green');
+} else {
+    open(FILE, '/home/ianh/hixie.ch/resources/images/patterns/red-pieces');
+}
+local $/ = undef;
+print <FILE>;
+close FILE;

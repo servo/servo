@@ -1,0 +1,31 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: Placement of out-of-flow object in elements that have been collapsed through</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/block/margin-collapse/043.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#collapsing-margins"/>
+  <style type="text/css">
+   .outer { border-top: solid white; border-bottom: solid 1em red; background: green; }
+   .top { height: 1em; background: white; }
+   .float { height: 1em; float: left; background: white; width: 100%; }
+   .bottom { margin-bottom: 1em; }
+  </style>
+ </head>
+ <body>
+  <p>There should be a single green band below, and no red anywhere.</p>
+  <div class="outer">
+   <div class="top"> <!-- 1em vertical white space --> </div>
+   <div class="bottom"> <!-- 1em bottom margin collapses to here -->
+    <div class="bottom"> <!-- 1em bottom margin collapses with above -->
+     <div class="float"> </div> <!-- overlaps the bottom border -->
+    </div> <!-- nothing here, bottom margin collapsed upwards -->
+   </div> <!-- nothing here, bottom margin collapsed upwards -->
+  </div> <!-- 1em bottom red border, coincident with white float above -->
+
+
+
+</body>
+</html><!-- note. this test assumes that we accept the following proposed changes:
+     http://lists.w3.org/Archives/Member/w3c-css-wg/2003AprJun/0347.html
+  -->

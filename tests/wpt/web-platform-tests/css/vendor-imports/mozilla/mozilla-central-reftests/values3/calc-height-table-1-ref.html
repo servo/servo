@@ -1,0 +1,29 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>CSS Reference: Test that height:calc() with no percentages has an effect on inner table elements</title>
+  <link rel="author" title="L. David Baron" href="https://dbaron.org/">
+  <meta name="flags" content="">
+<style type="text/css">
+tbody, tr, td {
+  height: 500px;
+  min-height: 700px;
+  max-height: 2px;
+}
+</style>
+</head>
+<body>
+<table border>
+  <tbody>
+    <tr>
+      <td>cell</td>
+      <td>cell</td>
+    </tr>
+    <tr>
+      <td>cell</td>
+      <td>cell</td>
+    </tr>
+  </tbody>
+</table>
+</body>
+</html>

@@ -1,0 +1,23 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Outline is the same on all sides</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/ui.html#dynamic-outlines" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Outline is the same on all sides." />
+        <style type="text/css">
+            div
+            {
+                height: 100px;
+                margin: 40px;
+                outline: 10px solid black;
+                width: 100px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the box below has the same color, style and width on all edges.</p>
+        <div></div>
+    </body>
+</html>

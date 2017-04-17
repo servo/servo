@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Masking: mask-image: mask layer image</title>
+    <link rel="author" title="Astley Chen" href="mailto:aschen@mozilla.com">
+    <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+    <link rel="help" href="https://www.w3.org/TR/css-masking-1/#the-mask-image">
+    <link rel="match" href="mask-image-2-ref.html">
+    <meta name="assert" content="Test checks whether gradient CSS image as mask layer works correctly or not.">
+    <style type="text/css">
+      div {
+        background-color: purple;
+        width: 100px;
+        height: 100px;
+      }
+
+      div.mask-by-gradient-1 {
+        mask-image: linear-gradient(rgba(0,0,255,0), rgba(0,0,255,1)); /* blue gradient mask */
+      }
+
+      div.mask-by-gradient-2 {
+        mask-image: linear-gradient(rgba(255,0,0,0), rgba(255,0,0,1)); /* red gradient mask */
+      }
+    </style>
+  </head>
+  <body>
+    <div class="mask-by-gradient-1"></div>
+    <div class="mask-by-gradient-2"></div>
+  </body>
+</html>

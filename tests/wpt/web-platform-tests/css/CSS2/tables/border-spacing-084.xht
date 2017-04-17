@@ -1,0 +1,44 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border-spacing using 'ex' units with a nominal value with a plus sign, +7.5ex</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#propdef-border-spacing" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#separated-borders" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="Border-spacing can be set to a nominal length (with plus sign) in 'ex' units." />
+        <style type="text/css">
+            div, table
+            {
+                font: 20px Ahem;
+            }
+            div
+            {
+                background: black;
+                height: 1em;
+                left: 15ex;
+                position: relative;
+                top: 7.5ex;
+                width: 7.5ex;
+            }
+            table
+            {
+                border-spacing: +7.5ex;
+            }
+            td
+            {
+                padding: 0;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the middle bar is as wide as the space between the first and last bars.</p>
+        <div></div>
+        <table>
+            <tr>
+                <td>XXXXXX</td>
+                <td>XXXXXX</td>
+            </tr>
+        </table>
+    </body>
+</html>

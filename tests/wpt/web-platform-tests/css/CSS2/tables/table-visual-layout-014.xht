@@ -1,0 +1,51 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: A spanning cell's rectangle must be as far to the right as possible in an 'rtl' table</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#table-layout" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="With 'rtl' tables, the spanning cell's rectangle is as far to the right as possible, but to the left of all cells in the same row that were earlier in source (no overlapping)." />
+        <style type="text/css">
+            table
+            {
+                direction: rtl;
+            }
+            td
+            {
+                border: 1px solid black;
+                height: 100px;
+                width: 100px;
+            }
+            #cell
+            {
+               background: black;
+            }
+            .cell
+            {
+                background: blue;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the black square is to the left of both blue boxes on the page.</p>
+        <table>
+            <tr>
+                <td></td>
+                <td class="cell" rowspan="2"></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td class="cell"></td>
+                <td id="cell" rowspan="2" colspan="2"></td>
+            </tr>
+            <tr>
+                <td></td>
+            </tr>
+            <tr>
+                <td></td>
+            </tr>
+        </table>
+    </body>
+</html>

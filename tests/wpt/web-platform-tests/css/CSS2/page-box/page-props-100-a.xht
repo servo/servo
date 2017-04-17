@@ -1,0 +1,43 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Unqualified Page Contexts (first, right)</title>
+  <link rel="author" title="Melinda Grant" href="mailto:melinda.grant@hp.com" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-margins" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-selectors" />
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#at-page-rule" />
+  <meta name="flags" content="paged" />
+  <meta name="assert" content="A margin declaration within a page context which is not qualified by a pseudo-class (or, for css3, a named page identifier) sets the margins for every page of the document which doesn't match a page context with a :first, :right, or :left pseudoclass (or, for css3, a named page identifier)." />
+  <style type="text/css">
+    @page {
+        margin: 7%;
+    }
+    @page :first {
+        margin-left: 50%;
+    }
+    @page :right {
+        margin-left: 50%;
+    }
+    p {
+        page-break-after: always;
+    }
+   </style>
+ </head>
+ <body>
+   <p>
+     This test produces four pages on paged media.
+     <br />
+     <br />
+     The text on this page is entirely on the right half of the page.
+   </p>
+   <p>
+     This text on page two begins near the left edge of the page.
+   </p>
+   <p>
+     Ths text on page three is entirely on the right half of the page.
+   </p>
+   <p>
+     This text on page four begins near the left edge of the page.
+   </p>
+ </body>
+</html>

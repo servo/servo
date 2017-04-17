@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>border-style: double</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/border/style/001.html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-style-properties"/>
+  <style type="text/css">
+   .double { border: double 3em red; margin: 2em 0 0 2em; height: 6em; width: 10em;  }
+   .single1 { border: solid 1em green; margin: -12em 0 0 2em; padding: 1em; width: 12em; }
+   .single2 { border: solid 1em green; height: 6em; }
+  </style>
+ </head>
+ <body>
+  <p>There should be two nested green rectangles below.</p>
+  <div class="double"></div>
+  <div class="single1"><div class="single2"></div></div>
+
+  <!-- this test assumes that double borders are implemented so that
+  there are three equally-sized bands, two on the outside being of the
+  border-color and one on the inside being transparent. -->
+
+ 
+
+</body>
+</html>

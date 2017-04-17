@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Test: 'object-fit: fill' on video element, with a SVG image and with various 'object-position' values</title>
+    <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+    <link rel="help" href="http://www.w3.org/TR/css3-images/#sizing">
+    <link rel="help" href="http://www.w3.org/TR/css3-images/#the-object-fit">
+    <link rel="help" href="http://www.w3.org/TR/css3-images/#the-object-position">
+    <link rel="match" href="object-fit-fill-svg-005-ref.html">
+    <style type="text/css">
+      video {
+        border: 1px dashed gray;
+        padding: 1px;
+        object-fit: fill;
+        float: left;
+      }
+
+      .bigWide {
+        width: 48px;
+        height: 32px;
+      }
+      .bigTall {
+        width: 32px;
+        height: 48px;
+      }
+      .small {
+        width: 8px;
+        height: 8px;
+      }
+
+      br { clear: both; }
+
+      .tr { object-position: top right }
+      .bl { object-position: bottom left }
+      .tl { object-position: top 25% left 25% }
+      .br { object-position: bottom 1px right 2px }
+
+      .tc { object-position: top 3px center }
+      .cr { object-position: center right 25% }
+    </style>
+  </head>
+  <body>
+    <!-- big/wide: -->
+    <video poster="support/colors-16x8-parDefault.svg" class="bigWide tr"></video>
+    <video poster="support/colors-16x8-parDefault.svg" class="bigWide bl"></video>
+    <video poster="support/colors-16x8-parDefault.svg" class="bigWide tl"></video>
+    <video poster="support/colors-16x8-parDefault.svg" class="bigWide br"></video>
+    <video poster="support/colors-16x8-parDefault.svg" class="bigWide tc"></video>
+    <video poster="support/colors-16x8-parDefault.svg" class="bigWide cr"></video>
+    <video poster="support/colors-16x8-parDefault.svg" class="bigWide"></video>
+    <br>
+    <!-- big/tall: -->
+    <video poster="support/colors-16x8-parDefault.svg" class="bigTall tr"></video>
+    <video poster="support/colors-16x8-parDefault.svg" class="bigTall bl"></video>
+    <video poster="support/colors-16x8-parDefault.svg" class="bigTall tl"></video>
+    <video poster="support/colors-16x8-parDefault.svg" class="bigTall br"></video>
+    <video poster="support/colors-16x8-parDefault.svg" class="bigTall tc"></video>
+    <video poster="support/colors-16x8-parDefault.svg" class="bigTall cr"></video>
+    <video poster="support/colors-16x8-parDefault.svg" class="bigTall"></video>
+    <br>
+    <!-- small: -->
+    <video poster="support/colors-16x8-parDefault.svg" class="small tr"></video>
+    <video poster="support/colors-16x8-parDefault.svg" class="small bl"></video>
+    <video poster="support/colors-16x8-parDefault.svg" class="small tl"></video>
+    <video poster="support/colors-16x8-parDefault.svg" class="small br"></video>
+    <video poster="support/colors-16x8-parDefault.svg" class="small tc"></video>
+    <video poster="support/colors-16x8-parDefault.svg" class="small cr"></video>
+    <video poster="support/colors-16x8-parDefault.svg" class="small"></video>
+    <br>
+  </body>
+</html>

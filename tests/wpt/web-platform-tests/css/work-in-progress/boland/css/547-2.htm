@@ -1,0 +1,73 @@
+
+<HTML>
+
+<HEAD>
+<TITLE>Second Test of Section 5.4.7 of CSS1 Spec</TITLE>
+
+<STYLE>
+body {text-indent:}
+p {text-indent: 3em}
+h3 {text-indent: 10em}
+blockquote {text-indent: 50%}
+</STYLE>
+</HEAD>
+
+
+
+
+
+
+
+<BODY>
+
+
+<h1>Testing Statement #2 Below of Section 5.4.7 of CSS1 Spec</h1>
+
+
+
+
+
+
+
+
+<ul>
+<li>
+2. For "text-indent", initial is 0, it applies to block-level elements, it is
+inherited, and percentage values refer to parent element's width.
+</ul>
+
+<h2>
+PASS CRITERIA:
+</h2>
+If statement #2 above is passed, the body of this page shoudl
+have a text indent of 0 (initial value).
+The rule applied is "body {text-indent: }".
+So the text-indent property applies to the body element.
+<p>
+This paragraph should have a text indent of 3em.
+The rule applied is 'p {text-indent: 3em}".
+So the text-indent property applies to the p element.
+
+<h3>
+This h3 element should have a text indent of 10em.
+The rule applied is "h3 {text-indent: 10em}".
+So the text-indent property applies to the h3 element.
+</h3>
+<h4>
+This h4 element should have a text indent of 0, since h4 is a child of body
+element, and this property is inherited.
+</h4>
+<blockquote>
+This blockquote element should have a text indent of 50% of that of the
+body element, since blockquote is a child of body element.
+The rule applied is "blockquote {text-indent: 50%}".
+</blockquote>
+
+
+All other properties of this page should be UA-default.
+
+To move directly to the next test, click<a href="547-3.htm"> here</a>
+
+</BODY>
+</HTML>
+

@@ -1,0 +1,75 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Seventh Test of Section 9.9 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+.pile {
+  position: absolute;
+  left: 2in;
+  top: 2in;
+  width: 3in;
+  height: 3in;
+}
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Seventh Testable Statement of Sec 9.9 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+7. The default behavior of a box is to allow boxes behind it to be visible
+through transparent areas in its content.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA(some overlapping lines and large image):
+</h2>
+<p >
+If statement #7 above is passed, then
+there should be some overlapping lines and text should overlap the image
+below.
+The rules applied are ".pile {position: absolute; left: 2in; top: 2in;
+width: 3in; height: 3in;}".
+<p>
+  <img id="image" class="pile" 
+      src="ovalbbut.gif" alt="green oval"
+      style="z-index: 1">
+
+<div id="text1" class="pile"
+     style="z-index: 3">
+Here is some more text to test.
+</div>
+
+<div id="text2">
+  Here is some more text to test.
+</div>
+
+<div id="text3" class="pile"
+     style="z-index: 2">
+  This text will underlay text1, but overlay the oval button image
+  Here is some more text to test this more effectively in this case.
+  Here is some more text to test this more effectively in this case.
+  Here is some more text to test this more effectively in this case.
+  Here is some more text to test this more effectively in this case.
+</div>
+All other properties of this page should be UA-default.
+
+
+</BODY>
+</HTML>
+

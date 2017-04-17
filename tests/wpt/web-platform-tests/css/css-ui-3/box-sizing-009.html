@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: box-sizing:border-box and auto sizing of replaced elements with intrinisic height only.</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-ui-3/#box-sizing">
+<link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#inline-replaced-width">
+<link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#inline-replaced-height">
+<meta name="flags" content="svg">
+<link rel="match" href="reference/box-sizing-009-ref.html">
+<meta name="assert" content="Exercises the sizing rules in CSS2.1 10.3.2 and 10.6.2 with box-sizing:border-box for replaced elements with intrisic height and no intrinsic ratio, to check that they work correctly in terms of the content width height.">
+<style>
+#ref {
+	width: 300px;
+	height: 100px;
+	background: green;
+	margin: 10px;
+	display: inline-block;
+}
+img {
+	box-sizing: border-box;
+	width: auto;
+	height: auto;
+	background: white;
+	margin: 10px;
+}
+
+#t01 {
+	padding-left: 20px;
+	margin-left: -10px; /*not strictly necessary, but helps preserve alignment, which makes visual verification easier. */
+}
+#t02 {
+	padding-bottom: 20px;
+	margin-bottom: -10px; /*not strictly necessary, but helps preserve alignment, which makes visual verification easier. */
+}
+#t03 {
+	width: 320px;
+	padding-left: 20px;
+	margin-left: -10px; /*not strictly necessary, but helps preserve alignment, which makes visual verification easier. */
+}
+#t04 {
+	height: 120px;
+	padding-bottom: 20px;
+	margin-bottom: -10px; /*not strictly necessary, but helps preserve alignment, which makes visual verification easier. */
+}
+body {
+	max-width: 700px;
+}
+</style>
+<body>
+  <p>Test passes if there are 6 <strong>filled green rectangles</strong> and they are the <strong>same size</strong>.</p>
+  <div id="ref"></div>
+  <img id=t00 src="support/h100.svg">
+  <img id=t01 src="support/h100.svg">
+  <img id=t02 src="support/h100.svg">
+  <img id=t03 src="support/h100.svg">
+  <img id=t04 src="support/h100.svg">
+</body>

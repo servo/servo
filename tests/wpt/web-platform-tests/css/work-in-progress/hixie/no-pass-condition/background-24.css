@@ -1,0 +1,4 @@
+body,p,div { display: block; }
+   body { background: url(http://www.hixie.ch/resources/images/patterns/plasma-and-fail-99-repeat-x) 0 3em repeat-x; margin: 0; border: 0; padding: 0; }
+   p { background: white; margin-top: 5em; border: 0; padding: 1em; white-space: nowrap; font: 1em/1 serif; }
+   div { position: fixed; top: 8em; margin-top: 99px; height: 257px; background: white; left: 0; right: 0; }

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <title>CSS Animations - animation shorthand and !important keyword</title>
+   <link rel="author" title="Opera Software ASA" href="http://www.opera.com/">
+   <link rel="help" href="https://drafts.csswg.org/css3-animations/#the-animation-shorthand-property-">
+   <meta name="flags" content="dom">
+   <meta name="assert" content="A declaration setting the animation shorthand
+   property can be marked as important">
+   <script src="/resources/testharness.js"></script>
+   <script src="/resources/testharnessreport.js"></script>
+   <style type="text/css">
+      @keyframes move-right {
+         from {
+            left: 0px;
+         }
+         to {
+            left: 100px;
+         }
+      }
+      @keyframes move-down {
+         from {
+            top: 0px;
+         }
+         to {
+            top: 100px;
+         }
+      }
+      div {
+         width: 100px;
+         height: 100px;
+         background: blue;
+         position: relative;
+      }
+      .test {
+         animation-duration: 0s !important;
+         animation: move-right 1s !important;
+         animation-name: move-down;
+         animation-fill-mode: forwards !important;
+      }
+   </style>
+   <script type="text/javascript">
+      setup({explicit_done:true});
+      onload = function() {
+         var testName = document.querySelector('title').firstChild.data;
+         var div = document.querySelector('div');
+         var log = document.querySelectorAll('p')[1].firstChild;
+         function aboutEqual(observed, actual) {
+            var maxDeviation = 0.1;
+            return (Math.abs(observed - actual) < maxDeviation);
+         }
+         var timeout = setTimeout(function() {
+            test(function(){assert_true(false);}, testName); done();
+            log.data = 'FAIL';
+         }, 1500);
+         div.addEventListener('animationend', function(evt) {
+            clearTimeout(timeout);
+            var style = getComputedStyle(div, null);
+            var passed = (aboutEqual(evt.elapsedTime, 1)
+                          && style.left == '100px' && style.top == 'auto');
+            test(function(){assert_true(passed);}, testName); done();
+            log.data = (passed ? 'PASS if the animation occurred.' : 'FAIL');
+         });
+         div.className = 'test';
+      }
+   </script>
+   <style>iframe{display:none}</style>
+</head>
+<body>
+   <p>The blue square below should slide rightwards without moving vertically,
+   and then stop without returning to the initial position.</p>
+   <p>Testing...</p>
+   <div></div>
+</body>
+</html>

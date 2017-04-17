@@ -1,0 +1,33 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+ <head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>CSS Test: :before/:after pseudo-elements - 'position:fixed'</title>
+  <link rel="author" title="James Hopkins" href="mailto:james(at)idreamincode.co.uk">
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#before-after-content">
+  <link rel="match" href="before-after-positioned-002-ref.html">
+  <meta name="assert" content="Since the restriction on assigning positioning schemes to the :before and :after pseudo elements was lifted in CSS 2.1, this tests whether 'position:fixed' can be correctly applied to both pseudo elements.">
+  <style type="text/css">
+  #test:after,
+  #test:before{
+  background:blue;
+  bottom:0;
+  content:"";
+  height:100px;
+  position:fixed;
+  right:0;
+  width:50px;
+  }
+  #test:before{
+  bottom:0;
+  right:50px;	
+  }
+  </style>
+ </head>
+
+ <body>
+  <p>Test passes if there is a square (four equal sides) at the bottom right of the page.</p>
+  <div id="test"></div> 
+ </body>
+
+</html>

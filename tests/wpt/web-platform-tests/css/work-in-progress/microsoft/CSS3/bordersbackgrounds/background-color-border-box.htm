@@ -1,0 +1,35 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Background color clipped to 'border-box'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css3-background/#the-background-color" />
+        <meta name="flags" content="image" />
+        <meta name="assert" content="Background color is clipped according to the 'background-clip' value associated with the bottom-most background image." />
+        <style type="text/css">
+            div div
+            {
+                width: 250px;
+                height: 250px;
+                border: 10px dashed purple;
+                padding: 10px;
+                background-image: url("../support/blue_color.png"), url("../support/orange_color.png"), url("../support/green_color.png");
+                background-repeat: no-repeat;
+                background-clip: padding-box, content-box, border-box;
+                background-position: 30px 30px, 60px 60px, 90px 90px;
+                background-color: black;
+            }
+            #parent
+            {
+                width: 290px;
+                background: red;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if green is visible on the page and there is no red is visible on the page.</p>
+        <div id="parent">
+            <div></div>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,65 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD//XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSSOM View - HTMLImageElement.{x,y} Equivalence with HTMLElement.offset{Left,Top} - Static Position</title>
+    <link rel="author" title="Glenn Adams" href="mailto:glenn@skynav.com"/>
+    <link rel="help" href="http://www.w3.org/TR/cssom-view/#widl-def-HTMLElement"/>
+    <meta name="flags" content="dom"/>
+    <script src="/resources/testharness.js"/>
+    <script src="/resources/testharnessreport.js"/>
+    <style>
+    body { margin: 0px }
+    #img1 { position: static; margin-left: 213px; margin-top: 17px }
+    </style>
+  </head>
+  <body>
+    <div id="box">
+      <img id="img1" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAtJJREFUeNrMV09r1EAUf/nnYduypWARaUEQ2+LJPehR1w8gevWi+wFavBTBm55EQVQUr3a/QUXwJu0qXuph48ltPdhqq6IVtrpsW5PMOJOdZGeymZ1JWqUPHpkMk/d+8/4HQE5lwpg9b7J19Ix4gVtfIvwxca4MCjJBTfcJX2XrRcJz3LrKnXtK+BhkJB0ApzjBvNIaB6ZJeFjybbkfMB0A5wnfUpxxGZgHKdajbqrIPrQUgrfYrekN19ia318lbDBrUJC73Lk1tl/jzh48MpIb6xcmKlzQ7TdVx56vzPEbdsqhpk765KSHyQ0ZAG0aOmIpz+xsIfC2caps83/4GQXZ6oD7D7G4yiBkgYhjhFMlcK4/TpXmOA4Ui0Wptva9CvjLS9D6HgBGACQAjcwuwJvfcl83+Py+IwNlL8WLXQBfcwPA7d+pMlVZ0Je8u9OAGvVwTcueociC4A/O1YyEdMGfPuxHADazWOAd6+8dANutOFqN8RMxasMwwR49JDH/LxIDjaTMvbvAvnxNyIKCJAt89yW0n8wQF+SbB4TOhZnPs2VAo69MlQVEACQT0HIviMCyIRgZ7N5mbAqMwpDoCoxzARAVvXkRck9GUAFcFgzMVsGaOC2kYOApXKpjAb4aUkt4d6bV9X+9oVXiU2OAlEzp9GKSLJCOV+z2ggsCHMls5nYBbre6L4VBcGZuh8UI1V+DNT5CFJ8Be1JUjjY3lJ1QBcBlU21PITJLZ0N2rszCgCQN0c8NrQ5r6lYuVH+lnYK0BoTf+Fg55GgXIu/Rje7tSVCakyWA4yfjnA9WlkjrfRsrV3VBHQC1tNmQWiKyhn/4KFijdtLcMll7s0Cqn398AWRZicLT6YD+DlZ2Qp0gjAOxLxCfKiRu2sWAPCyTo/dfkDKeDbPOeI49hX9A0hCTvl5lwwc1+7ws/7UBpACKfjgvcjFCFT6jT6Iw01D7V4ABALvsF7lgQK5jAAAAAElFTkSuQmCC"/>
+    </div>
+    <div id="log"></div>
+    <script><![CDATA[
+
+      var doc = window.document;
+
+      var e = doc.getElementById("img1");
+
+      test(function(){
+
+        assert_equals(getComputedStyle(e).left, "auto");
+
+      }, 'getComputedStyle(img1).left === \"auto\"');
+
+      test(function(){
+
+        assert_equals(e.offsetLeft, 213);
+
+      }, 'img1.offsetLeft === 213');
+
+      test(function(){
+
+        assert_equals(e.x, 213);
+
+      }, 'img1.x === 213');
+
+      test(function(){
+
+        assert_equals(getComputedStyle(e).top, "auto");
+
+      }, 'getComputedStyle(img1).top === \"auto\"');
+
+      test(function(){
+
+        assert_equals(e.offsetTop, 17);
+
+      }, 'img1.offsetTop === 17');
+
+      test(function(){
+
+        assert_equals(e.y, 17);
+
+      }, 'img1.y === 17');
+
+    ]]>
+    </script>
+  </body>
+</html>

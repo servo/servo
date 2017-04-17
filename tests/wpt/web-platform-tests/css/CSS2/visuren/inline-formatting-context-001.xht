@@ -1,0 +1,33 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Establishing an Inline Formatting Context</title>
+
+  <link rel="help" href="http://www.w3.org/TR/CSS22/visuren.html#inline-formatting" />
+  <link rel="help" href="http://www.w3.org/TR/CSS22/changes.html#s.9.4.2" />
+  <link rel="match" href="inline-formatting-context-001-ref.xht" />
+  <link rel="author" title="Bert Bos" href="mailto:bert@w3.org/" />
+  <meta name="assert" content="An inline formatting context is established by a block container box that contains no block-level boxes. In an inline formatting context, boxes are laid out horizontally, one after the other, beginning at the top of a containing block." />
+
+  <style type="text/css"><![CDATA[
+  #block {display: block; min-width: 25em}
+  .inline {display: inline}
+  ]]></style>
+ </head>
+
+ <body>
+  <div id="block">
+    <div class="inline">Test</div>
+    passes
+    <div class="inline">if</div>
+    all
+    words
+    <div class="inline">are</div>
+    on
+    <div class="inline">one</div>
+    line.
+  </div>
+
+ </body>
+</html>

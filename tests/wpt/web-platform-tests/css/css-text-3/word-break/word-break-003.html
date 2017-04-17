@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Test: word-break - normal keyword value - single word not break</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="author" title="Shiyou Tan" href="mailto:shiyoux.tan@intel.com">
+<link rel="help" href="http://www.w3.org/TR/css-text-3/#word-break">
+<meta name="flags" content="">
+<meta name="assert" content="Check that 'word-break' with 'normal' keyword value implies to words break after word, so that a single word won't break.">
+<style>
+  div {
+    border: 2px black solid;
+    color: blue;
+    width: 100px;
+    word-break: normal;
+  }
+</style>
+<body>
+  <p>Test passes if there is <strong>no</strong> word break below.</p>
+  <div>ThisWordShouldNotBeBreakedAndMayBeOutOfTheBox</div>
+</body>
+

@@ -1,0 +1,31 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Outline-width with a minimum plus one value in points</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/ui.html#propdef-outline-width" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/ui.html#dynamic-outlines" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'outline-width' property supports a minimum plus one length value in points that sets the width of the outline." />
+        <style type="text/css">
+            #div1
+            {
+                margin: 1pt 0 0 1pt;
+                outline: solid green;
+                outline-width: 1pt;
+                width: 300px;
+            }
+            #div2
+            {
+                border: solid green 1pt;
+                margin-top: 10px;
+                width: 300px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the boxes below are the same size.</p>
+        <div id="div1">Filler Text</div>
+        <div id="div2">Filler Text</div>
+    </body>
+</html>

@@ -1,0 +1,50 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Margin collapsing - in-flow block-level margins with an element 'height' of 'auto' and 'max-height' and 'min-height'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-08-15 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#collapsing-margins" />
+		<link rel="match" href="margin-collapse-002-ref.xht" />
+
+        <meta name="flags" content="ahem image" />
+        <meta name="assert" content="The bottom margin of an in-flow block-level element(#div2) with a 'height' of 'auto' will adjoin to its last in-flow block-level child's (#div3) bottom margin if such auto-height in-flow block-level element has no bottom padding and no bottom border. The bottom margins will then collapse." />
+        <style type="text/css">
+            div
+            {
+                font: 20px/1em Ahem;
+                width: 5em;
+            }
+            #div1
+            {
+                background: url('support/margin-collapse-2em-space.png') 0 0;
+                height: 4em;
+            }
+            #div2
+            {
+                background: red;
+                height: auto;
+                min-height: 0.5em;
+                max-height: 2em;
+            }
+            #div3, #div4
+            {
+                background: green;
+                height: 1em;
+            }
+            #div2, #div3
+            {
+                margin-bottom: 2em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is <strong>no red</strong>.</p>
+        <div id="div1">
+            <div id="div2">
+                <div id="div3"></div>
+            </div>
+            <div id="div4"></div>
+        </div>
+    </body>
+</html>

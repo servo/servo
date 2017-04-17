@@ -1,0 +1,30 @@
+<?xml version="1.0" standalone="yes"?>
+<?xml-stylesheet href="css/floating-000.css" type="text/css"?>
+
+<root>
+	
+	<document>
+	
+			<para>
+
+
+		
+		<svg width="100px" height="100px" version="1.1" xmlns="http://www.w3.org/2000/svg">
+
+			<desc>Floated image</desc>
+	
+			
+	
+			<rect x="0" y="0" width="100px" height="100px" fill="green" />
+	
+		
+		</svg>
+		
+
+		
+		You should see a floated green box on the left.
+		
+			</para>
+			
+	</document>
+</root>

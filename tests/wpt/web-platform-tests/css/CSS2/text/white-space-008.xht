@@ -1,0 +1,60 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: white-space - pre and newlines in source</title>
+
+  <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#white-space-prop" />
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="author" title="Bruno Fassino" href="fassino[at]gmail.com" />
+  <meta content="Newlines in source must be preserved with 'white-space: pre'" name="assert" />
+  <meta content="" name="flags" />
+
+  <style type="text/css"><![CDATA[
+  #test-overlapping-green
+  {
+  background-color: lime;
+  white-space: pre;
+  }
+
+  #reference-overlapped-red
+  {
+  background-color: red;
+  left: 0;
+  position: absolute;
+  top: 0;
+  width: 100%;
+  z-index: -1;
+  }
+
+  #relatively-positioned-wrapper
+  {
+  position: relative;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a wide bright green rectangle below with one "X" in it and if there is no red.</p>
+
+  <div id="relatively-positioned-wrapper">
+
+   <div id="test-overlapping-green">
+
+X</div>
+
+   <div id="reference-overlapped-red">
+    X<br />
+    X<br />
+
+    X
+   </div>
+
+  </div>
+
+ </body>
+</html>

@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: background-repeat</title>
+  <meta name="flags" content="ahem image" />
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#background-repeat"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="match" href="c534-bgreps-000-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+   .test { font: 20px/1 Ahem; width: 11em; background: red; color: green; border: solid green; }
+   .one {background-image: url(support/pattern-grg-rgr-grg.png); background-position: center top;}
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background-properties" title="14.2.1 Background properties: 'background-color', 'background-image', 'background-repeat', 'background-attachment', 'background-position', and 'background'"/>
+ </head>
+ <body>
+  <p>Test passes if there is a filled green rectangle.</p>
+  <div class="test">
+   <div class="one">
+    &#xA0;&#xA0;r&#xA0;&#xA0;r&#xA0;&#xA0;r&#xA0;&#xA0;
+    rr&#xA0;rr&#xA0;rr&#xA0;rr
+    &#xA0;&#xA0;r&#xA0;&#xA0;r&#xA0;&#xA0;r&#xA0;&#xA0;
+    &#xA0;&#xA0;r&#xA0;&#xA0;r&#xA0;&#xA0;r&#xA0;&#xA0;
+    rr&#xA0;rr&#xA0;rr&#xA0;rr
+   </div>
+  </div>
+ </body>
+</html>

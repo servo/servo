@@ -1,0 +1,44 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>multicolumn | containing element</title>
+<link rel="author" title="Opera Software ASA" href="http://www.opera.com/"/>
+<link rel="help" href="http://www.w3.org/TR/css3-multicol/#the-multi-column-model"/>
+<link rel="match" href="containing-ref.xht"/>
+<meta name="flags" content="ahem"/>
+<style type="text/css"><![CDATA[
+div {
+	font-family: ahem;
+	font-size: 1em;
+	line-height: 1em;
+	color: black;
+	background: yellow;
+	margin: 1em;
+	border: 1em solid gray;
+	width: 12em;
+	widows: 1;
+	orphans: 1;
+
+	column-count: 3;
+	column-gap: 0;
+}
+span {
+	position: absolute;
+	top: -1em;
+	color: red;
+}
+]]></style>
+</head>
+
+<body>
+
+<div>
+	xx xx 
+	<span>xx xx</span>
+	xx xx 
+	xx xx
+</div>
+
+</body>
+</html>

@@ -1,0 +1,33 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Text-indent using pixels with a nominal value with a plus sign, +96px</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#propdef-text-indent" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#indentation-prop" />
+        <link rel="match" href="../reference/pass_if_box_ahem.html"/>
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="Ensure that text-indent +96px adds 96px in front of the text." />
+        <style type="text/css">
+            #parent
+            {
+                font: 16px/1em Ahem;
+            }
+            #reference
+            {
+                margin-left: 96px;
+            }
+            #test
+            {
+                text-indent: +96px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is one black box on this page (with no jagged edges).</p>
+        <div id="parent">
+            <div id="reference">xx</div>
+            <div id="test">xx</div>
+        </div>
+    </body>
+</html>

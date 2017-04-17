@@ -1,0 +1,73 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Valid numbers in font-family values</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="author" title="Arron Eicholz" href="http://www.microsoft.com/" />
+        <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-family-prop"/>
+        <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-family-prop"/>
+        <link rel="match" href="font-family-valid-characters-ref.html" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="Font family names must be identifiers."/>
+        <style type="text/css">
+            div
+            {
+                font-family: Ahem;
+            }
+            #div1
+            {
+                font-family: 5testfoo, serif;
+            }
+            #div2
+            {
+                font-family: testfoo 5-0, serif;
+            }
+            #div3
+            {
+                font-family: test 5foo, serif;
+            }
+            #div4
+            {
+                font-family: testfoo -5, serif;
+            }
+            #div5
+            {
+                font-family: testfoo -5bar, serif;
+            }
+            #div6
+            {
+                font-family: testfoo 5_0, serif;
+            }
+            #div7
+            {
+                font-family: testfoo _5, Ahem;
+            }
+            #div8
+            {
+                font-family: testfoo _5bar, Ahem;
+            }
+            #div9
+            {
+                font-family: -5testfoo, serif;
+            }
+            #div10
+            {
+                font-family: _5testfoo, Ahem;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the word "Fail" is not visible below.</p>
+        <div id="div1">Fail</div>
+        <div id="div2">Fail</div>
+        <div id="div3">Fail</div>
+        <div id="div4">Fail</div>
+        <div id="div5">Fail</div>
+        <div id="div6">Fail</div>
+        <div id="div7">Fail</div>
+        <div id="div8">Fail</div>
+        <div id="div9">Fail</div>
+        <div id="div10">Fail</div>
+    </body>
+</html>

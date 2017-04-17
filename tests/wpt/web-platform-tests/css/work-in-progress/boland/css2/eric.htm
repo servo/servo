@@ -1,0 +1,84 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<HTML>
+<HEAD>
+<TITLE>CSS1 Test Suite: 4.2 Inline Elements</TITLE>
+<LINK rel="stylesheet" type="text/css" media="screen" href="base.css">
+<STYLE type="text/css">
+P.one {line-height: 200%;}
+SPAN.two {border-style: solid; border-width: 10px; border-color: red;
+          padding: 2pt; margin: 30pt;}
+P.three {font-size: 10pt; line-height: 12pt;}
+SPAN.four {border-style: solid; border-width: 12px; border-color: red;
+          padding: 2pt;}
+</STYLE>
+
+</HEAD>
+
+<BODY>
+<H2>CSS1 Test Suite: 4.2 Inline Elements</H2>
+
+<HR>
+[<A HREF="sec414.htm">Previous</A>] [<A HREF="sec43.htm">Next</A>] [<A HREF="sec40.htm">Section</A>] [<A HREF="index.html">Contents</A>] [<A HREF="http://www.w3.org/TR/REC-CSS1#inline-elements">Specification</A>]<BR>
+<HR>
+
+<P>The style declarations which apply to the text below are:</P>
+<PRE>P.one {line-height: 200%;}
+SPAN.two {border-style: solid; border-width: 10px; border-color: red;
+          padding: 2pt; margin: 30pt;}
+P.three {font-size: 10pt; line-height: 12pt;}
+SPAN.four {border-style: solid; border-width: 12px; border-color: red;
+          padding: 2pt;}
+
+</PRE>
+<HR>
+<P CLASS="one">This is a paragraph that has a <SPAN CLASS="two">very
+long span in it, and the span has a 10px red border separated from the
+span by 2pt, and a margin of 30pt.  The padding and border should be
+present on all sides of the span (although vertical lines should appear
+only at the beginning and the end of the whole span, not on each
+line).  The padding, border, and margin should all be noticeable at the
+beginning and end of the span.  However, the line height should not be
+changed by any of them, so the margin should be unnoticeable and the
+border should overlap text on other lines.</SPAN>  The line spacing in
+the whole paragraph should be 200% of the font size.</P>
+
+<P CLASS="three">This is a paragraph that has a <SPAN CLASS="four">very
+long span in it, and the span has a 12px red border separated from the
+span by 2pt of padding (the difference between the line-height and the
+font-size), which should overlap with the lines of text above and below
+the span, since the padding and border should not effect the line
+height.  The span's border should have vertical lines only at the
+beginning and end of the whole span, not on each line.</SPAN>  The line
+spacing in the whole paragraph should be 12pt, with font-size 10pt.</P>
+
+
+<TABLE border cellspacing="0" cellpadding="3" class="tabletest">
+<TR>
+<TD colspan="2" bgcolor="silver"><STRONG>TABLE Testing Section</STRONG></TD>
+</TR>
+<TR>
+<TD bgcolor="silver">&nbsp;</TD>
+<TD><P CLASS="one">This is a paragraph that has a <SPAN CLASS="two">very
+long span in it, and the span has a 10px red border separated from the
+span by 2pt, and a margin of 30pt.  The padding and border should be
+present on all sides of the span (although vertical lines should appear
+only at the beginning and the end of the whole span, not on each
+line).  The padding, border, and margin should all be noticeable at the
+beginning and end of the span.  However, the line height should not be
+changed by any of them, so the margin should be unnoticeable and the
+border should overlap text on other lines.</SPAN>  The line spacing in
+the whole paragraph should be 200% of the font size.</P>
+
+<P CLASS="three">This is a paragraph that has a <SPAN CLASS="four">very
+long span in it, and the span has a 12px red border separated from the
+span by 2pt of padding (the difference between the line-height and the
+font-size), which should overlap with the lines of text above and below
+the span, since the padding and border should not effect the line
+height.  The span's border should have vertical lines only at the
+beginning and end of the whole span, not on each line.</SPAN>  The line
+spacing in the whole paragraph should be 12pt, with font-size 10pt.</P>
+</TD></TR></TABLE>
+<HR>
+[<A HREF="sec414.htm">Previous</A>] [<A HREF="sec43.htm">Next</A>] [<A HREF="sec40.htm">Section</A>] [<A HREF="index.html">Contents</A>] [<A HREF="http://www.w3.org/TR/REC-CSS1#inline-elements">Specification</A>]<BR>
+</BODY>
+</HTML>

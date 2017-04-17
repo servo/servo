@@ -1,0 +1,117 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Invalid characters in font-family values</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="author" title="Arron Eicholz" href="http://www.microsoft.com/" />
+        <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-family-prop"/>
+        <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#parsing-errors"/>
+        <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-family-prop"/>
+        <link rel="match" href="font-family-invalid-characters-001-ref.html" />
+        <meta name="flags" content="ahem invalid" />
+        <meta name="assert" content="Invalid characters in font family names invalidate entire declaration."/>
+        <style type="text/css">
+            <![CDATA[
+            #div1
+            {
+                font-family: test!foo, Ahem;
+            }
+            #div2
+            {
+                font-family: test@foo, Ahem;
+            }
+            #div3
+            {
+                font-family: test#foo, Ahem;
+            }
+            #div4
+            {
+                font-family: test$foo, Ahem;
+            }
+            #div5
+            {
+                font-family: test%foo, Ahem;
+            }
+            #div6
+            {
+                font-family: test^foo, Ahem;
+            }
+            #div7
+            {
+                font-family: test&foo, Ahem;
+            }
+            #div8
+            {
+                font-family: test*foo, Ahem;
+            }
+            #div9
+            {
+                font-family: test=foo, Ahem;
+            }
+            #div10
+            {
+                font-family: test+foo, Ahem;
+            }
+            #div11
+            {
+                font-family: test|foo, Ahem;
+            }
+            #div12
+            {
+                font-family: test;foo, Ahem;
+            }
+            #div13
+            {
+                font-family: test:foo, Ahem;
+            }
+            #div14
+            {
+                font-family: test.foo, Ahem;
+            }
+            #div15
+            {
+                font-family: test/foo, Ahem;
+            }
+            #div16
+            {
+                font-family: test?foo, Ahem;
+            }
+            #div17
+            {
+                font-family: test`foo, Ahem;
+            }
+            #div18
+            {
+                font-family: test~foo, Ahem;
+            }
+            #div19
+            {
+                font-family: 1996, Ahem;
+            }
+            ]]>
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there are only numbers (1-19) below.</p>
+        <div id="div1">1</div>
+        <div id="div2">2</div>
+        <div id="div3">3</div>
+        <div id="div4">4</div>
+        <div id="div5">5</div>
+        <div id="div6">6</div>
+        <div id="div7">7</div>
+        <div id="div8">8</div>
+        <div id="div9">9</div>
+        <div id="div10">10</div>
+        <div id="div11">11</div>
+        <div id="div12">12</div>
+        <div id="div13">13</div>
+        <div id="div14">14</div>
+        <div id="div15">15</div>
+        <div id="div16">16</div>
+        <div id="div17">17</div>
+        <div id="div18">18</div>
+        <div id="div19">19</div>
+    </body>
+</html>

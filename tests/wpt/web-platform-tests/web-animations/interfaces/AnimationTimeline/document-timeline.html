@@ -56,4 +56,23 @@ promise_test(function(t) {
   }));
 }, 'document.timeline.currentTime liveness tests');
 
+async_test(function(t) {
+  var startTime = document.timeline.currentTime;
+  var firstRafTime;
+
+  requestAnimationFrame(function() {
+    t.step(function() {
+      assert_greater_than_equal(document.timeline.currentTime, startTime, 'currentTime should have progressed');
+      firstRafTime = document.timeline.currentTime;
+    });
+  });
+
+  requestAnimationFrame(function() {
+    t.step(function() {
+      assert_equals(document.timeline.currentTime, firstRafTime, 'currentTime should be the same');
+    });
+    t.done();
+  });
+}, 'document.timeline.currentTime time should be the same for all RAF callbacks in a frame');
+
 </script>

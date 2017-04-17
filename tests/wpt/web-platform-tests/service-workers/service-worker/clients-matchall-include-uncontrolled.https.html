@@ -28,16 +28,16 @@ function create_iframes(scope) {
 
 var expected_without_include_uncontrolled = [
     /* visibilityState, focused, url, frameType */
-    ['visible', false, new URL(scope + '#1', location).toString(), 'nested'],
-    ['visible', true, new URL(scope + '#2', location).toString(), 'nested']
+    ['visible', false, new URL(scope + '#1', location).toString(), 'window', 'nested'],
+    ['visible', true, new URL(scope + '#2', location).toString(), 'window', 'nested']
 ];
 
 var expected_with_include_uncontrolled = [
     /* visibilityState, focused, url, frameType */
-    ['visible', true, location.href, 'top-level'],
-    ['visible', false, new URL(scope + '#1', location).toString(), 'nested'],
-    ['visible', true, new URL(scope + '#2', location).toString(), 'nested'],
-    ['visible', false, new URL(base_url, location).toString(), 'nested']
+    ['visible', true, location.href, 'window', 'top-level'],
+    ['visible', false, new URL(scope + '#1', location).toString(), 'window', 'nested'],
+    ['visible', true, new URL(scope + '#2', location).toString(), 'window', 'nested'],
+    ['visible', false, new URL(base_url, location).toString(), 'window', 'nested']
 ];
 
 function test_matchall(frame, expected, query_options) {

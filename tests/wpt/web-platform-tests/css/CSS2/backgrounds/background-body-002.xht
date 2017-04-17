@@ -1,0 +1,20 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Background on body element - background-position</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background" />
+        <meta name="flags" content="image" />
+        <meta name="assert" content="Background of the body has the initial background-position of 0,0 and not the canvas. This only applies if HTML element has nothing set for background." />
+        <style type="text/css">
+            html
+            {
+                background: url("support/green_box.png") repeat-x;
+                margin: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if this text is within the green box.</p>
+    </body>
+</html>

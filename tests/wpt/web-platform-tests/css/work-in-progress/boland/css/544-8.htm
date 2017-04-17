@@ -1,0 +1,57 @@
+
+<HTML>
+
+<HEAD>
+<TITLE>Eighth Test of Section 5.4.4 of CSS1 Spec</TITLE>
+
+<STYLE>
+#id1 {vertical-align: top}
+#id2 {vertical-align: 200%}
+#id3 {vertical-align: bottom}
+#id4 {vertical-align: 50%}
+</STYLE>
+</HEAD>
+
+
+<BODY>
+
+
+
+<h1>Testing Statement #8 Below of Section 5.4.4 of CSS1 Spec</h1>
+
+
+
+
+
+
+
+
+<ul>
+<li>
+8. A value of "top" aligns the top of hte element with the tallest element
+on the line.
+A value of "bottom" aligns the bottom of the element with the lowest element on
+the line.
+</ul>
+
+
+
+<h2>
+PASS CRITERIA:
+</h2>
+<p>
+If statement #8 above is passed, this paragraph should have this <em ID=id1>
+emphasized text</em> aligned with this <em ID=id2>tall emphasized text</em>
+on the line.
+The rules applied are (in the first case) "#id1 {vertical-align: top}"
+and (in the second case) "#id2 {vertical-align:200%}".
+This <strong ID=id3>strong text</strong> should be aligned with this
+<strong ID=id4>low strong text</strong> on the line.
+The rules applied are (in the first case) "#id3 {vertical-align: bottom}"
+and (in the second case) "#id4 {vertical-align: 50%}".
+
+All other properties of this page should be UA-default.
+
+</BODY>
+</HTML>
+

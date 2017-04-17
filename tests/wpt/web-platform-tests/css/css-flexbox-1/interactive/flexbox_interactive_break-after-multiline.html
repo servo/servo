@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>flexbox | break-after, multiline</title>
+<link rel="author" href="http://opera.com" title="Opera Software">
+<link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#pagination">
+<meta name="flags" content="interact paged">
+<style>
+* {widows: 1; orphans: 1;}
+div {
+	border: 1px solid white;
+	width: 20em;
+
+	display: flex;
+	flex-wrap: wrap;
+}
+p {
+	background: yellow;
+	margin: 0;
+	height: 2em;
+
+	flex: 1 0 10em;
+}
+@media projection, print {
+	#test {break-after: always;}
+	#test~p {background: red;}
+}
+</style>
+
+<h4>There should not be any red in fullscreen or print preview</h4>
+
+<div>
+	<p></p>
+	<p id="test"></p>
+	<p></p>
+	<p></p>
+</div>

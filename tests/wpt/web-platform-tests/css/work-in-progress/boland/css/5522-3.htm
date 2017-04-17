@@ -1,0 +1,71 @@
+
+<html>
+
+<title>Third Test of Section 5.5.22 of CSS1 Spec</title>
+
+<style type="text/css">
+#id1 {border: thin dashed olive}
+#id2 {border-width: thin;
+      border-style: dashed;
+      color: olive;}
+#id3 {border-top: thin dashed olive;
+      border-bottom: thin dashed olive;
+      border-left: thin dashed olive;
+      border-right: thin dashed olive;}
+</style>
+</head>
+
+
+
+<body>
+
+
+
+
+<h1 >Testing Statement #3 Below of Section 5.5.22 of CSS1 Spec</h1>
+
+
+
+
+
+
+<ul>
+<li>
+3. The "border' property is a shorthand property for setting the same width,
+color and style on all four borders of an element.
+</ul>
+
+
+
+
+<h2>
+PASS CRITERIA:
+</h2>
+<p ID=id1 >
+If statement #3 above is passed, this paragraph should have a border of
+thin dashed olive all the way around.
+The rule applied is "#id1 {border: thin dashed olive}".
+<p ID=id2>
+This paragraph should have a border width of thin, a border style of dashed
+and a color of olive.
+The rule applied is '#id2 {border-width: thin;
+                           border-style: dashed;
+                           color: olive;}".
+<p ID=id3>
+This paragraph should have a border-top of thin dashed olive, a border
+bottom of thin dashed olive, a left border of thin dashed olive, and a
+right border of thin dashsed olive.  It should look the same as the 
+paragraph above.
+The rule applied is "#id3 {border-top: thin dashed olive;
+                           border-bottom: thin dashed olive;
+                           border-left: thin dashed olive;
+                           border-right: thin dashed olive;}"
+
+
+
+<p>
+All other properties of this page should be UA-default.
+
+
+</body>
+</html>

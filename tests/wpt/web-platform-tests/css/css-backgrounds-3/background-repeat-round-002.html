@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<!-- Submitted from TestTWF Paris -->
+
+<head>
+
+<title>CSS Backgrounds and Borders Test: background-repeat: round basic support</title>
+<link rel="author" title="Lea Verou" href="http://lea.verou.me" />
+<link rel="help" href="http://www.w3.org/TR/css3-background/#the-background-repeat" />
+<meta name="flags" content="image" />
+<meta name="assert" content="The image is repeated as often as will fit within the background positioning area. If it doesn't fit a whole number of times, it is rescaled so that it does." />
+<style>
+
+html {
+	background: red url('support/swatch-green.png') no-repeat;
+	background-repeat: round;
+}
+
+</style>
+
+</head>
+<body>
+
+<p>Test passes if there is green and <strong>no red</strong>.</p>
+
+</body>
+</html>

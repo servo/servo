@@ -84,7 +84,7 @@ cache_test(function(cache) {
   }, 'Cache.add with request with null body (not consumed)');
 
 cache_test(function(cache, test) {
-    return assert_promise_rejects(
+    return promise_rejects(
       test,
       new TypeError(),
       cache.add('../resources/fetch-status.py?status=206'),
@@ -98,6 +98,7 @@ cache_test(function(cache, test) {
         return new Request(url);
       });
     return promise_rejects(
+      test,
       new TypeError(),
       cache.addAll(requests),
       'Cache.addAll should reject with TypeError if any request fails');
@@ -116,7 +117,7 @@ cache_test(function(cache, test) {
     return promise_rejects(
       test,
       new TypeError(),
-      cache.add('../resources/fetch-status.php?status=500'),
+      cache.add('../resources/fetch-status.py?status=500'),
       'Cache.add should reject if response is !ok');
   }, 'Cache.add with request that results in a status of 500');
 

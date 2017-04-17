@@ -1,0 +1,55 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Containing Blocks - Block-level elements position based on right-to-left direction and parent element is fixed</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+		<link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-10-10 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#containing-block-details" />
+		<link rel="match" href="containing-block-020-ref.xht" />
+
+        <meta name="flags" content="" />
+        <meta name="assert" content="When the nearest (closest within document containment hierarchy) positioned ancestor of an absolutely positioned element is a block-level element, then the containing block of such absolutely positioned element is formed by the padding edge of such nearest positioned ancestor." />
+        <style type="text/css">
+            div
+            {
+                border: solid black;
+                padding: 1in;
+                position: fixed;
+                width: 0;
+            }
+            span
+            {
+                display: block;
+            }
+            #span1
+            {
+                direction: rtl;
+            }
+
+			/*
+			The span#span1 element determines, conditions (§10.3.7 and
+			§10.6.4) the 'top: auto' and 'left: auto' coordinates while the
+			wrapping div's padding box forms the containing block
+			geometry/area.
+			*/
+
+            span span
+            {
+                background: blue;
+                height: 1in;
+                left: auto;
+                position: absolute;
+				top: auto;
+                width: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if a filled blue square is in the <strong>lower-left corner</strong> of an hollow black square.</p>
+        <div>
+            <span id="span1">
+                <span></span>
+            </span>
+        </div>
+    </body>
+</html>

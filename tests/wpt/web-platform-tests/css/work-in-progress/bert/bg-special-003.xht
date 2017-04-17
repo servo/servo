@@ -1,0 +1,18 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Background of special elements</title>
+  <link rel="author" title="Bert Bos" href="mailto:bert@w3.org" />
+  <link rel="help" href="http://www.w3.org/TR/css3-background/#special-backgrounds" />
+  <meta name="flags" content="" />
+  <meta name="assert" content="The background of the root element becomes the background of the canvas and its background painting area extends to cover the entire canvas, although any images are sized and positioned relative to the root element as if they were painted for that element alone." />
+  <style type="text/css"><![CDATA[
+   :root {background: none; margin: 1em}
+   body {background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAIAAAAC64paAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHFJREFUOMtj+E8BYEDjP//zYunn5cVvcsKf2gERkAHkAgUJa77481L5m6KAxypoCCgIlMKnGWg8Vp1w/Zj2IzQDnYdLJwQBFeDUDPQefs1ABTg1A4MHv2agAtpopsjZFAUYRVFFUSKhNHmSCkY101MzAJ8v8oIY0za6AAAAAElFTkSuQmCC);
+     background-size: 2em 2em;
+     margin: 0; padding: 0}
+  ]]></style>
+ </head>
+ <body>
+ </body>
+</html>

@@ -21,7 +21,7 @@ function requestWatcher(testCase, request) {
 // open request.
 //
 // Returns a promise. If the versionchange transaction goes through, the promise
-// resolves to an IndexedDB database that must be closed by the caller. If the
+// resolves to an IndexedDB database that should be closed by the caller. If the
 // versionchange transaction is aborted, the promise resolves to an error.
 function migrateDatabase(testCase, newVersion, migrationCallback) {
   return migrateNamedDatabase(
@@ -37,7 +37,7 @@ function migrateDatabase(testCase, newVersion, migrationCallback) {
 // open request.
 //
 // Returns a promise. If the versionchange transaction goes through, the promise
-// resolves to an IndexedDB database that must be closed by the caller. If the
+// resolves to an IndexedDB database that should be closed by the caller. If the
 // versionchange transaction is aborted, the promise resolves to an error.
 function migrateNamedDatabase(
     testCase, databaseName, newVersion, migrationCallback) {
@@ -88,10 +88,20 @@ function migrateNamedDatabase(
       resolve(Promise.resolve(callbackResult).then(() => requestEventPromise));
     });
     request.onerror = event => reject(event.target.error);
-    request.onsuccess = () => reject(new Error(
-        'indexedDB.open should not succeed without creating a ' +
-        'versionchange transaction'));
-  }).then(event => event.target.result || event.target.error);
+    request.onsuccess = () => {
+      const database = request.result;
+      testCase.add_cleanup(() => { database.close(); });
+      reject(new Error(
+          'indexedDB.open should not succeed without creating a ' +
+          'versionchange transaction'));
+    };
+  }).then(event => {
+    const database = event.target.result;
+    if (database) {
+      testCase.add_cleanup(() => { database.close(); });
+    }
+    return database || event.target.error;
+  });
 }
 
 // Creates an IndexedDB database whose name is unique for the test case.
@@ -100,7 +110,7 @@ function migrateNamedDatabase(
 // given the created database, the versionchange transaction, and the database
 // open request.
 //
-// Returns a promise that resolves to an IndexedDB database. The caller must
+// Returns a promise that resolves to an IndexedDB database. The caller should
 // close the database.
 function createDatabase(testCase, setupCallback) {
   return createNamedDatabase(testCase, databaseName(testCase), setupCallback);
@@ -112,21 +122,23 @@ function createDatabase(testCase, setupCallback) {
 // given the created database, the versionchange transaction, and the database
 // open request.
 //
-// Returns a promise that resolves to an IndexedDB database. The caller must
+// Returns a promise that resolves to an IndexedDB database. The caller should
 // close the database.
 function createNamedDatabase(testCase, databaseName, setupCallback) {
   const request = indexedDB.deleteDatabase(databaseName);
   const eventWatcher = requestWatcher(testCase, request);
 
-  return eventWatcher.wait_for('success').then(event =>
-      migrateNamedDatabase(testCase, databaseName, 1, setupCallback));
+  return eventWatcher.wait_for('success').then(event => {
+    testCase.add_cleanup(() => { indexedDB.deleteDatabase(databaseName); });
+    return migrateNamedDatabase(testCase, databaseName, 1, setupCallback)
+  });
 }
 
 // Opens an IndexedDB database without performing schema changes.
 //
 // The given version number must match the database's current version.
 //
-// Returns a promise that resolves to an IndexedDB database. The caller must
+// Returns a promise that resolves to an IndexedDB database. The caller should
 // close the database.
 function openDatabase(testCase, version) {
   return openNamedDatabase(testCase, databaseName(testCase), version);
@@ -136,12 +148,16 @@ function openDatabase(testCase, version) {
 //
 // The given version number must match the database's current version.
 //
-// Returns a promise that resolves to an IndexedDB database. The caller must
+// Returns a promise that resolves to an IndexedDB database. The caller should
 // close the database.
 function openNamedDatabase(testCase, databaseName, version) {
   const request = indexedDB.open(databaseName, version);
   const eventWatcher = requestWatcher(testCase, request);
-  return eventWatcher.wait_for('success').then(event => event.target.result);
+  return eventWatcher.wait_for('success').then(() => {
+    const database = request.result;
+    testCase.add_cleanup(() => { database.close(); });
+    return database;
+  });
 }
 
 // The data in the 'books' object store records in the first example of the

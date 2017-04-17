@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Objects 2</title>
+<meta http-equiv="Content-Type" content="text/xml; charset=utf-8" />
+<style type="text/css" media="screen">
+h2, h3, p {
+	display: block;
+}
+
+h2 {
+	font-size: 1.6em;
+	margin-bottom: 0.5em;
+}
+
+h3 {
+	font-size: 1.4em;
+	margin-bottom: 0;
+}
+
+p {
+	margin-bottom: 1em;
+}
+
+</style>
+
+<script type="text/javascript">
+<![CDATA[
+
+function Class (title, data) {
+	this.title = title;
+	this.data = data;
+}
+
+Class.title = "Title";
+Class.data = new Array();
+Class.data[0] = {
+		heading: "Heading 1",
+		paragraph: "Lorem ipsum dolor sit amet."
+	      };
+Class.data[1] = {
+		heading: "Heading 2",
+		paragraph: "Consectetur adipiscing elit."
+	       };
+	       
+	       
+window.onload = function () {
+	var body = document.getElementsByTagName("body")[0];
+	var div = document.createElement("div");
+	body.appendChild(div);
+	var title = document.createElement("h2");
+	title.appendChild(document.createTextNode(Class.title));
+	div.appendChild(title);
+	var data = Class.data;
+	for (var i=0; i<data.length; i++) {
+		var heading = data[i].heading;
+		var paragraph = data[i].paragraph;
+		var h3 = document.createElement("h3");
+		h3.appendChild(document.createTextNode(heading));
+		div.appendChild(h3);
+		var p = document.createElement("p");
+		p.appendChild(document.createTextNode(paragraph));
+		div.appendChild(p);
+	}
+};
+
+
+]]>
+
+</script>
+
+</head>
+
+<body>
+<p>You should see three headings and two text paragraphs.</p>
+
+
+</body>
+</html>

@@ -320,7 +320,7 @@ function init_tests(test_type) {
     var x = tests[test_id];
     var t = x[0];
     iframe_map[t.name] = iframe.id;
-    setTimeout(function() {
+    step_timeout(function() {
                  t.step(function() {
                    var string_uri_encoded_input = x[1];
                    var string_escaped_expected = x[2];

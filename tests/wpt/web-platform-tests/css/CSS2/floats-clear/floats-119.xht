@@ -1,0 +1,25 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: CSS Floats: Auto Sizing (with padding)</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/float/019.xml" type="application/xhtml+xml"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats" />
+  <link rel="match" href="floats-119-ref.xht" />
+
+  <meta name="flags" content="ahem" />
+  <style type="text/css">
+   .test { display: block; }
+   span { display: block; width: 150px; height: 75px; margin-bottom: 10px; background: navy; }
+   .float { float: left; background: navy; color: navy; font: 25px/1 Ahem; padding: 25px; }
+  </style>
+ </head>
+ <body>
+
+  <p>Test passes if there are 2 identical filled navy rectangles and <strong>no red</strong>.</p>
+  <div class="test">
+   <span/>
+   <div class="float">XXXX</div>
+  </div>
+ </body>
+</html>

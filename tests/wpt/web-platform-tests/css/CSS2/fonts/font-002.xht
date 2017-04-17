@@ -1,0 +1,39 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Font shorthand set using the values font-style, font-size and font-family</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#propdef-font" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-shorthand" />
+        <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-prop"/>
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The 'font' shorthand property accepts and sets font-style, font-size and font-family." />
+        <style type="text/css">
+            #wrapper
+            {
+                position: relative;
+            }
+            #test
+            {
+                font: italic 1in Ahem;
+                line-height: 1em;
+            }
+            #reference
+            {
+                background: black;
+                height: 1in;
+                left: 1.4in;
+                position: absolute;
+                top: 0;
+                width: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there are two boxes on the page and they are the same height. One box needs to be slanted to one side.</p>
+        <div id="wrapper">
+            <div id="test">X</div>
+            <div id="reference"></div>
+        </div>
+    </body>
+</html>

@@ -9,7 +9,7 @@ encodings_table.forEach(function(section) {
     section.encodings.forEach(function(encoding) {
         if (encoding.name !== 'replacement') {
             test(function() {
-                assert_equals(new TextDecoder(encoding.name).encoding, encoding.name);
+                assert_equals(new TextDecoder(encoding.name).encoding, encoding.name.toLowerCase()); // ASCII names only, so safe
             }, 'Encoding argument supported for decode: ' + encoding.name);
         }
 

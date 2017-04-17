@@ -1,0 +1,73 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Test: invalid flow-into idents</title>
+    <link rel="author" title="Alan Stearns" href="mailto:stearns@adobe.com"/>
+    <link rel="help" href="http://www.w3.org/TR/css3-regions/#properties"/>
+    <link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property"/>
+    <link rel="match" href="flow-into-invalid-names-001-ref.xht"/>
+    <meta name="flags" content=""/>
+    <meta name="assert" content="If flow-into is set to an invalid ident, no flow is created. The flow content will stay in its green wrapper. Invalid idents with flow-from do not create a region."/>
+    <style type="text/css">
+      body{
+        font-size: 16px;
+        line-height: 18px;
+      }
+      .sourceWrapper{
+        background-color: lightgreen;
+        width: 10em;
+      }
+      .region{
+        height: 20px;
+      }
+      .noneFlow{
+        flow-into: none;
+      }
+      .noneRegion{
+        flow-from: none;
+      }
+      .inheritFlow{
+        flow-into: inherit;
+      }
+      .inheritRegion{
+        flow-from: inherit;
+      }
+      .defaultFlow{
+        flow-into: default;
+      }
+      .defaultRegion{
+        flow-from: default;
+      }
+      .initialFlow{
+        flow-into: initial;
+      }
+      .initialRegion{
+        flow-from: initial;
+      }
+      .success{
+        color: green;
+      }
+    </style>
+  </head>
+  <body>
+    <p>You should see four words in a light green rectangle followed by four 'content not replaced…' lines.</p>
+    <div class="sourceWrapper">
+      <div class="source noneFlow">none</div>
+      <div class="source inheritFlow">inherit</div>
+      <div class="source defaultFlow">default</div>
+      <div class="source initialFlow">initial</div>
+    </div>
+    <div class="region noneRegion">
+      <div class="success">content not replaced by none ident</div>
+    </div>
+    <div class="region inheritRegion">
+      <div class="success">content not replaced by inherit ident</div>
+    </div>
+    <div class="region defaultRegion">
+      <div class="success">content not replaced by default ident</div>
+    </div>
+    <div class="region initialRegion">
+      <div class="success">content not replaced by initial ident</div>
+    </div>
+  </body>
+</html>

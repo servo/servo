@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border-spacing and 'display: table-cell' elements</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#propdef-border-spacing" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#separated-borders" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Border-spacing does not apply to 'display: table-cell' elements." />
+        <style type="text/css">
+            #table
+            {
+                display: table;
+            }
+            #tr
+            {
+                display: table-row;
+            }
+            .td
+            {
+                border-spacing: 20px;
+                display: table-cell;
+                height: 100px;
+                width: 100px;
+            }
+            .left
+            {
+                border: 10px solid blue;
+            }
+            .right
+            {
+                border: 10px solid orange;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a blue and orange square below and there is no horizontal gap between the squares.</p>
+        <div id="table">
+            <div id="tr">
+                <div class="td left"></div>
+                <div class="td right"></div>
+            </div>
+        </div>
+    </body>
+</html>

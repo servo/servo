@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS syntax: signed numbers</title>
+<link rel="author" title="Bert Bos" href="mailto:bert@w3.org" />
+<link rel="help" href="http://www.w3.org/TR/CSS22/syndata.html#numbers" />
+<link rel="match" href="signed-numbers-001-ref.xht" />
+<meta name="assert" content='Both integers and real numbers may immediately be preceded by a "-" or "+" to indicate the sign.' />
+<style type="text/css">
+  div {background: red; width: 20px; height: 100px}
+  div div {background: green; height: 20px}
+  .s1 {margin-left: + 30px}			/* Invalid */
+  .s2 {margin-left: - 10px}			/* Invalid */
+  .s3 {margin-left: -/**/10px}			/* Invalid */
+  .s4 {margin-left: 30px; margin-left: +00px}	/* Valid */
+  .s5 {margin-left: 30px; margin-left: -0.00px}	/* Valid */
+</style>
+</head>
+<body>
+  <p>This should show a tall green bar, and no red.</p>
+  <div>
+    <div class="s1"></div>
+    <div class="s2"></div>
+    <div class="s3"></div>
+    <div class="s4"></div>
+    <div class="s5"></div>
+  </div>
+</body>
+</html>

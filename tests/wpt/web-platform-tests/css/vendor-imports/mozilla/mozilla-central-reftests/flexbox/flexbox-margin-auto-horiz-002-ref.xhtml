@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!-- Testcase with a variety of 'display: flex' examples
+     with margin-top and/or margin-bottom set to 'auto' on flex items. -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Reftest Reference</title>
+    <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com"/>
+    <style>
+      div.flexbox {
+        border: 2px dotted black;
+        display: flex;
+        margin-bottom: 2px;
+        width: 100px;
+      }
+      div.fixedSize {
+        width:  20px;
+        height: 20px;
+      }
+      div.gray        { background: gray;  }
+      div.green       { background: green; }
+      div.pink        { background: pink;  }
+      div.blue        { background: blue;  }
+    </style>
+  </head>
+  <body>
+
+    <!-- fixed-height flexbox, with items that have auto margins -->
+    <div class="flexbox" style="height: 100px">
+      <div class="fixedSize green" style="margin-top: 80px"/>
+      <div class="fixedSize pink"/>
+      <div class="fixedSize blue"  style="margin-top: 40px"/>
+    </div>
+    <!-- fixed-height flexbox, with items that have auto & fixed margins -->
+    <div class="flexbox" style="height: 100px">
+      <div class="fixedSize green" style="margin-top: 70px"/>
+      <div class="fixedSize pink"  style="margin-top: 10px"/>
+    </div>
+
+    <!-- height-shrinkwrapping flexbox, sized by item w/ fixed height & margins,
+         with other items that have auto margins -->
+    <div class="flexbox" style="height: 50px">
+      <div class="fixedSize green" style="margin-top: 30px"/>
+      <div class="fixedSize pink"/>
+      <div class="fixedSize blue"  style="margin-top: 15px"/>
+      <div class="gray" style="width: 10px; height: 30px; margin-top: 10px"/>
+    </div>
+
+    <!-- height-shrinkwrapping flexbox, sized by item w/ fixed height & margins,
+         with other items that have auto & fixed margins -->
+    <div class="flexbox" style="height: 50px">
+      <div class="fixedSize green" style="margin-top: 20px"/>
+      <div class="fixedSize pink"  style="margin-top: 10px"/>
+      <div class="gray" style="width: 10px; height: 30px; margin-top: 10px"/>
+    </div>
+
+  </body>
+</html>

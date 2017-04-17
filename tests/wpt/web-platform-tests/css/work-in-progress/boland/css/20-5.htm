@@ -1,0 +1,69 @@
+
+<HTML>
+<HEAD>
+<TITLE>
+Fifth Test of Section 2.0 of CSS1 Specification</TITLE>
+
+
+<STYLE TEXT="text/css">
+A:link {color: lime}
+A:visited {color: maroon}
+P:first-line {font-style: oblique}
+P:first-letter {font-size: 200%; float: left;}
+</STYLE>
+</HEAD>
+
+
+<BODY>
+
+<h1 >
+Testing Fifth Testable Statement of Section 2.0 of CSS1 Spec
+</h1>
+
+
+<ul>
+<li >
+5. Pseudo-elements are used to address sub-parts of elements, while
+pseudo-classes allow style sheets to differentiate between different 
+element types.
+</ul>
+
+
+
+
+<h2 >"PASS" CRITERIA:
+</h2>
+<p>
+If statement #5 above is passed, then:
+<p>
+<A CLASS=link HREF="ovalbbut.gif">This link</a> is lime if unvisited; the pseudo-class is
+"A:link {color: lime}". <A CLASS=visited HREF="ovalbbut.gif">This link</a> is
+maroon if visited; the pseudo-class is "A:visited {color: maroon}".  
+The differentiation is between different instances of "A".
+<p>
+<p:first-line>
+The first line of this (and all) paragraphs should have oblique font style.
+Also all paragraphs should have big first letters.
+</p:first-line>
+The remaining lines should be UA-default.  The pseudo-element applied is
+"P:first-line {font-style: oblique}".
+This addresses a sub-part of the element "p".
+</p>
+<p>
+<span>
+<P:first-letter>
+T
+</P:first-letter>he first
+</span>
+letter of this paragraph has a large "T" to start.
+The pseudo-element
+applied is "P:first-letter {font-size: 200%; float-left;}".  Everything 
+else is UA-default.
+This addresses a sub-part of the element "p".
+<p>
+Your browser rendering of this page should be similar to this 
+<a href="a204.gif">reference image</a> or to this <a href="b204.gif">reference
+image</a>.
+
+</BODY>
+</HTML>

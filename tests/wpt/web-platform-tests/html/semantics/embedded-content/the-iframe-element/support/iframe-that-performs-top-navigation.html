@@ -1,0 +1,20 @@
+<html>
+<head>
+    <script>
+        function performTest()
+        {
+            try {
+                top.location = "navigation-changed-iframe.html";
+            } catch(e) {
+                top.postMessage("BLOCKED", "*");
+            }
+        }
+    </script>
+</head>
+<body onload="performTest();">
+    <p>This doc tried to navigate the top page when loaded, which should fail since it's not trigged by user activation while in a sandboxed frame with 'allow-top-navigtaion-by-user-activation'. <br> <br>
+    Click the button below, the top navigation should succeed with a new page saying "PASSED: Navigation succeeded." in browsers supporting the 'allow-top-navigtaion-by-user-activation' iframe@sandbox keyword (eg., Chrome v58+); Otherwise, the top navigation should fail.
+    </p>
+    <button id="b" onclick="performTest();">Navigate the top page</button>
+</body>
+</html>

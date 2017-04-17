@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>className 1</title>
+<meta http-equiv="Content-Type" content="text/xml; charset=utf-8" />
+<style type="text/css" media="screen">
+
+p {
+	display: block;
+}
+
+p[class="fail"] {
+	background-color: red;
+}
+
+p[class="pass"] {
+	background-color: lime;
+}
+
+</style>
+
+<script type="text/javascript">
+<![CDATA[
+
+window.onload = function () {
+
+	var p = document.getElementsByTagName("p")[1];
+	if (p.className == " ") {
+		p.className = "fail";
+	}
+	
+	else {
+		p.setAttribute("class", "pass");
+	}
+	
+};
+]]>
+
+</script>
+
+</head>
+
+<body>
+
+<p>The following paragraph should have a bright green background.</p>
+
+<p>Test</p>
+
+</body>
+</html>

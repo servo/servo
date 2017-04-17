@@ -1,0 +1,99 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: inherit applied on padding set with em</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" title="8.4 Padding properties" href="http://www.w3.org/TR/CSS21/box.html#padding-properties" />
+  <link rel="help" title="4.3.2 Length" href="http://www.w3.org/TR/CSS21/syndata.html#length-units" />
+  <link rel="help" title="6.2.1 The 'inherit' value" href="http://www.w3.org/TR/CSS21/cascade.html#value-def-inherit" />
+  <link rel="match" href="padding-em-inherit-001-ref.xht" />
+
+  <meta content="The 'em' unit is equal to the computed value of the 'font-size' property of the element on which it is used. When inherit keyword is used, the property takes the same computed value - a length value in this testcase - as the property for the element's parent." name="assert" />
+  <meta content="image" name="flags" />
+
+  <style type="text/css"><![CDATA[
+  body {margin: 8px;}
+
+  p
+  {
+  font: 1em/1.25 serif;
+  margin: 1em 0em;
+  }
+
+  div#grand-parent
+  {
+  font-size: 32px;
+  width: 400px;
+  }
+
+  div#parent
+  {
+  background-color: green;
+  font-size: 24px;
+  padding: 2em 3em 1em 4em; /* 48px 72px 24px 96px */
+  }
+
+  div#child
+  {
+  font-size: 40px;
+  padding: inherit;
+  /*
+  What is inherited is a computed length value:
+  so it is 48px 72px 24px 96px and not 80px 120px 40px 160px
+  */
+  }
+
+  div#abs-pos-overlapping-green
+  {
+  left: 200px;
+  /*
+       8px (body's margin-left)
+   +
+      96px (#parent's padding-left)
+   +
+      96px (#child's padding-left)
+  ==================
+     200px
+  */
+  position: absolute;
+  top: 168px;
+  }
+
+  /*
+     max(8px, 16px) (margin collapsing between body's margin-top and p's margin-top)
+  +
+     20px (first line)
+  +
+     20px (second line)
+  +
+     16px (p's margin-bottom)
+  +
+     48px (#parent's padding-top)
+  +
+     48px (#child's padding-top)
+  ==================
+    168px
+  */
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled<br />
+  green rectangle and no red.</p>
+
+  <div id="grand-parent">
+    <div id="parent">
+      <div id="child"><img src="support/100x100-red.png" alt="Image download support must be enabled" /></div>
+    </div>
+  </div>
+
+  <div id="abs-pos-overlapping-green"><img src="support/swatch-green.png" width="100" height="100" alt="Image download support must be enabled" /></div>
+
+ </body>
+</html>

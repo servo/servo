@@ -1,0 +1,2 @@
+include pagination/reftest.list
+include replaced-sizing/reftest.list

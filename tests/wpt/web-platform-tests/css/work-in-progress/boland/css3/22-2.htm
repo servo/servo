@@ -1,0 +1,67 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Second Test of Module 22 of CSS3 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+#body1 {position: absolute; left: 50px; top: 50px }
+#p1 {color: red}
+#em1 {color: blue}
+#strong1 {color: yellow}
+#p2 {color: green}
+
+
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY id="body1">
+<h1 >
+Testing Second Testable Statement of Module 22 of CSS3 Specification
+</h1>
+
+
+<ul>
+<li  >
+2. In order to ensure that users can control styles, CSS3 changes the semantics
+of the "important" operator defined in CSS1.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p id="p1">
+If statement #2 above is passed, then
+this paragraph should be in the initial containing block and red.
+The rule applied is "#body1 {position: absolute; left: 50px; top: 50px }".
+"#body1" is applied to "BODY" and "#p1" is applied to "p".
+Also "#p1 {color: red}".
+</p>
+<p id="p2">
+<em id="em1">This emphasized text (blue) is in the
+<strong id="strong1">strong(yellow)</strong> part of the paragraph. 
+Rules are "#em1 {color: blue}", "#strong1 {color: yellow}".
+Also "#p2 {color: green}".
+</em>
+This part of paragraph should be green.
+"#em1" is applied to "em", "#p2" is applied to "p", and "#strong1" is applied
+to "strong".
+</p>
+
+All other properties of this page should be UA-default.
+Your browser rendering of this page should look similar to this <a href="c1101.gif"> 
+reference image </a> or to this <a href="d1101.gif">reference image</a>.
+
+
+</BODY>
+</HTML>
+

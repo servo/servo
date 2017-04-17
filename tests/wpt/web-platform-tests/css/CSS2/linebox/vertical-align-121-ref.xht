@@ -1,0 +1,59 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  div#table
+    {
+      border-collapse: collapse;
+      display: table;
+      font: 30px/1 Ahem;
+      width: 6em;
+    }
+
+  div.tr
+    {
+      display: table-row;
+    }
+
+  div.td
+    {
+      color: white;
+      display: table-cell;
+    }
+
+  div#top
+    {
+      border-top: blue solid medium;
+    }
+
+  div.navy
+    {
+      color: navy;
+    }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>There should be a plus sign with a blue line traversing through its middle.</p>
+
+  <div id="table">
+    <div class="tr"><div class="td">A</div><div class="td">B</div><div class="navy td">C</div><div class="navy td">D</div><div class="td">E</div><div class="td">F</div></div>
+
+    <div class="tr"><div class="td">G</div><div class="navy td">H</div><div class="navy td">I</div><div class="navy td">J</div><div class="navy td">K</div><div class="td">L</div></div>
+
+    <div class="tr" id="top"><div class="td">M</div><div class="navy td">N</div><div class="navy td">O</div><div class="navy td">P</div><div class="navy td">Q</div><div class="td">R</div></div>
+
+    <div class="tr"><div class="td">S</div><div class="td">T</div><div class="navy td">U</div><div class="navy td">V</div><div class="td">W</div><div class="td">X</div></div>
+  </div>
+
+ </body>
+</html>

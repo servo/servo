@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang='en'>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<title>html iso-8859-1, css bom and @charset utf8 (in lowercase)</title>
+<link rel='author' title='Richard Ishida' href='http://rishida.net'>
+<link rel='reviewer' title='Elika J. Etemad' href='http://fantasai.inkedblade.net/contact'>
+<link rel='help' href='http://www.w3.org/TR/CSS21/syndata.html#charset'>
+<link rel='alternate' href='http://www.w3.org/International/tests/tests-html-css/tests-character-encoding/generate?test=32'>
+<meta name='flags' content=''>
+<meta name="assert" content="When a stylesheet has a BOM and an @charset declaration that is for the right Unicode encoding, the stylesheet works.">
+<style type='text/css'>
+/* the CSS below is not part of the test */
+.test { font-size: 40px; }
+.test img { vertical-align: middle;  }
+.test td { padding-right: 60px; }
+</style>
+<link rel="stylesheet" type="text/css" href="support/bom-charsetutf8.css" >
+</head>
+<body>
+<p class='instructions'>Test passes if there is a green rectangle below.</p>
+
+
+<div class="test"><span style="background-color: red; color: red;"><span class="ýäè">text</span></span></div>
+
+
+<!--p class="notes">Notes: <br>The HTML page is served as ISO 8859-1. The CSS starts with a UTF-8 signature but also has an @charset rule declaring the encoding to be UTF-8.</p-->
+</body>
+</html>

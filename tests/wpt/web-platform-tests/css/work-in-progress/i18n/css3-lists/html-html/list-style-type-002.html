@@ -1,0 +1,103 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html >
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>CSS Test: list-style-type - armenian, up to 9,999</title>
+<link rel='author' title='Richard Ishida' href='http://rishida.net'>
+<link rel='reviewer' title='Elika J. Etemad' href='http://fantasai.inkedblade.net/contact'>
+<link rel='help' href='http://www.w3.org/TR/CSS21/generate.html#list-style'>
+<link rel='alternate' href='http://www.w3.org/International/tests/tests-html-css/tests-list-style-type/generate?test=2'>
+<meta name='flags' content=''>
+<meta name="assert" content="Setting list-style-type to armenian will cause list numbering to format numbers up to 9,999 in the way described in CSS3 Lists module.">
+<style type='text/css'>
+.armenian { list-style-type: armenian; }
+
+/* the CSS below is not part of the test */
+.test { font-size: 24px; font-family: sans-serif; }
+ol { margin: 0; padding-left: 8em; }
+.alt { color: #ff6633; margin-left: 40px;}
+
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the numbering matches the uppercase or lowercase (in parentheses) text to the right of each line.</p>
+
+
+<div class="test"> 
+			<ol class="armenian">
+				<li title="1">Ա <span class="alt">(ա)</span></li>
+				<li title="2">Բ <span class="alt">(բ)</span></li>
+				<li title="3">Գ <span class="alt">(գ)</span></li>
+				<li title="4">Դ <span class="alt">(դ)</span></li>
+				<li title="5">Ե <span class="alt">(ե)</span></li>
+				<li title="6">Զ <span class="alt">(զ)</span></li>
+				<li title="7">Է <span class="alt">(է)</span></li>
+				<li title="8">Ը <span class="alt">(ը)</span></li>
+				<li title="9">Թ <span class="alt">(թ)</span></li>
+				<li title="10">Ժ <span class="alt">(ժ)</span></li>
+				<li title="11">ԺԱ <span class="alt">(ժա)</span></li>
+				<li title="12">ԺԲ <span class="alt">(ժբ)</span></li>
+			</ol>
+			<ol class="armenian" start="43">
+				<li title="43">ԽԳ <span class="alt">(խգ)</span></li>
+			</ol>
+			<ol class="armenian" start="77">
+				<li title="77">ՀԷ <span class="alt">(հէ)</span></li>
+			</ol>
+			<ol class="armenian" start="80">
+				<li title="80">Ձ <span class="alt">(ձ)</span></li>
+			</ol>
+			<ol class="armenian" start="99">
+				<li title="99">ՂԹ <span class="alt">(ղթ)</span></li>
+				<li title="100">Ճ <span class="alt">(ճ)</span></li>
+				<li title="101">ՃԱ <span class="alt">(ճա)</span></li>
+			</ol>
+			<ol class="armenian" start="222">
+				<li title="222">ՄԻԲ <span class="alt">(միբ)</span></li>
+			</ol>
+			<ol class="armenian" start="540">
+				<li title="540">ՇԽ <span class="alt">(շխ)</span></li>
+			</ol>
+			<ol class="armenian" start="999">
+				<li title="999">ՋՂԹ <span class="alt">(ջղթ)</span></li>
+				<li title="1000">Ռ <span class="alt">(ռ)</span></li>
+			</ol>
+			<ol class="armenian" start="1005">
+				<li title="1005">ՌԵ <span class="alt">(ռե)</span></li>
+			</ol>
+			<ol class="armenian" start="1060">
+				<li title="1060">ՌԿ <span class="alt">(ռկ)</span></li>
+			</ol>
+			<ol class="armenian" start="1065">
+				<li title="1065">ՌԿԵ <span class="alt">(ռկե)</span></li>
+			</ol>
+			<ol class="armenian" start="1800">
+				<li title="1800">ՌՊ <span class="alt">(ռպ)</span></li>
+			</ol>
+			<ol class="armenian" start="1860">
+				<li title="1860">ՌՊԿ <span class="alt">(ռպկ)</span></li>
+			</ol>
+			<ol class="armenian" start="1865">
+				<li title="1865">ՌՊԿԵ <span class="alt">(ռպկե)</span></li>
+			</ol>
+			<ol class="armenian" start="5865">
+				<li title="5865">ՐՊԿԵ <span class="alt">(րպկե)</span></li>
+			</ol>
+			<ol class="armenian" start="7005">
+				<li title="7005">ՈՒԵ <span class="alt">(ուե)</span></li>
+			</ol>
+			<ol class="armenian" start="7800">
+				<li title="7800">ՈՒՊ <span class="alt">(ուպ)</span></li>
+			</ol>
+			<ol class="armenian" start="7865">
+				<li title="7865">ՈՒՊԿԵ <span class="alt">(ուպկե)</span></li>
+			</ol>
+			<ol class="armenian" start="9999">
+				<li title="9999">ՔՋՂԹ <span class="alt">(քջղթ)</span></li>
+			</ol>
+		</div>
+
+
+<!--p class="notes">Notes: <br>CSS2.1 CR specifies an armenian property, but does not specify in any detail the mechanism for implementing it. Expectations for behavior in these tests are based on the descriptions of lower-armenian and upper-armenian in the version of the CSS3 Lists module current at the time this test was last updated.</p><p class="notes">The test uses the start attribute to reduce the size of the list.  This attribute is deprecated or unavailable in some formats, causing the test page not to validate, but appears to be supported in major browsers anyway (and will be reinstated in HTML5).</p><p class="notes">Both upper and lowercase variants are shown here because the test is about the generative mechanism. The case is tested elsewhere.</p-->
+</body>
+</html>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Test: SVG presentation attribute and translation-value argument with vw unit on translateY</title>
+    <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com"/>
+    <link rel="help" href="http://www.w3.org/TR/css3-transforms/#svg-transform"/>
+    <link rel="help" href="http://www.w3.org/TR/css3-transforms/#two-d-transform-functions"/>
+    <link rel="help" href="http://www.w3.org/TR/css3-transforms/#TranslateDefined"/>
+    <link rel="match" href="reftest/svg-translatey-vw-unit-ref.html"/>
+    <meta name="flags" content="svg"/>
+    <meta name="assert" content="The translateY transform function must support the viewport-percentage unit 'vw' on translation-value arguments. The rect in the test should be moved 50 pixels in the Y direction"/>
+    <style type="text/css">
+    svg {
+        width: 300px;
+        height: 300px;
+    }
+    </style>
+</head>
+<body>
+    <p>You should see a 100x100 purple rect at 0,50</p>
+    <svg >
+        <rect width="100" height="100" fill="purple" transform="translateY(1vw)"/>
+    </svg>
+</body>
+</html>

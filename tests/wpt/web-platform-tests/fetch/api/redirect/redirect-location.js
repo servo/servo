@@ -14,7 +14,7 @@ function redirectLocation(desc, redirectUrl, redirectLocation, redirectStatus, r
   promise_test(function(test) {
     if (redirectMode === "error" || !shouldPass)
       return promise_rejects(test, new TypeError(), fetch(url + urlParameters, requestInit));
-    if (redirectLocation && redirectMode === "manual")
+    if (redirectMode === "manual")
       return fetch(url + urlParameters, requestInit).then(function(resp) {
         assert_equals(resp.status, 0, "Response's status is 0");
         assert_equals(resp.type, "opaqueredirect", "Response's type is opaqueredirect");
@@ -22,7 +22,7 @@ function redirectLocation(desc, redirectUrl, redirectLocation, redirectStatus, r
         assert_true(resp.headers.entries().next().done, "Headers should be empty");
       });
 
-    if (redirectMode === "manual" || redirectMode === "follow")
+    if (redirectMode === "follow")
       return fetch(url + urlParameters, requestInit).then(function(resp) {
         assert_equals(resp.status, redirectStatus, "Response's status is " + redirectStatus);
       });

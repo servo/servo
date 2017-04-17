@@ -1,0 +1,38 @@
+<!doctype html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<meta charset="utf-8">
+<title>CSS Test: Single-line flex containers should clamp their line's height to the container's computed min and max cross-size.</title>
+<link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+<link rel="match" href="flexbox-single-line-clamp-3-ref.html">
+<link rel="help" href="https://www.w3.org/TR/css-flexbox-1/#algo-cross-line">
+<style>
+.container {
+  display: flex;
+  background: gray;
+  min-height: 80px;
+
+  /* Don't let (default) align-content:stretch save us
+     by stretching the line to fit the container! The point
+     here is that the line should already be clamped to the
+     container's min-height. */
+  align-content: flex-start;
+}
+.panel {
+  background: lightblue;
+  width: 150px;
+}
+.contents {
+  height: 10px;
+  width: 10px;
+  background: purple;
+}
+</style>
+</head>
+<div class="container">
+  <div class="panel">
+    <div class="contents"></div>
+  </div>
+</div>

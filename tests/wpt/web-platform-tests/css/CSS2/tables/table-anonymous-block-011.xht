@@ -1,0 +1,55 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: The anonymous block box around a table - table top margin is collapsed with caption top margin</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#model" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The top margin of the table caption is not collapsed with top margin of the table." />
+        <style type="text/css">
+            #div1
+            {
+                border-top: 1em solid black;
+                width: 10em;
+            }
+            #div2
+            {
+                background: blue;
+                height: 10em;
+                position: relative;
+                top: -4em;
+                width: 10em;
+            }
+            table
+            {
+                 border-spacing: 0;
+                 font: 1em/1 Ahem;
+                 margin-top: 2em;
+            }
+            caption
+            {
+                background: red;
+                color: red;
+                margin-top: 2em;
+            }
+            td
+            {
+                background: red;
+                color: red;
+                padding: 0;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there are only two boxes below and there is space between the black box and the blue box.</p>
+        <div id="div1">
+            <table>
+                <caption>Filler Text</caption>
+                <tr>
+                    <td>Filler Text</td>
+                </tr>
+            </table>
+            <div id="div2"></div>
+        </div>
+    </body>
+</html>

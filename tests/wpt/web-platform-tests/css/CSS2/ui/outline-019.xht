@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: outline - text-align</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="author" title="James Hopkins" href="http://idreamincode.co.uk/css21testsuite" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/ui.html#dynamic-outlines" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#alignment-prop" />
+  <meta name="flags" content="ahem interact" />
+  <meta name="assert" content="The outline should be drawn around an object and may be drawn starting just outside the border edge of such object." />
+
+  <style type="text/css"><![CDATA[
+  div
+  {
+  color: white;
+  font: 1.25em/3 Ahem;
+  text-align: justify;
+  width: 500px;
+  }
+
+  span
+  {
+  border: blue solid 8px;
+  color: blue;
+  outline: orange solid 8px;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>A thick orange border should be drawn around each of the 6 small blue rectangles. Each of the blue rectangles must not protrude out of each of their respective orange borders.</p>
+
+  <div> XXXXXXXX <span>Filler</span> XXXXXXXXX <span>Filler</span> XXXXXXXXXX <span>Filler</span> XXXXXXXXXXX <span>Filler</span> XXXXXXXXXXXX <span>Filler</span> XXXXXXXXXXXXX <span>Filler</span> XXXXXXXXXXXXXX </div>
+
+ </body>
+</html>

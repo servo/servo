@@ -1,0 +1,77 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD//XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Effect of 'direction' and 'unicode-bidi' on replaced inline elements</title>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#direction"/>
+  <meta name="flags" content="" />
+  <meta name="assert" content="Replaced elements are treated as neutral except
+    when unicode-bidi is not none, in which case they are strong characters in
+    the 'direction' direction." />
+  <style>
+    div { display: table-cell; padding: 0 1em; border: dotted silver thin }
+    [dir=ltr] strong, [dir=ltr] img { display: inline-block; direction: rtl; border: solid orange}
+    [dir=rtl] strong, [dir=rtl] img { display: inline-block; direction: ltr; border: solid orange}
+    .override * { unicode-bidi: bidi-override; }
+    .embed * { unicode-bidi: embed; }
+
+    /* Try to confuse the UA. This should have no effect. */
+    [dir=ltr] span { direction: rtl; }
+    [dir=rtl] span { direction: ltr; }
+  </style>
+  <div dir=ltr>
+    <p title="Neutral Control">^..$</p>
+    <div class="none" title="unicode-bidi: none">
+      <p><img src="http://www.w3.org/Style/CSS/Test/CSS2.1/20100316/html4/support/square-purple.png">^..$<img src="http://www.w3.org/Style/CSS/Test/CSS2.1/20100316/html4/support/square-teal.png"></p>
+      <p><strong>A</strong>^..$<strong>B</strong></p>
+    </div>
+    <div class="embed" title="unicode-bidi: embed">
+      <p><img src="http://www.w3.org/Style/CSS/Test/CSS2.1/20100316/html4/support/square-purple.png">^..$<img src="http://www.w3.org/Style/CSS/Test/CSS2.1/20100316/html4/support/square-teal.png"></p>
+      <p><strong>A</strong>^..$<strong>B</strong></p>
+    </div>
+    <div class="override" title="unicode-bidi: bidi-override">
+      <p><img src="http://www.w3.org/Style/CSS/Test/CSS2.1/20100316/html4/support/square-purple.png">^..$<img src="http://www.w3.org/Style/CSS/Test/CSS2.1/20100316/html4/support/square-teal.png"></p>
+      <p><strong>A</strong>^..$<strong>B</strong></p>
+    </div>
+    <br>
+    <div class="none" title="unicode-bidi: none">
+      <p><span><img src="http://www.w3.org/Style/CSS/Test/CSS2.1/20100316/html4/support/square-purple.png">^..$<img src="http://www.w3.org/Style/CSS/Test/CSS2.1/20100316/html4/support/square-teal.png"></span></p>
+      <p><span><strong>A</strong>^..$<strong>B</strong></span></p>
+    </div>
+    <div class="embed" title="unicode-bidi: embed">
+      <p><span><img src="http://www.w3.org/Style/CSS/Test/CSS2.1/20100316/html4/support/square-purple.png">^..$<img src="http://www.w3.org/Style/CSS/Test/CSS2.1/20100316/html4/support/square-teal.png"></span></p>
+      <p><span><strong>A</strong>^..$<strong>B</strong></span></p>
+    </div>
+    <div class="override" title="unicode-bidi: bidi-override">
+      <p><span><img src="http://www.w3.org/Style/CSS/Test/CSS2.1/20100316/html4/support/square-purple.png">^..$<img src="http://www.w3.org/Style/CSS/Test/CSS2.1/20100316/html4/support/square-teal.png"></span></p>
+      <p><span><strong>A</strong>^..$<strong>B</strong></span></p>
+    </div>
+  </div>
+  <div dir=rtl>
+    <p title="Neutral Control">^..$</p>
+    <div class="none" title="unicode-bidi: none">
+      <p><img src="http://www.w3.org/Style/CSS/Test/CSS2.1/20100316/html4/support/square-purple.png">^..$<img src="http://www.w3.org/Style/CSS/Test/CSS2.1/20100316/html4/support/square-teal.png"></p>
+      <p><strong>A</strong>^..$<strong>B</strong></p>
+    </div>
+    <div class="embed" title="unicode-bidi: embed">
+      <p><img src="http://www.w3.org/Style/CSS/Test/CSS2.1/20100316/html4/support/square-purple.png">^..$<img src="http://www.w3.org/Style/CSS/Test/CSS2.1/20100316/html4/support/square-teal.png"></p>
+      <p><strong>A</strong>^..$<strong>B</strong></p>
+    </div>
+    <div class="override" title="unicode-bidi: bidi-override">
+      <p><img src="http://www.w3.org/Style/CSS/Test/CSS2.1/20100316/html4/support/square-purple.png">^..$<img src="http://www.w3.org/Style/CSS/Test/CSS2.1/20100316/html4/support/square-teal.png"></p>
+      <p><strong>A</strong>^..$<strong>B</strong></p>
+    </div>
+    <br>
+    <div class="none" title="unicode-bidi: none">
+      <p><span><img src="http://www.w3.org/Style/CSS/Test/CSS2.1/20100316/html4/support/square-purple.png">^..$<img src="http://www.w3.org/Style/CSS/Test/CSS2.1/20100316/html4/support/square-teal.png"></span></p>
+      <p><span><strong>A</strong>^..$<strong>B</strong></span></p>
+    </div>
+    <div class="embed" title="unicode-bidi: embed">
+      <p><span><img src="http://www.w3.org/Style/CSS/Test/CSS2.1/20100316/html4/support/square-purple.png">^..$<img src="http://www.w3.org/Style/CSS/Test/CSS2.1/20100316/html4/support/square-teal.png"></span></p>
+      <p><span><strong>A</strong>^..$<strong>B</strong></span></p>
+    </div>
+    <div class="override" title="unicode-bidi: bidi-override">
+      <p><span><img src="http://www.w3.org/Style/CSS/Test/CSS2.1/20100316/html4/support/square-purple.png">^..$<img src="http://www.w3.org/Style/CSS/Test/CSS2.1/20100316/html4/support/square-teal.png"></span></p>
+      <p><span><strong>A</strong>^..$<strong>B</strong></span></p>
+    </div>
+  </div>

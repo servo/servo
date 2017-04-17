@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: 'Background-size' applied to element with a display of 'block'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css3-background/#the-background-size" />
+        <meta name="flags" content="image" />
+        <meta name="assert" content="'Background-size' property applies to elements with 'display: block'." />
+        <style type="text/css">
+            span
+            {
+                display: block;
+                height: 2in;
+                width: 2in;
+                border: 20px solid black;
+                padding: 20px;
+                background: url("support/black_color.png") no-repeat red;
+                background-size: 100% 100%;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page.</p>
+        <span></span>
+    </body>
+</html>

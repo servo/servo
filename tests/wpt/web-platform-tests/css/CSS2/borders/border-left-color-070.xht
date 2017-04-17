@@ -1,0 +1,36 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border-left-color set to rgb() using percentages with red set to the minimum plus one value, rgb(1%, 0%, 0%)</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com" /> <!-- converted to reftest 01-08-2013 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#propdef-border-left-color" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-color-properties" />
+        <link rel="match" href="border-bottom-color-070-ref.xht"/>
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'border-left-color' set to rgb(1%, 0%, 0%) renders the correct color." />
+        <style type="text/css">
+            div
+            {
+                height: 1in;
+                width: 1in;
+            }
+            #test
+            {
+                border-left-style: solid;
+                border-left-width: 1in;
+                border-left-color: rgb(1%, 0%, 0%);
+            }
+            #reference
+            {
+                background-color: rgb(1%, 0%, 0%);
+                margin-top: 10px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the boxes below are the same color.</p>
+        <div id="test"></div>
+        <div id="reference"></div>
+    </body>
+</html>

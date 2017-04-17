@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Reference File</title>
+    <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com"/>
+    <style type="text/css">
+        #container {
+            position: absolute;
+            top: 70px;
+            width: 400px;
+            font-family: Ahem;
+            font-size: 20px;
+            line-height: 1.5em;
+            color: green;
+        }
+        #square{
+            position: absolute;
+            top: 70px;
+            width: 196px;
+            height: 196px;
+            border: 1px solid black;
+            z-index: 10;
+        }
+
+    </style>
+</head>
+<body>
+    <p>
+        The test passes if there are two columns of six green horizontal bars of the same
+        size inside the square and two columns of six matching green bars outside and to the
+        right of the square. There should be no red.
+    </p>
+    <div id="container">
+          XXXX XXXX XXXX XXXX
+          XXXX XXXX XXXX XXXX
+          XXXX XXXX XXXX XXXX
+          XXXX XXXX XXXX XXXX
+          XXXX XXXX XXXX XXXX
+          XXXX XXXX XXXX XXXX
+    </div>
+    <div id="square"></div>
+
+ </body>
+</html>

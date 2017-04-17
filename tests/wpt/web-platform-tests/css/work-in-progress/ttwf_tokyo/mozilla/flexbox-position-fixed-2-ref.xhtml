@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!-- Reference case for fixed-position children of a flex container. -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <style>
+      div.containingBlock {
+        top: 15px;
+        left: 20px;
+        height: 400px;
+        position: absolute;
+        border: 2px dashed purple;
+      }
+      .fixedpos {
+        position: fixed;
+        border: 2px dotted black;
+      }
+      div.flexbox {
+        width: 200px;
+        height: 100px;
+      }
+      div.a {
+        width: 100%;
+        height: 100px;
+        background: lightgreen;
+        display: inline-block;
+      }
+      div.b {
+        width: 100%;
+        height: 100px;
+        background: yellow;
+        display: inline-block;
+      }
+      div.inflex {
+        width: 20px;
+        height: 100px;
+        background: gray;
+        display: inline-block;
+      }
+      div.noFlexFn {
+        width: 15px;
+        height: 15px;
+        background: teal;
+        display: inline-block;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="containingBlock">
+      <!-- First child fixedpos: -->
+      <div class="flexbox"
+           ><div class="a fixedpos" style="width: 30px"/><div class="b"/></div>
+      <!-- Second child fixedpos: -->
+      <div class="flexbox"
+           ><div class="a"/><div class="b fixedpos" style="width: 20px"/></div>
+      <!-- Middle child fixedpos: -->
+      <div class="flexbox"
+           ><div class="a" style="width: 80px"
+          /><div class="inflex fixedpos"
+          /><div class="b" style="width: 120px"/></div>
+      <!-- Third child fixedpos, w/ inflexible items & justify-content: space-around: -->
+      <div class="flexbox"
+           ><div class="inflex" style="margin-left: 12px"
+          /><div class="inflex" style="margin-left: 24px"
+          /><div class="inflex" style="margin-left: 24px"
+          /><div class="noFlexFn fixedpos" style="margin-left: 24px"
+          /><div class="inflex" style="margin-left: 48px"/></div>
+    </div>
+  </body>
+</html>

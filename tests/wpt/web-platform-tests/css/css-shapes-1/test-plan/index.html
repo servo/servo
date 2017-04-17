@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Shapes Level 1 Test Plan</title>
+    <meta http-equiv='Content-Type' content='text/html;charset=utf-8'/>
+    <!--
+      === NOTA BENE ===
+      For the three scripts below, if your spec resides on dev.w3 you can check them
+      out in the same tree and use relative links so that they'll work offline,
+     -->
+    <script src='http://www.w3.org/Tools/respec/respec-w3c-common' class='remove' async></script>
+    <script class='remove'>
+      var respecConfig = {
+          specStatus: "unofficial",
+          shortName: "css-shapes-1-test-plan",
+          editors: [
+            {
+              name: "Rebecca Hauck", mailto: "rhauck@adobe.com",
+              company: "Adobe Systems, Inc.", companyURL: "http://www.adobe.com/"
+            },
+          ],
+          testSuiteURI: "http://test.csswg.org/suites/css3-shapes/nightly-unstable/",
+      };
+    </script>
+    <style>
+    a.bibref,
+    #references dt {
+      text-transform: uppercase;
+    }
+    </style>
+  </head>
+  <body>
+    <section id='abstract'>
+      <p>
+        This document is intended to be used as a guideline for the testing
+        activities related to the CSS Shapes Level 1 spec [[!css-shapes-1]]. Its main
+        goal is to provide an overview of the general testing areas, possible
+        caveats and testing aspects not immediately apparent from the spec.
+        Also, it provides a means of tracking the progress of the CSS Shapes
+        spec testing.
+      </p>
+      <p>
+        This document is not meant to replace the spec in determining the
+        normative and non-normative assertions to be tested, but rather
+        complement it.
+      </p>
+    </section>
+
+    <section>
+      <h2>Goals</h2>
+      <p>
+        To ensure a comprehensive test suite with useful, high quality tests, a
+        number of goals are proposed. They range from process goals (how to
+        conduct testing) to implementation goals (how to write good tests).
+      </p>
+      <section>
+        <h3>Enabling easy test contribution</h3>
+        <p>
+          An important vector in successfully testing CSS Shapes is to
+          enable easy test contributions, both from W3C partners and from
+          non-W3C members that wish to contribute. This is achieved by clearly
+          marking and explaining the areas that need testing, linking to existing
+          tests, and general testing progress.
+        </p>
+      </section>
+      <section>
+        <h3>Providing guidance on testing</h3>
+        <p>
+          In order to increase the quality of the test contributions, this
+          document offers a set of guidelines for conducting testing (see
+          <a href="#approach" class="sectionRef"></a>) and a testing progress
+          tracker to increase the surface coverage of tests (see
+          <a href="#test-progress-tracking" class="sectionRef"></a>).
+        </p>
+      </section>
+      <section>
+        <h3>Creating automation-friendly tests</h3>
+        <p>
+          In terms of actual tests produced for the CSS Shapes specification, the main goal
+          is to ensure that most tests are automatable (i.e. they're either
+          reftests or use <code>testharness.js</code>). Even where manual tests
+          are absolutely necessary they should be written so that they can be
+          easily automated &ndash; as there are ongoing efforts to make
+          WebDriver [[webdriver]] automated tests a first class citizen in W3C
+          testing. This means that even if a manual test requires user
+          interaction, the validation or PASS/FAIL conditions should still be
+          clear enough as to allow automatic validation if said interaction is
+          later automated.
+        </p>
+      </section>
+    </section>
+    <section>
+		<h2>Approach</h2>
+		<p>
+			Since the CSS Shapes Level 1 spec introduces only three new CSS properties,
+			the approach is to deep dive into every aspect of the spec as much as possible.
+
+			Tests will be created for the testing areas listed in <a href="#testing-areas" class="sectionRef"></a>.
+		</p>
+	</section>
+	<section>
+      <h2>Testing areas</h2>
+      <section>
+        <h3>Explicit testing areas</h3>
+        <p>
+          These are testing areas normatively defined by the spec. They cover
+          things explicitly or implicitly defined in the CSS Shapes spec.
+          Please note that while detailed, this list is not necessarily
+          exhaustive and normative behaviors may not be contained in it.
+          When in doubt, consult the CSS Shapes spec or ask a question on the
+          <a href="http://lists.w3.org/Archives/Public/www-style/">mailing
+          list</a>.
+        </p>
+        <p>
+        <section>
+        <h4>Proper parsing of the CSS properties and values according to the spec</h4>
+            <p class=note>
+                Note: For all of the tests below, where length parameters are tested,
+                      the supported <a class="production css-code" data-link-type=type href=http://www.w3.org/TR/css3-values/#lengths title="<length>">&lt;length&gt;</a>
+                      units defined in the CSS Values &amp; Units [[!CSS3VAL]] specification, but not all permutations will not be
+                      tested. Instead, a sampling of these units will be used across the parsing and layout tests.
+            </p>
+            <ul>
+                <li>
+                    <code>shape-outside</code>
+                    <ul>
+                        <li>none</li>
+                        <li>
+                            <code>&lt;basic-shape&gt;</code>
+                            <ul>
+                                <li>
+                                    <code>inset()</code>
+                                    <ul>
+                                        <li>0-4 arguments</li>
+                                        <li>length units</li>
+                                        <li>percentages</li>
+                                        <li>positive/negative lengths</li>
+                                        <li>decimal/non-decimal lengths</li>
+                                        <li>calc() lengths</li>
+                                        <li>no unit or %</li>
+                                        <li>commas / no commas</li>
+                                        <li>invalid arg values</li>
+                                        <li><code>round</code> keyword
+                                            <ul>
+                                                <li><code>&lt;border-radius&gt;</code>
+                                                    <ul>
+                                                        <li>0-8 arguments</li>
+                                                        <li>position of '/'</li>
+                                                        <li>length units</li>
+                                                        <li>percentages</li>
+                                                        <li>positive/negative lengths</li>
+                                                        <li>decimal/non-decimal lengths</li>
+                                                        <li>calc() lengths</li>
+                                                        <li>no unit or %</li>
+                                                        <li>commas / no commas</li>
+                                                        <li>invalid values</li>
+                                                    </ul>
+                                                </li>
+                                            </ul>
+                                        </li>
+                                    </ul>
+                                </li>
+                                <li><code>circle()</code>
+                                    <ul>
+                                    <li><code>&lt;shape-radius&gt;</code>
+                                        <ul>
+                                            <li>0-1 args (valid), 2 args (invalid)</li>
+                                            <li>length units</li>
+                                            <li>percentages</li>
+                                            <li>positive/negative lengths</li>
+                                            <li>decimal/non-decimal lengths</li>
+                                            <li>calc() lengths</li>
+                                            <li>no unit or %</li>
+                                            <li>commas / no commas</li>
+                                            <li>invalid arg values</li>
+                                            <li><code>closest-side, farthest-side</code> keywords</li>
+                                        </ul>
+                                    </li>
+                                    <li><code>at</code> keyword
+                                        <ul>
+                                            <li><code>&lt;position&gt;</code>
+                                                <ul>
+                                                    <li>0-4 arguments</li>
+                                                    <li>length units</li>
+                                                    <li>percentages</li>
+                                                    <li>positive/negative lengths</li>
+                                                    <li>decimal/non-decimal lengths</li>
+                                                    <li>calc() lengths</li>
+                                                    <li>no unit or %</li>
+                                                    <li>commas / no commas</li>
+                                                    <li>invalid values</li>
+                                                    <li><code>top, left, bottom, right</code> keywords</li>
+                                                </ul>
+                                            </li>
+                                        </ul>
+                                    </li>
+                                    </ul>
+                                </li>
+                                <li><code>ellipse()</code>
+                                    <ul>
+                                    <li><code>&lt;shape-radius&gt;</code>
+                                        <ul>
+                                            <li>0-2 args (valid), 3 args (invalid)</li>
+                                            <li><i>Plus all of the same shape-radius tests listed above for circle()</i></li>
+                                        </ul>
+                                    </li>
+                                    <li><i>Plus all of the <code>at &lt;position&gt;</code> tests listed above for circle()</i></li>
+                                    </ul>
+                                </li>
+                                <li><code>polygon()</code>
+                                    <li><code>&lt;shape-arg&gt;</code>'s
+                                    <ul>
+                                        <li>1-6 vertices (valid), 0 vertices (invalid)</li>
+                                        <li>length units</li>
+                                        <li>percentages</li>
+                                        <li>positive/negative lengths</li>
+                                        <li>decimal/non-decimal lengths</li>
+                                        <li>calc() lengths</li>
+                                        <li>no unit or %</li>
+                                        <li>commas / no commas</li>
+                                        <li>invalid arg values</li>
+                                    </ul>
+                                    <li><code>&lt;fill-rule&gt;</code>
+                                        <ul>
+                                            <li><code>not specified (default: nonzero)</code></li>
+                                            <li><code>nonzero</code></li>
+                                            <li><code>evenodd</code></li>
+                                            <li>invalid values</li>
+                                        </ul>
+                                    </li>
+                                </li>
+                            </ul>
+                        </li>
+                        <li><code>&lt;box&gt;</code>
+                            <ul>
+                                <li><code>margin-box</code></li>
+                                <li><code>border-box</code></li>
+                                <li><code>padding-box</code></li>
+                                <li><code>content-box</code></li>
+                            </ul>
+                        </li>
+                        <li><code>&lt;basic-shape&gt; + &lt;box&gt;</code>
+                           <ul>
+                               <li>A sampling of the tests above combined together to test basic-shape with shape-box</li>
+                            </ul>
+                        </li>
+                        <li><code>&lt;image&gt;</code></li>
+                    </ul>
+                </li>
+                <li><code>shape-margin</code>
+                    <ul>
+                        <li>length units</li>
+                        <li>percentages</li>
+                        <li>positive/negative lengths</li>
+                        <li>decimal/non-decimal lengths</li>
+                        <li>calc() lengths</li>
+                        <li>no unit or %</li>
+                        <li>invalid values</li>
+                    </ul>
+                </li>
+                <li><code>shape-image-threshold</code>
+                    <ul>
+                        <li>decimal - 0-5 places</li>
+                        <li>no decimal</li>
+                        <li>percentage (invalid)</li>
+                        <li>positive/negative values</li>
+                        <li>decimal/non-decimal lengths</li>
+                        <li>calc() lengths</li>
+                        <li>+ / - signs</li>
+                        <li>invalid values</li>
+                    </ul>
+                </li>
+            </ul>
+            </section>
+            <section>
+            <h4>Proper serialization of the CSS properties and values according to the spec</h4>
+            <ul>
+                <li><code>&lt;position&gt;</code> values in <code>circle</code> and <code>ellipse</code> serialize to 2- and 4-value forms
+                    <ul>
+                        <li><code>top, left, bottom, right</code> serialize to percentages</li>
+                        <li>omitting radii omits radii from serialization</li>
+                    </ul>
+                </li>
+                <li><code>inset</code> serialized shape-args omit args when possible</li>
+                <li><code>&lt;round&gt;</code> values in <code>inset</code> serialize to as few as possible</li>
+                <li>unspecified <code>&lt;fill-rule&gt;</code> serializes <code>nonzero</code></li>
+                <li>0% is preferred over zero length</li>
+                <li>calc() is avoided</li>
+            </ul>
+            </section>
+            <section>
+            <h4>Proper computed values of the CSS properties and values according to the spec</h4>
+            <ul>
+                <li>lengths compute to px</li>
+                <li>percentages keep %</li>
+                <li>calc() preserved</li>
+            </ul>
+            </section>
+            <section>
+            <h4>Proper rendering &amp; layout of text around shapes according to the spec</h4>
+            <ul>
+                <li>Basic Shapes
+                    <ul>
+                        <li>inset
+                            <ul>
+                                <li>square corners</li>
+                                <li>rounded corners</li>
+                                <li>rounded corners to make circles &amp; ellipses</li>
+                            </ul>
+                        </li>
+                        <li>circle, ellipse
+                            <ul>
+                                <li>explicit/implicit radii</li>
+                                <li>explicit/implicit position</li>
+                                <li>closest-side / farthest-side</li>
+                            </ul>
+                        </li>
+                        <li>polygon
+                            <ul>
+                                <li>relative/absolute units</li>
+                                <li>fill-rule: evenodd/nonzero</li>
+                            </ul>
+                        </li>
+                        <li>float left / right</li>
+                        <li>shape-margin</li>
+                        <li>shape-box</code>
+                            <ul>
+                            <li>unspecified</li>
+                            <li>specified:
+                                <ul>
+                                    <li>margin-box</li>
+                                    <li>border-box</li>
+                                    <li>padding-box</li>
+                                    <li>content-box</li>
+                                </ul>
+                            </li>
+                            </ul>
+                        </li>
+                    </ul>
+                    </li>
+                    <li>Shapes from Box Values
+                        <ul>
+                            <li>margin-box, border-box, padding-box, content-box</li>
+                            <li>all, top, left, bottom, right, top-left, top-bottom, top-right, left-right, left-bottom, right-bottom</li>
+                            <li>float left / right</li>
+                            <li>border-radius</li>
+                        </ul>
+                    </li>
+                    <li>Shapes from Images
+                        <ul>
+                            <li>url
+                                <ul>
+                                    <li>png, svg, gif, jpeg</li>
+                                    <li>transparency/no transparency</li>
+                                </ul>
+                            </li>
+                            <li>image-list
+                                <ul>
+                                    <li>png, svg, gif, jpeg</li>
+                                    <li>transparency/no transparency</li>
+                                </ul>
+                            </li>
+                            <li>gradient
+                                <ul>
+                                    <li>linear</li>
+                                    <li>radial</li>
+                                    <li>repeating</li>
+                                </ul>
+                            </li>
+                            <li>float left / right</li>
+                            <li>shape-margin</li>
+                            <li>shape-image-threshold</li>
+                        </ul>
+                    </li>
+                    <li>Float Tests
+                        <ul>
+                            <li>Float stacking</li>
+                            <li>Line boxes affected by both float right and float left shapes at the same time</li>
+                            <li>Empty float areas</li>
+                            <li>Shapes that extend past the margin box edge</li>
+                        </ul>
+                    </li>
+                </ul>
+            </li>
+            </section>
+      </section>
+      <section>
+        <h3>Implicit testing areas</h3>
+        <p>
+          These are testing areas either normatively defined in other specs
+          that are explicitly referred to in the CSS Shapes spec. Additionally, the
+          CSS Shapes spec is explicitly referred to by other specs. Please note that
+          while detailed, this list is not necessarily exhaustive and normative behaviors
+          may not be contained in it. When in doubt, consult the CSS Regions spec or ask
+          a question on the <a href="http://lists.w3.org/Archives/Public/www-style/">mailing list</a>.
+        </p>
+        <p>
+          Below is the list of implicit testing areas:
+          <ul>
+            <li>CSS 2.1 [[!CSS21]]</li>
+            <li>CSS Box Model [[!CSS3BOX]]</li>
+            <li>CSS Values &amp; Units [[!CSS3VAL]]</li>
+            <li>CSS Backgrounds &amp; Borders [[!CSS3BG]]</li>
+            <li>HTML5 [[!HTML5]]</li>
+            <li>CSS Masking [[CSS-MASKING]]</li>
+            <li>CSS Exclusions [[CSS-EXCLUSIONS]]</li>
+          </ul>
+        </p>
+      </section>
+       <section>
+          <h3>Interactions with other CSS features &amp; specifications</h3>
+          <p>When the CSS Shapes spec has a full suite of tests covering the behaviors defined in the spec,
+             additional tests will be needed to assure that the implementation works properly with other
+             CSS features defined in other specifications.
+          </p>
+          <p>Below is a list of features that should work properly with CSS Shapes:</p>
+          <ul>
+              <li>CSS Transforms</li>
+              <li>CSS Transitions</li>
+              <li>CSS Animations</li>
+              <li>CSS Exclusions</li>
+              <li>CSS Writing Modes - when the float and container have different 'writing-mode' and 'direction' properties</li>
+          </ul>
+    </section>
+    <section>
+      <h2>People and responsibilities</h2>
+      <p>
+        Below is a list of people you should reach out to if you have any
+        questions related to this document or testing CSS Shapes in general:
+        <ul>
+          <li>Alan Stearns &ndash; Editor for CSS Shapes spec</li>
+          <li>Rebecca Hauck &ndash; Test Coordinator for CSS Regions</li>
+        </ul>
+      </p>
+    </section>
+    <section>
+      <h2>Test progress tracking</h2>
+      <p>
+        Currently test progress tracking is done via gitHub
+        <a href="https://github.com/w3c/csswg-test/issues?labels=spec%3Ashapes&amp;milestone=&amp;page=1&amp;state=open">milestones
+        and issues</a>.
+        <!-- FIXME: Add more details once issues were created for all test areas. -->
+      </p>
+    </section>
+  </body>
+</html>

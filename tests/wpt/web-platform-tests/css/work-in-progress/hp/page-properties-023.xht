@@ -1,0 +1,41 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: page properties: em and ex in @page context</title>
+<link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+<link rel="help" href="http://www.w3.org/TR/css3-page/#page-properties"/>
+<meta name="flags" content="ahem paged" />
+<meta name="assert" content="When applied to a margin box, values in units of 'em' and 'ex' refer to the margin box's font."/>
+<style type="text/css">
+	@page pageOne { 
+		font-size: 72pt;
+		@top-center {
+			content: "";
+			font-size: 36pt;
+			border: 2pt solid lime;
+			width: 2em;
+		}
+		@top-left {content: "";}
+		@top-right {content: "";}
+	}
+	@page pageTwo { 
+		font: 72pt Ahem;
+		@top-center {
+			content: "";
+			font: 36pt Ahem;
+			border: 2pt solid lime;
+			width: 4ex;
+		}
+		@top-left {content: "";}
+		@top-right {content: "";}
+	}
+	p {page-break-after: always;}
+	p#first {page: pageOne;}
+	p#second {page: pageTwo;}
+</style>
+</head>
+<body>
+	<p id="first">This test requires two pages. When printed, the green-bordered box above this content should have an interior width of 1 inch.</p>
+	<p id="second">When printed, the green-bordered box above this content should have an interior width of 1 inch.</p>
+</body>
+</html>

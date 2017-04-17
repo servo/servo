@@ -1,0 +1,40 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: 3D-transformed child is flattened and doesn't depth-sort with parent</title>
+  <link rel="author" title="Apple" href="http://www.apple.com/"/>
+  <link rel="help" href="RELEVANT_SPEC_SECTION"/>
+  <link rel="match" href="reference/green-square-ref.xht"/>
+  <meta name="flags" content="TOKENS" />
+  <meta name="assert" content="3d-transformed child is flattened and doesn't depth-sort with parent"/>
+  <script type="text/javascript" src="scripts/prefixfree.min.js"></script>
+  <style type="text/css"><![CDATA[
+      div {
+          width: 200px;
+          height: 200px;
+      }
+      
+      .container {
+          position: relative;
+      }
+      .test {
+          position: absolute;
+      }
+      #s1 {
+          background-color: red;
+          transform: translateZ(100px);
+      }
+      #s2 {
+          background-color: green;
+          transform: translateZ(0);
+      }
+  ]]></style>
+ </head>
+ <body>
+    <div class="container">
+        <div class="test" id="s1">
+            <div class="test" id="s2"></div>
+        </div>
+    </div>
+ </body>
+</html>

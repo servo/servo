@@ -21,7 +21,7 @@ function on_load() {
                   "The frameElement attribute should be the embed element.");
     assert_equals(document.getElementById("fr4").contentWindow[0].frameElement,
                   document.getElementById("fr4").contentDocument.getElementById("f1"),
-                  "The frameElement attribute should be the frame element in 'test.html'.");
+                  "The frameElement attribute should be the frame element in 'resources/frameElement-nested-frame.html'.");
   });
   t1.done();
 
@@ -50,19 +50,19 @@ function on_load() {
 <body onload="on_load()">
   <div id="log"></div>
   <iframe id="fr1"></iframe>
-  <iframe id="fr2" src="test.html"></iframe> <!-- cross origin -->
+  <iframe id="fr2" src="resources/frameElement-nested-frame.html"></iframe> <!-- cross origin -->
   <iframe id="fr3" src="" style="display:none"></iframe>
   <object id="obj" name="win2" type="text/html" data="about:blank"></object>
   <embed id="emb" name="win3" type="image/svg+xml" src="/images/green.svg" />
-  <iframe id="fr4" src="test.html"></iframe> <!-- same origin -->
-  <iframe id="fr5" src="testcase3.html"></iframe> <!-- cross origin -->
+  <iframe id="fr4" src="resources/frameElement-nested-frame.html"></iframe> <!-- same origin -->
+  <iframe id="fr5" src="resources/frameElement-window-post.html"></iframe> <!-- cross origin -->
   <script>
 
   setup(function () {
     var src_base = get_host_info().HTTP_REMOTE_ORIGIN;
     src_base += document.location.pathname.substring(0, document.location.pathname.lastIndexOf("/") + 1);
-    document.getElementById("fr2").src = src_base + "test.html";
-    document.getElementById("fr5").src = src_base + "testcase3.html";
+    document.getElementById("fr2").src = src_base + "/resources/frameElement-nested-frame.html";
+    document.getElementById("fr5").src = src_base + "/resources/frameElement-window-post.html";
   });
 
   test(function () {

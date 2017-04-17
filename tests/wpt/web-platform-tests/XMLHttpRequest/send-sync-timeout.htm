@@ -5,7 +5,6 @@
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
     <link rel="help" href="https://xhr.spec.whatwg.org/#the-send()-method"/>
-    <link rel="help" href="https://xhr.spec.whatwg.org/#same-origin-request-steps" data-tested-assertations="following::DL[1]/DT[1]"/>
   </head>
   <body>
     <div id="log"></div>
@@ -15,7 +14,7 @@
       test.step(function() {
         client = new XMLHttpRequest()
         client.open("GET", "folder.txt", false)
-        setTimeout(function() { test.step(function() { hasrun = true }) }, 0)
+        test.step_timeout(() => { hasrun = true }, 0)
         client.onreadystatechange = function() {
           test.step(function() {
             assert_equals(client.readyState, 4)

@@ -1,0 +1,81 @@
+{
+  "Explode Non-composite" :
+  {
+    "level": 4,
+    "variables": {
+       "token": "12345"
+    },
+    "testcases" : [
+       ["{token}", "12345"],
+       ["{token*}", "12345"],
+       ["{.token}", ".12345"],
+       ["{.token*}", ".12345"],
+       ["{/token}", "/12345"],
+       ["{/token*}", "/12345"],
+       ["{?token}", "?token=12345"],
+       ["{?token*}", "?token=12345"]
+    ]
+  },
+  "Non-string Values" :
+  {
+    "level": 4,
+    "variables": {
+       "positive": true,
+       "negative": false,
+       "zero"    : 0,
+       "number"  : 42.24,
+       "list"    : ["one", 2, true, false, 0],
+       "dict"    : { "one": "1", "two": 2, "positive": true, "negative": false, "zero": 0 }
+    },
+    "testcases" : [
+       ["{positive}", "true"],
+       ["{positive*}", "true"],
+       ["{negative}", "false"],
+       ["{negative*}", "false"],
+       ["{zero}", "0"],
+       ["{zero*}", "0"],
+       ["{number}", "42.24"],
+       ["{number*}", "42.24"],
+       ["{.positive}", ".true"],
+       ["{.positive*}", ".true"],
+       ["{.negative}", ".false"],
+       ["{.negative*}", ".false"],
+       ["{.zero}", ".0"],
+       ["{.zero*}", ".0"],
+       ["{.number}", ".42.24"],
+       ["{.number*}", ".42.24"],
+       ["{/positive}", "/true"],
+       ["{/positive*}", "/true"],
+       ["{/negative}", "/false"],
+       ["{/negative*}", "/false"],
+       ["{/zero}", "/0"],
+       ["{/zero*}", "/0"],
+       ["{/number}", "/42.24"],
+       ["{/number*}", "/42.24"],
+       ["{?positive}", "?positive=true"],
+       ["{?positive*}", "?positive=true"],
+       ["{?negative}", "?negative=false"],
+       ["{?negative*}", "?negative=false"],
+       ["{?zero}", "?zero=0"],
+       ["{?zero*}", "?zero=0"],
+       ["{?number}", "?number=42.24"],
+       ["{?number*}", "?number=42.24"],
+       ["{list}", "one,2,true,false,0"],
+       ["{list*}", "one,2,true,false,0"],
+       ["{.list}", ".one,2,true,false,0"],
+       ["{.list*}", ".one.2.true.false.0"],
+       ["{/list}", "/one,2,true,false,0"],
+       ["{/list*}", "/one/2/true/false/0"],
+       ["{?list}", "?list=one,2,true,false,0"],
+       ["{?list*}", "?list=one&list=2&list=true&list=false&list=0"],
+       ["{dict}", "one,1,two,2,positive,true,negative,false,zero,0"],
+       ["{dict*}", "one=1,two=2,positive=true,negative=false,zero=0"],
+       ["{.dict}", ".one,1,two,2,positive,true,negative,false,zero,0"],
+       ["{.dict*}", ".one=1.two=2.positive=true.negative=false.zero=0"],
+       ["{/dict}", "/one,1,two,2,positive,true,negative,false,zero,0"],
+       ["{/dict*}", "/one=1/two=2/positive=true/negative=false/zero=0"],
+       ["{?dict}", "?dict=one,1,two,2,positive,true,negative,false,zero,0"],
+       ["{?dict*}", "?one=1&two=2&positive=true&negative=false&zero=0"]
+    ]
+  }
+}

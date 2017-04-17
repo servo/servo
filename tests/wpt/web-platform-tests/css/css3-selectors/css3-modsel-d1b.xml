@@ -1,0 +1,38 @@
+<csstest def="Dynamic handling of :empty" module="W3C Selectors" modulename="css3-modsel" number="d1b" rev="1.1" date="3-march-2006" xmlns="http://www.example.org/css3tests">
+
+<author>Ian Hickson</author>
+
+<dynamic/>
+
+<cssrules>
+   #test1 { background: red; display: block; padding: 1em; margin: 1em; }
+   #test1:empty { background: lime; }
+   #test2 { background: lime; display: block; padding: 1em; margin: 1em; }
+   #test2:empty { background: red; }
+</cssrules>
+
+<code>
+
+ <div xmlns="http://www.w3.org/1999/xhtml">
+
+  <script type="text/javascript">
+   <![CDATA[
+
+    function test() {
+      document.getElementById('test1').appendChild(document.createTextNode(''));
+      document.getElementById('test2').appendChild(document.createTextNode(' '));
+    }
+
+    window.setTimeout("test()", 100);
+   ]]>
+  </script>
+
+  <p> The following two bars should be green. </p>
+
+  <div id="test1"/>
+  <div id="test2"/>
+
+ </div>
+
+</code>
+</csstest>

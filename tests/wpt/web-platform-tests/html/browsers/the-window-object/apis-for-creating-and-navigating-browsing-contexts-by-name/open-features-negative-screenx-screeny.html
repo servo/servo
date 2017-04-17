@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML: window.open `features`: negative values for legacy `screenx`, `screeny`</title>
+<meta name=timeout content=long>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#apis-for-creating-and-navigating-browsing-contexts-by-name">
+
+<!-- user agents are not required to support open features other than `noopener`
+     and on some platforms position and size features don't make sense -->
+<meta name="flags" content="may" />
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/PrefixedPostMessage.js"></script>
+<script>
+var featuresPrefix = `width=401,height=404,`;
+var windowURL = 'resources/message-opener.html';
+
+// https://html.spec.whatwg.org/multipage/infrastructure.html#rules-for-parsing-integers
+
+setup (() => {
+  // Before running tests, open a window using features that mimic
+  // what would happen if the feature tested here were set to 0
+  // for comparison later.
+  var featureString = `${featuresPrefix}top=0,left=0`;
+  var prefixedMessage = new PrefixedMessageTest();
+  prefixedMessage.onMessage((data, e) => {
+    e.source.close();
+    runWindowTests(data);
+  });
+  var win = window.open(prefixedMessage.url(windowURL), '', featureString);
+});
+
+function runWindowTests (baselineDimensions) {
+  // Negative values should be interpreted as 0
+  [ 'screeny=-204',
+    'screeny=-204.5',
+    'screeny=-0'
+  ].forEach(feature => {
+    async_test(t => {
+      var prefixedMessage = new PrefixedMessageTest();
+      var featureString = `${featuresPrefix}left=0,${feature}`;
+      prefixedMessage.onMessage(t.step_func_done((data, e) => {
+        e.source.close();
+        assert_equals(data.top, baselineDimensions.top, `"${feature} is negative and should be set to 0"`);
+      }));
+      var win = window.open(prefixedMessage.url(windowURL), '', featureString);
+    }, `features "${feature}" should NOT set "top=204"`);
+  });
+
+  // Negative values should be interpreted as 0
+  [ 'screenx=-204',
+    'screenx=-204.5',
+    'screenx=-0'
+  ].forEach(feature => {
+    async_test(t => {
+      var prefixedMessage = new PrefixedMessageTest();
+      var featureString = `${featuresPrefix}top=0,${feature}`;
+      prefixedMessage.onMessage(t.step_func_done((data, e) => {
+        e.source.close();
+        assert_equals(data.left, baselineDimensions.left, `"${feature} is negative and should be set to 0"`);
+      }));
+      var win = window.open(prefixedMessage.url(windowURL), '', featureString);
+    }, `features "${feature}" should NOT set "left=204"`);
+  });
+}
+
+</script>

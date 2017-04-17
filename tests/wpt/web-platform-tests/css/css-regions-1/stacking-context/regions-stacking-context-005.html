@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Test: regions changing stacking order when as part of a stacking context</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from">
+		<meta name="flags" content="ahem">
+		<meta name="assert" content="Test checks that regions stacking rules take precedence over content stacking rules.">
+		<link rel="match" href="reference/regions-stacking-context-005-ref.html">
+		<style>
+		#content {
+			font-family: Ahem;
+			font-size: 20px;
+			line-height: 1em;
+			opacity: .999;
+			flow-into: flow;
+		}
+		#front {
+			z-index: 10;
+			color: blue;
+		}
+		#back {
+			z-index: 1;
+			color: green;
+		}
+
+		.region {
+			width: 100px;
+			height: 100px;
+			flow-from: flow;
+		}
+		.region p{
+			background-color: red;
+			width: 50%;
+		}
+		#front-region {
+			margin-top: -50px;
+			margin-left: 50px;
+		}
+		</style>
+	</head>
+	<body>
+		<ol>
+			<li>You should see no red.</li>
+			<li>You should see two colored overlapping squares: a green square on top of a blue square.</li>
+		</ol>
+		<div id="content">
+			<span id="front">xxxxx<br>xxxxx<br>xxxxx<br>xxxxx<br>xxxxx<br></span>
+			<span id="back">xxxxx<br>xxxxx<br>xxxxx<br>xxxxx<br>xxxxx</span>
+		</div>
+		<div class="region">
+			<p>&nbsp;</p>
+		</div>
+		<div id="front-region" class="region">
+			<p>&nbsp;</p>
+		</div>
+	</body>
+</html>

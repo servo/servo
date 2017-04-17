@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Border radius clipping</title>
+    <link rel="author" title="zhouli" href="mailto:liz@oupeng.com">
+    <link rel="help" href="http://www.w3.org/TR/css3-background/#corner-clipping" />
+    <link rel="match" href="reference/border-radius-clipping-ref.html">
+    <meta name="assert" content="When set with 'overflow: hidden', outer container should clip background of an element insides at the corners. " />
+    <style>
+        #parent{
+            border-radius: 15px;
+            border: 1px solid blue;
+            overflow: hidden;
+            width: 300px;
+            height: 30px;
+        }
+        #son{
+            background-color: green;
+            width: 300px;
+            height: 30px;
+        }
+        #dummy {
+            border-radius: 5000em;
+            height: 10000em;
+            overflow: hidden;
+            width: 10000em;
+        }
+    </style>
+</head>
+<body>
+<div id="parent">
+    <div id="son"></div>
+</div>
+<div id="dummy">
+    This should not appear if browser supports border-radius
+</div>
+<script>
+</script>
+</body>
+</html>

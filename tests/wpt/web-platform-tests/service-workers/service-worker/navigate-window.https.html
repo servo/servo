@@ -58,6 +58,10 @@ function get_clients(win, sw, opts) {
   });
 }
 
+function compare_urls(a, b) {
+  return a.url < b.url ? -1 : b.url < a.url ? 1 : 0;
+}
+
 function validate_window(win, url, opts) {
   return win.navigator.serviceWorker.getRegistration(url)
     .then(reg => {
@@ -78,16 +82,22 @@ function validate_window(win, url, opts) {
         if (opts.includeUncontrolled) {
           expected.push({ url: BASE_URL + 'navigate-window.https.html',
                           frameType: 'auxiliary' });
-          expected.push({ url: host_info['HTTPS_ORIGIN'] + '/testharness_runner.html',
-                          frameType: 'top-level' });
+          expected.push({
+            url: host_info['HTTPS_ORIGIN'] + '/testharness_runner.html',
+            frameType: 'top-level' });
         }
+
         assert_equals(resultList.length, expected.length,
                       'expected number of clients');
+
+        expected.sort(compare_urls);
+        resultList.sort(compare_urls);
+
         for (var i = 0; i < resultList.length; ++i) {
-          assert_equals(resultList[i].url, expected[i].url,
+          assert_equals(expected[i].url, resultList[i].url,
                         'client should have expected url');
-          assert_equals(resultList[i].frameType, expected[i].frameType,
-                        ' client should have expected frame type');
+          assert_equals(expected[i].frameType, resultList[i].frameType,
+                        'client should have expected frame type');
         }
         return win;
       })

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Regions: auto-height regions inside fixed sized flexbox</title>
+		<link rel="author" title="Catalin Badea" href="mailto:badea@adobe.com">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#rfcb-flow-fragment-height-resolution">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from">
+		<link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#layout-algorithm">
+		<meta name="flags" content="ahem">
+		<meta name="assert" content="Test that using the flex-basis property sizes the flex items to a percentage of
+		the flex container's height when said items are auto-height regions. The last region, the outside the flex
+		container should not be visible.">
+		<link rel="match" href="reference/autoheight-regions-in-fixed-sized-flexbox-007-ref.html">
+		<style>
+			.content {
+				font-family: Ahem;
+				font-size: 20px;
+				line-height: 1em;
+				color: green;
+				flow-into: flow;
+			}
+
+			.flex {
+				display: flex;
+				flex-direction: column;
+				justify-content: space-around;
+				height: 200px;
+				width: 80px;
+			}
+
+			.region {
+				flex-basis: 10%;
+				flow-from: flow;
+			}
+
+			.red {
+				background-color: red;
+			}
+
+		</style>
+	</head>
+	<body>
+		<ul>
+			<li>Test passes if you see you three identical green stripes.</li>
+			<li>You shouldn't see any red.</li>
+		</ul>
+		<div class="content">
+			XXXX<br>
+			XXXX<br>
+			XXXX<br>
+			XXXX
+		</div>
+		<div class="flex">
+			<div class="region"></div>
+			<div class="region"></div>
+			<div class="region"></div>
+		</div>
+		<div class="region"><p class="red">&nbsp;</p></div>
+	</body>
+</html>

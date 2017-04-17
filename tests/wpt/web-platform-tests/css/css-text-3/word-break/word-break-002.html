@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Test: word-break - normal keyword value</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="author" title="Shiyou Tan" href="mailto:shiyoux.tan@intel.com">
+<link rel="help" href="http://www.w3.org/TR/css-text-3/#word-break">
+<meta name="flags" content="">
+<meta name="assert" content="Check that 'word-break' with 'normal' keyword value implies to words break after word.">
+<style>
+  div {
+    border: 2px black solid;
+    color: blue;
+    width: 100px;
+    word-break: normal;
+  }
+</style>
+<body>
+  <p>Test passes if all the words below are within the box and break only after a word.</p>
+  <div>Words in these lines should break after word and be inside the box.</div>
+</body>
+

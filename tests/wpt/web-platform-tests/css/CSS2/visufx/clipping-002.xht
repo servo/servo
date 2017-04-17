@@ -1,0 +1,33 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: 'overflow': Basic Test</title>
+  <link rel="author" title="David Hyatt" href="mailto:hyatt@netscape.com"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/clipping/002.html" type="text/html"/>
+<link rel="help" href="http://www.w3.org/TR/CSS21/visufx.html#overflow" />
+<style type="text/css">
+.green {
+  width: 100px;
+  height: 100px;
+  background-color: green;
+}
+
+.red {
+  width: 100px;
+  height: 100px;
+  background-color: red;
+  margin-top:100px;
+}
+
+.overflow {
+  overflow: hidden;
+}
+</style>
+</head>
+<body>
+<p>Test passes if there is <strong>a green square</strong> and <strong>no red</strong>.</p>
+
+<div class="green overflow"><div class="red"></div></div>
+</body>
+</html>

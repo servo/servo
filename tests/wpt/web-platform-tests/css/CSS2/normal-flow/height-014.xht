@@ -1,0 +1,23 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Height using points with a minimum plus one value, 1pt</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+		<link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-10-08 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#propdef-height" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#the-height-property" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'height' property sets a minimum plus one length value in points." />
+        <style type="text/css">
+            div
+            {
+                background: black;
+                height: 1pt;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a thin line.</p>
+        <div></div>
+    </body>
+</html>

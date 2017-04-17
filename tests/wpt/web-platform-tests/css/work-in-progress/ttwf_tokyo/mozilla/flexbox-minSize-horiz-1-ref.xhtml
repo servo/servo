@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <style>
+      div.flexbox {
+        width: 200px;
+        font-size: 8px;
+      }
+      div.outerContainer {
+        border: 1px dotted black;
+        height: 42px;
+        margin-bottom: 5px;
+      }
+      div.flexbox > * {
+        vertical-align: top;
+        display: inline-block;
+        margin-right: 20px;
+        border: 1px dashed green;
+        background: lightblue;
+        height: 40px;
+      }
+      div.childMinSizeIsMinContent > * {
+        min-width: -moz-min-content;
+      }
+      div.childSizeIsMinContent > * {
+        width: -moz-min-content;
+      }
+      div.smallSize      { width: 5px; }
+      div.smallFlexBasis { width: 2px; }
+      div.zeroWidth      { width: 0; }
+
+    </style>
+  </head>
+  <body>
+
+    <!-- Check that we use the min-content width as a lower-bound when sizing
+         flex items. -->
+    <div class="flexbox childMinSizeIsMinContent outerContainer">
+      <div>abc d e f</div
+      ><div class="smallSize">abc d e f</div
+      ><div class="smallFlexBasis">abc d e f</div>
+    </div>
+
+    <!-- ... EVEN if our flex container is small and we're overflowing. -->
+    <div class="outerContainer smallSize">
+      <div class="flexbox childSizeIsMinContent">
+        <div>abc d e f</div
+        ><div>abc d e f</div
+        ><div>abc d e f</div>
+      </div>
+    </div>
+
+    <!-- Test that "min-width: 0" on flex items will keep us from clamping to
+         the min-content width. (So we can now actually honor small 'width'
+         and 'flex-basis' values.) -->
+    <div class="flexbox outerContainer">
+      <div>abc d e f</div
+      ><div class="smallSize">abc d e f</div
+      ><div class="smallFlexBasis">abc d e f</div>
+    </div>
+
+    <!-- ... and similarly, when we have a small flex container and we trigger
+         shrinking behavior, flex items with "min-width: 0" are allowed to
+         shrink past their min-content width. -->
+    <div class="outerContainer smallSize">
+      <div class="flexbox">
+        <div class="zeroWidth">abc d e f</div
+        ><div class="zeroWidth">abc d e f</div
+        ><div class="zeroWidth">abc d e f</div>
+      </div>
+    </div>
+
+  </body>
+</html>

@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Cursor set to 'auto'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/ui.html#propdef-cursor" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/ui.html#cursor-props" />
+        <meta name="flags" content="interact" />
+        <meta name="assert" content="Cursor 'auto' results in a cursor that is determined by the user agent according to the context." />
+        <style type="text/css">
+            #test
+            {
+                border: solid 2px blue;
+                cursor: auto;
+                height: 100px;
+                width: 500px;
+            }
+            #reference
+            {
+                border: solid 2px blue;
+                height: 100px;
+                margin-top: 50px;
+                width: 500px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the cursor is the same when it is over "Filler Text" and when it is over "Reference Text" below.</p>
+        <div id="test">Filler Text</div>
+        <div id="reference">Reference Text</div>
+    </body>
+</html>

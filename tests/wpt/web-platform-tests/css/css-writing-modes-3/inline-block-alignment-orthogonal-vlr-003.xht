@@ -1,0 +1,58 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <title>CSS Writing Modes Test: text baseline alignment of inline-block in orthogonal flow</title>
+    <link rel="author" title="Hajime Shiozawa" href="mailto:hajime.shiozawa@gmail.com" />
+    <link rel="reviewer" title="Gerard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2015-06-12 -->
+    <link rel="help" title="4.3 Atomic Inline Baselines" href="http://www.w3.org/TR/css-writing-modes-3/#replaced-baselines" />
+    <link rel="match" href="inline-block-alignment-orthogonal-vrl-002-ref.xht" />
+    <meta name="assert" content="This test checks the generation of text baseline. When 'writing-mode' of the containing block of an inline-block in orthogonal flow is 'horizontal-tb', then the dominant baseline used is the alphabetical baseline. In this test, the inline-block should be 'sitting' on the alphabetical baseline, therefore creating a straight and unbroken bottom edge." />
+    <meta name="flags" content="ahem" />
+    <style type="text/css"><![CDATA[
+    div#horiz-tb
+    {
+      color: orange;
+      font: 60px/1 Ahem; /* computes to 60px/60px */
+      writing-mode: horizontal-tb;
+    }
+
+    div#inline-block-90
+    {
+      background-color: orange; /* we want the padding-bottom to be painted with orange color */
+      display: inline-block;
+      font-size: 1.5em; /* computes to 90px */
+      /*
+        such padding-bottom declaration is arbitrary and only serve to make the
+        test a bit more challenging.
+      */
+      padding-bottom: 0.5em; /* computes to 45px */
+      text-orientation: mixed;
+      writing-mode: vertical-lr;
+    }
+
+    span.block-descendant
+    {
+      display: block;
+    }
+
+    span#orange30
+    {
+      font-size: 0.5em; /* computes to 30px */
+    }
+    ]]></style>
+
+  </head>
+
+  <body>
+
+  <p>Test passes if the <strong>bottom edge</strong> of an irregular polygon is straight and unbroken.</p>
+
+  <div id="horiz-tb">É<div id="inline-block-90">
+      <span class="block-descendant">L</span>
+      <span class="block-descendant">Z</span>
+    </div><span id="orange30">É</span>
+  </div>
+
+  </body>
+</html>

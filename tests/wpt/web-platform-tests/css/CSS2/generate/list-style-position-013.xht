@@ -1,0 +1,34 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+  <title>CSS Test: Marker box position (outside principal box) - :before pseudo-element list-item ('list-style-position:outside')</title>
+  <link rel="author" title="James Hopkins" href="http://idreamincode.co.uk/css21testsuite"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#list-style"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#before-after-content"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#block-boxes"/>
+  <meta name="flags" content=""/>
+  <meta name="assert" content="When the :before element is set as a list-item, it establishes a principal box and a marker box which is positioned outside of that principal box (since 'list-style-position:outside). The document tree content of the associated element must be placed after the principal box established by the :before pseudo element. The position of the marker box of the associated element must still appear to the outside left edge of it's principal box (since 'list-style-position:outside') and should be positioned towards the top of this principal box. Since the marker box of the :before pseudo element should be positioned at the same coordinate as the associated element's marker box, either bullet could appear in front of the other (since stacking levels of marker boxes aren't defined in CSS2.1, in this context)."/>
+  <style type="text/css">
+  #test{
+  background:silver;
+  color:blue;
+  display:list-item;
+  font-size:85px;
+  list-style-position:outside;
+  margin:100px;
+  }
+  #test:before{
+  color:yellow;
+  content:'T';
+  display:list-item;
+  }
+  </style>
+ </head>
+ <body>
+  <p>To pass, there <strong>must</strong> be <em>either</em> a blue <em>or</em> yellow bullet (filled-in circle) to the outside left edge of a grey box, with a yellow letter to the right of that bullet. There <strong>must</strong> also be a blue letter below the yellow letter.</p>
+  <div id="test">
+   T
+  </div>
+ </body>
+</html>

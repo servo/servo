@@ -27,7 +27,7 @@ var t = async_test("The empty string has zero width");
 _addTest(function(canvas, ctx) {
 
 deferTest();
-setTimeout(t.step_func_done(function () {
+step_timeout(t.step_func_done(function () {
     ctx.font = '50px CanvasTest';
     _assertSame(ctx.measureText("").width, 0, "ctx.measureText(\"\").width", "0");
 }), 500);

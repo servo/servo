@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Absolutely positioned replaced element with 'direction' as right-to-left, 'auto' specified for 'margin-left', 'margin-right', 'left', 'right' and intrinsic width</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+		<link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-09-07 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#abs-replaced-width" />
+        <link rel="match" href="absolute-replaced-width-015-ref.xht" />
+
+        <meta name="flags" content="image" />
+        <meta name="assert" content="Computed value of 'auto' for 'margin-left' or margin-right' on absolutely positioned inline replaced element becomes a used value of '0'. If both 'left' and 'right' have the value 'auto' and if the 'direction' property of the element establishing the static-position containing block is 'rtl', then set 'right' to the static position. The intrinsic width is also used if 'height' and 'width' are 'auto'." />
+        <style type="text/css">
+            #div1
+            {
+                border: solid black;
+                direction: rtl;
+                height: 2in;
+                position: relative;
+                width: 2in;
+            }
+            img
+            {
+                margin-left: auto;
+                margin-right: auto;
+                left: auto;
+                position: absolute;
+                right: auto;
+            }
+            div div
+            {
+                background: orange;
+                height: 15px;
+                margin-top: 15px;
+                width: 15px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the blue and orange squares have the same width and the blue square is in the upper-right corner of an hollow black square.</p>
+        <div id="div1">
+            <img alt="blue 15x15" src="support/blue15x15.png" />
+            <div></div>
+        </div>
+    </body>
+</html>

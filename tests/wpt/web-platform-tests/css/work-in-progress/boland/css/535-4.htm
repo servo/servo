@@ -1,0 +1,46 @@
+
+<html>
+<head>
+<title>Fourth Test of Section 5.3.5 of CSS1 Spec</title>
+
+<style type="text/css">
+html {background-image: url(flagbg.gif);
+      background-attachment: fixed;}
+body {background-image: url(flagbg.gif);
+      background-attachment: fixed;}
+</style>
+</head>
+
+<body>
+
+
+
+
+<h1>Testing Statement #4 Below of Section 5.3.5 of CSS1 Spec</h1>
+
+
+
+
+
+<li >
+4. CSS1 core: UAs ,au treat "fixed" as "scroll".  However, it is recommended
+they interpret "fixed" correctly, at least on the HTML and BODY elements, since
+there is no way for an author to provide an image only for those browsers that
+support "fixed".
+</ul>
+
+
+<h2>
+PASS CRITERIA:
+</h2>
+<p>
+If statement #4 above is true, this background for this page should
+be a flag pattern which is fixed.
+The rules applied are "body {background-image: url(flagbg.gif);
+                             background-attachment: fixed;}".
+Note that these rules are also repeated for the HTML element.
+
+All other properties of this page should be UA-default.
+
+</body>
+</html>

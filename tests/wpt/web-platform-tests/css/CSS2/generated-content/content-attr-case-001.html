@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>CSS Test: Content property attr(x) case sensitivity</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#content">
+        <meta name="flags" content="HTMLonly">
+        <meta name="assert" content="The attr(x) function selects the attribute even when case does not match.">
+        <style type="text/css">
+            div:before
+            {
+                color: green;
+                content: attr(Title);
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is the word "PASS" below.</p>
+        <div title="PASS"></div>
+    </body>
+</html>

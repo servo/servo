@@ -1,0 +1,59 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Seventh Test of Section 1.3 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+h3#a1 {color: aqua}
+p.example {color: yellow}
+
+
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Seventh Testable Statement of Sec 1.3 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+7. CSS values are delimited by single quotes.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p class="example">
+If statement #7 above is passed, then
+this paragraph should have a color of yellow.
+The rule specified is "p.example {color: yellow}", where this paragraph
+has class example.
+<p>
+This paragraph should have color of UA-default, unlike above, because it
+doesn't have class example.
+<h3 id="a1">
+This h3 heading ref should be aqua, because it has an id reference
+The rule applied is "h3 id="a1" {color: aqua}".
+</h3>
+<h3>
+This h3 heading should have a color of UA-default, unlike above, because
+there is no id attribute included
+</h3>
+All other properties of this page should be UA-default.
+
+
+</BODY>
+</HTML>
+

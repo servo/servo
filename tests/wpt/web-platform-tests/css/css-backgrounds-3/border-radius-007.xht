@@ -1,0 +1,70 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Borders. border&ndash;radius using slash: 50px 10mm 3pc 15% / 0.5in 25px 10% 70pt</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+        <meta http-equiv="Content-Style-Type" content="text/css"/>
+        <meta http-equiv="Content-Script-Type" content="text/javascript"/>
+        <link rel="author" title="Nokia" href="http://www.nokia.com/"/>
+        <link rel="help" href="http://www.w3.org/TR/css3-background/#the-border-radius" />
+        <link rel="match" href="border-radius-007-ref.xht" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="To verify border-radius property set with values (in different units) using slash, works as expected" />
+        <style type="text/css">
+        /* <![CDATA[ */
+        	div
+            {
+        		border:2px solid #a1a1a1;
+        		background:#dddddd;
+        		width:200px;
+        		height: 100px;
+        		border-radius: 50px 10mm 6pc 15% / 0.5in 25px 30% 70pt;
+        	}
+			#reference
+			{
+			    border-top-left-radius: 50px 0.5in;
+				border-top-right-radius: 10mm 25px;
+				border-bottom-right-radius: 6pc 30%;
+				border-bottom-left-radius: 15% 70pt;
+			}
+        /* ]]> */
+        </style>
+<!--
+        <script type="text/javascript" src="js/css3_test_helper.js"></script>
+-->
+    </head>
+    <body>
+        <p>
+            There should be two identical boxes, each with 4 rounded corners.
+		</p>
+        <ul>
+            <li>PASS if the two boxes below are the same and all 4 corners are rounded.</li>
+            <li>FAIL if the output is not as expected.</li>
+        </ul>
+
+        <!-- PLACE TEST CONTENT FROM HERE -->
+    	<div id="test"></div>
+    	<p><br/></p>
+		<div id="reference"></div>
+<!--
+    	<script type="text/javascript">
+        /* <![CDATA[ */
+    		  var borders = new Array("border-top-left-radius", "border-top-right-radius",
+    		                          "border-bottom-right-radius", "border-bottom-left-radius");
+        	var expectedValues = new Array("50px 48px", "37px 25px", "96px 30%", "15% 93px");
+
+        	var testResult = check_Multiple_CSS_property(borders, expectedValues);
+
+        	/* if (testResult.pass)
+				  // This portion of the code has been removed to ensure that the test case is not automated
+				else {
+					// This portion of the code has been removed to ensure that the test case is not automated
+			  } */
+
+          if (top.FrameEnabled)	top.fnLog(testResult);
+        /* ]]> */
+        </script>
+-->
+    </body>
+</html>
+

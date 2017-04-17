@@ -1,0 +1,61 @@
+
+<html>
+<title>Second Test of Section 5.3.1 of CSS1 Spec</title>
+<head>
+
+<style type="text/css">
+EM { color: red }
+H3 {color: silver}
+H4 {color: lime}
+P { color: aqua }
+</style>
+</head>
+
+
+
+
+
+
+<body>
+
+
+
+<h1 >Testing Statement #2 Below for Section 5.3.1 of CSS1 Spec</h1>
+
+
+<ul>
+<li>
+2. For "color", initial is UA specific, it applies to all elements, it is
+inherited, and percentage values are N/A.
+</ul>
+
+
+<h2>
+PASS CRITERIA:
+</h2>
+If statement #2 above is passed, then:
+<p>
+This paragraph should be aqua.  The rule applied is "p {color: aqua}", so
+the color property applies to the element p.  This <strong>strong text
+</strong> should also be aqua, since "strong" is a descendant of "p",
+so the color property is inherited.  However, this <em>emphasized text</em>
+shoudl be red, because of the rule "em {color: red}"; therefore, the color
+property applies to the em and strong elements.
+
+<h3>
+This h3 element should be silver, because of the rule "h3 {color: silver}".
+Therefore the color property applies to the h3 element.
+</h3>
+<h4>
+This h4 element should be lime, because of the rule "h4 {color: lime}".
+Therefore the color property applies to the h4 element.
+</h4>
+
+<blockquote>
+This blockquote element has a UA-default, or UA-specific color, because no
+specific CSS1 rule has been applied.
+However, the color property does apply to the blockquote element.
+</blockquote>
+All other properties on this page should be UA-default.
+</body>
+</html>

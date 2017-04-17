@@ -1,0 +1,58 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Eleventh Test of Section 17.6 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Eleventh Testable Statement of Sec 17.6 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+11. This table has two omitted internal borders.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p >
+If statement #11 above is passed, then
+this table should have hidden collapsing borders.
+<p>
+<table style="border-collapse: collapse; border: solid;">
+<tr><td style="border-right": hidden; border-bottom: hidden">foo</td>
+    <td style="border: solid">bar</td></tr>
+<tr><td style="border: none">foo</td>
+    <td style="border: solid">bar</td></tr>
+</table>
+The rules applied are
+(styles in HTML source)
+(for table) "style="border-collapse: collapse; border: solid;",
+(for tr)
+(for td) "style="border-right: hidden: border-bottom: hidden"",
+(for td) "style="border: solid",
+(for tr)
+(for td) "style="border: none",
+(for td) "style="border: solid",
+<p>
+All other properties of this page should be UA-default.
+
+
+</BODY>
+</HTML>
+

@@ -1,0 +1,43 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: CSS: sanity tests for absolute keyword values of font-weight</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/fonts/weight/001.xml" type="application/xhtml+xml"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/fonts/weight/001.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-boldness" />
+  <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-weight-prop" />
+  <style type="text/css">
+   /* Chains should be followed all the way. If a chain causes reentrancy, fail. */
+   .fw100 { font-weight: 100; } /* defaults to 200 */
+   .fw200 { font-weight: 200; } /* defaults to 100, failing to 300 */
+   .fw300 { font-weight: 300; } /* defaults to 200, failing to 400 */
+   .fw400 { font-weight: 400; } /* normal */
+   .fw500 { font-weight: 500; } /* defaults to 400 */
+   .fw600 { font-weight: 600; } /* defaults to 700, failing to 500 */
+   .fw700 { font-weight: 700; } /* bold - defaults to 800, failing to 600 */
+   .fw800 { font-weight: 800; } /* defaults to 900, failing to 700 */
+   .fw900 { font-weight: 900; } /* defaults to 800 */
+
+   /* prettiness */
+   p { margin: 1em 0 0.4em 0; }
+   .w { font-family: Verdana, sans-serif; font-variant: normal; font-style: normal; font-size: 1em; margin: 0 0 0.2em 2em; }
+  </style>
+ </head>
+ <body>
+  <p>The following text should get darker (or stay the same) at each stage.</p>
+  <p class="w fw100">100</p>
+  <p class="w fw200">200</p>
+  <p class="w fw300">300</p>
+  <p class="w fw400">400 normal</p>
+  <p class="w fw500">500</p>
+  <p class="w fw600">600</p>
+  <p class="w fw700">700 bold</p>
+  <p class="w fw800">800</p>
+  <p class="w fw900">900</p>
+  <p>If there are two or more different weights in the list above,
+  then the following two tests should be of different weights:</p>
+  <p class="w fw500">500 (defaults to 400 normal)</p>
+  <p class="w fw600">600 (defaults to 700 bold)</p>
+ </body>
+</html>

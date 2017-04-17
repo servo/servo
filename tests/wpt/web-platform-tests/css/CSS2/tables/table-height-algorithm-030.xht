@@ -1,0 +1,43 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Cell boxes smaller than their rows receive extra padding</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#height-layout" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="A cell box that is smaller than height of its row receives extra top or bottom padding." />
+        <style type="text/css">
+            table
+            {
+                border-spacing: 0;
+            }
+            td
+            {
+                color: blue;
+                font: 16px/1em Ahem;
+                padding: 0;
+                vertical-align: middle;
+            }
+            #short
+            {
+                color: orange;
+                height: 1em;
+            }
+         </style>
+     </head>
+     <body>
+        <p>Test passes if there is orange box to the right of the blue box and the orange box is vertically aligned to the middle of the blue box.</p>
+        <table>
+            <tr>
+                <td>
+                    XXXXX<br />
+                    XXXXX<br />
+                    XXXXX<br />
+                    XXXXX<br />
+                    XXXXX<br />
+                </td>
+                <td id="short">XXXXX</td>
+            </tr>
+        </table>
+    </body>
+</html>

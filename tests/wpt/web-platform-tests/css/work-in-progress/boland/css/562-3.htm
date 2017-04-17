@@ -1,0 +1,65 @@
+
+<html>
+
+<title>Third Test of Section 5.6.2 of CSS1 Spec</title>
+
+<style type="text/css">
+#id1 {white-space: normal}
+#id2 {white-space: pre}
+#id3 {white-space: nowrap}
+</style>
+</head>
+
+
+
+<body>
+
+
+
+
+<h1 >Testing Statement #3 Below of Section 5.6.2 of CSS1 Spec</h1>
+
+
+
+
+
+
+<ul>
+<li>
+3. The "white-space" property declares how whitespace inside the element is
+handled: the normal way (where whitespace is collapsed), as pre (which behaves
+like the "PRE" element in HTML), or as nowrap (where wrapping is done only
+through "BR" elements).
+</ul>
+
+
+
+
+
+
+<h2>
+PASS CRITERIA:
+</h2>
+<p ID=id1 >
+If statement #3 above is passed, this paragraph should have whitespace
+collapsed, even   though    there    is    a     lot    of    whitespace
+in source.  The    rule   applied    is    "#id1 {white-space: normal}".
+</p>
+<pre>
+This is a pre element.  No special CSS rules are applied here.
+</pre>
+<p ID=id2>
+This paragraph should look like the pre element above (in terms of spacing).
+The rule applied is "#id2 {white-space: pre}".
+</p>
+<p ID=id3>
+This paragraph should go on and on, because there is not a wrap-around for this
+paragraph; therefore, it just goes on and on and on and on without stopping
+until a final period is reached at the end of the sentence.
+</p>
+The rule applied above is"#id3 {white-space: nowrap}".
+All other properties of this page should be UA-default.
+
+
+</body>
+</html>

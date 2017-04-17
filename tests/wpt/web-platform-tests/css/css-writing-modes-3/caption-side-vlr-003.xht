@@ -1,0 +1,63 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Writing Modes Test: 'caption-side: top' and vertical-lr</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#logical-direction-layout" title="7.4. Flow-Relative Mappings" />
+  <link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+
+  <meta content="ahem image" name="flags" />
+  <meta content="This test checks that when 'caption-side' is set to 'top' in a vertical-lr table, then the caption is placed at the block-start side of the table, which is on the lefthand side of such table." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  table#test-overlapping-green
+    {
+      border-spacing: 0px;
+      caption-side: top;
+      font: 50px/1 Ahem; /* computes to 50px/50px */
+      writing-mode: vertical-lr;
+    }
+
+  caption
+    {
+      color: green;
+    }
+
+  td
+    {
+      color: transparent;
+      padding: 0px;
+    }
+
+  div#reference-overlapped-red
+    {
+      background: url("support/pattern-rg-rg-100x100.png") no-repeat;
+      bottom: 100px;
+      height: 100px;
+      position: relative;
+      width: 100px;
+      z-index: -1;
+    }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+  <table id="test-overlapping-green">
+    <caption>CA</caption>
+    <tr>
+      <td>T</td><td>D</td>
+    </tr>
+  </table>
+
+  <div id="reference-overlapped-red"></div>
+
+ </body>
+</html>

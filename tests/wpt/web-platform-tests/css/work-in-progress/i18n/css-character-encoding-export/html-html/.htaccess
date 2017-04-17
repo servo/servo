@@ -1,0 +1,88 @@
+AddType 'text/html; charset=UTF-8' html
+<Files ~ 'character-encoding-001.html'>
+ForceType 'text/html; charset=utf-8'
+</Files>
+<Files ~ 'character-encoding-002.html'>
+ForceType 'text/html; charset=utf-8'
+</Files>
+<Files ~ 'character-encoding-003.html'>
+ForceType 'text/html; charset=iso-8859-1'
+</Files>
+<Files ~ 'character-encoding-004.html'>
+ForceType 'text/html; charset=utf-8'
+</Files>
+<Files ~ 'character-encoding-005.html'>
+ForceType 'text/html; charset=utf-8'
+</Files>
+<Files ~ 'character-encoding-006.html'>
+ForceType 'text/html; charset=iso-8859-1'
+</Files>
+<Files ~ 'character-encoding-007.html'>
+ForceType 'text/html; charset=utf-8'
+</Files>
+<Files ~ 'character-encoding-008.html'>
+ForceType 'text/html; charset=utf-8'
+</Files>
+<Files ~ 'character-encoding-009.html'>
+ForceType 'text/html; charset=iso-8859-1'
+</Files>
+<Files ~ 'character-encoding-010.html'>
+ForceType 'text/html; charset=iso-8859-1'
+</Files>
+<Files ~ 'character-encoding-011.html'>
+ForceType 'text/html; charset=iso-8859-15'
+</Files>
+<Files ~ 'character-encoding-012.html'>
+ForceType 'text/html; charset=utf-8'
+</Files>
+<Files ~ 'character-encoding-013.html'>
+ForceType 'text/html; charset=iso-8859-1'
+</Files>
+<Files ~ 'character-encoding-014.html'>
+ForceType 'text/html; charset=iso-8859-15'
+</Files>
+<Files ~ 'character-encoding-015.html'>
+ForceType 'text/html; charset=iso-8859-1'
+</Files>
+<Files ~ 'character-encoding-016.html'>
+ForceType 'text/html; charset=iso-8859-1'
+</Files>
+<Files ~ 'character-encoding-017.html'>
+ForceType 'text/html; charset=iso-8859-15'
+</Files>
+<Files ~ 'character-encoding-018.html'>
+ForceType 'text/html; charset=utf-8'
+</Files>
+<Files ~ 'character-encoding-019.html'>
+ForceType 'text/html; charset=utf-8'
+</Files>
+<Files ~ 'character-encoding-020.html'>
+ForceType 'text/html; charset=utf-8'
+</Files>
+<Files ~ 'character-encoding-021.html'>
+ForceType 'text/html; charset=utf-8'
+</Files>
+<Files ~ 'character-encoding-022.html'>
+ForceType 'text/html; charset=utf-8'
+</Files>
+<Files ~ 'character-encoding-023.html'>
+ForceType 'text/html; charset=utf-8'
+</Files>
+<Files ~ 'character-encoding-024.html'>
+ForceType 'text/html; charset=utf-8'
+</Files>
+<Files ~ 'character-encoding-025.html'>
+ForceType 'text/html; charset=utf-8'
+</Files>
+<Files ~ 'character-encoding-026.html'>
+ForceType 'text/html; charset=iso-8859-1'
+</Files>
+<Files ~ 'character-encoding-027.html'>
+ForceType 'text/html; charset=iso-8859-1'
+</Files>
+<Files ~ 'character-encoding-028.html'>
+ForceType 'text/html; charset=iso-8859-1'
+</Files>
+<Files ~ 'character-encoding-029.html'>
+ForceType 'text/html; charset=iso-8859-1'
+</Files>

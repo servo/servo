@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>CSS Box Alignment: place-items shorthand - initial value</title>
+<link rel="author" title="Javier Fernandez" href="mailto:jfernandez@igalia.com" />
+<link rel="help" href="http://www.w3.org/TR/css3-align/#place-items-property" />
+<meta name="assert" content="Check that place-items's 'initial' value expands to 'align-items' and 'justify-items'." />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+    var div = document.createElement("div");
+    document.body.appendChild(div);
+    div.style["align-items"] = "start";
+    div.style["justify-items"] = "end";
+    div.setAttribute("style", "place-items: initial");
+
+    test(function() {
+        assert_equals(div.style["align-items"],
+            "initial", "place-items expanded value for align-items");
+    }, "Check place-items: initial - align-items expanded value");
+
+    test(function() {
+        assert_equals(div.style["justify-items"],
+            "initial", "place-items expanded value for justify-items");
+    }, "Check place-items: initial - justify-items expanded value");
+</script>

@@ -6,3 +6,9 @@
 	path = tools
 	url = https://github.com/w3c/wpt-tools.git
 	ignore = dirty
+[submodule "css/tools/apiclient"]
+	path = css/tools/apiclient
+	url = https://github.com/w3c/csswg-apiclient.git
+[submodule "css/tools/w3ctestlib"]
+	path = css/tools/w3ctestlib
+	url = https://github.com/w3c/csswg-w3ctestlib.git

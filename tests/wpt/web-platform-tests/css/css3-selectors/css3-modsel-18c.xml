@@ -1,0 +1,15 @@
+<csstest def=":hover pseudo-class on links" module="W3C Selectors" modulename="css3-modsel" number="18c" rev="1.0" date="29-february-2004" xmlns:a="http://www.example.org/a" xmlns:b="http://www.example.org/b" xmlns:html="http://www.w3.org/1999/xhtml" xmlns="http://www.example.org/css3tests">
+
+<author>Ian Hickson</author>
+
+<userinteraction/>
+
+<cssrules>
+:link, :visited { color: navy; text-decoration: none; }
+:link:hover span { background-color : lime }
+</cssrules>
+
+<code>
+ <p xmlns="http://www.w3.org/1999/xhtml"><a href="#foo">Hover <strong>here</strong> and the background of <span>this text should go green</span>.</a></p>
+</code>
+</csstest>

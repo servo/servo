@@ -1,0 +1,346 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<title>Section 4: Syntax and basic data types</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" href="file:///E:/www.css-zibaldone.com/style/style.css" type="text/css" media="screen">
+<link rel="stylesheet" href="../../adds.css" type="text/css" media="screen">
+</head>
+<body>
+
+<h2>Section 4: Syntax and basic data types</h2>
+
+
+
+
+<h3>Design notes</h3>
+<p>These tests follow the order of the <a href="http://www.w3.org/TR/CSS21/syndata.html">specifications</a>. The words <cite>Valid</cite> and <cite>Invalid</cite> mean that the relevant
+<acronym title="Cascading Style Sheets">CSS</acronym> will and won't validate, respectively. In the following tests, the red color
+indicates failure while the green color indicates that the test has been passed by the browser. The label <cite>Assertion</cite> explains
+the scope of the test.</p>
+
+<h4>Download</h4>
+<p>You can download all these tests in a <a href="sec4.zip">single zip file</a>.</p>
+
+
+
+
+<table summary="Summary of tests">
+<caption>Summary of tests</caption>
+
+<tr>
+<th scope="col">Name</th>
+<th scope="col">Title</th>
+<th scope="col">Flag</th>
+<th scope="col">Assertion</th>
+</tr>
+
+<tr>
+<td><a href="atrules0.html">atrules0.html</a></td>	
+<td>At-rules: Invalid at-rule</td>
+<td class="invalid">Invalid</td>
+<td>Browsers should ignore an invalid at-rule</td>
+</tr>
+
+<tr>
+<td><a href="atrules1.html">atrules1.html</a></td>
+<td>At-rules: Nested at-rule</td>
+<td class="invalid">Invalid</td>
+<td>Browsers should ignore a nested at-rule</td>
+</tr>
+
+
+<tr>
+<td><a href="atrules2.html">atrules2.html</a></td>	
+<td>At-rules: Nested at-rule</td>
+<td class="invalid">Invalid</td>
+<td>Browsers should ignore a nested at-rule</td>
+</tr>
+
+<tr>
+<td><a href="atrules3.html">atrules3.html</a></td>	
+<td>At-rules: Nested at-rule</td>
+<td class="invalid">Invalid</td>
+<td>Browsers should ignore a nested at-rule</td>
+</tr>
+
+
+<tr>
+<td><a href="blocks0.html">blocks0.html</a></td>  	
+<td>Blocks: Not-closed string</td>
+<td class="invalid">Invalid</td>
+<td>Browsers should ignore an invalid block</td>
+</tr>
+
+
+<tr>
+<td><a href="blocks1.html">blocks1.html</a></td>  	
+<td>Blocks: Nested curly braces</td>
+<td class="invalid">Invalid</td>
+<td>Browsers should ignore an invalid block</td>
+</tr>
+
+
+<tr>
+<td><a href="blocks2.html">blocks2.html</a></td>  	
+<td>Blocks: Nested round braces</td>
+<td class="invalid">Invalid</td>
+<td>Browsers should ignore invalid blocks</td>
+</tr>
+
+<tr>
+<td><a href="blocks3.html">blocks3.html</a></td>  	
+<td>Blocks: Invalid token sequence</td>
+<td class="invalid">Invalid</td>
+<td>Browsers should ignore an invalid token sequence</td>
+</tr>
+
+
+<tr>
+<td><a href="char0.html">char0.html</a></td>	
+<td>Characters and case: Escaping of Unicode characters</td>
+<td class="valid">Valid</td>
+<td>Browsers should be able to read the correct escaping sequence</td>
+</tr>
+
+<tr>
+<td><a href="char1.html">char1.html</a></td>	
+<td>Characters and case: Escaping a character inside a keyword</td>
+<td class="invalid">Invalid</td>
+<td>Browsers should be able to ignore the keyword</td>
+</tr>
+
+
+<tr>
+<td><a href="char2.html">char2.html</a></td>	
+<td>Characters and case: Invalid escaped tokens</td>
+<td class="invalid">Invalid</td>
+<td>Browsers should be able to ignore invalid escaped tokens</td>
+</tr>
+
+<tr>
+<td><a href="char3.html">char3.html</a></td>	
+<td>Characters and case: Invalid id names</td>
+<td class="invalid">Invalid</td>
+<td>Browsers should be able to ignore invalid id names</td>
+</tr>
+
+<tr>
+<td><a href="char4.html">char4.html</a></td>	
+<td>Characters and case: Valid id names</td>
+<td class="valid">Valid</td>
+<td>Browsers should be able to recognize valid id names</td>
+</tr>
+
+<tr>
+<td><a href="char5.html">char5.html</a></td>	
+<td>Characters and case: Valid id names</td>
+<td class="valid">Valid</td>
+<td>Browsers should be able to recognize valid id names</td>
+</tr>
+
+  
+<tr>
+<td><a href="char6.html">char6.html</a></td>	
+<td>Characters and case: Invalid id names</td>
+<td class="invalid">Invalid</td>
+<td>Browsers should ignore invalid id names</td>
+</tr>
+
+<tr>
+<td><a href="char7.html">char7.html</a></td>	
+<td>Characters and case: Invalid id names</td>
+<td class="invalid">Invalid</td>
+<td>Browsers should ignore invalid id names</td>
+</tr>
+
+
+<tr>
+<td><a href="char8.html">char8.html</a></td>	
+<td>Characters and case: Escaped Unicode characters as id names</td>
+<td class="valid">Valid</td>
+<td>Browsers should be able to recognize escaped Unicode characters as id names</td>
+</tr>
+
+<tr>
+<td><a href="char9.html">char9.html</a></td>	
+<td>Characters and case: Invalid token sequence with escaped Unicode characters</td>
+<td class="invalid">Invalid</td>
+<td>Browsers should ignore an invalid token sequence with escaped Unicode characters</td>
+</tr>
+
+<tr>
+<td><a href="char10.html">char10.html</a></td>	
+<td>Characters and case: Escaped Unicode characters in the exact match attribute selector</td>
+<td class="valid">Valid</td>
+<td>Browsers should be able to recognize escaped Unicode characters in the exact match attribute selector</td>
+</tr>
+
+<tr>
+<td><a href="char11.html">char11.html</a></td>	
+<td>Characters and case: Escaped Unicode characters in the exact match attribute selector</td>
+<td class="valid">Valid</td>
+<td>Browsers should be able to recognize escaped Unicode characters in the exact match attribute selector</td>
+</tr>
+
+
+<tr>
+<td><a href="char12.html">char12.html</a></td>	
+<td>Characters and case: Escaping a character next to a property value</td>
+<td class="invalid">Invalid</td>
+<td>Browsers should ignore the property value</td>
+</tr>
+
+<tr>
+<td><a href="comments0.html">comments0.html</a></td>
+<td>Comments: Comment before a declaration</td>
+<td class="valid">Valid</td>
+<td>Browsers should ignore a comment before a declaration</td>
+</tr>
+
+<tr>
+<td><a href="comments1.html">comments1.html</a></td>
+<td>Comments: Comment inside a declaration</td>
+<td class="valid">Valid</td>
+<td>Browsers should ignore a comment inside a declaration</td>
+</tr>
+
+<tr>
+<td><a href="comments2.html">comments2.html</a></td>
+<td>Comments: Comment inside a declaration, with a space</td>
+<td class="valid">Valid</td>
+<td>Browsers should ignore a comment inside a declaration also when it is combined with a space</td>
+</tr>
+
+<tr>
+<td><a href="comments3.html">comments3.html</a></td>
+<td>Comments: Comment inside a declaration, with a space</td>
+<td class="valid">Valid</td>
+<td>Browsers should ignore a comment inside a declaration also when it is combined with a space</td>
+</tr>
+
+<tr>
+<td><a href="comments4.html">comments4.html</a></td>
+<td>Comments: Comments with a value inside</td>
+<td class="invalid">Invalid</td>
+<td>Browsers should ignore a comment also when it contains a value</td>
+</tr>
+
+<tr>
+<td><a href="comments5.html">comments5.html</a></td>
+<td>Comments: SGML comments</td>
+<td class="valid">Valid</td>
+<td>Browsers should ignore a SGML comment</td>
+</tr>
+
+<tr>
+<td><a href="declaration0.html">declaration0.html</a></td>
+<td>Declarations and properties: Invalid property</td>
+<td class="invalid">Invalid</td>
+<td>Browsers should ignore a declaration with an invalid property</td>
+</tr>
+
+<tr>
+<td><a href="declaration1.html">declaration1.html</a></td>
+<td>Declarations and properties: Invalid value</td>
+<td class="invalid">Invalid</td>
+<td>Browsers should ignore a declaration with an invalid value</td>
+</tr>
+
+<tr>
+<td><a href="declaration2.html">declaration2.html</a></td>
+<td>Declarations and properties: Invalid value</td>
+<td class="invalid">Invalid</td>
+<td>Browsers should ignore a declaration with an invalid value</td>
+</tr>
+
+<tr>
+<td><a href="key.html">key.html</a></td>	
+<td>Keywords: Invalid keyword (quoted)</td>
+<td class="invalid">Invalid</td>
+<td>Browsers should ignore an invalid keyword</td>
+</tr>
+
+<tr>
+<td><a href="parsingerror0.html">parsingerror0.html</a></td>
+<td>Rules for handling parsing errors: Invalid properties</td>
+<td class="invalid">Invalid</td>
+<td>Browsers should ignore an invalid property</td>
+</tr>
+
+<tr>
+<td><a href="parsingerror1.html">parsingerror1.html</a></td>
+<td>Rules for handling parsing errors: Illegal values</td>
+<td class="invalid">Invalid</td>
+<td>Browsers should ignore an illegal value</td>
+</tr>
+
+<tr>
+<td><a href="parsingerror2.html">parsingerror2.html</a></td>
+<td>Rules for handling parsing errors: Malformed declarations</td>
+<td class="invalid">Invalid</td>
+<td>Browsers must handle unexpected tokens encountered while parsing a declaration by reading until the end of the declaration</td>
+</tr>
+
+<tr>
+<td><a href="parsingerror3.html">parsingerror3.html</a></td>
+<td>Rules for handling parsing errors: Invalid at-keywords</td>
+<td class="invalid">Invalid</td>
+<td>Browsers must ignore an invalid at-keyword</td>
+</tr>
+
+<tr>
+<td><a href="parsingerror4.html">parsingerror4.html</a></td>
+<td>Rules for handling parsing errors: Unexpected end of style sheet</td>
+<td class="invalid">Invalid</td>
+<td>Browsers must close all open constructs</td>
+</tr>
+
+<tr>
+<td><a href="parsingerror5.html">parsingerror5.html</a></td>
+<td>Rules for handling parsing errors: Unexpected end of string</td>
+<td class="invalid">Invalid</td>
+<td>Browsers must close strings upon reaching the end of a line, but then drop the construct in which the string was found</td>
+</tr>
+
+<tr>
+<td><a href="rulesets0.html">rulesets0.html</a></td>	
+<td>Rule sets, declaration blocks, and selectors: Misplaced separator</td>
+<td class="invalid">Invalid</td>
+<td>Browsers should ignore a declaration with a misplaced separator</td>
+</tr>
+
+<tr>
+<td><a href="rulesets1.html">rulesets1.html</a></td>	
+<td>Rule sets, declaration blocks, and selectors: Unknown selector</td>
+<td class="invalid">Invalid</td>
+<td>Browsers should ignore a declaration with an unknown selector</td>
+</tr>
+
+
+<tr>
+<td><a href="rulesets2.html">rulesets2.html</a></td>	
+<td>Rule sets, declaration blocks, and selectors: Invalid selector</td>
+<td class="invalid">Invalid</td>
+<td>Browsers should ignore a declaration with an invalid selector</td>
+</tr>
+
+<tr>
+<td><a href="unsupportedvalues0.html">unsupportedvalues0.html</a></td>
+<td>Values: Unsupported values</td>
+<td class="valid">Valid</td>
+<td>If a browser does not support a particular value, it should ignore that value when parsing style sheets, as if that value was an illegal value</td>
+</tr>
+
+
+</table>
+
+<p class="day"><strong>Date:</strong> November 30 - December 1, 2007</p>
+
+
+
+
+
+
+</body>
+</html>

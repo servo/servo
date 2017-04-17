@@ -1,0 +1,46 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Vertical-align with a keyword, 'super'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#propdef-vertical-align" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#leading" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The 'vertical-align' property sets the keyword 'super'." />
+        <style type="text/css">
+            div
+            {
+                font: 48px/1em Ahem;
+                position: relative;
+            }
+            #div3
+            {
+                border-top: 2px solid blue;
+                height: 48px;
+                position: absolute;
+                top: 86px;
+                width: 48px;
+                z-index: 1;
+            }
+            #span1
+            {
+                color: orange;
+                vertical-align: super;
+            }
+            #span2
+            {
+                color: white;
+                font: 96px/1em Ahem;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is vertical white space between the top of the blue line and the bottom of the orange square.</p>
+        <div id="div1">
+            <div id="div2">
+                <span id="span1">X</span><span id="span2">X</span>
+            </div>
+            <div id="div3"></div>
+        </div>
+    </body>
+</html>

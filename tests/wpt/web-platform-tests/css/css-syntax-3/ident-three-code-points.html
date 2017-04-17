@@ -1,0 +1,73 @@
+<!doctype html>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<title>Testing valid ident based on first three code points</title>
+
+<link rel="author" title="Greg Whitworth" href="gwhit@microsoft.com" />
+<link rel="help" href="https://drafts.csswg.org/css-syntax-3/#would-start-an-identifier" />
+<style>
+    main div {
+      background-color:red;
+    }
+
+    div[name=one],
+    div[name=two] {
+        background: green;
+    }
+
+    #1 {
+      background-color:red;
+    }
+
+    #-2 {
+      background-color:red;
+    }
+
+    #--3 {
+      background-color:green;
+    }
+
+    #---4 {
+      background-color:green;
+    }
+
+    #a {
+      background-color:green;
+    }
+
+    #-b {
+      background-color:green;
+    }
+
+    #--c {
+      background-color:green;
+    }
+
+    #---d {
+      background-color:green;
+    }
+</style>
+<body>
+    <main>
+        <div id="1" class="item" name="one">test1</div>
+        <div id="-2" class="item" name="two">test2</div>
+        <div id="--3" class="item" name="three">test3</div>
+        <div id="---4" class="item" name="four">test4</div>
+
+        <div id="a" class="item" name="five">test A</div>
+        <div id="-b" class="item" name="six">test B</div>
+        <div id="--c" class="item" name="seven">test C</div>
+        <div id="---d" class="item" name="eight">test D</div>
+    </main>
+
+    <script>
+        var items = document.getElementsByClassName('item');
+
+        for(var i=0; i < items.length; i++) {
+            test(function() {
+                assert_equals(window.getComputedStyle(items[i]).getPropertyValue('background-color'), "rgb(0, 128, 0)");
+            }, items[i].getAttribute('name') + " should be green");
+        }
+    </script>
+</body>
+</html>

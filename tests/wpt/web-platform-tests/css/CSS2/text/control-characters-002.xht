@@ -1,0 +1,59 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Control Characters</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#spacing-props" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Handling and processing of control characters." />
+        <style type="text/css">
+            div
+            {
+                border: 1px solid black;
+                height: 1.2em;
+                padding-left: 1em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is only a single character in each box below or the box is empty.</p>
+        <!-- C0 Control Characters -->
+        <div>&#x09;</div>
+        <div>&#x0A;</div>
+        <div>&#x0D;</div>
+        <div>&#x7F;</div>
+        <!-- C1 Control Characters -->
+        <div>&#x80;</div>
+        <div>&#x81;</div>
+        <div>&#x82;</div>
+        <div>&#x83;</div>
+        <div>&#x84;</div>
+        <div>&#x85;</div>
+        <div>&#x86;</div>
+        <div>&#x87;</div>
+        <div>&#x88;</div>
+        <div>&#x89;</div>
+        <div>&#x8A;</div>
+        <div>&#x8B;</div>
+        <div>&#x8C;</div>
+        <div>&#x8D;</div>
+        <div>&#x8E;</div>
+        <div>&#x8F;</div>
+        <div>&#x90;</div>
+        <div>&#x91;</div>
+        <div>&#x92;</div>
+        <div>&#x93;</div>
+        <div>&#x94;</div>
+        <div>&#x95;</div>
+        <div>&#x96;</div>
+        <div>&#x97;</div>
+        <div>&#x98;</div>
+        <div>&#x99;</div>
+        <div>&#x9A;</div>
+        <div>&#x9B;</div>
+        <div>&#x9C;</div>
+        <div>&#x9D;</div>
+        <div>&#x9E;</div>
+        <div>&#x9F;</div>
+    </body>
+</html>

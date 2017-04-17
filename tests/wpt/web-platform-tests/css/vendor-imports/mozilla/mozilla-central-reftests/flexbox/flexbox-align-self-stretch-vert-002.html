@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+<head>
+  <title>CSS Test: Testing the sizing of stretched flex items in a vertical multi-line flex container</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#layout-algorithm">
+  <link rel="match" href="flexbox-align-self-stretch-vert-002-ref.html">
+  <meta name="assert" content="In a multi-line flex container, flex items should not be stretched (in the cross axis) until after wrapping has been performed.">
+  <meta charset="utf-8">
+  <style>
+    div.container {
+      display: flex;
+      flex-flow: column wrap;
+      width: 100px;
+      height: 20px;
+      border: 2px solid black;
+    }
+    div.item {
+      /* Tall enough to force wrapping (since parent height is 20px): */
+      min-height: 15px;
+      border: 1px dotted blue;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="item"></div>
+    <div class="item"></div>
+  </div>
+</body>
+</html>

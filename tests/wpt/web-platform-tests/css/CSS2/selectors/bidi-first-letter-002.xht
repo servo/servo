@@ -1,0 +1,21 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Test: first-letter and inherent rtl</title>
+    <link rel="author" title="Eira Monstad, Opera Software ASA" href="mailto:public-testsuites@opera.com"/>
+    <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#first-letter"/>
+    <meta name="flags" content=""/>
+    <meta name="assert" content=":first-letter applied to inherent RTL text should start from the right"/>
+    <style type="text/css"><![CDATA[
+    .test {font-size: 2em;}
+    .test:first-letter {color:blue;}
+    ]]></style>
+  </head>
+  <body>
+
+    <p>The rightmost letter (&#x05D0;) in the line below should be blue.</p>
+
+    <p class="test">&#x05D0;&#x05D1;&#x05D1; &#x05D1;&#x05D1;&#x05D1; &#x05D1;&#x05D1;&#x05D1;</p>
+
+  </body>
+</html>

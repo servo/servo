@@ -1,0 +1,122 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: font-family - inherit as part of font-family name</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="author" title="John Daggett" href="mailto:jdaggett@mozilla.com" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-family-prop" title="15.3 Font family: the 'font-family' property" />
+  <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-family-prop" title="3.1 Font family: the font-family property" />
+  <link rel="bookmark" href="http://lists.w3.org/Archives/Public/www-style/2012May/0878.html" title="Re: [css2.1][css3-fonts] keywords in unquoted font family names" />
+
+  <meta content="font invalid" name="flags" />
+  <meta content="This test verifies 9 font-family declarations with inherit and 2 font-family declarations with invalid identifiers." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  p
+  {
+  font-size: 1.5em;
+  font-family: serif;
+  }
+
+  span#verify1 {font-family: "CSSTest Verify";}
+
+  div#verify {font-size: 1.5em;}
+
+  div
+  {
+  font-size: 2.5em;
+  line-height: 1.5;
+  }
+
+  /*
+  Newest font-family syntax in CSS 2.1:
+  Value:
+  [[<family-name> | <generic-family>] [, [<family-name>| <generic-family>]]* ] | inherit
+
+  Brackets ([ ]) are for grouping.
+
+  A bar (|) separates two or more alternatives: exactly one of them must occur.
+
+  An asterisk (*) indicates that the preceding type, word, or group occurs zero or more times.
+
+  Section 1.4.2.1 Value
+  http://www.w3.org/TR/CSS21/about.html#value-defs
+  */
+
+  div#firstTest {font-family: inherit, "CSSTest Fallback";}
+  /* invalid: unquoted inherit is a reserved keyword and not a font-family name */
+
+  div#secondTest {font-family: "CSSTest Fallback", inherit;}
+  /* invalid: unquoted inherit is a reserved keyword and not a font-family name */
+
+  div#thirdTest {font-family: inherit foo, "CSSTest Fallback";}
+  /* valid in CSS 2.1: the 2 identifiers (inherit foo) form a font-family name */
+
+  div#fourthTest {font-family: foo inherit, "CSSTest Fallback";}
+  /* valid in CSS 2.1: the 2 identifiers (foo inherit) form a font-family name */
+
+  div#fifthTest {font-family: \inherit foo, "CSSTest Fallback";}
+  /* valid in CSS 2.1: the 2 identifiers (\inherit foo) form a font-family name */
+
+  div#sixthTest {font-family: \foo inherit, "CSSTest Fallback";}
+  /* valid in CSS 2.1: the 2 identifiers (\foo inherit) form a font-family name */
+
+  div#seventhTest {font-family: "inherit" foo, "CSSTest Fallback";}
+  /* invalid: it's either one string or 1+ identifiers */
+
+  div#eighthTest {font-family: fooinherit, "CSSTest Fallback";}
+  /* valid */
+
+  div#ninthTest {font-family: inheritfoo, "CSSTest Fallback";}
+  /* valid */
+
+  div#tenthTest {font-family: --foo bar, "CSSTest Fallback";}
+  /* invalid: an identifier can not start with 2 consecutive hyphens
+  http://www.w3.org/TR/CSS21/syndata.html#value-def-identifier
+  */
+
+  div#eleventhTest {font-family: bar --foo, "CSSTest Fallback";}
+  /* invalid: an identifier can not start with 2 consecutive hyphens
+  http://www.w3.org/TR/CSS21/syndata.html#value-def-identifier
+  */
+
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p><a href="http://www.w3.org/Style/CSS/Test/Fonts/">Test fonts</a> must be installed for this test: <span id="verify1">FAIL</span></p>
+
+  <div id="verify">User agent's default font must be set to be "CSSTest FamilyName": 5678</div>
+
+  <p>Test passes if there are exactly eleven "PASS" words below:</p>
+
+  <div id="firstTest">5678</div>
+
+  <div id="secondTest">5678</div>
+
+  <div id="thirdTest">1234</div>
+
+  <div id="fourthTest">1234</div>
+
+  <div id="fifthTest">1234</div>
+
+  <div id="sixthTest">1234</div>
+
+  <div id="seventhTest">5678</div>
+
+  <div id="eighthTest">1234</div>
+
+  <div id="ninthTest">1234</div>
+
+  <div id="tenthTest">5678</div>
+
+  <div id="eleventhTest">5678</div>
+
+ </body>
+</html>

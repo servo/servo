@@ -1,0 +1,19 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html><head>
+<title>CSS 2.1 Test Suite: Test for 'width' shrink-wrapping on inline-table</title>
+<link href="https://dbaron.org/" rel="author" title="L. David Baron" />
+<link href="http://mozilla.com/" rel="author" title="Mozilla Corporation" />
+<link href="http://www.w3.org/TR/CSS21/tables.html#auto-table-layout" rel="help" />
+<link rel="match" href="18217-width-2-ref.xht"/>
+<meta content="" name="flags" />
+<style type="text/css">
+body &gt; div { width: 10em; }
+body &gt; div &gt; div { display: inline-table; background: green; color: white; width: 20em; }
+body &gt; div &gt; div &gt; div { width: 20em; }
+</style>
+</head>
+<body>
+<div>x<div><div>y</div></div>z</div>
+
+
+</body></html>

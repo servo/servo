@@ -1,0 +1,42 @@
+root, document, info, division, para {
+	display: block;
+}
+
+root {
+	background: white;
+	color: black;
+}
+
+document {
+	margin: 0.5em;
+}
+
+info {
+	margin: 1em 0;
+}
+
+division[id="box"] {
+	width: 30%;
+	background: green url("../img/topleft.png") no-repeat top left;
+}
+
+division[id="box-outer"] {
+	width: 100%;
+	background: transparent url("../img/topright.png") no-repeat top right;
+}
+
+division[id="box-inner"] {
+	width: 100%;
+	background: transparent url("../img/bottomleft.png") no-repeat bottom left;
+}
+
+division[id="box-content"] {
+	width: 100%;
+	background: transparent url("../img/bottomright.png") no-repeat bottom right;
+}
+
+para {
+	padding: 1em;
+	color: white;
+	font-weight: bold;
+}

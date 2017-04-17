@@ -1,6 +1,7 @@
 testText("<div>", "abc", "abc", "Simplest possible test");
 testHTML("<div>", "abc\ndef", "abc<br>def", "Newlines convert to <br> in non-white-space:pre elements");
 testHTML("<pre>", "abc\ndef", "abc<br>def", "Newlines convert to <br> in <pre> element");
+testHTML("<textarea>", "abc\ndef", "abc<br>def", "Newlines convert to <br> in <textarea> element");
 testHTML("<div style='white-space:pre'>", "abc\ndef", "abc<br>def", "Newlines convert to <br> in white-space:pre element");
 testHTML("<div>", "abc\rdef", "abc<br>def", "CRs convert to <br> in non-white-space:pre elements");
 testHTML("<pre>", "abc\rdef", "abc<br>def", "CRs convert to <br> in <pre> element");
@@ -25,6 +26,12 @@ testText("<div><br>", "abc", "abc", "Existing <br> deleted");
 testHTML("<div>", "", "", "Assigning the empty string");
 testHTML("<div>", null, "", "Assigning null");
 testHTML("<div>", undefined, "undefined", "Assigning undefined");
+testHTML("<div>", "\rabc", "<br>abc", "Start with CR");
+testHTML("<div>", "\nabc", "<br>abc", "Start with LF");
+testHTML("<div>", "\r\nabc", "<br>abc", "Start with CRLF");
+testHTML("<div>", "abc\r", "abc<br>", "End with CR");
+testHTML("<div>", "abc\n", "abc<br>", "End with LF");
+testHTML("<div>", "abc\r\n", "abc<br>", "End with CRLF");
 
 // Setting innerText on these should not throw
 ["area", "base", "basefont", "bgsound", "br", "col", "embed", "frame", "hr",

@@ -7,19 +7,19 @@
 <script>
 "use strict";
 
-// Also test a selection with no ranges
-testRanges.unshift("[]");
+test(function() {
+   selection.removeAllRanges();
+   assert_throws("INVALID_STATE_ERR", function() {
+       selection.collapseToStart();
+   });
+}, "Must throw InvalidStateErr if the selection's range is null");
 
 for (var i = 0; i < testRanges.length; i++) {
+    var endpoints = eval(testRanges[i]);
+    if (!isSelectableNode(endpoints[0]) || !isSelectableNode(endpoints[2]))
+        continue;
     test(function() {
         selection.removeAllRanges();
-        var endpoints = eval(testRanges[i]);
-        if (!endpoints.length) {
-            assert_throws("INVALID_STATE_ERR", function() {
-                selection.collapseToStart();
-            }, "Must throw InvalidStateErr if the selection's range is null");
-            return;
-        }
 
         var addedRange = ownerDocument(endpoints[0]).createRange();
         addedRange.setStart(endpoints[0], endpoints[1]);
@@ -66,13 +66,6 @@ for (var i = 0; i < testRanges.length; i++) {
     // Copy-paste of above
     test(function() {
         selection.removeAllRanges();
-        var endpoints = eval(testRanges[i]);
-        if (!endpoints.length) {
-            assert_throws("INVALID_STATE_ERR", function() {
-                selection.collapseToEnd();
-            }, "Must throw InvalidStateErr if the selection's range is null");
-            return;
-        }
 
         var addedRange = ownerDocument(endpoints[0]).createRange();
         addedRange.setStart(endpoints[0], endpoints[1]);

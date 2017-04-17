@@ -1,0 +1,30 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Quotes with sixty-four values</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#propdef-quotes" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#quotes-specify" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Verify that quotes is supported when specifying thirty-two sets of quotes." />
+        <style type="text/css">
+            div:before
+            {
+                content: open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote;
+            }
+            div:after
+            {
+                content: close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote;
+            }
+            div
+            {
+                quotes: "A" "z" "B" "y" "C" "x" "D" "w" "E" "v" "F" "u" "G" "t" "H" "s" "I" "r" "J" "q" "K" "p" "L" "o" "M" "n" "N" "m" "O" "l" "P" "k" "Q" "j" "R" "i" "S" "h" "T" "g" "U" "f" "V" "e" "W" "d" "X" "c" "Y" "b" "Z" "a" "1" "|" "2" "*" "3" "0" "4" "9" "5" "8" "6" "7";
+                border: 2px solid black;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the characters "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890*|abcdefghijklmnopqrstuvwxyz" appear, in the same order, in the box below.</p>
+        <div></div>
+    </body>
+</html>

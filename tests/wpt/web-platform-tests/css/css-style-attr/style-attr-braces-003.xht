@@ -1,0 +1,19 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Pairing braces in style attributes</title>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="reviewer" title="Arron Eicholz" href="mailto:Arron.Eicholz@microsoft.com"/>
+  <link rel="match" href="reference/ref-green-on-green.xht"/>
+  <link rel="help" href="http://www.w3.org/TR/css-style-attr/#syntax"/>
+  <meta name="flags" content="invalid" />
+  <meta name="assert" content="Braces in a style attribute are treated as an
+    invalid tokens, and must be paired when dropping declarations."/>
+  <style type="text/css"><![CDATA[
+  ]]></style>
+ </head>
+ <body>
+  <p style="background: lime; {background: red; background: red; } background: red; color: green;">
+    This sentence must be green on a green background.</p>
+ </body>
+</html>

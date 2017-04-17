@@ -1,0 +1,38 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Non-Replaced Float Not Fitting Beside Opposite Float</title>
+
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-06-30 -->
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#floating-elements"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats" title="9.5 Floats"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#alignment-prop" title="16.2 Alignment: the 'text-align' property"/>
+  <link rel="match" href="c414-flt-fit-005-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+   .control { padding: 1em; }
+   .control div { width: 10em; background: navy; color: yellow; }
+   .control div.right { margin-left: 5em; text-align: right; }
+   .test { width: 15em; margin: 1em; }
+   .test div { margin: 0; padding: 0; background: red; }
+   .test p { margin: 0; padding: 0; width: 10em; background: navy; color: yellow; }
+   .test p.left { float: left; text-align: left; }
+   .test p.right { float: right; text-align: right; }
+  ]]></style>
+ </head>
+ <body>
+  <p>Test pass if the 2 patterns are identical with <strong>no red</strong>.</p>
+  <div class="control">
+   <div class="left"> &#x00A0;&#x262E; </div>
+   <div class="right"> &#x262E;&#x00A0; </div>
+  </div>
+  <div class="test">
+   <div>
+    <p class="left"> &#x00A0;&#x262E; </p>
+    <p class="right"> &#x262E;&#x00A0; </p>
+   </div>
+  </div>
+ </body>
+</html>

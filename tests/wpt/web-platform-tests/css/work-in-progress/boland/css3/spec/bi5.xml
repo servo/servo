@@ -1,0 +1,47 @@
+
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+      PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+      "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<title>CSS3 Background Image Test</title>
+
+<style type="text/css">
+
+body {background-color: maroon;
+      background-image: url(ovalbbut.gif);
+     }
+</style>
+</head>
+
+<body>
+
+
+
+
+<h1>CSS3 Background Image Test</h1>
+
+
+
+
+
+<ul>
+<li >
+When the image is available, it is overlaid on top of the background color.
+</li>
+</ul>
+
+<h2>
+PASS CRITERIA:
+</h2>
+<p>
+If statement above is true, the background for this page
+should be green oval buttons on top of a maroon base.
+The rule applied is "body {background-color: maroon;
+                           backrgound-image: url(ovalbbut.gif);}"
+All other properties of this page should be UA-default.
+</p>
+
+</body>
+</html>

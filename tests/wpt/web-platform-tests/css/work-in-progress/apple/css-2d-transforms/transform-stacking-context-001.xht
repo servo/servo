@@ -1,0 +1,62 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Cannot use z-index to interleave content between a statically-positioned transformed element and its children</title>
+  <link rel="author" title="Apple Inc." href="http://www.apple.com/"/>
+  <link rel="help" href="https://drafts.csswg.org/css3-2d-transforms/#introduction"/>
+  <link rel="match" href="reftest/transform-stacking-context-001-ref.xht"/>
+  <meta name="flags" content="" />
+  <meta name="assert" content="Transforms behave like opacity: they create stacking context, but the z-index property does not apply to them (unless they are also positioned)."/>
+  <style type="text/css"><![CDATA[
+      #wrapper {
+        position: relative;
+      }
+      #parent {
+        background-color: silver;
+        width: 100px;
+        height: 100px;
+        transform: translate(0,0);
+       }
+      #child {
+        background-color: fuchsia;
+        width: 60px;
+        height: 60px;
+        position: relative;
+        top: 10px;
+        left: 10px;
+        z-index: 2;
+      }
+      #error {
+        background-color: red;
+        width: 40px;
+        height: 40px;
+        position: relative;
+        top: 20px;
+        left: 20px;
+      }
+      #interloper {
+        background-color: green;
+        width: 60px;
+        height: 60px;
+        position: relative;
+        top: -70px;
+        left: 30px;
+        z-index: 1;
+      }
+  ]]></style>
+ </head>
+ <body>
+   <p>
+     There is a silver box, on top of which is a fuchsia box, on top of
+     which is a green box. There is no red.
+   </p>
+   <div id="wrapper">
+     <div id="parent">
+       <div id="child">
+         <div id="error"></div>
+       </div>
+     </div>
+     <div id="interloper"></div>
+   </div>
+ </body>
+</html>

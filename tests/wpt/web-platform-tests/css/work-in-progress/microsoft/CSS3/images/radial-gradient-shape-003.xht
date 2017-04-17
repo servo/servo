@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Degenerate shape with 'closet-corner' set on 'radial-gradient'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="https://drafts.csswg.org/css3-images/#gradients" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="For a degenerate shape with 'closest-corner' set at the starting point on a box corner, the gradient is a solid color image with color equal to the last color-stop." />
+        <style type="text/css">
+            #test
+            {
+                background: radial-gradient(bottom left, closest-corner, yellow, green, blue, orange);
+                margin: 10px;
+                height: 200px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is an orange box on the page.</p>
+        <div id="test"></div>
+    </body>
+</html>

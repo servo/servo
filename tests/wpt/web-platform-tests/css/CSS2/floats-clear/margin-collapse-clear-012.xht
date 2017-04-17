@@ -1,0 +1,128 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: Margin collapsing with clearance - margins of a 'collapsed through' box with clearance do not collapse with parent block's bottom margin</title>
+
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#collapsing-margins" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#normal-block" />
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="author" title="Bruno Fassino" href="fassino[at]gmail.com" />
+  <link rel="match" href="margin-collapse-clear-012-ref.xht" />
+
+  <meta content="When an element has had clearance applied to it and its own margins collapse, these margins collapse with the adjoining margins of following siblings but the resulting margin does not collapse with the bottom margin of the parent block" name="assert" />
+  <meta content="" name="flags" />
+
+  <style type="text/css"><![CDATA[
+  #rel-pos-wrapper {position: relative;}
+
+  #parent-lime
+  {
+  background-color: lime;
+  border-top: black solid 1px;
+  width: 50%;
+  }
+
+  #float-left-blue
+  {
+  background-color: blue;
+  float: left;
+  height: 100px;
+  width: 100px;
+  }
+
+  #clear-left
+  {
+  clear: left;
+  margin-bottom: 80px;
+  margin-top: 40px;
+  }
+
+  #following-sibling {margin-bottom: 140px;}
+
+  #next-yellow
+  {
+  background-color: yellow;
+  height: 100px;
+  }
+
+  .ref-overlapped-red
+  {
+  background-color: red;
+  position: absolute;
+  z-index: -1;
+  }
+
+  #ref1
+  {
+  height: 200px;
+  top: 1px;
+  width: 50%;
+  }
+
+  #ref2
+  {
+  height: 100px;
+  top: 201px;
+  width: 100%;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is <strong>no red</strong>.</p>
+
+  <div id="rel-pos-wrapper">
+
+  <!--
+
+  #parent-lime should have height 200px, sum of:
+
+    100px          : height of #float-left-blue
+  +
+    (140px - 40px) : part of #following-sibling's margin-bottom
+                     "exceeding" the amount collapsed with
+                     #clear-left's margin-top (140px - 40px)
+  =======
+   200px
+
+  -->
+
+    <div id="parent-lime">
+      <div id="float-left-blue"></div>
+      <div id="clear-left"></div>
+
+   <!--
+
+     clearance
+   +
+     margin-top of #clear-left (40px)
+   ====================================
+     height of #float-left-blue (100px)
+
+     therefore, clearance is equal to +60px
+
+   -->
+
+      <div id="following-sibling"></div>
+    </div>
+
+    <div id="next-yellow"></div>
+
+   <!--
+   #ref1 and #ref2 boxes create a sort of 'reference rendering'
+   where #ref1 should be covered, overlapped by #parent-lime
+   while #ref2 should be covered, overlapped by #next-yellow.
+   -->
+
+   <div id="ref1" class="ref-overlapped-red"></div>
+   <div id="ref2" class="ref-overlapped-red"></div>
+
+  </div>
+
+ </body>
+</html>

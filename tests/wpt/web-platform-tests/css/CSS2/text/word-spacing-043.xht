@@ -1,0 +1,34 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Word-spacing normal cm on an element</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#propdef-word-spacing" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#spacing-props" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="Ensure that word-spacing 2.54cm adds 2.54cm (in addition to default spacing) between words in the element." />
+        <style type="text/css">
+            #wrapper
+            {
+                font: 1cm/1em Ahem;
+            }
+            #span2
+            {
+                margin-left: 2.54cm;
+            }
+            #test
+            {
+                word-spacing: 2.54cm;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there are only two boxes below (with no jagged edges).</p>
+        <div id="wrapper">
+            <div>
+                <span>x </span><span id="span2">x</span>
+            </div>
+            <div id="test">x x</div>
+        </div>
+    </body>
+</html>

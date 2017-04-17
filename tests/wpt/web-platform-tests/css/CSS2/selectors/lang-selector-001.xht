@@ -1,0 +1,23 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Selectors :lang pseudo-class</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#lang" />
+        <link rel="match" href="lang-selector-001-ref.xht"/>
+        <meta name="flags" content="" />
+        <meta name="assert" content="The :lang pseudo-class selector matches any element with a matching lang attribute." />
+        <style type="text/css">
+            p:lang(en)
+            {
+                color: green;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if only the first line of "Filler Text" below is green.</p>
+        <p lang="en-us">Filler Text</p>
+        <p>Filler Text</p>
+        <div lang="en-us">Filler Text</div>
+    </body>
+</html>

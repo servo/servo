@@ -1,0 +1,73 @@
+
+<HTML>
+<HEAD>
+<TITLE>Fourth Test of Section 5.2.2 of CSS1 Spec</TITLE>
+
+<STYLE>
+#id1 { font-family: serif, sans-serif }
+#id2 { font-family: sans-serif, serif }
+#id3 { font-family; monospace, fantasy }
+#id4 { font-family: cursive, monospace }
+#id5 { font-family: fantasy, monospace }
+#id6 {font-family: gill, helvetica, sans-serif}
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+
+<h1 >Testing Statement #4 Below of Section 5.2.2 of CSS1 Spec</h1>
+
+
+<ul>
+<li>
+4. The value of "font-family" is a prioritized list of font family names and/or
+generic family names.
+</ul>
+<h2>PASS CRITERIA:
+</h2>
+If statement #4 above is passed, then:
+<p ID=id1>
+This paragraph should be serif first, then sans-serif second.
+The rule applied is "#id1 {font-family: serif, sans-serif}".
+This is a prioritized list.
+<p ID=id2>
+This paragraph should be sans-serif first, then serif second (if sans-
+serif is not available).
+The rule applied is "#id2 {font-family: sans-serif, serif}".
+This is a prioritized list.
+
+<p ID=id3>
+This paragraph should be monospace first, then fantasy second (if monospace
+is not available).
+The rule applied is "#id3 {font-family: monospace, fantasy}".
+This is a prioritized list.
+<p ID=id4>
+This paragraph should be cursive first, then monospace second (if cursive
+is not available).
+The rule applied is "#id4 {font-family: cursive, monospace}".
+This is a prioritized list.
+
+<p ID=id5>
+This paragraph should be fantasy first, then monospace second (if fantasy
+is not available).
+The rule applied is "#id5 {font-family: fantasy, monospace}".
+This is a prioritized list.
+
+<p ID=id6>
+This paragraph should be gill first, then helvetica second, and sans-serif
+third.  Second and third are tried if first choice is not available, in
+that order.  This is a prioritized list.
+
+
+
+NOTE: If values specified above are not available, UA-default values will be
+used.
+All other properties of this page should be UA-default.
+
+To move directly to the next test, click<a href="522-5.htm"> here</a>
+</BODY>
+</HTML>
+

@@ -1,0 +1,227 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<title>@page Media Test Case Index</title>
+
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="author" content="Michael Turnwall - Revenution Inc." />
+
+<style type="text/css" media="all">
+body {
+	font:12px/1.2em "Lucida Grande","Lucida Sans Unicode", Verdana, Arial;
+}
+h1 {
+	font-size:20px;
+	border-bottom:5px solid #999;
+	margin:0 0 30px 0;
+	padding-bottom:6px;
+}
+h2 {
+	font-size:16px;
+	margin:0 0 10px 0;
+	padding:0 0 2px 0;
+	border-bottom:1px solid #999;
+}
+h3 {
+	font-size:14px;
+	margin:0 0 2px 0;
+	padding:0 0 2px 0;
+}
+ul {
+	margin:0 5px;
+	padding:0;
+	list-style:none;
+}
+ol {
+	margin:5px 10px;
+	padding:0 10px;
+}
+li {
+	margin:3px 0;
+}
+dd {
+	margin:2px 0;
+}
+a:hover {
+	text-decoration:none;
+}
+#wrapper {
+	width:800px;
+	margin:20px auto;
+}
+#leftCol {
+	float:left;
+	/*padding-top:20px;*/
+	width:200px;
+}
+#contentCol {
+	margin-left:220px;
+}
+.cont {
+	padding:5px 5px 0 5px;
+	margin-bottom:30px;
+	background-color:#ccc;
+	border:1px solid #999;
+	overflow:hidden;
+}
+.review, .complete {
+	color:red;
+	font-weight:bold;
+}
+.complete {
+	color:green;
+}
+</style>
+
+<script src="collapsible2.js" type="text/javascript"></script>
+<script type="text/javascript">
+// function that allows getting elements by their class name. Returns the found elements in an array
+// arguments: className - class name to search for, element - a starting point to start the search
+// if no element is specified, all the nodes on the page are searched
+document.getElementsByClassName = function(className,element)
+{
+	if(element)
+	{
+		var el = document.getElementById(element);
+		var children = el.getElementsByTagName('*');
+	}
+	else
+	{
+		var children = document.getElementsByTagName('*') || document.all;
+	}
+	
+	var elements = [];
+	var regexp = new RegExp("\\b"+className+"\\b","g");
+	for(i = 0; i < children.length; i++)
+	{
+		if(children[i].className.match(regexp))
+			elements.push(children[i]);
+	}
+	if(elements.length > 0)
+		return elements;
+	else
+		return false;
+}
+/*----------------------*/
+</script>
+</head>
+
+<body>
+<div id="wrapper">
+		<span style="float:right;">Updated 11.10.2007</span>
+		<h1>Paged Media Test Case Index</h1>
+	<div id="leftCol">
+		<ul>
+			<li><a href="http://csswg.inkedblade.net/test/paged-media/assertions" title="Assertions List">Assertions List</a></li>
+			<li><a href="http://csswg.inkedblade.net/test/css2.1/format" title="Test Format Guidelines">Test Format Guidelines</a></li>
+			<li><a href="http://www.w3.org/TR/2007/CR-CSS21-20070719/page.html" title="Paged media">CSS2.1 Page Media Specification</a></li>
+			<li><a href="http://www.w3.org/TR/2006/WD-css3-page-20061010/" title="Paged media">CSS3 Page Media Specification</a></li>
+		</ul>
+		<dl>
+			<dt><strong>Legend:</strong></dt>
+			<dd><span class="review">R</span> - Under Review</dd>
+			<dd><span class="complete">C</span> - Complete</dd>
+		</dl>
+	</div>
+	<div id="contentCol">
+	
+		<h2>Page Sizes (26 - 48)</h2>
+		<div class="cont">
+			<h3><a class="trigger" href="#" title="">size property</a></h3>
+			<ol>
+				<li><a href="page_sizes/page-size-000.xht" id="" title="page-size-000.xht">page-size-000.xht</a>SADLSJAD sajd saDJlkasj dlask jdaslkdjaslkd jsalkdjsalkdjas lkdjas dlksajdlksajd</li>
+				<li><a href="page_sizes/page-size-001.xht" id="" title="page-size-001.xht">page-size-001.xht</a></li>
+				<li><a href="page_sizes/page-size-009.xht" id="" title="page-size-009.xht">page-size-009.xht</a></li>
+				<li><a href="page_sizes/page-size-010.xht" id="" title="page-size-010.xht">page-size-010.xht</a></li>
+			</ol>
+		</div>
+		
+		<h2>Page Properties (56 - 87)</h2>
+		<div class="cont">
+			<h3><a class="trigger" href="#" title="">page box</a></h3>
+			<ol>
+				<li><a href="page_properties/t1302-page-properties-background.xht" id="" title="">t1302-page-properties-background.xht</a></li>
+				<li><a href="page_properties/t1302-page-properties-border.xht" id="" title="">t1302-page-properties-border.xht</a></li>
+				<li><a href="page_properties/t1302-page-properties-margin.xht" id="" title="">t1302-page-properties-margin.xht</a></li>
+				<li><a href="page_properties/t1302-page-properties-padding.xht" id="" title="">t1302-page-properties-padding.xht</a></li>
+				<li><a href="page_properties/t1302-page-properties-counter-reset.xht" id="" title="">t1302-page-properties-counter-reset.xht</a></li>
+				<li><a href="page_properties/t1302-page-properties-counter-increment.xht" id="" title="">t1302-page-properties-counter-increment.xht</a></li>
+				<li><a href="page_properties/t1302-page-properties-color.xht" id="" title="">t1302-page-properties-color.xht</a></li>
+				<li><a href="page_properties/t1302-page-properties-font.xht" id="" title="">t1302-page-properties-font.xht</a></li>
+				<li><a href="page_properties/t1302-page-properties-text.xht" id="" title="">t1302-page-properties-text.xht</a></li>
+			</ol>
+		</div>
+		<div class="cont">
+			<h3><a class="trigger" href="#" title="">margin box</a></h3>
+			<ol>
+				<li><a href="page_properties/t1302-page-properties-margin-box-background.xht" id="" title="">t1302-page-properties-margin-box-background.xht</a></li>
+				<li><a href="page_properties/t1302-page-properties-margin-box-border.xht" id="" title="">t1302-page-properties-margin-box-border.xht</a></li>
+				<li><a href="page_properties/t1302-page-properties-margin-box-color.xht" id="" title="">t1302-page-properties-margin-box-color.xht</a></li>
+				<li><a href="page_properties/t1302-page-properties-margin-box-font.xht" id="" title="">t1302-page-properties-margin-box-font.xht</a></li>
+				<li><a href="page_properties/t1302-page-properties-margin-box-margin.xht" id="" title="">t1302-page-properties-margin-box-margin.xht</a></li>
+				<li><a href="page_properties/t1302-page-properties-margin-box-text.xht" id="" title="">t1302-page-properties-margin-box-text.xht</a></li>
+			</ol>
+		</div>
+		
+		<h2>Page Breaks (149 - 172)</h2>
+		<div class="cont">
+			<h3><a class="trigger" href="#" title="">page-break-before</a></h3>
+			<ol>
+				<li><a href="page-break-before-000.xht" title="">page-break-before-000.xht</a> - <span class="complete">C</span>
+				<li><a href="page-break-before-001.xht" title="">page-break-before-001.xht</a> - <span class="complete">C</span>
+				<li><a href="page-break-before-002.xht" title="">page-break-before-002.xht</a> - <span class="complete">C</span>
+				<li><a href="page-break-before-003.xht" title="">page-break-before-003.xht</a>
+				<li><a href="page-break-before-004.xht" title="">page-break-before-004.xht</a> - <span class="review">R</span>
+				<li><a href="page-break-before-005.xht" title="">page-break-before-005.xht</a>
+				<li><a href="page-break-before-006.xht" title="">page-break-before-006.xht</a> - <span class="review">R</span>
+			</ol>
+		</div>	
+		<div class="cont">
+			<h3><a class="trigger" href="#" title="">page-break-after</a></h3>
+			<ol>
+				<li><a href="page-break-after-000.xht" title="">page-break-after-000.xht</a> - <span class="complete">C</span>
+				<li><a href="page-break-after-001.xht" title="">page-break-after-001.xht</a> - <span class="complete">C</span>
+				<li><a href="page-break-after-002.xht" title="">page-break-after-002.xht</a> - <span class="complete">C</span>
+				<li><a href="page-break-after-003.xht" title="">page-break-after-003.xht</a> - <span class="complete">C</span>
+				<li><a href="page-break-after-004.xht" title="">page-break-after-004.xht</a> - <span class="complete">C</span>
+			</ol>
+		</div>	
+		<div class="cont">
+			<h3><a class="trigger" href="#" title="">page-break-inside</a></h3>
+			<ol>
+				<li><a href="page_breaks/page-break-inside-000.xht"  title="page-break-inside-000.xht">page-break-inside-000.xht</a> <span class="review">R</span></li>
+				<li><a href="page_breaks/page-break-inside-001.xht"  title="page-break-inside-001.xht">page-break-inside-001.xht</a> <span class="review">R</span></li>
+				<li><a href="page_breaks/page-break-inside-002.xht"  title="page-break-inside-002.xht">page-break-inside-002.xht</a> <span class="review">R</span></li>
+				<li><a href="page_breaks/page-break-inside-003.xht"  title="page-break-inside-003.xht">page-break-inside-003.xht</a> <span class="review">R</span></li>
+				<li><a href="page_breaks/page-break-inside-004.xht"  title="page-break-inside-004.xht">page-break-inside-004.xht</a> <span class="review">R</span></li>
+				<li><a href="page_breaks/page-break-inside-005.xht"  title="page-break-inside-005.xht">page-break-inside-005.xht</a> <span class="review">R</span></li>			
+			</ol>
+		</div>
+	
+		<h2>Breaks inside elements: 'orphans', 'widows' (178 - 189)</h2>
+		<div class="cont alternate">
+			<h3><a class="trigger" href="#" title="">orphans</a></h3>
+			<ol>
+				<li><a href="breaks_inside_elements/t130302-orphans-syntax-01.xht"  title="t130302-orphans-syntax-01">t130302-orphans-syntax-01</a></li>
+				<li><a href="breaks_inside_elements/t130302-orphans-initial-02.xht"  title="t130302-orphans-initial-02">t130302-orphans-initial-02</a></li>
+				<li><a href="breaks_inside_elements/t130302-orphans-block-elements-only-03.xht"  title="t130302-orphans-block-elements-only-03">t130302-orphans-block-elements-only-03</a></li>
+				<li><a href="breaks_inside_elements/t130302-orphans-inherited-04.xht"  title="t130302-orphans-inherited-04">t130302-orphans-inherited-04</a></li>
+			</ol>
+		</div>
+	
+		<div class="cont alternate">
+			<h3><a class="trigger" href="#" title="">widows</a></h3>
+			<ol>
+				<li><a href="breaks_inside_elements/t130302-widows-syntax-07.xht"  title="t130302-widows-syntax-07">t130302-widows-syntax-07</a></li>
+				<li><a href="breaks_inside_elements/t130302-widows-initial-08.xht"  title="t130302-widows-initial-08">t130302-widows-initial-08</a></li>
+				<li><a href="breaks_inside_elements/t130302-widows-block-elements-only-09.xht"  title="t130302-widows-block-elements-only-09">t130302-widows-block-elements-only-09</a></li>
+				<li><a href="breaks_inside_elements/t130302-widows-inherited-10.xht"  title="t130302-widows-inherited-10">t130302-widows-inherited-10</a></li>
+			</ol>
+		</div>
+	</div>
+</div>
+<script type="text/javascript">
+var myBoxes = new BoxObj({trigger:"trigger",box:"cont",objName:"myBoxes",collapsedHeight:20});
+</script>
+</body>
+</html>

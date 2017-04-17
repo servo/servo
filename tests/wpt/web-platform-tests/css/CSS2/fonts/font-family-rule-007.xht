@@ -1,0 +1,28 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Font family name with special characters, escaped</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-family-prop" />
+        <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-family-prop"/>
+        <meta name="flags" content="font invalid" />
+        <meta name="assert" content="Font family name having special characters needs to escape special character. Otherwise the font family name need to be quoted." />
+        <style type="text/css">
+            #div1
+            {
+                font-family: Ahem\!;
+            }
+            #div2
+            {
+                font-family: Ahem!;
+            }
+        </style>
+    </head>
+    <body>
+        <p>PREREQUISITE: Operating system needs to have the '<a href="support/AHEM_ahem!.ttf">ahem!</a>' font installed.</p>
+        <p>Post Test: Remove test font after running the test.</p>
+        <p>Test passes if there is a box above the letter "X" below.</p>
+        <div id="div1">X</div>
+        <div id="div2">X</div>
+    </body>
+</html>

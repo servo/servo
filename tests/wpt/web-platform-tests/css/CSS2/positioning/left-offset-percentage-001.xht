@@ -1,0 +1,39 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Left offset using percentage</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+		<link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-09-19 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#propdef-left" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#position-props" />
+		<link rel="match" href="left-offset-percentage-001-ref.xht" />
+
+        <meta name="flags" content="" />
+        <meta name="assert" content="Percentage offset values for the 'left' property are based off the width of the containing block." />
+        <style type="text/css">
+            #div1
+            {
+                border: solid black;
+                height: 150px;
+                padding: 25px;
+                position: relative;
+                width: 50px;
+            }
+            div div
+            {
+                background: blue;
+                height: 50px;
+                left: 50%;
+                position: absolute;
+                top: 0;
+                width: 50px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if a blue square is in the top-right corner of an hollow black rectangle.</p>
+        <div id="div1">
+            <div></div>
+        </div>
+    </body>
+</html>

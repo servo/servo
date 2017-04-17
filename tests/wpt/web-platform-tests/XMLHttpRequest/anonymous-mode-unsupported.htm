@@ -29,7 +29,7 @@
         client.open("GET", "resources/inspect-headers.py?filter_name=cookie")
         client.onreadystatechange = test.step_func(function(){
           if(client.readyState === 4){
-            assert_equals(client.responseText, 'cookie: test=anonymous-mode-unsupported\n', 'The deprecated anonymous:true should be ignored, cookie sent anyway')
+            assert_equals(client.responseText, 'Cookie: test=anonymous-mode-unsupported\n', 'The deprecated anonymous:true should be ignored, cookie sent anyway')
             test.done();
           }
         });

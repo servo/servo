@@ -1,0 +1,102 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Writing Modes Test: 'vertical-rl' and margin collapsing - absolute positioning and siblings</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#logical-direction-layout" title="7.4 Flow-Relative Mappings" />
+
+  <meta content="ahem image" name="flags" />
+  <meta name="assert" content="This test checks that absolutely positioned boxes do not collapse margins with siblings in 'vertical-rl' writing-mode." />
+
+  <!--
+  left static position for the div#abs-pos could be determined with margin collapse
+  or without margin collapse; so there are 2 possible rendered layouts for such code
+  2015-01-18
+
+  Test adapted from
+  http://test.csswg.org/suites/css2.1/nightly-unstable/html4/margin-collapse-012.htm
+
+  "
+  The margin collapsing rules apply exactly with the block-start margin substituted for the top margin and the block-end margin substituted for the bottom margin.
+  "
+  -->
+
+  <style type="text/css"><![CDATA[
+  p
+    {
+      font: 16px/1.25 serif; /* computes to 16px/20px */
+    }
+
+  div#test
+    {
+      border: teal solid 1em;
+      font: 25px/1 Ahem;
+      height: 4em; /* computes to 100px */
+      margin-bottom: 0.2em; /* computes to 5px */
+      writing-mode: vertical-rl;
+    }
+
+  div#wrapper
+    {
+      background-color: orange;
+      border-right: blue solid 1em;
+      width: 3em;
+    }
+
+  div#wrapper > div
+    {
+      height: 4em;
+      margin-right: 1em;
+    }
+
+  div#abs-pos
+    {
+      background-color: blue;
+      position: absolute;
+      top: 77px;
+      /*
+      16px : p's margin-top
+    + 20px : p's line box height
+    + 16px : p's margin-bottom
+    + 25px : div#test's border-top
+   ==========
+      77px
+      */
+      width: 1em;
+    }
+
+
+  div.ref
+    {
+      border: teal solid 1em;
+      font: 25px/1 Ahem;
+      height: 4em; /* computes to 100px */
+      margin-bottom: 0.2em;
+      width: 4em; /* and not 100px + 8px for #ref1 */
+    }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if the top square has a layout identical to one of the squares below it.</p>
+
+  <div id="test">
+    <div id="wrapper">
+      <div id="widthless-static"></div>
+      <div id="abs-pos"></div>
+    </div>
+  </div>
+
+
+  <div class="ref" id="ref1"><img src="support/swatch-blue.png" width="25" height="100" alt="Image download support must be enabled" /><img src="support/swatch-orange.png" width="25" height="100" alt="Image download support must be enabled" /><img src="support/swatch-orange.png" width="25" height="100" alt="Image download support must be enabled" /><!-- width is intentionally not 33 --><img src="support/swatch-blue.png" width="25" height="100" alt="Image download support must be enabled" /></div>
+
+  <div class="ref" id="ref2"><img src="support/swatch-orange.png" width="25" height="100" alt="Image download support must be enabled" /><img src="support/swatch-blue.png" width="25" height="100" alt="Image download support must be enabled" /><img src="support/swatch-orange.png" width="25" height="100" alt="Image download support must be enabled" /><img src="support/swatch-blue.png" width="25" height="100" alt="Image download support must be enabled" /></div>
+
+ </body>
+</html>

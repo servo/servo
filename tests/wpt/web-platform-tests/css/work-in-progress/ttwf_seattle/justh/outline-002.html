@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>outline: outline on div with specified width (px)</title>
+<link rel="author" title="Justin Hill" href="http://www.justin-hill.com">
+<link rel="help" href="http://www.w3.org/TR/css3-ui/#outline">
+<link rel="match" href="ref/outline-001-ref.html">
+<meta name="assert" content="Test checks that outline does not effect flow of elements.">
+<style>
+  .container {
+    width:200px;
+    background: red;
+    border:10px solid red;
+  }
+  .child {
+    width:100px;
+    background:white;
+    float:left;
+  }
+
+  .first {
+    outline: 10px solid blue;
+  }
+
+  .second {
+    outline: 10px solid orange;
+  }
+</style>
+<body>
+  <p>Test passes if no red visible and orange outline overlaps blue.</p>
+  <div class="container">
+    <div class="child first">
+      <p>left</p>
+    </div>
+    <div class="child second">
+      <p>right</p>
+    </div>
+  </div>
+</body>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Text: text-align: match-parent</title>
+    <link rel="author" title="Simon Montagu" href="mailto:smontagu@mozilla.com">
+    <link rel="help" href="http://www.w3.org/TR/css-text-3/#text-align-property">
+    <meta name="flags" content="dom">
+    <meta name="assert" content="Text checks that an element whose
+      text-align property is changed to match-parent aligns correctly">
+     <link rel="match" href="text-align-match-parent-ref.html">
+    <style type="text/css">
+div.start  { text-align: start; }
+div.end    { text-align: end; }
+div.left   { text-align: left; }
+div.right  { text-align: right; }
+div.center { text-align: center; }
+div.match  { text-align: match-parent; }
+    </style>
+   <script type="text/javascript">
+function changeChildAlign()
+{
+  for (child = 0; child < 16; ++child) {
+     var childDiv = document.getElementById("d" + child);
+     childDiv.className = "match";
+   }
+
+  document.documentElement.removeAttribute("class");
+}
+   </script>
+  </head>
+  <body onload="changeChildAlign()">
+   <div>Test passes if each line that says "Left" is aligned left and
+   each line that says "Right" is aligned right</div>
+   <div class="start" dir="ltr"><div id="d0" class="center" dir="ltr">Left</div></div>
+   <div class="start" dir="ltr"><div id="d1" class="center" dir="rtl">Left</div></div>
+   <div class="start" dir="rtl"><div id="d2" class="center" dir="ltr">Right</div></div>
+   <div class="start" dir="rtl"><div id="d3" class="center" dir="rtl">Right</div></div>
+   <div class="end" dir="ltr"><div id="d4" class="center" dir="ltr">Right</div></div>
+   <div class="end" dir="ltr"><div id="d5" class="center" dir="rtl">Right</div></div>
+   <div class="end" dir="rtl"><div id="d6" class="center" dir="ltr">Left</div></div>
+   <div class="end" dir="rtl"><div id="d7" class="center" dir="rtl">Left</div></div>
+   <div class="left" dir="ltr"><div id="d8" class="center" dir="ltr">Left</div></div>
+   <div class="left" dir="ltr"><div id="d9" class="center" dir="rtl">Left</div></div>
+   <div class="left" dir="rtl"><div id="d10" class="center" dir="ltr">Left</div></div>
+   <div class="left" dir="rtl"><div id="d11" class="center" dir="rtl">Left</div></div>
+   <div class="right" dir="ltr"><div id="d12" class="center" dir="ltr">Right</div></div>
+   <div class="right" dir="ltr"><div id="d13" class="center" dir="rtl">Right</div></div>
+   <div class="right" dir="rtl"><div id="d14" class="center" dir="ltr">Right</div></div>
+   <div class="right" dir="rtl"><div id="d15" class="center" dir="rtl">Right</div></div>
+ </body>
+</html>

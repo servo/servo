@@ -153,7 +153,7 @@ promise_test(() => {
   });
 
   rs.cancel();
-  assert_throws(new TypeError, () => controller.enqueue('a'), 'Calling enqueue after canceling should throw');
+  assert_throws(new TypeError(), () => controller.enqueue('a'), 'Calling enqueue after canceling should throw');
 
   return rs.getReader().closed;
 
@@ -171,7 +171,7 @@ promise_test(() => {
   });
 
   rs.cancel();
-  assert_throws(new TypeError, () => controller.enqueue('c'), 'Calling enqueue after canceling should throw');
+  assert_throws(new TypeError(), () => controller.enqueue('c'), 'Calling enqueue after canceling should throw');
 
   return rs.getReader().closed;
 

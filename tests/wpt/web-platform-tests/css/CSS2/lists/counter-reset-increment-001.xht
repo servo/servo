@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Counter-reset before 'counter-increment' before 'counter' use</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#content" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="When both reset and increment are present that the reset occurs first and the increment second." />
+        <style type="text/css">
+            div:before
+            {
+                content: counter(chapter);
+                counter-increment: chapter 2;
+                counter-reset: chapter -10;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a number '-8' below.</p>
+        <div></div>
+    </body>
+</html>

@@ -4,8 +4,7 @@
     <meta charset='utf-8'>
     <title>HTML Media Capture IDL tests</title>
     <link rel='author' title='Intel' href='http://www.intel.com/'>
-    <link rel='help' href='http://www.w3.org/TR/html-media-capture/#conformance'>
-    <link rel='help' href='http://www.w3.org/TR/html-media-capture/#the-capture-attribute'>
+    <link rel='help' href='https://w3c.github.io/html-media-capture'>
     <script src='/resources/testharness.js'></script>
     <script src='/resources/testharnessreport.js'></script>
     <script src='/resources/WebIDLParser.js'></script>
@@ -26,12 +25,16 @@
 
     <pre id='idl' style='display:none'>
       partial interface HTMLInputElement {
-                      attribute boolean capture;
+        attribute CaptureFacingMode capture;
+      };
+      enum CaptureFacingMode {
+        "user",
+        "environment"
       };
     </pre>
 
     <form style='display:none'>
-      <input id='testElement' type='file' accept='image/*' capture>
+      <input id='testElement' type='file' accept='image/*' capture="user">
     </form>
 
     <script>

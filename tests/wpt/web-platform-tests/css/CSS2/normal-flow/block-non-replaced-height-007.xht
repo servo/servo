@@ -1,0 +1,51 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Height determination for block-level non-replaced elements in normal flow when 'overflow' computes to 'visible' and elements' margins collapse</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#normal-block" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'height' is the distance between the top border edge of the top most block-level child box that doesn't have margins collapsed through it, and the bottom border edge of the bottommost block-level child that doesn't have margins collapsed through it. When a block-level non-replaced element is in normal flow, 'overflow' computes to 'visible' and the 'height' is 'auto'." />
+        <style type="text/css">
+            #div1
+            {
+                position: relative;
+            }
+            #div2, #div3, #div4
+            {
+                width: 1in;
+            }
+            #div2, #div3
+            {
+                background: blue;
+                height: 0.5in;
+            }
+            #div2
+            {
+                border-top: 0.5in solid blue;
+                margin-top: 0.5in;
+            }
+            #div3
+            {
+                border-bottom: 0.5in solid blue;
+                margin-bottom: 0.5in;
+            }
+            #div4
+            {
+                background: blue;
+                height: 2in;
+                left: 1in;
+                position: absolute;
+                top: 0;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a blue square below.</p>
+        <div id="div1">
+            <div id="div2"></div>
+            <div id="div3"></div>
+            <div id="div4"></div>
+        </div>
+    </body>
+</html>

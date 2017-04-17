@@ -1,0 +1,46 @@
+
+<HTML>
+
+
+<head>
+<title>First Test for Section 2.1 of CSS Spec</title>
+<STYLE TYPE="text/css">
+A:link { color: red }   /*unvisited link */
+A:visited { color: blue } /* visited link */
+A:active { color: green } /* active links */
+</STYLE>
+</head>
+
+
+
+<BODY>
+
+<h1 >Testing Statement #1 below of Section 2.1 of CSS1 Spec</h1>
+
+
+<ul>
+<li >
+1. UAs commonly display newly visited anchors differently from older ones.  In
+CSS1, this is handled through pseudo-classes on the "A" element.
+</ul>
+
+
+<h2>
+PASS CRITERIA:
+</h2>
+<p>
+If statement #1 above is passed, then <a href="ovalbbut.gif">this link</a>
+is red if unvisited, <a href="ovalbbut.gif">this link</a> is blue if
+visited, and <a href="ovalbbut.gif">this link</a>is green if active
+(currently selected).  The pseudo classes applied above, respectively,
+are "A:link {color: red}", A:visited {color: blue}", and 
+"A:active {color: green}".  Anchor display is different on this page
+depending upon the status of each link re: the above.  All other
+properties should be UA-default.
+Note: also applies to "a" elements below.
+
+Your browser should render this page similarly to this<a href="a211.gif">
+reference image</a> or to this<a href="b211.gif">reference image</a>.
+To move directly to the next test, click<a href="21-2.htm"> here</a>.
+</BODY>
+</HTML>

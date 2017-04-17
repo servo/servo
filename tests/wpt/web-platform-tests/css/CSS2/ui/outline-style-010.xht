@@ -1,0 +1,30 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Outline-style set to 'inherit'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/ui.html#propdef-outline-style" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/ui.html#dynamic-outlines" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Outline-style with value 'inherit' uses its parent's outline-style value." />
+        <style type="text/css">
+            #div1
+            {
+                outline: 0 dotted;
+            }
+            div div
+            {
+                height: 1in;
+                outline: 15px green;
+                outline-style: inherit;
+                width: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is dotted box below.</p>
+        <div id="div1">
+            <div></div>
+        </div>
+    </body>
+</html>

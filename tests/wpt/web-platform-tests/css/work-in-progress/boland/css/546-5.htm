@@ -1,0 +1,55 @@
+
+<HTML>
+
+<HEAD>
+<TITLE>Fifth Test of Section 5.4.6 of CSS1 Spec</TITLE>
+
+<style type="text/css">
+p {text-align: justify}
+#id1 {text-align: left}
+</STYLE>
+</HEAD>
+
+
+<BODY>
+
+
+
+<h1>Testing Statement #5 Below of Section 5.4.6</h1>
+
+
+
+
+
+
+
+
+<ul>
+<li>
+5. CSS1 core: UAs may treat "justify" as "left' or "right", depending on whether
+the element's default writing direction is left-to-right or right-to-left,
+respectively.
+</ul>
+<h2>
+PASS CRITERIA:
+</h2>
+<p>
+If statement #5 above is passed, this paragraph should justified, or aligned
+to the left, since English is a left-to-right language.  Other languages
+may be different.
+The rule applied is "p {text-align: justify}".
+<p ID=id1>
+This paragraph should be aligned to the left.  Does it look the same as
+the one above?
+THe rule applied is "#id1 {text-align: left}".
+
+
+
+<p>
+All other properties of this page should be UA-default.
+</BODY>
+
+</HTML>
+
+
+

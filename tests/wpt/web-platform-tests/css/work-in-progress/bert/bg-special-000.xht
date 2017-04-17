@@ -1,0 +1,19 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Background of special elements</title>
+  <link rel="author" title="Bert Bos" href="mailto:bert@w3.org" />
+  <link rel="help" href="http://www.w3.org/TR/css3-background/#special-backgrounds" />
+  <meta name="flags" content="HTMLonly nonHTML" />
+  <meta name="assert" content="For documents whose root element is an HTML HTML element or an XHTML html element: if the computed value of ‘background-image’ on the root element is ‘none’ and its ‘background-color’ is ‘transparent’, user agents must instead propagate the computed values of the background properties from that element's first HTML BODY or XHTML body child element [to the canvas]. " />
+  <style type="text/css"><![CDATA[
+   :root {background-image: none; background-color: transparent}
+   body {background-image: none; background-color: green}
+   p {background-image: none; background-color: white; color: black}
+  ]]></style>
+ </head>
+ <body>
+  <p>Test passes if the background of the page (outside this paragraph) is green.</p>
+  <!--[Content of test]-->
+ </body>
+</html>

@@ -1,0 +1,9 @@
+<?xml version=1?>
+<!DOCTYPE UID >
+<!--second test-->
+<?xml-stylesheet href="test.css" type="text/css"?>
+<tim/>
+<UID>
+<boland>
+</boland>
+</UID>

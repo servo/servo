@@ -1,0 +1,2 @@
+# redirect permanent /tests/adhoc/css/001.html http://www.hixie.ch/tests/adhoc/css/box/absolute/z-index/006.html
+# redirect permanent /tests/adhoc/css/canvas http://www.hixie.ch/tests/adhoc/css/model/canvas

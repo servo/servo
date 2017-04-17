@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Regions: floats and cleared boxes are properly fragmented through regions</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+		<meta name="flags" content="ahem">
+		<meta name="assert" content="Test checks that cleared content is properly fragmented in
+				regions.">
+		<link rel="match" href="reference/floats-in-named-flow-018-ref.html">
+		<style>
+		article {
+			font-family: Ahem;
+			font-size: 20px;
+			line-height: 1em;
+			color: green;
+		}
+		.flow {
+			flow-into: f;
+		}
+		.float {
+			float: left;
+			color: blue;
+		}
+
+		#region-container {
+			float: left;
+		}
+		.region {
+			flow-from: f;
+			height: 100px;
+			margin-bottom: 10px;
+			border: 10px solid black;
+		}
+
+		.region > p {
+			background: red;
+		}
+		#clear {
+			clear: left;
+		}
+		</style>
+	</head>
+	<body>
+		<p>
+			Test passes if you see two squares separated by a small vertical space. The squares should
+			have a black outline, the top square should be blue and the bottom one should be green.<br>
+			You should see no red.
+		</p>
+
+		<div id="region-container">
+			<div class="region">
+				<p>&nbsp;</p>
+			</div>
+			<div class="region">
+				<p>&nbsp;</p>
+			</div>
+		</div>
+
+		<article class="flow">
+			<div class="float">
+				xxxxx<br>
+				xxxxx<br>
+				xxxxx<br>
+				xxxxx<br>
+				xxxxx
+			</div>
+			<div id="clear">
+				xxxxx<br>
+				xxxxx<br>
+				xxxxx<br>
+				xxxxx<br>
+				xxxxx
+			</div>
+		</article>
+	</body>
+</html>

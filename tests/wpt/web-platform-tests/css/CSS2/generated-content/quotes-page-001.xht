@@ -1,0 +1,46 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Quotes not affected by page level quotes</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#content" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The page content quotes do not affect the depth of generated quotes." />
+        <style type="text/css">
+            #test
+            {
+                border: solid blue;
+                quotes: '"' '"' "'" "'";
+            }
+            #test div:before
+            {
+                content: open-quote;
+            }
+            #test div:after
+            {
+                content: close-quote;
+            }
+            #reference
+            {
+                border: solid orange;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the characters in the blue box exactly match the characters in the orange box.</p>
+        <div id="test">
+            "document level open quote
+            <div>first open generated quote
+                <div>second set of quotes</div>
+            close first generated quote</div>
+            document level close quote"
+        </div>
+        <div id="reference">
+            "document level open quote
+            <div>"first open generated quote
+                <div>'second set of quotes'</div>
+            close first generated quote"</div>
+            document level close quote"
+        </div>
+    </body>
+</html>

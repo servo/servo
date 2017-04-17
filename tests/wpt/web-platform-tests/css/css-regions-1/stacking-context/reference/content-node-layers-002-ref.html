@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Reftest Reference</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<style>
+		#content {
+			width: 100px;
+			height: 100px;
+			overflow-y: scroll;
+			font-family: Ahem;
+			font-size: 20px;
+			line-height: 1em;
+			color: lime;
+		}
+		#region {
+			width: 100px;
+			height: 100px;
+			background-color: red;
+		}
+		</style>
+	</head>
+	<body>
+		<ol>
+			<li>You should see no red.</li>
+			<li>Test passes if you see a green square below with a vertical scrollbar.</li>
+			<li>You should be able to drag the scrollbars</li>
+		</ol>
+		<div id="region">
+			<div id="content">xxxxx<br>xxxxx<br>xxxxx<br>xxxxx<br>xxxxx<br>xxxxx<br>xxxxx<br>xxxxx</div>
+		</div>
+	</body>
+</html>

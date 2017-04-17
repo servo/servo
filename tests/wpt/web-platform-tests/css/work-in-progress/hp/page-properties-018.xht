@@ -1,0 +1,66 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: page properties: text properties</title>
+<link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+<link rel="help" href="http://www.w3.org/TR/css3-page/#page-properties"/>
+<meta name="flags" content="paged" />
+<meta name="assert" content="Text-transform, when specified on the page box, inherits to the margin boxes."/>
+<style type="text/css">
+	@page { 
+		text-transform:uppercase;
+		@top-left-corner {
+			content: "a";
+		}	
+		@top-left {
+			content: "a";
+		}	
+		@top-center {
+			content: "a";
+		}	
+		@top-right {
+			content: "a";
+		}	
+		@top-right-corner {
+			content: "a";
+		}
+		@left-top {
+			content: "a";
+		}
+		@left-middle {
+			content: "a";
+		}
+		@left-bottom {
+			content: "a";
+		}
+		@right-top {
+			content: "a";
+		}
+		@right-middle {
+			content: "a";
+		}
+		@right-bottom {
+			content: "a";
+		}
+		@bottom-left-corner {
+			content: "a";
+		}	
+		@bottom-left {
+			content: "a";
+		}	
+		@bottom-center {
+			content: "a";
+		}	
+		@bottom-right {
+			content: "a";
+		}	
+		@bottom-right-corner {
+			content: "a";
+		}
+	}
+</style>
+</head>
+<body>
+	<div>When printed, there must be 16 upper-case As surrounding the page.</div>
+</body>
+</html>

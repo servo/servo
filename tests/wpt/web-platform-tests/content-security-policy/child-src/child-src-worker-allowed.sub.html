@@ -5,28 +5,34 @@
     <title>child-src-worker-allowed</title>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
-    <script src="../support/logTest.sub.js?logs=[]"></script>
-    <script src='../support/alertAssert.sub.js?alerts=["PASS"]'></script>
-    <!-- enforcing policy:
-child-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-inline'; connect-src 'self';
--->
-
+    <meta http-equiv="Content-Security-Policy" content="child-src 'self'; script-src 'unsafe-inline'; connect-src 'self';">
 </head>
 
 <body>
+    <p> This test used to check the child-src csp controlling worker creation. This behaviour has been deprecated but it's still supported
+        until the transition is done. This still tests that behaviour but we need to go through extra hoops to make sure 'script-src'
+        does not affect the result in any way (for instance by allowing 'self').
+    </p>
     <script>
+      async_test(function(t) {
+        document.addEventListener("securitypolicyviolation", t.step_func(function(e) {
+          if (e.blockedURI != "{{location[scheme]}}://{{location[host]}}/content-security-policy/support/post-message.js")
+            return;
+
+          assert_unreached("Should not throw a securitypolicyviolation");
+        }));
+
         try {
-            var foo = new Worker('http://{{host}}:{{ports[http][0]}}/content-security-policy/blink-contrib/resources/post-message.js');
+            var foo = new Worker('{{location[scheme]}}://{{location[host]}}/content-security-policy/support/post-message.js');
             foo.onmessage = function(event) {
-                alert_assert("PASS");
+              t.done();
             };
         } catch (e) {
-            alert_assert(e);
+          assert_unreached("Should not throw exception");
         }
-
+      }, "Worker is allowed because of deprecated 'child-src' directive");
     </script>
     <div id="log"></div>
-    <script async defer src="../support/checkReport.sub.js?reportExists=false"></script>
 </body>
 
 </html>

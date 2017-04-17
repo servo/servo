@@ -1,0 +1,63 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>CSS Test: height:auto on region boxes laid out in a flex box</title>
+    <link rel="author" title="Vincent Hardy, Adobe Systems" href="mailto:vhardy@adobe.com"/>
+    <link rel="help" href="https://drafts.csswg.org/css3-regions/#rfcb-flow-fragment-height-resolution"/>
+    <link rel="match" href="regions-auto-size-4-ref.xht"/>
+    <meta name="flags" content=""/>
+    <meta name="assert" content=
+    "The height of a region with height:auto is computed from the fragment content. In this test, the 
+    flow fragment height computation results in a content height measure for rA, rB and rC that are
+    20px, 40px and 80px respectively. As a consequence, the used height for all the regions is 
+    80px during the layout of regions (Step 2)."/>
+    <style>
+    /*<![CDATA[*/
+#article {
+    flow-into: article;
+}
+
+#rA div, #rB div, #rC div, #article div {
+    background: #a0a0a0;
+    border: 1px solid #808080;
+}
+
+
+.flex {
+    display: flex;
+    margin-bottom: 3em;
+}
+
+#rA, #rB, #rC{
+    border: 1px solid #a0a0a0;
+    background-color: #f0f0f0;
+    flex: 1;
+    flow-from: article;
+    margin: 10px;
+    padding: 10px;
+}
+
+
+
+
+/*]]>*/
+</style>
+</head>
+<body>
+    <p>You should see three horizontal, light gray boxes of the same width and height,
+        each containing a darker gray box. The center dark gray box is twice as high as the left
+        one and the right dark gray box is three times as high as the left one.</p>
+
+    <div id="article">
+        <div style="width:50px;height:20px;region-break-after:always;"></div>
+        <div style="width:50px;height:40px;region-break-after:always;"></div>
+        <div style="width:50px;height:80px;"></div>
+    </div>
+
+    <div class="flex">
+       <div id="rA"></div>
+       <div id="rB"></div>
+       <div id="rC"></div>
+    </div>
+</body>
+</html>
