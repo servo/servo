@@ -2360,7 +2360,7 @@ impl Document {
         if attr.local_name() == &local_name!("width") ||
            attr.local_name() == &local_name!("height") {
             entry.hint |= RESTYLE_SELF;
-       }
+        }
 
         let mut snapshot = entry.snapshot.as_mut().unwrap();
         if snapshot.attrs.is_none() {
