@@ -248,7 +248,7 @@
         use properties::style_structs;
         use std::sync::Arc;
         use values::computed::{Context, ToComputedValue};
-        use values::{computed, specified};
+        use values::{computed, generics, specified};
         use Atom;
         ${caller.body()}
         #[allow(unused_variables)]

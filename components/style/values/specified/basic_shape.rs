@@ -18,121 +18,15 @@ use values::computed::{ComputedValueAsSpecified, Context, ToComputedValue};
 use values::computed::basic_shape as computed_basic_shape;
 use values::generics::BorderRadiusSize;
 use values::generics::basic_shape::{BorderRadius as GenericBorderRadius, ShapeRadius as GenericShapeRadius};
-use values::generics::basic_shape::{InsetRect as GenericInsetRect, Polygon as GenericPolygon};
+use values::generics::basic_shape::{InsetRect as GenericInsetRect, Polygon as GenericPolygon, ShapeSource};
 use values::specified::{LengthOrPercentage, Percentage};
 use values::specified::position::{Keyword, Position};
-use values::specified::url::SpecifiedUrl;
 
-/// A shape source, for some reference box
-///
-/// clip-path uses ShapeSource<GeometryBox>,
-/// shape-outside uses ShapeSource<ShapeBox>
-#[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-pub enum ShapeSource<T> {
-    Url(SpecifiedUrl),
-    Shape(BasicShape, Option<T>),
-    Box(T),
-    None,
-}
+/// The specified value used by `clip-path`
+pub type ShapeWithGeometryBox = ShapeSource<BasicShape, GeometryBox>;
 
-impl<T> Default for ShapeSource<T> {
-    fn default() -> Self {
-        ShapeSource::None
-    }
-}
-
-impl<T: ToCss> ToCss for ShapeSource<T> {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            ShapeSource::Url(ref url) => url.to_css(dest),
-            ShapeSource::Shape(ref shape, Some(ref reference)) => {
-                try!(shape.to_css(dest));
-                try!(dest.write_str(" "));
-                reference.to_css(dest)
-            }
-            ShapeSource::Shape(ref shape, None) => shape.to_css(dest),
-            ShapeSource::Box(ref reference) => reference.to_css(dest),
-            ShapeSource::None => dest.write_str("none"),
-
-        }
-    }
-}
-
-impl<T: Parse> Parse for ShapeSource<T> {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        if input.try(|input| input.expect_ident_matching("none")).is_ok() {
-            return Ok(ShapeSource::None)
-        }
-
-        if let Ok(url) = input.try(|input| SpecifiedUrl::parse(context, input)) {
-            return Ok(ShapeSource::Url(url))
-        }
-
-        fn parse_component<U: Parse>(context: &ParserContext, input: &mut Parser,
-                                     component: &mut Option<U>) -> bool {
-            if component.is_some() {
-                return false            // already parsed this component
-            }
-
-            *component = input.try(|i| U::parse(context, i)).ok();
-            component.is_some()
-        }
-
-        let mut shape = None;
-        let mut reference = None;
-
-        while parse_component(context, input, &mut shape) ||
-              parse_component(context, input, &mut reference) {
-            //
-        }
-
-        if let Some(shp) = shape {
-            return Ok(ShapeSource::Shape(shp, reference))
-        }
-
-        match reference {
-            Some(r) => Ok(ShapeSource::Box(r)),
-            None => Err(())
-        }
-    }
-}
-
-impl<T: ToComputedValue> ToComputedValue for ShapeSource<T> {
-    type ComputedValue = computed_basic_shape::ShapeSource<T::ComputedValue>;
-
-    #[inline]
-    fn to_computed_value(&self, cx: &Context) -> Self::ComputedValue {
-        match *self {
-            ShapeSource::Url(ref url) => computed_basic_shape::ShapeSource::Url(url.to_computed_value(cx)),
-            ShapeSource::Shape(ref shape, ref reference) => {
-                computed_basic_shape::ShapeSource::Shape(
-                    shape.to_computed_value(cx),
-                    reference.as_ref().map(|ref r| r.to_computed_value(cx)))
-            },
-            ShapeSource::Box(ref reference) =>
-                computed_basic_shape::ShapeSource::Box(reference.to_computed_value(cx)),
-            ShapeSource::None => computed_basic_shape::ShapeSource::None,
-        }
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        match *computed {
-            computed_basic_shape::ShapeSource::Url(ref url) =>
-                ShapeSource::Url(SpecifiedUrl::from_computed_value(url)),
-            computed_basic_shape::ShapeSource::Shape(ref shape, ref reference) => {
-                ShapeSource::Shape(
-                    ToComputedValue::from_computed_value(shape),
-                    reference.as_ref().map(|r| ToComputedValue::from_computed_value(r)))
-            }
-            computed_basic_shape::ShapeSource::Box(ref reference) =>
-                ShapeSource::Box(ToComputedValue::from_computed_value(reference)),
-            computed_basic_shape::ShapeSource::None => ShapeSource::None,
-        }
-    }
-}
+/// The specified value used by `shape-outside`
+pub type ShapeWithShapeBox = ShapeSource<BasicShape, ShapeBox>;
 
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]

@@ -58,34 +58,11 @@ ${helpers.single_keyword("mask-type", "luminance alpha",
                          products="gecko", animation_value_type="none",
                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-type")}
 
-<%helpers:longhand name="clip-path" animation_value_type="none" products="gecko" boxed="True"
-                   flags="CREATES_STACKING_CONTEXT"
-                   spec="https://drafts.fxtf.org/css-masking/#propdef-clip-path">
-    use std::fmt;
-    use style_traits::ToCss;
-    use values::HasViewportPercentage;
-    use values::specified::basic_shape::{ShapeSource, GeometryBox};
-
-    pub mod computed_value {
-        use app_units::Au;
-        use values::computed::basic_shape::{ShapeSource, GeometryBox};
-
-        pub type T = ShapeSource<GeometryBox>;
-    }
-
-    pub type SpecifiedValue = ShapeSource<GeometryBox>;
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        Default::default()
-    }
-
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        ShapeSource::parse(context, input)
-    }
-
-    no_viewport_percentage!(SpecifiedValue);
-</%helpers:longhand>
+${helpers.predefined_type("clip-path", "basic_shape::ShapeWithGeometryBox",
+                          "generics::basic_shape::ShapeSource::None",
+                          products="gecko", boxed="True",
+                          animation_value_type="none", flags="CREATES_STACKING_CONTEXT",
+                          spec="https://drafts.fxtf.org/css-masking/#propdef-clip-path")}
 
 ${helpers.single_keyword("mask-mode",
                          "match-source alpha luminance",
