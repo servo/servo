@@ -17,10 +17,11 @@ use heapsize::HeapSizeOf;
 use js;
 use js::JS_CALLEE;
 use js::glue::{CallJitGetterOp, CallJitMethodOp, CallJitSetterOp, IsWrapper};
-use js::glue::{GetCrossCompartmentWrapper, WrapperNew};
-use js::glue::getPrincipalOrigin;
+use js::glue::{GetCrossCompartmentWrapper, GetSecurityWrapper, WrapperNew};
+use js::glue::{GetPrincipalOrigin, CreateWrapperProxyHandler, UncheckedUnwrapObject};
 use js::glue::{RUST_FUNCTION_VALUE_TO_JITINFO, RUST_JSID_IS_INT, RUST_JSID_IS_STRING};
 use js::glue::{RUST_JSID_TO_INT, RUST_JSID_TO_STRING, UnwrapObject};
+use js::jsapi::{JS_GetClass, JS_GetCompartmentPrincipals, JSPrincipals};
 use js::jsapi::{CallArgs, DOMCallbacks, GetGlobalForObjectCrossCompartment};
 use js::jsapi::{HandleId, HandleObject, HandleValue, Heap, JSAutoCompartment, JSContext};
 use js::jsapi::{JSJitInfo, JSObject, JSTracer, JSWrapObjectCallbacks};
@@ -30,15 +31,16 @@ use js::jsapi::{JS_GetProperty, JS_GetPrototype, JS_GetReservedSlot, JS_HasPrope
 use js::jsapi::{JS_HasPropertyById, JS_IsExceptionPending, JS_IsGlobalObject};
 use js::jsapi::{JS_ResolveStandardClass, JS_SetProperty, ToWindowProxyIfWindow};
 use js::jsapi::{JS_StringHasLatin1Chars, MutableHandleValue, ObjectOpResult};
-use js::jsapi::JSPrincipals;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{GCMethods, ToString, get_object_class, is_dom_class};
+use js::rust::{get_context_compartment, get_object_compartment};
 use libc;
 use servo_url::MutableOrigin;
-use std::ffi::CString;
+use std::ffi::{CString, CStr};
 use std::os::raw::{c_char, c_void};
 use std::ptr;
 use std::slice;
+use std::str;
 
 /// Proxy handler for a WindowProxy.
 pub struct WindowProxyHandler(pub *const libc::c_void);
@@ -50,14 +52,103 @@ impl HeapSizeOf for WindowProxyHandler {
     }
 }
 
-struct ServoJSPrincipal(*mut JSPrincipals);
+//TODO make principal.rs
+pub struct ServoJSPrincipal(*mut JSPrincipals);
 
 impl ServoJSPrincipal {
     pub unsafe fn origin(&self) -> MutableOrigin {
-        let origin = getPrincipalOrigin(self.0) as *mut MutableOrigin;
+        let origin = GetPrincipalOrigin(self.0) as *mut MutableOrigin;
         (*origin).clone()
     }
 }
+
+// avadacatavra: destroy will need to retrieved the boxed origin pointer, turn it back into a box and allow it to be freed
+pub unsafe fn destroy_servo_jsprincipal(principal: &mut ServoJSPrincipal) {
+    let origin = GetPrincipalOrigin(principal.0) as *mut Box<MutableOrigin>;
+}
+
+#[derive(Debug, PartialEq)]
+enum WrapperType {
+    CrossCompartment,
+    CrossOrigin,
+    Opaque,
+}
+
+#[derive(Debug, PartialEq)]
+enum CrossOriginObjectType {
+    CrossOriginWindow,
+    CrossOriginLocation,
+    CrossOriginOpaque,
+}
+
+unsafe fn identify_cross_origin_object(obj: HandleObject) -> CrossOriginObjectType {
+    let obj = UncheckedUnwrapObject(obj.get(), /* stopAtWindowProxy = */ 0);
+    let obj_class = JS_GetClass(obj);
+    let name = str::from_utf8(CStr::from_ptr((*obj_class).name).to_bytes()).unwrap().to_owned();
+    match &*name {
+        "Location" => CrossOriginObjectType::CrossOriginLocation,
+        "Window" => CrossOriginObjectType::CrossOriginWindow,
+        _ => CrossOriginObjectType::CrossOriginOpaque,
+    }
+}
+
+unsafe fn target_subsumes_obj(cx: *mut JSContext, obj: HandleObject) -> bool {
+    //step 1 get compartment
+    let obj_c = get_object_compartment(obj.get());
+    let ctx_c = get_context_compartment(cx);
+    
+    //step 2 get principals
+    let obj_p = JS_GetCompartmentPrincipals(obj_c);
+    let ctx_p = JS_GetCompartmentPrincipals(ctx_c);
+
+    //TODO determine what subsumes check is sufficient
+    subsumes(obj_p, ctx_p)
+    //step 3 check document.domain
+
+    //step 4
+
+    //step 5 if nested, get base uri
+
+    //step 6 compare schemes. if files, return false unless identical
+
+    //step 7 compare hosts
+
+    //step 8 compare ports
+    //false
+}
+
+//TODO check what type of wrapper we should use to disallow any access
+unsafe fn get_opaque_wrapper() -> *const ::libc::c_void {
+    GetSecurityWrapper()
+}
+
+// FIXME use an actual XOW
+unsafe fn get_cross_origin_wrapper() -> *const ::libc::c_void {
+    GetSecurityWrapper()
+}
+
+//TODO is same_origin_domain equivalent to subsumes for our purposes 
+pub unsafe extern fn subsumes(obj: *mut JSPrincipals, other: *mut JSPrincipals) -> bool {
+    let obj = &ServoJSPrincipal(obj);
+    let other = &ServoJSPrincipal(other);
+    let obj_origin = obj.origin();
+    let other_origin = other.origin();
+    obj_origin.same_origin_domain(&other_origin)
+}
+
+unsafe fn select_wrapper(cx: *mut JSContext, obj: HandleObject) -> *const libc::c_void {
+    let security_wrapper = !target_subsumes_obj(cx, obj);
+    if !security_wrapper {
+        return GetCrossCompartmentWrapper()
+    };
+
+    if identify_cross_origin_object(obj) != CrossOriginObjectType::CrossOriginOpaque {
+        return get_cross_origin_wrapper()
+    };
+
+    get_opaque_wrapper()
+}
+
 
 #[derive(JSTraceable, HeapSizeOf)]
 /// Static data associated with a global object.
@@ -387,7 +478,8 @@ unsafe extern "C" fn wrap(cx: *mut JSContext,
                           -> *mut JSObject {
     // FIXME terrible idea. need security wrappers
     // https://github.com/servo/servo/issues/2382
-    WrapperNew(cx, obj, GetCrossCompartmentWrapper(), ptr::null(), false)
+    let wrapper = select_wrapper(cx, obj);
+    WrapperNew(cx, obj, wrapper, ptr::null(), false)
 }
 
 unsafe extern "C" fn pre_wrap(cx: *mut JSContext,

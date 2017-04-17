@@ -141,7 +141,9 @@ pub unsafe fn create_global_object(
 
     let x = private.clone() as *const Window;
     let obj = &*x;
-    let mut principal = CreateServoJSPrincipal(Box::into_raw(obj.origin()) as *const ::libc::c_void);
+    let mut principal = CreateServoJSPrincipal(Box::into_raw(obj.origin()) as *const ::libc::c_void,
+                                               None,
+                                               None);
 
     rval.set(JS_NewGlobalObject(cx,
                                 class,
