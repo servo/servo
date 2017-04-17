@@ -6,20 +6,19 @@
 
 <% data.new_style_struct("Column", inherited=False) %>
 
-// FIXME: This prop should be animatable.
 ${helpers.predefined_type("column-width",
                           "length::LengthOrAuto",
                           "Either::Second(Auto)",
                           initial_specified_value="Either::Second(Auto)",
                           parse_method="parse_non_negative_length",
                           extra_prefixes="moz",
-                          animation_type="none",
+                          animation_type="normal",
                           experimental=True,
                           spec="https://drafts.csswg.org/css-multicol/#propdef-column-width")}
 
 
-// FIXME: This prop should be animatable.
-${helpers.predefined_type("column-count", "IntegerOrAuto",
+${helpers.predefined_type("column-count",
+                          "IntegerOrAuto",
                           "Either::Second(Auto)",
                           parse_method="parse_positive",
                           initial_specified_value="Either::Second(Auto)",
@@ -28,14 +27,13 @@ ${helpers.predefined_type("column-count", "IntegerOrAuto",
                           extra_prefixes="moz",
                           spec="https://drafts.csswg.org/css-multicol/#propdef-column-count")}
 
-// FIXME: This prop should be animatable.
 ${helpers.predefined_type("column-gap",
                           "length::LengthOrNormal",
                           "Either::Second(Normal)",
                           parse_method='parse_non_negative_length',
                           extra_prefixes="moz",
                           experimental=True,
-                          animation_type="none",
+                          animation_type="normal",
                           spec="https://drafts.csswg.org/css-multicol/#propdef-column-gap")}
 
 ${helpers.single_keyword("column-fill", "balance auto", extra_prefixes="moz",

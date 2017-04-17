@@ -679,6 +679,7 @@ impl Debug for ${style_struct.gecko_struct_name} {
         "LengthOrPercentageOrAuto": impl_style_coord,
         "LengthOrPercentageOrNone": impl_style_coord,
         "LengthOrNone": impl_style_coord,
+        "LengthOrNormal": impl_style_coord,
         "MaxLength": impl_style_coord,
         "MinLength": impl_style_coord,
         "Number": impl_simple,
@@ -3609,6 +3610,17 @@ clip-path
     }
 
     ${impl_simple_copy('column_count', 'mColumnCount')}
+
+    pub fn clone_column_count(&self) -> longhands::column_count::computed_value::T {
+        use gecko_bindings::structs::NS_STYLE_COLUMN_COUNT_AUTO;
+        if self.gecko.mColumnCount != NS_STYLE_COLUMN_COUNT_AUTO {
+            debug_assert!((self.gecko.mColumnCount as i32) >= 0 &&
+                          (self.gecko.mColumnCount as i32) < i32::max_value());
+            Either::First(self.gecko.mColumnCount as i32)
+        } else {
+            Either::Second(Auto)
+        }
+    }
 
     <% impl_app_units("column_rule_width", "mColumnRuleWidth", need_clone=True,
                       round_to_pixels=True) %>
