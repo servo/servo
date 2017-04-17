@@ -44,7 +44,7 @@ use msg::constellation_msg::{FrameType, FrameId, PipelineId, TraversalDirection}
 use net_traits::response::HttpsState;
 use script_layout_interface::message::ReflowQueryType;
 use script_thread::{ScriptThread, Runnable};
-use script_traits::{IFrameLoadInfo, IFrameLoadInfoWithData, LoadData};
+use script_traits::{IFrameLoadInfo, IFrameLoadInfoWithData, LoadData, UpdatePipelineIdReason};
 use script_traits::{MozBrowserEvent, NewLayoutInfo, ScriptMsg as ConstellationMsg};
 use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use servo_atoms::Atom;
@@ -231,11 +231,15 @@ impl HTMLIFrameElement {
         self.navigate_or_reload_child_browsing_context(Some(load_data), false);
     }
 
-    pub fn update_pipeline_id(&self, new_pipeline_id: PipelineId) {
+    pub fn update_pipeline_id(&self, new_pipeline_id: PipelineId, reason: UpdatePipelineIdReason) {
         self.pipeline_id.set(Some(new_pipeline_id));
 
-        let mut blocker = self.load_blocker.borrow_mut();
-        LoadBlocker::terminate(&mut blocker);
+        // Only terminate the load blocker if the pipeline id was updated due to a traversal.
+        // The load blocker will be terminated for a navigation in iframe_load_event_steps.
+        if reason == UpdatePipelineIdReason::Traversal {
+            let mut blocker = self.load_blocker.borrow_mut();
+            LoadBlocker::terminate(&mut blocker);
+        }
 
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }

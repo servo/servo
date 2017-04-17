@@ -87,7 +87,7 @@ use script_runtime::{ScriptPort, StackRootTLS, get_reports, new_rt_and_cx};
 use script_traits::{CompositorEvent, ConstellationControlMsg};
 use script_traits::{DocumentActivity, DiscardBrowsingContext, EventResult};
 use script_traits::{InitialScriptState, LayoutMsg, LoadData, MouseButton, MouseEventType, MozBrowserEvent};
-use script_traits::{NewLayoutInfo, ScriptMsg as ConstellationMsg};
+use script_traits::{NewLayoutInfo, ScriptMsg as ConstellationMsg, UpdatePipelineIdReason};
 use script_traits::{ScriptThreadFactory, TimerEvent, TimerSchedulerMsg, TimerSource};
 use script_traits::{TouchEventType, TouchId, UntrustedNodeAddress, WindowSizeData, WindowSizeType};
 use script_traits::CompositorEvent::{KeyEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent};
@@ -1043,10 +1043,12 @@ impl ScriptThread {
                                                  event),
             ConstellationControlMsg::UpdatePipelineId(parent_pipeline_id,
                                                       frame_id,
-                                                      new_pipeline_id) =>
+                                                      new_pipeline_id,
+                                                      reason) =>
                 self.handle_update_pipeline_id(parent_pipeline_id,
                                                frame_id,
-                                               new_pipeline_id),
+                                               new_pipeline_id,
+                                               reason),
             ConstellationControlMsg::FocusIFrame(parent_pipeline_id, frame_id) =>
                 self.handle_focus_iframe_msg(parent_pipeline_id, frame_id),
             ConstellationControlMsg::WebDriverScriptCommand(pipeline_id, msg) =>
@@ -1062,8 +1064,6 @@ impl ScriptThread {
                 self.handle_frame_load_event(parent_id, frame_id, child_id),
             ConstellationControlMsg::DispatchStorageEvent(pipeline_id, storage, url, key, old_value, new_value) =>
                 self.handle_storage_event(pipeline_id, storage, url, key, old_value, new_value),
-            ConstellationControlMsg::FramedContentChanged(parent_pipeline_id, frame_id) =>
-                self.handle_framed_content_changed(parent_pipeline_id, frame_id),
             ConstellationControlMsg::ReportCSSError(pipeline_id, filename, line, column, msg) =>
                 self.handle_css_error_reporting(pipeline_id, filename, line, column, msg),
             ConstellationControlMsg::Reload(pipeline_id) =>
@@ -1399,20 +1399,6 @@ impl ScriptThread {
         }
     }
 
-    fn handle_framed_content_changed(&self,
-                                     parent_pipeline_id: PipelineId,
-                                     frame_id: FrameId) {
-        let doc = self.documents.borrow().find_document(parent_pipeline_id).unwrap();
-        let frame_element = doc.find_iframe(frame_id);
-        if let Some(ref frame_element) = frame_element {
-            frame_element.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
-            let window = doc.window();
-            window.reflow(ReflowGoal::ForDisplay,
-                          ReflowQueryType::NoQuery,
-                          ReflowReason::FramedContentChanged);
-        }
-    }
-
     fn handle_post_message_msg(&self, pipeline_id: PipelineId, origin: Option<ImmutableOrigin>, data: Vec<u8>) {
         match { self.documents.borrow().find_window(pipeline_id) } {
             None => return warn!("postMessage after pipeline {} closed.", pipeline_id),
@@ -1443,10 +1429,11 @@ impl ScriptThread {
     fn handle_update_pipeline_id(&self,
                                  parent_pipeline_id: PipelineId,
                                  frame_id: FrameId,
-                                 new_pipeline_id: PipelineId) {
+                                 new_pipeline_id: PipelineId,
+                                 reason: UpdatePipelineIdReason) {
         let frame_element = self.documents.borrow().find_iframe(parent_pipeline_id, frame_id);
         if let Some(frame_element) = frame_element {
-            frame_element.update_pipeline_id(new_pipeline_id);
+            frame_element.update_pipeline_id(new_pipeline_id, reason);
         }
     }
 

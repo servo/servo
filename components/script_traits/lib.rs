@@ -211,6 +211,15 @@ pub enum DocumentActivity {
     FullyActive,
 }
 
+/// The reason why the pipeline id of an iframe is being updated.
+#[derive(Copy, Clone, PartialEq, Eq, Hash, HeapSizeOf, Debug, Deserialize, Serialize)]
+pub enum UpdatePipelineIdReason {
+    /// The pipeline id is being updated due to a navigation.
+    Navigation,
+    /// The pipeline id is being updated due to a history traversal.
+    Traversal,
+}
+
 /// Messages sent from the constellation or layout to the script thread.
 #[derive(Deserialize, Serialize)]
 pub enum ConstellationControlMsg {
@@ -249,7 +258,7 @@ pub enum ConstellationControlMsg {
     MozBrowserEvent(PipelineId, Option<FrameId>, MozBrowserEvent),
     /// Updates the current pipeline ID of a given iframe.
     /// First PipelineId is for the parent, second is the new PipelineId for the frame.
-    UpdatePipelineId(PipelineId, FrameId, PipelineId),
+    UpdatePipelineId(PipelineId, FrameId, PipelineId, UpdatePipelineIdReason),
     /// Set an iframe to be focused. Used when an element in an iframe gains focus.
     /// PipelineId is for the parent, FrameId is for the actual frame.
     FocusIFrame(PipelineId, FrameId),
@@ -274,9 +283,6 @@ pub enum ConstellationControlMsg {
     /// Cause a `storage` event to be dispatched at the appropriate window.
     /// The strings are key, old value and new value.
     DispatchStorageEvent(PipelineId, StorageType, ServoUrl, Option<String>, Option<String>, Option<String>),
-    /// Notifies a parent pipeline that one of its child frames is now active.
-    /// PipelineId is for the parent, FrameId is the child frame.
-    FramedContentChanged(PipelineId, FrameId),
     /// Report an error from a CSS parser for the given pipeline
     ReportCSSError(PipelineId, String, usize, usize, String),
     /// Reload the given page.
@@ -312,7 +318,6 @@ impl fmt::Debug for ConstellationControlMsg {
             WebFontLoaded(..) => "WebFontLoaded",
             DispatchFrameLoadEvent { .. } => "DispatchFrameLoadEvent",
             DispatchStorageEvent(..) => "DispatchStorageEvent",
-            FramedContentChanged(..) => "FramedContentChanged",
             ReportCSSError(..) => "ReportCSSError",
             Reload(..) => "Reload",
             WebVREvents(..) => "WebVREvents",
