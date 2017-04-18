@@ -235,49 +235,17 @@ impl GradientKind {
     pub fn parse_radial(context: &ParserContext, input: &mut Parser) -> Result<GradientKind, ()> {
         let mut needs_comma = true;
 
-        // Ending shape and position can be in various order. Checks all probabilities.
         let (shape, position) = if let Ok(position) = input.try(|i| parse_position(context, i)) {
-            // Handle just <position>
+            // Handle just "at" <position>
             (EndingShape::Ellipse(LengthOrPercentageOrKeyword::Keyword(SizeKeyword::FarthestCorner)), position)
-        } else if let Ok((first, second)) = input.try(|i| parse_two_length(context, i)) {
-            // Handle <LengthOrPercentage> <LengthOrPercentage> <shape>? <position>?
-            let _ = input.try(|input| input.expect_ident_matching("ellipse"));
-            (EndingShape::Ellipse(LengthOrPercentageOrKeyword::LengthOrPercentage(first, second)),
-             input.try(|i| parse_position(context, i)).unwrap_or(Position::center()))
-        } else if let Ok(length) = input.try(|i| Length::parse(context, i)) {
-            // Handle <Length> <circle>? <position>?
-            let _ = input.try(|input| input.expect_ident_matching("circle"));
-            (EndingShape::Circle(LengthOrKeyword::Length(length)),
-             input.try(|i| parse_position(context, i)).unwrap_or(Position::center()))
-        } else if let Ok(keyword) = input.try(SizeKeyword::parse) {
-            // Handle <keyword> <shape-keyword>? <position>?
-            let shape = if input.try(|input| input.expect_ident_matching("circle")).is_ok() {
-                EndingShape::Circle(LengthOrKeyword::Keyword(keyword))
-            } else {
-                let _ = input.try(|input| input.expect_ident_matching("ellipse"));
-                EndingShape::Ellipse(LengthOrPercentageOrKeyword::Keyword(keyword))
-            };
+        } else if let Ok(shape) = input.try(|i| parse_shape(context, i)) {
+            // Handle <shape> ["at" <position>]?
             (shape, input.try(|i| parse_position(context, i)).unwrap_or(Position::center()))
         } else {
-            // Handle <shape-keyword> <length>? <position>?
-            if input.try(|input| input.expect_ident_matching("ellipse")).is_ok() {
-                // Handle <ellipse> <LengthOrPercentageOrKeyword>? <position>?
-                let length = input.try(|i| LengthOrPercentageOrKeyword::parse(context, i))
-                                  .unwrap_or(LengthOrPercentageOrKeyword::Keyword(SizeKeyword::FarthestCorner));
-                (EndingShape::Ellipse(length),
-                 input.try(|i| parse_position(context, i)).unwrap_or(Position::center()))
-            } else if input.try(|input| input.expect_ident_matching("circle")).is_ok() {
-                // Handle <ellipse> <LengthOrKeyword>? <position>?
-                let length = input.try(|i| LengthOrKeyword::parse(context, i))
-                                  .unwrap_or(LengthOrKeyword::Keyword(SizeKeyword::FarthestCorner));
-                (EndingShape::Circle(length), input.try(|i| parse_position(context, i))
-                                                   .unwrap_or(Position::center()))
-            } else {
-                // If there is no shape keyword, it should set to default.
-                needs_comma = false;
-                (EndingShape::Ellipse(LengthOrPercentageOrKeyword::Keyword(SizeKeyword::FarthestCorner)),
-                 input.try(|i| parse_position(context, i)).unwrap_or(Position::center()))
-            }
+            // If there is no shape keyword, it should set to default.
+            needs_comma = false;
+            (EndingShape::Ellipse(LengthOrPercentageOrKeyword::Keyword(SizeKeyword::FarthestCorner)),
+             Position::center())
         };
 
         if needs_comma {
@@ -356,6 +324,41 @@ fn parse_two_length(context: &ParserContext, input: &mut Parser)
 fn parse_position(context: &ParserContext, input: &mut Parser) -> Result<Position, ()> {
     try!(input.expect_ident_matching("at"));
     input.try(|i| Position::parse(context, i))
+}
+
+fn parse_shape(context: &ParserContext, input: &mut Parser) -> Result<EndingShape, ()> {
+    if let Ok((first, second)) = input.try(|i| parse_two_length(context, i)) {
+        // Handle <LengthOrPercentage> <LengthOrPercentage> <shape>?
+        let _ = input.try(|input| input.expect_ident_matching("ellipse"));
+        Ok(EndingShape::Ellipse(LengthOrPercentageOrKeyword::LengthOrPercentage(first, second)))
+    } else if let Ok(length) = input.try(|i| Length::parse(context, i)) {
+        // Handle <Length> <circle>?
+        let _ = input.try(|input| input.expect_ident_matching("circle"));
+        Ok(EndingShape::Circle(LengthOrKeyword::Length(length)))
+    } else if let Ok(keyword) = input.try(SizeKeyword::parse) {
+        // Handle <keyword> <shape-keyword>?
+        if input.try(|input| input.expect_ident_matching("circle")).is_ok() {
+            Ok(EndingShape::Circle(LengthOrKeyword::Keyword(keyword)))
+        } else {
+            let _ = input.try(|input| input.expect_ident_matching("ellipse"));
+            Ok(EndingShape::Ellipse(LengthOrPercentageOrKeyword::Keyword(keyword)))
+        }
+    } else {
+        // https://github.com/rust-lang/rust/issues/41272
+        if input.try(|input| input.expect_ident_matching("ellipse")).is_ok() {
+            // Handle <ellipse> <LengthOrPercentageOrKeyword>?
+            let length = input.try(|i| LengthOrPercentageOrKeyword::parse(context, i))
+                                .unwrap_or(LengthOrPercentageOrKeyword::Keyword(SizeKeyword::FarthestCorner));
+            Ok(EndingShape::Ellipse(length))
+        } else if input.try(|input| input.expect_ident_matching("circle")).is_ok() {
+            // Handle <circle> <LengthOrKeyword>?
+            let length = input.try(|i| LengthOrKeyword::parse(context, i))
+                                .unwrap_or(LengthOrKeyword::Keyword(SizeKeyword::FarthestCorner));
+            Ok(EndingShape::Circle(length))
+        } else {
+            Err(())
+        }
+    }
 }
 
 /// Specified values for an angle or a corner in a linear gradient.
