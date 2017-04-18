@@ -19,6 +19,7 @@
                     spec="https://drafts.csswg.org/css-fonts-3/#propdef-font">
     use properties::longhands::{font_family, font_style, font_weight, font_stretch};
     use properties::longhands::{font_size, line_height, font_variant_caps};
+    #[cfg(feature = "gecko")]
     use properties::longhands::system_font::SystemFont;
     <%
         gecko_sub_properties = "kerning language_override size_adjust \
@@ -31,7 +32,7 @@
             use properties::longhands::font_${prop};
         % endfor
     % endif
-    use properties::longhands::font_family::SpecifiedValue as FontFamily;
+    use self::font_family::SpecifiedValue as FontFamily;
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         let mut nb_normals = 0;
@@ -114,13 +115,13 @@
         })
     }
 
-    enum CheckSystemResult {
-        AllSystem(SystemFont),
-        SomeSystem,
-        None
-    }
-
     % if product == "gecko":
+        enum CheckSystemResult {
+            AllSystem(SystemFont),
+            SomeSystem,
+            None
+        }
+
         impl<'a> LonghandsToSerialize<'a> {
             /// Check if some or all members are system fonts
             fn check_system(&self) -> CheckSystemResult {

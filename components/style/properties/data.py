@@ -20,6 +20,7 @@ SYSTEM_FONT_LONGHANDS = """font_family font_size font_style
                            font_variant_ligatures font_variant_east_asian
                            font_variant_numeric font_language_override""".split()
 
+
 def maybe_moz_logical_alias(product, side, prop):
     if product == "gecko" and side[1]:
         axis, dir = side[0].split("-")
@@ -38,9 +39,10 @@ def to_rust_ident(name):
 def to_camel_case(ident):
     return re.sub("(^|_|-)([a-z])", lambda m: m.group(2).upper(), ident.strip("_").strip("-"))
 
+
 def to_camel_case_lower(ident):
     camel = to_camel_case(ident)
-    return  camel[0].lower() + camel[1:]
+    return camel[0].lower() + camel[1:]
 
 
 def parse_aliases(value):

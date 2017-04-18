@@ -45,12 +45,12 @@
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
 
-        fn to_computed_value(&self, context: &Context) -> computed_value::T {
+        fn to_computed_value(&self, _context: &Context) -> computed_value::T {
             match *self {
                 SpecifiedValue::Value(v) => v,
                 SpecifiedValue::System(_) => {
                     <%self:nongecko_unreachable>
-                        context.style.cached_system_font.as_ref().unwrap().${name}
+                        _context.style.cached_system_font.as_ref().unwrap().${name}
                     </%self:nongecko_unreachable>
                 }
             }
@@ -62,7 +62,7 @@
     }
 </%def>
 
-<%helpers:longhand name="font-family" animation_type="none" need_index="True"
+<%helpers:longhand name="font-family" animation_type="none" need_index="True"  boxed="${product == 'gecko'}"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-family">
     use properties::longhands::system_font::SystemFont;
     use self::computed_value::{FontFamily, FamilyName};
@@ -1770,7 +1770,8 @@ ${helpers.single_keyword_system("font-variant-position",
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="font-language-override" products="gecko" animation_type="none" extra_prefixes="moz"
+<%helpers:longhand name="font-language-override" products="gecko" animation_type="none"
+                   extra_prefixes="moz" boxed="True"
                    spec="https://drafts.csswg.org/css-fonts-3/#propdef-font-language-override">
     use properties::longhands::system_font::SystemFont;
     use std::fmt;
@@ -1858,7 +1859,7 @@ ${helpers.single_keyword_system("font-variant-position",
         type ComputedValue = computed_value::T;
 
         #[inline]
-        fn to_computed_value(&self, context: &Context) -> computed_value::T {
+        fn to_computed_value(&self, _context: &Context) -> computed_value::T {
             use std::ascii::AsciiExt;
             match *self {
                 SpecifiedValue::Normal => computed_value::T(0),
@@ -1875,7 +1876,7 @@ ${helpers.single_keyword_system("font-variant-position",
                 }
                 SpecifiedValue::System(_) => {
                     <%self:nongecko_unreachable>
-                        context.style.cached_system_font.as_ref().unwrap().font_language_override
+                        _context.style.cached_system_font.as_ref().unwrap().font_language_override
                     </%self:nongecko_unreachable>
                 }
             }
@@ -2100,6 +2101,21 @@ ${helpers.single_keyword("-moz-math-variant",
 
 % if product == "gecko":
     pub mod system_font {
+        //! We deal with system fonts here
+        //!
+        //! System fonts can only be set as a group via the font shorthand.
+        //! They resolve at compute time (not parse time -- this lets the
+        //! browser respond to changes to the OS font settings).
+        //!
+        //! While Gecko handles these as a separate property and keyword
+        //! values on each property indicating that the font should be picked
+        //! from the -x-system-font property, we avoid this. Instead,
+        //! each font longhand has a special SystemFont variant which contains
+        //! the specified system font. When the cascade function (in helpers)
+        //! detects that a value has a system font, it will resolve it, and
+        //! cache it on the ComputedValues. After this, it can be just fetched
+        //! whenever a font longhand on the same element needs the system font.
+
         use app_units::Au;
         use cssparser::Parser;
         use properties::longhands;
@@ -2190,7 +2206,8 @@ ${helpers.single_keyword("-moz-math-variant",
                     font_family: longhands::font_family::computed_value::T(family),
                     font_size: Au(system.size),
                     font_weight: weight,
-                    font_size_adjust: longhands::font_size_adjust::computed_value::T::from_gecko_adjust(system.sizeAdjust),
+                    font_size_adjust: longhands::font_size_adjust::computed_value
+                                               ::T::from_gecko_adjust(system.sizeAdjust),
                     % for kwprop in kw_font_props:
                         ${kwprop}: longhands::${kwprop}::computed_value::T::from_gecko_keyword(
                             system.${to_camel_case_lower(kwprop.replace('font_', ''))}
@@ -2199,7 +2216,8 @@ ${helpers.single_keyword("-moz-math-variant",
                             % endif
                         ),
                     % endfor
-                    font_language_override: longhands::font_language_override::computed_value::T(system.languageOverride),
+                    font_language_override: longhands::font_language_override::computed_value
+                                                     ::T(system.languageOverride),
                     system_font: *self,
                 };
                 unsafe { bindings::Gecko_nsFont_Destroy(&mut system); }
