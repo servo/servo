@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use msg::constellation_msg::{FrameId, PipelineId};
+use msg::constellation_msg::{DocumentType, FrameId, PipelineId};
 use pipeline::Pipeline;
 use script_traits::LoadData;
 use std::collections::HashMap;
@@ -22,14 +22,17 @@ pub struct Frame {
     /// The frame id.
     pub id: FrameId,
 
-    /// The timestamp for the current session history entry
+    /// The timestamp for the current session history entry.
     pub instant: Instant,
 
-    /// The pipeline for the current session history entry
+    /// The pipeline for the current session history entry.
     pub pipeline_id: PipelineId,
 
-    /// The load data for the current session history entry
+    /// The load data for the current session history entry.
     pub load_data: LoadData,
+
+    /// The type of document for the current session history entry.
+    pub doc_type: DocumentType,
 
     /// The past session history, ordered chronologically.
     pub prev: Vec<FrameState>,
@@ -41,12 +44,13 @@ pub struct Frame {
 impl Frame {
     /// Create a new frame.
     /// Note this just creates the frame, it doesn't add it to the frame tree.
-    pub fn new(id: FrameId, pipeline_id: PipelineId, load_data: LoadData) -> Frame {
+    pub fn new(id: FrameId, pipeline_id: PipelineId, load_data: LoadData, doc_type: DocumentType) -> Frame {
         Frame {
             id: id,
             pipeline_id: pipeline_id,
             instant: Instant::now(),
             load_data: load_data,
+            doc_type: doc_type,
             prev: vec!(),
             next: vec!(),
         }
@@ -59,16 +63,18 @@ impl Frame {
             frame_id: self.id,
             pipeline_id: Some(self.pipeline_id),
             load_data: self.load_data.clone(),
+            doc_type: self.doc_type,
         }
     }
 
     /// Set the current frame entry, and push the current frame entry into the past.
-    pub fn load(&mut self, pipeline_id: PipelineId, load_data: LoadData) {
+    pub fn load(&mut self, pipeline_id: PipelineId, load_data: LoadData, doc_type: DocumentType) {
         let current = self.current();
         self.prev.push(current);
         self.instant = Instant::now();
         self.pipeline_id = pipeline_id;
         self.load_data = load_data;
+        self.doc_type = doc_type;
     }
 
     /// Set the future to be empty.
@@ -81,6 +87,7 @@ impl Frame {
         self.pipeline_id = pipeline_id;
         self.instant = entry.instant;
         self.load_data = entry.load_data;
+        self.doc_type = entry.doc_type;
     }
 }
 
@@ -101,6 +108,9 @@ pub struct FrameState {
     /// The load data for this entry, used to reload the pipeline if it has been discarded
     pub load_data: LoadData,
 
+    /// The type of document this entry represents
+    pub doc_type: DocumentType,
+
     /// The frame that this session history entry is part of
     pub frame_id: FrameId,
 }
@@ -116,6 +126,9 @@ pub struct FrameChange {
 
     /// The data for the document being loaded.
     pub load_data: LoadData,
+
+    /// The type of document this entry represents
+    pub doc_type: DocumentType,
 
     /// Is the new document replacing the current document (e.g. a reload)
     /// or pushing it into the session history (e.g. a navigation)?

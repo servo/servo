@@ -310,3 +310,9 @@ pub enum FrameType {
     IFrame,
     MozBrowserIFrame,
 }
+
+#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
+pub enum DocumentType {
+    InitialAboutBlank,
+    Regular,
+}
