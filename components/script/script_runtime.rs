@@ -143,8 +143,10 @@ pub unsafe fn new_rt_and_cx() -> Runtime {
     unsafe extern "C" fn empty_wrapper_callback(_: *mut JSContext, _: *mut JSObject) -> bool { true }
     SetDOMCallbacks(runtime.rt(), &DOM_CALLBACKS);
     SetPreserveWrapperCallback(runtime.rt(), Some(empty_wrapper_callback));
-    // Pre barriers aren't working correctly at the moment
-    DisableIncrementalGC(runtime.rt());
+
+    if !get_pref("js.mem.gc.incremental.enabled").as_boolean().unwrap_or(true) {
+        DisableIncrementalGC(runtime.rt());
+    }
 
     SetEnqueuePromiseJobCallback(runtime.rt(), Some(enqueue_job), ptr::null_mut());
 
