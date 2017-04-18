@@ -14,7 +14,7 @@ ${helpers.four_sides_shorthand("border-style", "border-%s-style",
 
 <%helpers:shorthand name="border-width" sub_properties="${
         ' '.join('border-%s-width' % side
-                 for side in ['top', 'right', 'bottom', 'left'])}"
+                 for side in PHYSICAL_SIDES)}"
     spec="https://drafts.csswg.org/css-backgrounds/#border-width">
     use super::parse_four_sides;
     use parser::Parse;
@@ -23,7 +23,7 @@ ${helpers.four_sides_shorthand("border-style", "border-%s-style",
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         let (top, right, bottom, left) = try!(parse_four_sides(input, |i| specified::BorderWidth::parse(context, i)));
         Ok(Longhands {
-            % for side in ["top", "right", "bottom", "left"]:
+            % for side in PHYSICAL_SIDES:
                 ${to_rust_ident('border-%s-width' % side)}: ${side},
             % endfor
         })
@@ -31,7 +31,7 @@ ${helpers.four_sides_shorthand("border-style", "border-%s-style",
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            % for side in ["top", "right", "bottom", "left"]:
+            % for side in PHYSICAL_SIDES:
                 let ${side} = self.border_${side}_width.clone();
             % endfor
 
@@ -124,11 +124,18 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
 
 <%helpers:shorthand name="border"
     sub_properties="${' '.join('border-%s-%s' % (side, prop)
-        for side in ['top', 'right', 'bottom', 'left']
+        for side in PHYSICAL_SIDES
         for prop in ['color', 'style', 'width'])}
         ${' '.join('border-image-%s' % name
-        for name in ['outset', 'repeat', 'slice', 'source', 'width'])}"
+        for name in ['outset', 'repeat', 'slice', 'source', 'width'])}
+        ${' '.join('-moz-border-%s-colors' % side
+        for side in PHYSICAL_SIDES) if product == 'gecko' else ''}"
     spec="https://drafts.csswg.org/css-backgrounds/#border">
+
+    % if product == "gecko":
+        use properties::longhands::{_moz_border_top_colors, _moz_border_right_colors,
+                                    _moz_border_bottom_colors, _moz_border_left_colors};
+    % endif
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         use properties::longhands::{border_image_outset, border_image_repeat, border_image_slice};
@@ -136,10 +143,13 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
 
         let (color, style, width) = try!(super::parse_border(context, input));
         Ok(Longhands {
-            % for side in ["top", "right", "bottom", "left"]:
+            % for side in PHYSICAL_SIDES:
                 border_${side}_color: color.clone(),
                 border_${side}_style: style,
                 border_${side}_width: width.clone(),
+                % if product == "gecko":
+                    _moz_border_${side}_colors: _moz_border_${side}_colors::get_initial_specified_value(),
+                % endif
             % endfor
 
             // The ‘border’ shorthand resets ‘border-image’ to its initial value.
