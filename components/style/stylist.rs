@@ -11,7 +11,7 @@ use bit_vec::BitVec;
 use context::QuirksMode;
 use data::ComputedStyle;
 use dom::{AnimationRules, PresentationalHintsSynthetizer, TElement};
-use error_reporting::RustLogReporter;
+use error_reporting::create_error_reporter;
 use font_metrics::FontMetricsProvider;
 use keyframes::KeyframesAnimation;
 use media_queries::Device;
@@ -427,7 +427,7 @@ impl Stylist {
                                 parent.map(|p| &**p),
                                 parent.map(|p| &**p),
                                 None,
-                                &RustLogReporter,
+                                &create_error_reporter(),
                                 font_metrics,
                                 cascade_flags,
                                 self.quirks_mode);
@@ -551,7 +551,7 @@ impl Stylist {
                                 Some(&**parent),
                                 Some(&**parent),
                                 None,
-                                &RustLogReporter,
+                                &create_error_reporter(),
                                 font_metrics,
                                 CascadeFlags::empty(),
                                 self.quirks_mode);
@@ -896,7 +896,7 @@ impl Stylist {
                                      Some(parent_style),
                                      Some(parent_style),
                                      None,
-                                     &RustLogReporter,
+                                     &create_error_reporter(),
                                      &metrics,
                                      CascadeFlags::empty(),
                                      self.quirks_mode))
