@@ -263,6 +263,11 @@ impl GlobalScope {
         unreachable!();
     }
 
+    /// Get the origin URL for the current global object, shorthand for GlobalScope::current().get_url()
+    pub fn origin() -> ServoUrl {
+        GlobalScope::current().get_url()
+    }
+
     /// Extract a `Window`, panic if the global object is not a `Window`.
     pub fn as_window(&self) -> &Window {
         self.downcast::<Window>().expect("expected a Window scope")
