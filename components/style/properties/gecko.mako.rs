@@ -95,6 +95,7 @@ pub struct ComputedValues {
     /// When this is Some, we compute font sizes by computing the keyword against
     /// the generic font, and then multiplying it by the ratio.
     pub font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
+    /// The cached system font. See longhand/font.mako.rs
     pub cached_system_font: Option<longhands::system_font::ComputedSystemFont>,
 }
 

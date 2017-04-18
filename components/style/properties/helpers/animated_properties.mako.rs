@@ -411,7 +411,8 @@ impl AnimationValue {
     }
 
     /// Construct an AnimationValue from a property declaration
-    pub fn from_declaration(decl: &PropertyDeclaration, context: &mut Context, initial: &ComputedValues) -> Option<Self> {
+    pub fn from_declaration(decl: &PropertyDeclaration, context: &mut Context,
+                            initial: &ComputedValues) -> Option<Self> {
         use error_reporting::StdoutErrorReporter;
         use properties::LonghandId;
         use properties::DeclaredValue;

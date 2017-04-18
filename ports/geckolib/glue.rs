@@ -1631,7 +1631,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetFontFamily(declarations:
     let mut parser = Parser::new(&string);
     if let Ok(family) = FontFamily::parse(&mut parser) {
         if parser.is_exhausted() {
-            let decl = PropertyDeclaration::FontFamily(family);
+            let decl = PropertyDeclaration::FontFamily(Box::new(family));
             write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
                 decls.push(decl, Importance::Normal);
             })
@@ -1956,7 +1956,8 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
                             .filter_map(|&(ref decl, imp)| {
                                 if imp == Importance::Normal {
                                     let property = TransitionProperty::from_declaration(decl);
-                                    let animation = AnimationValue::from_declaration(decl, &mut context, default_values);
+                                    let animation = AnimationValue::from_declaration(decl, &mut context,
+                                                                                     default_values);
                                     debug_assert!(property.is_none() == animation.is_none(),
                                                   "The failure condition of TransitionProperty::from_declaration \
                                                    and AnimationValue::from_declaration should be the same");
