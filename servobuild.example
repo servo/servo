@@ -55,7 +55,7 @@ debug-mozjs = false
 #rustflags = ""
 
 # Enable rustc’s incremental compilation
-#incremental = false
+#incremental = true
 
 # Android information
 [android]
