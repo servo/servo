@@ -57,7 +57,7 @@ fn request_init_from_request(request: NetTraitsRequest) -> NetTraitsRequestInit 
         // TODO: NetTraitsRequestInit and NetTraitsRequest have different "origin"
         // ... NetTraitsRequestInit.origin: Url
         // ... NetTraitsRequest.origin: RefCell<Origin>
-        origin: request.url(),
+        origin: GlobalScope::origin(),
         referrer_url: from_referrer_to_referrer_url(&request),
         referrer_policy: request.referrer_policy,
         pipeline_id: request.pipeline_id,
