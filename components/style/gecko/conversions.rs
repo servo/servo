@@ -207,16 +207,21 @@ impl nsStyleImage {
                 gecko_gradient
             },
             GradientKind::Radial(shape, position) => {
+                let keyword_to_gecko_size = |keyword| {
+                    match keyword {
+                        SizeKeyword::ClosestSide => NS_STYLE_GRADIENT_SIZE_CLOSEST_SIDE,
+                        SizeKeyword::FarthestSide => NS_STYLE_GRADIENT_SIZE_FARTHEST_SIDE,
+                        SizeKeyword::ClosestCorner => NS_STYLE_GRADIENT_SIZE_CLOSEST_CORNER,
+                        SizeKeyword::FarthestCorner => NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER,
+                        SizeKeyword::Contain => NS_STYLE_GRADIENT_SIZE_CLOSEST_SIDE,
+                        SizeKeyword::Cover => NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER,
+                    }
+                };
                 let (gecko_shape, gecko_size) = match shape {
                     GradientShape::Circle(ref length) => {
                         let size = match *length {
                             LengthOrKeyword::Keyword(keyword) => {
-                                match keyword {
-                                    SizeKeyword::ClosestSide => NS_STYLE_GRADIENT_SIZE_CLOSEST_SIDE,
-                                    SizeKeyword::FarthestSide => NS_STYLE_GRADIENT_SIZE_FARTHEST_SIDE,
-                                    SizeKeyword::ClosestCorner => NS_STYLE_GRADIENT_SIZE_CLOSEST_CORNER,
-                                    SizeKeyword::FarthestCorner => NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER,
-                                }
+                                keyword_to_gecko_size(keyword)
                             },
                             _ => NS_STYLE_GRADIENT_SIZE_EXPLICIT_SIZE,
                         };
@@ -225,12 +230,7 @@ impl nsStyleImage {
                     GradientShape::Ellipse(ref length) => {
                         let size = match *length {
                             LengthOrPercentageOrKeyword::Keyword(keyword) => {
-                                match keyword {
-                                    SizeKeyword::ClosestSide => NS_STYLE_GRADIENT_SIZE_CLOSEST_SIDE,
-                                    SizeKeyword::FarthestSide => NS_STYLE_GRADIENT_SIZE_FARTHEST_SIDE,
-                                    SizeKeyword::ClosestCorner => NS_STYLE_GRADIENT_SIZE_CLOSEST_CORNER,
-                                    SizeKeyword::FarthestCorner => NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER,
-                                }
+                                keyword_to_gecko_size(keyword)
                             },
                             _ => NS_STYLE_GRADIENT_SIZE_EXPLICIT_SIZE,
                         };
