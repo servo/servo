@@ -122,19 +122,30 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
     </%helpers:shorthand>
 % endfor
 
-<%helpers:shorthand name="border" sub_properties="${' '.join(
-    'border-%s-%s' % (side, prop)
-    for side in ['top', 'right', 'bottom', 'left']
-    for prop in ['color', 'style', 'width']
-)}" spec="https://drafts.csswg.org/css-backgrounds/#border">
+<%helpers:shorthand name="border"
+    sub_properties="${' '.join('border-%s-%s' % (side, prop)
+        for side in ['top', 'right', 'bottom', 'left']
+        for prop in ['color', 'style', 'width'])}
+        ${' '.join('border-image-%s' % name
+        for name in ['outset', 'repeat', 'slice', 'source', 'width'])}"
+    spec="https://drafts.csswg.org/css-backgrounds/#border">
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+        use properties::longhands::{border_image_outset, border_image_repeat, border_image_slice};
+        use properties::longhands::{border_image_source, border_image_width};
+
         let (color, style, width) = try!(super::parse_border(context, input));
         Ok(Longhands {
             % for side in ["top", "right", "bottom", "left"]:
                 border_${side}_color: color.clone(),
                 border_${side}_style: style,
                 border_${side}_width: width.clone(),
+            % endfor
+
+            // The ‘border’ shorthand resets ‘border-image’ to its initial value.
+            // See https://drafts.csswg.org/css-backgrounds-3/#the-border-shorthands
+            % for name in "outset repeat slice source width".split():
+                border_image_${name}: border_image_${name}::get_initial_specified_value(),
             % endfor
         })
     }

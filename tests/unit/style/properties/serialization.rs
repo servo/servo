@@ -274,7 +274,7 @@ mod shorthand_serialization {
           properties.push(PropertyDeclaration::BorderLeftColor(blue.clone()));
 
           let serialization = shorthand_properties_to_string(properties);
-          assert_eq!(serialization, "border: 30px solid rgb(0, 0, 255);");
+          assert_eq!(serialization, "border-style: solid; border-width: 30px; border-color: rgb(0, 0, 255);");
         }
 
         #[test]
@@ -475,26 +475,20 @@ mod shorthand_serialization {
 
         #[test]
         fn border_should_serialize_correctly() {
-            let mut properties = Vec::new();
-            let (width, style, color) = get_border_property_values();
+            // According to https://drafts.csswg.org/css-backgrounds-3/#the-border-shorthands,
+            // the ‘border’ shorthand resets ‘border-image’ to its initial value. To verify the
+            // serialization of 'border' shorthand, we need to set 'border-image' as well.
+            let block_text = "\
+                border-top: 4px solid; \
+                border-right: 4px solid; \
+                border-bottom: 4px solid; \
+                border-left: 4px solid; \
+                border-image: none;";
 
-            properties.push(PropertyDeclaration::BorderTopWidth(width.clone()));
-            properties.push(PropertyDeclaration::BorderTopStyle(style.clone()));
-            properties.push(PropertyDeclaration::BorderTopColor(color.clone()));
+            let block = parse(|c, i| Ok(parse_property_declaration_list(c, i)), block_text).unwrap();
 
-            properties.push(PropertyDeclaration::BorderRightWidth(width.clone()));
-            properties.push(PropertyDeclaration::BorderRightStyle(style.clone()));
-            properties.push(PropertyDeclaration::BorderRightColor(color.clone()));
+            let serialization = block.to_css_string();
 
-            properties.push(PropertyDeclaration::BorderBottomWidth(width.clone()));
-            properties.push(PropertyDeclaration::BorderBottomStyle(style.clone()));
-            properties.push(PropertyDeclaration::BorderBottomColor(color.clone()));
-
-            properties.push(PropertyDeclaration::BorderLeftWidth(width.clone()));
-            properties.push(PropertyDeclaration::BorderLeftStyle(style.clone()));
-            properties.push(PropertyDeclaration::BorderLeftColor(color.clone()));
-
-            let serialization = shorthand_properties_to_string(properties);
             assert_eq!(serialization, "border: 4px solid;");
         }
     }
