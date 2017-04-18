@@ -81,6 +81,7 @@ pub struct HTMLIFrameElement {
     htmlelement: HTMLElement,
     frame_id: FrameId,
     pipeline_id: Cell<Option<PipelineId>>,
+    pending_pipeline_id: Cell<Option<PipelineId>>,
     sandbox: MutNullableJS<DOMTokenList>,
     sandbox_allowance: Cell<Option<SandboxAllowance>>,
     load_blocker: DOMRefCell<Option<LoadBlocker>>,
@@ -109,7 +110,6 @@ impl HTMLIFrameElement {
     pub fn generate_new_pipeline_id(&self) -> (Option<PipelineId>, PipelineId) {
         let old_pipeline_id = self.pipeline_id.get();
         let new_pipeline_id = PipelineId::new();
-        self.pipeline_id.set(Some(new_pipeline_id));
         debug!("Frame {} created pipeline {}.", self.frame_id, new_pipeline_id);
         (old_pipeline_id, new_pipeline_id)
     }
@@ -140,6 +140,7 @@ impl HTMLIFrameElement {
 
         let window = window_from_node(self);
         let (old_pipeline_id, new_pipeline_id) = self.generate_new_pipeline_id();
+        self.pending_pipeline_id.set(Some(new_pipeline_id));
         let private_iframe = self.privatebrowsing();
         let frame_type = if self.Mozbrowser() { FrameType::MozBrowserIFrame } else { FrameType::IFrame };
 
@@ -173,8 +174,10 @@ impl HTMLIFrameElement {
             };
 
             match doc_type {
-                DocumentType::InitialAboutBlank =>
-                    ScriptThread::process_attach_layout(new_layout_info, document.origin().clone()),
+                DocumentType::InitialAboutBlank => {
+                    self.pipeline_id.set(Some(new_pipeline_id));
+                    ScriptThread::process_attach_layout(new_layout_info, document.origin().clone());
+                },
                 DocumentType::Regular => {
                     let runnable = AttachLayoutRunnable::new(self, new_layout_info);
                     let msg = MainThreadScriptMsg::Common(CommonScriptMsg::RunnableMsg(
@@ -246,6 +249,10 @@ impl HTMLIFrameElement {
     }
 
     pub fn update_pipeline_id(&self, new_pipeline_id: PipelineId, reason: UpdatePipelineIdReason) {
+        if self.pending_pipeline_id.get() != Some(new_pipeline_id) {
+            return;
+        }
+
         self.pipeline_id.set(Some(new_pipeline_id));
 
         // Only terminate the load blocker if the pipeline id was updated due to a traversal.
@@ -265,6 +272,7 @@ impl HTMLIFrameElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             frame_id: FrameId::new(),
             pipeline_id: Cell::new(None),
+            pending_pipeline_id: Cell::new(None),
             sandbox: Default::default(),
             sandbox_allowance: Cell::new(None),
             load_blocker: DOMRefCell::new(None),
@@ -314,7 +322,7 @@ impl HTMLIFrameElement {
     pub fn iframe_load_event_steps(&self, loaded_pipeline: PipelineId) {
         // TODO(#9592): assert that the load blocker is present at all times when we
         //              can guarantee that it's created for the case of iframe.reload().
-        if Some(loaded_pipeline) != self.pipeline_id() { return; }
+        if Some(loaded_pipeline) != self.pending_pipeline_id.get() { return; }
 
         // TODO A cross-origin child document would not be easily accessible
         //      from this script thread. It's unclear how to implement
@@ -757,6 +765,7 @@ impl VirtualMethods for HTMLIFrameElement {
         // a new iframe. Without this, the constellation gets very
         // confused.
         self.pipeline_id.set(None);
+        self.pending_pipeline_id.set(None);
     }
 }
 
