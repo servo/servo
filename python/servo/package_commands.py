@@ -9,36 +9,30 @@
 
 from __future__ import print_function, unicode_literals
 
-import sys
-import os.path as path
-sys.path.append(path.join(path.dirname(sys.argv[0]), "components", "style", "properties", "Mako-0.9.1.zip"))
-
 import json
 import os
+import os.path as path
 import shutil
 import subprocess
-import mako.template
-
-from mach.registrar import Registrar
 
 from mach.decorators import (
     CommandArgument,
     CommandProvider,
     Command,
 )
-
-from mako.template import Template
+from mach.registrar import Registrar
+# Note: mako cannot be imported at the top level because it breaks mach bootstrap
 
 from servo.command_base import (
     archive_deterministically,
     BuildNotFound,
     cd,
     CommandBase,
+    find_dep_path_newest,
     is_macosx,
     is_windows,
     get_browserhtml_path,
 )
-from servo.command_base import find_dep_path_newest
 
 
 def delete(path):
@@ -221,6 +215,7 @@ class PackageCommands(CommandBase):
                 raise Exception("Error occurred when getting Servo version: " + stderr)
             version = "Nightly version: " + version
 
+            import mako.template
             template_path = path.join(dir_to_resources, 'Credits.rtf.mako')
             credits_path = path.join(dir_to_resources, 'Credits.rtf')
             with open(template_path) as template_file:
@@ -299,8 +294,9 @@ class PackageCommands(CommandBase):
             change_prefs(dir_to_resources, "windows")
 
             # generate Servo.wxs
+            import mako.template
             template_path = path.join(dir_to_root, "support", "windows", "Servo.wxs.mako")
-            template = Template(open(template_path).read())
+            template = mako.template.Template(open(template_path).read())
             wxs_path = path.join(dir_to_msi, "Servo.wxs")
             open(wxs_path, "w").write(template.render(
                 exe_path=target_dir,
