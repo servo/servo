@@ -216,6 +216,8 @@ impl nsStyleImage {
                                     SizeKeyword::FarthestSide => NS_STYLE_GRADIENT_SIZE_FARTHEST_SIDE,
                                     SizeKeyword::ClosestCorner => NS_STYLE_GRADIENT_SIZE_CLOSEST_CORNER,
                                     SizeKeyword::FarthestCorner => NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER,
+                                    SizeKeyword::Contain => NS_STYLE_GRADIENT_SIZE_CLOSEST_SIDE,
+                                    SizeKeyword::Cover => NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER,
                                 }
                             },
                             _ => NS_STYLE_GRADIENT_SIZE_EXPLICIT_SIZE,
@@ -230,6 +232,8 @@ impl nsStyleImage {
                                     SizeKeyword::FarthestSide => NS_STYLE_GRADIENT_SIZE_FARTHEST_SIDE,
                                     SizeKeyword::ClosestCorner => NS_STYLE_GRADIENT_SIZE_CLOSEST_CORNER,
                                     SizeKeyword::FarthestCorner => NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER,
+                                    SizeKeyword::Contain => NS_STYLE_GRADIENT_SIZE_CLOSEST_SIDE,
+                                    SizeKeyword::Cover => NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER,
                                 }
                             },
                             _ => NS_STYLE_GRADIENT_SIZE_EXPLICIT_SIZE,

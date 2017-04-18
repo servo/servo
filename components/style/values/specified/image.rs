@@ -121,9 +121,15 @@ impl ToCss for Gradient {
             },
             GradientKind::Radial(ref shape, ref position) => {
                 try!(dest.write_str("radial-gradient("));
-                try!(shape.to_css(dest));
-                try!(dest.write_str(" at "));
-                try!(position.to_css(dest));
+                if self.compat_mode == CompatMode::Modern {
+                    try!(shape.to_css(dest));
+                    try!(dest.write_str(" at "));
+                    try!(position.to_css(dest));
+                } else {
+                    try!(position.to_css(dest));
+                    try!(dest.write_str(", "));
+                    try!(shape.to_css(dest));
+                }
             },
         }
         for stop in &self.stops {
@@ -148,9 +154,16 @@ impl Gradient {
                 Ok((kind, stops))
             })
         };
-        let parse_radial_gradient = |input: &mut Parser| {
+        let parse_modern_radial_gradient = |input: &mut Parser| {
             input.parse_nested_block(|input| {
-                let kind = try!(GradientKind::parse_radial(context, input));
+                let kind = try!(GradientKind::parse_modern_radial(context, input));
+                let stops = try!(input.parse_comma_separated(|i| ColorStop::parse(context, i)));
+                Ok((kind, stops))
+            })
+        };
+        let parse_webkit_radial_gradient = |input: &mut Parser| {
+            input.parse_nested_block(|input| {
+                let kind = try!(GradientKind::parse_webkit_radial(context, input));
                 let stops = try!(input.parse_comma_separated(|i| ColorStop::parse(context, i)));
                 Ok((kind, stops))
             })
@@ -175,11 +188,20 @@ impl Gradient {
                 try!(parse_linear_gradient(input, compat_mode))
             },
             "radial-gradient" => {
-                try!(parse_radial_gradient(input))
+                try!(parse_modern_radial_gradient(input))
+            },
+            "-webkit-radial-gradient" => {
+                compat_mode = CompatMode::WebKit;
+                try!(parse_webkit_radial_gradient(input))
             },
             "repeating-radial-gradient" => {
                 repeating = true;
-                try!(parse_radial_gradient(input))
+                try!(parse_modern_radial_gradient(input))
+            },
+            "-webkit-repeating-radial-gradient" => {
+                repeating = true;
+                compat_mode = CompatMode::WebKit;
+                try!(parse_webkit_radial_gradient(input))
             },
             _ => { return Err(()); }
         };
@@ -231,14 +253,14 @@ impl GradientKind {
         Ok(GradientKind::Linear(angle_or_corner))
     }
 
-    /// Parses a radial gradient from the given arguments.
-    pub fn parse_radial(context: &ParserContext, input: &mut Parser) -> Result<GradientKind, ()> {
+    /// Parses a modern radial gradient from the given arguments.
+    pub fn parse_modern_radial(context: &ParserContext, input: &mut Parser) -> Result<GradientKind, ()> {
         let mut needs_comma = true;
 
         let (shape, position) = if let Ok(position) = input.try(|i| parse_position(context, i)) {
             // Handle just "at" <position>
             (EndingShape::Ellipse(LengthOrPercentageOrKeyword::Keyword(SizeKeyword::FarthestCorner)), position)
-        } else if let Ok(shape) = input.try(|i| parse_shape(context, i)) {
+        } else if let Ok(shape) = input.try(|i| parse_shape(context, i, SizeKeyword::parse_modern)) {
             // Handle <shape> ["at" <position>]?
             (shape, input.try(|i| parse_position(context, i)).unwrap_or(Position::center()))
         } else {
@@ -251,6 +273,25 @@ impl GradientKind {
         if needs_comma {
             try!(input.expect_comma());
         }
+
+        Ok(GradientKind::Radial(shape, position))
+    }
+
+    /// Parses a webkit radial gradient from the given arguments.
+    pub fn parse_webkit_radial(context: &ParserContext, input: &mut Parser) -> Result<GradientKind, ()> {
+        let position = if let Ok(position) = input.try(|i| Position::parse(context, i)) {
+            try!(input.expect_comma());
+            position
+        } else {
+            Position::center()
+        };
+
+        let shape = if let Ok(shape) = input.try(|i| parse_shape(context, i, SizeKeyword::parse)) {
+            try!(input.expect_comma());
+            shape
+        } else {
+            EndingShape::Ellipse(LengthOrPercentageOrKeyword::Keyword(SizeKeyword::Cover))
+        };
 
         Ok(GradientKind::Radial(shape, position))
     }
@@ -326,7 +367,12 @@ fn parse_position(context: &ParserContext, input: &mut Parser) -> Result<Positio
     input.try(|i| Position::parse(context, i))
 }
 
-fn parse_shape(context: &ParserContext, input: &mut Parser) -> Result<EndingShape, ()> {
+fn parse_shape<F>(context: &ParserContext,
+                  input: &mut Parser,
+                  parse_size_keyword: F)
+                  -> Result<EndingShape, ()>
+    where F: FnOnce(&mut Parser) -> Result<SizeKeyword, ()>
+{
     if let Ok((first, second)) = input.try(|i| parse_two_length(context, i)) {
         // Handle <LengthOrPercentage> <LengthOrPercentage> <shape>?
         let _ = input.try(|input| input.expect_ident_matching("ellipse"));
@@ -335,7 +381,7 @@ fn parse_shape(context: &ParserContext, input: &mut Parser) -> Result<EndingShap
         // Handle <Length> <circle>?
         let _ = input.try(|input| input.expect_ident_matching("circle"));
         Ok(EndingShape::Circle(LengthOrKeyword::Length(length)))
-    } else if let Ok(keyword) = input.try(SizeKeyword::parse) {
+    } else if let Ok(keyword) = input.try(parse_size_keyword) {
         // Handle <keyword> <shape-keyword>?
         if input.try(|input| input.expect_ident_matching("circle")).is_ok() {
             Ok(EndingShape::Circle(LengthOrKeyword::Keyword(keyword)))
@@ -547,4 +593,14 @@ impl ToCss for LengthOrPercentageOrKeyword {
 
 /// https://drafts.csswg.org/css-images/#typedef-extent-keyword
 define_css_keyword_enum!(SizeKeyword: "closest-side" => ClosestSide, "farthest-side" => FarthestSide,
-                         "closest-corner" => ClosestCorner, "farthest-corner" => FarthestCorner);
+                         "closest-corner" => ClosestCorner, "farthest-corner" => FarthestCorner,
+                         "contain" => Contain, "cover" => Cover);
+
+impl SizeKeyword {
+    fn parse_modern(input: &mut Parser) -> Result<Self, ()> {
+        match try!(SizeKeyword::parse(input)) {
+            SizeKeyword::Contain | SizeKeyword::Cover => Err(()),
+            keyword => Ok(keyword),
+        }
+    }
+}
