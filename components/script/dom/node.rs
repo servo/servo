@@ -2383,7 +2383,7 @@ impl NodeMethods for Node {
 
         // Step 2.
         Node::namespace_to_string(Node::locate_namespace(self, prefix))
-     }
+    }
 
     // https://dom.spec.whatwg.org/#dom-node-isdefaultnamespace
     fn IsDefaultNamespace(&self, namespace: Option<DOMString>) -> bool {

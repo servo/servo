@@ -22,28 +22,28 @@ pub struct CSSErrorReporter {
 }
 
 impl ParseErrorReporter for CSSErrorReporter {
-     fn report_error(&self,
-                     input: &mut Parser,
-                     position: SourcePosition,
-                     message: &str,
-                     url: &ServoUrl,
-                     line_number_offset: u64) {
+    fn report_error(&self,
+                    input: &mut Parser,
+                    position: SourcePosition,
+                    message: &str,
+                    url: &ServoUrl,
+                    line_number_offset: u64) {
         let location = input.source_location(position);
         let line_offset = location.line + line_number_offset as usize;
         if log_enabled!(log::LogLevel::Info) {
-             info!("Url:\t{}\n{}:{} {}",
-                   url.as_str(),
-                   line_offset,
-                   location.column,
-                   message)
+            info!("Url:\t{}\n{}:{} {}",
+                  url.as_str(),
+                  line_offset,
+                  location.column,
+                  message)
         }
 
-         //TODO: report a real filename
-         let _ = self.script_chan.lock().unwrap().send(
-             ConstellationControlMsg::ReportCSSError(self.pipelineid,
-                                                     "".to_owned(),
-                                                     location.line,
-                                                     location.column,
-                                                     message.to_owned()));
-     }
+        //TODO: report a real filename
+        let _ = self.script_chan.lock().unwrap().send(
+            ConstellationControlMsg::ReportCSSError(self.pipelineid,
+                                                    "".to_owned(),
+                                                    location.line,
+                                                    location.column,
+                                                    message.to_owned()));
+    }
 }
