@@ -4,7 +4,6 @@
 use bloom::BloomFilter;
 use parser::{CaseSensitivity, Combinator, ComplexSelector, LocalName};
 use parser::{SimpleSelector, Selector, SelectorInner};
-use precomputed_hash::PrecomputedHash;
 use std::borrow::Borrow;
 use tree::Element;
 
@@ -113,49 +112,18 @@ fn may_match<E>(sel: &SelectorInner<E::Impl>,
                 -> bool
     where E: Element,
 {
-    let mut selector = &*sel.complex;
-    // See if the bloom filter can exclude any of the descendant selectors, and
-    // reject if we can.
-    loop {
-         match selector.next {
-             None => break,
-             Some((ref cs, Combinator::Child)) |
-             Some((ref cs, Combinator::Descendant)) => selector = &**cs,
-             Some((ref cs, _)) => {
-                 selector = &**cs;
-                 continue;
-             }
-         };
+    // Check against the list of precomputed hashes.
+    for hash in sel.ancestor_hashes.iter() {
+        // If we hit the 0 sentinel hash, that means the rest are zero as well.
+        if *hash == 0 {
+            break;
+        }
 
-        for ss in selector.compound_selector.iter() {
-            match *ss {
-                SimpleSelector::LocalName(LocalName { ref name, ref lower_name })  => {
-                    if !bf.might_contain_hash(name.precomputed_hash()) &&
-                       !bf.might_contain_hash(lower_name.precomputed_hash()) {
-                       return false
-                    }
-                },
-                SimpleSelector::Namespace(ref namespace) => {
-                    if !bf.might_contain_hash(namespace.url.precomputed_hash()) {
-                        return false
-                    }
-                },
-                SimpleSelector::ID(ref id) => {
-                    if !bf.might_contain_hash(id.precomputed_hash()) {
-                        return false
-                    }
-                },
-                SimpleSelector::Class(ref class) => {
-                    if !bf.might_contain_hash(class.precomputed_hash()) {
-                        return false
-                    }
-                },
-                _ => {},
-            }
+        if !bf.might_contain_hash(*hash) {
+            return false;
         }
     }
 
-    // If we haven't proven otherwise, it may match.
     true
 }
 

@@ -121,6 +121,9 @@ impl<Impl: SelectorImpl> SelectorList<Impl> {
     }
 }
 
+/// Copied from Gecko, where it was noted to be unmeasured.
+const NUM_ANCESTOR_HASHES: usize = 4;
+
 /// The cores parts of a selector used for matching. This exists to make that
 /// information accessibly separately from the specificity and pseudo-element
 /// information that lives on |Selector| proper. We may want to refactor things
@@ -128,13 +131,35 @@ impl<Impl: SelectorImpl> SelectorList<Impl> {
 /// to |Selector|.
 #[derive(PartialEq, Eq, Hash, Clone)]
 pub struct SelectorInner<Impl: SelectorImpl> {
+    /// The selector data.
     pub complex: Arc<ComplexSelector<Impl>>,
+    /// Ancestor hashes for the bloom filter. We precompute these and store
+    /// them inline to optimize cache performance during selector matching.
+    /// This matters a lot.
+    pub ancestor_hashes: [u32; NUM_ANCESTOR_HASHES],
 }
 
 impl<Impl: SelectorImpl> SelectorInner<Impl> {
     pub fn new(c: Arc<ComplexSelector<Impl>>) -> Self {
+        let mut hashes = [0; NUM_ANCESTOR_HASHES];
+        {
+            // Compute ancestor hashes for the bloom filter.
+            let mut hash_iter =
+                iter_ancestors(&c).flat_map(|x| x.compound_selector.iter())
+                                  .map(|x| x.ancestor_hash())
+                                  .filter(|x| x.is_some())
+                                  .map(|x| x.unwrap());
+            for i in 0..NUM_ANCESTOR_HASHES {
+                hashes[i] = match hash_iter.next() {
+                    Some(x) => x,
+                    None => break,
+                }
+            }
+        }
+
         SelectorInner {
             complex: c,
+            ancestor_hashes: hashes,
         }
     }
 }
@@ -243,6 +268,35 @@ pub struct ComplexSelector<Impl: SelectorImpl> {
     pub next: Option<(Arc<ComplexSelector<Impl>>, Combinator)>,  // c.next is left of c
 }
 
+struct AncestorIterator<'a, Impl: 'a + SelectorImpl> {
+    curr: Option<&'a Arc<ComplexSelector<Impl>>>,
+}
+
+impl<'a, Impl: SelectorImpl> Iterator for AncestorIterator<'a, Impl> {
+    type Item = &'a Arc<ComplexSelector<Impl>>;
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some(sel) = self.curr.take() {
+            let (next_sel, is_ancestor) = match sel.next {
+                None => (None, true),
+                Some((ref sel, comb)) =>
+                    (Some(sel), matches!(comb, Combinator::Child | Combinator::Descendant)),
+            };
+            self.curr = next_sel;
+            if is_ancestor {
+                break;
+            }
+        }
+
+        self.curr
+    }
+}
+
+fn iter_ancestors<Impl: SelectorImpl>(sel: &Arc<ComplexSelector<Impl>>) -> AncestorIterator<Impl> {
+    AncestorIterator {
+        curr: Some(sel)
+    }
+}
+
 #[derive(Eq, PartialEq, Clone, Copy, Debug, Hash)]
 pub enum Combinator {
     Child,  //  >
@@ -286,6 +340,34 @@ pub enum SimpleSelector<Impl: SelectorImpl> {
     OnlyOfType,
     NonTSPseudoClass(Impl::NonTSPseudoClass),
     // ...
+}
+
+impl<Impl: SelectorImpl> SimpleSelector<Impl> {
+    /// Compute the ancestor hash to check against the bloom filter.
+    fn ancestor_hash(&self) -> Option<u32> {
+        match *self {
+            SimpleSelector::LocalName(LocalName { ref name, ref lower_name }) => {
+                // Only insert the local-name into the filter if it's all lowercase.
+                // Otherwise we would need to test both hashes, and our data structures
+                // aren't really set up for that.
+                if name == lower_name {
+                    Some(name.precomputed_hash())
+                } else {
+                    None
+                }
+            },
+            SimpleSelector::Namespace(ref namespace) => {
+                Some(namespace.url.precomputed_hash())
+            },
+            SimpleSelector::ID(ref id) => {
+                Some(id.precomputed_hash())
+            },
+            SimpleSelector::Class(ref class) => {
+                Some(class.precomputed_hash())
+            },
+            _ => None,
+        }
+    }
 }
 
 #[derive(Eq, PartialEq, Clone, Hash, Copy, Debug)]
