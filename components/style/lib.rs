@@ -116,6 +116,7 @@ pub mod stylist;
 pub mod sequential;
 pub mod sink;
 pub mod str;
+pub mod stylesheet_set;
 pub mod stylesheets;
 pub mod supports;
 pub mod thread_state;
