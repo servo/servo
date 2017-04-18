@@ -13,6 +13,7 @@ use computed_values::{font_feature_settings, font_stretch, font_style, font_weig
 use computed_values::font_family::FamilyName;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
 use cssparser::SourceLocation;
+use error_reporting::ParseError;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::CSSFontFaceDescriptors;
 #[cfg(feature = "gecko")] use cssparser::UnicodeRange;
 use parser::{ParserContext, log_css_error, Parse};
@@ -99,9 +100,8 @@ pub fn parse_font_face_block(context: &ParserContext, input: &mut Parser, locati
         while let Some(declaration) = iter.next() {
             if let Err(range) = declaration {
                 let pos = range.start;
-                let message = format!("Unsupported @font-face descriptor declaration: '{}'",
-                                      iter.input.slice(range));
-                log_css_error(iter.input, pos, &*message, context);
+                let error = ParseError::UnsupportedFontFaceDescriptor(iter.input.slice(range));
+                log_css_error(iter.input, pos, error, context);
             }
         }
     }

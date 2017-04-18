@@ -5,7 +5,7 @@
 use {Prefix, Namespace};
 use context::QuirksMode;
 use cssparser::{Parser, RuleListParser};
-use error_reporting::ParseErrorReporter;
+use error_reporting::{ParseErrorReporter, ParseError};
 use fnv::FnvHashMap;
 use media_queries::{MediaList, Device};
 use parking_lot::RwLock;
@@ -142,8 +142,8 @@ impl Stylesheet {
                     Ok(rule) => rules.push(rule),
                     Err(range) => {
                         let pos = range.start;
-                        let message = format!("Invalid rule: '{}'", iter.input.slice(range));
-                        log_css_error(iter.input, pos, &*message, iter.parser.context());
+                        let error = ParseError::InvalidRule(iter.input.slice(range));
+                        log_css_error(iter.input, pos, error, iter.parser.context());
                     }
                 }
             }

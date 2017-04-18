@@ -9,7 +9,7 @@
 use context::QuirksMode;
 use cssparser::{DeclarationListParser, parse_important};
 use cssparser::{Parser, AtRuleParser, DeclarationParser, Delimiter};
-use error_reporting::ParseErrorReporter;
+use error_reporting::{ParseErrorReporter, ParseError};
 use parser::{PARSING_MODE_DEFAULT, ParsingMode, ParserContext, log_css_error};
 use properties::animated_properties::AnimationValue;
 use shared_lock::Locked;
@@ -955,9 +955,8 @@ pub fn parse_property_declaration_list(context: &ParserContext,
             Err(range) => {
                 iter.parser.declarations.clear();
                 let pos = range.start;
-                let message = format!("Unsupported property declaration: '{}'",
-                                      iter.input.slice(range));
-                log_css_error(iter.input, pos, &*message, &context);
+                let error = ParseError::UnsupportedPropertyDeclaration(iter.input.slice(range));
+                log_css_error(iter.input, pos, error, &context);
             }
         }
     }

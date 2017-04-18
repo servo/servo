@@ -6,7 +6,7 @@
 
 use context::QuirksMode;
 use cssparser::{Parser, SourcePosition, UnicodeRange};
-use error_reporting::ParseErrorReporter;
+use error_reporting::{ParseErrorReporter, ParseError};
 use style_traits::OneOrMoreCommaSeparated;
 use stylesheets::{CssRuleType, Origin, UrlExtraData, Namespaces};
 
@@ -164,14 +164,14 @@ impl<'a> ParserContext<'a> {
 /// Defaults to a no-op.
 /// Set a `RUST_LOG=style::errors` environment variable
 /// to log CSS parse errors to stderr.
-pub fn log_css_error(input: &mut Parser,
-                     position: SourcePosition,
-                     message: &str,
-                     parsercontext: &ParserContext) {
+pub fn log_css_error<'a>(input: &mut Parser,
+                         position: SourcePosition,
+                         error: ParseError<'a>,
+                         parsercontext: &ParserContext) {
     let url_data = parsercontext.url_data;
     let line_number_offset = parsercontext.line_number_offset;
     parsercontext.error_reporter.report_error(input, position,
-                                              message, url_data,
+                                              error, url_data,
                                               line_number_offset);
 }
 

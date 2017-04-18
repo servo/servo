@@ -7,6 +7,7 @@
 use {Namespace, Prefix};
 use counter_style::{parse_counter_style_body, parse_counter_style_name};
 use cssparser::{AtRuleParser, AtRuleType, Parser, QualifiedRuleParser, RuleListParser, SourceLocation};
+use error_reporting::ParseError;
 use font_face::parse_font_face_block;
 use media_queries::{parse_media_query_list, MediaList};
 use parking_lot::RwLock;
@@ -304,8 +305,8 @@ impl<'a, 'b> NestedRuleParser<'a, 'b> {
                 Ok(rule) => rules.push(rule),
                 Err(range) => {
                     let pos = range.start;
-                    let message = format!("Unsupported rule: '{}'", iter.input.slice(range));
-                    log_css_error(iter.input, pos, &*message, self.context);
+                    let error = ParseError::UnsupportedRule(iter.input.slice(range));
+                    log_css_error(iter.input, pos, error, self.context);
                 }
             }
         }

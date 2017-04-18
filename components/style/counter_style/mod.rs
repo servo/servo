@@ -9,6 +9,7 @@
 use Atom;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser};
 use cssparser::{Parser, Token, serialize_identifier};
+use error_reporting::ParseError;
 #[cfg(feature = "gecko")] use gecko::rules::CounterStyleDescriptors;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::nsCSSCounterDesc;
 use parser::{ParserContext, log_css_error, Parse};
@@ -61,9 +62,8 @@ pub fn parse_counter_style_body(name: CustomIdent, context: &ParserContext, inpu
         while let Some(declaration) = iter.next() {
             if let Err(range) = declaration {
                 let pos = range.start;
-                let message = format!("Unsupported @counter-style descriptor declaration: '{}'",
-                                      iter.input.slice(range));
-                log_css_error(iter.input, pos, &*message, context);
+                let error = ParseError::UnsupportedViewportDescriptorDeclaration(iter.input.slice(range));
+                log_css_error(iter.input, pos, error, context);
             }
         }
     }
@@ -75,31 +75,27 @@ pub fn parse_counter_style_body(name: CustomIdent, context: &ParserContext, inpu
         ref system @ System::Numeric
         if rule.symbols.is_none() => {
             let system = system.to_css_string();
-            Some(format!("Invalid @counter-style rule: 'system: {}' without 'symbols'", system))
+            Some(ParseError::InvalidCounterStyleWithoutSymbols(system))
         }
         ref system @ System::Alphabetic |
         ref system @ System::Numeric
         if rule.symbols().unwrap().0.len() < 2 => {
             let system = system.to_css_string();
-            Some(format!("Invalid @counter-style rule: 'system: {}' less than two 'symbols'",
-                         system))
+            Some(ParseError::InvalidCounterStyleNotEnoughSymbols(system))
         }
         System::Additive if rule.additive_symbols.is_none() => {
-            let s = "Invalid @counter-style rule: 'system: additive' without 'additive-symbols'";
-            Some(s.to_owned())
+            Some(ParseError::InvalidCounterStyleWithoutAdditiveSymbols)
         }
         System::Extends(_) if rule.symbols.is_some() => {
-            let s = "Invalid @counter-style rule: 'system: extends …' with 'symbols'";
-            Some(s.to_owned())
+            Some(ParseError::InvalidCounterStyleExtendsWithSymbols)
         }
         System::Extends(_) if rule.additive_symbols.is_some() => {
-            let s = "Invalid @counter-style rule: 'system: extends …' with 'additive-symbols'";
-            Some(s.to_owned())
+            Some(ParseError::InvalidCounterStyleExtendsWithAdditiveSymbols)
         }
         _ => None
     };
-    if let Some(message) = error {
-        log_css_error(input, start, &message, context);
+    if let Some(error) = error {
+        log_css_error(input, start, error, context);
         Err(())
     } else {
         Ok(rule)

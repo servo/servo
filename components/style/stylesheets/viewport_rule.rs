@@ -11,6 +11,7 @@ use app_units::Au;
 use context::QuirksMode;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser, parse_important};
 use cssparser::ToCss as ParserToCss;
+use error_reporting::ParseError;
 use euclid::size::TypedSize2D;
 use font_metrics::get_metrics_provider_for_product;
 use media_queries::Device;
@@ -342,9 +343,8 @@ impl Parse for ViewportRule {
                 }
                 Err(range) => {
                     let pos = range.start;
-                    let message = format!("Unsupported @viewport descriptor declaration: '{}'",
-                                          parser.input.slice(range));
-                    log_css_error(parser.input, pos, &*message, &context);
+                    let error = ParseError::UnsupportedViewportDescriptorDeclaration(parser.input.slice(range));
+                    log_css_error(parser.input, pos, error, &context);
                 }
             }
         }
