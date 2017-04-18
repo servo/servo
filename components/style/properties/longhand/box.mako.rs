@@ -2076,7 +2076,7 @@ ${helpers.single_keyword("transform-style",
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="contain" animation_type="none" products="none"
+<%helpers:longhand name="contain" animation_type="none" products="none" need_clone="True"
                    spec="https://drafts.csswg.org/css-contain/#contain-property">
     use std::fmt;
     use style_traits::ToCss;
