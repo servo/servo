@@ -103,12 +103,16 @@ impl PerDocumentStyleDataImpl {
         let mut stylist = Arc::get_mut(&mut self.stylist).unwrap();
         let mut extra_data = ExtraStyleData {
             font_faces: &mut self.font_faces,
-            author_style_disabled: Some(self.stylesheets.author_style_disabled()),
         };
 
-        stylist.update(&self.stylesheets.flush(),
+        let author_style_disabled = self.stylesheets.author_style_disabled();
+        let stylesheets = self.stylesheets.flush();
+        stylist.update(stylesheets,
                        &StylesheetGuards::same(guard),
-                       None, true, &mut extra_data);
+                       /* ua_sheets = */ None,
+                       /* stylesheets_changed = */ true,
+                       author_style_disabled,
+                       &mut extra_data);
     }
 
     /// Get the default computed values for this document.
