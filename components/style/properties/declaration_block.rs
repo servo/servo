@@ -9,7 +9,7 @@
 use context::QuirksMode;
 use cssparser::{DeclarationListParser, parse_important};
 use cssparser::{Parser, AtRuleParser, DeclarationParser, Delimiter};
-use error_reporting::ParseErrorReporter;
+use error_reporting::{ParseErrorReporter, ParseError};
 use parser::{LengthParsingMode, ParserContext, log_css_error};
 use std::fmt;
 use style_traits::ToCss;
@@ -729,9 +729,8 @@ pub fn parse_property_declaration_list(context: &ParserContext,
             Ok((parsed, importance)) => parsed.expand_push_into(&mut block, importance),
             Err(range) => {
                 let pos = range.start;
-                let message = format!("Unsupported property declaration: '{}'",
-                                      iter.input.slice(range));
-                log_css_error(iter.input, pos, &*message, &context);
+                let error = ParseError::UnsupportedPropertyDeclaration(iter.input.slice(range));
+                log_css_error(iter.input, pos, error, &context);
             }
         }
     }

@@ -8,7 +8,7 @@
 
 use cssparser::{AtRuleParser, Parser, QualifiedRuleParser, RuleListParser};
 use cssparser::{DeclarationListParser, DeclarationParser, parse_one_rule};
-use error_reporting::NullReporter;
+use error_reporting::{NullReporter, ParseError};
 use parser::{LengthParsingMode, ParserContext, log_css_error};
 use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock, PropertyId};
 use properties::{PropertyDeclarationId, LonghandId, ParsedDeclaration};
@@ -364,8 +364,8 @@ impl<'a> QualifiedRuleParser for KeyframeListParser<'a> {
         match KeyframeSelector::parse(input) {
             Ok(sel) => Ok(sel),
             Err(()) => {
-                let message = format!("Invalid keyframe rule: '{}'", input.slice_from(start));
-                log_css_error(input, start, &message, self.context);
+                let error = ParseError::InvalidKeyframeRule(input.slice_from(start));
+                log_css_error(input, start, error, self.context);
                 Err(())
             }
         }
@@ -384,9 +384,8 @@ impl<'a> QualifiedRuleParser for KeyframeListParser<'a> {
                 Ok(parsed) => parsed.expand_push_into(&mut block, Importance::Normal),
                 Err(range) => {
                     let pos = range.start;
-                    let message = format!("Unsupported keyframe property declaration: '{}'",
-                                          iter.input.slice(range));
-                    log_css_error(iter.input, pos, &*message, &context);
+                    let error = ParseError::UnsupportedKeyframePropertyDeclaration(iter.input.slice(range));
+                    log_css_error(iter.input, pos, error, &context);
                 }
             }
             // `parse_important` is not called here, `!important` is not allowed in keyframe blocks.

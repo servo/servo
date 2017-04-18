@@ -12,7 +12,7 @@ use counter_style::{CounterStyleRule, parse_counter_style_name, parse_counter_st
 use cssparser::{AtRuleParser, Parser, QualifiedRuleParser};
 use cssparser::{AtRuleType, RuleListParser, parse_one_rule};
 use cssparser::ToCss as ParserToCss;
-use error_reporting::{ParseErrorReporter, NullReporter};
+use error_reporting::{ParseErrorReporter, NullReporter, ParseError};
 #[cfg(feature = "servo")]
 use font_face::FontFaceRuleData;
 use font_face::parse_font_face_block;
@@ -710,8 +710,8 @@ impl Stylesheet {
                     Ok(rule) => rules.push(rule),
                     Err(range) => {
                         let pos = range.start;
-                        let message = format!("Invalid rule: '{}'", iter.input.slice(range));
-                        log_css_error(iter.input, pos, &*message, &iter.parser.context);
+                        let error = ParseError::InvalidRule(iter.input.slice(range));
+                        log_css_error(iter.input, pos, error, &iter.parser.context);
                     }
                 }
             }
@@ -1088,8 +1088,8 @@ impl<'a, 'b> NestedRuleParser<'a, 'b> {
                 Ok(rule) => rules.push(rule),
                 Err(range) => {
                     let pos = range.start;
-                    let message = format!("Unsupported rule: '{}'", iter.input.slice(range));
-                    log_css_error(iter.input, pos, &*message, self.context);
+                    let error = ParseError::UnsupportedRule(iter.input.slice(range));
+                    log_css_error(iter.input, pos, error, self.context);
                 }
             }
         }
