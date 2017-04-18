@@ -47,9 +47,8 @@ use std::default::Default;
 use std::mem;
 use std::sync::Arc;
 use style::computed_values::{background_attachment, background_clip, background_origin};
-use style::computed_values::{background_repeat, background_size, border_style};
-use style::computed_values::{cursor, image_rendering, overflow_x};
-use style::computed_values::{pointer_events, position, transform_style, visibility};
+use style::computed_values::{background_repeat, background_size, border_style, cursor};
+use style::computed_values::{image_rendering, overflow_x, pointer_events, position, visibility};
 use style::computed_values::filter::Filter;
 use style::computed_values::text_shadow::TextShadow;
 use style::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
@@ -58,8 +57,8 @@ use style::properties::longhands::border_image_repeat::computed_value::RepeatKey
 use style::properties::style_structs;
 use style::servo::restyle_damage::REPAINT;
 use style::values::{Either, RGBA, computed};
-use style::values::computed::{AngleOrCorner, Gradient, GradientKind, LengthOrPercentage, LengthOrPercentageOrAuto};
-use style::values::computed::NumberOrPercentage;
+use style::values::computed::{AngleOrCorner, Gradient, GradientKind, LengthOrPercentage};
+use style::values::computed::{LengthOrPercentageOrAuto, NumberOrPercentage};
 use style::values::specified::{HorizontalDirection, VerticalDirection};
 use style_traits::CSSPixel;
 use style_traits::cursor::Cursor;
@@ -1685,9 +1684,6 @@ impl FragmentDisplayListBuilding for Fragment {
             filters.push(Filter::Opacity(effects.opacity))
         }
 
-        let transform_style = self.style().get_used_transform_style();
-        let establishes_3d_context = transform_style == transform_style::T::flat;
-
         let context_type = match mode {
             StackingContextCreationMode::PseudoFloat => StackingContextType::PseudoFloat,
             StackingContextCreationMode::PseudoPositioned => StackingContextType::PseudoPositioned,
@@ -1703,7 +1699,6 @@ impl FragmentDisplayListBuilding for Fragment {
                              self.style().get_effects().mix_blend_mode,
                              self.transform_matrix(&border_box),
                              self.perspective_matrix(&border_box),
-                             establishes_3d_context,
                              scroll_policy,
                              parent_scroll_id)
     }

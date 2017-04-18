@@ -373,9 +373,6 @@ pub struct StackingContext {
     /// The perspective matrix to be applied to children.
     pub perspective: Option<Matrix4D<f32>>,
 
-    /// Whether this stacking context creates a new 3d rendering context.
-    pub establishes_3d_context: bool,
-
     /// The scroll policy of this layer.
     pub scroll_policy: ScrollPolicy,
 
@@ -395,7 +392,6 @@ impl StackingContext {
                blend_mode: mix_blend_mode::T,
                transform: Option<Matrix4D<f32>>,
                perspective: Option<Matrix4D<f32>>,
-               establishes_3d_context: bool,
                scroll_policy: ScrollPolicy,
                parent_scroll_id: ScrollRootId)
                -> StackingContext {
@@ -409,7 +405,6 @@ impl StackingContext {
             blend_mode: blend_mode,
             transform: transform,
             perspective: perspective,
-            establishes_3d_context: establishes_3d_context,
             scroll_policy: scroll_policy,
             parent_scroll_id: parent_scroll_id,
         }
@@ -426,7 +421,6 @@ impl StackingContext {
                              mix_blend_mode::T::normal,
                              None,
                              None,
-                             true,
                              ScrollPolicy::Scrollable,
                              ScrollRootId::root())
     }
