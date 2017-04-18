@@ -728,7 +728,7 @@ impl<T: JSTraceable> RootableVec<T> {
         RootableVec {
             v: vec![],
         }
-   }
+    }
 }
 
 /// A vector of items that are rooted for the lifetime 'a.

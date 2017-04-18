@@ -2599,7 +2599,7 @@ impl Element {
                 self.has_attribute(&local_name!("href"))
             },
             _ => false,
-         }
+        }
     }
 
     /// Please call this method *only* for real click events

@@ -95,7 +95,7 @@ pub fn start_server(port: u16, constellation_chan: Sender<ConstellationMsg>) {
         match server::start(SocketAddr::V4(address), handler, &extension_routes()) {
             Ok(listening) => info!("WebDriver server listening on {}", listening.socket),
             Err(_) => panic!("Unable to start WebDriver HTTPD server"),
-         }
+        }
     }).expect("Thread spawning failed");
 }
 

@@ -160,8 +160,8 @@ impl AttrValue {
     pub fn from_comma_separated_tokenlist(tokens: String) -> AttrValue {
         let atoms = split_commas(&tokens).map(Atom::from)
                                          .fold(vec![], |mut acc, atom| {
-                                            if !acc.contains(&atom) { acc.push(atom) }
-                                            acc
+                                             if !acc.contains(&atom) { acc.push(atom) }
+                                             acc
                                          });
         AttrValue::TokenList(tokens, atoms)
     }
