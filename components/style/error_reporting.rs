@@ -124,3 +124,15 @@ impl ParseErrorReporter for NullReporter {
         // do nothing
     }
 }
+
+/// Create an instance of the default error reporter for Servo.
+#[cfg(feature = "servo")]
+pub fn create_error_reporter() -> RustLogReporter {
+    RustLogReporter
+}
+
+/// Create an instance of the default error reporter for Stylo.
+#[cfg(feature = "gecko")]
+pub fn create_error_reporter() -> RustLogReporter {
+    RustLogReporter
+}
