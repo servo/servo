@@ -696,6 +696,9 @@ extern "C" {
      -> *mut nsIAtom;
 }
 extern "C" {
+    pub fn Gecko_Atomize16(aString: *const nsAString) -> *mut nsIAtom;
+}
+extern "C" {
     pub fn Gecko_AddRefAtom(aAtom: *mut nsIAtom);
 }
 extern "C" {
@@ -730,6 +733,14 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_CopyFontFamilyFrom(dst: *mut nsFont, src: *const nsFont);
+}
+extern "C" {
+    pub fn Gecko_nsFont_InitSystem(dst: *mut nsFont, font_id: i32,
+                                   font: *const nsStyleFont,
+                                   pres_context: RawGeckoPresContextBorrowed);
+}
+extern "C" {
+    pub fn Gecko_nsFont_Destroy(dst: *mut nsFont);
 }
 extern "C" {
     pub fn Gecko_SetImageOrientation(aVisibility: *mut nsStyleVisibility,
