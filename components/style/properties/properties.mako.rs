@@ -257,7 +257,7 @@ impl LonghandIdSet {
                     TransitionProperty::${prop.camel_case} => self.insert(LonghandId::${prop.camel_case}),
                 % endif
             % endfor
-            TransitionProperty::All => unreachable!("Tried to set TransitionProperty::All in a PropertyBitfield"),
+            other => unreachable!("Tried to set TransitionProperty::{:?} in a PropertyBitfield", other),
         }
     }
 
@@ -270,7 +270,7 @@ impl LonghandIdSet {
                     TransitionProperty::${prop.camel_case} => self.contains(LonghandId::${prop.camel_case}),
                 % endif
             % endfor
-            TransitionProperty::All => unreachable!("Tried to get TransitionProperty::All in a PropertyBitfield"),
+            other => unreachable!("Tried to get TransitionProperty::{:?} in a PropertyBitfield", other),
         }
     }
 }
