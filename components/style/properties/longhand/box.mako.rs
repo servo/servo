@@ -107,8 +107,7 @@ ${helpers.single_keyword("position", "static absolute relative fixed",
                          need_clone="True",
                          extra_gecko_values="sticky",
                          animation_type="none",
-                         creates_stacking_context="True",
-                         abspos_cb="True",
+                         flags="CREATES_STACKING_CONTEXT ABSPOS_CB",
                          spec="https://drafts.csswg.org/css-position/#position-property")}
 
 <%helpers:single_keyword_computed name="float"
@@ -1109,23 +1108,26 @@ ${helpers.predefined_type("scroll-snap-coordinate",
 
 
 
-<%helpers:longhand name="transform" products="gecko servo" extra_prefixes="webkit"
+<%helpers:longhand name="transform" extra_prefixes="webkit"
                    animation_type="normal"
-                   creates_stacking_context="True"
-                   fixpos_cb="True"
+                   flags="CREATES_STACKING_CONTEXT FIXPOS_CB"
                    spec="https://drafts.csswg.org/css-transforms/#propdef-transform">
     use app_units::Au;
-    use values::specified::{Angle, Length, LengthOrPercentage, Number};
+    use values::computed::{LengthOrPercentageOrNumber as ComputedLoPoNumber, LengthOrNumber as ComputedLoN};
+    use values::computed::{LengthOrPercentage as ComputedLoP, Length as ComputedLength};
+    use values::specified::{Angle, Length, LengthOrPercentage};
+    use values::specified::{LengthOrNumber, LengthOrPercentageOrNumber as LoPoNumber, Number};
     use style_traits::ToCss;
     use style_traits::values::Css;
-    use values::CSSFloat;
     use values::HasViewportPercentage;
 
     use std::fmt::{self, Display};
 
     pub mod computed_value {
+        use app_units::Au;
         use values::CSSFloat;
         use values::computed;
+        use values::computed::{Length, LengthOrPercentage};
 
         #[derive(Clone, Copy, Debug, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -1134,6 +1136,16 @@ ${helpers.predefined_type("scroll-snap-coordinate",
             pub m21: CSSFloat, pub m22: CSSFloat, pub m23: CSSFloat, pub m24: CSSFloat,
             pub m31: CSSFloat, pub m32: CSSFloat, pub m33: CSSFloat, pub m34: CSSFloat,
             pub m41: CSSFloat, pub m42: CSSFloat, pub m43: CSSFloat, pub m44: CSSFloat,
+        }
+
+        #[derive(Clone, Copy, Debug, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        pub struct ComputedMatrixWithPercents {
+            pub m11: CSSFloat, pub m12: CSSFloat, pub m13: CSSFloat, pub m14: CSSFloat,
+            pub m21: CSSFloat, pub m22: CSSFloat, pub m23: CSSFloat, pub m24: CSSFloat,
+            pub m31: CSSFloat, pub m32: CSSFloat, pub m33: CSSFloat, pub m34: CSSFloat,
+            pub m41: LengthOrPercentage, pub m42: LengthOrPercentage,
+            pub m43: Length, pub m44: CSSFloat,
         }
 
         impl ComputedMatrix {
@@ -1147,10 +1159,24 @@ ${helpers.predefined_type("scroll-snap-coordinate",
             }
         }
 
+        impl ComputedMatrixWithPercents {
+            pub fn identity() -> ComputedMatrixWithPercents {
+                ComputedMatrixWithPercents {
+                    m11: 1.0, m12: 0.0, m13: 0.0, m14: 0.0,
+                    m21: 0.0, m22: 1.0, m23: 0.0, m24: 0.0,
+                    m31: 0.0, m32: 0.0, m33: 1.0, m34: 0.0,
+                    m41: LengthOrPercentage::zero(), m42: LengthOrPercentage::zero(),
+                    m43: Au(0), m44: 1.0
+                }
+            }
+        }
+
         #[derive(Clone, Debug, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub enum ComputedOperation {
             Matrix(ComputedMatrix),
+            // For `-moz-transform` matrix and matrix3d.
+            MatrixWithPercents(ComputedMatrixWithPercents),
             Skew(computed::Angle, computed::Angle),
             Translate(computed::LengthOrPercentage,
                       computed::LengthOrPercentage,
@@ -1176,12 +1202,23 @@ ${helpers.predefined_type("scroll-snap-coordinate",
     pub enum SpecifiedOperation {
         /// Represents a 2D 2x3 matrix.
         Matrix { a: Number, b: Number, c: Number, d: Number, e: Number, f: Number },
+        /// Represents a 3D 4x4 matrix with percentage and length values.
+        /// For `moz-transform`.
+        PrefixedMatrix { a: Number, b: Number, c: Number, d: Number, e: LoPoNumber, f: LoPoNumber },
         /// Represents a 3D 4x4 matrix.
         Matrix3D {
             m11: Number, m12: Number, m13: Number, m14: Number,
             m21: Number, m22: Number, m23: Number, m24: Number,
             m31: Number, m32: Number, m33: Number, m34: Number,
             m41: Number, m42: Number, m43: Number, m44: Number,
+        },
+        /// Represents a 3D 4x4 matrix with percentage and length values.
+        /// For `moz-transform`.
+        PrefixedMatrix3D {
+            m11: Number,     m12: Number,     m13: Number,         m14: Number,
+            m21: Number,     m22: Number,     m23: Number,         m24: Number,
+            m31: Number,     m32: Number,     m33: Number,         m34: Number,
+            m41: LoPoNumber, m42: LoPoNumber, m43: LengthOrNumber, m44: Number,
         },
         /// A 2D skew.
         ///
@@ -1256,6 +1293,15 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                     l3.has_viewport_percentage()
                 },
                 SpecifiedOperation::Perspective(ref length) => length.has_viewport_percentage(),
+                SpecifiedOperation::PrefixedMatrix{ ref e, ref f, .. } => {
+                    e.has_viewport_percentage() ||
+                    f.has_viewport_percentage()
+                },
+                SpecifiedOperation::PrefixedMatrix3D{ ref m41, ref m42, ref m43, .. } => {
+                    m41.has_viewport_percentage() ||
+                    m42.has_viewport_percentage() ||
+                    m43.has_viewport_percentage()
+                },
                 _ => false
             }
         }
@@ -1268,11 +1314,24 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                 Matrix { a, b, c, d, e, f} => write!(
                     dest, "matrix({}, {}, {}, {}, {}, {})",
                     Css(a), Css(b), Css(c), Css(d), Css(e), Css(f)),
+                PrefixedMatrix { a, b, c, d, ref e, ref f} => write!(
+                    dest, "matrix({}, {}, {}, {}, {}, {})",
+                    Css(a), Css(b), Css(c), Css(d), Css(e), Css(f)),
                 Matrix3D {
                     m11, m12, m13, m14,
                     m21, m22, m23, m24,
                     m31, m32, m33, m34,
                     m41, m42, m43, m44 } => write!(
+                        dest, "matrix3d({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})",
+                        Css(m11), Css(m12), Css(m13), Css(m14),
+                        Css(m21), Css(m22), Css(m23), Css(m24),
+                        Css(m31), Css(m32), Css(m33), Css(m34),
+                        Css(m41), Css(m42), Css(m43), Css(m44)),
+                PrefixedMatrix3D {
+                    m11, m12, m13, m14,
+                    m21, m22, m23, m24,
+                    m31, m32, m33, m34,
+                    ref m41, ref m42, ref m43, m44 } => write!(
                         dest, "matrix3d({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})",
                         Css(m11), Css(m12), Css(m13), Css(m14),
                         Css(m21), Css(m22), Css(m23), Css(m24),
@@ -1343,7 +1402,8 @@ ${helpers.predefined_type("scroll-snap-coordinate",
     }
 
     // Allow unitless zero angle for rotate() and skew() to align with gecko
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+    fn parse_internal(context: &ParserContext, input: &mut Parser, prefixed: bool)
+        -> Result<SpecifiedValue,()> {
         if input.try(|input| input.expect_ident_matching("none")).is_ok() {
             return Ok(SpecifiedValue(Vec::new()))
         }
@@ -1358,34 +1418,110 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                 &name,
                 "matrix" => {
                     try!(input.parse_nested_block(|input| {
-                        let values = try!(input.parse_comma_separated(|input| {
-                            specified::parse_number(context, input)
-                        }));
-                        if values.len() != 6 {
-                            return Err(())
+                        // Standard matrix parsing.
+                        if !prefixed {
+                            let values = try!(input.parse_comma_separated(|input| {
+                                specified::parse_number(context, input)
+                            }));
+                            if values.len() != 6 {
+                                return Err(())
+                            }
+
+                            result.push(SpecifiedOperation::Matrix {
+                                a: values[0],
+                                b: values[1],
+                                c: values[2],
+                                d: values[3],
+                                e: values[4],
+                                f: values[5],
+                            });
+                            return Ok(());
                         }
-                        result.push(SpecifiedOperation::Matrix {
+
+                        // Non-standard prefixed matrix parsing.
+                        //
+                        // -moz-transform accepts LengthOrPercentageOrNumber in the
+                        //  nondiagonal homogeneous components. transform accepts only number.
+                        let mut values = Vec::with_capacity(4);
+                        let mut lengths = Vec::with_capacity(2);
+
+                        // Consume first number
+                        values.push(specified::parse_number(context, input)?);
+
+                        // Parse other 5 number/LengthOrPercentageOrNumber
+                        for i in 0..5 {
+                            input.expect_comma()?;
+                            if i < 3 {
+                                values.push(specified::parse_number(context, input)?);
+                            } else {
+                                // -moz-transform accepts LengthOrPercentageOrNumber in the nondiagonal
+                                // homogeneous components. transform accepts only number.
+                                lengths.push(LoPoNumber::parse(context, input)?)
+                            }
+                        }
+
+                        result.push(SpecifiedOperation::PrefixedMatrix {
                             a: values[0],
                             b: values[1],
                             c: values[2],
                             d: values[3],
-                            e: values[4],
-                            f: values[5]
+                            e: lengths[0].clone(),
+                            f: lengths[1].clone(),
                         });
                         Ok(())
                     }))
                 },
                 "matrix3d" => {
                     try!(input.parse_nested_block(|input| {
-                        let values = try!(input.parse_comma_separated(|i| specified::parse_number(context, i)));
-                        if values.len() != 16 {
-                            return Err(())
+                        // Standard matrix3d parsing.
+                        if !prefixed {
+                            let values = try!(input.parse_comma_separated(|i| specified::parse_number(context, i)));
+                            if values.len() != 16 {
+                                return Err(())
+                            }
+
+                            result.push(SpecifiedOperation::Matrix3D {
+                                m11: values[ 0], m12: values[ 1], m13: values[ 2], m14: values[ 3],
+                                m21: values[ 4], m22: values[ 5], m23: values[ 6], m24: values[ 7],
+                                m31: values[ 8], m32: values[ 9], m33: values[10], m34: values[11],
+                                m41: values[12], m42: values[13], m43: values[14], m44: values[15]
+                            });
+                            return Ok(());
                         }
-                        result.push(SpecifiedOperation::Matrix3D {
+
+                        // Non-standard prefixed matrix3d parsing.
+                        //
+                        // -moz-transform accepts LengthOrPercentageOrNumber in the
+                        //  nondiagonal homogeneous components. transform accepts only number.
+                        let mut values = Vec::with_capacity(13);
+                        let mut lops = Vec::with_capacity(2);
+                        let mut length_or_number = None;
+
+                        // Parse first number
+                        values.push(specified::parse_number(context, input)?);
+
+                        // Parse other 15 number/LengthOrPercentageOrNumber
+                        for i in 0..15 {
+                            input.expect_comma()?;
+                            // -moz-transform accepts LengthOrPercentageOrNumber in the nondiagonal
+                            // homogeneous components. transform accepts only number.
+                            if i < 11 || i > 13 {
+                                values.push(specified::parse_number(context, input)?);
+                            } else if i == 13 {
+                                // m43
+                                length_or_number = Some(LengthOrNumber::parse(context, input)?);
+                            } else {
+                                // m41 and m42
+                                lops.push(LoPoNumber::parse(context, input)?);
+                            }
+                        }
+
+                        result.push(SpecifiedOperation::PrefixedMatrix3D {
                             m11: values[ 0], m12: values[ 1], m13: values[ 2], m14: values[ 3],
                             m21: values[ 4], m22: values[ 5], m23: values[ 6], m24: values[ 7],
                             m31: values[ 8], m32: values[ 9], m33: values[10], m34: values[11],
-                            m41: values[12], m42: values[13], m43: values[14], m44: values[15]
+                            m41: lops[0].clone(), m42: lops[1].clone(), m43: length_or_number.unwrap(),
+                            m44: values[12]
                         });
                         Ok(())
                     }))
@@ -1564,12 +1700,26 @@ ${helpers.predefined_type("scroll-snap-coordinate",
         }
     }
 
+    /// Parses `transform` property.
+    #[inline]
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+        parse_internal(context, input, false)
+    }
+
+    /// Parses `-moz-transform` property. This prefixed property also accepts LengthOrPercentage
+    /// in the nondiagonal homogeneous components of matrix and matrix3d.
+    #[inline]
+    pub fn parse_prefixed(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+        parse_internal(context, input, true)
+    }
+
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
 
         #[inline]
         fn to_computed_value(&self, context: &Context) -> computed_value::T {
             use self::SpecifiedOperation::*;
+
             if self.0.is_empty() {
                 return computed_value::T(None)
             }
@@ -1587,11 +1737,21 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                         comp.m42 = f.to_computed_value(context);
                         result.push(computed_value::ComputedOperation::Matrix(comp));
                     }
+                    PrefixedMatrix { a, b, c, d, ref e, ref f } => {
+                        let mut comp = computed_value::ComputedMatrixWithPercents::identity();
+                        comp.m11 = a.to_computed_value(context);
+                        comp.m12 = b.to_computed_value(context);
+                        comp.m21 = c.to_computed_value(context);
+                        comp.m22 = d.to_computed_value(context);
+                        comp.m41 = lopon_to_lop(&e.to_computed_value(context));
+                        comp.m42 = lopon_to_lop(&f.to_computed_value(context));
+                        result.push(computed_value::ComputedOperation::MatrixWithPercents(comp));
+                    }
                     Matrix3D {
                         m11, m12, m13, m14,
                         m21, m22, m23, m24,
                         m31, m32, m33, m34,
-                        m41, m42, m43, m44 } => {
+                        ref m41, ref m42, ref m43, m44 } => {
                             let comp = computed_value::ComputedMatrix {
                                 m11: m11.to_computed_value(context),
                                 m12: m12.to_computed_value(context),
@@ -1611,6 +1771,31 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                                 m44: m44.to_computed_value(context),
                             };
                         result.push(computed_value::ComputedOperation::Matrix(comp));
+                    }
+                    PrefixedMatrix3D {
+                        m11, m12, m13, m14,
+                        m21, m22, m23, m24,
+                        m31, m32, m33, m34,
+                        ref m41, ref m42, ref m43, m44 } => {
+                            let comp = computed_value::ComputedMatrixWithPercents {
+                                m11: m11.to_computed_value(context),
+                                m12: m12.to_computed_value(context),
+                                m13: m13.to_computed_value(context),
+                                m14: m14.to_computed_value(context),
+                                m21: m21.to_computed_value(context),
+                                m22: m22.to_computed_value(context),
+                                m23: m23.to_computed_value(context),
+                                m24: m24.to_computed_value(context),
+                                m31: m31.to_computed_value(context),
+                                m32: m32.to_computed_value(context),
+                                m33: m33.to_computed_value(context),
+                                m34: m34.to_computed_value(context),
+                                m41: lopon_to_lop(&m41.to_computed_value(context)),
+                                m42: lopon_to_lop(&m42.to_computed_value(context)),
+                                m43: lon_to_length(&m43.to_computed_value(context)),
+                                m44: m44.to_computed_value(context),
+                            };
+                        result.push(computed_value::ComputedOperation::MatrixWithPercents(comp));
                     }
                     Translate(ref tx, None) => {
                         let tx = tx.to_computed_value(context);
@@ -1757,6 +1942,26 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                                 m44: Number::from_computed_value(&computed.m44),
                             });
                         }
+                        computed_value::ComputedOperation::MatrixWithPercents(ref computed) => {
+                            result.push(SpecifiedOperation::PrefixedMatrix3D {
+                                m11: Number::from_computed_value(&computed.m11),
+                                m12: Number::from_computed_value(&computed.m12),
+                                m13: Number::from_computed_value(&computed.m13),
+                                m14: Number::from_computed_value(&computed.m14),
+                                m21: Number::from_computed_value(&computed.m21),
+                                m22: Number::from_computed_value(&computed.m22),
+                                m23: Number::from_computed_value(&computed.m23),
+                                m24: Number::from_computed_value(&computed.m24),
+                                m31: Number::from_computed_value(&computed.m31),
+                                m32: Number::from_computed_value(&computed.m32),
+                                m33: Number::from_computed_value(&computed.m33),
+                                m34: Number::from_computed_value(&computed.m34),
+                                m41: Either::First(LengthOrPercentage::from_computed_value(&computed.m41)),
+                                m42: Either::First(LengthOrPercentage::from_computed_value(&computed.m42)),
+                                m43: LengthOrNumber::from_computed_value(&Either::First(computed.m43)),
+                                m44: Number::from_computed_value(&computed.m44),
+                            });
+                        }
                         computed_value::ComputedOperation::Translate(ref tx, ref ty, ref tz) => {
                             // XXXManishearth we lose information here; perhaps we should try to
                             // recover the original function? Not sure if this can be observed.
@@ -1794,6 +1999,24 @@ ${helpers.predefined_type("scroll-snap-coordinate",
             }).unwrap_or(Vec::new()))
         }
     }
+
+    // Converts computed LengthOrPercentageOrNumber into computed
+    // LengthOrPercentage. Number maps into Length
+    fn lopon_to_lop(value: &ComputedLoPoNumber) -> ComputedLoP {
+        match *value {
+            Either::First(length_or_percentage) => length_or_percentage,
+            Either::Second(number) => ComputedLoP::Length(Au::from_f32_px(number)),
+        }
+    }
+
+    // Converts computed LengthOrNumber into computed Length.
+    // Number maps into Length.
+    fn lon_to_length(value: &ComputedLoN) -> ComputedLength {
+        match *value {
+            Either::First(length) => length,
+            Either::Second(number) => Au::from_f32_px(number),
+        }
+    }
 </%helpers:longhand>
 
 // CSSOM View Module
@@ -1825,7 +2048,7 @@ ${helpers.single_keyword("isolation",
                          "auto isolate",
                          products="gecko",
                          spec="https://drafts.fxtf.org/compositing/#isolation",
-                         creates_stacking_context=True,
+                         flags="CREATES_STACKING_CONTEXT",
                          animation_type="none")}
 
 // TODO add support for logical values recto and verso
@@ -1864,8 +2087,7 @@ ${helpers.predefined_type("perspective",
                           gecko_ffi_name="mChildPerspective",
                           spec="https://drafts.csswg.org/css-transforms/#perspective",
                           extra_prefixes="moz webkit",
-                          creates_stacking_context=True,
-                          fixpos_cb=True,
+                          flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
                           animation_type="normal")}
 
 <%helpers:longhand name="perspective-origin" boxed="True" animation_type="normal" extra_prefixes="moz webkit"
@@ -1963,8 +2185,7 @@ ${helpers.single_keyword("transform-style",
                          "flat preserve-3d",
                          spec="https://drafts.csswg.org/css-transforms/#transform-style-property",
                          extra_prefixes="moz webkit",
-                         creates_stacking_context=True,
-                         fixpos_cb=True,
+                         flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
                          animation_type="none")}
 
 <%helpers:longhand name="transform-origin" animation_type="normal" extra_prefixes="moz webkit" boxed="True"

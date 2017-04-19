@@ -2902,6 +2902,10 @@ impl Fragment {
                 transform::ComputedOperation::Matrix(m) => {
                     m.to_gfx_matrix()
                 }
+                transform::ComputedOperation::MatrixWithPercents(_) => {
+                    // `-moz-transform` is not implemented in Servo yet.
+                    unreachable!()
+                }
                 transform::ComputedOperation::Skew(theta_x, theta_y) => {
                     Matrix4D::create_skew(Radians::new(theta_x.radians()),
                                           Radians::new(theta_y.radians()))

@@ -469,13 +469,15 @@ bitflags! {
     /// A set of flags for properties.
     pub flags PropertyFlags: u8 {
         /// This property requires a stacking context.
-        const CREATES_STACKING_CONTEXT = 0x01,
+        const CREATES_STACKING_CONTEXT = 1 << 0,
         /// This property has values that can establish a containing block for
         /// fixed positioned and absolutely positioned elements.
-        const FIXPOS_CB = 0x02,
+        const FIXPOS_CB = 1 << 1,
         /// This property has values that can establish a containing block for
         /// absolutely positioned elements.
-        const ABSPOS_CB = 0x04,
+        const ABSPOS_CB = 1 << 2,
+        /// This property(shorthand) is an alias of another property.
+        const ALIAS_PROPERTY = 1 << 3,
     }
 }
 
@@ -518,20 +520,14 @@ impl LonghandId {
         }
     }
 
-    /// Returns PropertyFlags for given property.
+    /// Returns PropertyFlags for given longhand property.
     pub fn flags(&self) -> PropertyFlags {
         match *self {
             % for property in data.longhands:
                 LonghandId::${property.camel_case} =>
-                    %if property.creates_stacking_context:
-                        CREATES_STACKING_CONTEXT |
-                    %endif
-                    %if property.fixpos_cb:
-                        FIXPOS_CB |
-                    %endif
-                    %if property.abspos_cb:
-                        ABSPOS_CB |
-                    %endif
+                    % for flag in property.flags:
+                        ${flag} |
+                    % endfor
                     PropertyFlags::empty(),
             % endfor
         }
@@ -657,6 +653,19 @@ impl ShorthandId {
         }
 
         None
+    }
+
+    /// Returns PropertyFlags for given shorthand property.
+    pub fn flags(&self) -> PropertyFlags {
+        match *self {
+            % for property in data.shorthands:
+                ShorthandId::${property.camel_case} =>
+                    % for flag in property.flags:
+                        ${flag} |
+                    % endfor
+                    PropertyFlags::empty(),
+            % endfor
+        }
     }
 }
 

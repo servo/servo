@@ -1127,6 +1127,7 @@ fn build_identity_transform_list(list: &[TransformOperation]) -> Vec<TransformOp
                 let identity = ComputedMatrix::identity();
                 result.push(TransformOperation::Matrix(identity));
             }
+            TransformOperation::MatrixWithPercents(..) => {}
             TransformOperation::Skew(..) => {
                 result.push(TransformOperation::Skew(Angle::zero(), Angle::zero()))
             }
@@ -1166,6 +1167,12 @@ fn interpolate_transform_list(from_list: &[TransformOperation],
                  &TransformOperation::Matrix(_to)) => {
                     let interpolated = from.interpolate(&_to, progress).unwrap();
                     result.push(TransformOperation::Matrix(interpolated));
+                }
+                (&TransformOperation::MatrixWithPercents(_),
+                 &TransformOperation::MatrixWithPercents(_)) => {
+                    // We don't interpolate `-moz-transform` matrices yet.
+                    // They contain percentage values.
+                    {}
                 }
                 (&TransformOperation::Skew(fx, fy),
                  &TransformOperation::Skew(tx, ty)) => {
