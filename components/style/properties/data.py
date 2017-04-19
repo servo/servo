@@ -176,8 +176,10 @@ class Longhand(object):
 
         self.animatable = animation_type != "none"
         if self.logical:
-            # Logical properties don't animate separately
+            # Logical properties will be animatable (i.e. the animation type is
+            # discrete). For now, it is still non-animatable.
             self.animatable = False
+            self.animation_type = None
         # NB: Animatable implies clone because a property animation requires a
         # copy of the computed value.
         #
