@@ -554,7 +554,7 @@ impl HasViewportPercentage for BorderWidth {
         match *self {
             BorderWidth::Thin | BorderWidth::Medium | BorderWidth::Thick => false,
             BorderWidth::Width(ref length) => length.has_viewport_percentage()
-         }
+        }
     }
 }
 

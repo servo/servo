@@ -1795,7 +1795,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 // WebGl conformance expects error with null programs. Check tests in get-active-test.html
                 self.webgl_error(InvalidValue);
                 return None;
-             }
+            }
         };
 
         match program.get_active_uniform(index) {
@@ -1822,7 +1822,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 // WebGl conformance expects error with null programs. Check tests in get-active-test.html
                 self.webgl_error(InvalidValue);
                 return None;
-             }
+            }
         };
 
         match program.get_active_attrib(index) {

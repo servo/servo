@@ -381,7 +381,7 @@ pub fn start_transitions_if_applicable(new_animations_sender: &Sender<Animation>
             // [1]: https://drafts.csswg.org/css-transitions/#starting
             if possibly_expired_animations.iter().any(|animation| {
                     animation.has_the_same_end_value_as(&property_animation)
-               }) {
+                }) {
                 continue
             }
 

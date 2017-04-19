@@ -1022,7 +1022,7 @@ impl ToCss for CalcLengthOrPercentage {
         }
 
         write!(dest, ")")
-     }
+    }
 }
 
 /// A percentage value.

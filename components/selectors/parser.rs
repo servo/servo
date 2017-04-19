@@ -530,7 +530,7 @@ impl<Impl: SelectorImpl> ToCss for SimpleSelector<Impl> {
                 attr_selector_to_css(a, " = ", v, match case {
                     CaseSensitivity::CaseSensitive => None,
                     CaseSensitivity::CaseInsensitive => Some(" i"),
-                 }, dest)
+                }, dest)
             }
             AttrDashMatch(ref a, ref v) => attr_selector_to_css(a, " |= ", v, None, dest),
             AttrIncludesNeverMatch(ref a, ref v) |

@@ -63,4 +63,13 @@ impl test {
 
     let var
         = "val";
+
+    fn test_fun4()
+       {
+     }
+    let var = if true {
+          "true"
+      } else { // Should not trigger
+          "false"
+      } // Should not trigger
 }
