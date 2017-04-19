@@ -226,6 +226,9 @@ pub struct Opts {
 
     /// Unminify Javascript.
     pub unminify_js: bool,
+
+    /// Use expanded (possibly less secure) cipher list for compatibility reasons
+    pub cipher_compatibility: bool,
 }
 
 fn print_usage(app: &str, opts: &Options) {
@@ -557,6 +560,7 @@ pub fn default_opts() -> Opts {
         signpost: false,
         certificate_path: None,
         unminify_js: false,
+        cipher_compatibility: false,
     }
 }
 
@@ -618,6 +622,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
                     "config directory following xdg spec on linux platform", "");
     opts.optflag("v", "version", "Display servo version information");
     opts.optflag("", "unminify-js", "Unminify Javascript");
+    opts.optflag("", "cipher-compatibility", "Use expanded (possibly less secure) cipher list for compat reasons");
 
     let opt_match = match opts.parse(args) {
         Ok(m) => m,
@@ -854,6 +859,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         signpost: debug_options.signpost,
         certificate_path: opt_match.opt_str("certificate-path"),
         unminify_js: opt_match.opt_present("unminify-js"),
+        cipher_compatibility: opt_match.opt_present("cipher-compatibility"),
     };
 
     set_defaults(opts);

@@ -9,6 +9,7 @@ use hyper::net::{NetworkConnector, HttpsStream, HttpStream, SslClient};
 use hyper_openssl::OpensslClient;
 use openssl::ssl::{SSL_OP_NO_COMPRESSION, SSL_OP_NO_SSLV2, SSL_OP_NO_SSLV3};
 use openssl::ssl::{SslConnectorBuilder, SslMethod};
+use servo_config::opts;
 use std::io;
 use std::net::TcpStream;
 use std::path::PathBuf;
@@ -51,11 +52,16 @@ impl NetworkConnector for HttpsConnector {
 pub type Connector = HttpsConnector;
 
 pub fn create_ssl_client(ca_file: &PathBuf) -> OpensslClient {
+    let cipher_list = if opts::get().cipher_compatibility {
+        INTERMEDIATE_CIPHERS
+    } else {
+        MODERN_CIPHERS
+    };
     let mut ssl_connector_builder = SslConnectorBuilder::new(SslMethod::tls()).unwrap();
     {
         let context = ssl_connector_builder.builder_mut();
         context.set_ca_file(ca_file).expect("could not set CA file");
-        context.set_cipher_list(DEFAULT_CIPHERS).expect("could not set ciphers");
+        context.set_cipher_list(cipher_list).expect("could not set ciphers");
         context.set_options(SSL_OP_NO_SSLV2 | SSL_OP_NO_SSLV3 | SSL_OP_NO_COMPRESSION);
     }
     let ssl_connector = ssl_connector_builder.build();
@@ -67,18 +73,35 @@ pub fn create_http_connector(ssl_client: OpensslClient) -> Pool<Connector> {
     Pool::with_connector(Default::default(), https_connector)
 }
 
-// The basic logic here is to prefer ciphers with ECDSA certificates, Forward
-// Secrecy, AES GCM ciphers, AES ciphers, and finally 3DES ciphers.
+// Uses the 'Modern' cipher suite configuration
 // A complete discussion of the issues involved in TLS configuration can be found here:
 // https://wiki.mozilla.org/Security/Server_Side_TLS
-const DEFAULT_CIPHERS: &'static str = concat!(
+const MODERN_CIPHERS: &'static str = concat!(
+    "ECDHE-ECDSA-AES256-GCM-SHA384:",
+    "ECDHE-RSA-AES256-GCM-SHA384:",
+    "ECDHE-ECDSA-CHACHA20-POLY1305:",
+    "ECDHE-RSA-CHACHA20-POLY1305:",
+    "ECDHE-ECDSA-AES128-GCM-SHA256:",
+    "ECDHE-RSA-AES128-GCM-SHA256:",
+    "ECDHE-ECDSA-AES256-SHA384:",
+    "ECDHE-RSA-AES256-SHA384:",
+    "ECDHE-ECDSA-AES128-SHA256:",
+    "ECDHE-RSA-AES128-SHA256",
+);
+
+const INTERMEDIATE_CIPHERS: &'static str = concat!(
+    "ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:",
     "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:",
     "ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:",
-    "DHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-SHA256:",
-    "ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:",
-    "ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES256-SHA:",
-    "ECDHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:",
-    "DHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA:ECDHE-RSA-DES-CBC3-SHA:",
-    "ECDHE-ECDSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:",
-    "AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA"
+    "DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:",
+    "ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256:",
+    "ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:",
+    "ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES256-SHA384:",
+    "ECDHE-ECDSA-AES256-SHA:ECDHE-RSA-AES256-SHA:",
+    "DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:",
+    "DHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA:",
+    "ECDHE-ECDSA-DES-CBC3-SHA:ECDHE-RSA-DES-CBC3-SHA:",
+    "EDH-RSA-DES-CBC3-SHA:AES128-GCM-SHA256:",
+    "AES256-GCM-SHA384:AES128-SHA256:",
+    "AES256-SHA256:AES128-SHA:AES256-SHA:DES-CBC3-SHA:!DSS"
 );
