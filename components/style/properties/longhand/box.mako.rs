@@ -353,6 +353,7 @@ ${helpers.single_keyword("overflow-clip-box", "padding-box content-box",
 
 // FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
 ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
+                         extra_gecko_values="clip",
                          need_clone=True, animation_type="none",
                          gecko_constant_prefix="NS_STYLE_OVERFLOW",
                          spec="https://drafts.csswg.org/css-overflow/#propdef-overflow-x")}
