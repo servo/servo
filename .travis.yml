@@ -1,5 +1,8 @@
 language: python
 
+install:
+  - pip install -r python/requirements.txt
+
 matrix:
   fast_finish: true
   include:
