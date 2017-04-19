@@ -49,7 +49,7 @@ use gfx::display_list::{OpaqueNode, WebRenderImageInfo};
 use gfx::font;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context;
-use gfx_traits::{Epoch, FragmentType, ScrollRootId};
+use gfx_traits::{Epoch, node_id_from_clip_id};
 use heapsize::HeapSizeOf;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
@@ -514,6 +514,7 @@ impl LayoutThread {
             ThreadLocalStyleContextCreationInfo::new(self.new_animations_sender.clone());
 
         LayoutContext {
+            id: self.id,
             style_context: SharedStyleContext {
                 stylist: rw_data.stylist.clone(),
                 options: StyleSystemOptions::default(),
@@ -1282,7 +1283,8 @@ impl LayoutThread {
             },
             ReflowQueryType::NodeScrollRootIdQuery(node) => {
                 let node = unsafe { ServoLayoutNode::new(&node) };
-                rw_data.scroll_root_id_response = Some(process_node_scroll_root_id_request(node));
+                rw_data.scroll_root_id_response = Some(process_node_scroll_root_id_request(self.id,
+                                                                                           node));
             },
             ReflowQueryType::ResolvedStyleQuery(node, ref pseudo, ref property) => {
                 let node = unsafe { ServoLayoutNode::new(&node) };
@@ -1339,12 +1341,12 @@ impl LayoutThread {
             let offset = new_scroll_state.scroll_offset;
             layout_scroll_states.insert(new_scroll_state.scroll_root_id, offset);
 
-            if new_scroll_state.scroll_root_id == ScrollRootId::root() {
+            if new_scroll_state.scroll_root_id.is_root_scroll_node() {
                 script_scroll_states.push((UntrustedNodeAddress::from_id(0), offset))
-            } else if !new_scroll_state.scroll_root_id.is_special() &&
-                    new_scroll_state.scroll_root_id.fragment_type() == FragmentType::FragmentBody {
-                let id = new_scroll_state.scroll_root_id.id();
-                script_scroll_states.push((UntrustedNodeAddress::from_id(id), offset))
+            } else if let Some(id) = new_scroll_state.scroll_root_id.external_id() {
+                if let Some(node_id) = node_id_from_clip_id(id as usize) {
+                    script_scroll_states.push((UntrustedNodeAddress::from_id(node_id), offset))
+                }
             }
         }
         let _ = self.script_chan

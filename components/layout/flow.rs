@@ -35,10 +35,11 @@ use floats::{Floats, SpeculatedFloatPlacement};
 use flow_list::{FlowList, MutFlowListIterator};
 use flow_ref::{FlowRef, WeakFlowRef};
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow};
-use gfx_traits::{ScrollRootId, StackingContextId};
+use gfx_traits::StackingContextId;
 use gfx_traits::print_tree::PrintTree;
 use inline::InlineFlow;
 use model::{CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo};
+use msg::constellation_msg::PipelineId;
 use multicol::MulticolFlow;
 use parallel::FlowParallelInfo;
 use serde::ser::{Serialize, SerializeStruct, Serializer};
@@ -62,6 +63,7 @@ use table_colgroup::TableColGroupFlow;
 use table_row::TableRowFlow;
 use table_rowgroup::TableRowGroupFlow;
 use table_wrapper::TableWrapperFlow;
+use webrender_traits::ClipId;
 
 /// Virtual methods that make up a float context.
 ///
@@ -429,8 +431,14 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
     /// children of this flow.
     fn print_extra_flow_children(&self, _: &mut PrintTree) { }
 
-    fn scroll_root_id(&self) -> ScrollRootId {
-        base(self).scroll_root_id
+    fn scroll_root_id(&self, pipeline_id: PipelineId) -> ClipId {
+        match base(self).scroll_root_id {
+            Some(id) => id,
+            None => {
+                warn!("Tried to access scroll root id on Flow before assignment");
+                pipeline_id.root_scroll_node()
+            }
+        }
     }
 }
 
@@ -961,7 +969,7 @@ pub struct BaseFlow {
     /// list construction.
     pub stacking_context_id: StackingContextId,
 
-    pub scroll_root_id: ScrollRootId,
+    pub scroll_root_id: Option<ClipId>,
 }
 
 impl fmt::Debug for BaseFlow {
@@ -1104,8 +1112,8 @@ impl BaseFlow {
             flags: flags,
             writing_mode: writing_mode,
             thread_id: 0,
-            stacking_context_id: StackingContextId::new(0),
-            scroll_root_id: ScrollRootId::root(),
+            stacking_context_id: StackingContextId::root(),
+            scroll_root_id: None,
         }
     }
 

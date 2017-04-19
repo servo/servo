@@ -2339,6 +2339,7 @@ dependencies = [
  "selectors 0.18.0",
  "servo_url 0.0.1",
  "style 0.0.1",
+ "webrender_traits 0.35.0 (git+https://github.com/servo/webrender)",
 ]
 
 [[package]]
@@ -2383,6 +2384,7 @@ dependencies = [
  "style_traits 0.0.1",
  "time 0.1.36 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "webrender_traits 0.35.0 (git+https://github.com/servo/webrender)",
  "webvr_traits 0.0.1",
 ]
 

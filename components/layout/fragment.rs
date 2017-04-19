@@ -17,7 +17,7 @@ use gfx;
 use gfx::display_list::{BLUR_INFLATION_FACTOR, OpaqueNode};
 use gfx::text::glyph::ByteIndex;
 use gfx::text::text_run::{TextRun, TextRunSlice};
-use gfx_traits::{FragmentType, StackingContextId};
+use gfx_traits::StackingContextId;
 use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFragmentContext, InlineFragmentNodeInfo};
 use inline::{InlineMetrics, LAST_FRAGMENT_OF_ELEMENT, LineMetrics};
 use ipc_channel::ipc::IpcSender;
@@ -665,7 +665,7 @@ impl Fragment {
             pseudo: node.get_pseudo_element_type().strip(),
             flags: FragmentFlags::empty(),
             debug_id: DebugId::new(),
-            stacking_context_id: StackingContextId::new(0),
+            stacking_context_id: StackingContextId::root(),
         }
     }
 
@@ -694,7 +694,7 @@ impl Fragment {
             pseudo: pseudo,
             flags: FragmentFlags::empty(),
             debug_id: DebugId::new(),
-            stacking_context_id: StackingContextId::new(0),
+            stacking_context_id: StackingContextId::root(),
         }
     }
 
@@ -719,7 +719,7 @@ impl Fragment {
             pseudo: self.pseudo,
             flags: FragmentFlags::empty(),
             debug_id: DebugId::new(),
-            stacking_context_id: StackingContextId::new(0),
+            stacking_context_id: StackingContextId::root(),
         }
     }
 
@@ -747,7 +747,7 @@ impl Fragment {
             pseudo: self.pseudo.clone(),
             flags: FragmentFlags::empty(),
             debug_id: self.debug_id.clone(),
-            stacking_context_id: StackingContextId::new(0),
+            stacking_context_id: StackingContextId::root(),
         }
     }
 
@@ -2795,21 +2795,6 @@ impl Fragment {
                         FIRST_FRAGMENT_OF_ELEMENT);
                 }
             }
-        }
-    }
-
-
-    pub fn fragment_id(&self) -> usize {
-        return self as *const Fragment as usize;
-    }
-
-    pub fn fragment_type(&self) -> FragmentType {
-        match self.pseudo {
-            PseudoElementType::Normal => FragmentType::FragmentBody,
-            PseudoElementType::Before(_) => FragmentType::BeforePseudoContent,
-            PseudoElementType::After(_) => FragmentType::AfterPseudoContent,
-            PseudoElementType::DetailsSummary(_) => FragmentType::FragmentBody,
-            PseudoElementType::DetailsContent(_) => FragmentType::FragmentBody,
         }
     }
 
