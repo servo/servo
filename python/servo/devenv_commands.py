@@ -11,6 +11,8 @@ from __future__ import print_function, unicode_literals
 from os import path, getcwd, listdir
 
 import sys
+import urllib2
+import json
 
 from mach.decorators import (
     CommandArgument,
@@ -222,6 +224,22 @@ class MachCommands(CommandBase):
         return call(
             ["git"] + ["grep"] + params + ['--'] + grep_paths + [':(exclude)*.min.js', ':(exclude)*.min.css'],
             env=self.build_env())
+
+    @Command('rustup',
+             description='Update the Rust version to latest master',
+             category='devenv')
+    def rustup(self):
+        url = "https://api.github.com/repos/rust-lang/rust/git/refs/heads/master"
+        commit = json.load(urllib2.urlopen(url))["object"]["sha"]
+        filename = path.join(self.context.topdir, "rust-commit-hash")
+        with open(filename, "w") as f:
+            f.write(commit)
+
+        # Reset self.config["tools"]["rust-root"]
+        self._rust_version = None
+        self.set_use_stable_rust(False)
+
+        self.fetch()
 
     @Command('fetch',
              description='Fetch Rust, Cargo and Cargo dependencies',
