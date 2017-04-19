@@ -797,7 +797,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                 pipeline_id: PipelineId,
                                 scroll_root_id: ScrollRootId,
                                 point: Point2D<f32>) {
-        let id = ClipId::new(scroll_root_id.0 as u64, pipeline_id.to_webrender());
+        let id = if scroll_root_id.0 == 0 {
+            ClipId::root_scroll_node(pipeline_id.to_webrender())
+        } else {
+            ClipId::new(scroll_root_id.0 as u64, pipeline_id.to_webrender())
+        };
+
         self.webrender_api.scroll_node_with_id(LayoutPoint::from_untyped(&point), id);
     }
 
