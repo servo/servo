@@ -67,6 +67,11 @@ fn generate_properties() {
     let python = env::var("PYTHON").ok().unwrap_or_else(find_python);
     let script = Path::new(file!()).parent().unwrap().join("properties").join("build.py");
     let product = if cfg!(feature = "gecko") { "gecko" } else { "servo" };
+    //Would be nice to import and use VIRTUAL_ENV
+    let env_status = Command::new("virtualenv").arg("./python/_virtualenv").status().unwrap();
+    if !env_status.success() {
+        exit(1)
+    }
     let status = Command::new(python)
         .arg(&script)
         .arg(product)
