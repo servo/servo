@@ -6,7 +6,7 @@ use cssparser::RGBA;
 use dom::bindings::codegen::Bindings::HTMLTableCellElementBinding::HTMLTableCellElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::LayoutJS;
+use dom::bindings::js::{LayoutJS, Root};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{Element, RawLayoutElementHelpers};
@@ -68,12 +68,12 @@ impl HTMLTableCellElementMethods for HTMLTableCellElement {
 
         let parent_children = match self_node.GetParentNode() {
             Some(ref parent_node) if parent_node.is::<HTMLTableRowElement>() => {
-                parent_node.children()
+                parent_node.children::<HTMLTableCellElement>()
             },
             _ => return -1,
         };
 
-        parent_children.filter(|c| c.is::<HTMLTableCellElement>())
+        parent_children.map(Root::upcast::<Node>)
                        .position(|c| &*c == self_node)
                        .map_or(-1, |p| p as i32)
     }

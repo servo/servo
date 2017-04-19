@@ -435,7 +435,7 @@ impl HTMLImageElement {
         }
 
         let useMapElements = document_from_node(self).upcast::<Node>()
-                                .traverse_preorder()
+                                .traverse_preorder::<Node>()
                                 .filter_map(Root::downcast::<HTMLMapElement>)
                                 .find(|n| n.upcast::<Element>().get_string_attribute(&LocalName::from("name")) == last);
 

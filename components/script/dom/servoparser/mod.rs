@@ -20,7 +20,7 @@ use dom::globalscope::GlobalScope;
 use dom::htmlformelement::HTMLFormElement;
 use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlscriptelement::{HTMLScriptElement, ScriptResult};
-use dom::node::{Node, NodeSiblingIterator};
+use dom::node::{Node, SiblingIterator};
 use dom::text::Text;
 use dom_struct::dom_struct;
 use encoding::all::UTF_8;
@@ -412,7 +412,7 @@ impl ServoParser {
 }
 
 pub struct FragmentParsingResult {
-    inner: NodeSiblingIterator,
+    inner: SiblingIterator<Node>,
 }
 
 impl Iterator for FragmentParsingResult {
