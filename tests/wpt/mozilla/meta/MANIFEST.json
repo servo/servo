@@ -6714,30 +6714,6 @@
      ],
      {}
     ]
-   ],
-   "css/deferred-paint-ref.html": [
-    [
-     "/_mozilla/css/deferred-paint-ref.html",
-     [
-      [
-       "/_mozilla/css/deferred-paint-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "css/table_valign_presentational_hint_ref.html": [
-    [
-     "/_mozilla/css/table_valign_presentational_hint_ref.html",
-     [
-      [
-       "/_mozilla/css/table_valign_presentational_hint_ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
    ]
   },
   "support": {
@@ -7377,6 +7353,11 @@
     ]
    ],
    "css/data_img_b.html": [
+    [
+     {}
+    ]
+   ],
+   "css/deferred-paint-ref.html": [
     [
      {}
     ]
@@ -9112,6 +9093,11 @@
     ]
    ],
    "css/table_specified_width_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/table_valign_presentational_hint_ref.html": [
     [
      {}
     ]
@@ -20992,8 +20978,8 @@
    "support"
   ],
   "css/deferred-paint-ref.html": [
-   "93956251a11323321fe8b64d5a5de8d218994670",
-   "reftest_node"
+   "f1e7c5f4d65637df18ba3d9a363f5de2205364bb",
+   "support"
   ],
   "css/deferred-paint.html": [
    "f13aa73f06873575763ea926fbfac3d3f79dacff",
@@ -23792,8 +23778,8 @@
    "reftest"
   ],
   "css/table_valign_presentational_hint_ref.html": [
-   "c635e02c974e9d678aa79a0760e993ae8c92abf1",
-   "reftest_node"
+   "47a0c88951354f44853418e101d1f6e56a3843ec",
+   "support"
   ],
   "css/table_vertical_align_absolute_a.html": [
    "f749a3381382d06cd94a095a97feb6a971c6ce46",
