@@ -58,7 +58,7 @@ class OpenSSL(object):
         :param *args: Additional arguments to pass to the command
         """
         self.cmd = [self.binary, cmd]
-        if cmd != "x509":
+        if cmd != "x509" and cmd != "ecparam":
             self.cmd += ["-config", self.conf_path]
         self.cmd += list(args)
 
@@ -332,11 +332,15 @@ class OpenSSLEnvironment(object):
         cert_path = path("cacert.pem")
 
         with self._config_openssl(None) as openssl:
+            openssl("ecparam",
+                    "-name", "secp384r1",
+                    "-genkey",
+                    "-param_enc", "explicit",
+                    "-out", key_path)
             openssl("req",
                     "-batch",
                     "-new",
-                    "-newkey", "rsa:2048",
-                    "-keyout", key_path,
+                    "-key", key_path,
                     "-out", req_path,
                     "-subj", make_subject("web-platform-tests"),
                     "-passout", "pass:%s" % self.password)
@@ -402,13 +406,18 @@ class OpenSSLEnvironment(object):
         self.logger.info("Generating new host cert")
 
         with self._config_openssl(hosts) as openssl:
+            openssl("ecparam",
+                    "-name", "secp384r1",
+                    "-genkey",
+                    "-param_enc", "explicit",
+                    "-out", key_path)
+
             openssl("req",
                     "-batch",
-                    "-newkey", "rsa:2048",
-                    "-keyout", key_path,
-                    "-in", ca_key_path,
-                    "-nodes",
-                    "-out", req_path)
+                    "-new",
+                    "-key", key_path,
+                    "-out", req_path,
+                    "-nodes")
 
             openssl("ca",
                     "-batch",
