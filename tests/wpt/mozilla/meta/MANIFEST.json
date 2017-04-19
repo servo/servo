@@ -6485,6 +6485,18 @@
      {}
     ]
    ],
+   "mozilla/scroll_root.html": [
+    [
+     "/_mozilla/mozilla/scroll_root.html",
+     [
+      [
+       "/_mozilla/mozilla/scroll_root_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "mozilla/scrolling_div_background_borders.html": [
     [
      "/_mozilla/mozilla/scrolling_div_background_borders.html",
@@ -11003,6 +11015,11 @@
     ]
    ],
    "mozilla/restyle-out-of-document-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/scroll_root_ref.html": [
     [
      {}
     ]
@@ -31288,6 +31305,14 @@
   "mozilla/scrollTo.html": [
    "b9917be5fed364dbc46264f641f54f275b5c054a",
    "testharness"
+  ],
+  "mozilla/scroll_root.html": [
+   "21c447dd041a77fb54e2b28c8b76de684afb9560",
+   "reftest"
+  ],
+  "mozilla/scroll_root_ref.html": [
+   "ce75eb73232617c77309aca879ba8d34461538a6",
+   "support"
   ],
   "mozilla/scroll_top_null_target.html": [
    "8e419c3f33fba1bc1444cf4c6dd3e5977f6fd841",
