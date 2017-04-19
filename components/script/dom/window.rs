@@ -52,7 +52,6 @@ use dom::testrunner::TestRunner;
 use dom_struct::dom_struct;
 use euclid::{Point2D, Rect, Size2D};
 use fetch;
-use gfx_traits::ScrollRootId;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::jsapi::{HandleObject, HandleValue, JSAutoCompartment, JSContext};
@@ -122,6 +121,7 @@ use timers::{IsInterval, TimerCallback};
 use tinyfiledialogs::{self, MessageBoxIcon};
 use url::Position;
 use webdriver_handlers::jsval_to_webdriver;
+use webrender_traits::ClipId;
 use webvr_traits::WebVRMsg;
 
 /// Current state of the window object
@@ -1077,9 +1077,10 @@ impl Window {
         //TODO Step 11
         //let document = self.Document();
         // Step 12
+        let global_scope = self.upcast::<GlobalScope>();
         self.perform_a_scroll(x.to_f32().unwrap_or(0.0f32),
                               y.to_f32().unwrap_or(0.0f32),
-                              ScrollRootId::root(),
+                              global_scope.pipeline_id().root_scroll_node(),
                               behavior,
                               None);
     }
@@ -1088,7 +1089,7 @@ impl Window {
     pub fn perform_a_scroll(&self,
                             x: f32,
                             y: f32,
-                            scroll_root_id: ScrollRootId,
+                            scroll_root_id: ClipId,
                             behavior: ScrollBehavior,
                             element: Option<&Element>) {
         //TODO Step 1
@@ -1108,8 +1109,7 @@ impl Window {
         self.update_viewport_for_scroll(x, y);
 
         let global_scope = self.upcast::<GlobalScope>();
-        let message = ConstellationMsg::ScrollFragmentPoint(
-            global_scope.pipeline_id(), scroll_root_id, point, smooth);
+        let message = ConstellationMsg::ScrollFragmentPoint(scroll_root_id, point, smooth);
         global_scope.constellation_chan().send(message).unwrap();
     }
 

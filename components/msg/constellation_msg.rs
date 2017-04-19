@@ -244,6 +244,10 @@ impl PipelineId {
         let PipelineIndex(index) = self.index;
         webrender_traits::PipelineId(namespace_id, index)
     }
+
+    pub fn root_scroll_node(&self) -> webrender_traits::ClipId {
+        webrender_traits::ClipId::root_scroll_node(self.to_webrender())
+    }
 }
 
 impl fmt::Display for PipelineId {

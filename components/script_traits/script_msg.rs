@@ -16,7 +16,6 @@ use canvas_traits::CanvasMsg;
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use euclid::point::Point2D;
 use euclid::size::{Size2D, TypedSize2D};
-use gfx_traits::ScrollRootId;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::{FrameId, FrameType, PipelineId, TraversalDirection};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
@@ -28,6 +27,7 @@ use servo_url::ServoUrl;
 use style_traits::CSSPixel;
 use style_traits::cursor::Cursor;
 use style_traits::viewport::ViewportConstraints;
+use webrender_traits::ClipId;
 
 /// Messages from the layout to the constellation.
 #[derive(Deserialize, Serialize)]
@@ -133,7 +133,7 @@ pub enum ScriptMsg {
     /// Check if an alert dialog box should be presented
     Alert(PipelineId, String, IpcSender<bool>),
     /// Scroll a page in a window
-    ScrollFragmentPoint(PipelineId, ScrollRootId, Point2D<f32>, bool),
+    ScrollFragmentPoint(ClipId, Point2D<f32>, bool),
     /// Set title of current page
     /// https://html.spec.whatwg.org/multipage/#document.title
     SetTitle(PipelineId, Option<String>),

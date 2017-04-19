@@ -1036,9 +1036,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 self.handle_alert(pipeline_id, message, sender);
             }
 
-            FromScriptMsg::ScrollFragmentPoint(pipeline_id, scroll_root_id, point, smooth) => {
-                self.compositor_proxy.send(ToCompositorMsg::ScrollFragmentPoint(pipeline_id,
-                                                                                scroll_root_id,
+            FromScriptMsg::ScrollFragmentPoint(scroll_root_id, point, smooth) => {
+                self.compositor_proxy.send(ToCompositorMsg::ScrollFragmentPoint(scroll_root_id,
                                                                                 point,
                                                                                 smooth));
             }
