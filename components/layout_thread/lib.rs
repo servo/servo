@@ -1083,7 +1083,6 @@ impl LayoutThread {
             ua_or_user: &ua_or_user_guard,
         };
         let mut extra_data = ExtraStyleData {
-            author_style_disabled: None,
             marker: PhantomData,
         };
         let needs_dirtying = Arc::get_mut(&mut rw_data.stylist).unwrap().update(
@@ -1091,6 +1090,7 @@ impl LayoutThread {
             &guards,
             Some(ua_stylesheets),
             data.stylesheets_changed,
+            /* author_styles_disabled = */ false,
             &mut extra_data);
         let needs_reflow = viewport_size_changed && !needs_dirtying;
         if needs_dirtying {

@@ -17,7 +17,8 @@ use shared_lock::{Locked, StylesheetGuards, SharedRwLockReadGuard};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, channel};
-use stylesheets::{FontFaceRule, Origin, Stylesheet};
+use stylesheet_set::StylesheetSet;
+use stylesheets::{FontFaceRule, Origin};
 use stylist::{ExtraStyleData, Stylist};
 
 /// The container for data that a Servo-backed Gecko document needs to style
@@ -27,13 +28,7 @@ pub struct PerDocumentStyleDataImpl {
     pub stylist: Arc<Stylist>,
 
     /// List of stylesheets, mirrored from Gecko.
-    pub stylesheets: Vec<Arc<Stylesheet>>,
-
-    /// Whether the stylesheets list above has changed since the last restyle.
-    pub stylesheets_changed: bool,
-
-    /// Has author style been disabled?
-    pub author_style_disabled: bool,
+    pub stylesheets: StylesheetSet,
 
     // FIXME(bholley): Hook these up to something.
     /// Unused. Will go away when we actually implement transitions and
@@ -66,9 +61,7 @@ impl PerDocumentStyleData {
 
         PerDocumentStyleData(AtomicRefCell::new(PerDocumentStyleDataImpl {
             stylist: Arc::new(Stylist::new(device)),
-            stylesheets: vec![],
-            stylesheets_changed: true,
-            author_style_disabled: false,
+            stylesheets: StylesheetSet::new(),
             new_animations_sender: new_anims_sender,
             new_animations_receiver: new_anims_receiver,
             running_animations: Arc::new(RwLock::new(HashMap::new())),
@@ -97,22 +90,29 @@ impl PerDocumentStyleDataImpl {
             let mut stylist = Arc::get_mut(&mut self.stylist).unwrap();
             Arc::get_mut(&mut stylist.device).unwrap().reset();
         }
-        self.stylesheets_changed = true;
+        self.stylesheets.force_dirty();
         self.flush_stylesheets(guard);
     }
 
     /// Recreate the style data if the stylesheets have changed.
     pub fn flush_stylesheets(&mut self, guard: &SharedRwLockReadGuard) {
-        if self.stylesheets_changed {
-            let mut stylist = Arc::get_mut(&mut self.stylist).unwrap();
-            let mut extra_data = ExtraStyleData {
-                font_faces: &mut self.font_faces,
-                author_style_disabled: Some(self.author_style_disabled),
-            };
-            stylist.update(&self.stylesheets, &StylesheetGuards::same(guard),
-                           None, true, &mut extra_data);
-            self.stylesheets_changed = false;
+        if !self.stylesheets.has_changed() {
+            return;
         }
+
+        let mut stylist = Arc::get_mut(&mut self.stylist).unwrap();
+        let mut extra_data = ExtraStyleData {
+            font_faces: &mut self.font_faces,
+        };
+
+        let author_style_disabled = self.stylesheets.author_style_disabled();
+        let stylesheets = self.stylesheets.flush();
+        stylist.update(stylesheets,
+                       &StylesheetGuards::same(guard),
+                       /* ua_sheets = */ None,
+                       /* stylesheets_changed = */ true,
+                       author_style_disabled,
+                       &mut extra_data);
     }
 
     /// Get the default computed values for this document.

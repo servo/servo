@@ -78,9 +78,6 @@ pub struct Stylist {
     /// If true, the quirks-mode stylesheet is applied.
     quirks_mode: bool,
 
-    /// If true, authored styles are ignored.
-    author_style_disabled: bool,
-
     /// If true, the device has changed, and the stylist needs to be updated.
     is_device_dirty: bool,
 
@@ -137,10 +134,6 @@ pub struct ExtraStyleData<'a> {
     #[cfg(feature = "gecko")]
     pub font_faces: &'a mut Vec<(Arc<Locked<FontFaceRule>>, Origin)>,
 
-    /// A parameter to change a setting to ignore author styles during update.
-    /// A None value indicates that update should use existing settings.
-    pub author_style_disabled: Option<bool>,
-
     #[allow(missing_docs)]
     #[cfg(feature = "servo")]
     pub marker: PhantomData<&'a usize>,
@@ -174,7 +167,6 @@ impl Stylist {
             device: Arc::new(device),
             is_device_dirty: true,
             quirks_mode: false,
-            author_style_disabled: false,
 
             element_map: PerPseudoElementSelectorMap::new(),
             pseudos_map: Default::default(),
@@ -234,6 +226,7 @@ impl Stylist {
                       guards: &StylesheetGuards,
                       ua_stylesheets: Option<&UserAgentStylesheets>,
                       stylesheets_changed: bool,
+                      author_style_disabled: bool,
                       extra_data: &mut ExtraStyleData<'a>) -> bool {
         if !(self.is_device_dirty || stylesheets_changed) {
             return false;
@@ -282,15 +275,11 @@ impl Stylist {
             }
         }
 
-        // Absorb changes to author_style_disabled, if supplied.
-        if let Some(author_style_disabled) = extra_data.author_style_disabled {
-            self.author_style_disabled = author_style_disabled;
-        }
-
         // Only use author stylesheets if author styles are enabled.
-        let author_style_enabled = !self.author_style_disabled;
-        let sheets_to_add = doc_stylesheets.iter().filter(
-            |&s| author_style_enabled || s.origin != Origin::Author);
+        let sheets_to_add = doc_stylesheets.iter().filter(|s| {
+            !author_style_disabled || s.origin != Origin::Author
+        });
+
         for ref stylesheet in sheets_to_add {
             self.add_stylesheet(stylesheet, guards.author, extra_data);
         }

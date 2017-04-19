@@ -13,7 +13,6 @@ use std::env;
 use std::fmt::Write;
 use std::ptr;
 use std::sync::{Arc, Mutex};
-use style::arc_ptr_eq;
 use style::context::{QuirksMode, SharedStyleContext, StyleContext};
 use style::context::{ThreadLocalStyleContext, ThreadLocalStyleContextCreationInfo};
 use style::data::{ElementData, ElementStyles, RestyleData};
@@ -578,9 +577,7 @@ pub extern "C" fn Servo_StyleSet_AppendStyleSheet(raw_data: RawServoStyleSetBorr
     let guard = global_style_data.shared_lock.read();
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
     let sheet = HasArcFFI::as_arc(&raw_sheet);
-    data.stylesheets.retain(|x| !arc_ptr_eq(x, sheet));
-    data.stylesheets.push(sheet.clone());
-    data.stylesheets_changed = true;
+    data.stylesheets.append_stylesheet(sheet);
     if flush {
         data.flush_stylesheets(&guard);
     }
@@ -594,9 +591,7 @@ pub extern "C" fn Servo_StyleSet_PrependStyleSheet(raw_data: RawServoStyleSetBor
     let guard = global_style_data.shared_lock.read();
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
     let sheet = HasArcFFI::as_arc(&raw_sheet);
-    data.stylesheets.retain(|x| !arc_ptr_eq(x, sheet));
-    data.stylesheets.insert(0, sheet.clone());
-    data.stylesheets_changed = true;
+    data.stylesheets.prepend_stylesheet(sheet);
     if flush {
         data.flush_stylesheets(&guard);
     }
@@ -612,10 +607,7 @@ pub extern "C" fn Servo_StyleSet_InsertStyleSheetBefore(raw_data: RawServoStyleS
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
     let sheet = HasArcFFI::as_arc(&raw_sheet);
     let reference = HasArcFFI::as_arc(&raw_reference);
-    data.stylesheets.retain(|x| !arc_ptr_eq(x, sheet));
-    let index = data.stylesheets.iter().position(|x| arc_ptr_eq(x, reference)).unwrap();
-    data.stylesheets.insert(index, sheet.clone());
-    data.stylesheets_changed = true;
+    data.stylesheets.insert_stylesheet_before(sheet, reference);
     if flush {
         data.flush_stylesheets(&guard);
     }
@@ -629,8 +621,7 @@ pub extern "C" fn Servo_StyleSet_RemoveStyleSheet(raw_data: RawServoStyleSetBorr
     let guard = global_style_data.shared_lock.read();
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
     let sheet = HasArcFFI::as_arc(&raw_sheet);
-    data.stylesheets.retain(|x| !arc_ptr_eq(x, sheet));
-    data.stylesheets_changed = true;
+    data.stylesheets.remove_stylesheet(sheet);
     if flush {
         data.flush_stylesheets(&guard);
     }
@@ -648,8 +639,8 @@ pub extern "C" fn Servo_StyleSet_FlushStyleSheets(raw_data: RawServoStyleSetBorr
 pub extern "C" fn Servo_StyleSet_NoteStyleSheetsChanged(raw_data: RawServoStyleSetBorrowed,
                                                         author_style_disabled: bool) {
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
-    data.stylesheets_changed = true;
-    data.author_style_disabled = author_style_disabled;
+    data.stylesheets.force_dirty();
+    data.stylesheets.set_author_style_disabled(author_style_disabled);
 }
 
 #[no_mangle]
