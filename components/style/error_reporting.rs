@@ -75,7 +75,7 @@ impl<'a> ParseError<'a> {
 }
 
 /// A generic trait for an error reporter.
-pub trait ParseErrorReporter : Sync + Send {
+pub trait ParseErrorReporter : Sync {
     /// Called when the style engine detects an error.
     ///
     /// Returns the current input being parsed, the source position it was
