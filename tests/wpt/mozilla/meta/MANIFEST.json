@@ -23824,7 +23824,7 @@
    "support"
   ],
   "css/test_font_family_parsing.html": [
-   "e0df1ad62a5c72e841806c0debd64a36d2898abe",
+   "fb9155875cb9cee7eba6e7a9be311ef02c82a869",
    "testharness"
   ],
   "css/test_variable_legal_values.html": [
@@ -23836,7 +23836,7 @@
    "testharness"
   ],
   "css/test_variable_serialization_specified.html": [
-   "70137258ef07c0983e0927aacbab5ed87b037b54",
+   "b403085f651089d08d6a22731b1a255c357b20c7",
    "testharness"
   ],
   "css/text_align_complex_a.html": [
