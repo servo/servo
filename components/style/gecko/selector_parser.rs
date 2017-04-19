@@ -14,7 +14,6 @@ use selectors::visitor::SelectorVisitor;
 use std::borrow::Cow;
 use std::fmt;
 use std::ptr;
-use std::sync::Arc;
 use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 
 /// A representation of a CSS pseudo-element.
@@ -218,7 +217,7 @@ macro_rules! pseudo_class_name {
             ///
             /// TODO(emilio): We disallow combinators and pseudos here, so we
             /// should use SimpleSelector instead
-            MozAny(Vec<Arc<ComplexSelector<SelectorImpl>>>),
+            MozAny(Vec<ComplexSelector<SelectorImpl>>),
         }
     }
 }
@@ -396,10 +395,10 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
                     }, )*
                     "-moz-any" => {
                         let selectors = parser.parse_comma_separated(|input| {
-                            ComplexSelector::parse(self, input).map(Arc::new)
+                            ComplexSelector::parse(self, input)
                         })?;
                         // Selectors inside `:-moz-any` may not include combinators.
-                        if selectors.iter().any(|s| s.next.is_some()) {
+                        if selectors.iter().flat_map(|x| x.iter_raw()).any(|s| s.is_combinator()) {
                             return Err(())
                         }
                         NonTSPseudoClass::MozAny(selectors)

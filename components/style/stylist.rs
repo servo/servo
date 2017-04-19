@@ -1070,8 +1070,7 @@ impl SelectorMap {
         // correct, and also to not trigger rule tree assertions.
         let mut important = vec![];
         for rule in self.other_rules.iter() {
-            if rule.selector.complex.compound_selector.is_empty() &&
-               rule.selector.complex.next.is_none() {
+            if rule.selector.complex.iter_raw().next().is_none() {
                 let style_rule = rule.style_rule.read_with(guard);
                 let block = style_rule.block.read_with(guard);
                 if block.any_normal() {
@@ -1180,7 +1179,7 @@ impl SelectorMap {
 
     /// Retrieve the first ID name in Rule, or None otherwise.
     pub fn get_id_name(rule: &Rule) -> Option<Atom> {
-        for ss in &rule.selector.complex.compound_selector {
+        for ss in rule.selector.complex.iter() {
             // TODO(pradeep): Implement case-sensitivity based on the
             // document type and quirks mode.
             if let SimpleSelector::ID(ref id) = *ss {
@@ -1193,7 +1192,7 @@ impl SelectorMap {
 
     /// Retrieve the FIRST class name in Rule, or None otherwise.
     pub fn get_class_name(rule: &Rule) -> Option<Atom> {
-        for ss in &rule.selector.complex.compound_selector {
+        for ss in rule.selector.complex.iter() {
             // TODO(pradeep): Implement case-sensitivity based on the
             // document type and quirks mode.
             if let SimpleSelector::Class(ref class) = *ss {
@@ -1206,7 +1205,7 @@ impl SelectorMap {
 
     /// Retrieve the name if it is a type selector, or None otherwise.
     pub fn get_local_name(rule: &Rule) -> Option<LocalNameSelector<SelectorImpl>> {
-        for ss in &rule.selector.complex.compound_selector {
+        for ss in rule.selector.complex.iter() {
             if let SimpleSelector::LocalName(ref n) = *ss {
                 return Some(LocalNameSelector {
                     name: n.name.clone(),

@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 use bloom::BloomFilter;
 use parser::{CaseSensitivity, Combinator, ComplexSelector, LocalName};
-use parser::{SimpleSelector, Selector, SelectorInner};
+use parser::{SimpleSelector, Selector, SelectorInner, SelectorIter};
 use std::borrow::Borrow;
 use tree::Element;
 
@@ -207,7 +207,7 @@ pub fn matches_complex_selector<E, F>(selector: &ComplexSelector<E::Impl>,
      where E: Element,
            F: FnMut(&E, ElementSelectorFlags),
 {
-    match matches_complex_selector_internal(selector,
+    match matches_complex_selector_internal(selector.iter(),
                                             element,
                                             relations,
                                             flags_setter) {
@@ -216,7 +216,7 @@ pub fn matches_complex_selector<E, F>(selector: &ComplexSelector<E::Impl>,
     }
 }
 
-fn matches_complex_selector_internal<E, F>(selector: &ComplexSelector<E::Impl>,
+fn matches_complex_selector_internal<E, F>(mut selector_iter: SelectorIter<E::Impl>,
                                            element: &E,
                                            relations: &mut StyleRelations,
                                            flags_setter: &mut F)
@@ -224,14 +224,12 @@ fn matches_complex_selector_internal<E, F>(selector: &ComplexSelector<E::Impl>,
      where E: Element,
            F: FnMut(&E, ElementSelectorFlags),
 {
-    let matches_all_simple_selectors = selector.compound_selector.iter().all(|simple| {
+    let matches_all_simple_selectors = selector_iter.all(|simple| {
         matches_simple_selector(simple, element, relations, flags_setter)
     });
 
-    let siblings = selector.next.as_ref().map_or(false, |&(_, combinator)| {
-        matches!(combinator, Combinator::NextSibling | Combinator::LaterSibling)
-    });
-
+    let combinator = selector_iter.next_sequence();
+    let siblings = combinator.map_or(false, |c| c.is_sibling());
     if siblings {
         flags_setter(element, HAS_SLOW_SELECTOR_LATER_SIBLINGS);
     }
@@ -240,9 +238,9 @@ fn matches_complex_selector_internal<E, F>(selector: &ComplexSelector<E::Impl>,
         return SelectorMatchingResult::NotMatchedAndRestartFromClosestLaterSibling;
     }
 
-    match selector.next {
+    match combinator {
         None => SelectorMatchingResult::Matched,
-        Some((ref next_selector, combinator)) => {
+        Some(c) => {
             let (mut next_element, candidate_not_found) = if siblings {
                 (element.prev_sibling_element(),
                  SelectorMatchingResult::NotMatchedAndRestartFromClosestDescendant)
@@ -256,11 +254,11 @@ fn matches_complex_selector_internal<E, F>(selector: &ComplexSelector<E::Impl>,
                     None => return candidate_not_found,
                     Some(next_element) => next_element,
                 };
-                let result = matches_complex_selector_internal(&**next_selector,
+                let result = matches_complex_selector_internal(selector_iter.clone(),
                                                                &element,
                                                                relations,
                                                                flags_setter);
-                match (result, combinator) {
+                match (result, c) {
                     // Return the status immediately.
                     (SelectorMatchingResult::Matched, _) => return result,
                     (SelectorMatchingResult::NotMatchedGlobally, _) => return result,
@@ -319,6 +317,7 @@ fn matches_simple_selector<E, F>(
     }
 
     match *selector {
+        SimpleSelector::Combinator(_) => unreachable!(),
         SimpleSelector::LocalName(LocalName { ref name, ref lower_name }) => {
             let name = if element.is_html_element_in_html_document() { lower_name } else { name };
             element.get_local_name() == name.borrow()
@@ -421,7 +420,7 @@ fn matches_simple_selector<E, F>(
         }
         SimpleSelector::Negation(ref negated) => {
             !negated.iter().all(|s| {
-                match matches_complex_selector_internal(s,
+                match matches_complex_selector_internal(s.iter(),
                                                         element,
                                                         relations,
                                                         flags_setter) {
