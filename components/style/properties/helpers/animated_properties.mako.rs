@@ -158,6 +158,16 @@ impl TransitionProperty {
             _ => panic!("Not allowed to call longhands() for this TransitionProperty")
         }
     }
+
+    /// Returns true if this TransitionProperty is a shorthand.
+    pub fn is_shorthand(&self) -> bool {
+        match *self {
+            % for prop in data.shorthands_except_all():
+                TransitionProperty::${prop.camel_case} => true,
+            % endfor
+            _ => false
+        }
+    }
 }
 
 /// Returns true if this nsCSSPropertyID is one of the animatable properties.
