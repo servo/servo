@@ -84,7 +84,7 @@ fn test_parse_stylesheet() {
             CssRule::Style(Arc::new(stylesheet.shared_lock.wrap(StyleRule {
                 selectors: SelectorList(vec![
                     Selector {
-                        complex_selector: Arc::new(ComplexSelector {
+                        inner: SelectorInner::new(Arc::new(ComplexSelector {
                             compound_selector: vec![
                                 SimpleSelector::Namespace(Namespace {
                                     prefix: None,
@@ -104,7 +104,7 @@ fn test_parse_stylesheet() {
                                 }, "hidden".to_owned(), CaseSensitivity::CaseInsensitive)
                             ],
                             next: None,
-                        }),
+                        })),
                         pseudo_element: None,
                         specificity: (0 << 20) + (1 << 10) + (1 << 0),
                     },
@@ -120,7 +120,7 @@ fn test_parse_stylesheet() {
             CssRule::Style(Arc::new(stylesheet.shared_lock.wrap(StyleRule {
                 selectors: SelectorList(vec![
                     Selector {
-                        complex_selector: Arc::new(ComplexSelector {
+                        inner: SelectorInner::new(Arc::new(ComplexSelector {
                             compound_selector: vec![
                                 SimpleSelector::Namespace(Namespace {
                                     prefix: None,
@@ -132,12 +132,12 @@ fn test_parse_stylesheet() {
                                 }),
                             ],
                             next: None,
-                        }),
+                        })),
                         pseudo_element: None,
                         specificity: (0 << 20) + (0 << 10) + (1 << 0),
                     },
                     Selector {
-                        complex_selector: Arc::new(ComplexSelector {
+                        inner: SelectorInner::new(Arc::new(ComplexSelector {
                             compound_selector: vec![
                                 SimpleSelector::Namespace(Namespace {
                                     prefix: None,
@@ -149,7 +149,7 @@ fn test_parse_stylesheet() {
                                 }),
                             ],
                             next: None,
-                        }),
+                        })),
                         pseudo_element: None,
                         specificity: (0 << 20) + (0 << 10) + (1 << 0),
                     },
@@ -162,7 +162,7 @@ fn test_parse_stylesheet() {
             CssRule::Style(Arc::new(stylesheet.shared_lock.wrap(StyleRule {
                 selectors: SelectorList(vec![
                     Selector {
-                        complex_selector: Arc::new(ComplexSelector {
+                        inner: SelectorInner::new(Arc::new(ComplexSelector {
                             compound_selector: vec![
                                 SimpleSelector::Namespace(Namespace {
                                     prefix: None,
@@ -180,7 +180,7 @@ fn test_parse_stylesheet() {
                                 ],
                                 next: None,
                             }), Combinator::Child)),
-                        }),
+                        })),
                         pseudo_element: None,
                         specificity: (1 << 20) + (1 << 10) + (0 << 0),
                     },
