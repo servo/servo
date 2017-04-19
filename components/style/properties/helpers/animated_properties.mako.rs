@@ -4,8 +4,6 @@
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
-<% from data import SYSTEM_FONT_LONGHANDS %>
-
 use app_units::Au;
 use cssparser::{Color as CSSParserColor, Parser, RGBA};
 use euclid::{Point2D, Size2D};
@@ -360,8 +358,7 @@ impl AnimationValue {
     }
 
     /// Construct an AnimationValue from a property declaration
-    pub fn from_declaration(decl: &PropertyDeclaration, context: &mut Context,
-                            initial: &ComputedValues) -> Option<Self> {
+    pub fn from_declaration(decl: &PropertyDeclaration, context: &Context, initial: &ComputedValues) -> Option<Self> {
         use error_reporting::StdoutErrorReporter;
         use properties::LonghandId;
         use properties::DeclaredValue;
@@ -370,11 +367,6 @@ impl AnimationValue {
             % for prop in data.longhands:
             % if prop.animatable:
             PropertyDeclaration::${prop.camel_case}(ref val) => {
-            % if prop.ident in SYSTEM_FONT_LONGHANDS and product == "gecko":
-                if let Some(sf) = val.get_system() {
-                    longhands::system_font::resolve_system_font(sf, context);
-                }
-            % endif
                 Some(AnimationValue::${prop.camel_case}(val.to_computed_value(context)))
             },
             % endif
