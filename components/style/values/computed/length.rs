@@ -76,6 +76,16 @@ impl CalcLengthOrPercentage {
     pub fn percentage(&self) -> CSSFloat {
         self.percentage.unwrap_or(0.)
     }
+
+    /// If there are special rules for computing percentages in a value (e.g. the height property),
+    /// they apply whenever a calc() expression contains percentages.
+    pub fn to_computed(&self, container_len: Option<Au>) -> Option<Au> {
+        match (container_len, self.percentage) {
+            (Some(len), Some(percent)) => Some(self.length + len.scale_by(percent)),
+            (_, None) => Some(self.length),
+            _ => None,
+        }
+    }
 }
 
 impl From<LengthOrPercentage> for CalcLengthOrPercentage {
