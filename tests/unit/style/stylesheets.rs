@@ -84,27 +84,24 @@ fn test_parse_stylesheet() {
             CssRule::Style(Arc::new(stylesheet.shared_lock.wrap(StyleRule {
                 selectors: SelectorList(vec![
                     Selector {
-                        inner: SelectorInner::new(Arc::new(ComplexSelector {
-                            compound_selector: vec![
-                                SimpleSelector::Namespace(Namespace {
+                        inner: SelectorInner::from_vec(vec![
+                            Component::Namespace(Namespace {
+                                prefix: None,
+                                url: NsAtom::from("http://www.w3.org/1999/xhtml")
+                            }),
+                            Component::LocalName(LocalName {
+                                name: local_name!("input"),
+                                lower_name: local_name!("input"),
+                            }),
+                            Component::AttrEqual(AttrSelector {
+                                name: local_name!("type"),
+                                lower_name: local_name!("type"),
+                                namespace: NamespaceConstraint::Specific(Namespace {
                                     prefix: None,
-                                    url: NsAtom::from("http://www.w3.org/1999/xhtml")
+                                    url: ns!()
                                 }),
-                                SimpleSelector::LocalName(LocalName {
-                                    name: local_name!("input"),
-                                    lower_name: local_name!("input"),
-                                }),
-                                SimpleSelector::AttrEqual(AttrSelector {
-                                    name: local_name!("type"),
-                                    lower_name: local_name!("type"),
-                                    namespace: NamespaceConstraint::Specific(Namespace {
-                                        prefix: None,
-                                        url: ns!()
-                                    }),
-                                }, "hidden".to_owned(), CaseSensitivity::CaseInsensitive)
-                            ],
-                            next: None,
-                        })),
+                            }, "hidden".to_owned(), CaseSensitivity::CaseInsensitive)
+                        ]),
                         pseudo_element: None,
                         specificity: (0 << 20) + (1 << 10) + (1 << 0),
                     },
@@ -120,36 +117,30 @@ fn test_parse_stylesheet() {
             CssRule::Style(Arc::new(stylesheet.shared_lock.wrap(StyleRule {
                 selectors: SelectorList(vec![
                     Selector {
-                        inner: SelectorInner::new(Arc::new(ComplexSelector {
-                            compound_selector: vec![
-                                SimpleSelector::Namespace(Namespace {
-                                    prefix: None,
-                                    url: NsAtom::from("http://www.w3.org/1999/xhtml")
-                                }),
-                                SimpleSelector::LocalName(LocalName {
-                                    name: local_name!("html"),
-                                    lower_name: local_name!("html"),
-                                }),
-                            ],
-                            next: None,
-                        })),
+                        inner: SelectorInner::from_vec(vec![
+                            Component::Namespace(Namespace {
+                                prefix: None,
+                                url: NsAtom::from("http://www.w3.org/1999/xhtml")
+                            }),
+                            Component::LocalName(LocalName {
+                                name: local_name!("html"),
+                                lower_name: local_name!("html"),
+                            }),
+                        ]),
                         pseudo_element: None,
                         specificity: (0 << 20) + (0 << 10) + (1 << 0),
                     },
                     Selector {
-                        inner: SelectorInner::new(Arc::new(ComplexSelector {
-                            compound_selector: vec![
-                                SimpleSelector::Namespace(Namespace {
-                                    prefix: None,
-                                    url: NsAtom::from("http://www.w3.org/1999/xhtml")
-                                }),
-                                SimpleSelector::LocalName(LocalName {
-                                    name: local_name!("body"),
-                                    lower_name: local_name!("body"),
-                                }),
-                            ],
-                            next: None,
-                        })),
+                        inner: SelectorInner::from_vec(vec![
+                            Component::Namespace(Namespace {
+                                prefix: None,
+                                url: NsAtom::from("http://www.w3.org/1999/xhtml")
+                            }),
+                            Component::LocalName(LocalName {
+                                name: local_name!("body"),
+                                lower_name: local_name!("body"),
+                            }),
+                        ]),
                         pseudo_element: None,
                         specificity: (0 << 20) + (0 << 10) + (1 << 0),
                     },
@@ -162,25 +153,19 @@ fn test_parse_stylesheet() {
             CssRule::Style(Arc::new(stylesheet.shared_lock.wrap(StyleRule {
                 selectors: SelectorList(vec![
                     Selector {
-                        inner: SelectorInner::new(Arc::new(ComplexSelector {
-                            compound_selector: vec![
-                                SimpleSelector::Namespace(Namespace {
-                                    prefix: None,
-                                    url: NsAtom::from("http://www.w3.org/1999/xhtml")
-                                }),
-                                SimpleSelector::Class(Atom::from("ok")),
-                            ],
-                            next: Some((Arc::new(ComplexSelector {
-                                compound_selector: vec![
-                                    SimpleSelector::Namespace(Namespace {
-                                        prefix: None,
-                                        url: NsAtom::from("http://www.w3.org/1999/xhtml")
-                                    }),
-                                    SimpleSelector::ID(Atom::from("d1")),
-                                ],
-                                next: None,
-                            }), Combinator::Child)),
-                        })),
+                        inner: SelectorInner::from_vec(vec![
+                            Component::Namespace(Namespace {
+                                prefix: None,
+                                url: NsAtom::from("http://www.w3.org/1999/xhtml")
+                            }),
+                            Component::ID(Atom::from("d1")),
+                            Component::Combinator(Combinator::Child),
+                            Component::Namespace(Namespace {
+                                prefix: None,
+                                url: NsAtom::from("http://www.w3.org/1999/xhtml")
+                            }),
+                            Component::Class(Atom::from("ok")),
+                        ]),
                         pseudo_element: None,
                         specificity: (1 << 20) + (1 << 10) + (0 << 0),
                     },

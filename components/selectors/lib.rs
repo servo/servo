@@ -9,6 +9,7 @@ extern crate fnv;
 extern crate precomputed_hash;
 extern crate smallvec;
 
+pub mod arcslice;
 pub mod bloom;
 pub mod matching;
 pub mod parser;

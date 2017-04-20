@@ -17,10 +17,10 @@ use selector_parser::{AttrValue, NonTSPseudoClass, Snapshot, SelectorImpl};
 use selectors::{Element, MatchAttr};
 use selectors::matching::{ElementSelectorFlags, StyleRelations};
 use selectors::matching::matches_selector;
-use selectors::parser::{AttrSelector, Combinator, ComplexSelector, SelectorInner, SelectorMethods, SimpleSelector};
+use selectors::parser::{AttrSelector, Combinator, ComplexSelector, Component};
+use selectors::parser::{SelectorInner, SelectorIter, SelectorMethods};
 use selectors::visitor::SelectorVisitor;
 use std::clone::Clone;
-use std::sync::Arc;
 
 bitflags! {
     /// When the ElementState of an element (like IN_HOVER_STATE) changes,
@@ -388,24 +388,24 @@ impl<'a, E> Element for ElementWrapper<'a, E>
     }
 }
 
-fn selector_to_state(sel: &SimpleSelector<SelectorImpl>) -> ElementState {
+fn selector_to_state(sel: &Component<SelectorImpl>) -> ElementState {
     match *sel {
-        SimpleSelector::NonTSPseudoClass(ref pc) => pc.state_flag(),
+        Component::NonTSPseudoClass(ref pc) => pc.state_flag(),
         _ => ElementState::empty(),
     }
 }
 
-fn is_attr_selector(sel: &SimpleSelector<SelectorImpl>) -> bool {
+fn is_attr_selector(sel: &Component<SelectorImpl>) -> bool {
     match *sel {
-        SimpleSelector::ID(_) |
-        SimpleSelector::Class(_) |
-        SimpleSelector::AttrExists(_) |
-        SimpleSelector::AttrEqual(_, _, _) |
-        SimpleSelector::AttrIncludes(_, _) |
-        SimpleSelector::AttrDashMatch(_, _) |
-        SimpleSelector::AttrPrefixMatch(_, _) |
-        SimpleSelector::AttrSubstringMatch(_, _) |
-        SimpleSelector::AttrSuffixMatch(_, _) => true,
+        Component::ID(_) |
+        Component::Class(_) |
+        Component::AttrExists(_) |
+        Component::AttrEqual(_, _, _) |
+        Component::AttrIncludes(_, _) |
+        Component::AttrDashMatch(_, _) |
+        Component::AttrPrefixMatch(_, _) |
+        Component::AttrSubstringMatch(_, _) |
+        Component::AttrSuffixMatch(_, _) => true,
         _ => false,
     }
 }
@@ -416,22 +416,22 @@ fn is_attr_selector(sel: &SimpleSelector<SelectorImpl>) -> bool {
 ///
 /// We use this for selectors that can have different matching behavior between
 /// siblings that are otherwise identical as far as the cache is concerned.
-fn needs_cache_revalidation(sel: &SimpleSelector<SelectorImpl>) -> bool {
+fn needs_cache_revalidation(sel: &Component<SelectorImpl>) -> bool {
     match *sel {
-        SimpleSelector::Empty |
-        SimpleSelector::FirstChild |
-        SimpleSelector::LastChild |
-        SimpleSelector::OnlyChild |
-        SimpleSelector::NthChild(..) |
-        SimpleSelector::NthLastChild(..) |
-        SimpleSelector::NthOfType(..) |
-        SimpleSelector::NthLastOfType(..) |
-        SimpleSelector::FirstOfType |
-        SimpleSelector::LastOfType |
-        SimpleSelector::OnlyOfType => true,
+        Component::Empty |
+        Component::FirstChild |
+        Component::LastChild |
+        Component::OnlyChild |
+        Component::NthChild(..) |
+        Component::NthLastChild(..) |
+        Component::NthOfType(..) |
+        Component::NthLastOfType(..) |
+        Component::FirstOfType |
+        Component::LastOfType |
+        Component::OnlyOfType => true,
         // FIXME(emilio): This sets the "revalidation" flag for :any, which is
         // probably expensive given we use it a lot in UA sheets.
-        SimpleSelector::NonTSPseudoClass(ref p) => p.state_flag().is_empty(),
+        Component::NonTSPseudoClass(ref p) => p.state_flag().is_empty(),
         _ => false,
     }
 }
@@ -509,7 +509,7 @@ impl SelectorVisitor for SensitivitiesVisitor {
     type Impl = SelectorImpl;
 
     fn visit_complex_selector(&mut self,
-                              _: &ComplexSelector<SelectorImpl>,
+                              _: SelectorIter<SelectorImpl>,
                               combinator: Option<Combinator>) -> bool {
         self.hint |= combinator_to_restyle_hint(combinator);
         self.needs_revalidation |= self.hint.contains(RESTYLE_LATER_SIBLINGS);
@@ -517,7 +517,7 @@ impl SelectorVisitor for SensitivitiesVisitor {
         true
     }
 
-    fn visit_simple_selector(&mut self, s: &SimpleSelector<SelectorImpl>) -> bool {
+    fn visit_simple_selector(&mut self, s: &Component<SelectorImpl>) -> bool {
         self.sensitivities.states.insert(selector_to_state(s));
 
         if !self.sensitivities.attrs {
@@ -567,50 +567,47 @@ impl DependencySet {
     /// cache revalidation, that is, whether two siblings of the same "shape"
     /// may have different style due to this selector.
     pub fn note_selector(&mut self,
-                         selector: &Arc<ComplexSelector<SelectorImpl>>)
+                         base: &ComplexSelector<SelectorImpl>)
                          -> bool
     {
+        let mut next = Some(base.clone());
         let mut combinator = None;
-        let mut current = selector;
-
         let mut needs_revalidation = false;
 
-        loop {
-            let mut sensitivities_visitor = SensitivitiesVisitor {
+        while let Some(current) = next.take() {
+            // Set up our visitor.
+            let mut visitor = SensitivitiesVisitor {
                 sensitivities: Sensitivities::new(),
-                hint: RestyleHint::empty(),
+                hint: combinator_to_restyle_hint(combinator),
                 needs_revalidation: false,
             };
 
-            for ss in &current.compound_selector {
-                ss.visit(&mut sensitivities_visitor);
+            {
+                // Visit all the simple selectors.
+                let mut iter = current.iter();
+                let mut index = 0usize;
+                for ss in &mut iter {
+                    ss.visit(&mut visitor);
+                    index += 1;
+                }
+
+                // Prepare the next sequence of simple selectors.
+                if let Some(next_combinator) = iter.next_sequence() {
+                    next = Some(current.slice_from(index + 1));
+                    combinator = Some(next_combinator);
+                }
             }
 
-            needs_revalidation |= sensitivities_visitor.needs_revalidation;
-
-            let SensitivitiesVisitor {
-                sensitivities,
-                mut hint,
-                ..
-            } = sensitivities_visitor;
-
-            hint |= combinator_to_restyle_hint(combinator);
-
-            if !sensitivities.is_empty() {
+            // Note what we found.
+            needs_revalidation |= visitor.needs_revalidation;
+            if !visitor.sensitivities.is_empty() {
                 self.add_dependency(Dependency {
-                    sensitivities: sensitivities,
-                    hint: hint,
-                    selector: SelectorInner::new(current.clone()),
+                    sensitivities: visitor.sensitivities,
+                    hint: visitor.hint,
+                    selector: SelectorInner::new(current),
                 })
             }
 
-            match current.next {
-                Some((ref next, next_combinator)) => {
-                    current = next;
-                    combinator = Some(next_combinator);
-                }
-                None => break,
-            }
         }
 
         needs_revalidation
@@ -729,7 +726,7 @@ fn smoke_restyle_hints() {
     let mut dependencies = DependencySet::new();
 
     let mut p = Parser::new(":not(:active) ~ label");
-    let selector = Arc::new(ComplexSelector::parse(&parser, &mut p).unwrap());
+    let selector = ComplexSelector::parse(&parser, &mut p).unwrap();
     dependencies.note_selector(&selector);
     assert_eq!(dependencies.len(), 1);
     assert_eq!(dependencies.state_deps.len(), 1);

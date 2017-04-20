@@ -6,7 +6,8 @@
 
 #![deny(missing_docs)]
 
-use parser::{AttrSelector, Combinator, ComplexSelector, SelectorImpl, SimpleSelector};
+use parser::{AttrSelector, Combinator, Component};
+use parser::{SelectorImpl, SelectorIter};
 
 /// A trait to visit selector properties.
 ///
@@ -24,7 +25,7 @@ pub trait SelectorVisitor {
     }
 
     /// Visit a simple selector.
-    fn visit_simple_selector(&mut self, _: &SimpleSelector<Self::Impl>) -> bool {
+    fn visit_simple_selector(&mut self, _: &Component<Self::Impl>) -> bool {
         true
     }
 
@@ -33,7 +34,7 @@ pub trait SelectorVisitor {
     /// Gets the combinator to the right of the selector, or `None` if the
     /// selector is the leftmost one.
     fn visit_complex_selector(&mut self,
-                              _: &ComplexSelector<Self::Impl>,
+                              _: SelectorIter<Self::Impl>,
                               _combinator_to_right: Option<Combinator>)
                               -> bool {
         true
