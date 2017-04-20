@@ -217,7 +217,7 @@ macro_rules! pseudo_class_name {
             ///
             /// TODO(emilio): We disallow combinators and pseudos here, so we
             /// should use SimpleSelector instead
-            MozAny(Vec<ComplexSelector<SelectorImpl>>),
+            MozAny(Box<[ComplexSelector<SelectorImpl>]>),
         }
     }
 }
@@ -266,7 +266,7 @@ impl SelectorMethods for NonTSPseudoClass {
         where V: SelectorVisitor<Impl = Self::Impl>,
     {
         if let NonTSPseudoClass::MozAny(ref selectors) = *self {
-            for selector in selectors {
+            for selector in selectors.iter() {
                 if !selector.visit(visitor) {
                     return false;
                 }
@@ -401,7 +401,7 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
                         if selectors.iter().flat_map(|x| x.iter_raw()).any(|s| s.is_combinator()) {
                             return Err(())
                         }
-                        NonTSPseudoClass::MozAny(selectors)
+                        NonTSPseudoClass::MozAny(selectors.into_boxed_slice())
                     }
                     _ => return Err(())
                 }

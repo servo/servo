@@ -237,7 +237,7 @@ impl<Impl: SelectorImpl> SelectorMethods for SimpleSelector<Impl> {
 
         match *self {
             Negation(ref negated) => {
-                for selector in negated {
+                for selector in negated.iter() {
                     if !selector.visit(visitor) {
                         return false;
                     }
@@ -453,7 +453,7 @@ pub enum SimpleSelector<Impl: SelectorImpl> {
     AttrSuffixNeverMatch(AttrSelector<Impl>, Impl::AttrValue),  // empty value
 
     // Pseudo-classes
-    Negation(Vec<ComplexSelector<Impl>>),
+    Negation(Box<[ComplexSelector<Impl>]>),
     FirstChild, LastChild, OnlyChild,
     Root,
     Empty,
@@ -1163,7 +1163,7 @@ fn parse_negation<P, Impl>(parser: &P,
     where P: Parser<Impl=Impl>, Impl: SelectorImpl
 {
     input.parse_comma_separated(|input| ComplexSelector::parse(parser, input))
-         .map(SimpleSelector::Negation)
+         .map(|v| SimpleSelector::Negation(v.into_boxed_slice()))
 }
 
 /// simple_selector_sequence
@@ -1681,7 +1681,7 @@ pub mod tests {
                         ComplexSelector::from_vec(vec!(
                                 SimpleSelector::ID(DummyAtom::from("provel")),
                                 SimpleSelector::Class(DummyAtom::from("old")),
-                    )))
+                    ))).into_boxed_slice()
             ))),
             pseudo_element: None,
             specificity: specificity(1, 1, 0),
