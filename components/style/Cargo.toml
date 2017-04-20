@@ -20,7 +20,7 @@ servo = ["serde/unstable", "serde", "serde_derive", "heapsize", "heapsize_derive
          "cssparser/heapsize", "cssparser/serde", "encoding",
          "rayon/unstable", "servo_url"]
 testing = []
-gecko_debug = []
+gecko_debug = ["nsstring_vendor/gecko_debug"]
 
 [dependencies]
 app_units = "0.4"
