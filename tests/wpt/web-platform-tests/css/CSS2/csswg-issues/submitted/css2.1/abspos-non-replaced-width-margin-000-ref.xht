@@ -1,0 +1,458 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test Reference</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/"/>
+<link rel="alternate" href="http://mxr.mozilla.org/mozilla-central/source/layout/reftests/abspos-non-replaced-width-offset-margin-ref.html"/>
+<style type="text/css">
+
+html, body { margin: 0; padding: 0; border: none; }
+div { height: 1px; background: navy; }
+
+</style>
+</head>
+<body>
+
+<!-- ***** NARROW WIDTH ***** -->
+
+<!-- nothing auto -->
+<div style="margin-left: 70px; width: 177px;"></div>
+<div style="margin-left: 496px; width: 177px;"></div>
+<div style="margin-left: 70px; width: 177px;"></div>
+<div style="margin-left: 496px; width: 177px;"></div>
+<div style="margin-left: 70px; width: 177px;"></div>
+<div style="margin-left: 496px; width: 177px;"></div>
+<div style="margin-left: 70px; width: 177px;"></div>
+<div style="margin-left: 496px; width: 177px;"></div>
+<!-- only left auto -->
+<div style="margin-left: 496px; width: 177px;"></div>
+<div style="margin-left: 496px; width: 177px;"></div>
+<div style="margin-left: 496px; width: 177px;"></div>
+<div style="margin-left: 496px; width: 177px;"></div>
+<div style="margin-left: 496px; width: 177px;"></div>
+<div style="margin-left: 496px; width: 177px;"></div>
+<div style="margin-left: 496px; width: 177px;"></div>
+<div style="margin-left: 496px; width: 177px;"></div>
+<!-- only right auto -->
+<div style="margin-left: 70px; width: 177px;"></div>
+<div style="margin-left: 70px; width: 177px;"></div>
+<div style="margin-left: 70px; width: 177px;"></div>
+<div style="margin-left: 70px; width: 177px;"></div>
+<div style="margin-left: 70px; width: 177px;"></div>
+<div style="margin-left: 70px; width: 177px;"></div>
+<div style="margin-left: 70px; width: 177px;"></div>
+<div style="margin-left: 70px; width: 177px;"></div>
+<!-- left and right auto -->
+<div style="margin-left: 167px; width: 177px;"></div>
+<div style="margin-left: 167px; width: 177px;"></div>
+<div style="margin-left: 454px; width: 177px;"></div>
+<div style="margin-left: 454px; width: 177px;"></div>
+<div style="margin-left: 167px; width: 177px;"></div>
+<div style="margin-left: 167px; width: 177px;"></div>
+<div style="margin-left: 454px; width: 177px;"></div>
+<div style="margin-left: 454px; width: 177px;"></div>
+<!-- only margin-left auto -->
+<div style="margin-left: 496px; width: 177px;"></div>
+<div style="margin-left: 496px; width: 177px;"></div>
+<div style="margin-left: 496px; width: 177px;"></div>
+<div style="margin-left: 496px; width: 177px;"></div>
+<div style="margin-left: 496px; width: 177px;"></div>
+<div style="margin-left: 496px; width: 177px;"></div>
+<div style="margin-left: 496px; width: 177px;"></div>
+<div style="margin-left: 496px; width: 177px;"></div>
+<!-- left and margin-left auto -->
+<div style="margin-left: 496px; width: 177px;"></div>
+<div style="margin-left: 496px; width: 177px;"></div>
+<div style="margin-left: 496px; width: 177px;"></div>
+<div style="margin-left: 496px; width: 177px;"></div>
+<div style="margin-left: 496px; width: 177px;"></div>
+<div style="margin-left: 496px; width: 177px;"></div>
+<div style="margin-left: 496px; width: 177px;"></div>
+<div style="margin-left: 496px; width: 177px;"></div>
+<!-- right and margin-left auto (margin-left like 0) -->
+<div style="margin-left: 53px; width: 177px;"></div>
+<div style="margin-left: 53px; width: 177px;"></div>
+<div style="margin-left: 53px; width: 177px;"></div>
+<div style="margin-left: 53px; width: 177px;"></div>
+<div style="margin-left: 53px; width: 177px;"></div>
+<div style="margin-left: 53px; width: 177px;"></div>
+<div style="margin-left: 53px; width: 177px;"></div>
+<div style="margin-left: 53px; width: 177px;"></div>
+<!-- left and right and margin-left auto (margin-left like 0) -->
+<div style="margin-left: 150px; width: 177px;"></div>
+<div style="margin-left: 150px; width: 177px;"></div>
+<div style="margin-left: 454px; width: 177px;"></div>
+<div style="margin-left: 454px; width: 177px;"></div>
+<div style="margin-left: 150px; width: 177px;"></div>
+<div style="margin-left: 150px; width: 177px;"></div>
+<div style="margin-left: 454px; width: 177px;"></div>
+<div style="margin-left: 454px; width: 177px;"></div>
+<!-- only margin-right auto -->
+<div style="margin-left: 70px; width: 177px;"></div>
+<div style="margin-left: 70px; width: 177px;"></div>
+<div style="margin-left: 70px; width: 177px;"></div>
+<div style="margin-left: 70px; width: 177px;"></div>
+<div style="margin-left: 70px; width: 177px;"></div>
+<div style="margin-left: 70px; width: 177px;"></div>
+<div style="margin-left: 70px; width: 177px;"></div>
+<div style="margin-left: 70px; width: 177px;"></div>
+<!-- left and margin-right auto (margin-right like 0) -->
+<div style="margin-left: 515px; width: 177px;"></div>
+<div style="margin-left: 515px; width: 177px;"></div>
+<div style="margin-left: 515px; width: 177px;"></div>
+<div style="margin-left: 515px; width: 177px;"></div>
+<div style="margin-left: 515px; width: 177px;"></div>
+<div style="margin-left: 515px; width: 177px;"></div>
+<div style="margin-left: 515px; width: 177px;"></div>
+<div style="margin-left: 515px; width: 177px;"></div>
+<!-- right and margin-right auto -->
+<div style="margin-left: 70px; width: 177px;"></div>
+<div style="margin-left: 70px; width: 177px;"></div>
+<div style="margin-left: 70px; width: 177px;"></div>
+<div style="margin-left: 70px; width: 177px;"></div>
+<div style="margin-left: 70px; width: 177px;"></div>
+<div style="margin-left: 70px; width: 177px;"></div>
+<div style="margin-left: 70px; width: 177px;"></div>
+<div style="margin-left: 70px; width: 177px;"></div>
+<!-- left and right and margin-right auto (margin-right like 0) -->
+<div style="margin-left: 167px; width: 177px;"></div>
+<div style="margin-left: 167px; width: 177px;"></div>
+<div style="margin-left: 473px; width: 177px;"></div>
+<div style="margin-left: 473px; width: 177px;"></div>
+<div style="margin-left: 167px; width: 177px;"></div>
+<div style="margin-left: 167px; width: 177px;"></div>
+<div style="margin-left: 473px; width: 177px;"></div>
+<div style="margin-left: 473px; width: 177px;"></div>
+<!-- margin-left and margin-right auto -->
+<div style="margin-left: 284px; width: 177px;"></div>
+<div style="margin-left: 284px; width: 177px;"></div>
+<div style="margin-left: 284px; width: 177px;"></div>
+<div style="margin-left: 284px; width: 177px;"></div>
+<div style="margin-left: 284px; width: 177px;"></div>
+<div style="margin-left: 284px; width: 177px;"></div>
+<div style="margin-left: 284px; width: 177px;"></div>
+<div style="margin-left: 284px; width: 177px;"></div>
+<!-- left and margin-left and margin-right auto (margin-right like 0) -->
+<div style="margin-left: 515px; width: 177px;"></div>
+<div style="margin-left: 515px; width: 177px;"></div>
+<div style="margin-left: 515px; width: 177px;"></div>
+<div style="margin-left: 515px; width: 177px;"></div>
+<div style="margin-left: 515px; width: 177px;"></div>
+<div style="margin-left: 515px; width: 177px;"></div>
+<div style="margin-left: 515px; width: 177px;"></div>
+<div style="margin-left: 515px; width: 177px;"></div>
+<!-- right and margin-left and margin-right auto (margin-left like 0) -->
+<div style="margin-left: 53px; width: 177px;"></div>
+<div style="margin-left: 53px; width: 177px;"></div>
+<div style="margin-left: 53px; width: 177px;"></div>
+<div style="margin-left: 53px; width: 177px;"></div>
+<div style="margin-left: 53px; width: 177px;"></div>
+<div style="margin-left: 53px; width: 177px;"></div>
+<div style="margin-left: 53px; width: 177px;"></div>
+<div style="margin-left: 53px; width: 177px;"></div>
+<!-- left and right and margin-left and margin-right auto (margin-left and margin-right like 0) -->
+<div style="margin-left: 150px; width: 177px;"></div>
+<div style="margin-left: 150px; width: 177px;"></div>
+<div style="margin-left: 473px; width: 177px;"></div>
+<div style="margin-left: 473px; width: 177px;"></div>
+<div style="margin-left: 150px; width: 177px;"></div>
+<div style="margin-left: 150px; width: 177px;"></div>
+<div style="margin-left: 473px; width: 177px;"></div>
+<div style="margin-left: 473px; width: 177px;"></div>
+
+<!-- AUTO WIDTH -->
+
+<!-- nothing auto -->
+<div style="margin-left: 70px; width: 603px;"></div>
+<div style="margin-left: 70px; width: 603px;"></div>
+<div style="margin-left: 70px; width: 603px;"></div>
+<div style="margin-left: 70px; width: 603px;"></div>
+<div style="margin-left: 70px; width: 603px;"></div>
+<div style="margin-left: 70px; width: 603px;"></div>
+<div style="margin-left: 70px; width: 603px;"></div>
+<div style="margin-left: 70px; width: 603px;"></div>
+<!-- only left auto -->
+<div style="margin-left: 577px; width: 96px;"></div>
+<div style="margin-left: 577px; width: 96px;"></div>
+<div style="margin-left: 577px; width: 96px;"></div>
+<div style="margin-left: 577px; width: 96px;"></div>
+<div style="margin-left: 577px; width: 96px;"></div>
+<div style="margin-left: 577px; width: 96px;"></div>
+<div style="margin-left: 577px; width: 96px;"></div>
+<div style="margin-left: 577px; width: 96px;"></div>
+<!-- only right auto -->
+<div style="margin-left: 70px; width: 96px;"></div>
+<div style="margin-left: 70px; width: 96px;"></div>
+<div style="margin-left: 70px; width: 96px;"></div>
+<div style="margin-left: 70px; width: 96px;"></div>
+<div style="margin-left: 70px; width: 96px;"></div>
+<div style="margin-left: 70px; width: 96px;"></div>
+<div style="margin-left: 70px; width: 96px;"></div>
+<div style="margin-left: 70px; width: 96px;"></div>
+<!-- left and right auto -->
+<div style="margin-left: 167px; width: 96px;"></div>
+<div style="margin-left: 167px; width: 96px;"></div>
+<div style="margin-left: 535px; width: 96px;"></div>
+<div style="margin-left: 535px; width: 96px;"></div>
+<div style="margin-left: 167px; width: 96px;"></div>
+<div style="margin-left: 167px; width: 96px;"></div>
+<div style="margin-left: 535px; width: 96px;"></div>
+<div style="margin-left: 535px; width: 96px;"></div>
+<!-- only margin-left auto (margin-left like 0) -->
+<div style="margin-left: 53px; width: 620px;"></div>
+<div style="margin-left: 53px; width: 620px;"></div>
+<div style="margin-left: 53px; width: 620px;"></div>
+<div style="margin-left: 53px; width: 620px;"></div>
+<div style="margin-left: 53px; width: 620px;"></div>
+<div style="margin-left: 53px; width: 620px;"></div>
+<div style="margin-left: 53px; width: 620px;"></div>
+<div style="margin-left: 53px; width: 620px;"></div>
+<!-- left and margin-left auto -->
+<div style="margin-left: 577px; width: 96px;"></div>
+<div style="margin-left: 577px; width: 96px;"></div>
+<div style="margin-left: 577px; width: 96px;"></div>
+<div style="margin-left: 577px; width: 96px;"></div>
+<div style="margin-left: 577px; width: 96px;"></div>
+<div style="margin-left: 577px; width: 96px;"></div>
+<div style="margin-left: 577px; width: 96px;"></div>
+<div style="margin-left: 577px; width: 96px;"></div>
+<!-- right and margin-left auto (margin-left like 0) -->
+<div style="margin-left: 53px; width: 96px;"></div>
+<div style="margin-left: 53px; width: 96px;"></div>
+<div style="margin-left: 53px; width: 96px;"></div>
+<div style="margin-left: 53px; width: 96px;"></div>
+<div style="margin-left: 53px; width: 96px;"></div>
+<div style="margin-left: 53px; width: 96px;"></div>
+<div style="margin-left: 53px; width: 96px;"></div>
+<div style="margin-left: 53px; width: 96px;"></div>
+<!-- left and right and margin-left auto (margin-left like 0) -->
+<div style="margin-left: 150px; width: 96px;"></div>
+<div style="margin-left: 150px; width: 96px;"></div>
+<div style="margin-left: 535px; width: 96px;"></div>
+<div style="margin-left: 535px; width: 96px;"></div>
+<div style="margin-left: 150px; width: 96px;"></div>
+<div style="margin-left: 150px; width: 96px;"></div>
+<div style="margin-left: 535px; width: 96px;"></div>
+<div style="margin-left: 535px; width: 96px;"></div>
+<!-- only margin-right auto (margin-right like 0) -->
+<div style="margin-left: 70px; width: 622px;"></div>
+<div style="margin-left: 70px; width: 622px;"></div>
+<div style="margin-left: 70px; width: 622px;"></div>
+<div style="margin-left: 70px; width: 622px;"></div>
+<div style="margin-left: 70px; width: 622px;"></div>
+<div style="margin-left: 70px; width: 622px;"></div>
+<div style="margin-left: 70px; width: 622px;"></div>
+<div style="margin-left: 70px; width: 622px;"></div>
+<!-- left and margin-right auto (margin-right like 0) -->
+<div style="margin-left: 596px; width: 96px;"></div>
+<div style="margin-left: 596px; width: 96px;"></div>
+<div style="margin-left: 596px; width: 96px;"></div>
+<div style="margin-left: 596px; width: 96px;"></div>
+<div style="margin-left: 596px; width: 96px;"></div>
+<div style="margin-left: 596px; width: 96px;"></div>
+<div style="margin-left: 596px; width: 96px;"></div>
+<div style="margin-left: 596px; width: 96px;"></div>
+<!-- right and margin-right auto -->
+<div style="margin-left: 70px; width: 96px;"></div>
+<div style="margin-left: 70px; width: 96px;"></div>
+<div style="margin-left: 70px; width: 96px;"></div>
+<div style="margin-left: 70px; width: 96px;"></div>
+<div style="margin-left: 70px; width: 96px;"></div>
+<div style="margin-left: 70px; width: 96px;"></div>
+<div style="margin-left: 70px; width: 96px;"></div>
+<div style="margin-left: 70px; width: 96px;"></div>
+<!-- left and right and margin-right auto (margin-right like 0) -->
+<div style="margin-left: 167px; width: 96px;"></div>
+<div style="margin-left: 167px; width: 96px;"></div>
+<div style="margin-left: 554px; width: 96px;"></div>
+<div style="margin-left: 554px; width: 96px;"></div>
+<div style="margin-left: 167px; width: 96px;"></div>
+<div style="margin-left: 167px; width: 96px;"></div>
+<div style="margin-left: 554px; width: 96px;"></div>
+<div style="margin-left: 554px; width: 96px;"></div>
+<!-- margin-left and margin-right auto (both like 0) -->
+<div style="margin-left: 53px; width: 639px;"></div>
+<div style="margin-left: 53px; width: 639px;"></div>
+<div style="margin-left: 53px; width: 639px;"></div>
+<div style="margin-left: 53px; width: 639px;"></div>
+<div style="margin-left: 53px; width: 639px;"></div>
+<div style="margin-left: 53px; width: 639px;"></div>
+<div style="margin-left: 53px; width: 639px;"></div>
+<div style="margin-left: 53px; width: 639px;"></div>
+<!-- left and margin-left and margin-right auto (margin-right like 0) -->
+<div style="margin-left: 596px; width: 96px;"></div>
+<div style="margin-left: 596px; width: 96px;"></div>
+<div style="margin-left: 596px; width: 96px;"></div>
+<div style="margin-left: 596px; width: 96px;"></div>
+<div style="margin-left: 596px; width: 96px;"></div>
+<div style="margin-left: 596px; width: 96px;"></div>
+<div style="margin-left: 596px; width: 96px;"></div>
+<div style="margin-left: 596px; width: 96px;"></div>
+<!-- right and margin-left and margin-right auto (margin-left like 0) -->
+<div style="margin-left: 53px; width: 96px;"></div>
+<div style="margin-left: 53px; width: 96px;"></div>
+<div style="margin-left: 53px; width: 96px;"></div>
+<div style="margin-left: 53px; width: 96px;"></div>
+<div style="margin-left: 53px; width: 96px;"></div>
+<div style="margin-left: 53px; width: 96px;"></div>
+<div style="margin-left: 53px; width: 96px;"></div>
+<div style="margin-left: 53px; width: 96px;"></div>
+<!-- left and right and margin-left and margin-right auto (margin-left and margin-right like 0) -->
+<div style="margin-left: 150px; width: 96px;"></div>
+<div style="margin-left: 150px; width: 96px;"></div>
+<div style="margin-left: 554px; width: 96px;"></div>
+<div style="margin-left: 554px; width: 96px;"></div>
+<div style="margin-left: 150px; width: 96px;"></div>
+<div style="margin-left: 150px; width: 96px;"></div>
+<div style="margin-left: 554px; width: 96px;"></div>
+<div style="margin-left: 554px; width: 96px;"></div>
+
+<!-- ***** WIDE WIDTH ***** -->
+
+<!-- nothing auto -->
+<div style="margin-left: 70px; width: 684px;"></div>
+<div style="margin-left: -11px; width: 684px;"></div>
+<div style="margin-left: 70px; width: 684px;"></div>
+<div style="margin-left: -11px; width: 684px;"></div>
+<div style="margin-left: 70px; width: 684px;"></div>
+<div style="margin-left: -11px; width: 684px;"></div>
+<div style="margin-left: 70px; width: 684px;"></div>
+<div style="margin-left: -11px; width: 684px;"></div>
+<!-- only left auto -->
+<div style="margin-left: -11px; width: 684px;"></div>
+<div style="margin-left: -11px; width: 684px;"></div>
+<div style="margin-left: -11px; width: 684px;"></div>
+<div style="margin-left: -11px; width: 684px;"></div>
+<div style="margin-left: -11px; width: 684px;"></div>
+<div style="margin-left: -11px; width: 684px;"></div>
+<div style="margin-left: -11px; width: 684px;"></div>
+<div style="margin-left: -11px; width: 684px;"></div>
+<!-- only right auto -->
+<div style="margin-left: 70px; width: 684px;"></div>
+<div style="margin-left: 70px; width: 684px;"></div>
+<div style="margin-left: 70px; width: 684px;"></div>
+<div style="margin-left: 70px; width: 684px;"></div>
+<div style="margin-left: 70px; width: 684px;"></div>
+<div style="margin-left: 70px; width: 684px;"></div>
+<div style="margin-left: 70px; width: 684px;"></div>
+<div style="margin-left: 70px; width: 684px;"></div>
+<!-- left and right auto -->
+<div style="margin-left: 167px; width: 684px;"></div>
+<div style="margin-left: 167px; width: 684px;"></div>
+<div style="margin-left: -53px; width: 684px;"></div>
+<div style="margin-left: -53px; width: 684px;"></div>
+<div style="margin-left: 167px; width: 684px;"></div>
+<div style="margin-left: 167px; width: 684px;"></div>
+<div style="margin-left: -53px; width: 684px;"></div>
+<div style="margin-left: -53px; width: 684px;"></div>
+<!-- only margin-left auto -->
+<div style="margin-left: -11px; width: 684px;"></div>
+<div style="margin-left: -11px; width: 684px;"></div>
+<div style="margin-left: -11px; width: 684px;"></div>
+<div style="margin-left: -11px; width: 684px;"></div>
+<div style="margin-left: -11px; width: 684px;"></div>
+<div style="margin-left: -11px; width: 684px;"></div>
+<div style="margin-left: -11px; width: 684px;"></div>
+<div style="margin-left: -11px; width: 684px;"></div>
+<!-- left and margin-left auto -->
+<div style="margin-left: -11px; width: 684px;"></div>
+<div style="margin-left: -11px; width: 684px;"></div>
+<div style="margin-left: -11px; width: 684px;"></div>
+<div style="margin-left: -11px; width: 684px;"></div>
+<div style="margin-left: -11px; width: 684px;"></div>
+<div style="margin-left: -11px; width: 684px;"></div>
+<div style="margin-left: -11px; width: 684px;"></div>
+<div style="margin-left: -11px; width: 684px;"></div>
+<!-- right and margin-left auto (margin-left like 0) -->
+<div style="margin-left: 53px; width: 684px;"></div>
+<div style="margin-left: 53px; width: 684px;"></div>
+<div style="margin-left: 53px; width: 684px;"></div>
+<div style="margin-left: 53px; width: 684px;"></div>
+<div style="margin-left: 53px; width: 684px;"></div>
+<div style="margin-left: 53px; width: 684px;"></div>
+<div style="margin-left: 53px; width: 684px;"></div>
+<div style="margin-left: 53px; width: 684px;"></div>
+<!-- left and right and margin-left auto (margin-left like 0) -->
+<div style="margin-left: 150px; width: 684px;"></div>
+<div style="margin-left: 150px; width: 684px;"></div>
+<div style="margin-left: -53px; width: 684px;"></div>
+<div style="margin-left: -53px; width: 684px;"></div>
+<div style="margin-left: 150px; width: 684px;"></div>
+<div style="margin-left: 150px; width: 684px;"></div>
+<div style="margin-left: -53px; width: 684px;"></div>
+<div style="margin-left: -53px; width: 684px;"></div>
+<!-- only margin-right auto -->
+<div style="margin-left: 70px; width: 684px;"></div>
+<div style="margin-left: 70px; width: 684px;"></div>
+<div style="margin-left: 70px; width: 684px;"></div>
+<div style="margin-left: 70px; width: 684px;"></div>
+<div style="margin-left: 70px; width: 684px;"></div>
+<div style="margin-left: 70px; width: 684px;"></div>
+<div style="margin-left: 70px; width: 684px;"></div>
+<div style="margin-left: 70px; width: 684px;"></div>
+<!-- left and margin-right auto (margin-right like 0) -->
+<div style="margin-left: 8px; width: 684px;"></div>
+<div style="margin-left: 8px; width: 684px;"></div>
+<div style="margin-left: 8px; width: 684px;"></div>
+<div style="margin-left: 8px; width: 684px;"></div>
+<div style="margin-left: 8px; width: 684px;"></div>
+<div style="margin-left: 8px; width: 684px;"></div>
+<div style="margin-left: 8px; width: 684px;"></div>
+<div style="margin-left: 8px; width: 684px;"></div>
+<!-- right and margin-right auto -->
+<div style="margin-left: 70px; width: 684px;"></div>
+<div style="margin-left: 70px; width: 684px;"></div>
+<div style="margin-left: 70px; width: 684px;"></div>
+<div style="margin-left: 70px; width: 684px;"></div>
+<div style="margin-left: 70px; width: 684px;"></div>
+<div style="margin-left: 70px; width: 684px;"></div>
+<div style="margin-left: 70px; width: 684px;"></div>
+<div style="margin-left: 70px; width: 684px;"></div>
+<!-- left and right and margin-right auto (margin-right like 0) -->
+<div style="margin-left: 167px; width: 684px;"></div>
+<div style="margin-left: 167px; width: 684px;"></div>
+<div style="margin-left: -34px; width: 684px;"></div>
+<div style="margin-left: -34px; width: 684px;"></div>
+<div style="margin-left: 167px; width: 684px;"></div>
+<div style="margin-left: 167px; width: 684px;"></div>
+<div style="margin-left: -34px; width: 684px;"></div>
+<div style="margin-left: -34px; width: 684px;"></div>
+<!-- margin-left and margin-right auto (alternately like 0) -->
+<div style="margin-left: 53px; width: 684px;"></div>
+<div style="margin-left: 8px; width: 684px;"></div>
+<div style="margin-left: 53px; width: 684px;"></div>
+<div style="margin-left: 8px; width: 684px;"></div>
+<div style="margin-left: 53px; width: 684px;"></div>
+<div style="margin-left: 8px; width: 684px;"></div>
+<div style="margin-left: 53px; width: 684px;"></div>
+<div style="margin-left: 8px; width: 684px;"></div>
+<!-- left and margin-left and margin-right auto (margin-right like 0) -->
+<div style="margin-left: 8px; width: 684px;"></div>
+<div style="margin-left: 8px; width: 684px;"></div>
+<div style="margin-left: 8px; width: 684px;"></div>
+<div style="margin-left: 8px; width: 684px;"></div>
+<div style="margin-left: 8px; width: 684px;"></div>
+<div style="margin-left: 8px; width: 684px;"></div>
+<div style="margin-left: 8px; width: 684px;"></div>
+<div style="margin-left: 8px; width: 684px;"></div>
+<!-- right and margin-left and margin-right auto (margin-left like 0) -->
+<div style="margin-left: 53px; width: 684px;"></div>
+<div style="margin-left: 53px; width: 684px;"></div>
+<div style="margin-left: 53px; width: 684px;"></div>
+<div style="margin-left: 53px; width: 684px;"></div>
+<div style="margin-left: 53px; width: 684px;"></div>
+<div style="margin-left: 53px; width: 684px;"></div>
+<div style="margin-left: 53px; width: 684px;"></div>
+<div style="margin-left: 53px; width: 684px;"></div>
+<!-- left and right and margin-left and margin-right auto (margin-left and margin-right like 0) -->
+<div style="margin-left: 150px; width: 684px;"></div>
+<div style="margin-left: 150px; width: 684px;"></div>
+<div style="margin-left: -34px; width: 684px;"></div>
+<div style="margin-left: -34px; width: 684px;"></div>
+<div style="margin-left: 150px; width: 684px;"></div>
+<div style="margin-left: 150px; width: 684px;"></div>
+<div style="margin-left: -34px; width: 684px;"></div>
+<div style="margin-left: -34px; width: 684px;"></div>
+
+</body>
+</html>

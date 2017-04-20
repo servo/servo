@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>CSS Rhythmic Sizing: line-height-step boundary test</title>
+<link rel="author" title="Koji Ishii" href="mailto:kojiishi@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-rhythm-1/#line-height-step">
+<link rel="match" href="reference/line-height-step-boundary-001.html">
+<meta name="assert" content="This test asserts the line-height-step property rounds up line box height.">
+<meta name="flags" content="ahem">
+<style>
+div {
+  font-family: Ahem;
+  font-size: 30px;
+}
+.test, .ref {
+  display: inline-block;
+  vertical-align: top;
+  width: 5em;
+}
+.test {
+  line-height-step: 40px;
+}
+</style>
+<p class="instructions">Test passes if left and right are the same.
+<div class="ref">
+  <div style="line-height: 40px">XXXXX</div>
+  <div style="line-height: 40px">XXXXX</div>
+  <div style="line-height: 80px">XXXXX</div>
+  <div style="line-height: 80px">XXXXX</div>
+  <div style="line-height: 80px">XXXXX</div>
+  <div style="line-height: 120px">XXXXX</div>
+</div>
+<div class="test">
+  <div style="line-height: 39px">XXXXX</div>
+  <div style="line-height: 40px">XXXXX</div>
+  <div style="line-height: 41px">XXXXX</div>
+  <div style="line-height: 79px">XXXXX</div>
+  <div style="line-height: 80px">XXXXX</div>
+  <div style="line-height: 81px">XXXXX</div>
+</div>

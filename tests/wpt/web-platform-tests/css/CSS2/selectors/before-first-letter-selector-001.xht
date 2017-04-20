@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: First-letter pseudo-element with :before pseudo-element</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#before-and-after" />
+        <link rel="match" href="before-first-letter-selector-001-ref.xht"/>
+        <meta name="flags" content="" />
+        <meta name="assert" content="When the :first-letter pseudo-element is combined with :before, :first-letter applies to the generated text of :before." />
+        <style type="text/css">
+            div:before
+            {
+                content: "Filler Text";
+                color: green;
+            }
+            div:first-letter
+            {
+                font-size: 98px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the "Filler Text" below is green and the "F" is larger than the remaining text.</p>
+        <div></div>
+    </body>
+</html>

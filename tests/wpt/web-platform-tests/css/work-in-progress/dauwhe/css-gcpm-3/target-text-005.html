@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Test: Target Text with content from after pseudo-element</title>
+<link rel="author" title="Dave Cramer" href="mailto:dauwhe@gmail.com">
+<link rel="help" href="http://www.w3.org/TR/css3-gcpm/#target-text">
+<meta name="flags" content="paged">
+<meta name="assert" content="check of target text selecting after pseudo-element">
+
+<style>
+#page2 { page-break-before: always; }
+  
+#page2::after { content: 'after'; }
+  
+a { content: target-text(attr(href), after); }
+</style>
+<!--Prince does not support the syntax in GCPM; but uses target-content instead of target-text -->
+</head>
+<body>
+
+<p>Test pass if the next sentence reads "The last page of this document contains after."</p>
+
+<p>The last page of this document contains <a href="#page2">this</a>.</p>
+
+<p id="page2">that</p>
+
+</body>
+</html>

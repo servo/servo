@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: A nested @supports rule with valid syntax and a passing condition must apply rules inside it</title>
+  <link rel="author" title="Cameron McCormack" href="mailto:cam@mcc.id.au" />
+  <link rel="author" title="L. David Baron" href="mailto:dbaron@dbaron.org" />
+  <link rel="help" href="http://www.w3.org/TR/css3-conditional/#at-supports" />
+  <link rel="help" href="http://www.w3.org/TR/css3-conditional/#at-media" />
+  <meta name="flags" content="" />
+  <meta name="assert" content="An outer @media rule with an inner @supports rule must apply the rules inside the @supports only if both the @supports and @media conditions pass."/>
+  <link rel="match" href="support/pass.xht" />
+  <style type="text/css"><![CDATA[
+    @media all {
+      @supports (color: green) {
+        html { background-color: green }
+      }
+    }
+  ]]></style>
+ </head>
+ <body>
+ </body>
+</html>

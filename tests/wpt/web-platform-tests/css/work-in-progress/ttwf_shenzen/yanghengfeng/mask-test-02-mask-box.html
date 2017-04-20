@@ -1,0 +1,42 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>mask-image-box</title>
+    <link rel="author" title="yanghengfeng"
+          href="mailto:yanghengfeng@163.com">
+    <link rel="help"
+          href="http://www.w3.org/TR/css-masking/#MaskElement">
+    <meta name="assert"
+          content="assert border image slice width: 39px works fine but 40px does not work">
+    <link rel="match" href="">
+<style type="text/css">
+#mask,#mask40{width:10px;height:10px; border:200px solid blue; 
+  background-color: yellow;
+  background-clip: content-box;
+}
+#mask{
+  -webkit-mask-box-image-slice: 39 fill;
+  -webkit-mask-box-image-repeat: stretch;
+  -webkit-mask-box-image-source: url(gradient.png);
+}
+#mask40{
+  -webkit-mask-box-image-slice: 40 fill;
+  -webkit-mask-box-image-repeat: stretch;
+  -webkit-mask-box-image-source: url(gradient.png);
+}
+</style>
+</head>
+<body>
+  <h1>border image slice width: 39px works fine but 40px does not work</h1>
+  <h2>image width 80px width 80px height and radial gradient</h2>
+<div style="background-color:green;width:80px;height:80px;">
+<img src="gradient.png" />
+</div>
+<h2>use as mask-box-image slice 39px</h2>
+<div id="mask"></div>
+<h2>use as mask-box-image slice 40px</h2>
+<div id="mask40"></div>
+</body>
+</html>

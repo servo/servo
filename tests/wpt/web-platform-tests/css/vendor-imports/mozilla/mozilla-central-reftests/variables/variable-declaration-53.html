@@ -1,0 +1,22 @@
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!DOCTYPE html>
+<title>CSS Test: Test declaring a variable that consists of two variable references without fallback and with no intervening white space.</title>
+<link rel="author" title="Cameron McCormack" href="mailto:cam@mcc.id.au">
+<link rel="help" href="http://www.w3.org/TR/css-variables-1/#using-variables">
+<link rel="match" href="support/color-green-ref.html">
+<style>
+p {
+  color: green;
+}
+span {
+  color: red;
+  --a:var(--b)var(--c);
+  --b:orange;
+  --c:red;
+  color: var(--a);
+}
+</style>
+<p><span>This text must be green.</span></p>

@@ -1,0 +1,12 @@
+<!doctype html>
+<title>dialog: display</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<style>
+ dialog { position: static }
+</style>
+<dialog open id=dialog></dialog>
+<script>
+assert_equals(getComputedStyle(document.getElementById('dialog')).display, 'block');
+done();
+</script>

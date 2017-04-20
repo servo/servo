@@ -1,0 +1,49 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: text-transform</title>
+  <meta name="flags" content="ahem image" />
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#text-transform"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <style type="text/css"><![CDATA[
+   div { font: 10px/1 Ahem; color: green; background: red url(support/css1test545.png); border: solid black; width: 32em; }
+   p { margin: 0; }
+   .ttn {text-transform: none;}
+   .cap {text-transform: capitalize;}
+   .upp {text-transform: uppercase;}
+   .low {text-transform: lowercase;}
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#caps-prop" title="16.5 Capitalization: the 'text-transform' property"/>
+ </head>
+ <body>
+  <p>There should be a green box below.</p>
+  <div>
+   <p class="">
+    Xx xx x. (x.x. XX) x&#xA0;x <span class="cap">xx</span>xxx <span class="ttn">xxx</span>
+    Pp pp p. (p.p. PP) p&#xA0;p <span class="cap">pp</span>ppp <span class="ttn">ppp</span>
+    &#xC9;&#xE9; &#xE9;&#xE9; &#xE9;. (&#xE9;.&#xE9;. &#xC9;&#xC9;) &#xE9;&#xA0;&#xE9; <span class="cap">&#xE9;&#xE9;</span>&#xE9;&#xE9;&#xE9; <span class="ttn">&#xE9;&#xE9;&#xE9;</span>
+   </p>
+   <p class="ttn">
+    Xx xx x. (x.x. XX) x&#xA0;x <span class="cap">xx</span>xxx <span class="ttn">xxx</span>
+    Pp pp p. (p.p. PP) p&#xA0;p <span class="cap">pp</span>ppp <span class="ttn">ppp</span>
+    &#xC9;&#xE9; &#xE9;&#xE9; &#xE9;. (&#xE9;.&#xE9;. &#xC9;&#xC9;) &#xE9;&#xA0;&#xE9; <span class="cap">&#xE9;&#xE9;</span>&#xE9;&#xE9;&#xE9; <span class="ttn">&#xE9;&#xE9;&#xE9;</span>
+   </p>
+   <p class="cap">
+    Xx xx x. (x.x. XX) x&#xA0;x <span class="cap">xx</span>xxx <span class="ttn">xxx</span>
+    Pp pp p. (p.p. PP) p&#xA0;p <span class="cap">pp</span>ppp <span class="ttn">ppp</span>
+    &#xC9;&#xE9; &#xE9;&#xE9; &#xE9;. (&#xE9;.e. &#xC9;&#xC9;) &#xE9;&#xA0;&#xE9; <span class="cap">&#xE9;&#xE9;</span>&#xE9;&#xE9;&#xE9; <span class="ttn">&#xE9;&#xE9;&#xE9;</span>
+   </p>
+   <p class="upp">
+    Xx xx x. (x.x. XX) x&#xA0;x <span class="cap">xx</span>xxx <span class="ttn">xxx</span>
+    Pp pp p. (p.p. PP) p&#xA0;p <span class="cap">pp</span>ppp <span class="ttn">ppp</span>
+    &#xC9;&#xE9; &#xE9;&#xE9; &#xE9;. (&#xE9;.&#xE9;. &#xC9;&#xC9;) &#xE9;&#xA0;&#xE9; <span class="cap">&#xE9;&#xE9;</span>&#xE9;&#xE9;&#xE9; <span class="ttn">&#xE9;&#xE9;&#xE9;</span>
+   </p>
+   <p class="low">
+    Xx xx x. (x.x. XX) x&#xA0;x <span class="cap">xx</span>xxx <span class="ttn">xxx</span>
+    Pp pp p. (p.p. PP) p&#xA0;p <span class="cap">pp</span>ppp <span class="ttn">ppp</span>
+    &#xC9;&#xE9; &#xE9;&#xE9; &#xE9;. (&#xE9;.&#xE9;. &#xC9;&#xC9;) &#xE9;&#xA0;&#xE9; <span class="cap">&#xE9;&#xE9;</span>&#xE9;&#xE9;&#xE9; <span class="ttn">&#xE9;&#xE9;&#xE9;</span>
+   </p>
+  </div>
+ </body>
+</html>

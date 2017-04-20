@@ -1,0 +1,20 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Content property on out of scope counter</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#content" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="If content refers to a counter that is not in scope, it is assumed that a counter-reset has occurred and the counter is reset to zero." />
+        <style type="text/css">
+            div:before
+            {
+                content: counter(outofscope);
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is the number '0' below.</p>
+        <div></div>
+    </body>
+</html>

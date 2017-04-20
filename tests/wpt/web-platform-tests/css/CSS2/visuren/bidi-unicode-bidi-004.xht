@@ -1,0 +1,33 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Test: direction and borders - normal</title>
+    <link rel="author" title="Eira Monstad, Opera Software ASA" href="mailto:public-testsuites@opera.com"/>
+    <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#bidi-box-model"/>
+    <meta name="flags" content=""/>
+    <meta name="assert" content="Borders should be unaffected by directionality"/>
+    <style type="text/css"><![CDATA[
+      span {
+      border: 5px solid gray;
+      border-color: green purple yellow blue;
+      }
+
+      .rtol {
+      direction: rtl;
+      unicode-bidi: normal;
+      }
+
+      p {text-align: left;}
+    ]]></style>
+  </head>
+
+  <body>
+    <p>Two identical lines:</p>
+    <p>
+      First <span>Second</span>
+    </p>
+    <p class="rtol">
+      First <span>Second</span>
+    </p>
+  </body>
+</html>

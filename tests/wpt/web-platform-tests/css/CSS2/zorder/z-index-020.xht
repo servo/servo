@@ -1,0 +1,144 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>CSS Test: z-index</title>
+    <link rel="author" title="Robert O'Callahan" href="mailto:robert@ocallahan.org" />
+    <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+    <link rel="author" title="Mozilla Corporation" href="http://mozilla.com/" />
+    <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#z-index" />
+    <link rel="match" href="z-index-020-ref.xht"/>
+    <meta name="flags" content="" />
+<style type="text/css">
+.container {
+  z-index:0;
+  position: relative;
+  height: 200px;
+  width: 200px;
+  font-size: 0;
+  line-height: 0;
+  background: silver;
+  border: solid white;
+}
+.container div {
+  height: 80px;
+  width: 80px;
+  padding: 10px;
+}
+.test div {
+  margin-bottom:-75px;
+}
+.negative {
+  margin-left: 100px;
+  background-color:navy;
+  position:relative;
+  z-index:-1;
+}
+.block {
+  margin-left: 100px
+  background-color:fuchsia;
+}
+.float {
+  margin-left: 75px;
+  margin-top: 0;
+  float:left;
+  background-color:blue;
+}
+.inline {
+  margin-left: 50px;
+  margin-top: 0;
+  display: inline-block;
+  vertical-align: bottom;
+  background-color: aqua;
+}
+.positioned {
+  margin-left: 25px;
+  background: lime;
+  position:relative;
+  margin-bottom: -80px !important; # 75 + 5
+}
+.positive {
+  background-color: teal;
+  position:relative;
+  z-index:1;
+}
+
+.test .outline {
+  outline: solid fuchsia 5px;
+  margin: 0 20px -80px;
+  padding: 0;
+  width: 110px;
+  height: 85px ;
+}
+
+.control .outline {
+  border: solid fuchsia 5px;
+  width: 110px;
+  height: 85px;
+  padding: 0;
+}
+
+.outline.c1 {
+  margin: 30px 5px 100px;
+}
+.outline.c2 {
+  padding: 0;
+  margin: -20px -45px;
+}
+.outline.c2 > div {
+  margin: -20px 5px 0;
+}
+
+.control div {
+  margin-left: -35px;
+  margin-top: -35px;
+}
+.control > div {
+  margin-left: auto;
+  margin-top: 100px;
+}
+</style>
+</head>
+<body>
+<div class="test container">
+  <div class="positive"></div>
+  <div class="positioned"></div>
+  <div class="outline"></div>
+  <div class="inline"></div>
+  <div class="float"></div>
+  <div class="block"></div>
+  <div class="negative"></div>
+</div>
+
+<p>The pattern above must match one of the two patterns below.</p>
+
+<div class="control container">
+  <div style="background: navy">
+    <div style="background: blue">
+       <div style="background: aqua">
+         <div style="background: lime">
+           <div style="background: teal">
+             <div class="outline c1">
+             </div>
+           </div>
+         </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="control container">
+  <div style="background: navy">
+    <div style="background: blue">
+       <div style="background: aqua">
+         <div class="outline c2">
+           <div style="background: lime">
+             <div style="background: teal">
+             </div>
+           </div>
+         </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body></html>

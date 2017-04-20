@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>CSS Regions: :hover on regions that have padding</title>
+	<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+	<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+	<link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from">
+	<meta name="assert" content="CSS rules using the :hover pseudo class are applied to regions when moving the mouse over the region padding">
+	<meta name="flags" content="interact">
+	<style>
+	#source {
+		color: blue;
+		font-family: Ahem;
+		font-size: 20px;
+		line-height: 1em;
+		width: 5em;
+		height: 5em;
+		flow-into: f;
+	}
+	#region {
+		flow-from: f;
+	}
+	.region {
+		background-color: yellow;
+		padding-left: 100px;
+		width: 100px;
+		height: 100px;
+	}
+	.region:hover {
+		background-color: lime;
+		color: red;
+	}
+	.region p {
+		width: 100%;
+		height: 50%;
+		background-color: red;
+	}
+	</style>
+</head>
+<body>
+	<ol>
+		<li>You should not see any red before or during this test</li>
+		<li>You should see a yellow and a blue square</li>
+		<li>Move the mouse over the yellow square</li>
+		<li>The yellow square should turn green</li>
+	</ol>
+	<div id="parent">
+		<div id="source">xxxxx<br>xxxxx<br>xxxxx<br>xxxxx<br>xxxxx</div>
+	</div>
+	<div class="region" id="region">
+		<p></p>
+	</div>
+</body>
+</html>

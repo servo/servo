@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en-US" class="reftest-print">
+<head>
+  <title>CSS Test: CSS 2.1 page-break-inside:avoid</title>
+  <link rel="author" title="Mats Palmgren" href="https://bugzilla.mozilla.org/show_bug.cgi?id=685012">
+  <link rel="help" href="http://www.w3.org/TR/CSS21/page.html#propdef-page-break-inside">
+  <link rel="match" href="moz-css21-float-page-break-inside-avoid-6-ref.html">
+  <meta name="flags" content="paged">
+<style type="text/css">
+@page { size:5in 3in; margin:0.5in; }
+html,body {
+    color:black; background-color:white; font-size:16px; padding:0; margin:0; height:100%;
+}
+p { height:60%; width:90%; margin:0; background-color:blue; border:1px solid black; }
+.test { page-break-inside:avoid; float:left; }
+</style>
+</head>
+<body><p>1</p><p class="test">2</p></body>
+</html>

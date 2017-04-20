@@ -1,0 +1,37 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Max-height using 'em' units with a minimum plus one value, 1em</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-10-28 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#propdef-max-height" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#min-max-heights" />
+        <link rel="match" href="max-height-069-ref.xht" />
+
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The 'max-height' property sets a minimum plus one length value in 'em' units." />
+        <style type="text/css">
+        div {font: 20px/1 Ahem;}
+
+        div#red-overlapped
+        {
+        background-color: red;
+        height: 6em;
+        max-height: 1em;
+        }
+
+        div#black-overlapping
+        {
+        background-color: black;
+        bottom: 1em;
+        height: 1em;
+        position: relative;
+        }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a wide black bar and <strong>no red</strong>.</p>
+        <div id="red-overlapped"></div>
+        <div id="black-overlapping"></div>
+    </body>
+</html>

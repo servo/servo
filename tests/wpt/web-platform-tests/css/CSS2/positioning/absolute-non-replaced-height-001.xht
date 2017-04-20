@@ -1,0 +1,38 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Absolutely positioned, non-replaced elements, static position of fixed element</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#abs-non-replaced-height" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The calculation of static position for a fixed positioned element when top, right, bottom, and left are all 'auto' is based off the containing block not the initial containing block." />
+        <style type="text/css">
+            html, body, p
+            {
+                margin: 0;
+                padding: 0;
+            }
+            #div1
+            {
+                border: solid black;
+                height: 2in;
+                position: absolute;
+                top: 1in;
+                width: 3in;
+            }
+            div div
+            {
+                background: blue;
+                height: 1in;
+                position: fixed;
+                width: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes the a filled blue square touches the upper-left corner of the black box.</p>
+        <div id="div1">
+            <div></div>
+        </div>
+    </body>
+</html>

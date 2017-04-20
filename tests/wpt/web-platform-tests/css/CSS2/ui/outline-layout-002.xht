@@ -1,0 +1,31 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Outline and text layout</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/ui.html#dynamic-outlines" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Outlines are visual indications that do not affect layout of other elements or text." />
+        <style type="text/css">
+            div
+            {
+                margin-top: 50px;
+            }
+            #span1
+            {
+                outline: 50px solid white;
+            }
+            #span2
+            {
+                color: red;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page.</p>
+        <div>
+            <span id="span1">Filler Text</span>
+            <span id="span2">FAIL</span>
+        </div>
+    </body>
+</html>

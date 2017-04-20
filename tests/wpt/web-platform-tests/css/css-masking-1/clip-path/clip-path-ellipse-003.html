@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>CSS Masking: Test clip-path property and ellipse function with percentage values on square</title>
+	<link rel="author" title="Dirk Schulze" href="mailto:dschulze@adobe.com">
+	<link rel="help" href="http://www.w3.org/TR/css-masking-1/#clipping-paths">
+	<link rel="help" href="http://www.w3.org/TR/css-masking-1/#propdef-clip-path">
+	<link rel="match" href="reference/clip-path-circle-ref.html">
+	<meta name="assert" content="The clip-path property takes the basic shape
+	'ellipse' for clipping. Test percentage values for radii and position
+	arguments. Percentage values are relative to a reference box. If no
+	reference box was specified, percentage values are relative to border-box.
+	On pass there should be a full green circle.">
+</head>
+<body>
+	<p>The test passes if there is a green circle.</p>
+	<div style="width: 200px; height: 200px; background-color: green; clip-path: ellipse(50% 50% at 50% 50%);"></div>
+</body>
+</html>

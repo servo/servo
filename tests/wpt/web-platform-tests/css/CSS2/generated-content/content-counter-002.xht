@@ -1,0 +1,57 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: content: counter(c, disc)</title>
+  <link rel="author" title="L. David Baron" href="https://dbaron.org/"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#propdef-content"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#counter"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#counter-styles"/>
+  <link rel="match" href="content-counter-002-ref.xht"/>
+  <style type="text/css">
+
+  div { white-space: nowrap; }
+
+
+  #test { counter-reset: c; color: blue; }
+  #test span { counter-increment: c; }
+  #test span:before { content: counter(c, disc); }
+
+  </style>
+ </head>
+ <body>
+
+ <p>There should be a string of 12 blue filled circles below. (A string of
+    12 black circles is provided on the second line for reference.):</p>
+
+ <div id="test">
+   <span></span>
+   <span></span>
+   <span></span>
+   <span></span>
+   <span></span>
+   <span></span>
+   <span></span>
+   <span></span>
+   <span></span>
+   <span></span>
+   <span></span>
+   <span></span>
+ </div>
+
+ <div>
+   &#x2022;
+   &#x2022;
+   &#x2022;
+   &#x2022;
+   &#x2022;
+   &#x2022;
+   &#x2022;
+   &#x2022;
+   &#x2022;
+   &#x2022;
+   &#x2022;
+   &#x2022;
+ </div>
+
+ </body>
+</html>

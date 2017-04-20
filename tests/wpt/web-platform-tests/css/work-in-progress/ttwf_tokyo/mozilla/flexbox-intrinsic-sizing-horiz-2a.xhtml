@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!--
+     This test checks how a flexbox sizes itself to shrinkwrap its contents'
+     preferred sizes.
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <style>
+      body { margin: 0; }
+      div.flexbox {
+        display: flex;
+        width: -moz-max-content;
+
+        /* We give the flexbox a border and background so we can easily see how
+         * large it is. */
+        border: 2px dotted black;
+        background: lime;
+      }
+
+      div.imgWrapper {
+        border: 5px solid teal;
+        width: 40px;
+        height: 16px;
+      }
+      img {
+        vertical-align: top;
+      }
+  </style>
+</head>
+<body>
+  <div class="flexbox">
+    <div class="imgWrapper"><img src="solidblue.png"/></div>
+    <div class="imgWrapper"><img src="solidblue.png"/></div>
+    <div class="imgWrapper"><img src="solidblue.png"/></div>
+  </div>
+</body>
+</html>

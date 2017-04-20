@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Test: One named flow multi-column container, monolithic content
+                     flowing into one region</title>
+    <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com"/>
+    <!-- Reviewed on Github on 09-26-2013: https://github.com/w3c/csswg-test/pull/89 -->
+    <link rel="reviewer" title="Mihai Balan" href="mailto:mibalan@adobe.com"/>
+    <link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property"/>
+    <link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from"/>
+    <link rel="help" href="http://www.w3.org/TR/css3-multicol/#columns"/>
+    <link rel="match" href="reference/regions-multicol-012-ref.html"/>
+    <meta name="assert" content="This test checks that monolithic content in a named flow
+                                 multi-column container flows through the region."/>
+    <style type="text/css">
+        #named-flow-multicol {
+            width: 360px;
+            height: 200px;
+            columns: 3;
+            column-gap: 30px;
+            column-rule: none;
+            flow-into: multicol;
+        }
+        .named-flow-block {
+            width: 100px;
+            height: 300px;
+        }
+        .green {
+            background-color: green;
+        }
+        .lightgreen {
+            background-color: lightgreen;
+        }
+        #region {
+            position: absolute;
+            top: 150px;
+            left: 20px;
+            width: 230px;
+            height: 200px;
+            flow-from: multicol;
+        }
+        .failure {
+           position: absolute;
+           top: 150px;
+           left: 20px;
+           background-color: red;
+           width: 100px;
+           height: 200px;
+           z-index: -1;
+        }
+        #block-1 {
+            left: 20px;
+        }
+        #block-2 {
+            left: 150px;
+        }
+        #block-3 {
+            left: 280px;
+        }
+    </style>
+</head>
+<body>
+    <p>The test passes if:
+        <ul>
+            <li>There is a dark green vertical rectangle on the left</li>
+            <li>There is a dark green square in the middle with a light green
+                square below it</li>
+            <li>There is a light green vertical rectangle on the right</li>
+            <li>There is no red
+        </ul>
+    </p>
+    <div id="named-flow-multicol">
+        <div class="named-flow-block green"></div>
+        <div class="named-flow-block lightgreen"></div>
+    </div>
+    <div id="region"></div>
+    <div class="failure" id="block-1"></div>
+    <div class="failure" id="block-2"></div>
+    <div class="failure" id="block-3"></div>
+</body>
+</html>

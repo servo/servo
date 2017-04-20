@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>CSS Regions OM Test: Region with no content</title>
+        <link rel="author" title="Alan Stearns" href="mailto:stearns@adobe.com">
+        <link rel="help" href="http://www.w3.org/TR/css3-regions/#the-region-interface">
+        <meta name="flags" content="dom">
+        <meta name="assert" content="The Region interface works with an empty NamedFlow.">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>        
+    </head>
+    
+    <style type="text/css">
+        #region {
+            flow-from: flow1; /*TEMP*/
+            flow-from: flow1;
+        }
+    </style>
+    <body>
+        <div id="log"></div>
+
+        <div id="region"></div>
+        
+        <script type="text/javascript">
+            function testRegionOversetAttribute(element_id) {
+                var region_ele = document.getElementById(element_id);
+                assert_equals (region_ele.regionOverset, "empty", 
+                    "The regionOverset attribute should be \"empty\" if the flow has no content.");
+            }
+
+            function testFlowFromAttribute(element_id) {
+                var region_ele = document.getElementById(element_id);
+                assert_equals (region_ele.flowFrom, "flow1", 
+                    "The flowFrom attribute should match the value of flow-from.");
+            }
+
+            function testGetRegionFlowRanges(element_id) {
+                var region_ele = document.getElementById(element_id);
+                assert_equals (region_ele.getRegionFlowRanges(), [], 
+                    "The getRegionFlowRanges method should return an empty array if the flow has no content.");
+            }
+
+            function testGetComputedStyle(element_id) {
+                var region_ele = document.getElementById(element_id);
+                var style_decl = region_ele.getComputedStyle(region_ele, "::before");
+                // need to add a ::before to check this? There is no element
+                // in the named flow to call this method with.
+                //assert_what?
+            }
+
+            test( function() {testRegionOversetAttribute("region");},
+                "Test regionOverset attribute."); 
+            test( function() {testFlowFromAttribute("region");},
+                "Test flowFrom attribute."); 
+            test( function() {testGetRegionFlowRanges("region");},
+                "Test getRegionFlowRanges method."); 
+            test( function() {testGetComputedStyle("region");},
+                "Test getComputedStyle method."); 
+        </script>
+    </body>
+</html>

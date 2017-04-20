@@ -1,0 +1,129 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Repeating table footer groups in paged media</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#table-display" />
+        <meta name="flags" content="may paged" />
+        <meta name="assert" content="Print user agents may repeat footer rows on each page spanned by a table (non-normative rule)." />
+        <style type="text/css">
+            .table
+            {
+                display: table;
+            }
+            #tfoot
+            {
+                background: orange;
+                display: table-footer-group;
+            }
+            #tbody
+            {
+                display: table-row-group;
+            }
+            .tr
+            {
+                display: table-row;
+            }
+            .td
+            {
+                border: 1px solid black;
+                display: table-cell;
+                height: 4em;
+                width: 4em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the "Filler Text" below either repeats or doesn't repeat on the bottom of each page in paged media view.</p>
+        <div class="table">
+            <div id="tfoot">
+                <div class="tr">
+                     <div class="td">Filler Text</div>
+                </div>
+            </div>
+            <div id="tbody">
+                <div class="tr">
+                     <div class="td"></div>
+                </div>
+                <div class="tr">
+                     <div class="td"></div>
+                </div>
+                <div class="tr">
+                     <div class="td"></div>
+                </div>
+                <div class="tr">
+                     <div class="td"></div>
+                </div>
+                <div class="tr">
+                     <div class="td"></div>
+                </div>
+                <div class="tr">
+                     <div class="td"></div>
+                </div>
+                <div class="tr">
+                     <div class="td"></div>
+                </div>
+                <div class="tr">
+                     <div class="td"></div>
+                </div>
+                <div class="tr">
+                     <div class="td"></div>
+                </div>
+                <div class="tr">
+                     <div class="td"></div>
+                </div>
+                <div class="tr">
+                     <div class="td"></div>
+                </div>
+                <div class="tr">
+                     <div class="td"></div>
+                </div>
+                <div class="tr">
+                     <div class="td"></div>
+                </div>
+                <div class="tr">
+                     <div class="td"></div>
+                </div>
+                <div class="tr">
+                     <div class="td"></div>
+                </div>
+                <div class="tr">
+                     <div class="td"></div>
+                </div>
+                <div class="tr">
+                     <div class="td"></div>
+                </div>
+                <div class="tr">
+                     <div class="td"></div>
+                </div>
+                <div class="tr">
+                     <div class="td"></div>
+                </div>
+                <div class="tr">
+                     <div class="td"></div>
+                </div>
+                <div class="tr">
+                     <div class="td"></div>
+                </div>
+                <div class="tr">
+                     <div class="td"></div>
+                </div>
+                <div class="tr">
+                     <div class="td"></div>
+                </div>
+                <div class="tr">
+                     <div class="td"></div>
+                </div>
+                <div class="tr">
+                     <div class="td"></div>
+                </div>
+                <div class="tr">
+                     <div class="td"></div>
+                </div>
+                <div class="tr">
+                     <div class="td"></div>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

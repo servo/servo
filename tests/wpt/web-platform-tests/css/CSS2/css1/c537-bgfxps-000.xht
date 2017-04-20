@@ -1,0 +1,93 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: background</title>
+  <meta name="flags" content="ahem image interact scroll" />
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#background"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <style type="text/css"><![CDATA[
+   html {background: url(support/swatch-blue.png) repeat-x center top fixed;}
+   div { font: 15px/1 Ahem; background: red; color: green; width: 11em; margin: 0 0 0 2em; }
+   .dummy { color: silver; }
+   .one {background: green url(support/swatch-red.png) repeat-y 100% 0%;}
+   .two {background: green url(support/swatch-red.png) repeat-y center top;}
+   .three {background: green url(support/swatch-red.png) repeat-x left top;}
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background-properties" title="14.2.1 Background properties: 'background-color', 'background-image', 'background-repeat', 'background-attachment', 'background-position', and 'background'"/>
+ </head>
+ <body>
+  <p class="dummy">Dummy text.</p>
+  <p class="dummy">Dummy text.</p>
+  <p class="dummy">Dummy text.</p>
+  <p>Scroll this document. A line of blue should remain stuck at the
+  top of the viewport the whole time, and there should be no red
+  below, just a block of green.</p>
+  <div class="one">
+    &#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;X
+    &#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;X
+    &#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;X
+    &#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;X
+    &#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;X
+  </div>
+  <div class="two">
+    &#xA0;&#xA0;&#xA0;&#xA0;&#xA0;X&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;
+    &#xA0;&#xA0;&#xA0;&#xA0;&#xA0;X&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;
+    &#xA0;&#xA0;&#xA0;&#xA0;&#xA0;X&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;
+    &#xA0;&#xA0;&#xA0;&#xA0;&#xA0;X&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;
+    &#xA0;&#xA0;&#xA0;&#xA0;&#xA0;X&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;
+  </div>
+  <div class="three">
+    XXXXXXXXXXX
+    &#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;
+    &#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;
+    &#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;
+    &#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;
+  </div>
+  <p class="dummy">Dummy text.</p>
+  <p class="dummy">Dummy text.</p>
+  <p class="dummy">Dummy text.</p>
+  <p class="dummy">Dummy text.</p>
+  <p class="dummy">Dummy text.</p>
+  <p class="dummy">Dummy text.</p>
+  <p class="dummy">Dummy text.</p>
+  <p class="dummy">Dummy text.</p>
+  <p class="dummy">Dummy text.</p>
+  <p class="dummy">Dummy text.</p>
+  <p class="dummy">Dummy text.</p>
+  <p class="dummy">Dummy text.</p>
+  <p class="dummy">Dummy text.</p>
+  <p class="dummy">Dummy text.</p>
+  <p class="dummy">Dummy text.</p>
+  <p class="dummy">Dummy text.</p>
+  <p class="dummy">Dummy text.</p>
+  <p class="dummy">Dummy text.</p>
+  <p class="dummy">Dummy text.</p>
+  <p class="dummy">Dummy text.</p>
+  <p class="dummy">Dummy text.</p>
+  <p class="dummy">Dummy text.</p>
+  <p class="dummy">Dummy text.</p>
+  <p class="dummy">Dummy text.</p>
+  <p class="dummy">Dummy text.</p>
+  <p class="dummy">Dummy text.</p>
+  <p class="dummy">Dummy text.</p>
+  <p class="dummy">Dummy text.</p>
+  <p class="dummy">Dummy text.</p>
+  <p class="dummy">Dummy text.</p>
+  <p class="dummy">Dummy text.</p>
+  <p class="dummy">Dummy text.</p>
+  <p class="dummy">Dummy text.</p>
+  <p class="dummy">Dummy text.</p>
+  <p class="dummy">Dummy text.</p>
+  <p class="dummy">Dummy text.</p>
+  <p class="dummy">Dummy text.</p>
+  <p class="dummy">Dummy text.</p>
+  <p class="dummy">Dummy text.</p>
+  <p class="dummy">Dummy text.</p>
+  <p class="dummy">Dummy text.</p>
+  <p class="dummy">Dummy text.</p>
+  <p class="dummy">Dummy text.</p>
+  <p class="dummy">Dummy text.</p>
+  <p class="dummy">Dummy text.</p>
+ </body>
+</html>

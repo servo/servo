@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml"
+	 xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="testmeta">
+	<title>CSS Masking: clipPath reference content with use 5</title>
+	<html:link rel="author" title="Dirk Schulze" href="mailto:dschulze@adobe.com"/>
+	<html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#svg-clipping-paths"/>
+	<html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#ClipPathElement"/>
+	<html:link rel="match" href="reference/clip-path-square-002-ref.svg" />
+	<metadata class="flags">svg</metadata>
+	<desc class="assert">The clipPath elements reference the same content
+	clip shape with use. One use reference gets transformed. The one
+	clipPath element gets clipped by the other one. A green square should
+	be visible.</desc>
+</g>
+<defs>
+	<rect id="rect" width="150" height="150"/>
+</defs>
+<clipPath id="clip2">
+	<use xlink:href="#rect"/>
+</clipPath>
+<clipPath id="clip1" clip-path="url(#clip2)">
+	<use xlink:href="#rect" transform="translate(50, 50)"/>
+</clipPath>
+<rect width="200" height="200" fill="green" clip-path="url(#clip1)"/>
+</svg>

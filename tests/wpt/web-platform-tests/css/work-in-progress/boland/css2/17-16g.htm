@@ -1,0 +1,68 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Tenth Test of Section 17.6 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+
+
+tr:first-child {border-top: none}
+tr {border-top: solid}
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Tenth Testable Statement of Sec 17.6 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+10. This example shows a table with horizontal rules between the rows
+(alternative approach)
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p >
+If statement #10 above is passed, then
+the first row of the table should be addressed separately.
+<p>
+<table >
+<col id="coll"><col id="col2"><col id="col3">
+<tr id="row1">
+    <td> 3
+    </td>
+    <td> 4
+    </td>
+    <td> 5
+    </td>
+</tr>
+<tr id="row2">
+    <td> 5
+    </td>
+    <td > 12
+    </td>
+    <td > 13
+    </td>
+</tr>
+</table>
+The rules applied are
+"tr:first-child {border-top: none}", and
+"tr {border-top: solid}".
+<p>
+All other properties of this page should be UA-default.
+
+
+</BODY>
+</HTML>
+

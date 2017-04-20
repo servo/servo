@@ -1,0 +1,28 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS test: inherited percentage height</title>
+
+    <link rel="author" title="Bert Bos" href="mailto:bert@w3.org" />
+
+    <meta name="flags" content="" />
+
+    <style type="text/css">
+      p {margin-right: 7em}
+      #container div {position: absolute; top: 0; right: 0;
+        background: aqua; height: 100%}
+    </style>
+  </head>
+
+  <body>
+    <p>Test passes if the light blue box ("Block A") is the full height
+    of the viewport and there is no red.</p>
+
+    <div id="container">
+      <div>
+	Block A
+      </div>
+    </div>
+  </body>
+</html>

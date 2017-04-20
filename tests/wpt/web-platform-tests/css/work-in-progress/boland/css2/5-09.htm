@@ -1,0 +1,51 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Ninth Test of Section 5.1 of CSS2 Spec</TITLE>
+<STYLE TYPE="text/css">
+p[title~="new"] {color: red}
+
+
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Ninth Testable Statement of Sec 5.1 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+9. E[foo~="warning"] matches any E element whose foo attribute is a list
+of space-separated values, one of which is "warning".
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p title="old new big" >
+If statement #9 above is passed, then
+this paragraph should be red, because it has attribute list "old new big"
+for attribute "title", and "new" value matches 
+rule "p[title~="new"] {color: red}"
+<p title="old big">
+This paragraph should be UA-default, because it has attribute list "old big"
+for attribute "title", and "new" is not in there.
+All other properties of this page should be UA-default.
+
+
+To move to the next test, click<a href="5105-01.htm"> here</a>
+</BODY>
+</HTML>
+

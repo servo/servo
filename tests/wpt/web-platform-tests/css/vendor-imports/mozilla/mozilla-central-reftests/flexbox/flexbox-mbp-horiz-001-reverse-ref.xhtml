@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Reftest Reference</title>
+    <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com"/>
+    <style>
+      div { height: 100px; border: 0; }
+      div.flexbox {
+        width: 200px;
+      }
+      div.a {
+        display: inline-block;
+        background: lightgreen;
+        border-style: dotted;
+        border-left-width: 2px;
+        border-right-width: 4px;
+      }
+      div.b {
+        display: inline-block;
+        background: yellow;
+        border-style: dashed;
+        border-left-width: 7px;
+        border-right-width: 3px;
+      }
+      div.c {
+        display: inline-block;
+        background: orange;
+      }
+      div.flexNone {
+        display: inline-block;
+        background: pink;
+      }
+      div.flexBasis {
+        display: inline-block;
+        background: gray;
+      }
+      div.spacer {
+        height: 15px;
+        background: purple;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="flexbox">
+      <div class="b" style="width: 110px"/><div class="a" style="width: 74px"/>
+    </div>
+    <div class="flexbox">
+      <div class="c" style="width: 137.5px"/><div class="a" style="width: 56.5px"/>
+    </div>
+    <div class="flexbox">
+      <div class="flexNone"><div class="spacer" style="width: 15px"/>
+      </div><div class="a" style="width: 179px"/>
+    </div>
+    <div class="flexbox">
+      <div class="c" style="width: 124px"
+      /><div class="b" style="width: 66px"/>
+    </div>
+    <div class="flexbox">
+      <div class="flexNone"><div class="spacer" style="width: 30px"/>
+      </div><div class="b" style="width: 160px"/>
+    </div>
+    <div class="flexbox">
+      <div class="c" style="width: 85px"
+      /><div class="flexBasis" style="width: 20px"
+      /><div class="b" style="width: 40px"
+      /><div class="a" style="width: 39px"/>
+    </div>
+  </body>
+</html>
+

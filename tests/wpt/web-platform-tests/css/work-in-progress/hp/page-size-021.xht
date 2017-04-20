@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: Page Size - Handling Page Size - No Matching Paper</title>
+<link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+<link rel="help" href="http://www.w3.org/TR/css3-page/#page-size"/>
+<meta name="flags" content="paged" />
+<meta name="assert" content="If a preferred output media size is indicated via length or page-size values for the 'size' property and the indicated media size is not available, a larger size must be used if available." />
+<style type="text/css">
+	@page {
+		margin: 0.5in;
+		size: 5in 7in;
+		border: 2px solid #000;
+	}
+
+</style>
+</head>
+<body>
+	<p>When doing this test, the printer should have paper larger and smaller than 5 inch by 7 inch, but not 5 inch by 7 inch available.</p>
+	<p>This content should fit on a single sheet of paper and appear inside a black box. The exterior of the box should be 4 inches wide and 6 inches tall.</p>
+</body>
+</html>

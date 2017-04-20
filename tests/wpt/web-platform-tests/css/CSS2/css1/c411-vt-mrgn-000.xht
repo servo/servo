@@ -1,0 +1,104 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Vertical Formatting</title>
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#vertical-formatting"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+
+  <style type="text/css"><![CDATA[
+
+   /* test */
+   p.one      { margin-top: 0;    margin-bottom: 2cm;                                                }
+   p.two      { margin-top: 2cm;  margin-bottom: 0;                                                  }
+   p.three    { margin-top: 0;    margin-bottom: 0;                                                  }
+   p.four     { margin-top: -1cm; margin-bottom: 0;                                                  }
+   div.five   { margin-top: 1cm;  margin-bottom: 1cm;  padding-top: 1cm;                             }
+   p.six      { margin-top: 1cm;  margin-bottom: 1cm;                                                }
+   p.seven    { margin-top: 1cm;  margin-bottom: 0;                                                  }
+   p.eight    { margin-top: 0;    margin-bottom: -1cm; padding-bottom: 2cm;                          }
+   p.nine     { margin-top: -1cm; margin-bottom: 1cm;  padding-top: 1cm;                             }
+   p.ten      { margin-top: 1cm;  margin-bottom: 0;                         float: left; width: 50%; }
+   p.eleven   { margin-top: 1cm;  margin-bottom: 0;                                                  }
+   p.twelve   { margin-top: 0;    margin-bottom: 0;    padding-bottom: 1cm; clear: both;             }
+   p.thirteen { margin-top: 0;    margin-bottom: 0;    padding-top: 1cm;                             }
+
+   /* control */
+   td { width: 5em; padding: 0; border: solid; }
+   .p { margin: 0; padding: 0; height: auto; }
+   .h1 { margin: 0; padding: 0; height: 1cm; }
+   .h2 { margin: 0; padding: 0; height: 2cm; }
+   .h3 { margin: 0; padding: 0; height: 3cm; }
+   .w50 { width: 50%; }
+   .l50 { margin-left: 50%; }
+   .contain { position: relative; } /* XXX relies on CSS2 stuff */
+   .bottom { position: absolute; bottom: 0; }
+   .left { position: absolute; left: 0; }
+
+   /* colours */
+   .teal, .test { background: teal; }
+   .yellow, .one, .seven, .thirteen { background: yellow; }
+   .fuchsia, .two, .eight { background: fuchsia; }
+   .lime, .three, .nine { background: lime; }
+   .white, .four, .ten { background: white; }
+   .aqua, .five, .eleven { background: aqua; }
+   .orange, .six, .twelve { background: orange; }
+
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#collapsing-margins" title="8.3.1 Collapsing margins"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#margin-properties" title="8.3 Margin properties: 'margin-top',  'margin-right',  'margin-bottom', 'margin-left', and 'margin'"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#padding-properties" title="8.4 Padding properties: 'padding-top', 'padding-right', 'padding-bottom', 'padding-left', and 'padding'"/>
+ </head>
+ <body>
+  <p>The two columns below should be identical.</p>
+  <table>
+   <tr>
+    <td class="test">
+     <p class="one"> - </p>
+     <p class="two"> - </p>
+     <p class="one"> - </p>
+     <p class="three"> - </p>
+     <p class="one"> - </p>
+     <p class="four"> - </p>
+     <div class="five">
+      <p class="six"> - </p>
+     </div>
+     <p class="seven"> - </p>
+     <p class="eight"> - </p>
+     <p class="nine"> - </p>
+     <p class="ten"> - </p>
+     <p class="eleven"> - </p>
+     <p class="twelve"> - </p>
+     <p class="thirteen"> - </p>
+    </td>
+    <td class="control">
+     <div class="yellow p">-</div>
+     <div class="teal h2"></div>
+     <div class="fuchsia p">-</div>
+     <div class="yellow p">-</div>
+     <div class="teal h2"></div>
+     <div class="lime p">-</div>
+     <div class="yellow p">-</div>
+     <div class="teal h1"></div>
+     <div class="white p">-</div>
+     <div class="teal h1"></div>
+     <div class="aqua h2"></div>
+     <div class="orange p">-</div>
+     <div class="teal h1"></div>
+     <div class="yellow p">-</div>
+     <div class="fuchsia p">-</div>
+     <div class="fuchsia h1"></div>
+     <div class="lime h1"></div>
+     <div class="lime p">-</div>
+     <div class="teal h1"></div>
+     <div class="aqua"><div class="l50 p">-</div></div>
+     <div class="teal h1 contain"><div class="white p bottom left w50">-</div></div>
+     <div class="orange p">-</div>
+     <div class="orange h1"></div>
+     <div class="yellow h1"></div>
+     <div class="yellow p">-</div>
+    </td>
+   </tr>
+  </table>
+ </body>
+</html>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Test: flowing modal dialog elements in region</title>
+		<link rel="author" title="Catalin Badea" href="mailto:badea@adobe.com">
+		<style>
+			#content {
+				width: 30px;
+				height: 30px;
+				background-color: green;
+			}
+		</style>
+	</head>
+	<body>
+		<ol>
+			<li>Test passes if you see a green square.</li>
+		</ol>
+		<div id="region">
+			<dialog id="content"></dialog>
+		</div>
+	</body>
+	<script>
+		document.addEventListener("DOMContentLoaded", function() {
+			var dialog = document.getElementsByTagName('dialog')[0];
+			dialog.showModal();
+		});
+	</script>
+</html>

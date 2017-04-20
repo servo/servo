@@ -1,0 +1,25 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Page Margins: bottom and left (percent)</title>
+  <link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-margins"/>
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#page-properties"/>
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#page-box-page-rule"/>
+  <meta name="flags" content="paged" />
+  <meta name="assert" content="A margin declaration within the @page context applies to the page box."/>
+  <meta name="assert" content="Percentage values on right and left margins are relative to the page box width."/>
+  <meta name="assert" content="Percentage values on top and bottom margins are relative to the page box height."/>
+  <style type="text/css"><![CDATA[
+   @page  {
+		margin-bottom: 50%;
+		margin-left: 50%;
+	}
+	html, body {background: #ccc;}
+  ]]></style>
+ </head>
+ <body>
+  <div>When printed, this paragraph appears inside a grey box in the upper-right quadrant of the page. The bottom edge of the box should be exactly 1/2 way down the page, and the left edge of the box should be exactly half way across the page (You can test this by folding the page in half).
+  </div>
+ </body>
+</html>

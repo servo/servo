@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Min-height using points with a positive zero value, +0pt</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-10-30 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#propdef-min-height" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#min-max-heights" />
+        <link rel="match" href="height-001-ref.xht" />
+
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'min-height' property sets a positive zero length value in points." />
+        <style type="text/css">
+            div
+            {
+                background: red;
+                height: 0;
+                min-height: +0pt;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is <strong>no red</strong>.</p>
+        <div>Filler Text</div>
+    </body>
+</html>

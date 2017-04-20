@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS 2.1 Test Suite: Rules for handling parsing errors: Invalid at-keywords</title>
+  <link rel="author" title="Gabriele Romanato" href="mailto:gabriele.romanato@gmail.com" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#parsing-errors" />
+  <meta name="flags" content="invalid" />
+  <meta name="assert" content="Browsers must ignore an invalid at-keyword" />
+<style type="text/css">
+p {color: green}
+
+@media life {
+p {color: red}
+}
+
+@media all {
+@media screen {
+p {color: red}
+}
+}
+
+@media screen {
+@media print {
+@media screen {
+p {color: red }
+}
+}
+}
+
+@font-face {
+p {color: red}
+}
+
+</style>
+ </head>
+ <body>
+
+<p>This text should be green, not red.</p>
+
+ </body>
+</html>

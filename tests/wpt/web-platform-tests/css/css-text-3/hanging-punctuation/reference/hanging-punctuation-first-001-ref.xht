@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">
+	<head>
+		<title>CSS Test: hanging-punctuation - first - basic cases Reftest Reference</title>
+		<link rel="author" title="Satoshi Umehara" href="mailto:umehara@est.co.jp" />
+		<style type="text/css">
+			<![CDATA[
+				body {
+					font-family: "IPAMincho", "IPAGothic", "IPA明朝", "IPAゴシック";
+				}
+				.hanging {
+					left: -1em;
+					position: relative;
+				}
+				.no-wrap {
+					white-space: nowrap;
+				}
+				.parent {
+					border: 1px solid gray;
+					margin-left: 2em;
+					width: 10em
+				}
+				span.attention {
+					color: red;
+				}
+			]]>
+		</style>
+	</head>
+	<body>
+		<p>
+			Test passes if each pair of upper and lower text in the square box is identical.
+		</p>
+		<hr />
+		<div>
+			Opening brackets
+		</div>
+		<div class="parent">
+			<div class="no-wrap">
+				<span class="hanging">「これは、満たすための</span><br />文字です。」
+			</div>
+			<br />
+			<div class="no-wrap">
+				<span class="hanging">「これは、満たすための</span><br />文字です。」
+			</div>
+		</div>
+		<hr />
+		<div>
+			Closing brackets
+		</div>
+		<div class="parent">
+			<div class="no-wrap">
+				これは、「満たす文<br />字」です。
+			</div>
+			<br />
+			<div class="no-wrap">
+				これは、「満たす文<br />字」です。
+			</div>
+		</div>
+		<hr />
+		<div>
+			Initial quotes
+		</div>
+		<div class="parent">
+			<div class="no-wrap">
+				<span class="hanging">“これは、満たすための</span><br />文字です。”
+			</div>
+			<br />
+			<div class="no-wrap">
+				<span class="hanging">“これは、満たすための</span><br />文字です。”
+			</div>
+		</div>
+		<hr />
+		<div>
+			Final quotes
+		</div>
+		<div class="parent">
+			<div class="no-wrap">
+				これは、“満たす文<br />字”です。
+			</div>
+			<br />
+			<div class="no-wrap">
+				これは、“満たす文<br />字”です。
+			</div>
+		</div>
+		<hr />
+		<p>
+			<span class="attention">* You will need a Japanese font.</span><br />
+			If you are unable to see font glyphs for certain characters using the browsers default font, install the <a href="http://ossipedia.ipa.go.jp/ipafont/">IPA Font(http://ossipedia.ipa.go.jp/ipafont/)</a> and reload this page.
+		</p>
+	</body>
+</html>

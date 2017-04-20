@@ -1,0 +1,71 @@
+
+<html>
+<head>
+<title>Third Test of Section 5.3.7 of CSS1 Spec</title>
+<style type="text/css">
+p {background: }
+h3 {background: gray}
+h4 {background: url(ovalbbut.gif)  50%50%}
+strong {background: green}
+
+</style>
+</head>
+
+<body>
+
+
+
+
+<h1>Testing Third Statement of Section 5.3.7 of CSS1 Spec</h1>
+
+
+
+
+
+<ul>
+<li >
+3. The "background" property always sets all the individual background
+properties (initial is "not defined for shorthand properties", applies to
+all elements, not inherited, and percentage values are allowed on "background-
+position")
+</ul>
+
+<h2>
+PASS CRITERIA:
+</h2>
+<p>
+If statement #3 above is passed, this paragraph should be UA-default
+or initial values.
+All of the individual background properties should be set to their
+initial values.
+The rule applied is "p {background: }".
+So the background property applies to the "p" element.
+<h3>
+This h3 element should have a gray background; all other specific
+properties should be set to their initial values.
+<em>
+This emphasized text should be UA-default, since the background
+property is not inherited, and "em" is a child of 'h3".
+No explicit rule is applied for "em".
+</em>
+THe rule applied is 'h3 {background: gray}".
+So the background property applies to em and h3.
+</h3>
+<h4>
+THis h4 element should have an oval button image which is centered.
+THe rule applied is "background: url(ovalbbut.gif) 50%50%".
+All other specific properties should be initialized.
+So the background property applies to h4.
+</h4>
+
+<strong>
+This strong text should have a green background; all other specific
+properties should be initialized.  So the background property applies
+to the strong element.
+The rule applied is "strong {background: green}".
+(NOTE: Should other HTML elements be mentioned?)
+</strong>
+All other properties of this page should be UA-default.
+
+</body>
+</html>

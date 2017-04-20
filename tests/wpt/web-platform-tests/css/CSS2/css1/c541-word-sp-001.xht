@@ -1,0 +1,30 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: word-spacing</title>
+  <meta name="flags" content="ahem" />
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#word-spacing"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="match" href="c541-word-sp-001-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+   div { font: 25px/1 Ahem; width: 12em; background: yellow; color: aqua; margin: 0 0 0 2em; }
+   .eight {word-spacing: 25px;}
+   .nine {word-spacing: normal;}
+   .ten {word-spacing: 300%;}
+   .eleven {word-spacing: -1em;}
+   .fill { color: yellow; }
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#spacing-props" title="16.4 Letter and word spacing: the 'letter-spacing' and 'word-spacing' properties"/>
+ </head>
+ <body>
+  <p>There should be a stripy pattern of yellow and aqua below (each vertical stripe should be straight and unbroken).</p>
+  <div class="test">x&#xA0;&#xA0;x&#xA0;&#xA0;xx&#xA0;xx</div>
+  <div class="test">x&#xA0;&#xA0;x&#xA0;&#xA0;xx&#xA0;xx</div>
+  <div class="test">x&#xA0;&#xA0;x&#xA0;&#xA0;xx&#xA0;xx</div>
+  <div class="eight"> x x <span class="nine">xx xx</span> </div>
+  <div class="ten"> x&#xA0; x &#xA0;xx xx </div>
+  <div class="eleven"> x&#xA0; &#xA0;<span class="nine"> &#xA0;</span>x&#xA0;&#xA0;<span class="fill">xx</span> xx&#xA0; <span class="fill">x</span>xx </div>
+ </body>
+</html>

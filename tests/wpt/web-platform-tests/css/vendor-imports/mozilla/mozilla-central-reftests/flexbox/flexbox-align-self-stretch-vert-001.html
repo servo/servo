@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+<head>
+  <title>CSS Test: Testing the sizing of a stretched horizontal flex container in a vertical flex container</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#layout-algorithm">
+  <link rel="match" href="flexbox-align-self-stretch-vert-001-ref.html">
+  <meta name="assert" content="If a stretched flex item's main size is influenced by its cross size, and the flex container has a definite cross size, then the item's cross size should be resolved early so that it can be used when determining the item's main size">
+  <meta name="assert" content="https://drafts.csswg.org/css-flexbox/issues-cr-2012#issue-23">
+  <meta charset="utf-8">
+  <style>
+    div.fixedWidthWrapper {
+      width: 200px;
+      /* Small enough that 3 characters can _easily_ fit in our width */
+      font-size: 12px;
+    }
+    div.vertContainer {
+      display: flex;
+      flex-direction: column;
+    }
+    div.vertItem {
+      background: red;
+    }
+    div.horizContainer {
+      display: flex;
+    }
+    div.horizItem {
+      flex: 1;
+      background: lime;
+    }
+  </style>
+</head>
+<body>
+  <div class="fixedWidthWrapper">
+    <div class="vertContainer">
+      <div class="vertItem">
+        <div class="horizContainer">
+          <div class="horizItem">A B C</div>
+          <div class="horizItem"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

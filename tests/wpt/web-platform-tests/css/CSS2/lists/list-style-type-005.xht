@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: List-style-type set to 'decimal-leading-zero'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#propdef-list-style-type" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#list-style" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'list-style-type' property set to 'decimal-leading-zero' renders the correct list item marker." />
+        <style type="text/css">
+            body
+            {
+                margin-left: 50px;
+            }
+            div
+            {
+                display: list-item;
+                list-style-type: decimal-leading-zero;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is are the numbers "01." below.</p>
+        <div>&nbsp;</div>
+    </body>
+</html>

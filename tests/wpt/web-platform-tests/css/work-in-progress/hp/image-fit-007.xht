@@ -1,0 +1,101 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Image Fit - contain with height/width auto</title>
+  <link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#the-fit"/>
+  <meta name="flags" content="96dpi" />
+  <meta name="assert" content="The 'contain' value of the 'image-scaling' property does not affect the usual calculation of the used 'height' and 'width' except if both 'height' and 'width' are 'auto', and the used value of at least one of 'max-width' and 'max-height' is not 'none', in which case the element's used width and used height are calculated as though the intrinsic dimensions of the contents were infinitely large numbers whose ratio is the actual intrinsic ratio of the contents."/>
+  <style type="text/css"><![CDATA[
+	div.container {
+		position: relative;
+		margin-bottom: 50px;
+	}
+	
+	div.ruler, div.rulerWidth, div.rulerHeight {
+		position: absolute;
+		background: black;
+	}
+	div.breaker {page-break-after: always;}
+	
+  	img {
+   		image-fit: contain;
+		height: auto;
+		width: auto;
+		border: 0.25in solid aqua;
+	}
+	
+	/* max-width cases */
+	div#skinnier img {max-width: 1in;}
+	div#skinnier div.ruler {
+		top: 0;
+		left: 158px;
+		height: 2in;
+		width: 20px;
+	}
+	
+	div#wider img {max-width: 3in;}
+	div#wider div.ruler {
+		top: 0;
+		left: 350px;
+		height: 5in;
+		width: 20px;
+	}
+	
+	/* max-height cases */
+	div#shorter img {max-height: 1.5in;}
+	div#shorter div.ruler {
+		bottom: -20px;
+		left: 0;
+		height: 20px;
+		width: 1.5in;
+	}
+	
+	div#taller img {max-height: 6in;}
+	div#taller div.ruler {
+		bottom: -20px;
+		left: 0;
+		height: 20px;
+		width: 4.5in;
+	}
+	
+	
+  ]]></style>
+ </head>
+ <body>
+ 	<!-- 
+	Image intrinsic dimensions: width="200" height="300"
+	Sub-assertions from http://wiki.csswg.org/test/css2.1/submit/105
+1. If 'width' and 'height' are 'auto', and 'max-width' is set but 'max-height' is not set ('none'), then the image width will become 'max-width'. (Two sub-cases, one with the intrinsic width less than max-width and one with it greater.) 
+
+2. If 'width' and 'height' are 'auto', and 'max-height' is set but 'max-width' is 'none', then the image height will become 'max-height'. (Analogous two sub-cases.) 
+
+3. If 'width' and 'height' are 'auto', and neither 'max-width' nor 'max-height' is 'none' (both are set), then the resultant image size will be no wider than max-width and no taller than max-height. 
+	 -->
+	 <p>This test requires two pages. Each image on this page should be exactly as tall as the black bar to the right of it (when including the light blue border).</p>
+	<p>The boxes below this text should be 0.5 inches x 0.5 inches.</p>
+	 <div class="container" id="skinnier">
+		<img src="image-fit-3inX2in.jpg" alt="Failed: image missing" />
+		<div class="ruler"></div>
+	</div>
+	
+	<p>The boxes below this text should be 1.5 inches x 1.5 inches.</p>
+	<div class="container breaker" id="wider">
+		<img src="image-fit-3inX2in.jpg" alt="Failed: image missing" />
+		<div class="ruler"></div>
+	</div>
+	
+	<p>Each image on this page should be exactly as wide as the black bar below it (when including the light blue border).</p>
+	<p>The boxes below this text should be 0.5 inches x 0.5 inches.</p>
+	<div class="container" id="shorter">
+		<img src="image-fit-3inX2in.jpg" alt="Failed: image missing" />
+		<div class="ruler"></div>
+	</div>
+	
+	<p>The boxes below this text should be 1.5 inches x 1.5 inches.</p>
+	<div class="container breaker" id="taller">
+		<img src="image-fit-3inX2in.jpg" alt="Failed: image missing" />
+		<div class="ruler"></div>
+	</div>
+ </body>
+</html>

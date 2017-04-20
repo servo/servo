@@ -1,0 +1,82 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: page properties: color</title>
+<link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+<link rel="help" href="http://www.w3.org/TR/css3-page/#page-properties"/>
+<meta name="flags" content="paged" />
+<meta name="assert" content="The 'color' property can be used in the page context to style the content of margin boxes."/>
+<style type="text/css">
+	@page { 
+		color: red;
+		@top-left-corner {
+			content: "X";
+			color: green;
+		}	
+		@top-left {
+			content: "X";
+			color: green;
+		}	
+		@top-center {
+			content: "X";
+			color: green;
+		}	
+		@top-right {
+			content: "X";
+			color: green;
+		}	
+		@top-right-corner {
+			content: "X";
+			color: green;
+		}
+		@left-top {
+			content: "X";
+			color: green;
+		}
+		@left-middle {
+			content: "X";
+			color: green;
+		}
+		@left-bottom {
+			content: "X";
+			color: green;
+		}
+		@right-top {
+			content: "X";
+			color: green;
+		}
+		@right-middle {
+			content: "X";
+			color: green;
+		}
+		@right-bottom {
+			content: "X";
+			color: green;
+		}
+		@bottom-left-corner {
+			content: "X";
+			color: green;
+		}	
+		@bottom-left {
+			content: "X";
+			color: green;
+		}	
+		@bottom-center {
+			content: "X";
+			color: green;
+		}	
+		@bottom-right {
+			content: "X";
+			color: green;
+		}	
+		@bottom-right-corner {
+			content: "X";
+			color: green;
+		}
+	}
+</style>
+</head>
+<body>
+	<p>When printed, there must be 16 green Xs surrounding the page.</p>
+</body>
+</html>

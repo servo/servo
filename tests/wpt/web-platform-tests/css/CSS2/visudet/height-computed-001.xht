@@ -1,0 +1,35 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+  <title>CSS min-height: min-height does not influence the computed height</title>
+
+  <link rel="help" href="http://www.w3.org/TR/CSS22/visudet.html#min-max-heights" title="10.7 Minimum and maximum heights: 'min-height' and 'max-height'" />
+  <link rel="help" href="http://www.w3.org/TR/CSS22/changes.html#s.10.7" title="C.1 Changes since the Recommendation of 7 June 2011" />
+  <meta name="assert" content="If the resulting height is smaller than 'min-height', the rules above are applied again, but this time using the value of 'min-height' as the computed value for 'height'. Note: These steps do not affect the real computed value of 'height'." />
+  <link rel="match" href="height-computed-001-ref.xht" />
+  <link rel="author" title="Bert Bos" href="mailto:bert@w3.org" />
+
+  <meta name="flags" content="" />
+
+  <style type="text/css"><![CDATA[
+  body {background: white; color: black; font-size: 14px}
+  span {display: inline-block}
+  #container {background: green; height: 70px; min-height: 140px}
+  #child1 {background: #66F; width: 70px; height: inherit} /* Inherits 70px */
+  #child2 {background: #AAF; width: 70px; height: 70px}
+  ]]></style>
+ </head>
+
+ <body>
+   <p>Test passes if (1) the two blue rectangles have the same height
+   and (2) that height is about the same as the green rectangle.</p>
+
+   <p>
+     <span id="container">
+       <span id="child1"></span><span id="child2"></span>
+     </span>
+   </p>
+ </body>
+</html>

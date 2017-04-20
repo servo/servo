@@ -1,0 +1,79 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Second Test of Section 17.6 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+
+
+
+#id1 {border-collapse: }
+#id2 {border-collapse: separate}
+#id3 {border-collapse: 200%}
+p {border-collapse: separate}
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Second Testable Statement of Sec 17.6 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+2. The border-collapse property has initial collapse, it applies to table
+and inline-table elements, it is inherited, percentages are N/A, and media
+is visual.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p >
+If statement #2 above is passed, then
+in the first table below the border-collapse value is collapse (initial
+value).
+The rule applied is "#id1 {border-collapse:}".
+The second table below has a border-collapse value of separate.
+The rule applied there is "#id2 {border-collapse: separate}".
+Note that this table has included table also with border-collapse of 
+separate, since this property is inherited.
+<table id=id1 >
+<tr><td>1</td><td>2</td></tr>
+<tr><td>3</td><td>4</td></tr>
+</table>
+<table id=id2 >
+<tr><td>5</td><td>6</td></tr>
+<tr><td>7</td><td>8</td></tr>
+<table>
+<tr><td>a</td><td>b</td></tr>
+</table>
+</table>
+The table below should have border collapse of UA-default.
+The rule specified is "#id3 {border-collapse: 200%}".
+This rule is ignored, since percentages do not apply.
+<table id=id3>
+<tr><td>9</td><td>10</td></tr>
+<tr><td>11</td><td>12</td></tr>
+</table>
+<p>
+This paragraph should be UA-default.
+The rule specified is "p {border-collapse: separate}", which is ignored
+since the property only applies to table and inline-table elements.
+</p>
+All other properties of this page should be UA-default.
+
+
+</BODY>
+</HTML>
+

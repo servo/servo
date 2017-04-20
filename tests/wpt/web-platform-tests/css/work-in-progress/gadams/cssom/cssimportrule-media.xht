@@ -1,0 +1,65 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD//XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSSOM - CSSImportRule - Media</title>
+    <link rel="author" title="Glenn Adams" href="mailto:glenn@skynav.com"/>
+    <link rel="help" href="http://www.w3.org/TR/cssom-1/#the-cssimportrule-interface"/>
+    <meta name="flags" content="dom"/>
+    <script src="/resources/testharness.js"/>
+    <script src="/resources/testharnessreport.js"/>
+    <style id="sheet1">
+      @import "resources/import.css";
+    </style>
+    <style id="sheet2">
+      @import "resources/import.css" all;
+    </style>
+    <style id="sheet3">
+      @import "resources/import.css" not tv;
+    </style>
+    <style id="sheet4">
+      @import "resources/import.css" screen, tv;
+    </style>
+  </head>
+  <body>
+    <div id="log"></div>
+    <div id="box"></div>
+    <script><![CDATA[
+
+      var doc = window.document;
+
+      var sheet1 = doc.styleSheets[0];
+
+      test(function(){
+
+        assert_equals(sheet1.cssRules[0].cssText, '@import url(\"resources/import.css\");');
+
+      }, 'doc.styleSheets[0].cssRules[0].cssText == \'@import url(\"resources/import.css\");\'');
+
+      var sheet2 = doc.styleSheets[1];
+
+      test(function(){
+
+        assert_equals(sheet2.cssRules[0].cssText, '@import url(\"resources/import.css\") all;');
+
+      }, 'doc.styleSheets[1].cssRules[0].cssText == \'@import url(\"resources/import.css\") all;\'');
+
+      var sheet3 = doc.styleSheets[2];
+
+      test(function(){
+
+        assert_equals(sheet3.cssRules[0].cssText, '@import url(\"resources/import.css\") not tv;');
+
+      }, 'doc.styleSheets[2].cssRules[0].cssText == \'@import url(\"resources/import.css\") not tv;\'');
+
+      var sheet4 = doc.styleSheets[3];
+
+      test(function(){
+
+        assert_equals(sheet4.cssRules[0].cssText, '@import url(\"resources/import.css\") screen, tv;');
+
+      }, 'doc.styleSheets[3].cssRules[0].cssText == \'@import url(\"resources/import.css\") screen, tv;\'');
+
+    ]]>
+    </script>
+  </body>
+</html>

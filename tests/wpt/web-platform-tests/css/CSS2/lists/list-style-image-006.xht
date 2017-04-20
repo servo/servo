@@ -1,0 +1,23 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Test: list-style-image in rtl context</title>
+    <link rel="author" title="Eira Monstad, Opera Software ASA" href="mailto:public-testsuites@opera.com"/>
+    <link rel="reviewer" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact" />
+    <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#list-style"/>
+    <meta name="flags" content=""/>
+    <meta name="assert" content="list-style-image should be positioned to the right in rtl context"/>
+    <style type="text/css"><![CDATA[
+      body {direction:rtl;}
+      ul {
+      list-style-image: url("support/diamond.png");
+      }
+    ]]></style>
+
+  </head>
+  <body>
+    <ul>
+      <li>This list item should have a fuchsia diamond to the right</li>
+    </ul>
+  </body>
+</html>

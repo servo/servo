@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Cursor set to 'inherit'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/ui.html#propdef-cursor" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/ui.html#cursor-props" />
+        <meta name="flags" content="interact" />
+        <meta name="assert" content="Cursor 'inherit' results in the same cursor value as the parent element has." />
+        <style type="text/css">
+            div
+            {
+                cursor: text;
+            }
+            div div
+            {
+                border: 2px solid blue;
+                cursor: inherit;
+            }
+            #div1
+            {
+                cursor: pointer;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the cursor changes to a pointer cursor when mouse is over the following text.</p>
+        <div id="div1">
+            <div>Filler Text</div>
+        </div>
+    </body>
+</html>

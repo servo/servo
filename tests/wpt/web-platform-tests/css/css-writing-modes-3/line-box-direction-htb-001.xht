@@ -1,0 +1,38 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Writing Modes Test: horizontal-tb - ordering direction of line boxes</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#writing-mode" title="3.1 Block Flow Direction: the writing-mode property" />
+  <link rel="match" href="block-flow-direction-001-ref.xht" />
+
+  <meta content="ahem" name="flags" />
+  <meta content="This test checks that line boxes of a block box in a 'horizontal-tb' writing mode are laid out one after the other, vertically, with the first beginning at the top of the block box; they are ordered from top to bottom meaning that the 1st line box is the topmost one and then the 2nd block is juxtaposed to its bottom, the 3rd block is juxtaposed to the 2nd block on its left-hand side, etc..." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  body
+  {
+  color: yellow;
+  font: 20px/1 Ahem;
+  }
+
+  div
+  {
+  background-color: blue;
+  border: blue solid 1em;
+  width: 19em; /* Each line box has an inline-size of 19em */
+  writing-mode: horizontal-tb;
+  }
+  ]]></style>
+ </head>
+
+ <body>
+
+  <div>AAAA BBBB CCCC DDDD E&nbsp; F G&nbsp; H J&nbsp;&nbsp;&nbsp; L&nbsp;&nbsp; M&nbsp; N Q&nbsp; R S&nbsp;&nbsp;&nbsp; T&nbsp;&nbsp; UUUU VVVV WWWW XXXX Z&nbsp;&nbsp;&nbsp; a&nbsp; b&nbsp;&nbsp;&nbsp; c&nbsp;&nbsp;&nbsp; d e&nbsp;&nbsp;&nbsp; f&nbsp; g&nbsp;&nbsp;&nbsp; h&nbsp;&nbsp;&nbsp; j k&nbsp;&nbsp;&nbsp; m&nbsp; n qqqq rrrr</div>
+
+ </body>
+</html>

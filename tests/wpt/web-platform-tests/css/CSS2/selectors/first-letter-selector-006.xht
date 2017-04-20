@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: First-letter with list items</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#first-letter" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="If an element is a list item, the ':first-letter' applies to the first letter in the principal box after the marker." />
+        <style type="text/css">
+            li:first-letter
+            {
+                color: green;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the letter "F" in the words "Filler Text" are all green, and the preceding marker bullets match the marker bullet at the bottom of the list.</p>
+        <ul>
+            <li>Filler Text</li>
+            <li>Filler Text</li>
+            <li>Filler Text</li>
+        </ul>
+        <ul>
+            <li></li>
+        </ul>
+    </body>
+</html>

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Transitions Test: transition-duration - 0s(initial value)</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="author" title="Shiyou Tan" href="mailto:shiyoux.tan@intel.com">
+<link rel="help" title="2.2. The 'transition-duration' Property" href="http://www.w3.org/TR/css3-transitions/#transition-duration-property">
+<meta name="flags" content="interact">
+<meta name="assert" content="Test checks that the initial value of 'transition-duration' property is '0s' which means the transition is immediate.">
+<style>
+  div {
+    height: 100px;
+    transition-property: width;
+    transition-timing-function: linear;
+    width: 100px;
+  }
+  #ref1 {
+    background-color: yellow;
+    transition-duration: 2s;
+  }
+  #ref2 {
+    background-color: gray;
+    transition-duration: 0s;
+  }
+  #test {
+    background-color: blue;
+  }
+</style>
+<body>
+  <p>Click the 'Start' button below. Test passes if the width of yellow square grows smoothly but the gray and blue grow immediately.</p>
+  <div id="ref1"></div>
+  <div id="ref2"></div>
+  <div id="test"></div>
+  <button>Start</button>
+  <script>
+    (function() {
+      var button = document.querySelector("button"),
+          test = document.querySelector("#test"),
+          ref1 = document.querySelector("#ref1"),
+          ref2 = document.querySelector("#ref2")
+      button.addEventListener("click", function(evt) {
+        test.setAttribute("style", "width: 300px;");
+        ref1.setAttribute("style", "width: 300px;");
+        ref2.setAttribute("style", "width: 300px;");
+      }, false);
+    })();
+  </script>
+</body>

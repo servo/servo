@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Shape Image Threshold Inherit</title>
+        <link rel="author" title="Adobe" href="http://html.adobe.com/">
+        <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+        <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shape-image-threshold-property">
+        <meta name="assert" content="shape-outside can be assigned the 'inherit' value and does not inherit by default.">
+        <meta name="flags" content="dom">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="support/parsing-utils.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script type="text/javascript">
+        function setUpTest(parentValue, childValue) {
+            var outer = document.createElement("div");
+            var inner = document.createElement("div");
+            outer.appendChild(inner);
+
+            outer.style.setProperty("shape-outside", "content-box");
+            outer.style.setProperty("shape-image-threshold", parentValue);
+            inner.style.setProperty("shape-outside", "circle()");
+            inner.style.setProperty("shape-image-threshold", childValue);
+
+            document.body.appendChild(outer);
+
+            var inline = inner.style.getPropertyValue("shape-image-threshold");
+            var style = getComputedStyle(inner);
+            var computed = style.getPropertyValue("shape-image-threshold");
+            document.body.removeChild(outer);
+
+            return [inline, computed];
+        }
+
+        test(function() {
+            var results = setUpTest("0.5", "inherit");
+            assert_equals(results[0], "inherit");
+            assert_equals(results[1], "0.5");
+        }, "shape-image-threshold can be assigned 'inherit' value");
+
+        test(function() {
+            var results = setUpTest("0.3", null);
+            assert_equals(results[0], null);
+            assert_equals(results[1], "0");
+        }, "shape-image-threshold is not inherited and defaults to 0");
+
+        test(function() {
+            var results = setUpTest("0.2", "0.5");
+            assert_equals(results[0], "0.5");
+            assert_equals(results[1], "0.5");
+        }, "shape-margin is not inherited");
+        </script>
+    </body>
+</html>

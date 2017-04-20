@@ -1,0 +1,40 @@
+root, document, info, list {
+	display: block;
+}
+
+root {
+	background: white;
+	color: black;
+}
+
+document {
+	margin: 0.5em;
+}
+
+info {
+	margin: 1em 0;
+}
+
+list {
+	margin-left: 2.5em;
+}
+
+item {
+	display: list-item;
+}
+
+list[type="disc"] {
+	list-style-type: disc;
+}
+
+list[type="circle"] {
+	list-style-type: circle;
+}
+
+list[type="square"] {
+	list-style-type: square;
+}
+
+item[class="none"] {
+	list-style-type: none;
+}

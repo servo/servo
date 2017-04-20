@@ -1,0 +1,50 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+ <head>
+  <title>CSS Test: vertical-align: length on :first-line</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2013-10-06 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/block/first-line/012.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#first-line-pseudo" />
+  <link rel="match" href="first-line-pseudo-012-ref.xht" />
+
+  <meta name="flags" content="ahem may" />
+
+  <!--
+  vertical-align may apply to :first-line selector but is not required by the spec.
+  More info:
+  http://lists.w3.org/Archives/Public/public-css-testsuite/2013Oct/0000.html
+  -->
+
+  <style type="text/css">
+  .container { font-size: 3.125em; }
+  .test, .control, .reference { border: solid black; width: 1em; }
+  .test, .control { font: 1em/1 Ahem; color: aqua; background: yellow; }
+  .a { background: fuchsia; }
+  .test:first-line, .control .first-line { vertical-align: 0.8em; }
+  .reference .ra { height: 0.8em; background: aqua; }
+  .reference .rb { height: 0.2em; background: fuchsia; }
+  .reference .rc { height: 0.8em; background: yellow; }
+  .reference .rd { height: 1.0em; background: aqua; }
+  </style>
+ </head>
+ <body>
+  <p>The next three boxes should be pixel-perfect identical.</p>
+  <div class="container">
+   <p class="test">
+    <span class="a">&Eacute;</span>
+    <span class="b">X</span>
+   </p>
+   <p class="control">
+    <span class="first-line"><span class="a">&Eacute;</span></span>
+    <span class="b">X</span>
+   </p>
+   <div class="reference">
+    <div class="ra"></div>
+    <div class="rb"></div>
+    <div class="rc"></div>
+    <div class="rd"></div>
+   </div>
+  </div>
+ </body>
+</html>

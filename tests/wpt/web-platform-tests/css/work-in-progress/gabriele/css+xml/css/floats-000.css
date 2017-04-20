@@ -1,0 +1,47 @@
+root, document, info, section, float {
+	display: block;
+}
+
+root {
+	background: white;
+	color: black;
+}
+
+document {
+	margin: 0.5em;
+}
+
+info {
+	margin: 1em 0;
+}
+
+section[type="container"] {
+	width: 300px;
+	height: 100px;
+	font-weight: bold;
+	text-align: center;
+}
+
+float[direction="left"], float[direction="right"] {
+	width: 100px;
+	height: 100px;
+	line-height: 100px;
+}
+
+float[direction="left"] {
+	float: left;
+	background-color: silver;
+}
+
+float[direction="right"] {
+	float: right;
+	background-color: fuchsia;
+}
+
+section[id="content"] {
+	margin-left: 100px;
+	margin-right: 100px;
+	height: 100px;
+	line-height: 100px;
+	background-color: lime;
+}

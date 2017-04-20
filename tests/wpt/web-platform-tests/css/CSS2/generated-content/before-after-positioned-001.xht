@@ -1,0 +1,48 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head>
+    <title>CSS Test: generated content</title>
+    <link rel="author" title="Robert O'Callahan" href="mailto:robert@ocallahan.org" />
+    <link rel="author" title="Mozilla Corporation" href="http://mozilla.com/" />
+    <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#before-after-content" />
+    <link rel="match" href="before-after-positioned-001-ref.xht"/>
+    <meta name="flags" content="" />
+<style type="text/css">
+div { counter-reset:ctr; quotes:"\0022" "\0022" "\0022" "\0022"; }
+
+.gen:before {
+  content:counter(ctr) url(support/square-outline-32x32.png) open-quote "Before " attr(class);
+  counter-increment:ctr;
+}
+.gen:after {
+  content:counter(ctr) url(support/square-outline-32x32.png) "After " attr(class) close-quote;
+  counter-increment:ctr;
+}
+
+.abs:before {
+  position:absolute;
+  left:0;
+}
+.abs:after {
+  position:absolute;
+  right:0;
+}
+
+.rel:before {
+  position:relative;
+  top:-10px;
+}
+.rel:after {
+  position:relative;
+  top:10px;
+}
+
+div { border:1px solid green; margin:5px; height:100px; }
+</style>
+</head>
+<body><div class="gen abs">Inner</div>
+<!-- an element should be the containing block for its positioned content -->
+<div style="position:relative;" class="gen abs">Inner</div>
+<div class="gen rel">Inner</div>
+<div>Begin <span class="gen rel">Inner</span> End</div>
+
+
+</body></html>

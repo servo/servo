@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Reference</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<style>
+  table { border-spacing: 0 2px; padding: 0; border: none; }
+  td { border: none; padding: 0; height: 1.2em; }
+</style>
+<body>
+  <p><strong>WARNING: This test assumes that the device gamut is sRGB
+  (as it will be for many CRT monitors).</strong></p>
+  <p>Every row in this table should have both columns the same color:</p>
+  <table>
+    <tr>
+      <th style="background:white; color: black">Column 1</th>
+      <th style="background:black; color: white">Column 2</th>
+    </tr>
+    <tr>
+      <td colspan='2' style="background: black">&nbsp;</td>
+    </tr>
+    <tr>
+      <td colspan='2' style="background: black">&nbsp;</td>
+    </tr>
+    <tr>
+      <td colspan='2' style="background: white">&nbsp;</td>
+    </tr>
+    <tr>
+      <td colspan='2' style="background: rgb(0, 0, 255)">&nbsp;</td>
+    </tr>
+    <tr>
+      <td colspan='2' style="background: rgb(102, 0, 255)">&nbsp;</td>
+    </tr>
+    <tr>
+      <td colspan='2' style="background: rgb(102, 102, 102)">&nbsp;</td>
+    </tr>
+    <tr>
+      <td colspan='2' style="background: rgb(153, 153, 153)">&nbsp;</td>
+    </tr>
+  </table>
+</body>

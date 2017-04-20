@@ -235,10 +235,6 @@ def genTestUtils(TESTOUTPUTDIR, IMAGEOUTPUTDIR, TEMPLATEFILE, NAME2DIRFILE, ISOF
                 r'assert_throws(new \1(), function() { \2; });',
                 code)
 
-        code = re.sub(r'@assert throws (.*);',
-                r'assert_throws(null, function() { \1; });',
-                code)
-
         code = re.sub(r'@assert (.*) === (.*);',
                 lambda m: '_assertSame(%s, %s, "%s", "%s");'
                     % (m.group(1), m.group(2), escapeJS(m.group(1)), escapeJS(m.group(2)))

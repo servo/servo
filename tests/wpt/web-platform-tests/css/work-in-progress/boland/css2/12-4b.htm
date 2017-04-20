@@ -1,0 +1,52 @@
+
+
+<HTML lang="en">
+<HEAD>
+<TITLE>Third Test of Section 12.4 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+Q:lang(en) { quotes: '"' '"' "'" "'" }
+Q:lang(no) {quotes: "<<" ">>" "<" ">" }
+Q:before {content: open-quote}
+Q:after {content: close-quote}
+
+
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Third Testable Statement of Sec 12.4 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+3. The quotes property specifies quotation marks for any number of embedded
+quotations.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p >
+If statement #3 above is passed, then
+<Q>this quote</Q> should have English-style quotation marks.  The rule
+applied is "Q:lang(en) {quotes: '"' '"' "'" "'" }".
+Also "Q:lang(no) {quotes: "<<" ">>" "<" ">" }",
+"Q:before {content: open-quote}", and
+"Q:after {content: close-quote}".
+
+
+</BODY>
+</HTML>
+

@@ -1,0 +1,57 @@
+
+<HTML>
+
+
+<HEAD>
+<TITLE>Second Test of Section 2.6 of CSS1 Spec</TITLE>
+<STYLE TYPE="text/css">
+P {color: red;
+   font-size: 12pt }
+P:first-letter {color: green; font-size: 200% }
+P:first-line {color: blue}
+</STYLE>
+</HEAD>
+
+
+
+<BODY>
+
+<h1 >Testing Second Testable Statement of Section 2.6 of CSS1 Spec</h1>
+
+
+
+<ul>
+<li >
+2. Properties set on "first-line" will be inherited by "first-letter" but are
+overridden if the same property is set on "first-letter."
+</ul>
+
+<h2 >
+PASS CRITERIA:
+</h2>
+
+If statement #2 above is passed, then:
+<p>
+<p:first-line>
+<p:first-letter>
+T
+</p:first-letter>he first letter of this paragraph has a font size of 36pt.
+</p:first-line>
+The rest of the first line has a font size of 24pt.  All of the characters
+on the first line are green.  The rest of the paragraph is red and 12pt font
+size.  The rules applied are "P {color: red; font-size: 12pt",
+"P:first-letter {font-size: 300%}", and "P:first-line {color: green;
+font-size: 200%}".  The first-letter element is inside the first-line
+element; the first letter color will inherit from the first line color
+(since it is not set separately) but the first letter font size will be
+different since it is set explicity in first letter.
+All other properties of this paragraph are UA-default.
+</p>
+
+
+Your browser should render this page similarly to this<a href="a262.gif">
+reference image</a> or to this<a href="b262.gif">reference image</a>.
+
+To move directly to the next test, click<a href="26-3.htm"> here</a>.
+</BODY>
+</HTML>

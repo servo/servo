@@ -1,0 +1,18 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html><head>
+    <title>CSS 2.1 Test Suite: :first-line</title>
+    <link href="mailto:bzbarsky@mit.edu" rel="author" title="Boris Zbarsky" />
+    <link href="http://mozilla.com/" rel="author" title="Mozilla Corporation" />
+    <link href="http://www.w3.org/TR/CSS21/selector.html#first-line" rel="help" />
+    <link rel="match" href="out-of-flow-1-ref.xht"/>
+    <meta content="" name="flags" />
+    <style>
+      div { color: red }
+      div:first-line { color: green }
+    </style>
+  </head>
+  <body>
+    <div><span><span style="float: left">This should be green</span></span></div>
+  
+
+</body></html>

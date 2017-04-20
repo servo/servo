@@ -1,0 +1,46 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head>
+<style type="text/css">
+table { counter-reset:ctr; quotes:"\0022" "\0022" "\0022" "\0022"; }
+
+table { border:1px solid blue; }
+td.real { border:1px solid cyan; }
+td { border-spacing:0; padding:0; }
+
+.table { display:table; }
+.row { display:table-row; }
+.rowgroup { display:table-row-group; }
+
+div { border:1px solid green; margin:5px; }
+div.cell { border:none; display:table-cell; }
+div.real { display:table-cell; }
+
+.tall { height:100px; }
+
+.yellow { background:yellow; }
+.orange { background:orange; }
+.brown { background:brown; }
+</style>
+</head>
+
+<body>
+<table width="100%" style="border:none"><tbody><tr><td style="border:none" valign="top">
+  <div><table><tbody><tr><td>1<img src="support/square-outline-32x32.png" />"Before gen</td><td class="real">Inner</td><td>2<img src="support/square-outline-32x32.png" />After gen"</td></tr></tbody></table></div>
+  <div><table><tbody><tr><td>1<img src="support/square-outline-32x32.png" />"Before gen</td></tr><tr><td class="real">Inner</td></tr><tr><td>2<img src="support/square-outline-32x32.png" />After gen"</td></tr></tbody></table></div>
+  <div><table><tbody><tr><td>1<img src="support/square-outline-32x32.png" />"Before gen</td></tr><tr><td>2<img src="support/square-outline-32x32.png" />After gen"</td></tr><tr><td class="real">Inner</td></tr></tbody></table></div>
+  <div><table><tbody><tr><td class="real">Inner</td></tr></tbody></table></div>
+  <div><table><tbody><tr><td>2<img src="support/square-outline-32x32.png" />After gen headfoot"</td></tr><tr><td class="real">Inner</td></tr><tr><td>1<img src="support/square-outline-32x32.png" />"Before gen headfoot</td></tr></tbody></table></div>
+  <div><div class="table tall"><div class="cell yellow">1<img src="support/square-outline-32x32.png" />"Before gen table gencell varyheight</div><div class="real orange">Inner</div><div class="cell brown">2<img src="support/square-outline-32x32.png" />After gen table gencell varyheight"</div></div></div>
+  <div><div><div style="border:none; margin:0;" class="table tall"><div class="cell yellow">1<img src="support/square-outline-32x32.png" />"Before gen gencell varyheight</div><div class="real orange">Inner</div><div class="cell brown">2<img src="support/square-outline-32x32.png" />After gen gencell varyheight"</div></div></div></div>
+  <div><div><div style="border:none; margin:0;" class="table"><div class="row yellow">1<img src="support/square-outline-32x32.png" />"Before gen genrow varywidth</div><div class="row orange">Inner</div><div class="row brown">2<img src="support/square-outline-32x32.png" />After gen genrow varywidth"</div></div></div></div>
+</td><td style="border:none" valign="top">
+  <div><div class="row"><div class="cell">1<img src="support/square-outline-32x32.png" />"Before gen row gencell</div><div class="real">Inner</div><div class="cell">2<img src="support/square-outline-32x32.png" />After gen row gencell"</div></div></div>
+  <div><div class="row"><div class="cell">1<img src="support/square-outline-32x32.png" />"Before gen row genblock</div><div class="real">Inner</div><div class="cell">2<img src="support/square-outline-32x32.png" />After gen row genblock"</div></div></div>
+  <div><div class="row"><div class="cell">1<img src="support/square-outline-32x32.png" />"Before gen row geninline</div><div class="real">Inner</div><div class="cell">2<img src="support/square-outline-32x32.png" />After gen row geninline"</div></div></div>
+  <div><div class="rowgroup"><div class="row">1<img src="support/square-outline-32x32.png" />"Before gen rowgroup genrow</div><div class="row"><div class="real">Inner</div></div><div class="row">2<img src="support/square-outline-32x32.png" />After gen rowgroup genrow"</div></div></div>
+  <div><div class="rowgroup"><div class="row">1<img src="support/square-outline-32x32.png" />"Before gen rowgroup gencell</div><div class="row"><div class="real">Inner</div></div><div class="row">2<img src="support/square-outline-32x32.png" />After gen rowgroup gencell"</div></div></div>
+  <div><div class="rowgroup"><div class="row">1<img src="support/square-outline-32x32.png" />"Before gen rowgroup genblock</div><div class="row"><div class="real">Inner</div></div><div class="row">2<img src="support/square-outline-32x32.png" />After gen rowgroup genblock"</div></div></div>
+  <div><div class="rowgroup"><div class="row">1<img src="support/square-outline-32x32.png" />"Before gen rowgroup geninline</div><div class="row"><div class="real">Inner</div></div><div class="row">2<img src="support/square-outline-32x32.png" />After gen rowgroup geninline"</div></div></div>
+</td></tr></tbody></table>
+
+
+</body></html>

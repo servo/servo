@@ -1,0 +1,61 @@
+
+<HTML>
+
+<HEAD>
+<TITLE>Seventh Test of Section 5.2.6 of CSS1 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+#id1 { font-size: 0.333333333in }
+#id2 { font-size: 50% }
+</STYLE>
+</HEAD>
+
+
+
+
+
+
+<BODY>
+
+
+
+<h1 >Testing Statement #7 Below of Section 5.2.6 of CSS1 Spec</h1>
+
+
+
+
+
+
+
+
+<ul>
+<li>
+7. For "font-size", if the parnet element's size is not close to a table entry,
+the UA is free to interpolate between table entries or round off to the closest
+one.
+</ul>
+
+
+
+
+<h2>
+PASS CRITERIA:
+</h2>
+<p>
+If statement #7 above is passed, then:
+<p ID=id1>
+The font size of this paragraph should be the closest possible UA value to
+0.33333333in.
+The rule applied is "#id1 {font-size: 0.33333333in}".
+The font size of this <em ID=id2>emphasized text</em> within this paragraph
+should be 50% of 0.333333333in, rounded to the closest possible value.
+The rule applied for "em" (child of "p") is "#id2 {font-size: 50%}".
+
+
+
+<p>
+All other properties of this page should be UA-default.
+
+</BODY>
+</HTML>
+

@@ -1,0 +1,101 @@
+﻿
+
+<html>
+<head>
+<title>CSS3 Border Radius Test</title>
+
+<style type="text/css">
+h3 {border-radius: 20px 0px; border-style: solid;}
+h4 {border-radius: 100mm 50mm; border-style: solid;}
+em {border-radius: 10px; border-style: solid;}
+blockquote {border-radius: 200%; border-style: solid;}
+p {border-style: solid;}
+</style>
+</head>
+
+<body>
+
+
+
+
+<h1>CSS3 Border Radius Test</h1>
+
+
+
+
+
+<ul>
+<li >
+For "border-radius", initial is "0", it applies to all elements,
+it is not inherited, percentage values are N/A, media is visual, and
+computed value is specified value.
+</li>
+</ul>
+<h2>
+PASS CRITERIA:
+</h2>
+NOTE: This property may not be implemented yet.
+<p>
+If statement above is correct, this paragraph should have 0
+border radius.  A CSS rule of "border-style: solid" is applied.  However, the
+border radius property does apply to the p element.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+</p>
+<h3>
+This h3 heading has a border radius of 20px 0px, but this <em>emphasized text
+</em> has a border radius of 10px; the rules applied are:
+"h3 {border-radius: 20px 0px;}"
+"em {border-radius: 10px;}"
+So the border radius property applies to the h3 and em elements.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+</h3>
+<h4>
+This h4 heading has a border radius property of 100mm 50mm (because of the
+rule "h4 {border-radius: 100mm 50mm;}", but these <i>italicized words</i>
+have a border radius of "0", because the border-radius
+property does not inherit.  
+So the border radius property does apply to the h4 and i elements.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+</h4>
+<blockquote>
+This blockquote element should have a UA-default border radius.  The
+nonsensical rule "blockquote {border-radius: 200%}" should be ignored,
+but the border-radius property does apply to the blockquote element.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+</blockquote>
+<p>
+All other properties of this page should be UA-default.
+This is a paragraph, like the one above.  Border style of solid is applied
+to all CSS rules, so that the border is visible.
+</p>
+
+</body>
+</html>

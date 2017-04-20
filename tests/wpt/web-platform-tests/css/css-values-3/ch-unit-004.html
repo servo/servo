@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Values and Units Test: support for the ch unit</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-values-3/#font-relative-lengths">
+<meta name="flags" content="">
+<link rel="match" href="reference/ch-unit-001-ref.html">
+<meta name="assert" content="In vertical sideways, The ch unit is equal to the used horizontal advance measure of the 0 (ZERO, U+0030) glyph found in the font used to render it.">
+<style>
+span {
+    background: green;
+    color: green;
+    left: 0; right: 0;
+    position: absolute;
+}
+div {
+    background: red;
+    color: red;
+    position: relative;
+    height: 5ch;
+    width: 10ch;
+    writing-mode: vertical-rl;
+    text-orientation: sideways;
+}
+
+div + div {
+    height: auto;
+}
+
+div + div span {
+    height: 5ch;
+}
+</style>
+<body>
+    <p>Test passes if there is a <strong>filled green square</strong> and <strong>no red</strong>.</p>
+    <div><span>00000</span></div>
+    <div><span></span>00000</div>
+</body>

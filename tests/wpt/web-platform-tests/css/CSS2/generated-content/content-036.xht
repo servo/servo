@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Content using a 'counters()' function with a string and a list style set to 'none'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#propdef-content" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#content" />
+        <link rel="match" href="../reference/no-red-on-blank-page-ref.xht"/>
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'content' property properly handles a 'counters()' function with a string and a list style." />
+        <style type="text/css">
+            div:before
+            {
+                content: counters(test, ".", none);
+                counter-increment: test;
+                counter-reset: test;
+                color: red;
+            }
+            #div1
+            {
+                border: 2px solid black;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page.</p>
+        <div></div>
+    </body>
+</html>

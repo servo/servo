@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Test: Shape from image - alpha channel, opacity > 0 + shape-margin</title>
+    <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com"/>
+    <link rel="author" title="Bem Jones-Bey" href="mailto:bemjb@adobe.com"/>
+    <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shapes-from-image"/>
+    <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shape-outside-property"/>
+    <meta name="flags" content="ahem dom"/>
+    <meta name="assert" content="This test verifies that the content flows around the
+                                 shape defined in the images alpha channel and the shape-margin."/>
+    <!-- This test is derived from Example 11 in this version of the spec:
+         http://www.w3.org/TR/2014/WD-css-shapes-1-20140211/ -->
+    <style type="text/css">
+        #test {
+            position: relative;
+            color: green;
+            width: 400px;
+            font-family: Ahem;
+            font-size: 20px;
+            line-height: 2em;
+        }
+        #image {
+            float: left;
+            shape-outside: url("support/circle-shadow.png");
+            shape-margin: 20px;
+        }
+        #margin-circle {
+            position: absolute;
+            top: 0px;
+            left: 0px;
+            width: 300px;
+            height: 300px;
+            background-color: black;
+            clip-path: ellipse(141px 127px at 115px 100px);
+            z-index: -1;
+        }
+    </style>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="support/spec-example-utils.js"></script>
+</head>
+<body>
+    <p>
+        The test passes if the short green horizontal bars are the right of the black edge
+        of circle, the long green bar is beneath it, and no bars intersect the black.
+        There should be no red.
+    </p>
+    <div id="test">
+        <img id="image" src="support/circle-shadow.png"/>
+        <div id="margin-circle"></div>
+        <span id="line-0">XXXXXX</span>
+        <span id="line-1">XXXXXX</span>
+        <span id="line-2">XXXXXX</span>
+        <span id="line-3">XXXXXX</span>
+        <span id="line-4">XXXXXX</span>
+        <span id="line-5">XXXXXX</span>
+        <span id="line-6">XXXXXXXXXXXXXXX</span>
+    </div>
+    <div id="log"></div>
+    <script>
+        approxShapeTest('test', 'line-', 2, [242, 256, 258, 256, 242, 204, 0]);
+    </script>
+</body>
+</html>

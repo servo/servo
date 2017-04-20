@@ -1,0 +1,35 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Inline-block usage with :first-line</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#first-line-pseudo" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The first line of an inline-block cannot be the first formatted line of an ancestor element." />
+        <style type="text/css">
+            .test
+            {
+                display: inline-block;
+                vertical-align:-100px;
+            }
+            div:first-line
+            {
+                background: green;
+            }
+            span, div:first-line
+            {
+                color: white;
+            }
+            div
+            {
+                color: red;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a box below and the word "FAIL" is not visible.</p>
+        <div>
+            <span class="test">&nbsp;<br />Filler Text</span><br /><span>FAIL</span>
+        </div>
+    </body>
+</html>

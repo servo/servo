@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Test: direction:rtl - unordered list</title>
+    <link rel="author" title="Eira Monstad, Opera Software ASA" href="mailto:public-testsuites@opera.com"/>
+    <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#direction"/>
+    <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#list-style"/>
+    <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#alignment-prop" />
+    <meta name="flags" content=""/>
+    <meta name="assert" content="direction:rtl should apply to unordered lists, putting bullets on the right"/>
+    <style type="text/css"><![CDATA[
+      ul {direction: rtl;}
+      ul,li {padding-left:2em;padding-right:2em;}
+    ]]></style>
+  </head>
+
+  <body>
+    <ul>
+      <li>This list has three items</li>
+      <li>And should be right-aligned</li>
+      <li>With bullets to the right</li>
+    </ul>
+  </body>
+</html>

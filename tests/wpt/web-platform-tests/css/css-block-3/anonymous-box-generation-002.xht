@@ -1,0 +1,33 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Anonymous run-in box generation</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#anonymous-block-level" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Block boxes with inline content followed by a run-in box generate an anonymous run-in box around the inline content." />
+        <style type="text/css">
+            div
+            {
+                width: 2in;
+            }
+            #div1
+            {
+                text-align: center;
+            }
+            div div
+            {
+                background: blue;
+                display: run-in;
+                height: 1em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the "Filler Text" text is centered above the blue box.</p>
+        <div id="div1">
+            Filler Text
+            <div></div>
+        </div>
+    </body>
+</html>

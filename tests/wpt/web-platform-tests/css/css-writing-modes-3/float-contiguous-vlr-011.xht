@@ -1,0 +1,53 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Writing Modes Test: contiguous left-floating boxes with 'writing-mode' set to 'vertical-lr'</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#vertical-layout" title="7.1 Principles of Layout in Vertical Writing Modes" />
+  <link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+
+  <meta content="ahem" name="flags" />
+  <meta content="This test checks the flow of contiguous left-floated boxes with 'writing-mode' set to 'vertical-lr'." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  div#reference-overlapped-red
+    {
+      background-color: red;
+      height: 100px;
+      position: absolute;
+      width: 100px;
+      z-index: -1;
+    }
+
+  div.floated-left
+    {
+      color: green;
+      float: left;
+      font: 20px/1 Ahem; /* computes to 20px/20px */
+      writing-mode: vertical-lr;
+    }
+  ]]></style>
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+  <div id="reference-overlapped-red"></div>
+
+  <div class="floated-left">abcde</div>
+
+  <div class="floated-left">fghjk</div>
+
+  <div class="floated-left">lmnor</div>
+
+  <div class="floated-left">rstuv</div>
+
+  <div class="floated-left">wxyzz</div>
+
+ </body>
+</html>

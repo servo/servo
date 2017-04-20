@@ -1,0 +1,50 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Auto Width for Replaced Element with Intrinsic Ratio Only</title>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact" />
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-11-06 -->
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#inline-replaced-width" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#inline-replaced-height" />
+
+  <!--
+  <link rel="help" href="http://www.w3.org/TR/SVGTiny12/coords.html#IntrinsicSizing" />
+  -->
+
+  <meta name="flags" content="may svg" />
+
+  <style type="text/css">
+   body { width: 15em; border: silver dashed 1px; }
+   table { border-spacing: 0; }
+   td { padding: 0; }
+   p, table { height: 1em; line-height: 1em; margin: 6em 0; }
+
+   /* basic tests for inline and block */
+   #img1 { margin-top: -1em; }
+   #img2 { display: block; }
+
+   /* shrinkwrapped */
+   #p3 { width: 100%; float: left; margin: 0; }
+   #t4 { width: 15em; display: table-cell; }
+   #t5 { width: 100%; }
+
+   /* controls */
+   object { background: red; }
+   object, .control { border: blue solid 1em; margin: 0 1em; }
+
+   .control { background: green; }
+   .inst { height: auto; margin: 1em 0; }
+  </style>
+ </head>
+ <body>
+  <p class="inst">Test passes if the following 6 blue rectangles have the same width and if there is no red.</p>
+  <p class="control">&nbsp;</p>
+  <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    <!-- sizing is against containing block, not available space -->
+    <object id="img1" type="image/svg+xml" data="support/intrinsic-ratio.svg">This test won't work because you do not have images enabled.</object></p>
+  <p><object id="img2" type="image/svg+xml" data="support/intrinsic-ratio.svg">This test won't work because you do not have images enabled.</object></p>
+  <p id="t4"><object id="img4" type="image/svg+xml" data="support/intrinsic-ratio.svg">This test won't work because you do not have images enabled.</object></p>
+  <table id="t5"><tr><td><object id="img5" type="image/svg+xml" data="support/intrinsic-ratio.svg">This test won't work because you do not have images enabled.</object></td></tr></table>
+  <p id="p3"><object id="img3" type="image/svg+xml" data="support/intrinsic-ratio.svg">This test won't work because you do not have images enabled.</object></p>
+ </body>
+</html>

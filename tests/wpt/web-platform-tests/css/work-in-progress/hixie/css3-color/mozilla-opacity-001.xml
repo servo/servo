@@ -1,0 +1,39 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS: -moz-opacity with PNG backgrounds</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/mozilla/opacity/001.xml"/>
+  <style type="text/css">
+   .left {
+     background: url(mozilla-opacity-black-0.0-0.5-h.png) center center no-repeat;
+     -moz-opacity: 0.50; z-index: 1;
+   }
+   .right {
+     background: url(mozilla-opacity-black-0.5-0.0-h.png) center center no-repeat;
+     -moz-opacity: 1.00; z-index: 0;
+   }
+   .gradient {
+     border: 2px solid; width: 500px; height: 250px; position: absolute;
+   }
+   .control { 
+     border: 2px solid; background: rgb(50%, 50%, 50%); width: 500px; height: 250px;
+     position: absolute; margin-top: 260px;
+   }
+   body { 
+     background: white; color: black; 
+   }
+  </style>
+ </head>
+ <body>
+  <h1>This test is apparently invalid!</h1>
+  <p>The following two blocks should look IDENTICAL in every way. I
+  would recommend taking a screen shot and programmatically comparing
+  them to be quite, quite sure! (Note. I have yet to hear a colour and
+  blending expert say that this test is valid. I have no idea about
+  these issues, so I may be spouting nonsense here.)</p>
+  <div class="right gradient"/>
+  <div class="left gradient"/>
+  <div class="control"/>
+ </body>
+</html>

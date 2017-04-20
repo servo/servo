@@ -1,0 +1,83 @@
+
+<html>
+
+<title>Second Test of Section 5.6.4 of CSS1 Spec</title>
+
+<style type="text/css">
+ol ol {list-style-image: }
+ul {list-style-image: url(ovalbbut.gif)}
+ol {list-style-image: none}
+ol ol ol li {list-style-image: 200%}
+</style>
+</head>
+
+
+
+<body>
+
+
+
+
+<h1 >Testing Statement #2 Below of Section 5.6.4 of CSS1 Spec</h1>
+
+
+
+
+
+
+<p>
+2. "list-style-image" has initial none, it applies to elements with display value
+list-item, it is inherited, nad percentage values are N/A.
+
+
+
+
+<h2>
+PASS CRITERIA:
+</h2>
+<p >
+
+If statement #2 above is passed, then:
+</p>
+<ol>
+<ol>
+<li>
+This list style image should be none (initial value).  
+THe rule applied is "ol ol {list-style-image: }"
+So the list style image applies to ol and li.
+</ol>
+</ol>
+<ul>
+<li>
+This list style image should be an oval button.
+The rule applied to ul is "ul {list-style-image: url(ovalbbut.gif)}".
+So the list style image property applies to ul.
+</ul>
+<ol>
+<li>
+This list style image should be none.
+The rule applied is to ol is "ol {list-style-image: none}".
+</li>
+<li>
+This list item should also have a list style image of none, because this
+property is inherited.
+</li>
+</ol>
+<ol>
+<ol>
+<ol>
+<li>
+This list item should have a list style image of UA-default.
+The rule applied is "ul ul ul li {list-style-image: 200%}", which should be
+ignored since percentages do not apply.
+</ol>
+</ol>
+</ol>
+
+
+
+All other properties of this page should be UA-default.
+
+
+</body>
+</html>

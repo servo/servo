@@ -1,0 +1,49 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: CSS clipping test</title>
+<link rel="author" title="David Hyatt" href="mailto:hyatt@netscape.com"/>
+<link rel="help" href="http://www.w3.org/TR/CSS21/visufx.html#overflow" />
+<style type="text/css">
+div {
+  width: 100px;
+  height: 100px;
+}
+
+.green {
+  background-color: green;
+}
+
+.red {
+  background-color: red;
+}
+
+.absolute {
+  position: absolute;
+  top:100px;
+  left:100px;
+}
+
+.relative {
+  position: relative;
+  top:100px;
+  left:100px;
+}
+
+.overflow {
+  overflow: hidden;
+}
+</style>
+</head>
+<body>
+<p>Test passes if there is <strong>a green square</strong> and <strong>no red</strong>.</p>
+
+<!-- This test makes sure overflow uses containing blocks when clipping. -->
+
+<div class="green overflow">
+  <div class="red relative">
+    <div class="absolute red"></div>
+  </div>
+</div>
+</body>
+</html>

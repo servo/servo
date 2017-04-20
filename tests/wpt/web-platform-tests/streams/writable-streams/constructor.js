@@ -37,24 +37,23 @@ promise_test(t => {
 
   return Promise.all([
     writer.write('a'),
-    promise_rejects(t, error1, writer.closed, 'controller.error() in write() should errored the stream')
+    promise_rejects(t, error1, writer.closed, 'controller.error() in write() should error the stream')
   ]);
 }, 'controller argument should be passed to write method');
 
+// Older versions of the standard had the controller argument passed to close(). It wasn't useful, and so has been
+// removed. This test remains to identify implementations that haven't been updated.
 promise_test(t => {
   const ws = new WritableStream({
-    close(controller) {
-      controller.error(error1);
+    close(...args) {
+      t.step(() => {
+        assert_array_equals(args, [], 'no arguments should be passed to close');
+      });
     }
   });
 
-  const writer = ws.getWriter();
-
-  return Promise.all([
-    writer.close(),
-    promise_rejects(t, error1, writer.closed, 'controller.error() in close() should error the stream')
-  ]);
-}, 'controller argument should be passed to close method');
+  return ws.getWriter().close();
+}, 'controller argument should not be passed to close method');
 
 promise_test(() => {
   const ws = new WritableStream({}, {

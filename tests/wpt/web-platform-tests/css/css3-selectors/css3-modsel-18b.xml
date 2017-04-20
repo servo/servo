@@ -1,0 +1,19 @@
+<csstest def=":hover pseudo-class" module="W3C Selectors" modulename="css3-modsel" number="18b" rev="1.1" date="03-november-2001" xmlns:a="http://www.example.org/a" xmlns:b="http://www.example.org/b" xmlns:html="http://www.w3.org/1999/xhtml" xmlns="http://www.example.org/css3tests">
+
+<author>Daniel Glazman</author>
+<author>Ian Hickson</author>
+
+<userinteraction/>
+
+<cssrules>div:hover > p:first-child { background-color : lime }</cssrules>
+
+<code>
+ <div xmlns="http://www.w3.org/1999/xhtml">
+  <p>The background color of this paragraph should turn to green when the mouse pointer hovers over any of the following:<br/><strong>This text.</strong></p>
+  <p>This text.</p>
+  <table><tr><td><table><tr><td><dl><dt>This text.</dt><dd>This text.</dd></dl></td></tr></table></td></tr><tr><td>This text.</td></tr></table>
+  <p><sub>This text.</sub></p>
+  <p>...and anything else between the top of the first paragraph and the bottom of this paragraph.</p>
+ </div>
+</code>
+</csstest>

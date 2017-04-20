@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Receiving a message through PresentationConnection</title>
+<link rel="author" title="Tomoyuki Shimizu" href="https://github.com/tomoyukilabs/">
+<link rel="help" href="http://w3c.github.io/presentation-api/#receiving-a-message-through-presentationconnection">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../common.js"></script>
+<script src="stash.js"></script>
+
+<script>
+setup({explicit_timeout: true});
+
+const message1 = '1st';
+const message2 = '2nd';
+const message3 = new Uint8Array([51, 114, 100]);      // "3rd"
+const message4 = new Uint8Array([52, 116, 104]);      // "4th"
+const message5 = new Uint8Array([108, 97, 115, 116]); // "last"
+
+const toUint8Array = buf => {
+  return buf instanceof ArrayBuffer ? new Uint8Array(buf) : buf;
+}
+
+// compare two ArrayBuffer or Uint8Array
+const compare = (a, b) => {
+  const p = toUint8Array(a);
+  const q = toUint8Array(b);
+  return !!p && !!q && p.every((item, index) => { return item === q[index]; });
+};
+
+const stash = new Stash(stashIds.toReceiver, stashIds.toController);
+
+add_completion_callback((tests, status) => {
+  const log = document.getElementById('log');
+  stash.send(JSON.stringify({ type: 'result', tests: tests, status: status, log: log.innerHTML }));
+});
+
+navigator.presentation.receiver.connectionList.then(list => {
+  const checkEvent = event => {
+    assert_true(event.isTrusted, 'a trusted event is fired');
+    assert_true(event instanceof MessageEvent, 'The event uses the MessageEvent interface');
+    assert_false(event.bubbles, 'the event does not bubble');
+    assert_false(event.cancelable, 'the event is not cancelable');
+  };
+
+  const connection = list.connections[0];
+
+  promise_test(t => {
+    t.step_timeout(() => {
+      t.force_timeout();
+      t.done();
+    }, 3000);
+
+    assert_equals(connection.binaryType, 'arraybuffer', 'the default value of binaryType is "arraybuffer"');
+    const eventWatcher = new EventWatcher(t, connection, 'message');
+    return eventWatcher.wait_for('message').then(evt => {
+      checkEvent(evt);
+      assert_equals(event.data, message1, 'receive a string correctly');
+      return eventWatcher.wait_for('message');
+    }).then(event => {
+      checkEvent(event);
+      assert_equals(event.data, message2, 'receive a string correctly');
+      return eventWatcher.wait_for('message');
+    }).then(event => {
+      checkEvent(event);
+      assert_true(event.data instanceof ArrayBuffer, 'receive binary data as ArrayBuffer');
+      assert_true(compare(event.data, message3), 'receive an ArrayBuffer correctly (originally a Blob at a controlling user agent)');
+      return eventWatcher.wait_for('message');
+    }).then(event => {
+      checkEvent(event);
+      assert_true(event.data instanceof ArrayBuffer, 'receive binary data as ArrayBuffer');
+      assert_true(compare(event.data, message4), 'receive an ArrayBuffer correctly (originally an ArrayBuffer at a controlling user agent)');
+      return eventWatcher.wait_for('message');
+    }).then(event => {
+      checkEvent(event);
+      assert_true(event.data instanceof ArrayBuffer, 'receive binary data as ArrayBuffer');
+      assert_true(compare(event.data, message5), 'receive an ArrayBuffer correctly (originally an ArrayBufferView at a controlling user agent)');
+
+      connection.binaryType = 'blob';
+      return Promise.all([
+        stash.send(JSON.stringify({ type: 'blob' })),
+        eventWatcher.wait_for('message')
+      ]).then(results => results[1]);
+    }).then(event => {
+      assert_true(event.data instanceof Blob, 'receive binary data as Blob');
+      return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = resolve;
+          reader.onerror = reject;
+          reader.readAsArrayBuffer(event.data);
+      });
+    }).then(event => {
+      assert_true(compare(event.target.result, message5), 'receive a Blob correctly');
+      connection.terminate();
+    });
+  });
+});
+</script>

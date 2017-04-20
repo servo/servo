@@ -8,4 +8,5 @@ except ImportError:
           '"git submodule update --init --recursive"?')
     sys.exit(2)
 
-sys.exit(0 if lint.main() == 0 else 1)
+args = lint.parse_args()
+sys.exit(0 if lint.main(**vars(args)) == 0 else 1)

@@ -1,0 +1,58 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Second Test of Section 5.1 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+
+p {color: red}
+p em {color: blue}
+em {color: green}
+
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Second Testable Statement of Sec 5.1 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+2. The case sensitivity of element names in selectors depends on the document
+language; HTML is case-insensitive.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<P>
+If statement #2 above is passed, then
+this paragraph should be red.
+The rule applied is "p {color: red}".
+This p is lower-case, but the P element for this paragraph is upper-case;
+however, it doesn't matter for HTML.
+This <em>emphasized text</em> should be blue, because of rule
+"p em {color: blue}".
+</p>
+<em> This emphasized text should be green, because of rule
+"em {color: green}".
+</em>
+All other properties of this page should be UA-default.
+
+To move to next test, click<a href="5-03.htm"> here</a>.
+
+</BODY>
+</HTML>
+

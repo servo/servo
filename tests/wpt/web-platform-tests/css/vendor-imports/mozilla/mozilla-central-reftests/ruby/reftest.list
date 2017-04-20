@@ -1,0 +1,21 @@
+# Tests for inlinizing block-level boxes
+== ruby-inlinize-blocks-001.html ruby-inlinize-blocks-001-ref.html
+== ruby-inlinize-blocks-002.html ruby-inlinize-blocks-002-ref.html
+== ruby-inlinize-blocks-003.html ruby-inlinize-blocks-003-ref.html
+== ruby-inlinize-blocks-004.html ruby-inlinize-blocks-004-ref.html
+== ruby-inlinize-blocks-005.html ruby-inlinize-blocks-005-ref.html
+
+# Tests for autohiding base-identical annotations
+== ruby-autohide-001.html ruby-autohide-001-ref.html
+== ruby-autohide-002.html ruby-autohide-002-ref.html
+== ruby-autohide-003.html ruby-autohide-003-ref.html
+== ruby-autohide-004.html ruby-autohide-001-ref.html
+
+# Tests for ruby with text-combine-upright
+== ruby-text-combine-upright-001a.html ruby-text-combine-upright-001-ref.html
+== ruby-text-combine-upright-001b.html ruby-text-combine-upright-001-ref.html
+== ruby-text-combine-upright-002a.html ruby-text-combine-upright-002-ref.html
+== ruby-text-combine-upright-002b.html ruby-text-combine-upright-002-ref.html
+
+# Tests for nested ruby
+== nested-ruby-pairing-001.html nested-ruby-pairing-001-ref.html

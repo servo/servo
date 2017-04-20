@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  body {margin: 8px;}
+
+  div {font: bold 32px/1 monospace;}
+
+  div#first {margin-top: 40px;}
+
+  div#second
+  {
+  bottom: 1em;
+  position: relative;
+  }
+
+  div#third
+  {
+  bottom: 2em;
+  position: relative;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <div id="first">____ ____</div>
+
+  <div id="second">FAIL PASS</div>
+
+  <div id="third">####</div>
+
+ </body>
+</html>

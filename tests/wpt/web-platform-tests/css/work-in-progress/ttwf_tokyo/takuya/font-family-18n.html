@@ -1,0 +1,39 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset=utf-8>
+  <title>CSS Test: localized font-family name</title>
+  <link rel="author" title="Takuya Oikawa" href="mailto:takoratta@gmail.com"/>
+  <link rel="help" href="https://drafts.csswg.org/css-fonts/" />
+  <link rel="help" href="https://drafts.csswg.org/css-fonts/#font-family-prop"/>
+  <link rel="match" href="font-family-i18n-ref.html" />
+  <!-- (from the spec) Some font formats allow fonts to carry multiple localizations of the family name. User agents must recognize and correctly match all of these names independent of the underlying platform localization, system API used or document encoding: -->
+  <meta name="assert" content="Font which family name is in Japanese should work." />
+  <style type="text/css">
+   p { color: navy; font-size: 4em; margin: 0.25em; }
+   .a span.test { font-family: "IPAexゴシック"; }
+   .a span.control { font-family: IPAexGothic; }
+   .a span.diff { font-family: sans-serif;}
+   .b span.test { font-family: "IPAex明朝"; }
+   .b span.control { font-family: IPAexMincho; }
+   .b span.diff { font-family: serif;}
+  </style>
+ </head>
+ <body>
+  <div>In each of the three lines below, first two words should look identical but not the third one.  Before starting, download <a href="http://ipafont.ipa.go.jp/ipaexfont/download.html#en">font</a> first. Note that this font is licensed under <a href="http://ipafont.ipa.go.jp/ipaexfont/download.html#en">IPA font license</a> which conforms with <a href="http://opensource.org/">OSI</a>.</div>
+  <p class="a">
+   <span class="test">テスト</span>
+   &mdash;
+   <span class="control">テスト</span>
+   &mdash;
+   <span class="diff">テスト</span>
+  </p>
+  <p class="b">
+   <span class="test">テスト</span>
+   &mdash;
+   <span class="control">テスト</span>
+   &mdash;
+   <span class="diff">テスト</span>
+  </p>
+  </body>
+</html>

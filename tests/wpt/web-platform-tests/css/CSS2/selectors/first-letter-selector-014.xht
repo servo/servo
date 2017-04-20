@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: First-letter using vertical-align and line-height</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#first-letter" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The vertical-align and line-height properties is allowed for :first-letter." />
+        <style type="text/css">
+            div p:first-letter, span
+            {
+                color: green;
+                font-size: 32px;
+                line-height: 64px;
+                vertical-align: top;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the two lines of text below look identical.</p>
+        <div>
+            <span>F</span>iller Text Filler Text Filler Text
+            <p>Filler Text Filler Text Filler Text</p>
+        </div>
+    </body>
+</html>

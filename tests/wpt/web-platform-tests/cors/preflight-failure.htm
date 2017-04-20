@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CORS - Preflight responds with non-2XX status code</title>
+<meta name=author title="Fernando Jiménez Moreno" href="mailto:ferjmoreno@gmail.com">
+
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/common/get-host-info.sub.js></script>
+
+<h1>Preflight responds with non-2XX status code</h1>
+
+<div id=log></div>
+<script>
+
+// Request count for cache busting and easy identifying of request in traffic
+// analyzer.
+var req_c = 0;
+
+var CROSSDOMAIN_URL = get_host_info().HTTP_REMOTE_ORIGIN + '/cors/resources/cors-makeheader.py?';
+
+/*
+ * Redirection with preflights.
+ */
+function preflight_failure(code) {
+  var desc = 'Should throw error if preflight respond with ' + code;
+  async_test(desc).step(function() {
+    var client = new XMLHttpRequest();
+    var redirect =
+      encodeURIComponent(CROSSDOMAIN_URL + 'headers=x-test&' + req_c++);
+
+    var isCodeOK = code >= 200 && code <= 299;
+
+    client.open('GET',
+        CROSSDOMAIN_URL + 'headers=x-test&location=' + redirect
+        + '&code=' + code + '&preflight=' + code
+        + '&' + req_c++,
+        true /* async */);
+    client.setRequestHeader('x-test', 'test');
+    client.onerror = this.step_func(function() {
+      assert_false(isCodeOK);
+      this.done();
+    });
+    client.onreadystatechange = this.step_func(function() {
+      if (!isCodeOK)
+        assert_equals(client.status, 0);
+    });
+    client.onload = this.step_func(function() {
+      assert_true(isCodeOK);
+      this.done();
+    });
+    client.send(null);
+  });
+}
+[100, 101,
+ 200,
+ 300, 301, 302, 303, 304, 305, 306, 307, 308,
+ 400, 401, 402, 403, 404, 405, 406, 407, 408, 409, 410, 411, 412, 413, 414, 415, 416, 417,
+ 500, 501, 502, 503, 504, 505
+].forEach(preflight_failure);
+
+</script>

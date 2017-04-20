@@ -1,0 +1,48 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+  <title>CSS Test: height percentage - inline replaced element inside an auto-height container</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <!--
+  Original post:
+  Image % sizing interoperability
+  from Bogdan Brinza who deserves credit for reporting this
+  http://lists.w3.org/Archives/Public/www-style/2014Jun/0079.html
+  -->
+
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#the-height-property" title="10.5 Content height: the 'height' property" />
+  <link rel="bookmark" href="http://lists.w3.org/Archives/Public/www-style/2014Jun/0079.html" title="Image % sizing interoperability" />
+  <link rel="match" href="../reference/ref-filled-black-96px-square.xht" />
+
+  <meta content="image" name="flags" />
+  <meta content="This test checks that an height percentage is calculated with respect to the height of the generated box's containing block only if and only when such containing block's height is specified explicitly (i.e., it depends on content height; its specified height is not 'auto'). In this test, the div#parent has an 'auto' height; therefore the height percentage specified on div#child is treated as 'auto' and so the image should be rendered (entirely visible) inside that div#child. Note that div#grandparent's initial overflow value is 'visible'." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  div#grandparent {height: 0px;}
+
+  div#child, img {height: 100%;}
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled black square.</p>
+
+  <div id="grandparent">
+    <div id="parent">
+      <div id="child">
+        <img src="support/black96x96.png" alt="Image download support must be enabled" />
+      </div>
+    </div>
+  </div>
+
+ </body>
+</html>

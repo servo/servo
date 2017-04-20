@@ -1,0 +1,30 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Unicode-bidi set to 'embed'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-03-14 -->
+        <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#unicode-bidi" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#propdef-unicode-bidi" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#direction" />
+        <link rel="match" href="unicode-bidi-002-ref.xht" />
+
+        <meta name="flags" content="" />
+        <meta name="assert" content="The property 'unicode-bidi' set to 'embed' opens a new level of embedding in the Unicode bi-directional algorithm." />
+        <style type="text/css">
+            span
+            {
+                unicode-bidi: embed;
+            }
+            div
+            {
+                border: 2px solid blue;
+                direction: rtl;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the letters below are in alphabetic order.</p>
+        <div>IJ K <span>DEF GH</span> AB C</div>
+    </body>
+</html>

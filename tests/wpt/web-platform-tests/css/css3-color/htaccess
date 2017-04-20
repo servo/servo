@@ -1,0 +1,23 @@
+# Define some types
+AddType application/xhtml+xml .xht
+AddType text/html .htm
+AddType text/css .css
+AddType image/png .png
+
+# Set the default character set
+AddDefaultCharset utf-8
+
+# Indexing Options
+Options +Indexes
+IndexOptions DescriptionWidth=* NameWidth=* FancyIndexing FoldersFirst ScanHTMLTitles
+IndexIgnore .htaccess *~ .#* #*# CVS README
+ReadmeName README
+
+# Set up the README files to be plain text
+<files README>
+   ForceType text/plain
+   SetHandler default-handler
+</files>
+
+# Add some default descriptions
+AddDescription "Information about the files in this directory" README

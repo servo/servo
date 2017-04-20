@@ -22,8 +22,8 @@
 
             assert_equals(client.readyState, 0);
 
-            setTimeout(function(){ // use a timeout to catch any implementation that might queue an abort event for later - just in case
-              test.step(function(){test.done();});
+            test.step_timeout(function(){ // use a timeout to catch any implementation that might queue an abort event for later - just in case
+              test.done()
             }, 200);
           }
         });

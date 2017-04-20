@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: CSS Floats: Float Sizing (blocks inside styled floats)</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/float/009.xml" type="application/xhtml+xml"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/float/009.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats" />
+  <meta name="flags" content="interact"/>
+  <style type="text/css">
+   .float { float: left; border: solid blue; color: silver; padding: 0.5em; margin: 0.5em; }
+  </style>
+ </head>
+ <body>
+
+  <p><strong>All blue boxes must always be the same size</strong>. Make your
+  window an inch or two bigger than than the width of one box to check. Try
+  resizing the window so that the boxes wrap in two or more columns. Try
+  resizing the window to be narrower than the boxes so that the text inside
+  them wraps into two or more lines.</p>
+
+  <div class="float"> <div> this is a float this is a float this is a float </div> </div>
+  <div class="float"> <div> this is a float this is a float this is a float </div> </div>
+  <div class="float"> <div> this is a float this is a float this is a float </div> </div>
+  <div class="float"> <div> this is a float this is a float this is a float </div> </div>
+  <div class="float"> <div> this is a float this is a float this is a float </div> </div>
+  <div class="float"> <div> this is a float this is a float this is a float </div> </div>
+  <div class="float"> <div> this is a float this is a float this is a float </div> </div>
+  <div class="float"> <div> this is a float this is a float this is a float </div> </div>
+
+ </body>
+</html>

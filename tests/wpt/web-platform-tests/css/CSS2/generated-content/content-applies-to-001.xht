@@ -1,0 +1,20 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Content property works only with :before and :after</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#content" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Content property only works in conjunction with the :before and :after pseudo-elements." />
+        <style type="text/css">
+            div
+            {
+                content: "GENERATED";
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if only the words "Filler Text" or the word "GENERATED" appear below. If both "Filler Text" and "GENERATED" are present the test fails.</p>
+        <div>Filler Text</div>
+    </body>
+</html>

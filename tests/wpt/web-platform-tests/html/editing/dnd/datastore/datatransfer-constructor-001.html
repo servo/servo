@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>DataTransfer constructor test</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  var dt = new DataTransfer();
+  assert_equals(dt.dropEffect, "none");
+  assert_equals(dt.effectAllowed, "none");
+  assert_equals(dt.items.length, 0);
+}, "Verify DataTransfer constructor")
+</script>

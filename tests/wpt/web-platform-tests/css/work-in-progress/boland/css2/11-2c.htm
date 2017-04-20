@@ -1,0 +1,80 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Fourth Test of Section 11.2 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+#container1 {position: absolute;
+             top: 3in; left: 3in; width: 3in }
+#container2 {position: absolute;
+             top: 3in; left: 3in; width: 3in;
+             visibility: hidden;}
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Fourth Testable Statement of Sec 11.2 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+4. The visibility property may be used in conjunction with scripts to
+create dynamic effects.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p>
+If statement #4 above is passed, then
+following should be observed.  Choose a suspect: (note green oval in place of
+face and no similar info displayed for Luciano):</p>
+<div id="container1">
+<img alt="al capone"
+     width="100" height="100"
+     src="ovalbbut.gif">
+<p>Name: Al Capone</p>
+<p>Residence: Chicago</p>
+</div>
+
+<div id="container2">
+<img alt="Lucky Luciano"
+     width="100" height="100"
+     src="ovalbbut.gif">
+<p>Name: Lucky Luciano</p>
+<p>Residence: New York</p>
+</div>
+
+<form method="post"
+      action="http://www.suspect.org/process-bums">
+<p>
+<input name="Capone" type="button"
+       value="Capone"
+       onclick='show("container1"); hide("container2")'>
+<input name="Luciano" type="button"
+       value="Luciano"
+       onclick='show("container2");hide("container1")'>
+</form>
+Rules applied here are:
+"#container1 {position: absolute; top: 3in; left: 3in; width: 3in }
+#container2 {position: absolute; top: 3in; left: 3in; width: 3in;
+visibility: hidden; }
+"
+<p>
+All other properties of this page should be UA-default.
+
+
+</BODY>
+</HTML>
+

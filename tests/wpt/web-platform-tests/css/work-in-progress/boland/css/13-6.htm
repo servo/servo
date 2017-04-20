@@ -1,0 +1,52 @@
+
+<HTML>
+<HEAD>
+<TITLE>Sixth Test of Section 1.3 of CSS1 Spec</TITLE>
+
+
+<STYLE TYPE="text/css">
+<!--
+P {font-size: 10pt}
+P {line-height: 200%}
+#id1 {font-size: 200%}
+#id2 {font-size: 50%}
+EM {color: red}
+-->
+</STYLE>
+
+</HEAD>
+
+
+
+<BODY>
+
+<h1 >Testing Statement #6 below of section 1.3 of CSS1 Spec</h1>
+
+
+
+<ul>
+<li>
+6. For each property that allows percentage values, it is defined to what
+property is being referred.
+</ul>
+
+
+
+
+<h2 >"PASS" CRITERIA:
+</h2>
+<p>
+If statement #5 above is passed, this <em>paragraph</em> should have a line-height of
+20pt with a font-size of 10pt.  The rules applied are "P {font-size: 10pt}"
+, "P {line-height: 200%}", and "EM {color: red}".  The word "paragraph" above
+should be red and 20pt like the rest of the paragraph.
+All other properties are UA-default.
+<p ID=id1>
+This paragraph should have a font size of 200% of the UA-default.
+The rule applied is "#id1 {font-size: 200%}".
+<p ID=id2>
+This paragraph should have a font size of 50% of the UA-default.
+The rule applied is "#id2 {font-size: 50%}".
+<p>
+</BODY>
+</HTML>

@@ -61,7 +61,7 @@ promise_test(t => {
 
   const writer = ws.getWriter();
 
-  const p1 = promise_rejects(t, new TypeError(), writer.write('a'), 'write should reject with a TypeError');
+  const p1 = promise_rejects(t, error1, writer.write('a'), 'write should reject with the thrown error');
 
   const p2 = promise_rejects(t, error1, writer.closed, 'closed should reject with the thrown error');
 

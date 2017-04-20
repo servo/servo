@@ -1,0 +1,57 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>24th Test of Section 5.4 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+h3:before {content: counter(chapno, upper-roman) ". "}
+p.special:before {content: "Special! "}
+p.special:first-letter {color: #ffd800}
+
+
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing 24th Testable Statement of Sec 5.11 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+24. The :before and :after pseudo-elements can be used to insert generated
+content before or after an element's conent.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p >
+If statement #24 above is passed, then
+The "S" of "Special!" should be in gold.
+The rules are "p.special:before {content: "Special!"} and
+p.special:first-letter {color: #ffd800}".
+<h3>
+This h3 heading inserts information.
+The rule is "h3:before {content: counter(chapno, upper-roman) ". "}"
+</h3>
+<p>
+All other properties of this page should be UA-default.
+Your browser rendering of this page should look similar to this <a href="c51.gif"> 
+reference image </a> or to this <a href="d51.gif">reference image</a>.
+
+
+</BODY>
+</HTML>
+

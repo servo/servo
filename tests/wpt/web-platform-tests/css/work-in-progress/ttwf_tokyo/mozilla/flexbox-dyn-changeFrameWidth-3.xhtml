@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!--
+    This test checks that we don't end up with the effects of an intermediate
+    "measuring" reflow left over, when we resize a window that contains a
+    vertical flex container with an auto-height flex item.
+
+    This test should end up rendering as a lime square, 100px by 100px.
+-->
+<html xmlns="http://www.w3.org/1999/xhtml"
+      class="reftest-wait">
+  <head>
+    <style>
+      #frame {
+        width: 400px;
+        height: 200px;
+        border: 0;
+      }
+    </style>
+    <script>
+      function tweak() {
+        document.getElementById("frame").style.width = "100px";
+        document.documentElement.removeAttribute("class");
+      }
+      window.addEventListener("MozReftestInvalidate", tweak, false);
+    </script>
+  </head>
+  <body>
+    <iframe id="frame" src="flexbox-dyn-changeFrameWidth-3-iframe.html"></iframe>
+  </body>
+</html>

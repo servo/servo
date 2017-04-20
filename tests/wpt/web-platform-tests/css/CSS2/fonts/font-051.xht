@@ -1,0 +1,51 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: font shorthand - minimal requirements</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" title="15.8 Shorthand font property" href="http://www.w3.org/TR/CSS21/fonts.html#font-shorthand" />
+  <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-prop" title="3.7 Shorthand font property: the font property" />
+  <link rel="match" href="font-051-ref.xht" />
+
+  <meta content="ahem invalid" name="flags" />
+  <meta content="Font shorthand requires at minimum 2 font subproperties (unless resorting to a system font): font-size and font-family." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  div {font: 100px/1 Ahem;}
+
+  span {font: serif;}
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled black rectangle.</p>
+
+  <div>
+    <span>FAIL</span>
+  </div>
+
+  <!--
+  'font'
+    Value:          [ [ <'font-style'> || <'font-variant'> || <'font-weight'>
+]? <'font-size'> [ / <'line-height'> ]? <'font-family'> ] | caption
+| icon | menu | message-box | small-caption | status-bar | inherit
+  http://www.w3.org/TR/CSS21/fonts.html#font-shorthand
+
+     A bar (|) separates two or more alternatives: exactly one of them
+must occur.
+     A double bar (||) separates two or more options: one or more of
+them must occur, in any order.
+     Brackets ([ ]) are for grouping.
+     A question mark (?) indicates that the preceding type, word, or
+group is optional.
+  http://www.w3.org/TR/CSS21/about.html#value-defs
+  -->
+
+ </body>
+</html>

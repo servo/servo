@@ -1,0 +1,31 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+  <title>CSS Test: Marker box position - descendant block box with 'overflow'</title>
+  <link rel="author" title="James Hopkins" href="http://idreamincode.co.uk/css21testsuite"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#list-style"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#block-boxes"/>
+  <meta name="flags" content=""/>
+  <meta name="assert" content="The position of a descendant block box inside a principal box must not be affected by 'overflow' being applied to the descendant, when marker box is positioned outside the principal box"/>
+  <style type="text/css">
+  #test{
+  background:red;
+  display:list-item;
+  font-size:85px;
+  margin:50px;
+  }
+  #test div.descendant{
+  background:lime;
+  display: block;
+  overflow:auto;
+  }
+  </style>
+ </head>
+ <body>
+  <p>To pass, there <strong>must</strong> be a bullet (filled-in circle) visible which <strong>should</strong> appear alongside the green bar to the left, and there <strong>must not</strong> not be any red in this page.</p>
+  <div id="test">
+   <div><div class="descendant">&nbsp;</div></div>
+  </div>
+ </body>
+</html>

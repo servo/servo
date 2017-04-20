@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Background and border</title>
+    <link rel="author" title="Jinlong Zhang" href="mailto:jinlongz@oupeng.com">
+    <link rel="help" href="https://drafts.csswg.org/css3-background/#border-radius-tables">
+    <link rel="help" href="additional spec link">
+    <link rel="match" href="reference/ttwf-reftest-tutorial-starter-ref">
+    <meta name="assert" content="Table with 'border-collapse: collapse;' declaration, it's 'border-radius' style will not work.">
+    <style type="text/css">
+        #testCon{border: 4px solid green; border-radius: 5px; border-collapse: collapse;}
+        #testCon td{width: 60px; height: 60px; border: 4px solid green; border-radius: 10px;}
+    </style>
+</head>
+<body>
+    <p>The test passes if table's 'border-radius' style don't work.</p>
+    <p>CSS3 UAs should ignore border-radius properties applied to internal table elements when ‘border-collapse’ is ‘collapse’.</p>
+    <table id="testCon">
+        <tr><td></td><td></td><td></td></tr>
+        <tr><td></td><td></td><td></td></tr>
+        <tr><td></td><td></td><td></td></tr>
+    </table>
+    
+</body>
+</html>

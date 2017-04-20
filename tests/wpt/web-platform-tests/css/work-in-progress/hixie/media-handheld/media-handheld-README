@@ -1,0 +1,6 @@
+Note: These tests assume a world where handheld devices do not
+download all stylesheets unless they have to (i.e. it assumes a low
+bandwidth device with a sensible implementation). Given that, it tests
+that the behaviour is sane, and reproducible.
+
+The file specification.html documents this in more detail.

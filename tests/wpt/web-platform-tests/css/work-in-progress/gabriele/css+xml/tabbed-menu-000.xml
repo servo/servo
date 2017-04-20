@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?xml-stylesheet href="css/tabbed-menu-000.css" type="text/css"?>
+
+
+<root>
+
+
+
+	<document>
+	
+	
+		<info>You should see a tabbed menu with a rollover effect below.</info>
+		
+		
+		<navigation type="tabbed-menu">
+		
+		
+			<item><link>Link</link></item>
+			<item><link>Link</link></item>
+			<item><link>Link</link></item>
+		
+		
+		</navigation>
+	
+	
+	
+	</document>
+
+
+
+
+
+</root>

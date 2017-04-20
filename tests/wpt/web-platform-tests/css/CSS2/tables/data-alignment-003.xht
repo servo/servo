@@ -1,0 +1,33 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Aligning Table Data (row data is aligned)</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#tables-intro" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Cell data in a row can be horizontally and vertically aligned." />
+        <style type="text/css">
+            tr
+            {
+                vertical-align: middle;
+                text-align: center;
+            }
+            td
+            {
+                width: 10em;
+                height: 10em;
+                border: solid;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the "Filler Text" is horizontally and vertically centered in each of the boxes below.</p>
+        <table>
+            <tr>
+                <td>Filler Text</td>
+                <td>Filler Text</td>
+                <td>Filler Text</td>
+            </tr>
+        </table>
+    </body>
+ </html>

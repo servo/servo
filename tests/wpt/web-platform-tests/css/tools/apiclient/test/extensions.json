@@ -1,0 +1,210 @@
+{
+  "Nested Structures" :
+  {
+    "level": 5,
+    "variables": {
+       "list"  : ["one", "two", "three", "four"],
+       "dict"  : {"semi": ";", "dot": ".", "comma": ","},
+       "lists" : [["one", "two"], ["three"], "four"],
+       "dicts" : {"one": {"semi": ";", "dot": "."}, "two": {"comma": ","}},
+       "mixed" : {"list": ["one", ["two", "three"]], "dict": {"one": {"semi": ";", "dot": "."}, "two": {"comma": ","}}},
+       "dlist" : [{"semi": ";", "dot": "."}, {"comma": ","}]
+     },
+     "testcases" : [
+        ["{list}", "one,two,three,four"],
+        ["{list*}", "one,two,three,four"],
+        ["{?list}", "?list=one,two,three,four"],
+        ["{?list*}", "?list=one&list=two&list=three&list=four"],
+        ["{lists}", "one,two,three,four"],
+        ["{lists*}", "one,two,three,four"],
+        ["{?lists}", "?lists=one,two,three,four"],
+        ["{?lists*}", "?lists=one&lists=two&lists=three&lists=four"],
+        ["{dict}", [
+          "comma,%2C,dot,.,semi,%3B",
+          "comma,%2C,semi,%3B,dot,.",
+          "dot,.,comma,%2C,semi,%3B",
+          "dot,.,semi,%3B,comma,%2C",
+          "semi,%3B,comma,%2C,dot,.",
+          "semi,%3B,dot,.,comma,%2C"
+        ]],
+        ["{dict*}", [
+          "comma=%2C,dot=.,semi=%3B",
+          "comma=%2C,semi=%3B,dot=.",
+          "dot=.,comma=%2C,semi=%3B",
+          "dot=.,semi=%3B,comma=%2C",
+          "semi=%3B,comma=%2C,dot=.",
+          "semi=%3B,dot=.,comma=%2C"
+        ]],
+        ["{?dict}", [
+          "?dict=comma,%2C,dot,.,semi,%3B",
+          "?dict=comma,%2C,semi,%3B,dot,.",
+          "?dict=dot,.,comma,%2C,semi,%3B",
+          "?dict=dot,.,semi,%3B,comma,%2C",
+          "?dict=semi,%3B,comma,%2C,dot,.",
+          "?dict=semi,%3B,dot,.,comma,%2C"
+        ]],
+        ["{?dict*}", [
+          "?comma=%2C&dot=.&semi=%3B",
+          "?comma=%2C&semi=%3B&dot=.",
+          "?dot=.&comma=%2C&semi=%3B",
+          "?dot=.&semi=%3B&comma=%2C",
+          "?semi=%3B&comma=%2C&dot=.",
+          "?semi=%3B&dot=.&comma=%2C"
+        ]],
+        ["{dicts}", [
+          "two.comma,%2C,one.dot,.,one.semi,%3B",
+          "two.comma,%2C,one.semi,%3B,one.dot,.",
+          "one.dot,.,two.comma,%2C,one.semi,%3B",
+          "one.dot,.,one.semi,%3B,two.comma,%2C",
+          "one.semi,%3B,two.comma,%2C,one.dot,.",
+          "one.semi,%3B,one.dot,.,two.comma,%2C"
+        ]],
+        ["{dicts*}", [
+          "two.comma=%2C,one.dot=.,one.semi=%3B",
+          "two.comma=%2C,one.semi=%3B,one.dot=.",
+          "one.dot=.,two.comma=%2C,one.semi=%3B",
+          "one.dot=.,one.semi=%3B,two.comma=%2C",
+          "one.semi=%3B,two.comma=%2C,one.dot=.",
+          "one.semi=%3B,one.dot=.,two.comma=%2C"
+        ]],
+        ["{?dicts}", [
+          "?dicts=two.comma,%2C,one.dot,.,one.semi,%3B",
+          "?dicts=two.comma,%2C,one.semi,%3B,one.dot,.",
+          "?dicts=one.dot,.,two.comma,%2C,one.semi,%3B",
+          "?dicts=one.dot,.,one.semi,%3B,two.comma,%2C",
+          "?dicts=one.semi,%3B,two.comma,%2C,one.dot,.",
+          "?dicts=one.semi,%3B,one.dot,.,two.comma,%2C"
+        ]],
+        ["{?dicts*}", [
+          "?two.comma=%2C&one.dot=.&one.semi=%3B",
+          "?two.comma=%2C&one.semi=%3B&one.dot=.",
+          "?one.dot=.&two.comma=%2C&one.semi=%3B",
+          "?one.dot=.&one.semi=%3B&two.comma=%2C",
+          "?one.semi=%3B&two.comma=%2C&one.dot=.",
+          "?one.semi=%3B&one.dot=.&two.comma=%2C"
+        ]],
+        ["{mixed}", [
+          "list.one,list.two,list.three,dict.two.comma,%2C,dict.one.dot,.,dict.one.semi,%3B",
+          "list.one,list.two,list.three,dict.two.comma,%2C,dict.one.semi,%3B,dict.one.dot,.",
+          "list.one,list.two,list.three,dict.one.dot,.,dict.two.comma,%2C,dict.one.semi,%3B",
+          "list.one,list.two,list.three,dict.one.dot,.,dict.one.semi,%3B,dict.two.comma,%2C",
+          "list.one,list.two,list.three,dict.one.semi,%3B,dict.two.comma,%2C,dict.one.dot,.",
+          "list.one,list.two,list.three,dict.one.semi,%3B,dict.one.dot,.,dict.two.comma,%2C"
+        ]],
+        ["{mixed*}", [
+          "list.one,list.two,list.three,dict.two.comma=%2C,dict.one.dot=.,dict.one.semi=%3B",
+          "list.one,list.two,list.three,dict.two.comma=%2C,dict.one.semi=%3B,dict.one.dot=.",
+          "list.one,list.two,list.three,dict.one.dot=.,dict.two.comma=%2C,dict.one.semi=%3B",
+          "list.one,list.two,list.three,dict.one.dot=.,dict.one.semi=%3B,dict.two.comma=%2C",
+          "list.one,list.two,list.three,dict.one.semi=%3B,dict.two.comma=%2C,dict.one.dot=.",
+          "list.one,list.two,list.three,dict.one.semi=%3B,dict.one.dot=.,dict.two.comma=%2C"
+        ]],
+        ["{?mixed}", [
+          "?mixed=list.one,list.two,list.three,dict.two.comma,%2C,dict.one.dot,.,dict.one.semi,%3B",
+          "?mixed=list.one,list.two,list.three,dict.two.comma,%2C,dict.one.semi,%3B,dict.one.dot,.",
+          "?mixed=list.one,list.two,list.three,dict.one.dot,.,dict.two.comma,%2C,dict.one.semi,%3B",
+          "?mixed=list.one,list.two,list.three,dict.one.dot,.,dict.one.semi,%3B,dict.two.comma,%2C",
+          "?mixed=list.one,list.two,list.three,dict.one.semi,%3B,dict.two.comma,%2C,dict.one.dot,.",
+          "?mixed=list.one,list.two,list.three,dict.one.semi,%3B,dict.one.dot,.,dict.two.comma,%2C"
+        ]],
+        ["{?mixed*}", [
+          "?list=one&list=two&list=three&dict.two.comma=%2C&dict.one.dot=.&dict.one.semi=%3B",
+          "?list=one&list=two&list=three&dict.two.comma,%2C&dict.one.semi=%3B&dict.one.dot=.",
+          "?list=one&list=two&list=three&dict.one.dot=.&dict.two.comma=%2C&dict.one.semi=%3B",
+          "?list=one&list=two&list=three&dict.one.dot=.&dict.one.semi=%3B&dict.two.comma=%2C",
+          "?list=one&list=two&list=three&dict.one.semi=%3B&dict.two.comma=%2C&dict.one.dot=.",
+          "?list=one&list=two&list=three&dict.one.semi=%3B&dict.one.dot=.&dict.two.comma=%2C"
+        ]],
+        ["{dlist}", [
+          "dot,.,semi,%3B,comma,%2C",
+          "semi,%3B,dot,.,comma,%2C"
+        ]],
+        ["{dlist*}", [
+          "dot=.,semi=%3B,comma=%2C",
+          "semi=%3B,dot=.,comma=%2C"
+        ]],
+        ["{?dlist}", [
+          "?dlist=dot,.,semi,%3B,comma,%2C",
+          "?dlist=semi,%3B,dot,.,comma,%2C"
+        ]],
+        ["{?dlist*}", [
+          "?dlist.dot=.&dlist.semi=%3B&dlist.comma=%2C",
+          "?dlist.semi=%3B&dlist.dot=.&dlist.comma=%2C"
+        ]]
+     ]
+  },
+  "Array Modifier" :
+  {
+    "level": 5,
+    "variables": {
+       "list"  : ["one", "two", "three", "four"],
+       "dict"  : {"semi": ";", "dot": ".", "comma": ","},
+       "lists" : [["one", "two"], ["three"], "four"],
+       "dicts" : {"one": {"semi": ";", "dot": "."}, "two": {"comma": ","}},
+       "mixed" : {"list": ["one", ["two", "three"]], "dict": {"one": {"semi": ";", "dot": "."}, "two": {"comma": ","}}},
+       "dlist" : [{"semi": ";", "dot": "."}, {"comma": ","}]
+     },
+     "testcases" : [
+        ["{list[]}", "one,two,three,four"],
+        ["{?list[]}", "?list[0]=one&list[1]=two&list[2]=three&list[3]=four"],
+        ["{lists[]}", "one,two,three,four"],
+        ["{?lists[]}", "?lists[0][0]=one&lists[0][1]=two&lists[1][0]=three&lists[2]=four"],
+        ["{dict[]}", [
+          "comma=%2C,dot=.,semi=%3B",
+          "comma=%2C,semi=%3B,dot=.",
+          "dot=.,comma=%2C,semi=%3B",
+          "dot=.,semi=%3B,comma=%2C",
+          "semi=%3B,comma=%2C,dot=.",
+          "semi=%3B,dot=.,comma=%2C"
+        ]],
+        ["{?dict[]}", [
+          "?comma=%2C&dot=.&semi=%3B",
+          "?comma=%2C&semi=%3B&dot=.",
+          "?dot=.&comma=%2C&semi=%3B",
+          "?dot=.&semi=%3B&comma=%2C",
+          "?semi=%3B&comma=%2C&dot=.",
+          "?semi=%3B&dot=.&comma=%2C"
+        ]],
+        ["{dicts[]}", [
+          "two[comma]=%2C,one[dot]=.,one[semi]=%3B",
+          "two[comma]=%2C,one[semi]=%3B,one[dot]=.",
+          "one[dot]=.,two[comma]=%2C,one[semi]=%3B",
+          "one[dot]=.,one[semi]=%3B,two[comma]=%2C",
+          "one[semi]=%3B,two[comma]=%2C,one[dot]=.",
+          "one[semi]=%3B,one[dot]=.,two[comma]=%2C"
+        ]],
+        ["{?dicts[]}", [
+          "?two[comma]=%2C&one[dot]=.&one[semi]=%3B",
+          "?two[comma]=%2C&one[semi]=%3B&one[dot]=.",
+          "?one[dot]=.&two[comma]=%2C&one[semi]=%3B",
+          "?one[dot]=.&one[semi]=%3B&two[comma]=%2C",
+          "?one[semi]=%3B&two[comma]=%2C&one[dot]=.",
+          "?one[semi]=%3B&one[dot]=.&two[comma]=%2C"
+        ]],
+        ["{mixed[]}", [
+          "list[0]=one,list[1][0]=two,list[1][1]=three,dict[two][comma]=%2C,dict[one][dot]=.,dict[one][semi]=%3B",
+          "list[0]=one,list[1][0]=two,list[1][1]=three,dict[two][comma]=%2C,dict[one][semi]=%3B,dict[one][dot]=.",
+          "list[0]=one,list[1][0]=two,list[1][1]=three,dict[one][dot]=.,dict[two][comma]=%2C,dict[one][semi]=%3B",
+          "list[0]=one,list[1][0]=two,list[1][1]=three,dict[one][dot]=.,dict[one][semi]=%3B,dict[two][comma]=%2C",
+          "list[0]=one,list[1][0]=two,list[1][1]=three,dict[one][semi]=%3B,dict[two][comma]=%2C,dict[one][dot]=.",
+          "list[0]=one,list[1][0]=two,list[1][1]=three,dict[one][semi]=%3B,dict[one][dot]=.,dict[two][comma]=%2C"
+        ]],
+        ["{?mixed[]}", [
+          "?list[0]=one&list[1][0]=two&list[1][1]=three&dict[two][comma]=%2C&dict[one][dot]=.&dict[one][semi]=%3B",
+          "?list[0]=one&list[1][0]=two&list[1][1]=three&dict[two][comma]=%2C&dict[one][semi]=%3B&dict[one][dot]=.",
+          "?list[0]=one&list[1][0]=two&list[1][1]=three&dict[one][dot]=.&dict[two][comma]=%2C&dict[one][semi]=%3B",
+          "?list[0]=one&list[1][0]=two&list[1][1]=three&dict[one][dot]=.&dict[one][semi]=%3B&dict[two][comma]=%2C",
+          "?list[0]=one&list[1][0]=two&list[1][1]=three&dict[one][semi]=%3B&dict[two][comma]=%2C&dict[one][dot]=.",
+          "?list[0]=one&list[1][0]=two&list[1][1]=three&dict[one][semi]=%3B&dict[one][dot]=.&dict[two][comma]=%2C"
+        ]],
+        ["{dlist[]}", [
+          "dot=.,semi=%3B,comma=%2C",
+          "semi=%3B,dot=.,comma=%2C"
+        ]],
+        ["{?dlist[]}", [
+          "?dlist[0][dot]=.&dlist[0][semi]=%3B&dlist[1][comma]=%2C",
+          "?dlist[0][semi]=%3B&dlist[0][dot]=.&dlist[1][comma]=%2C"
+        ]]
+     ]
+  }
+}

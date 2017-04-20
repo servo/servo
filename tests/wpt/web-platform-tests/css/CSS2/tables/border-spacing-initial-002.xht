@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: CSS table model: initial border-spacing</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/table/001.xml" type="application/xhtml+xml"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#separated-borders"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#anonymous-boxes" />
+  <style type="text/css">
+   .float { float: left; background: red; }
+   .table { display: table; }
+   .row { display: table-row; }
+   .cell { display: table-cell; background: green; color: white; text-align: center; }
+  </style>
+ </head>
+ <body>
+  <div class="float">
+   <div class="cell">THERE</div>
+   <div class="row">
+    <div class="table">
+     <div class="cell">SHOULD B</div>
+     <div class="cell">E N</div>
+     <div class="cell">O RED</div>
+    </div>
+   </div>
+   <div class="cell">ANYWHERE</div>
+  </div>
+ </body>
+</html>

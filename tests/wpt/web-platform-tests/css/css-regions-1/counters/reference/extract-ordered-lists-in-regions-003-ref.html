@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Reftest Reference</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<style>
+		ol {
+			margin: 0;
+		}
+		ol ol,
+		.inner {
+			color: blue;
+		}
+
+		.region {
+			background-color: lightgray;
+			margin: 1em;
+			float: left;
+			width: 17em;
+			height: 15em;
+		}
+		</style>
+	</head>
+	<body>
+		<p>This test passes if you see three gray rectangles with a number of lists inside each, as follows.</p>
+		<p>The first rectangle should contain a black numbered list, with the numbering starting at 3. After the first item there should a be a blue numbered list, indented, with numbering starting at 10.</p>
+		<p>The second rectangle should contain two numbered list. The first one should be black with numbering starting at 10, while the second should be blue and with the numbering starting at 0. They should both have the same indentation level.</p>
+		<p>The third rectangle should contain a single numbered list, that's reversed, with the first item being numbered 5.</p>
+		<div class="region" id="r1">
+			<ol id="ordered-1" start="3">
+				<li>First ordered list, item 3
+					<ol start="10">
+						<li>Inner ordered list, item 10</li>
+						<li>Inner ordered list, item 11</li>
+					</ol>
+				</li>
+				<li>First ordered list, item 4</li>
+				<li>First ordered list, item 5</li>
+			</ol>
+		</div>
+
+		<div class="region" id="r2">
+			<ol id="ordered-2" start="10">
+				<li>Second ordered list, item 10</li>
+				<li>Second ordered list, item 11</li>
+				<li>Second ordered list, item 12</li>
+			</ol>
+			<ol class="inner" start="0">
+				<li>Inner ordered list, item 0</li>
+				<li>Inner ordered list, item 1</li>
+				<li>Inner ordered list, item 2</li>
+			</ol>
+		</div>
+
+		<div class="region" id="r3">
+			<ol class="ordered-3" reversed="true">
+				<li>Reversed ordered list, item 5</li>
+				<li>Reversed ordered list, item 4</li>
+				<li>Reversed ordered list, item 3</li>
+				<li>Reversed ordered list, item 2</li>
+				<li>Reversed ordered list, item 1</li>
+			</ol>
+		</div>
+	</body>
+</html>

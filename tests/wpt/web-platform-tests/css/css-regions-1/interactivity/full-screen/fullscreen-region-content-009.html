@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Test: using the :full-screen pseudo class to make a full-screen region auto-size</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property" />
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from" />
+		<link rel="help" href="http://www.w3.org/TR/fullscreen/#api" />
+		<link rel="help" href="http://www.w3.org/TR/fullscreen/#:fullscreen-pseudo-class" />
+		<meta name="flags" content="ahem dom interact">
+		<meta name="assert" content="This test checks that using the :full-screen pseudo class to
+				make a region auto-sized works after calling the requestFullscreen() method
+				on a fixed size region.">
+		<link rel="stylesheet" href="support/common.css" media="all">
+		<script src="support/util.js"></script>
+		<style>
+		#content {
+			flow-into: flow;
+			color: green;
+			font-family: Ahem;
+			font-size: 20px;
+			line-height: 1em;
+			margin: 0;
+		}
+		#region {
+			flow-from: flow;
+			width: 100px;
+			height: 100px;
+		}
+		#region > p {
+			background: red;
+
+		}
+		#region:full-screen {
+			width: auto;
+			height: auto;
+		}
+		</style>
+	</head>
+	<body>
+		<section id="instructions">
+			<ol>
+				<li>You should see no red rectangles or squares before or during the text</li>
+				<li>You should see a green square below</li>
+				<li>Click the <em>Go full screen</em> button below
+					<ul>
+						<li>The page should enter full screen mode, with the green square turning
+							into a thick green horizontal line.</li>
+						<li>The browser might display a permission window asking you to allow full
+						screen on this page. Allow it.</li>
+					</ul>
+				</li>
+				<li>Exit full screen (e.g. by pressing <em>Esc</em>)
+					<ul>
+						<li>The green line should turn back into a green square and all the other
+							initial content should become visible again.</li>
+					</ul>
+				</li>
+			</ol>
+			<button>Go full screen</button>
+		</section>
+
+		<div id="content">
+			xxxxx&#8203;xxxxx&#8203;xxxxx&#8203;xxxxx&#8203;xxxxx
+		</div>
+
+		<div id="region">
+			<p>&nbsp;</p>
+		</div>
+		<div id="fail-marker"></div>
+
+		<script>
+		makeFullScreenToggle("button", "#region");
+		</script>
+	</body>
+</html>

@@ -1,0 +1,18 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: All Visual Media</title>
+  <link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#orienting"/>
+  <meta name="assert" content="The image-orientation property applies to all visual media"/>
+  <style type="text/css"><![CDATA[
+   img { image-orientation: 180deg; }
+  ]]></style>
+ </head>
+ <body>
+  	<div>
+		<p>On screen and when printed, the arrow below should be pointing away from this sentence.</p>
+		<img src="intrinsic-size.png" alt="FAIL: missing image" />
+	</div>
+ </body>
+</html>

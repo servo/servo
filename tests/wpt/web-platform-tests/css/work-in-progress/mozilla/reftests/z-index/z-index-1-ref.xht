@@ -1,0 +1,59 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html><head>
+<style>
+.container {
+  position:absolute;
+  width:400px;
+  height:100px;
+  background-color:yellow;
+  z-index:0;
+}
+.container &gt; div {
+  height:100px;
+  margin-bottom:-100px;
+}
+.negative {
+  width:380px;
+  background-color:blue;
+}
+.block {
+  width:360px;
+  background-color:purple;
+}
+.float {
+  width:340px;
+  background-color:green;
+}
+.inline {
+  width:320px;
+  background-color:pink;
+}
+#outline {
+  height:60px;
+  width:260px;
+  border:20px solid gray;
+}
+.positioned {
+  width:280px;
+  background-color:magenta;
+}
+.positive {
+  width:260px;
+  background-color:orange;
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="negative"></div>
+  <div class="block"></div>
+  <div class="float"></div>
+  <div class="inline"></div>
+  <div id="outline"></div>
+
+  <div class="positioned"></div>
+  <div class="positive"></div>
+</div>
+
+
+</body></html>

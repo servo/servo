@@ -4900,9 +4900,14 @@ function queryOutputHelper(beforeIndeterm, beforeState, beforeValue,
 function normalizeTest(command, test, styleWithCss) {
 //@{
     // Our standard format for test processing is:
-    //   [input HTML, [command1, value1], [command2, value2], ...]
-    // But this is verbose, so we actually use three different formats in the
-    // tests and multiTests arrays:
+    //   [input HTML,
+    //     [command1, value1, optional_name_mod],
+    //     [command2, value2, optional_name_mod], ...]
+    // Where `optional_name_mod` is an optionally-specified string used when
+    // generating test names (necessary to ensure uniqueness for command
+    // sequences that use the same command multiple times). This format is
+    // verbose, so we actually use three different formats in the tests and
+    // multiTests arrays:
     //
     // 1) Plain string giving the input HTML.  The command is implicit from the
     // key of the tests array.  If the command takes values, the value is given
@@ -5527,7 +5532,26 @@ function normalizeSerializedStyle(wrapper) {
 //@}
 
 /**
- * Input is the same format as output of generateTest in gentest.html.
+ * Input is in the following format:
+ *   [input HTML,
+ *    array of commands,
+ *    expected output HTML,
+ *    array of expected execCommand() return values,
+ *    object of expected indeterm/state/value].
+ * The array of commands is [[command, value, optionalDesc], [command, value,
+ * optionalDesc], ...].  optionalDesc is appended to the description of the
+ * test in the generated test name.
+ *
+ * The
+ * array of expected execCommand() return values is [true|false, true|false,
+ * ...], where the indices match those in the array of commands.  The
+ * indeterm/state/value object is of the form
+ *   {command: [expected indeterm before, expected state before,
+ *     expected value before, expected indeterm after,
+ *     expected state after, expected value after],
+ *   command: ... }
+ * null for any of the last six entries means an INVALID_ACCESS_ERR must be
+ * raised.
  */
 function runConformanceTest(browserTest) {
 //@{
@@ -5540,6 +5564,7 @@ function runConformanceTest(browserTest) {
     var expectedQueryResults = browserTest[4];
     var actualQueryResults = {};
     var actualQueryExceptions = {};
+    var subtestName;
 
     try {
         var points = setupDiv(testDiv, browserTest[0]);
@@ -5577,12 +5602,17 @@ function runConformanceTest(browserTest) {
     }
 
     for (var i = 0; i < browserTest[1].length; i++) {
+        subtestName = testName + ": execCommand(" +
+            format_value(browserTest[1][i][0]) + ", false, " +
+            format_value(browserTest[1][i][1]) + ") " +
+            (browserTest[1][i][2] ? browserTest[1][i][2] + " " : "") +
+            "return value"
         test(function() {
             assert_equals(exception, null, "Setup must not throw an exception");
 
             assert_equals(document.execCommand(browserTest[1][i][0], false, browserTest[1][i][1]),
                 expectedExecCommandReturnValues[i]);
-        }, testName + ": execCommand(" + format_value(browserTest[1][i][0]) + ", false, " + format_value(browserTest[1][i][1]) + ") return value");
+        }, subtestName);
     }
 
     if (exception === null) {

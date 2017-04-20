@@ -1,0 +1,69 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>First Test of Section 12.2 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+p:before {content: "My Intro:"}
+h3:before {content: uri("ovalbbut.gif")}
+h4:before {content: counter()}
+h5:before {content: open-quote}
+h6:before {content: close-quote}
+blockquote {content: inherit}
+
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing First Testable Statement of Sec 12.2 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+1. The content property has possible values of
+"[string|uri|counter|attr(x)|open-quote|close-quote|no-open-quote|
+no-close-quote]+|inherit"
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p>
+If statement #1 above is passed, then
+this paragraph should have content of "My Intro:" inserted before it.
+Rule is "p:before {content: "My Intro:"}"
+<h3 >
+This h3 element should have a content (uri) of oval button inserted before it.
+Rule is "h3:before {content: uri(ovalbbut.gif)}".
+</h3>
+<h4>
+This h4 heading should have content of counter() inserted before it.
+Rule is "h4:before {content: counter()}".
+</h4>
+<h5>This h5 heading should have content of open quote inserted before it.
+Rule is "h5:before {content: open-quote}".</h5>
+<h6>This h6 heading should have content of closed quote inserted before it.
+Rule is "h6:before {content: close-quote}".</h6>
+<blockquote>
+This blockquote should have content of inherit inserted before it.
+Rule is "blockquote {content: inherit}".
+</blockquote>
+<p>
+All other properties of this page should be UA-default.
+
+
+</BODY>
+</HTML>
+

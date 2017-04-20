@@ -1,0 +1,33 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: text-indent</title>
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#text-indent"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="match" href="c547-indent-001-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+   .one {text-indent: 5em; background: aqua;}
+   .eight {text-indent: 50%; background: aqua;}
+   div {text-indent: 50%; background: aqua;width: 25%;}
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#indentation-prop" title="16.1 Indentation: the 'text-indent' property"/>
+ </head>
+ <body>
+  <p class="eight">
+   The first line of this sentence should be indented halfway across the
+   page, but the rest of it should be flush with the normal left margin
+   of the page.
+  </p>
+  <p class="one">
+   Only the first line of this sentence<br />
+   should be indented,<br />
+   the others should all be<br />
+   <em>aligned on the left</em> of the window.
+  </p>
+  <div>
+   X The X on the previous line should be centered across the window.
+  </div>
+ </body>
+</html>

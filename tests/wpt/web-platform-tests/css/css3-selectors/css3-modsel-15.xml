@@ -1,0 +1,18 @@
+<csstest def="ID selectors" module="W3C Selectors" modulename="css3-modsel" number="15" rev="1.1" date="19-november-2001" xmlns:a="http://www.example.org/a" xmlns:b="http://www.example.org/b" xmlns:html="http://www.w3.org/1999/xhtml" xmlns="http://www.example.org/css3tests">
+
+<author>Daniel Glazman</author>
+<author>Ian Hickson</author>
+<cssrules>li { background-color : red }
+#t1 { background-color : lime }
+li#t2 { background-color : lime }
+li#t3 { background-color : lime }
+#t4 { background-color : red }</cssrules>
+
+<code>
+<ul xmlns="http://www.w3.org/1999/xhtml">
+  <li id="t1">This list item should have a green background. because its ID is "t1"</li>
+  <li id="t2">This list item should have a green background. because its ID is "t2"</li>
+  <li id="t3"><span id="t44">This list item should have a green background. because the inner SPAN does not match "#t4"</span></li>
+</ul>
+</code>
+</csstest>

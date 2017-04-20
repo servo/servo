@@ -1,0 +1,37 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Content flowing around floated elements</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats" />
+        <link rel="match" href="floats-029-ref.xht" />
+
+        <meta name="flags" content="" />
+        <meta name="assert" content="Floats shift the current line and surrounding content to flow along its side unless clear is specified." />
+        <style type="text/css">
+            #span1
+            {
+                background-color: blue;
+                float: left;
+                height: 1in;
+                width: 1in;
+            }
+            body
+            {
+                margin: 0;
+            }
+            div div
+            {
+                clear: both;
+            }
+        </style>
+    </head>
+    <body>
+        <div>
+            <span>Filler Text</span>
+            <span id="span1"></span>
+            <div></div>
+        </div>
+        <p>Test passes if the blue square is in the top left corner of the page and the words "Filler Text" are directly to the right of the square.</p>
+    </body>
+</html>

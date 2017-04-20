@@ -1,0 +1,48 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Collapsing borders model row width equation (auto layout) - subsequent rows with wider borders variation</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#collapsing-borders" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Rows which have wider borders than those of the first table row have their borders spill into the table margins." />
+        <style type="text/css">
+            table
+            {
+                border: 10px solid red;
+                border-collapse: collapse;
+                margin: 15px;
+            }
+            td
+            {
+                background: blue;
+                border: 20px solid blue;
+                padding: 20px;
+            }
+            .cell
+            {
+                border: 50px solid black;
+            }
+            div
+            {
+                background: blue;
+                position: absolute;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the top and bottom blue boxes are the same width as the black box, and there is no red visible on the page.</p>
+        <div>
+        <table>
+            <tr>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td class="cell"></td>
+                <td class="cell"></td>
+            </tr>
+        </table>
+        </div>
+    </body>
+</html>

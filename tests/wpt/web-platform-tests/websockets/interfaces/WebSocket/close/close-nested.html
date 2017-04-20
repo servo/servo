@@ -17,10 +17,10 @@ async_test(function(t) {
       ws.close();
       assert_equals(ws.readyState, ws.CLOSED);
     }
-    setTimeout(t.step_func(function() {
+    t.step_timeout(function() {
       assert_equals(i, 1);
       t.done();
-    }), 50);
+    }, 50);
   });
   ws.close();
   assert_equals(ws.readyState, ws.CLOSING);

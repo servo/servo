@@ -1,0 +1,54 @@
+
+<HTML>
+
+<HEAD>
+<TITLE>Ninth Test of Section 6.3 of CSS1 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+#id1 {color: rgb(255,0,0)}
+#id2 {color: rgb(300,0,0)}
+#id3 {color: rgb(110%,0%,0%)}
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+
+<h1>Testing Statement #9 of Section 6.3 of CSS1 Spec</h1>
+
+
+
+
+
+
+
+
+<ul>
+<li>
+9. Values outside the numerical ranges should be clipped.
+</ul>
+
+
+
+
+<h2>PASS CRITERIA:
+</h2>
+<p ID=id1>
+If statement #9 above is passed, this paragraph should be red.
+The rule applied is "#id1 {color: rgb(255,0,0)}", which is within normal
+limits, so is not clipped.
+<p ID=id2>
+This paragraph should also be red.  The rule applied is "#id2 {color:
+ rgb(300,0,0)}", which is clipped to (255,0,0).
+<p ID=id3>
+This paragraph should also be red.  The rule applied is "#id3 {color:
+rgb(110%,0%,0%)}", which is clipped to (100%,0%,0%).
+<p>
+
+
+All other properties of this page should be UA-default.
+
+</BODY>
+</HTML>

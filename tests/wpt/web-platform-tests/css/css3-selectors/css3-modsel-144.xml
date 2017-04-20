@@ -1,0 +1,14 @@
+<csstest def="NEGATED :enabled:disabled pseudo-classes" module="W3C Selectors" modulename="css3-modsel" number="144" rev="1.0" date="12-november-2001" xmlns="http://www.example.org/css3tests">
+
+<author>Ian Hickson</author>
+
+<cssrules>div :not(:enabled):not(:disabled) { background: lime; }
+p { background : red;}</cssrules>
+
+<code>
+ <div xmlns="http://www.w3.org/1999/xhtml">
+  <p>This paragraph should have a green background.</p>
+ </div>
+</code>
+
+</csstest>

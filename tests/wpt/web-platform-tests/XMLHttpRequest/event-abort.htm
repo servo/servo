@@ -20,9 +20,9 @@
         client.open("GET", "resources/well-formed.xml");
         client.send(null);
         client.abort();
-        setTimeout(test.step_func(function () {
+        test.step_timeout(() => {
           assert_unreached("onabort not called after 4 ms");
-        }), 4);
+        }, 4);
       });
     </script>
   </body>

@@ -1,0 +1,18 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: image-orientation 'intrinsic' - rotate 90deg</title>
+  <link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#orienting"/>
+  <meta name="assert" content="The 'intrinsic' value of 'image-orientation' orients the image according to orientation metadata contained within the image source data, if any."/>
+  <style type="text/css"><![CDATA[
+  	img { image-orientation: 'intrinsic'; }
+  ]]></style>
+ </head>
+ <body>
+ 	<div>
+		<p>The roof of the house below should be pointing to the right. The door and flag should be on the upper half of the image.</p>
+		<img src="oriented-images/house-orientation-8.jpg" alt="FAIL: missing image" />
+	</div>
+ </body>
+</html>

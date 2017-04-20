@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border-collapse and 'display: table' elements</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#propdef-border-collapse" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#borders" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Border-collapse applies to 'display: table' elements." />
+        <style type="text/css">
+            #test
+            {
+                border-collapse: collapse;
+                display: table;
+            }
+            #tr
+            {
+                display: table-row;
+            }
+            #left, #right
+            {
+                display: table-cell;
+                height: 100px;
+                width: 100px;
+            }
+            #left
+            {
+                border-right: 10px solid black;
+            }
+            #right
+            {
+                border-left: 10px dotted red;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page.</p>
+        <div id="test">
+            <div id="tr">
+                <div id="left"></div>
+                <div id="right"></div>
+            </div>
+        </div>
+    </body>
+</html>

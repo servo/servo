@@ -1,0 +1,7 @@
+[% FOR entry IN tests.sort('name') %]
+[% IF not entry.flags.contains(formatMismatchFlag) %]
+[% FOREACH refList IN entry.references %]
+[%+ extmap.translate(entry.file) %] [% FOREACH ref IN refList %] [%+ ref.type %] [%+ extmap.translate(ref.relpath) %][% END %]
+[% END %]
+[% END %]
+[% END %]

@@ -1,0 +1,58 @@
+
+<html>
+
+<title>Fourth Test of Section 5.6.6 of CSS1 Spec</title>
+
+<style type="text/css">
+OL.alpha LI {list-style: lower-alpha}
+UL LI {list-style: disc}
+#id1 {list-style: decimal}
+</style>
+</head>
+
+
+
+<body>
+
+
+
+
+<h1 >Testing Statement #4 Below of Section 5.6.6 of CSS1 Spec</h1>
+
+
+
+
+
+
+<p>
+4. Setting list-style directly on LI elements can have unexpected results.
+It is therefore recommended to set list-style only on the list-type elements
+OL and UL.
+
+
+
+
+</h2>
+PASS CRITERIA:
+</h2>
+<p >
+If statement #4 above is passed, then:
+<ol class=alpha>
+<li> level 1 - only lower alpha styles used - not intended by user?
+<ul>
+<li>level 2 - only lower alpha styles used - not intended by user?
+</ul>
+</ol>
+<ul ID=id1>
+<li>
+Rule "#id1 {list-style: decimal}" applied to ul should make this list item
+have a decimal (or disc) marker because li is child of ul
+</ul>
+
+
+
+All other properties of this page should be UA-default.
+
+
+</body>
+</html>

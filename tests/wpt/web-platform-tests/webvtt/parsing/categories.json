@@ -1,0 +1,8 @@
+{
+    ":categories": [
+        ["file-parsing", "cue-text-parsing"]
+    ],
+    ":subcategories": ["file-parsing/categories.json"],
+    "file-parsing/*": "file-parsing",
+    "cue-text-parsing/*": "cue-text-parsing"
+}

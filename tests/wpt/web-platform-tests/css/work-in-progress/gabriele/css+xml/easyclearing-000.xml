@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?xml-stylesheet href="css/easyclearing-000.css" type="text/css"?>
+
+<root>
+
+
+	<document>
+	
+		<info>The element following the float should stay under it.</info>
+		
+		<para class="clearfix">
+		
+			<image type="sample" />
+			
+			Lisa simpson is surely my favourite!
+		
+		</para>
+		
+		<clear>Here goes this element.</clear>
+	
+	</document>
+
+
+
+</root>

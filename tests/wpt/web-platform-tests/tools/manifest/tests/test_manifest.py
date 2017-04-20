@@ -17,6 +17,12 @@ def SourceFileWithTest(path, hash, cls, *args):
     s.manifest_items = mock.Mock(return_value=(cls.item_type, [test]))
     return s
 
+def SourceFileWithTests(path, hash, cls, variants):
+    s = mock.Mock(rel_path=path, hash=hash)
+    tests = [cls(s, item[0], *item[1:]) for item in variants]
+    s.manifest_items = mock.Mock(return_value=(cls.item_type, tests))
+    return s
+
 
 @hs.composite
 def rel_dir_file_path(draw):
@@ -224,3 +230,19 @@ def test_reftest_computation_chain_update_remove():
     assert m.update([s2]) is True
 
     assert list(m) == [("reftest", test2.path, {test2})]
+
+
+def test_iterpath():
+    m = manifest.Manifest()
+
+    sources = [SourceFileWithTest("test1", "0"*40, item.RefTest, [("/test1-ref", "==")]),
+               SourceFileWithTest("test2", "0"*40, item.RefTest, [("/test2-ref", "==")]),
+               SourceFileWithTests("test2", "0"*40, item.TestharnessTest, [("/test2-1.html",),
+                                                                           ("/test2-2.html",)]),
+               SourceFileWithTest("test3", "0"*40, item.TestharnessTest)]
+    m.update(sources)
+
+    assert set(item.url for item in m.iterpath("test2")) == set(["/test2",
+                                                                 "/test2-1.html",
+                                                                 "/test2-2.html"])
+    assert set(m.iterpath("missing")) == set()

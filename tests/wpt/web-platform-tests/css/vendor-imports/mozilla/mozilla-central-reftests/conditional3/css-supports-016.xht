@@ -1,0 +1,18 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: An @supports rule with valid syntax and a passing condition must apply rules inside it</title>
+  <link rel="author" title="Cameron McCormack" href="mailto:cam@mcc.id.au" />
+  <link rel="help" href="http://www.w3.org/TR/css3-conditional/#at-supports" />
+  <meta name="flags" content="" />
+  <meta name="assert" content="A negation of an @supports condition must pass if and only if the sub-condition fails.  The sub-condition here is a supported property name with an unsupported value."/>
+  <link rel="match" href="support/pass.xht" />
+  <style type="text/css"><![CDATA[
+    @supports not (color: rainbow) {
+      html { background-color: green }
+    }
+  ]]></style>
+ </head>
+ <body>
+ </body>
+</html>

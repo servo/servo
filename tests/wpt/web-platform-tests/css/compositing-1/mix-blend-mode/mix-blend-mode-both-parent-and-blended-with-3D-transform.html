@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>CSS Test: mix-blend-mode between an element and its child (both with 3D transform) </title>
+        <link rel="author" title="Mirela Budăeș" href="mailto:mbudaes@adobe.com">
+        <link rel="author" title="Ion Roșca" href="mailto:rosca@adobe.com">
+        <link rel="reviewer" title="Mihai Țică" href="mailto:mitica@adobe.com">
+        <link rel="help" href="https://drafts.fxtf.org/compositing-1/#mix-blend-mode">
+        <meta name="flags" content="">
+        <meta name="assert" content="Test checks that the element with mix-blend-mode blends with the parent element (both with 3D transform)">
+        <link rel="match" href="reference/mix-blend-mode-both-parent-and-blended-with-3D-transform-ref.html">
+        <style type="text/css">
+            .parent {
+                background: aqua;/*rgb(0,255,255);*/
+                width: 140px;
+                height: 140px;
+                padding-top: 1px;
+                transform:rotateX(20deg);
+            }
+            .blended {
+                background: fuchsia;/*rgb(255,0,255);*/
+                margin-top: 20px;
+                margin-left: 20px;
+                width: 200px;
+                height: 200px;
+                transform:rotateX(20deg);
+                mix-blend-mode: difference;
+            }
+        </style>
+    </head>
+    <body>
+        <p>You should see a fuchsia square overlapping an aqua square. <br>
+            The overlapping area should be yellow. </p>
+        <div class="parent">
+            <div class="blended">
+            </div>
+        </div>
+    </body>
+</html>

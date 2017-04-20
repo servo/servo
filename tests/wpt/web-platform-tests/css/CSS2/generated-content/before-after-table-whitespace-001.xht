@@ -1,0 +1,49 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head>
+    <title>CSS Test: generated content</title>
+    <link rel="author" title="Robert O'Callahan" href="mailto:robert@ocallahan.org" />
+    <link rel="author" title="Mozilla Corporation" href="http://mozilla.com/" />
+    <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#content" />
+    <link rel="match" href="before-after-table-whitespace-001-ref.xht"/>
+    <meta name="flags" content="" />
+<style type="text/css">
+.gen0:before {
+  padding:1px;
+}
+.gen1:before {
+  content: " ";
+}
+.gen2:before {
+  content: attr(missing);
+}
+.gen3:before {
+  content: url(missing-image.png);
+}
+
+div { border:1px solid green; margin:5px; }
+</style>
+</head>
+
+<!-- This tests that generated content items that evaluate to empty strings or
+     broken images are *not* treated as whitespace text and ignored by the table.
+     Altogether missing content should be ignored, though. (In fact it won't even be generated.) -->
+
+<body>
+<div>
+  <table><tbody><tr class="gen0"><td>Cell0</td></tr>
+                <tr><td>Cell1</td><td>Cell2</td></tr></tbody></table>
+</div>
+<div>
+  <table><tbody><tr class="gen1"><td>Cell0</td></tr>
+                <tr><td>Cell1</td><td>Cell2</td></tr></tbody></table>
+</div>
+<div>
+  <table><tbody><tr class="gen2"><td>Cell0</td></tr>
+                <tr><td>Cell1</td><td>Cell2</td></tr></tbody></table>
+</div>
+<div>
+  <table><tbody><tr class="gen3"><td>Cell0</td></tr>
+                <tr><td>Cell1</td><td>Cell2</td></tr></tbody></table>
+</div>
+
+
+</body></html>

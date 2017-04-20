@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Entry and incumbent settings objects when compiling an inline event handler</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="log"></div>
+
+<script>
+"use strict";
+window.name = "parent frame";
+
+async_test(t => {
+  const iframe = document.createElement("iframe");
+  iframe.src = "resources/compiled-event-handler-settings-objects-support.html";
+  iframe.onload = t.step_func(() => {
+    const button = iframe.contentDocument.querySelector("button");
+    const compiled = button.onclick;
+
+    assert_equals(compiled.constructor, iframe.contentWindow.Function, "The constructor must be from the iframe");
+    assert_not_equals(compiled.constructor, Function, "The constructor must not be from this page");
+
+    t.done();
+  });
+
+  document.body.appendChild(iframe);
+
+}, "The Function instance must be created in the Realm of the node document");
+
+async_test(t => {
+  const iframe = document.createElement("iframe");
+  iframe.src = "resources/compiled-event-handler-settings-objects-support.html";
+  iframe.onload = t.step_func(() => {
+    const button = iframe.contentDocument.querySelector("button");
+
+    window.onWindowLoaded = t.step_func_done(url => {
+      const pathname = new URL(url).pathname;
+      assert_equals(pathname,
+        "/html/webappapis/scripting/events/resources/open-window.html");
+      // This tests that the entry settings object used to resolve URLs in that window.open() was the same as that
+      // of the node document (i.e. the iframe document), not e.g. this window.
+    });
+
+    button.click();
+  });
+
+  document.body.appendChild(iframe);
+
+}, "The entry settings object while executing the compiled callback via Web IDL's invoke must be that " +
+   "of the node document");
+
+async_test(t => {
+  const iframe = document.createElement("iframe");
+  iframe.src = "resources/compiled-event-handler-settings-objects-support.html";
+  iframe.onload = t.step_func(() => {
+    window.onmessage = t.step_func_done(event => {
+      assert_equals(event.data, "PASS");
+      assert_equals(event.source.name, "iframe");
+      assert_equals(event.source, iframe.contentWindow, "The source must be the iframe");
+    });
+
+    iframe.src = "about:blank";
+  });
+
+  document.body.appendChild(iframe);
+
+}, "The incumbent settings object while executing the compiled callback via Web IDL's invoke must be that " +
+   "of the node document");
+</script>

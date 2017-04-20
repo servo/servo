@@ -1,0 +1,98 @@
+﻿
+
+<html>
+<head>
+<title>CSS3 Border Left Style Test</title>
+
+<style type="text/css">
+h3 {border-left-style: dashed;}
+h4 {border-left-style: dotted;}
+em {border-left-style: solid;}
+blockquote {border-left-style: 200%;}
+</style>
+</head>
+
+<body>
+
+
+
+
+<h1>CSS3 Border Left Style Test</h1>
+
+
+
+
+
+<ul>
+<li >
+For "border-left-style", initial is "none", it applies to all elements,
+it is not inherited, percentage values are N/A, media is visual, and computed value is
+specified value.
+</li>
+</ul>
+<h2>
+PASS CRITERIA:
+</h2>
+<p>
+If statement above is correct, this paragraph should have 
+border left style of UA-default (no left border?).  No specific CSS rules are applied.  However, the
+border left style property does apply to the p element.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+</p>
+<h3>
+This h3 heading has a border left style of dashed, but this <em>emphasized text
+</em> has a border left style of solid; the rules applied are:
+"h3 {border-left-style: dashed;}"
+"em {border-left-style: solid;}"
+So the border left style property applies to the h3 and em elements.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+</h3>
+<h4>
+This h4 heading has a border left style property of dotted (because of the
+rule "h4 {border-left-style: dotted;}", but these <i>italicized words</i>
+have a border left style of "none", because the border-left-style
+property does not inherit. 
+However, the border left style property does apply to the h4 and i elements.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+</h4>
+<blockquote>
+This blockquote element should have a UA-default border left style (no left border?).  The
+nonsensical rule "blockquote {border-left-style: 200%}" should be ignored,
+but the border-left-style property does apply to the blockquote element.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+</blockquote>
+<p>
+All other properties of this page should be UA-default.
+This is a paragraph, like the one above.  
+</p>
+
+</body>
+</html>

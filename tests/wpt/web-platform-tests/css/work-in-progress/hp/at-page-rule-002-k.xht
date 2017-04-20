@@ -1,0 +1,21 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: @page border keywords</title>
+  <link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#page-properties"/>
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#page-box-page-rule"/>
+  <meta name="flags" content="paged" />
+  <meta name="assert" content="A border declaration within the @page context applies to the page box."/>
+  <style type="text/css"><![CDATA[
+   @page  { 
+		border-color: aqua;
+		border-style: solid;
+		border-width: medium thick 0 thin;
+	}
+  ]]></style>
+ </head>
+ <body>
+  <div>When printed, this page must have an aqua border which is thin on the left, thicker on top and thickest on the right. No border should appear on the bottom.</div>
+ </body>
+</html>

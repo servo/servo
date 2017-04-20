@@ -1,0 +1,41 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Writing Modes Test: list and 'vertical-rl' - ordering direction of line boxes</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#writing-mode" title="3.1 Block Flow Direction: the writing-mode property" />
+  <link rel="match" href="block-flow-direction-001-ref.xht" />
+
+  <meta content="ahem" name="flags" />
+  <meta content="This test checks that line boxes of a block box in a 'vertical-rl' writing mode are laid out one after the other, leftwardedly, with the first beginning at the rightmost line of the block box; they are ordered from right to left meaning that the 1st line box is the rightmost one and then the 2nd line box is juxtaposed to its left-hand side, the 3rd block is juxtaposed to the 2nd line box on its left-hand side, etc..." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  body
+    {
+      color: yellow;
+      font: 20px/1 Ahem;
+    }
+
+  ul
+    {
+      background-color: blue;
+      border: blue solid 1em;
+      height: 7em; /* Each line box has an inline-size of 7em */
+      list-style: none outside none;
+      margin: 0em;
+      padding-top: 0em; /* overriding default padding-start: 40px in several browsers */
+      writing-mode: vertical-rl;
+    }
+  ]]></style>
+ </head>
+
+ <body>
+
+  <ul><li>A&nbsp; BBBB C&nbsp; D&nbsp; E F&nbsp; G&nbsp; H JJJJ&nbsp; K &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; L&nbsp; MMMM Q&nbsp; R&nbsp; S T&nbsp; U&nbsp; V WWWW&nbsp; X &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; YYYYYYY Z&nbsp; a&nbsp;&nbsp; b&nbsp; c&nbsp;&nbsp; ddddddd &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; eeee&nbsp;&nbsp; f&nbsp; g&nbsp;&nbsp; h&nbsp; j&nbsp;&nbsp; kkkkkkk</li></ul>
+
+ </body>
+</html>

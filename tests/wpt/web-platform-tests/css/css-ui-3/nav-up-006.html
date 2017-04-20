@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<title>CSS Basic User Interface Test: Directional Focus Navigation - elements floating in opposite to the writing direction for 'nav-up'</title>
+<link rel="author" title="Jorrit Vermeiren" href="mailto:jorritv@opera.com">
+<link rel="author" title="Daniel Glazman" href="mailto:d.glazman@partner.samsung.com">
+<link rel="help" href="http://www.w3.org/TR/css3-ui/#nav-dir">
+<meta name="flags" content="interact">
+<meta name="assert" content="Test checks that 'nav-up' works for elements floating to the right.">
+<style type="text/css">
+    div > a {
+        float: right;
+        margin-up: 1em;
+        margin-right: 1em;
+    }
+
+    div {
+        clear: right;
+    }
+
+    #parent {
+        nav-up: #finish;
+    }
+
+    #intermediate {
+        nav-up: #end;
+    }
+</style>
+<body>
+    <p>First, use directional navigation to navigate the focus to the "START" link below.</p>
+    <!-- In Opera 12.16, directional navigation may be done using Shift+<arrow key>.
+         In the SmartTV emulator, use the keypad in the GUI. -->
+    <p>Test passes if navigating up twice moves the focus to the "FINISH" link.</p>
+
+    <div id="parent">
+      <a href="">ignore 1</a>
+      <a href="" id="intermediate">ignore 3</a>
+      <a href="" id="end">FINISH</a>
+      <a href="">ignore 2</a>
+    </div>
+
+    <div>
+      <a href="">ignore 4</a>
+      <a href="">START</a>
+      <a href="">ignore 5</a>
+      <a href="">ignore 6</a>
+    </div>
+
+</body>

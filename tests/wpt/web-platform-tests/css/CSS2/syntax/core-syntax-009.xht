@@ -1,0 +1,28 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Syntactic White Space</title>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#tokenization"/>
+  <link rel="match" href="../reference/ref-this-text-should-be-green.xht"/>
+  <meta name="assert" content="Only the characters U+0020, U+0009, U+000A,
+    U+000D, and U+000C are considered white space."/>
+  <style type="text/css">
+    @import "support/core-syntax-009.css";
+    div&#x2003;p { color: red; }
+    div&#x200B;p { color: red; }
+    div&#x200F;p { color: red; }
+    div&#x3000;p { color: red; }
+    div&#x2028;p { color: red; }
+    div&#x2029;p { color: red; }
+    div&#x00A0;p { color: red; }
+    div&#xFEFF;p { color: red; }
+  </style>
+
+ </head>
+ <body>
+  <div>
+   <p>This text should be green.</p>
+  </div>
+ </body>
+</html>

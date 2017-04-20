@@ -1,0 +1,57 @@
+
+<HTML>
+
+<HEAD>
+<TITLE>Fourth Test of Section 2.5 of CSS1 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+P:first-line:first-letter { color: blue}
+H2:first-line { color: red}
+H3:first-letter {color: green}
+</STYLE>
+</HEAD>
+
+
+
+<BODY>
+
+<h1 >Testing Fourth Testable Statement of Section 2.5 of CSS1 Spec</h1>
+
+
+
+
+<ul>
+<li >
+4. Only one pseudo-element can be specified per selector.
+</ul>
+
+
+<h2>PASS CRITERIA:
+</h2>
+<p>
+If statement #4 above is passed, then:
+<p>
+The first line and first letter of this paragraph should be UA-default.  This is
+because the application of "P:first-line:first-letter {color:blue}" involves
+two pseudo-elements per selector, which is not allowed.  All other properties
+of this paragraph should also be UA-default.
+
+<h2>
+<h2:first-line>
+The first line of this h2 heading should be red; 
+</h2:first-line>
+the remaining lines should be UA-default (the rule applied is 
+"h2:first-line {color: red}", which has one pseudo-element per selector)
+</h2>
+<h3>
+<h3:first-letter>
+T
+</h3:first-letter>
+he first letter of this h3 heading should be green; the remaining letters
+should be UA-default (the rule applied is "h3:first-letter {color: green}"
+which has one pseudo-element per selector)
+</h3>
+Your browser should render this page similarly to this<a href="a254.gif">
+reference image</a> or to this<a href="b254.gif">reference image</a>.
+</BODY>
+</HTML>

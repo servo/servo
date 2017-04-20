@@ -130,6 +130,21 @@ def test_console():
             assert errors == [("PARSE-FAILED", "Unable to parse file", filename, 1)]
 
 
+def test_setTimeout():
+    error_map = check_with_files(b"<script>setTimeout(() => 1, 10)</script>")
+
+    for (filename, (errors, kind)) in error_map.items():
+        check_errors(errors)
+
+        if kind == "python":
+            assert errors == [("PARSE-FAILED", "Unable to parse file", filename, 1)]
+        else:
+            assert errors == [('SET TIMEOUT',
+                               'setTimeout used; step_timeout should typically be used instead',
+                               filename,
+                               1)]
+
+
 def test_meta_timeout():
     code = b"""
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -415,6 +430,54 @@ def test_css_support_file(filename, css_mode, expect_error):
         assert errors == []
 
 
+def test_css_missing_file_css_mode():
+    code = b"""\
+<html xmlns="http://www.w3.org/1999/xhtml">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</html>
+"""
+    errors = check_file_contents("", "foo/bar.html", six.BytesIO(code), True)
+    check_errors(errors)
+
+    assert errors == [
+        ('MISSING-LINK',
+         'Testcase file must have a link to a spec',
+         "foo/bar.html",
+         None),
+    ]
+
+
+def test_css_missing_file_in_css():
+    code = b"""\
+<html xmlns="http://www.w3.org/1999/xhtml">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</html>
+"""
+    errors = check_file_contents("", "css/foo/bar.html", six.BytesIO(code), False)
+    check_errors(errors)
+
+    assert errors == [
+        ('MISSING-LINK',
+         'Testcase file must have a link to a spec',
+         "css/foo/bar.html",
+         None),
+    ]
+
+
+def test_css_missing_file_manual():
+    errors = check_file_contents("", "css/foo/bar-manual.html", six.BytesIO(b""), False)
+    check_errors(errors)
+
+    assert errors == [
+        ('MISSING-LINK',
+         'Testcase file must have a link to a spec',
+         "css/foo/bar-manual.html",
+         None),
+    ]
+
+
 @pytest.mark.parametrize("filename", [
     "foo.worker.js",
     "foo.any.js",
@@ -424,6 +487,7 @@ def test_css_support_file(filename, css_mode, expect_error):
     (b"""// META: timeout=long\n""", None),
     (b"""//  META: timeout=long\n""", None),
     (b"""// META: script=foo.js\n""", None),
+    (b"""# META:\n""", None),
     (b"""\n// META: timeout=long\n""", (2, "STRAY-METADATA")),
     (b""" // META: timeout=long\n""", (1, "INDENTED-METADATA")),
     (b"""// META: timeout=long\n// META: timeout=long\n""", None),
@@ -435,6 +499,45 @@ def test_css_support_file(filename, css_mode, expect_error):
     (b"""// META: timeout=bar\n""", (1, "UNKNOWN-TIMEOUT-METADATA")),
 ])
 def test_script_metadata(filename, input, error):
+    errors = check_file_contents("", filename, six.BytesIO(input), False)
+    check_errors(errors)
+
+    if error is not None:
+        line, kind = error
+        messages = {
+            "STRAY-METADATA": "Metadata comments should start the file",
+            "INDENTED-METADATA": "Metadata comments should start the line",
+            "BROKEN-METADATA": "Metadata comment is not formatted correctly",
+            "UNKNOWN-TIMEOUT-METADATA": "Unexpected value for timeout metadata",
+            "UNKNOWN-METADATA": "Unexpected kind of metadata",
+        }
+        assert errors == [
+            (kind,
+             messages[kind],
+             filename,
+             line),
+        ]
+    else:
+        assert errors == []
+
+
+@pytest.mark.parametrize("input,error", [
+    (b"""#META: timeout=long\n""", None),
+    (b"""# META: timeout=long\n""", None),
+    (b"""#  META: timeout=long\n""", None),
+    (b""""// META:"\n""", None),
+    (b"""\n# META: timeout=long\n""", (2, "STRAY-METADATA")),
+    (b""" # META: timeout=long\n""", (1, "INDENTED-METADATA")),
+    (b"""# META: timeout=long\n# META: timeout=long\n""", None),
+    (b"""# META: timeout=long\n\n# META: timeout=long\n""", (3, "STRAY-METADATA")),
+    (b"""# META: timeout=long\n# Start of the test\n# META: timeout=long\n""", (3, "STRAY-METADATA")),
+    (b"""# META:\n""", (1, "BROKEN-METADATA")),
+    (b"""# META: foobar\n""", (1, "BROKEN-METADATA")),
+    (b"""# META: foo=bar\n""", (1, "UNKNOWN-METADATA")),
+    (b"""# META: timeout=bar\n""", (1, "UNKNOWN-TIMEOUT-METADATA")),
+])
+def test_python_metadata(input, error):
+    filename = "test.py"
     errors = check_file_contents("", filename, six.BytesIO(input), False)
     check_errors(errors)
 

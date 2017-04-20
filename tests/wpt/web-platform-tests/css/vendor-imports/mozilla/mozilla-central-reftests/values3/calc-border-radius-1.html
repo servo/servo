@@ -1,0 +1,33 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>CSS Test: test for border-radius: calc()</title>
+  <link rel="author" title="L. David Baron" href="https://dbaron.org/">
+  <link rel="help" href="http://www.w3.org/TR/css3-values/#calc-notation">
+  <link rel="match" href="calc-border-radius-1-ref.html">
+  <meta name="flags" content="">
+<style type="text/css">
+
+p {
+  /* We use powers of two here to avoid floating-point issues.
+     See bug 590181. */
+
+  height: 256px;
+  width: 512px;
+  background: blue;
+  border-radius: calc((1/32 * 100%) + 5px)
+                 calc((1/64 * 100%) - 2px)
+                 calc(10px + (1/256 * 100%))
+                 calc((1/16 * 100%) - 3px) /
+                 calc((1/32 * 100%) - (1px + (1/128 * 100%)))
+                 calc(1/16 * 100%)
+                 calc(10px)
+                 3px;
+}
+
+</style>
+</head>
+<body>
+<p></p>
+</body>
+</html>

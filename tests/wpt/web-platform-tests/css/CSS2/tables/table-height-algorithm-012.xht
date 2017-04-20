@@ -1,0 +1,40 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Vertical-align set to 'baseline' with a spanning cell</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#height-layout" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="A spanning cell with Vertical-align set to 'baseline' aligns the cell's content baseline (which is the bottom of the first line of text or in-flow content) with the baseline of the first of the rows it spans." />
+        <style type="text/css">
+            td
+            {
+                vertical-align: baseline;
+            }
+            #small
+            {
+                font-size: small;
+            }
+            #large
+            {
+                font-size: large;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the bottom of "Filler Text" below is aligned.</p>
+        <table>
+            <tr>
+                <td>
+                    <div id="small">Filler Text</div>
+                </td>
+                <td rowspan="2">
+                    <div id="large">Filler Text</div>
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+            </tr>
+        </table>
+    </body>
+</html>

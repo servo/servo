@@ -1,0 +1,45 @@
+
+<HTML>
+<HEAD>
+<TITLE>Second Test of Section 3.1 of CSS1 Spec</TITLE>
+
+
+<STYLE TYPE="text/css">
+p {color: red !important;
+   font-style: oblique !important;}
+P { color: blue }
+P { font-style: italic }
+
+
+</STYLE>
+</HEAD>
+
+
+
+<BODY>
+
+<h1 >Testing Statement #2 Below of Section 3.1 of CSS1 Spec</h1>
+
+
+
+<ul>
+<li >
+2. A reader rule with an important declaration will override an author rule with
+a normal declaration.
+</ul>
+
+
+
+
+<h2 >PASS CRITERIA:
+</h2>
+<p>
+If statement #1 above is passed, this paragraph should be red oblique.
+The first rule applied here is "p {color: red ! important; font-style: 
+oblique ! important".  This rule overrides the second rule specified above
+(p {color: blue; font-style: italic}) because of the "! important"
+declaration.  All other properties of this paragraph should be UA-default.
+
+To move directly to the next test, click<a href="31-3.htm"> here</a>
+</BODY>
+</HTML>

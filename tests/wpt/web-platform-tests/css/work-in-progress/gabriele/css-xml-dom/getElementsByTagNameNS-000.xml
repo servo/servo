@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:p="http://www.ns.com/ns/p">
+<head>
+<title>GetElementsByTagName and namespaces 1</title>
+<meta http-equiv="Content-Type" content="text/xml; charset=utf-8" />
+<style type="text/css" media="screen">
+
+p:first-child {
+	background: lime;
+}
+
+</style>
+
+<script type="text/javascript">
+<![CDATA[
+
+window.onload = function () {
+	var p = document.getElementsByTagName("p");
+	for (var i=0; i<p.length; i++) {
+		p[i].style.background = "lime";
+	}
+};
+]]>
+
+</script>
+
+</head>
+
+<body>
+
+<p>You should see only this block with a bright green background.</p>
+<p:p>Test</p:p>
+
+</body>
+</html>

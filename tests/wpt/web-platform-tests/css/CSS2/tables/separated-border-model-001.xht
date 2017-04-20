@@ -1,0 +1,40 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Distance between the table border and a bordering cell</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#separated-borders" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The distance between table border and bordering cell equals table padding + cell's border spacing." />
+        <style type="text/css">
+            table
+            {
+                border-left: 10px solid black;
+                border-spacing: 50px 0;
+                padding-left: 50px;
+            }
+            td
+            {
+                background: black;
+                height: 1em;
+                padding: 0;
+                width: 10px;
+            }
+            div
+            {
+                background: blue;
+                height: 1em;
+                width: 120px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the blue box spans from the start of the first black box to the end of the second black box.</p>
+        <table>
+            <tr>
+                <td></td>
+            </tr>
+        </table>
+        <div></div>
+    </body>
+</html>

@@ -1,0 +1,38 @@
+<!doctype html>
+<title>VTTCue.region</title>
+<link rel="help" href="https://w3c.github.io/webvtt/#dom-vttcue-region">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+test(function(){
+    var video = document.createElement('video');
+    document.body.appendChild(video);
+
+    var cue = new VTTCue(0, 1, 'text');
+    assert_true('region' in cue, 'region is not supported');
+    assert_equals(cue.region, null);
+
+    var track = document.createElement('track');
+    var t = track.track;
+    t.addCue(cue);
+
+    assert_equals(cue.region, null);
+
+    video.appendChild(track);
+    assert_equals(cue.region, null);
+
+    t.mode = 'showing';
+    assert_equals(cue.region, null);
+
+    var region = new VTTRegion();
+    cue.region = region;
+    assert_equals(cue.region, region);
+
+    cue.region = 'foo';
+    assert_equals(cue.region, region);
+
+    cue.region = null;
+    assert_equals(cue.region, null);
+}, document.title+', script-created cue');
+</script>

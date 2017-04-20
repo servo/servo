@@ -136,7 +136,6 @@ interface HTMLElement : Element {
   [CEReactions] attribute DOMString accessKey;
   readonly attribute DOMString accessKeyLabel;
   [CEReactions] attribute boolean draggable;
-  [CEReactions, SameObject, PutForwards=value] readonly attribute DOMTokenList dropzone;
   [CEReactions] attribute HTMLMenuElement? contextMenu;
   [CEReactions] attribute boolean spellcheck;
   void forceSpellCheck();
@@ -1790,7 +1789,7 @@ interface MessageEvent : Event {
   readonly attribute (WindowProxy or MessagePort)? source;
   readonly attribute FrozenArray<MessagePort> ports;
 
-  void initMessageEvent(DOMString type, boolean bubbles, boolean cancelable, any data, DOMString origin, DOMString lastEventId, (WindowProxy or MessagePort) source, sequence<MessagePort> ports);
+  void initMessageEvent(DOMString type, optional boolean bubbles = false, optional boolean cancelable = false, optional any data = null, optional DOMString origin = "", optional DOMString lastEventId = "", optional (WindowProxy or MessagePort)? source = null, optional sequence<MessagePort> ports = []);
 };
 
 dictionary MessageEventInit : EventInit {

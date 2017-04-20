@@ -1,0 +1,15 @@
+<csstest def="NEGATED contains attribute selector with empty value" module="W3C Selectors" modulename="css3-modsel" number="184f" rev="1.0" date="30-october-2008" xmlns="http://www.example.org/css3tests">
+
+<author>Lachlan Hunt</author>
+
+<cssrules>
+p { color: red; }
+p:not([class*=""]) { color: lime; }
+</cssrules>
+
+<code>
+<p xmlns="http://www.w3.org/1999/xhtml" class="">This text should be green.</p>
+<p xmlns="http://www.w3.org/1999/xhtml">This text should be green.</p>
+</code>
+
+</csstest>

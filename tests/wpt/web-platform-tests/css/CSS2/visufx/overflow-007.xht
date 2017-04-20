@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: margin and overflow</title>
+  <link rel="author" title="Eira Monstad" href="mailto:eiram@opera.com"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/overflow/box/003.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visufx.html#overflow" />
+  <meta name="flags" content="interact"/>
+  <style type="text/css">
+   div.outer { width: 10em; height: 5em; overflow: scroll;
+               background: navy; border: 1px solid blue; }
+   div.inner { margin: 3em 0 3em 0; background: white; }
+  </style>
+ </head>
+ <body>
+  <p>Scroll to see the instructions:</p>
+  <div class="outer">
+   <div class="inner">
+    You should see the same amount of blue above and below this text.
+   </div>
+  </div>
+ </body>
+</html>

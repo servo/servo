@@ -1,0 +1,40 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Aligning Table Data (column data is aligned)</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#tables-intro" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Alignment of cell data in a column is achieved by specifying alignment properties on the cells themselves, and not on the column element directly." />
+        <style type="text/css">
+            col
+            {
+                text-align: center;
+                vertical-align: middle;
+            }
+            td
+            {
+                border: solid;
+                height: 10em;
+                text-align: left;
+                vertical-align: top;
+                width: 10em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the "Filler Text" is in the top-left corner of each of the boxes below.</p>
+        <table>
+            <col />
+            <tr>
+                <td>Filler Text</td>
+            </tr>
+            <tr>
+                <td>Filler Text</td>
+            </tr>
+            <tr>
+                <td>Filler Text</td>
+            </tr>
+        </table>
+    </body>
+ </html>

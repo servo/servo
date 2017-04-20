@@ -5,46 +5,67 @@
 <script src=/resources/testharnessreport.js></script>
 <span class="   a  a b "></span>
 <script>
-  test(function() {
+  test(() => {
     var list = document.querySelector("span").classList;
     assert_array_equals([...list], ["a", "b"]);
+  }, "classList");
 
-    var keys = list.keys();
-    assert_false(keys instanceof Array);
+  test(() => {
+    var keys = document.querySelector("span").classList.keys();
+    assert_false(keys instanceof Array, "must not be Array");
     keys = [...keys];
     assert_array_equals(keys, [0, 1]);
+  }, "classList.keys");
 
-    var values = list.values();
-    assert_false(values instanceof Array);
+  test(() => {
+    var values = document.querySelector("span").classList.values();
+    assert_false(values instanceof Array, "must not be Array");
     values = [...values];
     assert_array_equals(values, ["a", "b"]);
+  }, "classList.values");
 
-    var entries = list.entries();
-    assert_false(entries instanceof Array);
+  test(() => {
+    var entries = document.querySelector("span").classList.entries();
+    assert_false(entries instanceof Array, "must not be Array");
     entries = [...entries];
-    assert_equals(entries.length, keys.length);
-    assert_equals(entries.length, values.length);
+    var keys = [...document.querySelector("span").classList.keys()];
+    var values = [...document.querySelector("span").classList.values()];
+    assert_equals(entries.length, keys.length, "entries.length == keys.length");
+    assert_equals(entries.length, values.length,
+                  "entries.length == values.length");
     for (var i = 0; i < entries.length; ++i) {
-      assert_array_equals(entries[i], [keys[i], values[i]]);
+      assert_array_equals(entries[i], [keys[i], values[i]],
+                          "entries[" + i + "]");
     }
+  }, "classList.entries");
+
+  test(() => {
+    var list = document.querySelector("span").classList;
+    var values = [...list.values()];
+    var keys = [...list.keys()];
+    var entries = [...list.entries()];
 
     var cur = 0;
     var thisObj = {};
     list.forEach(function(value, key, listObj) {
-      assert_equals(listObj, list);
-      assert_equals(this, thisObj);
-      assert_equals(value, values[cur]);
-      assert_equals(key, keys[cur]);
+      assert_equals(listObj, list, "Entry " + cur + " listObj");
+      assert_equals(this, thisObj, "Entry " + cur + " this");
+      assert_equals(value, values[cur], "Entry " + cur + " value");
+      assert_equals(key, keys[cur], "Entry " + cur + " key");
       cur++;
     }, thisObj);
-    assert_equals(cur, entries.length);
+    assert_equals(cur, entries.length, "length");
+  }, "classList.forEach");
 
-    assert_equals(list[Symbol.iterator], Array.prototype[Symbol.iterator]);
-    assert_equals(list.keys, Array.prototype.keys);
+  test(() => {
+    var list = document.querySelector("span").classList;
+    assert_equals(list[Symbol.iterator], Array.prototype[Symbol.iterator],
+                  "[Symbol.iterator]");
+    assert_equals(list.keys, Array.prototype.keys, ".keys");
     if (Array.prototype.values) {
-      assert_equals(list.values, Array.prototype.values);
+      assert_equals(list.values, Array.prototype.values, ".values");
     }
-    assert_equals(list.entries, Array.prototype.entries);
-    assert_equals(list.forEach, Array.prototype.forEach);
-  });
+    assert_equals(list.entries, Array.prototype.entries, ".entries");
+    assert_equals(list.forEach, Array.prototype.forEach, ".forEach");
+  }, "classList inheritance from Array.prototype");
 </script>

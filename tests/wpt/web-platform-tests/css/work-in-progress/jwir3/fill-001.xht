@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>multicolumn | column-gap</title>
+<link rel="author" title="Opera Software ASA" href="http://www.opera.com/"/>
+<link rel="help" href="http://www.w3.org/TR/css3-multicol/#filling-columns"/>
+<link rel="match" href="fill-ref.xht"/>
+<meta name="flags" content="ahem"/>
+<style type="text/css"><![CDATA[
+div {
+	font-family: ahem;
+	font-size: 1em;
+	line-height: 1em;
+	color: yellow;
+	background-color: yellow;
+	background-image: url(red.png);
+	background-repeat: no-repeat;
+	background-position: 24em 3em;
+	height: 5em;
+	width: 30em;
+	overflow: hidden;
+	orphans: 1;
+	widows: 1;
+
+	column-count: 5;
+	column-fill: balance;
+	column-gap: 0;
+}
+]]></style>
+</head>
+
+<body>
+
+<div>
+	one two three four
+	five six seven eight
+	nine ten eleven twelve
+	thirtn fourtn fiftn sixtn
+	seventn eightn ninetn twenty
+	hundred thousand million
+</div>
+
+</body>
+</html>

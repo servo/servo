@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+<head>
+   <title>Reference rendering - no red, bold italic small-caps Ahem</title>
+   <link rel="author" title="Opera Software" href="https://opera.com">
+   <style type="text/css">
+      #outer {
+         position: relative;
+      }
+      #inner1, #inner2 {
+         position: absolute;
+         top: 0px;
+         left: 0px;
+         font-family: "Ahem";
+         font-size: 96px;
+         font-style: italic;
+         font-variant: small-caps;
+         font-weight: bold;
+      }
+      #inner1 {
+         color: red;
+      }
+      #inner2 {
+         color: black;
+      }
+   </style>
+</head>
+<body>
+   <p>Test passes if there is no red visible on the page except for
+   antialiasing.</p>
+   <div id="outer">
+      <div id="inner1">a</div>
+      <div id="inner2">b</div>
+   </div>
+</body>
+</html>

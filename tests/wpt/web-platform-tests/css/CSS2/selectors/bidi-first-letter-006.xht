@@ -1,0 +1,21 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Test: :first-letter in the middle of the line because of bidi reordering</title>
+    <link rel="author" title="Eira Monstad, Opera Software ASA" href="mailto:public-testsuites@opera.com"/>
+    <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#first-letter"/>
+    <meta name="flags" content=""/>
+    <meta name="assert" content=":first-letter not at the start of the line because of bidi reordering may not be applied, but if it is applied it should be applied to the logical first letter and no other letter"/>
+    <style type="text/css"><![CDATA[
+    .test {font-size: 2em;}
+    .test:first-letter {color:blue;}
+    ]]></style>
+  </head>
+  <body>
+
+    <p>If anything below is blue, it should be the &#x05D0;. No blue at all is also pass. Any other blue letter is fail.</p>
+
+    <p class="test">&#x05D0;&#x05D1;&#x05D1; &#x05D1;&#x05D1; &#x05D1;&#x05D1; xxxx xxx</p>
+
+  </body>
+</html>

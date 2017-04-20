@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!--
+     Reference case, using a table with fixed-size cells instead of a
+     flex container.
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <link rel="stylesheet" type="text/css" href="ahem.css" />
+    <style>
+      table {
+        font: 10px Ahem;
+        height: 100px;
+        width: 200px;
+      }
+      td { vertical-align: top; }
+      td.a {
+        width: 30px;
+        background: lightgreen;
+      }
+      td.b {
+        width: 50px;
+        background: yellow;
+      }
+      td.inflex {
+        width: 20px;
+        background: gray;
+      }
+    </style>
+  </head>
+  <body>
+    <table cellspacing="0" cellpadding="0">
+      <tr>
+        <td class="a"/>
+        <td>text</td>
+        <td class="b"/>
+        <td><i>italic</i></td>
+        <td class="inflex"></td>
+      </tr>
+    </table>
+  </body>
+</html>

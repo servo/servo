@@ -116,4 +116,19 @@ async_test(function() {
 
   this.done()
 }, "Calling initEvent during propagation.")
+
+test(function() {
+  var e = document.createEvent("Event")
+  assert_throws(new TypeError(), function() {
+    e.initEvent()
+  })
+}, "First parameter to initEvent should be mandatory.")
+
+test(function() {
+  var e = document.createEvent("Event")
+  e.initEvent("type")
+  assert_equals(e.type, "type", "type")
+  assert_false(e.bubbles, "bubbles")
+  assert_false(e.cancelable, "cancelable")
+}, "Tests initEvent's default parameter values.")
 </script>

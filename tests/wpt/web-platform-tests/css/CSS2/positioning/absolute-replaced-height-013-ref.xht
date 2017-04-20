@@ -1,0 +1,38 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  div
+  {
+  border-top: black solid medium;
+  margin-bottom: 96px;
+  }
+
+  div + div {border: none 0px;}
+
+  img
+  {
+  height: 96px;
+  width: 200px;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if the blue and orange rectangles are next to each other, have the same height and are not touching the black line.</p>
+
+  <div></div>
+
+  <div><img src="support/blue15x15.png" alt="Image download support must be enabled" /><img src="support/swatch-orange.png" alt="Image download support must be enabled" /></div>
+
+ </body>
+</html>

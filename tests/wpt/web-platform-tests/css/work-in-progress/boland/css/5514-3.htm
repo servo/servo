@@ -1,0 +1,71 @@
+
+<html>
+
+<title>Third Test of Section 5.5.14 of CSS1 Spec</title>
+
+<style type="text/css">
+p {border-left-width: medium;
+   border-style: solid;
+   font-size: 20pt;}
+h3 {border-left-width: medium;
+    border-style: solid;
+    font-size: 10pt;}
+h4 {border-style: solid;
+    border-left-width: -5px;}
+</style>
+</head>
+
+
+
+<body>
+
+
+
+
+<h1 >Testing Statement #3 Below of Section 5.5.14 of CSS1 Spec</h1>
+
+
+
+
+
+
+<ul>
+<li>
+3. The "border-left-width" property sets the width of an element's left border.
+Otherwise it is equivalent to the border-top-width.
+</ul>
+
+
+
+
+
+<h2>
+PASS CRITERIA:
+</h2>
+Note: border-style of solid applies below.
+
+<p >
+If statement #3 above is passed, this paragraph should have a left border
+width of medium and a font size of 20pt.
+The rule applied is "p {border-left-width: medium;
+                        font-size: 20pt}".
+<h3>
+This h3 heading should have a border left width of medium and a font size of
+10pt.  The border left width should be the same as the paragraph above even
+though the font size is different.
+The rule applied is "h3 {border-left-width: medium;
+                         font-size: 10pt;}".
+</h3>
+<h4>
+This h4 heading should have a UA-default border left width.
+The rule stated is "h4 {border-left-width: -5px}", which is ignored since
+the value is negative.
+</h4>
+
+
+
+All other properties of this page should be UA-default.
+
+
+</body>
+</html>

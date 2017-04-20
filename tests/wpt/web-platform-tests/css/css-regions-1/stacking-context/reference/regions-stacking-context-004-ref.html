@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Reftest Reference</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<style>
+		.left,
+		.center,
+		.right {
+			position: relative;
+			width: 100px;
+			height: 100px;
+		}
+		.left {
+			top: 0;
+			left: 0;
+			background-color: lightgreen;
+		}
+		.center {
+			top: -75px;
+			left: 25px;
+			background-color: lightblue;
+		}
+		.right {
+			top: -150px;
+			left: 50px;
+			background-color: yellow;
+		}
+
+		#region {
+			width: 150px;
+			height: 150px;
+			/* the properties below are needed to force the region in creating a stacking context */
+			position: relative;
+			z-index: -1;
+		}
+
+		#dummy {
+			background-color: purple;
+			width: 100px;
+			height: 100px;
+			margin-top: -75px;
+			margin-left: 75px;
+		}
+		</style>
+	</head>
+	<body>
+		<ol>
+			<li>You should see no red.</li>
+			<li>You should see four colored overlapping squares, from back to front: a purple square, a green square, a blue square and a yellow square.</li>
+		</ol>
+
+		<div id="region">
+			<div class="left"></div>
+			<div class="center"></div>
+			<div class="right"></div>
+		</div>
+		<div id="dummy"></div>
+	</body>
+</html>

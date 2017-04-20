@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<html class="reftest-wait">
 <meta charset="utf-8">
 <link rel=match href=drawimage_html_image_10_ref.html>
 <style>
@@ -31,6 +30,5 @@ sourceImg.onload = function() {
   // as if the destination was an infinite canvas
   // whose rendering was clipped to the dimensions of the scratch bitmap.
   destCtx.drawImage(sourceImg, 0, 0, 512, 512, 0, 0, 256, 256);
-  document.documentElement.classList.remove('reftest-wait');
 }
 </script>

@@ -1,0 +1,75 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html><head>
+    <title>CSS 2.1 Test Suite: z-index</title>
+    <link href="mailto:robert@ocallahan.org" rel="author" title="Robert O'Callahan" />
+    <link href="http://mozilla.com/" rel="author" title="Mozilla Corporation" />
+    <link href="http://www.w3.org/TR/CSS21/visuren.html#z-index" rel="help" />
+    <link rel="match" href="z-index-1-ref.xht"/>
+    <meta content="" name="flags" />
+<style>
+.container {
+  position:absolute;
+  width:400px;
+  height:100px;
+  font-size:0;
+  background-color:yellow;
+  line-height:0;
+  z-index:0;
+}
+.container &gt; div {
+  height:100px;
+  margin-bottom:-100px;
+}
+.negative {
+  width:380px;
+  background-color:blue;
+  position:relative;
+  z-index:-1;
+}
+.block {
+  width:360px;
+  background-color:purple;
+}
+.float {
+  float:left;
+  width:340px;
+  margin-right:-340px;
+  background-color:green;
+}
+.inline {
+  width:320px;
+  display:inline-block;
+  background-color:pink;
+}
+#outline {
+  width:300px;
+  outline:20px solid gray;
+  outline-offset:-20px;
+}
+.positioned {
+  width:280px;
+  background-color:magenta;
+  position:relative;
+}
+.positive {
+  width:260px;
+  background-color:orange;
+  position:relative;
+  z-index:1;
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="positive"></div>
+  <div class="positioned"></div>
+  <div id="outline"></div>
+  <div class="inline"></div>
+  <div class="float"></div>
+
+  <div class="block"></div>
+  <div class="negative"></div>
+</div>
+
+
+</body></html>

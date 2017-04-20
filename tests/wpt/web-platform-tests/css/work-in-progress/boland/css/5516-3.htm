@@ -1,0 +1,74 @@
+
+<html>
+
+<title>FIrst Test of Section 5.5.16 of CSS1 Spec</title>
+
+<style type="text/css">
+p {border-color: red;
+  border-style: dashed;}
+h3 {border-color: red blue;
+    border-style: dashed;}
+h4 {border-color: red blue green;
+    border-style: dashed;}
+blockquote {border-color: red blue green yellow;
+            border-style: dashed;}
+</style>
+</head>
+
+
+
+<body>
+
+
+
+
+<h1 >Testing Statement #3 Below of Section 5.5.16 of CSS1 Spec</h1>
+
+
+
+
+
+
+<ul>
+<li>
+3. The "border-color" property sets the color of the four borders.  "border-color'
+can have from one to four values, and the values are set on the different sides
+are for "border-width' above.
+</ul>
+
+
+
+
+
+<h2>
+PASS CRITERIA:
+</h2>
+Note: border-style of dashed applies here.
+<p >
+If statement #3 above is passed, this paragraph should have a border
+color of red all around.
+The rule applied is "p {border-color: red}".
+<h3>
+This h3 heading should have a border color top and bottom of red, and
+right and left of blue.
+The rule applied is "h3 {border-color: red blue}".
+</h3>
+<h4>
+This h4 heading should have a top border color of red, a right and left
+border color of blue, and a bottom border color of green.
+The rule applied is "h4 {border-color: red green blue}".
+</h4>
+<blockquote>
+This blockquote element should have a top border color of red, a right
+border color of blue, a bottom border color of green, and a left border
+color of yellow.
+The rule applied is 'blockquote {border-color: red green blue yellow}".
+</blockquote>
+
+
+
+All other properties of this page should be UA-defualt.
+
+
+</body>
+</html>

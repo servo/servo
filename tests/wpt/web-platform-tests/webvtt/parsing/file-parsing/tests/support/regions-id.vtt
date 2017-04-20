@@ -1,0 +1,34 @@
+WEBVTT
+
+NOTE No API for accessing region ids, so using lines to uniquely identify regions
+
+REGION
+id:foo
+id:bar
+lines:1
+
+REGION
+id:bar id:foo
+lines:2
+
+REGION
+id:id
+id: foo
+id :bar
+lines:3
+
+REGION
+id:
+lines:4
+
+00:00:00.000 --> 00:00:01.000 region:foo
+valid
+
+00:00:00.000 --> 00:00:01.000 region:bar
+valid
+
+00:00:00.000 --> 00:00:01.000 region:id
+valid
+
+00:00:00.000 --> 00:00:01.000 region:
+valid

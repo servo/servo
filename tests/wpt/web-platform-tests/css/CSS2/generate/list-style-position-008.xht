@@ -1,0 +1,35 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+  <title>CSS Test: Marker box position (outside principal box) - floated-left child</title>
+  <link rel="author" title="James Hopkins" href="http://idreamincode.co.uk/css21testsuite"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#list-style"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#block-boxes"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats"/>
+  <meta name="flags" content=""/>
+  <meta name="assert" content="A floated element (as a child of the principal box) should not affect the horizontal position of the marker box (positioned outside principal box) in relation to the principal box's content"/>
+  <style type="text/css">
+  #test{
+  border-top:3px solid black;
+  display:list-item;
+  font-size:85px;
+  list-style-position:outside;
+  margin:100px;
+  }
+  #test div{
+  background:yellow;
+  float:left;
+  height:100px;
+  width:100px;
+  }
+  </style>
+ </head>
+
+ <body>
+  <p>To pass, a bullet (filled-in circle) <strong>must</strong> appear to the left of a yellow square, and the bullet probably <strong>should not</strong> appear above the black line.</p>
+  <div id="test">
+   <div></div>
+  </div>
+ </body>
+</html>

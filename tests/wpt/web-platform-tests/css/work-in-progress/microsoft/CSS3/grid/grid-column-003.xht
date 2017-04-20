@@ -1,0 +1,38 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD//XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Grid-column with a value of '1'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="https://drafts.csswg.org/css3-grid-align/#grid-declaration" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The 'grid-column' with a value of '1' inserts the grid-item in the first column and overlaps non-grid-item elements within the same grid parent." />
+        <style type="text/css">
+            #test
+            {
+                color: green;
+                display: grid;
+                font: 20px/1 ahem;
+                height: 3em;
+                grid-columns: auto 1fr;
+                grid-rows: auto 1fr;
+            }
+            #griditem
+            {
+                color: green;
+                grid-column: 1;
+                grid-row: 1;
+            }
+            span
+            {
+                color: red;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page.</p>
+        <div id="test">
+            <div><span>XX</span>X<span>XX</span></div>
+            <div id="griditem">XX XX</div>
+        </div>
+    </body>
+</html>

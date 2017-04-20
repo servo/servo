@@ -1,0 +1,35 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: :after generated content - display list-item</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#before-after-content" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#display-prop" />
+  <link rel="help" href="http://www.w3.org/TR/html4/struct/lists.html#h-10.3.1" />
+  <link rel="match" href="after-content-display-003-ref.xht" />
+  <meta content="" name="flags" />
+  <meta content="Generated content can have their own display value explicitly set in which case they behave as if they were real elements inserted just inside their associated element." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  div:after
+  {
+  content: "Filler text";
+  display: list-item;
+  margin-left: 1em;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there are <strong>2 lines of "Filler text"</strong>. The 2nd line should be preceded with a bullet list-marker (a "disc" as a small filled-in circle).</p>
+
+  <div>Filler text</div>
+
+ </body>
+</html>

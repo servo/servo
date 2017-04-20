@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Transforms Test: SVG presentation attribute, scaleX on group, rotate with three arguments on child</title>
+    <link rel="author" title="David Alcala" href="mailto:dalcala@adobe.com">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#svg-transform">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#svg-transform-functions">
+    <link rel="match" href="reference/svg-green-square-ref.html">
+    <meta name="flags" content="svg">
+    <meta name="assert" content="Transforms on a parent element should be pre-multiplied to transforms on a child element.  The group of elements should be scaled horizontally.  Additionally, the child rect should be rotated after the transform origin is translated.">
+    <style type="text/css">
+    svg {
+        width: 200px;
+        height: 200px;
+    }
+    </style>
+</head>
+<body>
+    <p>The test passes if there is a green square and no red.</p>
+    <svg>
+        <rect x="41" y="41" width="78" height="78" fill="red"/>
+        <g transform="scaleX(2)">
+          <rect x="40" y="-20" width="80" height="40" fill="green" transform="rotate(90deg,20px,20px)"/>
+        </g>
+    </svg>
+</body>
+</html>

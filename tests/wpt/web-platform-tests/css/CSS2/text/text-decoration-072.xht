@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+  <title>CSS Test: 'text-decoration' - inheritance exception 2</title>
+  <link rel="author" title="James Hopkins" href="http://idreamincode.co.uk/css21testsuite"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#lining-striking-props"/>
+  <meta name="flags" content=""/>
+  <meta name="assert" content="'text-decoration' values must not be propagated to absolutely-positioned descendants"/>
+  <style type="text/css">
+  #test{
+  	font-size:80px;
+  	text-decoration:line-through;
+  }
+  span{
+  	position:absolute;
+  }
+  </style>
+ </head>
+
+ <body>
+  <p>To pass, there <strong>must not</strong> be a line through the text below.</p>
+  <div id="test">
+   <span>text</span>
+  </div>
+ </body>
+</html>

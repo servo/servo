@@ -1,0 +1,16 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: CSS Parsing: Escaped keywords</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/quotes/001.xml" type="application/xhtml+xml"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#rule-sets" />
+  <link rel="match" href="../reference/ref-this-text-should-be-green.xht"/>
+  <style type="text/css">
+   p { color: green; color: \r\e\d; } /* '\r\e\d' is 'r^N^M', which isn't valid */
+  </style>
+ </head>
+ <body>
+  <p>This text should be green.</p>
+ </body>
+</html>

@@ -1,0 +1,46 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  body
+  {
+  background-color: navy;
+  border: blue solid;
+  color: white;
+  margin: 1em 5%;
+  padding: 1em;
+  }
+
+  div
+  {
+  background: green url("support/square-purple.png") no-repeat center;
+  border: lime solid;
+  margin: 1em 30% 1em 5%;
+  padding: 1em;
+  }
+
+  div > div
+  {
+  border: none;
+  margin: 1em 5%;
+  padding: 1em;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <div>
+    <div>In the middle of this green box with the bright green border, there should be a purple tile.</div>
+  </div>
+
+ </body>
+</html>

@@ -1,0 +1,23 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<htmL>
+ <head>
+  <title>Checking that handheld is not selected when it is not mentioned in the main document (Handheld devices only)</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/media/handheld/042.html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS2/media.html#media-sheets" />
+  <link rel="stylesheet" href="http://software.hixie.ch/utilities/cgi/test-tools/delayed-file?pause=10&mime=text%2Fcss&text=%40media+screen+%7B%0D%0A++.screen+%7B+display%3A+none%3B+%7D%0D%0A%7D&cache=042+a">
+  <link rel="stylesheet" href="http://software.hixie.ch/utilities/cgi/test-tools/delayed-file?pause=1&mime=text%2Fcss&text=%40media+handheld+%7B%0D%0A++.handheld+%7B+display%3A+none%3B+%7D%0D%0A%7D&cache=042+b">
+  <!-- that sheet contains a handheld style, but it should not be
+  picked, since no handheld is mentioned anywhere in this doc. -->
+ </head>
+ <body>
+  <p> This page should default to SSR. Switch to author mode to test, <strong>and wait for the stylesheets to finish loading</strong>. </p>
+  <!-- this is a bit confusing. The elements are HIDDEN when the media matches their class. -->
+  <div>The test has:
+   <span class="screen">FAILED</span>
+   <span class="handheld">PASSED</span>
+  </div>
+  <div>The screen stylesheet was <span class="screen">not</span> used.</div>
+  <div>The handheld stylesheet was <span class="handheld">not</span> used.</div>
+ </body>
+</html>

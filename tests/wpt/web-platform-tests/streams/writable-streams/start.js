@@ -6,6 +6,8 @@ if (self.importScripts) {
   self.importScripts('../resources/recording-streams.js');
 }
 
+const error1 = { name: 'error1' };
+
 promise_test(() => {
   let resolveStartPromise;
   const ws = recordingWritableStream({
@@ -93,15 +95,74 @@ promise_test(() => {
 }, 'underlying sink\'s write or close should not be invoked if the promise returned by start is rejected');
 
 promise_test(t => {
-  const rejection = { name: 'this is checked' };
   const ws = new WritableStream({
     start() {
       return {
-        then(onFulfilled, onRejected) { onRejected(rejection); }
+        then(onFulfilled, onRejected) { onRejected(error1); }
       };
     }
   });
-  return promise_rejects(t, rejection, ws.getWriter().closed, 'closed promise should be rejected');
+  return promise_rejects(t, error1, ws.getWriter().closed, 'closed promise should be rejected');
 }, 'returning a thenable from start() should work');
+
+promise_test(t => {
+  const ws = recordingWritableStream({
+    start(controller) {
+      controller.error(error1);
+    }
+  });
+  return promise_rejects(t, error1, ws.getWriter().write('a'), 'write() should reject with the error')
+      .then(() => {
+        assert_array_equals(ws.events, [], 'sink write() should not have been called');
+      });
+}, 'controller.error() during start should cause writes to fail');
+
+promise_test(t => {
+  let controller;
+  let resolveStart;
+  const ws = recordingWritableStream({
+    start(c) {
+      controller = c;
+      return new Promise(resolve => {
+        resolveStart = resolve;
+      });
+    }
+  });
+  const writer = ws.getWriter();
+  const writePromise = writer.write('a');
+  const closePromise = writer.close();
+  controller.error(error1);
+  resolveStart();
+  return Promise.all([
+    promise_rejects(t, error1, writePromise, 'write() should fail'),
+    promise_rejects(t, error1, closePromise, 'close() should fail')
+  ]).then(() => {
+    assert_array_equals(ws.events, [], 'sink write() and close() should not have been called');
+  });
+}, 'controller.error() during async start should cause existing writes to fail');
+
+promise_test(t => {
+  const events = [];
+  const promises = [];
+  function catchAndRecord(promise, name) {
+    promises.push(promise.then(t.unreached_func(`promise ${name} should not resolve`),
+                               () => {
+                                 events.push(name);
+                               }));
+  }
+  const ws = new WritableStream({
+    start() {
+      return Promise.reject();
+    }
+  }, new CountQueuingStrategy({ highWaterMark: 0 }));
+  const writer = ws.getWriter();
+  catchAndRecord(writer.ready, 'ready');
+  catchAndRecord(writer.closed, 'closed');
+  catchAndRecord(writer.write(), 'write');
+  return Promise.all(promises)
+      .then(() => {
+        assert_array_equals(events, ['ready', 'write', 'closed'], 'promises should reject in standard order');
+      });
+}, 'when start() rejects, writer promises should reject in standard order');
 
 done();

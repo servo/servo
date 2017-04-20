@@ -1,0 +1,100 @@
+﻿
+
+<html>
+<head>
+<title>CSS3 Border Top Width Test</title>
+
+<style type="text/css">
+h3 {border-top-width: thin; border-top-style: solid;}
+h4 {border-top-width: medium; border-top-style: solid;}
+em {border-top-width: thick; border-top-style: solid;}
+blockquote {border-top-width: 200%; border-top-style: solid;}
+p {border-top-style: solid;}
+</style>
+</head>
+
+<body>
+
+
+
+
+<h1>CSS3 Border Top Width Test</h1>
+
+
+
+
+
+<ul>
+<li >
+For "border-top-width", initial is "medium", it applies to all elements,
+it is not inherited, percentages refer to width of containing block, media is visual,
+and computed value is specified value.
+</li>
+</ul>
+<h2>
+PASS CRITERIA:
+</h2>
+<p>
+If statement above is correct, this paragraph should be UA-default
+border top width.  A CSS rule of "border-top-style: solid" is applied.  However, the
+border top width property does apply to the p element.
+Here is some more text to test this more effectively.
+Here is some more text to test this more effectively. 
+Here is some more text to test this more effectively.
+Here is some more text to test this more effectively.
+Here is some more text to test this more effectively.
+Here is some more text to test this more effectively.
+Here is some more text to test this more effectively.
+Here is some more text to test this more effectively.
+</p>
+<h3>
+This h3 heading has a border top width of thin, but this <em>emphasized text
+</em> has a border top width of thick; the rules applied are:
+"h3 {border-top-width: thin;}"
+"em {border-top-width: thick;}"
+So the border top width property applies to the h3 and em elements.
+Here is some more text to test this more effectively.
+Here is some more text to test this more effectively. 
+Here is some more text to test this more effectively.
+Here is some more text to test this more effectively.
+Here is some more text to test this more effectively.
+Here is some more text to test this more effectively.
+Here is some more text to test this more effectively.
+Here is some more text to test this more effectively.
+</h3>
+<h4>
+This h4 heading has a border top width property of medium (because of the
+rule "h4 {border-top-width: medium;}", but these <i>italicized words</i>
+have a border top width of UA-default, because the border-top-width
+property does not inherit.  
+So the border top width property does apply to the h4 and i elements.
+Here is some more text to test this more effectively.
+Here is some more text to test this more effectively. 
+Here is some more text to test this more effectively.
+Here is some more text to test this more effectively.
+Here is some more text to test this more effectively.
+Here is some more text to test this more effectively.
+Here is some more text to test this more effectively.
+Here is some more text to test this more effectively.
+</h4>
+<blockquote>
+This blockquote element should have a UA-default border top width.  The
+nonsensical rule "blockquote {border-top-width: 200%}" should be ignored,
+but the border-top-width property does apply to the blockquote element.
+Here is some more text to test this more effectively.
+Here is some more text to test this more effectively. 
+Here is some more text to test this more effectively.
+Here is some more text to test this more effectively.
+Here is some more text to test this more effectively.
+Here is some more text to test this more effectively.
+Here is some more text to test this more effectively.
+Here is some more text to test this more effectively.
+</blockquote>
+<p>
+All other properties of this page should be UA-default.
+This is a paragraph, like the one above.  Border top style of solid is applied to all
+CSS rules, so that top border is visible.
+</p>
+
+</body>
+</html>

@@ -1,0 +1,28 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: Dynamic Borders (style attribute)</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/border/dynamic/001.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-shorthand-properties"/>
+  <link rel="match" href="border-dynamic-001-ref.xht" />
+
+  <meta name="flags" content="dom"/>
+  <style type="text/css">
+   #test { background: green; }
+   #test div { margin: 10em 0; background: red; }
+  </style>
+ </head>
+ <body>
+  <p>There should be a big green box below.</p>
+  <div id="test">
+   <div></div>
+  </div>
+  <script type="text/javascript">
+   var x = document.getElementById('test');
+   x.clientHeight; // force reflow
+   x.style.border = "solid lime";
+  </script>
+
+</body>
+</html>

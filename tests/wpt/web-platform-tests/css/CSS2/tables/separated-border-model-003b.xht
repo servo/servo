@@ -1,0 +1,81 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: border-collapse: separate - HTML/XHTML table set width greater than sum of columns</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#separated-borders"  title="17.6.1 The separated borders model" />
+  <link rel="match" href="separated-border-model-003b-ref.xht" />
+
+  <meta name="flags" content="" />
+  <meta name="assert" content="In the border-collapse: separate model, the width of an HTML/XHTML table is the distance between the left and right table border edges. If the set width of an HTML/XHTML table is greater than the sum of the columns width (plus cell spacing and table borders), then the extra (exceeding) space should be distributed over the columns." />
+
+  <style type="text/css"><![CDATA[
+  table
+  {
+  background-color: black;
+  border-spacing: 50px 0;
+  table-layout: fixed;
+  width: 500px;
+  }
+
+  table, td
+  {
+  border-left: black solid 11px;
+  border-right: black solid 17px;
+  padding: 25px 39px 25px 33px;
+  }
+
+  td {width: 100px;}
+
+  /*
+
+   11px (table's border-left)
+   33px (table's padding-left)
+   50px (left-most border-spacing)
+   11px (td's border-left)
+   33px (td's padding-left)
+  100px (td's set content width)
+   39px (td's padding-right)
+   17px (td's border-right)
+   50px (right-most border-spacing)
+   39px (table's padding-right)
+   17px (table's border-right)
+  -----
+  400px
+
+
+  Since the set width (500px) for the XHTML/HTML table is greater than the
+  sum of columns width (400px), then the extra (exceeding) space is distributed
+  evenly among columns. So, here, the used width for the single td should
+  be 200px, not 100px.
+
+  */
+
+  div
+  {
+  background-color: blue;
+  height: 100px;
+  width: 500px;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if the black and blue rectangles are the <strong>same width</strong>.</p>
+
+  <table>
+   <tr>
+    <td></td>
+   </tr>
+  </table>
+
+  <div></div>
+
+ </body>
+</html>

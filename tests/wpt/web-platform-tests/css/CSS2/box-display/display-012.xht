@@ -1,0 +1,47 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Display set to 'table-column-group'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-03-11 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#propdef-display" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#display-prop" />
+        <link rel="match" href="display-012-ref.xht" />
+
+        <meta name="flags" content="" />
+        <meta name="assert" content="The property 'display' set to 'table-column-group' behaves in layout as a table column group." />
+        <style type="text/css">
+            #table
+            {
+                display: table;
+            }
+            span
+            {
+                display: table-column-group;
+            }
+            #test
+            {
+                background-color: blue;
+            }
+            #row
+            {
+                display: table-row;
+            }
+            .cell
+            {
+                display: table-cell;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the first half of the line of "Filler Text" has a blue background.</p>
+        <div id="table">
+            <span id="test"></span>
+            <span></span>
+            <div id="row">
+                <div class="cell">Filler Text</div>
+                <div class="cell">Filler Text</div>
+            </div>
+        </div>
+    </body>
+</html>

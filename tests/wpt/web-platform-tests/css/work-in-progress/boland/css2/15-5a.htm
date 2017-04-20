@@ -1,0 +1,67 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>19th Test of Section 15.5 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+@font-face {
+src: local("Helvetica Medium"),
+url(http://www.fonts.org/sans/Helvetica_family) format("truedoc");
+font-family: "Helvetica";
+font-style: normal;
+}
+@font-face {
+src: local("Helvetica Oblique"),
+url(http://www.fonts.org/sans/Helvetica_family") format("truedoc");
+font-family: "Helvetica";
+font-style: oblique;
+slope: -18
+}
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing 19th Testable Statement of Sec 15.5 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+19. This example defines a family of fonts.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p >
+If statement #19 above is passed, then
+this paragraph should have either Helvetica Medium or Helvetica Oblique if
+available.
+The rule applied is "@font-face {src: local("Helvetica Medium"),
+url(http://www.fonts.org/sans/Helvetica_family) format("truedoc");
+font-family: "Helvetica";
+font-style: normal;
+}
+Also. "@font-face {src: local("Helvetica Oblique"),
+url("http://www.fonts.org/sans/Helvetica_family") format("truedoc");
+font-family: "Helvetica";
+font-style: oblique;
+slope: -18
+}
+</p>
+<p>
+All other properties of this page should be UA-default.
+NOTE: If specified font is not available, UA-default is used.
+
+
+</BODY>
+</HTML>
+

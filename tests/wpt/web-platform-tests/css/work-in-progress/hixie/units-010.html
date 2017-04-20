@@ -1,0 +1,21 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+<html lang="en">
+ <head>
+  <title>Units: px and dependent font-size</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/units/010.html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#length-units" />
+  <style type="text/css">
+   .control { display: inline; font: 1em/1 Ahem, sans-serif; background: red; color: white; }
+   div { font: 1em/1 Ahem; height: 0; }
+   .px { font-size: 20px; color: red; }
+   .pt { font-size: 20pt; color: green; }
+
+  </style>
+ </head>
+ <body>
+  <div class="control">Ahem_font_required_for_this_test.</div>
+  <div class="px">xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</div>
+  <div class="pt">xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</div>
+ </body>
+</html>

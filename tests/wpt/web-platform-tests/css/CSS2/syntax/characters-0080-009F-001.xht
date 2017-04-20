@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Valid control characters in identifiers</title>
+
+  <link rel="help" href="http://www.w3.org/TR/CSS22/syndata.html#characters" />
+  <link rel="help" href="http://www.w3.org/TR/CSS22/changes.html#s.4.1.3d" />
+  <link rel="match" href="characters-0080-009F-001-ref.xht" />
+  <meta name="assert" content="identifiers [...] can contain only the characters [a-zA-Z0-9] and ISO 10646 characters U+0080 and higher, [...]" />
+  <link rel="author" title="Bert Bos" href="mailto:bert@w3.org/" />
+
+  <style type="text/css">
+    /* Warning: the next lines contain control characters \201..\237 */
+    div p::before {content: counter(item) ". "}
+    div p::before {content: counter(, lower-latin) ". "}
+    div p {counter-increment: }
+  </style>
+ </head>
+
+ <body>
+   <p>The next items should be numbered a to f.</p>
+   <div>
+     <p>Item</p>
+     <p>Item</p>
+     <p>Item</p>
+     <p>Item</p>
+     <p>Item</p>
+     <p>Item</p>
+   </div>
+ </body>
+</html>

@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  span
+  {
+  color: blue;
+  line-height: 3em;
+  }
+
+  span.top-left-bottom
+  {
+  border-style: solid none solid solid;
+  padding: 0.4em 0 0.4em 1em;
+  }
+
+  span.top-right-bottom
+  {
+  border-style: solid solid solid none;
+  padding: 0.4em 1em 0.4em 0;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>The following two lines should be identical. (Force bidi: &#x05D0;)</p>
+
+  <p><span class="top-left-bottom">AAABBBCCC</span>DDDEEEFFF<span class="top-right-bottom">GGGHHHIII</span>JJJKKKLLL</p>
+
+  <p><span class="top-left-bottom">AAABBBCCC</span>DDDEEEFFF<span class="top-right-bottom">GGGHHHIII</span>JJJKKKLLL</p>
+
+ </body>
+</html>

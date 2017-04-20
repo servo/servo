@@ -1,0 +1,39 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Unicode-bidi applied to element with 'display' set to 'table-cell'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-03-14 -->
+        <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#unicode-bidi" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#propdef-unicode-bidi" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#direction" />
+        <link rel="match" href="direction-applies-to-008-ref.xht" />
+
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'unicode-bidi' property applies to elements with a display of 'table-cell'." />
+        <style type="text/css">
+            #table
+            {
+                display: table;
+            }
+            #row
+            {
+                display: table-row;
+            }
+            #test
+            {
+                direction: rtl;
+                display: table-cell;
+                unicode-bidi: bidi-override;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there are the words "PASS PASS".</p>
+        <div id="table">
+            <div id="row">
+                <div id="test">SSAP SSAP</div>
+            </div>
+        </div>
+    </body>
+</html>

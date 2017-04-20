@@ -1,0 +1,51 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>First Test of Section 9.9 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+p {position: fixed;
+   z-index: auto;}
+#id1 {position: static;
+      z-index: 2;}
+
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing First Testable Statement of Sec 9.9 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+1. In CSS2, each box has a position in three dimensions.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p >
+If statement #1 above is passed, then
+this paragraph should have z-index of auto and position of fixed.
+The rules applied are "p {position: fixed; z-index: auto;}".
+<p id="id1">
+This paragraph should have z-index of 2 and position of static.
+The rules applied are "p {position: static; z-index: 2}".
+All other properties of this page should be UA-default.
+
+
+</BODY>
+</HTML>
+

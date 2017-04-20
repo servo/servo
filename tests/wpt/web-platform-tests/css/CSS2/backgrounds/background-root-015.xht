@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: Background propagation on &lt;body&gt; and &lt;html&gt; - double positioning</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/background/12.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background"/>
+  <link rel="match" href="background-root-015-ref.xht" />
+  <meta name="flags" content="image"/>
+<style type="text/css"><![CDATA[
+   body { border: solid lime; background: white url(support/square-purple.png) no-repeat top center; color: black; }
+   html { border: solid blue; background: white url(support/square-teal.png) no-repeat top center; color: black; }
+   :link, :visited { color: inherit; background: transparent; }
+   * { margin: 1em; padding: 1em; }
+   html, body { padding-top: 70px; }
+]]></style>
+
+</head>
+<body>
+<p>Centered just inside the top of the green-bordered box there should be a
+  purple square, and centered just inside the top of the blue-bordered box
+  there should be a teal square.</p>
+
+
+</body>
+</html>

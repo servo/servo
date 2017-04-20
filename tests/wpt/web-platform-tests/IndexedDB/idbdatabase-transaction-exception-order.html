@@ -45,10 +45,10 @@ indexeddb_test(
     assert_throws('NotFoundError', () => {
       db.transaction('no-such-store', 'versionchange');
     }, '"No such store" check (NotFoundError) should precede ' +
-       '"invalid mode" check (InvalidAccessError)');
+       '"invalid mode" check (TypeError)');
     t.done();
   },
-  'IDBDatabase.transaction exception order: NotFoundError vs. InvalidAccessError'
+  'IDBDatabase.transaction exception order: NotFoundError vs. TypeError'
 );
 
 </script>

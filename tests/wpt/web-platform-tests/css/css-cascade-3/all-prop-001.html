@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Cascade: "all" shorthand property excludes "direction"</title>
+  <link rel="author" title="Chris Rebert" href="http://chrisrebert.com">
+  <link rel="help" href="http://www.w3.org/TR/css-cascade-3/#all-shorthand">
+  <link rel="help" href="http://www.w3.org/TR/css-cascade-4/#all-shorthand">
+  <link rel="match" href="all-prop-001-ref.html">
+  <meta name="flags" content="">
+  <meta name="assert" content="The 'direction' property should not be included in the properties that the 'all' shorthand is expanded to.">
+  <style>
+.outer {
+  direction: rtl;/* should not get overridden by 'all' */
+  all: initial;/* if incorrectly implemented, this causes direction:initial; which is the same as direction:ltr; */
+  /* need these to trump 'all': */
+  position: relative;
+  display: block;
+}
+.square {
+  width: 100px;
+  height: 100px;
+}
+.green {
+  background-color: green;
+}
+.above-right {
+  position: absolute;
+  right: 0;
+}
+.red {
+  background-color: red;
+}
+  </style>
+</head>
+<body>
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+  <div class="outer">
+    <div class="square green above-right"></div>
+    <div class="square red"></div>
+  </div>
+</body>
+</html>
