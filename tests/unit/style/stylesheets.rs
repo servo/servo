@@ -85,15 +85,15 @@ fn test_parse_stylesheet() {
                 selectors: SelectorList(vec![
                     Selector {
                         inner: SelectorInner::from_vec(vec![
-                            SimpleSelector::Namespace(Namespace {
+                            Component::Namespace(Namespace {
                                 prefix: None,
                                 url: NsAtom::from("http://www.w3.org/1999/xhtml")
                             }),
-                            SimpleSelector::LocalName(LocalName {
+                            Component::LocalName(LocalName {
                                 name: local_name!("input"),
                                 lower_name: local_name!("input"),
                             }),
-                            SimpleSelector::AttrEqual(AttrSelector {
+                            Component::AttrEqual(AttrSelector {
                                 name: local_name!("type"),
                                 lower_name: local_name!("type"),
                                 namespace: NamespaceConstraint::Specific(Namespace {
@@ -118,11 +118,11 @@ fn test_parse_stylesheet() {
                 selectors: SelectorList(vec![
                     Selector {
                         inner: SelectorInner::from_vec(vec![
-                            SimpleSelector::Namespace(Namespace {
+                            Component::Namespace(Namespace {
                                 prefix: None,
                                 url: NsAtom::from("http://www.w3.org/1999/xhtml")
                             }),
-                            SimpleSelector::LocalName(LocalName {
+                            Component::LocalName(LocalName {
                                 name: local_name!("html"),
                                 lower_name: local_name!("html"),
                             }),
@@ -132,11 +132,11 @@ fn test_parse_stylesheet() {
                     },
                     Selector {
                         inner: SelectorInner::from_vec(vec![
-                            SimpleSelector::Namespace(Namespace {
+                            Component::Namespace(Namespace {
                                 prefix: None,
                                 url: NsAtom::from("http://www.w3.org/1999/xhtml")
                             }),
-                            SimpleSelector::LocalName(LocalName {
+                            Component::LocalName(LocalName {
                                 name: local_name!("body"),
                                 lower_name: local_name!("body"),
                             }),
@@ -154,17 +154,17 @@ fn test_parse_stylesheet() {
                 selectors: SelectorList(vec![
                     Selector {
                         inner: SelectorInner::from_vec(vec![
-                            SimpleSelector::Namespace(Namespace {
+                            Component::Namespace(Namespace {
                                 prefix: None,
                                 url: NsAtom::from("http://www.w3.org/1999/xhtml")
                             }),
-                            SimpleSelector::ID(Atom::from("d1")),
-                            SimpleSelector::Combinator(Combinator::Child),
-                            SimpleSelector::Namespace(Namespace {
+                            Component::ID(Atom::from("d1")),
+                            Component::Combinator(Combinator::Child),
+                            Component::Namespace(Namespace {
                                 prefix: None,
                                 url: NsAtom::from("http://www.w3.org/1999/xhtml")
                             }),
-                            SimpleSelector::Class(Atom::from("ok")),
+                            Component::Class(Atom::from("ok")),
                         ]),
                         pseudo_element: None,
                         specificity: (1 << 20) + (1 << 10) + (0 << 0),

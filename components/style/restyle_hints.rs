@@ -17,8 +17,8 @@ use selector_parser::{AttrValue, NonTSPseudoClass, Snapshot, SelectorImpl};
 use selectors::{Element, MatchAttr};
 use selectors::matching::{ElementSelectorFlags, StyleRelations};
 use selectors::matching::matches_selector;
-use selectors::parser::{AttrSelector, Combinator, ComplexSelector, SelectorInner, SelectorIter};
-use selectors::parser::{SelectorMethods, SimpleSelector};
+use selectors::parser::{AttrSelector, Combinator, ComplexSelector, Component};
+use selectors::parser::{SelectorInner, SelectorIter, SelectorMethods};
 use selectors::visitor::SelectorVisitor;
 use std::clone::Clone;
 
@@ -388,24 +388,24 @@ impl<'a, E> Element for ElementWrapper<'a, E>
     }
 }
 
-fn selector_to_state(sel: &SimpleSelector<SelectorImpl>) -> ElementState {
+fn selector_to_state(sel: &Component<SelectorImpl>) -> ElementState {
     match *sel {
-        SimpleSelector::NonTSPseudoClass(ref pc) => pc.state_flag(),
+        Component::NonTSPseudoClass(ref pc) => pc.state_flag(),
         _ => ElementState::empty(),
     }
 }
 
-fn is_attr_selector(sel: &SimpleSelector<SelectorImpl>) -> bool {
+fn is_attr_selector(sel: &Component<SelectorImpl>) -> bool {
     match *sel {
-        SimpleSelector::ID(_) |
-        SimpleSelector::Class(_) |
-        SimpleSelector::AttrExists(_) |
-        SimpleSelector::AttrEqual(_, _, _) |
-        SimpleSelector::AttrIncludes(_, _) |
-        SimpleSelector::AttrDashMatch(_, _) |
-        SimpleSelector::AttrPrefixMatch(_, _) |
-        SimpleSelector::AttrSubstringMatch(_, _) |
-        SimpleSelector::AttrSuffixMatch(_, _) => true,
+        Component::ID(_) |
+        Component::Class(_) |
+        Component::AttrExists(_) |
+        Component::AttrEqual(_, _, _) |
+        Component::AttrIncludes(_, _) |
+        Component::AttrDashMatch(_, _) |
+        Component::AttrPrefixMatch(_, _) |
+        Component::AttrSubstringMatch(_, _) |
+        Component::AttrSuffixMatch(_, _) => true,
         _ => false,
     }
 }
@@ -416,22 +416,22 @@ fn is_attr_selector(sel: &SimpleSelector<SelectorImpl>) -> bool {
 ///
 /// We use this for selectors that can have different matching behavior between
 /// siblings that are otherwise identical as far as the cache is concerned.
-fn needs_cache_revalidation(sel: &SimpleSelector<SelectorImpl>) -> bool {
+fn needs_cache_revalidation(sel: &Component<SelectorImpl>) -> bool {
     match *sel {
-        SimpleSelector::Empty |
-        SimpleSelector::FirstChild |
-        SimpleSelector::LastChild |
-        SimpleSelector::OnlyChild |
-        SimpleSelector::NthChild(..) |
-        SimpleSelector::NthLastChild(..) |
-        SimpleSelector::NthOfType(..) |
-        SimpleSelector::NthLastOfType(..) |
-        SimpleSelector::FirstOfType |
-        SimpleSelector::LastOfType |
-        SimpleSelector::OnlyOfType => true,
+        Component::Empty |
+        Component::FirstChild |
+        Component::LastChild |
+        Component::OnlyChild |
+        Component::NthChild(..) |
+        Component::NthLastChild(..) |
+        Component::NthOfType(..) |
+        Component::NthLastOfType(..) |
+        Component::FirstOfType |
+        Component::LastOfType |
+        Component::OnlyOfType => true,
         // FIXME(emilio): This sets the "revalidation" flag for :any, which is
         // probably expensive given we use it a lot in UA sheets.
-        SimpleSelector::NonTSPseudoClass(ref p) => p.state_flag().is_empty(),
+        Component::NonTSPseudoClass(ref p) => p.state_flag().is_empty(),
         _ => false,
     }
 }
@@ -517,7 +517,7 @@ impl SelectorVisitor for SensitivitiesVisitor {
         true
     }
 
-    fn visit_simple_selector(&mut self, s: &SimpleSelector<SelectorImpl>) -> bool {
+    fn visit_simple_selector(&mut self, s: &Component<SelectorImpl>) -> bool {
         self.sensitivities.states.insert(selector_to_state(s));
 
         if !self.sensitivities.attrs {

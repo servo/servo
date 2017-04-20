@@ -6,8 +6,8 @@
 
 #![deny(missing_docs)]
 
-use parser::{AttrSelector, Combinator, SelectorImpl};
-use parser::{SelectorIter, SimpleSelector};
+use parser::{AttrSelector, Combinator, Component};
+use parser::{SelectorImpl, SelectorIter};
 
 /// A trait to visit selector properties.
 ///
@@ -25,7 +25,7 @@ pub trait SelectorVisitor {
     }
 
     /// Visit a simple selector.
-    fn visit_simple_selector(&mut self, _: &SimpleSelector<Self::Impl>) -> bool {
+    fn visit_simple_selector(&mut self, _: &Component<Self::Impl>) -> bool {
         true
     }
 

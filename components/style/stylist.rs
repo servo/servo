@@ -27,7 +27,7 @@ use selectors::bloom::BloomFilter;
 use selectors::matching::{AFFECTED_BY_ANIMATIONS, AFFECTED_BY_TRANSITIONS};
 use selectors::matching::{AFFECTED_BY_STYLE_ATTRIBUTE, AFFECTED_BY_PRESENTATIONAL_HINTS};
 use selectors::matching::{ElementSelectorFlags, StyleRelations, matches_selector};
-use selectors::parser::{Selector, SelectorInner, SimpleSelector, LocalName as LocalNameSelector};
+use selectors::parser::{Component, Selector, SelectorInner, LocalName as LocalNameSelector};
 use shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
 use sink::Push;
 use smallvec::VecLike;
@@ -1182,7 +1182,7 @@ impl SelectorMap {
         for ss in rule.selector.complex.iter() {
             // TODO(pradeep): Implement case-sensitivity based on the
             // document type and quirks mode.
-            if let SimpleSelector::ID(ref id) = *ss {
+            if let Component::ID(ref id) = *ss {
                 return Some(id.clone());
             }
         }
@@ -1195,7 +1195,7 @@ impl SelectorMap {
         for ss in rule.selector.complex.iter() {
             // TODO(pradeep): Implement case-sensitivity based on the
             // document type and quirks mode.
-            if let SimpleSelector::Class(ref class) = *ss {
+            if let Component::Class(ref class) = *ss {
                 return Some(class.clone());
             }
         }
@@ -1206,7 +1206,7 @@ impl SelectorMap {
     /// Retrieve the name if it is a type selector, or None otherwise.
     pub fn get_local_name(rule: &Rule) -> Option<LocalNameSelector<SelectorImpl>> {
         for ss in rule.selector.complex.iter() {
-            if let SimpleSelector::LocalName(ref n) = *ss {
+            if let Component::LocalName(ref n) = *ss {
                 return Some(LocalNameSelector {
                     name: n.name.clone(),
                     lower_name: n.lower_name.clone(),

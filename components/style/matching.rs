@@ -1198,11 +1198,11 @@ pub trait MatchMethods : TElement {
     //   > fn with_really_simple_selectors(&self, f: <H: Hash>|&H|);
 
 
-    // In terms of `SimpleSelector`s, these two functions will insert and remove:
-    //   - `SimpleSelector::LocalName`
-    //   - `SimpleSelector::Namepace`
-    //   - `SimpleSelector::ID`
-    //   - `SimpleSelector::Class`
+    // In terms of `Component`s, these two functions will insert and remove:
+    //   - `Component::LocalName`
+    //   - `Component::Namepace`
+    //   - `Component::ID`
+    //   - `Component::Class`
 
     /// Inserts and removes the matching `Descendant` selectors from a bloom
     /// filter. This is used to speed up CSS selector matching to remove
