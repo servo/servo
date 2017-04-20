@@ -5,6 +5,7 @@
 use arcslice::ArcSlice;
 use cssparser::{Token, Parser as CssParser, parse_nth, ToCss, serialize_identifier, CssStringWriter};
 use precomputed_hash::PrecomputedHash;
+use smallvec::SmallVec;
 use std::ascii::AsciiExt;
 use std::borrow::{Borrow, Cow};
 use std::cmp;
@@ -886,13 +887,23 @@ fn parse_selector<P, Impl>(parser: &P, input: &mut CssParser) -> Result<Selector
     })
 }
 
+/// We use a SmallVec for parsing to avoid extra reallocs compared to using a Vec
+/// directly. When parsing is done, we convert the SmallVec into a Vec (which is
+/// free if the vec has already spilled to the heap, and more cache-friendly if
+/// it hasn't), and then steal the buffer of that vec into a boxed slice.
+///
+/// If we parse N <= 4 entries, we save no reallocations.
+/// If we parse 4 < N <= 8 entries, we save one reallocation.
+/// If we parse N > 8 entries, we save two reallocations.
+type ParseVec<Impl> = SmallVec<[Component<Impl>; 8]>;
+
 fn parse_complex_selector_and_pseudo_element<P, Impl>(
         parser: &P,
         input: &mut CssParser)
         -> Result<(ComplexSelector<Impl>, Option<Impl::PseudoElement>), ()>
     where P: Parser<Impl=Impl>, Impl: SelectorImpl
 {
-    let mut sequence = Vec::new();
+    let mut sequence = ParseVec::new();
     let mut pseudo_element;
     'outer_loop: loop {
         // Parse a sequence of simple selectors.
@@ -935,7 +946,7 @@ fn parse_complex_selector_and_pseudo_element<P, Impl>(
         sequence.push(Component::Combinator(combinator));
     }
 
-    let complex = ComplexSelector(ArcSlice::new(sequence.into_boxed_slice()));
+    let complex = ComplexSelector(ArcSlice::new(sequence.into_vec().into_boxed_slice()));
     Ok((complex, pseudo_element))
 }
 
@@ -956,7 +967,7 @@ impl<Impl: SelectorImpl> ComplexSelector<Impl> {
 /// * `Err(())`: Invalid selector, abort
 /// * `Ok(None)`: Not a type selector, could be something else. `input` was not consumed.
 /// * `Ok(Some(vec))`: Length 0 (`*|*`), 1 (`*|E` or `ns|*`) or 2 (`|E` or `ns|E`)
-fn parse_type_selector<P, Impl>(parser: &P, input: &mut CssParser, sequence: &mut Vec<Component<Impl>>)
+fn parse_type_selector<P, Impl>(parser: &P, input: &mut CssParser, sequence: &mut ParseVec<Impl>)
                        -> Result<bool, ()>
     where P: Parser<Impl=Impl>, Impl: SelectorImpl
 {
@@ -1170,7 +1181,7 @@ fn parse_negation<P, Impl>(parser: &P,
 fn parse_compound_selector<P, Impl>(
     parser: &P,
     input: &mut CssParser,
-    mut sequence: &mut Vec<Component<Impl>>)
+    mut sequence: &mut ParseVec<Impl>)
     -> Result<Option<Impl::PseudoElement>, ()>
     where P: Parser<Impl=Impl>, Impl: SelectorImpl
 {
