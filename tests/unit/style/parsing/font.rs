@@ -10,38 +10,47 @@ use style_traits::ToCss;
 
 #[test]
 fn font_feature_settings_should_parse_properly() {
+    use byteorder::{ReadBytesExt, NativeEndian};
+    use std::io::Cursor;
+
     let normal = parse_longhand!(font_feature_settings, "normal");
     let normal_computed = computed_value::T::Normal;
     assert_eq!(normal, normal_computed);
 
+    let mut a_d_bytes = Cursor::new(b"abcd");
+    let mut e_h_bytes = Cursor::new(b"efgh");
+
+    let abcd = a_d_bytes.read_u32::<NativeEndian>().unwrap();
+    let efgh = e_h_bytes.read_u32::<NativeEndian>().unwrap();
+
     let on = parse_longhand!(font_feature_settings, "\"abcd\" on");
     let on_computed = computed_value::T::Tag(vec![
-        FeatureTagValue { tag: String::from("abcd"), value: 1 }
+        FeatureTagValue { tag: abcd, value: 1 }
     ]);
     assert_eq!(on, on_computed);
 
     let off = parse_longhand!(font_feature_settings, "\"abcd\" off");
     let off_computed = computed_value::T::Tag(vec![
-        FeatureTagValue { tag: String::from("abcd"), value: 0 }
+        FeatureTagValue { tag: abcd, value: 0 }
     ]);
     assert_eq!(off, off_computed);
 
     let no_value = parse_longhand!(font_feature_settings, "\"abcd\"");
     let no_value_computed = computed_value::T::Tag(vec![
-        FeatureTagValue { tag: String::from("abcd"), value: 1 }
+        FeatureTagValue { tag: abcd, value: 1 }
     ]);
     assert_eq!(no_value, no_value_computed);
 
     let pos_integer = parse_longhand!(font_feature_settings, "\"abcd\" 100");
     let pos_integer_computed = computed_value::T::Tag(vec![
-        FeatureTagValue { tag: String::from("abcd"), value: 100 }
+        FeatureTagValue { tag: abcd, value: 100 }
     ]);
     assert_eq!(pos_integer, pos_integer_computed);
 
     let multiple = parse_longhand!(font_feature_settings, "\"abcd\" off, \"efgh\"");
     let multiple_computed = computed_value::T::Tag(vec![
-        FeatureTagValue { tag: String::from("abcd"), value: 0 },
-        FeatureTagValue { tag: String::from("efgh"), value: 1 }
+        FeatureTagValue { tag: abcd, value: 0 },
+        FeatureTagValue { tag: efgh, value: 1 }
     ]);
     assert_eq!(multiple, multiple_computed);
 }

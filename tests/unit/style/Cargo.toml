@@ -13,6 +13,7 @@ doctest = false
 testing = ["style/testing"]
 
 [dependencies]
+byteorder = "1.0"
 app_units = "0.4"
 cssparser = "0.13"
 euclid = "0.11"
