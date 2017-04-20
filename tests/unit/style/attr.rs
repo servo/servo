@@ -3,7 +3,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
+use style::values::computed::CalcLengthOrPercentage;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto, parse_length};
+
+#[test]
+fn test_length_calc() {
+    let calc = CalcLengthOrPercentage{ length: Au(10), percentage: Some(0.2) };
+    assert_eq!(calc.calc(Some(Au(10))), Au(12));
+    assert_eq!(calc.calc(Some(Au(0))), Au(10));
+    assert_eq!(calc.calc(None), Au(10));
+}
 
 #[test]
 fn test_parse_double() {

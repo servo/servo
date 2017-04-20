@@ -76,6 +76,17 @@ impl CalcLengthOrPercentage {
     pub fn percentage(&self) -> CSSFloat {
         self.percentage.unwrap_or(0.)
     }
+
+    #[allow(missing_docs)]
+    pub fn calc(&self, length: Option<Au>) -> Au {
+        if let Some(p) = self.percentage {
+            if let Some(l) = length {
+                return l.scale_by(p) + self.length;
+            }
+        }
+
+        self.length
+    }
 }
 
 impl From<LengthOrPercentage> for CalcLengthOrPercentage {

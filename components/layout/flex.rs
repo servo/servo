@@ -80,7 +80,7 @@ fn from_flex_basis(flex_basis: LengthOrPercentageOrAutoOrContent,
         (LengthOrPercentageOrAutoOrContent::Percentage(_), None) =>
             MaybeAuto::Auto,
         (LengthOrPercentageOrAutoOrContent::Calc(calc), Some(size)) =>
-            MaybeAuto::Specified(calc.length() + size.scale_by(calc.percentage())),
+            MaybeAuto::Specified(calc.calc(Some(size))),
         (LengthOrPercentageOrAutoOrContent::Calc(_), None) =>
             MaybeAuto::Auto,
         (LengthOrPercentageOrAutoOrContent::Content, _) =>
