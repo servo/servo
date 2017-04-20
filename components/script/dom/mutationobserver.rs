@@ -4,12 +4,16 @@
 
 use dom::bindings::codegen::Bindings::MutationObserverBinding;
 use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationCallback;
-use dom::bindings::error::Fallible;
+use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationObserverInit;
+//use dom::bindings::codegen::PrototypeList::ID::DOMException;
+use dom::bindings::error::{Error, Fallible};
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::node::Node;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use script_thread::ScriptThread;
+use std::option::Option;
 use std::rc::Rc;
 
 #[dom_struct]
@@ -36,5 +40,36 @@ impl MutationObserver {
         let observer = MutationObserver::new(global, callback);
         ScriptThread::add_mutation_observer(&*observer);
         Ok(observer)
+    }
+
+    /// https://dom.spec.whatwg.org/#dom-mutationobserver-observe
+    /// MutationObserver.observe method
+    pub fn observe(target: Node, options: MutationObserverInit) {
+        // Step 1: If either options’ attributeOldValue or attributeFilter is present and
+        // options’ attributes is omitted, set options’ attributes to true.
+        if (options.attributeOldValue.is_some() || options.attributeFilter.is_some()) && options.attributes.is_none() {
+            options.attributes = Some(true);
+        }
+        // Step2: If options’ characterDataOldValue is present and options’ characterData is omitted,
+        // set options’ characterData to true.
+        if options.characterDataOldValue.is_some() && options.characterData.is_some() {
+            options.characterData = Some(true);
+        }
+        // Step3: If none of options’ childList, attributes, and characterData is true, throw a TypeError.
+        if !options.childList && !options.attributes.unwrap() && !options.characterData.unwrap() {
+            Err(Error::Type(String::new()));
+        }
+        // Step4: If options’ attributeOldValue is true and options’ attributes is false, throw a TypeError.
+        if options.attributeOldValue.unwrap() && !options.attributes.unwrap() {
+            Err(Error::Type(String::new()));
+        }
+        // Step5: If options’ attributeFilter is present and options’ attributes is false, throw a TypeError.
+        if options.attributeFilter.is_some() && !options.attributes.unwrap() {
+            Err(Error::Type(String::new()));
+        }
+        // Step6: If options’ characterDataOldValue is true and options’ characterData is false, throw a TypeError.
+        if options.characterDataOldValue.unwrap() && !options.characterData.unwrap() {
+            Err(Error::Type(String::new()));
+        }
     }
 }

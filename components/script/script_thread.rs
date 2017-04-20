@@ -481,6 +481,9 @@ pub struct ScriptThread {
 
     microtask_queue: MicrotaskQueue,
 
+    /// Microtask Queue for adding support for mutation observer microtasks
+    mutation_observer_compound_microtask_queued: bool,
+
     /// The unit of related similar-origin browsing contexts' list of MutationObserver objects
     mutation_observers: DOMRefCell<Vec<JS<MutationObserver>>>,
 
@@ -574,12 +577,33 @@ impl ScriptThreadFactory for ScriptThread {
 }
 
 impl ScriptThread {
+    pub fn set_mutation_observer_compound_microtask_queued(value: bool) {
+        SCRIPT_THREAD_ROOT.with(|root| {
+            let script_thread = unsafe { &*root.get().unwrap() };
+            script_thread.mutation_observer_compound_microtask_queued.borrow_mut() = value;
+        })
+    }
+
+    pub fn get_mutation_observer_compound_microtask_queued() -> bool {
+        SCRIPT_THREAD_ROOT.with(|root| {
+            let script_thread = unsafe { &*root.get().unwrap() };
+            return script_thread.mutation_observer_compound_microtask_queued;
+        })
+    }
+
     pub fn add_mutation_observer(observer: &MutationObserver) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
             script_thread.mutation_observers
                 .borrow_mut()
                 .push(JS::from_ref(observer));
+        })
+    }
+
+    pub fn get_mutation_observer() -> DOMRefCell<Vec<JS<MutationObserver>>> {
+        SCRIPT_THREAD_ROOT.with(|root| {
+            let script_thread = unsafe { &*root.get().unwrap() };
+            return script_thread.mutation_observers;
         })
     }
 
@@ -734,6 +758,8 @@ impl ScriptThread {
             content_process_shutdown_chan: state.content_process_shutdown_chan,
 
             microtask_queue: MicrotaskQueue::default(),
+
+            mutation_observer_compound_microtask_queued: Default::default(),
 
             mutation_observers: Default::default(),
 
