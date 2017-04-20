@@ -76,6 +76,21 @@ impl CalcLengthOrPercentage {
     pub fn percentage(&self) -> CSSFloat {
         self.percentage.unwrap_or(0.)
     }
+
+    /// Returns computed length for container size
+    /// if container_len is `None` and percentage field is `Some`, return `None`
+    pub fn calculate(&self, container_len: Option<Au>) -> Option<Au> {
+        match (container_len, self.percentage) {
+            (Some(len), Some(_)) => Some(self.resolve(len)),
+            (_, None) => Some(self.length),
+            _ => None,
+        }
+    }
+
+    /// calculate the length for definitely container size
+    pub fn resolve(&self, len: Au) -> Au {
+        self.length + len.scale_by(self.percentage())
+    }
 }
 
 impl From<LengthOrPercentage> for CalcLengthOrPercentage {

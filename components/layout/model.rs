@@ -408,7 +408,7 @@ impl MaybeAuto {
                 MaybeAuto::Specified(containing_length.scale_by(percent))
             }
             LengthOrPercentageOrAuto::Calc(calc) => {
-                MaybeAuto::Specified(calc.length() + containing_length.scale_by(calc.percentage()))
+                MaybeAuto::Specified(calc.resolve(containing_length))
             }
             LengthOrPercentageOrAuto::Length(length) => MaybeAuto::Specified(length)
         }
@@ -451,12 +451,18 @@ pub fn style_length(style_length: LengthOrPercentageOrAuto,
     }
 }
 
+pub fn maybe_auto(au: Option<Au>) -> MaybeAuto {
+    match au {
+        Some(l) => MaybeAuto::Specified(l),
+        None    => MaybeAuto::Auto,
+    }
+}
+
 pub fn specified_or_none(length: LengthOrPercentageOrNone, containing_length: Au) -> Option<Au> {
     match length {
         LengthOrPercentageOrNone::None => None,
         LengthOrPercentageOrNone::Percentage(percent) => Some(containing_length.scale_by(percent)),
-        LengthOrPercentageOrNone::Calc(calc) =>
-            Some(containing_length.scale_by(calc.percentage()) + calc.length()),
+        LengthOrPercentageOrNone::Calc(calc) => Some(calc.resolve(containing_length)),
         LengthOrPercentageOrNone::Length(length) => Some(length),
     }
 }
@@ -465,8 +471,7 @@ pub fn specified(length: LengthOrPercentage, containing_length: Au) -> Au {
     match length {
         LengthOrPercentage::Length(length) => length,
         LengthOrPercentage::Percentage(p) => containing_length.scale_by(p),
-        LengthOrPercentage::Calc(calc) =>
-            containing_length.scale_by(calc.percentage()) + calc.length(),
+        LengthOrPercentage::Calc(calc) => calc.resolve(containing_length)
     }
 }
 

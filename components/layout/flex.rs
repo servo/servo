@@ -18,7 +18,7 @@ use flow::{INLINE_POSITION_IS_STATIC, IS_ABSOLUTELY_POSITIONED};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use layout_debug;
 use model::{IntrinsicISizes, MaybeAuto, SizeConstraint};
-use model::{specified, specified_or_none};
+use model::{specified, specified_or_none, maybe_auto};
 use std::cmp::{max, min};
 use std::ops::Range;
 use std::sync::Arc;
@@ -79,10 +79,8 @@ fn from_flex_basis(flex_basis: LengthOrPercentageOrAutoOrContent,
             MaybeAuto::Specified(size.scale_by(percent)),
         (LengthOrPercentageOrAutoOrContent::Percentage(_), None) =>
             MaybeAuto::Auto,
-        (LengthOrPercentageOrAutoOrContent::Calc(calc), Some(size)) =>
-            MaybeAuto::Specified(calc.length() + size.scale_by(calc.percentage())),
-        (LengthOrPercentageOrAutoOrContent::Calc(_), None) =>
-            MaybeAuto::Auto,
+        (LengthOrPercentageOrAutoOrContent::Calc(calc), size) =>
+            maybe_auto(calc.calculate(size)),
         (LengthOrPercentageOrAutoOrContent::Content, _) =>
             MaybeAuto::Auto,
         (LengthOrPercentageOrAutoOrContent::Auto, Some(size)) =>
