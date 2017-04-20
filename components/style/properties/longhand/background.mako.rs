@@ -494,11 +494,9 @@ ${helpers.single_keyword("background-origin",
         let width =
             try!(specified::LengthOrPercentageOrAuto::parse_non_negative(context, input));
 
-        let height = if input.is_exhausted() {
-            specified::LengthOrPercentageOrAuto::Auto
-        } else {
-            try!(specified::LengthOrPercentageOrAuto::parse_non_negative(context, input))
-        };
+        let height = input.try(|input| {
+            specified::LengthOrPercentageOrAuto::parse_non_negative(context, input)
+        }).unwrap_or(specified::LengthOrPercentageOrAuto::Auto);
 
         Ok(SpecifiedValue::Explicit(ExplicitSize {
             width: width,
