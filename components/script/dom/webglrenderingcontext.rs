@@ -31,6 +31,7 @@ use dom::webglframebuffer::WebGLFramebuffer;
 use dom::webglprogram::WebGLProgram;
 use dom::webglrenderbuffer::WebGLRenderbuffer;
 use dom::webglshader::WebGLShader;
+use dom::webglshaderprecisionformat::WebGLShaderPrecisionFormat;
 use dom::webgltexture::{TexParameterValue, WebGLTexture};
 use dom::webgluniformlocation::WebGLUniformLocation;
 use dom::window::Window;
@@ -1899,6 +1900,27 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             }
         } else {
             NullValue()
+        }
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    fn GetShaderPrecisionFormat(&self,
+                                shader_type: u32,
+                                precision_type: u32)
+                                -> Option<Root<WebGLShaderPrecisionFormat>> {
+        let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
+        self.ipc_renderer.send(CanvasMsg::WebGL(WebGLCommand::GetShaderPrecisionFormat(shader_type,
+                                                                                       precision_type,
+                                                                                       sender)))
+                                                                                       .unwrap();
+        match receiver.recv().unwrap() {
+            Ok((range_min, range_max, precision)) => {
+                Some(WebGLShaderPrecisionFormat::new(self.global().as_window(), range_min, range_max, precision))
+            },
+            Err(error) => {
+                self.webgl_error(error);
+                None
+            }
         }
     }
 
