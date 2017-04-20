@@ -372,7 +372,7 @@ fn parse_shape<F>(context: &ParserContext,
                   input: &mut Parser,
                   parse_size_keyword: F)
                   -> Result<EndingShape, ()>
-    where F: FnOnce(&mut Parser) -> Result<SizeKeyword, ()>
+    where F: Fn(&mut Parser) -> Result<SizeKeyword, ()>
 {
     if let Ok((first, second)) = input.try(|i| parse_two_length(context, i)) {
         // Handle <LengthOrPercentage> <LengthOrPercentage> <shape>?
@@ -382,7 +382,7 @@ fn parse_shape<F>(context: &ParserContext,
         // Handle <Length> <circle>?
         let _ = input.try(|input| input.expect_ident_matching("circle"));
         Ok(EndingShape::Circle(LengthOrKeyword::Length(length)))
-    } else if let Ok(keyword) = input.try(parse_size_keyword) {
+    } else if let Ok(keyword) = input.try(&parse_size_keyword) {
         // Handle <keyword> <shape-keyword>?
         if input.try(|input| input.expect_ident_matching("circle")).is_ok() {
             Ok(EndingShape::Circle(LengthOrKeyword::Keyword(keyword)))
@@ -394,12 +394,12 @@ fn parse_shape<F>(context: &ParserContext,
         // https://github.com/rust-lang/rust/issues/41272
         if input.try(|input| input.expect_ident_matching("ellipse")).is_ok() {
             // Handle <ellipse> <LengthOrPercentageOrKeyword>?
-            let length = input.try(|i| LengthOrPercentageOrKeyword::parse(context, i))
+            let length = input.try(|i| LengthOrPercentageOrKeyword::parse(context, i, parse_size_keyword))
                                 .unwrap_or(LengthOrPercentageOrKeyword::Keyword(SizeKeyword::FarthestCorner));
             Ok(EndingShape::Ellipse(length))
         } else if input.try(|input| input.expect_ident_matching("circle")).is_ok() {
             // Handle <circle> <LengthOrKeyword>?
-            let length = input.try(|i| LengthOrKeyword::parse(context, i))
+            let length = input.try(|i| LengthOrKeyword::parse(context, i, parse_size_keyword))
                                 .unwrap_or(LengthOrKeyword::Keyword(SizeKeyword::FarthestCorner));
             Ok(EndingShape::Circle(length))
         } else {
@@ -539,9 +539,11 @@ pub enum LengthOrKeyword {
     Keyword(SizeKeyword),
 }
 
-impl Parse for LengthOrKeyword {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        if let Ok(keyword) = input.try(SizeKeyword::parse) {
+impl LengthOrKeyword {
+    fn parse<F>(context: &ParserContext, input: &mut Parser, parse_size_keyword: F) -> Result<Self, ()>
+        where F: Fn(&mut Parser) -> Result<SizeKeyword, ()>
+    {
+        if let Ok(keyword) = input.try(parse_size_keyword) {
             Ok(LengthOrKeyword::Keyword(keyword))
         } else {
             Ok(LengthOrKeyword::Length(try!(Length::parse(context, input))))
@@ -568,9 +570,11 @@ pub enum LengthOrPercentageOrKeyword {
 }
 
 
-impl Parse for LengthOrPercentageOrKeyword {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        if let Ok(keyword) = input.try(SizeKeyword::parse) {
+impl LengthOrPercentageOrKeyword {
+    fn parse<F>(context: &ParserContext, input: &mut Parser, parse_size_keyword: F) -> Result<Self, ()>
+        where F: Fn(&mut Parser) -> Result<SizeKeyword, ()>
+    {
+        if let Ok(keyword) = input.try(parse_size_keyword) {
             Ok(LengthOrPercentageOrKeyword::Keyword(keyword))
         } else {
             Ok(LengthOrPercentageOrKeyword::LengthOrPercentage(
