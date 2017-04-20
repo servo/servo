@@ -12,6 +12,7 @@ crate-type = ["staticlib", "rlib"]
 [features]
 bindgen = ["style/use_bindgen"]
 testing = ["style/testing"]
+gecko_debug = ["style/gecko_debug"]
 
 [dependencies]
 atomic_refcell = "0.1"
