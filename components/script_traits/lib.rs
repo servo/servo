@@ -33,6 +33,7 @@ extern crate serde_derive;
 extern crate servo_url;
 extern crate style_traits;
 extern crate time;
+extern crate webrender_traits;
 extern crate webvr_traits;
 
 mod script_msg;
@@ -47,7 +48,6 @@ use euclid::rect::Rect;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
 use gfx_traits::Epoch;
-use gfx_traits::ScrollRootId;
 use heapsize::HeapSizeOf;
 use hyper::header::Headers;
 use hyper::method::Method;
@@ -71,6 +71,7 @@ use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender};
 use style_traits::{CSSPixel, UnsafeNode};
 use webdriver_msg::{LoadStatus, WebDriverScriptCommand};
+use webrender_traits::ClipId;
 use webvr_traits::{WebVREvent, WebVRMsg};
 
 pub use script_msg::{LayoutMsg, ScriptMsg, EventResult, LogEntry};
@@ -662,7 +663,7 @@ pub enum AnimationTickType {
 #[derive(Copy, Clone, Debug, Deserialize, Serialize)]
 pub struct StackingContextScrollState {
     /// The ID of the scroll root.
-    pub scroll_root_id: ScrollRootId,
+    pub scroll_root_id: ClipId,
     /// The scrolling offset of this stacking context.
     pub scroll_offset: Point2D<f32>,
 }

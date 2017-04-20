@@ -12,7 +12,7 @@ use euclid::point::TypedPoint2D;
 use euclid::rect::TypedRect;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
-use gfx_traits::{Epoch, ScrollRootId};
+use gfx_traits::Epoch;
 use gleam::gl;
 use image::{DynamicImage, ImageFormat, RgbImage};
 use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
@@ -39,7 +39,7 @@ use style_traits::viewport::ViewportConstraints;
 use time::{precise_time_ns, precise_time_s};
 use touch::{TouchHandler, TouchAction};
 use webrender;
-use webrender_traits::{self, LayoutPoint, ScrollEventPhase, ClipId, ScrollLocation};
+use webrender_traits::{self, ClipId, LayoutPoint, ScrollEventPhase, ScrollLocation};
 use windowing::{self, MouseWindowEvent, WindowEvent, WindowMethods, WindowNavigateMsg};
 
 #[derive(Debug, PartialEq)]
@@ -69,19 +69,6 @@ impl ConvertPipelineIdFromWebRender for webrender_traits::PipelineId {
             namespace_id: PipelineNamespaceId(self.0),
             index: PipelineIndex(self.1),
         }
-    }
-}
-
-trait ConvertScrollRootIdFromWebRender {
-    fn from_webrender(&self) -> ScrollRootId;
-}
-
-impl ConvertScrollRootIdFromWebRender for u64 {
-    fn from_webrender(&self) -> ScrollRootId {
-        // This conversion is lossy on 32 bit platforms,
-        // but we only actually use the bottom 32 bits
-        // on Servo anyway.
-        ScrollRootId(*self as usize)
     }
 }
 
@@ -505,9 +492,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.title_for_main_frame();
             }
 
-            (Msg::ScrollFragmentPoint(pipeline_id, scroll_root_id, point, _),
+            (Msg::ScrollFragmentPoint(scroll_root_id, point, _),
              ShutdownState::NotShuttingDown) => {
-                self.scroll_fragment_to_point(pipeline_id, scroll_root_id, point);
+                self.scroll_fragment_to_point(scroll_root_id, point);
             }
 
             (Msg::MoveTo(point),
@@ -793,16 +780,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.composition_request = CompositionRequest::DelayedComposite(timestamp);
     }
 
-    fn scroll_fragment_to_point(&mut self,
-                                pipeline_id: PipelineId,
-                                scroll_root_id: ScrollRootId,
-                                point: Point2D<f32>) {
-        let id = if scroll_root_id.0 == 0 {
-            ClipId::root_scroll_node(pipeline_id.to_webrender())
-        } else {
-            ClipId::new(scroll_root_id.0 as u64, pipeline_id.to_webrender())
-        };
-
+    fn scroll_fragment_to_point(&mut self, id: ClipId, point: Point2D<f32>) {
         self.webrender_api.scroll_node_with_id(LayoutPoint::from_untyped(&point), id);
     }
 
@@ -1395,13 +1373,13 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn send_viewport_rects(&self) {
         let mut stacking_context_scroll_states_per_pipeline = HashMap::new();
         for scroll_layer_state in self.webrender_api.get_scroll_node_state() {
-            let external_id = match scroll_layer_state.id.external_id() {
-                Some(id) => id,
-                None => continue,
-            };
+            if scroll_layer_state.id.external_id().is_none() &&
+               scroll_layer_state.id.is_root_scroll_node() {
+                continue;
+            }
 
             let stacking_context_scroll_state = StackingContextScrollState {
-                scroll_root_id: external_id.from_webrender(),
+                scroll_root_id: scroll_layer_state.id,
                 scroll_offset: scroll_layer_state.scroll_offset.to_untyped(),
             };
 

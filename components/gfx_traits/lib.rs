@@ -19,18 +19,6 @@ pub mod print_tree;
 use range::RangeIndex;
 use std::sync::atomic::{ATOMIC_USIZE_INIT, AtomicUsize, Ordering};
 
-/// The next ID that will be used for a special stacking context.
-///
-/// A special stacking context is a stacking context that is one of (a) the outer stacking context
-/// of an element with `overflow: scroll`; (b) generated content; (c) both (a) and (b).
-static NEXT_SPECIAL_STACKING_CONTEXT_ID: AtomicUsize = ATOMIC_USIZE_INIT;
-
-/// If none of the bits outside this mask are set, the stacking context is a special stacking
-/// context.
-///
-/// Note that we assume that the top 16 bits of the address space are unused on the platform.
-const SPECIAL_STACKING_CONTEXT_ID_MASK: usize = 0xffff;
-
 /// A newtype struct for denoting the age of messages; prevents race conditions.
 #[derive(PartialEq, Eq, Debug, Copy, Clone, PartialOrd, Ord, Deserialize, Serialize)]
 pub struct Epoch(pub u32);
@@ -46,89 +34,29 @@ impl Epoch {
 pub struct StackingContextId(
     /// The identifier for this StackingContext, derived from the Flow's memory address
     /// and fragment type.  As a space optimization, these are combined into a single word.
-    usize
+    u64
 );
 
 impl StackingContextId {
-    #[inline]
-    pub fn new(id: usize) -> StackingContextId {
-        StackingContextId::new_of_type(id, FragmentType::FragmentBody)
-    }
-
-    /// Returns a new stacking context ID for a special stacking context.
-    fn next_special_id() -> usize {
-        // We shift this left by 2 to make room for the fragment type ID.
-        ((NEXT_SPECIAL_STACKING_CONTEXT_ID.fetch_add(1, Ordering::SeqCst) + 1) << 2) &
-            SPECIAL_STACKING_CONTEXT_ID_MASK
-    }
-
-    #[inline]
-    pub fn new_of_type(id: usize, fragment_type: FragmentType) -> StackingContextId {
-        debug_assert_eq!(id & (fragment_type as usize), 0);
-        if fragment_type == FragmentType::FragmentBody {
-            StackingContextId(id)
-        } else {
-            StackingContextId(StackingContextId::next_special_id() | (fragment_type as usize))
-        }
-    }
-
     /// Returns the stacking context ID for the outer document/layout root.
     #[inline]
     pub fn root() -> StackingContextId {
         StackingContextId(0)
     }
+
+    /// Returns a new sacking context id with the given numeric id.
+    #[inline]
+    pub fn new(id: u64) -> StackingContextId {
+        StackingContextId(id)
+    }
 }
 
-/// A unique ID for every scrolling root.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, HeapSizeOf, PartialEq, Serialize)]
-pub struct ScrollRootId(
-    /// The identifier for this StackingContext, derived from the Flow's memory address
-    /// and fragment type.  As a space optimization, these are combined into a single word.
-    pub usize
-);
-
-impl ScrollRootId {
-    /// Returns a new stacking context ID for a special stacking context.
-    fn next_special_id() -> usize {
-        // We shift this left by 2 to make room for the fragment type ID.
-        ((NEXT_SPECIAL_STACKING_CONTEXT_ID.fetch_add(1, Ordering::SeqCst) + 1) << 2) &
-            SPECIAL_STACKING_CONTEXT_ID_MASK
-    }
-
-    #[inline]
-    pub fn new_of_type(id: usize, fragment_type: FragmentType) -> ScrollRootId {
-        debug_assert_eq!(id & (fragment_type as usize), 0);
-        if fragment_type == FragmentType::FragmentBody {
-            ScrollRootId(id)
-        } else {
-            ScrollRootId(ScrollRootId::next_special_id() | (fragment_type as usize))
-        }
-    }
-
-    /// Returns the stacking context ID for the outer document/layout root.
-    #[inline]
-    pub fn root() -> ScrollRootId {
-        ScrollRootId(0)
-    }
-
-    /// Returns true if this is a special stacking context.
-    ///
-    /// A special stacking context is a stacking context that is one of (a) the outer stacking
-    /// context of an element with `overflow: scroll`; (b) generated content; (c) both (a) and (b).
-    #[inline]
-    pub fn is_special(&self) -> bool {
-        (self.0 & !SPECIAL_STACKING_CONTEXT_ID_MASK) == 0
-    }
-
-    #[inline]
-    pub fn id(&self) -> usize {
-        self.0 & !3
-    }
-
-    #[inline]
-    pub fn fragment_type(&self) -> FragmentType {
-        FragmentType::from_usize(self.0 & 3)
-    }
+int_range_index! {
+    #[derive(Deserialize, Serialize)]
+    #[doc = "An index that refers to a byte offset in a text run. This could \
+             point to the middle of a glyph."]
+    #[derive(HeapSizeOf)]
+    struct ByteIndex(isize)
 }
 
 /// The type of fragment that a stacking context represents.
@@ -146,22 +74,37 @@ pub enum FragmentType {
     AfterPseudoContent,
 }
 
-impl FragmentType {
-    #[inline]
-    pub fn from_usize(n: usize) -> FragmentType {
-        debug_assert!(n < 3);
-        match n {
-            0 => FragmentType::FragmentBody,
-            1 => FragmentType::BeforePseudoContent,
-            _ => FragmentType::AfterPseudoContent,
-        }
+/// The next ID that will be used for a special stacking context.
+///
+/// A special stacking context is a stacking context that is one of (a) the outer stacking context
+/// of an element with `overflow: scroll`; (b) generated content; (c) both (a) and (b).
+static NEXT_SPECIAL_STACKING_CONTEXT_ID: AtomicUsize = ATOMIC_USIZE_INIT;
+
+/// If none of the bits outside this mask are set, the stacking context is a special stacking
+/// context.
+///
+/// Note that we assume that the top 16 bits of the address space are unused on the platform.
+const SPECIAL_STACKING_CONTEXT_ID_MASK: usize = 0xffff;
+
+/// Returns a new stacking context ID for a special stacking context.
+fn next_special_id() -> usize {
+    // We shift this left by 2 to make room for the fragment type ID.
+    ((NEXT_SPECIAL_STACKING_CONTEXT_ID.fetch_add(1, Ordering::SeqCst) + 1) << 2) &
+        SPECIAL_STACKING_CONTEXT_ID_MASK
+}
+
+pub fn combine_id_with_fragment_type(id: usize, fragment_type: FragmentType) ->  usize {
+    debug_assert_eq!(id & (fragment_type as usize), 0);
+    if fragment_type == FragmentType::FragmentBody {
+        id
+    } else {
+        next_special_id() | (fragment_type as usize)
     }
 }
 
-int_range_index! {
-    #[derive(Deserialize, Serialize)]
-    #[doc = "An index that refers to a byte offset in a text run. This could \
-             point to the middle of a glyph."]
-    #[derive(HeapSizeOf)]
-    struct ByteIndex(isize)
+pub fn node_id_from_clip_id(id: usize) -> Option<usize> {
+    if (id & !SPECIAL_STACKING_CONTEXT_ID_MASK) != 0 {
+        return Some((id & !3) as usize);
+    }
+    None
 }
