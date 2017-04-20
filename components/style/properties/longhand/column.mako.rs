@@ -23,7 +23,7 @@ ${helpers.predefined_type("column-count",
                           parse_method="parse_positive",
                           initial_specified_value="Either::Second(Auto)",
                           experimental="True",
-                          animation_type="none",
+                          animation_type="normal",
                           extra_prefixes="moz",
                           spec="https://drafts.csswg.org/css-multicol/#propdef-column-count")}
 
