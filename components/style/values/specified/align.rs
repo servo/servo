@@ -155,6 +155,13 @@ impl AlignJustifyContent {
         AlignFlags::from_bits((self.0 >> ALIGN_ALL_SHIFT) as u8)
             .expect("AlignJustifyContent must contain valid flags")
     }
+
+    /// Whether this value has extra flags.
+    #[inline]
+    pub fn has_extra_flags(self) -> bool {
+        self.primary().bits & ALIGN_FLAG_BITS.bits != 0 ||
+        self.fallback().bits & ALIGN_FLAG_BITS.bits != 0
+    }
 }
 
 impl ToCss for AlignJustifyContent {
@@ -213,6 +220,12 @@ impl AlignJustifySelf {
     pub fn auto() -> Self {
         AlignJustifySelf(ALIGN_AUTO)
     }
+
+    /// Whether this value has extra flags.
+    #[inline]
+    pub fn has_extra_flags(self) -> bool {
+        self.0.bits & ALIGN_FLAG_BITS.bits != 0
+    }
 }
 
 no_viewport_percentage!(AlignJustifySelf);
@@ -251,6 +264,12 @@ impl AlignItems {
     pub fn normal() -> Self {
         AlignItems(ALIGN_NORMAL)
     }
+
+    /// Whether this value has extra flags.
+    #[inline]
+    pub fn has_extra_flags(self) -> bool {
+        self.0.bits & ALIGN_FLAG_BITS.bits != 0
+    }
 }
 
 no_viewport_percentage!(AlignItems);
@@ -288,6 +307,12 @@ impl JustifyItems {
     #[inline]
     pub fn auto() -> Self {
         JustifyItems(ALIGN_AUTO)
+    }
+
+    /// Whether this value has extra flags.
+    #[inline]
+    pub fn has_extra_flags(self) -> bool {
+        self.0.bits & ALIGN_FLAG_BITS.bits != 0
     }
 }
 
