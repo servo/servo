@@ -76,10 +76,31 @@ impl ToCss for FontRelativeLength {
     }
 }
 
+/// A source to resolve font-relative units against
+pub enum FontBaseSize {
+    /// Use the font-size of the current element
+    CurrentStyle,
+    /// Use the inherited font-size
+    InheritedStyle,
+    /// Use a custom base size
+    Custom(Au),
+}
+
+impl FontBaseSize {
+    /// Calculate the actual size for a given context
+    pub fn resolve(&self, context: &Context) -> Au {
+        match *self {
+            FontBaseSize::Custom(size) => size,
+            FontBaseSize::CurrentStyle => context.style().get_font().clone_font_size(),
+            FontBaseSize::InheritedStyle => context.inherited_style().get_font().clone_font_size(),
+        }
+    }
+}
+
 impl FontRelativeLength {
-    /// Computes the font-relative length. We use the use_inherited flag to
-    /// special-case the computation of font-size.
-    pub fn to_computed_value(&self, context: &Context, use_inherited: bool) -> Au {
+    /// Computes the font-relative length. We use the base_size
+    /// flag to pass a different size for computing font-size and unconstrained font-size
+    pub fn to_computed_value(&self, context: &Context, base_size: FontBaseSize) -> Au {
         fn query_font_metrics(context: &Context, reference_font_size: Au) -> FontMetricsQueryResult {
             context.font_metrics_provider.query(context.style().get_font(),
                                                 reference_font_size,
@@ -88,11 +109,7 @@ impl FontRelativeLength {
                                                 context.device)
         }
 
-        let reference_font_size = if use_inherited {
-            context.inherited_style().get_font().clone_font_size()
-        } else {
-            context.style().get_font().clone_font_size()
-        };
+        let reference_font_size = base_size.resolve(context);
 
         let root_font_size = context.style().root_font_size;
         match *self {

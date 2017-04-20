@@ -413,11 +413,13 @@ ${helpers.single_keyword("font-variant-caps",
 <%helpers:longhand name="font-size" need_clone="True" animation_type="normal"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-size">
     use app_units::Au;
+    use properties::style_structs::Font;
     use std::fmt;
     use style_traits::ToCss;
     use values::{FONT_MEDIUM_PX, HasViewportPercentage};
     use values::specified::{FontRelativeLength, LengthOrPercentage, Length};
     use values::specified::{NoCalcLength, Percentage};
+    use values::specified::length::FontBaseSize;
 
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
@@ -627,6 +629,43 @@ ${helpers.single_keyword("font-variant-caps",
             }
             None
         }
+
+        /// Compute it against a given base font size
+        pub fn to_computed_value_against(&self, context: &Context, base_size: FontBaseSize) -> Au {
+            use values::specified::length::FontRelativeLength;
+            match *self {
+                SpecifiedValue::Length(LengthOrPercentage::Length(
+                        NoCalcLength::FontRelative(value))) => {
+                    value.to_computed_value(context, base_size)
+                }
+                SpecifiedValue::Length(LengthOrPercentage::Length(
+                        NoCalcLength::ServoCharacterWidth(value))) => {
+                    value.to_computed_value(base_size.resolve(context))
+                }
+                SpecifiedValue::Length(LengthOrPercentage::Length(ref l)) => {
+                    l.to_computed_value(context)
+                }
+                SpecifiedValue::Length(LengthOrPercentage::Percentage(Percentage(value))) => {
+                    base_size.resolve(context).scale_by(value)
+                }
+                SpecifiedValue::Length(LengthOrPercentage::Calc(ref calc)) => {
+                    let calc = calc.to_computed_value(context);
+                    calc.length() + base_size.resolve(context)
+                                             .scale_by(calc.percentage())
+                }
+                SpecifiedValue::Keyword(ref key, fraction) => {
+                    key.to_computed_value(context).scale_by(fraction)
+                }
+                SpecifiedValue::Smaller => {
+                    FontRelativeLength::Em(0.85)
+                        .to_computed_value(context, base_size)
+                }
+                SpecifiedValue::Larger => {
+                    FontRelativeLength::Em(1.2)
+                        .to_computed_value(context, base_size)
+                }
+            }
+        }
     }
 
     #[inline]
@@ -640,44 +679,13 @@ ${helpers.single_keyword("font-variant-caps",
         SpecifiedValue::Keyword(Medium, 1.)
     }
 
+
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
 
         #[inline]
         fn to_computed_value(&self, context: &Context) -> computed_value::T {
-            use values::specified::length::FontRelativeLength;
-            match *self {
-                SpecifiedValue::Length(LengthOrPercentage::Length(
-                        NoCalcLength::FontRelative(value))) => {
-                    value.to_computed_value(context, /* use inherited */ true)
-                }
-                SpecifiedValue::Length(LengthOrPercentage::Length(
-                        NoCalcLength::ServoCharacterWidth(value))) => {
-                    value.to_computed_value(context.inherited_style().get_font().clone_font_size())
-                }
-                SpecifiedValue::Length(LengthOrPercentage::Length(ref l)) => {
-                    l.to_computed_value(context)
-                }
-                SpecifiedValue::Length(LengthOrPercentage::Percentage(Percentage(value))) => {
-                    context.inherited_style().get_font().clone_font_size().scale_by(value)
-                }
-                SpecifiedValue::Length(LengthOrPercentage::Calc(ref calc)) => {
-                    let calc = calc.to_computed_value(context);
-                    calc.length() + context.inherited_style().get_font().clone_font_size()
-                                           .scale_by(calc.percentage())
-                }
-                SpecifiedValue::Keyword(ref key, fraction) => {
-                    key.to_computed_value(context).scale_by(fraction)
-                }
-                SpecifiedValue::Smaller => {
-                    FontRelativeLength::Em(0.85).to_computed_value(context,
-                                                                   /* use_inherited */ true)
-                }
-                SpecifiedValue::Larger => {
-                    FontRelativeLength::Em(1.2).to_computed_value(context,
-                                                                   /* use_inherited */ true)
-                }
-            }
+            self.to_computed_value_against(context, FontBaseSize::InheritedStyle)
         }
 
         #[inline]
@@ -702,6 +710,66 @@ ${helpers.single_keyword("font-variant-caps",
             "larger" => Ok(SpecifiedValue::Larger),
             _ => Err(())
         }
+    }
+
+    pub fn cascade_specified_font_size(context: &mut Context,
+                                      specified_value: &SpecifiedValue,
+                                      computed: Au,
+                                      parent: &Font) {
+        if let SpecifiedValue::Keyword(kw, fraction)
+                            = *specified_value {
+            context.mutate_style().font_size_keyword = Some((kw, fraction));
+        } else if let Some(ratio) = specified_value.as_font_ratio() {
+            // In case a font-size-relative value was applied to a keyword
+            // value, we must preserve this fact in case the generic font family
+            // changes. relative values (em and %) applied to keywords must be
+            // recomputed from the base size for the keyword and the relative size.
+            //
+            // See bug 1355707
+            if let Some((kw, fraction)) = context.inherited_style().font_size_keyword {
+                context.mutate_style().font_size_keyword = Some((kw, fraction * ratio));
+            } else {
+                context.mutate_style().font_size_keyword = None;
+            }
+        } else {
+            context.mutate_style().font_size_keyword = None;
+        }
+
+        let parent_unconstrained = context.mutate_style()
+                                       .mutate_font()
+                                       .apply_font_size(computed,
+                                                        parent);
+
+        if let Some(parent) = parent_unconstrained {
+            let new_unconstrained = specified_value
+                        .to_computed_value_against(context, FontBaseSize::Custom(parent));
+            context.mutate_style()
+                   .mutate_font()
+                   .apply_unconstrained_font_size(new_unconstrained);
+        }
+    }
+
+    pub fn cascade_inherit_font_size(context: &mut Context, parent: &Font) {
+        // If inheriting, we must recompute font-size in case of language changes
+        // using the font_size_keyword. We also need to do this to handle
+        // mathml scriptlevel changes
+        let kw_inherited_size = context.style().font_size_keyword.map(|(kw, ratio)| {
+            SpecifiedValue::Keyword(kw, ratio).to_computed_value(context)
+        });
+        context.mutate_style().mutate_font()
+               .inherit_font_size_from(parent, kw_inherited_size);
+        context.mutate_style().font_size_keyword =
+            context.inherited_style.font_size_keyword;
+    }
+
+    pub fn cascade_initial_font_size(context: &mut Context) {
+        // font-size's default ("medium") does not always
+        // compute to the same value and depends on the font
+        let computed = longhands::font_size::get_initial_specified_value()
+                            .to_computed_value(context);
+        context.mutate_style().mutate_${data.current_style_struct.name_lower}()
+               .set_font_size(computed);
+        context.mutate_style().font_size_keyword = Some((Default::default(), 1.));
     }
 </%helpers:longhand>
 
