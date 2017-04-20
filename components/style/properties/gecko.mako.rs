@@ -1274,6 +1274,40 @@ fn static_assert() {
     skip_longhands="${skip_font_longhands}"
     skip_additionals="*">
 
+    pub fn set_font_feature_settings(&mut self, v: longhands::font_feature_settings::T) {
+        use properties::longhands::font_feature_settings::computed_value::FeatureTagValue;
+        use gecko_bindings::structs::{gfxFontVariation, nsTArray, gfxFontFeature};
+
+        let current_settings = &mut self.gecko.mFont.fontFeatureSettings;
+        current_settings.clear_pod();
+
+        match v {
+            Normal => current_settings.set_len_pod(0),
+            Tag(values) => {
+                current_settings.set_len_pod(values.len());
+                let arr: [gfxFontFeature] = current_settings.deref_mut();
+
+                for (index,val) in values.iter().enumerate() {
+                    arr[index].mTag = val.tag;
+                    arr[index].mValue = val.value;
+                }
+            }
+        };
+    }
+
+    pub fn copy_font_feature_settings_from(&mut self, other: &Self ) {
+        let current_settings = &mut self.gecko.mFont.fontFeatureSettings;
+        let future_settings = other.gecko.mFont.fontFeatureSettings;
+        let settings_length = future_settings.header().mLength;
+
+        current_settings.clear_pod();
+        current_settings.set_len_pod(settings_length);
+        for (index,val) in future_settings.iter().enumerte() {
+            current_settings[index].mTag = val.tag;
+            current_settings[index].mValue = val.value;
+        }
+    }
+
     pub fn set_font_family(&mut self, v: longhands::font_family::computed_value::T) {
         use properties::longhands::font_family::computed_value::FontFamily;
         use gecko_bindings::structs::FontFamilyType;

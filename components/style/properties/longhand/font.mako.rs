@@ -1767,8 +1767,8 @@ ${helpers.single_keyword_system("font-variant-position",
         #[derive(Debug, Clone, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct FeatureTagValue {
-            pub tag: String,
-            pub value: i32
+            pub tag: u32,
+            pub value: u32
         }
 
         impl ToCss for T {
@@ -1792,10 +1792,15 @@ ${helpers.single_keyword_system("font-variant-position",
 
         impl ToCss for FeatureTagValue {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                use std::{mem,str};
+
+                let raw: [u8;4] = unsafe{mem::transmute(self.tag)};
+                let str_print = str::from_utf8(&raw).unwrap_or_default();
+
                 match self.value {
-                    1 => write!(dest, "\"{}\"", self.tag),
-                    0 => write!(dest, "\"{}\" off", self.tag),
-                    x => write!(dest, "\"{}\" {}", self.tag, x)
+                    1 => write!(dest, "\"{}\"", str_print),
+                    0 => write!(dest, "\"{}\" off",str_print),
+                    x => write!(dest, "\"{}\" {}", str_print, x)
                 }
             }
         }
@@ -1804,6 +1809,8 @@ ${helpers.single_keyword_system("font-variant-position",
             /// https://www.w3.org/TR/css-fonts-3/#propdef-font-feature-settings
             /// <string> [ on | off | <integer> ]
             fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+                use std::{mem,str};
+                use std::ops::Deref;
                 let tag = try!(input.expect_string());
 
                 // allowed strings of length 4 containing chars: <U+20, U+7E>
@@ -1813,22 +1820,31 @@ ${helpers.single_keyword_system("font-variant-position",
                     return Err(())
                 }
 
+                let b_tag = tag.deref().as_bytes();
+                let mut buff: [u8;4] = [0;4];
+
+                for i in 0..4 {
+                    buff[i] = b_tag[i];
+                }
+
+                let u_tag: u32 = unsafe{mem::transmute(buff)};
+
                 if let Ok(value) = input.try(|input| input.expect_integer()) {
                     // handle integer, throw if it is negative
                     if value >= 0 {
-                        Ok(FeatureTagValue { tag: tag.into_owned(), value: value })
+                        Ok(FeatureTagValue { tag: u_tag, value: value as u32 })
                     } else {
                         Err(())
                     }
                 } else if let Ok(_) = input.try(|input| input.expect_ident_matching("on")) {
                     // on is an alias for '1'
-                    Ok(FeatureTagValue { tag: tag.into_owned(), value: 1 })
+                    Ok(FeatureTagValue { tag: u_tag, value: 1 })
                 } else if let Ok(_) = input.try(|input| input.expect_ident_matching("off")) {
                     // off is an alias for '0'
-                    Ok(FeatureTagValue { tag: tag.into_owned(), value: 0 })
+                    Ok(FeatureTagValue { tag: u_tag, value: 0 })
                 } else {
                     // empty value is an alias for '1'
-                    Ok(FeatureTagValue { tag:tag.into_owned(), value: 1 })
+                    Ok(FeatureTagValue { tag: u_tag, value: 1 })
                 }
             }
         }
