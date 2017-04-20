@@ -31,6 +31,7 @@ ${helpers.predefined_type("-moz-box-flex", "Number", "0.0", "parse_non_negative"
 
 ${helpers.single_keyword("-moz-box-orient", "horizontal vertical",
                          products="gecko", gecko_ffi_name="mBoxOrient",
+                         extra_gecko_aliases="inline-axis=horizontal block-axis=vertical",
                          gecko_enum_prefix="StyleBoxOrient",
                          animation_type="none",
                          alias="-webkit-box-orient",
