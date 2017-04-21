@@ -111,16 +111,16 @@ linux-nightly:
 
 android:
   - ./mach clean-nightlies --keep 3 --force
-  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ANDROID_SDK=/home/servo/android/sdk/r25.2.3 ./mach build --android --dev
-  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ANDROID_SDK=/home/servo/android/sdk/r25.2.3 ./mach package --android --dev
+  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach build --android --dev
+  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach package --android --dev
   - bash ./etc/ci/lockfile_changed.sh
   - bash ./etc/ci/manifest_changed.sh
   - python ./etc/ci/check_dynamic_symbols.py
 
 android-nightly:
   - ./mach clean-nightlies --keep 3 --force
-  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ANDROID_SDK=/home/servo/android/sdk/r25.2.3 ./mach build --android --release
-  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ANDROID_SDK=/home/servo/android/sdk/r25.2.3 ./mach package --android --release
+  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach build --android --release
+  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach package --android --release
   - ./mach upload-nightly android
 
 arm32:
