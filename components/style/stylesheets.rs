@@ -1131,6 +1131,11 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
                 } else {
                     None
                 };
+                if cfg!(feature = "servo") &&
+                   prefix.as_ref().map_or(false, |p| matches!(*p, VendorPrefix::Moz)) {
+                    // Servo should not support @-moz-keyframes.
+                    return Err(())
+                }
                 let name = match input.next() {
                     Ok(Token::Ident(ref value)) if value != "none" => Atom::from(&**value),
                     Ok(Token::QuotedString(value)) => Atom::from(&*value),
