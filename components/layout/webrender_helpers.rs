@@ -258,10 +258,12 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                         };
                         if !slice.glyphs.is_whitespace() {
                             let glyph_offset = glyph.offset().unwrap_or(Point2D::zero());
+                            let x = (origin.x + glyph_offset.x).to_f32_px();
+                            let y = (origin.y + glyph_offset.y).to_f32_px();
+                            let point = webrender_traits::LayoutPoint::new(x, y);
                             let glyph = webrender_traits::GlyphInstance {
                                 index: glyph.id(),
-                                point: Point2D::new((origin.x + glyph_offset.x).to_f32_px(),
-                                                    (origin.y + glyph_offset.y).to_f32_px()),
+                                point: point,
                             };
                             glyphs.push(glyph);
                         }
