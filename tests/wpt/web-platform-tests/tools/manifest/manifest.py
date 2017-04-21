@@ -85,6 +85,10 @@ class Manifest(object):
                 else:
                     new_type, manifest_items = old_type, self._data[old_type][rel_path]
             else:
+                # Issue #15725: Skip git ignored files
+                from vcs import Git
+                if Git.is_ignored(source_file.tests_root, source_file.rel_path):
+                    continue
                 new_type, manifest_items = source_file.manifest_items()
 
             if new_type in ("reftest", "reftest_node"):

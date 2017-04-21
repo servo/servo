@@ -25,6 +25,15 @@ class Git(object):
         except subprocess.CalledProcessError:
             return None
 
+    @staticmethod
+    def is_ignored(dir_base, rel_path):
+        git = Git.get_func(dir_base)
+        try:
+            git("check-ignore", "-q", rel_path)
+            return True
+        except subprocess.CalledProcessError:
+            return False
+
     def _local_changes(self):
         changes = {}
         cmd = ["status", "-z", "--ignore-submodules=all"]
