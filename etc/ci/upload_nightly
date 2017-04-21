@@ -1,0 +1,144 @@
+#!/usr/bin/env python3
+
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+from __future__ import absolute_import, print_function
+
+from datetime import datetime, timezone
+import os.path
+import subprocess
+import sys
+import tempfile
+
+
+PACKAGES = {
+    'android': [
+        'target/arm-linux-androideabi/release/servo.apk',
+    ],
+    'linux': [
+        'target/release/servo-tech-demo.tar.gz',
+    ],
+    'mac': [
+        'target/release/servo-tech-demo.dmg',
+    ],
+    'macbrew': [
+        'target/release/brew/servo.tar.gz',
+    ],
+    'windows-msvc': [
+        r'target\release\msi\Servo.msi',
+        r'target\release\msi\Servo.zip',
+    ],
+}
+USAGE = "usage: {}".format('|'.join(sorted(PACKAGES.keys())))
+
+
+def nightly_filename(package, timestamp):
+    return '{}-{}'.format(
+        timestamp.isoformat() + 'Z',  # The `Z` denotes UTC
+        os.path.basename(package)
+    )
+
+
+def upload_nightly(platform, package, timestamp):
+    extension = os.path.basename(package).partition('.')[2]
+    filename = nightly_filename(package, timestamp)
+    nightly_upload_dir = 's3://servo-builds/nightly/{}'.format(platform)
+    package_upload_path = '{}/{}'.format(nightly_upload_dir, filename)
+    subprocess.check_call([
+        'echo',
+        's3cmd',
+        '--mime-type=application/octet-stream',
+        'put',
+        package,
+        package_upload_path,
+    ])
+    subprocess.check_call([
+        'echo',
+        's3cmd',
+        'cp',
+        package_upload_path,
+        '{}/servo-latest.{}'.format(nightly_upload_dir, extension),
+    ])
+
+
+def update_brew(package, timestamp):
+    print("Updating brew formula")
+
+    package_url = 'https://download.servo.org/nightly/macbrew/{}'.format(
+        nightly_filename(package, timestamp)
+    )
+    with open(package) as p:
+        digest = hashlib.sha256(p.read()).hexdigest()
+
+    brew_version = timestamp.strftime('%Y.%m.%d')
+
+    with tempfile.TemporaryDirectory(prefix='homebrew-servo') as tmp_dir:
+        def call_git(cmd, **kwargs):
+            subprocess.check_call(
+                ['echo', 'git', '-C', tmp_dir] + cmd,
+                **kwargs
+            )
+
+        call_git([
+            'clone',
+            'https://github.com/servo/homebrew-servo.git',
+            '.',
+        ])
+
+        script_dir = os.path.dirname(os.path.realpath(__file__))
+        with open(os.path.join(script_dir, 'servo-binary-formula.rb.in')) as f:
+            formula = f.read()
+        formula = formula.replace('PACKAGEURL', package_url)
+        formula = formula.replace('SHA', digest)
+        formula = formula.replace('VERSION', brew_version)
+        with open(os.path.join(tmp_dir, 'Formula', 'servo-bin.rb')) as f:
+            f.write(formula)
+
+        call_git(['add', os.path.join('.', 'Formula', 'servo-bin.rb')])
+        call_git([
+            '-c', 'user.name=Tom Servo',
+            '-c', 'user.email=servo@servo.org',
+            'commit',
+            '--message=Version Bump: {}'.format(brew_version),
+        ])
+
+        token = os.environ['GITHUB_HOMEBREW_TOKEN']
+        call_git([
+            'push',
+            '-qf',
+            'https://{}@github.com/servo/homebrew-servo.git'.format(token),
+            'master',
+        ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def main(argv):
+    usage = USAGE.format(argv[0])
+    if len(argv) != 2:
+        print(usage, file=sys.stderr)
+        return 1
+
+    platform = argv[1]
+    if platform not in PACKAGES:
+        print(usage, file=sys.stderr)
+        return 1
+
+    timestamp = datetime.utcnow().replace(microsecond=0)
+    for package in PACKAGES[platform]:
+        if not os.path.isfile(package):
+            print("Could not find package for {} at {}".format(
+                platform,
+                package
+            ), file=sys.stderr)
+            return 1
+        upload_nightly(platform, package, timestamp)
+
+    if platform == 'macbrew':
+        update_brew(package, timestamp)
+
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main(sys.argv))
