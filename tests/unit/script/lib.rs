@@ -7,6 +7,7 @@ extern crate msg;
 extern crate script;
 extern crate servo_url;
 
+#[cfg(test)] mod bluetooth_uuid;
 #[cfg(test)] mod origin;
 #[cfg(all(test, target_pointer_width = "64"))] mod size_of;
 #[cfg(test)] mod textinput;
