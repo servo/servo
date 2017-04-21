@@ -54,6 +54,7 @@ use gecko::values::convert_rgba_to_nscolor;
 use gecko::values::GeckoStyleCoordConvertible;
 use gecko::values::round_border_to_device_pixels;
 use logical_geometry::WritingMode;
+use media_queries::Device;
 use properties::animated_properties::TransitionProperty;
 use properties::longhands;
 use properties::{Importance, LonghandId};
@@ -1374,12 +1375,20 @@ fn static_assert() {
         }
     }
 
+    pub fn fixup_none_generic(&mut self, device: &Device) {
+        unsafe {
+            bindings::Gecko_nsStyleFont_FixupNoneGeneric(&mut self.gecko, &*device.pres_context)
+        }
+    }
+
     pub fn set_font_family(&mut self, v: longhands::font_family::computed_value::T) {
         use properties::longhands::font_family::computed_value::FontFamily;
         use gecko_bindings::structs::FontFamilyType;
 
         let list = &mut self.gecko.mFont.fontlist;
         unsafe { Gecko_FontFamilyList_Clear(list); }
+
+        self.gecko.mGenericID = structs::kGenericFont_NONE;
 
         for family in &v.0 {
             match *family {
@@ -1428,6 +1437,7 @@ fn static_assert() {
 
     pub fn copy_font_family_from(&mut self, other: &Self) {
         unsafe { Gecko_CopyFontFamilyFrom(&mut self.gecko.mFont, &other.gecko.mFont); }
+        self.gecko.mGenericID = other.gecko.mGenericID;
     }
 
     // FIXME(bholley): Gecko has two different sizes, one of which (mSize) is the
