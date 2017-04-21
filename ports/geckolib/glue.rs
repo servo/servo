@@ -74,7 +74,7 @@ use style::parser::{LengthParsingMode, ParserContext};
 use style::properties::{CascadeFlags, ComputedValues, Importance, ParsedDeclaration};
 use style::properties::{PropertyDeclarationBlock, PropertyId};
 use style::properties::SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP;
-use style::properties::animated_properties::{AnimationValue, Interpolate, TransitionProperty};
+use style::properties::animated_properties::{AnimationValue, ComputeDistance, Interpolate, TransitionProperty};
 use style::properties::parse_one_declaration;
 use style::restyle_hints::{self, RestyleHint};
 use style::rule_tree::StyleSource;
@@ -263,6 +263,15 @@ pub extern "C" fn Servo_AnimationValues_IsInterpolable(from: RawServoAnimationVa
     let from_value = AnimationValue::as_arc(&from);
     let to_value = AnimationValue::as_arc(&to);
     from_value.interpolate(to_value, 0.5).is_ok()
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_AnimationValues_ComputeDistance(from: RawServoAnimationValueBorrowed,
+                                                        to: RawServoAnimationValueBorrowed)
+                                                        -> f64 {
+    let from_value = AnimationValue::as_arc(&from);
+    let to_value = AnimationValue::as_arc(&to);
+    from_value.compute_distance(to_value).unwrap_or(0.0)
 }
 
 #[no_mangle]

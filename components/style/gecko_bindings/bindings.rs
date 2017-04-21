@@ -1754,6 +1754,13 @@ extern "C" {
      -> bool;
 }
 extern "C" {
+    pub fn Servo_AnimationValues_ComputeDistance(from:
+                                                     RawServoAnimationValueBorrowed,
+                                                 to:
+                                                     RawServoAnimationValueBorrowed)
+     -> f64;
+}
+extern "C" {
     pub fn Servo_AnimationValue_Serialize(value:
                                               RawServoAnimationValueBorrowed,
                                           property: nsCSSPropertyID,
