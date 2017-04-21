@@ -777,6 +777,8 @@ pub struct WorkerGlobalScopeInit {
     pub worker_id: WorkerId,
     /// The pipeline id
     pub pipeline_id: PipelineId,
+    /// The origin
+    pub origin: ImmutableOrigin,
 }
 
 /// Common entities representing a network load origin
