@@ -14,10 +14,13 @@ use style::values::specified::{LengthOrPercentageOrAuto, NoCalcLength};
 fn test_empty_keyframe() {
     let shared_lock = SharedRwLock::new();
     let keyframes = vec![];
-    let animation = KeyframesAnimation::from_keyframes(&keyframes, &shared_lock.read());
+    let animation = KeyframesAnimation::from_keyframes(&keyframes,
+                                                       /* vendor_prefix = */ None,
+                                                       &shared_lock.read());
     let expected = KeyframesAnimation {
         steps: vec![],
         properties_changed: vec![],
+        vendor_prefix: None,
     };
 
     assert_eq!(format!("{:#?}", animation), format!("{:#?}", expected));
@@ -32,10 +35,13 @@ fn test_no_property_in_keyframe() {
             block: Arc::new(shared_lock.wrap(PropertyDeclarationBlock::new()))
         })),
     ];
-    let animation = KeyframesAnimation::from_keyframes(&keyframes, &shared_lock.read());
+    let animation = KeyframesAnimation::from_keyframes(&keyframes,
+                                                       /* vendor_prefix = */ None,
+                                                       &shared_lock.read());
     let expected = KeyframesAnimation {
         steps: vec![],
         properties_changed: vec![],
+        vendor_prefix: None,
     };
 
     assert_eq!(format!("{:#?}", animation), format!("{:#?}", expected));
@@ -78,7 +84,9 @@ fn test_missing_property_in_initial_keyframe() {
             block: declarations_on_final_keyframe.clone(),
         })),
     ];
-    let animation = KeyframesAnimation::from_keyframes(&keyframes, &shared_lock.read());
+    let animation = KeyframesAnimation::from_keyframes(&keyframes,
+                                                       /* vendor_prefix = */ None,
+                                                       &shared_lock.read());
     let expected = KeyframesAnimation {
         steps: vec![
             KeyframesStep {
@@ -93,6 +101,7 @@ fn test_missing_property_in_initial_keyframe() {
             },
         ],
         properties_changed: vec![TransitionProperty::Width, TransitionProperty::Height],
+        vendor_prefix: None,
     };
 
     assert_eq!(format!("{:#?}", animation), format!("{:#?}", expected));
@@ -135,7 +144,9 @@ fn test_missing_property_in_final_keyframe() {
             block: declarations_on_final_keyframe.clone(),
         })),
     ];
-    let animation = KeyframesAnimation::from_keyframes(&keyframes, &shared_lock.read());
+    let animation = KeyframesAnimation::from_keyframes(&keyframes,
+                                                       /* vendor_prefix = */ None,
+                                                       &shared_lock.read());
     let expected = KeyframesAnimation {
         steps: vec![
             KeyframesStep {
@@ -150,6 +161,7 @@ fn test_missing_property_in_final_keyframe() {
             },
         ],
         properties_changed: vec![TransitionProperty::Width, TransitionProperty::Height],
+        vendor_prefix: None,
     };
 
     assert_eq!(format!("{:#?}", animation), format!("{:#?}", expected));
@@ -184,7 +196,9 @@ fn test_missing_keyframe_in_both_of_initial_and_final_keyframe() {
             block: declarations.clone(),
         })),
     ];
-    let animation = KeyframesAnimation::from_keyframes(&keyframes, &shared_lock.read());
+    let animation = KeyframesAnimation::from_keyframes(&keyframes,
+                                                       /* vendor_prefix = */ None,
+                                                       &shared_lock.read());
     let expected = KeyframesAnimation {
         steps: vec![
             KeyframesStep {
@@ -209,6 +223,7 @@ fn test_missing_keyframe_in_both_of_initial_and_final_keyframe() {
             }
         ],
         properties_changed: vec![TransitionProperty::Width, TransitionProperty::Height],
+        vendor_prefix: None,
     };
 
     assert_eq!(format!("{:#?}", animation), format!("{:#?}", expected));

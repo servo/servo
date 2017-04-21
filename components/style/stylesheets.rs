@@ -36,6 +36,7 @@ use std::cell::Cell;
 use std::fmt;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use str::starts_with_ignore_ascii_case;
 use style_traits::ToCss;
 use stylist::FnvHashMap;
 use supports::SupportsCondition;
@@ -529,6 +530,8 @@ pub struct KeyframesRule {
     pub name: Atom,
     /// The keyframes specified for this CSS rule.
     pub keyframes: Vec<Arc<Locked<Keyframe>>>,
+    /// Vendor prefix type the @keyframes has.
+    pub vendor_prefix: Option<VendorPrefix>,
 }
 
 impl ToCssWithGuard for KeyframesRule {
@@ -913,6 +916,15 @@ pub enum State {
     Invalid = 5,
 }
 
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+/// Vendor prefix.
+pub enum VendorPrefix {
+    /// -moz prefix.
+    Moz,
+    /// -webkit prefix.
+    WebKit,
+}
 
 enum AtRulePrelude {
     /// A @font-face rule prelude.
@@ -923,8 +935,8 @@ enum AtRulePrelude {
     Supports(SupportsCondition),
     /// A @viewport rule prelude.
     Viewport,
-    /// A @keyframes rule, with its animation name.
-    Keyframes(Atom),
+    /// A @keyframes rule, with its animation name and vendor prefix if exists.
+    Keyframes(Atom, Option<VendorPrefix>),
     /// A @page rule prelude.
     Page,
 }
@@ -1111,14 +1123,21 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
                     Err(())
                 }
             },
-            "keyframes" => {
+            "keyframes" | "-webkit-keyframes" | "-moz-keyframes" => {
+                let prefix = if starts_with_ignore_ascii_case(name, "-webkit-") {
+                    Some(VendorPrefix::WebKit)
+                } else if starts_with_ignore_ascii_case(name, "-moz-") {
+                    Some(VendorPrefix::Moz)
+                } else {
+                    None
+                };
                 let name = match input.next() {
                     Ok(Token::Ident(ref value)) if value != "none" => Atom::from(&**value),
                     Ok(Token::QuotedString(value)) => Atom::from(&*value),
                     _ => return Err(())
                 };
 
-                Ok(AtRuleType::WithBlock(AtRulePrelude::Keyframes(Atom::from(name))))
+                Ok(AtRuleType::WithBlock(AtRulePrelude::Keyframes(Atom::from(name), prefix)))
             },
             "page" => {
                 if cfg!(feature = "gecko") {
@@ -1157,11 +1176,12 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
                 Ok(CssRule::Viewport(Arc::new(self.shared_lock.wrap(
                    try!(ViewportRule::parse(&context, input))))))
             }
-            AtRulePrelude::Keyframes(name) => {
+            AtRulePrelude::Keyframes(name, prefix) => {
                 let context = ParserContext::new_with_rule_type(self.context, Some(CssRuleType::Keyframes));
                 Ok(CssRule::Keyframes(Arc::new(self.shared_lock.wrap(KeyframesRule {
                     name: name,
                     keyframes: parse_keyframe_list(&context, input, self.shared_lock),
+                    vendor_prefix: prefix,
                 }))))
             }
             AtRulePrelude::Page => {
