@@ -13,6 +13,13 @@ LOGICAL_SIZES = ["block-size", "inline-size"]
 ALL_SIDES = [(side, False) for side in PHYSICAL_SIDES] + [(side, True) for side in LOGICAL_SIDES]
 ALL_SIZES = [(size, False) for size in PHYSICAL_SIZES] + [(size, True) for size in LOGICAL_SIZES]
 
+SYSTEM_FONT_LONGHANDS = """font_family font_size font_style
+                           font_variant_caps font_stretch font_kerning
+                           font_variant_position font_weight
+                           font_size_adjust font_variant_alternates
+                           font_variant_ligatures font_variant_east_asian
+                           font_variant_numeric font_language_override""".split()
+
 
 def maybe_moz_logical_alias(product, side, prop):
     if product == "gecko" and side[1]:
@@ -31,6 +38,11 @@ def to_rust_ident(name):
 
 def to_camel_case(ident):
     return re.sub("(^|_|-)([a-z])", lambda m: m.group(2).upper(), ident.strip("_").strip("-"))
+
+
+def to_camel_case_lower(ident):
+    camel = to_camel_case(ident)
+    return camel[0].lower() + camel[1:]
 
 
 def parse_aliases(value):
