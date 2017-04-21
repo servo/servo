@@ -24,4 +24,7 @@ ply == 3.8
 # For Cross-platform colored terminal text
 colorama == 0.3.7
 
+# For package uploading
+boto3 == 1.4.4
+
 -e python/tidy
