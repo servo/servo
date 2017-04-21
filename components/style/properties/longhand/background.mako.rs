@@ -334,7 +334,7 @@ ${helpers.single_keyword("background-origin",
     #[allow(missing_docs)]
     pub mod computed_value {
         use values::computed::LengthOrPercentageOrAuto;
-        use properties::animated_properties::{Interpolate, RepeatableListInterpolate};
+        use properties::animated_properties::{ComputeDistance, Interpolate, RepeatableListInterpolate};
 
         #[derive(PartialEq, Clone, Debug)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -364,6 +364,24 @@ ${helpers.single_keyword("background-origin",
                         }))
                     }
                     _ => Err(()),
+                }
+            }
+        }
+
+        impl ComputeDistance for T {
+            #[inline]
+            fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
+                self.compute_squared_distance(other).map(|sd| sd.sqrt())
+            }
+
+            #[inline]
+            fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
+                match (self, other) {
+                    (&T::Explicit(ref me), &T::Explicit(ref other)) => {
+                        Ok(try!(me.width.compute_squared_distance(&other.width)) +
+                           try!(me.height.compute_squared_distance(&other.height)))
+                    },
+                    _ => Err(())
                 }
             }
         }

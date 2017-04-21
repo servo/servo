@@ -818,7 +818,7 @@ ${helpers.single_keyword("font-variant-caps",
     }
 
     pub mod computed_value {
-        use properties::animated_properties::Interpolate;
+        use properties::animated_properties::{ComputeDistance, Interpolate};
         use std::fmt;
         use style_traits::ToCss;
         use values::CSSFloat;
@@ -846,6 +846,17 @@ ${helpers.single_keyword("font-variant-caps",
                 match (*self, *other) {
                     (T::Number(ref number), T::Number(ref other)) =>
                         Ok(T::Number(try!(number.interpolate(other, time)))),
+                    _ => Err(()),
+                }
+            }
+        }
+
+        impl ComputeDistance for T {
+            #[inline]
+            fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
+                match (*self, *other) {
+                    (T::Number(ref number), T::Number(ref other)) =>
+                        number.compute_distance(other),
                     _ => Err(()),
                 }
             }
