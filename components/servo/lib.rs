@@ -17,6 +17,7 @@
 //! The `Browser` is fed events from a generic type that implements the
 //! `WindowMethods` trait.
 
+
 extern crate env_logger;
 #[cfg(not(target_os = "windows"))]
 extern crate gaol;
