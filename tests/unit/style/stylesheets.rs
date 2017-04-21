@@ -245,7 +245,8 @@ fn test_parse_stylesheet() {
                              Importance::Normal),
                         ]))),
                     })),
-                ]
+                ],
+                vendor_prefix: None,
             })))
 
         ], &stylesheet.shared_lock),

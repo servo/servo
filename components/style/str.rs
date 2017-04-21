@@ -7,6 +7,7 @@
 #![deny(missing_docs)]
 
 use num_traits::ToPrimitive;
+use std::ascii::AsciiExt;
 use std::convert::AsRef;
 use std::iter::{Filter, Peekable};
 use std::str::Split;
@@ -143,4 +144,10 @@ pub fn str_join<I, T>(strs: I, join: &str) -> String
         acc.push_str(s.as_ref());
         acc
     })
+}
+
+/// Returns true if a given string has a given prefix with case-insensitive match.
+pub fn starts_with_ignore_ascii_case(string: &str, prefix: &str) -> bool {
+    string.len() > prefix.len() &&
+      string[0..prefix.len()].eq_ignore_ascii_case(prefix)
 }

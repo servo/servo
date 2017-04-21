@@ -16,9 +16,9 @@ use gecko_bindings::structs::RawGeckoPresContextOwned;
 use media_queries::MediaType;
 use parser::ParserContext;
 use properties::ComputedValues;
-use std::ascii::AsciiExt;
 use std::fmt::{self, Write};
 use std::sync::Arc;
+use str::starts_with_ignore_ascii_case;
 use string_cache::Atom;
 use style_traits::ToCss;
 use style_traits::viewport::ViewportConstraints;
@@ -338,11 +338,6 @@ impl MediaExpressionValue {
             }
         }
     }
-}
-
-fn starts_with_ignore_ascii_case(string: &str, prefix: &str) -> bool {
-    string.len() > prefix.len() &&
-      string[0..prefix.len()].eq_ignore_ascii_case(prefix)
 }
 
 fn find_feature<F>(mut f: F) -> Option<&'static nsMediaFeature>

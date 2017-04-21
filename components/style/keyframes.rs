@@ -18,7 +18,7 @@ use shared_lock::{SharedRwLock, SharedRwLockReadGuard, Locked, ToCssWithGuard};
 use std::fmt;
 use std::sync::Arc;
 use style_traits::ToCss;
-use stylesheets::{CssRuleType, MemoryHoleReporter, Stylesheet};
+use stylesheets::{CssRuleType, MemoryHoleReporter, Stylesheet, VendorPrefix};
 
 /// A number from 0 to 1, indicating the percentage of the animation when this
 /// keyframe should run.
@@ -239,6 +239,8 @@ pub struct KeyframesAnimation {
     pub steps: Vec<KeyframesStep>,
     /// The properties that change in this animation.
     pub properties_changed: Vec<TransitionProperty>,
+    /// Vendor prefix type the @keyframes has.
+    pub vendor_prefix: Option<VendorPrefix>,
 }
 
 /// Get all the animated properties in a keyframes animation.
@@ -275,11 +277,14 @@ impl KeyframesAnimation {
     ///
     /// Otherwise, this will compute and sort the steps used for the animation,
     /// and return the animation object.
-    pub fn from_keyframes(keyframes: &[Arc<Locked<Keyframe>>], guard: &SharedRwLockReadGuard)
+    pub fn from_keyframes(keyframes: &[Arc<Locked<Keyframe>>],
+                          vendor_prefix: Option<VendorPrefix>,
+                          guard: &SharedRwLockReadGuard)
                           -> Self {
         let mut result = KeyframesAnimation {
             steps: vec![],
             properties_changed: vec![],
+            vendor_prefix: vendor_prefix,
         };
 
         if keyframes.is_empty() {
