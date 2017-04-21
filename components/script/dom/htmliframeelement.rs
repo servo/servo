@@ -255,9 +255,6 @@ impl HTMLIFrameElement {
 
         self.pipeline_id.set(Some(new_pipeline_id));
 
-        let mut blocker = self.load_blocker.borrow_mut();
-        LoadBlocker::terminate(&mut blocker);
-
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 
