@@ -34,12 +34,11 @@ fn get_mock_rules(css_selectors: &[&str]) -> (Vec<Vec<Rule>>, SharedRwLock) {
         let guard = shared_lock.read();
         let rule = locked.read_with(&guard);
         rule.selectors.0.iter().map(|s| {
-            Rule {
-                selector: s.inner.clone(),
-                style_rule: locked.clone(),
-                specificity: s.specificity,
-                source_order: i,
-            }
+            Rule::new(&guard,
+                      s.inner.clone(),
+                      locked.clone(),
+                      i,
+                      s.specificity)
         }).collect()
     }).collect(), shared_lock)
 }
@@ -62,7 +61,7 @@ fn test_rule_ordering_same_specificity() {
     let (rules_list, _) = get_mock_rules(&["a.intro", "img.sidebar"]);
     let a = &rules_list[0][0];
     let b = &rules_list[1][0];
-    assert!((a.specificity, a.source_order) < ((b.specificity, b.source_order)),
+    assert!((a.specificity(), a.source_order) < ((b.specificity(), b.source_order)),
             "The rule that comes later should win.");
 }
 
