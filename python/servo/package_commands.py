@@ -28,7 +28,6 @@ from servo.command_base import (
     BuildNotFound,
     cd,
     CommandBase,
-    find_dep_path_newest,
     is_macosx,
     is_windows,
     get_browserhtml_path,
@@ -143,34 +142,12 @@ class PackageCommands(CommandBase):
         target_dir = path.dirname(binary_path)
         if android:
             if dev:
-                env["NDK_DEBUG"] = "1"
-                env["ANT_FLAVOR"] = "debug"
-                dev_flag = "-d"
+                task_name = "assembleArmDebug"
             else:
-                env["ANT_FLAVOR"] = "release"
-                dev_flag = ""
-
-            output_apk = "{}.apk".format(binary_path)
-
-            dir_to_apk = path.join(target_dir, "apk")
-            if path.exists(dir_to_apk):
-                print("Cleaning up from previous packaging")
-                delete(dir_to_apk)
-            shutil.copytree(path.join(dir_to_root, "support", "android", "apk"), dir_to_apk)
-
-            blurdroid_path = find_dep_path_newest('blurdroid', binary_path)
-            if blurdroid_path is None:
-                print("Could not find blurdroid package; perhaps you haven't built Servo.")
-                return 1
-            else:
-                dir_to_libs = path.join(dir_to_apk, "libs")
-                if not path.exists(dir_to_libs):
-                    os.makedirs(dir_to_libs)
-                shutil.copy2(blurdroid_path + '/out/blurdroid.jar', dir_to_libs)
+                task_name = "assembleArmRelease"
             try:
-                with cd(path.join("support", "android", "build-apk")):
-                    subprocess.check_call(["cargo", "run", "--", dev_flag, "-o", output_apk, "-t", target_dir,
-                                           "-r", dir_to_root], env=env)
+                with cd(path.join("support", "android", "apk")):
+                    subprocess.check_call(["./gradlew", "--no-daemon", task_name], env=env)
             except subprocess.CalledProcessError as e:
                 print("Packaging Android exited with return value %d" % e.returncode)
                 return e.returncode

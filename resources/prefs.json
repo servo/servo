@@ -63,5 +63,7 @@
   "session-history.max-length": 20,
   "shell.builtin-key-shortcuts.enabled": true,
   "shell.homepage": "https://servo.org",
+  "shell.keep_screen_on.enabled": false,
+  "shell.native-orientation": "both",
   "shell.native-titlebar.enabled": true
 }

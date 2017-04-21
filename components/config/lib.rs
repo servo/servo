@@ -4,6 +4,8 @@
 
 #![deny(unsafe_code)]
 
+#[cfg(target_os = "android")]
+extern crate android_injected_glue;
 extern crate euclid;
 extern crate getopts;
 #[macro_use] extern crate lazy_static;
