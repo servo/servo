@@ -30,6 +30,15 @@ use sink::ForgetfulSink;
 use std::sync::Arc;
 use stylist::ApplicableDeclarationBlock;
 
+/// The way a style should be inherited.
+enum InheritMode {
+    /// Inherit from the parent element, as normal CSS dictates.
+    FromParentElement,
+    /// Inherit from the primary style, this is used while computing eager
+    /// pseudos, like ::before and ::after when we're traversing the parent.
+    FromPrimaryStyle,
+}
+
 /// Determines the amount of relations where we're going to share style.
 #[inline]
 fn relations_are_shareable(relations: &StyleRelations) -> bool {
@@ -78,6 +87,8 @@ pub struct StyleSharingCandidateCache<E: TElement> {
 pub enum CacheMiss {
     /// The parents don't match.
     Parent,
+    /// One element was NAC, while the other wasn't.
+    NativeAnonymousContent,
     /// The local name of the element and the candidate don't match.
     LocalName,
     /// The namespace of the element and the candidate don't match.
@@ -135,6 +146,12 @@ fn element_matches_candidate<E: TElement>(element: &E,
     let candidate_parent = candidate_element.parent_element();
     if parent != candidate_parent && !same_computed_values(parent, candidate_parent) {
         miss!(Parent)
+    }
+
+    if element.is_native_anonymous() {
+        debug_assert!(!candidate_element.is_native_anonymous(),
+                      "Why inserting NAC into the cache?");
+        miss!(NativeAnonymousContent)
     }
 
     if *element.get_local_name() != *candidate_element.get_local_name() {
@@ -298,6 +315,11 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
             }
         };
 
+        if element.is_native_anonymous() {
+            debug!("Failing to insert into the cache: NAC");
+            return;
+        }
+
         // These are things we don't check in the candidate match because they
         // are either uncommon or expensive.
         if !relations_are_shareable(&relations) {
@@ -311,7 +333,6 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
             element.synthesize_presentational_hints_for_legacy_attributes(&mut hints);
             debug_assert!(hints.is_empty(), "Style relations should not be shareable!");
         }
-
 
         let box_style = style.get_box();
         if box_style.specifies_transitions() {
@@ -387,7 +408,7 @@ trait PrivateMatchMethods: TElement {
                           font_metrics_provider: &FontMetricsProvider,
                           rule_node: &StrongRuleNode,
                           primary_style: &ComputedStyle,
-                          is_pseudo: bool)
+                          inherit_mode: InheritMode)
                           -> Arc<ComputedValues> {
         let mut cascade_info = CascadeInfo::new();
         let mut cascade_flags = CascadeFlags::empty();
@@ -398,24 +419,27 @@ trait PrivateMatchMethods: TElement {
         // Grab the inherited values.
         let parent_el;
         let parent_data;
-        let style_to_inherit_from = if !is_pseudo {
-            parent_el = self.parent_element();
-            parent_data = parent_el.as_ref().and_then(|e| e.borrow_data());
-            let parent_values = parent_data.as_ref().map(|d| {
-                // Sometimes Gecko eagerly styles things without processing
-                // pending restyles first. In general we'd like to avoid this,
-                // but there can be good reasons (for example, needing to
-                // construct a frame for some small piece of newly-added
-                // content in order to do something specific with that frame,
-                // but not wanting to flush all of layout).
-                debug_assert!(cfg!(feature = "gecko") || d.has_current_styles());
-                d.styles().primary.values()
-            });
+        let style_to_inherit_from = match inherit_mode {
+            InheritMode::FromParentElement => {
+                parent_el = self.parent_element();
+                parent_data = parent_el.as_ref().and_then(|e| e.borrow_data());
+                let parent_values = parent_data.as_ref().map(|d| {
+                    // Sometimes Gecko eagerly styles things without processing
+                    // pending restyles first. In general we'd like to avoid this,
+                    // but there can be good reasons (for example, needing to
+                    // construct a frame for some small piece of newly-added
+                    // content in order to do something specific with that frame,
+                    // but not wanting to flush all of layout).
+                    debug_assert!(cfg!(feature = "gecko") || d.has_current_styles());
+                    d.styles().primary.values()
+                });
 
-            parent_values
-        } else {
-            parent_el = Some(self.clone());
-            Some(primary_style.values())
+                parent_values
+            }
+            InheritMode::FromPrimaryStyle => {
+                parent_el = Some(self.clone());
+                Some(primary_style.values())
+            }
         };
 
         let mut layout_parent_el = parent_el.clone();
@@ -433,15 +457,16 @@ trait PrivateMatchMethods: TElement {
         // Propagate the "can be fragmented" bit. It would be nice to
         // encapsulate this better.
         //
-        // Note that this is not needed for pseudos since we already do that
-        // when we resolve the non-pseudo style.
-        if !is_pseudo {
-            if let Some(ref p) = layout_parent_style {
-                let can_be_fragmented =
-                    p.is_multicol() ||
-                    layout_parent_el.as_ref().unwrap().as_node().can_be_fragmented();
-                unsafe { self.as_node().set_can_be_fragmented(can_be_fragmented); }
-            }
+        // Note that this is technically not needed for pseudos since we already
+        // do that when we resolve the non-pseudo style, but it doesn't hurt
+        // anyway.
+        //
+        // TODO(emilio): This is servo-only, move somewhere else?
+        if let Some(ref p) = layout_parent_style {
+            let can_be_fragmented =
+                p.is_multicol() ||
+                layout_parent_el.as_ref().unwrap().as_node().can_be_fragmented();
+            unsafe { self.as_node().set_can_be_fragmented(can_be_fragmented); }
         }
 
         // Invoke the cascade algorithm.
@@ -463,16 +488,21 @@ trait PrivateMatchMethods: TElement {
     fn cascade_internal(&self,
                         context: &StyleContext<Self>,
                         primary_style: &ComputedStyle,
-                        pseudo_style: Option<&ComputedStyle>)
+                        eager_pseudo_style: Option<&ComputedStyle>)
                         -> Arc<ComputedValues> {
         // Grab the rule node.
-        let rule_node = &pseudo_style.unwrap_or(primary_style).rules;
+        let rule_node = &eager_pseudo_style.unwrap_or(primary_style).rules;
+        let inherit_mode = if eager_pseudo_style.is_some() {
+            InheritMode::FromPrimaryStyle
+        } else {
+            InheritMode::FromParentElement
+        };
 
         self.cascade_with_rules(context.shared,
                                 &context.thread_local.font_metrics_provider,
                                 rule_node,
                                 primary_style,
-                                pseudo_style.is_some())
+                                inherit_mode)
     }
 
     /// Computes values and damage for the primary or pseudo style of an element,
@@ -480,8 +510,9 @@ trait PrivateMatchMethods: TElement {
     fn cascade_primary_or_pseudo(&self,
                                  context: &mut StyleContext<Self>,
                                  data: &mut ElementData,
-                                 pseudo: Option<&PseudoElement>,
-                                 animate: bool) {
+                                 pseudo: Option<&PseudoElement>) {
+        debug_assert!(pseudo.is_none() || self.implemented_pseudo_element().is_none(),
+                      "Pseudo-element-implementing elements can't have pseudos!");
         // Collect some values.
         let (mut styles, restyle) = data.styles_and_restyle_mut();
         let mut primary_style = &mut styles.primary;
@@ -501,27 +532,65 @@ trait PrivateMatchMethods: TElement {
         };
 
         // Compute the new values.
-        let mut new_values = self.cascade_internal(context,
-                                                   primary_style,
-                                                   pseudo_style.as_ref().map(|s| &**s));
+        let mut new_values = match self.implemented_pseudo_element() {
+            Some(ref pseudo) => {
+                // This is an element-backed pseudo, just grab the styles from
+                // the parent if it's eager, and recascade otherwise.
+                //
+                // We also recascade if the eager pseudo-style has any animation
+                // rules, because we don't cascade those during the eager
+                // traversal. We could make that a bit better if the complexity
+                // cost is not too big, but given further restyles are posted
+                // directly to pseudo-elements, it doesn't seem worth the effort
+                // at a glance.
+                if pseudo.is_eager() &&
+                   self.get_animation_rules().is_empty() {
+                    let parent = self.parent_element().unwrap();
 
-        // Handle animations.
-        if animate && !context.shared.traversal_flags.for_animation_only() {
+                    let parent_data = parent.borrow_data().unwrap();
+                    let pseudo_style =
+                        parent_data.styles().pseudos.get(pseudo).unwrap();
+                    pseudo_style.values().clone()
+                } else {
+                    self.cascade_internal(context,
+                                          primary_style,
+                                          None)
+                }
+            }
+            None => {
+                // Else it's an eager pseudo or a normal element, do the cascade
+                // work.
+                self.cascade_internal(context,
+                                      primary_style,
+                                      pseudo_style.as_ref().map(|s| &**s))
+            }
+        };
+
+        // NB: Animations for pseudo-elements in Gecko are handled while
+        // traversing the pseudo-elements themselves.
+        if pseudo.is_none() &&
+           !context.shared.traversal_flags.for_animation_only() {
             self.process_animations(context,
                                     &mut old_values,
                                     &mut new_values,
-                                    primary_style,
-                                    pseudo,
-                                    pseudo_style.as_ref().map(|s| &**s));
+                                    primary_style);
         }
 
         // Accumulate restyle damage.
         if let Some(old) = old_values {
-            self.accumulate_damage(&context.shared,
-                                   restyle.unwrap(),
-                                   &old,
-                                   &new_values,
-                                   pseudo);
+            // ::before and ::after are element-backed in Gecko, so they do
+            // the damage calculation for themselves.
+            //
+            // FIXME(emilio): We have more element-backed stuff, and this is
+            // redundant for them right now.
+            if cfg!(feature = "servo") ||
+               pseudo.map_or(true, |p| !p.is_before_or_after()) {
+                self.accumulate_damage(&context.shared,
+                                       restyle.unwrap(),
+                                       &old,
+                                       &new_values,
+                                       pseudo);
+            }
         }
 
         // Set the new computed values.
@@ -534,11 +603,9 @@ trait PrivateMatchMethods: TElement {
     #[cfg(feature = "gecko")]
     fn get_after_change_style(&self,
                               context: &mut StyleContext<Self>,
-                              primary_style: &ComputedStyle,
-                              pseudo_style: Option<&ComputedStyle>)
+                              primary_style: &ComputedStyle)
                               -> Option<Arc<ComputedValues>> {
-        let relevant_style = pseudo_style.unwrap_or(primary_style);
-        let rule_node = &relevant_style.rules;
+        let rule_node = &primary_style.rules;
         let without_transition_rules =
             context.shared.stylist.rule_tree.remove_transition_rule_if_applicable(rule_node);
         if without_transition_rules == *rule_node {
@@ -551,21 +618,21 @@ trait PrivateMatchMethods: TElement {
                                      &context.thread_local.font_metrics_provider,
                                      &without_transition_rules,
                                      primary_style,
-                                     pseudo_style.is_some()))
+                                     InheritMode::FromParentElement))
     }
 
     #[cfg(feature = "gecko")]
     fn needs_animations_update(&self,
-                               old_values: &Option<Arc<ComputedValues>>,
-                               new_values: &Arc<ComputedValues>,
-                               pseudo: Option<&PseudoElement>) -> bool {
-        let ref new_box_style = new_values.get_box();
+                               old_values: Option<&Arc<ComputedValues>>,
+                               new_values: &ComputedValues)
+                               -> bool {
+        let new_box_style = new_values.get_box();
         let has_new_animation_style = new_box_style.animation_name_count() >= 1 &&
                                       new_box_style.animation_name_at(0).0.is_some();
-        let has_animations = self.has_css_animations(pseudo);
+        let has_animations = self.has_css_animations();
 
-        old_values.as_ref().map_or(has_new_animation_style, |ref old| {
-            let ref old_box_style = old.get_box();
+        old_values.map_or(has_new_animation_style, |old| {
+            let old_box_style = old.get_box();
             let old_display_style = old_box_style.clone_display();
             let new_display_style = new_box_style.clone_display();
             // FIXME: Bug 1344581: We still need to compare keyframe rules.
@@ -584,40 +651,34 @@ trait PrivateMatchMethods: TElement {
                           context: &mut StyleContext<Self>,
                           old_values: &mut Option<Arc<ComputedValues>>,
                           new_values: &mut Arc<ComputedValues>,
-                          primary_style: &ComputedStyle,
-                          pseudo: Option<&PseudoElement>,
-                          pseudo_style: Option<&ComputedStyle>) {
+                          primary_style: &ComputedStyle) {
         use context::{CSS_ANIMATIONS, CSS_TRANSITIONS, EFFECT_PROPERTIES};
         use context::UpdateAnimationsTasks;
 
-        debug_assert_eq!(pseudo.is_some(), pseudo_style.is_some());
-
         let mut tasks = UpdateAnimationsTasks::empty();
-        if self.needs_animations_update(old_values, new_values, pseudo) {
+        if self.needs_animations_update(old_values.as_ref(), new_values) {
             tasks.insert(CSS_ANIMATIONS);
         }
 
-        let before_change_style = if self.might_need_transitions_update(&old_values.as_ref(),
-                                                                        new_values,
-                                                                        pseudo) {
-            let after_change_style = if self.has_css_transitions(pseudo) {
-                self.get_after_change_style(context, primary_style, pseudo_style)
+        let before_change_style = if self.might_need_transitions_update(old_values.as_ref().map(|s| &**s),
+                                                                        new_values) {
+            let after_change_style = if self.has_css_transitions() {
+                self.get_after_change_style(context, primary_style)
             } else {
                 None
             };
 
-            // In order to avoid creating a SequentialTask for transitions which may not be updated,
-            // we check it per property to make sure Gecko side will really update transition.
+            // In order to avoid creating a SequentialTask for transitions which
+            // may not be updated, we check it per property to make sure Gecko
+            // side will really update transition.
             let needs_transitions_update = {
-                // We borrow new_values here, so need to add a scope to make sure we release it
-                // before assigning a new value to it.
-                let after_change_style_ref = match after_change_style {
-                    Some(ref value) => value,
-                    None => &new_values
-                };
+                // We borrow new_values here, so need to add a scope to make
+                // sure we release it before assigning a new value to it.
+                let after_change_style_ref =
+                    after_change_style.as_ref().unwrap_or(&new_values);
+
                 self.needs_transitions_update(old_values.as_ref().unwrap(),
-                                              after_change_style_ref,
-                                              pseudo)
+                                              after_change_style_ref)
             };
 
             if needs_transitions_update {
@@ -635,13 +696,12 @@ trait PrivateMatchMethods: TElement {
             None
         };
 
-        if self.has_animations(pseudo) {
+        if self.has_animations() {
             tasks.insert(EFFECT_PROPERTIES);
         }
 
         if !tasks.is_empty() {
             let task = ::context::SequentialTask::update_animations(*self,
-                                                                    pseudo.cloned(),
                                                                     before_change_style,
                                                                     tasks);
             context.thread_local.tasks.push(task);
@@ -653,11 +713,7 @@ trait PrivateMatchMethods: TElement {
                           context: &mut StyleContext<Self>,
                           old_values: &mut Option<Arc<ComputedValues>>,
                           new_values: &mut Arc<ComputedValues>,
-                          _primary_style: &ComputedStyle,
-                          pseudo: Option<&PseudoElement>,
-                          pseudo_style: Option<&ComputedStyle>) {
-        debug_assert_eq!(pseudo.is_some(), pseudo_style.is_some());
-
+                          _primary_style: &ComputedStyle) {
         let possibly_expired_animations =
             &mut context.thread_local.current_element_info.as_mut().unwrap()
                         .possibly_expired_animations;
@@ -690,6 +746,10 @@ trait PrivateMatchMethods: TElement {
     }
 
     /// Computes and applies non-redundant damage.
+    ///
+    /// FIXME(emilio): Damage for non-::before and non-::after element-backed
+    /// pseudo-elements should be refactored to go on themselves (right now they
+    /// do, but we apply this twice).
     #[cfg(feature = "gecko")]
     fn accumulate_damage(&self,
                          shared_context: &SharedStyleContext,
@@ -716,7 +776,9 @@ trait PrivateMatchMethods: TElement {
         // for followup work to make the optimization here more optimal by considering
         // each bit individually.
         if !restyle.damage.contains(RestyleDamage::reconstruct()) {
-            let new_damage = self.compute_restyle_damage(&old_values, &new_values, pseudo);
+            let new_damage = self.compute_restyle_damage(&old_values,
+                                                         &new_values,
+                                                         pseudo);
             if !restyle.damage_handled.contains(new_damage) {
                 restyle.damage |= new_damage;
             }
@@ -813,7 +875,8 @@ pub enum StyleSharingBehavior {
 
 /// The public API that elements expose for selector matching.
 pub trait MatchMethods : TElement {
-    /// Performs selector matching and property cascading on an element and its eager pseudos.
+    /// Performs selector matching and property cascading on an element and its
+    /// eager pseudos.
     fn match_and_cascade(&self,
                          context: &mut StyleContext<Self>,
                          data: &mut ElementData,
@@ -878,14 +941,54 @@ pub trait MatchMethods : TElement {
                      relations: &mut StyleRelations)
                      -> bool
     {
+        let implemented_pseudo = self.implemented_pseudo_element();
+        if let Some(ref pseudo) = implemented_pseudo {
+            if pseudo.is_eager() {
+                // If it's an eager element-backed pseudo, just grab the matched
+                // rules from the parent, and update animations.
+                let parent = self.parent_element().unwrap();
+                let parent_data = parent.borrow_data().unwrap();
+                let pseudo_style =
+                    parent_data.styles().pseudos.get(&pseudo).unwrap();
+                let mut rules = pseudo_style.rules.clone();
+                let animation_rules = self.get_animation_rules();
+
+                // Handle animations here.
+                if let Some(animation_rule) = animation_rules.0 {
+                    let animation_rule_node =
+                        context.shared.stylist.rule_tree
+                            .update_rule_at_level(CascadeLevel::Animations,
+                                                  Some(&animation_rule),
+                                                  &mut rules,
+                                                  &context.shared.guards);
+                    if let Some(node) = animation_rule_node {
+                        rules = node;
+                    }
+                }
+
+                if let Some(animation_rule) = animation_rules.1 {
+                    let animation_rule_node =
+                        context.shared.stylist.rule_tree
+                            .update_rule_at_level(CascadeLevel::Transitions,
+                                                  Some(&animation_rule),
+                                                  &mut rules,
+                                                  &context.shared.guards);
+                    if let Some(node) = animation_rule_node {
+                        rules = node;
+                    }
+                }
+
+                return data.set_primary_rules(rules);
+            }
+        }
+
         let mut applicable_declarations =
             Vec::<ApplicableDeclarationBlock>::with_capacity(16);
 
         let stylist = &context.shared.stylist;
         let style_attribute = self.style_attribute();
         let smil_override = self.get_smil_override();
-        let animation_rules = self.get_animation_rules(None);
-        let mut rule_nodes_changed = false;
+        let animation_rules = self.get_animation_rules();
         let bloom = context.thread_local.bloom_filter.filter();
 
         let map = &mut context.thread_local.selector_flags;
@@ -899,22 +1002,15 @@ pub trait MatchMethods : TElement {
                                                           style_attribute,
                                                           smil_override,
                                                           animation_rules,
-                                                          None,
+                                                          implemented_pseudo.as_ref(),
                                                           &context.shared.guards,
                                                           &mut applicable_declarations,
                                                           &mut set_selector_flags);
 
         let primary_rule_node =
             compute_rule_node::<Self>(&stylist.rule_tree, &mut applicable_declarations);
-        if !data.has_styles() {
-            data.set_styles(ElementStyles::new(ComputedStyle::new_partial(primary_rule_node)));
-            rule_nodes_changed = true;
-        } else if data.styles().primary.rules != primary_rule_node {
-            data.styles_mut().primary.rules = primary_rule_node;
-            rule_nodes_changed = true;
-        }
 
-        rule_nodes_changed
+        return data.set_primary_rules(primary_rule_node);
     }
 
     /// Runs selector matching to (re)compute eager pseudo-element rule nodes for this
@@ -927,9 +1023,13 @@ pub trait MatchMethods : TElement {
                      data: &mut ElementData)
                      -> bool
     {
+        if self.implemented_pseudo_element().is_some() {
+            // Element pseudos can't have any other pseudo.
+            return false;
+        }
+
         let mut applicable_declarations =
             Vec::<ApplicableDeclarationBlock>::with_capacity(16);
-        let mut rule_nodes_changed = false;
 
         let map = &mut context.thread_local.selector_flags;
         let mut set_selector_flags = |element: &Self, flags: ElementSelectorFlags| {
@@ -945,19 +1045,17 @@ pub trait MatchMethods : TElement {
 
         // Compute rule nodes for eagerly-cascaded pseudo-elements.
         let mut matches_different_pseudos = false;
+        let mut rule_nodes_changed = false;
         SelectorImpl::each_eagerly_cascaded_pseudo_element(|pseudo| {
             let mut pseudos = &mut data.styles_mut().pseudos;
             debug_assert!(applicable_declarations.is_empty());
-            let pseudo_animation_rules = if pseudo.is_before_or_after() {
-                self.get_animation_rules(Some(&pseudo))
-            } else {
-                AnimationRules(None, None)
-            };
+            // NB: We handle animation rules for ::before and ::after when
+            // traversing them.
             stylist.push_applicable_declarations(self,
                                                  Some(bloom_filter),
                                                  None,
                                                  None,
-                                                 pseudo_animation_rules,
+                                                 AnimationRules(None, None),
                                                  Some(&pseudo),
                                                  &guards,
                                                  &mut applicable_declarations,
@@ -1073,9 +1171,11 @@ pub trait MatchMethods : TElement {
                 }
             };
 
-            // Animation restyle hints are processed prior to other restyle hints in the
-            // animation-only traversal. Non-animation restyle hints will be processed in
-            // a subsequent normal traversal.
+            // Animation restyle hints are processed prior to other restyle
+            // hints in the animation-only traversal.
+            //
+            // Non-animation restyle hints will be processed in a subsequent
+            // normal traversal.
             if hint.intersects(RestyleHint::for_animations()) {
                 debug_assert!(context.shared.traversal_flags.for_animation_only());
 
@@ -1085,37 +1185,24 @@ pub trait MatchMethods : TElement {
                                       primary_rules);
                 }
 
-                use data::EagerPseudoStyles;
                 let mut replace_rule_node_for_animation = |level: CascadeLevel,
-                                                           primary_rules: &mut StrongRuleNode,
-                                                           pseudos: &mut EagerPseudoStyles| {
-                    let animation_rule = self.get_animation_rule_by_cascade(None, level);
+                                                           primary_rules: &mut StrongRuleNode| {
+                    let animation_rule = self.get_animation_rule_by_cascade(level);
                     replace_rule_node(level,
                                       animation_rule.as_ref(),
                                       primary_rules);
-
-                    for pseudo in pseudos.keys().iter().filter(|p| p.is_before_or_after()) {
-                        let animation_rule = self.get_animation_rule_by_cascade(Some(&pseudo), level);
-                        let pseudo_rules = &mut pseudos.get_mut(&pseudo).unwrap().rules;
-                        replace_rule_node(level,
-                                          animation_rule.as_ref(),
-                                          pseudo_rules);
-                    }
                 };
 
                 // Apply Transition rules and Animation rules if the corresponding restyle hint
                 // is contained.
-                let pseudos = &mut element_styles.pseudos;
                 if hint.contains(RESTYLE_CSS_TRANSITIONS) {
                     replace_rule_node_for_animation(CascadeLevel::Transitions,
-                                                    primary_rules,
-                                                    pseudos);
+                                                    primary_rules);
                 }
 
                 if hint.contains(RESTYLE_CSS_ANIMATIONS) {
                     replace_rule_node_for_animation(CascadeLevel::Animations,
-                                                    primary_rules,
-                                                    pseudos);
+                                                    primary_rules);
                 }
             } else if hint.contains(RESTYLE_STYLE_ATTRIBUTE) {
                 let style_attribute = self.style_attribute();
@@ -1125,11 +1212,9 @@ pub trait MatchMethods : TElement {
                 replace_rule_node(CascadeLevel::StyleAttributeImportant,
                                   style_attribute,
                                   primary_rules);
-                // The per-pseudo rule nodes never change in this path.
             }
         }
 
-        // The per-pseudo rule nodes never change in this path.
         rule_node_changed
     }
 
@@ -1149,6 +1234,11 @@ pub trait MatchMethods : TElement {
         if self.parent_element().is_none() {
             debug!("{:?} Cannot share style: element has style attribute", self);
             return StyleSharingResult::CannotShare
+        }
+
+        if self.is_native_anonymous() {
+            debug!("{:?} Cannot share style: NAC", self);
+            return StyleSharingResult::CannotShare;
         }
 
         if self.style_attribute().is_some() {
@@ -1310,7 +1400,7 @@ pub trait MatchMethods : TElement {
                        context: &mut StyleContext<Self>,
                        mut data: &mut ElementData)
     {
-        self.cascade_primary_or_pseudo(context, &mut data, None, /* animate = */ true);
+        self.cascade_primary_or_pseudo(context, &mut data, None);
     }
 
     /// Performs the cascade for the element's eager pseudos.
@@ -1325,9 +1415,7 @@ pub trait MatchMethods : TElement {
         // let us pass the mutable |data| to the cascade function.
         let matched_pseudos = data.styles().pseudos.keys();
         for pseudo in matched_pseudos {
-            // Only ::before and ::after are animatable.
-            let animate = pseudo.is_before_or_after();
-            self.cascade_primary_or_pseudo(context, data, Some(&pseudo), animate);
+            self.cascade_primary_or_pseudo(context, data, Some(&pseudo));
         }
     }
 
@@ -1352,7 +1440,7 @@ pub trait MatchMethods : TElement {
                                 font_metrics_provider,
                                 &without_animation_rules,
                                 primary_style,
-                                pseudo_style.is_some())
+                                InheritMode::FromParentElement)
     }
 
 }

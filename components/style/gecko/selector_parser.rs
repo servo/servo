@@ -54,6 +54,26 @@ pub const EAGER_PSEUDO_COUNT: usize = 2;
 
 
 impl PseudoElement {
+    /// Returns the kind of cascade type that a given pseudo is going to use.
+    ///
+    /// In Gecko we only compute ::before and ::after eagerly. We save the rules
+    /// for anonymous boxes separately, so we resolve them as precomputed
+    /// pseudos.
+    ///
+    /// We resolve the others lazily, see `Servo_ResolvePseudoStyle`.
+    pub fn cascade_type(&self) -> PseudoElementCascadeType {
+        if self.is_eager() {
+            debug_assert!(!self.is_anon_box());
+            return PseudoElementCascadeType::Eager
+        }
+
+        if self.is_anon_box() {
+            return PseudoElementCascadeType::Precomputed
+        }
+
+        PseudoElementCascadeType::Lazy
+    }
+
     /// Gets the canonical index of this eagerly-cascaded pseudo-element.
     #[inline]
     pub fn eager_index(&self) -> usize {
@@ -437,24 +457,9 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
 
 impl SelectorImpl {
     #[inline]
-    /// Returns the kind of cascade type that a given pseudo is going to use.
-    ///
-    /// In Gecko we only compute ::before and ::after eagerly. We save the rules
-    /// for anonymous boxes separately, so we resolve them as precomputed
-    /// pseudos.
-    ///
-    /// We resolve the others lazily, see `Servo_ResolvePseudoStyle`.
+    /// Legacy alias for PseudoElement::cascade_type.
     pub fn pseudo_element_cascade_type(pseudo: &PseudoElement) -> PseudoElementCascadeType {
-        if pseudo.is_eager() {
-            debug_assert!(!pseudo.is_anon_box());
-            return PseudoElementCascadeType::Eager
-        }
-
-        if pseudo.is_anon_box() {
-            return PseudoElementCascadeType::Precomputed
-        }
-
-        PseudoElementCascadeType::Lazy
+        pseudo.cascade_type()
     }
 
     /// A helper to traverse each eagerly cascaded pseudo-element, executing

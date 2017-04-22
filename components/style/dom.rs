@@ -274,10 +274,19 @@ pub trait PresentationalHintsSynthetizer {
         where V: Push<ApplicableDeclarationBlock>;
 }
 
-/// The animation rules. The first one is for Animation cascade level, and the second one is for
+/// The animation rules.
+///
+/// The first one is for Animation cascade level, and the second one is for
 /// Transition cascade level.
 pub struct AnimationRules(pub Option<Arc<Locked<PropertyDeclarationBlock>>>,
                           pub Option<Arc<Locked<PropertyDeclarationBlock>>>);
+
+impl AnimationRules {
+    /// Returns whether these animation rules represents an actual rule or not.
+    pub fn is_empty(&self) -> bool {
+        self.0.is_none() && self.1.is_none()
+    }
+}
 
 /// The element trait, the main abstraction the style crate acts over.
 pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
@@ -325,26 +334,25 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     }
 
     /// Get this element's animation rules.
-    fn get_animation_rules(&self, _pseudo: Option<&PseudoElement>) -> AnimationRules {
+    fn get_animation_rules(&self) -> AnimationRules {
         AnimationRules(None, None)
     }
 
     /// Get this element's animation rule by the cascade level.
     fn get_animation_rule_by_cascade(&self,
-                                     _pseudo: Option<&PseudoElement>,
                                      _cascade_level: CascadeLevel)
                                      -> Option<Arc<Locked<PropertyDeclarationBlock>>> {
         None
     }
 
     /// Get this element's animation rule.
-    fn get_animation_rule(&self, _pseudo: Option<&PseudoElement>)
+    fn get_animation_rule(&self)
                           -> Option<Arc<Locked<PropertyDeclarationBlock>>> {
         None
     }
 
     /// Get this element's transition rule.
-    fn get_transition_rule(&self, _pseudo: Option<&PseudoElement>)
+    fn get_transition_rule(&self)
                            -> Option<Arc<Locked<PropertyDeclarationBlock>>> {
         None
     }
@@ -428,6 +436,18 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     /// anonymous content).
     fn is_native_anonymous(&self) -> bool { false }
 
+    /// Returns the pseudo-element implemented by this element, if any.
+    ///
+    /// Gecko traverses pseudo-elements during the style traversal, and we need
+    /// to know this so we can properly grab the pseudo-element style from the
+    /// parent element.
+    ///
+    /// Note that we still need to compute the pseudo-elements before-hand,
+    /// given otherwise we don't know if we need to create an element or not.
+    ///
+    /// Servo doesn't have to deal with this.
+    fn implemented_pseudo_element(&self) -> Option<PseudoElement> { None }
+
     /// Atomically stores the number of children of this node that we will
     /// need to process during bottom-up traversal.
     fn store_children_to_process(&self, n: isize);
@@ -469,21 +489,21 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
 
     /// Creates a task to update various animation state on a given (pseudo-)element.
     #[cfg(feature = "gecko")]
-    fn update_animations(&self, _pseudo: Option<&PseudoElement>,
+    fn update_animations(&self,
                          before_change_style: Option<Arc<ComputedValues>>,
                          tasks: UpdateAnimationsTasks);
 
     /// Returns true if the element has relevant animations. Relevant
     /// animations are those animations that are affecting the element's style
     /// or are scheduled to do so in the future.
-    fn has_animations(&self, _pseudo: Option<&PseudoElement>) -> bool;
+    fn has_animations(&self) -> bool;
 
     /// Returns true if the element has a CSS animation.
-    fn has_css_animations(&self, _pseudo: Option<&PseudoElement>) -> bool;
+    fn has_css_animations(&self) -> bool;
 
     /// Returns true if the element has a CSS transition (including running transitions and
     /// completed transitions).
-    fn has_css_transitions(&self, _pseudo: Option<&PseudoElement>) -> bool;
+    fn has_css_transitions(&self) -> bool;
 
     /// Returns true if the element has animation restyle hints.
     fn has_animation_restyle_hints(&self) -> bool {
@@ -497,8 +517,7 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
 
     /// Gets the current existing CSS transitions, by |property, end value| pairs in a HashMap.
     #[cfg(feature = "gecko")]
-    fn get_css_transitions_info(&self,
-                                pseudo: Option<&PseudoElement>)
+    fn get_css_transitions_info(&self)
                                 -> HashMap<TransitionProperty, Arc<AnimationValue>>;
 
     /// Does a rough (and cheap) check for whether or not transitions might need to be updated that
@@ -508,9 +527,9 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     /// reduce the possibility of false positives.
     #[cfg(feature = "gecko")]
     fn might_need_transitions_update(&self,
-                                     old_values: &Option<&Arc<ComputedValues>>,
-                                     new_values: &Arc<ComputedValues>,
-                                     pseudo: Option<&PseudoElement>) -> bool;
+                                     old_values: Option<&ComputedValues>,
+                                     new_values: &ComputedValues)
+                                     -> bool;
 
     /// Returns true if one of the transitions needs to be updated on this element. We check all
     /// the transition properties to make sure that updating transitions is necessary.
@@ -518,17 +537,17 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     /// passed the same parameters.
     #[cfg(feature = "gecko")]
     fn needs_transitions_update(&self,
-                                before_change_style: &Arc<ComputedValues>,
-                                after_change_style: &Arc<ComputedValues>,
-                                pseudo: Option<&PseudoElement>) -> bool;
+                                before_change_style: &ComputedValues,
+                                after_change_style: &ComputedValues)
+                                -> bool;
 
     /// Returns true if we need to update transitions for the specified property on this element.
     #[cfg(feature = "gecko")]
     fn needs_transitions_update_per_property(&self,
                                              property: &TransitionProperty,
                                              combined_duration: f32,
-                                             before_change_style: &Arc<ComputedValues>,
-                                             after_change_style: &Arc<ComputedValues>,
+                                             before_change_style: &ComputedValues,
+                                             after_change_style: &ComputedValues,
                                              existing_transitions: &HashMap<TransitionProperty,
                                                                             Arc<AnimationValue>>)
                                              -> bool;

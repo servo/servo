@@ -333,7 +333,7 @@ impl Stylist {
 
                     for selector in &style_rule.selectors.0 {
                         let needs_cache_revalidation =
-                            self.dependencies.note_selector(&selector.inner.complex);
+                            self.dependencies.note_selector(selector);
                         if needs_cache_revalidation {
                             self.selectors_for_cache_revalidation.push(selector.clone());
                         }
@@ -646,7 +646,10 @@ impl Stylist {
               F: FnMut(&E, ElementSelectorFlags),
     {
         debug_assert!(!self.is_device_dirty);
-        debug_assert!(style_attribute.is_none() || pseudo_element.is_none(),
+        // Gecko definitely has pseudo-elements with style attributes, like
+        // ::-moz-color-swatch.
+        debug_assert!(cfg!(feature = "gecko") ||
+                      style_attribute.is_none() || pseudo_element.is_none(),
                       "Style attributes do not apply to pseudo-elements");
         debug_assert!(pseudo_element.as_ref().map_or(true, |p| !p.is_precomputed()));
 

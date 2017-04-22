@@ -461,16 +461,16 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         self.element.has_selector_flags(flags)
     }
 
-    fn has_animations(&self, _pseudo: Option<&PseudoElement>) -> bool {
-        panic!("this should be only called on gecko");
+    fn has_animations(&self) -> bool {
+        unreachable!("this should be only called on gecko");
     }
 
-    fn has_css_animations(&self, _pseudo: Option<&PseudoElement>) -> bool {
-        panic!("this should be only called on gecko");
+    fn has_css_animations(&self) -> bool {
+        unreachable!("this should be only called on gecko");
     }
 
-    fn has_css_transitions(&self, _pseudo: Option<&PseudoElement>) -> bool {
-        panic!("this should be only called on gecko");
+    fn has_css_transitions(&self) -> bool {
+        unreachable!("this should be only called on gecko");
     }
 }
 

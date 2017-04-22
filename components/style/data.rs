@@ -532,6 +532,21 @@ impl ElementData {
         self.styles = Some(styles);
     }
 
+    /// Sets the computed element rules, and returns whether the rules changed.
+    pub fn set_primary_rules(&mut self, rules: StrongRuleNode) -> bool {
+        if !self.has_styles() {
+            self.set_styles(ElementStyles::new(ComputedStyle::new_partial(rules)));
+            return true;
+        }
+
+        if self.styles().primary.rules == rules {
+            return false;
+        }
+
+        self.styles_mut().primary.rules = rules;
+        true
+    }
+
     /// Returns true if the Element has a RestyleData.
     pub fn has_restyle(&self) -> bool {
         self.restyle.is_some()
