@@ -18,39 +18,16 @@ bitflags! {
     ///
     /// This is used to implement efficient sharing.
     pub flags StyleRelations: u16 {
-        /// Whether this element has matched any rule whose matching is
-        /// determined by its position in the tree (i.e., first-child,
-        /// nth-child, etc.).
-        const AFFECTED_BY_CHILD_INDEX = 1 << 1,
-
-        /// Whether this flag is affected by any state (i.e., non
-        /// tree-structural pseudo-class).
-        const AFFECTED_BY_STATE = 1 << 2,
-
         /// Whether this element is affected by an ID selector.
         const AFFECTED_BY_ID_SELECTOR = 1 << 3,
-
-        /// Whether this element matches the :empty pseudo class.
-        const AFFECTED_BY_EMPTY = 1 << 5,
-
         /// Whether this element has a style attribute. Computed
         /// externally.
         const AFFECTED_BY_STYLE_ATTRIBUTE = 1 << 6,
-
         /// Whether this element is affected by presentational hints. This is
         /// computed externally (that is, in Servo).
         const AFFECTED_BY_PRESENTATIONAL_HINTS = 1 << 7,
-
         /// Whether this element has pseudo-element styles. Computed externally.
         const AFFECTED_BY_PSEUDO_ELEMENTS = 1 << 8,
-
-        /// Whether this element has effective animation styles. Computed
-        /// externally.
-        const AFFECTED_BY_ANIMATIONS = 1 << 9,
-
-        /// Whether this element has effective transition styles. Computed
-        /// externally.
-        const AFFECTED_BY_TRANSITIONS = 1 << 10,
     }
 }
 
@@ -364,21 +341,17 @@ fn matches_simple_selector<E, F>(
             false
         }
         Component::NonTSPseudoClass(ref pc) => {
-            relation_if!(element.match_non_ts_pseudo_class(pc, relations, flags_setter),
-                         AFFECTED_BY_STATE)
+            element.match_non_ts_pseudo_class(pc, relations, flags_setter)
         }
         Component::FirstChild => {
-            relation_if!(matches_first_child(element, flags_setter),
-                         AFFECTED_BY_CHILD_INDEX)
+            matches_first_child(element, flags_setter)
         }
         Component::LastChild => {
-            relation_if!(matches_last_child(element, flags_setter),
-                         AFFECTED_BY_CHILD_INDEX)
+            matches_last_child(element, flags_setter)
         }
         Component::OnlyChild => {
-            relation_if!(matches_first_child(element, flags_setter) &&
-                         matches_last_child(element, flags_setter),
-                         AFFECTED_BY_CHILD_INDEX)
+            matches_first_child(element, flags_setter) &&
+            matches_last_child(element, flags_setter)
         }
         Component::Root => {
             // We never share styles with an element with no parent, so no point
@@ -387,36 +360,29 @@ fn matches_simple_selector<E, F>(
         }
         Component::Empty => {
             flags_setter(element, HAS_EMPTY_SELECTOR);
-            relation_if!(element.is_empty(), AFFECTED_BY_EMPTY)
+            element.is_empty()
         }
         Component::NthChild(a, b) => {
-            relation_if!(matches_generic_nth_child(element, a, b, false, false, flags_setter),
-                         AFFECTED_BY_CHILD_INDEX)
+            matches_generic_nth_child(element, a, b, false, false, flags_setter)
         }
         Component::NthLastChild(a, b) => {
-            relation_if!(matches_generic_nth_child(element, a, b, false, true, flags_setter),
-                         AFFECTED_BY_CHILD_INDEX)
+            matches_generic_nth_child(element, a, b, false, true, flags_setter)
         }
         Component::NthOfType(a, b) => {
-            relation_if!(matches_generic_nth_child(element, a, b, true, false, flags_setter),
-                         AFFECTED_BY_CHILD_INDEX)
+            matches_generic_nth_child(element, a, b, true, false, flags_setter)
         }
         Component::NthLastOfType(a, b) => {
-            relation_if!(matches_generic_nth_child(element, a, b, true, true, flags_setter),
-                         AFFECTED_BY_CHILD_INDEX)
+            matches_generic_nth_child(element, a, b, true, true, flags_setter)
         }
         Component::FirstOfType => {
-            relation_if!(matches_generic_nth_child(element, 0, 1, true, false, flags_setter),
-                         AFFECTED_BY_CHILD_INDEX)
+            matches_generic_nth_child(element, 0, 1, true, false, flags_setter)
         }
         Component::LastOfType => {
-            relation_if!(matches_generic_nth_child(element, 0, 1, true, true, flags_setter),
-                         AFFECTED_BY_CHILD_INDEX)
+            matches_generic_nth_child(element, 0, 1, true, true, flags_setter)
         }
         Component::OnlyOfType => {
-            relation_if!(matches_generic_nth_child(element, 0, 1, true, false, flags_setter) &&
-                         matches_generic_nth_child(element, 0, 1, true, true, flags_setter),
-                         AFFECTED_BY_CHILD_INDEX)
+            matches_generic_nth_child(element, 0, 1, true, false, flags_setter) &&
+            matches_generic_nth_child(element, 0, 1, true, true, flags_setter)
         }
         Component::Negation(ref negated) => {
             !negated.iter().all(|s| {

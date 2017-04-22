@@ -1129,7 +1129,6 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
                     }
                     elem = prev;
                 }
-                relations.insert(AFFECTED_BY_CHILD_INDEX);
                 true
             }
             NonTSPseudoClass::MozLastNode => {
@@ -1141,7 +1140,6 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
                     }
                     elem = next;
                 }
-                relations.insert(AFFECTED_BY_CHILD_INDEX);
                 true
             }
             NonTSPseudoClass::MozOnlyWhitespace => {
@@ -1149,7 +1147,6 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
                 if self.as_node().dom_children().any(|c| c.contains_non_whitespace_content()) {
                     return false
                 }
-                relations.insert(AFFECTED_BY_EMPTY);
                 true
             }
             NonTSPseudoClass::MozTableBorderNonzero |
