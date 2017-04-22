@@ -134,7 +134,7 @@ fn font_variant_alternates_should_be_parsed_correctly() {
     assert_roundtrip_with_context!(font_variant_alternates::parse, "swash(ident)");
     assert_roundtrip_with_context!(font_variant_alternates::parse, "ornaments(ident)");
     assert_roundtrip_with_context!(font_variant_alternates::parse, "annotation(ident)");
-    assert_roundtrip_with_context!(font_variant_alternates::parse, "historical-forms styleset(ident1, ident2) annotation(ident)");
+    assert_roundtrip_with_context!(font_variant_alternates::parse, "historical-forms styleset(ident1, ident2)");
 }
 
 #[test]

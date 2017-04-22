@@ -1218,7 +1218,7 @@ ${helpers.single_keyword("font-variant-position",
                             Ok(())
                         }));
                     },
-                    _ => break, 
+                    _ => break,
                 };
             } else {
                 break;
@@ -1342,8 +1342,6 @@ ${helpers.single_keyword("font-variant-position",
                 }
             }
         }
- 
-
     }
 
     pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
@@ -1439,7 +1437,7 @@ ${helpers.single_keyword("font-variant-position",
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="font-variant-ligatures" products="none" 
+<%helpers:longhand name="font-variant-ligatures" products="none"
                    animatable="False" spec="https://drafts.csswg.org/css-fonts-3/#font-variant-ligatures-prop">
     use std::fmt;
     use style_traits::ToCss;
@@ -1453,7 +1451,6 @@ ${helpers.single_keyword("font-variant-position",
         pub use super::SpecifiedValue as T;
     }
 
-    
     #[derive(Debug, Clone, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct Style {
@@ -1647,7 +1644,7 @@ ${helpers.single_keyword("font-variant-position",
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="font-variant-numeric" products="none" 
+<%helpers:longhand name="font-variant-numeric" products="none"
                    animatable="False"
                    spec="https://drafts.csswg.org/css-fonts-3/#font-variant-numeric-prop">
     use std::fmt;
@@ -1665,7 +1662,7 @@ ${helpers.single_keyword("font-variant-position",
     #[derive(Debug, Clone, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum FigureValue {
-        Lining, 
+        Lining,
         Oldstyle,
     }
 

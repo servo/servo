@@ -4,22 +4,25 @@
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
-<%helpers:shorthand name="font" sub_properties="font-style font-variant font-weight font-stretch
-                                                font-size line-height font-family
-                                                ${'font-size-adjust' if product == 'gecko' or data.testing else ''}
-                                                ${'font-kerning' if product == 'gecko' or data.testing else ''}
-                                                ${'font-variant-caps' if product == 'gecko' or data.testing else ''}
-                                                ${'font-variant-position' if product == 'gecko' or data.testing else ''}
-                                                ${'font-variant-alternates' if product == 'gecko' or data.testing else ''}
-                                                ${'font-variant-east-asian' if product == 'gecko' or data.testing else ''}
-                                                ${'font-variant-ligatures' if product == 'gecko' or data.testing else ''}
-                                                ${'font-variant-numeric' if product == 'gecko' or data.testing else ''}
-                                                ${'font-language-override' if data.testing else ''}"
+<%helpers:shorthand name="font"
+                    sub_properties="font-style font-variant font-weight font-stretch
+                                    font-size line-height font-family
+                                    font-size-adjust' if product == 'gecko' or data.testing else ''}
+                                    font-kerning' if product == 'gecko' or data.testing else ''}
+                                    font-variant-caps' if product == 'gecko' or data.testing else ''}
+                                    ${'font-variant-position' if product == 'gecko' or data.testing else ''}
+                                    ${'font-variant-alternates' if product == 'gecko' or data.testing else ''}
+                                    ${'font-variant-east-asian' if product == 'gecko' or data.testing else ''}
+                                    ${'font-variant-ligatures' if product == 'gecko' or data.testing else ''}
+                                    ${'font-variant-numeric' if product == 'gecko' or data.testing else ''}
+                                    ${'font-language-override' if data.testing else ''}"
                     spec="https://drafts.csswg.org/css-fonts-3/#propdef-font">
     use properties::longhands::{font_style, font_variant, font_weight, font_stretch};
     use properties::longhands::{font_size, line_height};
     % if product == "gecko" or data.testing:
-    use properties::longhands::{font_size_adjust, font_kerning, font_variant_caps, font_variant_position, font_variant_alternates, font_variant_east_asian, font_variant_ligatures, font_variant_numeric};
+    use properties::longhands::{font_size_adjust, font_kerning, font_variant_caps, font_variant_position,
+                                font_variant_alternates, font_variant_east_asian, font_variant_ligatures,
+                                font_variant_numeric};
     % endif
     % if data.testing:
     use properties::longhands::font_language_override;
