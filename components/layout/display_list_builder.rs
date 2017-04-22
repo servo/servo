@@ -719,6 +719,10 @@ fn convert_circle_size_keyword(keyword: SizeKeyword,
         }
         ClosestCorner => get_distance_to_corner(size, center, ::std::cmp::min),
         FarthestCorner => get_distance_to_corner(size, center, ::std::cmp::max),
+        _ => {
+            println!("TODO: implement size keyword {:?} for circles", keyword);
+            Au::new(0)
+        }
     };
     Size2D::new(radius, radius)
 }
@@ -734,6 +738,10 @@ fn convert_ellipse_size_keyword(keyword: SizeKeyword,
         FarthestSide => get_distance_to_sides(size, center, ::std::cmp::max),
         ClosestCorner => get_ellipse_radius(size, center, ::std::cmp::min),
         FarthestCorner => get_ellipse_radius(size, center, ::std::cmp::max),
+        _ => {
+            println!("TODO: implement size keyword {:?} for ellipses", keyword);
+            Size2D::new(Au::new(0), Au::new(0))
+        }
     }
 }
 
