@@ -370,15 +370,18 @@ trait PrivateMatchMethods: TElement {
                           font_metrics_provider: &FontMetricsProvider,
                           rule_node: &StrongRuleNode,
                           primary_style: &ComputedStyle,
-                          cascade_flags: CascadeFlags,
                           is_pseudo: bool)
                           -> Arc<ComputedValues> {
         let mut cascade_info = CascadeInfo::new();
+        let mut cascade_flags = CascadeFlags::empty();
+        if self.skip_root_and_item_based_display_fixup() {
+            cascade_flags.insert(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP)
+        }
 
         // Grab the inherited values.
         let parent_el;
         let parent_data;
-        let inherited_values_ = if !is_pseudo {
+        let style_to_inherit_from = if !is_pseudo {
             parent_el = self.parent_element();
             parent_data = parent_el.as_ref().and_then(|e| e.borrow_data());
             let parent_values = parent_data.as_ref().map(|d| {
@@ -400,14 +403,14 @@ trait PrivateMatchMethods: TElement {
 
         let mut layout_parent_el = parent_el.clone();
         let layout_parent_data;
-        let mut layout_parent_style = inherited_values_;
-        if inherited_values_.map_or(false, |s| s.is_display_contents()) {
+        let mut layout_parent_style = style_to_inherit_from;
+        if style_to_inherit_from.map_or(false, |s| s.is_display_contents()) {
             layout_parent_el = Some(layout_parent_el.unwrap().layout_parent());
             layout_parent_data = layout_parent_el.as_ref().unwrap().borrow_data().unwrap();
             layout_parent_style = Some(layout_parent_data.styles().primary.values())
         }
 
-        let inherited_values = inherited_values_.map(|x| &**x);
+        let style_to_inherit_from = style_to_inherit_from.map(|x| &**x);
         let layout_parent_style = layout_parent_style.map(|x| &**x);
 
         // Propagate the "can be fragmented" bit. It would be nice to
@@ -429,7 +432,7 @@ trait PrivateMatchMethods: TElement {
             Arc::new(cascade(&shared_context.stylist.device,
                              rule_node,
                              &shared_context.guards,
-                             inherited_values,
+                             style_to_inherit_from,
                              layout_parent_style,
                              Some(&mut cascade_info),
                              &*shared_context.error_reporter,
@@ -443,61 +446,70 @@ trait PrivateMatchMethods: TElement {
     fn cascade_internal(&self,
                         context: &StyleContext<Self>,
                         primary_style: &ComputedStyle,
-                        pseudo_style: &Option<(&PseudoElement, &mut ComputedStyle)>)
+                        pseudo_style: Option<&ComputedStyle>)
                         -> Arc<ComputedValues> {
-        let mut cascade_flags = CascadeFlags::empty();
-        if self.skip_root_and_item_based_display_fixup() {
-            cascade_flags.insert(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP)
-        }
-
         // Grab the rule node.
-        let rule_node = &pseudo_style.as_ref().map_or(primary_style, |p| &*p.1).rules;
-        self.cascade_with_rules(context.shared, &context.thread_local.font_metrics_provider,
-                                rule_node, primary_style, cascade_flags, pseudo_style.is_some())
+        let rule_node = &pseudo_style.unwrap_or(primary_style).rules;
+
+        self.cascade_with_rules(context.shared,
+                                &context.thread_local.font_metrics_provider,
+                                rule_node,
+                                primary_style,
+                                pseudo_style.is_some())
     }
 
     /// Computes values and damage for the primary or pseudo style of an element,
     /// setting them on the ElementData.
-    fn cascade_primary_or_pseudo<'a>(&self,
-                                     context: &mut StyleContext<Self>,
-                                     data: &mut ElementData,
-                                     pseudo: Option<&PseudoElement>,
-                                     animate: bool) {
+    fn cascade_primary_or_pseudo(&self,
+                                 context: &mut StyleContext<Self>,
+                                 data: &mut ElementData,
+                                 pseudo: Option<&PseudoElement>,
+                                 animate: bool) {
         // Collect some values.
         let (mut styles, restyle) = data.styles_and_restyle_mut();
         let mut primary_style = &mut styles.primary;
         let pseudos = &mut styles.pseudos;
-        let mut pseudo_style = pseudo.map(|p| (p, pseudos.get_mut(p).unwrap()));
-        let mut old_values =
-            pseudo_style.as_mut().map_or_else(|| primary_style.values.take(), |p| p.1.values.take());
+        let mut pseudo_style = match pseudo {
+            Some(p) => {
+                let style = pseudos.get_mut(p);
+                debug_assert!(style.is_some());
+                style
+            }
+            None => None,
+        };
+
+        let mut old_values = match pseudo_style {
+            Some(ref mut s) => s.values.take(),
+            None => primary_style.values.take(),
+        };
 
         // Compute the new values.
-        let mut new_values = self.cascade_internal(context, primary_style,
-                                                   &pseudo_style);
+        let mut new_values = self.cascade_internal(context,
+                                                   primary_style,
+                                                   pseudo_style.as_ref().map(|s| &**s));
 
         // Handle animations.
         if animate && !context.shared.traversal_flags.for_animation_only() {
-            let pseudo_style = pseudo_style.as_ref().map(|&(ref pseudo, ref computed_style)| {
-                (*pseudo, &**computed_style)
-            });
             self.process_animations(context,
                                     &mut old_values,
                                     &mut new_values,
                                     primary_style,
-                                    &pseudo_style);
+                                    pseudo,
+                                    pseudo_style.as_ref().map(|s| &**s));
         }
 
         // Accumulate restyle damage.
         if let Some(old) = old_values {
-            self.accumulate_damage(&context.shared, restyle.unwrap(), &old, &new_values, pseudo);
+            self.accumulate_damage(&context.shared,
+                                   restyle.unwrap(),
+                                   &old,
+                                   &new_values,
+                                   pseudo);
         }
 
         // Set the new computed values.
-        if let Some((_, ref mut style)) = pseudo_style {
-            style.values = Some(new_values);
-        } else {
-            primary_style.values = Some(new_values);
-        }
+        let mut relevant_style = pseudo_style.unwrap_or(primary_style);
+        relevant_style.values = Some(new_values);
     }
 
     /// get_after_change_style removes the transition rules from the ComputedValues.
@@ -506,10 +518,10 @@ trait PrivateMatchMethods: TElement {
     fn get_after_change_style(&self,
                               context: &mut StyleContext<Self>,
                               primary_style: &ComputedStyle,
-                              pseudo_style: &Option<(&PseudoElement, &ComputedStyle)>)
+                              pseudo_style: Option<&ComputedStyle>)
                               -> Option<Arc<ComputedValues>> {
-        let style = &pseudo_style.as_ref().map_or(primary_style, |p| &*p.1);
-        let rule_node = &style.rules;
+        let relevant_style = pseudo_style.unwrap_or(primary_style);
+        let rule_node = &relevant_style.rules;
         let without_transition_rules =
             context.shared.stylist.rule_tree.remove_transition_rule_if_applicable(rule_node);
         if without_transition_rules == *rule_node {
@@ -518,15 +530,10 @@ trait PrivateMatchMethods: TElement {
             return None;
         }
 
-        let mut cascade_flags = CascadeFlags::empty();
-        if self.skip_root_and_item_based_display_fixup() {
-            cascade_flags.insert(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP);
-        }
         Some(self.cascade_with_rules(context.shared,
                                      &context.thread_local.font_metrics_provider,
                                      &without_transition_rules,
                                      primary_style,
-                                     cascade_flags,
                                      pseudo_style.is_some()))
     }
 
@@ -561,11 +568,13 @@ trait PrivateMatchMethods: TElement {
                           old_values: &mut Option<Arc<ComputedValues>>,
                           new_values: &mut Arc<ComputedValues>,
                           primary_style: &ComputedStyle,
-                          pseudo_style: &Option<(&PseudoElement, &ComputedStyle)>) {
+                          pseudo: Option<&PseudoElement>,
+                          pseudo_style: Option<&ComputedStyle>) {
         use context::{CSS_ANIMATIONS, CSS_TRANSITIONS, EFFECT_PROPERTIES};
         use context::UpdateAnimationsTasks;
 
-        let pseudo = pseudo_style.map(|(p, _)| p);
+        debug_assert_eq!(pseudo.is_some(), pseudo_style.is_some());
+
         let mut tasks = UpdateAnimationsTasks::empty();
         if self.needs_animations_update(old_values, new_values, pseudo) {
             tasks.insert(CSS_ANIMATIONS);
@@ -628,7 +637,10 @@ trait PrivateMatchMethods: TElement {
                           old_values: &mut Option<Arc<ComputedValues>>,
                           new_values: &mut Arc<ComputedValues>,
                           _primary_style: &ComputedStyle,
-                          _pseudo_style: &Option<(&PseudoElement, &ComputedStyle)>) {
+                          pseudo: Option<&PseudoElement>,
+                          pseudo_style: Option<&ComputedStyle>) {
+        debug_assert_eq!(pseudo.is_some(), pseudo_style.is_some());
+
         let possibly_expired_animations =
             &mut context.thread_local.current_element_info.as_mut().unwrap()
                         .possibly_expired_animations;
@@ -1297,27 +1309,22 @@ pub trait MatchMethods : TElement {
                       shared_context: &SharedStyleContext,
                       font_metrics_provider: &FontMetricsProvider,
                       primary_style: &ComputedStyle,
-                      pseudo_style: &Option<(&PseudoElement, &ComputedStyle)>)
+                      pseudo_style: Option<&ComputedStyle>)
                       -> Arc<ComputedValues> {
-        let style = &pseudo_style.as_ref().map_or(primary_style, |p| &*p.1);
-        let rule_node = &style.rules;
+        let relevant_style = pseudo_style.unwrap_or(primary_style);
+        let rule_node = &relevant_style.rules;
         let without_animation_rules =
             shared_context.stylist.rule_tree.remove_animation_and_transition_rules(rule_node);
         if without_animation_rules == *rule_node {
             // Note that unwrapping here is fine, because the style is
             // only incomplete during the styling process.
-            return style.values.as_ref().unwrap().clone();
+            return relevant_style.values.as_ref().unwrap().clone();
         }
 
-        let mut cascade_flags = CascadeFlags::empty();
-        if self.skip_root_and_item_based_display_fixup() {
-            cascade_flags.insert(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP)
-        }
         self.cascade_with_rules(shared_context,
                                 font_metrics_provider,
                                 &without_animation_rules,
                                 primary_style,
-                                cascade_flags,
                                 pseudo_style.is_some())
     }
 
