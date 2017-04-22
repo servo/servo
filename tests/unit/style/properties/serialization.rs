@@ -650,6 +650,10 @@ mod shorthand_serialization {
                               font-kerning: auto; \
                               font-variant-caps: normal; \
                               font-variant-position: normal; \
+                              font-variant-alternates: normal; \
+                              font-variant-east-asian: normal; \
+                              font-variant-ligatures: normal; \
+                              font-variant-numeric: normal; \
                               font-language-override: normal;";
 
             let block = parse_declaration_block(block_text);

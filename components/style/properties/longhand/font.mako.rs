@@ -1006,3 +1006,865 @@ ${helpers.single_keyword("font-variant-position",
         Err(())
     }
 </%helpers:longhand>
+
+<%helpers:longhand name="font-variant-alternates" products="none" animatable="False" boxed="True"
+                   spec="https://drafts.csswg.org/css-fonts-3/#font-variant-alternates-prop">
+    use std::fmt;
+    use style_traits::ToCss;
+    use values::HasViewportPercentage;
+    use values::computed::ComputedValueAsSpecified;
+
+    impl ComputedValueAsSpecified for SpecifiedValue {}
+    no_viewport_percentage!(SpecifiedValue);
+
+    pub mod computed_value {
+        pub use super::SpecifiedValue as T;
+    }
+
+    #[derive(Debug, Clone, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub struct Style {
+        pub historical_forms: bool,
+        pub styleset: Option<Vec<String>>,
+        pub character_variant: Option<Vec<String>>,
+        pub swash: Option<String>,
+        pub ornaments: Option<String>,
+        pub annotation: Option<String>,
+    }
+
+    #[derive(Debug, Clone, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub enum SpecifiedValue {
+        Normal,
+        Style(Style),
+    }
+
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match *self {
+                SpecifiedValue::Normal => dest.write_str("normal"),
+                SpecifiedValue::Style(ref style) => {
+
+                    let mut is_empty = true;
+
+                    if style.historical_forms {
+                        try!(dest.write_str("historical-forms"));
+                        is_empty = false;
+                    }
+
+                    if let Some(ref args) = style.styleset {
+                        if !is_empty {
+                            try!(dest.write_str(" "));
+                        }
+
+                        try!(dest.write_str("styleset("));
+
+                        let mut first = true;
+                        for arg in args {
+                            if !first {
+                                try!(dest.write_str(", "));
+                            }
+                            first = false;
+
+                            try!(dest.write_str(arg));
+                        }
+
+                        try!(dest.write_str(")"));
+
+                        is_empty = false;
+                    }
+
+                    if let Some(ref args) = style.character_variant {
+                        if !is_empty {
+                            try!(dest.write_str(" "));
+                        }
+
+                        try!(dest.write_str("character-variant("));
+
+                        let mut first = true;
+                        for arg in args {
+                            if !first {
+                                try!(dest.write_str(", "));
+                            }
+                            first = false;
+
+                            try!(dest.write_str(&arg));
+                        }
+
+                        try!(dest.write_str(")"));
+
+                        is_empty = false;
+                    }
+
+                    if let Some(ref arg) = style.swash {
+                        if !is_empty {
+                            try!(dest.write_str(" "));
+                        }
+
+                        try!(write!(dest, "swash({})", arg));
+
+                        is_empty = false;
+                    }
+
+                    if let Some(ref arg) = style.ornaments {
+                        if !is_empty {
+                            try!(dest.write_str(" "));
+                        }
+
+                        try!(write!(dest, "ornaments({})", arg));
+
+                        is_empty = false;
+                    }
+
+                    if let Some(ref arg) = style.annotation {
+                        if !is_empty {
+                            try!(dest.write_str(" "));
+                        }
+
+                        try!(write!(dest, "annotation({})", arg));
+
+                        is_empty = false;
+                    }
+
+
+                    if is_empty {
+                        try!(dest.write_str("none"));
+                    }
+
+                    Ok(())
+                }
+            }
+        }
+    }
+
+    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        if let Ok(_) = input.try(|input| input.expect_ident_matching("normal")) {
+            return Ok(SpecifiedValue::Normal);
+        }
+
+        let mut historical_forms = false;
+        let mut styleset = None;
+        let mut character_variant = None;
+        let mut swash = None;
+        let mut ornaments = None;
+        let mut annotation = None;
+
+        loop {
+            if let Ok(_) = input.try(|input| input.expect_ident_matching("historical-forms")) {
+                if historical_forms {
+                    return Err(());
+                }
+                historical_forms = true;
+            }
+
+            if let Ok(func_name) = input.expect_function() {
+                match_ignore_ascii_case! {&func_name,
+                    "styleset" => {
+                        if styleset.is_some() {
+                            return Err(());
+                        }
+
+                        try!(input.parse_nested_block(|input| {
+                            let args = try!(input.parse_comma_separated(|input| {
+                                Ok(try!(input.expect_ident()).into_owned())
+                            }));
+                            styleset = Some(args);
+                            Ok(())
+                        }));
+                    },
+                    "character-variant" => {
+                        if character_variant.is_some() {
+                            return Err(());
+                        }
+
+                        try!(input.parse_nested_block(|input| {
+                            let args = try!(input.parse_comma_separated(|input| {
+                                Ok(try!(input.expect_ident()).into_owned())
+                            }));
+                            character_variant = Some(args);
+                            Ok(())
+                        }));
+                    },
+                    "swash" => {
+                        if swash.is_some() {
+                            return Err(());
+                        }
+
+                        try!(input.parse_nested_block(|input| {
+                            let arg = try!(input.expect_ident()).into_owned();
+                            swash = Some(arg);
+                            Ok(())
+                        }));
+                    },
+                    "ornaments" => {
+                        if ornaments.is_some() {
+                            return Err(());
+                        }
+
+                        try!(input.parse_nested_block(|input| {
+                            let arg = try!(input.expect_ident()).into_owned();
+                            ornaments = Some(arg);
+                            Ok(())
+                        }));
+                    },
+                    "annotation" => {
+                        if annotation.is_some() {
+                            return Err(());
+                        }
+
+                        try!(input.parse_nested_block(|input| {
+                            let arg = try!(input.expect_ident()).into_owned();
+                            annotation = Some(arg);
+                            Ok(())
+                        }));
+                    },
+                    _ => break, 
+                };
+            } else {
+                break;
+            }
+        }
+
+        Ok(SpecifiedValue::Style(Style{
+            historical_forms: historical_forms,
+            styleset: styleset,
+            character_variant: character_variant,
+            swash: swash,
+            ornaments: ornaments,
+            annotation: annotation,
+        }))
+    }
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T::Normal
+    }
+
+    #[inline]
+    pub fn get_initial_specified_value() -> SpecifiedValue {
+        SpecifiedValue::Normal
+    }
+</%helpers:longhand>
+
+<%helpers:longhand name="font-variant-east-asian" products="none" animatable="False"
+                   spec="https://drafts.csswg.org/css-fonts-3/#font-variant-east-asian-prop">
+    use std::fmt;
+    use style_traits::ToCss;
+    use values::HasViewportPercentage;
+    use values::computed::ComputedValueAsSpecified;
+
+    impl ComputedValueAsSpecified for SpecifiedValue {}
+    no_viewport_percentage!(SpecifiedValue);
+
+    pub mod computed_value {
+        pub use super::SpecifiedValue as T;
+    }
+
+    #[derive(Debug, Clone, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub enum VariantValue {
+        Jis78,
+        Jis83,
+        Jis90,
+        Simplified,
+        Traditional,
+    }
+
+    #[derive(Debug, Clone, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub enum WidthValue {
+        Full,
+        Proportional,
+    }
+
+    #[derive(Debug, Clone, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub struct Style {
+        ruby: bool,
+        variant: Option<VariantValue>,
+        width: Option<WidthValue>,
+    }
+
+    #[derive(Debug, Clone, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub enum SpecifiedValue {
+        Normal,
+        Style(Style),
+    }
+
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match *self {
+                SpecifiedValue::Normal => dest.write_str("normal"),
+                SpecifiedValue::Style(ref style) => {
+                    let mut is_empty = true;
+
+                    if style.ruby {
+                        try!(dest.write_str("ruby"));
+
+                        is_empty = false;
+                    }
+
+                    if let Some(ref variant) = style.variant {
+                        if !is_empty {
+                            try!(dest.write_str(" "));
+                        }
+
+                        match *variant {
+                            VariantValue::Jis78 => try!(dest.write_str("jis78")),
+                            VariantValue::Jis83 => try!(dest.write_str("jis78")),
+                            VariantValue::Jis90 => try!(dest.write_str("jis78")),
+                            VariantValue::Simplified => try!(dest.write_str("simplified")),
+                            VariantValue::Traditional => try!(dest.write_str("traditional")),
+                        }
+
+                        is_empty = false;
+                    }
+
+                    if let Some(ref width) = style.width {
+                        if !is_empty {
+                            try!(dest.write_str(" "));
+                        }
+
+                        match *width {
+                            WidthValue::Full => try!(dest.write_str("full-width")),
+                            WidthValue::Proportional => try!(dest.write_str("proportional-width")),
+                        }
+
+                        is_empty = false;
+                    }
+
+                    if is_empty {
+                        try!(dest.write_str("none"));
+                    }
+
+                    Ok(())
+                }
+            }
+        }
+ 
+
+    }
+
+    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        if let Ok(_) = input.try(|input| input.expect_ident_matching("normal")) {
+            return Ok(SpecifiedValue::Normal);
+        }
+
+        let mut ruby = false;
+        let mut variant = None;
+        let mut width = None;
+
+        loop {
+            if let Ok(ident) = input.expect_ident() {
+                match_ignore_ascii_case! {&ident.into_owned(),
+                    "ruby" => {
+                        if ruby {
+                            return Err(());
+                        }
+
+                        ruby = true;
+                    },
+                    "jis78" => {
+                        if variant.is_some() {
+                            return Err(());
+                        }
+
+                        variant = Some(VariantValue::Jis78);
+                    },
+                    "jis83" => {
+                        if variant.is_some() {
+                            return Err(());
+                        }
+
+                        variant = Some(VariantValue::Jis83);
+                    },
+                    "jis90" => {
+                        if variant.is_some() {
+                            return Err(());
+                        }
+
+                        variant = Some(VariantValue::Jis90);
+                    },
+                    "simplified" => {
+                        if variant.is_some() {
+                            return Err(());
+                        }
+
+                        variant = Some(VariantValue::Simplified);
+                    },
+                    "traditional" => {
+                        if variant.is_some() {
+                            return Err(());
+                        }
+
+                        variant = Some(VariantValue::Traditional);
+                    },
+                    "full-width" => {
+                        if width.is_some() {
+                            return Err(());
+                        }
+
+                        width = Some(WidthValue::Full);
+                    },
+                    "proportional-width" => {
+                        if width.is_some() {
+                            return Err(());
+                        }
+
+                        width = Some(WidthValue::Proportional);
+                    },
+                    _ => break,
+                }
+            } else {
+                break;
+            }
+        }
+
+        Ok(SpecifiedValue::Style(Style{
+            ruby: ruby,
+            variant: variant,
+            width: width,
+        }))
+    }
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T::Normal
+    }
+
+    #[inline]
+    pub fn get_initial_specified_value() -> SpecifiedValue {
+        SpecifiedValue::Normal
+    }
+</%helpers:longhand>
+
+<%helpers:longhand name="font-variant-ligatures" products="none" 
+                   animatable="False" spec="https://drafts.csswg.org/css-fonts-3/#font-variant-ligatures-prop">
+    use std::fmt;
+    use style_traits::ToCss;
+    use values::HasViewportPercentage;
+    use values::computed::ComputedValueAsSpecified;
+
+    impl ComputedValueAsSpecified for SpecifiedValue {}
+    no_viewport_percentage!(SpecifiedValue);
+
+    pub mod computed_value {
+        pub use super::SpecifiedValue as T;
+    }
+
+    
+    #[derive(Debug, Clone, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub struct Style {
+        common: Option<bool>,
+        discretionary: Option<bool>,
+        historical: Option<bool>,
+        contextual_alt: Option<bool>,
+    }
+
+    #[derive(Debug, Clone, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub enum SpecifiedValue {
+        None,
+        Normal,
+        Style(Style),
+    }
+
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match *self {
+                SpecifiedValue::None => dest.write_str("none"),
+                SpecifiedValue::Normal => dest.write_str("normal"),
+                SpecifiedValue::Style(ref style) => {
+                    let mut is_empty = true;
+
+                    if let Some(common) = style.common {
+                        if !is_empty {
+                            try!(dest.write_str(" "));
+                        }
+
+                        if !common {
+                            try!(dest.write_str("non-"));
+                        }
+
+                        try!(dest.write_str("common-ligatures"));
+
+                        is_empty = false;
+                    }
+
+                    if let Some(discretionary) = style.discretionary {
+                        if !is_empty {
+                            try!(dest.write_str(" "));
+                        }
+
+                        if !discretionary {
+                            try!(dest.write_str("non-"));
+                        }
+
+                        try!(dest.write_str("discretionary-ligatures"));
+
+                        is_empty = false;
+                    }
+
+                    if let Some(historical) = style.historical {
+                        if !is_empty {
+                            try!(dest.write_str(" "));
+                        }
+
+                        if !historical {
+                            try!(dest.write_str("non-"));
+                        }
+
+                        try!(dest.write_str("historical-ligatures"));
+
+                        is_empty = false;
+                    }
+
+                    if let Some(contextual_alt) = style.contextual_alt {
+                        if !is_empty {
+                            try!(dest.write_str(" "));
+                        }
+
+                        if !contextual_alt {
+                            try!(dest.write_str("non-"));
+                        }
+
+                        try!(dest.write_str("contextual"));
+
+                        is_empty = false;
+                    }
+
+                    if is_empty {
+                        try!(dest.write_str("none"));
+                    }
+
+                    Ok(())
+                }
+            }
+        }
+    }
+
+    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        if let Ok(value) = input.try(|input| {
+            let ident = try!(input.expect_ident()).into_owned();
+            match_ignore_ascii_case! {&ident,
+                "none" => Ok(SpecifiedValue::None),
+                "normal" => Ok(SpecifiedValue::Normal),
+                _ => Err(()),
+            }
+        }) {
+            return Ok(value);
+        }
+
+        let mut common = None;
+        let mut discretionary = None;
+        let mut historical = None;
+        let mut contextual_alt = None;
+
+        loop {
+            if let Ok(ident) = input.expect_ident() {
+                match_ignore_ascii_case!{&ident.into_owned(),
+                    "common-ligatures" => {
+                        if common.is_some() {
+                            return Err(());
+                        }
+
+                        common = Some(true);
+                    },
+                    "non-common-ligatures" => {
+                        if common.is_some() {
+                            return Err(());
+                        }
+
+                        common = Some(false);
+                    },
+                    "discretionary-ligatures" => {
+                        if discretionary.is_some() {
+                            return Err(());
+                        }
+
+                        discretionary = Some(true);
+                    },
+                    "non-discretionary-ligatures" => {
+                        if discretionary.is_some() {
+                            return Err(());
+                        }
+
+                        common = Some(false);
+                    },
+                    "historical-ligatures" => {
+                        if historical.is_some() {
+                            return Err(());
+                        }
+
+                        historical = Some(true);
+                    },
+                    "non-historical-ligatures" => {
+                        if historical.is_some() {
+                            return Err(());
+                        }
+
+                        historical = Some(false);
+                    },
+                    "contextual" => {
+                        if contextual_alt.is_some() {
+                            return Err(());
+                        }
+
+                        contextual_alt = Some(true);
+                    },
+                    "non-contextual" => {
+                        if contextual_alt.is_some() {
+                            return Err(());
+                        }
+
+                        contextual_alt = Some(false);
+                    },
+                    _ => return Err(()),
+                }
+            } else {
+                break;
+            }
+        }
+
+        Ok(SpecifiedValue::Style(Style{
+            common: common,
+            discretionary: discretionary,
+            historical: historical,
+            contextual_alt: contextual_alt,
+        }))
+    }
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T::Normal
+    }
+
+    #[inline]
+    pub fn get_initial_specified_value() -> SpecifiedValue {
+        SpecifiedValue::Normal
+    }
+</%helpers:longhand>
+
+<%helpers:longhand name="font-variant-numeric" products="none" 
+                   animatable="False"
+                   spec="https://drafts.csswg.org/css-fonts-3/#font-variant-numeric-prop">
+    use std::fmt;
+    use style_traits::ToCss;
+    use values::HasViewportPercentage;
+    use values::computed::ComputedValueAsSpecified;
+
+    impl ComputedValueAsSpecified for SpecifiedValue {}
+    no_viewport_percentage!(SpecifiedValue);
+
+    pub mod computed_value {
+        pub use super::SpecifiedValue as T;
+    }
+
+    #[derive(Debug, Clone, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub enum FigureValue {
+        Lining, 
+        Oldstyle,
+    }
+
+    #[derive(Debug, Clone, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub enum SpacingValue {
+        Proportional,
+        Tabular,
+    }
+
+    #[derive(Debug, Clone, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub enum FractionValue {
+        Diagonal,
+        Stacked,
+    }
+
+    #[derive(Debug, Clone, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub struct Style {
+        ordinal: bool,
+        slashed_zero: bool,
+        figure: Option<FigureValue>,
+        spacing: Option<SpacingValue>,
+        fraction: Option<FractionValue>,
+    }
+
+    #[derive(Debug, Clone, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub enum SpecifiedValue {
+        Normal,
+        Style(Style),
+    }
+
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match *self {
+                SpecifiedValue::Normal => dest.write_str("normal"),
+                SpecifiedValue::Style(ref style) => {
+                    let mut is_empty = true;
+
+                    if style.ordinal {
+                        try!(dest.write_str("ordinal"));
+
+                        is_empty = false;
+                    }
+
+                    if style.slashed_zero {
+                        if !is_empty {
+                            try!(dest.write_str(" "));
+                        }
+
+                        try!(dest.write_str("slashed-zero"));
+
+                        is_empty = false;
+                    }
+
+                    if let Some(ref value) = style.figure {
+                        if !is_empty {
+                            try!(dest.write_str(" "));
+                        }
+
+                        match *value {
+                            FigureValue::Lining => try!(dest.write_str("lining-nums")),
+                            FigureValue::Oldstyle => try!(dest.write_str("oldstyle-nums")),
+                        };
+
+                        is_empty = false;
+                    }
+
+                    if let Some(ref value) = style.spacing {
+                        if !is_empty {
+                            try!(dest.write_str(" "));
+                        }
+
+                        match *value {
+                            SpacingValue::Proportional => try!(dest.write_str("proportional-nums")),
+                            SpacingValue::Tabular => try!(dest.write_str("tabular-nums")),
+                        };
+
+                        is_empty = false;
+                    }
+
+                    if let Some(ref value) = style.fraction {
+                        if !is_empty {
+                            try!(dest.write_str(" "));
+                        }
+
+                        match *value {
+                            FractionValue::Diagonal => try!(dest.write_str("diagonal-fractions")),
+                            FractionValue::Stacked => try!(dest.write_str("stacked-fractions")),
+                        };
+
+                        is_empty = false;
+                    }
+
+                    if is_empty {
+                        try!(dest.write_str("none"));
+                    }
+
+                    Ok(())
+                },
+            }
+        }
+    }
+
+    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        if let Ok(_) = input.try(|input| input.expect_ident_matching("normal")) {
+            return Ok(SpecifiedValue::Normal);
+        }
+
+        let mut ordinal = false;
+        let mut slashed_zero = false;
+        let mut figure = None;
+        let mut spacing = None;
+        let mut fraction = None;
+
+        loop {
+            if let Ok(ident) = input.expect_ident() {
+                match_ignore_ascii_case!{&ident.into_owned(),
+                    "ordinal" =>{
+                        if ordinal {
+                            return Err(());
+                        }
+
+                        ordinal = true;
+                    },
+                    "slashed-zero" => {
+                        if slashed_zero {
+                            return Err(());
+                        }
+
+                        slashed_zero = true;
+                    },
+                    "lining-nums" => {
+                        if figure.is_some() {
+                            return Err(());
+                        }
+
+                        figure = Some(FigureValue::Lining);
+                    },
+                    "oldstyle-nums" => {
+                        if figure.is_some() {
+                            return Err(());
+                        }
+
+                        figure = Some(FigureValue::Oldstyle);
+                    },
+                    "proportional-nums" => {
+                        if spacing.is_some() {
+                            return Err(());
+                        }
+
+                        spacing = Some(SpacingValue::Proportional);
+                    },
+                    "tabular-nums" => {
+                        if spacing.is_some() {
+                            return Err(());
+                        }
+
+                        spacing = Some(SpacingValue::Tabular);
+                    },
+                    "diagonal-fractions" => {
+                        if fraction.is_some() {
+                            return Err(());
+                        }
+
+                        fraction = Some(FractionValue::Diagonal);
+                    },
+                    "stacked-fractions" => {
+                        if fraction.is_some() {
+                            return Err(());
+                        }
+
+                        fraction = Some(FractionValue::Stacked);
+                    },
+                    _ => break,
+                }
+            } else {
+                break;
+            }
+        }
+
+        Ok(SpecifiedValue::Style(Style{
+            ordinal: ordinal,
+            slashed_zero: slashed_zero,
+            figure: figure,
+            spacing: spacing,
+            fraction: fraction,
+        }))
+    }
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T::Normal
+    }
+
+    #[inline]
+    pub fn get_initial_specified_value() -> SpecifiedValue {
+        SpecifiedValue::Normal
+    }
+</%helpers:longhand>

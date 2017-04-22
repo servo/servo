@@ -122,3 +122,55 @@ fn font_language_override_should_fail_on_empty_str() {
 
     parse_longhand!(font_language_override, "");
 }
+
+#[test]
+fn font_variant_alternates_should_be_parsed_correctly() {
+    use style::properties::longhands::font_variant_alternates;
+
+    assert_roundtrip_with_context!(font_variant_alternates::parse, "normal");
+    assert_roundtrip_with_context!(font_variant_alternates::parse, "historical-forms");
+    assert_roundtrip_with_context!(font_variant_alternates::parse, "styleset(ident1, ident2)");
+    assert_roundtrip_with_context!(font_variant_alternates::parse, "character-variant(ident)");
+    assert_roundtrip_with_context!(font_variant_alternates::parse, "swash(ident)");
+    assert_roundtrip_with_context!(font_variant_alternates::parse, "ornaments(ident)");
+    assert_roundtrip_with_context!(font_variant_alternates::parse, "annotation(ident)");
+    assert_roundtrip_with_context!(font_variant_alternates::parse, "historical-forms styleset(ident1, ident2) annotation(ident)");
+}
+
+#[test]
+fn font_variant_east_asian_should_be_parsed_correctly() {
+    use style::properties::longhands::font_variant_east_asian;
+
+    assert_roundtrip_with_context!(font_variant_east_asian::parse, "normal");
+    assert_roundtrip_with_context!(font_variant_east_asian::parse, "ruby");
+    assert_roundtrip_with_context!(font_variant_east_asian::parse, "jis78");
+    assert_roundtrip_with_context!(font_variant_east_asian::parse, "traditional");
+    assert_roundtrip_with_context!(font_variant_east_asian::parse, "simplified");
+    assert_roundtrip_with_context!(font_variant_east_asian::parse, "full-width");
+    assert_roundtrip_with_context!(font_variant_east_asian::parse, "ruby jis78 full-width");
+}
+
+#[test]
+fn font_variant_ligatures_should_be_parsed_correctly() {
+    use style::properties::longhands::font_variant_ligatures;
+
+    assert_roundtrip_with_context!(font_variant_ligatures::parse, "none");
+    assert_roundtrip_with_context!(font_variant_ligatures::parse, "normal");
+    assert_roundtrip_with_context!(font_variant_ligatures::parse, "common-ligatures");
+    assert_roundtrip_with_context!(font_variant_ligatures::parse, "non-common-ligatures");
+    assert_roundtrip_with_context!(font_variant_ligatures::parse, "contextual");
+    assert_roundtrip_with_context!(font_variant_ligatures::parse, "non-contextual");
+    assert_roundtrip_with_context!(font_variant_ligatures::parse, "non-historical-ligatures contextual");
+}
+
+#[test]
+fn font_variant_numeric_should_be_parsed_correctly() {
+    use style::properties::longhands::font_variant_numeric;
+
+    assert_roundtrip_with_context!(font_variant_numeric::parse, "normal");
+    assert_roundtrip_with_context!(font_variant_numeric::parse, "ordinal");
+    assert_roundtrip_with_context!(font_variant_numeric::parse, "lining-nums");
+    assert_roundtrip_with_context!(font_variant_numeric::parse, "tabular-nums");
+    assert_roundtrip_with_context!(font_variant_numeric::parse, "diagonal-fractions");
+    assert_roundtrip_with_context!(font_variant_numeric::parse, "ordinal diagonal-fractions");
+}
