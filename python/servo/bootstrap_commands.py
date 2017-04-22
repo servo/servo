@@ -306,19 +306,14 @@ class MachCommands(CommandBase):
             for tool in ["rust", "cargo"]:
                 commit_file = '{}-commit-hash'.format(tool)
                 cmd = subprocess.Popen(
-                    ['git', 'log', '--pretty=format:%H', '-n', keep, commit_file],
+                    ['git', 'log', '--oneline', '--no-color', '-n', keep, '--patch', commit_file],
                     stdout=subprocess.PIPE,
                     universal_newlines=True
                 )
                 stdout, _ = cmd.communicate()
-                for commit in stdout.splitlines():
-                    cmd = subprocess.Popen(
-                        ['git', 'show', '{}:{}'.format(commit, commit_file)],
-                        stdout=subprocess.PIPE,
-                        universal_newlines=True
-                    )
-                    commit_hash, _ = cmd.communicate()
-                    to_keep[tool].add(commit_hash.rstrip())
+                for line in stdout.splitlines():
+                    if line.startswith("+") and not line.startswith("+++"):
+                        to_keep[tool].add(line[1:])
 
         removing_anything = False
         for tool in ["rust", "cargo"]:
