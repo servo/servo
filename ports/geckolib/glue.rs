@@ -1992,7 +1992,7 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
 
 #[no_mangle]
 pub extern "C" fn Servo_AssertTreeIsClean(root: RawGeckoElementBorrowed) {
-    if !cfg!(debug_assertions) {
+    if !cfg!(feature = "gecko_debug") {
         panic!("Calling Servo_AssertTreeIsClean in release build");
     }
 

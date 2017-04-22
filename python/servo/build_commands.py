@@ -417,8 +417,9 @@ class MachCommands(CommandBase):
 
         ret = None
         opts = []
+        features = []
         if with_gecko is not None:
-            opts += ["--features", "bindgen"]
+            features += ["bindgen"]
             env["MOZ_DIST"] = path.abspath(path.expanduser(with_gecko))
         if jobs is not None:
             opts += ["-j", jobs]
@@ -426,6 +427,11 @@ class MachCommands(CommandBase):
             opts += ["-v"]
         if release:
             opts += ["--release"]
+        else:
+            features += ["gecko_debug"]
+
+        if features:
+            opts += ["--features", ' '.join(features)]
 
         if with_gecko is not None:
             print("Generating atoms data...")
