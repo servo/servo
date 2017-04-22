@@ -17,24 +17,24 @@ bitflags! {
     /// the selector matching process.
     ///
     /// This is used to implement efficient sharing.
-    pub flags StyleRelations: u16 {
+    pub flags StyleRelations: usize {
         /// Whether this element is affected by an ID selector.
-        const AFFECTED_BY_ID_SELECTOR = 1 << 3,
+        const AFFECTED_BY_ID_SELECTOR = 1 << 0,
         /// Whether this element has a style attribute. Computed
         /// externally.
-        const AFFECTED_BY_STYLE_ATTRIBUTE = 1 << 6,
+        const AFFECTED_BY_STYLE_ATTRIBUTE = 1 << 1,
         /// Whether this element is affected by presentational hints. This is
         /// computed externally (that is, in Servo).
-        const AFFECTED_BY_PRESENTATIONAL_HINTS = 1 << 7,
+        const AFFECTED_BY_PRESENTATIONAL_HINTS = 1 << 2,
         /// Whether this element has pseudo-element styles. Computed externally.
-        const AFFECTED_BY_PSEUDO_ELEMENTS = 1 << 8,
+        const AFFECTED_BY_PSEUDO_ELEMENTS = 1 << 3,
     }
 }
 
 bitflags! {
     /// Set of flags that are set on either the element or its parent (depending
     /// on the flag) if the element could potentially match a selector.
-    pub flags ElementSelectorFlags: u8 {
+    pub flags ElementSelectorFlags: usize {
         /// When a child is added or removed from the parent, all the children
         /// must be restyled, because they may match :nth-last-child,
         /// :last-of-type, :nth-last-of-type, or :only-of-type.
