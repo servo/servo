@@ -2699,6 +2699,18 @@
      {}
     ]
    ],
+   "css/inline_block_nested_margin.html": [
+    [
+     "/_mozilla/css/inline_block_nested_margin.html",
+     [
+      [
+       "/_mozilla/css/inline_block_nested_margin_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "css/inline_block_opacity_change.html": [
     [
      "/_mozilla/css/inline_block_opacity_change.html",
@@ -7935,6 +7947,11 @@
     ]
    ],
    "css/inline_block_min_width_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/inline_block_nested_margin_ref.html": [
     [
      {}
     ]
@@ -21884,6 +21901,14 @@
   ],
   "css/inline_block_min_width_ref.html": [
    "ed6e0f503cb26c1091270ed0992a0a41553846d9",
+   "support"
+  ],
+  "css/inline_block_nested_margin.html": [
+   "b4114aa6421b4c9117e60e66ccc09868e05f3239",
+   "reftest"
+  ],
+  "css/inline_block_nested_margin_ref.html": [
+   "5e00c77f55a3d12e841e9c99395f4d3783664fd8",
    "support"
   ],
   "css/inline_block_opacity_change.html": [

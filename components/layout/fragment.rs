@@ -1547,31 +1547,29 @@ impl Fragment {
             }
         };
 
-        // Take borders and padding for parent inline fragments into account, if necessary.
-        if self.is_primary_fragment() {
-            let writing_mode = self.style.writing_mode;
-            if let Some(ref context) = self.inline_context {
-                for node in &context.nodes {
-                    let mut border_width = node.style.logical_border_width();
-                    let mut padding = model::padding_from_style(&*node.style, Au(0), writing_mode);
-                    let mut margin = model::specified_margin_from_style(&*node.style, writing_mode);
-                    if !node.flags.contains(FIRST_FRAGMENT_OF_ELEMENT) {
-                        border_width.inline_start = Au(0);
-                        padding.inline_start = Au(0);
-                        margin.inline_start = Au(0);
-                    }
-                    if !node.flags.contains(LAST_FRAGMENT_OF_ELEMENT) {
-                        border_width.inline_end = Au(0);
-                        padding.inline_end = Au(0);
-                        margin.inline_end = Au(0);
-                    }
-
-                    result.surrounding_size =
-                        result.surrounding_size +
-                        border_width.inline_start_end() +
-                        padding.inline_start_end() +
-                        margin.inline_start_end();
+        // Take borders and padding for parent inline fragments into account.
+        let writing_mode = self.style.writing_mode;
+        if let Some(ref context) = self.inline_context {
+            for node in &context.nodes {
+                let mut border_width = node.style.logical_border_width();
+                let mut padding = model::padding_from_style(&*node.style, Au(0), writing_mode);
+                let mut margin = model::specified_margin_from_style(&*node.style, writing_mode);
+                if !node.flags.contains(FIRST_FRAGMENT_OF_ELEMENT) {
+                    border_width.inline_start = Au(0);
+                    padding.inline_start = Au(0);
+                    margin.inline_start = Au(0);
                 }
+                if !node.flags.contains(LAST_FRAGMENT_OF_ELEMENT) {
+                    border_width.inline_end = Au(0);
+                    padding.inline_end = Au(0);
+                    margin.inline_end = Au(0);
+                }
+
+                result.surrounding_size =
+                    result.surrounding_size +
+                    border_width.inline_start_end() +
+                    padding.inline_start_end() +
+                    margin.inline_start_end();
             }
         }
 
