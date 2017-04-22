@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Font-variant set to 'small-caps'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#propdef-font-variant" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#small-caps" />
+        <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-variant-prop" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'font-variant' property set to 'normal' renders the small-caps version of characters for text for the font." />
+        <style type="text/css">
+            div
+            {
+                font-variant: small-caps;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the words below are rendered in small sized, uppercase characters.</p>
+        <div>filler text</div>
+    </body>
+</html>

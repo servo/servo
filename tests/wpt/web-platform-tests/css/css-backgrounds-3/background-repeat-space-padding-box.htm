@@ -1,0 +1,38 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: 'Background-repeat: space' when background positioning area is 'padding-box'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css3-background/#the-background-repeat" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="When 'background-repeat: space' and background positioning area is set to 'padding-box' the image is repeated as often within the 'padding-box' without being clipped, the images are spaced out to fill the area and the first and last images touch the edges of the 'padding-box'." />
+        <style type="text/css">
+            #reference
+            {
+                width: 2.9in;
+                height: 2.9in;
+                padding: 25px;
+                border: 25px double black;
+                background-clip: padding-box;
+                background-image: url("../support/red_space_pb.png");
+            }
+            #test
+            {
+                margin-top: -378px;
+                width: 2.9in;
+                height: 2.9in;
+                padding: 25px;
+                border: 25px double black;
+                background-origin: padding-box;
+                background-image: url("support/green_color.png");
+                background-repeat: no-repeat;
+                background-repeat: space;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page.</p>
+        <div id="reference"></div>
+        <div id="test"></div>
+    </body>
+</html>

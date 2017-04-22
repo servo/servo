@@ -81,7 +81,7 @@
             });
 
             if (read_success_count < RQ_COUNT + 5)
-                setTimeout(this.step_func(loop), write_request_count ? 1000 : 100);
+                step_timeout(this.step_func(loop), write_request_count ? 1000 : 100);
             else
                 // This is merely a "nice" hack to run finish after the last request is done
                 db.transaction("s")
@@ -89,7 +89,7 @@
                   .count()
                   .onsuccess = this.step_func(function()
                 {
-                    setTimeout(this.step_func(finish), 100);
+                    step_timeout(this.step_func(finish), 100);
                 });
         }
     }

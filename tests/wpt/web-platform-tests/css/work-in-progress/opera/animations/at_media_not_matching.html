@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <title>CSS Animations - keyframes at-rule inside non-matching @media</title>
+   <link rel="author" title="Opera Software ASA" href="http://www.opera.com/">
+   <meta name="flags" content="dom">
+   <meta name="assert" content="@keyframe inside non-matching @media should be
+   ignored">
+   <script src="/resources/testharness.js"></script>
+   <script src="/resources/testharnessreport.js"></script>
+   <style type="text/css">
+      @media print {
+         @keyframes test {
+            from { width: 100px; }
+            to { width: 200px; }
+         }
+      }
+      .animating {
+         animation: test 1s;
+      }
+   </style>
+   <script type="text/javascript">
+      setup({explicit_done:true});
+      onload = function() {
+         var testName = document.querySelector('title').firstChild.data;
+         var div = document.querySelector('div');
+         var log = document.querySelectorAll('p')[0].firstChild;
+         var passed = true;
+         div.addEventListener('animationstart', function() {
+            passed = false;
+         });
+         setTimeout(function() {
+            test(function(){assert_true(passed);}, testName); done();
+            log.data = (passed ? 'PASS' : 'FAIL');
+         }, 500);
+         div.className = 'animating';
+      }
+   </script>
+   <style>iframe{display:none}</style>
+</head>
+<body>
+   <p>Not tested (JavaScript required)</p>
+   <div></div>
+</body>
+</html>

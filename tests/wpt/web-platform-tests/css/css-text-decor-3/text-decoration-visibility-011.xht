@@ -1,0 +1,31 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+  <title>CSS Test: text-decoration:line-through - visibility:hidden 11</title>
+  <link rel="author" title="James Hopkins" href="http://idreamincode.co.uk/css21testsuite"/>
+<link rel="help" href="https://drafts.csswg.org/css-text-decor/#line-decoration"/>
+  <meta name="flags" content=""/>
+  <meta name="assert" content="Inline element with 'visibility:hidden' must not prevent a text-decoration value being applied to the line box"/>
+  <style type="text/css">
+  #test{
+  text-decoration:line-through;
+  white-space: nowrap;
+  background:yellow;
+  float:left;
+  }
+  #test span{
+  visibility:hidden;
+  }
+  </style>
+ </head>
+
+ <body>
+  <p>To pass, there <strong>must</strong> be a line-through spanning the full width of the yellow box.</p>
+  <div id="test">
+   <span>hidden</span>
+   visible
+   <span>hidden</span>
+  </div>
+ </body>
+</html>

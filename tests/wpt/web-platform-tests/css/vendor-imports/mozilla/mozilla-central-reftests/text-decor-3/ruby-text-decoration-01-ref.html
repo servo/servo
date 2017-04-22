@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>CSS Test: text-decoration on rubies</title>
+  <link rel="author" title="Xidorn Quan" href="http://www.upsuper.org/">
+</head>
+<style type="text/css">
+  ruby { display: ruby; }
+  rb { display: ruby-base; white-space: nowrap; }
+  rt { display: ruby-text; white-space: nowrap; }
+  p { line-height: 3em; }
+  span {
+    text-decoration: underline;
+  }
+</style>
+<body>
+  <p>
+    <ruby><rb><span>慶</span></rb><rt>けい</rt
+         ><rb><span>應</span></rb><rt>おう</rt
+         ><rb><span>義</span></rb><rt>ぎ</rt
+         ><rb><span>塾</span></rb><rt>じゅく</rt
+         ><rb><span>大</span></rb><rt>だい</rt
+         ><rb><span>学</span></rb><rt>がく</rt></ruby>
+  </p>
+</body>
+</html>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Transforms Test: SVG presentation attribute and scale 0.5 on the g element </title>
+    <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#svg-transform">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#two-d-transform-functions">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#funcdef-scale">
+    <link rel="match" href="reference/svg-scale-ref.html">
+    <meta name="flags" content="svg">
+    <meta name="assert" content="The group containing the red rect in this test should be scaled down 0.5 to be completely hidden behind the green rect.">
+    <style type="text/css">
+        svg {
+            width: 200px;
+            height: 200px;
+            background: green;
+        }
+    </style>
+</head>
+<body>
+    <p>The test passes if you see a green square and no red.</p>
+    <svg>
+        <g transform="scale(0.5)">
+            <rect x="1" y="1" width="296" height="296" fill="red"/>
+        </g>
+        <rect width="150" height="150" fill="green"/>
+    </svg>
+</body>
+</html>

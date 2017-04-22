@@ -1,0 +1,28 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: 'Transform' property with 'rotate3d' function</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css3-3d-transforms/#transform-functions" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'transform' property with 'rotate3d' function is supported." />
+        <style type="text/css">
+            #testelement1
+            {
+                background-color: yellow;
+                height: 140px;
+                left: 50px;
+                padding: 50px;
+                position: absolute;
+                top: 100px;
+                transform: rotate3d(20, 20, 20, 60deg);
+                width: 140px;
+            }
+        </style>
+            
+    </head>
+    <body>
+        <p>Test passes if the flat yellow square with text appears to be rotated in 3-dimensional space.</p>
+        <div id="testelement1">Filler Text</div>
+    </body>
+</html>

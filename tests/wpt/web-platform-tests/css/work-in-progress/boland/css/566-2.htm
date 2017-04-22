@@ -1,0 +1,78 @@
+
+<html>
+
+<title>Second Test of Section 5.6.6 of CSS1 Spec</title>
+
+<style type="text/css">
+ul ul {list-style: }
+ol {list-style: circle outside}
+ul {list-style: square inside}
+ul ul ul li {list-style: 200%}
+</style>
+</head>
+
+
+
+<body>
+
+
+
+
+<h1 >Testing Statement #2 Below of Section 5.6.6 of CSS1 Spec</h1>
+
+
+
+
+
+
+<p>
+2. For "list-style", initial is not defined for shorthand properties, it applies
+to elements with display value list-item, it is inherited, and percentage values
+are N/A.
+
+
+
+
+<h2>
+PASS CRITERIA:
+</h2>
+<p >
+
+If statement #2 above is passed, then:
+<ul>
+<ul>
+<li>
+This list style should be UA-default (initial value) or ul style.  
+THe rule applied is "ul ul {list-style: }"
+So the list style applies to ul and li.
+</ul>
+</ul>
+<ol>
+<li>
+This list style should be circle outside.
+The rule applied to ol is "ol {list-style: circle outside}".
+So the list style property applies to ol.
+</ol>
+<ul>
+<li>
+This list style should be square inside.
+The rule applied is to ul is "ul {list-style: square inside}".
+</ul>
+<ul>
+<ul>
+<ul>
+<li>
+This list item should have a list style of UA-default or ul style.
+The rule applied is "ul ul ul li {list-style: 200%}", which should be
+ignored since percentages do not apply.
+</ul>
+</ul>
+</ul>
+
+
+
+All other properties of this page should be UA-default.
+
+
+</body>
+</html>

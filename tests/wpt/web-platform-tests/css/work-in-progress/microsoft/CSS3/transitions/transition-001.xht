@@ -1,0 +1,61 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Transitioning the 'opacity' property of a 'div' element over a two-second duration is supported.</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css3-transitions/#transitions-" />
+        <meta name="flags" content="animated dom" />
+        <meta name="assert" content="Transitioning the 'opacity' property of a 'div' element over a two-second duration is supported." />
+        <style type="text/css">
+            #values
+            {
+                position: relative;
+                top: 20px; 
+            }
+            #testDiv
+            {
+                background-color: blue;
+                height: 50px;
+                opacity: 0.1;
+                position: relative;
+                transition-property: opacity;
+                transition-duration: 2s;
+                width: 50px;
+            }
+        </style>
+        <script type="text/javascript">
+            var VARIANCE_ALLOWED = 100; //The allowable variance in transition delay and duration (ms).
+
+            var element;
+            var values;
+            var intervalID;
+
+            function startTest()
+            {
+                document.body.offsetWidth;
+                element = document.getElementById("testDiv");
+                values = document.getElementById("values");
+
+                var firstVal = window.getComputedStyle(element, null).getPropertyValue("opacity");
+                values.innerHTML = "Computed values: " + firstVal;
+                values.value = "Computed values: " + firstVal; 
+                element.style["opacity"] = "1";
+                intervalID = setInterval("printOpacity()", 100);
+                setTimeout("clearInterval(intervalID)", 2000 - VARIANCE_ALLOWED);
+                setTimeout("printOpacity()", 2000 + VARIANCE_ALLOWED);
+            }
+
+            function printOpacity()
+            {
+                var opacity = window.getComputedStyle(element, null).getPropertyValue("opacity");
+                values.innerHTML = values.innerHTML + ", " + opacity;
+                values.value = values.value + ", " + opacity;
+            }
+        </script>
+    </head>
+    <body onload="startTest()">
+        <p>Test passes if the values printed under the blue box increase in value from "0.1" to "1".</p>
+        <div id="testDiv"></div>
+        <div id="values"></div>
+    </body>
+</html>

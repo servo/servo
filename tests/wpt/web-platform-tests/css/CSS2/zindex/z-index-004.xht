@@ -1,0 +1,46 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Z-index set to zero prefixed with a minus sign</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+		<link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-07-03 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#propdef-z-index" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#z-index" />
+		<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+
+        <meta name="flags" content="" />
+        <meta name="assert" content="The property z-index set to '0' prefixed with a minus sign is read as value '0'." />
+        <style type="text/css">
+            #div1
+            {
+                background: red;
+                height: 100px;
+                left: 0;
+                position: absolute;
+                top: 0;
+                width: 100px;
+                z-index: -0;
+            }
+            #div2
+            {
+                background: green;
+                height: 100px;
+                left: 0;
+                position: absolute;
+                top: 0;
+                width: 100px;
+            }
+            #wrapper
+            {
+                position: relative;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+        <div id="wrapper">
+            <div id="div1"></div>
+            <div id="div2"></div>
+        </div>
+    </body>
+</html>

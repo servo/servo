@@ -1,0 +1,41 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Page cascade (right/left)</title>
+  <link rel="author" title="Melinda Grant" href="mailto:melinda.grant@hp.com" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-selectors" />
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#cascading-and-page-context" />
+  <meta name="flags" content="paged" />
+  <meta name="assert" content="Properties specified in a :left or :right @page rule override those specified in an @page rule that has no pseudo-class specified." />
+  <style type="text/css">
+
+    @page {
+        margin: 15%;
+    }
+    @page :right {
+        margin-left: 50%;
+    }
+    @page :left {
+        margin-right: 50%;
+    }
+    div {
+        page-break-after: always;
+        border: medium solid blue;
+        padding: 10px;
+    }
+
+  </style>
+ </head>
+ <body>
+   <div>
+   This test produces three pages on paged media.<br/>
+   All text on this page is inside a box with a blue border which is entirely on the right side of the page.
+   </div>
+   <div>
+   This text is inside a box with a blue border which is entirely on the left side of the page.
+   </div>
+   <div>
+   This text is again inside a box with a blue border which is entirely on the right side of the page.
+   </div>
+ </body>
+</html>

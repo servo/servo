@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?xml-stylesheet href="css/absolute-000.css" type="text/css"?>
+
+
+<root>
+
+
+
+	<document>
+	
+	
+	
+	
+	
+		<info>You should see four boxes in the specified order.</info>
+		
+		
+		
+		<section id="container">
+		
+		
+		
+			<section id="top">Top</section>
+			<section id="left">Left</section>
+			<section id="center">Center</section>
+			<section id="right">Right</section>
+		
+		
+		
+		
+		
+		
+		</section>
+	
+	
+	
+	
+	
+	
+	
+	</document>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</root>

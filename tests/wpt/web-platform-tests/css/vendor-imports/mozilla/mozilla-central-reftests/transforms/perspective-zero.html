@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: transform: perspective(0)</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-transforms-2/#funcdef-perspective">
+<meta name="assert" content="perspective(0) should behave like identity transform function.">
+<link rel="match" href="reference/green.html">
+<style>
+#cover-me, #test {
+  width: 100px;
+  height: 100px;
+}
+#cover-me {
+  background: red;
+  position: relative;
+  margin-bottom: -100px;
+}
+#test {
+  background: green;
+  /* This should be an identity transform, since perspective(0) must be
+   * treated as perspective(infinity), and consequently translateZ()
+   * doesn't have any effect, so that it covers up #cover-me.
+   * If perspective(0) is invalid, #test would not create a stacking
+   * context, and #cover-me would be placed on top of #test showing red.
+   * If perspective(0) is handled as perspective(epsilon), #test would
+   * be invisible. */
+  transform: perspective(0) translateZ(50px);
+}
+</style>
+<p>Pass if there is NO red below:</p>
+<div id="cover-me"></div><div id="test"></div>

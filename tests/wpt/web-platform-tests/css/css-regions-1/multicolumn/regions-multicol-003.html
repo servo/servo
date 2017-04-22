@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Test: One named flow multi-column container, text content
+                     overflowing one region</title>
+    <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com"/>
+    <!-- Reviewed on Github on 09-26-2013: https://github.com/w3c/csswg-test/pull/89 -->
+    <link rel="reviewer" title="Mihai Balan" href="mailto:mibalan@adobe.com"/>
+    <link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property"/>
+    <link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from"/>
+    <link rel="help" href="http://www.w3.org/TR/css3-multicol/#columns"/>
+    <link rel="match" href="reference/regions-multicol-003-ref.html"/>
+    <meta name="assert" content="This test checks that text content flows through a region
+                                 maintaining the named flow  multi-column container and that
+                                 it overflows visibly into a third column."/>
+    <meta name="flags" content="ahem"/>
+    <style type="text/css">
+        #named-flow-multicol {
+            font-family: Ahem;
+            font-size: 20px;
+            line-height: 1em;
+            width: 230px;
+            height: 200px;
+            color: green;
+            columns: 2;
+            column-gap: 30px;
+            flow-into: multicol;
+        }
+        #region {
+            position: absolute;
+            top: 70px;
+            left: 20px;
+            width: 230px;
+            height: 200px;
+            flow-from: multicol;
+        }
+        .failure {
+           position: absolute;
+           top: 70px;
+           left: 20px;
+           background-color: red;
+           width: 100px;
+           height: 200px;
+           z-index: -1;
+        }
+        #block-1 {
+            left: 20px;
+        }
+        #block-2 {
+            left: 150px;
+        }
+        #block-3 {
+            left: 280px;
+        }
+    </style>
+</head>
+<body>
+    <p>The test passes if there are three vertical green rectangles and no red.</p>
+    <div id="named-flow-multicol">
+       XXXXX XXXXX XXXXX XXXXX XXXXX
+       XXXXX XXXXX XXXXX XXXXX XXXXX
+       XXXXX XXXXX XXXXX XXXXX XXXXX
+       XXXXX XXXXX XXXXX XXXXX XXXXX
+       XXXXX XXXXX XXXXX XXXXX XXXXX
+       XXXXX XXXXX XXXXX XXXXX XXXXX
+    </div>
+    <div id="region"></div>
+    <div class="failure" id="block-1"></div>
+    <div class="failure" id="block-2"></div>
+    <div class="failure" id="block-3"></div>
+</body>
+</html>

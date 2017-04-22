@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Test: calling requestFullscreen() on a region that's part of a multiple regions
+				region chain</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property" />
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from" />
+		<link rel="help" href="http://www.w3.org/TR/fullscreen/#api" />
+		<meta name="flags" content="ahem interact">
+		<meta name="assert" content="This test checks that calling the requestFullscreen() method
+				on a region that is part of a multiple-regions region chain does not change the order
+				in which content is flowed through the region chain.">
+		<link rel="stylesheet" href="support/common.css" media="all">
+		<script src="support/util.js"></script>
+		<style>
+		#content {
+			flow-into: flow;
+			color: green;
+			font-family: Ahem;
+			font-size: 20px;
+			line-height: 1em;
+			margin: 0;
+		}
+		#content .blue {
+			color: lightblue;
+		}
+		.region {
+			flow-from: flow;
+			width: 100px;
+			height: 100px;
+		}
+		.region > p {
+			background: red;
+
+		}
+		</style>
+	</head>
+	<body>
+		<section id="instructions">
+			<ol>
+				<li>You should see no red rectangles or squares before or during the text</li>
+				<li>Below, you should see a green square, a light blue square and another green square, stacked vertically</li>
+				<li>Click the <em>Go full screen</em> button below
+					<ul>
+						<li>The page should enter full screen mode, with only the light blue square being visible.</li>
+						<li>The browser might display a permission window asking you to allow full
+						screen on this page. Allow it.</li>
+					</ul>
+				</li>
+				<li>Exit full screen (e.g. by pressing <em>Esc</em>)
+					<ul>
+						<li>All initial content should be visible again.</li>
+					</ul>
+				</li>
+			</ol>
+			<button>Go full screen</button>
+		</section>
+
+		<div id="content">
+			<div>
+				xxxxx&#8203;xxxxx&#8203;xxxxx&#8203;xxxxx&#8203;xxxxx
+			</div>
+			<div class="blue">
+				xxxxx&#8203;xxxxx&#8203;xxxxx&#8203;xxxxx&#8203;xxxxx
+			</div>
+			<div>
+				xxxxx&#8203;xxxxx&#8203;xxxxx&#8203;xxxxx&#8203;xxxxx
+			</div>
+		</div>
+
+		<div class="region">
+			<p>&nbsp;</p>
+		</div>
+		<div class="second region">
+			<p>&nbsp;</p>
+		</div>
+		<div class="region">
+			<p>&nbsp;</p>
+		</div>
+
+		<div id="fail-marker"></div>
+
+		<script>
+		makeFullScreenToggle("button", ".second.region");
+		</script>
+	</body>
+</html>

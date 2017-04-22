@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!--
+    Reference case, with testcase's dynamic tweak already performed.
+-->
+<html>
+  <head>
+    <style>
+      div#outer { margin-left: 40px }
+
+      div#flexContainer {
+        width: 100px;
+        height: 50px;
+        background: lightgray;
+        display: flex;
+        justify-content: center;
+      }
+
+      div#flexItem {
+        border: 1px solid black;
+        height: 200%;
+        background: purple;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="outer">
+      <div id="flexContainer">
+        <div id="flexItem">item</div>
+      </div>
+    </div>
+  </body>
+</html>

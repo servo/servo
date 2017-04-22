@@ -1,0 +1,69 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Second Test of Section 13.3 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+#id1 {page-break-after: auto}
+#id2 {page-break-after: always}
+#id3 {page-break-after: avoid}
+#id4 {page-break-after: left}
+#id5 {page-break-after: right}
+#id6 {page-break-after: inherit}
+
+
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Second Testable Statement of Sec 13.3 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+2. The page-break-after property has the following possible values:
+"auto | always | avoid | left | right | inherit".
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p ID=id1 >
+If statement #2 above is passed, then
+this paragraph should neither force nor forbid a page break.
+The rule applied is "#id1 {page-break-after: auto}".
+<p ID=id2>
+THis paragraph should always force a page break.
+The rule applied is "#id2 {page-break-after: always}".
+<p ID=id3>
+This paragraph should avoid a page break after this "p" element.
+The rule applied is "#id3 {page-break-after: avoid}".
+<p ID=id4>
+This paragraph should force the next formatted page to be a left page.
+The rule applied is "#id4 {page-break-after: left}".
+<p ID=id5>
+This paragraph should force the next formatted page to be a right page.
+The rule applied is "#id5 {page-break-after: right}".
+<p id=id6>
+This paragraph should force the next formatted page to be inherit.
+The rule applied is "#id6 {page-break-after: inherit}".
+<p>
+All other properties of this page should be UA-default.
+
+
+To move directly to the next test, click<a href="13-03.htm"> here</a>
+</BODY>
+</HTML>
+

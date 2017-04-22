@@ -18,17 +18,14 @@
             client.responseType = responseType
           }
           client.open("GET", "resources/status.py?content=" + input + "&type=" + encodeURIComponent(type), true)
-          client.onload = function(){
-            test.step(function(){
-              assert_equals(client.responseText, output)
-              test.done()
-            })
-          }
+          client.onload = test.step_func_done(() => {
+            assert_equals(client.responseText, output)
+          })
           client.send(null)
         })
       }
       request("application/xml", encodeURIComponent("<?xml version='1.0' encoding='windows-1252'?><x>")+'%FF'+encodeURIComponent("<\/x>"), "<?xml version='1.0' encoding='windows-1252'?><x>\u00FF<\/x>")
-      request("text/html", encodeURIComponent("<!doctype html><meta charset=windows-1252>")+"%FF", "<!doctype html><meta charset=windows-1252>\u00FF")
+      request("text/html", encodeURIComponent("<!doctype html><meta charset=windows-1252>")+"%FF", "<!doctype html><meta charset=windows-1252>\uFFFD")
       request("text/plain;charset=windows-1252", "%FF", "\u00FF")
       request("text/plain", "%FF", "\uFFFD")
       request("text/plain", "%FE%FF", "")
@@ -36,8 +33,6 @@
       request("text/plain", "%EF%BB%BF", "")
       request("text/plain", "%EF%BB%BF%EF%BB%BF", "\uFEFF")
       request("text/plain", "%C2", "\uFFFD")
-
-      // XXX might need fixing
       request("text/xml", "%FE%FF", "")
       request("text/xml", "%FE%FF%FE%FF", "\uFEFF")
       request("text/xml", "%EF%BB%BF", "")

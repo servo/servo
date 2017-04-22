@@ -23,6 +23,9 @@ function testExtendSubSet(startIndex, optionalEndIndex) {
     // selections only once.
     for (var i = startIndex; i < endIndex; i++) {
         var endpoints = eval(testRanges[i]);
+        // We can't test extend() with unselectable endpoints.
+        if (!isSelectableNode(endpoints[0]) || !isSelectableNode(endpoints[2]))
+            continue;
         for (var j = 0; j < testPoints.length; j++) {
             if (endpoints[0] == endpoints[2]
             && endpoints[1] == endpoints[3]) {

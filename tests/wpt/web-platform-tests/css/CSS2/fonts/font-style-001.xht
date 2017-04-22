@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Font-style set to 'normal'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#propdef-font-style" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-styling" />
+        <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-style-prop"/>
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The 'font-style' property set to 'normal' correctly renders the characters as normal text." />
+        <style type="text/css">
+            div
+            {
+                font-style: italic;
+                font-style: normal;
+                font-family: Ahem;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a box below that appears upright, and not slanted to one side.</p>
+        <div>X</div>
+    </body>
+</html>

@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Generated Content: \A and white-space</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/content/005.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#content" />
+  <link rel="match" href="content-175-ref.xht" />
+
+  <style type="text/css">
+   .test { width: 20em; padding: 2em 10em; }
+   .test div { display: inline; padding: 0 1em 0 0; background: navy; color: navy; }
+   .test div:after { content: '  \A'; white-space: pre; }
+  </style>
+ </head>
+ <body>
+  <div>Test passes if there is only one single straight blue stripe.</div>
+  <div class="test"><div>
+   This test has failed.
+  </div></div>
+ </body>
+</html>

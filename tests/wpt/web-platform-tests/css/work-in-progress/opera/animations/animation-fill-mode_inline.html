@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <title>CSS Animations - animation-fill-mode and inline element</title>
+   <link rel="author" title="Opera Software ASA" href="http://www.opera.com/">
+   <link rel="help" href="https://drafts.csswg.org/css3-animations/#the-animation-fill-mode-property-">
+   <meta name="flags" content="dom">
+   <meta name="assert" content="animation-fill-mode applies to inline elements">
+   <script src="/resources/testharness.js"></script>
+   <script src="/resources/testharnessreport.js"></script>
+   <style type="text/css">
+      @keyframes fade {
+         from {
+            opacity: 1;
+         }
+         to {
+            opacity: 0;
+         }
+      }
+      .test {
+         color: blue;
+         animation-name: fade;
+         animation-duration: 0.5s;
+         animation-delay: 0.5s;
+         animation-fill-mode: both;
+      }
+   </style>
+   <script type="text/javascript">
+      setup({explicit_done:true});
+      onload = function() {
+         var testName = document.querySelector('title').firstChild.data;
+         var span = document.querySelector('span');
+         var log = document.querySelectorAll('p')[1].firstChild;
+         var style = getComputedStyle(span, null);
+         var passed = false;
+         setTimeout(function() {
+            passed = (style.getPropertyValue('opacity') == '1');
+         }, 250);
+         setTimeout(function() {
+            var fill = style.getPropertyValue('animation-fill-mode');
+            passed = (passed && style.getPropertyValue('opacity') == '0'
+                      && fill == 'both');
+            test(function(){assert_true(passed);}, testName); done();
+            log.data = (passed ? 'PASS if the animation occurred.' : 'FAIL');
+         }, 1250);
+         span.className = 'test';
+      }
+   </script>
+   <style>iframe{display:none}</style>
+</head>
+<body>
+   <p>The blue word below should start fading out after a short delay, and
+   should stay invisible at the end.</p>
+   <p>Testing...</p>
+   <div>normal <span>FADE</span> normal</div>
+</body>
+</html>

@@ -1,0 +1,46 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: CSS clipping test</title>
+<link rel="author" title="David Hyatt" href="mailto:hyatt@netscape.com"/>
+
+<link rel="help" href="http://www.w3.org/TR/CSS21/visufx.html#clipping" />
+<style type="text/css">
+.green {
+  width: 100px;
+  height: 100px;
+  background-color: green;
+}
+
+.red {
+  width: 100px;
+  height: 100px;
+  margin-top: 100px;
+  margin-left: 100px;
+  background-color: red;
+}
+
+.clip {
+  clip: rect(0px 100px 100px 0px);
+}
+
+.positioned {
+  position: absolute;
+}
+
+.overflow {
+  overflow: hidden;
+}
+
+</style>
+</head>
+<body>
+<p>Test passes if there is <strong>a green square</strong> and <strong>no red</strong>.</p>
+<!-- This test is checking to make sure clip is applying to all descendants. -->
+
+<div class="clip green positioned">
+<div class="red"></div>
+<div class="red overflow"></div>
+</div>
+</body>
+</html>

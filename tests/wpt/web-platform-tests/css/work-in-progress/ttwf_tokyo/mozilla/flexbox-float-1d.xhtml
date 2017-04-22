@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!--
+     This test is like flexbox-float-1b.xhtml, but with the float-styled
+     element dynamically inserted.
+-->
+<html xmlns="http://www.w3.org/1999/xhtml" class="reftest-wait">
+  <head>
+    <script>
+      function generateFloat(aFloatDirection) {
+        var newElem = document.createElement("div");
+        newElem.setAttribute("style", "float: " + aFloatDirection);
+        newElem.innerHTML = aFloatDirection == "left" ? "[[[" : "]]]";
+        return newElem;
+      }
+
+      function tweak() {
+        var containerList = document.getElementsByClassName("flexbox");
+        for (var i = 0; i &lt; containerList.length; i++) {
+          var container = containerList[i];
+          var newElem = generateFloat(container.getAttribute("floatValToUse"));
+
+          var nodeToInsertBefore;
+          var insertPosn = container.getAttribute("insertPosn");
+          if (insertPosn == "begin") {
+            nodeToInsertBefore = container.firstChild;
+          } else if (insertPosn == "mid") {
+            nodeToInsertBefore = container.firstChild.nextSibling;
+          } else if (insertPosn == "end") {
+            nodeToInsertBefore = null;
+          }
+
+          container.insertBefore(newElem, nodeToInsertBefore);
+        }
+
+        document.documentElement.removeAttribute("class");
+      }
+
+      window.addEventListener("MozReftestInvalidate", tweak, false);
+    </script>
+    <style>
+      div.flexbox {
+        display: flex;
+        width: 400px;
+        margin-bottom: 2px;
+        font-family: sans-serif;
+        background: lightgreen;
+        justify-content: space-around;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="flexbox" floatValToUse="left" insertPosn="mid">
+      aaa<span>bbb</span>
+    </div>
+    <div class="flexbox" floatValToUse="right" insertPosn="mid">
+      aaa<span>bbb</span>
+    </div>
+    <div class="flexbox" floatValToUse="left" insertPosn="end">
+      aaa
+    </div>
+    <div class="flexbox" floatValToUse="right" insertPosn="end">
+      aaa
+    </div>
+    <div class="flexbox" floatValToUse="left" insertPosn="begin">
+      bbb
+    </div>
+    <div class="flexbox" floatValToUse="right" insertPosn="begin">
+      bbb
+    </div>
+  </body>
+</html>

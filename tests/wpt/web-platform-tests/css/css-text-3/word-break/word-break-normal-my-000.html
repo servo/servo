@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8">
+<title>word-break: normal, myanmar</title>
+<meta name="assert" content="word-break: normal means words break according to their customary rules.">
+<link rel='help' href='https://drafts.csswg.org/css-text-3/#word-break-property'>
+<link rel='match' href='reference/word-break-normal-my-ref-000.html'>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<style type='text/css'>
+.test { word-break: normal; }
+/* the CSS below is not part of the test */
+.test, .ref { border: 1px solid orange;  margin: 20px;  padding: 10px; width: 390px; font: 36px/1 sans-serif; }
+</style>
+</head>
+<body>
+<div id='instructions'>Test passes if the two orange boxes are the same.</div>
+<div class="test" lang="my"><div id="testdiv"><span id="testspan">မြန်မာစာမြန်မာစာမြန်မာစာ</span></div></div>
+<div class="ref" lang="my"><span>မြန်မာစာမြန်မာစာ<br/>မြန်မာစာ</span></div>
+<script>
+var sentenceWidth = document.getElementById('testspan').offsetWidth
+document.getElementById('testdiv').style.width = String(sentenceWidth - 5)+'px'
+</script>
+</body>
+</html>

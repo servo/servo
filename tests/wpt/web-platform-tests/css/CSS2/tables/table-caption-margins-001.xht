@@ -1,0 +1,49 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Table Caption Margin Collapsing</title>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#model" title="17.4 Tables in the visual formatting model" />
+  <meta name="assert" content="The table caption's margins do not collapse
+    with the margins applied to the table wrapper box."/>
+  <style type="text/css">
+    .control {
+      margin: 15px;
+      width: 6em;
+      border: 15px red;
+      border-style: solid none;
+      background: repeat-x 0 40px url(support/swatch-red.png);
+    }
+    .container {
+      margin: -15px 0;
+      border: solid blue 15px;
+      border-style: solid none;
+    }
+    .table {
+      display: table;
+      height: 15px;
+      width: 6em;
+      margin: 20px 0 40px;
+      background: blue;
+    }
+    .caption {
+      display: table-caption;
+      height: 15px;
+      width: 6em;
+      background: blue;
+      margin: 20px 0 40px;
+    }
+  </style>
+
+ </head>
+ <body>
+   <p>There must be four evenly-spaced blue bars and no red.</p>
+   <div class="control">
+     <div class="container">
+       <div class="table">
+         <div class="caption"></div>
+       </div>
+     </div>
+   </div>
+ </body>
+</html>

@@ -1,0 +1,149 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD//XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSSOM - CSSStyleDeclaration - Inline Style - Named Properties - CSS2.X - Aural</title>
+    <link rel="author" title="Glenn Adams" href="mailto:glenn@skynav.com"/>
+    <link rel="help" href="http://www.w3.org/TR/cssom-1/#the-cssstyledeclaration-interface"/>
+    <meta name="flags" content="dom"/>
+    <script src="/resources/testharness.js"/>
+    <script src="/resources/testharnessreport.js"/>
+  </head>
+  <body>
+    <div id="log"></div>
+    <div id="box"></div>
+    <script><![CDATA[
+
+      var elt = document.getElementById('box');
+
+      test(function(){
+
+        assert_true('style' in elt);
+
+      }, '\'style\' in elt');
+
+      var style = elt.style;
+
+      test(function(){
+
+        assert_true('azimuth' in style);
+
+      }, '\'azimuth\' in style');
+
+      test(function(){
+
+        assert_true('cue' in style);
+
+      }, '\'cue\' in style');
+
+      test(function(){
+
+        assert_true('cueAfter' in style);
+
+      }, '\'cueAfter\' in style');
+
+      test(function(){
+
+        assert_true('cueBefore' in style);
+
+      }, '\'cueBefore\' in style');
+
+      test(function(){
+
+        assert_true('elevation' in style);
+
+      }, '\'elevation\' in style');
+
+      test(function(){
+
+        assert_true('pause' in style);
+
+      }, '\'pause\' in style');
+
+      test(function(){
+
+        assert_true('pauseAfter' in style);
+
+      }, '\'pauseAfter\' in style');
+
+      test(function(){
+
+        assert_true('pauseBefore' in style);
+
+      }, '\'pauseBefore\' in style');
+
+      test(function(){
+
+        assert_true('pitch' in style);
+
+      }, '\'pitch\' in style');
+
+      test(function(){
+
+        assert_true('pitchRange' in style);
+
+      }, '\'pitchRange\' in style');
+
+      test(function(){
+
+        assert_true('playDuring' in style);
+
+      }, '\'playDuring\' in style');
+
+      test(function(){
+
+        assert_true('richness' in style);
+
+      }, '\'richness\' in style');
+
+      test(function(){
+
+        assert_true('speak' in style);
+
+      }, '\'speak\' in style');
+
+      test(function(){
+
+        assert_true('speakHeader' in style);
+
+      }, '\'speakHeader\' in style');
+
+      test(function(){
+
+        assert_true('speakNumeral' in style);
+
+      }, '\'speakNumeral\' in style');
+
+      test(function(){
+
+        assert_true('speakPunctuation' in style);
+
+      }, '\'speakPunctuation\' in style');
+
+      test(function(){
+
+        assert_true('speechRate' in style);
+
+      }, '\'speechRate\' in style');
+
+      test(function(){
+
+        assert_true('stress' in style);
+
+      }, '\'stress\' in style');
+
+      test(function(){
+
+        assert_true('voiceFamily' in style);
+
+      }, '\'voiceFamily\' in style');
+
+      test(function(){
+
+        assert_true('volume' in style);
+
+      }, '\'volume\' in style');
+
+    ]]>
+    </script>
+  </body>
+</html>

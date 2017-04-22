@@ -1,0 +1,44 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Reftest Reference</title>
+  <link rel="author" title="Opera Software ASA" href="http://www.opera.com/" />
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2013-08-15 -->
+  <meta name="flags" content="ahem" />
+  <style type="text/css"><![CDATA[
+  body {margin: 8px;}
+
+  p
+  {
+  line-height: 1.25em;
+  margin: 1em 0em;
+  }
+
+  strong {line-height: 1;}
+
+  div
+  {
+  border-collapse: collapse;
+  border-left: orange ridge 100px;
+  color: transparent;
+  display: table;
+  font: 6.25em/1 Ahem;
+  }
+
+  div + div
+  {
+  position: relative;
+  top: 10px;
+  }
+  ]]></style>
+ </head>
+ <body>
+
+  <p>Test passes if the 2 orange squares are <strong>identical</strong>.</p>
+
+  <div>T</div>
+
+  <div>T</div>
+
+ </body>
+</html>

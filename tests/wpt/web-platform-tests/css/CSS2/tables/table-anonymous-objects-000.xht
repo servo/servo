@@ -1,0 +1,21 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: CSS Tables: Anonymous Cell Children</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/table/008.xml" type="application/xhtml+xml"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#anonymous-boxes" />
+  <style type="text/css">
+
+    /* basics */
+    .table { display: table; height: 5em; width: 5em; background: green; }
+    .table > * { display: table-cell; color: yellow; background: red; border: solid red; }
+    .table > *:after { content: 'FAIL!!!'; color: yellow; background: red;  border: solid red; }
+
+  </style>
+ </head>
+ <body>
+  <p>There should be a green block below.</p>
+  <div class="table"><!-- empty --></div>
+ </body>
+</html>

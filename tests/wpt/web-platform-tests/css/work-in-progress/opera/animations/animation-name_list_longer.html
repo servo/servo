@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <title>CSS Animations - animation-name list longer than other lists</title>
+   <link rel="author" title="Opera Software ASA" href="http://www.opera.com/">
+   <link rel="help" href="https://drafts.csswg.org/css3-animations/#the-animation-name-property-">
+   <meta name="flags" content="dom">
+   <meta name="assert" content="In the case where the other properties do not
+   have lists of the correct length, their values are repeated to form a list
+   with the same number of entries as 'animation-name'">
+   <script src="/resources/testharness.js"></script>
+   <script src="/resources/testharnessreport.js"></script>
+   <style type="text/css">
+      @keyframes grow-width {
+         from {
+            width: 100px;
+         }
+         to {
+            width: 200px;
+         }
+      }
+      @keyframes grow-height {
+         from {
+            height: 100px;
+         }
+         to {
+            height: 200px;
+         }
+      }
+      div {
+         width: 100px;
+         height: 100px;
+         background: blue;
+      }
+      .test {
+         animation-fill-mode: forwards;
+         animation-duration: 1s;
+         animation-name: grow-width, grow-height;
+      }
+   </style>
+   <script type="text/javascript">
+      setup({explicit_done:true});
+      onload = function() {
+         var testName = document.querySelector('title').firstChild.data;
+         var div = document.querySelector('div');
+         var log = document.querySelectorAll('p')[1].firstChild;
+         var widthOK = false;
+         var heightOK = false;
+         function aboutEqual(observed, actual) {
+            var maxFactor = 0.01;
+            return (Math.abs(observed - actual) < maxFactor * actual);
+         }
+         var timeout = setTimeout(function() {
+            test(function(){assert_true(false);}, testName); done();
+            log.data = 'FAIL';
+         }, 2000);
+         div.addEventListener('animationend', function(evt) {
+            var style = getComputedStyle(div, null);
+            if (evt.animationName == 'grow-width') {
+               widthOK = (style.width == '200px'
+                          && aboutEqual(evt.elapsedTime, 1));
+            } else if (evt.animationName == 'grow-height') {
+               heightOK = (style.height =='200px'
+                           && aboutEqual(evt.elapsedTime, 1));
+            }
+            if (widthOK && heightOK) {
+               clearTimeout(timeout);
+               test(function(){assert_true(true);}, testName); done();
+               log.data = 'PASS if the animation occurred.';
+            }
+         });
+         div.className = 'test';
+      }
+   </script>
+   <style>iframe{display:none}</style>
+</head>
+<body>
+   <p>The block below should grow to double the width and double the height,
+   remaining square at all times.</p>
+   <p>Testing...</p>
+   <div></div>
+</body>
+</html>

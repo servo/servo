@@ -1,0 +1,70 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: Percent height inside anonymous block</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#anonymous-block-level" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#containing-block-details" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#the-height-property" />
+  <link rel="match" href="anonymous-boxes-001a-ref.xht" />
+
+  <meta content="ahem image" name="flags" />
+  <meta content="Anonymous block boxes are ignored when resolving percentage values that would refer to it: the closest non-anonymous ancestor box is used instead." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  body {margin: 8px;}
+
+  div#overlapped-red
+  {
+  background-color: red;
+  height: 100px;
+  left: 208px;
+  /*
+      8px : body's margin-left
+  +
+    160px : 4 characters of "Some" 40px wide each
+  +
+     40px : one blank white space of 40px wide
+  --------------------------------------------------
+    208px
+  */
+  position: absolute;
+  width: 100px;
+  z-index: -1;
+  }
+
+  div#closest-non-anonymous-ancestor
+  {
+  color: white;
+  font: 2.5em/1.25 Ahem;  /* equivalent to 40px/50px in absolute units */
+  height: 200px;
+  }
+
+  img#child-of-anonymous-block-box {height: 50%;}
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+  <div id="overlapped-red"></div>
+
+  <div id="closest-non-anonymous-ancestor">Some <img id="child-of-anonymous-block-box" src="support/1x1-green.png" alt="Image download support must be enabled" /> text
+    <p>More text</p>
+  </div>
+
+  <!--
+  For example, if the child of the anonymous block box inside the DIV
+  above needs to know the height of its containing block to resolve a
+  percentage height, then it will use the height of the containing
+  block formed by the DIV, not of the anonymous block box.
+  -->
+
+ </body>
+</html>

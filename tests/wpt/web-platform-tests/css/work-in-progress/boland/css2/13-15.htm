@@ -1,0 +1,68 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Seventh Test of Section 13.2 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+
+@page {marks: crop}
+@page {marks: cross}
+@page {marks: none}
+@page {marks: inherit}
+@page {marks: 200%}
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Seventh Testable Statement of Sec 13.2 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+7. The marks property has initial none, it applies to page context, 
+inherited and percentages are N/A, and media is visual, paged.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p  >
+If statement #7 above is passed, then
+this page box should have marks of none (initial value).  No explicit CSS
+rule is applied.
+<p>
+This page box should have crop marks.
+Rule applied is "@page {marks: crop}".
+This <em>emphasize text</em> should also have marks of UA-default, since
+inherited is N/A, and em is a child of p element.
+<p >
+This page should have cross marks.
+Rule applied is "@page {marks: cross}".
+<p>
+This page box should have marks of none.
+Rule applied is "@page {marks: none}".
+<p>
+This page box should have marks of inherit.
+Rule applied is "@page {marks: inherit}".
+<p>
+This page box should have marks of UA-default.
+Rule specified is "@page {marks: 200%}, but percentages are N/A.
+<p>
+From above, it is apparent that marks property applies only to page context.
+All other properties of this page should be UA-default.
+Your browser rendering of this page should look similar to this <a href="c1212.gif"> 
+reference image </a> or to this <a href="d1212.gif">reference image</a>.
+
+
+</BODY>
+</HTML>
+

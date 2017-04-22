@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>CSS Test: Paragraph element with mix-blend-mode.</title>
+        <link rel="author" title="Mihai Tica" href="mailto:mitica@adobe.com">
+        <meta name="assert" content="Test checks that test a paragraph element blends with the parent element.">
+        <style type="text/css">
+            div {
+                width: 100px;
+                height: 100px;
+                background: #FF0;
+            }
+
+            #blender {
+                color: #0F0;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the paragraph text is drawn with green.</p>
+        <div>
+            <p id="blender">This should be drawn with green.</p>
+        </div>
+    </body>
+</html>

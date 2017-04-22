@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Test reference</title>
+    <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com"/>
+    <!-- Reviewed on Github on 09-26-2013: https://github.com/w3c/csswg-test/pull/89 -->
+    <link rel="reviewer" title="Mihai Balan" href="mailto:mibalan@adobe.com"/>
+    <style type="text/css">
+        .green {
+           position: absolute;
+           background-color: green;
+           width: 100px;
+        }
+        #rect-1, #rect-2 {
+            top: 70px;
+            height: 200px;
+        }
+        #rect-1 {
+            left: 20px;
+        }
+        #rect-2 {
+            left: 150px;
+        }
+        #lightgreen-square {
+            position: absolute;
+            background-color: lightgreen;
+            top: 170px;
+            left: 280px;
+            width: 100px;
+            height: 100px;
+        }
+    </style>
+</head>
+<body>
+   <p>The test passes if there are two vertical green rectangles with one light
+      green square to the bottom right of them and no red.</p>
+   <div class="green" id="rect-1"></div>
+   <div class="green" id="rect-2"></div>
+   <div id="lightgreen-square"></div>
+</body>
+</html>

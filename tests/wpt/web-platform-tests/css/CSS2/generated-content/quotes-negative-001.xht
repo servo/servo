@@ -1,0 +1,28 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Quotes with negative depth</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#content" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="When a 'close-quote' makes the depth negative then depth stays at 0. Insertion of a quote does not occur but the remainder of the content string is inserted." />
+        <style type="text/css">
+            div:before
+            {
+                content: "PASS" close-quote;
+            }
+            div
+            {
+                quotes: 'FAIL' 'FAIL' 'FAIL' 'FAIL';
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there are three instances of the word 'PASS' below. If there are any additional characters below this test fails.</p>
+        <div>
+            <div>
+                <div></div>
+            </div>
+        </div>
+    </body>
+</html>

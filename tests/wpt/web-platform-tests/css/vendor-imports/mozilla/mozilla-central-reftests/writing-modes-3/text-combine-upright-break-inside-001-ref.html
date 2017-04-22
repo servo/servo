@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>CSS Reference: text-combine-upright, no line break</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org">
+<link rel="stylesheet" href="support/tcy.css">
+<style>
+.test { writing-mode: vertical-rl; }
+.test > p { height: 3em; margin: 0 5em; }
+.tcy, .fake-tcy { color: transparent; }
+</style>
+</head>
+<body>
+<p>Test passes if the two columns are identical.</p>
+<div class="test">
+  <p style="white-space: nowrap">XXXXX<span class="fake-tcy">X</span>XXXXX</p>
+  <p style="white-space: nowrap">XXXXX<span class="fake-tcy">X</span>XXXXX</p>
+</div>
+</body>
+</html>

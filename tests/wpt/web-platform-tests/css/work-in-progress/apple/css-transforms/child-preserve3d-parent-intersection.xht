@@ -1,0 +1,43 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+     <title>CSS Test: A transformed child intersects with its preserve-3d parent</title>
+  <link rel="author" title="Apple" href="http://www.apple.com/"/>
+  <link rel="help" href="RELEVANT_SPEC_SECTION"/>
+  <link rel="match" href="reference/intersection-ref.xht"/>
+  <meta name="flags" content="TOKENS" />
+  <meta name="assert" content="A transformed child intersects with its preserve-3d parent"/>
+  <script type="text/javascript" src="scripts/prefixfree.min.js"></script>
+  <style type="text/css"><![CDATA[
+      div {
+          width: 200px;
+          height: 200px;
+      }
+      
+      .container {
+          position: relative;
+          overflow: hidden;
+      }
+      .test {
+          position: absolute;
+      }
+      #s1 {
+          background-color: orange;
+          transform-style: preserve-3d;
+      }
+      #s2 {
+          left: -25px;
+          background-color: blue;
+          transform: rotateY(-10deg);
+          width: 250px;
+      }
+  ]]></style>
+ </head>
+ <body>
+    <div class="container">
+        <div class="test" id="s1">
+            <div class="test" id="s2"></div>
+        </div>
+    </div>
+ </body>
+</html>

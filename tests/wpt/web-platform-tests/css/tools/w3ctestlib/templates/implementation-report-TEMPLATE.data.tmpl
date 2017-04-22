@@ -1,0 +1,21 @@
+# UA version OS version
+# UA string (if applicable)
+# http://test.csswg.org/suites/[% suite %]/DATESTAMP/
+# See http://wiki.csswg.org/test/implementation-report for instructions
+testname	revision	result	comment
+[% FOREACH test IN tests.sort(name) %]
+[% FOREACH format IN formats %]
+[% IF formatInfo.$format.report %]
+[% SET skipFormat = 0 %]
+[% FOREACH flag IN test.flags %]
+  [% SET skipFormat = 1 IF flag == formatInfo.$format.filter %]
+[% END %]
+[% UNLESS skipFormat +%]
+[%+ formatInfo.$format.path +%]/[% test.name +%].[% formatInfo.$format.ext +%]	[%+ test.revision +%]	?
+[% END %]
+[% END %]
+[% END %]
+[% END %]
+[% FOREACH test IN addtests.sort() +%]
+[%+ test +%]	[%+ test.revision +%]	?	
+[% END %]

@@ -1,0 +1,43 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border set using border-width border-color</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/"/>
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#propdef-border"/>
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-shorthand-properties"/>
+        <link rel="help" href="http://www.w3.org/TR/css3-background/#borders"/>
+        <link rel="help" href="http://www.w3.org/TR/css3-background/#the-border-shorthands"/>
+        <link rel="match" href="border-005-ref.xht"/>
+        <meta name="flags" content=""/>
+        <meta name="assert" content="The 'border' shorthand property properly accepts and sets 'border-width' and 'border-color'."/>
+        <style type="text/css">
+            div
+            {
+                position: relative;
+            }
+            #test
+            {
+                border: 1in blue;
+                border-style: solid;
+                height: 0;
+                width: 0;
+            }
+            #reference
+            {
+                background: red;
+                height: 2in;
+                left: 0;
+                position: absolute;
+                top: 0;
+                width: 2in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a filled blue square and <strong>no red</strong>.</p>
+        <div id="wrapper">
+            <div id="reference"></div>
+            <div id="test"></div>
+        </div>
+    </body>
+</html>

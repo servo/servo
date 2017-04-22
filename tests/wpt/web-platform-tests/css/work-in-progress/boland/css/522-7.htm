@@ -1,0 +1,57 @@
+
+<HTML>
+<HEAD>
+<TITLE>Seventh Test of Section 5.2.2 of CSS1 Spec</TITLE>
+
+<STYLE>
+#id1 { font-family: gill, sans-serif}
+#id2 { font-family: new century schoolbook, serif}
+#id3 { font-family: "my own font", fantasy }
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+
+<h1 >Testing Statement #7 Below of Section 5.2.2 of CSS1 Spec</h1>
+
+
+<ul>
+<li>
+7. Style sheet designers are encouraged to offer a generic font family as
+a last alternative.
+</ul>
+<h2>
+PASS CRITERIA:
+</h2>
+<p>
+If statement #7 above is passed, then:
+
+<p ID=id1>
+This paragraph should be gill first, and sans-serif last, if gill is not
+available.  Sans-serif is a last resort.
+The rule applied is "#id1 {font-family: gill, sans-serif}".
+
+<p ID=id2>
+This paragraph should be new century schoolbook first, and serif second,
+if new century schoolbook is not available.
+Serif is a last resort.
+The rule applied is "#id2 {font-family: new century schoolbook, serif}".
+
+<p ID=id3>
+This paragraph should be "my own font" first, and fantasy second, if
+"my own font" is not available.
+Fantasy is a last resort.
+The rule applied is "#id3 {font-family: "my own font", fantasy}".
+
+
+If any of the font-families above are not available, then UA-default will
+be used.
+All other properties of this page should be UA-default.
+
+To move directly to the next test, click<a href="522-8.htm"> here</a>
+</BODY>
+</HTML>
+

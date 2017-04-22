@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8"/>
+<title>[lang="az-Arab-IR"], lang="az-IR"</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='http://www.w3.org/TR/css3-selectors/#attribute-selectors'>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style type='text/css'>
+.test div { width: 50px; }
+#box[lang='az-Arab-IR'] { width: 100px; }
+</style>
+</head>
+<body>
+
+
+
+<div class="test"><div id="box" lang="az-IR">&#xA0;</div></div>
+
+
+<script>
+test(function() {
+assert_equals(document.getElementById('box').offsetWidth, 50);
+}, "A lang= value with language, script and region subtags will NOT match a lang attribute value with the script subtag missing.");
+</script>
+
+<div id='log'></div>
+
+</body>
+</html>

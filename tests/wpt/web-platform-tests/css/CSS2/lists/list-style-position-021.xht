@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: List-style-position set to 'outside'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#propdef-list-style-position" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#list-style" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'list-style-position' property set to 'outside' places the marker outside of the list item principal block box." />
+        <style type="text/css">
+            div
+            {
+                border: 1px solid blue;
+                padding-left: 50px;
+            }
+            span
+            {
+                display: list-item;
+                list-style-position: outside;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the two lines of text in the blue box are directly lined up with each other and there is a single bullet to the left of the lines of text.</p>
+        <div>
+            <span>
+                Filler Text Filler Text Filler Text<br />
+                Filler Text Filler Text Filler Text
+            </span>
+        </div>
+    </body>
+</html>

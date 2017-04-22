@@ -1,0 +1,63 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>53rd Test of Section 15.2 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+#id1 {font: 600 9pt Charcoal }
+#id2 {font-style: normal;
+font-variant: normal;
+font-weight: 600;
+font-size: 9pt;
+line-height: normal;
+font-family: Charcoal}
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing 53rd Testable Statement of Sec 15.2 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+53. The font shorthand resets to its initial value any property not explicity
+given a value.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p id=id1>
+If statement #53 above is passed, then
+this paragraph should have font of 600 9pt Charcoal.
+Rule applied is "#id1 {font: 600 9pt Charcoal}".
+</p>
+<p id=id2>
+This paragraph should have font-style of normal, font-variant of normal,
+font-weight of 600, font-size of 9pt, line-height of normal, and font family
+of Charcoal.
+This should be the same as the paragraph above.
+The rule applied is "#id2 {font-style: normal;
+font-variant: normal;
+font-weight: 600;
+font-size: 9pt;
+line-height: normal;
+font-family: Charcoal}"
+<p>
+All other properties of this page should be UA-default.
+Note: If Charcoal font-family not available, UA-default font family will be
+used.
+
+
+</BODY>
+</HTML>
+

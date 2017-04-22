@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Pseudo-elements in Selectors</title>
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#pseudo-elements-in-selectors"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="match" href="c25-pseudo-elmnt-000-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+   .test { color: red; }
+   p:first-line { background: green; }
+   p.test:first-line { color: white; }
+   p:first-line.two { color: yellow; background: red; }
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#pseudo-elements" title="5.10 Pseudo-elements and pseudo-classes"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#first-line-pseudo" title="5.12.1 The :first-line pseudo-element"/>
+  <meta name="flags" content="invalid" />
+
+ </head>
+ <body>
+  <div>There should be two sentences below.</div>
+  <p class="test one"> This sentence should have white text on green background. </p>
+  <p class="test two"> This sentence should have white text on green background. </p>
+ </body>
+</html>

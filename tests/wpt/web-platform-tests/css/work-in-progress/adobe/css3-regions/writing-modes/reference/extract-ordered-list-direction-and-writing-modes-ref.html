@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Reftest Reference</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<style>
+		.direction-rtl {
+			direction: rtl;
+			background-color: lightgray;
+		}
+		.writing-mode-vrl {
+			writing-mode: vertical-rl;
+			background-color: lightblue;
+		}
+		.writing-mode-vlr {
+			writing-mode: vertical-lr;
+			background-color: lightgreen;
+		}
+		.region {
+			border: thick solid black;
+			width: 15em;
+			height: 15em;
+			float: left;
+			margin: 0 1em;
+		}
+		.region>ol {
+			margin: 0;
+		}
+		</style>
+	</head>
+	<body>
+		<p>Test pases if you see three rectangles with black borders containing a numbered list as described below. Each of the lists has a total of six items, three being in a nested list after the second item.</p>
+		<p>The first rectangle should display the numbered list on a light gray background. The list items should be right-aligned, with the numbers on the right side of the list item text. Also, the list item numbering should have a period prepended to the actual number (<em>e.g.</em> <strong>.1</strong>) instead of appended to the actual number (<em>e.g.</em> <strong>1.</strong>).</p>
+		<p>The second rectangle should display the numbered list on a light blue background. The text should be rotated 90 degrees clockwise with the list items progressing right to left (or top-to-bottom relative to the rotated list) &ndash; this means the right-most list item should have the number 1.</p>
+		<p>The third rectangle should display the numbered list on a light green background. The text should be rotated 90 degrees clockwise, with the list items progressing left to right (or bottom-to-top relative to the rotated list) &ndash; this means the right-most list item should have the number 3.</p>
+		<div class="region">
+			<ol class="direction-rtl">
+				<li>Top-level list, item 1</li>
+				<li>Top-level list, item 2
+					<ol>
+						<li>First inner list, item 1</li>
+						<li>First inner list, item 2</li>
+						<li>First inner list, item 3</li>
+					</ol>
+				</li>
+				<li>Top-level list, item 3</li>
+			</ol>
+		</div>
+		<div class="region">
+			<ol class="writing-mode-vrl">
+				<li>Top-level list, item 1</li>
+				<li>Top-level list, item 2
+					<ol>
+						<li>First inner list, item 1</li>
+						<li>First inner list, item 2</li>
+						<li>First inner list, item 3</li>
+					</ol>
+				</li>
+				<li>Top-level list, item 3</li>
+			</ol>
+		</div>
+		<div class="region">
+			<ol class="writing-mode-vlr">
+				<li>Top-level list, item 1</li>
+				<li>Top-level list, item 2
+					<ol>
+						<li>First inner list, item 1</li>
+						<li>First inner list, item 2</li>
+						<li>First inner list, item 3</li>
+					</ol>
+				</li>
+				<li>Top-level list, item 3</li>
+			</ol>
+		</div>
+	</body>
+</html>

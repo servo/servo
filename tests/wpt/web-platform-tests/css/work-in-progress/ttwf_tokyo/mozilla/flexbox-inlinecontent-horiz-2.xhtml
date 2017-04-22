@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!--
+     This test removes a div from the middle of some inline content in a flex
+     container. That should merge the inline content into a single flex item.
+-->
+<html xmlns="http://www.w3.org/1999/xhtml"
+      class="reftest-wait">
+  <head>
+    <script>
+      function tweak() {
+        var removeMe = document.getElementById("removeMe");
+        removeMe.parentNode.removeChild(removeMe);
+        document.documentElement.removeAttribute("class");
+      }
+      window.addEventListener("MozReftestInvalidate", tweak, false);
+    </script>
+    <style>
+      div { height: 100px; }
+      div.flexbox {
+        width: 200px;
+        display: flex;
+      }
+      div.a {
+        flex: 1 0 20px;
+        background: lightgreen;
+      }
+      div.b {
+        flex: 2 0 30px;
+        background: yellow;
+      }
+      div.inflex {
+        flex: 0 0 20px;
+        background: gray;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="flexbox"
+       ><div class="a"/>text<div class="b" id="removeMe"/><i>italic</i
+       ><div class="inflex"/></div>
+  </body>
+</html>

@@ -1,0 +1,28 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: List marker in right-to-left layout</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#lists" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="When the 'direction' property is set to 'RTL' the markers for list items are placed on the right." />
+        <style type="text/css">
+            #div1
+            {
+                width: 2in;
+            }
+            div div
+            {
+                direction: rtl;
+                display: list-item;
+                list-style-type: disc;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the "Filler Text" below has a list marker on the right side.</p>
+        <div id="div1">
+            <div>Filler Text</div>
+        </div>
+    </body>
+</html>

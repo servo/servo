@@ -1,0 +1,39 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: attribute selector - Default attribute values in DTDs</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#default-attrs" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#matching-attrs" />
+  <meta content="" name="flags" />
+  <meta content="Default attribute values may be declared in an external resource such as a DTD. In such case, the default attributes may or may not appear in the document tree. When default attributes appear in the document tree, then their correspondent default values must be included." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  button
+  {
+  background-color: green;
+  height: 100px;
+  width: 100px;
+  }
+
+  button[type] {background-color: red;}
+
+  button[type="submit"] {background-color: green;}
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a green square and <strong>no red</strong></p>
+
+  <form action="">
+   <p><button>&nbsp;</button></p>
+  </form>
+
+ </body>
+</html>

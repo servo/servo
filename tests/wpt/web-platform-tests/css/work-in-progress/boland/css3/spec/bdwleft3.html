@@ -1,0 +1,68 @@
+﻿
+
+<html>
+<head>
+<title>CSS3 Border Left Width Test</title>
+
+<style type="text/css">
+h3 {border-left-width: 15px; border-left-style: solid;}
+h4 {border-left-width: 30px; border-left-style: solid;}
+em {border-left-width: 45px; border-left-style: solid;}
+blockquote {border-left-width: 200%; border-left-style: solid;}
+p {border-left-style: solid;}
+</style>
+</head>
+
+<body>
+
+
+
+
+<h1>CSS3 Border Left Width Test</h1>
+
+
+
+
+
+<ul>
+<li >
+For "border-left-width", initial is "medium", it applies to all elements,
+it is not inherited, percentages refer to width of containing block, media is visual,
+and computed value is specified value.
+</li>
+</ul>
+<h2>
+PASS CRITERIA:
+</h2>
+<p>
+If statement above is correct, this paragraph should have 
+border left width of UA-default.  A CSS rule of "border-left-style: solid" is applied.  However, the
+border left width property does apply to the p element.
+</p>
+<h3>
+This h3 heading has a border left width of 15px, but this <em>emphasized text
+</em> has a border left width of 45px; the rules applied are:
+"h3 {border-left-width: 15px;}"
+"em {border-left-width: 45px;}"
+So the border left width property applies to the h3 and em elements.
+</h3>
+<h4>
+This h4 heading has a border left width property of 30px (because of the
+rule "h4 {border-left-width: 30px;}", but these <i>italicized words</i>
+have a border left width of UA-default, because the border-left-width
+property does not inherit. 
+However, the border left width property does apply to the h4 and i elements.
+</h4>
+<blockquote>
+This blockquote element should have a UA-default border left width.  The
+nonsensical rule "blockquote {border-left-width: 200%}" should be ignored,
+but the border-left-width property does apply to the blockquote element.
+</blockquote>
+<p>
+All other properties of this page should be UA-default.
+This is a paragraph, like the one above.  Border left style of solid applies to all CSS
+rules, so that the left border is visible.
+</p>
+
+</body>
+</html>

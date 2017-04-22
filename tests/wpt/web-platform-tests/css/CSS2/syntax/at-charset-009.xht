@@ -1,0 +1,23 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: @charset over referring document's code page (unset)</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#charset" />
+        <link rel="match" href="at-charset-001-ref.xht"/>
+        <meta name="flags" content="" />
+        <meta name="assert" content="The @charset setting in the stylesheet overrides the referring document's unset code page." />
+        <style type="text/css">
+            @import "support/at-charset-009.css";
+            div
+            {
+                color: red;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if both lines of "Filler Text" below are green.</p>
+        <div class="&#x5e73;&#x548c;">Filler Text</div>
+        <div id="div2">Filler Text</div>
+    </body>
+</html>

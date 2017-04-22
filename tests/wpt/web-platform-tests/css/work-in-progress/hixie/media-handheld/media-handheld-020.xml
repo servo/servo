@@ -1,0 +1,14 @@
+<?xml-stylesheet href="404" media="handheld" alternate="yes"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>Media type selection triggers (xml-stylesheet PI) (Handheld devices only)</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/media/handheld/020.xml"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS2/media.html#media-sheets" />
+  <link rel="stylesheet" href="support/media-handheld-test.css"/>
+ </head>
+ <body>
+  <p> This line should be green. </p>
+ </body>
+</html>

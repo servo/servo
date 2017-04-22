@@ -1,0 +1,36 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS: 7 simple tests of :not()</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/selectors/not/001.xml"/>
+  <style type="text/css">
+
+    /* setup */
+    @namespace html url(http://www.w3.org/1999/xhtml);
+    @namespace test url(http://www.example.org/);
+    *|* { color: red; display: block; margin: 0; padding: 0; }
+    title, style { display: none ! important; }
+
+    /* tests */
+    html|*:not(:root):not(.test) { color: green; } /* 1 */
+    testA > :not(testA) { color: green; } /* 2 */
+    :not(|*) > :not(test|*) :not(html|*) > * :not(test|testB):not(test|item) { color: green; } /* 3 */
+    testC :not([test|test]) { color: green; } /* 4 */
+    :not(testD) [|test] { color: green; } /* 5 */ 
+    .test:not(head) testE { color: green; } /* 6 */
+    .test:not(test|*) testF { color: green; } /* 7 */
+
+  </style>
+  <script type="text/plain"> This should be green. (1) </script>
+ </head>
+ <body class="test">
+  <tests xmlns="http://www.example.org/">
+    <testA> <item>This should be green. (2) </item> </testA>
+    <testB> <thing> This should be green. (3) </thing> </testB>
+    <testC> <item test="test"> This should be green. (4) </item> </testC>
+    <testd> <item test="test"> This should be green. (5) </item> </testd>
+    <testE> This should be green. (6) </testE>
+    <testF> This should be green. (7) </testF>  
+  </tests>
+ </body>
+</html>

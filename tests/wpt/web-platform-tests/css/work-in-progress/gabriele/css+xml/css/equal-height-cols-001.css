@@ -1,0 +1,64 @@
+root, document {
+	display: block;
+	background: #fff;
+	color: #000;
+	width: 100%;
+}
+
+section[id="page-info"] {
+	display: block;
+	background: black;
+	color: white;
+	padding: 0.5em;
+	font-weight: bold;
+}
+
+info {
+	display: block;
+	font-size: 1.5em;
+	text-align: center;
+}
+
+section[id="layout"] {
+	display: block;
+	width: 100%;
+	overflow: hidden;
+}
+
+section[id="column-1"],
+section[id="column-2"],
+section[id="column-3"] {
+	float: left;
+	width: 33%;
+	padding-bottom: 16000px;
+	margin-bottom: -16000px;
+	display: block;
+}
+
+section[id="column-1"] {
+	background: grey;
+	color: white;
+}
+section[id="column-2"] {
+	background: silver;
+}
+section [id="column-3"] {
+	background: #eee;
+	width: 34%;
+}
+
+para {
+	padding: 0.5em;
+	display: block;
+}
+
+layout-info {
+	clear: both;
+	display: block;
+	background: black;
+	color: white;
+	padding: 0.2em;
+	font-weight: bold;
+	text-align: center;
+	font-size: 1.5em;
+}

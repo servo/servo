@@ -1,0 +1,21 @@
+<csstest def="Attribute dash-separated value selector with universal namespace" module="W3C Selectors" modulename="css3-modsel" number="107b" rev="1.1" date="13-november-2001" xmlns:a="http://www.example.org/a" xmlns:b="http://www.example.org/b" xmlns:html="http://www.w3.org/1999/xhtml" xmlns="http://www.example.org/css3tests">
+
+<author>Daniel Glazman</author>
+<author>Ian Hickson</author>
+
+<cssrules>@namespace a url(http://www.example.org/a);
+@namespace b url(http://www.example.org/b);
+@namespace html url(http://www.w3.org/1999/xhtml);
+*|p, *|q, *|r, *|s { display : block ; margin-bottom : 1em }
+*|p, *|r { background-color : lime ! important }
+*|*[*|lang|="en"], *|*[a|foo|="un-d"] { background-color : red }
+</cssrules>
+
+<code>
+<p lang="en-us" xmlns="http://www.w3.org/1999/xhtml">This paragraph should have a green background</p>
+<q a:foo="un-deux-trois" xmlns="http://www.example.org/a">This paragraph should be unstyled.</q>
+<q a:foo="un-second-deuxieme-trois" xmlns="http://www.example.org/a">This paragraph should be unstyled.</q>
+<r a:foo="un-d-trois" xmlns="http://www.example.org/a">This paragraph should have a green background.</r>
+<s b:foo="un-d-trois" xmlns="http://www.example.org/b">This paragraph should be unstyled.</s>
+</code>
+</csstest>

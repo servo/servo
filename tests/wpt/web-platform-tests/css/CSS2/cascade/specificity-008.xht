@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Calculating specificity - specificity 0012 vs. 0002</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html#specificity" />
+        <link rel="match" href="../reference/filler-text-below-green.xht"/>
+        <meta name="flags" content="" />
+        <meta name="assert" content="The combined specificity of an element selector, with a pseudo-class selector and a pseudo-element selector achieves an higher specificity than the combined specificity of an element selector with a pseudo-element selector." />
+        <style type="text/css">
+            div:first-child:first-line /* a=0 b=0 c=1 d=2 -> specificity = 0,0,1,2 */
+            {
+                color: green;
+            }
+            div:first-line /* a=0 b=0 c=0 d=2 -> specificity = 0,0,0,2 */
+            {
+                color: red;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the "Filler Text" below is green.</p>
+        <div>
+            <div>Filler Text</div>
+        </div>
+    </body>
+</html>

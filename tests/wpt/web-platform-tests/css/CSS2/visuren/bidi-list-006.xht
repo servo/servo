@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Test: text-align: right and direction:rtl - unordered list</title>
+    <link rel="author" title="Eira Monstad, Opera Software ASA" href="mailto:public-testsuites@opera.com"/>
+    <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#alignment-prop" />
+    <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#direction"/>
+    <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#list-style"/>
+    <meta name="flags" content=""/>
+    <meta name="assert" content="text-align:right should be applied to unordered list in rtl context without affecting its rtlness"/>
+    <style type="text/css"><![CDATA[
+      html {direction: rtl;}
+      li {text-align: right;}
+      ul,li {padding-left:2em;padding-right:2em;}
+    ]]></style>
+  </head>
+
+  <body>
+
+    <p>The list should be right-aligned and have a bullet to the right of each item</p>
+
+    <ul>
+      <li>First</li>
+      <li>Second</li>
+      <li>Third</li>
+    </ul>
+
+  </body>
+</html>

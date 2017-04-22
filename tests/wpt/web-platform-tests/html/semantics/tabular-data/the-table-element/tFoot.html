@@ -54,4 +54,12 @@ test(function() {
         t.tFoot = document.createElement("thead");
     });
 })
+
+test(function () {
+    var table = document.createElementNS("http://www.w3.org/1999/xhtml", "foo:table")
+    var tfoot = table.createTFoot();
+
+    assert_equals(table.tFoot, tfoot);
+    assert_equals(tfoot.prefix, null);
+});
 </script>

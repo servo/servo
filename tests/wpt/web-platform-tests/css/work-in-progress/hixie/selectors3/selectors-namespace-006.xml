@@ -1,0 +1,26 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS: @namespace and default namespaces</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/selectors/namespace/006.xml"/>
+    <style type="text/css">
+   @namespace url(http://www.example.org/);
+   :first-child { color: red; }
+   element { color: red; }
+   [attribute] { color: red; }
+   #id { color: red; }   
+   * { color: red; }
+   .class { color: red; }
+  </style>
+ </head>
+ <body style="color: green"> <!-- I needed a way that would not interfere with the @namespace rule at all -->
+  <tests xmlns="http://www.example.com/not-the-default">
+   <first-child> None of this </first-child>
+   <element> text should be </element> 
+   <attribute attribute="attribute"> matching the style </attribute>
+   <span id="id" xmlns="http://www.w3.org/1999/xhtml"> rules, and thus </span>
+   <universal> none of it </universal>
+   <span class="class" xmlns="http://www.w3.org/1999/xhtml"> should be red. </span>
+  </tests>
+ </body>
+</html>

@@ -1,0 +1,23 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+ <head>
+  <title>#id and invalid IDs</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/selectors/id/001-demo.xml"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#id-selectors" />
+  <style type="text/css">
+    #test\[a\] { background: orange; }
+    #dup { background: orange; }
+    # { background: red; }
+    #\20 { background: orange; }
+  </style>
+ </head>
+ <body>
+  <ol>
+   <li>id="test[a]": <span id="test[a]">TEST</span></li>
+   <li>id="dup": <span id="dup">-</span><span id="dup">-</span><span id="dup">-</span><span id="dup">-</span><span id="dup">-</span></li>
+   <li>id="": <span id="">TEST</span></li>
+   <li>id=" ": <span id=" ">TEST</span></li>
+  </ol>
+ </body>
+</html>

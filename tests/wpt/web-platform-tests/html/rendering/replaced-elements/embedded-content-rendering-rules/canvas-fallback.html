@@ -3,6 +3,10 @@
 <title>Canvas fallback content</title>
 <link rel=match href=canvas-fallback-ref.html>
 <style>
+canvas {
+  height: 2em; /* avoid causing scrollbar for 600x600 viewport */
+}
+
 #canvas2 {
   display: inline;
 }

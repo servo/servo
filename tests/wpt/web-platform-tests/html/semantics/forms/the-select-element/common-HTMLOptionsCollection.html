@@ -96,4 +96,22 @@ test(function () {
 
 }, "Setting element by index should correctly append and replace elements");
 
+test(function () {
+    var selection = document.createElementNS("http://www.w3.org/1999/xhtml", "foo:select");
+
+    selection.length = 5;
+    assert_equals(selection.length, 5,
+                  "Number of nodes in collection should have changed");
+    for (var i = 0; i < 5; ++i) {
+        var child = selection.children[i];
+        assert_equals(child.localName, "option",
+                      "new child should be an option");
+        assert_equals(child.namespaceURI, "http://www.w3.org/1999/xhtml",
+                      "new child should be an HTML element");
+        assert_equals(child.prefix, null,
+                      "new child should not copy select's prefix");
+    }
+
+}, "Changing the length adds new nodes; The new nodes will not copy select's prefix");
+
 </script>

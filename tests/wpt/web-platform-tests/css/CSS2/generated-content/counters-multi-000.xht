@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Multiple resets for same counter</title>
+  <link rel="author" title="L. David Baron" href="https://dbaron.org/"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#counters"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#propdef-content"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#counter"/>
+  <style type="text/css">
+
+  body { white-space: nowrap; }
+
+
+  #one:before { counter-reset: one 1; content: counter(one) }
+  #two:before { counter-reset: two 7 two 2; content: counter(two) }
+
+  </style>
+ </head>
+ <body>
+
+ <p>The following should be identical:</p>
+
+ <div><span id="one"></span><span id="two"></span></div>
+ <div>12</div>
+
+ </body>
+</html>

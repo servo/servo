@@ -1,0 +1,4 @@
+As well as basic :lang() tests, one needs to test Content-Language,
+xml:lang, xml:lang inheritance, xml:lang="", lang, lang inheritance,
+lang="", invalid language codes, :lang() matching on incomplete
+values, and :lang() matching on over-complete values.

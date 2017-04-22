@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<?xml-stylesheet href="css/namespace-000.css" type="text/css"?>
+
+<p:Product xmlns:p="http://www.ns.com/ns/Product">
+	<p:Code>This should be green.</p:Code>
+	<p:Price>This should be purple.</p:Price>
+</p:Product>

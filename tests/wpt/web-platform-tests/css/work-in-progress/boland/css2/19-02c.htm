@@ -1,0 +1,73 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Fifth Test of Section 19.1 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+h3, h4, h5, h6 {
+    voice-family; paul;
+    stress: 30;
+    richness: 80;
+    cue-before: url("ping.au")
+}
+p.heidi {azimuth: center-left}
+p.peter {azimuth: right}
+p.goat {volume: x-soft}
+
+
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Fifth Testable Statement of Sec 19.1 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+5. CSS properties allow authors to vary the quality of synthesized speech.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p class="heidi"  >
+If statement #5 above is passed, then
+this paragraph should be aired with an audio font called 
+"paul", in a flat tone, but in a very rich voice.
+Paragraphs with class "heidi" will appear to come from front left, and
+paragraphs of class "peter" from the right.  Paragraphs with class "goat"
+should be very soft.
+The rules applied are "h3, h4, h5, h6 {
+voice-family: paul;
+stress: 30;
+richness: 80;
+cue-before: url("ping.au")
+}
+p.heidi {azimuth: center-left}
+p.peter {azimuth: right}
+p.goat {volume: x-soft}"
+<p class="peter">
+This paragraph should come in from the right (class="peter").
+<p>
+This paragraph should be very soft (class="goat").
+<p>
+All other properties of this page should be UA-default.
+Your browser rendering of this page should look similar to this <a href="c1901.gif"> 
+reference image </a> or to this <a href="d1901.gif">reference image</a>.
+
+
+</BODY>
+</HTML>
+

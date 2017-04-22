@@ -1,0 +1,19 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>HTML Input controls as table cells: width</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/table/019.html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#table-layout" />
+  <style type="text/css">
+   body { color: navy; }
+   div { display: table; }
+   p { display: table-row; }
+   input { display: table-cell; width: 10em; height: 2em; }
+  </style>
+ </head>
+ <body>
+  <p>The text box below should be editable.</p>
+  <div><p><input value="This text should be editable."></p></div>
+ </body>
+</html>

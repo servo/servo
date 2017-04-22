@@ -1,0 +1,21 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Cascade: Controlled delays with persistent sheets (reversed)</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/cascade/import/004.html"/>
+  <link rel="help" href="http://www.w3.org/TR/html4/present/styles.html#h-14.3"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html#cascading-order"/>
+
+  <link rel="stylesheet" href="http://software.hixie.ch/utilities/cgi/test-tools/delayed-file?pause=8&amp;mime=text%2Fcss&amp;text=.a+%7B+color%3A+green%3B+%7D%0D%0A.b+%7B+color%3A+red%3B+%7D%0D%0A.c+%7B+color%3A+red%3B+%7D"/>
+  <link rel="stylesheet" href="http://software.hixie.ch/utilities/cgi/test-tools/delayed-file?pause=5&amp;mime=text%2Fcss&amp;text=.b+%7B+color%3A+green%3B+%7D%0D%0A.c+%7B+color%3A+red%3B+%7D"/>
+  <link rel="stylesheet" href="http://software.hixie.ch/utilities/cgi/test-tools/delayed-file?pause=2&amp;mime=text%2Fcss&amp;text=.c+%7B+color%3A+green%3B+%7D"/>
+ </head>
+ <body>
+  <p class="a">This line should be green. (a)</p>
+  <p class="b">This line should be green. (b)</p>
+  <p class="c">This line should be green. (c)</p>
+
+
+</body>
+</html>

@@ -1,0 +1,71 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" class="reftest-wait">
+
+ <head>
+
+  <title>CSS Test: Insert an inline-level element into a block of blocks at its end</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#anonymous-block-level" title="9.2.1.1 Anonymous block boxes" />
+  <link rel="match" href="insert-inline-in-blocks-end-001-ref.xht" />
+
+  <meta http-equiv="Content-Script-Type" content="text/javascript" />
+  <meta content="ahem dom" name="flags" />
+
+  <style type="text/css"><![CDATA[
+  div.container
+  {
+  background-color: fuchsia;
+  color: black;
+  font: 20px/1 Ahem;
+  margin: 1em;
+  }
+
+  div > div {margin: 1em 0em;}
+
+  span.inserted
+  {
+  border-left: yellow solid 0.5em;
+  border-right: yellow solid 0.5em;
+  }
+  ]]></style>
+
+  <script type="text/javascript"><![CDATA[
+  function insertAnInlineAtEnd()
+  {
+  document.body.offsetHeight;
+
+  var newInlineNode = document.createElement("span");
+
+  newInlineNode.appendChild(document.createTextNode("Inserted new inline"));
+
+  newInlineNode.className = "inserted";
+
+  document.getElementsByClassName("container")[0].appendChild(newInlineNode);
+
+  document.documentElement.className = "";
+  }
+  ]]></script>
+
+ </head>
+
+ <body onload="insertAnInlineAtEnd();">
+
+  <p>Test passes if the 2 colorized rectangles are <strong>identical</strong>.</p>
+
+  <div class="container">
+    <div>First block</div>
+    Anonymous second block
+    <div>Third block</div>
+  </div>
+
+  <div class="container">
+    <div>First block</div>
+    Anonymous second block
+    <div>Third block</div>
+    <span class="inserted">Inserted new inline</span>
+  </div>
+
+ </body>
+</html>

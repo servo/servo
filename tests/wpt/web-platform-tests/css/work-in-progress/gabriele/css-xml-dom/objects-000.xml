@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Objects 1</title>
+<meta http-equiv="Content-Type" content="text/xml; charset=utf-8" />
+<style type="text/css" media="screen">
+p {
+	color: red
+}
+
+</style>
+
+<script type="text/javascript">
+<![CDATA[
+function Class (ID) {
+	this.ID = ID;
+	
+}
+
+Class.ID = "test";
+
+window.onload = function () {
+	var test = document.getElementById(Class.ID);
+	test.style.color = "green";
+};
+
+
+]]>
+
+</script>
+
+</head>
+
+<body>
+
+<p id="test">This should be green.</p>
+
+</body>
+</html>

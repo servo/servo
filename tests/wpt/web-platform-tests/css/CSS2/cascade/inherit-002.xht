@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+    <title>CSS Test: Inherit on non-inherited properties</title>
+    <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+    <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html#value-def-inherit" />
+    <meta name="flags" content="" />
+    <meta name="assert" content="Inherit can be used on properties which are not normally inherited." />
+    <style type="text/css">
+        div
+        {
+            border: solid blue;
+        }
+        div p
+        {
+            border: inherit;
+            border-color: orange;
+        }
+    </style>
+    </head>
+    <body>
+        <p>Test passes if the "Filler Text" below is surrounded by a orange box and a blue box.</p>
+        <div>
+            <p>Filler Text</p>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,36 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Initial value of border-collapse</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#propdef-border-collapse" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#borders" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The initial value of border-collapse is 'separate'." />
+        <style type="text/css">
+            table
+            {
+                border-spacing: 3px;
+                border-style: none;
+            }
+            td
+            {
+                background: black;
+                border: 3px solid black;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there are four boxes below.</p>
+        <table>
+            <tr>
+                <td>XXXXX</td>
+                <td>XXXXX</td>
+            </tr>
+            <tr>
+                <td>XXXXX</td>
+                <td>XXXXX</td>
+            </tr>
+        </table>
+    </body>
+</html>

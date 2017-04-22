@@ -1,0 +1,31 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Border Conflict Resolution (width) - groove/dashed</title>
+  <link rel="author" title="Lachlan Hunt" href="http://lachy.id.au/about/contact"/>
+  <style type="text/css"><![CDATA[
+   table { border-collapse: collapse; }
+   td {  border: 5px dashed lime; height: 3em; }
+   .c5 { border-width: 10px; border-style: groove; }
+   .c2 { border-bottom-color: red; }
+   .c6 { border-left-color: red; }
+   .c8 { border-top-color: red; }
+   .c4 { border-right-color: red; }
+  ]]></style>
+  <link title="17.6.2.1 Border conflict resolution" href="http://www.w3.org/TR/CSS21/tables.html#border-conflict-resolution" rel="help"/>
+ </head>
+ <body>
+  <p>There should be no red borders on the table below</p>
+  <table>
+   <tr>
+    <td class="c1">dashed</td><td class="c2">dashed</td><td class="c3">dashed</td>
+   </tr>
+   <tr>
+    <td class="c4">dashed</td><td class="c5">groove</td><td class="c6">dashed</td>
+   </tr>
+   <tr>
+    <td class="c7">dashed</td><td class="c8">dashed</td><td class="c9">dashed</td>
+   </tr>
+  </table>
+ </body>
+</html>

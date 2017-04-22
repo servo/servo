@@ -1,0 +1,13 @@
+<?xml-stylesheet type="text/css" href="support/selectors-not-007.css"?>
+<tests html:class="test" xmlns:html="http://www.w3.org/1999/xhtml">
+  <testA> <item>This should be green. (A)</item> </testA>
+  <testB> <thing> This should be green. (B) </thing> </testB>
+  <testC> <item test="testC"> This should be green. (C) </item> </testC>
+  <testd> <item testD="test"> This should be green. (D) </item> </testd>
+  <testE> This should be green. (E) </testE>
+  <testF test="testF"> This should be green. (F) </testF>  
+  <style>
+   <!--#include virtual="007.css" -->
+  </style>
+</tests>
+

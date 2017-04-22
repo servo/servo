@@ -1,0 +1,61 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Table header group and other row groups</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#table-display" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="A table-header-group element is placed before all other row groups in a table." />
+        <style type="text/css">
+            .table
+            {
+                display: table;
+            }
+            #thead
+            {
+                background: blue;
+                display: table-header-group;
+            }
+            #tbody
+            {
+                background: orange;
+                display: table-row-group;
+            }
+            #tfoot
+            {
+                background: orange;
+                display: table-footer-group;
+            }
+            .tr
+            {
+                display: table-row;
+            }
+            .td
+            {
+                display: table-cell;
+                height: 4em;
+                width: 4em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the blue square below is stacked on top of the orange box.</p>
+        <div class="table">
+            <div id="tfoot">
+                <div class="tr">
+                     <div class="td"></div>
+                </div>
+            </div>
+            <div id="tbody">
+                <div class="tr">
+                     <div class="td"></div>
+                </div>
+            </div>
+            <div id="thead">
+                <div class="tr">
+                     <div class="td"></div>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,30 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Quotes with forty-six values</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#propdef-quotes" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#quotes-specify" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Verify that quotes is supported when specifying twenty-three sets of quotes." />
+        <style type="text/css">
+            div:before
+            {
+                content: open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote;
+            }
+            div:after
+            {
+                content: close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote;
+            }
+            div
+            {
+                quotes: "A" "h" "B" "g" "C" "f" "D" "e" "E" "d" "F" "c" "G" "b" "H" "a" "I" "|" "J" "*" "K" "0" "L" "9" "M" "8" "N" "7" "O" "6" "P" "5" "Q" "4" "R" "3" "S" "2" "T" "1" "U" "Z" "V" "Y" "W" "X";
+                border: 2px solid black;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the characters "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890*|abcdefgh" appear, in the same order, in the box below.</p>
+        <div></div>
+    </body>
+</html>

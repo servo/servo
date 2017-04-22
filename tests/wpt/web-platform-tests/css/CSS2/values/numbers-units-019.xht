@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: First available font defines the 'ex' unit size</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#length-units" />
+        <link rel="match" href="numbers-units-019-ref.xht"/>
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The 'ex' unit size is defined by the element's first available font." />
+        <style type="text/css">
+            body
+            {
+                font-size: 40px;
+            }
+            p
+            {
+                font-size: 12pt;
+            }
+            div
+            {
+                background: black;
+                font-family: invalidFont, Ahem;
+                margin-top: 3px;
+            }
+            #test
+            {
+                height: 1ex;
+                width: 1ex;
+            }
+            #compare
+            {
+                height: 0.8em;
+                width: 0.8em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the two boxes below are the same size.</p>
+        <div id="test"></div>
+        <div id="compare"></div>
+    </body>
+</html>

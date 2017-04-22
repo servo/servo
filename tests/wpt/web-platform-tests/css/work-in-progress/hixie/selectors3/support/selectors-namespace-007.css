@@ -1,0 +1,4 @@
+    @namespace a url(http://www.example.org/a); /* bogus namespace */
+    @namespace b url(http://www.example.org/b); /* namespace in document */
+    b|test { color: green; } /* should match the test element */
+    a|test { color: red; } /* should not match */

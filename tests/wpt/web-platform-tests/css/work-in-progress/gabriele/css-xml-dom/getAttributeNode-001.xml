@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>getAttributeNode 2</title>
+<meta http-equiv="Content-Type" content="text/xml; charset=utf-8" />
+<style type="text/css" media="screen">
+
+div, p {
+	display: block;
+}
+
+</style>
+
+<script type="text/javascript">
+<![CDATA[
+
+window.onload = function () {
+
+	var body = document.getElementsByTagName("body")[0];
+	
+	
+	var ul = document.getElementById("test");
+	var ulname = ul.tagName.toLowerCase();
+	var ulid = ul.getAttributeNode("id").name;
+	var ulidvalue = ul.getAttributeNode("id").value;
+	var ulfragment = "The " + ulname + " element has an " + ulid + " of " + ulidvalue + ".";
+	var p = document.createElement("p");
+	p.appendChild(document.createTextNode(ulfragment));
+	body.appendChild(p);
+	
+	var first = document.getElementsByTagName("li")[0];
+	var liname = first.tagName.toLowerCase();
+	var liclass = first.getAttributeNode("class").name;
+	var liclassvalue = first.getAttributeNode("class").value;
+	var lifragment = "The first " + liname + " element has a " + liclass + " of " + liclassvalue + ".";
+	var div = document.createElement("div");
+	div.appendChild(document.createTextNode(lifragment));
+	body.appendChild(div);
+	
+	
+};
+]]>
+
+</script>
+
+</head>
+
+<body>
+
+<ul id="test">
+	<li class="first">First</li>
+	<li>Second</li>
+	<li>Third</li>
+</ul>
+
+<p>Below you should see two blocks of text with the name of the above element and its first child, together with the name and value of their attributes.</p>
+
+
+</body>
+</html>

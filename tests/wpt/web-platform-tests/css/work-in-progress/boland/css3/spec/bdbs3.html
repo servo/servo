@@ -1,0 +1,101 @@
+﻿
+
+<html>
+<head>
+<title>CSS3 Box Shadow Test</title>
+
+<style type="text/css">
+h3 {box-shadow: 5mm aqua; border-style: solid;}
+h4 {box-shadow: 10px 20px; border-style: solid;}
+em {box-shadow: 10em 5em 20em green; border-style: solid;}
+blockquote {box-shadow: 200%; border-style: solid;}
+p {border-style: solid;}
+</style>
+</head>
+
+<body>
+
+
+
+
+<h1>CSS3 Box Shadow Test</h1>
+
+
+
+
+
+<ul>
+<li >
+For "box-shadow", initial is "none", it applies to all elements,
+it is not inherited, percentage values are N/A, media is visual, and computed value
+is absolute values.
+</li>
+</ul>
+<h2>
+PASS CRITERIA:
+</h2>
+NOTE: This property may not be implemented yet.
+<p>
+If statement above is correct, this paragraph should have 
+box shadow of "none".  A CSS rule of "border-style: solid" is applied.  However, the
+box shadow property does apply to the p element.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+</p>
+<h3>
+This h3 heading has a box shadow of 5mm aqua, but this <em>emphasized text
+</em> has a box shadow of 10em 5em 20em green; the rules applied are:
+"h3 {box-shadow: 5mm aqua;}"
+"em {box-shadow: 10em 5em 20em green}"
+So the box shadow property applies to the h3 and em elements.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+</h3>
+<h4>
+This h4 heading has a box shadow property of 10px 20px (because of the
+rule "h4 {box-shadow: 10px 20px;}", but these <i>italicized words</i>
+have a box shadow of "none", because the box-shadow
+property does not inherit.  
+So the box shadow property does apply to the h4 and i elements.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+</h4>
+<blockquote>
+This blockquote element should have a UA-default box shadow.  The
+nonsensical rule "blockquote {box-shadow: 200%}" should be ignored,
+but the box-shadow property does apply to the blockquote element.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+</blockquote>
+<p>
+All other properties of this page should be UA-default.
+This is a paragraph, like the one above.  Border style of solid is applied
+to all CSS rules, so that the border is visible.
+</p>
+
+</body>
+</html>

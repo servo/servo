@@ -1,0 +1,47 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Finding the baseline of a cell</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#height-layout" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The baseline of a cell is the baseline of the first in-flow line box in the cell or first in-flow table-row in the cell, whichever comes first." />
+        <style type="text/css">
+            table
+            {
+                border-spacing: 0;
+            }
+            .inline
+            {
+                display: inline-table;
+            }
+            td
+            {
+                vertical-align: baseline;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the bottom of the "Filler Text" below is aligned.</p>
+        <table>
+            <tr>
+                <td>
+                    <h1>Filler Text</h1>
+                    <table class="inline">
+                        <tr>
+                            <td>&nbsp;</td>
+                        </tr>
+                    </table>
+                </td>
+                <td>
+                    <table class="inline">
+                        <tr>
+                            <td>Filler Text</td>
+                        </tr>
+                    </table>
+                    <h1>&nbsp;</h1>
+                </td>
+            </tr>
+        </table>
+    </body>
+</html>

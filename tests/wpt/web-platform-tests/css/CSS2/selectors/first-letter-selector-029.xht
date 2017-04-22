@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <!--
+  Inspired by
+  Bug 8253: Can't dynamically add ::first-line / ::first-letter style
+  https://bugzilla.mozilla.org/show_bug.cgi?id=8253
+  -->
+
+  <title>CSS Test: First-letter - dynamic :hover pseudo-class</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#first-letter" title="5.12.2 The :first-letter pseudo-element" />
+
+  <meta content="interact" name="flags" />
+  <meta content="The :first-letter pseudo-element can be used and will apply onto an :hover pseudo-class." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  div
+  {
+  background-color: white;
+  color: black;
+  font-size: 60px;
+  }
+
+  div:hover:first-letter
+  {
+  background-color: blue;
+  color: white;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if the "T" letter (and only the "T" letter) becomes white on blue background when the mouse cursor hovers over "Text sample" or hovers over its right-hand side.</p>
+
+  <div>Text sample</div>
+
+ </body>
+</html>

@@ -11,7 +11,6 @@ var pairs = [
   // Defined in DOM
   {attr: "classList", sup: ["anyElement"]},
   // Defined in HTML
-  {attr: "dropzone", sup: ["anyHTMLElement"]},
   {attr: "htmlFor", sup: ["output"]},
   {attr: "relList", sup: ["a", "area", "link"]},
   {attr: "sandbox", sup: ["iframe"]},
@@ -27,7 +26,7 @@ var namespaces = [
 
 var elements = ["a", "area", "link", "iframe", "output", "td", "th"];
 function testAttr(pair, new_el){
-  return (pair.attr === "classList" || (new_el.namespaceURI === "http://www.w3.org/1999/xhtml" && (pair.attr === "dropzone" || pair.sup.indexOf(new_el.localName) != -1)));
+  return (pair.attr === "classList" || (new_el.namespaceURI === "http://www.w3.org/1999/xhtml" && pair.sup.indexOf(new_el.localName) != -1));
 }
 
 pairs.forEach(function(pair) {

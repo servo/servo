@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Flexbox Test: Test flex:auto - no flex:auto set for 1 item in line 1, and another item in line 2</title>
+    <link rel="author" title="Bora Vuth" href="mailto:vbora85@gmail.com">
+	<link rel="help" href="http://www.w3.org/TR/css3-flexbox/#flex-common">
+	<meta name="assert" content="Test passes if box1 and box3 are 100px width; and box3 width's X axis doesn't end with the same one of box2's">
+	<style type="text/css">
+        #flexContainer {
+			background: blue;
+			margin: 10px 0;
+			border: 1px solid black;
+			height: 200px;
+			width: 300px;
+
+			display: flex;
+			flex-wrap: wrap;
+			align-content: center;
+         }
+		 .item{
+			flex:auto;
+			background: white;
+			margin: 0 20px 10px 10px;
+			width: 100px;
+			height: 40px;
+			display: inline-block;
+		 }
+		 .item1{
+			background: white;
+			margin: 0 20px 10px 10px;
+			width: 100px;
+			height: 40px;
+			display: inline-block;
+		 }
+    </style>
+</head>
+<body>
+    <p>Test passes if box1 and box3 are 100px width; and box3 width's X axis doesn't end with the same one of box2's</p></br>
+		<div id="flexContainer">
+			<div class="item1">box1</div>		
+			<div class="item">box2</div>
+			<div class="item1">box3</div>
+		</div>
+</body>
+</html>
+

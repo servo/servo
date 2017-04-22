@@ -1,0 +1,55 @@
+
+<HTML>
+<HEAD>
+<TITLE>Twelfth Test of Section 4.1.2 of CSS1 Spec</TITLE>
+
+
+<STYLE TYPE="text/css">
+em {margin-left: auto;
+    margin-right: 50px;
+   }
+img {float: left;
+    margin-right: auto;
+    margin-left: 50px;
+    }
+</STYLE>
+</HEAD>
+
+
+<BODY>
+
+<h1 >Testing Statement #12 Below of Section 4.1.2 of CSS1 Spec</h1>
+
+
+
+<p>
+12. If "auto" is set as the value fo r one of the seven properties in an element
+that is inline or floating, it will be treated as if it were set to zero.
+
+<h2>PASS CRITERIA:
+</h2>
+<p>
+If statement #12 above is passed, then:
+<em>
+This text is emphasized, and "em" is an inline element.  The value of
+"margin-left" is "auto" in the CSS1 rules, so "margin-left" will be set
+to 0, and this text should have no left margin.  The right margin should
+be 50px.
+The rules applied are:"em {margin-left: auto;
+                           margin-right: 50px;
+                          }"
+</em>
+
+<img src="ovalbbut.gif">
+This image has a left float, and the value of "margin-right" is "auto"
+in the CSS1 rules, so "margin-left" will be set to 0, and this text
+should have no right margin.  The left margin should be 50px.
+The rules applied are:"img {float: left;
+                            margin-left: 50px;
+                            margin-right: auto;
+                            }"
+All other properties should be UA-default.
+To move directly to the next test, click<a href="412-13.htm"> here</a>
+
+</BODY>
+</HTML>

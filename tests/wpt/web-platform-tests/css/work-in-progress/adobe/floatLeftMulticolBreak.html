@@ -1,0 +1,44 @@
+<!--
+  Should a float with multiple line boxes break across a column boundary?
+  
+  -->
+<style>
+	.twoCol {
+		width:20em;
+		column-count:2;		
+	}
+    .left {
+    	float:left;
+    	background-color:lightblue;
+    }
+    .body {
+    	background-color:lightgray;
+    }
+</style>
+<html>
+<head>
+	<title></title>
+</head>
+<body>
+    <div class=twoCol>
+    	<div class=left>
+			<p>six
+			<p>lines
+			<p>of
+			<p>text
+			<p>floated
+			<p>left
+		</div>
+		<div class=body>
+			<p>eight
+			<p>lines
+			<p>of
+			<p>text
+			<p>broken
+			<p>over
+			<p>two
+			<p>columns
+		</div>
+	</div>
+</body>
+</html>

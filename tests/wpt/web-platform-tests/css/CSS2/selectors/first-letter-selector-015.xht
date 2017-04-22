@@ -1,0 +1,28 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: First-letter with img alt text</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#first-letter" />
+        <meta name="flags" content="image" />
+        <meta name="assert" content="The ':first-letter' pseudo-element can be used with all such elements that contain text, or that have a descendant in the same flow that contains text." />
+        <style type="text/css">
+            div:first-letter
+            {
+                color: green;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if one and ony one of the following cases are true:</p>
+        <ul>
+            <li>If the two words "Missing image" are shown and the capital "M" is green.</li>
+            <li>If a missing image icon is shown and the text "Missing image" is shown.</li>
+            <li>If only a missing image icon is shown.</li>
+            <li>If nothing is rendered below.</li>
+        </ul>
+        <div>
+            <img src="#" alt="Missing image" />
+        </div>
+    </body>
+</html>

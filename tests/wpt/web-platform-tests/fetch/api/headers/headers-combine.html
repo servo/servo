@@ -18,15 +18,14 @@
                               ["triple", "tripleValue3"]
       ];
       var expectedDict = {"single": "singleValue",
-                          "double": "doubleValue1,doubleValue2",
-                          "triple": "tripleValue1,tripleValue2,tripleValue3"
+                          "double": "doubleValue1, doubleValue2",
+                          "triple": "tripleValue1, tripleValue2, tripleValue3"
       };
 
       test(function() {
         var headers = new Headers(headerSeqCombine);
         for (name in expectedDict)
-          assert_equals(headers.get(name), expectedDict[name],
-              "name: " + name + " has value: " + expectedDict[name]);
+          assert_equals(headers.get(name), expectedDict[name]);
       }, "Create headers using same name for different values");
 
       test(function() {
@@ -51,8 +50,7 @@
         for (name in expectedDict) {
           var value = headers.get(name);
           headers.append(name,"newSingleValue");
-          assert_equals(headers.get(name), (value + "," + "newSingleValue"),
-            "name: " + name + " has value: " + headers.get(name));
+          assert_equals(headers.get(name), (value + ", " + "newSingleValue"));
         }
       }, "Check append methods when called with already used name");
     </script>

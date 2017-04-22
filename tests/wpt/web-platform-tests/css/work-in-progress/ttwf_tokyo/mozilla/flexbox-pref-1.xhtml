@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!-- Testcase that indicates whether flexbox support is enabled -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <style>
+      body { margin: 0 }
+      div.mask {
+        position: absolute;
+        background: white;
+        width: -moz-available;
+      }
+      div.flex {
+        display: none;
+        display: flex;
+      }
+      div.inlineFlex {
+        display: none;
+        display: inline-flex;
+      }
+    </style>
+  </head>
+  <body>
+    <p>
+      "display: flex" is:
+      <!-- If rendered, this will cover up "disabled" below: -->
+      <div class="mask flex">enabled</div>
+      <div>disabled</div>
+    </p>
+    <p>
+      "display: inline-flex" is:<br/>
+      <!-- If rendered, this will cover up "disabled" below: -->
+      <div class="mask inlineFlex">enabled</div>
+      <div>disabled</div>
+    </p>
+  </body>
+</html>

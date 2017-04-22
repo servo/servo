@@ -1,0 +1,31 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: page properties: page breaks not affected by properties</title>
+<link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+<link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-breaks"/>
+<link rel="help" href="http://www.w3.org/TR/css3-page/#page-properties"/>
+<meta name="flags" content="paged" />
+<meta name="assert" content="When a page break splits a box, the box's margins, borders, and padding have no visual effect where the split occurs."/>
+<style type="text/css">
+	div {
+		border: 2pt solid black;
+		padding-left: 1em;
+		padding-bottom: 10em;
+		margin: 0 1em 10em 1em;
+	}
+	p {
+		padding: 0;
+		margin: 0;
+	}
+	
+	p#first {page-break-after: always;}
+</style>
+</head>
+<body>
+	<div>
+		<p id="first">This test requires two pages. This paragraph must have a black border on its top and sides, but there must be no bottom border.</p>
+		<p>This paragraph must have side and bottom borders, but no top border.</p>
+	</div>
+</body>
+</html>

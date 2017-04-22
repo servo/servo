@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!--
+     This test checks that a video element with "min-width: min-content"
+     and a huge specified "width" ends up being shrinkable. (In particular,
+     the large "width" value shouldn't influence the min-content width).
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <style>
+      div.flexbox {
+        height: 50px;
+        width: 50px;
+        border: 2px dotted black;
+        display: flex;
+      }
+      video {
+        width: 1000px;
+        height: 50px;
+        background: purple;
+        min-width: -moz-min-content;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="flexbox">
+      <video/>
+    </div>
+  </body>
+</html>

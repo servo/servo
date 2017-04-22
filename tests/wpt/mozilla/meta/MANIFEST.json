@@ -6714,30 +6714,6 @@
      ],
      {}
     ]
-   ],
-   "css/deferred-paint-ref.html": [
-    [
-     "/_mozilla/css/deferred-paint-ref.html",
-     [
-      [
-       "/_mozilla/css/deferred-paint-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "css/table_valign_presentational_hint_ref.html": [
-    [
-     "/_mozilla/css/table_valign_presentational_hint_ref.html",
-     [
-      [
-       "/_mozilla/css/table_valign_presentational_hint_ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
    ]
   },
   "support": {
@@ -7377,6 +7353,11 @@
     ]
    ],
    "css/data_img_b.html": [
+    [
+     {}
+    ]
+   ],
+   "css/deferred-paint-ref.html": [
     [
      {}
     ]
@@ -9112,6 +9093,11 @@
     ]
    ],
    "css/table_specified_width_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/table_valign_presentational_hint_ref.html": [
     [
      {}
     ]
@@ -19988,7 +19974,7 @@
  },
  "paths": {
   "./lint.whitelist": [
-   "dda02f5662390c7b09417454f97ba06876e7ce31",
+   "05d60cf6c75b15a18cbd0b0526ea9edea7d933f9",
    "support"
   ],
   "css/100x100_green.png": [
@@ -20992,8 +20978,8 @@
    "support"
   ],
   "css/deferred-paint-ref.html": [
-   "93956251a11323321fe8b64d5a5de8d218994670",
-   "reftest_node"
+   "f1e7c5f4d65637df18ba3d9a363f5de2205364bb",
+   "support"
   ],
   "css/deferred-paint.html": [
    "f13aa73f06873575763ea926fbfac3d3f79dacff",
@@ -23792,8 +23778,8 @@
    "reftest"
   ],
   "css/table_valign_presentational_hint_ref.html": [
-   "c635e02c974e9d678aa79a0760e993ae8c92abf1",
-   "reftest_node"
+   "47a0c88951354f44853418e101d1f6e56a3843ec",
+   "support"
   ],
   "css/table_vertical_align_absolute_a.html": [
    "f749a3381382d06cd94a095a97feb6a971c6ce46",
@@ -23824,7 +23810,7 @@
    "support"
   ],
   "css/test_font_family_parsing.html": [
-   "e0df1ad62a5c72e841806c0debd64a36d2898abe",
+   "fb9155875cb9cee7eba6e7a9be311ef02c82a869",
    "testharness"
   ],
   "css/test_variable_legal_values.html": [
@@ -23836,7 +23822,7 @@
    "testharness"
   ],
   "css/test_variable_serialization_specified.html": [
-   "70137258ef07c0983e0927aacbab5ed87b037b54",
+   "b403085f651089d08d6a22731b1a255c357b20c7",
    "testharness"
   ],
   "css/text_align_complex_a.html": [
@@ -25736,7 +25722,7 @@
    "testharness"
   ],
   "mozilla/interfaces.js": [
-   "f218b241a43dbc8d8d9e2422b5b7999c0a0d95a8",
+   "de8259360671809646a21a5af3d7d87fd1da91a7",
    "support"
   ],
   "mozilla/interfaces.worker.js": [

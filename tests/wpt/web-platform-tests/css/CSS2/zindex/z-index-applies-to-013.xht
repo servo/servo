@@ -1,0 +1,48 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Z-index applied to element with 'display' set to 'table'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#propdef-z-index" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#z-index" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'z-index' property applies to elements with a display of 'table'." />
+        <style type="text/css">
+            #table
+            {
+                background: green;
+                display: table;
+                table-layout: fixed;
+                z-index: 1;
+            }
+            #row
+            {
+                display: table-row;
+            }
+            #cell
+            {
+                display: table-cell;
+            }
+            #zindex
+            {
+                background: red;
+                top: -1in;
+            }
+            #table, #zindex
+            {
+                height: 1in;
+                position: relative;
+                width: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page.</p>
+        <div id="table">
+            <div id="row">
+                <div id="cell"></div>
+            </div>
+        </div>
+        <div id="zindex"></div>
+    </body>
+</html>

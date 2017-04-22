@@ -4,19 +4,15 @@
     <title>XMLHttpRequest: setRequestHeader() - Content-Type header</title>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
-    <link rel="help" href="https://xhr.spec.whatwg.org/#the-setrequestheader()-method" data-tested-assertations="/following::ol/li[4]/p[contains(@class,'note')] /following::ol/li[6]" />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-setrequestheader()-method">
   </head>
   <body>
     <div id="log"></div>
     <script>
       function request(inputGenerator, headersToSend, expectedType, title) {
         test(function() {
-          try {
-            var toSend = inputGenerator();
-          } catch(e) {
-            assert_unreached("Skipping test as could not create a " + inputGenerator.name.replace("_", "") + "; ");
-          }
-          var client = new XMLHttpRequest()
+          const toSend = inputGenerator(),
+                client = new XMLHttpRequest()
           client.open("POST", "resources/inspect-headers.py?filter_name=Content-Type", false)
           for(header in headersToSend) {
             if (headersToSend.hasOwnProperty(header)) {
@@ -25,15 +21,13 @@
           }
           client.send(toSend)
 
-          var responseType = client.responseText.replace("\n", "").replace("; ", ";").toLowerCase(); // don't care about case or space after semicolon for charset
+          const responseType = client.responseText
           if (expectedType === undefined || expectedType === null) {
             assert_equals(responseType, "");
           } else if (expectedType instanceof RegExp) {
-            if (!expectedType.ignoreCase) expectedType = new RegExp(expectedType, "i"); // always ignore case; the regex itself will have to remember to handle the optional space after the semicolon for charset
             assert_regexp_match(responseType, expectedType);
           } else {
-            expectedType = "content-type: " + String(expectedType ? expectedType.trim().replace("; ", ";") : expectedType).toLowerCase()
-            assert_equals(responseType, expectedType);
+            assert_equals(responseType, "Content-Type: " + expectedType + "\n");
           }
         }, title)
       }
@@ -46,7 +40,7 @@
       request(
         function _String() { return ""; },
         {"Content-Type": " "},
-        " ",
+        "",
         'setRequestHeader(" ") sends the string " "'
       )
       request(
@@ -130,7 +124,7 @@
       request(
         function _Blob() { return new Blob(["<xml/>"], {type : "application/xml;charset=ASCII"}); },
         {},
-        "application/xml;charset=ASCII",
+        "application/xml;charset=ascii", // new Blob lowercases the type argument
         "Blob request with set type uses that it for Content-Type unless setRequestHeader()"
       )
       request(
@@ -184,8 +178,8 @@
       request(
         function _FormData() { return new FormData(); },
         {},
-        /multipart\/form-data;boundary=(.*)/,
-        'FormData request has correct default Content-Type of "multipart\/form-data;boundary=_"'
+        /multipart\/form-data; boundary=(.*)/,
+        'FormData request has correct default Content-Type of "multipart\/form-data; boundary=_"'
       )
       request(
         function _FormData() { return new FormData(); },

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Regions: cleared floats in named flow contents</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+		<meta name="flags" content="ahem">
+		<meta name="assert" content="Test checks that floats in named flow contents are floated relative
+				to the region container and not their initial container, even when multiple regions
+				are involved.">
+		<link rel="match" href="reference/floats-clear-breaks-001-ref.html">
+		<style>
+		article {
+			font-family: Ahem;
+			font-size: 20px;
+			line-height: 1em;
+		}
+
+		.flow {
+			flow-into: f;
+		}
+
+		.float {
+			float: left;
+			color: blue;
+			margin: 2px 4px 6px 8px;
+		}
+		.break {
+			break-before: region;
+		}
+
+		.green {
+			color: green;
+		}
+
+		.bordered {
+			border: 10px solid black;
+		}
+
+		.region {
+			flow-from: f;
+			display: inline-block;
+			margin-bottom: 10px;
+		}
+
+		.region > p {
+			background: red;
+		}
+		</style>
+	</head>
+	<body>
+		<p>
+			Test passes if you see two squares separated by a small vertical space. The squares should
+			have a black outline, the top square should be blue and the bottom one should be green.<br>
+			You should see no red.
+		</p>
+
+		<div class="bordered region">
+			<p>&nbsp;</p>
+		</div>
+		<div class="bordered region">
+			<p>&nbsp;</p>
+		</div>
+		<!-- In case the forced break leads to an empty region, the content will flow in this
+		third region ending up without a border. -->
+		<div class="region">
+			<p>&nbsp;</p>
+		</div>
+
+		<article class="flow">
+			<div class="float">
+				xxxxx<br>
+				xxxxx<br>
+				xxxxx<br>
+				xxxxx<br>
+				xxxxx
+			</div>
+			<div class="break green">
+				xxxxx<br>
+				xxxxx<br>
+				xxxxx<br>
+				xxxxx<br>
+				xxxxx
+			</div>
+		</article>
+	</body>
+</html>

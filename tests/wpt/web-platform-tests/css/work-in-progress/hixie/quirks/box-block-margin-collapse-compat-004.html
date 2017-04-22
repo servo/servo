@@ -1,0 +1,53 @@
+<!-- Quirks Mode -->
+<html lang="en">
+ <head>
+  <title>Margin Collapsing Quirks: Blocks in inlines</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/block/margin-collapse/compat/004.html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#collapsing-margins" />
+  <style type="text/css">
+   td { width: 5em; }
+   .a { display: block; border: solid; background: yellow; }
+   .b { display: block; height: 1em; background: green; margin: 1em 0; }
+   .c { display: inline; background: red; }
+   .d { display: block; height: 1em; background: lime; margin: 1em 0; }
+   .e { display: block; height: 1em; background: lime; margin: 1em 0 0; }
+
+   .border { border: solid; background: red; }
+   .green { border-top: solid green 1em; }
+   .yellow { border-top: solid yellow 1em; }
+   .lime { border-top: solid lime 1em; }
+  </style>
+ </head>
+ <body>
+
+  <p>The two boxes below should look identical.</p>
+
+  <table>
+   <tr>
+    <td>
+     <div class="a">
+      <div class="b"></div>
+      <div class="c"> <!-- nothing here so the margin collapses through with the parent's sibling -->
+       <div class="d"></div>
+       <!-- anonymous block wraps the previous and next blocks into a single block so their margins collapse here -->
+       <div class="e"></div>
+      <!-- nothing here: no margins, and inline doesn't take any room. --> </div>
+     </div>
+    </td>
+    <td>
+     <div class="border">
+      <div class="yellow"></div>
+      <div class="green"></div>
+      <div class="yellow"></div>
+      <div class="lime"></div>
+      <div class="yellow"></div>
+      <div class="lime"></div>
+     </div>
+    </td>
+   </tr>
+  </table>
+
+  <p>See the <a href="../036.html">standards compliant version</a> of this test.</p>
+ </body>
+</html>

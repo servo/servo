@@ -1,0 +1,23 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border-style applied to element with display inline</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-06-24 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-style-properties" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'border-style' property applies to elements with a display of inline." />
+        <style type="text/css">
+            div
+            {
+                border-style: dashed;
+                display: inline;
+                font-size: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a dashed lined box.</p>
+        <div>&nbsp;&nbsp;&nbsp;&nbsp;</div>
+    </body>
+</html>

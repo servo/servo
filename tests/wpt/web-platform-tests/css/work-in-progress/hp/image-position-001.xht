@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Image Position Syntax - Initial Value</title>
+  <link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#img-fit-img-posn"/>
+  <meta name="assert" content="The initial value of the 'image-position' property is 50% 50%"/>
+  <style type="text/css"><![CDATA[
+  	img {
+		height: 200px;
+		width: 200px;
+		border: 2pt solid black;
+		margin-bottom: 10px;
+		image-fit: contain;
+	}
+	img.defaultPosition {image-position: 50% 50%;}
+	img.offsetPosition {image-position: 100% 100%;}
+  ]]></style>
+ </head>
+ <body>
+ 	<p>The first two arrows below should be centered within their boxes and identical. The third should be positioned with its bottom adjacent to the bottom side of its box.</p>
+	<div><img src="intrinsic-size.png" alt="FAIL: missing image" /></div>
+	<div><img src="intrinsic-size.png" alt="FAIL: missing image" class="defaultPosition" /></div>
+	<div><img src="intrinsic-size.png" alt="FAIL: missing image" class="offsetPosition" /></div>
+ </body>
+ </html>

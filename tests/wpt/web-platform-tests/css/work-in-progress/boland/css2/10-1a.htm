@@ -1,0 +1,63 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Second Test of Section 10.1 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+#div1 {position: absolute; left: 25px; top: 25px }
+#p1 {color: red}
+#em1 {color: blue}
+#strong1 {color: yellow}
+#p2 {color: green}
+
+
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Second Testable Statement of Sec 10.1 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+2. The containing block in which the root element lives is chosen by UA.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+< div id="div1" >
+<p id="p1">
+If statement #2 above is passed, then
+this paragraph should be in the initial containing block and red.
+The rule applied is "#div1 {position: absolute; left: 25px; top: 25px }".
+Also "#p1 {color: red}".
+</p>
+<p id="p2">
+This <em id="em1"> emphasized text (blue) is in the 
+<strong id="strong1">strong(yellow)</strong> part of the paragraph. 
+Rules are "#em1 {color: blue}", "#strong1 {color: yellow}".
+Also "#p2 {color: green}".
+</em>
+This part of paragraph should be green.
+</p>
+</div>
+
+All other properties of this page should be UA-default.
+
+
+</BODY>
+</HTML>
+

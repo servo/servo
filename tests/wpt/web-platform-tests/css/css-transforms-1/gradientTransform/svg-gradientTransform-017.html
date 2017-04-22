@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Transforms Test: SVG gradientTransform presentation attribute and translateX with translation-value unit less argument in scientific notation with a negative exponent</title>
+    <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#svg-transform">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#two-d-transform-functions">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#svg-transform-value">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#svg-number">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#svg-gradient-transform-pattern-transform">
+    <link rel="match" href="reference/svg-gradientTransform-ref.html">
+    <meta name="flags" content="svg">
+    <meta name="assert" content="The gradientTransform attribute must support functions with unit less arguments in scientific numbers with negative exponents for translation-value. The gradient in the test should be moved 25 pixels in the X direction resulting in a solid green rect.">
+    <style type="text/css">
+    svg {
+        width: 100px;
+        height: 100px;
+    }
+    </style>
+</head>
+<body>
+    <p>The test passes if there is a green square and no red.</p>
+    <svg>
+        <defs>
+            <linearGradient id="grad" x1="0%" y1="0%" gradientTransform="translateX(250e-1)">
+                <stop offset="50%" stop-color="green"/>
+                <stop offset="50%" stop-color="red"/>
+            </linearGradient>
+        </defs>
+        <rect fill="url(#grad)" x="0" y="0" width="100" height="100"/>
+    </svg>
+</body>
+</html>

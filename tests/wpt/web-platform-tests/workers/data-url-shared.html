@@ -34,5 +34,5 @@ assert_worker_throws('Web SQL Database inaccessible', 'self.openDatabase("someDB
 // 'data:' workers are cross-origin
 assert_worker_sends_pass('cross-origin worker', '', 'fetch("/").then(() => port.postMessage("FAIL"), () => port.postMessage("PASS"))');
 // 'data:' workers have opaque origin
-assert_worker_sends_pass('worker has opaque origin', 'application/javascript', 'if (self.location.origin == "null") port.postMessage("PASS"); else port.postMessage("FAIL");');
+assert_worker_sends_pass('worker has opaque origin', 'application/javascript', 'if (self.location.origin == "null") port.postMessage("PASS"); else { port.postMessage("FAIL"); }');
 </script>

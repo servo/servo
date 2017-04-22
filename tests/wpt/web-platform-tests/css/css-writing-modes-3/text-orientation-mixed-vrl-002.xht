@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>CSS Writing Modes Test: text-orientation - mixed in vertical-rl writing mode</title>
+		<link rel="author" title="Kazuaki Takemura" href="mailto:takemura@networksoft.co.jp" />
+		<link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+		<link rel="help" title="5.1 Orienting Text: the 'text-orientation' property" href="http://www.w3.org/TR/css-writing-modes-3/#text-orientation" />
+		<meta name="flags" content="image" />
+		<meta name="assert" content="This test checks that when 'text-orientation' is set to 'mixed', then latin alphabet characters are displayed sideways (rotated 90 degrees clockwise). In this test, the 'FULLWIDTH LATIN CAPITAL LETTER T' must be typeset upright." />
+		<style type="text/css"><![CDATA[
+			@font-face
+				{
+					font-family: "mplus-1p-regular";
+					src: url("support/mplus-1p-regular.woff") format("woff");
+					/* filesize: 803300 bytes (784.5 KBytes) */
+				}
+
+			div
+				{
+					float: left;
+					color: blue;
+					font-family: "mplus-1p-regular";
+					font-size: 30px;
+					line-height: 1.4; /* equivalent to 42px:
+					so that top-half-leading outside content area is 6px
+					and bottom-half-leading outside content area is 6px */
+					margin: 10px;
+				}
+
+			div#vertical
+				{
+					border: 1px solid gray;
+					text-orientation:	mixed;
+					writing-mode:	vertical-rl;
+				}
+
+			img {vertical-align: top;}
+
+		]]></style>
+	</head>
+	<body>
+
+	<p>Test passes if characters in both "Text sample" rectangles have the <strong>same order</strong>, <strong>same layout</strong> and the <strong>same orientation</strong>: "T" should be upright and "ext sample" should be rotated 90&deg; clockwise.</p>
+
+	<div id="vertical">&#65332;ext sample</div>
+	<!--
+	HTML Entity (decimal) &#65332; or HTML Entity (hex) &#xff34; is Unicode Character 'FULLWIDTH LATIN CAPITAL LETTER T'
+	More info:
+	http://lists.w3.org/Archives/Public/public-css-testsuite/2015Dec/0008.html
+	-->
+
+	<div><img src="support/text-orientation-mixed-vrl-002.png" width="44" height="198" alt="Image download support must be enabled" /></div>
+
+	</body>
+</html>

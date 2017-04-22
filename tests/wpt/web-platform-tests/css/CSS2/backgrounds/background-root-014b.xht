@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: Background propagation on &lt;body&gt; and &lt;html&gt; - non-propagated attached position</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/background/11.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background"/>
+  <link rel="match" href="background-root-014b-ref.xht" />
+  <meta name="flags" content="image"/>
+<style type="text/css"><![CDATA[
+   body { border: solid lime; background: green url(support/square-purple.png) fixed no-repeat 50% 50%; color: white; }
+   html { border: solid blue; background: navy; color: yellow; }
+   :link, :visited { color: inherit; background: transparent; }
+   * { margin: 1em; padding: 1em; }
+]]></style>
+
+</head>
+<body>
+<p>In the exact middle of this page, there should be a purple tile.
+The tile must only be visible when the green box overlaps the tile;
+it must be hidden when overlapping the blue background.</p>
+
+</body>
+</html>

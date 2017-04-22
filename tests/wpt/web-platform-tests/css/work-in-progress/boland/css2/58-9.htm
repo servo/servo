@@ -1,0 +1,66 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Ninth Test of Section 5.8 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+*[lang=fr] {display: none}
+*[lang=|="en"] {color: red}
+.pastoral {color: green}
+h3.fire {color: red}
+p.pastoral.marine {color: blue}
+
+
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Ninth Testable Statement of Sec 5.7 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+9. For style sheets used with HTML, authors may use the dot notation as an
+alternative to the "~=" notation when matching on the "class" attribute.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<h3 class="fire" >
+If statement #9 above is passed, then
+this h3 heading should have a color of red .
+The rule applied is ".fire {color: red}".
+</h3>
+<h3>This h3 heading should be green, because of 
+rule ".pastoral {color: green}".
+</h3>
+Comment-allez vous?
+<p>
+The above french should be hidden, because of rule
+"*[lang=fr] {display: none}".
+<p lang="en">
+This english paragraph should be red, because of rule
+"*[lang|="en"] {color: red}
+<p class="pastoral blue aqua marine">
+This paragraph should be blue, because of rule
+"p.pastoral.marine {color: blue}".
+<p>
+All other properties of this page should be UA-default.
+
+
+</BODY>
+</HTML>
+

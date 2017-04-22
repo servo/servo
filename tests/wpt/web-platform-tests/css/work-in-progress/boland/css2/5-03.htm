@@ -1,0 +1,55 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Third Test of Section 5.1 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+p > strong {color: blue}
+p : em {color: red}
+
+
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Third Testable Statement of Sec 5.1 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+3. E>F matches any F element that is a child of an element E.
+Also, E:first-child matches element E when E is the first child of its
+parent.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p>
+This paragraph should have <em>this emphasized text</em> being red, because of
+rule "p:em {color: red}", and "em" is first child of p.
+This <em>emphasized text</em>, however, should be UA-default, since it is
+second child of p.
+This <strong>strong text</strong>
+should be blue, because of rule
+"p>strong {color: blue}".
+All other properties of this page should be UA-default.
+</p>
+
+
+To move to the next test, click<a href="5-04.htm"> here</a>
+</BODY>
+</HTML>
+

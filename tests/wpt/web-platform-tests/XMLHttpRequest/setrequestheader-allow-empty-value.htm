@@ -4,7 +4,7 @@
     <title>XMLHttpRequest: setRequestHeader() - empty header</title>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
-    <link rel="help" href="https://xhr.spec.whatwg.org/#the-setrequestheader()-method" data-tested-assertations="/following::ol/li[4]/p[contains(@class,'note')] /following::ol/li[6]" />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-setrequestheader()-method">
   </head>
   <body>
     <div id="log"></div>
@@ -15,7 +15,7 @@
           client.open("POST", "resources/inspect-headers.py?filter_name=X-Empty", false)
           client.setRequestHeader('X-Empty', value)
           client.send(null)
-          assert_equals(client.responseText, 'x-empty: '+ String(value).toLowerCase()+'\n' )
+          assert_equals(client.responseText, 'X-Empty: ' + value + '\n' )
         }, document.title + " (" + value + ")")
       }
       request("")

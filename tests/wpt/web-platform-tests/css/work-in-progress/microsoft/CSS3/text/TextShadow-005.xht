@@ -1,0 +1,40 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: The 'text-shadow' property with spread setting of '96px'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css3-text/#text-shadow" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The 'text-shadow' property supports a spread setting set to '96px'." />
+        <style type="text/css">
+            div
+            {
+                font-family: Ahem;
+            }
+            #test
+            {
+                left: 0;
+                position: absolute;
+                text-shadow: black 96px 96px 0px 96px;
+                top: 96px;
+            }
+            #base
+            {
+                background: white;
+                border: 1px solid orange;
+                height: 1em;
+                left: 48px;
+                padding: 48px;
+                position: absolute;
+                top: 144px;
+                width: 6em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a black shape completely contained in the orange box on the page.</p>
+        <div id="base"></div>
+        <div id="test"> Filler</div>
+        <div></div>
+    </body>
+</html>

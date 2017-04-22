@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <title>CSS Animations - keyText on CSSKeyframeRule interface</title>
+   <link rel="author" title="Opera Software ASA" href="http://www.opera.com/">
+   <link rel="help" href="https://drafts.csswg.org/css3-animations/#dom-interfaces-">
+   <meta name="flags" content="dom">
+   <!--
+   **************************************************************************
+   ISSUE: dbaron and smfr agreed on this back in March 2011 but at the time
+   of writing (23 November 2011) it has still not been edited into the spec
+   **************************************************************************
+   -->
+   <meta name="assert" content="The keyText attribute of CSSKeyframeRule
+   represents [[FIXME when the spec is updated]]">
+   <script src="/resources/testharness.js"></script>
+   <script src="/resources/testharnessreport.js"></script>
+   <style type="text/css">
+      @keyframes test {
+         from { width: 100px; }
+         to { width: 200px; }
+      }
+   </style>
+   <script type="text/javascript">
+      setup({explicit_done:true});
+      onload = function() {
+         var testName = document.querySelector('title').firstChild.data;
+         var log = document.querySelectorAll('p')[0].firstChild;
+         var passed = false;
+         try {
+            var fromKeyframe = document.styleSheets[0].cssRules[0].cssRules[0];
+            passed = (fromKeyframe.keyText == '0%');
+            fromKeyframe.keyText = '25%, 75%';
+            passed = (passed && fromKeyframe.keyText == '25%, 75%');
+         } catch(e) {
+         }
+         test(function(){assert_true(passed);}, testName); done();
+         log.data = (passed ? 'PASS' : 'FAIL');
+      };
+   </script>
+   <style>iframe{display:none}</style>
+</head>
+<body>
+   <p>Testing... (JavaScript required)</p>
+</body>
+</html>

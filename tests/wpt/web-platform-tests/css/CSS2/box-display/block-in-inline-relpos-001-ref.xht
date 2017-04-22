@@ -1,0 +1,56 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+    .container {
+      margin: 1em;
+      font: 20px/1 Ahem;
+      border: solid silver;
+      width: 4em;
+      color: aqua;
+      background: fuchsia;
+    }
+
+    .controlC {
+      color: orange;
+      background: orange;
+      width: 2em;
+      margin-left: -2em;
+      border-left: 2em solid blue
+    }
+
+    .controlB {
+      color: yellow;
+    }
+    .controlC {
+      margin-left: 0;
+    }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>The patterns in the 2 silver boxes must be <strong>identical</strong>.</p>
+
+  <div class="container">
+    A&nbsp;&nbsp;<span class="controlB">B</span>
+    <div class="controlC">C</div>
+    &nbsp;A<span class="controlB">B</span>
+  </div>
+
+  <div class="container">
+    A&nbsp;&nbsp;<span class="controlB">B</span>
+    <div class="controlC">C</div>
+    &nbsp;A<span class="controlB">B</span>
+  </div>
+
+ </body>
+</html>

@@ -1,0 +1,90 @@
+
+<html>
+
+<title>Second Test of Section 5.5.14 of CSS1 Spec</title>
+
+<style type="text/css">
+p {border-left-width: ;
+   border-style: dotted;}
+h3 {border-left-width: 2em;
+    border-style: dotted;}
+h4 {border-left-width: 4em;
+    border-style: dotted;}
+strong {border-left-width: 6em;
+        border-style: dotted;}
+blockquote {border-left-width: 200%;
+            border-style: dotted;}
+</style>
+</head>
+
+
+
+<body>
+
+
+
+
+<h1 >Testing Statement #2 Below of Section 5.5.14 of CSS1 Spec</h1>
+
+
+
+
+
+
+<ul>
+<li>
+2. For "border-left-width", initial is "medium", it applies to all elements, it
+is not inherited, and percentage values are N/A.
+</ul>
+
+
+
+
+<h2>
+PASS CRITERIA:
+</h2>
+Note: border-style of dotted applies here.
+<p >
+
+If statement #2 above is passed, this paragraph should have a border left
+width of medium.
+The rule applied is "p {border-left-width: }".
+So the border-left-width property applies to the "p" element.
+<h3>
+This h3 element should have a border left width of 2em
+<em>
+This emphasized text should have a border left width of UA-default, since  
+the border left width property is not inherited, and "em" is a child of 'h3".
+No explicit rule is applied for "em".
+</em>
+THe rule applied is 'h3 {border-left-width: 2em}".
+So the border left width property applies to em and h3.
+</h3>
+<h4>
+THis h4 element should have a border left width which is 4em.
+The rule applied is "border-left-width: 4em".
+So the border left width property applies to h4.
+</h4>
+
+<strong>
+This strong text should have a border left width of 6em
+; so the border left width property applies
+to the strong element.
+The rule applied is "strong {border-left-width: 6em}".
+(NOTE: Should other HTML elements be mentioned?)
+</strong>
+<blockquote>
+This blockquote element should have a margin top of UA-default.
+The rule applied is "blockquote {border-left-width: 200%}", which should be
+ignored sinced percentages do not apply.
+</blockquote>
+
+
+
+
+
+All other properties of this page should be UA-default.
+
+
+</body>
+</html>

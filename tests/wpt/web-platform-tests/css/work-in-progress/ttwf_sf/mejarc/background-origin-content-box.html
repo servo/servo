@@ -1,0 +1,41 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>
+			CSS Test: 'Background-origin' with value 'border-box' 
+		</title>
+		<link rel="author" title="Melanie Archer" href="mailto:job@twobanjos.com" />
+		<link rel="help" href="http://www.w3.org/TR/css3-background/#the-background-origin" />
+		<link rel="match" href="reference/background-origin-content-box-ref.xht" />
+		<meta name="flags" content="" />
+		<meta name="assert" content="If 'background-origin' is given the value 'content-box,' then the background image is positioned in relationship to, and confined to, its containing element's content dimensions." />
+<style type="text/css">
+	div {
+		border-style: solid;
+		border-width: 4px;
+		padding: 2em;
+	}
+	
+	#test-container {
+		background-image: url("support/cat.png");
+		background-repeat: no-repeat;
+		border-color: magenta;
+		background-origin: content-box;
+	}
+	
+	#test-container #test-block {
+		border-color: blue;
+	}
+	
+        </style> 
+	</head>
+	<body>
+		<p>
+			Test passes if the cat image is positioned at the top and left of the blue-bordered rectangle, and is cut off on the top and left by the blue border. 
+		</p>
+		<div id="test-container">
+			<div id="test-block">
+			</div>
+		</div>
+	</body>
+</html>

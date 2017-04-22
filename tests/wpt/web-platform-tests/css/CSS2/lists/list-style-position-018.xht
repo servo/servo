@@ -1,0 +1,68 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: 'list-style-position: outside' - text-align</title>
+
+  <!--
+  More info about this test:
+  http://lists.w3.org/Archives/Public/public-css-testsuite/2010Oct/0191.html
+  http://lists.w3.org/Archives/Public/public-css-testsuite/2010Oct/0196.html
+  http://lists.w3.org/Archives/Public/public-css-testsuite/2010Oct/0197.html
+  https://github.com/w3c/csswg-test/commit/0147c4a7a6946cb7d777bedce0b2499b2b9d60d3
+  http://lists.w3.org/Archives/Public/public-css-testsuite/2016Jul/0003.html
+  https://lists.w3.org/Archives/Public/www-style/2016Jul/0051.html
+  -->
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#list-style" title="12.5.1 Lists: the 'list-style-type', 'list-style-image', 'list-style-position', and 'list-style' properties" />
+  <link rel="match" href="list-style-position-018-ref.xht" />
+
+  <meta content="" name="flags" />
+  <meta name="assert" content="'text-align' should only format inline content of a list-item's principal block box when the list-item's 'list-style-position' is set to 'outside'." />
+
+  <style type="text/css"><![CDATA[
+  li
+    {
+      background-color: black;
+      list-style-position: outside;
+    }
+
+  li#left-aligned
+    {
+      text-align: left;
+    }
+
+  li#centered
+    {
+      text-align: center;
+    }
+
+  li#right-aligned
+    {
+      text-align: right;
+    }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there are 3 black horizontal bars, each preceded by a black bullet (small filled-in circle).</p>
+
+  <ul>
+    <li id="left-aligned">&nbsp;</li>
+  </ul>
+
+  <ul>
+    <li id="centered">&nbsp;</li>
+  </ul>
+
+  <ul>
+    <li id="right-aligned">&nbsp;</li>
+  </ul>
+
+ </body>
+</html>

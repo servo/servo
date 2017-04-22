@@ -1,0 +1,87 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+                      "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: word-spacing on Flexible Space Characters</title>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#spacing-props"/>
+  <meta name="flags" content=""/>
+  <meta name="assert" content="Word-spacing affects each space (U+0020)
+        and non-breaking space (U+00A0)."/>
+  <style type="text/css">
+    div {
+      margin: 1em;
+      font-family: monospace;
+      page-break-inside: avoid;
+    }
+    div p {
+      margin: 0;
+    }
+    .controlcontrol {
+      background: orange;
+      width: 4em;
+    }
+
+    .control span {
+      background: blue;
+      color: blue;
+    }
+    .spacer {
+      padding-left: 4em;
+    }
+    .test span {
+      word-spacing: 4em;
+      background: orange;
+      color: orange;
+    }
+    .ws-pre p {
+      white-space: pre;
+    }
+  </style>
+ </head>
+ <body>
+   <p>In each of the following pairs, the blue and orange bars must have equal lengths.</p>
+
+    <div>
+      <p class="control"><span class="spacer"></span>&nbsp;</p>
+      <p class="controlcontrol">&nbsp;</p>
+    </div>
+
+   <div class="ws-normal">
+     <p class="control"><span>A <span class="spacer"></span>B</span></p>
+     <p class="test"><span>A B</span></p>
+   </div>
+   <div class="ws-normal">
+     <p class="control"><span>A <span class="spacer"></span>B</span></p>
+     <p class="test"><span>A  B</span></p>
+   </div>
+   <div class="ws-pre">
+     <p class="control"><span>A <span class="spacer"></span> <span class="spacer"></span>B</span></p>
+     <p class="test"><span>A  B</span></p>
+   </div>
+
+   <div class="ws-normal">
+     <p class="control"><span>A&nbsp;<span class="spacer"></span>B</span></p>
+     <p class="test"><span>A&nbsp;B</span></p>
+   </div>
+   <div class="ws-normal">
+     <p class="control"><span>A&nbsp;&nbsp;<span class="spacer"></span><span class="spacer"></span>B</span></p>
+     <p class="test"><span>A&nbsp;&nbsp;B</span></p>
+   </div>
+   <div class="ws-pre">
+     <p class="control"><span>A&nbsp;&nbsp;<span class="spacer"></span><span class="spacer"></span>B</span></p>
+     <p class="test"><span>A&nbsp;&nbsp;B</span></p>
+   </div>
+
+   <div class="ws-normal">
+     <p class="control"><span>A&nbsp; &nbsp; <span class="spacer"></span><span class="spacer"></span><span class="spacer"></span><span class="spacer"></span>B</span></p>
+     <p class="test"><span>A&nbsp;  &nbsp;    &#09;
+ &#09; B</span></p>
+   </div>
+   <div class="ws-pre">
+     <p class="control"><span>A&nbsp;  &nbsp;  <span class="spacer"></span><span class="spacer"></span><span class="spacer"></span><span class="spacer"></span><span class="spacer"></span><span class="spacer"></span>&#09;B</span></p>
+     <p class="test"><span>A&nbsp;  &nbsp;  &#09;B</span></p>
+   </div>
+
+ </body>
+</html>

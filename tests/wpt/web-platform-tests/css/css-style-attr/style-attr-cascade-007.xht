@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Style Attribute Inheritance</title>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="reviewer" title="Arron Eicholz" href="mailto:Arron.Eicholz@microsoft.com"/>
+  <link rel="match" href="reference/style-attr-cascade-007.xht"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html#inheritance"/>
+  <link rel="help" href="http://www.w3.org/TR/css-style-attr/#interpret"/>
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="flags" content="image" />
+  <meta name="assert" content="Iff a property inherits, it also inherits when declared via style attribute."/>
+  <style type="text/css"><![CDATA[
+  ]]></style>
+ </head>
+ <body>
+  <div style="color: green; border-color: red;">
+  <p style="border-style: solid">
+    This sentence must be green with a green border.</p>
+  </div>
+ </body>
+</html>

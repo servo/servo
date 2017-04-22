@@ -1,0 +1,69 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: CSS: unquoted 'font-family' syntax (tested with 'font')</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/fonts/ahem/004.xml" type="application/xhtml+xml"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-family-prop" />
+  <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-family-prop"/>
+  <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-prop"/>
+  <meta name="flags" content="ahem"/>
+  <style type="text/css">
+   /* valids */
+   .a { font: 10px Ahem Black, Ahem;  }
+   .b { font: 10px inherit, Ahem;  }
+   .c { font: 10px \" , Ahem; }
+  </style>
+  <style type="text/css">
+   .d { font: 10px 32px, Ahem;  }
+   .e { font: 10px -test, Ahem;  }
+   /* invalids */
+   .f { font: 32px :-), sans-serif;  }
+   .g { font: 32px , sans-serif;  }
+   .h { font: 32px (), sans-serif;  }
+   .i { font: 32px {}, sans-serif;  }
+   .j { font: 32px [], sans-serif;  }
+   .k { font: 32px a(), sans-serif;  }
+   .l { font: 32px a{}, sans-serif;  }
+   .m { font: 32px a[], sans-serif;  }
+   .n { font: 32px; }
+   .o { font: 32px \"", sans-serif;  }
+  </style>
+  <style type="text/css">
+   .P { font: 32px \\", sans-serif;  }
+  </style>
+  <style type="text/css">
+   /* environment */
+   * { margin: 0; padding: 0; border: none; line-height: 1; }
+   body { margin: 1em; position: relative; }
+   .control { display: inline; font: 1em/1 Ahem, sans-serif; background: red; color: white; }
+   .overlapper { position: absolute; left: 0; top: 1em; height: 160px; width: 60px; background: green; z-index: 1; -moz-opacity: 90%; }
+   .valid { font: 32px sans-serif; color: red; }
+   .invalid { font: 10px Ahem; color: red; }
+  </style>
+ </head>
+ <body>
+  <div class="control">Ahem_font_required_for_this_test.</div>
+  <div class="overlapper"/>
+  <div class="valid">
+   <p class="a">a:FAIL</p>
+   <p class="b">b:FAIL</p>
+   <p class="c">c:FAIL</p>
+   <p class="d">d:FAIL</p>
+   <p class="e">e:FAIL</p>
+  </div>
+  <div class="invalid">
+   <p class="f">f:FAIL</p>
+   <p class="g">g:FAIL</p>
+   <p class="h">h:FAIL</p>
+   <p class="i">i:FAIL</p>
+   <p class="j">j:FAIL</p>
+   <p class="k">k:FAIL</p>
+   <p class="l">l:FAIL</p>
+   <p class="m">m:FAIL</p>
+   <p class="n">n:FAIL</p>
+   <p class="o">o:FAIL</p>
+   <p class="P">P:FAIL</p>
+  </div>
+ </body>
+</html>

@@ -1,0 +1,46 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+                      "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Ignoring at-rules inside declaration blocks</title>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-box"/>
+  <meta name="flags" content="invalid paged"/>
+  <meta name="assert" content="At-rules inside @page blocks are parsed as invalid at-rule statements."/>
+  <style type="text/css">
+    @page {
+      @import "support/import-red";
+      margin-left: 50%;
+      @media print { }
+      margin-top: 50%;
+    }
+    @page {
+      @media print { }
+      margin-top: 0;
+    }
+    @page {
+      margin-top: 0
+      @media print {}
+    }
+    @page {
+      margin-top: 0
+      @media print;
+    }
+    @page {
+      @import "support/import-red"
+      margin-top: 0;
+    }
+    html, body, p {
+      margin: 0;
+      padding: 0;
+    }
+    p {
+      border: solid blue;
+    }
+  </style>
+ </head>
+ <body>
+   <p class="import">When printed the top left corner of this box must be in
+     the exact center of this page.</p>
+ </body>
+</html>

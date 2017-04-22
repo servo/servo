@@ -1,0 +1,56 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Third Test of Section 12.3 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+h3 {display: run-in}
+H3:after {content: ": "}
+p:before {content; "... "}
+
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Third Testable Statement of Sec 12.3 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+3. A run-in or compact element has an :after pseudo-element of type "block"
+(second case).
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+< p >
+If statement #3 above is passed, then
+this document:
+<h3>Centaurs</h3>
+<p>have hoofs
+<p>have a tail
+<p>
+should have "Centaurs: ... have hoofs" on one line, and
+"... have a tail" on the second line.
+The rules applied are "h3 {display: run-in}", "h3:after {content: ": "}",
+and "p:before {content: "... "}".
+<p>
+All other properties of this page should be UA-default.
+
+
+</BODY>
+</HTML>
+

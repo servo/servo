@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<!-- Any copyright is dedicated to the Public Domain.
+   - http://creativecommons.org/publicdomain/zero/1.0/ -->
+
+<html>
+  <meta charset="utf-8">
+  <title>CSS Shape Test: float right, circle() reference</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="http://www.mozilla.org/">
+  <style>
+  .container {
+    direction: rtl;
+    position: absolute;
+    width: 200px;
+    line-height: 0;
+  }
+
+  .shape {
+    float: right;
+    /* Omit shape-outside */
+    clip-path: circle();
+    box-sizing: content-box;
+    height: 40px;
+    width: 40px;
+    padding: 20px;
+    border: 20px solid lightgreen;
+    background-color: orange;
+  }
+
+  .box {
+    position: absolute;
+    width: 60px;
+    background-color: blue;
+  }
+  </style>
+
+  <body class="container">
+    <div class="shape"></div>
+    <div class="box" style="height: 12px; top: 0px; right: 96px;"></div> <!-- Box at corner -->
+    <div class="box" style="height: 12px; top: 12px; right: 108px;"></div> <!-- Box at corner -->
+    <div class="box" style="height: 36px; top: 24px; right: 120px;"></div>
+    <div class="box" style="height: 36px; top: 60px; right: 120px;"></div>
+    <div class="box" style="height: 12px; top: 96px; right: 108px;"></div> <!-- Box at corner -->
+    <div class="box" style="height: 12px; top: 108px; right: 96px;"></div> <!-- Box at corner -->
+  </body>
+</html>

@@ -789,8 +789,7 @@ for (var element in elements) {
     // Don't try to test the defaultVal -- it should be either 0 or -1, but the
     // rules are complicated, and a lot of them are SHOULDs.
     ReflectionTests.reflects({type: "long", defaultVal: null}, "tabIndex", element);
-    // TODO: classList, contextMenu, itemProp, itemRef, dropzone (require
-    // tokenlist support)
+    // TODO: classList, contextMenu, itemProp, itemRef
 
     for (var idlAttrName in elements[element]) {
         var type = elements[element][idlAttrName];

@@ -1,0 +1,35 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<meta http-equiv="content-type" content="text/html;charset=UTF-8"/>
+		<title>WOFF Test: Extraneous Data Between Table Data and Metadata</title>
+		<link rel="author" title="Tal Leming" href="http://typesupply.com" />
+		<link rel="help" href="http://dev.w3.org/webfonts/WOFF2/spec/#FileStructure" />
+		<link rel="help" href="http://dev.w3.org/webfonts/WOFF2/spec/#conform-extraneous-reject" />
+<link  rel="reviewer" title="Chris Lilley" href="mailto:chris@w3.org" />
+		<meta name="flags" content="font" />
+		<meta name="assert" content="There are four null bytes between the table data and the metadata." />
+		<style type="text/css"><![CDATA[
+			@font-face {
+				font-family: "WOFF Test";
+				src: url("support/blocks-extraneous-data-004.woff2") format("woff2");
+			}
+			body {
+				font-size: 20px;
+			}
+			pre {
+				font-size: 12px;
+			}
+			.test {
+				font-family: "WOFF Test", "WOFF Test CFF Fallback";
+				font-size: 200px;
+				margin-top: 50px;
+			}
+		]]></style>
+	</head>
+	<body>
+		<p><a href="support/FontsToInstall">Test fonts</a> must be installed for this test. The WOFF being tested will be loaded over the network so please wait until the download is complete before determing the success of this test.</p>
+		<p>Test passes if the word PASS appears below.</p>
+		<div class="test">F</div>
+	</body>
+</html>

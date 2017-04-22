@@ -1,0 +1,25 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: 'Background-color' applied to a rounded inline element</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css3-background/#background-color" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="'Background-color' is clipped according to the 'background-clip' property in an inline element." />
+        <style type="text/css">
+            div
+            {
+                border-radius: 20px;
+                background-color: orange;
+                background-clip: border-box;
+                color: orange;
+                padding: 15px;
+                display: inline;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is an orange box with rounded corners below.</p>
+        <div>Filler Text</div>
+    </body>
+</html>

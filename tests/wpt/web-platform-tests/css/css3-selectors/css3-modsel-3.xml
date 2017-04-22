@@ -1,0 +1,23 @@
+<csstest def="Universal selector" module="W3C Selectors" modulename="css3-modsel" number="3" rev="1.0" date="11-july-2001" xmlns:a="http://www.example.org/a" xmlns:b="http://www.example.org/b" xmlns="http://www.example.org/css3tests">
+
+<author>Daniel Glazman</author>
+<cssrules>* { color : lime }
+ul, p { color : red }
+*.t1 { color : lime }
+</cssrules>
+
+<!-- this is a _non-namespace_ test! -->
+
+<code>
+<p xmlns="http://www.w3.org/1999/xhtml">
+<span class="t1">This paragraph, and all textual contents in the document,
+      should be green.</span>
+</p>
+<ul xmlns="http://www.w3.org/1999/xhtml">
+  <li class="t1">This item should be green.</li>
+</ul>
+<foo xmlns="http://www.example.org/a">And this element, part of a non-HTML namespace,
+      should be green too</foo>
+</code>
+
+</csstest>

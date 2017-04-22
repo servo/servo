@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Test: direction - nested ltr and rtl</title>
+    <link rel="author" title="Eira Monstad, Opera Software ASA" href="mailto:public-testsuites@opera.com"/>
+    <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#propdef-direction"/>
+    <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#direction"/>
+    <meta name="flags" content=""/>
+    <meta name="assert" content="Direction on paragraph should override direction on body"/>
+    <style type="text/css"><![CDATA[
+      body {
+      direction: rtl;
+      }
+      .lefttoright {
+      direction: ltr;
+      }
+    ]]></style>
+  </head>
+
+  <body>
+
+    <p>The lines below should be aligned as specified, and end with an exclamation mark</p>
+
+    <p>
+      !Right-aligned
+    </p>
+    <p class="lefttoright">
+      Left-aligned!
+    </p>
+
+  </body>
+</html>

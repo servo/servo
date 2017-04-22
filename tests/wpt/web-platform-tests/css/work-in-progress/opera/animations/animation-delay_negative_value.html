@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <title>CSS Animations - animation-delay set to a negative value</title>
+   <link rel="author" title="Opera Software ASA" href="http://www.opera.com/">
+   <link rel="help" href="https://drafts.csswg.org/css3-animations/#the-animation-delay-property-">
+   <meta name="flags" content="dom">
+   <meta name="assert" content="If the value for 'animation-delay' is a negative
+   time offset then the animation will execute the moment it is applied but will
+   appear to have begun execution at the specified offset">
+   <script src="/resources/testharness.js"></script>
+   <script src="/resources/testharnessreport.js"></script>
+   <style type="text/css">
+      @keyframes move {
+         from {
+            left: 0px;
+         }
+         to {
+            left: 100px;
+         }
+      }
+      div {
+         width: 50px;
+         height: 100px;
+         background: blue;
+         position: relative;
+      }
+      body > div {
+         border-right: 50px solid black;
+      }
+      .test {
+         animation-duration: 1s;
+         animation-delay: -500ms;
+         animation-fill-mode: forwards;
+         animation-timing-function: steps(2);
+         animation-name: move;
+      }
+   </style>
+   <script type="text/javascript">
+      setup({explicit_done:true});
+      onload = function() {
+         var testName = document.querySelector('title').firstChild.data;
+         var divs = document.querySelectorAll('div');
+         var log = document.querySelectorAll('p')[1].firstChild;
+         divs[1].className = 'test';
+         setTimeout(function() {
+            divs[1].style.setProperty('animation-play-state', 'paused', '');
+            divs[0].style.setProperty('border-right-color', 'red', '');
+            var passed = (getComputedStyle(divs[1], null).left == '50px');
+            test(function(){assert_true(passed);}, testName); done();
+            log.data = (passed
+                        ? 'PASS if the rendering matches the description.'
+                        : 'FAIL');
+         }, 100);
+      }
+   </script>
+   <style>iframe{display:none}</style>
+</head>
+<body>
+   <p>A blue square should immediately appear below, and there should be no
+   red.</p>
+   <p>Testing...</p>
+   <div>
+      <div></div>
+   </div>
+</body>
+</html>

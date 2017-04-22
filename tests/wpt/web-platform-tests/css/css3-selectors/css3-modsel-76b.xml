@@ -1,0 +1,32 @@
+<csstest def="NEGATED :nth-last-of-type() pseudo-class" module="W3C Selectors" modulename="css3-modsel" number="76b" rev="1.1" date="12-november-2001" xmlns:a="http://www.example.org/a" xmlns:b="http://www.example.org/b" xmlns:html="http://www.w3.org/1999/xhtml" xmlns="http://www.example.org/css3tests">
+
+<author>Daniel Glazman</author>
+<author>Ian Hickson</author>
+
+<cssrules>.green { background-color : lime ! important }
+p:not(:nth-last-of-type(3)) { background-color : red }
+dl &gt; *:not(:nth-last-of-type(3n+1)) { background-color : red }
+</cssrules>
+
+<code>
+<p xmlns="http://www.w3.org/1999/xhtml">This paragraph should be unstyled.</p>
+<address xmlns="http://www.w3.org/1999/xhtml">This address should be unstyled.</address>
+<p class="green" xmlns="http://www.w3.org/1999/xhtml">This paragraph should have green background.</p>
+<p class="green" xmlns="http://www.w3.org/1999/xhtml">This paragraph should have green background.</p>
+<dl xmlns="http://www.w3.org/1999/xhtml">
+  <dt class="green">First definition term that should have green background.</dt>
+    <dd class="green">First definition that should also have a green background.</dd>
+  <dt class="green">Second definition term that should have green background.</dt>
+    <dd class="green">Second definition that should have green background.</dd>
+  <dt>Third definition term.</dt>
+    <dd>Third definition.</dd>
+  <dt class="green">Fourth definition term that should have green background.</dt>
+    <dd class="green">Fourth definition that should have green background.</dd>
+  <dt class="green">Fifth definition term that should have green background.</dt>
+    <dd class="green">Fifth definition that should have green background.</dd>
+  <dt>Sixth definition term.</dt>
+    <dd>Sixth definition.</dd>
+</dl>
+</code>
+
+</csstest>

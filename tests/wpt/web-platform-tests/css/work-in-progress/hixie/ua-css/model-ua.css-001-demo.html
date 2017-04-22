@@ -1,0 +1,48 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+<html>
+ <head>
+  <title>Margins on a H1</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/model/ua.css/001-demo.html"/>
+    <style type="text/css">
+   body, html { margin: 0; padding: 0; }
+   h1 { color: silver; }
+   pre { color: navy; }
+   div.block { }
+   div.absolute { position: absolute; top: 0px; margin: 0; }
+   div.float { float: right; }
+  </style>
+ </head>
+ <body>
+  <h1>#0</h1>
+  <div class="block"><h1>#1</h1></div>
+  <div class="absolute"><h1>#2</h1></div>
+  <div class="float"><h1>#3</h1></div>
+  <h1>#4</h1>
+  <pre>
+  The following lines should be identical inside the curly brackets.
+  (Or if they're not, you need to be able to find a logic explanation
+  for the result that does not depend on the values of the other
+  properties, since margin computes to a value dependent only on its
+  specified value.)
+
+</pre>
+  <script type="text/javascript">
+   h1s = document.getElementsByTagName('H1');
+   pre = document.getElementsByTagName('PRE')[0];
+   for (var i = 0; i < h1s.length; ++i) {
+     var style = document.defaultView.getComputedStyle(h1s[i], '');
+     var top = style.marginTop;
+     var right = style.marginRight;
+     var bottom = style.marginBottom;
+     var left = style.marginLeft;
+     pre.appendChild(document.createTextNode('   h1 #' + i + ' { margin:'
+                                             + ' ' + top
+                                             + ' ' + right
+                                             + ' ' + bottom
+                                             + ' ' + left
+                                             + '; }\n'));
+   }
+  </script>
+ </body>
+</html>

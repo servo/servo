@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: @page padding on all four sides using ems</title>
+  <link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#page-properties"/>
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#page-box-page-rule"/>
+  <meta name="flags" content="paged" />
+  <meta name="assert" content="A padding declaration within the @page context applies to the page box."/>
+  <style type="text/css"><![CDATA[
+   @page  { 
+   		font-size: 18pt;
+		padding: 4em;
+		border: 2pt solid aqua;
+	}
+	html, body, div 
+	{ 
+		width: 100%;
+		height: 100%;
+		margin: 0;
+		padding: 0;
+	}
+	div {background: #ccc;}
+  ]]></style>
+ </head>
+ <body>
+  <div>When printed, the gray rectangle must be 1 inch away from the border on all sides.</div>
+ </body>
+</html>

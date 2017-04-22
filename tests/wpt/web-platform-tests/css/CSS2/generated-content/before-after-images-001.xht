@@ -1,0 +1,18 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head>
+    <title>CSS Test: generated content</title>
+    <link rel="author" title="Robert O'Callahan" href="mailto:robert@ocallahan.org" />
+    <link rel="author" title="Mozilla Corporation" href="http://mozilla.com/" />
+    <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#content" />
+    <link rel="match" href="before-after-images-001-ref.xht"/>
+    <meta name="flags" content="" />
+<style type="text/css">
+div:before {
+  content:url(missing-image.png);
+}
+div { border:1px solid green; margin:5px; }
+</style>
+</head>
+<body><div>Inner</div>
+
+
+</body></html>

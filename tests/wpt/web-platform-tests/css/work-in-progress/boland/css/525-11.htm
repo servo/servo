@@ -1,0 +1,59 @@
+
+<HTML>
+
+<HEAD>
+<TITLE>Eleventh Test of Section 5.2.5 of CSS1 Spec</TITLE>
+
+<STYLE>
+#id1 { font-weight: medium }
+#id2 { font-weight: normal }
+#id3 { font-weight: book }
+#id4 { font-weight; roman }
+#id5 { font-weight: regular }
+#id9 { font-weight: 500 }
+
+</STYLE>
+</HEAD>
+
+
+
+
+
+<BODY>
+
+
+<h1 >Testing Statement #11 Below of Section 5.2.5 of CSS1 Spec</h1>
+
+<ul>
+<li>
+11. If there is both a face labeled medium and one labeled book, regular,
+roman, or normal, the medium is normally assigned to the "500".
+</ul>
+
+
+<h2>
+PASS CRITERIA:
+</h2>
+<p>
+If statement #11 above is passed, then:
+
+<p ID=id9>
+This paragraph should have a font weight of 500.
+The rule applied is "#id9 {font-weight: 500}".
+
+<p ID=id1>
+This paragraph should have a font weight of medium (500).  It should look
+the same as the paragraph above.
+The rules applied are "#id1 {font-weight: medium}",
+                      "#id2 {font-weight: normal}",
+                      "#id3 {font-weight; book}",
+                      "#id4 {font-weight: roman}",
+                      "#id5 {font-weight: regular}".
+
+
+
+
+To move directly to the next test, click<a href="525-12.htm"> here</a>
+</BODY>
+</HTML>
+

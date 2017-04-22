@@ -1,0 +1,39 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  p
+  {
+  border-color: green green green green;
+  border-style: solid solid solid solid;
+  border-width: medium medium medium medium;
+  }
+
+  p#multi-color
+  {
+  border-top: purple solid 2em;
+  border-right: green solid 2em;
+  border-bottom: blue solid 2em;
+  border-left: yellow solid 2em;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>This box should have a green border.</p>
+
+  <p>This box should have an identical green border.</p>
+
+  <p id="multi-color">Clockwise from top, the borders should be: PURPLE, GREEN, BLUE, YELLOW.</p>
+
+ </body>
+</html>

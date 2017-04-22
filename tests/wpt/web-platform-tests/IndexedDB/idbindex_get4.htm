@@ -31,7 +31,7 @@
             assert_equals(e.target.result.key, 4);
             assert_equals(e.target.result.indexedProperty, 'data4');
 
-            setTimeout(function() { t.done(); }, 4)
+            step_timeout(function() { t.done(); }, 4)
         });
     }
 </script>

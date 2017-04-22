@@ -1,0 +1,30 @@
+.test_ok {
+	color: green;
+	display: none;
+}
+.test_not_ok {
+	color: red;
+	display: block;
+}
+
+.test_ok, .test_not_ok {
+   border-bottom-width: 2px;
+   border-bottom-style: solid;
+   border-bottom-color: black;
+}
+
+.all_pass {
+    background-color: lime;
+}
+
+.some_fail {
+    background-color: red;
+}
+
+.tests_report {
+	border-width: 2px;
+	border-style: solid;
+	width: 20em;
+       display: table;
+}
+

@@ -1,6 +1,10 @@
 if (this.document === undefined) {
   importScripts("/resources/testharness.js");
   importScripts("../resources/utils.js");
+
+  // A nested importScripts() with a referrer-policy should have no effect
+  // on overall worker policy.
+  importScripts("nested-policy.js");
 }
 
 var referrerUrl = location.href;

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>
+        CSS Border and Background: border-image #8 border-image-width
+    </title>
+    <meta name="assert" content="Support for 2 values for the border-image-width property" />
+
+    <link rel="author" title="Jérémie Patonnier" href="mailto:jeremie@patonnier.net" / >
+
+    <link rel="help" href="http://www.w3.org/TR/css3-background/#the-border-image-width">
+
+    <style type="text/css">
+
+        #test {
+            border : 10px solid red;
+            width  : 20px;
+            height : 20px;
+
+            border-image-source: url(support/img-ref-1.png);
+            border-image-slice : 10;
+            border-image-width : 1px 5px;
+        }
+
+        #ref {
+            border-top    : 1px solid #009900;
+            border-right  : 5px solid #009900;
+            border-bottom : 1px solid #009900;
+            border-left   : 5px solid #009900;
+
+            padding: 9px 5px 9px 5px;
+            width  : 20px;
+            height : 20px;
+        }
+
+    </style>
+
+</head>
+<body>
+
+    <p>
+        Pass if both squares are identical.
+    </p>
+
+    <p id="test"></p>
+    <p id="ref"></p>
+
+</body>
+</html>

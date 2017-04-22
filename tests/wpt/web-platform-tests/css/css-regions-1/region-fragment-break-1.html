@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Regions region-fragment-break-1</title>
+		<link rel="author" title="Andy Hall" href="mailto:andhall@adobe.com">
+		<link rel="reviewer" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-region-fragment-property">
+		<meta name="assert" content="If the content fits within the CSS Region, then setting region-fragment: break; has no effect. ">
+        <link rel="match" href="reference/region-fragment-break-1-ref.html">
+		<style>
+			#region {
+				width: 100px;
+				height: 200px;
+				background-color: red;
+				flow-from: f;
+                region-fragment: break;
+			}
+			.box {
+				width: 100px;
+				height: 100px;
+                flow-into: f;
+				background-color: green;
+            }
+		</style>
+	</head>
+	<body>
+		<p>
+			Test passes if you see a green rectangle and no red.
+		</p>
+        <div class="box"></div>
+        <div class="box"></div>
+		<div id="region"></div>
+	</body>
+</html>

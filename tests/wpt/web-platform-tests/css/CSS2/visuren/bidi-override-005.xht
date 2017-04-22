@@ -1,0 +1,30 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Test: unicode-bidi: bidi-override on nested div</title>
+    <link rel="author" title="Eira Monstad, Opera Software ASA" href="mailto:public-testsuites@opera.com"/>
+    <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#propdef-unicode-bidi"/>
+    <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#direction"/>
+    <meta name="flags" content=""/>
+    <meta name="assert" content="bidi-override should be applied to inline-level descendants but not block-level descendants"/>
+    <style type="text/css"><![CDATA[
+      .override {
+      direction: rtl;
+      unicode-bidi: bidi-override;
+      }
+    ]]></style>
+  </head>
+
+  <body>
+    <p>
+      The lines below should be identical, ignoring whitespace:
+    </p>
+
+    <div class="override">
+      cba
+      <div>
+	abc
+      </div>
+    </div>
+  </body>
+</html>

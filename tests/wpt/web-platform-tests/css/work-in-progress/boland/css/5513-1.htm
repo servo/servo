@@ -1,0 +1,64 @@
+
+<html>
+
+<title>First Test of Section 5.5.13 of CSS1 Spec</title>
+
+<style type="text/css">
+#id1 {border-bottom-width: thin;
+      border-style: solid;}
+#id2 {border-bottom-width: medium;
+      border-style: solid;}
+#id3 {border-bottom-width: thick;
+      border-style: solid;}
+#id4 {border-bottom-width: 5px;
+      border-style: solid;}
+</style>
+</head>
+
+
+
+<body>
+
+
+
+
+<h1 >Testing Statement #1 Below of Section 5.5.13 of CSS1 Spec</h1>
+
+
+
+
+
+
+<ul>
+<li>
+1. "border-bottom-width" has possible values of "thin | medium | thick | length".
+</ul>
+
+
+
+
+<h2>
+PASS CRITERIA:
+</h2>
+NOTE: border-style of solid applies in all cases below.
+All other properties should be UA-default.
+<p ID=id1>
+If statement #1 above is passed, this paragraph should have a border bottom
+width of thin.  The rule applied is "#id1 {border-bottom-width: thin}".
+<p ID=id2>
+This paragraph should have a border bottom width of medium.
+The rule applied is "#id2 {border-bottom-width: medium}".
+<p ID=id3>
+This paragraph should have a border bottom width of thick.
+the rule applied is '#id3 {border-bottom-width: thick}".
+<p ID=id4>
+This paragraph should have a border bottom width of 5px.
+The rule applied is "#id4 {border-bottom-width: 5px}".
+<p>
+
+
+
+
+
+</body>
+</html>

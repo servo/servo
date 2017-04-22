@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: margin-box - bottom-right/left width</title>
+  <link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#margin-boxes"/>
+  <meta name="flags" content="paged" />
+  <meta name="assert" content="If the bottom-center box is not empty or its computed width is not 'auto' then the outer widths of the bottom-left and bottom-right boxes are equal"/>
+  <style type="text/css"><![CDATA[
+   @page {
+   		@bottom-center { 
+			content: "";
+			border: 1pt solid black; 
+			margin-bottom: 0.25in;
+		}
+		@bottom-left { 
+			content: "xxxxxxxxxx";
+			border: 1pt solid black; 
+			margin-bottom: 0.25in;
+		}
+		@bottom-right { 
+			content: "x";
+			border: 1pt solid black; 
+			margin-bottom: 0.25in;
+		}
+   }
+  ]]></style>
+ </head>
+ <body>
+  <div>There should be three boxes at the bottom of this page. The boxes on the left and right must be of equal width.</div>
+ </body>
+</html>

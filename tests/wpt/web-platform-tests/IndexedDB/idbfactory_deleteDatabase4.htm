@@ -26,7 +26,7 @@
             db.onerror = fail(t, "db.error");
             db.abort = fail(t, "db.abort");
 
-            setTimeout(t.step_func(Second), 4);
+            step_timeout(t.step_func(Second), 4);
             db.close();
         });
 

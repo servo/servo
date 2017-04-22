@@ -4,5 +4,12 @@
   var channel = new BroadcastChannel(channelName);
   channel.postMessage({ name: window.name,
                         haveOpener: window.opener !== null });
-  window.close();
+
+  // Because messages are not delivered synchronously and because closing a
+  // browsing context prompts the eventual clearing of all task sources, this
+  // document should not be closed until the opener document has confirmed
+  // receipt.
+  channel.onmessage = function() {
+    window.close();
+  };
 </script>

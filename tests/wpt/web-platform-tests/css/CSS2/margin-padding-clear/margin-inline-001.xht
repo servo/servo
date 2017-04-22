@@ -1,0 +1,36 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Margin on non-replaced inline elements</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+		<link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-08-17 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#margin-properties" />
+		<link rel="match" href="margin-inline-001-ref.xht" />
+
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="Non-replaced inline elements do not apply vertical margins." />
+        <style type="text/css">
+             div
+             {
+                 background: red;
+                 border: solid green 3px;
+                 font-family: Ahem;
+                 font-size: 1.25em;
+                 line-height: 1;
+                 width: 4em;
+             }
+             span
+             {
+                 background: green;
+                 color: green;
+                 margin: 2em 0;
+             }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a small filled green rectangle and <strong>no red</strong>.</p>
+         <div>
+             <span>XXXX XXXX XXXX</span>
+         </div>
+    </body>
+</html>

@@ -1,0 +1,38 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: [attr~=""]Attribute Selectors with Empty String Values</title>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#tokenization"/>
+  <link rel="match" href="attribute-token-selector-002-ref.xht"/>
+  <meta name="assert" content="[attr~=''] is valid but matches nothing."/>
+  <style type="text/css">
+    p {
+      color: green;
+    }
+
+    p.valid {
+      color: red;
+    }
+    [title~=""], [title~=''], p.valid {
+      color: green;
+    }
+    [title~=], p.valid {
+      color: red;
+    }
+
+    [title~=""] {
+      color: red;
+    }
+  </style>
+
+ </head>
+ <body>
+  <p class="valid">This sentence must be green.</p>
+  <p title="">This sentence must be green.</p>
+  <p title=" ">This sentence must be green.</p>
+  <p title="  ">This sentence must be green.</p>
+  <p title="q">This sentence must be green.</p>
+
+ </body>
+</html>

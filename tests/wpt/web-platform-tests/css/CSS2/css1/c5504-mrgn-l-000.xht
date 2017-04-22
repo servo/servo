@@ -1,0 +1,44 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: margin-left</title>
+  <meta name="flags" content="ahem image" />
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#margin-left"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="match" href="c5504-mrgn-l-000-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+   body { color: navy; }
+   div { font: 10px/1 Ahem; width: 200px; color: orange; }
+   img { vertical-align: bottom; }
+   .zero {margin-left: 0; text-align: left; background-color: maroon;}
+   .one {margin-left: 0.5in; text-align: left; background-color: maroon;}
+   .two {margin-left: 48px; text-align: left; background-color: maroon;}
+   .three {margin-left: 4.8em; text-align: left; background-color: maroon;}
+   .four {margin-left: 24%; text-align: left; background-color: maroon;}
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#margin-properties" title="8.3 Margin properties: 'margin-top',  'margin-right',  'margin-bottom', 'margin-left', and 'margin'"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#alignment-prop" title="16.2 Alignment: the 'text-align' property"/>
+ </head>
+ <body>
+  <p>The five "matches" below should be identical.</p>
+  <div>
+   <p class="zero">
+    <img src="support/swatch-white.png" alt="Image download support must be enabled" height="10" width="48"/>x
+   </p>
+   <p class="one">
+    x
+   </p>
+   <p class="two">
+    x
+   </p>
+   <p class="three">
+    x
+   </p>
+   <p class="four">
+    x
+   </p>
+  </div>
+ </body>
+</html>

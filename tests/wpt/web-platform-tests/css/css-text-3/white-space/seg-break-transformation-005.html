@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8">
+<title>Wide character and non-wide character around line break</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='https://drafts.csswg.org/css-text-3/#line-break-transform'>
+<meta name="assert" content="If the East Asian Width property of only one character before and after the line feed is F, W or H and neither side is Hangul, then the segment break is converted to a space.">
+<style type='text/css'>
+/* the CSS below is not part of the test */
+.test span { font-size: 24px; font-family: sans-serif; background-color: #2AA5F7; color: white; }
+.ref span { font-size: 24px; font-family: sans-serif; background-color: #270CEF; color: white; }
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id='log'></div>
+<div id='test1' class="test"><span>漢字
+kanji</span></div>
+<div id='test2' class="test"><span>漢字&#x20;&#x20;&#x20;
+kanji</span></div>
+<div id='test3' class="test"><span>漢字
+&#x20;&#x20;&#x20;&#x20;&#x20;&#x20;&#x20;&#x20;kanji</span></div>
+<div id='test4' class="test"><span>漢字&#x20;&#x20;&#x20;
+&#x20;&#x20;&#x20;&#x20;&#x20;kanji</span></div>
+<div id='test5' class="test"><span>漢字
+
+
+kanji</span></div>
+<div id='test6' class="test"><span>漢字&#x20;&#x20;
+&#x20;&#x20;&#x20;
+&#x20;&#x20;&#x20;
+&#x20;&#x20;&#x20;kanji</span></div>
+<div id="ref" class="ref"><span>漢字&#x20;kanji</span></div>
+<script>
+test(function() {
+assert_equals(document.getElementById('test1').firstChild.offsetWidth, document.getElementById('ref').firstChild.offsetWidth);
+}, "linebreak only");
+test(function() {
+assert_equals(document.getElementById('test2').firstChild.offsetWidth, document.getElementById('ref').firstChild.offsetWidth);
+}, "spaces linebreak");
+test(function() {
+assert_equals(document.getElementById('test3').firstChild.offsetWidth, document.getElementById('ref').firstChild.offsetWidth);
+}, "linebreak spaces");
+test(function() {
+assert_equals(document.getElementById('test4').firstChild.offsetWidth, document.getElementById('ref').firstChild.offsetWidth);
+}, "spaces linebreak spaces");
+test(function() {
+assert_equals(document.getElementById('test5').firstChild.offsetWidth, document.getElementById('ref').firstChild.offsetWidth);
+}, "multiple linebreaks");
+test(function() {
+assert_equals(document.getElementById('test6').firstChild.offsetWidth, document.getElementById('ref').firstChild.offsetWidth);
+}, "multiple linebreaks + spaces");
+</script>
+<!-- Notes:
+The assertion will fail if more or less than one space is produced for any line in the test paragraph.
+-->
+</body>
+</html>
+
+

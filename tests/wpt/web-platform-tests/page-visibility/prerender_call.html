@@ -1,0 +1,22 @@
+<!doctype html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<title>Prerender test for Page Visibility API</title>
+<link rel="prerender" href="resources/prerender_target.html">
+<script>
+var t = async_test('VisibilityState of the target page was set to "prerender" when it has been prerendered');
+window.onload = t.step_func(function() {
+    t.step_timeout(function() {
+        assert_equals(localStorage.getItem("visibilityState:prerender"), "hit", "visibilityState of the target page was set to 'prerender'");
+        t.done();
+        localStorage.clear();
+    }, 1000);
+});
+</script>
+</head>
+<body>
+    <h1>Description</h1>
+    <p>This document validate that visibilityState of a target page was set to "prerender" when it has been prerendered.</p>
+</body>
+</html>

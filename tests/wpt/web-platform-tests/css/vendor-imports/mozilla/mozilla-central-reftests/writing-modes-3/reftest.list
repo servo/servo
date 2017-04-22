@@ -1,0 +1,23 @@
+
+== text-combine-upright-break-inside-001.html text-combine-upright-break-inside-001-ref.html
+== text-combine-upright-break-inside-001a.html text-combine-upright-break-inside-001-ref.html
+== text-combine-upright-compression-001.html text-combine-upright-compression-001-ref.html
+== text-combine-upright-compression-002.html text-combine-upright-compression-002-ref.html
+== text-combine-upright-compression-003.html text-combine-upright-compression-003-ref.html
+== text-combine-upright-compression-004.html text-combine-upright-compression-004-ref.html
+== text-combine-upright-compression-005.html text-combine-upright-compression-005-ref.html
+== text-combine-upright-compression-005a.html text-combine-upright-compression-005-ref.html
+== text-combine-upright-compression-006.html text-combine-upright-compression-006-ref.html
+== text-combine-upright-compression-006a.html text-combine-upright-compression-006-ref.html
+== text-combine-upright-compression-007.html text-combine-upright-compression-007-ref.html
+
+== text-orientation-upright-directionality-001.html text-orientation-upright-directionality-001-ref.html
+
+== logical-physical-mapping-001.html logical-physical-mapping-001-ref.html
+
+== dynamic-offset-rtl-001.html dynamic-offset-rtl-001-ref.html
+== dynamic-offset-rtl-002.html dynamic-offset-rtl-001-ref.html
+== dynamic-offset-vrl-001.html dynamic-offset-rtl-001-ref.html
+== dynamic-offset-vrl-002.html dynamic-offset-rtl-001-ref.html
+== dynamic-offset-vrl-rtl-001.html dynamic-offset-rtl-001-ref.html
+== dynamic-offset-vrl-rtl-002.html dynamic-offset-rtl-001-ref.html

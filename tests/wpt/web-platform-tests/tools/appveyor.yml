@@ -4,6 +4,7 @@ environment:
   matrix:
     - PYTHON: 'C:\\Python27'
     - PYTHON: 'C:\\Python35'
+    - PYTHON: 'C:\\Python36'
 
 # Needed to make py.test believe our top level can be imported (we
 # otherwise end up in a wpt-tools directory, and of course you cannot

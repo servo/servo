@@ -30,7 +30,7 @@
         rq.onsuccess = t.step_func(function(e) {
             assert_equals(e.target.result, 4);
 
-            setTimeout(function() { t.done(); }, 4)
+            step_timeout(function() { t.done(); }, 4)
         });
     }
 </script>

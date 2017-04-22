@@ -14,7 +14,7 @@
           client.onreadystatechange = function() {
             test.step(function() {
               if(client.readyState == 4) {
-                assert_equals(client.responseText, 'user-agent: '+navigator.userAgent+'\n')
+                assert_equals(client.responseText, 'User-Agent: '+navigator.userAgent+'\n')
                 test.done()
               }
             })
@@ -29,7 +29,7 @@
           client.onreadystatechange = function() {
             test2.step(function() {
               if(client.readyState == 4) {
-                assert_equals(client.responseText, 'user-agent: TEST\n')
+                assert_equals(client.responseText, 'User-Agent: TEST\n')
                 test2.done()
               }
             })

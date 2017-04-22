@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Counter-reset with an identifier and a number set to nominal value, ident 10</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#propdef-counter-reset" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#counters" />
+        <link rel="match" href="../../reference/pass_if_number_10.html"/>
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'counter-reset' property with an identifier and an integer value." />
+        <style type="text/css">
+            div
+            {
+                counter-reset: ident 10;
+            }
+            div:before
+            {
+                font-size: 30px;
+                content: counter(ident);
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the number '10' appears below.</p>
+        <div></div>
+    </body>
+</html>

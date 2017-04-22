@@ -1,0 +1,34 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: counters on the root element</title>
+  <link rel="author" title="L. David Baron" href="https://dbaron.org/"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#counters"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#propdef-content"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#counter"/>
+  <style type="text/css">
+
+  body { white-space: nowrap; }
+
+  html { counter-reset: c 0 c 4 c 0; counter-increment: c 1 c 3; }
+  html:before { content: " "; counter-reset: c 9999; counter-increment: c 9999; }
+  body { counter-reset: c 3; counter-increment: c 5; }
+
+  span.c:before { content: counters(c, "."); }
+
+  </style>
+ </head>
+ <body>
+
+ <p>The following should be identical:</p>
+
+ <div>
+   <span class="c"></span>
+ </div>
+
+ <div>
+   4.8
+ </div>
+
+ </body>
+</html>

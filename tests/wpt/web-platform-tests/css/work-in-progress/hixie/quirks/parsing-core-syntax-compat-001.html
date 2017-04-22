@@ -1,0 +1,15 @@
+<html lang="en">
+ <head>
+  <title>Nested blocks in unexpected places</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/parsing/core-syntax/compat/001.html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#parsing-errors" />
+  <style type="text/css">
+   .test { color: white; background: green; }
+   .test { test { :nested; color: yellow; background: red; }: not-nested; font-weight: bold; }
+  </style>
+ </head>
+ <body>
+  <p class="test">This line should be green (and bold).</p>
+ </body>
+</html>

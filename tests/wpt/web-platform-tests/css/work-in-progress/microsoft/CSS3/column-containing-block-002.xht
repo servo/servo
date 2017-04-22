@@ -1,0 +1,53 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD//XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Column boxes do not establish containing blocks for fixed positioning</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css3-multicol/#the-multi-column-model"/>
+        <meta name="flags" content="" />
+        <meta name="assert" content="Column boxes that contain the static position of a fixed positioned element do not create a containing block. Fixed positioned elements are positioned based on the viewport." />
+        <style type="text/css">
+            html, body
+            {
+                padding: 0;
+                margin: 0;
+            }
+            p
+            {
+                margin-left: 8px;
+            }
+            div
+            {
+                column-count: 2;
+                column-width: 5em;
+                column-gap: 1em;
+            }
+            div
+            {
+                background: green;
+                color: green;
+                font: 20px/1 ahem;
+                height: 6em;
+                position: relative;
+                width: 11em;
+            }
+            span
+            {
+                color: red;
+            }
+            #span2
+            {
+                color: green;
+                position: fixed;
+                left: 2em;
+                width: 2em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page.</p>
+        <div>
+            XXXXX XXXXX XXXXX XXXXX XXXXX XXXXX XXXXX XXXXX XX<span>XX</span>X XXX<span id="span2">XX XX</span> XX<span>XX</span>X XXX
+        </div>
+    </body>
+</html>

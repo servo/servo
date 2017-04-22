@@ -1,0 +1,68 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: Background-position applied to elements with 'display' set to 'table-cell'</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background-properties" title="14.2.1 Background properties: 'background-color', 'background-image', 'background-repeat', 'background-attachment', 'background-position', and 'background'" />
+
+  <meta name="flags" content="image" />
+  <meta name="assert" content="The 'background-position' property applies to elements with 'display' set to 'table-cell'." />
+
+  <style type="text/css"><![CDATA[
+  div#table {display: table;}
+
+  div#tbody {display: table-row-group;}
+
+  div.tr {display: table-row;}
+
+  div.td
+  {
+  display: table-cell;
+  height: 1in;
+  width: 1in;
+  }
+
+  div#tested-cell
+  {
+  background-image: url('support/blue96x96.png');
+  background-position: bottom right;
+  background-repeat: no-repeat;
+  border-bottom: white solid 96px;
+  /*
+  The goal/challenge in this test is to verify
+  that such white border-bottom does not
+  cover the background-image.
+  The background-image should "start" being
+  painted at bottom right corner of
+  padding-box of element and not "start"
+  being painted at bottom right corner of
+  its border-box.
+  */
+  display: table-cell;
+  height: 2in;
+  width: 1in;
+  }
+  ]]></style>
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a blue square.</p>
+
+  <div id="table">
+      <div id="tbody">
+          <div class="tr">
+              <div class="td"></div><div class="td"></div>
+          </div>
+          <div class="tr">
+              <div class="td"></div><div id="tested-cell"></div>
+          </div>
+      </div>
+  </div>
+
+ </body>
+</html>

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Web NFC IDL tests</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="help" href="https://w3c.github.io/web-nfc/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+<style>
+  pre {
+    display: none;
+  }
+</style>
+<div id='log'></div>
+
+<pre id="idl">
+interface Navigator {
+};
+</pre>
+
+<pre id="web-nfc">
+enum NFCRecordType {
+    "empty",
+    "text",
+    "url",
+    "json",
+    "opaque"
+};
+
+typedef (DOMString or unrestricted double or ArrayBuffer or Dictionary) NFCRecordData;
+
+dictionary NFCRecord {
+    NFCRecordType recordType;
+    USVString     mediaType;
+    NFCRecordData data;
+};
+
+dictionary NFCMessage {
+    sequence<NFCRecord> data;
+    USVString           url;
+};
+
+partial interface Navigator {
+    readonly attribute NFC nfc;
+};
+
+typedef (DOMString or ArrayBuffer or NFCMessage) NFCPushMessage;
+
+interface NFC {
+    Promise<void> push(NFCPushMessage message, optional NFCPushOptions options);
+    Promise<void> cancelPush(optional NFCPushTarget target = "any");
+    Promise<long> watch(MessageCallback callback,
+                        optional NFCWatchOptions options);
+    Promise<void> cancelWatch(optional long id);
+};
+
+callback MessageCallback = void (NFCMessage message);
+
+enum NFCPushTarget {
+    "tag",
+    "peer",
+    "any"
+};
+
+dictionary NFCPushOptions {
+    NFCPushTarget       target = "any";
+    unrestricted double timeout = Infinity;
+    boolean             ignoreRead = true;
+};
+
+enum NFCWatchMode {
+    "web-nfc-only",
+    "any"
+};
+
+dictionary NFCWatchOptions {
+    USVString      url = "";
+    NFCRecordType? recordType;
+    USVString      mediaType = "";
+    NFCWatchMode   mode = "web-nfc-only";
+};
+</pre>
+
+<script>
+setup(() => {
+  "use strict";
+  const idl_array = new IdlArray();
+  idl_array.add_untested_idls(document.getElementById('idl').textContent);
+  idl_array.add_idls(document.getElementById('web-nfc').textContent);
+  idl_array.add_objects({ NFC: ["navigator.nfc"] });
+  idl_array.test();
+  done();
+}, { explicit_done: true });
+</script>

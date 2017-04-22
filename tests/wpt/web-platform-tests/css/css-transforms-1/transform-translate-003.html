@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test (Transforms): translate(25px, 25px) translate(25px, 25px)</title>
+    <link rel="author" title="Keith Schwarz" href="mailto:keith@keithschwarz.com">
+    <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#two-d-transform-functions">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#funcdef-translate">
+    <meta name="assert" content='This tests that translate(25px, 25px)
+    translate(25px, 25px) is the same as relative positioning by 50px toward
+    the bottom right.'>
+    <link rel="match" href="transform-translate-ref.html">
+    <style>
+      div {
+        transform: translate(25px, 25px) translate(25px, 25px);
+      }
+    </style>
+  </head>
+  <body>
+    <div>Test Text</div>
+  </body>
+</html>

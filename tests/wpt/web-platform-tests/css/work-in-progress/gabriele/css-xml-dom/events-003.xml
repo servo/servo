@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Events 4</title>
+<meta http-equiv="Content-Type" content="text/xml; charset=utf-8" />
+<style type="text/css" media="screen">
+
+
+
+
+
+</style>
+
+<script type="text/javascript">
+<![CDATA[
+
+function changeBG() {
+	this.style.background = "yellow";
+}
+
+function restoreBG() {
+	this.style.background = "white";
+}
+
+function highlight() {
+	var ol = document.getElementsByTagName("ol");
+	for (var i=0; i < ol.length; i++) {
+		if(ol[i].className == "test") {
+			var li = ol[i].childNodes;
+			for (var j=0; j < li.length; j++) {
+				if(li[j].nodeName.toLowerCase() == "li") {
+					li[j].addEventListener("click", changeBG, true);
+					li[j].addEventListener("dblclick", restoreBG, true);
+				}
+			}
+		}
+	}
+}
+
+window.onload = highlight;
+	
+	
+	
+	
+
+]]>
+
+</script>
+
+</head>
+
+<body>
+
+<p>The list items of the second list should change their background color when clicking one and two times on them.</p>
+
+
+<ol>
+<li>Item</li>
+<li>Item</li>
+<li>Item</li>
+</ol>
+
+<ol class="test">
+<li>Item</li>
+<li>Item</li>
+<li>Item</li>
+</ol>
+
+
+
+
+</body>
+</html>

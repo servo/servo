@@ -1,0 +1,48 @@
+
+<html>
+<head>
+<title>Second Test of Section 5.3.5 of CSS1 Spec</title>
+
+<style type="text/css">
+p {background-image: url(flagbg.gif);
+  background-attachment: fixed;}
+em {background-image: url(flagbg.gif);
+    background-attachment: scroll;}
+</style>
+</head>
+
+<body>
+
+
+
+
+<h1>Testing Statement #2 Below of Section 5.3.5 of CSS1 Spec</h1>
+
+
+
+
+
+<ul>
+<li >
+2. For "background-attachment", possible values are "scroll | fixed "
+</ul>
+
+
+<h2>
+PASS CRITERIA:
+</h2>
+<p>
+If statement #2 above is true, this paragraph should have a flag image
+which is fixed.
+The rules applied are "p {background-image: url(flagbg.gif);
+                          background-attachment: fixed;}"
+<em>
+This emphasized text should have a flag background image which scrolls.
+The rules applied are "em {background-image: url(flagbg.gif);
+                           background-attachment: scroll;}"
+</em>
+All other properties of this page should be UA-default.
+
+
+</body>
+</html>

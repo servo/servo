@@ -1,0 +1,47 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: outline-color: invert - longhand form</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="https://www.w3.org/TR/CSS21/ui.html#dynamic-outlines" title="18.4 Dynamic outlines: the 'outline' property" />
+
+  <meta name="DC.date.created" content="2016-06-16T09:54:03+11:00" scheme="W3CDTF" />
+  <meta name="DC.date.modified" content="2016-09-20T09:54:03+11:00" scheme="W3CDTF" />
+
+  <meta content="" name="flags" />
+  <meta content="This test checks that if color inversion on the pixels on the screen is supported by the user agent, then 'outline-color: invert' in this test should render a filled black square otherwise, if color inversion on the pixels on the screen is not supported by the user agent, then 'outline-color: invert' in this test should compute to the computed color value of the element ('currentColor' in CSS3 ui) which is orange in which case a filled orange square should be rendered." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  div#parent
+    {
+      background-color: white;
+      padding: 50px;
+      width: 0px;
+    }
+
+  div#child
+    {
+      color: orange;
+      outline-color: invert;  /* longhand form, longhand declaration */
+      outline-style: solid;  /* longhand form, longhand declaration */
+      outline-width: 50px;  /* longhand form, longhand declaration */
+      width: 0px;
+    }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled orange square or a filled black square.</p>
+
+  <div id="parent">
+    <div id="child"></div>
+  </div>
+
+ </body>
+</html>

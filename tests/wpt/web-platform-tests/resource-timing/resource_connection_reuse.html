@@ -36,11 +36,12 @@ function onload_test() {
     // when a persistent connection is used, follow-on resources should be included as PerformanceResourceTiming objects
     test_equals(entries.length, 2, 'There should be 2 PerformanceEntries');
 
-    // when a persistent connection is used, for the resource that reuses the socket, connectStart and connectEnd should have the same value as fetchStart
-    var entry = entries[1];
-    test_equals(entry.fetchStart, entry.connectStart, "connectStart and fetchStart should be the same");
-
-    test_equals(entry.fetchStart, entry.connectEnd, "connectEnd and fetchStart should be the same");
+    if (entries.length >= 2) {
+        // when a persistent connection is used, for the resource that reuses the socket, connectStart and connectEnd should have the same value as fetchStart
+        var entry = entries[1];
+        test_equals(entry.fetchStart, entry.connectStart, "connectStart and fetchStart should be the same");
+        test_equals(entry.fetchStart, entry.connectEnd, "connectEnd and fetchStart should be the same");
+    }
 
     done();
 }

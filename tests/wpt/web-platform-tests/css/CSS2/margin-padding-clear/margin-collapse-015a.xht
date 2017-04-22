@@ -1,0 +1,65 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: Margin collapsing - inline-block child does not collapse margins with parent</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="reviewer" title="Arron Eicholz" href="arronei(at)gmail.com" /> <!-- 2013-07-30 -->
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#collapsing-margins" />
+  <link rel="match" href="margin-collapse-002-ref.xht" />
+
+  <meta name="flags" content="ahem image" />
+  <meta name="assert" content="An element with its display set to 'inline-block' does not collapse its margins with its children." />
+
+  <style type="text/css"><![CDATA[
+  div
+  {
+  font: 20px/1 Ahem;
+  width: 5em;
+  }
+
+  div#wrapper
+  {
+  background-image: url("support/margin-collapse-2em-space.png");
+  height: 4em;
+  }
+
+  div#inline-block
+  {
+  display: inline-block;
+  margin-bottom: 2.5em;
+  vertical-align: bottom;
+  }
+
+  div#block-child-of-inline-block
+  {
+  display: block;
+  margin-bottom: 3.5em;
+  margin-top: 0.5em;
+  }
+
+  div#wrapper div {background-color: green;}
+
+  div#inline-block, div#block-child-of-inline-block {height: 0.5em;}
+
+  div#following-sibling-after-inline-block {height: 1em;}
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is <strong>no red</strong>.</p>
+
+  <div id="wrapper">
+      <div id="inline-block">
+          <div id="block-child-of-inline-block"></div>
+      </div>
+      <div id="following-sibling-after-inline-block"></div>
+  </div>
+
+ </body>
+</html>

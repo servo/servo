@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Text-decoration and 'color' on parent elements</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#lining-striking-props" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'text-decoration' property set to 'color' is equal to the color on the element with 'text-decoration' set on it, even if a descendent element has a different color." />
+        <style type="text/css">
+            div
+            {
+                color: orange;
+                text-decoration: underline;
+            }
+            span
+            {
+                color: blue;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the color of the line below the "Filler Text" is orange and the color of the "Filler Text" is blue.</p>
+        <div>
+            <span>Filler Text</span>
+        </div>
+    </body>
+</html>

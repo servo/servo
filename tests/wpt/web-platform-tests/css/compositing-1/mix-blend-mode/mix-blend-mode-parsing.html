@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>CSS Test: parsing mix-blend-mode property</title>
+        <link rel="author" title="Mirela Budăeș" href="mailto:mbudaes@adobe.com">
+        <link rel="reviewer" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+        <link rel="reviewer" title="Rik Cabanier" href="mailto:cabanier@adobe.com">
+        <link rel="help" href="https://drafts.fxtf.org/compositing-1/#mix-blend-mode">
+        <meta name="flags" content="dom">
+        <meta name="assert" content="Test checks that the value specified for mix-blend-mode property is correctly parsed">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script type="text/javascript">
+            function testParse(declaration) {
+                var div = document.createElement("div");
+                div.setAttribute("style", declaration);
+                return div.style.mixBlendMode;
+            }
+
+            var blendModes = ["normal", "multiply", "screen", "overlay", "darken", "lighten", "color-dodge", "color-burn",
+                      "hard-light", "soft-light", "difference", "exclusion", "hue", "saturation", "color", "luminosity"];
+
+            for (var i = 0; i < blendModes.length; i++) {
+                test(function() {assert_equals(testParse("mix-blend-mode: " + blendModes[i]), blendModes[i] )}, "Mix-blend-mode " + blendModes[i]);
+            };
+        </script>
+    </body>
+</html>

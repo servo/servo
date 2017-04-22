@@ -22,9 +22,19 @@ all test types.
 ## Auto-generated test boilerplate
 
 While most JavaScript tests require a certain amount of HTML
-boilerplate to include the test library, etc., tests for Web Workers
-can be written as JavaScript files which then have all the needed HTML
-and setup script auto-generated.
+boilerplate to include the test library, etc., tests which are
+expressible purely in script (e.g. tests for workers) can have all the
+needed HTML and script boilerplate auto-generated.
+
+### Standalone window tests
+
+Tests that only require a script file running in window scope can use
+standalone window tests. In this case the test is a javascript file
+with the extension `.window.js`. This is sourced from a generated
+document which sources `testharness.js`, `testharnessreport.js` and
+the test script. For a source script with the name
+`example.window.js`, the corresponding test resource will be
+`example.window.html`.
 
 ### Standalone workers tests
 
@@ -55,7 +65,7 @@ worker scope.
 
 In this case, the test is a JavaScript file with extension `.any.js`.
 The test can then use all the usual APIs, and can be run from the path to the
-JavaScript file with the `.js` replaced by `.worker.js` or `.html`.
+JavaScript file with the `.js` replaced by `.worker.html` or `.html`.
 
 For example, one could write a test for the `Blob` constructor by
 creating a `FileAPI/Blob-constructor.any.js` as follows:
@@ -67,8 +77,21 @@ creating a `FileAPI/Blob-constructor.any.js` as follows:
       assert_false(blob.isClosed);
     }, "The Blob constructor.");
 
-This test could then be run from `FileAPI/Blob-constructor.any.worker.js` as well
+This test could then be run from `FileAPI/Blob-constructor.any.worker.html` as well
 as `FileAPI/Blob-constructor.any.html`.
+
+### Including other JavaScript resources in auto-generated boilerplate tests
+
+Use `// META: script=link/to/resource.js` at the beginning of the resource. For example,
+
+    // META: script=/common/utils.js
+    // META: script=resources/utils.js
+
+can be used to include both the global and a local `utils.js` in a test.
+
+### Specifying a timeout of long in auto-generated boilerplate tests
+
+Use `// META: timeout=long` at the beginning of the resource.
 
 
 [general guidelines]: {{ site.baseurl }}{% link _writing-tests/general-guidelines.md %}

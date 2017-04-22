@@ -1,0 +1,12 @@
+If statement #6 above is passed, this paragraph should have a font variant 
+of small caps (subject to character conversion issues), a background-
+attachment of fixed, a word spacing of normal, a letter spacing of normal,
+text transform of none, text align of left, border style of solid, and
+height of auto.  This is regardless of the actual CSS rules applied here.
+This is the core functionality.
+For information, the rules applied are:
+"p:first-line {font-style: small-caps}", "p {display: block}", "p {white-
+spacing: normal}", "p {letter-spacing: normal}", "p {text-transform: none}",
+'p {text-align: left}", "p {border-style: solid}", and "p {height: auto}".
+
+

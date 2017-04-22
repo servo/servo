@@ -1,0 +1,60 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD//XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: The 'flex' shorthand property adjusting the 'flex-shrink' sub-property</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css3-flexbox/#flex-property" />
+        <meta name="flags" content="">
+        <meta name="assert" content="This test checks that the flex shrink factor is multiplied by the flex base size when distributing negative space."/>
+        <style type="text/css">
+            #parent
+            {
+                position: relative;
+            }
+            div *
+            {
+                height: 50px;
+            }
+            div div
+            {
+                display: flex;
+                flex-flow: row;
+                width: 300px;
+            }
+            div p
+            {
+                flex: 0 1 auto;
+                margin: 0;
+                min-width: 0;
+            }
+            #flexItem1
+            {
+                background-color: red;
+                width: 400px;
+            }
+            #flexItem2
+            {
+                width: 100px;
+            }
+            span
+            {
+                position: absolute;
+                width: 240px;
+            }
+            span, #flexItem2
+            {
+                background-color: green;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page.</p>
+        <div id="parent">
+            <span></span>
+            <div>
+                <p id="flexItem1"></p>
+                <p id="flexItem2"></p>
+            </div>
+        </div>
+    </body>
+</html>

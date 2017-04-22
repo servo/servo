@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>CSS Test: CSSOM View matchMedia addListener</title>
+        <link rel="author" title="Chris Wu" href="mailto:pwx.frontend@gmail.com" />
+        <link rel="help" href="http://www.w3.org/TR/cssom-view/#the-mediaquerylist-interface" />
+        <meta name="flags" content="dom" />
+        <script src="/resources/testharness.js" type="text/javascript"></script>
+        <script src="/resources/testharnessreport.js" type="text/javascript"></script>
+        <style type="text/css">
+            iframe { border: none; }
+        </style>
+    </head>
+    <body>
+        <div id="log"></div>
+        <iframe width="200" height="100" id="iframe1"></iframe>
+        <script>
+            function reflow(doc) {
+                doc.body.offsetWidth;
+            }
+
+            var iframe = document.querySelector("iframe");
+            var iframe_window = window.frames[0];
+            var iframe1 = document.getElementById("iframe1");
+            reflow(iframe_window.document);
+
+            var i = 0;
+            var totalCount = 10;
+            var count = 0;
+            var divineCount = 10;
+            var width_list = [201,199];
+            var mq1 = iframe_window.matchMedia("(max-width:200px)");
+            mq1.addListener(function(mql){
+
+                count = count + 1;
+
+            });
+
+            var equalAssert = async_test("Check for the correct number of event triggers");
+
+            var changeFrameWidth = function(iWidth) {
+                iframe1.style.width = iWidth + "px";
+                i = (i === 0) ? 1 : 0;
+                totalCount = totalCount - 1;
+                if(totalCount > 0)
+                {
+                    step_timeout(function(){
+                        changeFrameWidth(width_list[i]);
+                    }, 100);
+                }
+                else
+                {
+                    step_timeout(function(){
+                        equalAssert.step(function(){
+                            assert_equals(divineCount, count, "this will be 10 times of event triggers by change width");
+                        });
+                        equalAssert.done();
+                    }, 100);
+                }
+            };
+
+            changeFrameWidth(width_list[0]);
+        </script>
+    </body>
+</html>

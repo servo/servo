@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>CSS Box Alignment: place-items shorthand - inherit value</title>
+<link rel="author" title="Javier Fernandez" href="mailto:jfernandez@igalia.com" />
+<link rel="help" href="http://www.w3.org/TR/css3-align/#place-items-property" />
+<meta name="assert" content="Check that place-items's 'inherit' value expands to 'align-items' and 'justify-items'." />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+    #test {
+        place-items: start end;
+    }
+</style>
+<div id="log"></div>
+<div id="test"></div>
+<script>
+    var child = document.createElement("div");
+    document.getElementById("test").appendChild(child);
+    child.setAttribute("style", "place-items: inherit");
+    var style = getComputedStyle(child);
+
+    test(function() {
+        assert_equals(style.getPropertyValue("align-items"),
+            "start", "place-items resolved value for align-items");
+    }, "Check place-items: inherit - align-items resolved value");
+
+    test(function() {
+        assert_equals(style.getPropertyValue("justify-items"),
+           "end", "place-items resolved value for justify-items");
+    }, "Check place-items: inherit - justify-items resolved value");
+</script>

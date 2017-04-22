@@ -1,0 +1,47 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Absolutely positioned inline replaced element with 'direction' as left-to-right, 'auto' specified for 'margin-left', 'margin-right' and intrinsic width</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+		<link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-09-08 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#abs-replaced-width" />
+        <link rel="match" href="absolute-replaced-width-036-ref.xht" />
+
+        <meta name="flags" content="image" />
+        <meta name="assert" content="Computed value of 'auto' for 'margin-left' or margin-right' on absolutely positioned inline replaced element becomes a used value of '0'. The intrinsic width is also used if 'height' and 'width' are 'auto'." />
+        <style type="text/css">
+            #div1
+            {
+                border: solid black;
+                direction: ltr;
+                height: 2in;
+                position: relative;
+                width: 2in;
+            }
+            img
+            {
+                margin-left: auto;
+                margin-right: auto;
+                left: 0.5in;
+                position: absolute;
+                right: 0.5in;
+            }
+            div div
+            {
+                background: orange;
+                height: 96px;
+                margin-left: 0.5in;
+                margin-right: 0.5in;
+                margin-top: 96px;
+                width: 96px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the blue and orange squares have the same width and are <strong>horizontally centered</strong> in an hollow black square.</p>
+        <div id="div1">
+            <img alt="blue 96x96" src="support/blue96x96.png" />
+            <div></div>
+        </div>
+    </body>
+</html>

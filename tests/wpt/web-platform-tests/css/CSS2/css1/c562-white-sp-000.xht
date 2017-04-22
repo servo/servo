@@ -1,0 +1,34 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: white-space</title>
+  <meta name="flags" content="ahem image" />
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#white-space"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="match" href="c562-white-sp-000-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+   div { font: 15px/1 Ahem; color: green; background: red url(support/css1test562.png) no-repeat; border: solid black; width: 15em; }
+   div p { margin: 0; }
+   .one {white-space: pre;}
+   .two {white-space: nowrap;}
+   .three {white-space: normal;}
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#white-space-prop" title="16.6 Whitespace: the 'white-space' property"/>
+ </head>
+ <body>
+  <p>There should be a single green block below.</p>
+  <div>
+   <p class="one">x  x   x
+ x    x   x
+    x   x</p>
+   <p class="two">x  x   x
+ x    x   x
+    x   x</p>
+   <p class="one">x  x   x
+ x    <span class="three">x   x
+    x   x</span></p>
+  </div>
+ </body>
+</html>

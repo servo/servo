@@ -1,0 +1,4 @@
+generate mouse down event: does it match :active (it should)
+:active on links
+cancel mouse up event: does it match :active (it should)
+make an other element :active, do previous ones lose their :active state (they should)

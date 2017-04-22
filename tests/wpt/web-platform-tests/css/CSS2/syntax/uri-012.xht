@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Error handling of broken url() - balancing braces</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/parsing/uri/010.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#uri" />
+  <link rel="match" href="uri-012-ref.xht"/>
+  <meta name="flags" content="invalid"/>
+  <style>
+   .control {
+        color: white;
+        border: none;
+   }
+   p {
+        color: red;
+        border: solid red;
+        background: red url( { test ); border: solid green; }
+   p {
+        color: green;
+     }
+  </style>
+ </head>
+ <body>
+  <p>This sentence should be green with a green border.</p>
+  <p class="control">FAIL if there is any red on this page.</p>
+ </body>
+</html>

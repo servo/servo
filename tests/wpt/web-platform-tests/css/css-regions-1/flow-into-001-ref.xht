@@ -1,0 +1,31 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Test: flow-into behavior</title>
+    <link rel="author" title="Alan Stearns" href="mailto:stearns@adobe.com"/>
+    <style type="text/css">
+      body{
+        font-size: 16px;
+        line-height: 18px;
+      }
+      .result{
+        color: green;
+        line-height: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      No text should appear above this line. Below should be lines with three green numbers each counting up to 18.
+    </div>
+    <div>&nbsp;</div>
+    <div class="result">
+      <div>1 2 3</div>
+      <div>4 5 6</div>
+      <div>7 8 9</div>
+      <div>10 11 12</div>
+      <div>13 14 15</div>
+      <div>16 17 18</div>
+    </div>
+  </body>
+</html>
