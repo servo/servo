@@ -28,6 +28,8 @@ matrix:
           - .cargo
           - .servo
           - $HOME/.ccache
+      before_cache:
+        - ./mach clean-nightlies --keep 2 --force
       env: CCACHE=/usr/bin/ccache
       addons:
         apt:
