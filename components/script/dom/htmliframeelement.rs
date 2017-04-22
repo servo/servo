@@ -256,6 +256,10 @@ impl HTMLIFrameElement {
         self.pipeline_id.set(Some(new_pipeline_id));
 
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+        let window = window_from_node(self);
+        window.reflow(ReflowGoal::ForDisplay,
+                      ReflowQueryType::NoQuery,
+                      ReflowReason::FramedContentChanged);
     }
 
     fn new_inherited(local_name: LocalName,
