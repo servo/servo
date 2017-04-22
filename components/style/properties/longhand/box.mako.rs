@@ -749,6 +749,10 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         SpecifiedValue::parse(input)
     }
 
+    pub fn get_initial_specified_value() -> SpecifiedValue {
+        TransitionProperty::All
+    }
+
     use values::HasViewportPercentage;
     no_viewport_percentage!(SpecifiedValue);
 

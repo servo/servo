@@ -70,19 +70,22 @@ macro_rules! try_parse_one {
             let mut ${prop} = None;
             % endfor
 
+            let mut parsed = 0;
             loop {
+                parsed += 1;
+
                 try_parse_one!(input, property, transition_property);
                 try_parse_one!(context, input, duration, transition_duration);
                 try_parse_one!(context, input, timing_function, transition_timing_function);
                 try_parse_one!(context, input, delay, transition_delay);
 
+                parsed -= 1;
                 break
             }
 
-            if let Some(property) = property {
+            if parsed != 0 {
                 Ok(SingleTransition {
-                    transition_property: property,
-                    % for prop in "duration timing_function delay".split():
+                    % for prop in "property duration timing_function delay".split():
                     transition_${prop}: ${prop}.unwrap_or_else(transition_${prop}::single_value
                                                                                  ::get_initial_specified_value),
                     % endfor
