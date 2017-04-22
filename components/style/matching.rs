@@ -152,7 +152,7 @@ fn element_matches_candidate<E: TElement>(element: &E,
         miss!(Class)
     }
 
-    if !have_same_presentational_hints(element, candidate_element) {
+    if has_presentational_hints(element) {
         miss!(PresHints)
     }
 
@@ -168,18 +168,10 @@ fn element_matches_candidate<E: TElement>(element: &E,
     Ok(current_styles.primary.clone())
 }
 
-fn have_same_presentational_hints<E: TElement>(element: &E, candidate: &E) -> bool {
-    let mut first = ForgetfulSink::new();
-    element.synthesize_presentational_hints_for_legacy_attributes(&mut first);
-
-    if cfg!(debug_assertions) {
-        let mut second = vec![];
-        candidate.synthesize_presentational_hints_for_legacy_attributes(&mut second);
-        debug_assert!(second.is_empty(),
-                      "Should never have inserted an element with preshints in the cache!");
-    }
-
-    first.is_empty()
+fn has_presentational_hints<E: TElement>(element: &E) -> bool {
+    let mut hints = ForgetfulSink::new();
+    element.synthesize_presentational_hints_for_legacy_attributes(&mut hints);
+    !hints.is_empty()
 }
 
 fn have_same_class<E: TElement>(element: &E,
@@ -295,6 +287,14 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
             debug!("Failing to insert to the cache: {:?}", relations);
             return;
         }
+
+        // Make sure we noted any presentational hints in the StyleRelations.
+        if cfg!(debug_assertions) {
+            let mut hints = ForgetfulSink::new();
+            element.synthesize_presentational_hints_for_legacy_attributes(&mut hints);
+            debug_assert!(hints.is_empty(), "Style relations should not be shareable!");
+        }
+
 
         let box_style = style.get_box();
         if box_style.specifies_transitions() {
