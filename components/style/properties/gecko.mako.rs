@@ -1743,7 +1743,7 @@ fn static_assert() {
                           scroll-snap-points-x scroll-snap-points-y transform
                           scroll-snap-type-y scroll-snap-coordinate
                           perspective-origin transform-origin -moz-binding will-change
-                          shape-outside""" %>
+                          shape-outside contain""" %>
 <%self:impl_trait style_struct_name="Box" skip_longhands="${skip_box_longhands}">
 
     // We manually-implement the |display| property until we get general
@@ -2364,6 +2364,71 @@ fn static_assert() {
     }
 
     <% impl_shape_source("shape_outside", "mShapeOutside") %>
+
+    pub fn set_contain(&mut self, v: longhands::contain::computed_value::T) {
+        use gecko_bindings::structs::NS_STYLE_CONTAIN_NONE;
+        use gecko_bindings::structs::NS_STYLE_CONTAIN_STRICT;
+        use gecko_bindings::structs::NS_STYLE_CONTAIN_LAYOUT;
+        use gecko_bindings::structs::NS_STYLE_CONTAIN_STYLE;
+        use gecko_bindings::structs::NS_STYLE_CONTAIN_PAINT;
+        use gecko_bindings::structs::NS_STYLE_CONTAIN_ALL_BITS;
+        use properties::longhands::contain;
+
+        if v.is_empty() {
+            self.gecko.mContain = NS_STYLE_CONTAIN_NONE as u8;
+            return;
+        }
+
+        if v.contains(contain::STRICT) {
+            self.gecko.mContain = (NS_STYLE_CONTAIN_STRICT | NS_STYLE_CONTAIN_ALL_BITS) as u8;
+            return;
+        }
+
+        let mut bitfield = 0;
+        if v.contains(contain::LAYOUT) {
+            bitfield |= NS_STYLE_CONTAIN_LAYOUT;
+        }
+        if v.contains(contain::STYLE) {
+            bitfield |= NS_STYLE_CONTAIN_STYLE;
+        }
+        if v.contains(contain::PAINT) {
+            bitfield |= NS_STYLE_CONTAIN_PAINT;
+        }
+
+        self.gecko.mContain = bitfield as u8;
+    }
+
+    pub fn clone_contain(&self) -> longhands::contain::computed_value::T {
+        use gecko_bindings::structs::NS_STYLE_CONTAIN_STRICT;
+        use gecko_bindings::structs::NS_STYLE_CONTAIN_LAYOUT;
+        use gecko_bindings::structs::NS_STYLE_CONTAIN_STYLE;
+        use gecko_bindings::structs::NS_STYLE_CONTAIN_PAINT;
+        use gecko_bindings::structs::NS_STYLE_CONTAIN_ALL_BITS;
+        use properties::longhands::contain;
+
+        let mut servo_flags = contain::computed_value::T::empty();
+        let gecko_flags = self.gecko.mContain;
+
+        if gecko_flags & (NS_STYLE_CONTAIN_STRICT as u8) != 0 &&
+           gecko_flags & (NS_STYLE_CONTAIN_ALL_BITS as u8) != 0 {
+            servo_flags.insert(contain::STRICT | contain::STRICT_BITS);
+            return servo_flags;
+        }
+
+        if gecko_flags & (NS_STYLE_CONTAIN_LAYOUT as u8) != 0 {
+            servo_flags.insert(contain::LAYOUT);
+        }
+        if gecko_flags & (NS_STYLE_CONTAIN_STYLE as u8) != 0{
+            servo_flags.insert(contain::STYLE);
+        }
+        if gecko_flags & (NS_STYLE_CONTAIN_PAINT as u8) != 0 {
+            servo_flags.insert(contain::PAINT);
+        }
+
+        return servo_flags;
+    }
+
+    ${impl_simple_copy("contain", "mContain")}
 </%self:impl_trait>
 
 <%def name="simple_image_array_property(name, shorthand, field_name)">

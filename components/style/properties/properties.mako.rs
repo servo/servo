@@ -2435,8 +2435,11 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
     {
         use computed_values::overflow_x::T as overflow;
         use computed_values::overflow_y;
-        match (style.get_box().clone_overflow_x() == longhands::overflow_x::computed_value::T::visible,
-               style.get_box().clone_overflow_y().0 == longhands::overflow_x::computed_value::T::visible) {
+
+        let overflow_x = style.get_box().clone_overflow_x();
+        let overflow_y = style.get_box().clone_overflow_y().0;
+        match (overflow_x == longhands::overflow_x::computed_value::T::visible,
+               overflow_y == longhands::overflow_x::computed_value::T::visible) {
             (true, true) => {}
             (true, _) => {
                 style.mutate_box().set_overflow_x(overflow::auto);
@@ -2446,7 +2449,35 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
             }
             _ => {}
         }
+
+        % if product == "gecko":
+            use properties::longhands::contain;
+            // When 'contain: paint', update overflow from 'visible' to 'clip'.
+            let contain = style.get_box().clone_contain();
+            if contain.contains(contain::PAINT) {
+                if let longhands::overflow_x::computed_value::T::visible = overflow_x {
+                    style.mutate_box().set_overflow_x(overflow::clip);
+                }
+                if let longhands::overflow_x::computed_value::T::visible = overflow_y {
+                    style.mutate_box().set_overflow_y(overflow_y::T(overflow::clip));
+                }
+            }
+        % endif
     }
+
+    % if product == "gecko":
+        {
+            use computed_values::display::T as display;
+            use properties::longhands::contain;
+            // An element with contain:paint or contain:layout needs to "be a
+            // formatting context"
+            let contain = style.get_box().clone_contain();
+            if contain.contains(contain::PAINT) &&
+               style.get_box().clone_display() == display::inline {
+                style.mutate_box().set_adjusted_display(display::inline_block);
+            }
+        }
+    % endif
 
     // CSS 2.1 section 9.7:
     //
