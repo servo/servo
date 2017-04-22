@@ -34,7 +34,7 @@ use stylist::ApplicableDeclarationBlock;
 fn relations_are_shareable(relations: &StyleRelations) -> bool {
     use selectors::matching::*;
     !relations.intersects(AFFECTED_BY_ID_SELECTOR |
-                          AFFECTED_BY_PSEUDO_ELEMENTS | AFFECTED_BY_STATE |
+                          AFFECTED_BY_PSEUDO_ELEMENTS |
                           AFFECTED_BY_STYLE_ATTRIBUTE |
                           AFFECTED_BY_PRESENTATIONAL_HINTS)
 }
@@ -822,7 +822,7 @@ pub trait MatchMethods : TElement {
         }
 
         // If the style is shareable, add it to the LRU cache.
-        if sharing == StyleSharingBehavior::Allow && relations_are_shareable(&primary_relations) {
+        if sharing == StyleSharingBehavior::Allow {
             // If we previously tried to match this element against the cache,
             // the revalidation match results will already be cached. Otherwise
             // we'll have None, and compute them later on-demand.
