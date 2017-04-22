@@ -102,6 +102,17 @@ pub enum CacheMiss {
     Revalidation,
 }
 
+fn same_computed_values<E: TElement>(first: Option<E>, second: Option<E>) -> bool {
+    let (a, b) = match (first, second) {
+        (Some(f), Some(s)) => (f, s),
+        _ => return false,
+    };
+
+    let eq = ::arc_ptr_eq(a.borrow_data().unwrap().styles().primary.values(),
+                          b.borrow_data().unwrap().styles().primary.values());
+    eq
+}
+
 fn element_matches_candidate<E: TElement>(element: &E,
                                           candidate: &mut StyleSharingCandidate<E>,
                                           candidate_element: &E,
@@ -116,7 +127,12 @@ fn element_matches_candidate<E: TElement>(element: &E,
         }
     }
 
-    if element.parent_element() != candidate_element.parent_element() {
+    // Check that we have the same parent, or at least the same pointer identity
+    // for parent computed style. The latter check allows us to share style
+    // between cousins if the parents shared style.
+    let parent = element.parent_element();
+    let candidate_parent = candidate_element.parent_element();
+    if parent != candidate_parent && !same_computed_values(parent, candidate_parent) {
         miss!(Parent)
     }
 
