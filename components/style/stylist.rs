@@ -8,6 +8,7 @@
 
 use {Atom, LocalName};
 use bit_vec::BitVec;
+use context::QuirksMode;
 use data::ComputedStyle;
 use dom::{AnimationRules, PresentationalHintsSynthetizer, TElement};
 use error_reporting::RustLogReporter;
@@ -75,7 +76,7 @@ pub struct Stylist {
     viewport_constraints: Option<ViewportConstraints>,
 
     /// If true, the quirks-mode stylesheet is applied.
-    quirks_mode: bool,
+    quirks_mode: QuirksMode,
 
     /// If true, the device has changed, and the stylist needs to be updated.
     is_device_dirty: bool,
@@ -165,7 +166,7 @@ impl Stylist {
             viewport_constraints: None,
             device: Arc::new(device),
             is_device_dirty: true,
-            quirks_mode: false,
+            quirks_mode: QuirksMode::NoQuirks,
 
             element_map: PerPseudoElementSelectorMap::new(),
             pseudos_map: Default::default(),
@@ -268,7 +269,7 @@ impl Stylist {
                 self.add_stylesheet(&stylesheet, guards.ua_or_user, extra_data);
             }
 
-            if self.quirks_mode {
+            if self.quirks_mode != QuirksMode::NoQuirks {
                 self.add_stylesheet(&ua_stylesheets.quirks_mode_stylesheet,
                                     guards.ua_or_user, extra_data);
             }
@@ -610,14 +611,14 @@ impl Stylist {
     }
 
     /// Sets the quirks mode of the document.
-    pub fn set_quirks_mode(&mut self, enabled: bool) {
+    pub fn set_quirks_mode(&mut self, quirks_mode: QuirksMode) {
         // FIXME(emilio): We don't seem to change the quirks mode dynamically
         // during multiple layout passes, but this is totally bogus, in the
         // sense that it's updated asynchronously.
         //
         // This should probably be an argument to `update`, and use the quirks
         // mode info in the `SharedLayoutContext`.
-        self.quirks_mode = enabled;
+        self.quirks_mode = quirks_mode;
     }
 
     /// Returns the applicable CSS declarations for the given element.
