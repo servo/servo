@@ -34,7 +34,7 @@ use stylist::ApplicableDeclarationBlock;
 fn relations_are_shareable(relations: &StyleRelations) -> bool {
     use selectors::matching::*;
     !relations.intersects(AFFECTED_BY_ID_SELECTOR |
-                          AFFECTED_BY_PSEUDO_ELEMENTS | AFFECTED_BY_STATE |
+                          AFFECTED_BY_PSEUDO_ELEMENTS |
                           AFFECTED_BY_STYLE_ATTRIBUTE |
                           AFFECTED_BY_PRESENTATIONAL_HINTS)
 }
@@ -102,6 +102,17 @@ pub enum CacheMiss {
     Revalidation,
 }
 
+fn same_computed_values<E: TElement>(first: Option<E>, second: Option<E>) -> bool {
+    let (a, b) = match (first, second) {
+        (Some(f), Some(s)) => (f, s),
+        _ => return false,
+    };
+
+    let eq = ::arc_ptr_eq(a.borrow_data().unwrap().styles().primary.values(),
+                          b.borrow_data().unwrap().styles().primary.values());
+    eq
+}
+
 fn element_matches_candidate<E: TElement>(element: &E,
                                           candidate: &mut StyleSharingCandidate<E>,
                                           candidate_element: &E,
@@ -116,7 +127,12 @@ fn element_matches_candidate<E: TElement>(element: &E,
         }
     }
 
-    if element.parent_element() != candidate_element.parent_element() {
+    // Check that we have the same parent, or at least the same pointer identity
+    // for parent computed style. The latter check allows us to share style
+    // between cousins if the parents shared style.
+    let parent = element.parent_element();
+    let candidate_parent = candidate_element.parent_element();
+    if parent != candidate_parent && !same_computed_values(parent, candidate_parent) {
         miss!(Parent)
     }
 
@@ -152,7 +168,7 @@ fn element_matches_candidate<E: TElement>(element: &E,
         miss!(Class)
     }
 
-    if !have_same_presentational_hints(element, candidate_element) {
+    if has_presentational_hints(element) {
         miss!(PresHints)
     }
 
@@ -168,18 +184,10 @@ fn element_matches_candidate<E: TElement>(element: &E,
     Ok(current_styles.primary.clone())
 }
 
-fn have_same_presentational_hints<E: TElement>(element: &E, candidate: &E) -> bool {
-    let mut first = ForgetfulSink::new();
-    element.synthesize_presentational_hints_for_legacy_attributes(&mut first);
-
-    if cfg!(debug_assertions) {
-        let mut second = vec![];
-        candidate.synthesize_presentational_hints_for_legacy_attributes(&mut second);
-        debug_assert!(second.is_empty(),
-                      "Should never have inserted an element with preshints in the cache!");
-    }
-
-    first.is_empty()
+fn has_presentational_hints<E: TElement>(element: &E) -> bool {
+    let mut hints = ForgetfulSink::new();
+    element.synthesize_presentational_hints_for_legacy_attributes(&mut hints);
+    !hints.is_empty()
 }
 
 fn have_same_class<E: TElement>(element: &E,
@@ -295,6 +303,14 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
             debug!("Failing to insert to the cache: {:?}", relations);
             return;
         }
+
+        // Make sure we noted any presentational hints in the StyleRelations.
+        if cfg!(debug_assertions) {
+            let mut hints = ForgetfulSink::new();
+            element.synthesize_presentational_hints_for_legacy_attributes(&mut hints);
+            debug_assert!(hints.is_empty(), "Style relations should not be shareable!");
+        }
+
 
         let box_style = style.get_box();
         if box_style.specifies_transitions() {
@@ -822,7 +838,7 @@ pub trait MatchMethods : TElement {
         }
 
         // If the style is shareable, add it to the LRU cache.
-        if sharing == StyleSharingBehavior::Allow && relations_are_shareable(&primary_relations) {
+        if sharing == StyleSharingBehavior::Allow {
             // If we previously tried to match this element against the cache,
             // the revalidation match results will already be cached. Otherwise
             // we'll have None, and compute them later on-demand.
