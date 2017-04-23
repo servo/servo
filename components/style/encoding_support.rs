@@ -6,6 +6,7 @@
 
 extern crate encoding;
 
+use context::QuirksMode;
 use cssparser::{stylesheet_encoding, EncodingSupport};
 use error_reporting::ParseErrorReporter;
 use media_queries::MediaList;
@@ -56,7 +57,8 @@ impl Stylesheet {
                       media: MediaList,
                       shared_lock: SharedRwLock,
                       stylesheet_loader: Option<&StylesheetLoader>,
-                      error_reporter: &ParseErrorReporter)
+                      error_reporter: &ParseErrorReporter,
+                      quirks_mode: QuirksMode)
                       -> Stylesheet {
         let (string, _) = decode_stylesheet_bytes(
             bytes, protocol_encoding_label, environment_encoding);
@@ -67,6 +69,7 @@ impl Stylesheet {
                              shared_lock,
                              stylesheet_loader,
                              error_reporter,
+                             quirks_mode,
                              0u64)
     }
 

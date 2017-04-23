@@ -256,9 +256,12 @@ impl CSSStyleDeclaration {
 
             // Step 6
             let window = self.owner.window();
+            let quirks_mode = window.Document().quirks_mode();
             let result =
                 parse_one_declaration(id, &value, &self.owner.base_url(),
-                                      window.css_error_reporter(), LengthParsingMode::Default);
+                                      window.css_error_reporter(),
+                                      LengthParsingMode::Default,
+                                      quirks_mode);
 
             // Step 7
             let parsed = match result {
@@ -434,11 +437,13 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
             return Err(Error::NoModificationAllowed);
         }
 
+        let quirks_mode = window.Document().quirks_mode();
         self.owner.mutate_associated_block(|mut pdb, mut _changed| {
             // Step 3
             *pdb = parse_style_attribute(&value,
                                          &self.owner.base_url(),
-                                         window.css_error_reporter());
+                                         window.css_error_reporter(),
+                                         quirks_mode);
         });
 
         Ok(())

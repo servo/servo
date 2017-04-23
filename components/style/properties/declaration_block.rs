@@ -6,6 +6,7 @@
 
 #![deny(missing_docs)]
 
+use context::QuirksMode;
 use cssparser::{DeclarationListParser, parse_important};
 use cssparser::{Parser, AtRuleParser, DeclarationParser, Delimiter};
 use error_reporting::ParseErrorReporter;
@@ -641,13 +642,15 @@ pub fn append_serialization<'a, W, I, N>(dest: &mut W,
 /// shared between Servo and Gecko.
 pub fn parse_style_attribute(input: &str,
                              url_data: &UrlExtraData,
-                             error_reporter: &ParseErrorReporter)
+                             error_reporter: &ParseErrorReporter,
+                             quirks_mode: QuirksMode)
                              -> PropertyDeclarationBlock {
     let context = ParserContext::new(Origin::Author,
                                      url_data,
                                      error_reporter,
                                      Some(CssRuleType::Style),
-                                     LengthParsingMode::Default);
+                                     LengthParsingMode::Default,
+                                     quirks_mode);
     parse_property_declaration_list(&context, &mut Parser::new(input))
 }
 
@@ -660,13 +663,15 @@ pub fn parse_one_declaration(id: PropertyId,
                              input: &str,
                              url_data: &UrlExtraData,
                              error_reporter: &ParseErrorReporter,
-                             length_parsing_mode: LengthParsingMode)
+                             length_parsing_mode: LengthParsingMode,
+                             quirks_mode: QuirksMode)
                              -> Result<ParsedDeclaration, ()> {
     let context = ParserContext::new(Origin::Author,
                                      url_data,
                                      error_reporter,
                                      Some(CssRuleType::Style),
-                                     length_parsing_mode);
+                                     length_parsing_mode,
+                                     quirks_mode);
     Parser::new(input).parse_entirely(|parser| {
         ParsedDeclaration::parse(id, &context, parser)
             .map_err(|_| ())

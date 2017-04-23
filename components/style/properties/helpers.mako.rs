@@ -277,6 +277,7 @@
             % if not property.derived_from:
                 {
                     let custom_props = context.style().custom_properties();
+                    let quirks_mode = context.quirks_mode;
                     ::properties::substitute_variables_${property.ident}(
                         &declared_value, &custom_props,
                     |value| {
@@ -349,7 +350,7 @@
                                 }
                             }
                         }
-                    }, error_reporter);
+                    }, error_reporter, quirks_mode);
                 }
 
                 % if property.custom_cascade:

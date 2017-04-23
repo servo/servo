@@ -10,6 +10,7 @@
 #![deny(missing_docs)]
 
 use app_units::Au;
+use context::QuirksMode;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser, parse_important};
 use cssparser::ToCss as ParserToCss;
 use euclid::size::TypedSize2D;
@@ -588,13 +589,15 @@ pub trait MaybeNew {
     /// Create a ViewportConstraints from a viewport size and a `@viewport`
     /// rule.
     fn maybe_new(device: &Device,
-                 rule: &ViewportRule)
+                 rule: &ViewportRule,
+                 quirks_mode: QuirksMode)
                  -> Option<ViewportConstraints>;
 }
 
 impl MaybeNew for ViewportConstraints {
     fn maybe_new(device: &Device,
-                 rule: &ViewportRule)
+                 rule: &ViewportRule,
+                 quirks_mode: QuirksMode)
                  -> Option<ViewportConstraints>
     {
         use std::cmp;
@@ -684,6 +687,7 @@ impl MaybeNew for ViewportConstraints {
             style: device.default_computed_values().clone(),
             font_metrics_provider: &provider,
             in_media_query: false,
+            quirks_mode: quirks_mode,
         };
 
         // DEVICE-ADAPT § 9.3 Resolving 'extend-to-zoom'

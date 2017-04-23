@@ -4,6 +4,7 @@
 
 use cssparser::Parser;
 use media_queries::CSSErrorReporterTest;
+use style::context::QuirksMode;
 use style::parser::{LengthParsingMode, ParserContext};
 use style::stylesheets::{CssRuleType, Origin};
 
@@ -11,7 +12,8 @@ fn parse<T, F: Fn(&ParserContext, &mut Parser) -> Result<T, ()>>(f: F, s: &str) 
     let url = ::servo_url::ServoUrl::parse("http://localhost").unwrap();
     let reporter = CSSErrorReporterTest;
     let context = ParserContext::new(Origin::Author, &url, &reporter, Some(CssRuleType::Style),
-                                     LengthParsingMode::Default);
+                                     LengthParsingMode::Default,
+                                     QuirksMode::NoQuirks);
     let mut parser = Parser::new(s);
     f(&context, &mut parser)
 }

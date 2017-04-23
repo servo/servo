@@ -8,6 +8,7 @@ use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::sync::Arc;
 use style::Atom;
+use style::context::QuirksMode;
 use style::error_reporting::ParseErrorReporter;
 use style::media_queries::*;
 use style::servo::media_queries::*;
@@ -37,7 +38,7 @@ fn test_media_rule<F>(css: &str, callback: F)
     let media_list = Arc::new(lock.wrap(MediaList::empty()));
     let stylesheet = Stylesheet::from_str(
         css, url, Origin::Author, media_list, lock,
-        None, &CSSErrorReporterTest, 0u64);
+        None, &CSSErrorReporterTest, QuirksMode::NoQuirks, 0u64);
     let mut rule_count = 0;
     let guard = stylesheet.shared_lock.read();
     media_queries(&guard, &stylesheet.rules.read_with(&guard).0, &mut |mq| {
@@ -66,7 +67,7 @@ fn media_query_test(device: &Device, css: &str, expected_rule_count: usize) {
     let media_list = Arc::new(lock.wrap(MediaList::empty()));
     let ss = Stylesheet::from_str(
         css, url, Origin::Author, media_list, lock,
-        None, &CSSErrorReporterTest, 0u64);
+        None, &CSSErrorReporterTest, QuirksMode::NoQuirks, 0u64);
     let mut rule_count = 0;
     ss.effective_style_rules(device, &ss.shared_lock.read(), |_| rule_count += 1);
     assert!(rule_count == expected_rule_count, css.to_owned());

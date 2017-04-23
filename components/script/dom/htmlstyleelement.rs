@@ -76,6 +76,7 @@ impl HTMLStyleElement {
         assert!(node.is_in_doc());
 
         let win = window_from_node(node);
+        let doc = document_from_node(self);
 
         let mq_attribute = element.get_attribute(&ns!(), &local_name!("media"));
         let mq_str = match mq_attribute {
@@ -88,7 +89,8 @@ impl HTMLStyleElement {
         let context = CssParserContext::new_for_cssom(&url,
                                                       win.css_error_reporter(),
                                                       Some(CssRuleType::Media),
-                                                      LengthParsingMode::Default);
+                                                      LengthParsingMode::Default,
+                                                      doc.quirks_mode());
         let shared_lock = node.owner_doc().style_shared_lock().clone();
         let mq = Arc::new(shared_lock.wrap(
                     parse_media_query_list(&context, &mut CssParser::new(&mq_str))));
@@ -96,6 +98,7 @@ impl HTMLStyleElement {
         let sheet = Stylesheet::from_str(&data, win.get_url(), Origin::Author, mq,
                                          shared_lock, Some(&loader),
                                          win.css_error_reporter(),
+                                         doc.quirks_mode(),
                                          self.line_number);
 
         let sheet = Arc::new(sheet);
@@ -107,7 +110,6 @@ impl HTMLStyleElement {
 
         win.layout_chan().send(Msg::AddStylesheet(sheet.clone())).unwrap();
         *self.stylesheet.borrow_mut() = Some(sheet);
-        let doc = document_from_node(self);
         doc.invalidate_stylesheets();
     }
 
