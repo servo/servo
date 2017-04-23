@@ -20,12 +20,14 @@ use dom::event::Event;
 use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::htmlimageelement::HTMLImageElement;
+use dom::keyboardevent::KeyboardEvent;
 use dom::mouseevent::MouseEvent;
 use dom::node::{Node, document_from_node};
 use dom::urlhelper::UrlHelper;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever_atoms::LocalName;
+use msg::constellation_msg::Key;
 use net_traits::ReferrerPolicy;
 use num_traits::ToPrimitive;
 use script_traits::MozBrowserEvent;
@@ -98,6 +100,23 @@ impl VirtualMethods for HTMLAnchorElement {
         match name {
             &local_name!("rel") => AttrValue::from_serialized_tokenlist(value.into()),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
+        }
+    }
+
+    fn handle_event(&self, event: &Event) {
+        if let Some(s) = self.super_type() {
+            s.handle_event(event);
+        }
+
+        if let Some(key_event) = event.downcast::<KeyboardEvent>() {
+            if event.type_() == atom!("keydown") {
+                match key_event.get_key() {
+                    Some(Key::Enter) => {
+                        follow_hyperlink(self.upcast::<Element>(), Some(String::new()), None);
+                    },
+                    _ => ()
+                }
+            }
         }
     }
 }
