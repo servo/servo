@@ -360,7 +360,8 @@ impl HTMLIFrameElement {
 }
 
 pub trait HTMLIFrameElementLayoutMethods {
-    fn pipeline_id(self) -> Option<PipelineId>;
+    fn pipeline_id(&self) -> Option<PipelineId>;
+    fn frame_id(&self) -> FrameId;
     fn get_width(&self) -> LengthOrPercentageOrAuto;
     fn get_height(&self) -> LengthOrPercentageOrAuto;
 }
@@ -368,11 +369,20 @@ pub trait HTMLIFrameElementLayoutMethods {
 impl HTMLIFrameElementLayoutMethods for LayoutJS<HTMLIFrameElement> {
     #[inline]
     #[allow(unsafe_code)]
-    fn pipeline_id(self) -> Option<PipelineId> {
+    fn pipeline_id(&self) -> Option<PipelineId> {
         unsafe {
             (*self.unsafe_get()).pipeline_id.get()
         }
     }
+
+    #[inline]
+    #[allow(unsafe_code)]
+    fn frame_id(&self) -> FrameId {
+        unsafe {
+            (*self.unsafe_get()).frame_id
+        }
+    }
+
 
     #[allow(unsafe_code)]
     fn get_width(&self) -> LengthOrPercentageOrAuto {
