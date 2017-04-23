@@ -454,10 +454,17 @@ pub extern "C" fn Servo_StyleSet_GetBaseComputedValuesForElement(raw_data: RawSe
         Some(PseudoElement::from_atom_unchecked(atom, /* anon_box = */ false))
     };
     let pseudos = &styles.pseudos;
-    let pseudo_style = pseudo.as_ref().map(|p| (p, pseudos.get(p).unwrap()));
+    let pseudo_style = match pseudo {
+        Some(ref p) => {
+            let style = pseudos.get(p);
+            debug_assert!(style.is_some());
+            style
+        }
+        None => None,
+    };
 
     let provider = get_metrics_provider_for_product();
-    element.get_base_style(shared_context, &provider, &styles.primary, &pseudo_style)
+    element.get_base_style(shared_context, &provider, &styles.primary, pseudo_style)
            .into_strong()
 }
 
