@@ -1589,7 +1589,8 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
             MediaList::empty(),
             shared_lock.clone(),
             None,
-            &NullReporter))
+            &NullReporter,
+            QuirksMode::NoQuirks))
     }
 
     let shared_lock = SharedRwLock::new();
@@ -1602,7 +1603,7 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
     for &(ref contents, ref url) in &opts::get().user_stylesheets {
         user_or_user_agent_stylesheets.push(Stylesheet::from_bytes(
             &contents, url.clone(), None, None, Origin::User, MediaList::empty(),
-            shared_lock.clone(), None, &RustLogReporter));
+            shared_lock.clone(), None, &RustLogReporter, QuirksMode::NoQuirks));
     }
 
     let quirks_mode_stylesheet = try!(parse_ua_stylesheet(&shared_lock, "quirks-mode.css"));

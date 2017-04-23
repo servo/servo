@@ -144,7 +144,8 @@ impl FetchResponseListener for StylesheetContext {
                                                             media.take().unwrap(),
                                                             shared_lock,
                                                             Some(&loader),
-                                                            win.css_error_reporter()));
+                                                            win.css_error_reporter(),
+                                                            document.quirks_mode()));
 
                         if link.is_alternate() {
                             sheet.set_disabled(true);

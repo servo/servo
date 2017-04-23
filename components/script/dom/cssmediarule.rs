@@ -5,6 +5,7 @@
 use cssparser::Parser;
 use dom::bindings::codegen::Bindings::CSSMediaRuleBinding;
 use dom::bindings::codegen::Bindings::CSSMediaRuleBinding::CSSMediaRuleMethods;
+use dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::str::DOMString;
@@ -72,8 +73,10 @@ impl CSSMediaRule {
         let global = self.global();
         let win = global.as_window();
         let url = win.get_url();
+        let quirks_mode = win.Document().quirks_mode();
         let context = ParserContext::new_for_cssom(&url, win.css_error_reporter(), Some(CssRuleType::Media),
-                                                   LengthParsingMode::Default);
+                                                   LengthParsingMode::Default,
+                                                   quirks_mode);
         let new_medialist = parse_media_query_list(&context, &mut input);
         let mut guard = self.cssconditionrule.shared_lock().write();
 

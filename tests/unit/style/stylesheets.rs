@@ -13,6 +13,7 @@ use std::borrow::ToOwned;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::atomic::AtomicBool;
+use style::context::QuirksMode;
 use style::error_reporting::ParseErrorReporter;
 use style::keyframes::{Keyframe, KeyframeSelector, KeyframePercentage};
 use style::media_queries::MediaList;
@@ -66,7 +67,7 @@ fn test_parse_stylesheet() {
     let lock = SharedRwLock::new();
     let media = Arc::new(lock.wrap(MediaList::empty()));
     let stylesheet = Stylesheet::from_str(css, url.clone(), Origin::UserAgent, media, lock,
-                                          None, &CSSErrorReporterTest, 0u64);
+                                          None, &CSSErrorReporterTest, QuirksMode::NoQuirks, 0u64);
     let mut namespaces = Namespaces::default();
     namespaces.default = Some(ns!(html));
     let expected = Stylesheet {
@@ -77,6 +78,7 @@ fn test_parse_stylesheet() {
         url_data: url,
         dirty_on_viewport_size_change: AtomicBool::new(false),
         disabled: AtomicBool::new(false),
+        quirks_mode: QuirksMode::NoQuirks,
         rules: CssRules::new(vec![
             CssRule::Namespace(Arc::new(stylesheet.shared_lock.wrap(NamespaceRule {
                 prefix: None,
@@ -316,7 +318,7 @@ fn test_report_error_stylesheet() {
     let lock = SharedRwLock::new();
     let media = Arc::new(lock.wrap(MediaList::empty()));
     Stylesheet::from_str(css, url.clone(), Origin::UserAgent, media, lock,
-                         None, &error_reporter, 5u64);
+                         None, &error_reporter, QuirksMode::NoQuirks, 5u64);
 
     let mut errors = errors.lock().unwrap();
 

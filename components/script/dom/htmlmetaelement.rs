@@ -113,6 +113,7 @@ impl HTMLMetaElement {
                         // force all styles to be recomputed.
                         dirty_on_viewport_size_change: AtomicBool::new(false),
                         disabled: AtomicBool::new(false),
+                        quirks_mode: document.quirks_mode(),
                     }));
                     let doc = document_from_node(self);
                     doc.invalidate_stylesheets();

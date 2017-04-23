@@ -5,6 +5,7 @@
 use cssparser::Parser;
 use media_queries::CSSErrorReporterTest;
 use parsing::parse;
+use style::context::QuirksMode;
 use style::parser::{LengthParsingMode, Parse, ParserContext};
 use style::stylesheets::{CssRuleType, Origin};
 use style::values::specified::length::{AbsoluteLength, Length, NoCalcLength};
@@ -38,7 +39,8 @@ fn test_length_parsing_modes() {
     let url = ::servo_url::ServoUrl::parse("http://localhost").unwrap();
     let reporter = CSSErrorReporterTest;
     let context = ParserContext::new(Origin::Author, &url, &reporter,
-                                     Some(CssRuleType::Style), LengthParsingMode::SVG);
+                                     Some(CssRuleType::Style), LengthParsingMode::SVG,
+                                     QuirksMode::NoQuirks);
     let mut parser = Parser::new("1");
     let result = Length::parse(&context, &mut parser);
     assert!(result.is_ok());

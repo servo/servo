@@ -5,6 +5,7 @@
 use euclid::size::TypedSize2D;
 use parsing::parse;
 use std::f32::consts::PI;
+use style::context::QuirksMode;
 use style::font_metrics::ServoMetricsProvider;
 use style::media_queries::{Device, MediaType};
 use style::properties::ComputedValues;
@@ -51,6 +52,7 @@ fn test_linear_gradient() {
         style: initial_style.clone(),
         font_metrics_provider: &ServoMetricsProvider,
         in_media_query: false,
+        quirks_mode: QuirksMode::NoQuirks,
     };
     assert_eq!(specified::AngleOrCorner::None.to_computed_value(&specified_context),
                computed::AngleOrCorner::Angle(Angle::from_radians(PI)));

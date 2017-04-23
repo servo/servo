@@ -515,6 +515,7 @@ impl AnimationValue {
                     % if prop.animatable:
                     LonghandId::${prop.camel_case} => {
                         let mut result = None;
+                        let quirks_mode = context.quirks_mode;
                         ::properties::substitute_variables_${prop.ident}_slow(
                             &variables.css,
                             variables.first_token_type,
@@ -533,7 +534,8 @@ impl AnimationValue {
                                 };
                                 result = AnimationValue::from_declaration(&declaration, context, initial);
                             },
-                            &reporter);
+                            &reporter,
+                            quirks_mode);
                         result
                     },
                     % else:
