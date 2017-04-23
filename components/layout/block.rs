@@ -43,6 +43,7 @@ use flow_list::FlowList;
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow};
 use fragment::{IS_INLINE_FLEX_ITEM, IS_BLOCK_FLEX_ITEM};
 use gfx_traits::print_tree::PrintTree;
+use incremental::RelayoutMode;
 use layout_debug;
 use model::{AdjoiningMargins, CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo, MaybeAuto};
 use model::{specified, specified_or_none};
@@ -1549,7 +1550,7 @@ impl BlockFlow {
             self.assign_inline_sizes(layout_context);
             // Re-run layout on our children.
             for child in flow::mut_base(self).children.iter_mut() {
-                sequential::traverse_flow_tree_preorder(child, layout_context);
+                sequential::traverse_flow_tree_preorder(child, layout_context, RelayoutMode::Force);
             }
             // Assign our final-final block size.
             self.assign_block_size(layout_context);

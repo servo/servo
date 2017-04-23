@@ -60,7 +60,7 @@ use layout::context::heap_size_of_persistent_local_context;
 use layout::display_list_builder::ToGfxColor;
 use layout::flow::{self, Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
 use layout::flow_ref::FlowRef;
-use layout::incremental::{LayoutDamageComputation, REFLOW_ENTIRE_DOCUMENT};
+use layout::incremental::{LayoutDamageComputation, REFLOW_ENTIRE_DOCUMENT, RelayoutMode};
 use layout::layout_debug;
 use layout::opaque_node::OpaqueNodeMethods;
 use layout::parallel;
@@ -811,7 +811,7 @@ impl LayoutThread {
     fn solve_constraints(layout_root: &mut Flow,
                          layout_context: &LayoutContext) {
         let _scope = layout_debug_scope!("solve_constraints");
-        sequential::traverse_flow_tree_preorder(layout_root, layout_context);
+        sequential::traverse_flow_tree_preorder(layout_root, layout_context, RelayoutMode::Incremental);
     }
 
     /// Performs layout constraint solving in parallel.

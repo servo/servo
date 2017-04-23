@@ -7,6 +7,13 @@ use style::computed_values::float;
 use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::{REFLOW, RECONSTRUCT_FLOW};
 
+/// Used in a flow traversal to indicate whether this re-layout should be incremental or not.
+#[derive(Clone, Copy, PartialEq)]
+pub enum RelayoutMode {
+    Incremental,
+    Force
+}
+
 bitflags! {
     pub flags SpecialRestyleDamage: u8 {
         #[doc = "If this flag is set, we need to reflow the entire document. This is more or less a \
