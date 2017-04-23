@@ -76,10 +76,6 @@ pub struct Pipeline {
     /// The title of the most recently-loaded page.
     pub title: Option<String>,
 
-    /// The size of the frame.
-    /// TODO: move this field to `Frame`.
-    pub size: Option<TypedSize2D<f32, CSSPixel>>,
-
     /// Whether this pipeline is currently running animations. Pipelines that are running
     /// animations cause composites to be continually scheduled.
     pub running_animations: bool,
@@ -291,7 +287,6 @@ impl Pipeline {
                          state.compositor_proxy,
                          state.is_private,
                          url,
-                         state.window_size,
                          state.prev_visibility.unwrap_or(true)))
     }
 
@@ -305,7 +300,6 @@ impl Pipeline {
                compositor_proxy: Box<CompositorProxy + 'static + Send>,
                is_private: bool,
                url: ServoUrl,
-               size: Option<TypedSize2D<f32, CSSPixel>>,
                visible: bool)
                -> Pipeline {
         let pipeline = Pipeline {
@@ -318,7 +312,6 @@ impl Pipeline {
             url: url,
             title: None,
             children: vec!(),
-            size: size,
             running_animations: false,
             visible: visible,
             is_private: is_private,
