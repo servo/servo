@@ -2994,6 +2994,50 @@ fn static_assert() {
         self.gecko.mClipFlags = other.gecko.mClipFlags;
     }
 
+    pub fn clone_clip(&self) -> longhands::clip::computed_value::T {
+        use gecko_bindings::structs::NS_STYLE_CLIP_AUTO;
+        use gecko_bindings::structs::NS_STYLE_CLIP_BOTTOM_AUTO;
+        use gecko_bindings::structs::NS_STYLE_CLIP_LEFT_AUTO;
+        use gecko_bindings::structs::NS_STYLE_CLIP_RIGHT_AUTO;
+        use gecko_bindings::structs::NS_STYLE_CLIP_TOP_AUTO;
+        use values::computed::{ClipRect, ClipRectOrAuto};
+        use values::Either;
+
+        if self.gecko.mClipFlags == NS_STYLE_CLIP_AUTO as u8 {
+            ClipRectOrAuto::auto()
+        } else {
+            let left = if self.gecko.mClipFlags & NS_STYLE_CLIP_LEFT_AUTO as u8 != 0 {
+                debug_assert!(self.gecko.mClip.x == 0);
+                None
+            } else {
+                Some(Au(self.gecko.mClip.x))
+            };
+
+            let top = if self.gecko.mClipFlags & NS_STYLE_CLIP_TOP_AUTO as u8 != 0 {
+                debug_assert!(self.gecko.mClip.y == 0);
+                None
+            } else {
+                Some(Au(self.gecko.mClip.y))
+            };
+
+            let bottom = if self.gecko.mClipFlags & NS_STYLE_CLIP_BOTTOM_AUTO as u8 != 0 {
+                debug_assert!(self.gecko.mClip.height == 1 << 30); // NS_MAXSIZE
+                None
+            } else {
+                Some(Au(self.gecko.mClip.y + self.gecko.mClip.height))
+            };
+
+            let right = if self.gecko.mClipFlags & NS_STYLE_CLIP_RIGHT_AUTO as u8 != 0 {
+                debug_assert!(self.gecko.mClip.width == 1 << 30); // NS_MAXSIZE
+                None
+            } else {
+                Some(Au(self.gecko.mClip.x + self.gecko.mClip.width))
+            };
+
+            Either::First(ClipRect { top: top, right: right, bottom: bottom, left: left, })
+        }
+    }
+
     pub fn set_filter(&mut self, v: longhands::filter::computed_value::T) {
         use properties::longhands::filter::computed_value::Filter::*;
         use gecko_bindings::structs::nsCSSShadowArray;

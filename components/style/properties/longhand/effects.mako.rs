@@ -77,11 +77,10 @@ ${helpers.predefined_type("opacity",
     }
 </%helpers:vector_longhand>
 
-// FIXME: This prop should be animatable
 ${helpers.predefined_type("clip",
                           "ClipRectOrAuto",
                           "computed::ClipRectOrAuto::auto()",
-                          animation_type="none",
+                          animation_type="normal",
                           boxed="True",
                           spec="https://drafts.fxtf.org/css-masking/#clip-property")}
 
