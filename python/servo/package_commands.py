@@ -319,12 +319,7 @@ class PackageCommands(CommandBase):
 
             print("Creating ZIP")
             zip_path = path.join(dir_to_msi, "Servo.zip")
-            import zipfile
-            zip_file = zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED)
-            os.chdir(dir_to_temp)
-            for root, dirs, files in os.walk('.'):
-                for f in files:
-                    zip_file.write(os.path.join(root, f))
+            archive_deterministically(dir_to_temp_servo, zip_path, prepend_path='servo/')
             print("Packaged Servo into " + zip_path)
 
             print("Cleaning up")

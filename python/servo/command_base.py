@@ -18,6 +18,7 @@ import subprocess
 from subprocess import PIPE
 import sys
 import tarfile
+import zipfile
 
 from mach.registrar import Registrar
 import toml
@@ -84,10 +85,14 @@ def archive_deterministically(dir_to_archive, dest_archive, prepend_path=None):
     dest_archive = os.path.abspath(dest_archive)
     with cd(dir_to_archive):
         current_dir = "."
-        file_list = [current_dir]
+        file_list = []
         for root, dirs, files in os.walk(current_dir):
-            for name in itertools.chain(dirs, files):
-                file_list.append(os.path.join(root, name))
+            if dest_archive.endswith(".zip"):
+                for f in files:
+                    file_list.append(os.path.join(root, f))
+            else:
+                for name in itertools.chain(dirs, files):
+                    file_list.append(os.path.join(root, name))
 
         # Sort file entries with the fixed locale
         with setlocale('C'):
@@ -98,13 +103,21 @@ def archive_deterministically(dir_to_archive, dest_archive, prepend_path=None):
         # TODO do this in a temporary folder after #11983 is fixed
         temp_file = '{}.temp~'.format(dest_archive)
         with os.fdopen(os.open(temp_file, os.O_WRONLY | os.O_CREAT, 0644), 'w') as out_file:
-            with gzip.GzipFile('wb', fileobj=out_file, mtime=0) as gzip_file:
-                with tarfile.open(fileobj=gzip_file, mode='w:') as tar_file:
+            if dest_archive.endswith('.zip'):
+                with zipfile.ZipFile(temp_file, 'w', zipfile.ZIP_DEFLATED) as zip_file:
                     for entry in file_list:
                         arcname = entry
                         if prepend_path is not None:
                             arcname = os.path.normpath(os.path.join(prepend_path, arcname))
-                        tar_file.add(entry, filter=reset, recursive=False, arcname=arcname)
+                        zip_file.write(entry, arcname=arcname)
+            else:
+                with gzip.GzipFile('wb', fileobj=out_file, mtime=0) as gzip_file:
+                    with tarfile.open(fileobj=gzip_file, mode='w:') as tar_file:
+                        for entry in file_list:
+                            arcname = entry
+                            if prepend_path is not None:
+                                arcname = os.path.normpath(os.path.join(prepend_path, arcname))
+                            tar_file.add(entry, filter=reset, recursive=False, arcname=arcname)
         os.rename(temp_file, dest_archive)
 
 
