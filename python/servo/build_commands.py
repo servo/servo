@@ -15,6 +15,7 @@ import os.path as path
 import platform
 import sys
 import shutil
+import stat
 
 from time import time
 
@@ -343,13 +344,13 @@ class MachCommands(CommandBase):
                         vs_dll_dir = redist1
                     elif os.path.isdir(redist2):
                         vs_dll_dir = redist2
-                if vs_version == "15.0" or is_vs14:
+                if vs_dll_dir:
                     dll_dirs = [
                         vs_dll_dir,
                         path.join(os.environ["WindowsSdkDir"], "Redist", "ucrt", "DLLs", vs_platform),
                     ]
-                    import stat
                     for msvc_dll in msvc_deps:
+                        dll_found = False
                         for dll_dir in dll_dirs:
                             dll = path.join(dll_dir, msvc_dll)
                             servo_dir_dll = path.join(servo_exe_dir, msvc_dll)
@@ -358,6 +359,11 @@ class MachCommands(CommandBase):
                                     # avoid permission denied error when overwrite dll in servo build directory
                                     os.chmod(servo_dir_dll, stat.S_IWUSR)
                                 shutil.copy(dll, servo_exe_dir)
+                                dll_found = True
+                                break
+                        if not dll_found:
+                            print("DLL file `{}` not found!".format(msvc_dll))
+                            status = 1
 
             elif sys.platform == "darwin":
                 # On the Mac, set a lovely icon. This makes it easier to pick out the Servo binary in tools
