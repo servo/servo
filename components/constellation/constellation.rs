@@ -1281,10 +1281,19 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // Notify the browser chrome that the pipeline has failed
         self.trigger_mozbrowsererror(top_level_frame_id, reason, backtrace);
 
-        let pipeline_id = self.frames.get(&top_level_frame_id).map(|frame| frame.pipeline_id);
-        let pipeline_url = pipeline_id.and_then(|id| self.pipelines.get(&id).map(|pipeline| pipeline.url.clone()));
-        let parent_info = pipeline_id.and_then(|id| self.pipelines.get(&id).and_then(|pipeline| pipeline.parent_info));
-        let window_size = pipeline_id.and_then(|id| self.pipelines.get(&id).and_then(|pipeline| pipeline.size));
+        let (window_size, pipeline_id) = {
+            let frame = self.frames.get(&top_level_frame_id);
+            let window_size = frame.and_then(|frame| frame.size);
+            let pipeline_id = frame.map(|frame| frame.pipeline_id);
+            (window_size, pipeline_id)
+        };
+
+        let (pipeline_url, parent_info) = {
+            let pipeline = pipeline_id.and_then(|id| self.pipelines.get(&id));
+            let pipeline_url = pipeline.map(|pipeline| pipeline.url.clone());
+            let parent_info = pipeline.and_then(|pipeline| pipeline.parent_info);
+            (pipeline_url, parent_info)
+        };
 
         self.close_frame_children(top_level_frame_id, DiscardBrowsingContext::No, ExitPipelineMode::Force);
 
@@ -1359,29 +1368,14 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     }
 
     fn handle_frame_size_msg(&mut self,
-                             iframe_sizes: Vec<(PipelineId, TypedSize2D<f32, CSSPixel>)>) {
-        for (pipeline_id, size) in iframe_sizes {
-            let result = {
-                let pipeline = match self.pipelines.get_mut(&pipeline_id) {
-                    Some(pipeline) => pipeline,
-                    None => continue,
-                };
-
-                if pipeline.size == Some(size) {
-                    continue;
-                }
-
-                pipeline.size = Some(size);
-                let msg = ConstellationControlMsg::Resize(pipeline_id, WindowSizeData {
-                    initial_viewport: size,
-                    device_pixel_ratio: self.window_size.device_pixel_ratio,
-                }, WindowSizeType::Initial);
-
-                pipeline.event_loop.send(msg)
+                             iframe_sizes: Vec<(FrameId, TypedSize2D<f32, CSSPixel>)>) {
+        for (frame_id, size) in iframe_sizes {
+            let window_size = WindowSizeData {
+                initial_viewport: size,
+                device_pixel_ratio: self.window_size.device_pixel_ratio,
             };
-            if let Err(e) = result {
-                self.handle_send_error(pipeline_id, e);
-            }
+
+            self.resize_frame(window_size, WindowSizeType::Initial, frame_id);
         }
     }
 
@@ -1434,7 +1428,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
             let is_private = load_info.info.is_private || source_pipeline.is_private;
 
-            let window_size = old_pipeline.and_then(|old_pipeline| old_pipeline.size);
+            let window_size = self.frames.get(&load_info.info.frame_id).and_then(|frame| frame.size);
 
             (load_data, window_size, is_private)
         };
@@ -1494,7 +1488,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                           self.compositor_proxy.clone_compositor_proxy(),
                           is_private || parent_pipeline.is_private,
                           url.clone(),
-                          None,
                           parent_pipeline.visible)
         };
 
@@ -1650,7 +1643,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 // changes would be overridden by changing the subframe associated with source_id.
 
                 // Create the new pipeline
-                let window_size = self.pipelines.get(&source_id).and_then(|source| source.size);
+                let window_size = self.frames.get(&root_frame_id).and_then(|frame| frame.size);
                 let new_pipeline_id = PipelineId::new();
                 let sandbox = IFrameSandboxState::IFrameUnsandboxed;
                 let replace_instant = if replace {
@@ -2029,8 +2022,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 let load_data = entry.load_data;
                 let (parent_info, window_size, is_private) = match self.frames.get(&frame_id) {
                     Some(frame) => match self.pipelines.get(&frame.pipeline_id) {
-                        Some(pipeline) => (pipeline.parent_info, pipeline.size, pipeline.is_private),
-                        None => (None, None, false),
+                        Some(pipeline) => (pipeline.parent_info, frame.size, pipeline.is_private),
+                        None => (None, frame.size, false),
                     },
                     None => return warn!("no frame to traverse"),
                 };
@@ -2321,45 +2314,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     fn handle_window_size_msg(&mut self, new_size: WindowSizeData, size_type: WindowSizeType) {
         debug!("handle_window_size_msg: {:?}", new_size.initial_viewport.to_untyped());
 
-        if let Some(frame) = self.frames.get(&self.root_frame_id) {
-            // Send Resize (or ResizeInactive) messages to each
-            // pipeline in the frame tree.
-            let pipeline_id = frame.pipeline_id;
-            let pipeline = match self.pipelines.get(&pipeline_id) {
-                None => return warn!("Pipeline {:?} resized after closing.", pipeline_id),
-                Some(pipeline) => pipeline,
-            };
-            let _ = pipeline.event_loop.send(ConstellationControlMsg::Resize(
-                pipeline.id,
-                new_size,
-                size_type
-            ));
-            let pipelines = frame.prev.iter().chain(frame.next.iter())
-                .filter_map(|entry| entry.pipeline_id)
-                .filter_map(|pipeline_id| self.pipelines.get(&pipeline_id));
-            for pipeline in pipelines {
-                let _ = pipeline.event_loop.send(ConstellationControlMsg::ResizeInactive(
-                    pipeline.id,
-                    new_size
-                ));
-            }
-        }
-
-        // Send resize message to any pending pipelines that aren't loaded yet.
-        for pending_frame in &self.pending_frames {
-            let pipeline_id = pending_frame.new_pipeline_id;
-            let pipeline = match self.pipelines.get(&pipeline_id) {
-                None => { warn!("Pending pipeline {:?} is closed", pipeline_id); continue; }
-                Some(pipeline) => pipeline,
-            };
-            if pipeline.parent_info.is_none() {
-                let _ = pipeline.event_loop.send(ConstellationControlMsg::Resize(
-                    pipeline.id,
-                    new_size,
-                    size_type
-                ));
-            }
-        }
+        let frame_id = self.root_frame_id;
+        self.resize_frame(new_size, size_type, frame_id);
 
         if let Some(resize_channel) = self.webdriver.resize_channel.take() {
             let _ = resize_channel.send(new_size);
@@ -2445,7 +2401,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             // size for the pipeline, then its painting should be up to date. If the constellation
             // *hasn't* received a size, it could be that the layer was hidden by script before the
             // compositor discovered it, so we just don't check the layer.
-            if let Some(size) = pipeline.size {
+            if let Some(size) = frame.size {
                 // If the rectangle for this pipeline is zero sized, it will
                 // never be painted. In this case, don't query the layout
                 // thread as it won't contribute to the final output image.
@@ -2530,6 +2486,54 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     /// Update the current activity of a pipeline.
     fn update_activity(&self, pipeline_id: PipelineId) {
         self.set_activity(pipeline_id, self.get_activity(pipeline_id));
+    }
+
+    /// Handle updating the size of a frame. This notifies every pipeline in the frame of the new
+    /// size.
+    fn resize_frame(&mut self, new_size: WindowSizeData, size_type: WindowSizeType, frame_id: FrameId) {
+        if let Some(frame) = self.frames.get_mut(&frame_id) {
+            frame.size = Some(new_size.initial_viewport);
+        }
+
+        if let Some(frame) = self.frames.get(&frame_id) {
+            // Send Resize (or ResizeInactive) messages to each
+            // pipeline in the frame tree.
+            let pipeline_id = frame.pipeline_id;
+            let pipeline = match self.pipelines.get(&pipeline_id) {
+                None => return warn!("Pipeline {:?} resized after closing.", pipeline_id),
+                Some(pipeline) => pipeline,
+            };
+            let _ = pipeline.event_loop.send(ConstellationControlMsg::Resize(
+                pipeline.id,
+                new_size,
+                size_type
+            ));
+            let pipelines = frame.prev.iter().chain(frame.next.iter())
+                .filter_map(|entry| entry.pipeline_id)
+                .filter_map(|pipeline_id| self.pipelines.get(&pipeline_id));
+            for pipeline in pipelines {
+                let _ = pipeline.event_loop.send(ConstellationControlMsg::ResizeInactive(
+                    pipeline.id,
+                    new_size
+                ));
+            }
+        }
+
+        // Send resize message to any pending pipelines that aren't loaded yet.
+        for pending_frame in &self.pending_frames {
+            let pipeline_id = pending_frame.new_pipeline_id;
+            let pipeline = match self.pipelines.get(&pipeline_id) {
+                None => { warn!("Pending pipeline {:?} is closed", pipeline_id); continue; }
+                Some(pipeline) => pipeline,
+            };
+            if pipeline.frame_id == frame_id {
+                let _ = pipeline.event_loop.send(ConstellationControlMsg::Resize(
+                    pipeline.id,
+                    new_size,
+                    size_type
+                ));
+            }
+        }
     }
 
     fn clear_joint_session_future(&mut self, frame_id: FrameId) {
@@ -2675,7 +2679,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             self.pipelines.get(&frame.pipeline_id).map(|pipeline: &Pipeline| {
                 let mut frame_tree = SendableFrameTree {
                     pipeline: pipeline.to_sendable(),
-                    size: pipeline.size,
+                    size: frame.size,
                     children: vec!(),
                 };
 

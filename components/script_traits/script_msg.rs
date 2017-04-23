@@ -34,8 +34,8 @@ use webrender_traits::ClipId;
 pub enum LayoutMsg {
     /// Indicates whether this pipeline is currently running animations.
     ChangeRunningAnimationsState(PipelineId, AnimationState),
-    /// Inform the constellation of the size of the pipeline's viewport.
-    FrameSizes(Vec<(PipelineId, TypedSize2D<f32, CSSPixel>)>),
+    /// Inform the constellation of the size of the frame's viewport.
+    FrameSizes(Vec<(FrameId, TypedSize2D<f32, CSSPixel>)>),
     /// Requests that the constellation inform the compositor of the a cursor change.
     SetCursor(Cursor),
     /// Notifies the constellation that the viewport has been constrained in some manner
