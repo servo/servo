@@ -45,7 +45,7 @@ use values::generics::position as generic_position;
 /// property.
 // NB: This needs to be here because it needs all the longhands generated
 // beforehand.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum TransitionProperty {
     /// All, any animatable property changing should generate a transition.
@@ -66,20 +66,20 @@ pub enum TransitionProperty {
 
 impl TransitionProperty {
     /// Iterates over each longhand property.
-    pub fn each<F: FnMut(TransitionProperty) -> ()>(mut cb: F) {
+    pub fn each<F: FnMut(&TransitionProperty) -> ()>(mut cb: F) {
         % for prop in data.longhands:
             % if prop.animatable:
-                cb(TransitionProperty::${prop.camel_case});
+                cb(&TransitionProperty::${prop.camel_case});
             % endif
         % endfor
     }
 
     /// Iterates over every property that is not TransitionProperty::All, stopping and returning
     /// true when the provided callback returns true for the first time.
-    pub fn any<F: FnMut(TransitionProperty) -> bool>(mut cb: F) -> bool {
+    pub fn any<F: FnMut(&TransitionProperty) -> bool>(mut cb: F) -> bool {
         % for prop in data.longhands:
             % if prop.animatable:
-                if cb(TransitionProperty::${prop.camel_case}) {
+                if cb(&TransitionProperty::${prop.camel_case}) {
                     return true;
                 }
             % endif
@@ -206,9 +206,9 @@ impl ToCss for TransitionProperty {
 /// Convert to nsCSSPropertyID.
 #[cfg(feature = "gecko")]
 #[allow(non_upper_case_globals)]
-impl From<TransitionProperty> for nsCSSPropertyID {
-    fn from(transition_property: TransitionProperty) -> nsCSSPropertyID {
-        match transition_property {
+impl<'a> From< &'a TransitionProperty> for nsCSSPropertyID {
+    fn from(transition_property: &'a TransitionProperty) -> nsCSSPropertyID {
+        match *transition_property {
             % for prop in data.longhands:
                 % if prop.animatable:
                     TransitionProperty::${prop.camel_case}
@@ -356,7 +356,7 @@ impl AnimatedProperty {
                     }
                 % endif
             % endfor
-            other => panic!("Can't use TransitionProperty::{:?} here", other),
+            ref other => panic!("Can't use TransitionProperty::{:?} here", other),
         }
     }
 }
@@ -544,7 +544,7 @@ impl AnimationValue {
                     }
                 % endif
             % endfor
-            other => panic!("Can't use TransitionProperty::{:?} here.", other),
+            ref other => panic!("Can't use TransitionProperty::{:?} here.", other),
         }
     }
 }

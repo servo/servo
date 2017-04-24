@@ -2149,7 +2149,7 @@ fn static_assert() {
             unsafe { self.gecko.mTransitions.ensure_len(v.0.len()) };
             self.gecko.mTransitionPropertyCount = v.0.len() as u32;
             for (servo, gecko) in v.0.into_iter().zip(self.gecko.mTransitions.iter_mut()) {
-                gecko.mProperty = servo.into();
+                gecko.mProperty = (&servo).into();
             }
         } else {
             // In gecko |none| is represented by eCSSPropertyExtra_no_properties.

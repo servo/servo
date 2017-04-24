@@ -811,7 +811,7 @@ impl<'le> TElement for GeckoElement<'le> {
                 continue;
             }
 
-            let mut property_check_helper = |property: TransitionProperty| -> bool {
+            let mut property_check_helper = |property: &TransitionProperty| -> bool {
                 if self.needs_transitions_update_per_property(property,
                                                               combined_duration,
                                                               before_change_style,
@@ -821,7 +821,9 @@ impl<'le> TElement for GeckoElement<'le> {
                 }
 
                 if let Some(set) = transitions_to_keep.as_mut() {
-                    set.insert(property);
+                    // The TransitionProperty here must be animatable, so cloning it is cheap
+                    // because it is an integer-like enum.
+                    set.insert(property.clone());
                 }
                 false
             };
@@ -835,12 +837,12 @@ impl<'le> TElement for GeckoElement<'le> {
                 });
                 if is_shorthand {
                     let shorthand: TransitionProperty = property.into();
-                    if shorthand.longhands().iter().any(|&p| property_check_helper(p)) {
+                    if shorthand.longhands().iter().any(|p| property_check_helper(p)) {
                         return true;
                     }
                 } else {
                     if animated_properties::nscsspropertyid_is_animatable(property) &&
-                       property_check_helper(property.into()) {
+                       property_check_helper(&property.into()) {
                         return true;
                     }
                 }
@@ -855,7 +857,7 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     fn needs_transitions_update_per_property(&self,
-                                             property: TransitionProperty,
+                                             property: &TransitionProperty,
                                              combined_duration: f32,
                                              before_change_style: &Arc<ComputedValues>,
                                              after_change_style: &Arc<ComputedValues>,
@@ -869,17 +871,17 @@ impl<'le> TElement for GeckoElement<'le> {
             return false;
         }
 
-        if existing_transitions.contains_key(&property) {
+        if existing_transitions.contains_key(property) {
             // If there is an existing transition, update only if the end value differs.
             // If the end value has not changed, we should leave the currently running
             // transition as-is since we don't want to interrupt its timing function.
             let after_value =
-                Arc::new(AnimationValue::from_computed_values(&property, after_change_style));
-            return existing_transitions.get(&property).unwrap() != &after_value;
+                Arc::new(AnimationValue::from_computed_values(property, after_change_style));
+            return existing_transitions.get(property).unwrap() != &after_value;
         }
 
         combined_duration > 0.0f32 &&
-        AnimatedProperty::from_transition_property(&property,
+        AnimatedProperty::from_transition_property(property,
                                                    before_change_style,
                                                    after_change_style).does_animate()
     }

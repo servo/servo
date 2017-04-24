@@ -259,8 +259,8 @@ fn get_animated_properties(keyframes: &[Arc<Locked<Keyframe>>], guard: &SharedRw
 
             if let Some(property) = TransitionProperty::from_declaration(declaration) {
                 if !seen.has_transition_property_bit(&property) {
-                    ret.push(property);
                     seen.set_transition_property_bit(&property);
+                    ret.push(property);
                 }
             }
         }
