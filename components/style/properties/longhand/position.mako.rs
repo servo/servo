@@ -179,7 +179,7 @@ ${helpers.predefined_type("flex-basis",
                 use std::fmt;
                 use style_traits::ToCss;
                 use values::HasViewportPercentage;
-                use values::specified::${MinMax}Length;
+                use values::specified::{AllowQuirks, ${MinMax}Length};
 
                 impl HasViewportPercentage for SpecifiedValue {
                     fn has_viewport_percentage(&self) -> bool {
@@ -201,7 +201,11 @@ ${helpers.predefined_type("flex-basis",
                     ${MinMax}Length::${initial}
                 }
                 fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+                    % if logical:
                     let ret = ${MinMax}Length::parse(context, input);
+                    % else:
+                    let ret = ${MinMax}Length::parse_quirky(context, input, AllowQuirks::Yes);
+                    % endif
                     // Keyword values don't make sense in the block direction; don't parse them
                     % if "block" in size:
                         if let Ok(${MinMax}Length::ExtremumLength(..)) = ret {
@@ -256,13 +260,17 @@ ${helpers.predefined_type("flex-basis",
                                   "computed::LengthOrPercentage::Length(Au(0))",
                                   "parse_non_negative",
                                   spec=spec % ("min-%s" % size),
-                                  animation_value_type="ComputedValue", logical = logical)}
+                                  animation_value_type="ComputedValue",
+                                  logical=logical,
+                                  allow_quirks=not logical)}
         ${helpers.predefined_type("max-%s" % size,
                                   "LengthOrPercentageOrNone",
                                   "computed::LengthOrPercentageOrNone::None",
                                   "parse_non_negative",
                                   spec=spec % ("min-%s" % size),
-                                  animation_value_type="ComputedValue", logical = logical)}
+                                  animation_value_type="ComputedValue",
+                                  logical=logical,
+                                  allow_quirks=not logical)}
     % endif
 % endfor
 

@@ -511,7 +511,7 @@ pub extern "C" fn Servo_StyleSheet_Empty(mode: SheetParsingMode) -> RawServoStyl
     Arc::new(Stylesheet::from_str(
         "", unsafe { dummy_url_data() }.clone(), origin,
         Arc::new(shared_lock.wrap(MediaList::empty())),
-        shared_lock, None, &RustLogReporter, QuirksMode::NoQuirks, Wh0u64)
+        shared_lock, None, &RustLogReporter, QuirksMode::NoQuirks, 0u64)
     ).into_strong()
 }
 
