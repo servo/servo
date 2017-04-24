@@ -18,7 +18,7 @@ use style::context::{ThreadLocalStyleContext, ThreadLocalStyleContextCreationInf
 use style::data::{ElementData, ElementStyles, RestyleData};
 use style::dom::{AnimationOnlyDirtyDescendants, DirtyDescendants};
 use style::dom::{ShowSubtreeData, TElement, TNode};
-use style::error_reporting::StdoutErrorReporter;
+use style::error_reporting::RustLogReporter;
 use style::font_metrics::get_metrics_provider_for_product;
 use style::gecko::data::{PerDocumentStyleData, PerDocumentStyleDataImpl};
 use style::gecko::global_style_data::{GLOBAL_STYLE_DATA, GlobalStyleData};
@@ -157,7 +157,7 @@ fn create_shared_context<'a>(global_style_data: &GlobalStyleData,
         running_animations: per_doc_data.running_animations.clone(),
         expired_animations: per_doc_data.expired_animations.clone(),
         // FIXME(emilio): Stop boxing here.
-        error_reporter: Box::new(StdoutErrorReporter),
+        error_reporter: Box::new(RustLogReporter),
         local_context_creation_data: Mutex::new(local_context_data),
         timer: Timer::new(),
         // FIXME Find the real QuirksMode information for this document
@@ -511,7 +511,7 @@ pub extern "C" fn Servo_StyleSheet_Empty(mode: SheetParsingMode) -> RawServoStyl
     Arc::new(Stylesheet::from_str(
         "", unsafe { dummy_url_data() }.clone(), origin,
         Arc::new(shared_lock.wrap(MediaList::empty())),
-        shared_lock, None, &StdoutErrorReporter, 0u64)
+        shared_lock, None, &RustLogReporter, 0u64)
     ).into_strong()
 }
 
@@ -554,7 +554,7 @@ pub extern "C" fn Servo_StyleSheet_FromUTF8Bytes(loader: *mut Loader,
 
     Arc::new(Stylesheet::from_str(
         input, url_data.clone(), origin, media,
-        shared_lock, loader, &StdoutErrorReporter, 0u64)
+        shared_lock, loader, &RustLogReporter, 0u64)
     ).into_strong()
 }
 
@@ -582,7 +582,7 @@ pub extern "C" fn Servo_StyleSheet_ClearAndUpdate(stylesheet: RawServoStyleSheet
 
     let sheet = Stylesheet::as_arc(&stylesheet);
     Stylesheet::update_from_str(&sheet, input, url_data,
-                                loader, &StdoutErrorReporter);
+                                loader, &RustLogReporter);
 }
 
 #[no_mangle]
@@ -1005,7 +1005,7 @@ pub extern "C" fn Servo_ParseProperty(property: nsCSSPropertyID, value: *const n
     let value = unsafe { value.as_ref().unwrap().as_str_unchecked() };
 
     let url_data = unsafe { RefPtr::from_ptr_ref(&data) };
-    let reporter = StdoutErrorReporter;
+    let reporter = RustLogReporter;
     let context = ParserContext::new(Origin::Author, url_data, &reporter,
                                      Some(CssRuleType::Style), LengthParsingMode::Default);
 
@@ -1028,7 +1028,7 @@ pub extern "C" fn Servo_ParseEasing(easing: *const nsAString,
     use style::properties::longhands::transition_timing_function;
 
     let url_data = unsafe { RefPtr::from_ptr_ref(&data) };
-    let reporter = StdoutErrorReporter;
+    let reporter = RustLogReporter;
     let context = ParserContext::new(Origin::Author, url_data, &reporter,
                                      Some(CssRuleType::Style), LengthParsingMode::Default);
     let easing = unsafe { (*easing).to_string() };
@@ -1170,7 +1170,7 @@ fn set_property(declarations: RawServoDeclarationBlockBorrowed, property_id: Pro
         structs::LengthParsingMode::Default => LengthParsingMode::Default,
         structs::LengthParsingMode::SVG => LengthParsingMode::SVG,
     };
-    if let Ok(parsed) = parse_one_declaration(property_id, value, url_data, &StdoutErrorReporter,
+    if let Ok(parsed) = parse_one_declaration(property_id, value, url_data, &RustLogReporter,
                                               length_parsing_mode) {
         let importance = if is_important { Importance::Important } else { Importance::Normal };
         write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
@@ -1263,7 +1263,7 @@ pub extern "C" fn Servo_MediaList_SetText(list: RawServoMediaListBorrowed, text:
     let text = unsafe { text.as_ref().unwrap().as_str_unchecked() };
     let mut parser = Parser::new(&text);
     let url_data = unsafe { dummy_url_data() };
-    let reporter = StdoutErrorReporter;
+    let reporter = RustLogReporter;
     let context = ParserContext::new_for_cssom(url_data, &reporter, Some(CssRuleType::Media),
                                                LengthParsingMode::Default);
      write_locked_arc(list, |list: &mut MediaList| {
@@ -1294,7 +1294,7 @@ pub extern "C" fn Servo_MediaList_AppendMedium(list: RawServoMediaListBorrowed,
                                                new_medium: *const nsACString) {
     let new_medium = unsafe { new_medium.as_ref().unwrap().as_str_unchecked() };
     let url_data = unsafe { dummy_url_data() };
-    let reporter = StdoutErrorReporter;
+    let reporter = RustLogReporter;
     let context = ParserContext::new_for_cssom(url_data, &reporter, Some(CssRuleType::Media),
                                                LengthParsingMode::Default);
     write_locked_arc(list, |list: &mut MediaList| {
@@ -1307,7 +1307,7 @@ pub extern "C" fn Servo_MediaList_DeleteMedium(list: RawServoMediaListBorrowed,
                                                old_medium: *const nsACString) -> bool {
     let old_medium = unsafe { old_medium.as_ref().unwrap().as_str_unchecked() };
     let url_data = unsafe { dummy_url_data() };
-    let reporter = StdoutErrorReporter;
+    let reporter = RustLogReporter;
     let context = ParserContext::new_for_cssom(url_data, &reporter, Some(CssRuleType::Media),
                                                LengthParsingMode::Default);
     write_locked_arc(list, |list: &mut MediaList| list.delete_medium(&context, old_medium))
@@ -1659,7 +1659,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetBackgroundImage(declarations:
 
     let url_data = unsafe { RefPtr::from_ptr_ref(&raw_extra_data) };
     let string = unsafe { (*value).to_string() };
-    let error_reporter = StdoutErrorReporter;
+    let error_reporter = RustLogReporter;
     let context = ParserContext::new(Origin::Author, url_data, &error_reporter,
                                      Some(CssRuleType::Style), LengthParsingMode::Default);
     if let Ok(url) = SpecifiedUrl::parse_from_string(string.into(), &context) {
@@ -1699,7 +1699,7 @@ pub extern "C" fn Servo_CSSSupports2(property: *const nsACString, value: *const 
     let value = unsafe { value.as_ref().unwrap().as_str_unchecked() };
 
     let url_data = unsafe { dummy_url_data() };
-    parse_one_declaration(id, &value, url_data, &StdoutErrorReporter, LengthParsingMode::Default).is_ok()
+    parse_one_declaration(id, &value, url_data, &RustLogReporter, LengthParsingMode::Default).is_ok()
 }
 
 #[no_mangle]
@@ -1709,7 +1709,7 @@ pub extern "C" fn Servo_CSSSupports(cond: *const nsACString) -> bool {
     let cond = parse_condition_or_declaration(&mut input);
     if let Ok(cond) = cond {
         let url_data = unsafe { dummy_url_data() };
-        let reporter = StdoutErrorReporter;
+        let reporter = RustLogReporter;
         let context = ParserContext::new_for_cssom(url_data, &reporter, Some(CssRuleType::Style),
                                                    LengthParsingMode::Default);
         cond.eval(&context)

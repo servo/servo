@@ -8,9 +8,9 @@
 
 use {Atom, Prefix, Namespace};
 use cssparser::{AtRuleParser, Parser, QualifiedRuleParser};
-use cssparser::{AtRuleType, RuleListParser, SourcePosition, Token, parse_one_rule};
+use cssparser::{AtRuleType, RuleListParser, Token, parse_one_rule};
 use cssparser::ToCss as ParserToCss;
-use error_reporting::ParseErrorReporter;
+use error_reporting::{ParseErrorReporter, NullReporter};
 #[cfg(feature = "servo")]
 use font_face::FontFaceRuleData;
 use font_face::parse_font_face_block;
@@ -321,20 +321,6 @@ pub enum CssRuleType {
     Viewport            = 15,
 }
 
-/// Error reporter which silently forgets errors
-pub struct MemoryHoleReporter;
-
-impl ParseErrorReporter for MemoryHoleReporter {
-    fn report_error(&self,
-            _: &mut Parser,
-            _: SourcePosition,
-            _: &str,
-            _: &UrlExtraData,
-            _: u64) {
-        // do nothing
-    }
-}
-
 #[allow(missing_docs)]
 pub enum SingleRuleParseError {
     Syntax,
@@ -418,7 +404,7 @@ impl CssRule {
                  state: Option<State>,
                  loader: Option<&StylesheetLoader>)
                  -> Result<(Self, State), SingleRuleParseError> {
-        let error_reporter = MemoryHoleReporter;
+        let error_reporter = NullReporter;
         let mut namespaces = parent_stylesheet.namespaces.write();
         let context = ParserContext::new(parent_stylesheet.origin,
                                          &parent_stylesheet.url_data,

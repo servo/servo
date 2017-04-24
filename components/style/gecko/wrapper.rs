@@ -21,7 +21,7 @@ use data::ElementData;
 use dom::{self, AnimationRules, DescendantsBit, LayoutIterator, NodeInfo, TElement, TNode, UnsafeNode};
 use dom::{OpaqueNode, PresentationalHintsSynthetizer};
 use element_state::ElementState;
-use error_reporting::StdoutErrorReporter;
+use error_reporting::RustLogReporter;
 use font_metrics::{FontMetricsProvider, FontMetricsQueryResult};
 use gecko::global_style_data::GLOBAL_STYLE_DATA;
 use gecko::selector_parser::{SelectorImpl, NonTSPseudoClass, PseudoElement};
@@ -324,7 +324,7 @@ impl<'le> GeckoElement<'le> {
     /// Parse the style attribute of an element.
     pub fn parse_style_attribute(value: &str,
                                  url_data: &UrlExtraData) -> PropertyDeclarationBlock {
-        parse_style_attribute(value, url_data, &StdoutErrorReporter)
+        parse_style_attribute(value, url_data, &RustLogReporter)
     }
 
     fn flags(&self) -> u32 {
