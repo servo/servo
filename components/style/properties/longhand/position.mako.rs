@@ -158,6 +158,7 @@ ${helpers.predefined_type("flex-basis",
                               "computed::LengthOrPercentageOrAuto::Auto",
                               "parse_non_negative",
                               spec=spec % size,
+                              allow_quirks=not logical,
                               animation_value_type="ComputedValue", logical = logical)}
     % if product == "gecko":
         % for min_max in ["min", "max"]:

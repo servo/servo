@@ -1360,7 +1360,16 @@ impl LengthOrPercentageOrAuto {
     /// Parse a non-negative length, percentage, or auto.
     #[inline]
     pub fn parse_non_negative(context: &ParserContext, input: &mut Parser) -> Result<LengthOrPercentageOrAuto, ()> {
-        Self::parse_internal(context, input, AllowedLengthType::NonNegative, AllowQuirks::No)
+        Self::parse_non_negative_quirky(context, input, AllowQuirks::No)
+    }
+
+    /// Parse a non-negative length, percentage, or auto.
+    #[inline]
+    pub fn parse_non_negative_quirky(context: &ParserContext,
+                                     input: &mut Parser,
+                                     allow_quirks: AllowQuirks)
+                                     -> Result<Self, ()> {
+        Self::parse_internal(context, input, AllowedLengthType::NonNegative, allow_quirks)
     }
 
     /// Returns the `auto` value.
