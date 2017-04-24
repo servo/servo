@@ -2389,6 +2389,23 @@ impl ComputeDistance for IntermediateRGBA {
     }
 }
 
+impl ComputeDistance for IntermediateColor {
+    #[inline]
+    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
+        self.compute_squared_distance(other).map(|sq| sq.sqrt())
+    }
+
+    #[inline]
+    fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
+        match (*self, *other) {
+            (IntermediateColor::IntermediateRGBA(ref this), IntermediateColor::IntermediateRGBA(ref other)) => {
+                this.compute_squared_distance(other)
+            },
+            _ => Ok(0.0),
+        }
+    }
+}
+
 impl ComputeDistance for CalcLengthOrPercentage {
     #[inline]
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
