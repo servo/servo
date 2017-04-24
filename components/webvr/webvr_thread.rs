@@ -12,6 +12,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, Sender};
 use webrender_traits;
+use webrender_traits::DeviceIntSize;
 use webvr_traits::{WebVRMsg, WebVRResult};
 use webvr_traits::webvr::*;
 
@@ -329,7 +330,7 @@ impl WebVRCompositorHandler {
 
 impl webrender_traits::VRCompositorHandler for WebVRCompositorHandler {
     #[allow(unsafe_code)]
-    fn handle(&mut self, cmd: webrender_traits::VRCompositorCommand, texture_id: Option<u32>) {
+    fn handle(&mut self, cmd: webrender_traits::VRCompositorCommand, texture: Option<(u32, DeviceIntSize)>) {
         match cmd {
             webrender_traits::VRCompositorCommand::Create(compositor_id) => {
                 self.create_compositor(compositor_id);
@@ -347,12 +348,12 @@ impl webrender_traits::VRCompositorHandler for WebVRCompositorHandler {
             }
             webrender_traits::VRCompositorCommand::SubmitFrame(compositor_id, left_bounds, right_bounds) => {
                 if let Some(compositor) = self.compositors.get(&compositor_id) {
-                    if let Some(texture_id) = texture_id {
+                    if let Some((texture_id, size)) = texture {
                         let layer = VRLayer {
                             texture_id: texture_id,
                             left_bounds: left_bounds,
                             right_bounds: right_bounds,
-                            texture_size: None
+                            texture_size: Some((size.width as u32, size.height as u32))
                         };
                         unsafe {
                             (*compositor.0).submit_frame(&layer);
