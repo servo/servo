@@ -17,11 +17,12 @@ ${helpers.four_sides_shorthand("border-style", "border-%s-style",
                  for side in PHYSICAL_SIDES)}"
     spec="https://drafts.csswg.org/css-backgrounds/#border-width">
     use super::parse_four_sides;
-    use parser::Parse;
-    use values::specified;
+    use values::specified::{AllowQuirks, BorderWidth};
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
-        let (top, right, bottom, left) = try!(parse_four_sides(input, |i| specified::BorderWidth::parse(context, i)));
+        let (top, right, bottom, left) = try!(parse_four_sides(input, |i| {
+            BorderWidth::parse_quirky(context, i, AllowQuirks::Yes)
+        }));
         Ok(Longhands {
             % for side in PHYSICAL_SIDES:
                 ${to_rust_ident('border-%s-width' % side)}: ${side},
