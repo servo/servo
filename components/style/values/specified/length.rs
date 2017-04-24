@@ -618,7 +618,17 @@ impl Length {
 
 impl Parse for Length {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        Self::parse_internal(context, input, AllowedLengthType::All, AllowQuirks::No)
+        Self::parse_quirky(context, input, AllowQuirks::No)
+    }
+}
+
+impl Length {
+    /// Parses a length, with quirks.
+    pub fn parse_quirky(context: &ParserContext,
+                        input: &mut Parser,
+                        allow_quirks: AllowQuirks)
+                        -> Result<Self, ()> {
+        Self::parse_internal(context, input, AllowedLengthType::All, allow_quirks)
     }
 }
 

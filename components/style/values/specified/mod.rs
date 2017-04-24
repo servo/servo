@@ -1291,13 +1291,13 @@ impl ToComputedValue for ClipRect {
 
 impl Parse for ClipRect {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        use values::specified::Length;
+        use values::specified::{AllowQuirks, Length};
 
         fn parse_argument(context: &ParserContext, input: &mut Parser) -> Result<Option<Length>, ()> {
             if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
                 Ok(None)
             } else {
-                Length::parse(context, input).map(Some)
+                Length::parse_quirky(context, input, AllowQuirks::Yes).map(Some)
             }
         }
 
