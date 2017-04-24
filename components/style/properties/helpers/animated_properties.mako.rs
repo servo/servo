@@ -134,7 +134,7 @@ impl TransitionProperty {
     pub fn is_discrete(&self) -> bool {
         match *self {
             % for prop in data.longhands:
-                % if prop.animation_type == "discrete":
+                % if prop.animation_value_type == "discrete":
                     TransitionProperty::${prop.camel_case} => true,
                 % endif
             % endfor
@@ -324,7 +324,7 @@ impl AnimatedProperty {
                 % if prop.animatable:
                     AnimatedProperty::${prop.camel_case}(ref from, ref to) => {
                         // https://w3c.github.io/web-animations/#discrete-animation-type
-                        % if prop.animation_type == "discrete":
+                        % if prop.animation_value_type == "discrete":
                             let value = if progress < 0.5 { *from } else { *to };
                         % else:
                             let value = match from.interpolate(to, progress) {
@@ -531,7 +531,7 @@ impl Interpolate for AnimationValue {
                     (&AnimationValue::${prop.camel_case}(ref from),
                      &AnimationValue::${prop.camel_case}(ref to)) => {
                         // https://w3c.github.io/web-animations/#discrete-animation-type
-                        % if prop.animation_type == "discrete":
+                        % if prop.animation_value_type == "discrete":
                             if progress < 0.5 {
                                 Ok(AnimationValue::${prop.camel_case}(*from))
                             } else {
@@ -2100,7 +2100,7 @@ impl ComputeDistance for AnimationValue {
         match (self, other) {
             % for prop in data.longhands:
                 % if prop.animatable:
-                    % if prop.animation_type == "normal":
+                    % if prop.animation_value_type == "normal":
                         (&AnimationValue::${prop.camel_case}(ref from),
                          &AnimationValue::${prop.camel_case}(ref to)) => {
                             from.compute_distance(to)

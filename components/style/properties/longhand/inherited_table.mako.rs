@@ -8,19 +8,19 @@
 
 ${helpers.single_keyword("border-collapse", "separate collapse",
                          gecko_constant_prefix="NS_STYLE_BORDER",
-                         animation_type="none",
+                         animation_value_type="none",
                          spec="https://drafts.csswg.org/css-tables/#propdef-border-collapse")}
 ${helpers.single_keyword("empty-cells", "show hide",
                          gecko_constant_prefix="NS_STYLE_TABLE_EMPTY_CELLS",
-                         animation_type="none",
+                         animation_value_type="none",
                          spec="https://drafts.csswg.org/css-tables/#propdef-empty-cells")}
 ${helpers.single_keyword("caption-side", "top bottom",
                          extra_gecko_values="right left top-outside bottom-outside",
                          needs_conversion="True",
-                         animation_type="none",
+                         animation_value_type="none",
                          spec="https://drafts.csswg.org/css-tables/#propdef-caption-side")}
 
-<%helpers:longhand name="border-spacing" animation_type="none" boxed="True"
+<%helpers:longhand name="border-spacing" animation_value_type="none" boxed="True"
                    spec="https://drafts.csswg.org/css-tables/#propdef-border-spacing">
     use app_units::Au;
     use std::fmt;

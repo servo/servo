@@ -6,7 +6,7 @@
 
 <% data.new_style_struct("List", inherited=True) %>
 
-${helpers.single_keyword("list-style-position", "outside inside", animation_type="none",
+${helpers.single_keyword("list-style-position", "outside inside", animation_value_type="none",
                          spec="https://drafts.csswg.org/css-lists/#propdef-list-style-position")}
 
 // TODO(pcwalton): Implement the full set of counter styles per CSS-COUNTER-STYLES [1] 6.1:
@@ -34,14 +34,14 @@ ${helpers.single_keyword("list-style-type", """
     """,
     gecko_constant_prefix="NS_STYLE_LIST_STYLE",
     needs_conversion="True",
-    animation_type="none",
+    animation_value_type="none",
     spec="https://drafts.csswg.org/css-lists/#propdef-list-style-type")}
 
 ${helpers.predefined_type("list-style-image", "UrlOrNone", "Either::Second(None_)",
-                          initial_specified_value="Either::Second(None_)", animation_type="none",
+                          initial_specified_value="Either::Second(None_)", animation_value_type="none",
                           spec="https://drafts.csswg.org/css-lists/#propdef-list-style-image")}
 
-<%helpers:longhand name="quotes" animation_type="none"
+<%helpers:longhand name="quotes" animation_value_type="none"
                    spec="https://drafts.csswg.org/css-content/#propdef-quotes">
     use cssparser::Token;
     use std::borrow::Cow;
@@ -118,7 +118,7 @@ ${helpers.predefined_type("list-style-image", "UrlOrNone", "Either::Second(None_
 ${helpers.predefined_type("-moz-image-region",
                           "ClipRectOrAuto",
                           "computed::ClipRectOrAuto::auto()",
-                          animation_type="none",
+                          animation_value_type="none",
                           products="gecko",
                           boxed="True",
                           spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-image-region)")}
