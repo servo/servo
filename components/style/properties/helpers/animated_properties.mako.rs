@@ -2041,6 +2041,58 @@ impl<T, U> Interpolate for Either<T, U>
     }
 }
 
+#[derive(Copy, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+/// Unlike RGBA, each component value may exceed the range [0.0, 1.0].
+pub struct IntermediateRGBA {
+    /// The red component.
+    pub red: f32,
+    /// The green component.
+    pub green: f32,
+    /// The blue component.
+    pub blue: f32,
+    /// The alpha component.
+    pub alpha: f32,
+}
+
+impl IntermediateRGBA {
+    /// Returns a transparent color.
+    #[inline]
+    pub fn transparent() -> Self {
+        Self::new(0., 0., 0., 0.)
+    }
+
+    /// Returns a new color.
+    #[inline]
+    pub fn new(red: f32, green: f32, blue: f32, alpha: f32) -> Self {
+        IntermediateRGBA { red: red, green: green, blue: blue, alpha: alpha }
+    }
+}
+
+/// Unlike Interpolate for RGBA we don't clamp any component values.
+impl Interpolate for IntermediateRGBA {
+    #[inline]
+    fn interpolate(&self, other: &IntermediateRGBA, progress: f64) -> Result<Self, ()> {
+        let alpha = try!(self.alpha.interpolate(&other.alpha, progress));
+        if alpha == 0. {
+            // Ideally we should return color value that only alpha component is
+            // 0, but this is what current gecko does.
+            Ok(IntermediateRGBA::transparent())
+        } else {
+            let red = try!((self.red * self.alpha)
+                            .interpolate(&(other.red * other.alpha), progress))
+                            * 1. / alpha;
+            let green = try!((self.green * self.alpha)
+                             .interpolate(&(other.green * other.alpha), progress))
+                             * 1. / alpha;
+            let blue = try!((self.blue * self.alpha)
+                             .interpolate(&(other.blue * other.alpha), progress))
+                             * 1. / alpha;
+            Ok(IntermediateRGBA::new(red, green, blue, alpha))
+        }
+    }
+}
+
 
 /// We support ComputeDistance for an API in gecko to test the transition per property.
 impl ComputeDistance for AnimationValue {
