@@ -235,8 +235,12 @@ impl ToCss for NonTSPseudoClass {
                     $(NonTSPseudoClass::$s_name(ref s) => {
                         write!(dest, ":{}(", $s_css)?;
                         {
+                            // FIXME(emilio): Avoid the extra allocation!
                             let mut css = CssStringWriter::new(dest);
-                            css.write_str(&String::from_utf16(&s).unwrap())?;
+
+                            // Discount the null char in the end from the
+                            // string.
+                            css.write_str(&String::from_utf16(&s[..s.len() - 1]).unwrap())?;
                         }
                         return dest.write_str(")")
                     }, )*
