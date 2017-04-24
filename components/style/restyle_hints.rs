@@ -420,11 +420,17 @@ fn is_attr_selector(sel: &Component<SelectorImpl>) -> bool {
 /// Whether a selector containing this simple selector needs to be explicitly
 /// matched against both the style sharing cache entry and the candidate.
 ///
-///
 /// We use this for selectors that can have different matching behavior between
 /// siblings that are otherwise identical as far as the cache is concerned.
 fn needs_cache_revalidation(sel: &Component<SelectorImpl>) -> bool {
     match *sel {
+        Component::AttrExists(_) |
+        Component::AttrEqual(_, _, _) |
+        Component::AttrIncludes(_, _) |
+        Component::AttrDashMatch(_, _) |
+        Component::AttrPrefixMatch(_, _) |
+        Component::AttrSubstringMatch(_, _) |
+        Component::AttrSuffixMatch(_, _) |
         Component::Empty |
         Component::FirstChild |
         Component::LastChild |
@@ -529,7 +535,6 @@ impl SelectorVisitor for SensitivitiesVisitor {
 
         if !self.sensitivities.attrs {
             self.sensitivities.attrs = is_attr_selector(s);
-            self.needs_revalidation = true;
         }
 
         if !self.needs_revalidation {
