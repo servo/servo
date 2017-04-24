@@ -2709,7 +2709,7 @@ impl ComputeDistance for TextShadowList {
     }
 }
 
-impl ComputeDistance for BoxShadow {
+impl ComputeDistance for IntermediateBoxShadow {
     #[inline]
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
         self.compute_squared_distance(other).map(|sd| sd.sqrt())
@@ -2729,7 +2729,7 @@ impl ComputeDistance for BoxShadow {
     }
 }
 
-impl ComputeDistance for BoxShadowList {
+impl ComputeDistance for IntermediateBoxShadowList {
     #[inline]
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
         self.compute_squared_distance(other).map(|sd| sd.sqrt())
@@ -2738,12 +2738,12 @@ impl ComputeDistance for BoxShadowList {
     #[inline]
     fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
         // The inset value must change
-        let mut zero = BoxShadow {
+        let mut zero = IntermediateBoxShadow {
             offset_x: Au(0),
             offset_y: Au(0),
             spread_radius: Au(0),
             blur_radius: Au(0),
-            color: CSSParserColor::RGBA(RGBA::transparent()),
+            color: IntermediateColor::IntermediateRGBA(IntermediateRGBA::transparent()),
             inset: false,
         };
 
