@@ -51,7 +51,7 @@ use webrender_traits;
 use webrender_traits::{WebGLCommand, WebGLError, WebGLFramebufferBindingRequest, WebGLParameter};
 use webrender_traits::WebGLError::*;
 
-type ImagePixelResult = Result<(Vec<u8>, Size2D<i32>), ()>;
+type ImagePixelResult = Result<(Vec<u8>, Size2D<i32>, bool), ()>;
 pub const MAX_UNIFORM_AND_ATTRIBUTE_LEN: usize = 256;
 
 macro_rules! handle_potential_webgl_error {
@@ -389,8 +389,17 @@ impl WebGLRenderingContext {
 
         match (format, data_type) {
             (TexFormat::RGBA, TexDataType::UnsignedByte) => pixels,
-            (TexFormat::RGB, TexDataType::UnsignedByte) => pixels,
-
+            (TexFormat::RGB, TexDataType::UnsignedByte) => {
+                // Remove alpha channel
+                let pixel_count = pixels.len() / 4;
+                let mut rgb8 = Vec::<u8>::with_capacity(pixel_count * 3);
+                for rgba8 in pixels.chunks(4) {
+                    rgb8.push(rgba8[0]);
+                    rgb8.push(rgba8[1]);
+                    rgb8.push(rgba8[2]);
+                }
+                rgb8
+            },
             (TexFormat::RGBA, TexDataType::UnsignedShort4444) => {
                 let mut rgba4 = Vec::<u8>::with_capacity(pixel_count * 2);
                 for rgba8 in pixels.chunks(4) {
@@ -443,9 +452,9 @@ impl WebGLRenderingContext {
         //
         // Nontheless, since it's the error case, I'm not totally sure the
         // complexity is worth it.
-        let (pixels, size) = match source {
+        let (pixels, size, premultiplied) = match source {
             ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement::ImageData(image_data) => {
-                (image_data.get_data_array(), image_data.get_size())
+                (image_data.get_data_array(), image_data.get_size(), false)
             },
             ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement::HTMLImageElement(image) => {
                 let img_url = match image.get_url() {
@@ -472,7 +481,7 @@ impl WebGLRenderingContext {
 
                 byte_swap(&mut data);
 
-                (data, size)
+                (data, size, false)
             },
             // TODO(emilio): Getting canvas data is implemented in CanvasRenderingContext2D,
             // but we need to refactor it moving it to `HTMLCanvasElement` and support
@@ -480,7 +489,8 @@ impl WebGLRenderingContext {
             ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement::HTMLCanvasElement(canvas) => {
                 if let Some((mut data, size)) = canvas.fetch_all_data() {
                     byte_swap(&mut data);
-                    (data, size)
+                    // Pixels got from Canvas have already alpha premultiplied
+                    (data, size, true)
                 } else {
                     return Err(());
                 }
@@ -489,7 +499,7 @@ impl WebGLRenderingContext {
                 => unimplemented!(),
         };
 
-        return Ok((pixels, size));
+        return Ok((pixels, size, premultiplied));
     }
 
     // TODO(emilio): Move this logic to a validator.
@@ -644,6 +654,51 @@ impl WebGLRenderingContext {
         }
     }
 
+    // Remove premultiplied alpha.
+    // This is only called when texImage2D is called using a canvas2d source and
+    // UNPACK_PREMULTIPLY_ALPHA_WEBGL is disabled. Pixels got from a canvas2D source
+    // are always RGBA8 with premultiplied alpha, so we don't have to worry about
+    // additional formats as happens in the premultiply_pixels method.
+    fn remove_premultiplied_alpha(&self, mut pixels: Vec<u8>) -> Vec<u8> {
+        for rgba in pixels.chunks_mut(4) {
+            let a = (rgba[3] as f32) / 255.0;
+            rgba[0] = (rgba[0] as f32 / a) as u8;
+            rgba[1] = (rgba[1] as f32 / a) as u8;
+            rgba[2] = (rgba[2] as f32 / a) as u8;
+        }
+        pixels
+    }
+
+    fn prepare_pixels(&self,
+                      internal_format: TexFormat,
+                      data_type: TexDataType,
+                      width: u32,
+                      height: u32,
+                      unpacking_alignment: u32,
+                      source_premultiplied: bool,
+                      source_from_image_or_canvas: bool,
+                      mut pixels: Vec<u8>) -> Vec<u8> {
+        let dest_premultiply = self.texture_unpacking_settings.get().contains(PREMULTIPLY_ALPHA);
+        if !source_premultiplied && dest_premultiply {
+            if source_from_image_or_canvas {
+                // When the pixels come from image or canvas or imagedata, use RGBA8 format
+                pixels = self.premultiply_pixels(TexFormat::RGBA, TexDataType::UnsignedByte, pixels);
+            } else {
+                pixels = self.premultiply_pixels(internal_format, data_type, pixels);
+            }
+        } else if source_premultiplied && !dest_premultiply {
+            pixels = self.remove_premultiplied_alpha(pixels);
+        }
+
+        if source_from_image_or_canvas {
+            pixels = self.rgba8_image_to_tex_image_data(internal_format, data_type, pixels);
+        }
+
+        // FINISHME: Consider doing premultiply and flip in a single mutable Vec.
+        self.flip_teximage_y(pixels, internal_format, data_type,
+                             width as usize, height as usize, unpacking_alignment as usize)
+    }
+
     fn tex_image_2d(&self,
                     texture: Root<WebGLTexture>,
                     target: TexImageTarget,
@@ -655,11 +710,6 @@ impl WebGLRenderingContext {
                     _border: u32,
                     unpacking_alignment: u32,
                     pixels: Vec<u8>) { // NB: pixels should NOT be premultipied
-        // FINISHME: Consider doing premultiply and flip in a single mutable Vec.
-        let pixels = self.premultiply_pixels(internal_format, data_type, pixels);
-
-        let pixels = self.flip_teximage_y(pixels, internal_format, data_type,
-                                          width as usize, height as usize, unpacking_alignment as usize);
 
         // TexImage2D depth is always equal to 1
         handle_potential_webgl_error!(self, texture.initialize(target,
@@ -705,7 +755,7 @@ impl WebGLRenderingContext {
                         format: TexFormat,
                         data_type: TexDataType,
                         unpacking_alignment: u32,
-                        pixels: Vec<u8>) {  // NB: pixels should NOT be premultipied
+                        pixels: Vec<u8>) {
         // We have already validated level
         let image_info = texture.image_info_for_target(&target, level);
 
@@ -723,12 +773,6 @@ impl WebGLRenderingContext {
             data_type != image_info.data_type().unwrap() {
             return self.webgl_error(InvalidOperation);
         }
-
-        // FINISHME: Consider doing premultiply and flip in a single mutable Vec.
-        let pixels = self.premultiply_pixels(format, data_type, pixels);
-
-        let pixels = self.flip_teximage_y(pixels, format, data_type,
-                                          width as usize, height as usize, unpacking_alignment as usize);
 
         // Set the unpack alignment.  For textures coming from arrays,
         // this will be the current value of the context's
@@ -2841,8 +2885,11 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return Ok(self.webgl_error(InvalidOperation));
         }
 
+        let pixels = self.prepare_pixels(format, data_type, width, height,
+                                         unpacking_alignment, false, false, buff);
+
         self.tex_image_2d(texture, target, data_type, format,
-                          level, width, height, border, unpacking_alignment, buff);
+                          level, width, height, border, unpacking_alignment, pixels);
 
         Ok(())
     }
@@ -2856,8 +2903,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                    data_type: u32,
                    source: Option<ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement>) -> Fallible<()> {
         // Get pixels from image source
-        let (pixels, size) = match self.get_image_pixels(source) {
-            Ok((pixels, size)) => (pixels, size),
+        let (pixels, size, premultiplied) = match self.get_image_pixels(source) {
+            Ok((pixels, size, premultiplied)) => (pixels, size, premultiplied),
             Err(_) => return Ok(()),
         };
 
@@ -2880,7 +2927,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             Err(_) => return Ok(()), // NB: The validator sets the correct error for us.
         };
 
-        let pixels = self.rgba8_image_to_tex_image_data(format, data_type, pixels);
+        let unpacking_alignment = 1;
+        let pixels = self.prepare_pixels(format, data_type, width, height,
+                                         unpacking_alignment, premultiplied, true, pixels);
 
         self.tex_image_2d(texture, target, data_type, format,
                           level, width, height, border, 1, pixels);
@@ -2951,8 +3000,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return Ok(self.webgl_error(InvalidOperation));
         }
 
+        let unpacking_alignment = self.texture_unpacking_alignment.get();
+        let pixels = self.prepare_pixels(format, data_type, width, height,
+                                         unpacking_alignment, false, false, buff);
+
         self.tex_sub_image_2d(texture, target, level, xoffset, yoffset,
-                              width, height, format, data_type, unpacking_alignment, buff);
+                              width, height, format, data_type, unpacking_alignment, pixels);
         Ok(())
     }
 
@@ -2966,8 +3019,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                       data_type: u32,
                       source: Option<ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement>)
                       -> Fallible<()> {
-        let (pixels, size) = match self.get_image_pixels(source) {
-            Ok((pixels, size)) => (pixels, size),
+        let (pixels, size, premultiplied) = match self.get_image_pixels(source) {
+            Ok((pixels, size, premultiplied)) => (pixels, size, premultiplied),
             Err(_) => return Ok(()),
         };
 
@@ -2988,7 +3041,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             Err(_) => return Ok(()), // NB: The validator sets the correct error for us.
         };
 
-        let pixels = self.rgba8_image_to_tex_image_data(format, data_type, pixels);
+        let unpacking_alignment = 1;
+        let pixels = self.prepare_pixels(format, data_type, width, height,
+                                         unpacking_alignment, premultiplied, true, pixels);
 
         self.tex_sub_image_2d(texture, target, level, xoffset, yoffset,
                               width, height, format, data_type, 1, pixels);
