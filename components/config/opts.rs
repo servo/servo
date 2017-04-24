@@ -657,11 +657,10 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     }
 
     let cwd = env::current_dir().unwrap();
-    let homepage_pref = PREFS.get("shell.homepage");
     let url_opt = if !opt_match.free.is_empty() {
         Some(&opt_match.free[0][..])
     } else {
-        homepage_pref.as_string()
+        None
     };
     let is_running_problem_test =
         url_opt
