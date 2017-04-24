@@ -184,7 +184,8 @@ ${helpers.predefined_type("text-indent",
                           "LengthOrPercentage",
                           "computed::LengthOrPercentage::Length(Au(0))",
                           animation_value_type="ComputedValue",
-                          spec="https://drafts.csswg.org/css-text/#propdef-text-indent")}
+                          spec="https://drafts.csswg.org/css-text/#propdef-text-indent",
+                          allow_quirks=True)}
 
 // Also known as "word-wrap" (which is more popular because of IE), but this is the preferred
 // name per CSS-TEXT 6.2.
