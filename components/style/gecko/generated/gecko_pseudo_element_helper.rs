@@ -30,251 +30,334 @@
 {
     pseudo_element!(":after",
                     atom!(":after"),
+                    false,
                     false);
     pseudo_element!(":before",
                     atom!(":before"),
+                    false,
                     false);
     pseudo_element!(":backdrop",
                     atom!(":backdrop"),
+                    false,
                     false);
     pseudo_element!(":cue",
                     atom!(":cue"),
+                    false,
                     false);
     pseudo_element!(":first-letter",
                     atom!(":first-letter"),
+                    false,
                     false);
     pseudo_element!(":first-line",
                     atom!(":first-line"),
+                    false,
                     false);
     pseudo_element!(":-moz-selection",
                     atom!(":-moz-selection"),
+                    false,
                     false);
     pseudo_element!(":-moz-focus-inner",
                     atom!(":-moz-focus-inner"),
+                    false,
                     false);
     pseudo_element!(":-moz-focus-outer",
                     atom!(":-moz-focus-outer"),
+                    false,
                     false);
     pseudo_element!(":-moz-list-bullet",
                     atom!(":-moz-list-bullet"),
+                    false,
                     false);
     pseudo_element!(":-moz-list-number",
                     atom!(":-moz-list-number"),
+                    false,
                     false);
     pseudo_element!(":-moz-math-anonymous",
                     atom!(":-moz-math-anonymous"),
+                    false,
                     false);
     pseudo_element!(":-moz-number-wrapper",
                     atom!(":-moz-number-wrapper"),
+                    false,
                     false);
     pseudo_element!(":-moz-number-text",
                     atom!(":-moz-number-text"),
+                    false,
                     false);
     pseudo_element!(":-moz-number-spin-box",
                     atom!(":-moz-number-spin-box"),
+                    false,
                     false);
     pseudo_element!(":-moz-number-spin-up",
                     atom!(":-moz-number-spin-up"),
+                    false,
                     false);
     pseudo_element!(":-moz-number-spin-down",
                     atom!(":-moz-number-spin-down"),
+                    false,
                     false);
     pseudo_element!(":-moz-progress-bar",
                     atom!(":-moz-progress-bar"),
+                    false,
                     false);
     pseudo_element!(":-moz-range-track",
                     atom!(":-moz-range-track"),
+                    false,
                     false);
     pseudo_element!(":-moz-range-progress",
                     atom!(":-moz-range-progress"),
+                    false,
                     false);
     pseudo_element!(":-moz-range-thumb",
                     atom!(":-moz-range-thumb"),
+                    false,
                     false);
     pseudo_element!(":-moz-meter-bar",
                     atom!(":-moz-meter-bar"),
+                    false,
                     false);
     pseudo_element!(":-moz-placeholder",
                     atom!(":-moz-placeholder"),
+                    false,
                     false);
     pseudo_element!(":placeholder",
                     atom!(":placeholder"),
+                    false,
                     false);
     pseudo_element!(":-moz-color-swatch",
                     atom!(":-moz-color-swatch"),
+                    false,
                     false);
     pseudo_element!(":-moz-text",
                     atom!(":-moz-text"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-oof-placeholder",
                     atom!(":-moz-oof-placeholder"),
+                    true,
                     true);
     pseudo_element!(":-moz-first-letter-continuation",
                     atom!(":-moz-first-letter-continuation"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-block-inside-inline-wrapper",
                     atom!(":-moz-block-inside-inline-wrapper"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-mathml-anonymous-block",
                     atom!(":-moz-mathml-anonymous-block"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-xul-anonymous-block",
                     atom!(":-moz-xul-anonymous-block"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-hframeset-border",
                     atom!(":-moz-hframeset-border"),
+                    true,
                     true);
     pseudo_element!(":-moz-vframeset-border",
                     atom!(":-moz-vframeset-border"),
+                    true,
                     true);
     pseudo_element!(":-moz-line-frame",
                     atom!(":-moz-line-frame"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-button-content",
                     atom!(":-moz-button-content"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-cell-content",
                     atom!(":-moz-cell-content"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-dropdown-list",
                     atom!(":-moz-dropdown-list"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-fieldset-content",
                     atom!(":-moz-fieldset-content"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-frameset-blank",
                     atom!(":-moz-frameset-blank"),
+                    true,
                     true);
     pseudo_element!(":-moz-display-comboboxcontrol-frame",
                     atom!(":-moz-display-comboboxcontrol-frame"),
+                    true,
                     true);
     pseudo_element!(":-moz-html-canvas-content",
                     atom!(":-moz-html-canvas-content"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-inline-table",
                     atom!(":-moz-inline-table"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-table",
                     atom!(":-moz-table"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-table-cell",
                     atom!(":-moz-table-cell"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-table-column-group",
                     atom!(":-moz-table-column-group"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-table-column",
                     atom!(":-moz-table-column"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-table-wrapper",
                     atom!(":-moz-table-wrapper"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-table-row-group",
                     atom!(":-moz-table-row-group"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-table-row",
                     atom!(":-moz-table-row"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-canvas",
                     atom!(":-moz-canvas"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-pagebreak",
                     atom!(":-moz-pagebreak"),
+                    true,
                     true);
     pseudo_element!(":-moz-page",
                     atom!(":-moz-page"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-pagecontent",
                     atom!(":-moz-pagecontent"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-page-sequence",
                     atom!(":-moz-page-sequence"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-scrolled-content",
                     atom!(":-moz-scrolled-content"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-scrolled-canvas",
                     atom!(":-moz-scrolled-canvas"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-scrolled-page-sequence",
                     atom!(":-moz-scrolled-page-sequence"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-column-content",
                     atom!(":-moz-column-content"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-viewport",
                     atom!(":-moz-viewport"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-viewport-scroll",
                     atom!(":-moz-viewport-scroll"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-anonymous-flex-item",
                     atom!(":-moz-anonymous-flex-item"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-anonymous-grid-item",
                     atom!(":-moz-anonymous-grid-item"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-ruby",
                     atom!(":-moz-ruby"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-ruby-base",
                     atom!(":-moz-ruby-base"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-ruby-base-container",
                     atom!(":-moz-ruby-base-container"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-ruby-text",
                     atom!(":-moz-ruby-text"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-ruby-text-container",
                     atom!(":-moz-ruby-text-container"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-tree-column",
                     atom!(":-moz-tree-column"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-tree-row",
                     atom!(":-moz-tree-row"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-tree-separator",
                     atom!(":-moz-tree-separator"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-tree-cell",
                     atom!(":-moz-tree-cell"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-tree-indentation",
                     atom!(":-moz-tree-indentation"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-tree-line",
                     atom!(":-moz-tree-line"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-tree-twisty",
                     atom!(":-moz-tree-twisty"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-tree-image",
                     atom!(":-moz-tree-image"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-tree-cell-text",
                     atom!(":-moz-tree-cell-text"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-tree-checkbox",
                     atom!(":-moz-tree-checkbox"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-tree-progressmeter",
                     atom!(":-moz-tree-progressmeter"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-tree-drop-feedback",
                     atom!(":-moz-tree-drop-feedback"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-svg-marker-anon-child",
                     atom!(":-moz-svg-marker-anon-child"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-svg-outer-svg-anon-child",
                     atom!(":-moz-svg-outer-svg-anon-child"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-svg-foreign-content",
                     atom!(":-moz-svg-foreign-content"),
-                    true);
+                    true,
+                    false);
     pseudo_element!(":-moz-svg-text",
                     atom!(":-moz-svg-text"),
-                    true);
+                    true,
+                    false);
 }
