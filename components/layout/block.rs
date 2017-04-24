@@ -325,22 +325,20 @@ impl CandidateBSizeIterator {
             (LengthOrPercentageOrAuto::Percentage(percent), Some(block_container_block_size)) => {
                 MaybeAuto::Specified(block_container_block_size.scale_by(percent))
             }
-            (LengthOrPercentageOrAuto::Calc(calc), Some(block_container_block_size)) => {
-                MaybeAuto::Specified(calc.length() + block_container_block_size.scale_by(calc.percentage()))
+            (LengthOrPercentageOrAuto::Calc(calc), _) => {
+                MaybeAuto::from_option(calc.to_computed(block_container_block_size))
             }
             (LengthOrPercentageOrAuto::Percentage(_), None) |
-            (LengthOrPercentageOrAuto::Auto, _) |
-            (LengthOrPercentageOrAuto::Calc(_), _) => MaybeAuto::Auto,
+            (LengthOrPercentageOrAuto::Auto, _) => MaybeAuto::Auto,
             (LengthOrPercentageOrAuto::Length(length), _) => MaybeAuto::Specified(length),
         };
         let max_block_size = match (fragment.style.max_block_size(), block_container_block_size) {
             (LengthOrPercentageOrNone::Percentage(percent), Some(block_container_block_size)) => {
                 Some(block_container_block_size.scale_by(percent))
             }
-            (LengthOrPercentageOrNone::Calc(calc), Some(block_container_block_size)) => {
-                Some(block_container_block_size.scale_by(calc.percentage()) + calc.length())
+            (LengthOrPercentageOrNone::Calc(calc), _) => {
+                calc.to_computed(block_container_block_size)
             }
-            (LengthOrPercentageOrNone::Calc(_), _) |
             (LengthOrPercentageOrNone::Percentage(_), None) |
             (LengthOrPercentageOrNone::None, _) => None,
             (LengthOrPercentageOrNone::Length(length), _) => Some(length),
@@ -349,10 +347,9 @@ impl CandidateBSizeIterator {
             (LengthOrPercentage::Percentage(percent), Some(block_container_block_size)) => {
                 block_container_block_size.scale_by(percent)
             }
-            (LengthOrPercentage::Calc(calc), Some(block_container_block_size)) => {
-                calc.length() + block_container_block_size.scale_by(calc.percentage())
+            (LengthOrPercentage::Calc(calc), _) => {
+                calc.to_computed(block_container_block_size).unwrap_or(Au(0))
             }
-            (LengthOrPercentage::Calc(calc), None) => calc.length(),
             (LengthOrPercentage::Percentage(_), None) => Au(0),
             (LengthOrPercentage::Length(length), _) => length,
         };
@@ -1169,15 +1166,14 @@ impl BlockFlow {
         let content_block_size = self.fragment.style().content_block_size();
 
         match (content_block_size, containing_block_size) {
-            (LengthOrPercentageOrAuto::Calc(calc), Some(container_size)) => {
-                Some(container_size.scale_by(calc.percentage()) + calc.length())
+            (LengthOrPercentageOrAuto::Calc(calc), _) => {
+                calc.to_computed(containing_block_size)
             }
             (LengthOrPercentageOrAuto::Length(length), _) => Some(length),
             (LengthOrPercentageOrAuto::Percentage(percent), Some(container_size)) => {
                 Some(container_size.scale_by(percent))
             }
             (LengthOrPercentageOrAuto::Percentage(_), None) |
-            (LengthOrPercentageOrAuto::Calc(_), None) |
             (LengthOrPercentageOrAuto::Auto, None) => {
                 None
             }

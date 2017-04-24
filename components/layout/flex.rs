@@ -53,9 +53,9 @@ impl AxisSize {
                 }
             }
             LengthOrPercentageOrAuto::Calc(calc) => {
-                match content_size {
-                    Some(size) => AxisSize::Definite(size.scale_by(calc.percentage())),
-                    None => AxisSize::Infinite
+                match calc.to_computed(content_size) {
+                    Some(length) => AxisSize::Definite(length),
+                    None => AxisSize::Infinite,
                 }
             }
             LengthOrPercentageOrAuto::Auto => {
@@ -79,10 +79,8 @@ fn from_flex_basis(flex_basis: LengthOrPercentageOrAutoOrContent,
             MaybeAuto::Specified(size.scale_by(percent)),
         (LengthOrPercentageOrAutoOrContent::Percentage(_), None) =>
             MaybeAuto::Auto,
-        (LengthOrPercentageOrAutoOrContent::Calc(calc), Some(size)) =>
-            MaybeAuto::Specified(calc.length() + size.scale_by(calc.percentage())),
-        (LengthOrPercentageOrAutoOrContent::Calc(_), None) =>
-            MaybeAuto::Auto,
+        (LengthOrPercentageOrAutoOrContent::Calc(calc), _) =>
+            MaybeAuto::from_option(calc.to_computed(containing_length)),
         (LengthOrPercentageOrAutoOrContent::Content, _) =>
             MaybeAuto::Auto,
         (LengthOrPercentageOrAutoOrContent::Auto, Some(size)) =>
