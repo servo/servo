@@ -15,7 +15,8 @@ ${helpers.predefined_type("opacity",
                           spec="https://drafts.csswg.org/css-color/#opacity")}
 
 <%helpers:vector_longhand name="box-shadow" allow_empty="True"
-                          animation_value_type="ComputedValue" extra_prefixes="webkit"
+                          animation_value_type="IntermediateBoxShadowList"
+                          extra_prefixes="webkit"
                           spec="https://drafts.csswg.org/css-backgrounds/#box-shadow">
     use cssparser;
     use std::fmt;

@@ -2849,3 +2849,74 @@ impl <'a> From<<&'a IntermediateColor> for CSSParserColor {
         }
     }
 }
+
+<%def name="impl_intermediate_type_for_shadow(type)">
+    #[derive(Copy, Clone, Debug, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    #[allow(missing_docs)]
+    /// Intermediate type for box-shadow and text-shadow.
+    /// The difference between normal shadow type is that this type uses
+    /// IntermediateColor instead of ParserColor.
+    pub struct Intermediate${type}Shadow {
+        pub offset_x: Au,
+        pub offset_y: Au,
+        pub blur_radius: Au,
+        pub color: IntermediateColor,
+        % if type == "Box":
+        pub spread_radius: Au,
+        pub inset: bool,
+        % endif
+    }
+
+    #[derive(Clone, Debug, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    #[allow(missing_docs)]
+    /// Intermediate type for box-shadow list and text-shadow list.
+    pub struct Intermediate${type}ShadowList(pub Vec<Intermediate${type}Shadow>);
+
+    impl <'a> From<<&'a Intermediate${type}ShadowList> for ${type}ShadowList {
+        fn from(shadow_list: &Intermediate${type}ShadowList) -> ${type}ShadowList {
+            ${type}ShadowList(shadow_list.0.iter().map(|s| s.into()).collect())
+        }
+    }
+
+    impl <'a> From<<&'a ${type}ShadowList> for Intermediate${type}ShadowList {
+        fn from(shadow_list: &${type}ShadowList) -> Intermediate${type}ShadowList {
+            Intermediate${type}ShadowList(shadow_list.0.iter().map(|s| s.into()).collect())
+        }
+    }
+
+    impl <'a> From<<&'a Intermediate${type}Shadow> for ${type}Shadow {
+        fn from(shadow: &Intermediate${type}Shadow) -> ${type}Shadow {
+            ${type}Shadow {
+                offset_x: shadow.offset_x,
+                offset_y: shadow.offset_y,
+                blur_radius: shadow.blur_radius,
+                color: (&shadow.color).into(),
+                % if type == "Box":
+                spread_radius: shadow.spread_radius,
+                inset: shadow.inset,
+                % endif
+            }
+        }
+    }
+
+    impl <'a> From<<&'a ${type}Shadow> for Intermediate${type}Shadow {
+        fn from(shadow: &${type}Shadow) -> Intermediate${type}Shadow {
+            Intermediate${type}Shadow {
+                offset_x: shadow.offset_x,
+                offset_y: shadow.offset_y,
+                blur_radius: shadow.blur_radius,
+                color: (&shadow.color).into(),
+                % if type == "Box":
+                spread_radius: shadow.spread_radius,
+                inset: shadow.inset,
+                % endif
+            }
+        }
+    }
+    ${impl_interpolate_for_shadow('Intermediate%sShadow' % type,
+                                  'IntermediateColor::IntermediateRGBA(IntermediateRGBA::transparent())')}
+</%def>
+
+${impl_intermediate_type_for_shadow('Box')}
