@@ -11,7 +11,7 @@ ${helpers.single_keyword("visibility",
                          "visible hidden",
                          extra_gecko_values="collapse",
                          gecko_ffi_name="mVisible",
-                         animation_type="normal",
+                         animation_value_type="ComputedValue",
                          spec="https://drafts.csswg.org/css-box/#propdef-visibility")}
 
 // CSS Writing Modes Level 3
@@ -24,10 +24,10 @@ ${helpers.single_keyword("writing-mode",
                                               tb=vertical-rl   tb-rl=vertical-rl",
                          experimental=True,
                          need_clone=True,
-                         animation_type="none",
+                         animation_value_type="none",
                          spec="https://drafts.csswg.org/css-writing-modes/#propdef-writing-mode")}
 
-${helpers.single_keyword("direction", "ltr rtl", need_clone=True, animation_type="none",
+${helpers.single_keyword("direction", "ltr rtl", need_clone=True, animation_value_type="none",
                          spec="https://drafts.csswg.org/css-writing-modes/#propdef-direction",
                          needs_conversion=True)}
 
@@ -36,14 +36,14 @@ ${helpers.single_keyword("text-orientation",
                          extra_gecko_aliases="sideways-right=sideways",
                          products="gecko",
                          need_clone=True,
-                         animation_type="none",
+                         animation_value_type="none",
                          spec="https://drafts.csswg.org/css-writing-modes/#propdef-text-orientation")}
 
 // CSS Color Module Level 4
 // https://drafts.csswg.org/css-color/
 ${helpers.single_keyword("color-adjust",
                          "economy exact", products="gecko",
-                         animation_type="none",
+                         animation_value_type="none",
                          spec="https://drafts.csswg.org/css-color/#propdef-color-adjust")}
 
 <% image_rendering_custom_consts = { "crisp-edges": "CRISPEDGES",
@@ -55,13 +55,13 @@ ${helpers.single_keyword("image-rendering",
                          extra_gecko_values="optimizespeed optimizequality -moz-crisp-edges",
                          extra_servo_values="pixelated crisp-edges",
                          custom_consts=image_rendering_custom_consts,
-                         animation_type="none",
+                         animation_value_type="none",
                          spec="https://drafts.csswg.org/css-images/#propdef-image-rendering")}
 
 // Image Orientation
 <%helpers:longhand name="image-orientation"
                    products="gecko"
-                   animation_type="none"
+                   animation_value_type="none"
     spec="https://drafts.csswg.org/css-images/#propdef-image-orientation, \
       /// additional values in https://developer.mozilla.org/en-US/docs/Web/CSS/image-orientation">
     use std::fmt;
@@ -202,7 +202,7 @@ ${helpers.single_keyword("image-rendering",
 <%helpers:longhand name="-servo-under-display-none"
                    derived_from="display"
                    products="servo"
-                   animation_type="none"
+                   animation_value_type="none"
                    spec="Nonstandard (internal layout use only)">
     use std::fmt;
     use style_traits::ToCss;

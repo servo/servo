@@ -6,7 +6,7 @@
 
 <% data.new_style_struct("Pointing", inherited=True, gecko_name="UserInterface") %>
 
-<%helpers:longhand name="cursor" boxed="${product == 'gecko'}" animation_type="none"
+<%helpers:longhand name="cursor" boxed="${product == 'gecko'}" animation_value_type="none"
   spec="https://drafts.csswg.org/css-ui/#cursor">
     pub use self::computed_value::T as SpecifiedValue;
     use values::HasViewportPercentage;
@@ -147,7 +147,7 @@
 // NB: `pointer-events: auto` (and use of `pointer-events` in anything that isn't SVG, in fact)
 // is nonstandard, slated for CSS4-UI.
 // TODO(pcwalton): SVG-only values.
-${helpers.single_keyword("pointer-events", "auto none", animation_type="none",
+${helpers.single_keyword("pointer-events", "auto none", animation_value_type="none",
                          extra_gecko_values="visiblepainted visiblefill visiblestroke visible painted fill stroke",
                          spec="https://www.w3.org/TR/SVG11/interact.html#PointerEventsProperty")}
 
@@ -155,14 +155,14 @@ ${helpers.single_keyword("-moz-user-input", "auto none enabled disabled",
                          products="gecko", gecko_ffi_name="mUserInput",
                          gecko_enum_prefix="StyleUserInput",
                          gecko_inexhaustive=True,
-                         animation_type="none",
+                         animation_value_type="none",
                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-user-input)")}
 
 ${helpers.single_keyword("-moz-user-modify", "read-only read-write write-only",
                          products="gecko", gecko_ffi_name="mUserModify",
                          gecko_enum_prefix="StyleUserModify",
                          needs_conversion=True,
-                         animation_type="none",
+                         animation_value_type="none",
                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-user-modify)")}
 
 ${helpers.single_keyword("-moz-user-focus",
@@ -170,13 +170,13 @@ ${helpers.single_keyword("-moz-user-focus",
                          products="gecko", gecko_ffi_name="mUserFocus",
                          gecko_enum_prefix="StyleUserFocus",
                          gecko_inexhaustive=True,
-                         animation_type="none",
+                         animation_value_type="none",
                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-user-focus)")}
 
 ${helpers.predefined_type("caret-color",
                           "ColorOrAuto",
                           "Either::Second(Auto)",
                           spec="https://drafts.csswg.org/css-ui/#caret-color",
-                          animation_type="normal",
+                          animation_value_type="Either<IntermediateColor, Auto>",
                           boxed=True,
                           products="gecko")}

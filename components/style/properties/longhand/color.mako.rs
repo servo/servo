@@ -8,7 +8,8 @@
 
 <% from data import to_rust_ident %>
 
-<%helpers:longhand name="color" need_clone="True" animation_type="normal"
+<%helpers:longhand name="color" need_clone="True"
+                   animation_value_type="IntermediateRGBA"
                    spec="https://drafts.csswg.org/css-color/#color">
     use cssparser::RGBA;
     use std::fmt;

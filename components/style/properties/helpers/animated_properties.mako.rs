@@ -134,7 +134,7 @@ impl TransitionProperty {
     pub fn is_discrete(&self) -> bool {
         match *self {
             % for prop in data.longhands:
-                % if prop.animation_type == "discrete":
+                % if prop.animation_value_type == "discrete":
                     TransitionProperty::${prop.camel_case} => true,
                 % endif
             % endfor
@@ -324,7 +324,7 @@ impl AnimatedProperty {
                 % if prop.animatable:
                     AnimatedProperty::${prop.camel_case}(ref from, ref to) => {
                         // https://w3c.github.io/web-animations/#discrete-animation-type
-                        % if prop.animation_type == "discrete":
+                        % if prop.animation_value_type == "discrete":
                             let value = if progress < 0.5 { *from } else { *to };
                         % else:
                             let value = match from.interpolate(to, progress) {
@@ -384,7 +384,11 @@ pub enum AnimationValue {
     % for prop in data.longhands:
         % if prop.animatable:
             /// ${prop.name}
-            ${prop.camel_case}(longhands::${prop.ident}::computed_value::T),
+            % if prop.is_animatable_with_computed_value:
+                ${prop.camel_case}(longhands::${prop.ident}::computed_value::T),
+            % else:
+                ${prop.camel_case}(${prop.animation_value_type}),
+            % endif
         % endif
     % endfor
 }
@@ -400,9 +404,17 @@ impl AnimationValue {
                     AnimationValue::${prop.camel_case}(ref from) => {
                         PropertyDeclaration::${prop.camel_case}(
                             % if prop.boxed:
-                                Box::new(longhands::${prop.ident}::SpecifiedValue::from_computed_value(from)))
-                            % else:
-                                longhands::${prop.ident}::SpecifiedValue::from_computed_value(from))
+                            Box::new(
+                            % endif
+                                longhands::${prop.ident}::SpecifiedValue::from_computed_value(
+                                % if prop.is_animatable_with_computed_value:
+                                    from
+                                % else:
+                                    &from.into()
+                                % endif
+                                ))
+                            % if prop.boxed:
+                            )
                             % endif
                     }
                 % endif
@@ -426,7 +438,13 @@ impl AnimationValue {
                     longhands::system_font::resolve_system_font(sf, context);
                 }
             % endif
-                Some(AnimationValue::${prop.camel_case}(val.to_computed_value(context)))
+                Some(AnimationValue::${prop.camel_case}(
+                % if prop.is_animatable_with_computed_value:
+                    val.to_computed_value(context)
+                % else:
+                    From::from(&val.to_computed_value(context))
+                % endif
+                ))
             },
             % endif
             % endfor
@@ -454,6 +472,9 @@ impl AnimationValue {
                                 inherit_struct.clone_${prop.ident}()
                             },
                         };
+                        % if not prop.is_animatable_with_computed_value:
+                            let computed = From::from(&computed);
+                        % endif
                         Some(AnimationValue::${prop.camel_case}(computed))
                     },
                     % endif
@@ -514,7 +535,12 @@ impl AnimationValue {
                 % if prop.animatable:
                     TransitionProperty::${prop.camel_case} => {
                         AnimationValue::${prop.camel_case}(
+                        % if prop.is_animatable_with_computed_value:
                             computed_values.get_${prop.style_struct.ident.strip("_")}().clone_${prop.ident}())
+                        % else:
+                            From::from(&computed_values.get_${prop.style_struct.ident.strip("_")}()
+                                                                  .clone_${prop.ident}()))
+                        % endif
                     }
                 % endif
             % endfor
@@ -531,7 +557,7 @@ impl Interpolate for AnimationValue {
                     (&AnimationValue::${prop.camel_case}(ref from),
                      &AnimationValue::${prop.camel_case}(ref to)) => {
                         // https://w3c.github.io/web-animations/#discrete-animation-type
-                        % if prop.animation_type == "discrete":
+                        % if prop.animation_value_type == "discrete":
                             if progress < 0.5 {
                                 Ok(AnimationValue::${prop.camel_case}(*from))
                             } else {
@@ -976,114 +1002,89 @@ impl Interpolate for ClipRect {
     }
 }
 
-/// https://drafts.csswg.org/css-transitions/#animtype-shadow-list
-impl Interpolate for TextShadow {
-    #[inline]
-    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-        Ok(TextShadow {
-            offset_x: try!(self.offset_x.interpolate(&other.offset_x, progress)),
-            offset_y: try!(self.offset_y.interpolate(&other.offset_y, progress)),
-            blur_radius: try!(self.blur_radius.interpolate(&other.blur_radius, progress)),
-            color: try!(self.color.interpolate(&other.color, progress)),
-        })
+<%def name="impl_interpolate_for_shadow(item, transparent_color)">
+    impl Interpolate for ${item} {
+        #[inline]
+        fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
+            % if "Box" in item:
+            // It can't be interpolated if inset does not match.
+            if self.inset != other.inset {
+                return Err(());
+            }
+            % endif
+
+            let x = try!(self.offset_x.interpolate(&other.offset_x, progress));
+            let y = try!(self.offset_y.interpolate(&other.offset_y, progress));
+            let color = try!(self.color.interpolate(&other.color, progress));
+            let blur = try!(self.blur_radius.interpolate(&other.blur_radius, progress));
+            % if "Box" in item:
+            let spread = try!(self.spread_radius.interpolate(&other.spread_radius, progress));
+            % endif
+
+            Ok(${item} {
+                offset_x: x,
+                offset_y: y,
+                blur_radius: blur,
+                color: color,
+                % if "Box" in item:
+                spread_radius: spread,
+                inset: self.inset,
+                % endif
+            })
+        }
     }
-}
 
-/// https://drafts.csswg.org/css-transitions/#animtype-shadow-list
-impl Interpolate for TextShadowList {
-    #[inline]
-    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-        let zero = TextShadow {
-            offset_x: Au(0),
-            offset_y: Au(0),
-            blur_radius: Au(0),
-            color: CSSParserColor::RGBA(RGBA::transparent()),
-        };
-
-        let max_len = cmp::max(self.0.len(), other.0.len());
-        let mut result = Vec::with_capacity(max_len);
-
-        for i in 0..max_len {
-            let shadow = match (self.0.get(i), other.0.get(i)) {
-                (Some(shadow), Some(other))
-                    => try!(shadow.interpolate(other, progress)),
-                (Some(shadow), None) => {
-                    shadow.interpolate(&zero, progress).unwrap()
-                }
-                (None, Some(shadow)) => {
-                    zero.interpolate(&shadow, progress).unwrap()
-                }
-                (None, None) => unreachable!(),
+    /// https://drafts.csswg.org/css-transitions/#animtype-shadow-list
+    impl Interpolate for ${item}List {
+        #[inline]
+        fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
+            // The inset value must change
+            % if "Box" in item:
+            let mut zero = ${item} {
+            % else:
+            let zero = ${item} {
+            % endif
+                offset_x: Au(0),
+                offset_y: Au(0),
+                blur_radius: Au(0),
+                color: ${transparent_color},
+                % if "Box" in item:
+                spread_radius: Au(0),
+                inset: false,
+                % endif
             };
-            result.push(shadow);
+
+            let max_len = cmp::max(self.0.len(), other.0.len());
+            let mut result = Vec::with_capacity(max_len);
+
+            for i in 0..max_len {
+                let shadow = match (self.0.get(i), other.0.get(i)) {
+                    (Some(shadow), Some(other))
+                        => try!(shadow.interpolate(other, progress)),
+                    (Some(shadow), None) => {
+                        % if "Box" in item:
+                        zero.inset = shadow.inset;
+                        % endif
+                        shadow.interpolate(&zero, progress).unwrap()
+                    }
+                    (None, Some(shadow)) => {
+                        % if "Box" in item:
+                        zero.inset = shadow.inset;
+                        % endif
+                        zero.interpolate(&shadow, progress).unwrap()
+                    }
+                    (None, None) => unreachable!(),
+                };
+                result.push(shadow);
+            }
+
+            Ok(${item}List(result))
         }
-
-        Ok(TextShadowList(result))
     }
-}
+</%def>
 
-
-impl Interpolate for BoxShadowList {
-    #[inline]
-    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-        // The inset value must change
-        let mut zero = BoxShadow {
-            offset_x: Au(0),
-            offset_y: Au(0),
-            spread_radius: Au(0),
-            blur_radius: Au(0),
-            color: CSSParserColor::RGBA(RGBA::transparent()),
-            inset: false,
-        };
-
-        let max_len = cmp::max(self.0.len(), other.0.len());
-        let mut result = Vec::with_capacity(max_len);
-
-        for i in 0..max_len {
-            let shadow = match (self.0.get(i), other.0.get(i)) {
-                (Some(shadow), Some(other))
-                    => try!(shadow.interpolate(other, progress)),
-                (Some(shadow), None) => {
-                    zero.inset = shadow.inset;
-                    shadow.interpolate(&zero, progress).unwrap()
-                }
-                (None, Some(shadow)) => {
-                    zero.inset = shadow.inset;
-                    zero.interpolate(&shadow, progress).unwrap()
-                }
-                (None, None) => unreachable!(),
-            };
-            result.push(shadow);
-        }
-
-        Ok(BoxShadowList(result))
-    }
-}
-
-/// https://drafts.csswg.org/css-transitions/#animtype-shadow-list
-impl Interpolate for BoxShadow {
-    #[inline]
-    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-        if self.inset != other.inset {
-            return Err(());
-        }
-
-        let x = try!(self.offset_x.interpolate(&other.offset_x, progress));
-        let y = try!(self.offset_y.interpolate(&other.offset_y, progress));
-        let color = try!(self.color.interpolate(&other.color, progress));
-        let spread = try!(self.spread_radius.interpolate(&other.spread_radius, progress));
-        let blur = try!(self.blur_radius.interpolate(&other.blur_radius, progress));
-
-        Ok(BoxShadow {
-            offset_x: x,
-            offset_y: y,
-            blur_radius: blur,
-            spread_radius: spread,
-            color: color,
-            inset: self.inset,
-        })
-    }
-}
+${impl_interpolate_for_shadow('BoxShadow', 'CSSParserColor::RGBA(RGBA::transparent())',)}
+${impl_interpolate_for_shadow('TextShadow', 'CSSParserColor::RGBA(RGBA::transparent())',)}
 
 impl Interpolate for LengthOrNone {
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
@@ -2041,6 +2042,114 @@ impl<T, U> Interpolate for Either<T, U>
     }
 }
 
+impl <'a> From<<&'a IntermediateRGBA> for RGBA {
+    fn from(extended_rgba: &IntermediateRGBA) -> RGBA {
+        // RGBA::from_floats clamps each component values.
+        RGBA::from_floats(extended_rgba.red,
+                          extended_rgba.green,
+                          extended_rgba.blue,
+                          extended_rgba.alpha)
+    }
+}
+
+impl <'a> From<<&'a RGBA> for IntermediateRGBA {
+    fn from(rgba: &RGBA) -> IntermediateRGBA {
+        IntermediateRGBA::new(rgba.red_f32(),
+                              rgba.green_f32(),
+                              rgba.blue_f32(),
+                              rgba.alpha_f32())
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+/// Unlike RGBA, each component value may exceed the range [0.0, 1.0].
+pub struct IntermediateRGBA {
+    /// The red component.
+    pub red: f32,
+    /// The green component.
+    pub green: f32,
+    /// The blue component.
+    pub blue: f32,
+    /// The alpha component.
+    pub alpha: f32,
+}
+
+impl IntermediateRGBA {
+    /// Returns a transparent color.
+    #[inline]
+    pub fn transparent() -> Self {
+        Self::new(0., 0., 0., 0.)
+    }
+
+    /// Returns a new color.
+    #[inline]
+    pub fn new(red: f32, green: f32, blue: f32, alpha: f32) -> Self {
+        IntermediateRGBA { red: red, green: green, blue: blue, alpha: alpha }
+    }
+}
+
+/// Unlike Interpolate for RGBA we don't clamp any component values.
+impl Interpolate for IntermediateRGBA {
+    #[inline]
+    fn interpolate(&self, other: &IntermediateRGBA, progress: f64) -> Result<Self, ()> {
+        let alpha = try!(self.alpha.interpolate(&other.alpha, progress));
+        if alpha == 0. {
+            // Ideally we should return color value that only alpha component is
+            // 0, but this is what current gecko does.
+            Ok(IntermediateRGBA::transparent())
+        } else {
+            let red = try!((self.red * self.alpha)
+                            .interpolate(&(other.red * other.alpha), progress))
+                            * 1. / alpha;
+            let green = try!((self.green * self.alpha)
+                             .interpolate(&(other.green * other.alpha), progress))
+                             * 1. / alpha;
+            let blue = try!((self.blue * self.alpha)
+                             .interpolate(&(other.blue * other.alpha), progress))
+                             * 1. / alpha;
+            Ok(IntermediateRGBA::new(red, green, blue, alpha))
+        }
+    }
+}
+
+impl<'a> From<<&'a Either<CSSParserColor, Auto>> for Either<IntermediateColor, Auto> {
+    fn from(from: &Either<CSSParserColor, Auto>) -> Either<IntermediateColor, Auto> {
+        match *from {
+            Either::First(ref from) =>
+                match *from {
+                    CSSParserColor::RGBA(ref color) =>
+                        Either::First(IntermediateColor::IntermediateRGBA(
+                            IntermediateRGBA::new(color.red_f32(),
+                                                  color.green_f32(),
+                                                  color.blue_f32(),
+                                                  color.alpha_f32()))),
+                    CSSParserColor::CurrentColor =>
+                        Either::First(IntermediateColor::CurrentColor),
+                },
+            Either::Second(Auto) => Either::Second(Auto),
+        }
+    }
+}
+
+impl<'a> From<<&'a Either<IntermediateColor, Auto>> for Either<CSSParserColor, Auto> {
+    fn from(from: &Either<IntermediateColor, Auto>) -> Either<CSSParserColor, Auto> {
+        match *from {
+            Either::First(ref from) =>
+                match *from {
+                    IntermediateColor::IntermediateRGBA(ref color) =>
+                        Either::First(CSSParserColor::RGBA(RGBA::from_floats(color.red,
+                                                                             color.green,
+                                                                             color.blue,
+                                                                             color.alpha))),
+                    IntermediateColor::CurrentColor =>
+                        Either::First(CSSParserColor::CurrentColor),
+                },
+            Either::Second(Auto) => Either::Second(Auto),
+        }
+    }
+}
+
 
 /// We support ComputeDistance for an API in gecko to test the transition per property.
 impl ComputeDistance for AnimationValue {
@@ -2048,7 +2157,7 @@ impl ComputeDistance for AnimationValue {
         match (self, other) {
             % for prop in data.longhands:
                 % if prop.animatable:
-                    % if prop.animation_type == "normal":
+                    % if prop.animation_value_type != "discrete":
                         (&AnimationValue::${prop.camel_case}(ref from),
                          &AnimationValue::${prop.camel_case}(ref to)) => {
                             from.compute_distance(to)
@@ -2223,6 +2332,48 @@ impl ComputeDistance for CSSParserColor {
     fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
         match (*self, *other) {
             (CSSParserColor::RGBA(ref this), CSSParserColor::RGBA(ref other)) => {
+                this.compute_squared_distance(other)
+            },
+            _ => Ok(0.0),
+        }
+    }
+}
+
+impl ComputeDistance for IntermediateRGBA {
+    #[inline]
+    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
+        self.compute_squared_distance(other).map(|sq| sq.sqrt())
+    }
+
+    #[inline]
+    fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
+        let start = [ self.alpha,
+                      self.red * self.alpha,
+                      self.green * self.alpha,
+                      self.blue * self.alpha ];
+        let end = [ other.alpha,
+                    other.red * other.alpha,
+                    other.green * other.alpha,
+                    other.blue * other.alpha ];
+        let diff = start.iter().zip(&end)
+                               .fold(0.0f64, |n, (&a, &b)| {
+                                   let diff = (a - b) as f64;
+                                   n + diff * diff
+                               });
+        Ok(diff)
+    }
+}
+
+impl ComputeDistance for IntermediateColor {
+    #[inline]
+    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
+        self.compute_squared_distance(other).map(|sq| sq.sqrt())
+    }
+
+    #[inline]
+    fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
+        match (*self, *other) {
+            (IntermediateColor::IntermediateRGBA(ref this), IntermediateColor::IntermediateRGBA(ref other)) => {
                 this.compute_squared_distance(other)
             },
             _ => Ok(0.0),
@@ -2509,7 +2660,7 @@ impl ComputeDistance for ClipRect {
     }
 }
 
-impl ComputeDistance for TextShadow {
+impl ComputeDistance for IntermediateTextShadow {
     #[inline]
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
         self.compute_squared_distance(other).map(|sd| sd.sqrt())
@@ -2525,7 +2676,7 @@ impl ComputeDistance for TextShadow {
     }
 }
 
-impl ComputeDistance for TextShadowList {
+impl ComputeDistance for IntermediateTextShadowList {
     #[inline]
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
         self.compute_squared_distance(other).map(|sd| sd.sqrt())
@@ -2533,11 +2684,11 @@ impl ComputeDistance for TextShadowList {
 
     #[inline]
     fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
-        let zero = TextShadow {
+        let zero = IntermediateTextShadow {
             offset_x: Au(0),
             offset_y: Au(0),
             blur_radius: Au(0),
-            color: CSSParserColor::RGBA(RGBA::transparent()),
+            color: IntermediateColor::IntermediateRGBA(IntermediateRGBA::transparent()),
         };
 
         let max_len = cmp::max(self.0.len(), other.0.len());
@@ -2558,7 +2709,7 @@ impl ComputeDistance for TextShadowList {
     }
 }
 
-impl ComputeDistance for BoxShadow {
+impl ComputeDistance for IntermediateBoxShadow {
     #[inline]
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
         self.compute_squared_distance(other).map(|sd| sd.sqrt())
@@ -2578,7 +2729,7 @@ impl ComputeDistance for BoxShadow {
     }
 }
 
-impl ComputeDistance for BoxShadowList {
+impl ComputeDistance for IntermediateBoxShadowList {
     #[inline]
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
         self.compute_squared_distance(other).map(|sd| sd.sqrt())
@@ -2587,12 +2738,12 @@ impl ComputeDistance for BoxShadowList {
     #[inline]
     fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
         // The inset value must change
-        let mut zero = BoxShadow {
+        let mut zero = IntermediateBoxShadow {
             offset_x: Au(0),
             offset_y: Au(0),
             spread_radius: Au(0),
             blur_radius: Au(0),
-            color: CSSParserColor::RGBA(RGBA::transparent()),
+            color: IntermediateColor::IntermediateRGBA(IntermediateRGBA::transparent()),
             inset: false,
         };
 
@@ -2651,3 +2802,122 @@ impl<T, U> ComputeDistance for Either<T, U>
         }
     }
 }
+
+#[derive(Copy, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
+pub enum IntermediateColor {
+    CurrentColor,
+    IntermediateRGBA(IntermediateRGBA),
+}
+
+impl Interpolate for IntermediateColor {
+    #[inline]
+    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
+        match (*self, *other) {
+            (IntermediateColor::IntermediateRGBA(ref this), IntermediateColor::IntermediateRGBA(ref other)) => {
+                this.interpolate(other, progress).map(IntermediateColor::IntermediateRGBA)
+            }
+            // FIXME: Bug 1345709: Implement currentColor animations.
+            _ => Err(()),
+        }
+    }
+}
+
+impl <'a> From<<&'a CSSParserColor> for IntermediateColor {
+    fn from(color: &CSSParserColor) -> IntermediateColor {
+        match *color {
+            CSSParserColor::RGBA(ref color) =>
+                IntermediateColor::IntermediateRGBA(IntermediateRGBA::new(color.red_f32(),
+                                                                          color.green_f32(),
+                                                                          color.blue_f32(),
+                                                                          color.alpha_f32())),
+            CSSParserColor::CurrentColor => IntermediateColor::CurrentColor,
+        }
+    }
+}
+
+impl <'a> From<<&'a IntermediateColor> for CSSParserColor {
+    fn from(color: &IntermediateColor) -> CSSParserColor {
+        match *color {
+            IntermediateColor::IntermediateRGBA(ref color) =>
+                CSSParserColor::RGBA(RGBA::from_floats(color.red,
+                                                       color.green,
+                                                       color.blue,
+                                                       color.alpha)),
+            IntermediateColor::CurrentColor => CSSParserColor::CurrentColor,
+        }
+    }
+}
+
+<%def name="impl_intermediate_type_for_shadow(type)">
+    #[derive(Copy, Clone, Debug, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    #[allow(missing_docs)]
+    /// Intermediate type for box-shadow and text-shadow.
+    /// The difference between normal shadow type is that this type uses
+    /// IntermediateColor instead of ParserColor.
+    pub struct Intermediate${type}Shadow {
+        pub offset_x: Au,
+        pub offset_y: Au,
+        pub blur_radius: Au,
+        pub color: IntermediateColor,
+        % if type == "Box":
+        pub spread_radius: Au,
+        pub inset: bool,
+        % endif
+    }
+
+    #[derive(Clone, Debug, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    #[allow(missing_docs)]
+    /// Intermediate type for box-shadow list and text-shadow list.
+    pub struct Intermediate${type}ShadowList(pub Vec<Intermediate${type}Shadow>);
+
+    impl <'a> From<<&'a Intermediate${type}ShadowList> for ${type}ShadowList {
+        fn from(shadow_list: &Intermediate${type}ShadowList) -> ${type}ShadowList {
+            ${type}ShadowList(shadow_list.0.iter().map(|s| s.into()).collect())
+        }
+    }
+
+    impl <'a> From<<&'a ${type}ShadowList> for Intermediate${type}ShadowList {
+        fn from(shadow_list: &${type}ShadowList) -> Intermediate${type}ShadowList {
+            Intermediate${type}ShadowList(shadow_list.0.iter().map(|s| s.into()).collect())
+        }
+    }
+
+    impl <'a> From<<&'a Intermediate${type}Shadow> for ${type}Shadow {
+        fn from(shadow: &Intermediate${type}Shadow) -> ${type}Shadow {
+            ${type}Shadow {
+                offset_x: shadow.offset_x,
+                offset_y: shadow.offset_y,
+                blur_radius: shadow.blur_radius,
+                color: (&shadow.color).into(),
+                % if type == "Box":
+                spread_radius: shadow.spread_radius,
+                inset: shadow.inset,
+                % endif
+            }
+        }
+    }
+
+    impl <'a> From<<&'a ${type}Shadow> for Intermediate${type}Shadow {
+        fn from(shadow: &${type}Shadow) -> Intermediate${type}Shadow {
+            Intermediate${type}Shadow {
+                offset_x: shadow.offset_x,
+                offset_y: shadow.offset_y,
+                blur_radius: shadow.blur_radius,
+                color: (&shadow.color).into(),
+                % if type == "Box":
+                spread_radius: shadow.spread_radius,
+                inset: shadow.inset,
+                % endif
+            }
+        }
+    }
+    ${impl_interpolate_for_shadow('Intermediate%sShadow' % type,
+                                  'IntermediateColor::IntermediateRGBA(IntermediateRGBA::transparent())')}
+</%def>
+
+${impl_intermediate_type_for_shadow('Box')}
+${impl_intermediate_type_for_shadow('Text')}

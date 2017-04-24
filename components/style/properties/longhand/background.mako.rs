@@ -10,9 +10,9 @@ ${helpers.predefined_type("background-color", "CSSColor",
     "::cssparser::Color::RGBA(::cssparser::RGBA::transparent())",
     initial_specified_value="SpecifiedValue::transparent()",
     spec="https://drafts.csswg.org/css-backgrounds/#background-color",
-    animation_type="normal", complex_color=True)}
+    animation_value_type="IntermediateColor", complex_color=True)}
 
-<%helpers:vector_longhand name="background-image" animation_type="none"
+<%helpers:vector_longhand name="background-image" animation_value_type="none"
                           spec="https://drafts.csswg.org/css-backgrounds/#the-background-image"
                           has_uncacheable_values="${product == 'gecko'}">
     use std::fmt;
@@ -89,7 +89,7 @@ ${helpers.predefined_type("background-color", "CSSColor",
     }
 </%helpers:vector_longhand>
 
-<%helpers:vector_longhand name="background-position-x" animation_type="normal"
+<%helpers:vector_longhand name="background-position-x" animation_value_type="ComputedValue"
                           spec="https://drafts.csswg.org/css-backgrounds-4/#propdef-background-position-x"
                           delegate_animate="True">
     use std::fmt;
@@ -140,7 +140,7 @@ ${helpers.predefined_type("background-color", "CSSColor",
     }
 </%helpers:vector_longhand>
 
-<%helpers:vector_longhand name="background-position-y" animation_type="normal"
+<%helpers:vector_longhand name="background-position-y" animation_value_type="ComputedValue"
                           spec="https://drafts.csswg.org/css-backgrounds-4/#propdef-background-position-y"
                           delegate_animate="True">
     use std::fmt;
@@ -192,7 +192,7 @@ ${helpers.predefined_type("background-color", "CSSColor",
     }
 </%helpers:vector_longhand>
 
-<%helpers:vector_longhand name="background-repeat" animation_type="none"
+<%helpers:vector_longhand name="background-repeat" animation_value_type="none"
                           spec="https://drafts.csswg.org/css-backgrounds/#the-background-repeat">
     use std::fmt;
     use style_traits::ToCss;
@@ -308,22 +308,22 @@ ${helpers.single_keyword("background-attachment",
                          "scroll fixed" + (" local" if product == "gecko" else ""),
                          vector=True,
                          spec="https://drafts.csswg.org/css-backgrounds/#the-background-attachment",
-                         animation_type="none")}
+                         animation_value_type="none")}
 
 ${helpers.single_keyword("background-clip",
                          "border-box padding-box content-box",
                          extra_gecko_values="text",
                          vector=True, extra_prefixes="webkit",
                          spec="https://drafts.csswg.org/css-backgrounds/#the-background-clip",
-                         animation_type="none")}
+                         animation_value_type="none")}
 
 ${helpers.single_keyword("background-origin",
                          "padding-box border-box content-box",
                          vector=True, extra_prefixes="webkit",
                          spec="https://drafts.csswg.org/css-backgrounds/#the-background-origin",
-                         animation_type="none")}
+                         animation_value_type="none")}
 
-<%helpers:vector_longhand name="background-size" animation_type="normal" extra_prefixes="webkit"
+<%helpers:vector_longhand name="background-size" animation_value_type="ComputedValue" extra_prefixes="webkit"
                           spec="https://drafts.csswg.org/css-backgrounds/#the-background-size">
     use cssparser::Token;
     use std::ascii::AsciiExt;
@@ -528,5 +528,5 @@ ${helpers.single_keyword("background-blend-mode",
                          """normal multiply screen overlay darken lighten color-dodge
                             color-burn hard-light soft-light difference exclusion hue
                             saturation color luminosity""",
-                         vector=True, products="gecko", animation_type="none",
+                         vector=True, products="gecko", animation_value_type="none",
                          spec="https://drafts.fxtf.org/compositing/#background-blend-mode")}

@@ -17,51 +17,51 @@
 ${helpers.single_keyword("text-anchor",
                          "start middle end",
                          products="gecko",
-                         animation_type="none",
+                         animation_value_type="none",
                          spec="https://www.w3.org/TR/SVG/text.html#TextAnchorProperty")}
 
 // Section 11 - Painting: Filling, Stroking and Marker Symbols
 ${helpers.single_keyword("color-interpolation",
                          "srgb auto linearrgb",
                          products="gecko",
-                         animation_type="none",
+                         animation_value_type="none",
                          spec="https://www.w3.org/TR/SVG11/painting.html#ColorInterpolationProperty")}
 
 ${helpers.single_keyword("color-interpolation-filters", "linearrgb auto srgb",
                          products="gecko",
                          gecko_constant_prefix="NS_STYLE_COLOR_INTERPOLATION",
-                         animation_type="none",
+                         animation_value_type="none",
                          spec="https://www.w3.org/TR/SVG11/painting.html#ColorInterpolationFiltersProperty")}
 
 ${helpers.predefined_type(
     "fill", "SVGPaint",
     "::values::computed::SVGPaint::black()",
     products="gecko",
-    animation_type="none",
+    animation_value_type="none",
     boxed=True,
     spec="https://www.w3.org/TR/SVG2/painting.html#SpecifyingFillPaint")}
 
 ${helpers.predefined_type("fill-opacity", "Opacity", "1.0",
-                          products="gecko", animation_type="none",
+                          products="gecko", animation_value_type="none",
                           spec="https://www.w3.org/TR/SVG11/painting.html#FillOpacityProperty")}
 
 ${helpers.single_keyword("fill-rule", "nonzero evenodd",
                          gecko_enum_prefix="StyleFillRule",
                          gecko_inexhaustive=True,
-                         products="gecko", animation_type="none",
+                         products="gecko", animation_value_type="none",
                          spec="https://www.w3.org/TR/SVG11/painting.html#FillRuleProperty")}
 
 ${helpers.single_keyword("shape-rendering",
                          "auto optimizespeed crispedges geometricprecision",
                          products="gecko",
-                         animation_type="none",
+                         animation_value_type="none",
                          spec="https://www.w3.org/TR/SVG11/painting.html#ShapeRenderingProperty")}
 
 ${helpers.predefined_type(
     "stroke", "SVGPaint",
     "Default::default()",
     products="gecko",
-    animation_type="none",
+    animation_value_type="none",
     boxed=True,
     spec="https://www.w3.org/TR/SVG2/painting.html#SpecifyingStrokePaint")}
 
@@ -70,24 +70,24 @@ ${helpers.predefined_type(
     "computed::LengthOrPercentage::one()",
     "parse_numbers_are_pixels_non_negative",
     products="gecko",
-    animation_type="normal",
+    animation_value_type="ComputedValue",
     spec="https://www.w3.org/TR/SVG2/painting.html#StrokeWidth")}
 
 ${helpers.single_keyword("stroke-linecap", "butt round square",
-                         products="gecko", animation_type="none",
+                         products="gecko", animation_value_type="none",
                          spec="https://www.w3.org/TR/SVG11/painting.html#StrokeLinecapProperty")}
 
 ${helpers.single_keyword("stroke-linejoin", "miter round bevel",
-                         products="gecko", animation_type="none",
+                         products="gecko", animation_value_type="none",
                          spec="https://www.w3.org/TR/SVG11/painting.html#StrokeLinejoinProperty")}
 
 ${helpers.predefined_type("stroke-miterlimit", "Number", "4.0",
                           "parse_at_least_one", products="gecko",
-                          animation_type="none",
+                          animation_value_type="none",
                           spec="https://www.w3.org/TR/SVG11/painting.html#StrokeMiterlimitProperty")}
 
 ${helpers.predefined_type("stroke-opacity", "Opacity", "1.0",
-                          products="gecko", animation_type="none",
+                          products="gecko", animation_value_type="none",
                           spec="https://www.w3.org/TR/SVG11/painting.html#StrokeOpacityProperty")}
 
 ${helpers.predefined_type("stroke-dasharray",
@@ -97,7 +97,7 @@ ${helpers.predefined_type("stroke-dasharray",
                           vector="True",
                           allow_empty="True",
                           products="gecko",
-                          animation_type="none",
+                          animation_value_type="none",
                           space_separated_allowed="True",
                           spec="https://www.w3.org/TR/SVG2/painting.html#StrokeDashing")}
 
@@ -106,7 +106,7 @@ ${helpers.predefined_type(
     "computed::LengthOrPercentage::zero()",
     "parse_numbers_are_pixels",
     products="gecko",
-    animation_type="normal",
+    animation_value_type="ComputedValue",
     spec="https://www.w3.org/TR/SVG2/painting.html#StrokeDashing")}
 
 // Section 14 - Clipping, Masking and Compositing
@@ -114,26 +114,26 @@ ${helpers.single_keyword("clip-rule", "nonzero evenodd",
                          products="gecko",
                          gecko_enum_prefix="StyleFillRule",
                          gecko_inexhaustive=True,
-                         animation_type="none",
+                         animation_value_type="none",
                          spec="https://www.w3.org/TR/SVG11/masking.html#ClipRuleProperty")}
 
 ${helpers.predefined_type("marker-start", "UrlOrNone", "Either::Second(None_)",
                           products="gecko",
-                          animation_type="none",
+                          animation_value_type="none",
                           spec="https://www.w3.org/TR/SVG2/painting.html#VertexMarkerProperties")}
 
 ${helpers.predefined_type("marker-mid", "UrlOrNone", "Either::Second(None_)",
                           products="gecko",
-                          animation_type="none",
+                          animation_value_type="none",
                           spec="https://www.w3.org/TR/SVG2/painting.html#VertexMarkerProperties")}
 
 ${helpers.predefined_type("marker-end", "UrlOrNone", "Either::Second(None_)",
                           products="gecko",
-                          animation_type="none",
+                          animation_value_type="none",
                           spec="https://www.w3.org/TR/SVG2/painting.html#VertexMarkerProperties")}
 
 <%helpers:longhand name="paint-order"
-                   animation_type="none"
+                   animation_value_type="none"
                    products="gecko"
                    spec="https://www.w3.org/TR/SVG2/painting.html#PaintOrder">
 

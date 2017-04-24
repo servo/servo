@@ -11,11 +11,11 @@ ${helpers.single_keyword("dominant-baseline",
                  """auto use-script no-change reset-size ideographic alphabetic hanging
                     mathematical central middle text-after-edge text-before-edge""",
                  products="gecko",
-                 animation_type="none",
+                 animation_value_type="none",
                  spec="https://www.w3.org/TR/SVG11/text.html#DominantBaselineProperty")}
 
 ${helpers.single_keyword("vector-effect", "none non-scaling-stroke",
-                         products="gecko", animation_type="none",
+                         products="gecko", animation_value_type="none",
                          spec="https://www.w3.org/TR/SVGTiny12/painting.html#VectorEffectProperty")}
 
 // Section 13 - Gradients and Patterns
@@ -24,12 +24,12 @@ ${helpers.predefined_type(
     "stop-color", "CSSColor",
     "CSSParserColor::RGBA(RGBA::new(0, 0, 0, 255))",
     products="gecko",
-    animation_type="none",
+    animation_value_type="none",
     spec="https://www.w3.org/TR/SVGTiny12/painting.html#StopColorProperty")}
 
 ${helpers.predefined_type("stop-opacity", "Opacity", "1.0",
                           products="gecko",
-                          animation_type="none",
+                          animation_value_type="none",
                           spec="https://www.w3.org/TR/SVGTiny12/painting.html#propdef-stop-opacity")}
 
 // Section 15 - Filter Effects
@@ -38,27 +38,27 @@ ${helpers.predefined_type(
     "flood-color", "CSSColor",
     "CSSParserColor::RGBA(RGBA::new(0, 0, 0, 255))",
     products="gecko",
-    animation_type="none",
+    animation_value_type="none",
     spec="https://www.w3.org/TR/SVG/filters.html#FloodColorProperty")}
 
 ${helpers.predefined_type("flood-opacity", "Opacity",
-                          "1.0", products="gecko", animation_type="none",
+                          "1.0", products="gecko", animation_value_type="none",
                           spec="https://www.w3.org/TR/SVG/filters.html#FloodOpacityProperty")}
 
 ${helpers.predefined_type(
     "lighting-color", "CSSColor",
     "CSSParserColor::RGBA(RGBA::new(255, 255, 255, 255))",
     products="gecko",
-    animation_type="none",
+    animation_value_type="none",
     spec="https://www.w3.org/TR/SVG/filters.html#LightingColorProperty")}
 
 // CSS Masking Module Level 1
 // https://drafts.fxtf.org/css-masking
 ${helpers.single_keyword("mask-type", "luminance alpha",
-                         products="gecko", animation_type="none",
+                         products="gecko", animation_value_type="none",
                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-type")}
 
-<%helpers:longhand name="clip-path" animation_type="none" products="gecko" boxed="True"
+<%helpers:longhand name="clip-path" animation_value_type="none" products="gecko" boxed="True"
                    flags="CREATES_STACKING_CONTEXT"
                    spec="https://drafts.fxtf.org/css-masking/#propdef-clip-path">
     use std::fmt;
@@ -91,10 +91,10 @@ ${helpers.single_keyword("mask-mode",
                          "match-source alpha luminance",
                          vector=True,
                          products="gecko",
-                         animation_type="none",
+                         animation_value_type="none",
                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-mode")}
 
-<%helpers:vector_longhand name="mask-repeat" products="gecko" animation_type="none" extra_prefixes="webkit"
+<%helpers:vector_longhand name="mask-repeat" products="gecko" animation_value_type="none" extra_prefixes="webkit"
                           spec="https://drafts.fxtf.org/css-masking/#propdef-mask-repeat">
     pub use properties::longhands::background_repeat::single_value::parse;
     pub use properties::longhands::background_repeat::single_value::SpecifiedValue;
@@ -113,7 +113,8 @@ ${helpers.single_keyword("mask-mode",
     }
 </%helpers:vector_longhand>
 
-<%helpers:vector_longhand name="mask-position-x" products="gecko" animation_type="normal" extra_prefixes="webkit"
+<%helpers:vector_longhand name="mask-position-x" products="gecko"
+                          animation_value_type="ComputedValue" extra_prefixes="webkit"
                           spec="https://drafts.fxtf.org/css-masking/#propdef-mask-position">
     pub use properties::longhands::background_position_x::single_value::get_initial_value;
     pub use properties::longhands::background_position_x::single_value::get_initial_position_value;
@@ -141,7 +142,8 @@ ${helpers.single_keyword("mask-mode",
     }
 </%helpers:vector_longhand>
 
-<%helpers:vector_longhand name="mask-position-y" products="gecko" animation_type="normal" extra_prefixes="webkit"
+<%helpers:vector_longhand name="mask-position-y" products="gecko"
+                          animation_value_type="ComputedValue" extra_prefixes="webkit"
                           spec="https://drafts.fxtf.org/css-masking/#propdef-mask-position">
     pub use properties::longhands::background_position_y::single_value::get_initial_value;
     pub use properties::longhands::background_position_y::single_value::get_initial_position_value;
@@ -175,7 +177,7 @@ ${helpers.single_keyword("mask-clip",
                          vector=True,
                          products="gecko",
                          extra_prefixes="webkit",
-                         animation_type="none",
+                         animation_value_type="none",
                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-clip")}
 
 ${helpers.single_keyword("mask-origin",
@@ -184,10 +186,10 @@ ${helpers.single_keyword("mask-origin",
                          vector=True,
                          products="gecko",
                          extra_prefixes="webkit",
-                         animation_type="none",
+                         animation_value_type="none",
                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-origin")}
 
-<%helpers:longhand name="mask-size" products="gecko" animation_type="normal" extra_prefixes="webkit"
+<%helpers:longhand name="mask-size" products="gecko" animation_value_type="ComputedValue" extra_prefixes="webkit"
                    spec="https://drafts.fxtf.org/css-masking/#propdef-mask-size">
     use properties::longhands::background_size;
     pub use ::properties::longhands::background_size::SpecifiedValue;
@@ -209,10 +211,10 @@ ${helpers.single_keyword("mask-composite",
                          vector=True,
                          products="gecko",
                          extra_prefixes="webkit",
-                         animation_type="none",
+                         animation_value_type="none",
                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-composite")}
 
-<%helpers:vector_longhand name="mask-image" products="gecko" animation_type="none" extra_prefixes="webkit"
+<%helpers:vector_longhand name="mask-image" products="gecko" animation_value_type="none" extra_prefixes="webkit"
                           has_uncacheable_values="${product == 'gecko'}"
                           flags="CREATES_STACKING_CONTEXT",
                           spec="https://drafts.fxtf.org/css-masking/#propdef-mask-image">

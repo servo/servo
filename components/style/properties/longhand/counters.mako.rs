@@ -6,7 +6,7 @@
 
 <% data.new_style_struct("Counters", inherited=False, gecko_name="Content") %>
 
-<%helpers:longhand name="content" boxed="True" animation_type="none"
+<%helpers:longhand name="content" boxed="True" animation_value_type="none"
                    spec="https://drafts.csswg.org/css-content/#propdef-content">
     use cssparser::Token;
     use std::ascii::AsciiExt;
@@ -235,7 +235,7 @@
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="counter-increment" animation_type="none"
+<%helpers:longhand name="counter-increment" animation_value_type="none"
                    spec="https://drafts.csswg.org/css-lists/#propdef-counter-increment">
     use std::fmt;
     use style_traits::ToCss;
@@ -362,7 +362,7 @@
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="counter-reset" animation_type="none"
+<%helpers:longhand name="counter-reset" animation_value_type="none"
                    spec="https://drafts.csswg.org/css-lists-3/#propdef-counter-reset">
     pub use super::counter_increment::{SpecifiedValue, computed_value, get_initial_value};
     use super::counter_increment::parse_common;

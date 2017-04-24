@@ -10,12 +10,13 @@
 ${helpers.predefined_type("opacity",
                           "Opacity",
                           "1.0",
-                          animation_type="normal",
+                          animation_value_type="ComputedValue",
                           flags="CREATES_STACKING_CONTEXT",
                           spec="https://drafts.csswg.org/css-color/#opacity")}
 
 <%helpers:vector_longhand name="box-shadow" allow_empty="True"
-                          animation_type="normal" extra_prefixes="webkit"
+                          animation_value_type="IntermediateBoxShadowList"
+                          extra_prefixes="webkit"
                           spec="https://drafts.csswg.org/css-backgrounds/#box-shadow">
     use cssparser;
     use std::fmt;
@@ -80,12 +81,12 @@ ${helpers.predefined_type("opacity",
 ${helpers.predefined_type("clip",
                           "ClipRectOrAuto",
                           "computed::ClipRectOrAuto::auto()",
-                          animation_type="normal",
+                          animation_value_type="ComputedValue",
                           boxed="True",
                           spec="https://drafts.fxtf.org/css-masking/#clip-property")}
 
 // FIXME: This prop should be animatable
-<%helpers:longhand name="filter" animation_type="none" extra_prefixes="webkit"
+<%helpers:longhand name="filter" animation_value_type="none" extra_prefixes="webkit"
                    flags="CREATES_STACKING_CONTEXT FIXPOS_CB"
                    spec="https://drafts.fxtf.org/filters/#propdef-filter">
     //pub use self::computed_value::T as SpecifiedValue;
@@ -523,6 +524,6 @@ ${helpers.single_keyword("mix-blend-mode",
                          """normal multiply screen overlay darken lighten color-dodge
                             color-burn hard-light soft-light difference exclusion hue
                             saturation color luminosity""", gecko_constant_prefix="NS_STYLE_BLEND",
-                         animation_type="none",
+                         animation_value_type="none",
                          flags="CREATES_STACKING_CONTEXT",
                          spec="https://drafts.fxtf.org/compositing/#propdef-mix-blend-mode")}

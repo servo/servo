@@ -135,7 +135,7 @@ def arg_to_bool(arg):
 
 
 class Longhand(object):
-    def __init__(self, style_struct, name, spec=None, animation_type=None, derived_from=None, keyword=None,
+    def __init__(self, style_struct, name, spec=None, animation_value_type=None, derived_from=None, keyword=None,
                  predefined_type=None, custom_cascade=False, experimental=False, internal=False,
                  need_clone=False, need_index=False, gecko_ffi_name=None, depend_on_viewport_size=False,
                  allowed_in_keyframe_block=True, complex_color=False, cast_type='u8',
@@ -176,14 +176,13 @@ class Longhand(object):
 
         # This is done like this since just a plain bool argument seemed like
         # really random.
-        if animation_type is None:
-            raise TypeError("animation_type should be specified for (" + name + ")")
-        animation_types = ["none", "normal", "discrete"]
-        if animation_type not in animation_types:
-            raise TypeError("animation_type should be one of (" + str(animation_types) + ")")
-        self.animation_type = animation_type
+        if animation_value_type is None:
+            raise TypeError("animation_value_type should be specified for (" + name + ")")
+        self.animation_value_type = animation_value_type
 
-        self.animatable = animation_type != "none"
+        self.animatable = animation_value_type != "none"
+        self.is_animatable_with_computed_value = animation_value_type == "ComputedValue" \
+            or animation_value_type == "discrete"
         if self.logical:
             # Logical properties will be animatable (i.e. the animation type is
             # discrete). For now, it is still non-animatable.

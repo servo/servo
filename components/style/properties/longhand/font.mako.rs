@@ -62,7 +62,7 @@
     }
 </%def>
 
-<%helpers:longhand name="font-family" animation_type="none" need_index="True"  boxed="${product == 'gecko'}"
+<%helpers:longhand name="font-family" animation_value_type="none" need_index="True"  boxed="${product == 'gecko'}"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-family">
     use properties::longhands::system_font::SystemFont;
     use self::computed_value::{FontFamily, FamilyName};
@@ -333,7 +333,7 @@ ${helpers.single_keyword_system("font-style",
                                 gecko_constant_prefix="NS_FONT_STYLE",
                                 gecko_ffi_name="mFont.style",
                                 spec="https://drafts.csswg.org/css-fonts/#propdef-font-style",
-                                animation_type="none")}
+                                animation_value_type="none")}
 
 
 <% font_variant_caps_custom_consts= { "small-caps": "SMALLCAPS",
@@ -349,9 +349,9 @@ ${helpers.single_keyword_system("font-variant-caps",
                                gecko_ffi_name="mFont.variantCaps",
                                spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-caps",
                                custom_consts=font_variant_caps_custom_consts,
-                               animation_type="none")}
+                               animation_value_type="none")}
 
-<%helpers:longhand name="font-weight" need_clone="True" animation_type="normal"
+<%helpers:longhand name="font-weight" need_clone="True" animation_value_type="ComputedValue"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-weight">
     use std::fmt;
     use style_traits::ToCss;
@@ -549,7 +549,7 @@ ${helpers.single_keyword_system("font-variant-caps",
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="font-size" need_clone="True" animation_type="normal"
+<%helpers:longhand name="font-size" need_clone="True" animation_value_type="ComputedValue"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-size">
     use app_units::Au;
     use properties::longhands::system_font::SystemFont;
@@ -934,7 +934,7 @@ ${helpers.single_keyword_system("font-variant-caps",
     }
 </%helpers:longhand>
 
-<%helpers:longhand products="gecko" name="font-size-adjust" animation_type="normal"
+<%helpers:longhand products="gecko" name="font-size-adjust" animation_value_type="ComputedValue"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-size-adjust">
     use properties::longhands::system_font::SystemFont;
     use std::fmt;
@@ -1076,7 +1076,7 @@ ${helpers.single_keyword_system("font-variant-caps",
     }
 </%helpers:longhand>
 
-<%helpers:longhand products="gecko" name="font-synthesis" animation_type="none"
+<%helpers:longhand products="gecko" name="font-synthesis" animation_value_type="none"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-synthesis">
     use std::fmt;
     use style_traits::ToCss;
@@ -1148,7 +1148,7 @@ ${helpers.single_keyword_system("font-stretch",
                                 gecko_constant_prefix="NS_FONT_STRETCH",
                                 cast_type='i16',
                                 spec="https://drafts.csswg.org/css-fonts/#propdef-font-stretch",
-                                animation_type="none")}
+                                animation_value_type="none")}
 
 ${helpers.single_keyword_system("font-kerning",
                                 "auto none normal",
@@ -1156,11 +1156,11 @@ ${helpers.single_keyword_system("font-kerning",
                                 gecko_ffi_name="mFont.kerning",
                                 gecko_constant_prefix="NS_FONT_KERNING",
                                 spec="https://drafts.csswg.org/css-fonts/#propdef-font-stretch",
-                                animation_type="none")}
+                                animation_value_type="none")}
 
 /// FIXME: Implement proper handling of each values.
 /// https://github.com/servo/servo/issues/15957
-<%helpers:longhand name="font-variant-alternates" products="gecko" animation_type="none"
+<%helpers:longhand name="font-variant-alternates" products="gecko" animation_value_type="none"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-alternates">
     use properties::longhands::system_font::SystemFont;
     use std::fmt;
@@ -1296,7 +1296,7 @@ macro_rules! exclusive_value {
     }
 }
 
-<%helpers:longhand name="font-variant-east-asian" products="gecko" animation_type="none"
+<%helpers:longhand name="font-variant-east-asian" products="gecko" animation_value_type="none"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-east-asian">
     use properties::longhands::system_font::SystemFont;
     use std::fmt;
@@ -1437,7 +1437,7 @@ macro_rules! exclusive_value {
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="font-variant-ligatures" products="gecko" animation_type="none"
+<%helpers:longhand name="font-variant-ligatures" products="gecko" animation_value_type="none"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-ligatures">
     use properties::longhands::system_font::SystemFont;
     use std::fmt;
@@ -1588,7 +1588,7 @@ macro_rules! exclusive_value {
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="font-variant-numeric" products="gecko" animation_type="none"
+<%helpers:longhand name="font-variant-numeric" products="gecko" animation_value_type="none"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-numeric">
     use properties::longhands::system_font::SystemFont;
     use std::fmt;
@@ -1738,9 +1738,9 @@ ${helpers.single_keyword_system("font-variant-position",
                                 gecko_ffi_name="mFont.variantPosition",
                                 gecko_constant_prefix="NS_FONT_VARIANT_POSITION",
                                 spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-position",
-                                animation_type="none")}
+                                animation_value_type="none")}
 
-<%helpers:longhand name="font-feature-settings" products="none" animation_type="none" extra_prefixes="moz"
+<%helpers:longhand name="font-feature-settings" products="none" animation_value_type="none" extra_prefixes="moz"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-feature-settings">
     use std::fmt;
     use style_traits::ToCss;
@@ -1850,7 +1850,7 @@ ${helpers.single_keyword_system("font-variant-position",
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="font-language-override" products="gecko" animation_type="none"
+<%helpers:longhand name="font-language-override" products="gecko" animation_value_type="none"
                    extra_prefixes="moz" boxed="True"
                    spec="https://drafts.csswg.org/css-fonts-3/#propdef-font-language-override">
     use properties::longhands::system_font::SystemFont;
@@ -1990,7 +1990,7 @@ ${helpers.single_keyword_system("font-variant-position",
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="-x-lang" products="gecko" animation_type="none" internal="True"
+<%helpers:longhand name="-x-lang" products="gecko" animation_value_type="none" internal="True"
                    spec="Internal (not web-exposed)">
     use values::HasViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
@@ -2027,7 +2027,7 @@ ${helpers.single_keyword_system("font-variant-position",
 </%helpers:longhand>
 
 // MathML properties
-<%helpers:longhand name="-moz-script-size-multiplier" products="gecko" animation_type="none"
+<%helpers:longhand name="-moz-script-size-multiplier" products="gecko" animation_value_type="none"
                    predefined_type="Number" gecko_ffi_name="mScriptSizeMultiplier"
                    spec="Internal (not web-exposed)"
                    internal="True" disable_when_testing="True">
@@ -2053,7 +2053,7 @@ ${helpers.single_keyword_system("font-variant-position",
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="-moz-script-level" products="gecko" animation_type="none"
+<%helpers:longhand name="-moz-script-level" products="gecko" animation_value_type="none"
                    predefined_type="Integer" gecko_ffi_name="mScriptLevel"
                    spec="Internal (not web-exposed)"
                    internal="True" disable_when_testing="True" need_clone="True">
@@ -2136,7 +2136,7 @@ ${helpers.single_keyword("-moz-math-display",
                          gecko_ffi_name="mMathDisplay",
                          products="gecko",
                          spec="Internal (not web-exposed)",
-                         animation_type="none",
+                         animation_value_type="none",
                          need_clone="True")}
 
 ${helpers.single_keyword("-moz-math-variant",
@@ -2148,10 +2148,10 @@ ${helpers.single_keyword("-moz-math-variant",
                          gecko_ffi_name="mMathVariant",
                          products="gecko",
                          spec="Internal (not web-exposed)",
-                         animation_type="none",
+                         animation_value_type="none",
                          needs_conversion=True)}
 
-<%helpers:longhand name="-moz-script-min-size" products="gecko" animation_type="none"
+<%helpers:longhand name="-moz-script-min-size" products="gecko" animation_value_type="none"
                    predefined_type="Length" gecko_ffi_name="mScriptMinSize"
                    spec="Internal (not web-exposed)"
                    internal="True" disable_when_testing="True">
