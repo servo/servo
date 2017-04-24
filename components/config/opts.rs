@@ -480,7 +480,7 @@ const DEFAULT_USER_AGENT: UserAgent = UserAgent::Desktop;
 pub fn default_opts() -> Opts {
     Opts {
         is_running_problem_test: false,
-        url: Some(ServoUrl::parse("about:blank").unwrap()),
+        url: None,
         tile_size: 512,
         device_pixels_per_px: None,
         time_profiling: None,
@@ -631,11 +631,10 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     }
 
     let cwd = env::current_dir().unwrap();
-    let homepage_pref = PREFS.get("shell.homepage");
     let url_opt = if !opt_match.free.is_empty() {
         Some(&opt_match.free[0][..])
     } else {
-        homepage_pref.as_string()
+        None
     };
     let is_running_problem_test =
         url_opt
@@ -645,16 +644,11 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
              url.starts_with("http://web-platform.test:8000/_mozilla/mozilla/canvas/") ||
              url.starts_with("http://web-platform.test:8000/_mozilla/css/canvas_over_area.html"));
 
-    let url = match url_opt {
-        Some(url_string) => {
-            parse_url_or_filename(&cwd, url_string)
-                .unwrap_or_else(|()| args_fail("URL parsing failed"))
-        },
-        None => {
-            print_usage(app_name, &opts);
-            args_fail("servo asks that you provide a URL")
-        }
-    };
+    let url_opt = url_opt.and_then(|url_string| parse_url_or_filename(&cwd, url_string)
+                                   .or_else(|error| {
+                                       warn!("URL parsing failed ({:?}).", error);
+                                       Err(error)
+                                   }).ok());
 
     let tile_size: usize = match opt_match.opt_str("s") {
         Some(tile_size_str) => tile_size_str.parse()
@@ -775,7 +769,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
 
     let opts = Opts {
         is_running_problem_test: is_running_problem_test,
-        url: Some(url),
+        url: url_opt,
         tile_size: tile_size,
         device_pixels_per_px: device_pixels_per_px,
         time_profiling: time_profiling,
