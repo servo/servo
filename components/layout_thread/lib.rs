@@ -110,7 +110,7 @@ use style::context::{QuirksMode, ReflowGoal, SharedStyleContext};
 use style::context::{StyleSystemOptions, ThreadLocalStyleContextCreationInfo};
 use style::data::StoredRestyleHint;
 use style::dom::{ShowSubtree, ShowSubtreeDataAndPrimaryValues, TElement, TNode};
-use style::error_reporting::RustLogReporter;
+use style::error_reporting::{NullReporter, RustLogReporter};
 use style::logical_geometry::LogicalPoint;
 use style::media_queries::{Device, MediaList, MediaType};
 use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, REPOSITION, STORE_OVERFLOW};
@@ -1587,7 +1587,7 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
             MediaList::empty(),
             shared_lock.clone(),
             None,
-            &RustLogReporter))
+            &NullReporter))
     }
 
     let shared_lock = SharedRwLock::new();
