@@ -29,7 +29,6 @@ extern crate webrender_traits;
 extern crate libc;
 
 #[cfg(target_os="macos")]
-#[link_args="-Xlinker -undefined -Xlinker dynamic_lookup"]
 extern { }
 
 #[cfg(target_os="macos")]
