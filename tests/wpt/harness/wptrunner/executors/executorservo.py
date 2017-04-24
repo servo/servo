@@ -3,6 +3,7 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import base64
+import errno
 import hashlib
 import httplib
 import json
@@ -53,6 +54,13 @@ def make_hosts_file():
         f.write(hosts_text)
     return hosts_path
 
+def terminate_proc(proc):
+    try:
+        proc.kill()
+    except OSError as e:
+        # This means proc has already ended (No such proc)
+        if e.errno != errno.ESRCH:
+            raise e
 
 class ServoTestharnessExecutor(ProcessTestExecutor):
     convert_result = testharness_result_converter
@@ -142,9 +150,9 @@ class ServoTestharnessExecutor(ProcessTestExecutor):
                     self.logger.info("Pausing until the browser exits")
                     self.proc.wait()
                 else:
-                    self.proc.kill()
+                    terminate_proc(self.proc)
         except KeyboardInterrupt:
-            self.proc.kill()
+            terminate_proc(self.proc)
             raise
 
         return result
@@ -254,7 +262,7 @@ class ServoRefTestExecutor(ProcessTestExecutor):
                     timeout = test.timeout * self.timeout_multiplier + 5
                     rv = self.proc.wait(timeout=timeout)
                 except KeyboardInterrupt:
-                    self.proc.kill()
+                    terminate_proc(self.proc)
                     raise
             else:
                 self.proc = subprocess.Popen(self.command,
@@ -262,11 +270,11 @@ class ServoRefTestExecutor(ProcessTestExecutor):
                 try:
                     rv = self.proc.wait()
                 except KeyboardInterrupt:
-                    self.proc.kill()
+                    terminate_proc(self.proc)
                     raise
 
             if rv is None:
-                self.proc.kill()
+                terminate_proc(self.proc)
                 return False, ("EXTERNAL-TIMEOUT", None)
 
             if rv != 0 or not os.path.exists(output_path):
