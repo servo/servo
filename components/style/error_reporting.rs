@@ -42,3 +42,17 @@ impl ParseErrorReporter for StdoutErrorReporter {
         }
     }
 }
+
+/// Error reporter which silently forgets errors
+pub struct NullReporter;
+
+impl ParseErrorReporter for NullReporter {
+    fn report_error(&self,
+            _: &mut Parser,
+            _: SourcePosition,
+            _: &str,
+            _: &UrlExtraData,
+            _: u64) {
+        // do nothing
+    }
+}
