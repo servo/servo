@@ -520,7 +520,7 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     /// Returns true if we need to update transitions for the specified property on this element.
     #[cfg(feature = "gecko")]
     fn needs_transitions_update_per_property(&self,
-                                             property: TransitionProperty,
+                                             property: &TransitionProperty,
                                              combined_duration: f32,
                                              before_change_style: &Arc<ComputedValues>,
                                              after_change_style: &Arc<ComputedValues>,

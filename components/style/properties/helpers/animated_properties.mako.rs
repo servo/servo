@@ -7,9 +7,10 @@
 <% from data import SYSTEM_FONT_LONGHANDS %>
 
 use app_units::Au;
-use cssparser::{Color as CSSParserColor, Parser, RGBA};
+use cssparser::{Color as CSSParserColor, Parser, RGBA, serialize_identifier};
 use euclid::{Point2D, Size2D};
 #[cfg(feature = "gecko")] use gecko_bindings::structs::nsCSSPropertyID;
+#[cfg(feature = "gecko")] use gecko_string_cache::Atom;
 use properties::{CSSWideKeyword, PropertyDeclaration};
 use properties::longhands;
 use properties::longhands::background_size::computed_value::T as BackgroundSizeList;
@@ -25,6 +26,7 @@ use properties::longhands::transform::computed_value::T as TransformList;
 use properties::longhands::vertical_align::computed_value::T as VerticalAlign;
 use properties::longhands::visibility::computed_value::T as Visibility;
 #[cfg(feature = "gecko")] use properties::{PropertyDeclarationId, LonghandId};
+#[cfg(feature = "servo")] use servo_atoms::Atom;
 use std::cmp;
 #[cfg(feature = "gecko")] use std::collections::HashMap;
 use std::fmt;
@@ -45,7 +47,7 @@ use values::generics::position as generic_position;
 /// property.
 // NB: This needs to be here because it needs all the longhands generated
 // beforehand.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum TransitionProperty {
     /// All, any animatable property changing should generate a transition.
@@ -62,24 +64,27 @@ pub enum TransitionProperty {
         /// ${prop.name}
         ${prop.camel_case},
     % endfor
+    /// Unrecognized property which could be any non-animatable, custom property, or
+    /// unknown property.
+    Unsupported(Atom)
 }
 
 impl TransitionProperty {
     /// Iterates over each longhand property.
-    pub fn each<F: FnMut(TransitionProperty) -> ()>(mut cb: F) {
+    pub fn each<F: FnMut(&TransitionProperty) -> ()>(mut cb: F) {
         % for prop in data.longhands:
             % if prop.animatable:
-                cb(TransitionProperty::${prop.camel_case});
+                cb(&TransitionProperty::${prop.camel_case});
             % endif
         % endfor
     }
 
     /// Iterates over every property that is not TransitionProperty::All, stopping and returning
     /// true when the provided callback returns true for the first time.
-    pub fn any<F: FnMut(TransitionProperty) -> bool>(mut cb: F) -> bool {
+    pub fn any<F: FnMut(&TransitionProperty) -> bool>(mut cb: F) -> bool {
         % for prop in data.longhands:
             % if prop.animatable:
-                if cb(TransitionProperty::${prop.camel_case}) {
+                if cb(&TransitionProperty::${prop.camel_case}) {
                     return true;
                 }
             % endif
@@ -89,7 +94,8 @@ impl TransitionProperty {
 
     /// Parse a transition-property value.
     pub fn parse(input: &mut Parser) -> Result<Self, ()> {
-        match_ignore_ascii_case! { &try!(input.expect_ident()),
+        let ident = try!(input.expect_ident());
+        match_ignore_ascii_case! { &ident,
             "all" => Ok(TransitionProperty::All),
             % for prop in data.longhands:
                 % if prop.animatable:
@@ -99,7 +105,13 @@ impl TransitionProperty {
             % for prop in data.shorthands_except_all():
                 "${prop.name}" => Ok(TransitionProperty::${prop.camel_case}),
             % endfor
-            _ => Err(())
+            "none" => Err(()),
+            _ => {
+                match CSSWideKeyword::from_ident(&ident) {
+                    Some(_) => Err(()),
+                    None => Ok(TransitionProperty::Unsupported((&*ident).into()))
+                }
+            }
         }
     }
 
@@ -199,6 +211,11 @@ impl ToCss for TransitionProperty {
             % for prop in data.shorthands_except_all():
                 TransitionProperty::${prop.camel_case} => dest.write_str("${prop.name}"),
             % endfor
+            #[cfg(feature = "gecko")]
+            TransitionProperty::Unsupported(ref atom) => serialize_identifier(&atom.to_string(),
+                                                                              dest),
+            #[cfg(feature = "servo")]
+            TransitionProperty::Unsupported(ref atom) => serialize_identifier(atom, dest),
         }
     }
 }
@@ -206,9 +223,9 @@ impl ToCss for TransitionProperty {
 /// Convert to nsCSSPropertyID.
 #[cfg(feature = "gecko")]
 #[allow(non_upper_case_globals)]
-impl From<TransitionProperty> for nsCSSPropertyID {
-    fn from(transition_property: TransitionProperty) -> nsCSSPropertyID {
-        match transition_property {
+impl<'a> From< &'a TransitionProperty> for nsCSSPropertyID {
+    fn from(transition_property: &'a TransitionProperty) -> nsCSSPropertyID {
+        match *transition_property {
             % for prop in data.longhands:
                 % if prop.animatable:
                     TransitionProperty::${prop.camel_case}
@@ -220,6 +237,7 @@ impl From<TransitionProperty> for nsCSSPropertyID {
                     => ${helpers.to_nscsspropertyid(prop.ident)},
             % endfor
             TransitionProperty::All => nsCSSPropertyID::eCSSPropertyExtra_all_properties,
+            _ => panic!("Unconvertable Servo transition property: {:?}", transition_property),
         }
     }
 }
@@ -234,6 +252,9 @@ impl From<nsCSSPropertyID> for TransitionProperty {
                 % if prop.animatable:
                     ${helpers.to_nscsspropertyid(prop.ident)}
                         => TransitionProperty::${prop.camel_case},
+                % else:
+                    ${helpers.to_nscsspropertyid(prop.ident)}
+                        => TransitionProperty::Unsupported(Atom::from("${prop.ident}")),
                 % endif
             % endfor
             % for prop in data.shorthands_except_all():
@@ -241,7 +262,7 @@ impl From<nsCSSPropertyID> for TransitionProperty {
                     => TransitionProperty::${prop.camel_case},
             % endfor
             nsCSSPropertyID::eCSSPropertyExtra_all_properties => TransitionProperty::All,
-            _ => panic!("Unsupported Servo transition property: {:?}", property),
+            _ => panic!("Unconvertable nsCSSPropertyID: {:?}", property),
         }
     }
 }
@@ -356,7 +377,7 @@ impl AnimatedProperty {
                     }
                 % endif
             % endfor
-            other => panic!("Can't use TransitionProperty::{:?} here", other),
+            ref other => panic!("Can't use TransitionProperty::{:?} here", other),
         }
     }
 }
@@ -544,7 +565,7 @@ impl AnimationValue {
                     }
                 % endif
             % endfor
-            other => panic!("Can't use TransitionProperty::{:?} here.", other),
+            ref other => panic!("Can't use TransitionProperty::{:?} here.", other),
         }
     }
 }

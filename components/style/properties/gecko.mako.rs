@@ -33,6 +33,7 @@ use gecko_bindings::bindings::Gecko_FontFamilyList_AppendNamed;
 use gecko_bindings::bindings::Gecko_FontFamilyList_Clear;
 use gecko_bindings::bindings::Gecko_SetCursorArrayLength;
 use gecko_bindings::bindings::Gecko_SetCursorImage;
+use gecko_bindings::bindings::Gecko_StyleTransition_SetUnsupportedProperty;
 use gecko_bindings::bindings::Gecko_NewCSSShadowArray;
 use gecko_bindings::bindings::Gecko_nsStyleFont_SetLang;
 use gecko_bindings::bindings::Gecko_nsStyleFont_CopyLangFrom;
@@ -53,6 +54,7 @@ use gecko::values::convert_rgba_to_nscolor;
 use gecko::values::GeckoStyleCoordConvertible;
 use gecko::values::round_border_to_device_pixels;
 use logical_geometry::WritingMode;
+use properties::animated_properties::TransitionProperty;
 use properties::longhands;
 use properties::{Importance, LonghandId};
 use properties::{PropertyDeclaration, PropertyDeclarationBlock, PropertyDeclarationId};
@@ -2149,7 +2151,12 @@ fn static_assert() {
             unsafe { self.gecko.mTransitions.ensure_len(v.0.len()) };
             self.gecko.mTransitionPropertyCount = v.0.len() as u32;
             for (servo, gecko) in v.0.into_iter().zip(self.gecko.mTransitions.iter_mut()) {
-                gecko.mProperty = servo.into();
+                match servo {
+                    TransitionProperty::Unsupported(ref atom) => unsafe {
+                        Gecko_StyleTransition_SetUnsupportedProperty(gecko, atom.as_ptr())
+                    },
+                    _ => gecko.mProperty = (&servo).into(),
+                }
             }
         } else {
             // In gecko |none| is represented by eCSSPropertyExtra_no_properties.
@@ -2172,7 +2179,22 @@ fn static_assert() {
 
     pub fn transition_property_at(&self, index: usize)
         -> longhands::transition_property::computed_value::SingleComputedValue {
-        self.gecko.mTransitions[index].mProperty.into()
+        use gecko_bindings::structs::nsCSSPropertyID::eCSSPropertyExtra_no_properties;
+        use gecko_bindings::structs::nsCSSPropertyID::eCSSPropertyExtra_variable;
+        use gecko_bindings::structs::nsCSSPropertyID::eCSSProperty_UNKNOWN;
+
+        let property = self.gecko.mTransitions[index].mProperty;
+        if property == eCSSProperty_UNKNOWN || property == eCSSPropertyExtra_variable {
+            let atom = self.gecko.mTransitions[index].mUnknownProperty.raw();
+            debug_assert!(!atom.is_null());
+            TransitionProperty::Unsupported(atom.into())
+        } else if property == eCSSPropertyExtra_no_properties {
+            // Actually, we don't expect TransitionProperty::Unsupported also represents "none",
+            // but if the caller wants to convert it, it is fine. Please use it carefully.
+            TransitionProperty::Unsupported(atom!("none"))
+        } else {
+            property.into()
+        }
     }
 
     pub fn transition_nscsspropertyid_at(&self, index: usize) -> nsCSSPropertyID {
@@ -2180,6 +2202,8 @@ fn static_assert() {
     }
 
     pub fn copy_transition_property_from(&mut self, other: &Self) {
+        use gecko_bindings::structs::nsCSSPropertyID::eCSSPropertyExtra_variable;
+        use gecko_bindings::structs::nsCSSPropertyID::eCSSProperty_UNKNOWN;
         unsafe { self.gecko.mTransitions.ensure_len(other.gecko.mTransitions.len()) };
 
         let count = other.gecko.mTransitionPropertyCount;
@@ -2187,6 +2211,12 @@ fn static_assert() {
 
         for (index, transition) in self.gecko.mTransitions.iter_mut().enumerate().take(count as usize) {
             transition.mProperty = other.gecko.mTransitions[index].mProperty;
+            if transition.mProperty == eCSSProperty_UNKNOWN ||
+               transition.mProperty == eCSSPropertyExtra_variable {
+                let atom = other.gecko.mTransitions[index].mUnknownProperty.raw();
+                debug_assert!(!atom.is_null());
+                unsafe { Gecko_StyleTransition_SetUnsupportedProperty(transition, atom) };
+            }
         }
     }
     ${impl_transition_count('property', 'Property')}

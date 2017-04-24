@@ -1985,7 +1985,7 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
                     // This is safe since we immediately write to the uninitialized values.
                     unsafe { animation_values.set_len((i + 1) as u32) };
                     seen.set_transition_property_bit(&anim.0);
-                    animation_values[i].mProperty = anim.0.into();
+                    animation_values[i].mProperty = (&anim.0).into();
                     // We only make sure we have enough space for this variable,
                     // but didn't construct a default value for StyleAnimationValue,
                     // so we should zero it to avoid getting undefined behaviors.
@@ -2056,7 +2056,7 @@ pub extern "C" fn Servo_StyleSet_FillKeyframesForName(raw_data: RawServoStyleSet
                 let block = style.to_declaration_block(property.clone().into());
                 unsafe {
                     (*keyframe).mPropertyValues.set_len((index + 1) as u32);
-                    (*keyframe).mPropertyValues[index].mProperty = property.clone().into();
+                    (*keyframe).mPropertyValues[index].mProperty = property.into();
                     // FIXME. Do not set computed values once we handles missing keyframes
                     // with additive composition.
                     (*keyframe).mPropertyValues[index].mServoDeclarationBlock.set_arc_leaky(
@@ -2087,7 +2087,7 @@ pub extern "C" fn Servo_StyleSet_FillKeyframesForName(raw_data: RawServoStyleSet
                         unsafe {
                             let property = TransitionProperty::from_declaration(declaration).unwrap();
                             (*keyframe).mPropertyValues.set_len((index + 1) as u32);
-                            (*keyframe).mPropertyValues[index].mProperty = property.into();
+                            (*keyframe).mPropertyValues[index].mProperty = (&property).into();
                             (*keyframe).mPropertyValues[index].mServoDeclarationBlock.set_arc_leaky(
                                 Arc::new(global_style_data.shared_lock.wrap(
                                   PropertyDeclarationBlock::with_one(
