@@ -26,7 +26,8 @@ use selectors::Element;
 use selectors::bloom::BloomFilter;
 use selectors::matching::{AFFECTED_BY_STYLE_ATTRIBUTE, AFFECTED_BY_PRESENTATIONAL_HINTS};
 use selectors::matching::{ElementSelectorFlags, StyleRelations, matches_selector};
-use selectors::parser::{Component, Selector, SelectorInner, LocalName as LocalNameSelector};
+use selectors::parser::{Component, Selector, SelectorInner, SelectorMethods, LocalName as LocalNameSelector};
+use selectors::visitor::SelectorVisitor;
 use shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
 use sink::Push;
 use smallvec::VecLike;
@@ -332,9 +333,9 @@ impl Stylist {
                     self.rules_source_order += 1;
 
                     for selector in &style_rule.selectors.0 {
-                        let needs_cache_revalidation =
-                            self.dependencies.note_selector(selector);
-                        if needs_cache_revalidation {
+                        self.dependencies.note_selector(selector);
+
+                        if needs_revalidation(selector) {
                             self.selectors_for_cache_revalidation.push(selector.clone());
                         }
                     }
@@ -902,6 +903,76 @@ impl Drop for Stylist {
     }
 }
 
+/// Visitor determine whether a selector requires cache revalidation.
+///
+/// Note that we just check simple selectors and eagerly return when the first
+/// need for revalidation is found, so we don't need to store state on the visitor.
+struct RevalidationVisitor;
+
+impl SelectorVisitor for RevalidationVisitor {
+    type Impl = SelectorImpl;
+
+    /// Check whether a rightmost sequence of simple selectors containing this
+    /// simple selector to be explicitly matched against both the style sharing
+    /// cache entry and the candidate.
+    ///
+    /// We use this for selectors that can have different matching behavior between
+    /// siblings that are otherwise identical as far as the cache is concerned.
+    fn visit_simple_selector(&mut self, s: &Component<SelectorImpl>) -> bool {
+        match *s {
+            Component::AttrExists(_) |
+            Component::AttrEqual(_, _, _) |
+            Component::AttrIncludes(_, _) |
+            Component::AttrDashMatch(_, _) |
+            Component::AttrPrefixMatch(_, _) |
+            Component::AttrSubstringMatch(_, _) |
+            Component::AttrSuffixMatch(_, _) |
+            Component::Empty |
+            Component::FirstChild |
+            Component::LastChild |
+            Component::OnlyChild |
+            Component::NthChild(..) |
+            Component::NthLastChild(..) |
+            Component::NthOfType(..) |
+            Component::NthLastOfType(..) |
+            Component::FirstOfType |
+            Component::LastOfType |
+            Component::OnlyOfType => {
+                false
+            },
+            // FIXME(emilio): This sets the "revalidation" flag for :any, which is
+            // probably expensive given we use it a lot in UA sheets.
+            Component::NonTSPseudoClass(ref p) if p.state_flag().is_empty() => {
+                false
+            },
+            _ => {
+                true
+            }
+        }
+    }
+}
+
+/// Returns true if the given selector needs cache revalidation.
+pub fn needs_revalidation(selector: &Selector<SelectorImpl>) -> bool {
+    let mut visitor = RevalidationVisitor;
+
+    // We only need to consider the rightmost sequence of simple selectors, so
+    // we can stop at the first combinator. This is because:
+    // * If it's an ancestor combinator, we can ignore everything to the left
+    //   because matching won't differ between siblings.
+    // * If it's a sibling combinator, then we know we need revalidation.
+    let mut iter = selector.inner.complex.iter();
+    for ss in &mut iter {
+        if !ss.visit(&mut visitor) {
+            return true;
+        }
+    }
+
+    // If none of the simple selectors in the rightmost sequence required
+    // revalidaiton, we need revalidation if and only if the combinator is
+    // a sibling combinator.
+    iter.next_sequence().map_or(false, |c| c.is_sibling())
+}
 
 /// Map that contains the CSS rules for a specific PseudoElement
 /// (or lack of PseudoElement).
