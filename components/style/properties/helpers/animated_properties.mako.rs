@@ -2920,3 +2920,4 @@ impl <'a> From<<&'a IntermediateColor> for CSSParserColor {
 </%def>
 
 ${impl_intermediate_type_for_shadow('Box')}
+${impl_intermediate_type_for_shadow('Text')}

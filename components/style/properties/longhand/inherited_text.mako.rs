@@ -711,7 +711,8 @@ ${helpers.single_keyword("text-align-last",
     % endif
 </%helpers:single_keyword_computed>
 
-<%helpers:longhand name="text-shadow" animation_value_type="ComputedValue"
+<%helpers:longhand name="text-shadow"
+                   animation_value_type="IntermediateTextShadowList",
                    spec="https://drafts.csswg.org/css-text-decor/#propdef-text-shadow">
     use cssparser;
     use std::fmt;
