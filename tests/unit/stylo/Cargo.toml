@@ -16,7 +16,7 @@ testing = ["style/testing"]
 
 [dependencies]
 atomic_refcell = "0.1"
-cssparser = "0.12.1"
+cssparser = "0.13"
 env_logger = "0.4"
 euclid = "0.11"
 libc = "0.2"
