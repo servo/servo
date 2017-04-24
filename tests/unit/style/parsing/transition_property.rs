@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use parsing::parse;
+use servo_atoms::Atom;
 use style::properties::animated_properties::TransitionProperty;
 use style::properties::longhands::transition_property;
 use style::properties::shorthands::transition;
@@ -13,16 +14,21 @@ fn test_longhand_properties() {
     assert_roundtrip_with_context!(transition_property::parse, "margin-left");
     assert_roundtrip_with_context!(transition_property::parse, "background-color");
     assert_roundtrip_with_context!(transition_property::parse, "width");
+    assert_roundtrip_with_context!(transition_property::parse, "transition-duration");
+    assert_roundtrip_with_context!(transition_property::parse, "unsupported-property");
+    assert_roundtrip_with_context!(transition_property::parse, "-other-unsupported-property");
+    assert_roundtrip_with_context!(transition_property::parse, "--var");
 
-    assert_eq!(parse_longhand!(transition_property, "margin-left, width"),
+    assert_eq!(parse_longhand!(transition_property, "margin-left, transition-delay, width, --var"),
                transition_property::SpecifiedValue(
                    vec![TransitionProperty::MarginLeft,
-                        TransitionProperty::Width]));
+                        TransitionProperty::Unsupported(Atom::from("transition-delay")),
+                        TransitionProperty::Width,
+                        TransitionProperty::Unsupported(Atom::from("--var"))]));
 
-    // TODO: If one of the identifiers listed is not a recognized property name or is not an
-    // animatable property, the implementation must still start transitions on the animatable
-    // properties. Therefore, the parser shouldn't return Err for non-animatable property.
-    assert!(parse(transition_property::parse, "transition-duration").is_err());
+    assert!(parse(transition_property::parse, ".width").is_err());
+    assert!(parse(transition_property::parse, "1width").is_err());
+    assert!(parse(transition_property::parse, "- ").is_err());
 }
 
 #[test]
@@ -44,11 +50,22 @@ fn test_keywords() {
 
     assert_eq!(parse_longhand!(transition_property, "all"),
                transition_property::SpecifiedValue(vec![TransitionProperty::All]));
+    assert_eq!(parse_longhand!(transition_property, "width, all"),
+               transition_property::SpecifiedValue(vec![TransitionProperty::Width,
+                                                        TransitionProperty::All]));
+
+    // Using CSS Wide Keyword or none in the list will get the syntax invalid.
+    // Note: Only "none" alone is valid.
+    assert!(parse(transition_property::parse, "none").is_ok());
     assert_eq!(parse_longhand!(transition_property, "none"),
                transition_property::SpecifiedValue(vec![]));
-
     assert!(parse(transition_property::parse, "inherit").is_err());
     assert!(parse(transition_property::parse, "initial").is_err());
+    assert!(parse(transition_property::parse, "unset").is_err());
+    assert!(parse(transition_property::parse, "width, none").is_err());
+    assert!(parse(transition_property::parse, "width, initial").is_err());
+    assert!(parse(transition_property::parse, "width, inherit").is_err());
+    assert!(parse(transition_property::parse, "width, unset").is_err());
 }
 
 #[test]
@@ -61,7 +78,16 @@ fn test_transition_shorthand() {
     assert_eq!(result.transition_property,
                parse_longhand!(transition_property, "margin, all"));
 
+    let result = parse(transition::parse_value, "2s width, 3s --var, 4s background").unwrap();
+    assert_eq!(result.transition_property,
+               parse_longhand!(transition_property, "width, --var, background"));
+
     let result = parse(transition::parse_value, "none").unwrap();
     assert_eq!(result.transition_property,
                parse_longhand!(transition_property, "none"));
+
+    assert!(parse(transition::parse_value, "2s width, none").is_err());
+    assert!(parse(transition::parse_value, "2s width, 2s initial").is_err());
+    assert!(parse(transition::parse_value, "2s width, 3s unset").is_err());
+    assert!(parse(transition::parse_value, "2s width, 4s inherit").is_err());
 }
