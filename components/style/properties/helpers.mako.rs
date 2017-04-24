@@ -8,11 +8,13 @@
 %>
 
 <%def name="predefined_type(name, type, initial_value, parse_method='parse',
-            needs_context=True, vector=False, computed_type=None, initial_specified_value=None, **kwargs)">
+            needs_context=True, vector=False, computed_type=None, initial_specified_value=None,
+            allow_quirks=False, **kwargs)">
     <%def name="predefined_type_inner(name, type, initial_value, parse_method)">
         #[allow(unused_imports)]
         use app_units::Au;
         use cssparser::{Color as CSSParserColor, RGBA};
+        use values::specified::AllowQuirks;
         pub use values::specified::${type} as SpecifiedValue;
         pub mod computed_value {
             % if computed_type:
@@ -30,7 +32,9 @@
         pub fn parse(context: &ParserContext,
                      input: &mut Parser)
                      -> Result<SpecifiedValue, ()> {
-            % if needs_context:
+            % if allow_quirks:
+            specified::${type}::${parse_method}_quirky(context, input, AllowQuirks::Yes)
+            % elif needs_context:
             specified::${type}::${parse_method}(context, input)
             % else:
             specified::${type}::${parse_method}(input)

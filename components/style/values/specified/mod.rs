@@ -491,7 +491,17 @@ pub enum BorderWidth {
 
 impl Parse for BorderWidth {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<BorderWidth, ()> {
-        match input.try(|i| Length::parse_non_negative(context, i)) {
+        Self::parse_quirky(context, input, AllowQuirks::No)
+    }
+}
+
+impl BorderWidth {
+    /// Parses a border width, allowing quirks.
+    pub fn parse_quirky(context: &ParserContext,
+                        input: &mut Parser,
+                        allow_quirks: AllowQuirks)
+                        -> Result<BorderWidth, ()> {
+        match input.try(|i| Length::parse_non_negative_quirky(context, i, allow_quirks)) {
             Ok(length) => Ok(BorderWidth::Width(length)),
             Err(_) => match_ignore_ascii_case! { &try!(input.expect_ident()),
                "thin" => Ok(BorderWidth::Thin),
