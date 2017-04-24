@@ -8,7 +8,7 @@
 
 use {Atom, Prefix, Namespace};
 use cssparser::{AtRuleParser, Parser, QualifiedRuleParser};
-use cssparser::{AtRuleType, RuleListParser, SourcePosition, Token, parse_one_rule};
+use cssparser::{AtRuleType, RuleListParser, Token, parse_one_rule};
 use cssparser::ToCss as ParserToCss;
 use error_reporting::{ParseErrorReporter, NullReporter};
 #[cfg(feature = "servo")]

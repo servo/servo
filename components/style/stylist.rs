@@ -10,7 +10,7 @@ use {Atom, LocalName};
 use bit_vec::BitVec;
 use data::ComputedStyle;
 use dom::{AnimationRules, PresentationalHintsSynthetizer, TElement};
-use error_reporting::StdoutErrorReporter;
+use error_reporting::RustLogReporter;
 use font_metrics::FontMetricsProvider;
 use keyframes::KeyframesAnimation;
 use media_queries::Device;
@@ -415,7 +415,7 @@ impl Stylist {
                                 parent.map(|p| &**p),
                                 parent.map(|p| &**p),
                                 None,
-                                &StdoutErrorReporter,
+                                &RustLogReporter,
                                 font_metrics,
                                 cascade_flags);
         ComputedStyle::new(rule_node, Arc::new(computed))
@@ -533,7 +533,7 @@ impl Stylist {
                                 Some(&**parent),
                                 Some(&**parent),
                                 None,
-                                &StdoutErrorReporter,
+                                &RustLogReporter,
                                 font_metrics,
                                 CascadeFlags::empty());
 
@@ -863,7 +863,7 @@ impl Stylist {
                                      Some(parent_style),
                                      Some(parent_style),
                                      None,
-                                     &StdoutErrorReporter,
+                                     &RustLogReporter,
                                      &metrics,
                                      CascadeFlags::empty()))
     }

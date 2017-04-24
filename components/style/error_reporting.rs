@@ -24,11 +24,15 @@ pub trait ParseErrorReporter : Sync + Send {
                     line_number_offset: u64);
 }
 
-/// An error reporter that reports the errors to the `info` log channel.
+/// An error reporter that uses [the `log` crate](https://github.com/rust-lang-nursery/log)
+/// at `info` level.
 ///
-/// TODO(emilio): The name of this reporter is a lie, and should be renamed!
-pub struct StdoutErrorReporter;
-impl ParseErrorReporter for StdoutErrorReporter {
+/// This logging is silent by default, and can be enabled with a `RUST_LOG=style=info`
+/// environment variable.
+/// (See [`env_logger`](https://rust-lang-nursery.github.io/log/env_logger/).)
+pub struct RustLogReporter;
+
+impl ParseErrorReporter for RustLogReporter {
     fn report_error(&self,
                     input: &mut Parser,
                     position: SourcePosition,
