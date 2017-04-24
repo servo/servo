@@ -563,13 +563,17 @@ impl Length {
     }
 
     #[inline]
-    fn parse_internal(context: &ParserContext, input: &mut Parser, num_context: AllowedLengthType)
+    fn parse_internal(context: &ParserContext,
+                      input: &mut Parser,
+                      num_context: AllowedLengthType,
+                      allow_quirks: AllowQuirks)
                       -> Result<Length, ()> {
         match try!(input.next()) {
             Token::Dimension(ref value, ref unit) if num_context.is_ok(value.value) =>
                 Length::parse_dimension(context, value.value, unit),
-            Token::Number(ref value) => {
-                if value.value != 0. && !context.length_parsing_mode.allows_unitless_lengths() {
+            Token::Number(ref value) if num_context.is_ok(value.value) => {
+                if value.value != 0. && !context.length_parsing_mode.allows_unitless_lengths() &&
+                   !allow_quirks.allowed(context.quirks_mode) {
                     return Err(())
                 }
                 Ok(Length::NoCalc(NoCalcLength::Absolute(AbsoluteLength::Px(value.value))))
@@ -585,7 +589,16 @@ impl Length {
     /// Parse a non-negative length
     #[inline]
     pub fn parse_non_negative(context: &ParserContext, input: &mut Parser) -> Result<Length, ()> {
-        Self::parse_internal(context, input, AllowedLengthType::NonNegative)
+        Self::parse_non_negative_quirky(context, input, AllowQuirks::No)
+    }
+
+    /// Parse a non-negative length, allowing quirks.
+    #[inline]
+    pub fn parse_non_negative_quirky(context: &ParserContext,
+                                     input: &mut Parser,
+                                     allow_quirks: AllowQuirks)
+                                     -> Result<Length, ()> {
+        Self::parse_internal(context, input, AllowedLengthType::NonNegative, allow_quirks)
     }
 
     /// Get an absolute length from a px value.
@@ -605,7 +618,7 @@ impl Length {
 
 impl Parse for Length {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        Self::parse_internal(context, input, AllowedLengthType::All)
+        Self::parse_internal(context, input, AllowedLengthType::All, AllowQuirks::No)
     }
 }
 
@@ -616,7 +629,7 @@ impl<T: Parse> Either<Length, T> {
         if let Ok(v) = input.try(|input| T::parse(context, input)) {
             return Ok(Either::Second(v));
         }
-        Length::parse_internal(context, input, AllowedLengthType::NonNegative).map(Either::First)
+        Length::parse_internal(context, input, AllowedLengthType::NonNegative, AllowQuirks::No).map(Either::First)
     }
 }
 
