@@ -498,7 +498,7 @@ const DEFAULT_USER_AGENT: UserAgent = UserAgent::Desktop;
 pub fn default_opts() -> Opts {
     Opts {
         is_running_problem_test: false,
-        url: Some(ServoUrl::parse("about:blank").unwrap()),
+        url: None,
         tile_size: 512,
         device_pixels_per_px: None,
         time_profiling: None,
@@ -666,13 +666,12 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
 
     let url = match url_opt {
         Some(url_string) => {
-            parse_url_or_filename(&cwd, url_string)
-                .unwrap_or_else(|()| args_fail("URL parsing failed"))
+            match parse_url_or_filename(&cwd, url_string) {
+                Ok(v) => Some(v),
+                Err(_) => None,
+            }
         },
-        None => {
-            print_usage(app_name, &opts);
-            args_fail("servo asks that you provide a URL")
-        }
+        None => None,
     };
 
     let tile_size: usize = match opt_match.opt_str("s") {
@@ -794,7 +793,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
 
     let opts = Opts {
         is_running_problem_test: is_running_problem_test,
-        url: Some(url),
+        url: url,
         tile_size: tile_size,
         device_pixels_per_px: device_pixels_per_px,
         time_profiling: time_profiling,

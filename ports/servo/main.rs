@@ -141,13 +141,16 @@ fn main() {
 
     let window = app::create_window(None);
 
+    // If the url is not provided, we fallback to the homepage in PREFS,
+    // or a blank page in case the homepage is not set either.
+    let target_url = opts::get().url.clone()
+                .unwrap_or(ServoUrl::parse(PREFS.get("shell.homepage").as_string()
+                    .unwrap_or("about:blank")).unwrap());
+
     // Our wrapper around `Browser` that also implements some
     // callbacks required by the glutin window implementation.
     let mut browser = BrowserWrapper {
-        browser: Browser::new(window.clone(),
-                opts::get().url.clone()
-                    .unwrap_or(ServoUrl::parse(PREFS.get("shell.homepage").as_string()
-                    .unwrap_or("about:blank")).unwrap()))
+        browser: Browser::new(window.clone(), target_url)
     };
 
     browser.browser.setup_logging();
