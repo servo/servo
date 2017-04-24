@@ -228,7 +228,7 @@ ${helpers.predefined_type(
     initial_specified_value="specified::CSSColor::currentcolor()",
     complex_color=True,
     products="gecko",
-    animation_value_type="ComputedValue",
+    animation_value_type="IntermediateColor",
     spec="https://drafts.csswg.org/css-text-decor/#propdef-text-decoration-color")}
 
 <%helpers:longhand name="initial-letter"

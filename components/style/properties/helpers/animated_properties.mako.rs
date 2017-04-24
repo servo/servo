@@ -2771,3 +2771,50 @@ impl<T, U> ComputeDistance for Either<T, U>
         }
     }
 }
+
+#[derive(Copy, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
+pub enum IntermediateColor {
+    CurrentColor,
+    IntermediateRGBA(IntermediateRGBA),
+}
+
+impl Interpolate for IntermediateColor {
+    #[inline]
+    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
+        match (*self, *other) {
+            (IntermediateColor::IntermediateRGBA(ref this), IntermediateColor::IntermediateRGBA(ref other)) => {
+                this.interpolate(other, progress).map(IntermediateColor::IntermediateRGBA)
+            }
+            // FIXME: Bug 1345709: Implement currentColor animations.
+            _ => Err(()),
+        }
+    }
+}
+
+impl <'a> From<<&'a CSSParserColor> for IntermediateColor {
+    fn from(color: &CSSParserColor) -> IntermediateColor {
+        match *color {
+            CSSParserColor::RGBA(ref color) =>
+                IntermediateColor::IntermediateRGBA(IntermediateRGBA::new(color.red_f32(),
+                                                                          color.green_f32(),
+                                                                          color.blue_f32(),
+                                                                          color.alpha_f32())),
+            CSSParserColor::CurrentColor => IntermediateColor::CurrentColor,
+        }
+    }
+}
+
+impl <'a> From<<&'a IntermediateColor> for CSSParserColor {
+    fn from(color: &IntermediateColor) -> CSSParserColor {
+        match *color {
+            IntermediateColor::IntermediateRGBA(ref color) =>
+                CSSParserColor::RGBA(RGBA::from_floats(color.red,
+                                                       color.green,
+                                                       color.blue,
+                                                       color.alpha)),
+            IntermediateColor::CurrentColor => CSSParserColor::CurrentColor,
+        }
+    }
+}

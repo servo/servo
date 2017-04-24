@@ -1205,7 +1205,7 @@ ${helpers.single_keyword("text-align-last",
 ${helpers.predefined_type("text-emphasis-color", "CSSColor",
                           "::cssparser::Color::CurrentColor",
                           initial_specified_value="specified::CSSColor::currentcolor()",
-                          products="gecko", animation_value_type="ComputedValue",
+                          products="gecko", animation_value_type="IntermediateColor",
                           complex_color=True, need_clone=True,
                           spec="https://drafts.csswg.org/css-text-decor/#propdef-text-emphasis-color")}
 
@@ -1223,7 +1223,7 @@ ${helpers.predefined_type(
 ${helpers.predefined_type(
     "-webkit-text-fill-color", "CSSColor",
     "CSSParserColor::CurrentColor",
-    products="gecko", animation_value_type="ComputedValue",
+    products="gecko", animation_value_type="IntermediateColor",
     complex_color=True, need_clone=True,
     spec="https://compat.spec.whatwg.org/#the-webkit-text-fill-color")}
 
@@ -1231,7 +1231,7 @@ ${helpers.predefined_type(
     "-webkit-text-stroke-color", "CSSColor",
     "CSSParserColor::CurrentColor",
     initial_specified_value="specified::CSSColor::currentcolor()",
-    products="gecko", animation_value_type="ComputedValue",
+    products="gecko", animation_value_type="IntermediateColor",
     complex_color=True, need_clone=True,
     spec="https://compat.spec.whatwg.org/#the-webkit-text-stroke-color")}
 

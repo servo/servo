@@ -75,7 +75,7 @@ ${helpers.single_keyword("column-fill", "balance auto", extra_prefixes="moz",
 ${helpers.predefined_type("column-rule-color", "CSSColor",
                           "::cssparser::Color::CurrentColor",
                           initial_specified_value="specified::CSSColor::currentcolor()",
-                          products="gecko", animation_value_type="ComputedValue", extra_prefixes="moz",
+                          products="gecko", animation_value_type="IntermediateColor", extra_prefixes="moz",
                           complex_color=True, need_clone=True,
                           spec="https://drafts.csswg.org/css-multicol/#propdef-column-rule-color")}
 

@@ -20,7 +20,7 @@
                               "::cssparser::Color::CurrentColor",
                               alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-color"),
                               spec=maybe_logical_spec(side, "color"),
-                              animation_value_type="ComputedValue", logical = side[1])}
+                              animation_value_type="IntermediateColor", logical = side[1])}
 % endfor
 
 % for side in ALL_SIDES:
