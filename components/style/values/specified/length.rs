@@ -1307,15 +1307,19 @@ impl ToCss for LengthOrPercentageOrAuto {
 }
 
 impl LengthOrPercentageOrAuto {
-    fn parse_internal(context: &ParserContext, input: &mut Parser, num_context: AllowedLengthType)
+    fn parse_internal(context: &ParserContext,
+                      input: &mut Parser,
+                      num_context: AllowedLengthType,
+                      allow_quirks: AllowQuirks)
                       -> Result<Self, ()> {
         match try!(input.next()) {
             Token::Dimension(ref value, ref unit) if num_context.is_ok(value.value) =>
                 NoCalcLength::parse_dimension(context, value.value, unit).map(LengthOrPercentageOrAuto::Length),
             Token::Percentage(ref value) if num_context.is_ok(value.unit_value) =>
                 Ok(LengthOrPercentageOrAuto::Percentage(Percentage(value.unit_value))),
-            Token::Number(ref value) if value.value == 0. => {
-                if value.value != 0. && !context.length_parsing_mode.allows_unitless_lengths() {
+            Token::Number(ref value) if num_context.is_ok(value.value) => {
+                if value.value != 0. && !context.length_parsing_mode.allows_unitless_lengths() &&
+                   !allow_quirks.allowed(context.quirks_mode) {
                     return Err(())
                 }
                 Ok(LengthOrPercentageOrAuto::Length(
@@ -1337,7 +1341,7 @@ impl LengthOrPercentageOrAuto {
     /// Parse a non-negative length, percentage, or auto.
     #[inline]
     pub fn parse_non_negative(context: &ParserContext, input: &mut Parser) -> Result<LengthOrPercentageOrAuto, ()> {
-        Self::parse_internal(context, input, AllowedLengthType::NonNegative)
+        Self::parse_internal(context, input, AllowedLengthType::NonNegative, AllowQuirks::No)
     }
 
     /// Returns the `auto` value.
@@ -1354,7 +1358,18 @@ impl LengthOrPercentageOrAuto {
 impl Parse for LengthOrPercentageOrAuto {
     #[inline]
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        Self::parse_internal(context, input, AllowedLengthType::All)
+        Self::parse_quirky(context, input, AllowQuirks::No)
+    }
+}
+
+impl LengthOrPercentageOrAuto {
+    /// Parses, with quirks.
+    #[inline]
+    pub fn parse_quirky(context: &ParserContext,
+                        input: &mut Parser,
+                        allow_quirks: AllowQuirks)
+                        -> Result<Self, ()> {
+        Self::parse_internal(context, input, AllowedLengthType::All, allow_quirks)
     }
 }
 
