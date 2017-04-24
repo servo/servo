@@ -4010,26 +4010,27 @@ pub mod root {
             mozHandlerBlocked = 59,
             mozHandlerCrashed = 60,
             mozMathIncrementScriptLevel = 61,
-            required = 62,
-            optional = 63,
-            valid = 64,
-            invalid = 65,
-            inRange = 66,
-            outOfRange = 67,
-            defaultPseudo = 68,
-            placeholderShown = 69,
-            mozReadOnly = 70,
-            mozReadWrite = 71,
-            mozSubmitInvalid = 72,
-            mozUIInvalid = 73,
-            mozUIValid = 74,
-            mozMeterOptimum = 75,
-            mozMeterSubOptimum = 76,
-            mozMeterSubSubOptimum = 77,
-            mozPlaceholder = 78,
-            Count = 79,
-            NotPseudo = 80,
-            MAX = 81,
+            mozAutofill = 62,
+            required = 63,
+            optional = 64,
+            valid = 65,
+            invalid = 66,
+            inRange = 67,
+            outOfRange = 68,
+            defaultPseudo = 69,
+            placeholderShown = 70,
+            mozReadOnly = 71,
+            mozReadWrite = 72,
+            mozSubmitInvalid = 73,
+            mozUIInvalid = 74,
+            mozUIValid = 75,
+            mozMeterOptimum = 76,
+            mozMeterSubOptimum = 77,
+            mozMeterSubSubOptimum = 78,
+            mozPlaceholder = 79,
+            Count = 80,
+            NotPseudo = 81,
+            MAX = 82,
         }
         pub const SERVO_PREF_ENABLED_align_content: bool = false;
         pub const SERVO_PREF_ENABLED_align_items: bool = false;
@@ -4659,6 +4660,24 @@ pub mod root {
             pub type IntMargin = [u32; 4usize];
             pub type IntRect = [u32; 4usize];
             pub type Matrix4x4 = [u32; 16usize];
+            #[repr(C)]
+            #[derive(Debug, Copy)]
+            pub struct FontVariation {
+                pub _bindgen_opaque_blob: [u32; 2usize],
+            }
+            #[test]
+            fn bindgen_test_layout_FontVariation() {
+                assert_eq!(::std::mem::size_of::<FontVariation>() , 8usize ,
+                           concat ! (
+                           "Size of: " , stringify ! ( FontVariation ) ));
+                assert_eq! (::std::mem::align_of::<FontVariation>() , 4usize ,
+                            concat ! (
+                            "Alignment of " , stringify ! ( FontVariation )
+                            ));
+            }
+            impl Clone for FontVariation {
+                fn clone(&self) -> Self { *self }
+            }
             #[repr(C)]
             #[derive(Debug, Copy, Clone)]
             pub struct SourceSurface([u8; 0]);
@@ -9319,6 +9338,24 @@ pub mod root {
     }
     pub type FILE = root::_IO_FILE;
     pub type va_list = root::__builtin_va_list;
+    #[repr(C)]
+    #[derive(Debug, Copy)]
+    pub struct InfallibleAllocPolicy {
+        pub _address: u8,
+    }
+    #[test]
+    fn bindgen_test_layout_InfallibleAllocPolicy() {
+        assert_eq!(::std::mem::size_of::<InfallibleAllocPolicy>() , 1usize ,
+                   concat ! (
+                   "Size of: " , stringify ! ( InfallibleAllocPolicy ) ));
+        assert_eq! (::std::mem::align_of::<InfallibleAllocPolicy>() , 1usize ,
+                    concat ! (
+                    "Alignment of " , stringify ! ( InfallibleAllocPolicy )
+                    ));
+    }
+    impl Clone for InfallibleAllocPolicy {
+        fn clone(&self) -> Self { *self }
+    }
     /**
  * MozRefCountType is Mozilla's reference count type.
  *
@@ -9611,6 +9648,7 @@ pub mod root {
             = 2152924160,
         NS_ERROR_DOM_INVALID_ACCESS_XHR_TIMEOUT_AND_RESPONSETYPE_UNSUPPORTED_FOR_SYNC
             = 2152924161,
+        NS_ERROR_DOM_JS_DECODING_ERROR = 2152924162,
         NS_SUCCESS_DOM_NO_OPERATION = 5439489,
         NS_SUCCESS_DOM_SCRIPT_EVALUATION_THREW = 5439490,
         NS_SUCCESS_DOM_SCRIPT_EVALUATION_THREW_UNCATCHABLE = 5439491,
@@ -12548,7 +12586,7 @@ pub mod root {
         pub mStyleAttrStyleSheet: root::RefPtr<root::nsHTMLCSSStyleSheet>,
         pub mImageTracker: root::RefPtr<root::mozilla::dom::ImageTracker>,
         pub mActivityObservers: root::nsAutoPtr<()>,
-        pub mLinksToUpdate: [u64; 6usize],
+        pub mLinksToUpdate: [u64; 3usize],
         pub mAnimationController: root::RefPtr<root::nsSMILAnimationController>,
         pub mPropertyTable: root::nsPropertyTable,
         pub mExtraPropertyTables: root::nsTArray<root::nsAutoPtr<root::nsPropertyTable>>,
@@ -12612,7 +12650,7 @@ pub mod root {
         pub mXPathEvaluator: root::RefPtr<root::mozilla::dom::XPathEvaluator>,
         pub mAnonymousContents: root::nsTArray<root::RefPtr<root::mozilla::dom::AnonymousContent>>,
         pub mBlockDOMContentLoaded: u32,
-        pub mDOMMediaQueryLists: root::PRCList,
+        pub mDOMMediaQueryLists: root::mozilla::LinkedList<root::mozilla::dom::MediaQueryList>,
         pub mUseCounters: [u64; 2usize],
         pub mChildDocumentUseCounters: [u64; 2usize],
         pub mNotifiedPageForUseCounter: [u64; 2usize],
@@ -12896,9 +12934,10 @@ pub mod root {
     #[repr(C)]
     #[derive(Debug, Copy, Clone)]
     pub struct nsIDocument_FrameRequest([u8; 0]);
+    pub const nsIDocument_kSegmentSize: usize = 128;
     #[test]
     fn bindgen_test_layout_nsIDocument() {
-        assert_eq!(::std::mem::size_of::<nsIDocument>() , 912usize , concat !
+        assert_eq!(::std::mem::size_of::<nsIDocument>() , 896usize , concat !
                    ( "Size of: " , stringify ! ( nsIDocument ) ));
         assert_eq! (::std::mem::align_of::<nsIDocument>() , 8usize , concat !
                     ( "Alignment of " , stringify ! ( nsIDocument ) ));
@@ -16987,33 +17026,6 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
-    pub struct PRCListStr {
-        pub next: *mut root::PRCList,
-        pub prev: *mut root::PRCList,
-    }
-    #[test]
-    fn bindgen_test_layout_PRCListStr() {
-        assert_eq!(::std::mem::size_of::<PRCListStr>() , 16usize , concat ! (
-                   "Size of: " , stringify ! ( PRCListStr ) ));
-        assert_eq! (::std::mem::align_of::<PRCListStr>() , 8usize , concat ! (
-                    "Alignment of " , stringify ! ( PRCListStr ) ));
-        assert_eq! (unsafe {
-                    & ( * ( 0 as * const PRCListStr ) ) . next as * const _ as
-                    usize } , 0usize , concat ! (
-                    "Alignment of field: " , stringify ! ( PRCListStr ) , "::"
-                    , stringify ! ( next ) ));
-        assert_eq! (unsafe {
-                    & ( * ( 0 as * const PRCListStr ) ) . prev as * const _ as
-                    usize } , 8usize , concat ! (
-                    "Alignment of field: " , stringify ! ( PRCListStr ) , "::"
-                    , stringify ! ( prev ) ));
-    }
-    impl Clone for PRCListStr {
-        fn clone(&self) -> Self { *self }
-    }
-    pub type PRCList = root::PRCListStr;
-    #[repr(C)]
     #[derive(Debug, Copy, Clone)]
     pub struct gfxUserFontSet([u8; 0]);
     #[repr(C)]
@@ -17075,6 +17087,21 @@ pub mod root {
         CORS_NONE = 1,
         CORS_ANONYMOUS = 2,
         CORS_USE_CREDENTIALS = 3,
+    }
+    pub const imgIRequest_CATEGORY_FRAME_INIT: root::imgIRequest__bindgen_ty_3
+              =
+        imgIRequest__bindgen_ty_3::CATEGORY_FRAME_INIT;
+    pub const imgIRequest_CATEGORY_SIZE_QUERY: root::imgIRequest__bindgen_ty_3
+              =
+        imgIRequest__bindgen_ty_3::CATEGORY_SIZE_QUERY;
+    pub const imgIRequest_CATEGORY_DISPLAY: root::imgIRequest__bindgen_ty_3 =
+        imgIRequest__bindgen_ty_3::CATEGORY_DISPLAY;
+    #[repr(u32)]
+    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    pub enum imgIRequest__bindgen_ty_3 {
+        CATEGORY_FRAME_INIT = 1,
+        CATEGORY_SIZE_QUERY = 2,
+        CATEGORY_DISPLAY = 4,
     }
     #[test]
     fn bindgen_test_layout_imgIRequest() {
@@ -17725,33 +17752,7 @@ pub mod root {
                     gfxFontFeatureValueSet ) , "::" , stringify ! (
                     mFontFeatureValues ) ));
     }
-    #[repr(C)]
-    #[derive(Debug, Copy)]
-    pub struct gfxFontVariation {
-        pub mTag: u32,
-        pub mValue: f32,
-    }
-    #[test]
-    fn bindgen_test_layout_gfxFontVariation() {
-        assert_eq!(::std::mem::size_of::<gfxFontVariation>() , 8usize , concat
-                   ! ( "Size of: " , stringify ! ( gfxFontVariation ) ));
-        assert_eq! (::std::mem::align_of::<gfxFontVariation>() , 4usize ,
-                    concat ! (
-                    "Alignment of " , stringify ! ( gfxFontVariation ) ));
-        assert_eq! (unsafe {
-                    & ( * ( 0 as * const gfxFontVariation ) ) . mTag as *
-                    const _ as usize } , 0usize , concat ! (
-                    "Alignment of field: " , stringify ! ( gfxFontVariation )
-                    , "::" , stringify ! ( mTag ) ));
-        assert_eq! (unsafe {
-                    & ( * ( 0 as * const gfxFontVariation ) ) . mValue as *
-                    const _ as usize } , 4usize , concat ! (
-                    "Alignment of field: " , stringify ! ( gfxFontVariation )
-                    , "::" , stringify ! ( mValue ) ));
-    }
-    impl Clone for gfxFontVariation {
-        fn clone(&self) -> Self { *self }
-    }
+    pub type gfxFontVariation = root::mozilla::gfx::FontVariation;
     #[repr(C)]
     #[derive(Debug, Copy, Clone)]
     pub struct gfxFontStyle([u8; 0]);
@@ -17786,7 +17787,7 @@ pub mod root {
         pub alternateValues: root::nsTArray<root::gfxAlternateValue>,
         pub featureValueLookup: root::RefPtr<root::gfxFontFeatureValueSet>,
         pub fontFeatureSettings: root::nsTArray<root::gfxFontFeature>,
-        pub fontVariationSettings: root::nsTArray<root::gfxFontVariation>,
+        pub fontVariationSettings: root::nsTArray<root::mozilla::gfx::FontVariation>,
         pub languageOverride: u32,
     }
     #[test]
@@ -23514,6 +23515,7 @@ pub mod root {
         pub mCORSMode: i32,
         pub mReferrerPolicy: root::imgRequest_ReferrerPolicy,
         pub mImageErrorCode: root::nsresult,
+        pub mBoostCategoriesRequested: u32,
         pub mMutex: root::mozilla::Mutex,
         pub mProgressTracker: root::RefPtr<root::mozilla::image::ProgressTracker>,
         pub mImage: root::RefPtr<root::mozilla::image::Image>,
@@ -28166,6 +28168,19 @@ pub mod root {
     }
     #[test]
     fn __bindgen_test_layout_template_42() {
+        assert_eq!(::std::mem::size_of::<root::mozilla::LinkedList<root::mozilla::dom::MediaQueryList>>()
+                   , 24usize , concat ! (
+                   "Size of template specialization: " , stringify ! (
+                   root::mozilla::LinkedList<root::mozilla::dom::MediaQueryList>
+                   ) ));
+        assert_eq!(::std::mem::align_of::<root::mozilla::LinkedList<root::mozilla::dom::MediaQueryList>>()
+                   , 8usize , concat ! (
+                   "Alignment of template specialization: " , stringify ! (
+                   root::mozilla::LinkedList<root::mozilla::dom::MediaQueryList>
+                   ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_template_43() {
         assert_eq!(::std::mem::size_of::<root::RefPtr<root::mozilla::dom::Element>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28176,7 +28191,7 @@ pub mod root {
                    root::RefPtr<root::mozilla::dom::Element> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_43() {
+    fn __bindgen_test_layout_template_44() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::RefPtr<root::mozilla::dom::Element>>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28189,7 +28204,7 @@ pub mod root {
                    ));
     }
     #[test]
-    fn __bindgen_test_layout_template_44() {
+    fn __bindgen_test_layout_template_45() {
         assert_eq!(::std::mem::size_of::<root::nsCOMPtr<root::nsIObserver>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28200,7 +28215,7 @@ pub mod root {
                    root::nsCOMPtr<root::nsIObserver> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_45() {
+    fn __bindgen_test_layout_template_46() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::nsCOMPtr<root::nsIObserver>>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28211,7 +28226,7 @@ pub mod root {
                    root::nsTArray<root::nsCOMPtr<root::nsIObserver>> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_46() {
+    fn __bindgen_test_layout_template_47() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::nsIDocument>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28222,7 +28237,7 @@ pub mod root {
                    root::already_AddRefed<root::nsIDocument> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_47() {
+    fn __bindgen_test_layout_template_48() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::nsContentList>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28233,7 +28248,7 @@ pub mod root {
                    root::already_AddRefed<root::nsContentList> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_48() {
+    fn __bindgen_test_layout_template_49() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::nsINode>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28244,7 +28259,18 @@ pub mod root {
                    root::already_AddRefed<root::nsINode> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_49() {
+    fn __bindgen_test_layout_template_50() {
+        assert_eq!(::std::mem::size_of::<root::nsCOMPtr<root::mozilla::dom::Link>>()
+                   , 8usize , concat ! (
+                   "Size of template specialization: " , stringify ! (
+                   root::nsCOMPtr<root::mozilla::dom::Link> ) ));
+        assert_eq!(::std::mem::align_of::<root::nsCOMPtr<root::mozilla::dom::Link>>()
+                   , 8usize , concat ! (
+                   "Alignment of template specialization: " , stringify ! (
+                   root::nsCOMPtr<root::mozilla::dom::Link> ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_template_51() {
         assert_eq!(::std::mem::size_of::<root::nsCOMPtr<root::nsIWeakReference>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28255,7 +28281,7 @@ pub mod root {
                    root::nsCOMPtr<root::nsIWeakReference> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_50() {
+    fn __bindgen_test_layout_template_52() {
         assert_eq!(::std::mem::size_of::<u64>() , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! ( u64 )
                    ));
@@ -28264,7 +28290,7 @@ pub mod root {
                    u64 ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_51() {
+    fn __bindgen_test_layout_template_53() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::nsRect>>() ,
                    8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28275,7 +28301,7 @@ pub mod root {
                    root::nsTArray<root::nsRect> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_52() {
+    fn __bindgen_test_layout_template_54() {
         assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete<root::nsBidi>>()
                    , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28286,7 +28312,7 @@ pub mod root {
                    root::mozilla::DefaultDelete<root::nsBidi> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_53() {
+    fn __bindgen_test_layout_template_55() {
         assert_eq!(::std::mem::size_of::<[u64; 29usize]>() , 232usize , concat
                    ! (
                    "Size of template specialization: " , stringify ! (
@@ -28297,7 +28323,7 @@ pub mod root {
                    [u64; 29usize] ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_54() {
+    fn __bindgen_test_layout_template_56() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::nsIContent>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28308,7 +28334,7 @@ pub mod root {
                    root::nsTArray<*mut root::nsIContent> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_55() {
+    fn __bindgen_test_layout_template_57() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::mozilla::dom::CSSValue>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28319,7 +28345,7 @@ pub mod root {
                    root::already_AddRefed<root::mozilla::dom::CSSValue> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_56() {
+    fn __bindgen_test_layout_template_58() {
         assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete<root::mozilla::dom::TimeoutManager>>()
                    , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28332,7 +28358,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_57() {
+    fn __bindgen_test_layout_template_59() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::nsISupports>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28343,7 +28369,7 @@ pub mod root {
                    root::already_AddRefed<root::nsISupports> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_58() {
+    fn __bindgen_test_layout_template_60() {
         assert_eq!(::std::mem::size_of::<root::nsCOMPtr<root::nsIRunnable>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28354,7 +28380,7 @@ pub mod root {
                    root::nsCOMPtr<root::nsIRunnable> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_59() {
+    fn __bindgen_test_layout_template_61() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::nsIContent>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28365,7 +28391,7 @@ pub mod root {
                    root::already_AddRefed<root::nsIContent> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_60() {
+    fn __bindgen_test_layout_template_62() {
         assert_eq!(::std::mem::size_of::<[u64; 6usize]>() , 48usize , concat !
                    (
                    "Size of template specialization: " , stringify ! (
@@ -28376,7 +28402,7 @@ pub mod root {
                    [u64; 6usize] ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_61() {
+    fn __bindgen_test_layout_template_63() {
         assert_eq!(::std::mem::size_of::<root::mozilla::OwningNonNull<root::nsINode>>()
                    , 16usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28385,28 +28411,6 @@ pub mod root {
                    , 8usize , concat ! (
                    "Alignment of template specialization: " , stringify ! (
                    root::mozilla::OwningNonNull<root::nsINode> ) ));
-    }
-    #[test]
-    fn __bindgen_test_layout_template_62() {
-        assert_eq!(::std::mem::size_of::<[u32; 2usize]>() , 8usize , concat !
-                   (
-                   "Size of template specialization: " , stringify ! (
-                   [u32; 2usize] ) ));
-        assert_eq!(::std::mem::align_of::<[u32; 2usize]>() , 4usize , concat !
-                   (
-                   "Alignment of template specialization: " , stringify ! (
-                   [u32; 2usize] ) ));
-    }
-    #[test]
-    fn __bindgen_test_layout_template_63() {
-        assert_eq!(::std::mem::size_of::<[u32; 2usize]>() , 8usize , concat !
-                   (
-                   "Size of template specialization: " , stringify ! (
-                   [u32; 2usize] ) ));
-        assert_eq!(::std::mem::align_of::<[u32; 2usize]>() , 4usize , concat !
-                   (
-                   "Alignment of template specialization: " , stringify ! (
-                   [u32; 2usize] ) ));
     }
     #[test]
     fn __bindgen_test_layout_template_64() {
@@ -28421,14 +28425,14 @@ pub mod root {
     }
     #[test]
     fn __bindgen_test_layout_template_65() {
-        assert_eq!(::std::mem::size_of::<[u32; 4usize]>() , 16usize , concat !
+        assert_eq!(::std::mem::size_of::<[u32; 2usize]>() , 8usize , concat !
                    (
                    "Size of template specialization: " , stringify ! (
-                   [u32; 4usize] ) ));
-        assert_eq!(::std::mem::align_of::<[u32; 4usize]>() , 4usize , concat !
+                   [u32; 2usize] ) ));
+        assert_eq!(::std::mem::align_of::<[u32; 2usize]>() , 4usize , concat !
                    (
                    "Alignment of template specialization: " , stringify ! (
-                   [u32; 4usize] ) ));
+                   [u32; 2usize] ) ));
     }
     #[test]
     fn __bindgen_test_layout_template_66() {
@@ -28443,6 +28447,17 @@ pub mod root {
     }
     #[test]
     fn __bindgen_test_layout_template_67() {
+        assert_eq!(::std::mem::size_of::<[u32; 4usize]>() , 16usize , concat !
+                   (
+                   "Size of template specialization: " , stringify ! (
+                   [u32; 4usize] ) ));
+        assert_eq!(::std::mem::align_of::<[u32; 4usize]>() , 4usize , concat !
+                   (
+                   "Alignment of template specialization: " , stringify ! (
+                   [u32; 4usize] ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_template_68() {
         assert_eq!(::std::mem::size_of::<[u32; 2usize]>() , 8usize , concat !
                    (
                    "Size of template specialization: " , stringify ! (
@@ -28453,26 +28468,15 @@ pub mod root {
                    [u32; 2usize] ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_68() {
-        assert_eq!(::std::mem::size_of::<[u32; 4usize]>() , 16usize , concat !
-                   (
-                   "Size of template specialization: " , stringify ! (
-                   [u32; 4usize] ) ));
-        assert_eq!(::std::mem::align_of::<[u32; 4usize]>() , 4usize , concat !
-                   (
-                   "Alignment of template specialization: " , stringify ! (
-                   [u32; 4usize] ) ));
-    }
-    #[test]
     fn __bindgen_test_layout_template_69() {
-        assert_eq!(::std::mem::size_of::<[u32; 4usize]>() , 16usize , concat !
+        assert_eq!(::std::mem::size_of::<[u32; 2usize]>() , 8usize , concat !
                    (
                    "Size of template specialization: " , stringify ! (
-                   [u32; 4usize] ) ));
-        assert_eq!(::std::mem::align_of::<[u32; 4usize]>() , 4usize , concat !
+                   [u32; 2usize] ) ));
+        assert_eq!(::std::mem::align_of::<[u32; 2usize]>() , 4usize , concat !
                    (
                    "Alignment of template specialization: " , stringify ! (
-                   [u32; 4usize] ) ));
+                   [u32; 2usize] ) ));
     }
     #[test]
     fn __bindgen_test_layout_template_70() {
@@ -28487,34 +28491,34 @@ pub mod root {
     }
     #[test]
     fn __bindgen_test_layout_template_71() {
+        assert_eq!(::std::mem::size_of::<[u32; 4usize]>() , 16usize , concat !
+                   (
+                   "Size of template specialization: " , stringify ! (
+                   [u32; 4usize] ) ));
+        assert_eq!(::std::mem::align_of::<[u32; 4usize]>() , 4usize , concat !
+                   (
+                   "Alignment of template specialization: " , stringify ! (
+                   [u32; 4usize] ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_template_72() {
+        assert_eq!(::std::mem::size_of::<[u32; 4usize]>() , 16usize , concat !
+                   (
+                   "Size of template specialization: " , stringify ! (
+                   [u32; 4usize] ) ));
+        assert_eq!(::std::mem::align_of::<[u32; 4usize]>() , 4usize , concat !
+                   (
+                   "Alignment of template specialization: " , stringify ! (
+                   [u32; 4usize] ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_template_73() {
         assert_eq!(::std::mem::size_of::<u32>() , 4usize , concat ! (
                    "Size of template specialization: " , stringify ! ( u32 )
                    ));
         assert_eq!(::std::mem::align_of::<u32>() , 4usize , concat ! (
                    "Alignment of template specialization: " , stringify ! (
                    u32 ) ));
-    }
-    #[test]
-    fn __bindgen_test_layout_template_72() {
-        assert_eq!(::std::mem::size_of::<[u32; 2usize]>() , 8usize , concat !
-                   (
-                   "Size of template specialization: " , stringify ! (
-                   [u32; 2usize] ) ));
-        assert_eq!(::std::mem::align_of::<[u32; 2usize]>() , 4usize , concat !
-                   (
-                   "Alignment of template specialization: " , stringify ! (
-                   [u32; 2usize] ) ));
-    }
-    #[test]
-    fn __bindgen_test_layout_template_73() {
-        assert_eq!(::std::mem::size_of::<[u32; 2usize]>() , 8usize , concat !
-                   (
-                   "Size of template specialization: " , stringify ! (
-                   [u32; 2usize] ) ));
-        assert_eq!(::std::mem::align_of::<[u32; 2usize]>() , 4usize , concat !
-                   (
-                   "Alignment of template specialization: " , stringify ! (
-                   [u32; 2usize] ) ));
     }
     #[test]
     fn __bindgen_test_layout_template_74() {
@@ -28529,6 +28533,28 @@ pub mod root {
     }
     #[test]
     fn __bindgen_test_layout_template_75() {
+        assert_eq!(::std::mem::size_of::<[u32; 2usize]>() , 8usize , concat !
+                   (
+                   "Size of template specialization: " , stringify ! (
+                   [u32; 2usize] ) ));
+        assert_eq!(::std::mem::align_of::<[u32; 2usize]>() , 4usize , concat !
+                   (
+                   "Alignment of template specialization: " , stringify ! (
+                   [u32; 2usize] ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_template_76() {
+        assert_eq!(::std::mem::size_of::<[u32; 2usize]>() , 8usize , concat !
+                   (
+                   "Size of template specialization: " , stringify ! (
+                   [u32; 2usize] ) ));
+        assert_eq!(::std::mem::align_of::<[u32; 2usize]>() , 4usize , concat !
+                   (
+                   "Alignment of template specialization: " , stringify ! (
+                   [u32; 2usize] ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_template_77() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<f64>>() , 8usize ,
                    concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28539,7 +28565,7 @@ pub mod root {
                    root::nsTArray<f64> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_76() {
+    fn __bindgen_test_layout_template_78() {
         assert_eq!(::std::mem::size_of::<root::RefPtr<root::mozilla::dom::DOMIntersectionObserverEntry>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28552,7 +28578,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_77() {
+    fn __bindgen_test_layout_template_79() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::RefPtr<root::mozilla::dom::DOMIntersectionObserverEntry>>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28565,7 +28591,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_78() {
+    fn __bindgen_test_layout_template_80() {
         assert_eq!(::std::mem::size_of::<root::mozilla::UniquePtr<root::ProfilerBacktrace,
                                                root::ProfilerBacktraceDestructor>>()
                    , 8usize , concat ! (
@@ -28582,7 +28608,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_79() {
+    fn __bindgen_test_layout_template_81() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::mozilla::FontFamilyName>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28593,7 +28619,7 @@ pub mod root {
                    root::nsTArray<root::mozilla::FontFamilyName> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_80() {
+    fn __bindgen_test_layout_template_82() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<::std::os::raw::c_uint>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28604,7 +28630,7 @@ pub mod root {
                    root::nsTArray<::std::os::raw::c_uint> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_81() {
+    fn __bindgen_test_layout_template_83() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::mozilla::FramePropertyTable_PropertyValue>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28617,7 +28643,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_82() {
+    fn __bindgen_test_layout_template_84() {
         assert_eq!(::std::mem::size_of::<root::nsPtrHashKey<root::nsIFrame>>()
                    , 16usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28628,7 +28654,7 @@ pub mod root {
                    root::nsPtrHashKey<root::nsIFrame> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_83() {
+    fn __bindgen_test_layout_template_85() {
         assert_eq!(::std::mem::size_of::<[u64; 6usize]>() , 48usize , concat !
                    (
                    "Size of template specialization: " , stringify ! (
@@ -28639,7 +28665,7 @@ pub mod root {
                    [u64; 6usize] ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_84() {
+    fn __bindgen_test_layout_template_86() {
         assert_eq!(::std::mem::size_of::<root::mozilla::OwningNonNull<root::mozilla::EffectCompositor_AnimationStyleRuleProcessor>>()
                    , 16usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28652,7 +28678,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_85() {
+    fn __bindgen_test_layout_template_87() {
         assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete<root::ProxyBehaviour>>()
                    , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28663,7 +28689,7 @@ pub mod root {
                    root::mozilla::DefaultDelete<root::ProxyBehaviour> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_86() {
+    fn __bindgen_test_layout_template_88() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::mozilla::URLExtraData>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28674,7 +28700,7 @@ pub mod root {
                    root::already_AddRefed<root::mozilla::URLExtraData> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_87() {
+    fn __bindgen_test_layout_template_89() {
         assert_eq!(::std::mem::size_of::<root::nsMainThreadPtrHolder<root::nsIURI>>()
                    , 24usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28685,7 +28711,7 @@ pub mod root {
                    root::nsMainThreadPtrHolder<root::nsIURI> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_88() {
+    fn __bindgen_test_layout_template_90() {
         assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete<root::nsCSSValueList>>()
                    , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28696,7 +28722,7 @@ pub mod root {
                    root::mozilla::DefaultDelete<root::nsCSSValueList> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_89() {
+    fn __bindgen_test_layout_template_91() {
         assert_eq!(::std::mem::size_of::<root::mozilla::UniquePtr<root::nsCSSValueList,
                                                root::mozilla::DefaultDelete<root::nsCSSValueList>>>()
                    , 8usize , concat ! (
@@ -28713,7 +28739,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_90() {
+    fn __bindgen_test_layout_template_92() {
         assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete<root::nsCSSValuePairList>>()
                    , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28726,7 +28752,7 @@ pub mod root {
                    ));
     }
     #[test]
-    fn __bindgen_test_layout_template_91() {
+    fn __bindgen_test_layout_template_93() {
         assert_eq!(::std::mem::size_of::<root::mozilla::UniquePtr<root::nsCSSValuePairList,
                                                root::mozilla::DefaultDelete<root::nsCSSValuePairList>>>()
                    , 8usize , concat ! (
@@ -28743,7 +28769,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_92() {
+    fn __bindgen_test_layout_template_94() {
         assert_eq!(::std::mem::size_of::<[u64; 2usize]>() , 16usize , concat !
                    (
                    "Size of template specialization: " , stringify ! (
@@ -28754,7 +28780,7 @@ pub mod root {
                    [u64; 2usize] ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_93() {
+    fn __bindgen_test_layout_template_95() {
         assert_eq!(::std::mem::size_of::<u64>() , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! ( u64 )
                    ));
@@ -28763,7 +28789,7 @@ pub mod root {
                    u64 ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_94() {
+    fn __bindgen_test_layout_template_96() {
         assert_eq!(::std::mem::size_of::<[u32; 3usize]>() , 12usize , concat !
                    (
                    "Size of template specialization: " , stringify ! (
@@ -28774,7 +28800,7 @@ pub mod root {
                    [u32; 3usize] ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_95() {
+    fn __bindgen_test_layout_template_97() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::nsStyleImageRequest>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28785,7 +28811,7 @@ pub mod root {
                    root::already_AddRefed<root::nsStyleImageRequest> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_96() {
+    fn __bindgen_test_layout_template_98() {
         assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete<root::nsStyleSides>>()
                    , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28796,7 +28822,7 @@ pub mod root {
                    root::mozilla::DefaultDelete<root::nsStyleSides> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_97() {
+    fn __bindgen_test_layout_template_99() {
         assert_eq!(::std::mem::size_of::<root::mozilla::UniquePtr<root::nsStyleSides,
                                                root::mozilla::DefaultDelete<root::nsStyleSides>>>()
                    , 8usize , concat ! (
@@ -28813,7 +28839,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_98() {
+    fn __bindgen_test_layout_template_100() {
         assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete<root::CachedBorderImageData>>()
                    , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28826,7 +28852,7 @@ pub mod root {
                    ));
     }
     #[test]
-    fn __bindgen_test_layout_template_99() {
+    fn __bindgen_test_layout_template_101() {
         assert_eq!(::std::mem::size_of::<root::std::pair<::nsstring::nsStringRepr, ::nsstring::nsStringRepr>>()
                    , 32usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28837,7 +28863,7 @@ pub mod root {
                    root::std::pair<::nsstring::nsStringRepr, ::nsstring::nsStringRepr> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_100() {
+    fn __bindgen_test_layout_template_102() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::std::pair<::nsstring::nsStringRepr,
                                                      ::nsstring::nsStringRepr>>>()
                    , 8usize , concat ! (
@@ -28852,7 +28878,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_101() {
+    fn __bindgen_test_layout_template_103() {
         assert_eq!(::std::mem::size_of::<[u64; 18usize]>() , 144usize , concat
                    ! (
                    "Size of template specialization: " , stringify ! (
@@ -28863,7 +28889,7 @@ pub mod root {
                    [u64; 18usize] ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_102() {
+    fn __bindgen_test_layout_template_104() {
         assert_eq!(::std::mem::size_of::<root::mozilla::BaseTimeDuration<root::mozilla::StickyTimeDurationValueCalculator>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28876,7 +28902,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_103() {
+    fn __bindgen_test_layout_template_105() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::mozilla::DisplayItemClip_RoundedRect>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28889,7 +28915,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_104() {
+    fn __bindgen_test_layout_template_106() {
         assert_eq!(::std::mem::size_of::<root::RefPtr<root::mozilla::dom::DOMRect>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28900,7 +28926,7 @@ pub mod root {
                    root::RefPtr<root::mozilla::dom::DOMRect> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_105() {
+    fn __bindgen_test_layout_template_107() {
         assert_eq!(::std::mem::size_of::<u64>() , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! ( u64 )
                    ));
@@ -28909,7 +28935,7 @@ pub mod root {
                    u64 ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_106() {
+    fn __bindgen_test_layout_template_108() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::mozilla::css::DocumentRule>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28920,7 +28946,7 @@ pub mod root {
                    root::nsTArray<*mut root::mozilla::css::DocumentRule> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_107() {
+    fn __bindgen_test_layout_template_109() {
         assert_eq!(::std::mem::size_of::<root::nsAutoPtr<root::nsMediaQuery>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (

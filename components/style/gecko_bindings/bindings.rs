@@ -4,6 +4,7 @@ pub use nsstring::{nsACString, nsAString, nsString};
 type nsACString_internal = nsACString;
 type nsAString_internal = nsAString;
 use gecko_bindings::structs::mozilla::css::URLValue;
+use gecko_bindings::structs::mozilla::Side;
 use gecko_bindings::structs::RawGeckoAnimationPropertySegment;
 use gecko_bindings::structs::RawGeckoComputedTiming;
 use gecko_bindings::structs::RawGeckoDocument;
@@ -718,6 +719,21 @@ extern "C" {
                                           aString:
                                               *const ::std::os::raw::c_char,
                                           aLength: u32) -> bool;
+}
+extern "C" {
+    pub fn Gecko_EnsureMozBorderColors(aBorder: *mut nsStyleBorder);
+}
+extern "C" {
+    pub fn Gecko_ClearMozBorderColors(aBorder: *mut nsStyleBorder,
+                                      aSide: Side);
+}
+extern "C" {
+    pub fn Gecko_AppendMozBorderColors(aBorder: *mut nsStyleBorder,
+                                       aSide: Side, aColor: nscolor);
+}
+extern "C" {
+    pub fn Gecko_CopyMozBorderColors(aDest: *mut nsStyleBorder,
+                                     aSrc: *const nsStyleBorder, aSide: Side);
 }
 extern "C" {
     pub fn Gecko_FontFamilyList_Clear(aList: *mut FontFamilyList);
