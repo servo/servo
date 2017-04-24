@@ -20,7 +20,7 @@
                               "::cssparser::Color::CurrentColor",
                               alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-color"),
                               spec=maybe_logical_spec(side, "color"),
-                              animation_value_type="normal", logical = side[1])}
+                              animation_value_type="ComputedValue", logical = side[1])}
 % endfor
 
 % for side in ALL_SIDES:
@@ -36,7 +36,7 @@ ${helpers.gecko_keyword_conversion(Keyword('border-style',
                                    "none solid double dotted dashed hidden groove ridge inset outset"),
                                    type="::values::specified::BorderStyle")}
 % for side in ALL_SIDES:
-    <%helpers:longhand name="border-${side[0]}-width" animation_value_type="normal" logical="${side[1]}"
+    <%helpers:longhand name="border-${side[0]}-width" animation_value_type="ComputedValue" logical="${side[1]}"
                        alias="${maybe_moz_logical_alias(product, side, '-moz-border-%s-width')}"
                        spec="${maybe_logical_spec(side, 'width')}">
         use app_units::Au;
@@ -70,7 +70,7 @@ ${helpers.gecko_keyword_conversion(Keyword('border-style',
                               "parse", extra_prefixes="webkit",
                               spec="https://drafts.csswg.org/css-backgrounds/#border-%s-radius" % corner,
                               boxed=True,
-                              animation_value_type="normal")}
+                              animation_value_type="ComputedValue")}
 % endfor
 
 ${helpers.single_keyword("box-decoration-break", "slice clone",

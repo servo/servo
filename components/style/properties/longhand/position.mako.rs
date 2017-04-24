@@ -13,21 +13,21 @@
     ${helpers.predefined_type(side, "LengthOrPercentageOrAuto",
                               "computed::LengthOrPercentageOrAuto::Auto",
                               spec="https://www.w3.org/TR/CSS2/visuren.html#propdef-%s" % side,
-                              animation_value_type="normal")}
+                              animation_value_type="ComputedValue")}
 % endfor
 // offset-* logical properties, map to "top" / "left" / "bottom" / "right"
 % for side in LOGICAL_SIDES:
     ${helpers.predefined_type("offset-%s" % side, "LengthOrPercentageOrAuto",
                               "computed::LengthOrPercentageOrAuto::Auto",
                               spec="https://drafts.csswg.org/css-logical-props/#propdef-offset-%s" % side,
-                              animation_value_type="normal", logical=True)}
+                              animation_value_type="ComputedValue", logical=True)}
 % endfor
 
 ${helpers.predefined_type("z-index", "IntegerOrAuto",
                           "Either::Second(Auto)",
                           spec="https://www.w3.org/TR/CSS2/visuren.html#z-index",
                           flags="CREATES_STACKING_CONTEXT",
-                          animation_value_type="normal")}
+                          animation_value_type="ComputedValue")}
 
 
 // CSS Flexible Box Layout Module Level 1
@@ -96,13 +96,13 @@ ${helpers.predefined_type("flex-grow", "Number",
                           "0.0", "parse_non_negative",
                           spec="https://drafts.csswg.org/css-flexbox/#flex-grow-property",
                           extra_prefixes="webkit",
-                          animation_value_type="normal")}
+                          animation_value_type="ComputedValue")}
 
 ${helpers.predefined_type("flex-shrink", "Number",
                           "1.0", "parse_non_negative",
                           spec="https://drafts.csswg.org/css-flexbox/#flex-shrink-property",
                           extra_prefixes="webkit",
-                          animation_value_type="normal")}
+                          animation_value_type="ComputedValue")}
 
 // https://drafts.csswg.org/css-align/#align-self-property
 % if product == "servo":
@@ -130,7 +130,7 @@ ${helpers.predefined_type("flex-shrink", "Number",
 // https://drafts.csswg.org/css-flexbox/#propdef-order
 ${helpers.predefined_type("order", "Integer", "0",
                           extra_prefixes="webkit",
-                          animation_value_type="normal",
+                          animation_value_type="ComputedValue",
                           spec="https://drafts.csswg.org/css-flexbox/#order-property")}
 
 // FIXME: Gecko doesn't support content value yet.
@@ -143,7 +143,7 @@ ${helpers.predefined_type("flex-basis",
                           "parse_non_negative",
                           spec="https://drafts.csswg.org/css-flexbox/#flex-basis-property",
                           extra_prefixes="webkit",
-                          animation_value_type="normal" if product == "gecko" else "none")}
+                          animation_value_type="ComputedValue" if product == "gecko" else "none")}
 
 % for (size, logical) in ALL_SIZES:
     <%
@@ -157,7 +157,7 @@ ${helpers.predefined_type("flex-basis",
                               "computed::LengthOrPercentageOrAuto::Auto",
                               "parse_non_negative",
                               spec=spec % size,
-                              animation_value_type="normal", logical = logical)}
+                              animation_value_type="ComputedValue", logical = logical)}
     % if product == "gecko":
         % for min_max in ["min", "max"]:
             <%
@@ -171,7 +171,8 @@ ${helpers.predefined_type("flex-basis",
             // Keyword values are only valid in the inline direction; they must
             // be replaced with auto/none in block.
             <%helpers:longhand name="${min_max}-${size}" spec="${spec % ('%s-%s' % (min_max, size))}"
-                               animation_value_type="normal" logical="${logical}" predefined_type="${MinMax}Length">
+                               animation_value_type="ComputedValue"
+                               logical="${logical}" predefined_type="${MinMax}Length">
 
                 use std::fmt;
                 use style_traits::ToCss;
@@ -253,13 +254,13 @@ ${helpers.predefined_type("flex-basis",
                                   "computed::LengthOrPercentage::Length(Au(0))",
                                   "parse_non_negative",
                                   spec=spec % ("min-%s" % size),
-                                  animation_value_type="normal", logical = logical)}
+                                  animation_value_type="ComputedValue", logical = logical)}
         ${helpers.predefined_type("max-%s" % size,
                                   "LengthOrPercentageOrNone",
                                   "computed::LengthOrPercentageOrNone::None",
                                   "parse_non_negative",
                                   spec=spec % ("min-%s" % size),
-                                  animation_value_type="normal", logical = logical)}
+                                  animation_value_type="ComputedValue", logical = logical)}
     % endif
 % endfor
 
@@ -279,14 +280,14 @@ ${helpers.predefined_type("object-position",
                           products="gecko",
                           boxed="True",
                           spec="https://drafts.csswg.org/css-images-3/#the-object-position",
-                          animation_value_type="normal")}
+                          animation_value_type="ComputedValue")}
 
 % for kind in ["row", "column"]:
     ${helpers.predefined_type("grid-%s-gap" % kind,
                               "LengthOrPercentage",
                               "computed::LengthOrPercentage::Length(Au(0))",
                               spec="https://drafts.csswg.org/css-grid/#propdef-grid-%s-gap" % kind,
-                              animation_value_type="normal",
+                              animation_value_type="ComputedValue",
                               products="gecko")}
 
     % for range in ["start", "end"]:

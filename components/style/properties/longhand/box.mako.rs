@@ -211,7 +211,7 @@ ${helpers.single_keyword("position", "static absolute relative fixed",
 
 </%helpers:longhand>
 
-<%helpers:longhand name="vertical-align" animation_value_type="normal"
+<%helpers:longhand name="vertical-align" animation_value_type="ComputedValue"
                    spec="https://www.w3.org/TR/CSS2/visudet.html#propdef-vertical-align">
     use std::fmt;
     use style_traits::ToCss;
@@ -1100,7 +1100,7 @@ ${helpers.predefined_type("scroll-snap-destination",
                           products="gecko",
                           boxed="True",
                           spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-destination)",
-                          animation_value_type="normal")}
+                          animation_value_type="ComputedValue")}
 
 ${helpers.predefined_type("scroll-snap-coordinate",
                           "Position",
@@ -1108,14 +1108,14 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                           vector=True,
                           products="gecko",
                           spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-destination)",
-                          animation_value_type="normal",
+                          animation_value_type="ComputedValue",
                           allow_empty=True,
                           delegate_animate=True)}
 
 
 
 <%helpers:longhand name="transform" extra_prefixes="webkit"
-                   animation_value_type="normal"
+                   animation_value_type="ComputedValue"
                    flags="CREATES_STACKING_CONTEXT FIXPOS_CB"
                    spec="https://drafts.csswg.org/css-transforms/#propdef-transform">
     use app_units::Au;
@@ -2094,9 +2094,11 @@ ${helpers.predefined_type("perspective",
                           spec="https://drafts.csswg.org/css-transforms/#perspective",
                           extra_prefixes="moz webkit",
                           flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
-                          animation_value_type="normal")}
+                          animation_value_type="ComputedValue")}
 
-<%helpers:longhand name="perspective-origin" boxed="True" animation_value_type="normal" extra_prefixes="moz webkit"
+<%helpers:longhand name="perspective-origin" boxed="True"
+                   animation_value_type="ComputedValue"
+                   extra_prefixes="moz webkit"
                    spec="https://drafts.csswg.org/css-transforms/#perspective-origin-property">
     use std::fmt;
     use style_traits::ToCss;
@@ -2194,7 +2196,7 @@ ${helpers.single_keyword("transform-style",
                          flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
                          animation_value_type="none")}
 
-<%helpers:longhand name="transform-origin" animation_value_type="normal" extra_prefixes="moz webkit" boxed="True"
+<%helpers:longhand name="transform-origin" animation_value_type="ComputedValue" extra_prefixes="moz webkit" boxed="True"
                    spec="https://drafts.csswg.org/css-transforms/#transform-origin-property">
     use app_units::Au;
     use std::fmt;

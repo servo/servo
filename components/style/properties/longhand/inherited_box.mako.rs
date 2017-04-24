@@ -11,7 +11,7 @@ ${helpers.single_keyword("visibility",
                          "visible hidden",
                          extra_gecko_values="collapse",
                          gecko_ffi_name="mVisible",
-                         animation_value_type="normal",
+                         animation_value_type="ComputedValue",
                          spec="https://drafts.csswg.org/css-box/#propdef-visibility")}
 
 // CSS Writing Modes Level 3

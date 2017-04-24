@@ -178,7 +178,7 @@ class Longhand(object):
         # really random.
         if animation_value_type is None:
             raise TypeError("animation_value_type should be specified for (" + name + ")")
-        animation_value_types = ["none", "normal", "discrete"]
+        animation_value_types = ["none", "discrete", "ComputedValue"]
         if animation_value_type not in animation_value_types:
             raise TypeError("animation_value_type should be one of (" +
                             str(animation_value_types) + ")")

@@ -6,7 +6,7 @@
 <% from data import Keyword %>
 <% data.new_style_struct("InheritedText", inherited=True, gecko_name="Text") %>
 
-<%helpers:longhand name="line-height" animation_value_type="normal"
+<%helpers:longhand name="line-height" animation_value_type="ComputedValue"
                    spec="https://drafts.csswg.org/css2/visudet.html#propdef-line-height">
     use std::fmt;
     use style_traits::ToCss;
@@ -183,7 +183,7 @@ ${helpers.single_keyword("-moz-text-size-adjust", "auto none",
 ${helpers.predefined_type("text-indent",
                           "LengthOrPercentage",
                           "computed::LengthOrPercentage::Length(Au(0))",
-                          animation_value_type="normal",
+                          animation_value_type="ComputedValue",
                           spec="https://drafts.csswg.org/css-text/#propdef-text-indent")}
 
 // Also known as "word-wrap" (which is more popular because of IE), but this is the preferred
@@ -406,7 +406,7 @@ ${helpers.single_keyword("text-align-last",
     % endif
 </%helpers:longhand>
 
-<%helpers:longhand name="letter-spacing" animation_value_type="normal"
+<%helpers:longhand name="letter-spacing" animation_value_type="ComputedValue"
                    spec="https://drafts.csswg.org/css-text/#propdef-letter-spacing">
     use std::fmt;
     use style_traits::ToCss;
@@ -492,7 +492,7 @@ ${helpers.single_keyword("text-align-last",
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="word-spacing" animation_value_type="normal"
+<%helpers:longhand name="word-spacing" animation_value_type="ComputedValue"
                    spec="https://drafts.csswg.org/css-text/#propdef-word-spacing">
     use std::fmt;
     use style_traits::ToCss;
@@ -711,7 +711,7 @@ ${helpers.single_keyword("text-align-last",
     % endif
 </%helpers:single_keyword_computed>
 
-<%helpers:longhand name="text-shadow" animation_value_type="normal"
+<%helpers:longhand name="text-shadow" animation_value_type="ComputedValue"
                    spec="https://drafts.csswg.org/css-text-decor/#propdef-text-shadow">
     use cssparser;
     use std::fmt;
@@ -1205,7 +1205,7 @@ ${helpers.single_keyword("text-align-last",
 ${helpers.predefined_type("text-emphasis-color", "CSSColor",
                           "::cssparser::Color::CurrentColor",
                           initial_specified_value="specified::CSSColor::currentcolor()",
-                          products="gecko", animation_value_type="normal",
+                          products="gecko", animation_value_type="ComputedValue",
                           complex_color=True, need_clone=True,
                           spec="https://drafts.csswg.org/css-text-decor/#propdef-text-emphasis-color")}
 
@@ -1223,7 +1223,7 @@ ${helpers.predefined_type(
 ${helpers.predefined_type(
     "-webkit-text-fill-color", "CSSColor",
     "CSSParserColor::CurrentColor",
-    products="gecko", animation_value_type="normal",
+    products="gecko", animation_value_type="ComputedValue",
     complex_color=True, need_clone=True,
     spec="https://compat.spec.whatwg.org/#the-webkit-text-fill-color")}
 
@@ -1231,7 +1231,7 @@ ${helpers.predefined_type(
     "-webkit-text-stroke-color", "CSSColor",
     "CSSParserColor::CurrentColor",
     initial_specified_value="specified::CSSColor::currentcolor()",
-    products="gecko", animation_value_type="normal",
+    products="gecko", animation_value_type="ComputedValue",
     complex_color=True, need_clone=True,
     spec="https://compat.spec.whatwg.org/#the-webkit-text-stroke-color")}
 

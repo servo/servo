@@ -113,7 +113,8 @@ ${helpers.single_keyword("mask-mode",
     }
 </%helpers:vector_longhand>
 
-<%helpers:vector_longhand name="mask-position-x" products="gecko" animation_value_type="normal" extra_prefixes="webkit"
+<%helpers:vector_longhand name="mask-position-x" products="gecko"
+                          animation_value_type="ComputedValue" extra_prefixes="webkit"
                           spec="https://drafts.fxtf.org/css-masking/#propdef-mask-position">
     pub use properties::longhands::background_position_x::single_value::get_initial_value;
     pub use properties::longhands::background_position_x::single_value::get_initial_position_value;
@@ -141,7 +142,8 @@ ${helpers.single_keyword("mask-mode",
     }
 </%helpers:vector_longhand>
 
-<%helpers:vector_longhand name="mask-position-y" products="gecko" animation_value_type="normal" extra_prefixes="webkit"
+<%helpers:vector_longhand name="mask-position-y" products="gecko"
+                          animation_value_type="ComputedValue" extra_prefixes="webkit"
                           spec="https://drafts.fxtf.org/css-masking/#propdef-mask-position">
     pub use properties::longhands::background_position_y::single_value::get_initial_value;
     pub use properties::longhands::background_position_y::single_value::get_initial_position_value;
@@ -187,7 +189,7 @@ ${helpers.single_keyword("mask-origin",
                          animation_value_type="none",
                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-origin")}
 
-<%helpers:longhand name="mask-size" products="gecko" animation_value_type="normal" extra_prefixes="webkit"
+<%helpers:longhand name="mask-size" products="gecko" animation_value_type="ComputedValue" extra_prefixes="webkit"
                    spec="https://drafts.fxtf.org/css-masking/#propdef-mask-size">
     use properties::longhands::background_size;
     pub use ::properties::longhands::background_size::SpecifiedValue;

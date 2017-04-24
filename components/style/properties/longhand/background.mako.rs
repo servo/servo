@@ -10,7 +10,7 @@ ${helpers.predefined_type("background-color", "CSSColor",
     "::cssparser::Color::RGBA(::cssparser::RGBA::transparent())",
     initial_specified_value="SpecifiedValue::transparent()",
     spec="https://drafts.csswg.org/css-backgrounds/#background-color",
-    animation_value_type="normal", complex_color=True)}
+    animation_value_type="ComputedValue", complex_color=True)}
 
 <%helpers:vector_longhand name="background-image" animation_value_type="none"
                           spec="https://drafts.csswg.org/css-backgrounds/#the-background-image"
@@ -89,7 +89,7 @@ ${helpers.predefined_type("background-color", "CSSColor",
     }
 </%helpers:vector_longhand>
 
-<%helpers:vector_longhand name="background-position-x" animation_value_type="normal"
+<%helpers:vector_longhand name="background-position-x" animation_value_type="ComputedValue"
                           spec="https://drafts.csswg.org/css-backgrounds-4/#propdef-background-position-x"
                           delegate_animate="True">
     use std::fmt;
@@ -140,7 +140,7 @@ ${helpers.predefined_type("background-color", "CSSColor",
     }
 </%helpers:vector_longhand>
 
-<%helpers:vector_longhand name="background-position-y" animation_value_type="normal"
+<%helpers:vector_longhand name="background-position-y" animation_value_type="ComputedValue"
                           spec="https://drafts.csswg.org/css-backgrounds-4/#propdef-background-position-y"
                           delegate_animate="True">
     use std::fmt;
@@ -323,7 +323,7 @@ ${helpers.single_keyword("background-origin",
                          spec="https://drafts.csswg.org/css-backgrounds/#the-background-origin",
                          animation_value_type="none")}
 
-<%helpers:vector_longhand name="background-size" animation_value_type="normal" extra_prefixes="webkit"
+<%helpers:vector_longhand name="background-size" animation_value_type="ComputedValue" extra_prefixes="webkit"
                           spec="https://drafts.csswg.org/css-backgrounds/#the-background-size">
     use cssparser::Token;
     use std::ascii::AsciiExt;

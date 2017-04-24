@@ -10,12 +10,12 @@
 ${helpers.predefined_type("opacity",
                           "Opacity",
                           "1.0",
-                          animation_value_type="normal",
+                          animation_value_type="ComputedValue",
                           flags="CREATES_STACKING_CONTEXT",
                           spec="https://drafts.csswg.org/css-color/#opacity")}
 
 <%helpers:vector_longhand name="box-shadow" allow_empty="True"
-                          animation_value_type="normal" extra_prefixes="webkit"
+                          animation_value_type="ComputedValue" extra_prefixes="webkit"
                           spec="https://drafts.csswg.org/css-backgrounds/#box-shadow">
     use cssparser;
     use std::fmt;
@@ -80,7 +80,7 @@ ${helpers.predefined_type("opacity",
 ${helpers.predefined_type("clip",
                           "ClipRectOrAuto",
                           "computed::ClipRectOrAuto::auto()",
-                          animation_value_type="normal",
+                          animation_value_type="ComputedValue",
                           boxed="True",
                           spec="https://drafts.fxtf.org/css-masking/#clip-property")}
 

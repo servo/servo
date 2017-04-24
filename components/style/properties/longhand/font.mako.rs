@@ -351,7 +351,7 @@ ${helpers.single_keyword_system("font-variant-caps",
                                custom_consts=font_variant_caps_custom_consts,
                                animation_value_type="none")}
 
-<%helpers:longhand name="font-weight" need_clone="True" animation_value_type="normal"
+<%helpers:longhand name="font-weight" need_clone="True" animation_value_type="ComputedValue"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-weight">
     use std::fmt;
     use style_traits::ToCss;
@@ -549,7 +549,7 @@ ${helpers.single_keyword_system("font-variant-caps",
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="font-size" need_clone="True" animation_value_type="normal"
+<%helpers:longhand name="font-size" need_clone="True" animation_value_type="ComputedValue"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-size">
     use app_units::Au;
     use properties::longhands::system_font::SystemFont;
@@ -934,7 +934,7 @@ ${helpers.single_keyword_system("font-variant-caps",
     }
 </%helpers:longhand>
 
-<%helpers:longhand products="gecko" name="font-size-adjust" animation_value_type="normal"
+<%helpers:longhand products="gecko" name="font-size-adjust" animation_value_type="ComputedValue"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-size-adjust">
     use properties::longhands::system_font::SystemFont;
     use std::fmt;
