@@ -683,7 +683,7 @@ impl<'le> TElement for GeckoElement<'le> {
             *HasArcFFI::arc_as_borrowed(v)
         );
 
-        let parent_element = if pseudo.is_some() {
+        let parent_element = if pseudo.is_none() {
             self.parent_element()
         } else {
             Some(*self)
