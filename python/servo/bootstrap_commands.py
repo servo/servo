@@ -442,34 +442,31 @@ class MachCommands(CommandBase):
                 crate_count = 0
                 exited_crates = packages[packages_type][crate_name]["exist"]
                 for exist in sorted(exited_crates, reverse=True):
-                    exist_name = exist
                     current_crate = packages[packages_type][crate_name]["current"]
                     size = 0
-                    if packages_type == "git":
-                        if exist[2] not in current_crate:
-                            exist_name = path.join(exist[1], exist[2])
-                            crate_count += 1
-                            if int(crate_count) >= int(keep) or not current_crate:
-                                removing_anything = True
+                    exist_name = exist
+                    exist_item = exist[2] if packages_type == "git" else exist
+                    if exist_item not in current_crate:
+                        crate_count += 1
+                        removing_anything = True
+                        if int(crate_count) >= int(keep) or not current_crate:
+                            if packages_type == "git":
+                                exist_name = path.join(exist[1], exist[2])
                                 crate_path = path.normpath(path.join(git_checkout_dir, exist_name))
                                 size = get_size(crate_path) / (1024 * 1024.0)
-                    else:
-                        if exist not in current_crate:
-                            crate_count += 1
-                            if int(crate_count) >= int(keep) or not current_crate:
-                                removing_anything = True
+                            else:
                                 crate_path = path.join(crates_cache_dir, "{}.crate".format(exist))
                                 crate_path2 = path.join(crates_src_dir, exist)
                                 size = (get_size(crate_path) + get_size(crate_path2)) / (1024 * 1024.0)
-
-                    total_size += size
-                    if force:
-                        print("Removing `{}` ({}MB) package from {}".format(exist_name, round(size, 2), cargo_dir))
-                        delete(crate_path)
-                        if packages_type == "crates":
-                            delete(crate_path2)
-                    else:
-                        print("Would remove `{}` ({}MB) package from {}".format(exist_name, round(size, 2), cargo_dir))
+                            total_size += size
+                            print_msg = (exist_name, round(size, 2), cargo_dir)
+                            if force:
+                                print("Removing `{}` ({}MB) package from {}".format(*print_msg))
+                                delete(crate_path)
+                                if packages_type == "crates":
+                                    delete(crate_path2)
+                            else:
+                                print("Would remove `{}` ({}MB) package from {}".format(*print_msg))
 
         print("\nTotal size of {} MB".format(round(total_size, 2)))
 
