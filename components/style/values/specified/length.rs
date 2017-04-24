@@ -17,7 +17,7 @@ use std::ops::Mul;
 use style_traits::ToCss;
 use style_traits::values::specified::AllowedLengthType;
 use stylesheets::CssRuleType;
-use super::{Angle, Number, SimplifiedValueNode, SimplifiedSumNode, Time, ToComputedValue};
+use super::{AllowQuirks, Angle, Number, SimplifiedValueNode, SimplifiedSumNode, Time, ToComputedValue};
 use values::{Auto, CSSFloat, Either, FONT_MEDIUM_PX, HasViewportPercentage, None_, Normal};
 use values::ExtremumLength;
 use values::computed::{ComputedValueAsSpecified, Context};
@@ -1154,7 +1154,10 @@ impl LengthOrPercentage {
         LengthOrPercentage::Length(NoCalcLength::zero())
     }
 
-    fn parse_internal(context: &ParserContext, input: &mut Parser, num_context: AllowedLengthType)
+    fn parse_internal(context: &ParserContext,
+                      input: &mut Parser,
+                      num_context: AllowedLengthType,
+                      allow_quirks: AllowQuirks)
                       -> Result<LengthOrPercentage, ()>
     {
         match try!(input.next()) {
@@ -1162,12 +1165,9 @@ impl LengthOrPercentage {
                 NoCalcLength::parse_dimension(context, value.value, unit).map(LengthOrPercentage::Length),
             Token::Percentage(ref value) if num_context.is_ok(value.unit_value) =>
                 Ok(LengthOrPercentage::Percentage(Percentage(value.unit_value))),
-            Token::Number(ref value) => {
-                if value.value != 0. && !context.length_parsing_mode.allows_unitless_lengths() {
-                    return Err(())
-                }
-                Ok(LengthOrPercentage::Length(NoCalcLength::Absolute(AbsoluteLength::Px(value.value))))
-            }
+            Token::Number(value) if value.value == 0. ||
+                                    (num_context.is_ok(value.value) && allow_quirks.allowed(context.quirks_mode)) =>
+                Ok(LengthOrPercentage::Length(NoCalcLength::from_px(value.value))),
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
                 let calc = try!(input.parse_nested_block(|i| {
                     CalcLengthOrPercentage::parse_length_or_percentage(context, i)
@@ -1181,14 +1181,14 @@ impl LengthOrPercentage {
     /// Parse a non-negative length.
     #[inline]
     pub fn parse_non_negative(context: &ParserContext, input: &mut Parser) -> Result<LengthOrPercentage, ()> {
-        Self::parse_internal(context, input, AllowedLengthType::NonNegative)
+        Self::parse_internal(context, input, AllowedLengthType::NonNegative, AllowQuirks::No)
     }
 
     /// Parse a length, treating dimensionless numbers as pixels
     ///
     /// https://www.w3.org/TR/SVG2/types.html#presentation-attribute-css-value
     pub fn parse_numbers_are_pixels(context: &ParserContext, input: &mut Parser) -> Result<LengthOrPercentage, ()> {
-        if let Ok(lop) = input.try(|i| Self::parse_internal(context, i, AllowedLengthType::All)) {
+        if let Ok(lop) = input.try(|i| Self::parse(context, i)) {
             return Ok(lop)
         }
 
@@ -1204,7 +1204,7 @@ impl LengthOrPercentage {
     pub fn parse_numbers_are_pixels_non_negative(context: &ParserContext,
                                                  input: &mut Parser)
                                                  -> Result<LengthOrPercentage, ()> {
-        if let Ok(lop) = input.try(|i| Self::parse_internal(context, i, AllowedLengthType::NonNegative)) {
+        if let Ok(lop) = input.try(|i| Self::parse_non_negative(context, i)) {
             return Ok(lop)
         }
 
@@ -1230,7 +1230,18 @@ impl LengthOrPercentage {
 impl Parse for LengthOrPercentage {
     #[inline]
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        Self::parse_internal(context, input, AllowedLengthType::All)
+        Self::parse_quirky(context, input, AllowQuirks::No)
+    }
+}
+
+impl LengthOrPercentage {
+    /// Parses a length or a percentage, allowing the unitless length quirk.
+    /// https://quirks.spec.whatwg.org/#the-unitless-length-quirk
+    #[inline]
+    pub fn parse_quirky(context: &ParserContext,
+                        input: &mut Parser,
+                        allow_quirks: AllowQuirks) -> Result<Self, ()> {
+        Self::parse_internal(context, input, AllowedLengthType::All, allow_quirks)
     }
 }
 

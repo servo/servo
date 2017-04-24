@@ -7,6 +7,7 @@
 //! TODO(emilio): Enhance docs.
 
 use app_units::Au;
+use context::QuirksMode;
 use cssparser::{self, Parser, Token};
 use euclid::size::Size2D;
 use parser::{ParserContext, Parse};
@@ -1326,3 +1327,19 @@ pub type ClipRectOrAuto = Either<ClipRect, Auto>;
 
 /// <color> | auto
 pub type ColorOrAuto = Either<CSSColor, Auto>;
+
+/// Whether quirks are allowed in this context.
+#[derive(Clone, Copy, PartialEq)]
+pub enum AllowQuirks {
+    /// Quirks are allowed.
+    Yes,
+    /// Quirks are not allowed.
+    No,
+}
+
+impl AllowQuirks {
+    /// Returns `true` if quirks are allowed in this context.
+    pub fn allowed(self, quirks_mode: QuirksMode) -> bool {
+        self == AllowQuirks::Yes && quirks_mode == QuirksMode::Quirks
+    }
+}

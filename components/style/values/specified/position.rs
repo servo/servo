@@ -19,7 +19,7 @@ use values::computed::position as computed_position;
 use values::generics::position::{Position as GenericPosition, PositionValue, PositionWithKeyword};
 use values::generics::position::HorizontalPosition as GenericHorizontalPosition;
 use values::generics::position::VerticalPosition as GenericVerticalPosition;
-use values::specified::{LengthOrPercentage, Percentage};
+use values::specified::{AllowQuirks, LengthOrPercentage, Percentage};
 
 pub use values::generics::position::Keyword;
 
@@ -132,13 +132,23 @@ impl Position {
 
 impl Parse for Position {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        let first = input.try(|i| PositionComponent::parse(context, i))?;
-        let second = input.try(|i| PositionComponent::parse(context, i))
+        Position::parse_quirky(context, input, AllowQuirks::No)
+    }
+}
+
+impl Position {
+    /// Parses, with quirks.
+    pub fn parse_quirky(context: &ParserContext,
+                        input: &mut Parser,
+                        allow_quirks: AllowQuirks)
+                        -> Result<Self, ()> {
+        let first = input.try(|i| PositionComponent::parse_quirky(context, i, allow_quirks))?;
+        let second = input.try(|i| PositionComponent::parse_quirky(context, i, allow_quirks))
                           .unwrap_or(Either::Second(Keyword::Center));
 
-        if let Ok(third) = input.try(|i| PositionComponent::parse(context, i)) {
+        if let Ok(third) = input.try(|i| PositionComponent::parse_quirky(context, i, allow_quirks)) {
             // There's a 3rd value.
-            if let Ok(fourth) = input.try(|i| PositionComponent::parse(context, i)) {
+            if let Ok(fourth) = input.try(|i| PositionComponent::parse_quirky(context, i, allow_quirks)) {
                 // There's a 4th value.
                 Position::from_components(Some(second), Some(fourth), Some(first), Some(third))
             } else {
@@ -170,6 +180,17 @@ impl Parse for Position {
                     Position::from_components(None, None, Some(first), Some(second)),
             }
         }
+    }
+}
+
+impl PositionComponent {
+    /// Parses, with quirks.
+    fn parse_quirky(context: &ParserContext,
+                    input: &mut Parser,
+                    allow_quirks: AllowQuirks) -> Result<Self, ()> {
+        input.try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks))
+            .map(Either::First)
+            .or_else(|()| input.try(Keyword::parse).map(Either::Second))
     }
 }
 
