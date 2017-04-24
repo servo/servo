@@ -550,14 +550,14 @@ ${helpers.single_keyword_system("font-variant-caps",
 </%helpers:longhand>
 
 <%helpers:longhand name="font-size" need_clone="True" animation_value_type="ComputedValue"
-                   spec="https://drafts.csswg.org/css-fonts/#propdef-font-size">
+                   allow_quirks="True" spec="https://drafts.csswg.org/css-fonts/#propdef-font-size">
     use app_units::Au;
     use properties::longhands::system_font::SystemFont;
     use properties::style_structs::Font;
     use std::fmt;
     use style_traits::ToCss;
     use values::{FONT_MEDIUM_PX, HasViewportPercentage};
-    use values::specified::{FontRelativeLength, LengthOrPercentage, Length};
+    use values::specified::{AllowQuirks, FontRelativeLength, LengthOrPercentage, Length};
     use values::specified::{NoCalcLength, Percentage};
     use values::specified::length::FontBaseSize;
 
@@ -843,9 +843,19 @@ ${helpers.single_keyword_system("font-variant-caps",
                 ))
         }
     }
+
     /// <length> | <percentage> | <absolute-size> | <relative-size>
     pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        if let Ok(lop) = input.try(|i| specified::LengthOrPercentage::parse_non_negative(context, i)) {
+        parse_quirky(context, input, AllowQuirks::No)
+    }
+
+    /// Parses a font-size, with quirks.
+    pub fn parse_quirky(context: &ParserContext,
+                        input: &mut Parser,
+                        allow_quirks: AllowQuirks)
+                        -> Result<SpecifiedValue, ()> {
+        use self::specified::LengthOrPercentage;
+        if let Ok(lop) = input.try(|i| LengthOrPercentage::parse_non_negative_quirky(context, i, allow_quirks)) {
             return Ok(SpecifiedValue::Length(lop))
         }
 

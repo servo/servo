@@ -375,7 +375,11 @@
                     parse(context, input).map(|result| Box::new(result))
                 % else:
                                    -> Result<SpecifiedValue, ()> {
-                    parse(context, input)
+                    % if property.allow_quirks:
+                        parse_quirky(context, input, specified::AllowQuirks::Yes)
+                    % else:
+                        parse(context, input)
+                    % endif
                 % endif
             }
             pub fn parse_declared(context: &ParserContext, input: &mut Parser)
