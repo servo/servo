@@ -22,7 +22,28 @@ use values::CustomIdent;
 
 /// Parse the prelude of an @counter-style rule
 pub fn parse_counter_style_name(input: &mut Parser) -> Result<CustomIdent, ()> {
-    CustomIdent::from_ident(input.expect_ident()?, &["decimal", "none"])
+    macro_rules! predefined {
+        ($($name: expr,)+) => {
+            {
+                ascii_case_insensitive_phf_map! {
+                    // FIXME: use static atoms https://github.com/rust-lang/rust/issues/33156
+                    predefined -> &'static str = {
+                        $(
+                            $name => $name,
+                        )+
+                    }
+                }
+
+                let ident = input.expect_ident()?;
+                if let Some(&lower_cased) = predefined(&ident) {
+                    Ok(CustomIdent(Atom::from(lower_cased)))
+                } else {
+                    CustomIdent::from_ident(ident, &["decimal", "none"])
+                }
+            }
+        }
+    }
+    include!("predefined.rs")
 }
 
 /// Parse the body (inside `{}`) of an @counter-style rule
