@@ -85,7 +85,7 @@ use servo_atoms::Atom;
 use servo_config::opts;
 use servo_config::prefs::PREFS;
 use servo_geometry::{f32_rect_to_au_rect, max_rect};
-use servo_url::{Host, ImmutableOrigin, ServoUrl};
+use servo_url::{Host, MutableOrigin, ImmutableOrigin, ServoUrl};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;
@@ -284,6 +284,10 @@ impl Window {
             self.current_state.set(WindowState::Zombie);
             self.ignore_further_async_events.borrow().store(true, Ordering::Relaxed);
         }
+    }
+
+    pub fn origin(&self) -> &MutableOrigin {
+        self.globalscope.origin()
     }
 
     pub fn get_cx(&self) -> *mut JSContext {
@@ -1749,6 +1753,7 @@ impl Window {
                id: PipelineId,
                parent_info: Option<(PipelineId, FrameType)>,
                window_size: Option<WindowSizeData>,
+               origin: MutableOrigin,
                webvr_thread: Option<IpcSender<WebVRMsg>>)
                -> Root<Window> {
         let layout_rpc: Box<LayoutRPC + Send> = {
@@ -1771,7 +1776,8 @@ impl Window {
                     constellation_chan,
                     scheduler_chan,
                     resource_threads,
-                    timer_event_chan),
+                    timer_event_chan,
+                    origin),
             script_chan: script_chan,
             dom_manipulation_task_source: dom_task_source,
             user_interaction_task_source: user_task_source,

@@ -12,6 +12,7 @@ use dom::bindings::str::DOMString;
 use dom::bindings::str::USVString;
 use dom::dissimilaroriginwindow::DissimilarOriginWindow;
 use dom_struct::dom_struct;
+use servo_url::MutableOrigin;
 
 /// Represents a dissimilar-origin `Location` that exists in another script thread.
 ///
@@ -42,6 +43,10 @@ impl DissimilarOriginLocation {
         reflect_dom_object(box DissimilarOriginLocation::new_inherited(window),
                            window,
                            DissimilarOriginLocationBinding::Wrap)
+    }
+
+    pub fn origin(&self) -> &MutableOrigin {
+        self.window.origin()
     }
 }
 
