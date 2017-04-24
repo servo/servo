@@ -148,7 +148,7 @@ fn main() {
         browser: Browser::new(window.clone(),
                 opts::get().url.clone()
                     .unwrap_or(ServoUrl::parse(PREFS.get("shell.homepage").as_string()
-                    .unwrap_or("about:blank")).unwrap()))
+                        .unwrap_or("about:blank")).unwrap()))
     };
 
     browser.browser.setup_logging();
