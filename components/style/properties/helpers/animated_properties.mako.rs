@@ -2325,6 +2325,31 @@ impl ComputeDistance for CSSParserColor {
     }
 }
 
+impl ComputeDistance for IntermediateRGBA {
+    #[inline]
+    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
+        self.compute_squared_distance(other).map(|sq| sq.sqrt())
+    }
+
+    #[inline]
+    fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
+        let start = [ self.alpha,
+                      self.red * self.alpha,
+                      self.green * self.alpha,
+                      self.blue * self.alpha ];
+        let end = [ other.alpha,
+                    other.red * other.alpha,
+                    other.green * other.alpha,
+                    other.blue * other.alpha ];
+        let diff = start.iter().zip(&end)
+                               .fold(0.0f64, |n, (&a, &b)| {
+                                   let diff = (a - b) as f64;
+                                   n + diff * diff
+                               });
+        Ok(diff)
+    }
+}
+
 impl ComputeDistance for CalcLengthOrPercentage {
     #[inline]
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
