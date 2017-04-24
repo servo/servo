@@ -1257,7 +1257,7 @@ ${helpers.single_keyword("ruby-position", "over under",
 // https://drafts.csswg.org/css-writing-modes-3/
 
 ${helpers.single_keyword("text-combine-upright", "none all",
-                         products="gecko", animation_value_type="none",
+                         products="gecko", animation_value_type="none", need_clone=True,
                          spec="https://drafts.csswg.org/css-writing-modes-3/#text-combine-upright")}
 
 // SVG 1.1: Section 11 - Painting: Filling, Stroking and Marker Symbols

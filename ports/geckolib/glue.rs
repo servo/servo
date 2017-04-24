@@ -466,7 +466,7 @@ pub extern "C" fn Servo_StyleSet_GetBaseComputedValuesForElement(raw_data: RawSe
     };
 
     let provider = get_metrics_provider_for_product();
-    element.get_base_style(shared_context, &provider, &styles.primary, pseudo_style)
+    element.get_base_style(shared_context, &provider, &styles.primary, pseudo.as_ref(), pseudo_style)
            .into_strong()
 }
 
