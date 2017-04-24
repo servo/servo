@@ -18,7 +18,7 @@ path = "lib.rs"
 [dependencies]
 bitflags = "0.7"
 matches = "0.1"
-cssparser = "0.12.1"
+cssparser = "0.13"
 fnv = "1.0"
 precomputed-hash = "0.1"
 smallvec = "0.3"

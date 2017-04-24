@@ -14,7 +14,7 @@ testing = ["style/testing"]
 
 [dependencies]
 app_units = "0.4"
-cssparser = "0.12.1"
+cssparser = "0.13"
 euclid = "0.11"
 html5ever-atoms = "0.3"
 parking_lot = "0.3"

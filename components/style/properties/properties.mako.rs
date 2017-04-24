@@ -841,7 +841,7 @@ impl PropertyId {
 
         // FIXME(https://github.com/rust-lang/rust/issues/33156): remove this enum and use PropertyId
         // when stable Rust allows destructors in statics.
-        enum StaticId {
+        pub enum StaticId {
             Longhand(LonghandId),
             Shorthand(ShorthandId),
         }
