@@ -160,6 +160,10 @@ pub enum FetchResponseMsg {
     // todo: should have fields for transmitted/total bytes
     ProcessRequestBody,
     ProcessRequestEOF,
+    #[serde(deserialize_with = "::hyper_serde::deserialize",
+            serialize_with = "::hyper_serde::serialize")]
+    #[ignore_heap_size_of = "Defined in hyper"]
+    ProcessRequestHeaders(Headers),
     // todo: send more info about the response (or perhaps the entire Response)
     ProcessResponse(Result<FetchMetadata, NetworkError>),
     ProcessResponseChunk(Vec<u8>),
@@ -176,6 +180,8 @@ pub trait FetchTaskTarget {
     ///
     /// Fired when the entire request finishes being transmitted
     fn process_request_eof(&mut self, request: &Request);
+
+    fn process_request_headers(&mut self, request: &Request);
 
     /// https://fetch.spec.whatwg.org/#process-response
     ///
@@ -223,6 +229,10 @@ impl FetchTaskTarget for IpcSender<FetchResponseMsg> {
 
     fn process_request_eof(&mut self, _: &Request) {
         let _ = self.send(FetchResponseMsg::ProcessRequestEOF);
+    }
+
+    fn process_request_headers(&mut self, request: &Request) {
+        let _ = self.send(FetchResponseMsg::ProcessRequestHeaders(request.headers));
     }
 
     fn process_response(&mut self, response: &Response) {

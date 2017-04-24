@@ -66,6 +66,7 @@ fn new_fetch_context(dc: Option<Sender<DevtoolsControlMsg>>) -> FetchContext {
 impl FetchTaskTarget for FetchResponseCollector {
     fn process_request_body(&mut self, _: &Request) {}
     fn process_request_eof(&mut self, _: &Request) {}
+    fn process_request_headers(&mut self, _: &Request) {}
     fn process_response(&mut self, _: &Response) {}
     fn process_response_chunk(&mut self, _: Vec<u8>) {}
     /// Fired when the response is fully fetched

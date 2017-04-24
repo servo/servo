@@ -36,6 +36,9 @@ impl NetworkListener {
         ROUTER.add_route(ipc_receiver.to_opaque(), box move |message| {
             let msg = message.to();
             match msg {
+                Ok(FetchResponseMsg::ProcessRequestHeaders(headers)) => {
+                    self.req_init.headers = headers;
+                },
                 Ok(FetchResponseMsg::ProcessResponse(res)) => listener.check_redirect(res),
                 Ok(msg_) => listener.send(msg_),
                 _ => {}

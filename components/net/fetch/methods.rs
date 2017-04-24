@@ -331,6 +331,7 @@ pub fn main_fetch(request: &mut Request,
         // the body got sent in one chunk
         target.process_request_body(&request);
         target.process_request_eof(&request);
+        target.process_request(&request);
     }
 
     // Step 22.
