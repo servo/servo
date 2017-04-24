@@ -20,9 +20,6 @@ use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 ///
 /// In Gecko, we represent pseudo-elements as plain `Atom`s.
 ///
-/// The boolean field represents whether this element is an anonymous box. This
-/// is just for convenience, instead of recomputing it.
-///
 /// Also, note that the `Atom` member is always a static atom, so if space is a
 /// concern, we can use the raw pointer and use the lower bit to represent it
 /// without space overhead.
@@ -38,8 +35,22 @@ use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 ///
 /// Also, we can further optimize PartialEq and hash comparing/hashing only the
 /// atoms.
+///
+/// The two boolean fields are stored just for convenience, to avoid recomputing
+/// them from the gecko_pseudo_element_helper.rs data.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct PseudoElement(Atom, bool);
+pub struct PseudoElement {
+    /// The atom representing the pseudo-element, with only a single leading
+    /// colon.
+    atom: Atom,
+
+    /// Whether this pseudo-element is an anonymous box.
+    is_anon_box: bool,
+
+    /// Whether this pseudo-element skips parent display-based style fixups.
+    /// Must always be false if is_anon_box is false.
+    skips_display_fixup: bool,
+}
 
 /// List of eager pseudos. Keep this in sync with the count below.
 macro_rules! each_eager_pseudo {
@@ -88,7 +99,15 @@ impl PseudoElement {
     #[inline]
     pub fn from_eager_index(i: usize) -> Self {
         macro_rules! case {
-            ($atom:expr, $idx:expr) => { if i == $idx { return PseudoElement($atom, false); } }
+            ($atom:expr, $idx:expr) => {
+                if i == $idx {
+                    return PseudoElement {
+                        atom: $atom,
+                        is_anon_box: false,
+                        skips_display_fixup: false
+                    };
+                }
+            }
         }
         each_eager_pseudo!(case, atom);
         panic!("Not eager")
@@ -97,13 +116,19 @@ impl PseudoElement {
     /// Get the pseudo-element as an atom.
     #[inline]
     pub fn as_atom(&self) -> &Atom {
-        &self.0
+        &self.atom
     }
 
     /// Whether this pseudo-element is an anonymous box.
     #[inline]
     fn is_anon_box(&self) -> bool {
-        self.1
+        self.is_anon_box
+    }
+
+    /// Whether this pseudo-element skips parent display-based style fixups.
+    #[inline]
+    pub fn skips_display_fixup(&self) -> bool {
+        self.skips_display_fixup
     }
 
     /// Whether this pseudo-element is ::before or ::after.
@@ -140,27 +165,36 @@ impl PseudoElement {
     ///
     /// On debug builds we assert it's the result we expect.
     #[inline]
-    pub fn from_atom_unchecked(atom: Atom, is_anon_box: bool) -> Self {
+    pub fn from_atom_unchecked(atom: Atom, is_anon_box: bool, skips_display_fixup: bool) -> Self {
         if cfg!(debug_assertions) {
             // Do the check on debug regardless.
             match Self::from_atom(&*atom, true) {
                 Some(pseudo) => {
                     assert_eq!(pseudo.is_anon_box(), is_anon_box);
+                    assert_eq!(pseudo.skips_display_fixup(), skips_display_fixup);
                     return pseudo;
                 }
                 None => panic!("Unknown pseudo: {:?}", atom),
             }
         }
 
-        PseudoElement(atom, is_anon_box)
+        PseudoElement {
+            atom: atom,
+            is_anon_box: is_anon_box,
+            skips_display_fixup: skips_display_fixup,
+        }
     }
 
     #[inline]
     fn from_atom(atom: &WeakAtom, _in_ua: bool) -> Option<Self> {
         macro_rules! pseudo_element {
-            ($pseudo_str_with_colon:expr, $atom:expr, $is_anon_box:expr) => {{
+            ($pseudo_str_with_colon:expr, $atom:expr, $is_anon_box:expr, $skips_display_fixup:expr) => {{
                 if atom == &*$atom {
-                    return Some(PseudoElement($atom, $is_anon_box));
+                    return Some(PseudoElement {
+                        atom: $atom,
+                        is_anon_box: $is_anon_box,
+                        skips_display_fixup: $skips_display_fixup
+                    });
                 }
             }}
         }
@@ -181,10 +215,14 @@ impl PseudoElement {
     fn from_slice(s: &str, in_ua_stylesheet: bool) -> Option<Self> {
         use std::ascii::AsciiExt;
         macro_rules! pseudo_element {
-            ($pseudo_str_with_colon:expr, $atom:expr, $is_anon_box:expr) => {{
+            ($pseudo_str_with_colon:expr, $atom:expr, $is_anon_box:expr, $skips_display_fixup:expr) => {{
                 if !$is_anon_box || in_ua_stylesheet {
                     if s.eq_ignore_ascii_case(&$pseudo_str_with_colon[1..]) {
-                        return Some(PseudoElement($atom, $is_anon_box))
+                        return Some(PseudoElement {
+                            atom: $atom,
+                            is_anon_box: $is_anon_box,
+                            skips_display_fixup: $skips_display_fixup
+                        });
                     }
                 }
             }}
@@ -205,10 +243,10 @@ impl PseudoElement {
 impl ToCss for PseudoElement {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         // FIXME: why does the atom contain one colon? Pseudo-element has two
-        debug_assert!(self.0.as_slice().starts_with(&[b':' as u16]) &&
-                      !self.0.as_slice().starts_with(&[b':' as u16, b':' as u16]));
+        debug_assert!(self.atom.as_slice().starts_with(&[b':' as u16]) &&
+                      !self.atom.as_slice().starts_with(&[b':' as u16, b':' as u16]));
         try!(dest.write_char(':'));
-        write!(dest, "{}", self.0)
+        write!(dest, "{}", self.atom)
     }
 }
 
@@ -475,7 +513,13 @@ impl SelectorImpl {
         where F: FnMut(PseudoElement),
     {
         macro_rules! case {
-            ($atom:expr, $idx:expr) => { fun(PseudoElement($atom, false)); }
+            ($atom:expr, $idx:expr) => {
+                fun(PseudoElement {
+                    atom: $atom,
+                    is_anon_box: false,
+                    skips_display_fixup: false
+                });
+            }
         }
         each_eager_pseudo!(case, atom);
     }
@@ -487,8 +531,12 @@ impl SelectorImpl {
         where F: FnMut(PseudoElement),
     {
         macro_rules! pseudo_element {
-            ($pseudo_str_with_colon:expr, $atom:expr, $is_anon_box:expr) => {{
-                fun(PseudoElement($atom, $is_anon_box));
+            ($pseudo_str_with_colon:expr, $atom:expr, $is_anon_box:expr, $skips_display_fixup:expr) => {{
+                fun(PseudoElement {
+                    atom: $atom,
+                    is_anon_box: $is_anon_box,
+                    skips_display_fixup: $skips_display_fixup,
+                });
             }}
         }
 

@@ -655,7 +655,9 @@ impl<'le> TElement for GeckoElement<'le> {
         }
 
         let atom = Atom::from(maybe_atom);
-        Some(PseudoElement::from_atom_unchecked(atom, /* anon_box = */ false))
+        Some(PseudoElement::from_atom_unchecked(atom,
+                                                /* anon_box = */ false,
+                                                /* skips_display_fixup = */ false))
     }
 
     fn store_children_to_process(&self, _: isize) {

@@ -35,13 +35,13 @@ fn assert_basic_pseudo_elements() {
     let saw_after;
 
     macro_rules! pseudo_element {
-        (":before", $atom:expr, false) => {
+        (":before", $atom:expr, false, false) => {
             saw_before = true;
         };
-        (":after", $atom:expr, false) => {
+        (":after", $atom:expr, false, false) => {
             saw_after = true;
         };
-        ($pseudo_str_with_colon:expr, $atom:expr, $is_anon_box:expr) => {
+        ($pseudo_str_with_colon:expr, $atom:expr, $is_anon_box:expr, $skips_display_fixup:expr) => {
             // Do nothing
         };
     }

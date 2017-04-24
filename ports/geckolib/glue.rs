@@ -453,7 +453,9 @@ pub extern "C" fn Servo_StyleSet_GetBaseComputedValuesForElement(raw_data: RawSe
         None
     } else {
         let atom = Atom::from(pseudo_tag);
-        Some(PseudoElement::from_atom_unchecked(atom, /* anon_box = */ false))
+        Some(PseudoElement::from_atom_unchecked(atom,
+                                                /* anon_box = */ false,
+                                                /* skip_display_fixup = */ false))
     };
     let pseudos = &styles.pseudos;
     let pseudo_style = match pseudo {
@@ -893,8 +895,7 @@ pub extern "C" fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null: 
     let guards = StylesheetGuards::same(&guard);
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
     let atom = Atom::from(pseudo_tag);
-    let pseudo = PseudoElement::from_atom_unchecked(atom, /* anon_box = */ true);
-
+    let pseudo = PseudoElement::from_atom_unchecked(atom, /* anon_box = */ true, skip_display_fixup);
 
     let maybe_parent = ComputedValues::arc_from_borrowed(&parent_style_or_null);
     let mut cascade_flags = CascadeFlags::empty();
@@ -944,7 +945,9 @@ fn get_pseudo_style(guard: &SharedRwLockReadGuard,
                     doc_data: &PerDocumentStyleData)
                     -> Option<Arc<ComputedValues>>
 {
-    let pseudo = PseudoElement::from_atom_unchecked(Atom::from(pseudo_tag), false);
+    let pseudo = PseudoElement::from_atom_unchecked(Atom::from(pseudo_tag),
+                                                    /* anon_box = */ false,
+                                                    /* skip_display_fixup = */ false);
     match pseudo.cascade_type() {
         PseudoElementCascadeType::Eager => styles.pseudos.get(&pseudo).map(|s| s.values().clone()),
         PseudoElementCascadeType::Precomputed => unreachable!("No anonymous boxes"),
