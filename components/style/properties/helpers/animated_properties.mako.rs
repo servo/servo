@@ -2660,7 +2660,7 @@ impl ComputeDistance for ClipRect {
     }
 }
 
-impl ComputeDistance for TextShadow {
+impl ComputeDistance for IntermediateTextShadow {
     #[inline]
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
         self.compute_squared_distance(other).map(|sd| sd.sqrt())
@@ -2676,7 +2676,7 @@ impl ComputeDistance for TextShadow {
     }
 }
 
-impl ComputeDistance for TextShadowList {
+impl ComputeDistance for IntermediateTextShadowList {
     #[inline]
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
         self.compute_squared_distance(other).map(|sd| sd.sqrt())
@@ -2684,11 +2684,11 @@ impl ComputeDistance for TextShadowList {
 
     #[inline]
     fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
-        let zero = TextShadow {
+        let zero = IntermediateTextShadow {
             offset_x: Au(0),
             offset_y: Au(0),
             blur_radius: Au(0),
-            color: CSSParserColor::RGBA(RGBA::transparent()),
+            color: IntermediateColor::IntermediateRGBA(IntermediateRGBA::transparent()),
         };
 
         let max_len = cmp::max(self.0.len(), other.0.len());
