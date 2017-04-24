@@ -2100,7 +2100,7 @@ impl ComputeDistance for AnimationValue {
         match (self, other) {
             % for prop in data.longhands:
                 % if prop.animatable:
-                    % if prop.animation_value_type == "normal":
+                    % if prop.animation_value_type != "discrete":
                         (&AnimationValue::${prop.camel_case}(ref from),
                          &AnimationValue::${prop.camel_case}(ref to)) => {
                             from.compute_distance(to)
