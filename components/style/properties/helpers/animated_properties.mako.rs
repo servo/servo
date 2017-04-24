@@ -384,7 +384,11 @@ pub enum AnimationValue {
     % for prop in data.longhands:
         % if prop.animatable:
             /// ${prop.name}
-            ${prop.camel_case}(longhands::${prop.ident}::computed_value::T),
+            % if prop.is_animatable_with_computed_value:
+                ${prop.camel_case}(longhands::${prop.ident}::computed_value::T),
+            % else:
+                ${prop.camel_case}(${prop.animation_value_type}),
+            % endif
         % endif
     % endfor
 }
@@ -402,7 +406,13 @@ impl AnimationValue {
                             % if prop.boxed:
                                 Box::new(longhands::${prop.ident}::SpecifiedValue::from_computed_value(from)))
                             % else:
-                                longhands::${prop.ident}::SpecifiedValue::from_computed_value(from))
+                                longhands::${prop.ident}::SpecifiedValue::from_computed_value(
+                                % if prop.is_animatable_with_computed_value:
+                                    from
+                                % else:
+                                    &from.into()
+                                % endif
+                                ))
                             % endif
                     }
                 % endif
@@ -426,7 +436,13 @@ impl AnimationValue {
                     longhands::system_font::resolve_system_font(sf, context);
                 }
             % endif
-                Some(AnimationValue::${prop.camel_case}(val.to_computed_value(context)))
+                Some(AnimationValue::${prop.camel_case}(
+                % if prop.is_animatable_with_computed_value:
+                    val.to_computed_value(context)
+                % else:
+                    From::from(&val.to_computed_value(context))
+                % endif
+                ))
             },
             % endif
             % endfor
@@ -454,6 +470,9 @@ impl AnimationValue {
                                 inherit_struct.clone_${prop.ident}()
                             },
                         };
+                        % if not prop.is_animatable_with_computed_value:
+                            let computed = From::from(&computed);
+                        % endif
                         Some(AnimationValue::${prop.camel_case}(computed))
                     },
                     % endif
@@ -514,7 +533,12 @@ impl AnimationValue {
                 % if prop.animatable:
                     TransitionProperty::${prop.camel_case} => {
                         AnimationValue::${prop.camel_case}(
+                        % if prop.is_animatable_with_computed_value:
                             computed_values.get_${prop.style_struct.ident.strip("_")}().clone_${prop.ident}())
+                        % else:
+                            From::from(&computed_values.get_${prop.style_struct.ident.strip("_")}()
+                                                                  .clone_${prop.ident}()))
+                        % endif
                     }
                 % endif
             % endfor
@@ -2038,6 +2062,25 @@ impl<T, U> Interpolate for Either<T, U>
                 Ok(interpolated)
             }
         }
+    }
+}
+
+impl <'a> From<<&'a IntermediateRGBA> for RGBA {
+    fn from(extended_rgba: &IntermediateRGBA) -> RGBA {
+        // RGBA::from_floats clamps each component values.
+        RGBA::from_floats(extended_rgba.red,
+                          extended_rgba.green,
+                          extended_rgba.blue,
+                          extended_rgba.alpha)
+    }
+}
+
+impl <'a> From<<&'a RGBA> for IntermediateRGBA {
+    fn from(rgba: &RGBA) -> IntermediateRGBA {
+        IntermediateRGBA::new(rgba.red_f32(),
+                              rgba.green_f32(),
+                              rgba.blue_f32(),
+                              rgba.alpha_f32())
     }
 }
 

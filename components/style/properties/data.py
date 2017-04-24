@@ -178,13 +178,11 @@ class Longhand(object):
         # really random.
         if animation_value_type is None:
             raise TypeError("animation_value_type should be specified for (" + name + ")")
-        animation_value_types = ["none", "discrete", "ComputedValue"]
-        if animation_value_type not in animation_value_types:
-            raise TypeError("animation_value_type should be one of (" +
-                            str(animation_value_types) + ")")
         self.animation_value_type = animation_value_type
 
         self.animatable = animation_value_type != "none"
+        self.is_animatable_with_computed_value = animation_value_type == "ComputedValue" \
+            or animation_value_type == "discrete"
         if self.logical:
             # Logical properties will be animatable (i.e. the animation type is
             # discrete). For now, it is still non-animatable.
