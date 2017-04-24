@@ -809,7 +809,8 @@
     % endif
 </%def>
 
-<%def name="four_sides_shorthand(name, sub_property_pattern, parser_function, needs_context=True, **kwargs)">
+<%def name="four_sides_shorthand(name, sub_property_pattern, parser_function,
+                                 needs_context=True, allow_quirks=False, **kwargs)">
     <% sub_properties=' '.join(sub_property_pattern % side for side in ['top', 'right', 'bottom', 'left']) %>
     <%call expr="self.shorthand(name, sub_properties=sub_properties, **kwargs)">
         #[allow(unused_imports)]
@@ -819,7 +820,9 @@
 
         pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
             let (top, right, bottom, left) =
-            % if needs_context:
+            % if allow_quirks:
+                try!(parse_four_sides(input, |i| ${parser_function}_quirky(context, i, specified::AllowQuirks::Yes)));
+            % elif needs_context:
                 try!(parse_four_sides(input, |i| ${parser_function}(context, i)));
             % else:
                 try!(parse_four_sides(input, ${parser_function}));
