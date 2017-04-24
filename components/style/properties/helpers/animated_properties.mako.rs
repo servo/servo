@@ -1002,114 +1002,89 @@ impl Interpolate for ClipRect {
     }
 }
 
-/// https://drafts.csswg.org/css-transitions/#animtype-shadow-list
-impl Interpolate for TextShadow {
-    #[inline]
-    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-        Ok(TextShadow {
-            offset_x: try!(self.offset_x.interpolate(&other.offset_x, progress)),
-            offset_y: try!(self.offset_y.interpolate(&other.offset_y, progress)),
-            blur_radius: try!(self.blur_radius.interpolate(&other.blur_radius, progress)),
-            color: try!(self.color.interpolate(&other.color, progress)),
-        })
+<%def name="impl_interpolate_for_shadow(item, transparent_color)">
+    impl Interpolate for ${item} {
+        #[inline]
+        fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
+            % if "Box" in item:
+            // It can't be interpolated if inset does not match.
+            if self.inset != other.inset {
+                return Err(());
+            }
+            % endif
+
+            let x = try!(self.offset_x.interpolate(&other.offset_x, progress));
+            let y = try!(self.offset_y.interpolate(&other.offset_y, progress));
+            let color = try!(self.color.interpolate(&other.color, progress));
+            let blur = try!(self.blur_radius.interpolate(&other.blur_radius, progress));
+            % if "Box" in item:
+            let spread = try!(self.spread_radius.interpolate(&other.spread_radius, progress));
+            % endif
+
+            Ok(${item} {
+                offset_x: x,
+                offset_y: y,
+                blur_radius: blur,
+                color: color,
+                % if "Box" in item:
+                spread_radius: spread,
+                inset: self.inset,
+                % endif
+            })
+        }
     }
-}
 
-/// https://drafts.csswg.org/css-transitions/#animtype-shadow-list
-impl Interpolate for TextShadowList {
-    #[inline]
-    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-        let zero = TextShadow {
-            offset_x: Au(0),
-            offset_y: Au(0),
-            blur_radius: Au(0),
-            color: CSSParserColor::RGBA(RGBA::transparent()),
-        };
-
-        let max_len = cmp::max(self.0.len(), other.0.len());
-        let mut result = Vec::with_capacity(max_len);
-
-        for i in 0..max_len {
-            let shadow = match (self.0.get(i), other.0.get(i)) {
-                (Some(shadow), Some(other))
-                    => try!(shadow.interpolate(other, progress)),
-                (Some(shadow), None) => {
-                    shadow.interpolate(&zero, progress).unwrap()
-                }
-                (None, Some(shadow)) => {
-                    zero.interpolate(&shadow, progress).unwrap()
-                }
-                (None, None) => unreachable!(),
+    /// https://drafts.csswg.org/css-transitions/#animtype-shadow-list
+    impl Interpolate for ${item}List {
+        #[inline]
+        fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
+            // The inset value must change
+            % if "Box" in item:
+            let mut zero = ${item} {
+            % else:
+            let zero = ${item} {
+            % endif
+                offset_x: Au(0),
+                offset_y: Au(0),
+                blur_radius: Au(0),
+                color: ${transparent_color},
+                % if "Box" in item:
+                spread_radius: Au(0),
+                inset: false,
+                % endif
             };
-            result.push(shadow);
+
+            let max_len = cmp::max(self.0.len(), other.0.len());
+            let mut result = Vec::with_capacity(max_len);
+
+            for i in 0..max_len {
+                let shadow = match (self.0.get(i), other.0.get(i)) {
+                    (Some(shadow), Some(other))
+                        => try!(shadow.interpolate(other, progress)),
+                    (Some(shadow), None) => {
+                        % if "Box" in item:
+                        zero.inset = shadow.inset;
+                        % endif
+                        shadow.interpolate(&zero, progress).unwrap()
+                    }
+                    (None, Some(shadow)) => {
+                        % if "Box" in item:
+                        zero.inset = shadow.inset;
+                        % endif
+                        zero.interpolate(&shadow, progress).unwrap()
+                    }
+                    (None, None) => unreachable!(),
+                };
+                result.push(shadow);
+            }
+
+            Ok(${item}List(result))
         }
-
-        Ok(TextShadowList(result))
     }
-}
+</%def>
 
-
-impl Interpolate for BoxShadowList {
-    #[inline]
-    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-        // The inset value must change
-        let mut zero = BoxShadow {
-            offset_x: Au(0),
-            offset_y: Au(0),
-            spread_radius: Au(0),
-            blur_radius: Au(0),
-            color: CSSParserColor::RGBA(RGBA::transparent()),
-            inset: false,
-        };
-
-        let max_len = cmp::max(self.0.len(), other.0.len());
-        let mut result = Vec::with_capacity(max_len);
-
-        for i in 0..max_len {
-            let shadow = match (self.0.get(i), other.0.get(i)) {
-                (Some(shadow), Some(other))
-                    => try!(shadow.interpolate(other, progress)),
-                (Some(shadow), None) => {
-                    zero.inset = shadow.inset;
-                    shadow.interpolate(&zero, progress).unwrap()
-                }
-                (None, Some(shadow)) => {
-                    zero.inset = shadow.inset;
-                    zero.interpolate(&shadow, progress).unwrap()
-                }
-                (None, None) => unreachable!(),
-            };
-            result.push(shadow);
-        }
-
-        Ok(BoxShadowList(result))
-    }
-}
-
-/// https://drafts.csswg.org/css-transitions/#animtype-shadow-list
-impl Interpolate for BoxShadow {
-    #[inline]
-    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-        if self.inset != other.inset {
-            return Err(());
-        }
-
-        let x = try!(self.offset_x.interpolate(&other.offset_x, progress));
-        let y = try!(self.offset_y.interpolate(&other.offset_y, progress));
-        let color = try!(self.color.interpolate(&other.color, progress));
-        let spread = try!(self.spread_radius.interpolate(&other.spread_radius, progress));
-        let blur = try!(self.blur_radius.interpolate(&other.blur_radius, progress));
-
-        Ok(BoxShadow {
-            offset_x: x,
-            offset_y: y,
-            blur_radius: blur,
-            spread_radius: spread,
-            color: color,
-            inset: self.inset,
-        })
-    }
-}
+${impl_interpolate_for_shadow('BoxShadow', 'CSSParserColor::RGBA(RGBA::transparent())',)}
+${impl_interpolate_for_shadow('TextShadow', 'CSSParserColor::RGBA(RGBA::transparent())',)}
 
 impl Interpolate for LengthOrNone {
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
