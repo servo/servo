@@ -404,8 +404,8 @@ impl AnimationValue {
                     AnimationValue::${prop.camel_case}(ref from) => {
                         PropertyDeclaration::${prop.camel_case}(
                             % if prop.boxed:
-                                Box::new(longhands::${prop.ident}::SpecifiedValue::from_computed_value(from)))
-                            % else:
+                            Box::new(
+                            % endif
                                 longhands::${prop.ident}::SpecifiedValue::from_computed_value(
                                 % if prop.is_animatable_with_computed_value:
                                     from
@@ -413,6 +413,8 @@ impl AnimationValue {
                                     &from.into()
                                 % endif
                                 ))
+                            % if prop.boxed:
+                            )
                             % endif
                     }
                 % endif
@@ -2132,6 +2134,43 @@ impl Interpolate for IntermediateRGBA {
                              .interpolate(&(other.blue * other.alpha), progress))
                              * 1. / alpha;
             Ok(IntermediateRGBA::new(red, green, blue, alpha))
+        }
+    }
+}
+
+impl<'a> From<<&'a Either<CSSParserColor, Auto>> for Either<IntermediateColor, Auto> {
+    fn from(from: &Either<CSSParserColor, Auto>) -> Either<IntermediateColor, Auto> {
+        match *from {
+            Either::First(ref from) =>
+                match *from {
+                    CSSParserColor::RGBA(ref color) =>
+                        Either::First(IntermediateColor::IntermediateRGBA(
+                            IntermediateRGBA::new(color.red_f32(),
+                                                  color.green_f32(),
+                                                  color.blue_f32(),
+                                                  color.alpha_f32()))),
+                    CSSParserColor::CurrentColor =>
+                        Either::First(IntermediateColor::CurrentColor),
+                },
+            Either::Second(Auto) => Either::Second(Auto),
+        }
+    }
+}
+
+impl<'a> From<<&'a Either<IntermediateColor, Auto>> for Either<CSSParserColor, Auto> {
+    fn from(from: &Either<IntermediateColor, Auto>) -> Either<CSSParserColor, Auto> {
+        match *from {
+            Either::First(ref from) =>
+                match *from {
+                    IntermediateColor::IntermediateRGBA(ref color) =>
+                        Either::First(CSSParserColor::RGBA(RGBA::from_floats(color.red,
+                                                                             color.green,
+                                                                             color.blue,
+                                                                             color.alpha))),
+                    IntermediateColor::CurrentColor =>
+                        Either::First(CSSParserColor::CurrentColor),
+                },
+            Either::Second(Auto) => Either::Second(Auto),
         }
     }
 }
