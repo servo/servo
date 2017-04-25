@@ -9,7 +9,7 @@
 #![deny(missing_docs)]
 
 use Atom;
-pub use cssparser::{RGBA, Parser, serialize_identifier};
+pub use cssparser::{RGBA, Token, Parser, serialize_identifier, serialize_string};
 use parser::{Parse, ParserContext};
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
@@ -240,6 +240,52 @@ impl ToCss for CustomIdent {
     }
 }
 
+/// https://drafts.csswg.org/css-animations/#typedef-keyframes-name
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum KeyframesName {
+    /// <custom-ident>
+    Ident(CustomIdent),
+    /// <string>
+    QuotedString(Atom),
+}
+
+impl KeyframesName {
+    /// https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-name
+    pub fn from_ident(value: String) -> Self {
+        match CustomIdent::from_ident((&*value).into(), &["none"]) {
+            Ok(ident) => KeyframesName::Ident(ident),
+            Err(()) => KeyframesName::QuotedString(value.into()),
+        }
+    }
+
+    /// The name as an Atom
+    pub fn as_atom(&self) -> &Atom {
+        match *self {
+            KeyframesName::Ident(ref ident) => &ident.0,
+            KeyframesName::QuotedString(ref atom) => atom,
+        }
+    }
+}
+
+impl Parse for KeyframesName {
+    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        match input.next() {
+            Ok(Token::Ident(s)) => Ok(KeyframesName::Ident(CustomIdent::from_ident(s, &["none"])?)),
+            Ok(Token::QuotedString(s)) => Ok(KeyframesName::QuotedString(s.into())),
+            _ => Err(())
+        }
+    }
+}
+
+impl ToCss for KeyframesName {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            KeyframesName::Ident(ref ident) => ident.to_css(dest),
+            KeyframesName::QuotedString(ref atom) => serialize_string(&atom.to_string(), dest),
+        }
+    }
+}
 
 // A type for possible values for min- and max- flavors of width,
 // height, block-size, and inline-size.

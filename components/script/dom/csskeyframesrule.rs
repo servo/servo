@@ -5,7 +5,7 @@
 use cssparser::Parser;
 use dom::bindings::codegen::Bindings::CSSKeyframesRuleBinding;
 use dom::bindings::codegen::Bindings::CSSKeyframesRuleBinding::CSSKeyframesRuleMethods;
-use dom::bindings::error::{Error, ErrorResult};
+use dom::bindings::error::ErrorResult;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
@@ -20,7 +20,7 @@ use std::sync::Arc;
 use style::keyframes::{Keyframe, KeyframeSelector};
 use style::shared_lock::{Locked, ToCssWithGuard};
 use style::stylesheets::KeyframesRule;
-use style::values::CustomIdent;
+use style::values::KeyframesName;
 
 #[dom_struct]
 pub struct CSSKeyframesRule {
@@ -107,15 +107,15 @@ impl CSSKeyframesRuleMethods for CSSKeyframesRule {
     // https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-name
     fn Name(&self) -> DOMString {
         let guard = self.cssrule.shared_lock().read();
-        DOMString::from(&*self.keyframesrule.read_with(&guard).name.0)
+        DOMString::from(&**self.keyframesrule.read_with(&guard).name.as_atom())
     }
 
     // https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-name
     fn SetName(&self, value: DOMString) -> ErrorResult {
-        // https://github.com/w3c/csswg-drafts/issues/801
-        // Setting this property to a CSS-wide keyword or `none` will
-        // throw a Syntax Error.
-        let name = CustomIdent::from_ident(value.into(), &["none"]).map_err(|()| Error::Syntax)?;
+        // Spec deviation: https://github.com/w3c/csswg-drafts/issues/801
+        // Setting this property to a CSS-wide keyword or `none` does not throw,
+        // it stores a value that serializes as a quoted string.
+        let name = KeyframesName::from_ident(value.into());
         let mut guard = self.cssrule.shared_lock().write();
         self.keyframesrule.write_with(&mut guard).name = name;
         Ok(())

@@ -62,7 +62,7 @@ use std::ptr;
 use std::sync::Arc;
 use std::cmp;
 use values::computed::ToComputedValue;
-use values::{Either, Auto, CustomIdent};
+use values::{Either, Auto, KeyframesName};
 use computed_values::border_style;
 
 pub mod style_structs {
@@ -2202,16 +2202,22 @@ fn static_assert() {
         self.gecko.mAnimationNameCount = v.0.len() as u32;
         for (servo, gecko) in v.0.into_iter().zip(self.gecko.mAnimations.iter_mut()) {
             // TODO This is inefficient. We should fix this in bug 1329169.
-            gecko.mName.assign(servo.0 .0.as_slice());
+            gecko.mName.assign(match servo.0 {
+                Some(ref name) => name.as_atom().as_slice(),
+                None => &[],  // Empty string for 'none'
+            });
         }
     }
     pub fn animation_name_at(&self, index: usize)
         -> longhands::animation_name::computed_value::SingleComputedValue {
-        use Atom;
         use properties::longhands::animation_name::single_value::SpecifiedValue as AnimationName;
         // XXX: Is there any effective ways?
-        AnimationName(CustomIdent(Atom::from(
-            String::from_utf16_lossy(&self.gecko.mAnimations[index].mName[..]))))
+        let atom = &self.gecko.mAnimations[index].mName;
+        if atom.is_empty() {
+            AnimationName(None)
+        } else {
+            AnimationName(Some(KeyframesName::from_ident(atom.to_string())))
+        }
     }
     pub fn copy_animation_name_from(&mut self, other: &Self) {
         unsafe { self.gecko.mAnimations.ensure_len(other.gecko.mAnimations.len()) };
