@@ -1,8 +1,13 @@
 #!/usr/bin/env python
 
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 import os.path
 import re
 import urllib
+
 
 def main(filename):
     names = [
@@ -11,7 +16,13 @@ def main(filename):
         if 'data-dfn-for="<counter-style-name>"' in line
     ]
     with open(filename, "wb") as f:
-        f.write("predefined! {\n")
+        f.write("""\
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+predefined! {
+""")
         for name in names:
             # FIXME https://github.com/w3c/csswg-drafts/issues/1285
             if name == 'decimal':
