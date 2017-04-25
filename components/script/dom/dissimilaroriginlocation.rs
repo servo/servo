@@ -45,6 +45,7 @@ impl DissimilarOriginLocation {
                            DissimilarOriginLocationBinding::Wrap)
     }
 
+    #[allow(dead_code)]
     pub fn origin(&self) -> &MutableOrigin {
         self.window.origin()
     }

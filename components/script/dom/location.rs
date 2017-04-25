@@ -61,6 +61,7 @@ impl Location {
         self.window.load_url(self.get_url(), true, true, None);
     }
 
+    #[allow(dead_code)]
     pub fn origin(&self) -> &MutableOrigin {
         self.window.origin()
     }

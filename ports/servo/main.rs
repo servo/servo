@@ -33,6 +33,7 @@ extern crate sig;
 use backtrace::Backtrace;
 use servo::Browser;
 use servo::compositing::windowing::WindowEvent;
+#[cfg(target_os = "android")]
 use servo::config;
 use servo::config::opts::{self, ArgumentParsingResult};
 use servo::config::servo_version;

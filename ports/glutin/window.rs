@@ -693,6 +693,7 @@ impl Window {
         G_NESTED_EVENT_LOOP_LISTENER = None
     }
 
+    #[cfg(target_os = "windows")]
     fn char_to_script_key(c: char) -> Option<constellation_msg::Key> {
         match c {
             ' ' => Some(Key::Space),
