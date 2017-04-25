@@ -2157,14 +2157,54 @@ ${helpers.single_keyword("-moz-math-variant",
                    internal="True" disable_when_testing="True">
     use app_units::Au;
     use gecko_bindings::structs::NS_MATHML_DEFAULT_SCRIPT_MIN_SIZE_PT;
+    use std::fmt;
+    use style_traits::ToCss;
     use values::HasViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
-    use values::specified::length::{AU_PER_PT, Length};
+    use values::specified::length::{AU_PER_PT, FontBaseSize, NoCalcLength};
 
-    pub type SpecifiedValue = Length;
+    #[derive(Clone, PartialEq, Debug)]
+    pub struct SpecifiedValue(pub NoCalcLength);
 
     pub mod computed_value {
         pub type T = super::Au;
+    }
+
+
+    impl ToComputedValue for SpecifiedValue {
+        type ComputedValue = computed_value::T;
+
+        fn to_computed_value(&self, cx: &Context) -> Au {
+            // this value is used in the computation of font-size, so
+            // we use the parent size
+            let base_size = FontBaseSize::InheritedStyle;
+            match self.0 {
+                NoCalcLength::FontRelative(value) => {
+                    value.to_computed_value(cx, base_size)
+                }
+                NoCalcLength::ServoCharacterWidth(value) => {
+                    value.to_computed_value(base_size.resolve(cx))
+                }
+                ref l => {
+                    l.to_computed_value(cx)
+                }
+            }
+        }
+        fn from_computed_value(other: &computed_value::T) -> Self {
+            SpecifiedValue(ToComputedValue::from_computed_value(other))
+        }
+    }
+
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            self.0.to_css(dest)
+        }
+    }
+
+    impl HasViewportPercentage for SpecifiedValue {
+        fn has_viewport_percentage(&self) -> bool {
+            self.0.has_viewport_percentage()
+        }
     }
 
     #[inline]

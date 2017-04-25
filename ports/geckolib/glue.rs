@@ -1483,6 +1483,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetLengthValue(declarations:
                                                         value: f32,
                                                         unit: structs::nsCSSUnit) {
     use style::properties::{PropertyDeclaration, LonghandId};
+    use style::properties::longhands::_moz_script_min_size::SpecifiedValue as MozScriptMinSize;
     use style::values::specified::length::{AbsoluteLength, FontRelativeLength};
     use style::values::specified::length::{LengthOrPercentage, NoCalcLength};
 
@@ -1503,7 +1504,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetLengthValue(declarations:
     let prop = match_wrap_declared! { long,
         Width => nocalc.into(),
         FontSize => LengthOrPercentage::from(nocalc).into(),
-        MozScriptMinSize => nocalc.into(),
+        MozScriptMinSize => MozScriptMinSize(nocalc),
     };
     write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
         decls.push(prop, Importance::Normal);
