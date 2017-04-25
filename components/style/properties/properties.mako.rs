@@ -2457,10 +2457,10 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
             % if product == "gecko":
                 // overflow: clip is deprecated, so convert to hidden if it's
                 // specified in only one dimension.
-                if overflow_x == overflow::clip {
+                if overflow_x == overflow::_moz_hidden_unscrollable {
                     overflow_x = overflow::hidden;
                 }
-                if overflow_y == overflow::clip {
+                if overflow_y == overflow::_moz_hidden_unscrollable {
                     overflow_y = overflow::hidden;
                 }
             % endif
@@ -2471,10 +2471,10 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
             // When 'contain: paint', update overflow from 'visible' to 'clip'.
             if style.get_box().clone_contain().contains(contain::PAINT) {
                 if overflow_x == overflow::visible {
-                    overflow_x = overflow::clip;
+                    overflow_x = overflow::_moz_hidden_unscrollable;
                 }
                 if overflow_y == overflow::visible {
-                    overflow_y = overflow::clip;
+                    overflow_y = overflow::_moz_hidden_unscrollable;
                 }
             }
         % endif

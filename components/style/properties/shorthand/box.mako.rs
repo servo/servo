@@ -6,19 +6,19 @@
 
 <%helpers:shorthand name="overflow" sub_properties="overflow-x overflow-y"
                     spec="https://drafts.csswg.org/css-overflow/#propdef-overflow">
-    use properties::longhands::{overflow_x, overflow_y};
+    use properties::longhands::overflow_x;
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         let overflow = try!(overflow_x::parse(context, input));
         Ok(Longhands {
             overflow_x: overflow,
-            overflow_y: overflow_y::SpecifiedValue(overflow),
+            overflow_y: overflow,
         })
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            if *self.overflow_x == self.overflow_y.0 {
+            if self.overflow_x == self.overflow_y {
                 self.overflow_x.to_css(dest)
             } else {
                 Ok(())
