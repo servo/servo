@@ -12,7 +12,7 @@ use dom::bindings::guard::Guard;
 use dom::bindings::utils::{DOM_PROTOTYPE_SLOT, ProtoOrIfaceArray, get_proto_or_iface_array};
 use dom::window::Window;
 use js::error::throw_type_error;
-use js::glue::{CreateServoJSPrincipal, RUST_SYMBOL_TO_JSID, UncheckedUnwrapObject};
+use js::glue::{CreateRustJSPrincipal, RUST_SYMBOL_TO_JSID, UncheckedUnwrapObject};
 use js::jsapi::{Class, ClassOps, CompartmentOptions, GetGlobalForObjectCrossCompartment};
 use js::jsapi::{GetWellKnownSymbol, HandleObject, HandleValue, JSAutoCompartment};
 use js::jsapi::{JSClass, JSContext, JSFUN_CONSTRUCTOR, JSFunctionSpec, JSObject};
@@ -29,6 +29,7 @@ use js::jsapi::{TrueHandleValue, Value};
 use js::jsval::{JSVal, PrivateValue};
 use js::rust::{define_methods, define_properties, get_object_class};
 use libc;
+use servo_url::MutableOrigin;
 use std::ptr;
 
 /// The class of a non-callback interface object.
@@ -131,7 +132,8 @@ pub unsafe fn create_global_object(
         class: &'static JSClass,
         private: *const libc::c_void,
         trace: TraceHook,
-        rval: MutableHandleObject) {
+        rval: MutableHandleObject,
+        origin: &MutableOrigin) {
     assert!(rval.is_null());
 
     let mut options = CompartmentOptions::default();
@@ -139,9 +141,8 @@ pub unsafe fn create_global_object(
     options.creationOptions_.traceGlobal_ = Some(trace);
     options.creationOptions_.sharedMemoryAndAtomics_ = true;
 
-    let x = private.clone() as *const Window;
-    let obj = &*x;
-    let mut principal = CreateServoJSPrincipal(Box::into_raw(obj.origin()) as *const ::libc::c_void,
+    let origin = Box::new(origin.clone());
+    let mut principal = CreateRustJSPrincipal(Box::into_raw(origin) as *const ::libc::c_void,
                                                None,
                                                None);
 

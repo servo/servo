@@ -273,9 +273,6 @@ pub struct Window {
     /// Directory to store unminified scripts for this window if unminify-js
     /// opt is enabled.
     unminified_js_dir: DOMRefCell<Option<String>>,
-
-    /// origin for cross origin wrappers
-    origin: Box<MutableOrigin>
 }
 
 impl Window {
@@ -295,10 +292,6 @@ impl Window {
 
     pub fn get_cx(&self) -> *mut JSContext {
         self.js_runtime.borrow().as_ref().unwrap().cx()
-    }
-
-    pub fn get_origin(&self) -> Box<MutableOrigin> {
-        self.origin.clone()
     }
 
     pub fn dom_manipulation_task_source(&self) -> DOMManipulationTaskSource {
@@ -1818,7 +1811,6 @@ impl Window {
             suppress_reflow: Cell::new(true),
             pending_reflow_count: Cell::new(0),
             current_state: Cell::new(WindowState::Alive),
-
             devtools_marker_sender: DOMRefCell::new(None),
             devtools_markers: DOMRefCell::new(HashSet::new()),
             webdriver_script_chan: DOMRefCell::new(None),
@@ -1831,16 +1823,11 @@ impl Window {
             permission_state_invocation_results: DOMRefCell::new(HashMap::new()),
             pending_layout_images: DOMRefCell::new(HashMap::new()),
             unminified_js_dir: DOMRefCell::new(None),
-            origin: Box::new(origin),
         };
 
         unsafe {
             WindowBinding::Wrap(runtime.cx(), win)
         }
-    }
-
-    pub fn origin(&self) -> Box<MutableOrigin> {
-        self.origin.clone()
     }
 }
 
