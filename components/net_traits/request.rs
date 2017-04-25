@@ -6,7 +6,7 @@ use ReferrerPolicy;
 use hyper::header::Headers;
 use hyper::method::Method;
 use msg::constellation_msg::PipelineId;
-use servo_url::{ImmutableOrigin, ServoUrl};
+use servo_url::{MutableOrigin, ImmutableOrigin, ServoUrl};
 use std::default::Default;
 
 /// An [initiator](https://fetch.spec.whatwg.org/#concept-request-initiator)
@@ -149,9 +149,7 @@ pub struct RequestInit {
     pub use_cors_preflight: bool,
     pub credentials_mode: CredentialsMode,
     pub use_url_credentials: bool,
-    // this should actually be set by fetch, but fetch
-    // doesn't have info about the client right now
-    pub origin: ServoUrl,
+    pub origin: MutableOrigin,
     // XXXManishearth these should be part of the client object
     pub referrer_url: Option<ServoUrl>,
     pub referrer_policy: Option<ReferrerPolicy>,
@@ -176,7 +174,7 @@ impl Default for RequestInit {
             use_cors_preflight: false,
             credentials_mode: CredentialsMode::Omit,
             use_url_credentials: false,
-            origin: ServoUrl::parse("about:blank").unwrap(),
+            origin: MutableOrigin::new(ServoUrl::parse("about:blank").unwrap().origin()),
             referrer_url: None,
             referrer_policy: None,
             pipeline_id: None,
@@ -291,7 +289,7 @@ impl Request {
 
     pub fn from_init(init: RequestInit) -> Request {
         let mut req = Request::new(init.url,
-                                   Some(Origin::Origin(init.origin.origin())),
+                                   Some(Origin::Origin(init.origin.immutable().clone())),
                                    false,
                                    init.pipeline_id);
         req.method = init.method;

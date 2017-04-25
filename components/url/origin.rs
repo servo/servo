@@ -101,7 +101,7 @@ pub struct OpaqueOrigin(Uuid);
 known_heap_size!(0, OpaqueOrigin);
 
 /// A representation of an [origin](https://html.spec.whatwg.org/multipage/#origin-2).
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct MutableOrigin(Rc<(ImmutableOrigin, RefCell<Option<Host>>)>);
 
 known_heap_size!(0, MutableOrigin);
