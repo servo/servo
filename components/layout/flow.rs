@@ -276,7 +276,7 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
             overflow.scroll.origin.x = Au(0);
             overflow.scroll.size.width = border_box.size.width;
         }
-        if overflow_x::T::visible != self.as_block().fragment.style.get_box().overflow_y.0 {
+        if overflow_x::T::visible != self.as_block().fragment.style.get_box().overflow_y {
             overflow.paint.origin.y = Au(0);
             overflow.paint.size.height = border_box.size.height;
             overflow.scroll.origin.y = Au(0);

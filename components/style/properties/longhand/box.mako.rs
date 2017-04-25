@@ -351,57 +351,23 @@ ${helpers.single_keyword("overflow-clip-box", "padding-box content-box",
     spec="Internal, not web-exposed, \
           may be standardized in the future (https://developer.mozilla.org/en-US/docs/Web/CSS/overflow-clip-box)")}
 
+<%
+    overflow_custom_consts = { "-moz-hidden-unscrollable": "CLIP" }
+%>
+
 // FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
 ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
-                         extra_gecko_values="clip",
                          need_clone=True, animation_value_type="none",
+                         extra_gecko_aliases="-moz-scrollbars-none=hidden",
+                         extra_gecko_values="-moz-hidden-unscrollable",
+                         custom_consts=overflow_custom_consts,
                          gecko_constant_prefix="NS_STYLE_OVERFLOW",
                          spec="https://drafts.csswg.org/css-overflow/#propdef-overflow-x")}
 
 // FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
 <%helpers:longhand name="overflow-y" need_clone="True" animation_value_type="none"
                    spec="https://drafts.csswg.org/css-overflow/#propdef-overflow-y">
-    use super::overflow_x;
-
-    use std::fmt;
-    use style_traits::ToCss;
-    use values::computed::ComputedValueAsSpecified;
-    use values::HasViewportPercentage;
-
-    no_viewport_percentage!(SpecifiedValue);
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            self.0.to_css(dest)
-        }
-    }
-
-    /// The specified and computed value for overflow-y is a wrapper on top of
-    /// `overflow-x`, so we re-use the logic, but prevent errors from mistakenly
-    /// assign one to other.
-    ///
-    /// TODO(Manishearth, emilio): We may want to just use the same value.
-    pub mod computed_value {
-        pub use super::SpecifiedValue as T;
-    }
-
-    #[derive(Debug, Clone, Copy, PartialEq)]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub struct SpecifiedValue(pub super::overflow_x::SpecifiedValue);
-
-    impl ComputedValueAsSpecified for SpecifiedValue {}
-
-    #[inline]
-    #[allow(missing_docs)]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T(overflow_x::get_initial_value())
-    }
-
-    #[inline]
-    #[allow(missing_docs)]
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
-        overflow_x::parse(context, input).map(SpecifiedValue)
-    }
+    pub use super::overflow_x::{SpecifiedValue, parse, get_initial_value, computed_value};
 </%helpers:longhand>
 
 <%helpers:vector_longhand name="transition-duration"
