@@ -499,6 +499,7 @@ ${helpers.single_keyword("text-align-last",
     use std::fmt;
     use style_traits::ToCss;
     use values::HasViewportPercentage;
+    use values::specified::AllowQuirks;
 
     impl HasViewportPercentage for SpecifiedValue {
         fn has_viewport_percentage(&self) -> bool {
@@ -574,7 +575,7 @@ ${helpers.single_keyword("text-align-last",
         if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
             Ok(SpecifiedValue::Normal)
         } else {
-            specified::LengthOrPercentage::parse(context, input)
+            specified::LengthOrPercentage::parse_quirky(context, input, AllowQuirks::Yes)
                                           .map(SpecifiedValue::Specified)
         }
     }
