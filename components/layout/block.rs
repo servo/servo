@@ -53,7 +53,7 @@ use servo_geometry::max_rect;
 use std::cmp::{max, min};
 use std::fmt;
 use std::sync::Arc;
-use style::computed_values::{border_collapse, box_sizing, display, float, overflow_x, overflow_y};
+use style::computed_values::{border_collapse, box_sizing, display, float, overflow_x};
 use style::computed_values::{position, text_align};
 use style::context::SharedStyleContext;
 use style::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
@@ -1440,7 +1440,7 @@ impl BlockFlow {
                 FormattingContextType::Other
             }
             _ if style.get_box().overflow_x != overflow_x::T::visible ||
-                    style.get_box().overflow_y != overflow_y::T(overflow_x::T::visible) ||
+                    style.get_box().overflow_y != overflow_x::T::visible ||
                     style.is_multicol() => {
                 FormattingContextType::Block
             }
@@ -1677,7 +1677,7 @@ impl BlockFlow {
 
     pub fn overflow_style_may_require_scroll_root(&self) -> bool {
         match (self.fragment.style().get_box().overflow_x,
-               self.fragment.style().get_box().overflow_y.0) {
+               self.fragment.style().get_box().overflow_y) {
             (overflow_x::T::auto, _) | (overflow_x::T::scroll, _) | (overflow_x::T::hidden, _) |
             (_, overflow_x::T::auto) | (_, overflow_x::T::scroll) | (_, overflow_x::T::hidden) =>
                 true,
