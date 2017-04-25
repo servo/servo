@@ -38,7 +38,7 @@ pub fn parse_counter_style_name(input: &mut Parser) -> Result<CustomIdent, ()> {
                 if let Some(&lower_cased) = predefined(&ident) {
                     Ok(CustomIdent(Atom::from(lower_cased)))
                 } else {
-                    CustomIdent::from_ident(ident, &["decimal", "none"])
+                    CustomIdent::from_ident(ident, &[])
                 }
             }
         }
@@ -248,6 +248,7 @@ counter_style_descriptors! {
 
     /// https://drafts.csswg.org/css-counter-styles/#counter-style-fallback
     "fallback" fallback / eCSSCounterDesc_Fallback: Fallback = {
+        // FIXME https://bugzilla.mozilla.org/show_bug.cgi?id=1359323 use atom!()
         Fallback(CustomIdent(Atom::from("decimal")))
     }
 
