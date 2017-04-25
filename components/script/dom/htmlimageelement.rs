@@ -24,6 +24,7 @@ use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use dom::element::{reflect_cross_origin_attribute, set_cross_origin_attribute};
 use dom::event::Event;
 use dom::eventtarget::EventTarget;
+use dom::globalscope::GlobalScope;
 use dom::htmlareaelement::HTMLAreaElement;
 use dom::htmlelement::HTMLElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
@@ -260,7 +261,7 @@ impl HTMLImageElement {
 
         let request = RequestInit {
             url: img_url.clone(),
-            origin: document.url().clone(),
+            origin: GlobalScope::current().origin().immutable().clone(),
             type_: RequestType::Image,
             pipeline_id: Some(document.global().pipeline_id()),
             .. RequestInit::default()

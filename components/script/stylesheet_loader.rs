@@ -9,6 +9,7 @@ use dom::bindings::reflector::DomObject;
 use dom::document::Document;
 use dom::element::Element;
 use dom::eventtarget::EventTarget;
+use dom::globalscope::GlobalScope;
 use dom::htmlelement::HTMLElement;
 use dom::htmllinkelement::{RequestGenerationId, HTMLLinkElement};
 use dom::node::{document_from_node, window_from_node};
@@ -253,7 +254,7 @@ impl<'a> StylesheetLoader<'a> {
                 Some(CorsSettings::Anonymous) => CredentialsMode::CredentialsSameOrigin,
                 _ => CredentialsMode::Include,
             },
-            origin: document.url(),
+            origin: GlobalScope::current().origin().immutable().clone(),
             pipeline_id: Some(self.elem.global().pipeline_id()),
             referrer_url: Some(document.url()),
             referrer_policy: referrer_policy,

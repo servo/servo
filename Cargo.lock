@@ -980,6 +980,7 @@ dependencies = [
  "net_traits 0.0.1",
  "ordered-float 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "range 0.0.1",
+ "script 0.0.1",
  "serde 0.9.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 0.9.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-fontconfig 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",

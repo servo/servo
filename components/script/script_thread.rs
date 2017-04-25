@@ -2129,7 +2129,7 @@ impl ScriptThread {
             destination: Destination::Document,
             credentials_mode: CredentialsMode::Include,
             use_url_credentials: true,
-            origin: load_data.url,
+            origin: GlobalScope::current().origin().immutable().clone(),
             pipeline_id: Some(id),
             referrer_url: load_data.referrer_url,
             referrer_policy: load_data.referrer_policy,

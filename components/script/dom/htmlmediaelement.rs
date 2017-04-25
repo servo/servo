@@ -20,6 +20,7 @@ use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{Element, AttributeMutation};
 use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::globalscope::GlobalScope;
 use dom::htmlaudioelement::HTMLAudioElement;
 use dom::htmlelement::HTMLElement;
 use dom::htmlsourceelement::HTMLSourceElement;
@@ -545,7 +546,7 @@ impl HTMLMediaElement {
                 destination: Destination::Media,
                 credentials_mode: CredentialsMode::Include,
                 use_url_credentials: true,
-                origin: document.url(),
+                origin: GlobalScope::current().origin().immutable().clone(),
                 pipeline_id: Some(self.global().pipeline_id()),
                 referrer_url: Some(document.url()),
                 referrer_policy: document.get_referrer_policy(),
