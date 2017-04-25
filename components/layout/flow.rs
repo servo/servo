@@ -42,6 +42,7 @@ use model::{CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo};
 use multicol::MulticolFlow;
 use parallel::FlowParallelInfo;
 use serde::ser::{Serialize, SerializeStruct, Serializer};
+use serde_json::to_string_pretty;
 use servo_geometry::{au_rect_to_f32_rect, f32_rect_to_au_rect, max_rect};
 use std::{fmt, mem, raw};
 use std::iter::Zip;
@@ -1281,8 +1282,7 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
 
     /// Dumps the flow tree for debugging.
     fn print(self, title: String) {
-        let mut print_tree = PrintTree::new(title);
-        self.print_with_tree(&mut print_tree);
+        println!("{}", to_string(base(self)).unwrap());
     }
 
     /// Dumps the flow tree for debugging into the given PrintTree.
