@@ -160,6 +160,7 @@ impl DedicatedWorkerGlobalScope {
         let serialized_worker_url = worker_url.to_string();
         let name = format!("WebWorker for {}", serialized_worker_url);
         let top_level_browsing_context_id = TopLevelBrowsingContextId::installed();
+        let origin = GlobalScope::current().expect("No current global object").origin().immutable().clone();
 
         thread::Builder::new().name(name).spawn(move || {
             thread_state::initialize(thread_state::SCRIPT | thread_state::IN_WORKER);
@@ -179,10 +180,10 @@ impl DedicatedWorkerGlobalScope {
                 destination: Destination::Worker,
                 credentials_mode: CredentialsMode::Include,
                 use_url_credentials: true,
-                origin: worker_url,
                 pipeline_id: pipeline_id,
                 referrer_url: referrer_url,
                 referrer_policy: referrer_policy,
+                origin,
                 .. RequestInit::default()
             };
 

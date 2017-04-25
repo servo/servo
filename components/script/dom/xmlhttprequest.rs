@@ -594,7 +594,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             use_cors_preflight: has_handlers,
             credentials_mode: credentials_mode,
             use_url_credentials: use_url_credentials,
-            origin: self.global().get_url(),
+            origin: self.global().origin().immutable().clone(),
             referrer_url: self.referrer_url.clone(),
             referrer_policy: self.referrer_policy.clone(),
             pipeline_id: Some(self.global().pipeline_id()),

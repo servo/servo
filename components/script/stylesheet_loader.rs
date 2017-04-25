@@ -261,7 +261,7 @@ impl<'a> StylesheetLoader<'a> {
                 Some(CorsSettings::Anonymous) => CredentialsMode::CredentialsSameOrigin,
                 _ => CredentialsMode::Include,
             },
-            origin: document.url(),
+            origin: document.origin().immutable().clone(),
             pipeline_id: Some(self.elem.global().pipeline_id()),
             referrer_url: Some(document.url()),
             referrer_policy: referrer_policy,
