@@ -524,16 +524,16 @@ impl ToCss for Symbols {
 
 /// https://drafts.csswg.org/css-counter-styles/#descdef-counter-style-additive-symbols
 #[derive(Debug, Clone)]
-pub struct AdditiveSymbols(pub Vec<AdditiveSymbol>);
+pub struct AdditiveSymbols(pub Vec<AdditiveTuple>);
 
 impl Parse for AdditiveSymbols {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        let symbols = Vec::<AdditiveSymbol>::parse(context, input)?;
+        let tuples = Vec::<AdditiveTuple>::parse(context, input)?;
         // FIXME maybe? https://github.com/w3c/csswg-drafts/issues/1220
-        if symbols.windows(2).any(|window| window[0].value <= window[1].value) {
+        if tuples.windows(2).any(|window| window[0].value <= window[1].value) {
             return Err(())
         }
-        Ok(AdditiveSymbols(symbols))
+        Ok(AdditiveSymbols(tuples))
     }
 }
 
@@ -545,14 +545,14 @@ impl ToCss for AdditiveSymbols {
 
 /// <integer> && <symbol>
 #[derive(Debug, Clone)]
-pub struct AdditiveSymbol {
+pub struct AdditiveTuple {
     value: u32,
     symbol: Symbol,
 }
 
-impl OneOrMoreCommaSeparated for AdditiveSymbol {}
+impl OneOrMoreCommaSeparated for AdditiveTuple {}
 
-impl Parse for AdditiveSymbol {
+impl Parse for AdditiveTuple {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         let symbol = input.try(|input| Symbol::parse(context, input));
         let value = input.expect_integer()?;
@@ -560,14 +560,14 @@ impl Parse for AdditiveSymbol {
             return Err(())
         }
         let symbol = symbol.or_else(|()| Symbol::parse(context, input))?;
-        Ok(AdditiveSymbol {
+        Ok(AdditiveTuple {
             value: value as u32,
             symbol: symbol,
         })
     }
 }
 
-impl ToCss for AdditiveSymbol {
+impl ToCss for AdditiveTuple {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         write!(dest, "{} ", self.value)?;
         self.symbol.to_css(dest)
