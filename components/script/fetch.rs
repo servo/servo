@@ -56,10 +56,7 @@ fn request_init_from_request(request: NetTraitsRequest) -> NetTraitsRequestInit 
         use_cors_preflight: request.use_cors_preflight,
         credentials_mode: request.credentials_mode,
         use_url_credentials: request.use_url_credentials,
-        // TODO: NetTraitsRequestInit and NetTraitsRequest have different "origin"
-        // ... NetTraitsRequestInit.origin: Url
-        // ... NetTraitsRequest.origin: RefCell<Origin>
-        origin: request.url(),
+        origin: GlobalScope::current().expect("No current global object").origin().immutable().clone(),
         referrer_url: from_referrer_to_referrer_url(&request),
         referrer_policy: request.referrer_policy,
         pipeline_id: request.pipeline_id,

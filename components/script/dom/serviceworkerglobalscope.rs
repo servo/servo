@@ -151,6 +151,7 @@ impl ServiceWorkerGlobalScope {
                           .. } = scope_things;
 
         let serialized_worker_url = script_url.to_string();
+        let origin = GlobalScope::current().expect("No current global object").origin().immutable().clone();
         thread::Builder::new().name(format!("ServiceWorker for {}", serialized_worker_url)).spawn(move || {
             thread_state::initialize(SCRIPT | IN_WORKER);
             let roots = RootCollection::new();
@@ -164,10 +165,10 @@ impl ServiceWorkerGlobalScope {
                 destination: Destination::ServiceWorker,
                 credentials_mode: CredentialsMode::Include,
                 use_url_credentials: true,
-                origin: script_url,
                 pipeline_id: pipeline_id,
                 referrer_url: referrer_url,
                 referrer_policy: referrer_policy,
+                origin,
                 .. RequestInit::default()
             };
 

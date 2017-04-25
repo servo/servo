@@ -30,13 +30,17 @@ use net_traits::{CookieSource, NetworkError};
 use net_traits::request::{Request, RequestInit, RequestMode, CredentialsMode, Destination};
 use net_traits::response::ResponseBody;
 use new_fetch_context;
-use servo_url::ServoUrl;
+use servo_url::{ServoUrl, ImmutableOrigin};
 use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::str::FromStr;
 use std::sync::{Arc, Mutex, RwLock, mpsc};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::Receiver;
+
+fn mock_origin() -> ImmutableOrigin {
+    ServoUrl::parse("http://servo.org").unwrap().origin()
+}
 
 fn read_response(reader: &mut Read) -> String {
     let mut buf = vec![0; 1024];
@@ -138,12 +142,12 @@ fn test_check_default_headers_loaded_in_every_request() {
         url: url.clone(),
         method: Method::Get,
         destination: Destination::Document,
-        origin: url.clone(),
+        origin: url.clone().origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
         .. RequestInit::default()
     });
     let response = fetch(&mut request, None);
-    assert!(response.status.unwrap().is_success());
+    assert!(response.internal_response.unwrap().status.unwrap().is_success());
 
     // Testing for method.POST
     let mut post_headers = headers.clone();
@@ -157,12 +161,12 @@ fn test_check_default_headers_loaded_in_every_request() {
         url: url.clone(),
         method: Method::Post,
         destination: Destination::Document,
-        origin: url.clone(),
+        origin: url.clone().origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
         .. RequestInit::default()
     });
     let response = fetch(&mut request, None);
-    assert!(response.status.unwrap().is_success());
+    assert!(response.internal_response.unwrap().status.unwrap().is_success());
 
     let _ = server.close();
 }
@@ -179,12 +183,12 @@ fn test_load_when_request_is_not_get_or_head_and_there_is_no_body_content_length
         method: Method::Post,
         body: None,
         destination: Destination::Document,
-        origin: url.clone(),
+        origin: mock_origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
         .. RequestInit::default()
     });
     let response = fetch(&mut request, None);
-    assert!(response.status.unwrap().is_success());
+    assert!(response.internal_response.unwrap().status.unwrap().is_success());
 
     let _ = server.close();
 }
@@ -205,13 +209,13 @@ fn test_request_and_response_data_with_network_messages() {
         headers: request_headers,
         body: None,
         destination: Destination::Document,
-        origin: url.clone(),
+        origin: mock_origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
         .. RequestInit::default()
     });
     let (devtools_chan, devtools_port) = mpsc::channel();
     let response = fetch(&mut request, Some(devtools_chan));
-    assert!(response.status.unwrap().is_success());
+    assert!(response.internal_response.unwrap().status.unwrap().is_success());
 
     let _ = server.close();
 
@@ -292,13 +296,13 @@ fn test_request_and_response_message_from_devtool_without_pipeline_id() {
         url: url.clone(),
         method: Method::Get,
         destination: Destination::Document,
-        origin: url.clone(),
+        origin: mock_origin(),
         pipeline_id: None,
         .. RequestInit::default()
     });
     let (devtools_chan, devtools_port) = mpsc::channel();
     let response = fetch(&mut request, Some(devtools_chan));
-    assert!(response.status.unwrap().is_success());
+    assert!(response.internal_response.unwrap().status.unwrap().is_success());
 
     let _ = server.close();
 
@@ -327,7 +331,6 @@ fn test_redirected_request_to_devtools() {
         url: pre_url.clone(),
         method: Method::Post,
         destination: Destination::Document,
-        origin: pre_url.clone(),
         pipeline_id: Some(TEST_PIPELINE_ID),
         .. RequestInit::default()
     });
@@ -375,7 +378,7 @@ fn test_load_when_redirecting_from_a_post_should_rewrite_next_request_as_get() {
         url: pre_url.clone(),
         method: Method::Post,
         destination: Destination::Document,
-        origin: pre_url.clone(),
+        origin: mock_origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
         .. RequestInit::default()
     });
@@ -403,7 +406,7 @@ fn test_load_should_decode_the_response_as_deflate_when_response_headers_have_co
         method: Method::Get,
         body: None,
         destination: Destination::Document,
-        origin: url.clone(),
+        origin: mock_origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
         .. RequestInit::default()
     });
@@ -411,8 +414,9 @@ fn test_load_should_decode_the_response_as_deflate_when_response_headers_have_co
 
     let _ = server.close();
 
-    assert!(response.status.unwrap().is_success());
-    assert_eq!(*response.body.lock().unwrap(),
+    let internal_response = response.internal_response.unwrap();
+    assert!(internal_response.status.unwrap().is_success());
+    assert_eq!(*internal_response.body.lock().unwrap(),
                ResponseBody::Done(b"Yay!".to_vec()));
 }
 
@@ -432,7 +436,7 @@ fn test_load_should_decode_the_response_as_gzip_when_response_headers_have_conte
         method: Method::Get,
         body: None,
         destination: Destination::Document,
-        origin: url.clone(),
+        origin: mock_origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
         .. RequestInit::default()
     });
@@ -440,8 +444,9 @@ fn test_load_should_decode_the_response_as_gzip_when_response_headers_have_conte
 
     let _ = server.close();
 
-    assert!(response.status.unwrap().is_success());
-    assert_eq!(*response.body.lock().unwrap(),
+    let internal_response = response.internal_response.unwrap();
+    assert!(internal_response.status.unwrap().is_success());
+    assert_eq!(*internal_response.body.lock().unwrap(),
                ResponseBody::Done(b"Yay!".to_vec()));
 }
 
@@ -470,7 +475,7 @@ fn test_load_doesnt_send_request_body_on_any_redirect() {
         body: Some(b"Body on POST!".to_vec()),
         method: Method::Post,
         destination: Destination::Document,
-        origin: pre_url.clone(),
+        origin: mock_origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
         .. RequestInit::default()
     });
@@ -495,7 +500,7 @@ fn test_load_doesnt_add_host_to_sts_list_when_url_is_http_even_if_sts_headers_ar
         method: Method::Get,
         body: None,
         destination: Destination::Document,
-        origin: url.clone(),
+        origin: mock_origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
         .. RequestInit::default()
     });
@@ -504,7 +509,7 @@ fn test_load_doesnt_add_host_to_sts_list_when_url_is_http_even_if_sts_headers_ar
 
     let _ = server.close();
 
-    assert!(response.status.unwrap().is_success());
+    assert!(response.internal_response.unwrap().status.unwrap().is_success());
     assert_eq!(context.state.hsts_list.read().unwrap().is_host_secure(url.host_str().unwrap()), false);
 }
 
@@ -525,7 +530,7 @@ fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_
         method: Method::Get,
         body: None,
         destination: Destination::Document,
-        origin: url.clone(),
+        origin: mock_origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
         credentials_mode: CredentialsMode::Include,
         .. RequestInit::default()
@@ -534,7 +539,7 @@ fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_
 
     let _ = server.close();
 
-    assert!(response.status.unwrap().is_success());
+    assert!(response.internal_response.unwrap().status.unwrap().is_success());
 
     assert_cookie_for_domain(&context.state.cookie_jar, url.as_str(), Some("mozillaIs=theBest"));
 }
@@ -565,7 +570,7 @@ fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_re
         method: Method::Get,
         body: None,
         destination: Destination::Document,
-        origin: url.clone(),
+        origin: mock_origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
         credentials_mode: CredentialsMode::Include,
         .. RequestInit::default()
@@ -574,7 +579,7 @@ fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_re
 
     let _ = server.close();
 
-    assert!(response.status.unwrap().is_success());
+    assert!(response.internal_response.unwrap().status.unwrap().is_success());
 }
 
 #[test]
@@ -603,7 +608,7 @@ fn test_load_sends_cookie_if_nonhttp() {
         method: Method::Get,
         body: None,
         destination: Destination::Document,
-        origin: url.clone(),
+        origin: mock_origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
         credentials_mode: CredentialsMode::Include,
         .. RequestInit::default()
@@ -612,7 +617,7 @@ fn test_load_sends_cookie_if_nonhttp() {
 
     let _ = server.close();
 
-    assert!(response.status.unwrap().is_success());
+    assert!(response.internal_response.unwrap().status.unwrap().is_success());
 }
 
 #[test]
@@ -633,7 +638,7 @@ fn test_cookie_set_with_httponly_should_not_be_available_using_getcookiesforurl(
         method: Method::Get,
         body: None,
         destination: Destination::Document,
-        origin: url.clone(),
+        origin: mock_origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
         credentials_mode: CredentialsMode::Include,
         .. RequestInit::default()
@@ -642,7 +647,7 @@ fn test_cookie_set_with_httponly_should_not_be_available_using_getcookiesforurl(
 
     let _ = server.close();
 
-    assert!(response.status.unwrap().is_success());
+    assert!(response.internal_response.unwrap().status.unwrap().is_success());
 
     assert_cookie_for_domain(&context.state.cookie_jar, url.as_str(), Some("mozillaIs=theBest"));
     let mut cookie_jar = context.state.cookie_jar.write().unwrap();
@@ -667,7 +672,7 @@ fn test_when_cookie_received_marked_secure_is_ignored_for_http() {
         method: Method::Get,
         body: None,
         destination: Destination::Document,
-        origin: url.clone(),
+        origin: mock_origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
         credentials_mode: CredentialsMode::Include,
         .. RequestInit::default()
@@ -676,7 +681,7 @@ fn test_when_cookie_received_marked_secure_is_ignored_for_http() {
 
     let _ = server.close();
 
-    assert!(response.status.unwrap().is_success());
+    assert!(response.internal_response.unwrap().status.unwrap().is_success());
 
     assert_cookie_for_domain(&context.state.cookie_jar, url.as_str(), None);
 }
@@ -696,7 +701,7 @@ fn test_load_sets_content_length_to_length_of_request_body() {
         method: Method::Post,
         body: Some(content.to_vec()),
         destination: Destination::Document,
-        origin: url.clone(),
+        origin: mock_origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
         .. RequestInit::default()
     });
@@ -704,7 +709,7 @@ fn test_load_sets_content_length_to_length_of_request_body() {
 
     let _ = server.close();
 
-    assert!(response.status.unwrap().is_success());
+    assert!(response.internal_response.unwrap().status.unwrap().is_success());
 }
 
 #[test]
@@ -724,7 +729,7 @@ fn test_load_uses_explicit_accept_from_headers_in_load_data() {
         method: Method::Get,
         headers: accept_headers,
         destination: Destination::Document,
-        origin: url.clone(),
+        origin: mock_origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
         .. RequestInit::default()
     });
@@ -732,7 +737,7 @@ fn test_load_uses_explicit_accept_from_headers_in_load_data() {
 
     let _ = server.close();
 
-    assert!(response.status.unwrap().is_success());
+    assert!(response.internal_response.unwrap().status.unwrap().is_success());
 }
 
 #[test]
@@ -752,7 +757,7 @@ fn test_load_sets_default_accept_to_html_xhtml_xml_and_then_anything_else() {
         url: url.clone(),
         method: Method::Get,
         destination: Destination::Document,
-        origin: url.clone(),
+        origin: mock_origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
         .. RequestInit::default()
     });
@@ -760,7 +765,7 @@ fn test_load_sets_default_accept_to_html_xhtml_xml_and_then_anything_else() {
 
     let _ = server.close();
 
-    assert!(response.status.unwrap().is_success());
+    assert!(response.internal_response.unwrap().status.unwrap().is_success());
 }
 
 #[test]
@@ -780,7 +785,7 @@ fn test_load_uses_explicit_accept_encoding_from_load_data_headers() {
         method: Method::Get,
         headers: accept_encoding_headers,
         destination: Destination::Document,
-        origin: url.clone(),
+        origin: mock_origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
         .. RequestInit::default()
     });
@@ -788,7 +793,7 @@ fn test_load_uses_explicit_accept_encoding_from_load_data_headers() {
 
     let _ = server.close();
 
-    assert!(response.status.unwrap().is_success());
+    assert!(response.internal_response.unwrap().status.unwrap().is_success());
 }
 
 #[test]
@@ -807,7 +812,7 @@ fn test_load_sets_default_accept_encoding_to_gzip_and_deflate() {
         url: url.clone(),
         method: Method::Get,
         destination: Destination::Document,
-        origin: url.clone(),
+        origin: mock_origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
         .. RequestInit::default()
     });
@@ -815,7 +820,7 @@ fn test_load_sets_default_accept_encoding_to_gzip_and_deflate() {
 
     let _ = server.close();
 
-    assert!(response.status.unwrap().is_success());
+    assert!(response.internal_response.unwrap().status.unwrap().is_success());
 }
 
 #[test]
@@ -843,7 +848,7 @@ fn test_load_errors_when_there_a_redirect_loop() {
         url: url_a.clone(),
         method: Method::Get,
         destination: Destination::Document,
-        origin: url_a.clone(),
+        origin: mock_origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
         .. RequestInit::default()
     });
@@ -886,7 +891,7 @@ fn test_load_succeeds_with_a_redirect_loop() {
         url: url_a.clone(),
         method: Method::Get,
         destination: Destination::Document,
-        origin: url_a.clone(),
+        origin: mock_origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
         .. RequestInit::default()
     });
@@ -922,7 +927,7 @@ fn test_load_follows_a_redirect() {
         url: pre_url.clone(),
         method: Method::Get,
         destination: Destination::Document,
-        origin: pre_url.clone(),
+        origin: mock_origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
         .. RequestInit::default()
     });
@@ -931,9 +936,9 @@ fn test_load_follows_a_redirect() {
     let _ = pre_server.close();
     let _ = post_server.close();
 
-    let response = response.to_actual();
-    assert!(response.status.unwrap().is_success());
-    assert_eq!(*response.body.lock().unwrap(),
+    let internal_response = response.internal_response.unwrap();
+    assert!(internal_response.status.unwrap().is_success());
+    assert_eq!(*internal_response.body.lock().unwrap(),
                ResponseBody::Done(b"Yay!".to_vec()));
 }
 
@@ -999,7 +1004,7 @@ fn  test_redirect_from_x_to_y_provides_y_cookies_from_y() {
         url: url_x.clone(),
         method: Method::Get,
         destination: Destination::Document,
-        origin: url_x.clone(),
+        origin: mock_origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
         credentials_mode: CredentialsMode::Include,
         .. RequestInit::default()
@@ -1008,9 +1013,9 @@ fn  test_redirect_from_x_to_y_provides_y_cookies_from_y() {
 
     let _ = server.close();
 
-    let response = response.to_actual();
-    assert!(response.status.unwrap().is_success());
-    assert_eq!(*response.body.lock().unwrap(),
+    let internal_response = response.internal_response.unwrap();
+    assert!(internal_response.status.unwrap().is_success());
+    assert_eq!(*internal_response.body.lock().unwrap(),
                ResponseBody::Done(b"Yay!".to_vec()));
 }
 
@@ -1043,7 +1048,7 @@ fn test_redirect_from_x_to_x_provides_x_with_cookie_from_first_response() {
         url: url.clone(),
         method: Method::Get,
         destination: Destination::Document,
-        origin: url.clone(),
+        origin: mock_origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
         credentials_mode: CredentialsMode::Include,
         .. RequestInit::default()
@@ -1052,9 +1057,9 @@ fn test_redirect_from_x_to_x_provides_x_with_cookie_from_first_response() {
 
     let _ = server.close();
 
-    let response = response.to_actual();
-    assert!(response.status.unwrap().is_success());
-    assert_eq!(*response.body.lock().unwrap(),
+    let internal_response = response.internal_response.unwrap();
+    assert!(internal_response.status.unwrap().is_success());
+    assert_eq!(*internal_response.body.lock().unwrap(),
                ResponseBody::Done(b"Yay!".to_vec()));
 }
 
@@ -1075,7 +1080,7 @@ fn test_if_auth_creds_not_in_url_but_in_cache_it_sets_it() {
         method: Method::Get,
         body: None,
         destination: Destination::Document,
-        origin: url.clone(),
+        origin: mock_origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
         credentials_mode: CredentialsMode::Include,
         .. RequestInit::default()
@@ -1093,7 +1098,7 @@ fn test_if_auth_creds_not_in_url_but_in_cache_it_sets_it() {
 
     let _ = server.close();
 
-    assert!(response.status.unwrap().is_success());
+    assert!(response.internal_response.unwrap().status.unwrap().is_success());
 }
 
 #[test]
@@ -1109,7 +1114,7 @@ fn test_auth_ui_needs_www_auth() {
         method: Method::Get,
         body: None,
         destination: Destination::Document,
-        origin: url.clone(),
+        origin: mock_origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
         credentials_mode: CredentialsMode::Include,
         .. RequestInit::default()
@@ -1119,7 +1124,7 @@ fn test_auth_ui_needs_www_auth() {
 
     let _ = server.close();
 
-    assert_eq!(response.status.unwrap(), StatusCode::Unauthorized);
+    assert_eq!(response.internal_response.unwrap().status.unwrap(), StatusCode::Unauthorized);
 }
 
 #[test]
@@ -1142,11 +1147,11 @@ fn test_origin_set() {
         url: url.clone(),
         method: Method::Post,
         body: None,
-        origin: url.clone(),
+        origin: url.clone().origin(),
         .. RequestInit::default()
     });
     let response = fetch(&mut request, None);
-    assert!(response.status.unwrap().is_success());
+    assert!(response.internal_response.unwrap().status.unwrap().is_success());
 
     let origin_url = ServoUrl::parse("http://example.com").unwrap();
     origin = Origin::new(origin_url.scheme(), origin_url.host_str().unwrap(), origin_url.port());
@@ -1156,26 +1161,26 @@ fn test_origin_set() {
         method: Method::Get,
         mode: RequestMode::CorsMode,
         body: None,
-        origin: origin_url.clone(),
+        origin: origin_url.clone().origin(),
         .. RequestInit::default()
     });
 
     *origin_header_clone.lock().unwrap() = Some(origin.clone());
     let response = fetch(&mut request, None);
-    assert!(response.status.unwrap().is_success());
+    assert!(response.internal_response.unwrap().status.unwrap().is_success());
 
     // Test Origin header is not set on method Head
     let mut request = Request::from_init(RequestInit {
         url: url.clone(),
         method: Method::Head,
         body: None,
-        origin: url.clone(),
+        origin: url.clone().origin(),
         .. RequestInit::default()
     });
 
     *origin_header_clone.lock().unwrap() = None;
     let response = fetch(&mut request, None);
-    assert!(response.status.unwrap().is_success());
+    assert!(response.internal_response.unwrap().status.unwrap().is_success());
 
     let _ = server.close();
 }
