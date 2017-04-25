@@ -233,11 +233,27 @@ class MachCommands(CommandBase):
         commit = json.load(urllib2.urlopen(url))["object"]["sha"]
         filename = path.join(self.context.topdir, "rust-commit-hash")
         with open(filename, "w") as f:
-            f.write(commit)
+            f.write(commit + "\n")
 
         # Reset self.config["tools"]["rust-root"]
         self._rust_version = None
         self.set_use_stable_rust(False)
+
+        self.fetch()
+
+    @Command('cargoup',
+             description='Update the Cargo version to latest master',
+             category='devenv')
+    def cargoup(self):
+        url = "https://api.github.com/repos/rust-lang/cargo/git/refs/heads/master"
+        commit = json.load(urllib2.urlopen(url))["object"]["sha"]
+        filename = path.join(self.context.topdir, "cargo-commit-hash")
+        with open(filename, "w") as f:
+            f.write(commit + "\n")
+
+        # Reset self.config["tools"]["cargo-root"]
+        self._cargo_build_id = None
+        self.set_cargo_root()
 
         self.fetch()
 

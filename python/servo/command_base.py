@@ -257,9 +257,6 @@ class CommandBase(object):
         self.config["tools"].setdefault("system-cargo", False)
         self.config["tools"].setdefault("rust-root", "")
         self.config["tools"].setdefault("cargo-root", "")
-        if not self.config["tools"]["system-cargo"]:
-            self.config["tools"]["cargo-root"] = path.join(
-                context.sharedir, "cargo", self.cargo_build_id())
         self.config["tools"].setdefault("rustc-with-gold", get_env_bool("SERVO_RUSTC_WITH_GOLD", True))
 
         # https://github.com/rust-lang/rust/pull/39754
@@ -283,12 +280,18 @@ class CommandBase(object):
         self.config["android"].setdefault("platform", "android-18")
         self.config["android"].setdefault("target", "arm-linux-androideabi")
 
+        self.set_cargo_root()
         self.set_use_stable_rust(False)
 
     _use_stable_rust = False
     _rust_version = None
     _rust_version_is_stable = False
     _cargo_build_id = None
+
+    def set_cargo_root(self):
+        if not self.config["tools"]["system-cargo"]:
+            self.config["tools"]["cargo-root"] = path.join(
+                self.context.sharedir, "cargo", self.cargo_build_id())
 
     def set_use_stable_rust(self, use_stable_rust=True):
         self._use_stable_rust = use_stable_rust
