@@ -3255,6 +3255,13 @@ fn static_assert() {
         self.gecko.mBorderSpacingCol = other.gecko.mBorderSpacingCol;
         self.gecko.mBorderSpacingRow = other.gecko.mBorderSpacingRow;
     }
+
+    pub fn clone_border_spacing(&self) -> longhands::border_spacing::computed_value::T {
+        longhands::border_spacing::computed_value::T {
+            horizontal: Au(self.gecko.mBorderSpacingCol),
+            vertical: Au(self.gecko.mBorderSpacingRow)
+        }
+    }
 </%self:impl_trait>
 
 
