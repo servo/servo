@@ -8,14 +8,18 @@
 %>
 
 <%def name="predefined_type(name, type, initial_value, parse_method='parse',
-            needs_context=True, vector=False, initial_specified_value=None, **kwargs)">
+            needs_context=True, vector=False, computed_type=None, initial_specified_value=None, **kwargs)">
     <%def name="predefined_type_inner(name, type, initial_value, parse_method)">
         #[allow(unused_imports)]
         use app_units::Au;
         use cssparser::{Color as CSSParserColor, RGBA};
         pub use values::specified::${type} as SpecifiedValue;
         pub mod computed_value {
+            % if computed_type:
+            pub use ${computed_type} as T;
+            % else:
             pub use values::computed::${type} as T;
+            % endif
         }
         #[inline] pub fn get_initial_value() -> computed_value::T { ${initial_value} }
         % if initial_specified_value:
@@ -36,10 +40,16 @@
     % if vector:
         <%call expr="vector_longhand(name, predefined_type=type, **kwargs)">
             ${predefined_type_inner(name, type, initial_value, parse_method)}
+            % if caller:
+            ${caller.body()}
+            % endif
         </%call>
     % else:
         <%call expr="longhand(name, predefined_type=type, **kwargs)">
             ${predefined_type_inner(name, type, initial_value, parse_method)}
+            % if caller:
+            ${caller.body()}
+            % endif
         </%call>
     % endif
 </%def>
@@ -238,7 +248,7 @@
         use properties::style_structs;
         use std::sync::Arc;
         use values::computed::{Context, ToComputedValue};
-        use values::{computed, specified};
+        use values::{computed, generics, specified};
         use Atom;
         ${caller.body()}
         #[allow(unused_variables)]

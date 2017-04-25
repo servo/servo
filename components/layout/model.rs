@@ -16,6 +16,7 @@ use style::logical_geometry::{LogicalMargin, WritingMode};
 use style::properties::ServoComputedValues;
 use style::values::computed::{BorderRadiusSize, LengthOrPercentageOrAuto};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrNone};
+use style::values::generics;
 
 /// A collapsible margin. See CSS 2.1 § 8.3.1.
 #[derive(Copy, Clone, Debug)]
@@ -478,7 +479,7 @@ pub fn specified(length: LengthOrPercentage, containing_length: Au) -> Au {
 }
 
 pub fn specified_border_radius(radius: BorderRadiusSize, containing_length: Au) -> Size2D<Au> {
-    let BorderRadiusSize(size) = radius;
+    let generics::BorderRadiusSize(size) = radius;
     let w = specified(size.width, containing_length);
     let h = specified(size.height, containing_length);
     Size2D::new(w, h)

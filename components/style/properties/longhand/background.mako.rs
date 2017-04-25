@@ -89,108 +89,38 @@ ${helpers.predefined_type("background-color", "CSSColor",
     }
 </%helpers:vector_longhand>
 
-<%helpers:vector_longhand name="background-position-x" animation_value_type="ComputedValue"
+<%helpers:predefined_type name="background-position-x" type="position::HorizontalPosition"
+                          initial_value="computed::position::HorizontalPosition::zero()"
+                          initial_specified_value="specified::position::HorizontalPosition::left()"
                           spec="https://drafts.csswg.org/css-backgrounds-4/#propdef-background-position-x"
-                          delegate_animate="True">
-    use std::fmt;
-    use style_traits::ToCss;
-    use values::HasViewportPercentage;
-    use values::specified::position::HorizontalPosition;
-
-    #[allow(missing_docs)]
-    pub mod computed_value {
-        use values::computed::position::HorizontalPosition;
-        use properties::animated_properties::{Interpolate, RepeatableListInterpolate};
-
-        pub type T = HorizontalPosition;
-    }
-
-    #[allow(missing_docs)]
-    pub type SpecifiedValue = HorizontalPosition;
-
+                          animation_value_type="ComputedValue" vector="True" delegate_animate="True">
     #[inline]
-    #[allow(missing_docs)]
-    pub fn get_initial_value() -> computed_value::T {
-        use values::computed::position::HorizontalPosition;
-        HorizontalPosition(computed::LengthOrPercentage::Percentage(0.0))
-    }
-    #[inline]
-    #[allow(missing_docs)]
-    pub fn get_initial_specified_value() -> SpecifiedValue {
-        use values::specified::position::Keyword;
-        HorizontalPosition {
-            keyword: Some(Keyword::Left),
-            position: None,
-        }
-    }
-    #[inline]
-    #[allow(missing_docs)]
+    /// Get the initial value for horizontal position.
     pub fn get_initial_position_value() -> SpecifiedValue {
+        use values::generics::position::{HorizontalPosition, PositionValue};
         use values::specified::{LengthOrPercentage, Percentage};
-        HorizontalPosition {
+        HorizontalPosition(PositionValue {
             keyword: None,
             position: Some(LengthOrPercentage::Percentage(Percentage(0.0))),
-        }
+        })
     }
+</%helpers:predefined_type>
 
-    #[allow(missing_docs)]
-    pub fn parse(context: &ParserContext, input: &mut Parser)
-                 -> Result<SpecifiedValue, ()> {
-        HorizontalPosition::parse(context, input)
-    }
-</%helpers:vector_longhand>
-
-<%helpers:vector_longhand name="background-position-y" animation_value_type="ComputedValue"
+<%helpers:predefined_type name="background-position-y" type="position::VerticalPosition"
+                          initial_value="computed::position::VerticalPosition::zero()"
+                          initial_specified_value="specified::position::VerticalPosition::top()"
                           spec="https://drafts.csswg.org/css-backgrounds-4/#propdef-background-position-y"
-                          delegate_animate="True">
-    use std::fmt;
-    use style_traits::ToCss;
-    use values::HasViewportPercentage;
-    use values::specified::position::VerticalPosition;
-
-    #[allow(missing_docs)]
-    pub mod computed_value {
-        use values::computed::position::VerticalPosition;
-        use properties::animated_properties::{Interpolate, RepeatableListInterpolate};
-
-        pub type T = VerticalPosition;
-    }
-
-    #[allow(missing_docs)]
-    pub type SpecifiedValue = VerticalPosition;
-
-    #[inline]
-    #[allow(missing_docs)]
-    pub fn get_initial_value() -> computed_value::T {
-        use values::computed::position::VerticalPosition;
-        VerticalPosition(computed::LengthOrPercentage::Percentage(0.0))
-    }
-    #[inline]
-    #[allow(missing_docs)]
-    pub fn get_initial_specified_value() -> SpecifiedValue {
-        use values::specified::position::Keyword;
-        VerticalPosition {
-            keyword: Some(Keyword::Top),
-            position: None,
-        }
-    }
-    #[inline]
-    #[allow(missing_docs)]
+                          animation_value_type="ComputedValue" vector="True" delegate_animate="True">
+    /// Get the initial value for vertical position.
     pub fn get_initial_position_value() -> SpecifiedValue {
+        use values::generics::position::{VerticalPosition, PositionValue};
         use values::specified::{LengthOrPercentage, Percentage};
-        VerticalPosition {
+        VerticalPosition(PositionValue {
             keyword: None,
             position: Some(LengthOrPercentage::Percentage(Percentage(0.0))),
-        }
+        })
     }
-
-    #[inline]
-    #[allow(missing_docs)]
-    pub fn parse(context: &ParserContext, input: &mut Parser)
-                 -> Result<SpecifiedValue, ()> {
-        VerticalPosition::parse(context, input)
-    }
-</%helpers:vector_longhand>
+</%helpers:predefined_type>
 
 <%helpers:vector_longhand name="background-repeat" animation_value_type="none"
                           spec="https://drafts.csswg.org/css-backgrounds/#the-background-repeat">

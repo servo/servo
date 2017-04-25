@@ -1113,7 +1113,6 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                           delegate_animate=True)}
 
 
-
 <%helpers:longhand name="transform" extra_prefixes="webkit"
                    animation_value_type="ComputedValue"
                    flags="CREATES_STACKING_CONTEXT FIXPOS_CB"
@@ -2096,83 +2095,13 @@ ${helpers.predefined_type("perspective",
                           flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
                           animation_value_type="ComputedValue")}
 
-<%helpers:longhand name="perspective-origin" boxed="True"
-                   animation_value_type="ComputedValue"
-                   extra_prefixes="moz webkit"
-                   spec="https://drafts.csswg.org/css-transforms/#perspective-origin-property">
-    use std::fmt;
-    use style_traits::ToCss;
-    use values::HasViewportPercentage;
-    use values::specified::{LengthOrPercentage, Percentage};
-
-    pub mod computed_value {
-        use properties::animated_properties::Interpolate;
-        use values::computed::LengthOrPercentage;
-        use values::computed::Position;
-
-        pub type T = Position;
-    }
-
-    impl HasViewportPercentage for SpecifiedValue {
-        fn has_viewport_percentage(&self) -> bool {
-            self.horizontal.has_viewport_percentage() || self.vertical.has_viewport_percentage()
-        }
-    }
-
-    #[derive(Clone, Debug, PartialEq)]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub struct SpecifiedValue {
-        horizontal: LengthOrPercentage,
-        vertical: LengthOrPercentage,
-    }
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            try!(self.horizontal.to_css(dest));
-            try!(dest.write_str(" "));
-            self.vertical.to_css(dest)
-        }
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T {
-            horizontal: computed::LengthOrPercentage::Percentage(0.5),
-            vertical: computed::LengthOrPercentage::Percentage(0.5),
-        }
-    }
-
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
-        let result = try!(super::parse_origin(context, input));
-        match result.depth {
-            Some(_) => Err(()),
-            None => Ok(SpecifiedValue {
-                horizontal: result.horizontal.unwrap_or(LengthOrPercentage::Percentage(Percentage(0.5))),
-                vertical: result.vertical.unwrap_or(LengthOrPercentage::Percentage(Percentage(0.5))),
-            })
-        }
-    }
-
-    impl ToComputedValue for SpecifiedValue {
-        type ComputedValue = computed_value::T;
-
-        #[inline]
-        fn to_computed_value(&self, context: &Context) -> computed_value::T {
-            computed_value::T {
-                horizontal: self.horizontal.to_computed_value(context),
-                vertical: self.vertical.to_computed_value(context),
-            }
-        }
-
-        #[inline]
-        fn from_computed_value(computed: &computed_value::T) -> Self {
-            SpecifiedValue {
-                horizontal: ToComputedValue::from_computed_value(&computed.horizontal),
-                vertical: ToComputedValue::from_computed_value(&computed.vertical),
-            }
-        }
-    }
-</%helpers:longhand>
+${helpers.predefined_type("perspective-origin",
+                          "position::OriginPosition",
+                          "computed::position::OriginPosition::center()",
+                          boxed="True",
+                          extra_prefixes="moz webkit",
+                          spec="https://drafts.csswg.org/css-transforms/#perspective-origin-property",
+                          animation_value_type="ComputedValue")}
 
 ${helpers.single_keyword("backface-visibility",
                          "visible hidden",
@@ -2533,29 +2462,8 @@ ${helpers.single_keyword("-moz-orient",
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="shape-outside" products="gecko" animation_value_type="none" boxed="True"
-                   spec="https://drafts.csswg.org/css-shapes/#shape-outside-property">
-    use std::fmt;
-    use style_traits::ToCss;
-    use values::specified::basic_shape::{ShapeBox, ShapeSource};
-    use values::HasViewportPercentage;
-
-    no_viewport_percentage!(SpecifiedValue);
-
-    pub mod computed_value {
-        use values::computed::basic_shape::{ShapeBox, ShapeSource};
-
-        pub type T = ShapeSource<ShapeBox>;
-    }
-
-    pub type SpecifiedValue = ShapeSource<ShapeBox>;
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        Default::default()
-    }
-
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        ShapeSource::parse(context, input)
-    }
-</%helpers:longhand>
+${helpers.predefined_type("shape-outside", "basic_shape::ShapeWithShapeBox",
+                          "generics::basic_shape::ShapeSource::None",
+                          products="gecko", boxed="True",
+                          animation_value_type="none",
+                          spec="https://drafts.csswg.org/css-shapes/#shape-outside-property")}

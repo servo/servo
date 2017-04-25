@@ -799,8 +799,8 @@ mod shorthand_serialization {
         use style::properties::longhands::mask_position_y as position_y;
         use style::properties::longhands::mask_repeat as repeat;
         use style::properties::longhands::mask_size as size;
+        use style::values::generics::position::{HorizontalPosition, Keyword, PositionValue, VerticalPosition};
         use style::values::specified::Image;
-        use style::values::specified::position::{HorizontalPosition, VerticalPosition, Keyword};
         use super::*;
 
         macro_rules! single_vec_value_typedef {
@@ -836,16 +836,16 @@ mod shorthand_serialization {
             let mode = single_vec_keyword_value!(mode, luminance);
 
             let position_x = single_vec_value_typedef!(position_x,
-                HorizontalPosition {
+                HorizontalPosition(PositionValue {
                     keyword: None,
                     position: Some(LengthOrPercentage::Length(NoCalcLength::from_px(7f32))),
-                }
+                })
             );
             let position_y = single_vec_value_typedef!(position_y,
-                VerticalPosition {
+                VerticalPosition(PositionValue {
                     keyword: Some(Keyword::Bottom),
                     position: Some(LengthOrPercentage::Length(NoCalcLength::from_px(4f32))),
-                }
+                })
             );
 
             let size = single_vec_variant_value!(size,
@@ -891,17 +891,17 @@ mod shorthand_serialization {
             let mode = single_vec_keyword_value!(mode, luminance);
 
             let position_x = single_vec_value_typedef!(position_x,
-                HorizontalPosition {
+                HorizontalPosition(PositionValue {
                     keyword: None,
                     position: Some(LengthOrPercentage::Length(NoCalcLength::from_px(7f32))),
-                }
+                })
             );
 
             let position_y = single_vec_value_typedef!(position_y,
-                VerticalPosition {
+                VerticalPosition(PositionValue  {
                     keyword: None,
                     position: Some(LengthOrPercentage::Length(NoCalcLength::from_px(4f32))),
-                }
+                })
             );
 
             let size = single_vec_variant_value!(size,

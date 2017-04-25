@@ -376,17 +376,17 @@ fn color_to_nscolor_zero_currentcolor(color: Color) -> structs::nscolor {
 <%def name="impl_position(ident, gecko_ffi_name, need_clone=False)">
     #[allow(non_snake_case)]
     pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
-        ${set_gecko_property("%s.mXPosition" % gecko_ffi_name, "v.horizontal.into()")}
-        ${set_gecko_property("%s.mYPosition" % gecko_ffi_name, "v.vertical.into()")}
+        ${set_gecko_property("%s.mXPosition" % gecko_ffi_name, "v.horizontal.0.into()")}
+        ${set_gecko_property("%s.mYPosition" % gecko_ffi_name, "v.vertical.0.into()")}
     }
     <%call expr="impl_simple_copy(ident, gecko_ffi_name)"></%call>
     % if need_clone:
         #[allow(non_snake_case)]
         pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
-            use values::computed::Position;
+            use values::generics::position::{HorizontalPosition, Position, VerticalPosition};
             Position {
-                horizontal: self.gecko.${gecko_ffi_name}.mXPosition.into(),
-                vertical: self.gecko.${gecko_ffi_name}.mYPosition.into(),
+                horizontal: HorizontalPosition(self.gecko.${gecko_ffi_name}.mXPosition.into()),
+                vertical: VerticalPosition(self.gecko.${gecko_ffi_name}.mYPosition.into()),
             }
         }
     % endif
@@ -543,15 +543,14 @@ fn color_to_nscolor_zero_currentcolor(color: Color) -> structs::nscolor {
     % if need_clone:
         #[allow(non_snake_case)]
         pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
-            use properties::longhands::${ident}::computed_value::T;
-            use euclid::Size2D;
+            use values::generics::BorderRadiusSize;
             let width = GeckoStyleCoordConvertible::from_gecko_style_coord(
                             &self.gecko.${gecko_ffi_name}.data_at(${x_index}))
                             .expect("Failed to clone ${ident}");
             let height = GeckoStyleCoordConvertible::from_gecko_style_coord(
                             &self.gecko.${gecko_ffi_name}.data_at(${y_index}))
                             .expect("Failed to clone ${ident}");
-            T(Size2D::new(width, height))
+            BorderRadiusSize::new(width, height)
         }
     % endif
 </%def>
@@ -1948,8 +1947,8 @@ fn static_assert() {
         for (gecko, servo) in self.gecko.mScrollSnapCoordinate
                                .iter_mut()
                                .zip(v.0.iter()) {
-            gecko.mXPosition = servo.horizontal.into();
-            gecko.mYPosition = servo.vertical.into();
+            gecko.mXPosition = servo.horizontal.0.into();
+            gecko.mYPosition = servo.vertical.0.into();
         }
     }
 
@@ -2601,7 +2600,7 @@ fn static_assert() {
 
     pub fn clone_${shorthand}_position_${orientation[0]}(&self)
         -> longhands::${shorthand}_position_${orientation[0]}::computed_value::T {
-        use values::computed::position::${orientation[1]}Position;
+        use values::generics::position::${orientation[1]}Position;
         longhands::${shorthand}_position_${orientation[0]}::computed_value::T(
             self.gecko.${image_layers_field}.mLayers.iter()
                 .take(self.gecko.${image_layers_field}.mPosition${orientation[0].upper()}Count as usize)
@@ -3565,12 +3564,12 @@ fn static_assert() {
 <%def name="impl_shape_source(ident, gecko_ffi_name)">
     pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
         use gecko_bindings::bindings::{Gecko_NewBasicShape, Gecko_DestroyShapeSource};
-        use gecko_bindings::structs::StyleGeometryBox;
         use gecko_bindings::structs::{StyleBasicShape, StyleBasicShapeType, StyleShapeSourceType};
-        use gecko_bindings::structs::{StyleFillRule, StyleShapeSource};
+        use gecko_bindings::structs::{StyleFillRule, StyleGeometryBox, StyleShapeSource};
         use gecko::conversions::basic_shape::set_corners_from_radius;
         use gecko::values::GeckoStyleCoordConvertible;
-        use values::computed::basic_shape::*;
+        use values::computed::basic_shape::BasicShape;
+        use values::generics::basic_shape::{ShapeSource, FillRule};
         let ref mut ${ident} = self.gecko.${gecko_ffi_name};
         // clean up existing struct
         unsafe { Gecko_DestroyShapeSource(${ident}) };
@@ -3580,7 +3579,7 @@ fn static_assert() {
         match v {
             ShapeSource::Url(ref url) => {
                 unsafe {
-                    bindings::Gecko_StyleShapeSource_SetURLValue(${ident}, url.for_ffi());
+                    bindings::Gecko_StyleShapeSource_SetURLValue(${ident}, url.for_ffi())
                 }
             }
             ShapeSource::None => {} // don't change the type

@@ -40,36 +40,11 @@ ${helpers.single_keyword("column-fill", "balance auto", extra_prefixes="moz",
                          products="gecko", animation_value_type="none",
                          spec="https://drafts.csswg.org/css-multicol/#propdef-column-fill")}
 
-// https://drafts.csswg.org/css-multicol-1/#propdef-column-rule-width
-<%helpers:longhand name="column-rule-width" products="gecko" animation_value_type="ComputedValue" extra_prefixes="moz"
-                   spec="https://drafts.csswg.org/css-multicol/#propdef-column-rule-width">
-    use app_units::Au;
-    use std::fmt;
-    use style_traits::ToCss;
-    use values::HasViewportPercentage;
-    use values::specified::BorderWidth;
-
-    pub mod computed_value {
-        use app_units::Au;
-        pub type T = Au;
-    }
-
-    pub type SpecifiedValue = BorderWidth;
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        Au::from_px(3) // medium
-    }
-
-    #[inline]
-    pub fn get_initial_specified_value() -> SpecifiedValue {
-        BorderWidth::Medium
-    }
-
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        BorderWidth::parse(context, input)
-    }
-</%helpers:longhand>
+${helpers.predefined_type("column-rule-width", "BorderWidth", "Au::from_px(3)",
+                          initial_specified_value="specified::BorderWidth::Medium",
+                          products="gecko", computed_type="::app_units::Au",
+                          spec="https://drafts.csswg.org/css-multicol/#propdef-column-rule-width",
+                          animation_value_type="ComputedValue", extra_prefixes="moz")}
 
 // https://drafts.csswg.org/css-multicol-1/#crc
 ${helpers.predefined_type("column-rule-color", "CSSColor",

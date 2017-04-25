@@ -1236,33 +1236,11 @@ ${helpers.predefined_type(
     complex_color=True, need_clone=True,
     spec="https://compat.spec.whatwg.org/#the-webkit-text-stroke-color")}
 
-<%helpers:longhand products="gecko" name="-webkit-text-stroke-width" animation_value_type="none"
-                   spec="https://compat.spec.whatwg.org/#the-webkit-text-stroke-width">
-    use app_units::Au;
-    use std::fmt;
-    use style_traits::ToCss;
-    use values::HasViewportPercentage;
-    use values::specified::{BorderWidth, Length};
-
-    pub type SpecifiedValue = BorderWidth;
-
-    #[inline]
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        BorderWidth::parse(context, input)
-    }
-
-    pub mod computed_value {
-        use app_units::Au;
-        pub type T = Au;
-    }
-    #[inline] pub fn get_initial_value() -> computed_value::T {
-        Au::from_px(0)
-    }
-    #[inline]
-    pub fn get_initial_specified_value() -> SpecifiedValue {
-        BorderWidth::from_length(Length::zero())
-    }
-</%helpers:longhand>
+${helpers.predefined_type("-webkit-text-stroke-width", "BorderWidth", "Au::from_px(0)",
+                          initial_specified_value="specified::BorderWidth::from_length(specified::Length::zero())",
+                          computed_type="::app_units::Au", products="gecko",
+                          spec="https://compat.spec.whatwg.org/#the-webkit-text-stroke-width",
+                          animation_value_type="none")}
 
 
 // CSS Ruby Layout Module Level 1

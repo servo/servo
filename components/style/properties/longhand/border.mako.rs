@@ -21,47 +21,24 @@
                               alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-color"),
                               spec=maybe_logical_spec(side, "color"),
                               animation_value_type="IntermediateColor", logical = side[1])}
-% endfor
 
-% for side in ALL_SIDES:
     ${helpers.predefined_type("border-%s-style" % side[0], "BorderStyle",
                               "specified::BorderStyle::none",
                               need_clone=True,
                               alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-style"),
                               spec=maybe_logical_spec(side, "style"),
-                              animation_value_type="none", logical = side[1])}
+                              animation_value_type="none", logical=side[1])}
+
+    ${helpers.predefined_type("border-%s-width" % side[0], "BorderWidth", "Au::from_px(3)",
+                              computed_type="::app_units::Au",
+                              alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-width"),
+                              spec=maybe_logical_spec(side, "width"),
+                              animation_value_type="ComputedValue", logical=side[1])}
 % endfor
 
 ${helpers.gecko_keyword_conversion(Keyword('border-style',
                                    "none solid double dotted dashed hidden groove ridge inset outset"),
                                    type="::values::specified::BorderStyle")}
-% for side in ALL_SIDES:
-    <%helpers:longhand name="border-${side[0]}-width" animation_value_type="ComputedValue" logical="${side[1]}"
-                       alias="${maybe_moz_logical_alias(product, side, '-moz-border-%s-width')}"
-                       spec="${maybe_logical_spec(side, 'width')}">
-        use app_units::Au;
-        use std::fmt;
-        use style_traits::ToCss;
-        use values::HasViewportPercentage;
-        use values::specified::BorderWidth;
-
-        pub type SpecifiedValue = BorderWidth;
-
-        #[inline]
-        pub fn parse(context: &ParserContext, input: &mut Parser)
-                     -> Result<SpecifiedValue, ()> {
-            BorderWidth::parse(context, input)
-        }
-
-        pub mod computed_value {
-            use app_units::Au;
-            pub type T = Au;
-        }
-        #[inline] pub fn get_initial_value() -> computed_value::T {
-            Au::from_px(3)  // medium
-        }
-    </%helpers:longhand>
-% endfor
 
 // FIXME(#4126): when gfx supports painting it, make this Size2D<LengthOrPercentage>
 % for corner in ["top-left", "top-right", "bottom-right", "bottom-left"]:
