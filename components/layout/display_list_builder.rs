@@ -2132,7 +2132,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             self.base.overflow.scroll.size.width > content_box.size.width ||
             self.base.overflow.scroll.size.height > content_box.size.height ||
             overflow_x::T::hidden == self.fragment.style.get_box().overflow_x ||
-            overflow_x::T::hidden == self.fragment.style.get_box().overflow_y.0;
+            overflow_x::T::hidden == self.fragment.style.get_box().overflow_y;
 
         self.mark_scrolling_overflow(has_scrolling_overflow);
         if !has_scrolling_overflow {
@@ -2163,11 +2163,11 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             content_size.width = content_box.size.width;
         }
 
-        if overflow_x::T::hidden == self.fragment.style.get_box().overflow_y.0 {
+        if overflow_x::T::hidden == self.fragment.style.get_box().overflow_y {
             content_size.height = content_box.size.height;
         }
 
-        if overflow_x::T::hidden == self.fragment.style.get_box().overflow_y.0 ||
+        if overflow_x::T::hidden == self.fragment.style.get_box().overflow_y ||
            overflow_x::T::hidden == self.fragment.style.get_box().overflow_x {
             preserved_state.push_clip(state, &border_box, self.positioning());
         }
