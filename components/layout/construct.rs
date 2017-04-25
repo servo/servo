@@ -1481,11 +1481,20 @@ impl<'a, ConcreteThreadSafeLayoutNode> PostorderNodeMutTraversal<ConcreteThreadS
             }
             Some(LayoutNodeType::Element(_)) => {
                 let style = node.style(self.style_context());
-                let original_display = style.get_box()._servo_display_for_hypothetical_box;
-                let munged_display = match original_display {
-                    display::T::inline | display::T::inline_block => original_display,
-                    _ => style.get_box().display,
-                };
+                let original_display =
+                    style.get_box()._servo_display_for_hypothetical_box;
+
+                let munged_display =
+                    if style.floated() || style.out_of_flow_positioned() {
+                        match original_display {
+                            display::T::inline |
+                            display::T::inline_block => original_display,
+                            _ => style.get_box().display,
+                        }
+                    } else {
+                        style.get_box().display
+                    };
+
                 (munged_display, style.get_box().float, style.get_box().position)
             }
             Some(LayoutNodeType::Text) =>
