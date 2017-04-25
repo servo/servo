@@ -25,9 +25,6 @@ def main(filename):
 predefined! {
 """)
         for name in names:
-            # FIXME https://github.com/w3c/csswg-drafts/issues/1285
-            if name == 'decimal':
-                continue
             f.write('    "%s",\n' % name)
         f.write('}\n')
 
