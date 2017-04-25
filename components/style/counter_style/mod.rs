@@ -342,8 +342,6 @@ pub enum Symbol {
     // Image(Image),
 }
 
-impl OneOrMoreCommaSeparated for Symbol {}
-
 impl Parse for Symbol {
     fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         match input.next() {
