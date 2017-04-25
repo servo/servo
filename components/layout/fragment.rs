@@ -2150,7 +2150,7 @@ impl Fragment {
             let block_flow = flow.as_block();
             let start_margin = block_flow.fragment.margin.block_start;
             let end_margin = block_flow.fragment.margin.block_end;
-            if style.get_box().overflow_y.0 == overflow_x::T::visible {
+            if style.get_box().overflow_y == overflow_x::T::visible {
                 if let Some(baseline_offset) = flow.baseline_offset_of_last_line_box_in_flow() {
                     let ascent = baseline_offset + start_margin;
                     let space_below_baseline = block_flow.fragment.border_box.size.block -
@@ -2491,7 +2491,7 @@ impl Fragment {
         match (self.style().get_box().position,
                self.style().get_position().z_index,
                self.style().get_box().overflow_x,
-               self.style().get_box().overflow_y.0) {
+               self.style().get_box().overflow_y) {
             (position::T::absolute,
              Either::Second(Auto),
              overflow_x::T::visible,

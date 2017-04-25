@@ -885,7 +885,7 @@ pub fn process_node_overflow_request<N: LayoutNode>(requested_node: N) -> NodeOv
     let style = &*layout_node.as_element().unwrap().resolved_style();
     let style_box = style.get_box();
 
-    NodeOverflowResponse(Some((Point2D::new(style_box.overflow_x, style_box.overflow_y.0))))
+    NodeOverflowResponse(Some((Point2D::new(style_box.overflow_x, style_box.overflow_y))))
 }
 
 pub fn process_margin_style_query<N: LayoutNode>(requested_node: N)
