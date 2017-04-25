@@ -73,6 +73,130 @@ ${helpers.gecko_keyword_conversion(Keyword('border-style',
                               animation_value_type="ComputedValue")}
 % endfor
 
+/// -moz-border-*-colors: color, string, enum, none, inherit/initial
+/// These non-spec properties are just for Gecko (Stylo) internal use.
+% for side in PHYSICAL_SIDES:
+    <%helpers:longhand name="-moz-border-${side}-colors" animation_value_type="none"
+                       spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-border-*-colors)"
+                       products="gecko">
+        use std::fmt;
+        use style_traits::ToCss;
+        use values::HasViewportPercentage;
+        use values::specified::CSSColor;
+        no_viewport_percentage!(SpecifiedValue);
+
+        pub mod computed_value {
+            use values::computed::CSSColor;
+            #[derive(Debug, Clone, PartialEq)]
+            #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+            pub struct T(pub Option<Vec<CSSColor>>);
+        }
+
+        #[derive(Debug, Clone, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        pub enum SpecifiedValue {
+            None,
+            Colors(Vec<CSSColor>),
+        }
+
+        impl ToCss for computed_value::T {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                match self.0 {
+                    None => return dest.write_str("none"),
+                    Some(ref vec) => {
+                        let mut first = true;
+                        for ref color in vec {
+                            if !first {
+                                try!(dest.write_str(" "));
+                            }
+                            first = false;
+                            try!(color.to_css(dest))
+                        }
+                        Ok(())
+                    }
+                }
+            }
+        }
+
+        impl ToCss for SpecifiedValue {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                match *self {
+                    SpecifiedValue::None => return dest.write_str("none"),
+                    SpecifiedValue::Colors(ref vec) => {
+                        let mut first = true;
+                        for ref color in vec {
+                            if !first {
+                                try!(dest.write_str(" "));
+                            }
+                            first = false;
+                            try!(color.to_css(dest))
+                        }
+                        Ok(())
+                    }
+                }
+            }
+        }
+
+        #[inline] pub fn get_initial_value() -> computed_value::T {
+            computed_value::T(None)
+        }
+
+        #[inline] pub fn get_initial_specified_value() -> SpecifiedValue {
+            SpecifiedValue::None
+        }
+
+        impl ToComputedValue for SpecifiedValue {
+            type ComputedValue = computed_value::T;
+
+            #[inline]
+            fn to_computed_value(&self, context: &Context) -> computed_value::T {
+                match *self {
+                    SpecifiedValue::Colors(ref vec) => {
+                        computed_value::T(Some(vec.iter()
+                                                  .map(|c| c.to_computed_value(context))
+                                                  .collect()))
+                    },
+                    SpecifiedValue::None => {
+                        computed_value::T(None)
+                    }
+                }
+            }
+            #[inline]
+            fn from_computed_value(computed: &computed_value::T) -> Self {
+                match *computed {
+                    computed_value::T(Some(ref vec)) => {
+                        SpecifiedValue::Colors(vec.iter()
+                                                  .map(|c| ToComputedValue::from_computed_value((c)))
+                                                  .collect())
+                    },
+                    computed_value::T(None) => {
+                        SpecifiedValue::None
+                    }
+                }
+            }
+        }
+
+        #[inline]
+        pub fn parse(context: &ParserContext, input: &mut Parser)
+                     -> Result<SpecifiedValue, ()> {
+            if input.try(|input| input.expect_ident_matching("none")).is_ok() {
+                return Ok(SpecifiedValue::None)
+            }
+
+            let mut result = Vec::new();
+            while let Ok(value) = input.try(|i| CSSColor::parse(context, i)) {
+                result.push(value);
+            }
+
+            if !result.is_empty() {
+                Ok(SpecifiedValue::Colors(result))
+            } else {
+                Err(())
+            }
+        }
+    </%helpers:longhand>
+% endfor
+
 ${helpers.single_keyword("box-decoration-break", "slice clone",
                          gecko_enum_prefix="StyleBoxDecorationBreak",
                          gecko_inexhaustive=True,
