@@ -387,7 +387,7 @@ impl EventSource {
         // TODO: Step 9 set request's client settings
         let mut request = RequestInit {
             url: url_record,
-            origin: global.get_url(),
+            origin: global.origin().immutable().clone(),
             pipeline_id: Some(global.pipeline_id()),
             // https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
             use_url_credentials: true,

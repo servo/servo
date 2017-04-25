@@ -164,7 +164,7 @@ impl ServiceWorkerGlobalScope {
                 destination: Destination::ServiceWorker,
                 credentials_mode: CredentialsMode::Include,
                 use_url_credentials: true,
-                origin: script_url,
+                origin: GlobalScope::current().origin().immutable().clone(),
                 pipeline_id: pipeline_id,
                 referrer_url: referrer_url,
                 referrer_policy: referrer_policy,

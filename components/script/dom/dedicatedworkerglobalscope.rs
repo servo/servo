@@ -179,7 +179,7 @@ impl DedicatedWorkerGlobalScope {
                 destination: Destination::Worker,
                 credentials_mode: CredentialsMode::Include,
                 use_url_credentials: true,
-                origin: worker_url,
+                origin: GlobalScope::current().origin().immutable().clone(),
                 pipeline_id: pipeline_id,
                 referrer_url: referrer_url,
                 referrer_policy: referrer_policy,

@@ -8,6 +8,7 @@
 //! layout thread holds on to them during asynchronous operations.
 
 use dom::bindings::reflector::DomObject;
+use dom::globalscope::GlobalScope;
 use dom::node::{Node, document_from_node};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
@@ -70,7 +71,7 @@ pub fn fetch_image_for_layout(url: ServoUrl,
 
     let request = FetchRequestInit {
         url: url,
-        origin: document.url().clone(),
+        origin: GlobalScope::current().origin().immutable().clone(),
         type_: RequestType::Image,
         pipeline_id: Some(document.global().pipeline_id()),
         .. FetchRequestInit::default()

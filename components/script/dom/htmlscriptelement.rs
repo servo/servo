@@ -253,11 +253,12 @@ fn fetch_a_classic_script(script: &HTMLScriptElement,
             Some(CorsSettings::Anonymous) => CredentialsMode::CredentialsSameOrigin,
             _ => CredentialsMode::Include,
         },
-        origin: doc.url(),
         pipeline_id: Some(script.global().pipeline_id()),
         referrer_url: Some(doc.url()),
         referrer_policy: doc.get_referrer_policy(),
         integrity_metadata: integrity_metadata,
+        // TODO: Pass a correct origin: ImmutableOrigin
+        // Related: issue #17238, PR #16508
         .. RequestInit::default()
     };
 

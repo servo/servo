@@ -2245,13 +2245,14 @@ impl ScriptThread {
             destination: Destination::Document,
             credentials_mode: CredentialsMode::Include,
             use_url_credentials: true,
-            origin: load_data.url.clone(),
             pipeline_id: Some(id),
             referrer_url: load_data.referrer_url,
             referrer_policy: load_data.referrer_policy,
             headers: load_data.headers,
             body: load_data.data,
             redirect_mode: RedirectMode::Manual,
+            // TODO: Pass a correct origin: ImmutableOrigin
+            // Related: issue #17238, PR #16508
             .. RequestInit::default()
         };
 
