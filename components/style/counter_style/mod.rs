@@ -323,7 +323,7 @@ impl ToCss for System {
                 }
             }
             System::Extends(ref other) => {
-                dest.write_str("symbolic ")?;
+                dest.write_str("extends ")?;
                 other.to_css(dest)
             }
         }
