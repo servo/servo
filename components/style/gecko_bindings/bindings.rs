@@ -1075,6 +1075,10 @@ extern "C" {
      -> nscoord;
 }
 extern "C" {
+    pub fn Gecko_GetAppUnitsPerPhysicalInch(pres_context: RawGeckoPresContextBorrowed)
+     -> i32;
+}
+extern "C" {
     pub fn Gecko_CSSValue_GetKeyword(aCSSValue: nsCSSValueBorrowed)
      -> nsCSSKeyword;
 }
