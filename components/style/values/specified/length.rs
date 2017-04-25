@@ -1160,8 +1160,12 @@ impl LengthOrPercentage {
                 NoCalcLength::parse_dimension(context, value.value, unit).map(LengthOrPercentage::Length),
             Token::Percentage(ref value) if num_context.is_ok(value.unit_value) =>
                 Ok(LengthOrPercentage::Percentage(Percentage(value.unit_value))),
-            Token::Number(ref value) if value.value == 0. =>
-                Ok(LengthOrPercentage::zero()),
+            Token::Number(ref value) => {
+                if value.value != 0. && !context.length_parsing_mode.allows_unitless_lengths() {
+                    return Err(())
+                }
+                Ok(LengthOrPercentage::Length(NoCalcLength::Absolute(AbsoluteLength::Px(value.value))))
+            }
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
                 let calc = try!(input.parse_nested_block(|i| {
                     CalcLengthOrPercentage::parse_length_or_percentage(context, i)
@@ -1284,8 +1288,14 @@ impl LengthOrPercentageOrAuto {
                 NoCalcLength::parse_dimension(context, value.value, unit).map(LengthOrPercentageOrAuto::Length),
             Token::Percentage(ref value) if num_context.is_ok(value.unit_value) =>
                 Ok(LengthOrPercentageOrAuto::Percentage(Percentage(value.unit_value))),
-            Token::Number(ref value) if value.value == 0. =>
-                Ok(Self::zero()),
+            Token::Number(ref value) if value.value == 0. => {
+                if value.value != 0. && !context.length_parsing_mode.allows_unitless_lengths() {
+                    return Err(())
+                }
+                Ok(LengthOrPercentageOrAuto::Length(
+                    NoCalcLength::Absolute(AbsoluteLength::Px(value.value))
+                ))
+            }
             Token::Ident(ref value) if value.eq_ignore_ascii_case("auto") =>
                 Ok(LengthOrPercentageOrAuto::Auto),
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
@@ -1363,8 +1373,14 @@ impl LengthOrPercentageOrNone {
                 NoCalcLength::parse_dimension(context, value.value, unit).map(LengthOrPercentageOrNone::Length),
             Token::Percentage(ref value) if num_context.is_ok(value.unit_value) =>
                 Ok(LengthOrPercentageOrNone::Percentage(Percentage(value.unit_value))),
-            Token::Number(ref value) if value.value == 0. =>
-                Ok(LengthOrPercentageOrNone::Length(NoCalcLength::zero())),
+            Token::Number(ref value) if value.value == 0. => {
+                if value.value != 0. && !context.length_parsing_mode.allows_unitless_lengths() {
+                    return Err(())
+                }
+                Ok(LengthOrPercentageOrNone::Length(
+                    NoCalcLength::Absolute(AbsoluteLength::Px(value.value))
+                ))
+            }
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
                 let calc = try!(input.parse_nested_block(|i| {
                     CalcLengthOrPercentage::parse_length_or_percentage(context, i)
