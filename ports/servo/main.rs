@@ -37,6 +37,7 @@ use servo::compositing::windowing::WindowEvent;
 use servo::config;
 use servo::config::opts::{self, ArgumentParsingResult};
 use servo::config::servo_version;
+use servo::servo_url::ServoUrl;
 use std::env;
 use std::panic;
 use std::process;
@@ -144,7 +145,9 @@ fn main() {
     // Our wrapper around `Browser` that also implements some
     // callbacks required by the glutin window implementation.
     let mut browser = BrowserWrapper {
-        browser: Browser::new(window.clone()),
+        browser: Browser::new(window.clone(),
+                              opts::get().url.clone()
+                                  .unwrap_or(ServoUrl::parse("about:blank").unwrap())),
     };
 
     browser.browser.setup_logging();
