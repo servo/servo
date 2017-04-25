@@ -1350,7 +1350,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             load_data: load_data,
             replace_instant: None,
         });
-        self.compositor_proxy.send(ToCompositorMsg::ChangePageUrl(root_pipeline_id, url));
     }
 
     fn handle_frame_size_msg(&mut self,
@@ -1663,11 +1662,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
-    fn handle_load_start_msg(&mut self, pipeline_id: PipelineId) {
-        let frame_id = self.get_top_level_frame_for_pipeline(pipeline_id);
-        let forward = !self.joint_session_future_is_empty(frame_id);
-        let back = !self.joint_session_past_is_empty(frame_id);
-        self.compositor_proxy.send(ToCompositorMsg::LoadStart(back, forward));
+    fn handle_load_start_msg(&mut self, _pipeline_id: PipelineId) {
+        self.compositor_proxy.send(ToCompositorMsg::LoadStart);
     }
 
     fn handle_load_complete_msg(&mut self, pipeline_id: PipelineId) {
@@ -1682,11 +1678,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         if webdriver_reset {
             self.webdriver.load_channel = None;
         }
-        let frame_id = self.get_top_level_frame_for_pipeline(pipeline_id);
-        let forward = !self.joint_session_future_is_empty(frame_id);
-        let back = !self.joint_session_past_is_empty(frame_id);
-        let root = self.root_frame_id == frame_id;
-        self.compositor_proxy.send(ToCompositorMsg::LoadComplete(back, forward, root));
+        self.compositor_proxy.send(ToCompositorMsg::LoadComplete);
         self.handle_subframe_loaded(pipeline_id);
     }
 
@@ -2101,6 +2093,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // Deactivate the old pipeline, and activate the new one.
         self.update_activity(old_pipeline_id);
         self.update_activity(pipeline_id);
+        self.notify_history_changed(pipeline_id);
 
         // Set paint permissions correctly for the compositor layers.
         self.send_frame_tree();
@@ -2121,6 +2114,64 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             // This is the result of a back/forward traversal.
             self.trigger_mozbrowserlocationchange(pipeline_id);
         }
+    }
+
+    fn notify_history_changed(&self, pipeline_id: PipelineId) {
+        // Send a flat projection of the history.
+        // The final vector is a concatenation of the LoadData of the past entries,
+        // the current entry and the future entries.
+        // LoadData of inner frames are ignored and replaced with the LoadData of the parent.
+
+        let top_level_frame_id = self.get_top_level_frame_for_pipeline(pipeline_id);
+
+        // Ignore LoadData of non-top-level frames.
+        let keep_load_data_if_top_frame = |state: &FrameState| {
+            match state.pipeline_id {
+                None => Some(state.load_data.clone()),
+                Some(pipeline_id) => {
+                    match self.pipelines.get(&pipeline_id) {
+                        None => Some(state.load_data.clone()),
+                        Some(pipeline) => match pipeline.parent_info {
+                            None => Some(state.load_data.clone()),
+                            Some(_) => None,
+                        }
+                    }
+                }
+            }
+        };
+
+        // If LoadData was ignored, use the LoadData of the previous FrameState, which
+        // is the LoadData of the parent frame.
+        let resolve_load_data = |previous_load_data: &mut LoadData, load_data| {
+            let load_data = match load_data {
+                None => previous_load_data.clone(),
+                Some(load_data) => load_data,
+            };
+            *previous_load_data = load_data.clone();
+            Some(load_data)
+        };
+
+        let current_load_data = match self.frames.get(&top_level_frame_id) {
+            Some(frame) => frame.load_data.clone(),
+            None => return warn!("notify_history_changed error after top-level frame closed."),
+        };
+
+        let mut entries: Vec<LoadData> = self.joint_session_past(top_level_frame_id)
+            .map(&keep_load_data_if_top_frame)
+            .scan(current_load_data.clone(), &resolve_load_data)
+            .collect();
+
+        entries.reverse();
+
+        let current_index = entries.len();
+
+        entries.push(current_load_data.clone());
+
+        entries.extend(self.joint_session_future(top_level_frame_id)
+                       .map(&keep_load_data_if_top_frame)
+                       .scan(current_load_data.clone(), &resolve_load_data));
+
+        self.compositor_proxy.send(ToCompositorMsg::HistoryChanged(entries, current_index));
     }
 
     fn get_top_level_frame_for_pipeline(&self, mut pipeline_id: PipelineId) -> FrameId {
@@ -2196,6 +2247,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         if new_frame {
             self.new_frame(frame_change.frame_id, frame_change.new_pipeline_id, frame_change.load_data);
             self.update_activity(frame_change.new_pipeline_id);
+            self.notify_history_changed(frame_change.new_pipeline_id);
         };
 
         if let Some(old_pipeline_id) = navigated {
@@ -2205,6 +2257,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             // Clear the joint session future
             let top_level_frame_id = self.get_top_level_frame_for_pipeline(frame_change.new_pipeline_id);
             self.clear_joint_session_future(top_level_frame_id);
+            self.notify_history_changed(frame_change.new_pipeline_id);
         }
 
         if location_changed {

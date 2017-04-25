@@ -27,7 +27,7 @@ use msg::constellation_msg::{ALT, CONTROL, KeyState, NONE, SHIFT, SUPER};
 use net_traits::net_error_list::NetError;
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use osmesa_sys;
-use script_traits::{DevicePixel, TouchEventType, TouchpadPressurePhase};
+use script_traits::{DevicePixel, LoadData, TouchEventType, TouchpadPressurePhase};
 use servo_config::opts;
 use servo_config::prefs::PREFS;
 use servo_config::resource_files;
@@ -1099,18 +1099,14 @@ impl WindowMethods for Window {
         }
     }
 
-    fn set_page_url(&self, url: ServoUrl) {
-        *self.current_url.borrow_mut() = Some(url);
-    }
-
     fn status(&self, _: Option<String>) {
     }
 
-    fn load_start(&self, _: bool, _: bool) {
+    fn load_start(&self) {
     }
 
-    fn load_end(&self, _: bool, _: bool, root: bool) {
-        if root && opts::get().no_native_titlebar {
+    fn load_end(&self) {
+        if opts::get().no_native_titlebar {
             match self.kind {
                 WindowKind::Window(ref window) => {
                     window.show();
@@ -1118,6 +1114,10 @@ impl WindowMethods for Window {
                 WindowKind::Headless(..) => {}
             }
         }
+    }
+
+    fn history_changed(&self, history: Vec<LoadData>, current: usize) {
+        *self.current_url.borrow_mut() = Some(history[current].url.clone());
     }
 
     fn load_error(&self, _: NetError, _: String) {

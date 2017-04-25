@@ -13,7 +13,7 @@ use msg::constellation_msg::{Key, KeyModifiers, KeyState, PipelineId};
 use net_traits::image::base::Image;
 use profile_traits::mem;
 use profile_traits::time;
-use script_traits::{AnimationState, ConstellationMsg, EventResult};
+use script_traits::{AnimationState, ConstellationMsg, EventResult, LoadData};
 use servo_url::ServoUrl;
 use std::fmt::{Debug, Error, Formatter};
 use std::sync::mpsc::{Receiver, Sender};
@@ -75,16 +75,16 @@ pub enum Msg {
     ScrollFragmentPoint(webrender_traits::ClipId, Point2D<f32>, bool),
     /// Alerts the compositor that the current page has changed its title.
     ChangePageTitle(PipelineId, Option<String>),
-    /// Alerts the compositor that the current page has changed its URL.
-    ChangePageUrl(PipelineId, ServoUrl),
     /// Alerts the compositor that the given pipeline has changed whether it is running animations.
     ChangeRunningAnimationsState(PipelineId, AnimationState),
     /// Replaces the current frame tree, typically called during main frame navigation.
     SetFrameTree(SendableFrameTree, IpcSender<()>),
-    /// The load of a page has begun: (can go back, can go forward).
-    LoadStart(bool, bool),
-    /// The load of a page has completed: (can go back, can go forward, is root frame).
-    LoadComplete(bool, bool, bool),
+    /// The load of a page has begun
+    LoadStart,
+    /// The load of a page has completed
+    LoadComplete,
+    /// The history state has changed.
+    HistoryChanged(Vec<LoadData>, usize),
     /// Wether or not to follow a link
     AllowNavigation(ServoUrl, IpcSender<bool>),
     /// We hit the delayed composition timeout. (See `delayed_composition.rs`.)
@@ -142,11 +142,11 @@ impl Debug for Msg {
             Msg::ScrollFragmentPoint(..) => write!(f, "ScrollFragmentPoint"),
             Msg::ChangeRunningAnimationsState(..) => write!(f, "ChangeRunningAnimationsState"),
             Msg::ChangePageTitle(..) => write!(f, "ChangePageTitle"),
-            Msg::ChangePageUrl(..) => write!(f, "ChangePageUrl"),
             Msg::SetFrameTree(..) => write!(f, "SetFrameTree"),
-            Msg::LoadComplete(..) => write!(f, "LoadComplete"),
+            Msg::LoadComplete => write!(f, "LoadComplete"),
             Msg::AllowNavigation(..) => write!(f, "AllowNavigation"),
-            Msg::LoadStart(..) => write!(f, "LoadStart"),
+            Msg::LoadStart => write!(f, "LoadStart"),
+            Msg::HistoryChanged(..) => write!(f, "HistoryChanged"),
             Msg::DelayedCompositionTimeout(..) => write!(f, "DelayedCompositionTimeout"),
             Msg::Recomposite(..) => write!(f, "Recomposite"),
             Msg::KeyEvent(..) => write!(f, "KeyEvent"),

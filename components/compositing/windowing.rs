@@ -13,7 +13,7 @@ use euclid::size::TypedSize2D;
 use gleam::gl;
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use net_traits::net_error_list::NetError;
-use script_traits::{DevicePixel, MouseButton, TouchEventType, TouchId, TouchpadPressurePhase};
+use script_traits::{DevicePixel, LoadData, MouseButton, TouchEventType, TouchId, TouchpadPressurePhase};
 use servo_geometry::DeviceIndependentPixel;
 use servo_url::ServoUrl;
 use std::fmt::{Debug, Error, Formatter};
@@ -129,20 +129,20 @@ pub trait WindowMethods {
 
     /// Sets the page title for the current page.
     fn set_page_title(&self, title: Option<String>);
-    /// Sets the load data for the current page.
-    fn set_page_url(&self, url: ServoUrl);
     /// Called when the browser chrome should display a status message.
     fn status(&self, Option<String>);
     /// Called when the browser has started loading a frame.
-    fn load_start(&self, back: bool, forward: bool);
+    fn load_start(&self);
     /// Called when the browser is done loading a frame.
-    fn load_end(&self, back: bool, forward: bool, root: bool);
+    fn load_end(&self);
     /// Called when the browser encounters an error while loading a URL
     fn load_error(&self, code: NetError, url: String);
     /// Wether or not to follow a link
     fn allow_navigation(&self, url: ServoUrl) -> bool;
     /// Called when the <head> tag has finished parsing
     fn head_parsed(&self);
+    /// Called when the history state has changed.
+    fn history_changed(&self, Vec<LoadData>, usize);
 
     /// Returns the scale factor of the system (device pixels / device independent pixels).
     fn hidpi_factor(&self) -> ScaleFactor<f32, DeviceIndependentPixel, DevicePixel>;
