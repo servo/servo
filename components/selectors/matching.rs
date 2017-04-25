@@ -385,15 +385,7 @@ fn matches_simple_selector<E, F>(
             matches_generic_nth_child(element, 0, 1, true, true, flags_setter)
         }
         Component::Negation(ref negated) => {
-            !negated.iter().all(|s| {
-                match matches_complex_selector_internal(s.iter(),
-                                                        element,
-                                                        relations,
-                                                        flags_setter) {
-                    SelectorMatchingResult::Matched => true,
-                    _ => false,
-                }
-            })
+            !negated.iter().all(|ss| matches_simple_selector(ss, element, relations, flags_setter))
         }
     }
 }

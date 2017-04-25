@@ -238,12 +238,12 @@ impl<Impl: SelectorImpl> SelectorMethods for Component<Impl> {
 
         match *self {
             Negation(ref negated) => {
-                for selector in negated.iter() {
-                    if !selector.visit(visitor) {
+                for component in negated.iter() {
+                    if !component.visit(visitor) {
                         return false;
                     }
                 }
-            }
+            },
             AttrExists(ref selector) |
             AttrEqual(ref selector, _, _) |
             AttrIncludes(ref selector, _) |
@@ -450,7 +450,16 @@ pub enum Component<Impl: SelectorImpl> {
     AttrSuffixNeverMatch(AttrSelector<Impl>, Impl::AttrValue),  // empty value
 
     // Pseudo-classes
-    Negation(Box<[ComplexSelector<Impl>]>),
+    //
+    // CSS3 Negation only takes a simple simple selector, but we still need to
+    // treat it as a compound selector because it might be a type selector which
+    // we represent as a namespace and and localname.
+    //
+    // Note: if/when we upgrade this to CSS4, which supports combinators, we need
+    // to think about how this should interact with visit_complex_selector, and
+    // what the consumers of those APIs should do about the presence of combinators
+    // in negation.
+    Negation(Box<[Component<Impl>]>),
     FirstChild, LastChild, OnlyChild,
     Root,
     Empty,
@@ -654,14 +663,11 @@ impl<Impl: SelectorImpl> ToCss for Component<Impl> {
             AttrSuffixMatch(ref a, ref v) => attr_selector_to_css(a, " $= ", v, None, dest),
 
             // Pseudo-classes
-            Negation(ref args) => {
+            Negation(ref arg) => {
                 dest.write_str(":not(")?;
-                let mut args = args.iter();
-                let first = args.next().unwrap();
-                first.to_css(dest)?;
-                for arg in args {
-                    dest.write_str(", ")?;
-                    arg.to_css(dest)?;
+                debug_assert!(arg.len() <= 1 || (arg.len() == 2 && matches!(arg[0], Component::Namespace(_))));
+                for component in arg.iter() {
+                    component.to_css(dest)?;
                 }
                 dest.write_str(")")
             }
@@ -813,57 +819,57 @@ fn specificity<Impl>(complex_selector: &ComplexSelector<Impl>,
 fn complex_selector_specificity<Impl>(selector: &ComplexSelector<Impl>)
                                       -> Specificity
                                       where Impl: SelectorImpl {
-    fn compound_selector_specificity<Impl>(selector_iter: &mut SelectorIter<Impl>,
-                                           specificity: &mut Specificity)
-                                           where Impl: SelectorImpl {
-        for simple_selector in selector_iter {
-            match *simple_selector {
-                Component::Combinator(..) => unreachable!(),
-                Component::LocalName(..) =>
-                    specificity.element_selectors += 1,
-                Component::ID(..) =>
-                    specificity.id_selectors += 1,
-                Component::Class(..) |
-                Component::AttrExists(..) |
-                Component::AttrEqual(..) |
-                Component::AttrIncludes(..) |
-                Component::AttrDashMatch(..) |
-                Component::AttrPrefixMatch(..) |
-                Component::AttrSubstringMatch(..) |
-                Component::AttrSuffixMatch(..) |
+    fn simple_selector_specificity<Impl>(simple_selector: &Component<Impl>,
+                                         specificity: &mut Specificity)
+                                         where Impl: SelectorImpl {
+        match *simple_selector {
+            Component::Combinator(..) => unreachable!(),
+            Component::LocalName(..) =>
+                specificity.element_selectors += 1,
+            Component::ID(..) =>
+                specificity.id_selectors += 1,
+            Component::Class(..) |
+            Component::AttrExists(..) |
+            Component::AttrEqual(..) |
+            Component::AttrIncludes(..) |
+            Component::AttrDashMatch(..) |
+            Component::AttrPrefixMatch(..) |
+            Component::AttrSubstringMatch(..) |
+            Component::AttrSuffixMatch(..) |
 
-                Component::AttrIncludesNeverMatch(..) |
-                Component::AttrPrefixNeverMatch(..) |
-                Component::AttrSubstringNeverMatch(..) |
-                Component::AttrSuffixNeverMatch(..) |
+            Component::AttrIncludesNeverMatch(..) |
+            Component::AttrPrefixNeverMatch(..) |
+            Component::AttrSubstringNeverMatch(..) |
+            Component::AttrSuffixNeverMatch(..) |
 
-                Component::FirstChild | Component::LastChild |
-                Component::OnlyChild | Component::Root |
-                Component::Empty |
-                Component::NthChild(..) |
-                Component::NthLastChild(..) |
-                Component::NthOfType(..) |
-                Component::NthLastOfType(..) |
-                Component::FirstOfType | Component::LastOfType |
-                Component::OnlyOfType |
-                Component::NonTSPseudoClass(..) =>
-                    specificity.class_like_selectors += 1,
+            Component::FirstChild | Component::LastChild |
+            Component::OnlyChild | Component::Root |
+            Component::Empty |
+            Component::NthChild(..) |
+            Component::NthLastChild(..) |
+            Component::NthOfType(..) |
+            Component::NthLastOfType(..) |
+            Component::FirstOfType | Component::LastOfType |
+            Component::OnlyOfType |
+            Component::NonTSPseudoClass(..) =>
+                specificity.class_like_selectors += 1,
 
-                Component::Namespace(..) => (),
-                Component::Negation(ref negated) => {
-                    let max =
-                        negated.iter().map(|s| complex_selector_specificity(&s))
-                               .max().unwrap();
-                    *specificity = *specificity + max;
+            Component::Namespace(..) => (),
+            Component::Negation(ref negated) => {
+                for ss in negated.iter() {
+                    simple_selector_specificity(&ss, specificity);
                 }
             }
         }
     }
 
+
     let mut specificity = Default::default();
     let mut iter = selector.iter();
     loop {
-        compound_selector_specificity(&mut iter, &mut specificity);
+        for simple_selector in &mut iter {
+            simple_selector_specificity(&simple_selector, &mut specificity);
+        }
         if iter.next_sequence().is_none() {
             break;
         }
@@ -907,7 +913,8 @@ fn parse_complex_selector_and_pseudo_element<P, Impl>(
     let mut pseudo_element;
     'outer_loop: loop {
         // Parse a sequence of simple selectors.
-        pseudo_element = parse_compound_selector(parser, input, &mut sequence)?;
+        pseudo_element = parse_compound_selector(parser, input, &mut sequence,
+                                                 /* inside_negation = */ false)?;
         if pseudo_element.is_some() {
             break;
         }
@@ -1169,8 +1176,18 @@ fn parse_negation<P, Impl>(parser: &P,
                            -> Result<Component<Impl>, ()>
     where P: Parser<Impl=Impl>, Impl: SelectorImpl
 {
-    input.parse_comma_separated(|input| ComplexSelector::parse(parser, input))
-         .map(|v| Component::Negation(v.into_boxed_slice()))
+    let mut v = ParseVec::new();
+    parse_compound_selector(parser, input, &mut v, /* inside_negation = */ true)?;
+
+    let allow = v.len() <= 1 ||
+        (v.len() == 2 && matches!(v[0], Component::Namespace(_)) &&
+         matches!(v[1], Component::LocalName(_)));
+
+    if allow {
+        Ok(Component::Negation(v.into_vec().into_boxed_slice()))
+    } else {
+        Err(())
+    }
 }
 
 /// simple_selector_sequence
@@ -1181,7 +1198,8 @@ fn parse_negation<P, Impl>(parser: &P,
 fn parse_compound_selector<P, Impl>(
     parser: &P,
     input: &mut CssParser,
-    mut sequence: &mut ParseVec<Impl>)
+    mut sequence: &mut ParseVec<Impl>,
+    inside_negation: bool)
     -> Result<Option<Impl::PseudoElement>, ()>
     where P: Parser<Impl=Impl>, Impl: SelectorImpl
 {
@@ -1199,10 +1217,14 @@ fn parse_compound_selector<P, Impl>(
             // If there was no explicit type selector, but there is a
             // default namespace, there is an implicit "<defaultns>|*" type
             // selector.
-            sequence.push(Component::Namespace(Namespace {
-                prefix: None,
-                url: url
-            }));
+            //
+            // Note that this doesn't apply to :not() and :matches() per spec.
+            if !inside_negation {
+                sequence.push(Component::Namespace(Namespace {
+                    prefix: None,
+                    url: url
+                }));
+            }
         }
     } else {
         empty = false;
@@ -1210,7 +1232,7 @@ fn parse_compound_selector<P, Impl>(
 
     let mut pseudo_element = None;
     loop {
-        match parse_one_simple_selector(parser, input, /* inside_negation = */ false)? {
+        match parse_one_simple_selector(parser, input, inside_negation)? {
             None => break,
             Some(SimpleSelectorParseResult::SimpleSelector(s)) => {
                 sequence.push(s);
@@ -1681,17 +1703,34 @@ pub mod tests {
             pseudo_element: None,
             specificity: (1 << 20) + (1 << 10) + (0 << 0),
         }])));
-        assert_eq!(parse(":not(.babybel, #provel.old)"), Ok(SelectorList(vec!(Selector {
+        parser.default_ns = None;
+        assert_eq!(parse(":not(#provel.old)"), Err(()));
+        assert_eq!(parse(":not(#provel > old)"), Err(()));
+        assert!(parse("table[rules]:not([rules = \"none\"]):not([rules = \"\"])").is_ok());
+        assert_eq!(parse(":not(#provel)"), Ok(SelectorList(vec!(Selector {
             inner: SelectorInner::from_vec(vec!(Component::Negation(
-                    vec!(
-                        ComplexSelector::from_vec(vec!(Component::Class(DummyAtom::from("babybel")))),
-                        ComplexSelector::from_vec(vec!(
-                                Component::ID(DummyAtom::from("provel")),
-                                Component::Class(DummyAtom::from("old")),
-                    ))).into_boxed_slice()
+                vec![
+                    Component::ID(DummyAtom::from("provel")),
+                ].into_boxed_slice()
             ))),
             pseudo_element: None,
-            specificity: specificity(1, 1, 0),
+            specificity: specificity(1, 0, 0),
+        }))));
+        assert_eq!(parse_ns(":not(svg|circle)", &parser), Ok(SelectorList(vec!(Selector {
+            inner: SelectorInner::from_vec(vec!(Component::Negation(
+                vec![
+                    Component::Namespace(Namespace {
+                        prefix: Some(DummyAtom("svg".into())),
+                        url: SVG.into(),
+                    }),
+                    Component::LocalName(LocalName {
+                        name: DummyAtom::from("circle"),
+                        lower_name: DummyAtom::from("circle")
+                    }),
+                ].into_boxed_slice()
+            ))),
+            pseudo_element: None,
+            specificity: specificity(0, 0, 1),
         }))));
     }
 
