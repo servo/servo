@@ -6,10 +6,10 @@
 
 #![deny(missing_docs)]
 
-use {Atom, Prefix, Namespace};
+use {Prefix, Namespace};
 use counter_style::{CounterStyleRule, parse_counter_style_name, parse_counter_style_body};
 use cssparser::{AtRuleParser, Parser, QualifiedRuleParser};
-use cssparser::{AtRuleType, RuleListParser, SourcePosition, Token, parse_one_rule};
+use cssparser::{AtRuleType, RuleListParser, SourcePosition, parse_one_rule};
 use cssparser::ToCss as ParserToCss;
 use error_reporting::ParseErrorReporter;
 #[cfg(feature = "servo")]
@@ -41,7 +41,7 @@ use str::starts_with_ignore_ascii_case;
 use style_traits::ToCss;
 use stylist::FnvHashMap;
 use supports::SupportsCondition;
-use values::CustomIdent;
+use values::{CustomIdent, KeyframesName};
 use values::specified::url::SpecifiedUrl;
 use viewport::ViewportRule;
 
@@ -533,7 +533,7 @@ impl ToCssWithGuard for ImportRule {
 #[derive(Debug)]
 pub struct KeyframesRule {
     /// The name of the current animation.
-    pub name: CustomIdent,
+    pub name: KeyframesName,
     /// The keyframes specified for this CSS rule.
     pub keyframes: Vec<Arc<Locked<Keyframe>>>,
     /// Vendor prefix type the @keyframes has.
@@ -945,7 +945,7 @@ enum AtRulePrelude {
     /// A @viewport rule prelude.
     Viewport,
     /// A @keyframes rule, with its animation name and vendor prefix if exists.
-    Keyframes(CustomIdent, Option<VendorPrefix>),
+    Keyframes(KeyframesName, Option<VendorPrefix>),
     /// A @page rule prelude.
     Page,
 }
@@ -1153,11 +1153,7 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
                     // Servo should not support @-moz-keyframes.
                     return Err(())
                 }
-                let name = match input.next() {
-                    Ok(Token::Ident(value)) => CustomIdent::from_ident(value, &["none"])?,
-                    Ok(Token::QuotedString(value)) => CustomIdent(Atom::from(value)),
-                    _ => return Err(())
-                };
+                let name = KeyframesName::parse(self.context, input)?;
 
                 Ok(AtRuleType::WithBlock(AtRulePrelude::Keyframes(name, prefix)))
             },

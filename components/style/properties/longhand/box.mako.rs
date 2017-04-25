@@ -782,7 +782,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     use std::ops::Deref;
     use style_traits::ToCss;
     use values::computed::ComputedValueAsSpecified;
-    use values::{HasViewportPercentage, CustomIdent};
+    use values::{HasViewportPercentage, KeyframesName};
 
     pub mod computed_value {
         pub use super::SpecifiedValue as T;
@@ -790,7 +790,14 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
     #[derive(Clone, Debug, Hash, Eq, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub struct SpecifiedValue(pub CustomIdent);
+    pub struct SpecifiedValue(pub Option<KeyframesName>);
+
+    impl SpecifiedValue {
+        /// As an Atom
+        pub fn as_atom(&self) -> Option< &Atom> {
+            self.0.as_ref().map(|n| n.as_atom())
+        }
+    }
 
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
@@ -799,44 +806,32 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
     #[inline]
     pub fn get_initial_specified_value() -> SpecifiedValue {
-        SpecifiedValue(CustomIdent(atom!("")))
+        SpecifiedValue(None)
     }
 
     impl fmt::Display for SpecifiedValue {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            self.0 .0.fmt(f)
+            self.to_css(f)
         }
     }
 
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            if self.0 .0 == atom!("") {
-                dest.write_str("none")
+            if let Some(ref name) = self.0 {
+                name.to_css(dest)
             } else {
-                self.0.to_css(dest)
+                dest.write_str("none")
             }
         }
     }
 
     impl Parse for SpecifiedValue {
-        fn parse(_context: &ParserContext, input: &mut ::cssparser::Parser) -> Result<Self, ()> {
-            use cssparser::Token;
-            use std::ascii::AsciiExt;
-            use values::CustomIdent;
-
-            let atom = match input.next() {
-                Ok(Token::Ident(value)) => {
-                    if value.eq_ignore_ascii_case("none") {
-                        // FIXME We may want to support `@keyframes ""` at some point.
-                        CustomIdent(atom!(""))
-                    } else {
-                        CustomIdent::from_ident(value, &[])?
-                    }
-                }
-                Ok(Token::QuotedString(value)) => CustomIdent(Atom::from(value)),
-                _ => return Err(()),
-            };
-            Ok(SpecifiedValue(atom))
+        fn parse(context: &ParserContext, input: &mut ::cssparser::Parser) -> Result<Self, ()> {
+            if let Ok(name) = input.try(|input| KeyframesName::parse(context, input)) {
+                Ok(SpecifiedValue(Some(name)))
+            } else {
+                input.expect_ident_matching("none").map(|()| SpecifiedValue(None))
+            }
         }
     }
     no_viewport_percentage!(SpecifiedValue);

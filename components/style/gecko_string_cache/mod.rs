@@ -163,6 +163,12 @@ impl WeakAtom {
         }
     }
 
+    /// Returns whether this atom is the empty string.
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     /// Returns the atom as a mutable pointer.
     #[inline]
     pub fn as_ptr(&self) -> *mut nsIAtom {
