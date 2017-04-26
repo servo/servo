@@ -944,7 +944,7 @@ fn static_assert() {
         }
 
         if let Some(image) = v.0 {
-            self.gecko.mBorderImageSource.set(image, true, &mut false)
+            self.gecko.mBorderImageSource.set(image, &mut false)
         }
     }
 
@@ -2764,12 +2764,12 @@ fn static_assert() {
                                                                 .mLayers.iter_mut()) {
             % if shorthand == "background":
                 if let Some(image) = image.0 {
-                    geckoimage.mImage.set(image, true, cacheable)
+                    geckoimage.mImage.set(image, cacheable)
                 }
             % else:
                 use properties::longhands::mask_image::single_value::computed_value::T;
                 match image {
-                    T::Image(image) => geckoimage.mImage.set(image, true, cacheable),
+                    T::Image(image) => geckoimage.mImage.set(image, cacheable),
                     _ => ()
                 }
             % endif
