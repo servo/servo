@@ -537,7 +537,10 @@ pub fn resolve_style<E, F, G, H>(context: &mut StyleContext<E>, element: E,
     if !in_doc || display_none_root.is_some() {
         let mut curr = element;
         loop {
-            unsafe { curr.unset_dirty_descendants(); }
+            unsafe {
+                curr.unset_dirty_descendants();
+                curr.unset_animation_only_dirty_descendants();
+            }
             if in_doc && curr == display_none_root.unwrap() {
                 break;
             }
@@ -789,5 +792,8 @@ pub fn clear_descendant_data<E: TElement, F: Fn(E)>(el: E, clear_data: &F) {
         }
     }
 
-    unsafe { el.unset_dirty_descendants(); }
+    unsafe {
+        el.unset_dirty_descendants();
+        el.unset_animation_only_dirty_descendants();
+    }
 }
