@@ -101,12 +101,12 @@ impl From<nsStyleCoord_CalcValue> for LengthOrPercentage {
 
 impl nsStyleImage {
     /// Set a given Servo `Image` value into this `nsStyleImage`.
-    pub fn set(&mut self, image: Image, with_url: bool, cacheable: &mut bool) {
+    pub fn set(&mut self, image: Image, cacheable: &mut bool) {
         match image {
             Image::Gradient(gradient) => {
                 self.set_gradient(gradient)
             },
-            Image::Url(ref url) if with_url => {
+            Image::Url(ref url) => {
                 unsafe {
                     Gecko_SetUrlImageValue(self, url.for_ffi());
                     // We unfortunately must make any url() value uncacheable, since
@@ -119,7 +119,7 @@ impl nsStyleImage {
                     *cacheable = false;
                 }
             },
-            Image::ImageRect(ref image_rect) if with_url => {
+            Image::ImageRect(ref image_rect) => {
                 unsafe {
                     Gecko_SetUrlImageValue(self, image_rect.url.for_ffi());
                     Gecko_InitializeImageCropRect(self);
@@ -145,8 +145,7 @@ impl nsStyleImage {
                 unsafe {
                     Gecko_SetImageElement(self, element.as_ptr());
                 }
-            },
-            _ => (),
+            }
         }
     }
 
