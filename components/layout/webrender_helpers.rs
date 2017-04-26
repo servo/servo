@@ -416,7 +416,6 @@ impl WebRenderDisplayItemConverter for DisplayItem {
 
                 builder.push_stacking_context(stacking_context.scroll_policy,
                                               stacking_context.bounds.to_rectf(),
-                                              stacking_context.z_index,
                                               transform,
                                               webrender_traits::TransformStyle::Flat,
                                               perspective,
