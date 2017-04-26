@@ -36,6 +36,54 @@
 
     pub mod computed_value {
         pub use super::SpecifiedValue as T;
+
+        impl T {
+            /// Returns whether this "display" value is the display of a flex or
+            /// grid container.
+            ///
+            /// This is used to implement various style fixups.
+            pub fn is_item_container(&self) -> bool {
+                matches!(*self,
+                         T::flex
+                         | T::inline_flex
+                         % if product == "gecko":
+                         | T::grid
+                         | T::inline_grid
+                         % endif
+                )
+            }
+
+            /// Convert this display into an equivalent block display.
+            ///
+            /// Also used for style adjustments.
+            pub fn equivalent_block_display(&self, _is_root_element: bool) -> Self {
+                match *self {
+                    // Values that have a corresponding block-outside version.
+                    T::inline_table => T::table,
+                    T::inline_flex => T::flex,
+
+                    % if product == "gecko":
+                    T::inline_grid => T::grid,
+                    T::_webkit_inline_box => T::_webkit_box,
+                    % endif
+
+                    // Special handling for contents and list-item on the root
+                    // element for Gecko.
+                    % if product == "gecko":
+                    T::contents | T::list_item if _is_root_element => T::block,
+                    % endif
+
+                    // These are not changed by blockification.
+                    T::none | T::block | T::flex | T::list_item | T::table => *self,
+                    % if product == "gecko":
+                    T::contents | T::flow_root | T::grid | T::_webkit_box => *self,
+                    % endif
+
+                    // Everything else becomes block.
+                    _ => T::block,
+                }
+            }
+        }
     }
 
     #[allow(non_camel_case_types)]
