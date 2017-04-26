@@ -98,10 +98,12 @@ macro_rules! try_parse_one {
             loop {
                 parsed += 1;
 
-                try_parse_one!(input, property, transition_property);
                 try_parse_one!(context, input, duration, transition_duration);
                 try_parse_one!(context, input, timing_function, transition_timing_function);
                 try_parse_one!(context, input, delay, transition_delay);
+                // Must check 'transition-property' after 'transition-timing-function' since
+                // 'transition-property' accepts any keyword.
+                try_parse_one!(input, property, transition_property);
 
                 parsed -= 1;
                 break

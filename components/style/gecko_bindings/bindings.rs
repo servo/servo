@@ -39,6 +39,7 @@ use gecko_bindings::structs::SheetParsingMode;
 use gecko_bindings::structs::StyleBasicShape;
 use gecko_bindings::structs::StyleBasicShapeType;
 use gecko_bindings::structs::StyleShapeSource;
+use gecko_bindings::structs::StyleTransition;
 use gecko_bindings::structs::nsCSSFontFaceRule;
 use gecko_bindings::structs::nsCSSKeyword;
 use gecko_bindings::structs::nsCSSPropertyID;
@@ -691,6 +692,11 @@ extern "C" {
                                            *mut ::std::os::raw::c_void,
                                        aProperty: nsCSSPropertyID)
      -> RawServoAnimationValueBorrowedOrNull;
+}
+extern "C" {
+    pub fn Gecko_StyleTransition_SetUnsupportedProperty(aTransition:
+                                                            *mut StyleTransition,
+                                                        aAtom: *mut nsIAtom);
 }
 extern "C" {
     pub fn Gecko_Atomize(aString: *const ::std::os::raw::c_char, aLength: u32)
