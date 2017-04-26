@@ -21,13 +21,12 @@ use msg::constellation_msg::{FrameId, FrameType, PipelineId, TraversalDirection}
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use net_traits::CoreResourceMsg;
 use net_traits::storage_thread::StorageType;
-use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
 use style_traits::CSSPixel;
 use style_traits::cursor::Cursor;
 use style_traits::viewport::ViewportConstraints;
-use webrender_traits::ClipId;
+use webrender_traits::{ClipId, RenderApiSender};
 
 /// Messages from the layout to the constellation.
 #[derive(Deserialize, Serialize)]
@@ -75,11 +74,8 @@ pub enum ScriptMsg {
     /// Requests that a new 2D canvas thread be created. (This is done in the constellation because
     /// 2D canvases may use the GPU and we don't want to give untrusted content access to the GPU.)
     CreateCanvasPaintThread(Size2D<i32>, IpcSender<IpcSender<CanvasMsg>>),
-    /// Requests that a new WebGL thread be created. (This is done in the constellation because
-    /// WebGL uses the GPU and we don't want to give untrusted content access to the GPU.)
-    CreateWebGLPaintThread(Size2D<i32>,
-                           GLContextAttributes,
-                           IpcSender<Result<(IpcSender<CanvasMsg>, GLLimits), String>>),
+    /// Requests a WebRender RenderApi instance that will be used for a WebGLContext.
+    RequestWebGLApiSender(IpcSender<Result<RenderApiSender, String>>),
     /// Notifies the constellation that this frame has received focus.
     Focus(PipelineId),
     /// Forward an event that was sent to the parent window.

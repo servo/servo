@@ -13,9 +13,9 @@ use dom::webgl_validations::types::{TexImageTarget, TexFormat, TexDataType};
 use dom::webglobject::WebGLObject;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use ipc_channel::ipc::IpcSender;
 use std::cell::Cell;
 use std::cmp;
+use std::sync::mpsc::Sender;
 use webrender_traits;
 use webrender_traits::{WebGLCommand, WebGLError, WebGLResult, WebGLTextureId};
 
@@ -43,11 +43,11 @@ pub struct WebGLTexture {
     face_count: Cell<u8>,
     base_mipmap_level: u32,
     #[ignore_heap_size_of = "Defined in ipc-channel"]
-    renderer: IpcSender<CanvasMsg>,
+    renderer: Sender<CanvasMsg>,
 }
 
 impl WebGLTexture {
-    fn new_inherited(renderer: IpcSender<CanvasMsg>,
+    fn new_inherited(renderer: Sender<CanvasMsg>,
                      id: WebGLTextureId)
                      -> WebGLTexture {
         WebGLTexture {
@@ -62,7 +62,7 @@ impl WebGLTexture {
         }
     }
 
-    pub fn maybe_new(window: &Window, renderer: IpcSender<CanvasMsg>)
+    pub fn maybe_new(window: &Window, renderer: Sender<CanvasMsg>)
                      -> Option<Root<WebGLTexture>> {
         let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
         renderer.send(CanvasMsg::WebGL(WebGLCommand::CreateTexture(sender))).unwrap();
@@ -72,7 +72,7 @@ impl WebGLTexture {
     }
 
     pub fn new(window: &Window,
-               renderer: IpcSender<CanvasMsg>,
+               renderer: Sender<CanvasMsg>,
                id: WebGLTextureId)
                -> Root<WebGLTexture> {
         reflect_dom_object(box WebGLTexture::new_inherited(renderer, id),

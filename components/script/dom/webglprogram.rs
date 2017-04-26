@@ -15,8 +15,8 @@ use dom::webglrenderingcontext::MAX_UNIFORM_AND_ATTRIBUTE_LEN;
 use dom::webglshader::WebGLShader;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use ipc_channel::ipc::IpcSender;
 use std::cell::Cell;
+use std::sync::mpsc::Sender;
 use webrender_traits;
 use webrender_traits::{WebGLCommand, WebGLError, WebGLParameter};
 use webrender_traits::{WebGLProgramId, WebGLResult};
@@ -31,11 +31,11 @@ pub struct WebGLProgram {
     fragment_shader: MutNullableJS<WebGLShader>,
     vertex_shader: MutNullableJS<WebGLShader>,
     #[ignore_heap_size_of = "Defined in ipc-channel"]
-    renderer: IpcSender<CanvasMsg>,
+    renderer: Sender<CanvasMsg>,
 }
 
 impl WebGLProgram {
-    fn new_inherited(renderer: IpcSender<CanvasMsg>,
+    fn new_inherited(renderer: Sender<CanvasMsg>,
                      id: WebGLProgramId)
                      -> WebGLProgram {
         WebGLProgram {
@@ -50,7 +50,7 @@ impl WebGLProgram {
         }
     }
 
-    pub fn maybe_new(window: &Window, renderer: IpcSender<CanvasMsg>)
+    pub fn maybe_new(window: &Window, renderer: Sender<CanvasMsg>)
                      -> Option<Root<WebGLProgram>> {
         let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
         renderer.send(CanvasMsg::WebGL(WebGLCommand::CreateProgram(sender))).unwrap();
@@ -60,7 +60,7 @@ impl WebGLProgram {
     }
 
     pub fn new(window: &Window,
-               renderer: IpcSender<CanvasMsg>,
+               renderer: Sender<CanvasMsg>,
                id: WebGLProgramId)
                -> Root<WebGLProgram> {
         reflect_dom_object(box WebGLProgram::new_inherited(renderer, id),

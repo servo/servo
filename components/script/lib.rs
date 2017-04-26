@@ -32,6 +32,7 @@ extern crate base64;
 extern crate bitflags;
 extern crate bluetooth_traits;
 extern crate byteorder;
+extern crate canvas;
 extern crate canvas_traits;
 extern crate caseless;
 extern crate cookie as cookie_rs;

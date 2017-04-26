@@ -119,8 +119,13 @@ pub enum LayoutElementType {
     SVGSVGElement,
 }
 
+pub enum HTMLCanvasDataSource {
+    WebGL(webrender_traits::WebGLContextId),
+    Image(Option<IpcSender<CanvasMsg>>)
+}
+
 pub struct HTMLCanvasData {
-    pub ipc_renderer: Option<IpcSender<CanvasMsg>>,
+    pub source: HTMLCanvasDataSource,
     pub width: u32,
     pub height: u32,
 }
