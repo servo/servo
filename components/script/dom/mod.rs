@@ -378,6 +378,7 @@ pub mod mediaerror;
 pub mod medialist;
 pub mod mediaquerylist;
 pub mod mediaquerylistevent;
+pub mod messagechannel;
 pub mod messageevent;
 pub mod messageport;
 pub mod mimetype;
