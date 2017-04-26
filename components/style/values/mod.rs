@@ -14,6 +14,7 @@ use parser::{Parse, ParserContext};
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
 use std::fmt::{self, Debug};
+use std::hash;
 use style_traits::ToCss;
 
 macro_rules! define_numbered_css_keyword_enum {
@@ -241,7 +242,7 @@ impl ToCss for CustomIdent {
 }
 
 /// https://drafts.csswg.org/css-animations/#typedef-keyframes-name
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum KeyframesName {
     /// <custom-ident>
@@ -265,6 +266,20 @@ impl KeyframesName {
             KeyframesName::Ident(ref ident) => &ident.0,
             KeyframesName::QuotedString(ref atom) => atom,
         }
+    }
+}
+
+impl Eq for KeyframesName {}
+
+impl PartialEq for KeyframesName {
+    fn eq(&self, other: &Self) -> bool {
+        self.as_atom() == other.as_atom()
+    }
+}
+
+impl hash::Hash for KeyframesName {
+    fn hash<H>(&self, state: &mut H) where H: hash::Hasher {
+        self.as_atom().hash(state)
     }
 }
 
