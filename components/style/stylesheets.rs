@@ -1131,10 +1131,10 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
                     return Err(())
                 }
                 let name = parse_counter_style_name(input)?;
-                // FIXME: use eq_ignore_ascii_case with atom!()
+                // FIXME: use static atoms and eq_ignore_ascii_case
                 // https://bugzilla.mozilla.org/show_bug.cgi?id=1359323
-                if name.0.eq_str_ignore_ascii_case("decimal") ||
-                    name.0.eq_str_ignore_ascii_case("none") {
+                // "decimal" is already lower-cased by `parse_counter_style_name`.
+                if name.0 == "decimal" || name.0.eq_str_ignore_ascii_case("none") {
                     return Err(())
                 }
                 Ok(AtRuleType::WithBlock(AtRulePrelude::CounterStyle(name)))
