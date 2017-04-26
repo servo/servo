@@ -42,7 +42,11 @@ macro_rules! with_all_bounds {
 
         /// This trait allows to define the parser implementation in regards
         /// of pseudo-classes/elements
-        pub trait SelectorImpl: Sized {
+        ///
+        /// NB: We need Clone so that we can derive(Clone) on struct with that
+        /// are parameterized on SelectorImpl. See
+        /// https://github.com/rust-lang/rust/issues/26925
+        pub trait SelectorImpl: Clone + Sized {
             type AttrValue: $($InSelector)*;
             type Identifier: $($InSelector)* + PrecomputedHash;
             type ClassName: $($InSelector)* + PrecomputedHash;
@@ -321,20 +325,10 @@ impl<Impl: SelectorImpl> ComplexSelector<Impl> {
     }
 }
 
+#[derive(Clone)]
 pub struct SelectorIter<'a, Impl: 'a + SelectorImpl> {
     iter: Rev<slice::Iter<'a, Component<Impl>>>,
     next_combinator: Option<Combinator>,
-}
-
-// NB: Deriving this doesn't work for some reason, because it expects Impl to
-// implement Clone.
-impl<'a, Impl: 'a + SelectorImpl> Clone for SelectorIter<'a, Impl> {
-    fn clone(&self) -> Self {
-        SelectorIter {
-            iter: self.iter.clone(),
-            next_combinator: self.next_combinator.clone(),
-        }
-    }
 }
 
 impl<'a, Impl: 'a + SelectorImpl> SelectorIter<'a, Impl> {
