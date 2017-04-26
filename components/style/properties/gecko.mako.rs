@@ -179,6 +179,12 @@ impl ComputedValues {
         !self.get_box().gecko.mBinding.mPtr.mRawPtr.is_null()
     }
 
+    #[allow(non_snake_case)]
+    pub fn in_top_layer(&self) -> bool {
+        matches!(self.get_box().clone__moz_top_layer(),
+                 longhands::_moz_top_layer::SpecifiedValue::top)
+    }
+
     // FIXME(bholley): Implement this properly.
     #[inline]
     pub fn is_multicol(&self) -> bool { false }
@@ -1814,7 +1820,9 @@ fn static_assert() {
     /// Set the display value from the style adjustment code. This is pretty
     /// much like set_display, but without touching the mOriginalDisplay field,
     /// which we want to keep.
-    pub fn set_adjusted_display(&mut self, v: longhands::display::computed_value::T) {
+    pub fn set_adjusted_display(&mut self,
+                                v: longhands::display::computed_value::T,
+                                _is_item_or_root: bool) {
         use properties::longhands::display::computed_value::T as Keyword;
         let result = match v {
             % for value in display_keyword.values_for('gecko'):

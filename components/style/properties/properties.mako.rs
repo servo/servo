@@ -37,6 +37,7 @@ use stylesheets::{CssRuleType, Origin, UrlExtraData};
 use values::{HasViewportPercentage, computed};
 use cascade_info::CascadeInfo;
 use rule_tree::StrongRuleNode;
+use style_adjuster::StyleAdjuster;
 #[cfg(feature = "servo")] use values::specified::BorderStyle;
 
 pub use self::declaration_block::*;
@@ -1568,6 +1569,18 @@ pub mod style_structs {
                 pub fn has_line_through(&self) -> bool {
                     self.text_decoration_line.contains(longhands::text_decoration_line::LINE_THROUGH)
                 }
+            % elif style_struct.name == "Box":
+                /// Sets the display property, but without touching
+                /// __servo_display_for_hypothetical_box, except when the
+                /// adjustment comes from root or item display fixups.
+                pub fn set_adjusted_display(&mut self,
+                                            dpy: longhands::display::computed_value::T,
+                                            is_item_or_root: bool) {
+                    self.set_display(dpy);
+                    if is_item_or_root {
+                        self.set__servo_display_for_hypothetical_box(dpy);
+                    }
+                }
             % endif
         }
 
@@ -1724,6 +1737,11 @@ impl ComputedValues {
     /// Whether this style has a -moz-binding value. This is always false for
     /// Servo for obvious reasons.
     pub fn has_moz_binding(&self) -> bool { false }
+
+    /// Whether this style has a top-layer style. That's implemented in Gecko
+    /// via the -moz-top-layer property, but servo doesn't have any concept of a
+    /// top layer (yet, it's needed for fullscreen).
+    pub fn in_top_layer(&self) -> bool { false }
 
     /// Returns whether this style's display value is equal to contents.
     ///
@@ -1940,6 +1958,21 @@ impl ComputedValues {
                     .unwrap_or(String::new())
             }
         }
+    }
+}
+
+impl ComputedValues {
+    /// Returns whether this computed style represents a floated object.
+    pub fn floated(&self) -> bool {
+        self.get_box().clone_float() != longhands::float::computed_value::T::none
+    }
+
+    /// Returns whether this computed style represents an out of flow-positioned
+    /// object.
+    pub fn out_of_flow_positioned(&self) -> bool {
+        use properties::longhands::position::computed_value::T as position;
+        matches!(self.get_box().clone_position(),
+                 position::absolute | position::fixed)
     }
 }
 
@@ -2339,207 +2372,9 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
 
     let mut style = context.style;
 
-    let mut positioned = matches!(style.get_box().clone_position(),
-        longhands::position::SpecifiedValue::absolute |
-        longhands::position::SpecifiedValue::fixed);
-
-    // https://fullscreen.spec.whatwg.org/#new-stacking-layer
-    // Any position value other than 'absolute' and 'fixed' are
-    // computed to 'absolute' if the element is in a top layer.
-    % if product == "gecko":
-        if !positioned &&
-            matches!(style.get_box().clone__moz_top_layer(),
-                     longhands::_moz_top_layer::SpecifiedValue::top) {
-            positioned = true;
-            style.mutate_box().set_position(longhands::position::computed_value::T::absolute);
-        }
-    % endif
-
-    let positioned = positioned; // To ensure it's not mutated further.
-
-    let floated = style.get_box().clone_float() != longhands::float::computed_value::T::none;
-    let is_item = matches!(context.layout_parent_style.get_box().clone_display(),
-        % if product == "gecko":
-        computed_values::display::T::grid |
-        computed_values::display::T::inline_grid |
-        % endif
-        computed_values::display::T::flex |
-        computed_values::display::T::inline_flex);
-
-    let (blockify_root, blockify_item) =
-        if flags.contains(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP) {
-            (false, false)
-        } else {
-            (is_root_element, is_item)
-        };
-
-    if positioned || floated || blockify_root || blockify_item {
-        use computed_values::display::T;
-
-        let specified_display = style.get_box().clone_display();
-        let computed_display = match specified_display {
-            // Values that have a corresponding block-outside version.
-            T::inline_table => Some(T::table),
-            % if product == "gecko":
-            T::inline_flex => Some(T::flex),
-            T::inline_grid => Some(T::grid),
-            T::_webkit_inline_box => Some(T::_webkit_box),
-            % endif
-
-            // Special handling for contents and list-item on the root element for Gecko.
-            % if product == "gecko":
-            T::contents | T::list_item if blockify_root => Some(T::block),
-            % endif
-
-            // Values that are not changed by blockification.
-            T::none | T::block | T::flex | T::list_item | T::table => None,
-            % if product == "gecko":
-            T::contents | T::flow_root | T::grid | T::_webkit_box => None,
-            % endif
-
-            // Everything becomes block.
-            _ => Some(T::block),
-        };
-        if let Some(computed_display) = computed_display {
-            let box_ = style.mutate_box();
-            % if product == "servo":
-                box_.set_display(computed_display);
-                box_.set__servo_display_for_hypothetical_box(if blockify_root || blockify_item {
-                    computed_display
-                } else {
-                    specified_display
-                });
-            % else:
-                box_.set_adjusted_display(computed_display);
-            % endif
-        }
-    }
-
-    {
-        use computed_values::display::T as display;
-        // CSS writing modes spec (https://drafts.csswg.org/css-writing-modes-3/#block-flow):
-        //
-        //  If a box has a different writing-mode value than its containing block:
-        //  - If the box has a specified display of inline, its display computes to inline-block. [CSS21]
-        //
-        // www-style mail regarding above spec: https://lists.w3.org/Archives/Public/www-style/2017Mar/0045.html
-        // See https://github.com/servo/servo/issues/15754
-        let our_writing_mode = style.get_inheritedbox().clone_writing_mode();
-        let parent_writing_mode = context.layout_parent_style.get_inheritedbox().clone_writing_mode();
-        if our_writing_mode != parent_writing_mode &&
-           style.get_box().clone_display() == display::inline {
-            style.mutate_box().set_display(display::inline_block);
-        }
-    }
-
-    {
-        use computed_values::overflow_x::T as overflow;
-
-        let original_overflow_x = style.get_box().clone_overflow_x();
-        let original_overflow_y = style.get_box().clone_overflow_y();
-        let mut overflow_x = original_overflow_x;
-        let mut overflow_y = original_overflow_y;
-
-        // CSS3 overflow-x and overflow-y require some fixup as well in some
-        // cases. overflow: clip and overflow: visible are meaningful only when
-        // used in both dimensions.
-        if overflow_x != overflow_y {
-            // If 'visible' is specified but doesn't match the other dimension,
-            // it turns into 'auto'.
-            if overflow_x == overflow::visible {
-                overflow_x = overflow::auto;
-            }
-            if overflow_y == overflow::visible {
-                overflow_y = overflow::auto;
-            }
-
-            % if product == "gecko":
-                // overflow: clip is deprecated, so convert to hidden if it's
-                // specified in only one dimension.
-                if overflow_x == overflow::_moz_hidden_unscrollable {
-                    overflow_x = overflow::hidden;
-                }
-                if overflow_y == overflow::_moz_hidden_unscrollable {
-                    overflow_y = overflow::hidden;
-                }
-            % endif
-        }
-
-        % if product == "gecko":
-            use properties::longhands::contain;
-            // When 'contain: paint', update overflow from 'visible' to 'clip'.
-            if style.get_box().clone_contain().contains(contain::PAINT) {
-                if overflow_x == overflow::visible {
-                    overflow_x = overflow::_moz_hidden_unscrollable;
-                }
-                if overflow_y == overflow::visible {
-                    overflow_y = overflow::_moz_hidden_unscrollable;
-                }
-            }
-        % endif
-
-        if overflow_x != original_overflow_x ||
-           overflow_y != original_overflow_y {
-            let mut box_style = style.mutate_box();
-            box_style.set_overflow_x(overflow_x);
-            box_style.set_overflow_y(overflow_y);
-        }
-    }
-
-    % if product == "gecko":
-        {
-            use computed_values::display::T as display;
-            use properties::longhands::contain;
-            // An element with contain:paint or contain:layout needs to "be a
-            // formatting context"
-            let contain = style.get_box().clone_contain();
-            if contain.contains(contain::PAINT) &&
-               style.get_box().clone_display() == display::inline {
-                style.mutate_box().set_adjusted_display(display::inline_block);
-            }
-        }
-    % endif
-
-    // CSS 2.1 section 9.7:
-    //
-    //    If 'position' has the value 'absolute' or 'fixed', [...] the computed
-    //    value of 'float' is 'none'.
-    //
-    if positioned && floated {
-        style.mutate_box().set_float(longhands::float::computed_value::T::none);
-    }
-
-    // This implements an out-of-date spec. The new spec moves the handling of
-    // this to layout, which Gecko implements but Servo doesn't.
-    //
-    // See https://github.com/servo/servo/issues/15229
-    % if product == "servo" and "align-items" in data.longhands_by_name:
-    {
-        use computed_values::align_self::T as align_self;
-        use computed_values::align_items::T as align_items;
-        if style.get_position().clone_align_self() == computed_values::align_self::T::auto && !positioned {
-            let self_align =
-                match context.layout_parent_style.get_position().clone_align_items() {
-                    align_items::stretch => align_self::stretch,
-                    align_items::baseline => align_self::baseline,
-                    align_items::flex_start => align_self::flex_start,
-                    align_items::flex_end => align_self::flex_end,
-                    align_items::center => align_self::center,
-                };
-            style.mutate_position().set_align_self(self_align);
-        }
-    }
-    % endif
-
-    // The initial value of border-*-width may be changed at computed value time.
-    % for side in ["top", "right", "bottom", "left"]:
-        // Like calling to_computed_value, which wouldn't type check.
-        if style.get_border().clone_border_${side}_style().none_or_hidden() &&
-           style.get_border().border_${side}_has_nonzero_width() {
-            style.mutate_border().set_border_${side}_width(Au(0));
-        }
-    % endfor
-
+    StyleAdjuster::new(&mut style, is_root_element)
+        .adjust(context.layout_parent_style,
+                flags.contains(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP));
 
     % if product == "gecko":
         // FIXME(emilio): This is effectively creating a new nsStyleBackground
@@ -2548,12 +2383,6 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
         style.mutate_background().fill_arrays();
         style.mutate_svg().fill_arrays();
     % endif
-
-    // The initial value of outline width may be changed at computed value time.
-    if style.get_outline().clone_outline_style().none_or_hidden() &&
-       style.get_outline().outline_has_nonzero_width() {
-        style.mutate_outline().set_outline_width(Au(0));
-    }
 
     if is_root_element {
         let s = style.get_font().clone_font_size();
@@ -2570,6 +2399,18 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
     % endif
 
     style
+}
+
+
+/// See StyleAdjuster::adjust_for_border_width.
+pub fn adjust_border_width(style: &mut ComputedValues) {
+    % for side in ["top", "right", "bottom", "left"]:
+        // Like calling to_computed_value, which wouldn't type check.
+        if style.get_border().clone_border_${side}_style().none_or_hidden() &&
+           style.get_border().border_${side}_has_nonzero_width() {
+            style.mutate_border().set_border_${side}_width(Au(0));
+        }
+    % endfor
 }
 
 /// Adjusts borders as appropriate to account for a fragment's status as the
