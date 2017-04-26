@@ -1265,3 +1265,11 @@ ${helpers.single_keyword("text-rendering",
                          "auto optimizespeed optimizelegibility geometricprecision",
                          animation_value_type="none",
                          spec="https://www.w3.org/TR/SVG11/painting.html#TextRenderingProperty")}
+
+${helpers.single_keyword("-moz-control-character-visibility",
+                         "hidden visible",
+                         gecko_constant_prefix="NS_STYLE_CONTROL_CHARACTER_VISIBILITY",
+                         gecko_ffi_name="mControlCharacterVisibility",
+                         animation_value_type="none",
+                         products="gecko",
+                         spec="Nonstandard")}
