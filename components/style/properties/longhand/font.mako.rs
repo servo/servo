@@ -768,6 +768,10 @@ ${helpers.single_keyword_system("font-variant-caps",
                         return Some(em)
                     }
                 }
+            } else if let SpecifiedValue::Larger = *self {
+                return Some(1.2)
+            } else if let SpecifiedValue::Smaller = *self {
+                return Some(1./1.2)
             }
             None
         }
