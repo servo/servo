@@ -115,7 +115,7 @@ pub struct Stylist {
     /// on state that is not otherwise visible to the cache, like attributes or
     /// tree-structural state like child index and pseudos).
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
-    selectors_for_cache_revalidation: Vec<Selector<SelectorImpl>>,
+    selectors_for_cache_revalidation: Vec<SelectorInner<SelectorImpl>>,
 
     /// The total number of selectors.
     num_selectors: usize,
@@ -336,7 +336,7 @@ impl Stylist {
                         self.dependencies.note_selector(selector);
 
                         if needs_revalidation(selector) {
-                            self.selectors_for_cache_revalidation.push(selector.clone());
+                            self.selectors_for_cache_revalidation.push(selector.inner.slice_to_first_ancestor_combinator());
                         }
                     }
                 }
@@ -837,7 +837,7 @@ impl Stylist {
 
         for (i, ref selector) in self.selectors_for_cache_revalidation
                                      .iter().enumerate() {
-            results.set(i, matches_selector(&selector.inner,
+            results.set(i, matches_selector(selector,
                                             element,
                                             Some(bloom),
                                             &mut StyleRelations::empty(),

@@ -169,6 +169,27 @@ impl<Impl: SelectorImpl> SelectorInner<Impl> {
         }
     }
 
+    /// Creates a clone of this selector with everything to the left of
+    /// (and including) the rightmost ancestor combinator removed. So
+    /// the selector |span foo > bar + baz| will become |bar + baz|.
+    /// This is used for revalidation selectors in servo.
+    ///
+    /// The bloom filter hashes are copied, even though they correspond to
+    /// parts of the selector that have been stripped out, because they are
+    /// still useful for fast-rejecting the reduced selectors.
+    pub fn slice_to_first_ancestor_combinator(&self) -> Self {
+        let maybe_pos = self.complex.iter_raw()
+                            .position(|s| s.as_combinator()
+                                           .map_or(false, |c| c.is_ancestor()));
+        match maybe_pos {
+            None => self.clone(),
+            Some(index) => SelectorInner {
+                complex: self.complex.slice_to(index),
+                ancestor_hashes: self.ancestor_hashes.clone(),
+            },
+        }
+    }
+
     /// Creates a SelectorInner from a Vec of Components. Used in tests.
     pub fn from_vec(vec: Vec<Component<Impl>>) -> Self {
         let complex = ComplexSelector::from_vec(vec);
@@ -317,6 +338,14 @@ impl<Impl: SelectorImpl> ComplexSelector<Impl> {
         // Note that we convert the slice_from to slice_to because selectors are
         // stored left-to-right but logical order is right-to-left.
         ComplexSelector(self.0.clone().slice_to(self.0.len() - index))
+    }
+
+    /// Returns a ComplexSelector identical to |self| but with the leftmost
+    /// |len() - index| entries removed.
+    pub fn slice_to(&self, index: usize) -> Self {
+        // Note that we convert the slice_to to slice_from because selectors are
+        // stored left-to-right but logical order is right-to-left.
+        ComplexSelector(self.0.clone().slice_from(self.0.len() - index))
     }
 
     /// Creates a ComplexSelector from a vec of Components. Used in tests.
@@ -498,6 +527,14 @@ impl<Impl: SelectorImpl> Component<Impl> {
     /// Returns true if this is a combinator.
     pub fn is_combinator(&self) -> bool {
         matches!(*self, Component::Combinator(_))
+    }
+
+    /// Returns the value as a combinator if applicable, None otherwise.
+    pub fn as_combinator(&self) -> Option<Combinator> {
+        match *self {
+            Component::Combinator(c) => Some(c),
+            _ => None,
+        }
     }
 }
 
