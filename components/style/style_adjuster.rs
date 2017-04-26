@@ -53,6 +53,8 @@ impl<'a> StyleAdjuster<'a> {
         }
     }
 
+    /// Apply the blockification rules based on the table in CSS 2.2 section 9.7.
+    /// https://drafts.csswg.org/css2/visuren.html#dis-pos-flo
     fn blockify_if_necessary(&mut self,
                              layout_parent_style: &ComputedValues,
                              skip_root_and_element_display_fixup: bool) {
@@ -247,6 +249,7 @@ impl<'a> StyleAdjuster<'a> {
     }
 
     /// Adjusts the style to account for various fixups that don't fit naturally into the cascade.
+    /// When comparing to Gecko, this is similar to the work done by `nsStyleContext::ApplyStyleFixups`.
     pub fn adjust(mut self,
                   layout_parent_style: &ComputedValues,
                   skip_root_and_element_display_fixup: bool) {
