@@ -402,6 +402,7 @@ pub mod mediaquerylist;
 pub mod mediaquerylistevent;
 pub mod mediastream;
 pub mod mediastreamtrack;
+pub mod messagechannel;
 pub mod messageevent;
 pub mod messageport;
 pub mod mimetype;
