@@ -5,16 +5,19 @@
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::MessagePortBinding::{MessagePortMethods, Wrap};
-use dom::bindings::error::{ErrorResult, Fallible};
+use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
+use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::transferable::Transferable;
 use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
+use dom::messageevent::MessageEvent;
 use dom_struct::dom_struct;
 use js::jsapi::{HandleValue, JSContext};
+use js::jsval::UndefinedValue;
 use script_thread::{Runnable, ScriptThread};
 use std::cell::Cell;
 use std::mem;
@@ -122,6 +125,57 @@ impl MessagePortMethods for MessagePort {
                           message: HandleValue,
                           transfer: Option<Vec<HandleValue>>)
                           -> ErrorResult {
+        // Step 1
+        let target_port = self.entangled_port.get();
+
+        // Step 2
+        let mut doomed = false;
+
+        if let Some(ref handles) = transfer {
+            for handle in handles {
+                let object = handle.to_object();
+
+                // Step 3
+                if object == self.reflector().rootable().get() {
+                    return Err(Error::DataClone);
+                }
+
+                // Step 4
+                if let Some(ref other) = target_port {
+                    if object == other.reflector().rootable().get() {
+                        doomed = true;
+                    }
+                }
+            }
+        }
+
+        // TODO: Step 6 Support sending transferList
+
+        // Step 7
+        let message_clone = StructuredCloneData::write(cx, message)?.move_to_arraybuffer();
+
+        // TODO: Step 8
+
+        // Step 9
+        if let (Some(ref other), false) = (target_port, doomed) {
+            // Step 5
+            let target_global = other.global();
+
+            // Steps 10-11 performed in runnable
+            let trusted = Trusted::new(&**other);
+            let runnable = PortMessageRunnable {
+                data: message_clone,
+                target_port: trusted,
+            };
+
+            // Step 12
+            if other.enabled.get() {
+                let _ = target_global.port_message_queue().queue(box runnable, &target_global);
+            } else {
+                other.pending_port_messages.borrow_mut().push(runnable);
+            }
+        }
+
         Ok(())
     }
 
@@ -174,7 +228,12 @@ impl Runnable for PortMessageRunnable {
     fn handler(self: Box<PortMessageRunnable>) {
         // Step 1
         let target = self.target_port.root();
+        let global = target.global();
+
+        rooted!(in(global.get_cx()) let mut message = UndefinedValue());
+        StructuredCloneData::Vector(self.data).read(&global, message.handle_mut());
 
         // Step 2
+        MessageEvent::dispatch_jsval(target.upcast(), &global, message.handle());
     }
 }
