@@ -6,10 +6,10 @@
 
 #![deny(missing_docs)]
 
-use {Prefix, Namespace};
+use {Atom, Prefix, Namespace};
 use counter_style::{CounterStyleRule, parse_counter_style_name, parse_counter_style_body};
 use cssparser::{AtRuleParser, Parser, QualifiedRuleParser};
-use cssparser::{AtRuleType, RuleListParser, SourcePosition, parse_one_rule};
+use cssparser::{AtRuleType, RuleListParser, parse_one_rule};
 use cssparser::ToCss as ParserToCss;
 use error_reporting::{ParseErrorReporter, NullReporter};
 #[cfg(feature = "servo")]
@@ -1117,10 +1117,10 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
                     return Err(())
                 }
                 let name = parse_counter_style_name(input)?;
-                // FIXME: use static atoms and eq_ignore_ascii_case
-                // https://bugzilla.mozilla.org/show_bug.cgi?id=1359323
-                // "decimal" is already lower-cased by `parse_counter_style_name`.
-                if name.0 == "decimal" || name.0.eq_str_ignore_ascii_case("none") {
+                // ASCII-case-insensitive matches for "decimal" are already lower-cased
+                // by `parse_counter_style_name`, so we can use == here.
+                // FIXME: https://bugzilla.mozilla.org/show_bug.cgi?id=1359323 use atom!("decimal")
+                if name.0 == Atom::from("decimal") {
                     return Err(())
                 }
                 Ok(AtRuleType::WithBlock(AtRulePrelude::CounterStyle(name)))

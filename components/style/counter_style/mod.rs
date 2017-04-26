@@ -38,7 +38,8 @@ pub fn parse_counter_style_name(input: &mut Parser) -> Result<CustomIdent, ()> {
                 if let Some(&lower_cased) = predefined(&ident) {
                     Ok(CustomIdent(Atom::from(lower_cased)))
                 } else {
-                    CustomIdent::from_ident(ident, &[])
+                    // https://github.com/w3c/csswg-drafts/issues/1295 excludes "none"
+                    CustomIdent::from_ident(ident, &["none"])
                 }
             }
         }
