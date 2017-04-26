@@ -260,21 +260,18 @@ impl<'a> StyleAdjuster<'a> {
         self.adjust_for_top_layer();
         self.blockify_if_necessary(layout_parent_style,
                                    skip_root_and_element_display_fixup);
-        self.adjust_for_writing_mode(layout_parent_style);
         self.adjust_for_position();
-
         self.adjust_for_overflow();
         #[cfg(feature = "gecko")]
         {
             self.adjust_for_contain();
         }
-
         #[cfg(feature = "servo")]
         {
             self.adjust_for_alignment(layout_parent_style);
         }
-
         self.adjust_for_border_width();
         self.adjust_for_outline();
+        self.adjust_for_writing_mode(layout_parent_style);
     }
 }
