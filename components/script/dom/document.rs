@@ -492,6 +492,7 @@ impl Document {
         // FIXME: This should check the dirty bit on the document,
         // not the document element. Needs some layout changes to make
         // that workable.
+        self.stylesheets_changed_since_reflow.get() ||
         match self.GetDocumentElement() {
             Some(root) => {
                 root.upcast::<Node>().has_dirty_descendants() ||
