@@ -240,21 +240,22 @@
     use std::fmt;
     use style_traits::ToCss;
     use super::content;
-    use values::HasViewportPercentage;
+    use values::{HasViewportPercentage, CustomIdent};
 
     use cssparser::{Token, serialize_identifier};
     use std::borrow::{Cow, ToOwned};
 
     #[derive(Debug, Clone, PartialEq)]
-    pub struct SpecifiedValue(pub Vec<(String, specified::Integer)>);
+    pub struct SpecifiedValue(pub Vec<(CustomIdent, specified::Integer)>);
 
     pub mod computed_value {
         use std::fmt;
         use style_traits::ToCss;
+        use values::CustomIdent;
 
         #[derive(Debug, Clone, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct T(pub Vec<(String, i32)>);
+        pub struct T(pub Vec<(CustomIdent, i32)>);
 
         impl ToCss for T {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result
@@ -266,14 +267,14 @@
                 }
 
                 let mut first = true;
-                for pair in &self.0 {
+                for &(ref name, value) in &self.0 {
                     if !first {
-                        try!(dest.write_str(" "));
+                        dest.write_str(" ")?;
                     }
                     first = false;
-                    try!(serialize_identifier(&pair.0, dest));
-                    try!(dest.write_str(" "));
-                    try!(pair.1.to_css(dest));
+                    name.to_css(dest)?;
+                    dest.write_str(" ")?;
+                    value.to_css(dest)?;
                 }
                 Ok(())
             }
@@ -284,14 +285,14 @@
         type ComputedValue = computed_value::T;
 
         fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-            computed_value::T(self.0.iter().map(|entry| {
-                (entry.0.clone(), entry.1.to_computed_value(context))
+            computed_value::T(self.0.iter().map(|&(ref name, ref value)| {
+                (name.clone(), value.to_computed_value(context))
             }).collect::<Vec<_>>())
         }
 
         fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-            SpecifiedValue(computed.0.iter().map(|entry| {
-                (entry.0.clone(), specified::Integer::from_computed_value(&entry.1))
+            SpecifiedValue(computed.0.iter().map(|&(ref name, ref value)| {
+                (name.clone(), specified::Integer::from_computed_value(&value))
             }).collect::<Vec<_>>())
         }
     }
@@ -311,14 +312,14 @@
                 return dest.write_str("none");
             }
             let mut first = true;
-            for pair in &self.0 {
+            for &(ref name, ref value) in &self.0 {
                 if !first {
-                    try!(dest.write_str(" "));
+                    dest.write_str(" ")?;
                 }
                 first = false;
-                try!(serialize_identifier(&pair.0, dest));
-                try!(dest.write_str(" "));
-                try!(pair.1.to_css(dest));
+                name.to_css(dest)?;
+                dest.write_str(" ")?;
+                value.to_css(dest)?;
             }
 
             Ok(())
@@ -339,13 +340,7 @@
         let mut counters = Vec::new();
         loop {
             let counter_name = match input.next() {
-                Ok(Token::Ident(ident)) => {
-                    if CSSWideKeyword::from_ident(&ident).is_some() || ident.eq_ignore_ascii_case("none") {
-                        // Don't accept CSS-wide keywords or none as the counter name.
-                        return Err(());
-                    }
-                    (*ident).to_owned()
-                }
+                Ok(Token::Ident(ident)) => CustomIdent::from_ident(ident, &["none"])?,
                 Ok(_) => return Err(()),
                 Err(_) => break,
             };

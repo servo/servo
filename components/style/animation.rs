@@ -464,13 +464,19 @@ pub fn maybe_start_animations(context: &SharedStyleContext,
 
     let box_style = new_style.get_box();
     for (i, name) in box_style.animation_name_iter().enumerate() {
+        let name = if let Some(atom) = name.as_atom() {
+            atom
+        } else {
+            continue
+        };
+
         debug!("maybe_start_animations: name={}", name);
         let total_duration = box_style.animation_duration_mod(i).seconds();
         if total_duration == 0. {
             continue
         }
 
-        if let Some(ref anim) = context.stylist.animations().get(&name.0) {
+        if let Some(ref anim) = context.stylist.animations().get(name) {
             debug!("maybe_start_animations: animation {} found", name);
 
             // If this animation doesn't have any keyframe, we can just continue
@@ -506,7 +512,7 @@ pub fn maybe_start_animations(context: &SharedStyleContext,
 
 
             new_animations_sender
-                .send(Animation::Keyframes(node, name.0.clone(), KeyframesAnimationState {
+                .send(Animation::Keyframes(node, name.clone(), KeyframesAnimationState {
                     started_at: animation_start,
                     duration: duration as f64,
                     delay: delay as f64,
@@ -584,9 +590,10 @@ pub fn update_style_for_animation(context: &SharedStyleContext,
 
             debug_assert!(!animation.steps.is_empty());
 
-            let maybe_index = style.get_box()
-                                   .animation_name_iter()
-                                   .position(|animation_name| *name == animation_name.0);
+            let maybe_index = style
+                .get_box()
+                .animation_name_iter()
+                .position(|animation_name| Some(name) == animation_name.as_atom());
 
             let index = match maybe_index {
                 Some(index) => index,

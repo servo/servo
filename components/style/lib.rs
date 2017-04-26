@@ -89,6 +89,7 @@ pub mod bloom;
 pub mod cache;
 pub mod cascade_info;
 pub mod context;
+pub mod counter_style;
 pub mod custom_properties;
 pub mod data;
 pub mod dom;

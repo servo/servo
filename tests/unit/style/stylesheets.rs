@@ -23,6 +23,7 @@ use style::properties::longhands::animation_play_state;
 use style::shared_lock::SharedRwLock;
 use style::stylesheets::{Origin, Namespaces};
 use style::stylesheets::{Stylesheet, NamespaceRule, CssRule, CssRules, StyleRule, KeyframesRule};
+use style::values::{KeyframesName, CustomIdent};
 use style::values::specified::{LengthOrPercentageOrAuto, Percentage};
 
 pub fn block_from<I>(iterable: I) -> PropertyDeclarationBlock
@@ -221,7 +222,7 @@ fn test_parse_stylesheet() {
                 ]))),
             }))),
             CssRule::Keyframes(Arc::new(stylesheet.shared_lock.wrap(KeyframesRule {
-                name: "foo".into(),
+                name: KeyframesName::Ident(CustomIdent("foo".into())),
                 keyframes: vec![
                     Arc::new(stylesheet.shared_lock.wrap(Keyframe {
                         selector: KeyframeSelector::new_for_unit_testing(

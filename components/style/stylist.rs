@@ -349,13 +349,13 @@ impl Stylist {
 
                     // Don't let a prefixed keyframes animation override a non-prefixed one.
                     let needs_insertion = keyframes_rule.vendor_prefix.is_none() ||
-                        self.animations.get(&keyframes_rule.name).map_or(true, |rule|
+                        self.animations.get(keyframes_rule.name.as_atom()).map_or(true, |rule|
                             rule.vendor_prefix.is_some());
                     if needs_insertion {
                         let animation = KeyframesAnimation::from_keyframes(
                             &keyframes_rule.keyframes, keyframes_rule.vendor_prefix.clone(), guard);
                         debug!("Found valid keyframe animation: {:?}", animation);
-                        self.animations.insert(keyframes_rule.name.clone(), animation);
+                        self.animations.insert(keyframes_rule.name.as_atom().clone(), animation);
                     }
                 }
                 CssRule::FontFace(ref rule) => {
