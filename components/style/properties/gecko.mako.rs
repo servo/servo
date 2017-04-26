@@ -944,9 +944,7 @@ fn static_assert() {
         }
 
         if let Some(image) = v.0 {
-            // TODO: We need to make border-image-source match with background-image
-            // until then we are setting with_url to false
-            self.gecko.mBorderImageSource.set(image, false, &mut false)
+            self.gecko.mBorderImageSource.set(image, true, &mut false)
         }
     }
 
