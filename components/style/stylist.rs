@@ -1050,9 +1050,6 @@ pub struct SelectorMap {
     pub class_hash: FnvHashMap<Atom, Vec<Rule>>,
     /// A hash from local name to rules which contain that local name selector.
     pub local_name_hash: FnvHashMap<LocalName, Vec<Rule>>,
-    /// Same as local_name_hash, but keys are lower-cased.
-    /// For HTML elements in HTML documents.
-    pub lower_local_name_hash: FnvHashMap<LocalName, Vec<Rule>>,
     /// Rules that don't have ID, class, or element selectors.
     pub other_rules: Vec<Rule>,
     /// Whether this hash is empty.
@@ -1071,7 +1068,6 @@ impl SelectorMap {
             id_hash: HashMap::default(),
             class_hash: HashMap::default(),
             local_name_hash: HashMap::default(),
-            lower_local_name_hash: HashMap::default(),
             other_rules: Vec::new(),
             empty: true,
         }
@@ -1120,14 +1116,9 @@ impl SelectorMap {
                                                       cascade_level);
         });
 
-        let local_name_hash = if element.is_html_element_in_html_document() {
-            &self.lower_local_name_hash
-        } else {
-            &self.local_name_hash
-        };
         SelectorMap::get_matching_rules_from_hash(element,
                                                   parent_bf,
-                                                  local_name_hash,
+                                                  &self.local_name_hash,
                                                   element.get_local_name(),
                                                   matching_rules_list,
                                                   relations,
@@ -1260,8 +1251,22 @@ impl SelectorMap {
         }
 
         if let Some(LocalNameSelector { name, lower_name }) = SelectorMap::get_local_name(&rule) {
-            find_push(&mut self.local_name_hash, name, rule.clone());
-            find_push(&mut self.lower_local_name_hash, lower_name, rule);
+            // If the local name in the selector isn't lowercase, insert it into
+            // the rule hash twice. This means that, during lookup, we can always
+            // find the rules based on the local name of the element, regardless
+            // of whether it's an html element in an html document (in which case
+            // we match against lower_name) or not (in which case we match against
+            // name).
+            //
+            // In the case of a non-html-element-in-html-document with a
+            // lowercase localname and a non-lowercase selector, the rulehash
+            // lookup may produce superfluous selectors, but the subsequent
+            // selector matching work will filter them out.
+            if name != lower_name {
+                find_push(&mut self.local_name_hash, lower_name, rule.clone());
+            }
+            find_push(&mut self.local_name_hash, name, rule);
+
             return;
         }
 
