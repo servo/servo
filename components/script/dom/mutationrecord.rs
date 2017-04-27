@@ -18,6 +18,16 @@ pub struct MutationRecord {
 
     //property for target node
     target: JS<Node>,
+    
+    previous_sibling: MutNullableJS<Node>,
+    
+    next_sibling: MutNullableJS<Node>,
+    
+    attribute_name: MutNullableJS<DOMString>,
+    
+    attribute_namespace: MutNullableJS<DOMString>,
+    
+    old_value: MutNullableJS<DOMString>,
 }
 
 impl MutationRecordMethods for MutationRecord {

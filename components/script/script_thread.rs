@@ -580,7 +580,7 @@ impl ScriptThread {
     pub fn set_mutation_observer_compound_microtask_queued(value: bool) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
-            script_thread.mutation_observer_compound_microtask_queued.borrow_mut() = value;
+            script_thread.mutation_observer_compound_microtask_queued = value;
         })
     }
 

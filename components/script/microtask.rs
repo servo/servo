@@ -12,7 +12,6 @@ use dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
 use dom::bindings::js::Root;
 use dom::globalscope::GlobalScope;
 use msg::constellation_msg::PipelineId;
-use script_thread::ScriptThread;
 use std::cell::Cell;
 use std::mem;
 use std::rc::Rc;
@@ -44,32 +43,7 @@ impl MicrotaskQueue {
     /// microtask checkpoint.
     pub fn enqueue(&self, job: Microtask) {
         self.microtask_queue.borrow_mut().push(job);
-    }
-
-    /// https://dom.spec.whatwg.org/#queue-a-mutation-observer-compound-microtask
-    /// Queue a Mutation Observer compound Microtask.
-    pub fn enqueueMutationObserverCompoundMicrotask(&self, compoundMicrotask: Microtask) {
-        // Step 1
-        if ScriptThread::get_mutation_observer_compound_microtask_queued() {
-            return;
-        }
-        // Step 2
-        ScriptThread::set_mutation_observer_compound_microtask_queued(true);
-        // Step 3
-        self.microtask_queue.borrow_mut().push(compoundMicrotask);
-    }
-
-    /// https://dom.spec.whatwg.org/#notify-mutation-observers
-    /// Notify Mutation Observers.
-    pub fn notifyMutationObservers() {
-        // Step 1
-        ScriptThread::set_mutation_observer_compound_microtask_queued(false);
-        // Step 2
-        let notifyList = ScriptThread::get_mutation_observer();
-        // Step 3, Step 4 not needed as Servo doesn't implement anything related to slots.
-        // Step 5
-        // Step 6 not needed as Servo doesn't implement anything related to slots.
-    }
+    }    
 
     /// https://html.spec.whatwg.org/multipage/#perform-a-microtask-checkpoint
     /// Perform a microtask checkpoint, executing all queued microtasks until the queue is empty.
