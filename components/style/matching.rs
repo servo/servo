@@ -1334,7 +1334,7 @@ pub trait MatchMethods : TElement {
         let relevant_style = pseudo_style.unwrap_or(primary_style);
         let rule_node = &relevant_style.rules;
         let without_animation_rules =
-            shared_context.stylist.rule_tree.remove_animation_and_transition_rules(rule_node);
+            shared_context.stylist.rule_tree.remove_animation_rules(rule_node);
         if without_animation_rules == *rule_node {
             // Note that unwrapping here is fine, because the style is
             // only incomplete during the styling process.

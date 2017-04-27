@@ -255,7 +255,7 @@ impl RuleTree {
     }
 
     /// Returns new rule node without rules from declarative animations.
-    pub fn remove_animation_and_transition_rules(&self, path: &StrongRuleNode) -> StrongRuleNode {
+    pub fn remove_animation_rules(&self, path: &StrongRuleNode) -> StrongRuleNode {
         // Return a clone if there are no animation rules.
         if !path.has_animation_or_transition_rules() {
             return path.clone();
