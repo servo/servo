@@ -1012,6 +1012,8 @@ impl Serialize for BaseFlow {
                                         &self.intrinsic_inline_sizes));
         try!(serializer.serialize_field("position", &self.position));
         try!(serializer.serialize_field("children", &self.children));
+        try!(serializer.serialize_field("stacking_context_id", &self.stacking_context_id));
+        try!(serializer.serialize_field("overflow", &self.overflow));
         serializer.end()
     }
 }
@@ -1282,7 +1284,7 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
 
     /// Dumps the flow tree for debugging.
     fn print(self, title: String) {
-        println!("{}", to_string(base(self)).unwrap());
+        println!("{}", to_string_pretty(base(self)).unwrap());
     }
 
     /// Dumps the flow tree for debugging into the given PrintTree.

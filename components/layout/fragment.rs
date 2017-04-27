@@ -3106,6 +3106,15 @@ impl Overflow {
     }
 }
 
+impl Serialize for Overflow {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let mut state = try!(serializer.serialize_struct("overflow", 2));
+        try!(state.serialize_field("scroll", &self.scroll));
+        try!(state.serialize_field("paint", &self.paint));
+        state.end()
+    }
+}
+
 bitflags! {
     pub flags FragmentFlags: u8 {
         // TODO(stshine): find a better name since these flags can also be used for grid item.
