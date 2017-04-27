@@ -593,12 +593,13 @@ pub extern "C" fn Servo_StyleSheet_ClearAndUpdate(stylesheet: RawServoStyleSheet
 #[no_mangle]
 pub extern "C" fn Servo_StyleSet_AppendStyleSheet(raw_data: RawServoStyleSetBorrowed,
                                                   raw_sheet: RawServoStyleSheetBorrowed,
+                                                  unique_id: u32,
                                                   flush: bool) {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
     let sheet = HasArcFFI::as_arc(&raw_sheet);
-    data.stylesheets.append_stylesheet(sheet);
+    data.stylesheets.append_stylesheet(sheet, unique_id);
     if flush {
         data.flush_stylesheets(&guard);
     }
@@ -607,12 +608,13 @@ pub extern "C" fn Servo_StyleSet_AppendStyleSheet(raw_data: RawServoStyleSetBorr
 #[no_mangle]
 pub extern "C" fn Servo_StyleSet_PrependStyleSheet(raw_data: RawServoStyleSetBorrowed,
                                                    raw_sheet: RawServoStyleSheetBorrowed,
+                                                   unique_id: u32,
                                                    flush: bool) {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
     let sheet = HasArcFFI::as_arc(&raw_sheet);
-    data.stylesheets.prepend_stylesheet(sheet);
+    data.stylesheets.prepend_stylesheet(sheet, unique_id);
     if flush {
         data.flush_stylesheets(&guard);
     }
@@ -621,14 +623,14 @@ pub extern "C" fn Servo_StyleSet_PrependStyleSheet(raw_data: RawServoStyleSetBor
 #[no_mangle]
 pub extern "C" fn Servo_StyleSet_InsertStyleSheetBefore(raw_data: RawServoStyleSetBorrowed,
                                                         raw_sheet: RawServoStyleSheetBorrowed,
-                                                        raw_reference: RawServoStyleSheetBorrowed,
+                                                        unique_id: u32,
+                                                        before_unique_id: u32,
                                                         flush: bool) {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
     let sheet = HasArcFFI::as_arc(&raw_sheet);
-    let reference = HasArcFFI::as_arc(&raw_reference);
-    data.stylesheets.insert_stylesheet_before(sheet, reference);
+    data.stylesheets.insert_stylesheet_before(sheet, unique_id, before_unique_id);
     if flush {
         data.flush_stylesheets(&guard);
     }
@@ -636,13 +638,12 @@ pub extern "C" fn Servo_StyleSet_InsertStyleSheetBefore(raw_data: RawServoStyleS
 
 #[no_mangle]
 pub extern "C" fn Servo_StyleSet_RemoveStyleSheet(raw_data: RawServoStyleSetBorrowed,
-                                                  raw_sheet: RawServoStyleSheetBorrowed,
+                                                  unique_id: u32,
                                                   flush: bool) {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
-    let sheet = HasArcFFI::as_arc(&raw_sheet);
-    data.stylesheets.remove_stylesheet(sheet);
+    data.stylesheets.remove_stylesheet(unique_id);
     if flush {
         data.flush_stylesheets(&guard);
     }
