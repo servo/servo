@@ -313,38 +313,13 @@ impl Stylist {
                 CssRule::Style(ref locked) => {
                     let style_rule = locked.read_with(&guard);
                     self.num_declarations += style_rule.block.read_with(&guard).len();
-
                     for selector in &style_rule.selectors.0 {
                         self.num_selectors += 1;
-                        let map = if let Some(ref pseudo) = selector.pseudo_element {
-                            self.pseudos_map
-                                .entry(pseudo.clone())
-                                .or_insert_with(PerPseudoElementSelectorMap::new)
-                                .borrow_for_origin(&stylesheet.origin)
-                        } else {
-                            self.element_map.borrow_for_origin(&stylesheet.origin)
-                        };
-
-                        map.insert(Rule::new(guard,
-                                             selector.inner.clone(),
-                                             locked.clone(),
-                                             self.rules_source_order,
-                                             selector.specificity));
+                        self.add_rule_to_map(guard, selector, locked, stylesheet);
+                        self.dependencies.note_selector(selector);
+                        self.note_for_revalidation(selector);
                     }
                     self.rules_source_order += 1;
-
-                    for selector in &style_rule.selectors.0 {
-                        self.dependencies.note_selector(selector);
-
-                        if needs_revalidation(selector) {
-                            // For revalidation, we can skip everything left of
-                            // the first ancestor combinator.
-                            let revalidation_sel =
-                                selector.inner.slice_to_first_ancestor_combinator();
-
-                            self.selectors_for_cache_revalidation.push(revalidation_sel);
-                        }
-                    }
                 }
                 CssRule::Import(ref import) => {
                     let import = import.read_with(guard);
@@ -374,6 +349,38 @@ impl Stylist {
         });
     }
 
+    #[inline]
+    fn add_rule_to_map(&mut self,
+                       guard: &SharedRwLockReadGuard,
+                       selector: &Selector<SelectorImpl>,
+                       rule: &Arc<Locked<StyleRule>>,
+                       stylesheet: &Stylesheet)
+    {
+        let map = if let Some(ref pseudo) = selector.pseudo_element {
+            self.pseudos_map
+                .entry(pseudo.clone())
+                .or_insert_with(PerPseudoElementSelectorMap::new)
+                .borrow_for_origin(&stylesheet.origin)
+        } else {
+            self.element_map.borrow_for_origin(&stylesheet.origin)
+        };
+
+        map.insert(Rule::new(guard,
+                             selector.inner.clone(),
+                             rule.clone(),
+                             self.rules_source_order,
+                             selector.specificity));
+    }
+
+    #[inline]
+    fn note_for_revalidation(&mut self, selector: &Selector<SelectorImpl>) {
+        if needs_revalidation(selector) {
+            // For revalidation, we can skip everything left of the first ancestor
+            // combinator.
+            let revalidation_sel = selector.inner.slice_to_first_ancestor_combinator();
+            self.selectors_for_cache_revalidation.push(revalidation_sel);
+        }
+    }
 
     /// Computes the style for a given "precomputed" pseudo-element, taking the
     /// universal rules and applying them.
