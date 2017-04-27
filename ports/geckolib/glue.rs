@@ -178,6 +178,7 @@ fn traverse_subtree(element: GeckoElement, raw_data: RawServoStyleSetBorrowed,
     }
 
     let per_doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow();
+    debug_assert!(!per_doc_data.stylesheets.has_changed());
 
     let token = RecalcStyleOnly::pre_traverse(element, &per_doc_data.stylist, traversal_flags);
     if !token.should_traverse() {
