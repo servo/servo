@@ -318,6 +318,8 @@ class MachCommands(CommandBase):
         removing_anything = False
         for tool in ["rust", "cargo"]:
             base = path.join(self.context.sharedir, tool)
+            if not path.isdir(base):
+                continue
             for name in os.listdir(base):
                 # We append `-alt` if LLVM assertions aren't enabled,
                 # so use just the commit hash itself.
