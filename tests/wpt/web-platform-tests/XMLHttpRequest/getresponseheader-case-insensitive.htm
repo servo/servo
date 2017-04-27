@@ -4,7 +4,7 @@
     <title>XMLHttpRequest: getResponseHeader() case-insensitive matching</title>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
-    <link rel="help" href="https://xhr.spec.whatwg.org/#dom-xmlhttprequest-getresponseheader" data-tested-assertations="following::OL[1]/LI[4] following::OL[1]/LI[5] following::OL[1]/LI[6]" />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#dom-xmlhttprequest-getresponseheader">
   </head>
   <body>
     <div id="log"></div>
@@ -21,7 +21,7 @@
               assert_equals(client.getResponseHeader("X-custom-HEADER"), "test")
               assert_equals(client.getResponseHeader("X-CUSTOM-header-COMMA"), "1, 2")
               assert_equals(client.getResponseHeader("X-CUSTOM-no-such-header-in-response"), null)
-              assert_true(client.getResponseHeader("CONTENT-TYPE").indexOf("text/plain") != -1)
+              assert_equals(client.getResponseHeader("CONTENT-TYPE"), "text/plain")
               test.done()
             }
           })

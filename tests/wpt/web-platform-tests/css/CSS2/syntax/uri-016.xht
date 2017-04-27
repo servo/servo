@@ -1,0 +1,33 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+                      "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Error handling of broken url() with open /*</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/parsing/uri/007.html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#uri" />
+  <link rel="match" href="uri-016-ref.xht"/>
+  <meta name="flags" content=""/>
+  <meta name="assert" content="Comments are just regular tokens inside
+     unquoted URLs."/>
+  <style type="text/css">
+   * { color: red; }
+   .one { background: red url(test/* test); color: green; }
+   .two { background: red; background: white url( test/*test ); color: white; }
+   .three { background: xtest url( test/*test ); color: white; }
+
+   .four { background: red url(/* test); color: green; }
+   .five { background: red; background: white url( /*test ); color: white; }
+   .six { background: xtest url( /*test ); color: white; }
+  </style>
+ </head>
+ <body>
+  <p class="one">This sentence must be green and there must be no red.</p>
+  <p class="two">There must be no red on this page.</p>
+  <p class="three">There must be no red on this page.</p>
+  <p class="four">This sentence must be green and there must be no red.</p>
+  <p class="five">There must be no red on this page.</p>
+  <p class="six">There must be no red on this page.</p>
+ </body>
+</html>

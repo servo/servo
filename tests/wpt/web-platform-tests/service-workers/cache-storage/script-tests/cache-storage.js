@@ -16,6 +16,40 @@ promise_test(function(t) {
   }, 'CacheStorage.open');
 
 promise_test(function(t) {
+    var cache_name = 'cache-storage/bar';
+    var first_cache = null;
+    var second_cache = null;
+    return self.caches.open(cache_name)
+      .then(function(cache) {
+          first_cache = cache;
+          return self.caches.delete(cache_name);
+        })
+      .then(function() {
+          return first_cache.add('../resources/simple.txt');
+        })
+      .then(function() {
+          return self.caches.keys();
+        })
+      .then(function(cache_names) {
+          assert_equals(cache_names.indexOf(cache_name), -1);
+          return self.caches.open(cache_name);
+        })
+      .then(function(cache) {
+          second_cache = cache;
+          return second_cache.keys();
+        })
+      .then(function(keys) {
+          assert_equals(keys.length, 0);
+          return first_cache.keys();
+        })
+      .then(function(keys) {
+          assert_equals(keys.length, 1);
+          // Clean up
+          return self.caches.delete(cache_name);
+        });
+  }, 'CacheStorage.delete dooms, but does not delete immediately');
+
+promise_test(function(t) {
     // Note that this test may collide with other tests running in the same
     // origin that also uses an empty cache name.
     var cache_name = '';

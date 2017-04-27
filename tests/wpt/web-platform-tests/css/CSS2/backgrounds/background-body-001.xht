@@ -1,0 +1,23 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Background on body element</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-04-20 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background" />
+        <link rel="match" href="background-body-001-ref.xht" />
+
+        <meta name="assert" content="Background of the body covers the entire canvas. Adding margin to body element to ensure that canvas background is green, and not just the root since in other cases, margin is not colored.  This only applies if HTML element has nothing set for background." />
+        <style type="text/css">
+            body
+            {
+                background: green;
+                color: white;
+                margin: 30px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the background of this entire page is green.</p>
+    </body>
+</html>

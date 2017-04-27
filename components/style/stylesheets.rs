@@ -7,10 +7,11 @@
 #![deny(missing_docs)]
 
 use {Atom, Prefix, Namespace};
+use counter_style::{CounterStyleRule, parse_counter_style_name, parse_counter_style_body};
 use cssparser::{AtRuleParser, Parser, QualifiedRuleParser};
-use cssparser::{AtRuleType, RuleListParser, SourcePosition, Token, parse_one_rule};
+use cssparser::{AtRuleType, RuleListParser, parse_one_rule};
 use cssparser::ToCss as ParserToCss;
-use error_reporting::ParseErrorReporter;
+use error_reporting::{ParseErrorReporter, NullReporter};
 #[cfg(feature = "servo")]
 use font_face::FontFaceRuleData;
 use font_face::parse_font_face_block;
@@ -36,9 +37,11 @@ use std::cell::Cell;
 use std::fmt;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use str::starts_with_ignore_ascii_case;
 use style_traits::ToCss;
 use stylist::FnvHashMap;
 use supports::SupportsCondition;
+use values::{CustomIdent, KeyframesName};
 use values::specified::url::SpecifiedUrl;
 use viewport::ViewportRule;
 
@@ -288,6 +291,7 @@ pub enum CssRule {
     Style(Arc<Locked<StyleRule>>),
     Media(Arc<Locked<MediaRule>>),
     FontFace(Arc<Locked<FontFaceRule>>),
+    CounterStyle(Arc<Locked<CounterStyleRule>>),
     Viewport(Arc<Locked<ViewportRule>>),
     Keyframes(Arc<Locked<KeyframesRule>>),
     Supports(Arc<Locked<SupportsRule>>),
@@ -320,20 +324,6 @@ pub enum CssRuleType {
     Viewport            = 15,
 }
 
-/// Error reporter which silently forgets errors
-pub struct MemoryHoleReporter;
-
-impl ParseErrorReporter for MemoryHoleReporter {
-    fn report_error(&self,
-            _: &mut Parser,
-            _: SourcePosition,
-            _: &str,
-            _: &UrlExtraData,
-            _: u64) {
-        // do nothing
-    }
-}
-
 #[allow(missing_docs)]
 pub enum SingleRuleParseError {
     Syntax,
@@ -344,15 +334,16 @@ impl CssRule {
     #[allow(missing_docs)]
     pub fn rule_type(&self) -> CssRuleType {
         match *self {
-            CssRule::Style(_)     => CssRuleType::Style,
-            CssRule::Import(_)    => CssRuleType::Import,
-            CssRule::Media(_)     => CssRuleType::Media,
-            CssRule::FontFace(_)  => CssRuleType::FontFace,
+            CssRule::Style(_) => CssRuleType::Style,
+            CssRule::Import(_) => CssRuleType::Import,
+            CssRule::Media(_) => CssRuleType::Media,
+            CssRule::FontFace(_) => CssRuleType::FontFace,
+            CssRule::CounterStyle(_) => CssRuleType::CounterStyle,
             CssRule::Keyframes(_) => CssRuleType::Keyframes,
             CssRule::Namespace(_) => CssRuleType::Namespace,
-            CssRule::Viewport(_)  => CssRuleType::Viewport,
-            CssRule::Supports(_)  => CssRuleType::Supports,
-            CssRule::Page(_)      => CssRuleType::Page,
+            CssRule::Viewport(_) => CssRuleType::Viewport,
+            CssRule::Supports(_) => CssRuleType::Supports,
+            CssRule::Page(_) => CssRuleType::Page,
         }
     }
 
@@ -385,6 +376,7 @@ impl CssRule {
             CssRule::Namespace(_) |
             CssRule::Style(_) |
             CssRule::FontFace(_) |
+            CssRule::CounterStyle(_) |
             CssRule::Viewport(_) |
             CssRule::Keyframes(_) |
             CssRule::Page(_) => {
@@ -417,7 +409,7 @@ impl CssRule {
                  state: Option<State>,
                  loader: Option<&StylesheetLoader>)
                  -> Result<(Self, State), SingleRuleParseError> {
-        let error_reporter = MemoryHoleReporter;
+        let error_reporter = NullReporter;
         let mut namespaces = parent_stylesheet.namespaces.write();
         let context = ParserContext::new(parent_stylesheet.origin,
                                          &parent_stylesheet.url_data,
@@ -458,6 +450,7 @@ impl ToCssWithGuard for CssRule {
             CssRule::Import(ref lock) => lock.read_with(guard).to_css(guard, dest),
             CssRule::Style(ref lock) => lock.read_with(guard).to_css(guard, dest),
             CssRule::FontFace(ref lock) => lock.read_with(guard).to_css(guard, dest),
+            CssRule::CounterStyle(ref lock) => lock.read_with(guard).to_css(guard, dest),
             CssRule::Viewport(ref lock) => lock.read_with(guard).to_css(guard, dest),
             CssRule::Keyframes(ref lock) => lock.read_with(guard).to_css(guard, dest),
             CssRule::Media(ref lock) => lock.read_with(guard).to_css(guard, dest),
@@ -526,9 +519,11 @@ impl ToCssWithGuard for ImportRule {
 #[derive(Debug)]
 pub struct KeyframesRule {
     /// The name of the current animation.
-    pub name: Atom,
+    pub name: KeyframesName,
     /// The keyframes specified for this CSS rule.
     pub keyframes: Vec<Arc<Locked<Keyframe>>>,
+    /// Vendor prefix type the @keyframes has.
+    pub vendor_prefix: Option<VendorPrefix>,
 }
 
 impl ToCssWithGuard for KeyframesRule {
@@ -536,7 +531,7 @@ impl ToCssWithGuard for KeyframesRule {
     fn to_css<W>(&self, guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
     where W: fmt::Write {
         try!(dest.write_str("@keyframes "));
-        try!(dest.write_str(&*self.name.to_string()));
+        try!(self.name.to_css(dest));
         try!(dest.write_str(" { "));
         let iter = self.keyframes.iter();
         let mut first = true;
@@ -845,6 +840,7 @@ rule_filter! {
     effective_style_rules(Style => StyleRule),
     effective_media_rules(Media => MediaRule),
     effective_font_face_rules(FontFace => FontFaceRule),
+    effective_counter_style_rules(CounterStyle => CounterStyleRule),
     effective_viewport_rules(Viewport => ViewportRule),
     effective_keyframes_rules(Keyframes => KeyframesRule),
     effective_supports_rules(Supports => SupportsRule),
@@ -913,18 +909,29 @@ pub enum State {
     Invalid = 5,
 }
 
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+/// Vendor prefix.
+pub enum VendorPrefix {
+    /// -moz prefix.
+    Moz,
+    /// -webkit prefix.
+    WebKit,
+}
 
 enum AtRulePrelude {
     /// A @font-face rule prelude.
     FontFace,
+    /// A @counter-style rule prelude, with its counter style name.
+    CounterStyle(CustomIdent),
     /// A @media rule prelude, with its media queries.
     Media(Arc<Locked<MediaList>>),
     /// An @supports rule, with its conditional
     Supports(SupportsCondition),
     /// A @viewport rule prelude.
     Viewport,
-    /// A @keyframes rule, with its animation name.
-    Keyframes(Atom),
+    /// A @keyframes rule, with its animation name and vendor prefix if exists.
+    Keyframes(KeyframesName, Option<VendorPrefix>),
     /// A @page rule prelude.
     Page,
 }
@@ -1104,6 +1111,20 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
             "font-face" => {
                 Ok(AtRuleType::WithBlock(AtRulePrelude::FontFace))
             },
+            "counter-style" => {
+                if !cfg!(feature = "gecko") {
+                    // Support for this rule is not fully implemented in Servo yet.
+                    return Err(())
+                }
+                let name = parse_counter_style_name(input)?;
+                // ASCII-case-insensitive matches for "decimal" are already lower-cased
+                // by `parse_counter_style_name`, so we can use == here.
+                // FIXME: https://bugzilla.mozilla.org/show_bug.cgi?id=1359323 use atom!("decimal")
+                if name.0 == Atom::from("decimal") {
+                    return Err(())
+                }
+                Ok(AtRuleType::WithBlock(AtRulePrelude::CounterStyle(name)))
+            },
             "viewport" => {
                 if is_viewport_enabled() {
                     Ok(AtRuleType::WithBlock(AtRulePrelude::Viewport))
@@ -1111,14 +1132,22 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
                     Err(())
                 }
             },
-            "keyframes" => {
-                let name = match input.next() {
-                    Ok(Token::Ident(ref value)) if value != "none" => Atom::from(&**value),
-                    Ok(Token::QuotedString(value)) => Atom::from(&*value),
-                    _ => return Err(())
+            "keyframes" | "-webkit-keyframes" | "-moz-keyframes" => {
+                let prefix = if starts_with_ignore_ascii_case(name, "-webkit-") {
+                    Some(VendorPrefix::WebKit)
+                } else if starts_with_ignore_ascii_case(name, "-moz-") {
+                    Some(VendorPrefix::Moz)
+                } else {
+                    None
                 };
+                if cfg!(feature = "servo") &&
+                   prefix.as_ref().map_or(false, |p| matches!(*p, VendorPrefix::Moz)) {
+                    // Servo should not support @-moz-keyframes.
+                    return Err(())
+                }
+                let name = KeyframesName::parse(self.context, input)?;
 
-                Ok(AtRuleType::WithBlock(AtRulePrelude::Keyframes(Atom::from(name))))
+                Ok(AtRuleType::WithBlock(AtRulePrelude::Keyframes(name, prefix)))
             },
             "page" => {
                 if cfg!(feature = "gecko") {
@@ -1137,6 +1166,11 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
                 let context = ParserContext::new_with_rule_type(self.context, Some(CssRuleType::FontFace));
                 Ok(CssRule::FontFace(Arc::new(self.shared_lock.wrap(
                    parse_font_face_block(&context, input).into()))))
+            }
+            AtRulePrelude::CounterStyle(name) => {
+                let context = ParserContext::new_with_rule_type(self.context, Some(CssRuleType::CounterStyle));
+                Ok(CssRule::CounterStyle(Arc::new(self.shared_lock.wrap(
+                   parse_counter_style_body(name, &context, input)?))))
             }
             AtRulePrelude::Media(media_queries) => {
                 Ok(CssRule::Media(Arc::new(self.shared_lock.wrap(MediaRule {
@@ -1157,11 +1191,12 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
                 Ok(CssRule::Viewport(Arc::new(self.shared_lock.wrap(
                    try!(ViewportRule::parse(&context, input))))))
             }
-            AtRulePrelude::Keyframes(name) => {
+            AtRulePrelude::Keyframes(name, prefix) => {
                 let context = ParserContext::new_with_rule_type(self.context, Some(CssRuleType::Keyframes));
                 Ok(CssRule::Keyframes(Arc::new(self.shared_lock.wrap(KeyframesRule {
                     name: name,
                     keyframes: parse_keyframe_list(&context, input, self.shared_lock),
+                    vendor_prefix: prefix,
                 }))))
             }
             AtRulePrelude::Page => {

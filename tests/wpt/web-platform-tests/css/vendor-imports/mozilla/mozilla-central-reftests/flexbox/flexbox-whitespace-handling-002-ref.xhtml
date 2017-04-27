@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!--
+     This reference case is the same as the testcase, but with an explicit <div>
+     around each run of content that we expect to turn into an anonymous
+     flex item (to ensure that the whitespace is included).
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Reftest Reference</title>
+    <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com"/>
+    <link rel="stylesheet" type="text/css" href="support/ahem.css" />
+    <style>
+      div { height: 100px; }
+      div.flexbox {
+        white-space: pre;
+        border: 1px dashed blue;
+        width: 200px;
+        display: flex;
+        justify-content: space-around;
+      }
+      div.a {
+        width: 30px;
+        background: lightgreen;
+      }
+      div.b {
+        width: 20px;
+        background: lightblue;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- spaces around inline content at the beginning of flexbox -->
+    <div class="flexbox"><div>  abc</div><div class="a"/></div>
+    <div class="flexbox"><div>abc   </div><div class="a"/></div>
+    <div class="flexbox"><div>  abc   </div><div class="a"/></div>
+
+    <!-- spaces around inline content at the end of flexbox -->
+    <div class="flexbox"><div class="a"/><div>  abc</div></div>
+    <div class="flexbox"><div class="a"/><div>abc   </div></div>
+    <div class="flexbox"><div class="a"/><div>  abc   </div></div>
+
+    <!-- whitespace around inline content in between flex items -->
+    <div class="flexbox"><div class="a"/><div>  abc</div><div class="b"/></div>
+    <div class="flexbox"><div class="a"/><div>abc   </div><div class="b"/></div>
+    <div class="flexbox"><div class="a"/><div>  abc   </div><div class="b"/></div>
+  </body>
+</html>
+

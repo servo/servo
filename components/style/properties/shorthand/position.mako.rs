@@ -249,8 +249,14 @@
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         let align = align_content::parse(context, input)?;
+        if align.has_extra_flags() {
+            return Err(());
+        }
         let justify = input.try(|input| justify_content::parse(context, input))
                            .unwrap_or(justify_content::SpecifiedValue::from(align));
+        if justify.has_extra_flags() {
+            return Err(());
+        }
 
         Ok(Longhands {
             align_content: align,
@@ -279,7 +285,13 @@
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         let align = AlignJustifySelf::parse(context, input)?;
+        if align.has_extra_flags() {
+            return Err(());
+        }
         let justify = input.try(|input| AlignJustifySelf::parse(context, input)).unwrap_or(align.clone());
+        if justify.has_extra_flags() {
+            return Err(());
+        }
 
         Ok(Longhands {
             align_self: align,
@@ -314,8 +326,14 @@
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         let align = AlignItems::parse(context, input)?;
+        if align.has_extra_flags() {
+            return Err(());
+        }
         let justify = input.try(|input| JustifyItems::parse(context, input))
                            .unwrap_or(JustifyItems::from(align));
+        if justify.has_extra_flags() {
+            return Err(());
+        }
 
         Ok(Longhands {
             align_items: align,

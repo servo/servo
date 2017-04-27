@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Floated right element aligns with current line box</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="A line box aligns with the top of a right floated box." />
+        <style type="text/css">
+            div
+            {
+                width: 2in;
+            }
+            #span1
+            {
+                float: right;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the "Filler Text" below is all on the same line.</p>
+        <div>
+            <span>Filler Text</span>
+            <span id="span1">Filler Text</span>
+        </div>
+    </body>
+</html>

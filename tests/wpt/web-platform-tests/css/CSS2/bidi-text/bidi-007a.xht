@@ -1,0 +1,31 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+ <head>
+
+  <title>CSS Test: The bidi algorithm and inlines in CSS: embed levels and float: left; </title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-07-01 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/inline/bidi/007.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#bidi-box-model"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#direction"/>
+  <link rel="help" href="http://unicode.org/reports/tr9/"/>
+  <link rel="match" href="bidi-007a-ref.xht" />
+
+  <style type="text/css">
+   div p { float: left; clear: left; margin: 0.5em 1em; padding: 0.75em; background: black; color: yellow; font: 2em/1 serif; }
+   .one, .c, .j, .e { color: aqua; }
+   .two, .i, .d, .k, .b { color: fuchsia; }
+   .one, .two { border: solid; padding: 0.1em 0 0.1em 0; margin: 0 0.5em 0 0.5em; }
+   .c, .b { border-style: solid none solid solid; padding: 0.1em 0 0.1em 0; margin: 0 0 0 0.5em; }
+   .j, .k { border-style: solid solid solid none; padding: 0.1em 0 0.1em 0; margin: 0 0.5em 0 0; }
+   .e, .i, .d { border-style: solid none solid none; padding: 0.1em 0 0.1em 0; margin: 0 0 0 0; }
+  </style>
+ </head>
+ <body>
+  <p> The following two blocks should be identical, including overflow. (Force bidi: &#x05D0;) </p>
+  <div>
+   <p class="reference"><span class="a">a</span><span class="b">b</span><span class="c">c</span><span class="d">d</span><span class="e">e</span><span class="f">f</span><span class="g">g</span><span class="h">h</span><span class="i">i</span><span class="j">j</span><span class="k">k</span><span class="l">l</span><span class="m">m</span></p>
+   <p class="test">a&#x202E;l&#x202D;<span class="one">c&#x202E;j&#x202D;e&#x202E;</span>h&#x202D;g&#x202C;f<span class="two">&#x202C;i&#x202C;d&#x202C;k&#x202C;b</span>&#x202C;m</p>
+  </div>
+ </body>
+</html>

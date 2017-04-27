@@ -1810,6 +1810,7 @@ impl ScriptThread {
                                  incomplete.pipeline_id,
                                  incomplete.parent_info,
                                  incomplete.window_size,
+                                 incomplete.origin.clone(),
                                  self.webvr_thread.clone());
 
         // Initialize the browsing context for the window.

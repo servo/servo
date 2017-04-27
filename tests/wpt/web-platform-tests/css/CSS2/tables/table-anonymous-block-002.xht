@@ -1,0 +1,50 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: The anonymous block box around a table is not used for baseline vertical alignment</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#model" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The table box (and not anonymous containing block) is used for doing baseline vertical alignment for inline-table." />
+        <style type="text/css">
+            caption
+            {
+                color: white;
+            }
+            #table
+            {
+                background: black;
+                border-spacing: 0;
+                caption-side: bottom;
+                display: inline-table;
+            }
+            td
+            {
+                padding: 0;
+                vertical-align: baseline;
+            }
+            div
+            {
+                background: black;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the bottoms of the two boxes are vertically aligned.</p>
+        <table>
+            <tr>
+                <td>
+                    <table id="table">
+                        <caption>XXXXXXXXX0</caption>
+                        <tr>
+                            <td>XXXXXXXXX0</td>
+                        </tr>
+                    </table>
+                </td>
+                 <td>
+                    <div>XXXXXXXXX0</div>
+                </td>
+            </tr>
+        </table>
+    </body>
+</html>

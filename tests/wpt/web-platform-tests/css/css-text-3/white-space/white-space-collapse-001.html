@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8">
+<title>White space and non-ASCII spaces</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='https://drafts.csswg.org/css-text-3/#line-break-transform'>
+<meta name="assert" content="Any space immediately following another collapsible space is collapsed to have zero advance width. Only refers to U+0020, not other Unicode spaces.">
+<style type='text/css'>
+.test span { font-size: 24px; font-family: sans-serif; background-color: #2AA5F7; color: white; }
+.ref span { font-size: 24px; font-family: sans-serif; background-color: #270CEF; color: white; }
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id='log'></div>
+<div id='testNB' class="test"><span>hello&#x20;&#x20;&#x20;&#x00A0;&#x20;&#x20;&#x20;&#x20;&#x20;&#x20;&#x20;there</span></div>
+<div id="refNB" class="ref"><span>hello&#x20;&#x00A0;&#x20;there</span></div>
+<div id='testEN' class="test"><span>hello&#x20;&#x20;&#x20;&#x2002;&#x20;&#x20;&#x20;&#x20;&#x20;&#x20;&#x20;there</span></div>
+<div id="refEN" class="ref"><span>hello&#x20;&#x2002;&#x20;there</span></div>
+<div id='testEM' class="test"><span>hello&#x20;&#x20;&#x20;&#x2003;&#x20;&#x20;&#x20;&#x20;&#x20;&#x20;&#x20;there</span></div>
+<div id="refEM" class="ref"><span>hello&#x20;&#x2003;&#x20;there</span></div>
+<div id='testTS' class="test"><span>hello&#x20;&#x20;&#x20;&#x2009;&#x20;&#x20;&#x20;&#x20;&#x20;&#x20;&#x20;there</span></div>
+<div id="refTS" class="ref"><span>hello&#x20;&#x2009;&#x20;there</span></div>
+<div id='testZW' class="test"><span>hello&#x20;&#x20;&#x20;&#x200B;&#x20;&#x20;&#x20;&#x20;&#x20;&#x20;&#x20;there</span></div>
+<div id="refZW" class="ref"><span>hello&#x20;&#x200B;&#x20;there</span></div>
+<div id='testNNB' class="test"><span>hello&#x20;&#x20;&#x20;&#x202F;&#x20;&#x20;&#x20;&#x20;&#x20;&#x20;&#x20;there</span></div>
+<div id="refNNB" class="ref"><span>hello&#x20;&#x202F;&#x20;there</span></div>
+<div id='testIS' class="test"><span>hello&#x20;&#x20;&#x20;&#x00A0;&#x20;&#x20;&#x20;&#x20;&#x20;&#x20;&#x20;there</span></div>
+<div id="refIS" class="ref"><span>hello&#x20;&#x00A0;&#x20;there</span></div>
+<div id='testIS2' class="test"><span>缔造真正全球通行&#x20;&#x20;&#x20;&#x00A0;&#x20;&#x20;&#x20;&#x20;&#x20;&#x20;&#x20;的万维网</span></div>
+<div id="refIS2" class="ref"><span>缔造真正全球通行&#x20;&#x00A0;&#x20;的万维网</span></div>
+<script>
+test(function() {
+assert_equals(document.getElementById('testNB').firstChild.offsetWidth, document.getElementById('refNB').firstChild.offsetWidth);
+}, "no-break space");
+test(function() {
+assert_equals(document.getElementById('testEN').firstChild.offsetWidth, document.getElementById('refEN').firstChild.offsetWidth);
+}, "en space");
+test(function() {
+assert_equals(document.getElementById('testEM').firstChild.offsetWidth, document.getElementById('refEM').firstChild.offsetWidth);
+}, "em space");
+test(function() {
+assert_equals(document.getElementById('testTS').firstChild.offsetWidth, document.getElementById('refTS').firstChild.offsetWidth);
+}, "thin space");
+test(function() {
+assert_equals(document.getElementById('testZW').firstChild.offsetWidth, document.getElementById('refZW').firstChild.offsetWidth);
+}, "zero width space");
+test(function() {
+assert_equals(document.getElementById('testZW').firstChild.offsetWidth, document.getElementById('refZW').firstChild.offsetWidth);
+}, "narrow no-break space");
+test(function() {
+assert_equals(document.getElementById('testIS').firstChild.offsetWidth, document.getElementById('refIS').firstChild.offsetWidth);
+}, "ideographic space");
+test(function() {
+assert_equals(document.getElementById('testIS2').firstChild.offsetWidth, document.getElementById('refIS2').firstChild.offsetWidth);
+}, "ideographic space inside ideographic text");
+</script>
+<!-- Notes:
+The assertion will fail if space is produced for any line in the test paragraph.
+-->
+</body>
+</html>
+
+

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <title>CSS Animations - writing to animationName in AnimationEvent</title>
+   <link rel="author" title="Opera Software ASA" href="http://www.opera.com/">
+   <link rel="help" href="https://drafts.csswg.org/css3-animations/#animation-events-">
+   <meta name="flags" content="dom">
+   <meta name="assert" content="The animationName attribute of AnimationEvent
+   is readonly">
+   <script src="/resources/testharness.js"></script>
+   <script src="/resources/testharnessreport.js"></script>
+   <script type="text/javascript">
+      setup({explicit_done:true});
+      onload = function() {
+         var testName = document.querySelector('title').firstChild.data;
+         var log = document.querySelectorAll('p')[0].firstChild;
+         var passed = false;
+         try {
+            var evt = document.createEvent('AnimationEvent');
+            evt.initAnimationEvent('animationstart', true, false, 'TestN', 1);
+            evt.animationName = 'changed';
+            passed = (evt.animationName == 'TestN');
+         } catch(e) {
+         }
+         test(function(){assert_true(passed);}, testName); done();
+         log.data = passed ? 'PASS' : 'FAIL';
+      };
+   </script>
+   <style>iframe{display:none}</style>
+</head>
+<body>
+   <p>Testing... (JavaScript required)</p>
+</body>
+</html>

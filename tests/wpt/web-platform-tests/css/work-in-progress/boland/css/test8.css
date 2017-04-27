@@ -1,0 +1,8 @@
+p {word-spacing: 0.5em;
+   letter-spacing: 0.5em;
+   text-decoration: underline;
+   vertical-align: sub;
+   text-transform: capitalize;
+   text-align: right;
+   text-indent: 3em;
+   line-height: 1.2;}

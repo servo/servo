@@ -1,0 +1,97 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Absolutely positioned, non-replaced elements, 'top' set to static position</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-08-27 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#abs-non-replaced-height" />
+		<link rel="match" href="absolute-non-replaced-height-008-ref.xht" />
+
+        <meta name="flags" content="" />
+        <meta name="assert" content="When 'top' is set to the static position and any 'auto' values for top and bottom margin are set to '0', when 'top' and 'bottom' are 'auto' and 'height' is not 'auto'." />
+        <style type="text/css">
+            #div1
+            {
+                background: blue;
+                height: 3in;
+                position: relative;
+                width: 1in;
+            }
+            div div
+            {
+                background: orange;
+                bottom: auto;
+                height: 1in;
+                margin-bottom: auto;
+                margin-top: auto;
+                position: absolute;
+                top: auto;
+                width: 100%;
+            }
+
+
+            /*
+
+		 auto (to solve) : top
+	+
+		 auto (to solve): margin-top
+	+
+		 0 : border-top-width
+	+
+		 0 : padding-top
+	+
+		 1in : height
+	+
+		 0 : padding-bottom
+	+
+		 0 : border-bottom-width
+	+
+		 auto (to solve): margin-bottom
+	+
+		auto (to solve) : bottom
+	=============
+		3in  : height of containing block
+
+
+	"
+	'top' and 'bottom' are 'auto' and 'height' is not 'auto',
+	then set 'top' to the static position,
+	set 'auto' values for 'margin-top' and 'margin-bottom' to 0,
+	and solve for 'bottom'
+	"
+
+	so this brings:
+
+		 0 (solved static position) : top
+	+
+		 0 (solved): margin-top
+	+
+		 0 : border-top-width
+	+
+		 0 : padding-top
+	+
+		 1in : height
+	+
+		 0 : padding-bottom
+	+
+		 0 : border-bottom-width
+	+
+		 0 (solved): margin-bottom
+	+
+		auto (to solve) : bottom
+	=============
+		3in  : height of containing block
+
+		So, bottom must use 2in in order to balance the equation
+
+
+            */
+        </style>
+    </head>
+    <body>
+        <p>Test passes if a blue rectangle is below an orange square.</p>
+        <div id="div1">
+            <div></div>
+        </div>
+    </body>
+</html>

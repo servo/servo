@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Masking: mask-image: mask with opacity</title>
+    <link rel="author" title="CJ Ku" href="mailto:cku@mozilla.com">
+    <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+    <link rel="help" href="https://www.w3.org/TR/css-masking-1/#the-mask-image">
+    <link rel="match" href="mask-opacity-1-ref.html">
+    <meta name="assert" content="Test checks whether apply opacity to masked element correctly or not.">
+    <style type="text/css">
+      #outter {
+        position: absolute;
+        left: 10px;
+        top: 10px;
+        width: 100px;
+        height: 100px;
+        mask-image: url(support/blue-100x50-transparent-100x50.png),
+                    url(support/blue-100x50-transparent-100x50.png);
+        opacity: 0.5;
+      }
+
+      #inner {
+        width: 100px;
+        height: 100px;
+        box-sizing:border-box;
+        background-color: blue;
+        border: 1px solid transparent;
+        will-change: transform;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="outter"><div id="inner"></div></div>
+  </body>
+</html>

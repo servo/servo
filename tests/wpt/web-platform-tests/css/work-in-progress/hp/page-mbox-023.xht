@@ -1,0 +1,35 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: margin-box bottom-center margin-left</title>
+  <link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#margin-boxes"/>
+  <meta name="flags" content="paged" />
+  <meta name="assert" content="The used value of the bottom-center box's left margin is its computed value unless that value is 'auto'"/>
+  <style type="text/css"><![CDATA[
+   @page {
+		@bottom-center { 
+			content: "";
+			border: 1pt solid black; 
+			margin-left: 1in;
+			margin-bottom: 0.25in;
+		}
+   }
+	html, body {
+		margin: 0;
+		padding: 0;
+		height: 100%;
+	}
+	div {
+		position: absolute;
+		bottom: 0;
+		left: 0;
+		width: 1in;
+		background: #8EE5EE;
+	}
+  ]]></style>
+ </head>
+ <body>
+  <div>The left edge of the box below should align with the right edge of this box.</div>
+ </body>
+</html>

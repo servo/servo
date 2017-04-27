@@ -8,6 +8,7 @@
 
 use cssparser::{AtRuleParser, Parser, QualifiedRuleParser, RuleListParser};
 use cssparser::{DeclarationListParser, DeclarationParser, parse_one_rule};
+use error_reporting::NullReporter;
 use parser::{LengthParsingMode, ParserContext, log_css_error};
 use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock, PropertyId};
 use properties::{PropertyDeclarationId, LonghandId, ParsedDeclaration};
@@ -18,7 +19,7 @@ use shared_lock::{SharedRwLock, SharedRwLockReadGuard, Locked, ToCssWithGuard};
 use std::fmt;
 use std::sync::Arc;
 use style_traits::ToCss;
-use stylesheets::{CssRuleType, MemoryHoleReporter, Stylesheet};
+use stylesheets::{CssRuleType, Stylesheet, VendorPrefix};
 
 /// A number from 0 to 1, indicating the percentage of the animation when this
 /// keyframe should run.
@@ -125,7 +126,7 @@ impl Keyframe {
     /// Parse a CSS keyframe.
     pub fn parse(css: &str, parent_stylesheet: &Stylesheet)
                  -> Result<Arc<Locked<Self>>, ()> {
-        let error_reporter = MemoryHoleReporter;
+        let error_reporter = NullReporter;
         let context = ParserContext::new(parent_stylesheet.origin,
                                          &parent_stylesheet.url_data,
                                          &error_reporter,
@@ -239,6 +240,8 @@ pub struct KeyframesAnimation {
     pub steps: Vec<KeyframesStep>,
     /// The properties that change in this animation.
     pub properties_changed: Vec<TransitionProperty>,
+    /// Vendor prefix type the @keyframes has.
+    pub vendor_prefix: Option<VendorPrefix>,
 }
 
 /// Get all the animated properties in a keyframes animation.
@@ -256,8 +259,8 @@ fn get_animated_properties(keyframes: &[Arc<Locked<Keyframe>>], guard: &SharedRw
 
             if let Some(property) = TransitionProperty::from_declaration(declaration) {
                 if !seen.has_transition_property_bit(&property) {
-                    ret.push(property);
                     seen.set_transition_property_bit(&property);
+                    ret.push(property);
                 }
             }
         }
@@ -275,11 +278,14 @@ impl KeyframesAnimation {
     ///
     /// Otherwise, this will compute and sort the steps used for the animation,
     /// and return the animation object.
-    pub fn from_keyframes(keyframes: &[Arc<Locked<Keyframe>>], guard: &SharedRwLockReadGuard)
+    pub fn from_keyframes(keyframes: &[Arc<Locked<Keyframe>>],
+                          vendor_prefix: Option<VendorPrefix>,
+                          guard: &SharedRwLockReadGuard)
                           -> Self {
         let mut result = KeyframesAnimation {
             steps: vec![],
             properties_changed: vec![],
+            vendor_prefix: vendor_prefix,
         };
 
         if keyframes.is_empty() {

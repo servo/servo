@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>CSS Reftest Refarence</title>
+<link rel="author" title="Keiko Shigeta" href="mailto:shigeta.k118@gmail.com">
+<link rel="help" href="http://www.w3.org/TR/css-shapes/#funcdef-circle">
+<style>
+  #container {
+    width: 100px;
+    height: 100px;
+    background-color: yellow;
+    position: relative;
+  }
+  .inline-square {
+    width: 50px;
+    height: 50px;
+    background: green;
+    position: absolute;
+  }
+  #box1{
+    top: 0;
+    right: 0;
+  }
+  #box2{
+    bottom: 0;
+    left: 0;
+  }
+</style>
+<body>
+  <p>The test passes if there are two green square boxes aligned diagonally from top right to bottom left.</p>
+  <div id="container">
+    <div id="box1" class="inline-square"></div>
+    <div id="box2" class="inline-square"></div>
+  </div>
+</body>

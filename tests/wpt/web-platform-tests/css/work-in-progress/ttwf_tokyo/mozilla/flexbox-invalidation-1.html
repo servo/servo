@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!--
+     This test verifies that we include our children's overflow areas in the
+     flex container's overflow area -- invalidating their old location and new
+     location when the flex container is moved, even if they stick outside the
+     flex container.
+-->
+<html class="reftest-wait">
+  <head>
+    <script>
+      function tweak() {
+        var outer = document.getElementById("outer");
+        outer.style.marginLeft = "40px";
+
+        document.documentElement.removeAttribute("class");
+      }
+
+      window.addEventListener("MozReftestInvalidate", tweak, false);
+    </script>
+    <style>
+      div#flexContainer {
+        width: 100px;
+        height: 50px;
+        background: lightgray;
+        display: flex;
+        justify-content: center;
+      }
+
+      div#flexItem {
+        border: 1px solid black;
+        height: 200%;
+        background: purple;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="outer">
+      <div id="flexContainer">
+        <div id="flexItem">item</div>
+      </div>
+    </div>
+  </body>
+</html>

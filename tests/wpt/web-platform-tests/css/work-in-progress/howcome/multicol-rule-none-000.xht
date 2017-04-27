@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>multicol-rule-none</title>
+<link rel="author" title="Hakon Wium Lie" href="mailto:howcome@opera.com"/>
+<link rel="match" href="reftest/multicol-rule-none-000.xht"/>
+<style type="text/css">
+div {
+  font: 50px/50px Ahem;
+  margin: 10px 0;
+  color: black;
+  background: black;
+  width: 410px;
+}
+
+div.multicol { 
+  columns: 2;
+  column-gap: 10px;
+  column-rule: 10px none lime;
+}
+
+div.ref span { 
+  border-left: 10px none lime;
+}
+</style>
+</head>
+<body>
+The two horizontal bars below should be identical.
+<div class="multicol">0<br/>0</div>
+<div class="ref">0123<span>0123</span></div>
+</body>
+</html>

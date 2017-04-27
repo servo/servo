@@ -1,0 +1,48 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Margin Boxes - Left Bottom Box Width</title>
+  <link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#margin-boxes"/>
+  <meta name="flags" content="paged" />
+  <meta name="assert" content="If the left-bottom box is empty and its computed height is 'auto', then the used values of its top and bottom padding and top and bottom border height are all 0."/>
+  <meta name="assert" content="If the left-middle box is empty and its computed height is 'auto', then the used values of its top and bottom padding and top and bottom border height are all 0."/>
+  <style type="text/css"><![CDATA[
+   @page {
+		size: 8in 5in;
+		margin: 1in;
+   		@left-bottom { 
+			content: "";
+			margin: 0;
+			background: aqua;
+			width: 3in;
+		}
+   }
+   
+   @page rotated { 
+		size: landscape 8in 5in;
+		margin: 1in;
+   		@left-bottom { 
+			content: "";
+			margin: 0;
+			background: aqua;
+			width: 3in;
+		}
+	}
+   
+   html, body, p {
+		margin: 0;
+		padding: 0;
+		height: 100%;
+	}
+	
+	p {background: aqua;}
+	
+	p.sideways {page: rotated;}
+  ]]></style>
+ </head>
+ <body>
+  <p>The edges of the blue box to the left of this content should match the edges of this box.</p>
+  <p class="sideways">The edges of the blue box to the left of this content should match the edges of this box.</p>
+ </body>
+</html>

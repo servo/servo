@@ -82,20 +82,43 @@ impl_to_css_for_predefined_type!(::cssparser::UnicodeRange);
 
 #[macro_export]
 macro_rules! define_css_keyword_enum {
+    ($name: ident: values { $( $css: expr => $variant: ident),+, }
+                   aliases { $( $alias: expr => $alias_variant: ident ),+, }) => {
+        __define_css_keyword_enum__add_optional_traits!($name [ $( $css => $variant ),+ ]
+                                                              [ $( $alias => $alias_variant ),+ ]);
+    };
+    ($name: ident: values { $( $css: expr => $variant: ident),+, }
+                   aliases { $( $alias: expr => $alias_variant: ident ),* }) => {
+        __define_css_keyword_enum__add_optional_traits!($name [ $( $css => $variant ),+ ]
+                                                              [ $( $alias => $alias_variant ),* ]);
+    };
+    ($name: ident: values { $( $css: expr => $variant: ident),+ }
+                   aliases { $( $alias: expr => $alias_variant: ident ),+, }) => {
+        __define_css_keyword_enum__add_optional_traits!($name [ $( $css => $variant ),+ ]
+                                                              [ $( $alias => $alias_variant ),+ ]);
+    };
+    ($name: ident: values { $( $css: expr => $variant: ident),+ }
+                   aliases { $( $alias: expr => $alias_variant: ident ),* }) => {
+        __define_css_keyword_enum__add_optional_traits!($name [ $( $css => $variant ),+ ]
+                                                              [ $( $alias => $alias_variant ),* ]);
+    };
     ($name: ident: $( $css: expr => $variant: ident ),+,) => {
-        __define_css_keyword_enum__add_optional_traits!($name [ $( $css => $variant ),+ ]);
+        __define_css_keyword_enum__add_optional_traits!($name [ $( $css => $variant ),+ ] []);
     };
     ($name: ident: $( $css: expr => $variant: ident ),+) => {
-        __define_css_keyword_enum__add_optional_traits!($name [ $( $css => $variant ),+ ]);
+        __define_css_keyword_enum__add_optional_traits!($name [ $( $css => $variant ),+ ] []);
     };
 }
 
 #[cfg(feature = "servo")]
 #[macro_export]
 macro_rules! __define_css_keyword_enum__add_optional_traits {
-    ($name: ident [ $( $css: expr => $variant: ident ),+ ]) => {
+    ($name: ident [ $( $css: expr => $variant: ident ),+ ]
+                  [ $( $alias: expr => $alias_variant: ident),* ]) => {
         __define_css_keyword_enum__actual! {
-            $name [ Deserialize, Serialize, HeapSizeOf ] [ $( $css => $variant ),+ ]
+            $name [ Deserialize, Serialize, HeapSizeOf ]
+                  [ $( $css => $variant ),+ ]
+                  [ $( $alias => $alias_variant ),* ]
         }
     };
 }
@@ -103,16 +126,18 @@ macro_rules! __define_css_keyword_enum__add_optional_traits {
 #[cfg(not(feature = "servo"))]
 #[macro_export]
 macro_rules! __define_css_keyword_enum__add_optional_traits {
-    ($name: ident [ $( $css: expr => $variant: ident ),+ ]) => {
+    ($name: ident [ $( $css: expr => $variant: ident ),+ ] [ $( $alias: expr => $alias_variant: ident),* ]) => {
         __define_css_keyword_enum__actual! {
-            $name [] [ $( $css => $variant ),+ ]
+            $name [] [ $( $css => $variant ),+ ] [ $( $alias => $alias_variant ),* ]
         }
     };
 }
 
 #[macro_export]
 macro_rules! __define_css_keyword_enum__actual {
-    ($name: ident [ $( $derived_trait: ident),* ] [ $( $css: expr => $variant: ident ),+ ]) => {
+    ($name: ident [ $( $derived_trait: ident),* ]
+                  [ $( $css: expr => $variant: ident ),+ ]
+                  [ $( $alias: expr => $alias_variant: ident ),* ]) => {
         #[allow(non_camel_case_types, missing_docs)]
         #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq $(, $derived_trait )* )]
         pub enum $name {
@@ -130,6 +155,7 @@ macro_rules! __define_css_keyword_enum__actual {
             pub fn from_ident(ident: &str) -> Result<$name, ()> {
                 match_ignore_ascii_case! { ident,
                                            $( $css => Ok($name::$variant), )+
+                                           $( $alias => Ok($name::$alias_variant), )*
                                            _ => Err(())
                 }
             }

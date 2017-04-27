@@ -2,8 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#[cfg(target_os = "android")]
+use android_injected_glue;
 #[cfg(not(target_os = "android"))]
 use std::env;
+#[cfg(target_os = "android")]
+use std::ffi::CStr;
 use std::fs::File;
 use std::io::{self, Read};
 use std::path::{Path, PathBuf};
@@ -21,8 +25,12 @@ pub fn set_resources_path(path: Option<String>) {
 }
 
 #[cfg(target_os = "android")]
+#[allow(unsafe_code)]
 pub fn resources_dir_path() -> io::Result<PathBuf> {
-    Ok(PathBuf::from("/sdcard/servo/"))
+    let dir = unsafe {
+        CStr::from_ptr((*android_injected_glue::get_app().activity).externalDataPath)
+    };
+    Ok(PathBuf::from(dir.to_str().unwrap()))
 }
 
 #[cfg(not(target_os = "android"))]

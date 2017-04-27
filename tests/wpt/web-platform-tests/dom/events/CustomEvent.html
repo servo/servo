@@ -15,5 +15,21 @@ test(function() {
   var fooEvent = document.createEvent("CustomEvent");
   fooEvent.initEvent(type, true, true);
   target.dispatchEvent(fooEvent);
-});
+}, "CustomEvent dispatching.");
+
+test(function() {
+    var e = document.createEvent("CustomEvent");
+    assert_throws(new TypeError(), function() {
+        e.initCustomEvent();
+    });
+}, "First parameter to initCustomEvent should be mandatory.");
+
+test(function() {
+    var e = document.createEvent("CustomEvent");
+    e.initCustomEvent("foo");
+    assert_equals(e.type, "foo", "type");
+    assert_false(e.bubbles, "bubbles");
+    assert_false(e.cancelable, "cancelable");
+    assert_equals(e.detail, null, "detail");
+}, "initCustomEvent's default parameter values.");
 </script>

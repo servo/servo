@@ -6,8 +6,6 @@
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
     <link rel="help" href="https://xhr.spec.whatwg.org/#the-send()-method" data-tested-assertations="following::ol[1]/li[10]/dt[1]">
-    <link rel="help" href="https://xhr.spec.whatwg.org/#infrastructure-for-the-send()-method" data-tested-assertations="following::dt[7] following::a[contains(@href,'#switch-loading')]/..">
-    <link rel="help" href="https://xhr.spec.whatwg.org/#switch-loading" data-tested-assertations="following::ol[1]/li[1] following::ol[1]/li[2]">
 </head>
 
 <div id="log"></div>
@@ -26,7 +24,7 @@ test.step(function() {
         }
 
         if (client.readyState === 4) {
-            assert_equals(countedLoading, 10, "LOADING state change may be emitted multiple times");
+            assert_greater_than(countedLoading, 1, "LOADING state change may be emitted multiple times");
 
             test.done();
         }

@@ -1,0 +1,599 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD//XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSSOM - CSSStyleDeclaration - Inline Style - Named Properties - CSS2.1 - Non-Aural</title>
+    <link rel="author" title="Glenn Adams" href="mailto:glenn@skynav.com"/>
+    <link rel="help" href="http://www.w3.org/TR/cssom-1/#the-cssstyledeclaration-interface"/>
+    <meta name="flags" content="dom"/>
+    <script src="/resources/testharness.js"/>
+    <script src="/resources/testharnessreport.js"/>
+  </head>
+  <body>
+    <div id="log"></div>
+    <div id="box"></div>
+    <script><![CDATA[
+
+      var elt = document.getElementById('box');
+
+      test(function(){
+
+        assert_true('style' in elt);
+
+      }, '\'style\' in elt');
+
+      var style = elt.style;
+
+      test(function(){
+
+        assert_true('background' in style);
+
+      }, '\'background\' in style');
+
+      test(function(){
+
+        assert_true('backgroundAttachment' in style);
+
+      }, '\'backgroundAttachment\' in style');
+
+      test(function(){
+
+        assert_true('backgroundColor' in style);
+
+      }, '\'backgroundColor\' in style');
+
+      test(function(){
+
+        assert_true('backgroundImage' in style);
+
+      }, '\'backgroundImage\' in style');
+
+      test(function(){
+
+        assert_true('backgroundPosition' in style);
+
+      }, '\'backgroundPosition\' in style');
+
+      test(function(){
+
+        assert_true('backgroundRepeat' in style);
+
+      }, '\'backgroundRepeat\' in style');
+
+      test(function(){
+
+        assert_true('border' in style);
+
+      }, '\'border\' in style');
+
+      test(function(){
+
+        assert_true('borderCollapse' in style);
+
+      }, '\'borderCollapse\' in style');
+
+      test(function(){
+
+        assert_true('borderColor' in style);
+
+      }, '\'borderColor\' in style');
+
+      test(function(){
+
+        assert_true('borderSpacing' in style);
+
+      }, '\'borderSpacing\' in style');
+
+      test(function(){
+
+        assert_true('borderStyle' in style);
+
+      }, '\'borderStyle\' in style');
+
+      test(function(){
+
+        assert_true('borderTop' in style);
+
+      }, '\'borderTop\' in style');
+
+      test(function(){
+
+        assert_true('borderRight' in style);
+
+      }, '\'borderRight\' in style');
+
+      test(function(){
+
+        assert_true('borderBottom' in style);
+
+      }, '\'borderBottom\' in style');
+
+      test(function(){
+
+        assert_true('borderLeft' in style);
+
+      }, '\'borderLeft\' in style');
+
+      test(function(){
+
+        assert_true('borderTopColor' in style);
+
+      }, '\'borderTopColor\' in style');
+
+      test(function(){
+
+        assert_true('borderRightColor' in style);
+
+      }, '\'borderRightColor\' in style');
+
+      test(function(){
+
+        assert_true('borderBottomColor' in style);
+
+      }, '\'borderBottomColor\' in style');
+
+      test(function(){
+
+        assert_true('borderLeftColor' in style);
+
+      }, '\'borderLeftColor\' in style');
+
+      test(function(){
+
+        assert_true('borderTopStyle' in style);
+
+      }, '\'borderTopStyle\' in style');
+
+      test(function(){
+
+        assert_true('borderRightStyle' in style);
+
+      }, '\'borderRightStyle\' in style');
+
+      test(function(){
+
+        assert_true('borderBottomStyle' in style);
+
+      }, '\'borderBottomStyle\' in style');
+
+      test(function(){
+
+        assert_true('borderLeftStyle' in style);
+
+      }, '\'borderLeftStyle\' in style');
+
+      test(function(){
+
+        assert_true('borderTopWidth' in style);
+
+      }, '\'borderTopWidth\' in style');
+
+      test(function(){
+
+        assert_true('borderRightWidth' in style);
+
+      }, '\'borderRightWidth\' in style');
+
+      test(function(){
+
+        assert_true('borderBottomWidth' in style);
+
+      }, '\'borderBottomWidth\' in style');
+
+      test(function(){
+
+        assert_true('borderLeftWidth' in style);
+
+      }, '\'borderLeftWidth\' in style');
+
+      test(function(){
+
+        assert_true('borderWidth' in style);
+
+      }, '\'borderWidth\' in style');
+
+      test(function(){
+
+        assert_true('bottom' in style);
+
+      }, '\'bottom\' in style');
+
+      test(function(){
+
+        assert_true('captionSide' in style);
+
+      }, '\'captionSide\' in style');
+
+      test(function(){
+
+        assert_true('clear' in style);
+
+      }, '\'clear\' in style');
+
+      test(function(){
+
+        assert_true('clip' in style);
+
+      }, '\'clip\' in style');
+
+      test(function(){
+
+        assert_true('color' in style);
+
+      }, '\'color\' in style');
+
+      test(function(){
+
+        assert_true('content' in style);
+
+      }, '\'content\' in style');
+
+      test(function(){
+
+        assert_true('counterIncrement' in style);
+
+      }, '\'counterIncrement\' in style');
+
+      test(function(){
+
+        assert_true('counterReset' in style);
+
+      }, '\'counterReset\' in style');
+
+      test(function(){
+
+        assert_true('cursor' in style);
+
+      }, '\'cursor\' in style');
+
+      test(function(){
+
+        assert_true('direction' in style);
+
+      }, '\'direction\' in style');
+
+      test(function(){
+
+        assert_true('display' in style);
+
+      }, '\'display\' in style');
+
+      test(function(){
+
+        assert_true('emptyCells' in style);
+
+      }, '\'emptyCells\' in style');
+
+      test(function(){
+
+        assert_true('cssFloat' in style);
+
+      }, '\'cssFloat\' in style');
+
+      test(function(){
+
+        assert_true('font' in style);
+
+      }, '\'font\' in style');
+
+      test(function(){
+
+        assert_true('fontFamily' in style);
+
+      }, '\'fontFamily\' in style');
+
+      test(function(){
+
+        assert_true('fontSize' in style);
+
+      }, '\'fontSize\' in style');
+
+      test(function(){
+
+        assert_true('fontStyle' in style);
+
+      }, '\'fontStyle\' in style');
+
+      test(function(){
+
+        assert_true('fontVariant' in style);
+
+      }, '\'fontVariant\' in style');
+
+      test(function(){
+
+        assert_true('fontWeight' in style);
+
+      }, '\'fontWeight\' in style');
+
+      test(function(){
+
+        assert_true('height' in style);
+
+      }, '\'height\' in style');
+
+      test(function(){
+
+        assert_true('left' in style);
+
+      }, '\'left\' in style');
+
+      test(function(){
+
+        assert_true('letterSpacing' in style);
+
+      }, '\'letterSpacing\' in style');
+
+      test(function(){
+
+        assert_true('lineHeight' in style);
+
+      }, '\'lineHeight\' in style');
+
+      test(function(){
+
+        assert_true('listStyle' in style);
+
+      }, '\'listStyle\' in style');
+
+      test(function(){
+
+        assert_true('listStyleImage' in style);
+
+      }, '\'listStyleImage\' in style');
+
+      test(function(){
+
+        assert_true('listStylePosition' in style);
+
+      }, '\'listStylePosition\' in style');
+
+      test(function(){
+
+        assert_true('listStyleType' in style);
+
+      }, '\'listStyleType\' in style');
+
+      test(function(){
+
+        assert_true('margin' in style);
+
+      }, '\'margin\' in style');
+
+      test(function(){
+
+        assert_true('marginTop' in style);
+
+      }, '\'marginTop\' in style');
+
+      test(function(){
+
+        assert_true('marginRight' in style);
+
+      }, '\'marginRight\' in style');
+
+      test(function(){
+
+        assert_true('marginBottom' in style);
+
+      }, '\'marginBottom\' in style');
+
+      test(function(){
+
+        assert_true('marginLeft' in style);
+
+      }, '\'marginLeft\' in style');
+
+      test(function(){
+
+        assert_true('maxHeight' in style);
+
+      }, '\'maxHeight\' in style');
+
+      test(function(){
+
+        assert_true('maxWidth' in style);
+
+      }, '\'maxWidth\' in style');
+
+      test(function(){
+
+        assert_true('minHeight' in style);
+
+      }, '\'minHeight\' in style');
+
+      test(function(){
+
+        assert_true('minWidth' in style);
+
+      }, '\'minWidth\' in style');
+
+      test(function(){
+
+        assert_true('orphans' in style);
+
+      }, '\'orphans\' in style');
+
+      test(function(){
+
+        assert_true('outline' in style);
+
+      }, '\'outline\' in style');
+
+      test(function(){
+
+        assert_true('outlineColor' in style);
+
+      }, '\'outlineColor\' in style');
+
+      test(function(){
+
+        assert_true('outlineStyle' in style);
+
+      }, '\'outlineStyle\' in style');
+
+      test(function(){
+
+        assert_true('outlineWidth' in style);
+
+      }, '\'outlineWidth\' in style');
+
+      test(function(){
+
+        assert_true('overflow' in style);
+
+      }, '\'overflow\' in style');
+
+      test(function(){
+
+        assert_true('padding' in style);
+
+      }, '\'padding\' in style');
+
+      test(function(){
+
+        assert_true('paddingTop' in style);
+
+      }, '\'paddingTop\' in style');
+
+      test(function(){
+
+        assert_true('paddingRight' in style);
+
+      }, '\'paddingRight\' in style');
+
+      test(function(){
+
+        assert_true('paddingBottom' in style);
+
+      }, '\'paddingBottom\' in style');
+
+      test(function(){
+
+        assert_true('paddingLeft' in style);
+
+      }, '\'paddingLeft\' in style');
+
+      test(function(){
+
+        assert_true('pageBreakAfter' in style);
+
+      }, '\'pageBreakAfter\' in style');
+
+      test(function(){
+
+        assert_true('pageBreakBefore' in style);
+
+      }, '\'pageBreakBefore\' in style');
+
+      test(function(){
+
+        assert_true('pageBreakInside' in style);
+
+      }, '\'pageBreakInside\' in style');
+
+      test(function(){
+
+        assert_true('position' in style);
+
+      }, '\'position\' in style');
+
+      test(function(){
+
+        assert_true('quotes' in style);
+
+      }, '\'quotes\' in style');
+
+      test(function(){
+
+        assert_true('right' in style);
+
+      }, '\'right\' in style');
+
+      test(function(){
+
+        assert_true('tableLayout' in style);
+
+      }, '\'tableLayout\' in style');
+
+      test(function(){
+
+        assert_true('textAlign' in style);
+
+      }, '\'textAlign\' in style');
+
+      test(function(){
+
+        assert_true('textDecoration' in style);
+
+      }, '\'textDecoration\' in style');
+
+      test(function(){
+
+        assert_true('textIndent' in style);
+
+      }, '\'textIndent\' in style');
+
+      test(function(){
+
+        assert_true('textTransform' in style);
+
+      }, '\'textTransform\' in style');
+
+      test(function(){
+
+        assert_true('top' in style);
+
+      }, '\'top\' in style');
+
+      test(function(){
+
+        assert_true('unicodeBidi' in style);
+
+      }, '\'unicodeBidi\' in style');
+
+      test(function(){
+
+        assert_true('verticalAlign' in style);
+
+      }, '\'verticalAlign\' in style');
+
+      test(function(){
+
+        assert_true('visibility' in style);
+
+      }, '\'visibility\' in style');
+
+      test(function(){
+
+        assert_true('whiteSpace' in style);
+
+      }, '\'whiteSpace\' in style');
+
+      test(function(){
+
+        assert_true('widows' in style);
+
+      }, '\'widows\' in style');
+
+      test(function(){
+
+        assert_true('width' in style);
+
+      }, '\'width\' in style');
+
+      test(function(){
+
+        assert_true('wordSpacing' in style);
+
+      }, '\'wordSpacing\' in style');
+
+      test(function(){
+
+        assert_true('zIndex' in style);
+
+      }, '\'zIndex\' in style');
+
+    ]]>
+    </script>
+  </body>
+</html>

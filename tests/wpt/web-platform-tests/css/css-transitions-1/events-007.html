@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>CSS Transitions Test: no transitionend event after display:none</title>
+    <link rel="author" title="Chris Rebert" href="http://chrisrebert.com">
+    <link rel="help" href="http://www.w3.org/TR/css3-transitions/#transition-events">
+    <link rel="help" href="https://lists.w3.org/Archives/Public/www-style/2015Apr/0405.html" title="[CSSWG] Minutes Telecon 2015-04-29" data-section-title="AnimationEnd events and display: none">
+    <meta name="flags" content="dom">
+    <meta name="assert" content="Making an element display:none; while it has a transition in progress should prevent a transitionend event from getting fired.">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style>
+#a {
+    height: 100px;
+    width: 100px;
+    transition: background-color 2s;
+}
+.red {
+    background-color: red;
+}
+.blue {
+    background-color: blue;
+}
+.hidden {
+    display: none !important;
+}
+    </style>
+    <script>
+async_test(function (t) {
+    window.addEventListener('load', function () {
+        var div = document.getElementById('a');
+        var ended = false;
+        var after = false;
+        div.addEventListener('transitionend', function () {
+            ended = true;
+            t.step(function () {
+                assert_false(true, "transitionend event didn't fire");
+            });
+        }, false);
+
+        div.className = 'blue';// initiate transition
+        window.setTimeout(function () {
+            t.step(function () {
+                assert_false(ended, "transitionend did not fire before hiding callback ran");
+                assert_false(after, "hiding callback ran before the end of the test");
+            });
+            div.className += ' hidden';// force display:none during the transition
+        }, 1000);// halfway into the transition
+        window.setTimeout(function () {
+            after = true;
+            t.step(function () {
+                assert_false(ended, "transitionend event didn't fire");
+                t.done();
+            });
+        }, 2100);// after the transition would have ended
+    }, false);
+}, "transitionend should not be fired if the element is made display:none during the transition");
+    </script>
+</head>
+<body>
+    <div id="a" class="red"></div>
+</body>
+</html>

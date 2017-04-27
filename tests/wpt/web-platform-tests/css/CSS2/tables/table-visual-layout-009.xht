@@ -1,0 +1,61 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Column group boxes occupy same cells as the columns they contain</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#table-layout" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="A column group box occupies the same cells as the columns it contains." />
+        <style type="text/css">
+            #black
+            {
+                background: blue;
+            }
+            td
+            {
+                border: 1px solid black;
+                height: 2em;
+                width: 2em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the middle two columns in the table are blue.</p>
+        <table>
+            <colgroup>
+                <col />
+            </colgroup>
+            <colgroup id="black">
+                <col />
+                <col />
+            </colgroup>
+            <colgroup>
+                <col />
+            </colgroup>
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+        </table>
+    </body>
+</html>

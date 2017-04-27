@@ -17,7 +17,7 @@
  *
  * ```
  * fn have_to_use_pseudo_elements() {
- *     macro_rules pseudo_element! {
+ *     macro_rules! pseudo_element {
  *         ($pseudo_str_with_colon:expr, $pseudo_atom:expr, $is_anon_box:true) => {{
  *             // Stuff stuff stuff.
  *         }}

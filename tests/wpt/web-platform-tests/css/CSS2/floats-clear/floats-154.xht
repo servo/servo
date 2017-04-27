@@ -1,0 +1,23 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Stacking contexts of relatively positioned content inside floats</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/float/054.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats" />
+  <link rel="match" href="floats-154-ref.xht" />
+
+  <style type="text/css">
+   body { font-size: 8em; }
+   p { font-size: medium; }
+   .float { float: left; height: 1em; width: 1em; margin-right: -1em; background: red; }
+   .relative { position: relative; height: 1em; width: 1em; background: green; }
+   .inline { color: red; }
+  </style>
+ </head>
+ <body>
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+  <div class="float"><div class="relative"></div></div>
+  <div class="inline">X</div>
+ </body>
+</html>

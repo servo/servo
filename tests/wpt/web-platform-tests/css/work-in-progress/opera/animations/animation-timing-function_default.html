@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <title>CSS Animations - animation-timing-function default</title>
+   <link rel="author" title="Opera Software ASA" href="http://www.opera.com/">
+   <link rel="help" href="https://drafts.csswg.org/css3-animations/#animation-timing-function_tag">
+   <meta name="flags" content="dom">
+   <meta name="assert" content="animation-timing-function does not inherit by
+   default">
+   <script src="/resources/testharness.js"></script>
+   <script src="/resources/testharnessreport.js"></script>
+   <style type="text/css">
+      @keyframes move {
+         from {
+            left: 0px;
+         }
+         to {
+            left: 50px;
+         }
+      }
+      div {
+         width: 50px;
+         height: 100px;
+         background: blue;
+         position: relative;
+         animation-fill-mode: forwards;
+         animation-duration: 1s;
+      }
+      .test {
+         animation-timing-function: step-end;
+      }
+      .test, .test > div {
+         animation-name: move;
+      }
+   </style>
+   <script type="text/javascript">
+      setup({explicit_done:true});
+      onload = function() {
+         var testName = document.querySelector('title').firstChild.data;
+         var divs = document.querySelectorAll('div');
+         var log = document.querySelectorAll('p')[1].firstChild;
+         var timeout = setTimeout(function() {
+            test(function(){assert_true(false);}, testName); done();
+            log.data = 'FAIL';
+         }, 1500);
+         divs[1].addEventListener('animationend', function() {
+            clearTimeout(timeout);
+            var style = getComputedStyle(divs[1], null);
+            var timing = style.getPropertyValue('animation-timing-function');
+            var passed = (timing == 'ease');
+            test(function(){assert_true(passed);}, testName); done();
+            log.data = (passed ? 'PASS if the animation occurred.' : 'FAIL');
+         });
+         divs[0].className = 'test';
+      }
+   </script>
+   <style>iframe{display:none}</style>
+</head>
+<body>
+   <p>The blue block below should gradually grow wider until it's a square, and
+   then abruptly jump rightwards.</p>
+   <p>Testing...</p>
+   <div>
+      <div></div>
+   </div>
+</body>
+</html>

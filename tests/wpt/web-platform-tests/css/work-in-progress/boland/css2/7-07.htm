@@ -1,0 +1,51 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Fourth Test of Section 7.3 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+@media projection {font-size: 10pt}
+@media SCREEN {font: italic}
+@media screen {font-size: 15pt}
+@media tv {font-size: 20pt}
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Fourth Testable Statement of Sec 7.3 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+4. Media type names are case-insensitive.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p >
+If statement #4 above is passed, then
+this paragraph should have font size of 10pt if the media is
+projection, font size of 15pt if the media is screen, and font size of 20pt
+if the media is tv.
+Also font of italic if media is SCREEN (case insensitive).
+The rules applied are "@media projection {font-size: 10pt}",
+"@media screen {font-size: 15pt}", and
+"@media tty {font-size: 20pt}".
+Also "@media SCREEN {font: italic}".
+All other properties of this page should be UA-default.
+
+
+To move directly to the next test, click<a href="7-08.htm"> here</a>
+</BODY>
+</HTML>
+

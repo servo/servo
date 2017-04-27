@@ -155,7 +155,7 @@ promise_test(() => {
 }, 'Piping from a ReadableStream for which a chunk becomes asynchronously readable after the pipeTo');
 
 for (const preventAbort of [true, false]) {
-  promise_test(t => {
+  promise_test(() => {
 
     const rs = new ReadableStream({
       pull() {
@@ -171,7 +171,7 @@ for (const preventAbort of [true, false]) {
 }
 
 for (const preventCancel of [true, false]) {
-  promise_test(t => {
+  promise_test(() => {
 
     const rs = new ReadableStream({
       pull(controller) {

@@ -8,129 +8,25 @@
 //! [basic-shape]: https://drafts.csswg.org/css-shapes/#typedef-basic-shape
 
 use cssparser::Parser;
-use euclid::size::Size2D;
 use parser::{Parse, ParserContext};
-use properties::shorthands::{parse_four_sides, serialize_four_sides};
+use properties::shorthands::parse_four_sides;
 use std::ascii::AsciiExt;
 use std::fmt;
 use style_traits::ToCss;
 use values::HasViewportPercentage;
 use values::computed::{ComputedValueAsSpecified, Context, ToComputedValue};
 use values::computed::basic_shape as computed_basic_shape;
-use values::specified::{BorderRadiusSize, LengthOrPercentage, Percentage};
+use values::generics::BorderRadiusSize;
+use values::generics::basic_shape::{BorderRadius as GenericBorderRadius, ShapeRadius as GenericShapeRadius};
+use values::generics::basic_shape::{InsetRect as GenericInsetRect, Polygon as GenericPolygon, ShapeSource};
+use values::specified::{LengthOrPercentage, Percentage};
 use values::specified::position::{Keyword, Position};
-use values::specified::url::SpecifiedUrl;
 
-/// A shape source, for some reference box
-///
-/// clip-path uses ShapeSource<GeometryBox>,
-/// shape-outside uses ShapeSource<ShapeBox>
-#[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-pub enum ShapeSource<T> {
-    Url(SpecifiedUrl),
-    Shape(BasicShape, Option<T>),
-    Box(T),
-    None,
-}
+/// The specified value used by `clip-path`
+pub type ShapeWithGeometryBox = ShapeSource<BasicShape, GeometryBox>;
 
-impl<T> Default for ShapeSource<T> {
-    fn default() -> Self {
-        ShapeSource::None
-    }
-}
-
-impl<T: ToCss> ToCss for ShapeSource<T> {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            ShapeSource::Url(ref url) => url.to_css(dest),
-            ShapeSource::Shape(ref shape, Some(ref reference)) => {
-                try!(shape.to_css(dest));
-                try!(dest.write_str(" "));
-                reference.to_css(dest)
-            }
-            ShapeSource::Shape(ref shape, None) => shape.to_css(dest),
-            ShapeSource::Box(ref reference) => reference.to_css(dest),
-            ShapeSource::None => dest.write_str("none"),
-
-        }
-    }
-}
-
-impl<T: Parse> Parse for ShapeSource<T> {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        if input.try(|input| input.expect_ident_matching("none")).is_ok() {
-            return Ok(ShapeSource::None)
-        }
-
-        if let Ok(url) = input.try(|input| SpecifiedUrl::parse(context, input)) {
-            return Ok(ShapeSource::Url(url))
-        }
-
-        fn parse_component<U: Parse>(context: &ParserContext, input: &mut Parser,
-                                     component: &mut Option<U>) -> bool {
-            if component.is_some() {
-                return false            // already parsed this component
-            }
-
-            *component = input.try(|i| U::parse(context, i)).ok();
-            component.is_some()
-        }
-
-        let mut shape = None;
-        let mut reference = None;
-
-        while parse_component(context, input, &mut shape) ||
-              parse_component(context, input, &mut reference) {
-            //
-        }
-
-        if let Some(shp) = shape {
-            return Ok(ShapeSource::Shape(shp, reference))
-        }
-
-        match reference {
-            Some(r) => Ok(ShapeSource::Box(r)),
-            None => Err(())
-        }
-    }
-}
-
-impl<T: ToComputedValue> ToComputedValue for ShapeSource<T> {
-    type ComputedValue = computed_basic_shape::ShapeSource<T::ComputedValue>;
-
-    #[inline]
-    fn to_computed_value(&self, cx: &Context) -> Self::ComputedValue {
-        match *self {
-            ShapeSource::Url(ref url) => computed_basic_shape::ShapeSource::Url(url.to_computed_value(cx)),
-            ShapeSource::Shape(ref shape, ref reference) => {
-                computed_basic_shape::ShapeSource::Shape(
-                    shape.to_computed_value(cx),
-                    reference.as_ref().map(|ref r| r.to_computed_value(cx)))
-            },
-            ShapeSource::Box(ref reference) =>
-                computed_basic_shape::ShapeSource::Box(reference.to_computed_value(cx)),
-            ShapeSource::None => computed_basic_shape::ShapeSource::None,
-        }
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        match *computed {
-            computed_basic_shape::ShapeSource::Url(ref url) =>
-                ShapeSource::Url(SpecifiedUrl::from_computed_value(url)),
-            computed_basic_shape::ShapeSource::Shape(ref shape, ref reference) => {
-                ShapeSource::Shape(
-                    ToComputedValue::from_computed_value(shape),
-                    reference.as_ref().map(|r| ToComputedValue::from_computed_value(r)))
-            }
-            computed_basic_shape::ShapeSource::Box(ref reference) =>
-                ShapeSource::Box(ToComputedValue::from_computed_value(reference)),
-            computed_basic_shape::ShapeSource::None => ShapeSource::None,
-        }
-    }
-}
+/// The specified value used by `shape-outside`
+pub type ShapeWithShapeBox = ShapeSource<BasicShape, ShapeBox>;
 
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -200,23 +96,14 @@ impl ToComputedValue for BasicShape {
     }
 }
 
-#[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-/// https://drafts.csswg.org/css-shapes/#funcdef-inset
-#[allow(missing_docs)]
-pub struct InsetRect {
-    pub top: LengthOrPercentage,
-    pub right: LengthOrPercentage,
-    pub bottom: LengthOrPercentage,
-    pub left: LengthOrPercentage,
-    pub round: Option<BorderRadius>,
-}
+/// The specified value of `inset()`
+pub type InsetRect = GenericInsetRect<LengthOrPercentage>;
 
 impl InsetRect {
-    #[allow(missing_docs)]
+    /// Parse the inner function arguments of `inset()`
     pub fn parse_function_arguments(context: &ParserContext, input: &mut Parser) -> Result<InsetRect, ()> {
-        let (t, r, b, l) = try!(parse_four_sides(input, |i| LengthOrPercentage::parse(context, i)));
-        let mut rect = InsetRect {
+        let (t, r, b, l) = parse_four_sides(input, |i| LengthOrPercentage::parse(context, i))?;
+        let mut rect = GenericInsetRect {
             top: t,
             right: r,
             bottom: b,
@@ -236,54 +123,8 @@ impl Parse for InsetRect {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         match input.try(|i| i.expect_function()) {
             Ok(ref s) if s.eq_ignore_ascii_case("inset") =>
-                input.parse_nested_block(|i| InsetRect::parse_function_arguments(context, i)),
+                input.parse_nested_block(|i| GenericInsetRect::parse_function_arguments(context, i)),
             _ => Err(())
-        }
-    }
-}
-
-impl ToCss for InsetRect {
-    // XXXManishearth again, we should try to reduce the number of values printed here
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        try!(dest.write_str("inset("));
-        try!(self.top.to_css(dest));
-        try!(dest.write_str(" "));
-        try!(self.right.to_css(dest));
-        try!(dest.write_str(" "));
-        try!(self.bottom.to_css(dest));
-        try!(dest.write_str(" "));
-        try!(self.left.to_css(dest));
-        if let Some(ref radius) = self.round {
-            try!(dest.write_str(" round "));
-            try!(radius.to_css(dest));
-        }
-
-        dest.write_str(")")
-    }
-}
-
-impl ToComputedValue for InsetRect {
-    type ComputedValue = computed_basic_shape::InsetRect;
-
-    #[inline]
-    fn to_computed_value(&self, cx: &Context) -> Self::ComputedValue {
-        computed_basic_shape::InsetRect {
-            top: self.top.to_computed_value(cx),
-            right: self.right.to_computed_value(cx),
-            bottom: self.bottom.to_computed_value(cx),
-            left: self.left.to_computed_value(cx),
-            round: self.round.as_ref().map(|r| r.to_computed_value(cx)),
-        }
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        InsetRect {
-            top: ToComputedValue::from_computed_value(&computed.top),
-            right: ToComputedValue::from_computed_value(&computed.right),
-            bottom: ToComputedValue::from_computed_value(&computed.bottom),
-            left: ToComputedValue::from_computed_value(&computed.left),
-            round: computed.round.map(|ref r| ToComputedValue::from_computed_value(r)),
         }
     }
 }
@@ -336,13 +177,11 @@ fn serialize_basicshape_position<W>(position: &Position, dest: &mut W) -> fmt::R
         replace_with_percent(y).to_css(dest)
     }
 
-    match (position.horizontal.keyword, position.horizontal.position.clone(),
-           position.vertical.keyword, position.vertical.position.clone()) {
+    match (position.horizontal.0.keyword, position.horizontal.0.position.clone(),
+           position.vertical.0.keyword, position.vertical.0.position.clone()) {
         (Some(hk), None, Some(vk), None) => {
             // two keywords: serialize as two lengths
-            serialize_position_pair(hk.to_length_or_percentage(),
-                                    vk.to_length_or_percentage(),
-                                    dest)
+            serialize_position_pair(hk.into(), vk.into(), dest)
         }
         (None, Some(hp), None, Some(vp)) => {
             // two lengths: just serialize regularly
@@ -410,7 +249,7 @@ impl Parse for Circle {
 impl ToCss for Circle {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         try!(dest.write_str("circle("));
-        if ShapeRadius::ClosestSide != self.radius {
+        if GenericShapeRadius::ClosestSide != self.radius {
             try!(self.radius.to_css(dest));
             try!(dest.write_str(" "));
         }
@@ -484,7 +323,7 @@ impl Parse for Ellipse {
 impl ToCss for Ellipse {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         try!(dest.write_str("ellipse("));
-        if !self.semiaxis_x.is_default() || !self.semiaxis_y.is_default() {
+        if self.semiaxis_x != ShapeRadius::default() || self.semiaxis_y != ShapeRadius::default() {
             try!(self.semiaxis_x.to_css(dest));
             try!(dest.write_str(" "));
             try!(self.semiaxis_y.to_css(dest));
@@ -519,229 +358,41 @@ impl ToComputedValue for Ellipse {
     }
 }
 
+/// The specified value of `Polygon`
+pub type Polygon = GenericPolygon<LengthOrPercentage>;
 
-#[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-/// https://drafts.csswg.org/css-shapes/#funcdef-polygon
-#[allow(missing_docs)]
-pub struct Polygon {
-    pub fill: FillRule,
-    pub coordinates: Vec<(LengthOrPercentage, LengthOrPercentage)>,
-}
+/// The specified value of `ShapeRadius`
+pub type ShapeRadius = GenericShapeRadius<LengthOrPercentage>;
 
-impl Polygon {
-    #[allow(missing_docs)]
-    pub fn parse_function_arguments(context: &ParserContext, input: &mut Parser) -> Result<Polygon, ()> {
-        let fill = input.try(|input| {
-            let fill = FillRule::parse(input);
-            // only eat the comma if there is something before it
-            try!(input.expect_comma());
-            fill
-        }).ok().unwrap_or_else(Default::default);
-
-        let buf = try!(input.parse_comma_separated(|input| {
-            Ok((try!(LengthOrPercentage::parse(context, input)),
-                try!(LengthOrPercentage::parse(context, input))))
-        }));
-
-        Ok(Polygon {
-            fill: fill,
-            coordinates: buf,
-        })
-    }
-}
-
-impl Parse for Polygon {
+impl Parse for ShapeRadius {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        match input.try(|i| i.expect_function()) {
-            Ok(ref s) if s.eq_ignore_ascii_case("polygon") =>
-                input.parse_nested_block(|i| Polygon::parse_function_arguments(context, i)),
+        if let Ok(lop) = input.try(|i| LengthOrPercentage::parse_non_negative(context, i)) {
+            return Ok(GenericShapeRadius::Length(lop))
+        }
+
+        match_ignore_ascii_case! { &input.expect_ident()?,
+            "closest-side" => Ok(GenericShapeRadius::ClosestSide),
+            "farthest-side" => Ok(GenericShapeRadius::FarthestSide),
             _ => Err(())
         }
     }
 }
 
-impl ToCss for Polygon {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        try!(dest.write_str("polygon("));
-        let mut need_space = false;
-        if self.fill != Default::default() {
-            try!(self.fill.to_css(dest));
-            try!(dest.write_str(", "));
-        }
-
-        for coord in &self.coordinates {
-            if need_space {
-                try!(dest.write_str(", "));
-            }
-
-            try!(coord.0.to_css(dest));
-            try!(dest.write_str(" "));
-            try!(coord.1.to_css(dest));
-            need_space = true;
-        }
-
-        dest.write_str(")")
-    }
-}
-
-impl ToComputedValue for Polygon {
-    type ComputedValue = computed_basic_shape::Polygon;
-
-    #[inline]
-    fn to_computed_value(&self, cx: &Context) -> Self::ComputedValue {
-        computed_basic_shape::Polygon {
-            fill: self.fill.to_computed_value(cx),
-            coordinates: self.coordinates.iter()
-                                         .map(|c| {
-                                            (c.0.to_computed_value(cx),
-                                             c.1.to_computed_value(cx))
-                                         }).collect(),
-        }
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        Polygon {
-            fill: ToComputedValue::from_computed_value(&computed.fill),
-            coordinates: computed.coordinates.iter()
-                                             .map(|c| {
-                                                (ToComputedValue::from_computed_value(&c.0),
-                                                 ToComputedValue::from_computed_value(&c.1))
-                                             }).collect(),
-        }
-    }
-}
-
-/// https://drafts.csswg.org/css-shapes/#typedef-shape-radius
-#[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-pub enum ShapeRadius {
-    Length(LengthOrPercentage),
-    ClosestSide,
-    FarthestSide,
-}
-
-impl ShapeRadius {
-    fn is_default(&self) -> bool {
-        *self == ShapeRadius::ClosestSide
-    }
-}
-
-impl Default for ShapeRadius {
-    fn default() -> Self {
-        ShapeRadius::ClosestSide
-    }
-}
-
-impl Parse for ShapeRadius {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        input.try(|i| LengthOrPercentage::parse_non_negative(context, i)).map(ShapeRadius::Length).or_else(|_| {
-            match_ignore_ascii_case! { &try!(input.expect_ident()),
-                "closest-side" => Ok(ShapeRadius::ClosestSide),
-                "farthest-side" => Ok(ShapeRadius::FarthestSide),
-                _ => Err(())
-            }
-        })
-    }
-}
-
-impl ToCss for ShapeRadius {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            ShapeRadius::Length(ref lop) => lop.to_css(dest),
-            ShapeRadius::ClosestSide => dest.write_str("closest-side"),
-            ShapeRadius::FarthestSide => dest.write_str("farthest-side"),
-        }
-    }
-}
-
-
-impl ToComputedValue for ShapeRadius {
-    type ComputedValue = computed_basic_shape::ShapeRadius;
-
-    #[inline]
-    fn to_computed_value(&self, cx: &Context) -> Self::ComputedValue {
-        match *self {
-            ShapeRadius::Length(ref lop) =>
-                computed_basic_shape::ShapeRadius::Length(lop.to_computed_value(cx)),
-            ShapeRadius::ClosestSide => computed_basic_shape::ShapeRadius::ClosestSide,
-            ShapeRadius::FarthestSide => computed_basic_shape::ShapeRadius::FarthestSide,
-        }
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        match *computed {
-            computed_basic_shape::ShapeRadius::Length(ref lop) =>
-                ShapeRadius::Length(ToComputedValue::from_computed_value(lop)),
-            computed_basic_shape::ShapeRadius::ClosestSide => ShapeRadius::ClosestSide,
-            computed_basic_shape::ShapeRadius::FarthestSide => ShapeRadius::FarthestSide,
-        }
-    }
-}
-
-/// https://drafts.csswg.org/css-backgrounds-3/#border-radius
-#[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-pub struct BorderRadius {
-    pub top_left: BorderRadiusSize,
-    pub top_right: BorderRadiusSize,
-    pub bottom_right: BorderRadiusSize,
-    pub bottom_left: BorderRadiusSize,
-}
-
-/// Serialization helper for types of longhands like `border-radius` and `outline-radius`
-pub fn serialize_radius_values<L, W>(dest: &mut W, top_left: &Size2D<L>,
-                                     top_right: &Size2D<L>, bottom_right: &Size2D<L>,
-                                     bottom_left: &Size2D<L>) -> fmt::Result
-    where L: ToCss + PartialEq, W: fmt::Write
-{
-    if top_left.width == top_left.height &&
-       top_right.width == top_right.height &&
-       bottom_right.width == bottom_right.height &&
-       bottom_left.width == bottom_left.height {
-        serialize_four_sides(dest,
-                             &top_left.width,
-                             &top_right.width,
-                             &bottom_right.width,
-                             &bottom_left.width)
-    } else {
-        serialize_four_sides(dest,
-                             &top_left.width,
-                             &top_right.width,
-                             &bottom_right.width,
-                             &bottom_left.width)?;
-        dest.write_str(" / ")?;
-        serialize_four_sides(dest,
-                             &top_left.height,
-                             &top_right.height,
-                             &bottom_right.height,
-                             &bottom_left.height)
-    }
-}
-
-impl ToCss for BorderRadius {
-    #[inline]
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        serialize_radius_values(dest, &self.top_left.0, &self.top_right.0,
-                                &self.bottom_right.0, &self.bottom_left.0)
-    }
-}
+/// The specified value of `BorderRadius`
+pub type BorderRadius = GenericBorderRadius<LengthOrPercentage>;
 
 impl Parse for BorderRadius {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        let mut widths = try!(parse_one_set_of_border_values(context, input));
+        let mut widths = parse_one_set_of_border_values(context, input)?;
         let mut heights = if input.try(|input| input.expect_delim('/')).is_ok() {
-            try!(parse_one_set_of_border_values(context, input))
+            parse_one_set_of_border_values(context, input)?
         } else {
             [widths[0].clone(),
              widths[1].clone(),
              widths[2].clone(),
              widths[3].clone()]
         };
+
         Ok(BorderRadius {
             top_left: BorderRadiusSize::new(widths[0].take(), heights[0].take()),
             top_right: BorderRadiusSize::new(widths[1].take(), heights[1].take()),
@@ -770,48 +421,6 @@ fn parse_one_set_of_border_values(context: &ParserContext, mut input: &mut Parse
         Ok([a, b, c, d])
     } else {
         Ok([a, b.clone(), c, b])
-    }
-}
-
-
-impl ToComputedValue for BorderRadius {
-    type ComputedValue = computed_basic_shape::BorderRadius;
-
-    #[inline]
-    fn to_computed_value(&self, cx: &Context) -> Self::ComputedValue {
-        computed_basic_shape::BorderRadius {
-            top_left: self.top_left.to_computed_value(cx),
-            top_right: self.top_right.to_computed_value(cx),
-            bottom_right: self.bottom_right.to_computed_value(cx),
-            bottom_left: self.bottom_left.to_computed_value(cx),
-        }
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        BorderRadius {
-            top_left: ToComputedValue::from_computed_value(&computed.top_left),
-            top_right: ToComputedValue::from_computed_value(&computed.top_right),
-            bottom_right: ToComputedValue::from_computed_value(&computed.bottom_right),
-            bottom_left: ToComputedValue::from_computed_value(&computed.bottom_left),
-        }
-    }
-}
-
-// https://drafts.csswg.org/css-shapes/#typedef-fill-rule
-// NOTE: Basic shapes spec says that these are the only two values, however
-// https://www.w3.org/TR/SVG/painting.html#FillRuleProperty
-// says that it can also be `inherit`
-define_css_keyword_enum!(FillRule:
-    "nonzero" => NonZero,
-    "evenodd" => EvenOdd
-);
-
-impl ComputedValueAsSpecified for FillRule {}
-
-impl Default for FillRule {
-    fn default() -> Self {
-        FillRule::NonZero
     }
 }
 

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Test: ::first-letter - spaces should not be selected</title>
+    <link rel="author" title="Ethan Malasky" href="mailto:emalasky@adobe.com">
+    <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#first-letter">
+    <link rel="match" href="reference/first-letter-space-not-selected-ref.html">
+    <meta name="assert" content="::first-letter should not include initial spaces. Test non-breaking space, em space, en space, and thin space, both alone and preceeding a real letter.">
+    <style type="text/css">
+        .test::first-letter {
+            background: red;
+            font-size: 3em;
+        }
+    </style>
+</head>
+<body>
+    <p>Test passes if there is no red.</p>
+    <div class="test">&nbsp;</div>
+    <div class="test">&nbsp;A</div>
+    <div class="test">&ensp;</div>
+    <div class="test">&ensp;B</div></body>
+    <div class="test">&emsp;</div>
+    <div class="test">&emsp;C</div></body>
+    <div class="test">&thinsp;</div>
+    <div class="test">&thinsp;D</div>
+</body>
+</html>

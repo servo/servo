@@ -1,0 +1,23 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Font name with multiple white space characters</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-family-prop" />
+        <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-family-prop"/>
+        <meta name="flags" content="font" />
+        <meta name="assert" content="Multiple white spaces inside quoted font-family name cannot be collapsed to single white space." />
+        <style type="text/css">
+            div
+            {
+                font-family: "     White     Space    ", "Times New Roman";
+            }
+        </style>
+    </head>
+    <body>
+        <p>PREREQUISITE: Operating system needs to have the '<a href="support/AHEM_whitespace.ttf">White Space</a>' font installed.</p>
+        <p>Post Test: Remove test font after running the test.</p>
+        <p>Test passes if there is a letter "X" below.</p>
+        <div>X</div>
+    </body>
+</html>

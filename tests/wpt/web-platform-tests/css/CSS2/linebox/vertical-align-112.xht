@@ -1,0 +1,40 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Vertical-align with a keyword, 'baseline'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#propdef-vertical-align" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#leading" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The 'vertical-align' property sets the keyword 'baseline'." />
+        <style type="text/css">
+            div
+            {
+                font: 0.5in/1em Ahem;
+                position: relative;
+            }
+            #div3
+            {
+                top: -0.7in;
+            }
+            #span1
+            {
+                color: red;
+                vertical-align: baseline;
+            }
+            #span2
+            {
+                font: 1.5in/1em Ahem;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a small and large box on the page and there is no red visible on the page.</p>
+        <div id="div1">
+            <div id="div2">
+                <span id="span1">X</span><span id="span2">X</span>
+            </div>
+            <div id="div3">X</div>
+        </div>
+    </body>
+</html>

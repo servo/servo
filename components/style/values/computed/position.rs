@@ -3,59 +3,79 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //! CSS handling for the computed value of
-//! [`position`][position]s
+//! [`position`][position] values.
 //!
 //! [position]: https://drafts.csswg.org/css-backgrounds-3/#position
 
 use std::fmt;
 use style_traits::ToCss;
 use values::computed::LengthOrPercentage;
+use values::generics::position::{Position as GenericPosition, PositionWithKeyword};
+use values::generics::position::HorizontalPosition as GenericHorizontalPosition;
+use values::generics::position::VerticalPosition as GenericVerticalPosition;
 
-#[derive(Debug, Clone, PartialEq, Copy)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-pub struct Position {
-    pub horizontal: LengthOrPercentage,
-    pub vertical: LengthOrPercentage,
+/// The computed value of a CSS `<position>`
+pub type Position = PositionWithKeyword<LengthOrPercentage>;
+
+impl Copy for Position {}
+
+/// The computed value for `<position>` values without a keyword.
+pub type OriginPosition = GenericPosition<LengthOrPercentage, LengthOrPercentage>;
+
+impl Copy for OriginPosition {}
+
+impl OriginPosition {
+    #[inline]
+    /// The initial value for `perspective-origin`
+    pub fn center() -> OriginPosition {
+        GenericPosition {
+            horizontal: LengthOrPercentage::Percentage(0.5),
+            vertical: LengthOrPercentage::Percentage(0.5),
+        }
+    }
 }
 
 impl Position {
+    #[inline]
     /// Construct a position at (0, 0)
     pub fn zero() -> Self {
         Position {
-            horizontal: LengthOrPercentage::zero(),
-            vertical: LengthOrPercentage::zero(),
+            horizontal: GenericHorizontalPosition(LengthOrPercentage::zero()),
+            vertical: GenericVerticalPosition(LengthOrPercentage::zero()),
         }
     }
 }
 
 impl ToCss for Position {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        try!(self.horizontal.to_css(dest));
-        try!(dest.write_str(" "));
-        try!(self.vertical.to_css(dest));
-        Ok(())
+        self.horizontal.to_css(dest)?;
+        dest.write_str(" ")?;
+        self.vertical.to_css(dest)
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Copy)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-pub struct HorizontalPosition(pub LengthOrPercentage);
+/// The computed value of a horizontal `<position>`
+pub type HorizontalPosition = GenericHorizontalPosition<LengthOrPercentage>;
 
-impl ToCss for HorizontalPosition {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        self.0.to_css(dest)
+impl Copy for HorizontalPosition {}
+
+impl HorizontalPosition {
+    #[inline]
+    /// Create a zero position value.
+    pub fn zero() -> HorizontalPosition {
+        GenericHorizontalPosition(LengthOrPercentage::Percentage(0.0))
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Copy)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-pub struct VerticalPosition(pub LengthOrPercentage);
+/// The computed value of a vertical `<position>`
+pub type VerticalPosition = GenericVerticalPosition<LengthOrPercentage>;
 
-impl ToCss for VerticalPosition {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        self.0.to_css(dest)
+impl Copy for VerticalPosition {}
+
+impl VerticalPosition {
+    #[inline]
+    /// Create a zero position value.
+    pub fn zero() -> VerticalPosition {
+        GenericVerticalPosition(LengthOrPercentage::Percentage(0.0))
     }
 }

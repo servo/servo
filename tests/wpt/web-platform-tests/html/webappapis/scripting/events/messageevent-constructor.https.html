@@ -70,11 +70,17 @@ test(function() {
 
 test(function() {
   var ev = document.createEvent("messageevent")
-  assert_equals(MessageEvent.prototype.initMessageEvent.length, 8, "MessageEvent.prototype.initMessageEvent.length should be 8")
-  assert_throws(new TypeError(), function() {
-    ev.initMessageEvent("test", true, false, "testData", "testOrigin", "testId", window)
-  }, "Calling initMessageEvent with only 7 parameters should throw a TypeError")
-}, "All parameters to initMessageEvent should be mandatory")
+  assert_equals(MessageEvent.prototype.initMessageEvent.length, 1, "MessageEvent.prototype.initMessageEvent.length should be 1")
+  ev.initMessageEvent("test")
+  assert_equals(ev.type, "test", "type attribute")
+  assert_equals(ev.bubbles, false, "bubbles attribute")
+  assert_equals(ev.cancelable, false, "bubbles attribute")
+  assert_equals(ev.data, null, "data attribute")
+  assert_equals(ev.origin, "", "origin attribute")
+  assert_equals(ev.lastEventId, "", "lastEventId attribute")
+  assert_equals(ev.source, null, "source attribute")
+  assert_array_equals(ev.ports, [], "ports attribute")
+}, "initMessageEvent operation default parameter values")
 
 promise_test(function(t) {
     var worker_url = "/service-workers/service-worker/resources/empty-worker.js";

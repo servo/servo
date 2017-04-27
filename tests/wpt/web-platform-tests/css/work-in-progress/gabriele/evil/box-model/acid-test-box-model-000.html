@@ -1,0 +1,325 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS 2.1 Test Suite: Acid Test on the box model</title>
+<link rel="author" title="Gabriele Romanato" href="mailto:gabriele.romanato@gmail.com"/>
+<link rel="help" href="http://www.w3.org/TR/CSS21/box.html"/>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="flags" content="Valid" />
+<meta name="assert" content="UA should support the specified properties"/>
+ 
+<style type="text/css" media="screen">
+
+/* Positioning and initial formatting of the face */
+
+#face {
+	font-size: 10px;
+	width: 15em;
+	margin: 2em auto;
+	background: white;
+	color: black;
+}
+
+.row {
+	margin: 0;
+}
+
+
+/* Top of the face */
+
+#top {
+	margin-left: 5em;
+	margin-right: 5em;
+	background: black;
+	padding: 0.5em 0;
+}
+
+/* Forehead */
+
+#forehead-1 {
+	margin-left: 3em;
+	margin-right: 3em;
+	background: yellow;
+	padding: 0.5em 0;
+	border-left: 2em solid black;
+	border-right: 2em solid black;
+}
+
+#forehead-2 {
+	margin-left: 2em;
+	margin-right: 2em;
+	background: yellow;
+	padding: 0.5em 0;
+	border-left: 1em solid black;
+	border-right: 1em solid black;
+}
+
+#forehead-3 {
+	margin-left: 1em;
+	margin-right: 1em;
+	background: yellow;
+	padding: 0.5em 0;
+	border-left: 1em solid black;
+	border-right: 1em solid black;
+}
+
+/* Eyes */
+
+#forehead-4 {
+	margin-left: 1em;
+	margin-right: 1em;
+	background: yellow;
+	padding: 0.5em 0;
+	border-left: 1em solid black;
+	border-right: 1em solid black;
+}
+
+#eyes-1 {
+	margin-left: 2em;
+	margin-right: 2em;
+	border-left: 2em solid black;
+	border-right: 2em solid black;
+	padding: 0.5em 0;
+}
+
+#head-1 {
+	background: yellow;
+	padding: 0.5em 0;
+	border-left: 1em solid black;
+	border-right: 1em solid black;
+}
+
+
+#eyes-2 {
+	margin-left: 3em;
+	margin-right: 3em;
+	border-left: 2em solid black;
+	border-right: 2em solid black;
+	padding: 0.5em 0;
+	margin-top: -1em;
+}
+
+
+/* Most of the face */
+
+#head-2, #head-3, #head-4 {
+	background: yellow;
+	padding: 0.5em 0;
+	border-left: 1em solid black;
+	border-right: 1em solid black;
+}
+
+
+/* Smile */
+
+#head-5 {
+	background: yellow;
+	padding: 0.5em 0;
+	border-left: 1em solid black;
+	border-right: 1em solid black;
+}
+
+#smile-1 {
+	margin-left: 2em;
+	margin-right: 2em;
+	border-left: 1em solid black;
+	border-right: 1em solid black;
+	padding: 0.5em 0;
+}
+
+#head-6, #head-7 {
+	background: yellow;
+	padding: 0.5em 0;
+	margin-left: 1em;
+	margin-right: 1em;
+	border-right: 1em solid black;
+	border-left: 1em solid black;
+}
+
+#smile-2 {
+	margin-left: 2em;
+	margin-right: 2em;
+	border-left: 1em solid black;
+	border-right: 1em solid black;
+	padding: 0.5em 0;
+	margin-top: -1em;
+}
+
+#smile-3 {
+	margin-left: 3em;
+	margin-right: 3em;
+	padding: 0.5em 0;
+	background: black;
+	margin-top: -1em;
+}
+
+/* Final section of the face */
+
+#head-8 {
+	margin-left: 2em;
+	margin-right: 2em;
+	padding: 0.5em 0;
+	background: yellow;
+	border-left: 1em solid black;
+	border-right: 1em solid black;
+}
+
+#head-9 {
+	margin-left: 3em;
+	margin-right: 3em;
+	padding: 0.5em 0;
+	background: yellow;
+	border-left: 2em solid black;
+	border-right: 2em solid black;
+}
+
+
+#bottom {
+	margin-left: 5em;
+	margin-right: 5em;
+	background: black;
+	padding: 0.5em 0;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<p>Please compare your results with the <a href="reference.png">reference rendering</a>.</p>
+
+<div id="face">
+
+	<div class="row">
+	  <div id="top"></div>
+	</div>
+	
+	
+	<div class="row">
+		<div id="forehead-1"></div>
+	</div>
+	
+	
+	<div class="row">
+	
+		<div id="forehead-2"></div>
+	
+	</div>
+	
+	<div class="row">
+	
+		<div id="forehead-3"></div>
+	
+	</div>
+	
+	<div class="row">
+	
+		<div id="forehead-4">
+		
+			<div id="eyes-1"></div>
+		
+		</div>
+	
+	</div>
+	
+	
+	
+	<div class="row">
+	
+		<div id="head-1">
+		
+			<div id="eyes-2"></div>
+		
+		</div>
+	
+	</div>
+	
+	
+	
+	
+	<div class="row">
+	
+		<div id="head-2"></div>
+	
+	
+	</div>
+	
+	
+	
+	
+	
+	
+	<div class="row">
+		<div id="head-3"></div>
+	</div>
+	
+	
+	
+	
+	<div class="row">
+		<div id="head-4"></div>
+	</div>
+	
+	
+	<div class="row">
+	
+		<div id="head-5">
+		
+			<div id="smile-1"></div>
+		
+		</div>
+	
+	</div>
+	
+	
+	
+	<div class="row">
+	
+		<div id="head-6">
+		
+			<div id="smile-2"></div>
+		
+		</div>
+	
+	</div>
+	
+	
+	
+	<div class="row">
+	
+		<div id="head-7">
+		
+			<div id="smile-3"></div>
+		
+		</div>
+		
+	
+	</div>
+	
+	
+	
+	<div class="row">
+	
+		<div id="head-8"></div>
+	
+	</div>
+	
+	<div class="row">
+	
+		<div id="head-9"></div>
+	
+	</div>
+	
+	
+	<div class="row">
+	
+		<div id="bottom"></div>
+	
+	</div>
+
+</div>
+
+</body>
+</html>

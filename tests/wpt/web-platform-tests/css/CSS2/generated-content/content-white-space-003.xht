@@ -1,0 +1,36 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Content property and white-space: nowrap</title>
+        <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact" />
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#content" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="'white-space: nowrap' applies to generated string content." />
+        <style type="text/css">
+            div.outer {
+                border: solid silver;
+                margin: 0.5em;
+                padding: 0.2em;
+                color: blue;
+            }
+            div div {
+                width: 4em;
+            }
+            #reference
+            {
+                white-space: nowrap;
+            }
+            #test:before
+            {
+                content: "This text\A		should be on\A     	one\A         line.";
+                white-space: nowrap;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the contents of the two silver boxes are identical.</p>
+        <div class="outer"> <div id="reference">This text should be on one line.</div></div>
+        <div class="outer"><div id="test"></div></div>
+    </body>
+</html>

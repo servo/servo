@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Floats with overflow:hidden next to them</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact" />
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/float/root-formatting-contexts/001.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats" />
+  <link rel="match" href="floats-bfc-001-ref.xht" />
+
+  <style type="text/css">
+   .outer { background: red; height: 300px; width: 300px; }
+   .block { background: green; height: auto; width: 300px; }
+   .float { background: green; height: 150px; width: 150px; float: left; }
+   .overflow { background: green; height: 150px; width: 200px; overflow: hidden; }
+  </style>
+ </head>
+ <body>
+  <p>Test passes if there is a big filled green square and <strong>no red</strong>.</p>
+  <div class="outer">
+   <div class="block">
+    <div class="float"></div>
+    <div class="overflow"></div>
+   </div>
+  </div>
+ </body>
+</html>

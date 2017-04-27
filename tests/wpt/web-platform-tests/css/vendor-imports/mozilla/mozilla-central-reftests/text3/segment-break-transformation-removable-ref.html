@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Text 4.1.2. Segment Break Transformation Rules</title>
+<link rel="author" title="Chun-Min (Jeremy) Chen" href="mailto:jeremychen@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<link rel="stylesheet" type="text/css" href="support/ahem.css" />
+<style> p { line-height: 1; font-family: ahem; } </style>
+</head>
+<body>
+<div>Test passes if there is <b>no</b> white space between 2nd and 3rd CJK character.
+<!--Some Chinese-->
+<p>&#x4e00;&#x4e9b;&#x4e2d;&#x6587;</p>
+<!--Some Chinese-->
+<p>&#x4e00;&#x4e9b;&#x4e2d;&#x6587;</p>
+<!--Some Chinese-->
+<p>&#x4e00;&#x4e9b;&#x4e2d;&#x6587;</p>
+<!--Some Hangul-->
+<p>&#x4e00;&#x4e9b;&#xc5b8;&#xbb38;</p>
+</div>
+</body>
+</html>

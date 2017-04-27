@@ -1,0 +1,4 @@
+It would be good to see some tests of the following (both static and dynamic):
+ * elements whose :before and :after don't lead to balanced quotes
+ * :before and :after containing more than one of open-quote, etc. (with both
+   same-side and opposite-side quotes

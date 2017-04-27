@@ -1,0 +1,30 @@
+root, document, info {
+	display: block;
+}
+
+root {
+	background: white;
+	color: black;
+}
+
+document {
+	margin: 0.5em;
+}
+
+info {
+	margin: 1em 0;
+}
+
+text {
+	font-family: sans-serif;
+    font-weight: bold;
+	 font-size: 1em;
+}
+
+svg {
+	border: medium solid green;
+	padding: 1em;
+	background-color: lime;
+	margin: 0 auto;
+	display: block;
+}

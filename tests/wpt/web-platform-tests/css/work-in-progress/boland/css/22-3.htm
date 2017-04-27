@@ -1,0 +1,55 @@
+
+<HTML>
+<HEAD>
+<TITLE>Third Test of Section 2.2 of CSS1 Spec</TITLE>
+
+
+<STYLE TYPE="text/css">
+P:first-line { font-style: small-caps }
+P:first-letter {font-size: 200%; float: left;}
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+
+<h1 >Testing Statement #3 Below of Section 2.2 of CSS1 Spec</h1>
+
+
+<ul>
+<li >
+3. UAs may ignore all rules with ":first-line" or ":first-letter" in
+the selector, or alternatively, only support a subset of the properties
+on these pseudo-elements.
+</ul>
+
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+If statement #3 above is passed, then:
+<p>
+<p:first-line>
+The first line of this paragraph may be small-caps or UA-default.
+</p:first-line>
+The other lines are UA-default, as are the other properties.  The
+pseudo-element that may be applied is "p:first-line { font-style: small-caps }".
+</p>
+<p>
+<p:first-letter>
+T
+</p:first-letter>he first letter of this paragraph is 200% font size
+with left float, or UA-default.
+The remaining properties are UA-default.  The pseudo-element that may be applied
+is "p:first-letter {font-size: 200%; float: left}".
+</p>
+
+Your browser should render this page similarly to this<a href="a223.gif">
+reference image</a> or to this<a href="b223.gif">reference image</a>.
+</BODY>
+</HTML>

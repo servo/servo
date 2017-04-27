@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+	<head>
+	    <title>CSS Test: CSS Transform using 2d rotate()</title>
+	    <link rel="author" title="Rick Hurst" href="http://mrkn.co/axegs">
+	    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-property">
+	    <link rel="match" href="2d-rotate-ref.html">
+	    <meta name="flags" content="svg">
+	    <meta name="assert" content="asserting that you can rotate an element with CSS">
+	    <style type="text/css">
+			article, svg{
+				position: absolute;
+				top: 220px;
+				left: 60px;
+			}
+			article{
+				border: 10px solid green;
+				display: block;
+				height: 100px;
+				width: 100px;
+				z-index: 2;
+			}
+			section article{
+				transform: rotate(30deg);
+				transform-origin: 19% 197%;
+			}
+		</style>
+	</head>
+	<body>
+		<p>You should only see one block with color green, and you should not see any red</p>
+		<section>
+		    <article></article>
+			<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="300" height="200">
+				<style type="text/css">
+				rect{
+					stroke-width: 10;
+					stroke: red;
+					fill: none;
+		   	 	}
+			    </style>
+				<rect height="110" width="110" y="-38" x="120" transform="rotate(30)" />
+			</svg>
+		</section>
+	</body>
+</html>

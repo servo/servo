@@ -6,14 +6,21 @@
 <script>
 async_test(function(t) {
   var channel = new MessageChannel();
-  channel[0] = channel.port1;
-  channel[1] = channel.port2;
-  channel.length = 2;
-  postMessage('', '*', channel);
+  postMessage('', '*', [channel.port1, channel.port2]);
   onmessage = t.step_func(function(e) {
     assert_equals(e.ports.length, 2);
     t.done();
   });
-});
+}, "MessageChannel's ports as MessagePort objects");
+
+test(() => {
+  var channel = new MessageChannel();
+  channel[0] = channel.port1;
+  channel[1] = channel.port2;
+  channel.length = 2;
+  assert_throws(new TypeError(),
+                () => { postMessage('', '*', channel) },
+                'Old-style WebIDL arrays must throw a type error');
+}, "Old-style array objects");
 </script>
 

@@ -1,0 +1,70 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>CSS Test: height:auto on region box with top/bottom layout dependencies</title>
+    <link rel="author" title="Vincent Hardy, Adobe Systems" href="mailto:vhardy@adobe.com"/>
+    <link rel="help" href="https://drafts.csswg.org/css3-regions/#rfcb-flow-fragment-height-resolution-phase-2"/>
+    <link rel="match" href="regions-auto-size-7-ref.xht"/>
+    <meta name="flags" content=""/>
+    <meta name="assert" content=
+    "In Step 1, Phase 2, the flow fragment height computed for rA should be zero and the flow fragment height computed
+    for rB should be 300px (the vertical measure of the entire flow). During the region layout, rB's content measure will
+    be 300px, and as a result, rA will have a used height of 300px too. During Step 3, the content will be laid out in
+    rA which can fit the entire flow content and rB will be empty (and oversized);"/>
+    <style>
+    /*<![CDATA[*/
+    
+body {
+    width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#container {
+    position: relative;
+    border: 1px solid #a0a0a0;
+}
+
+#rA, #rB {
+    border: 3px solid #46A4E9;
+}
+
+#rA {
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 100px;
+    position: absolute;
+    flow-from: article;
+}
+
+#rB {
+    flow-from: article;
+    width: 200px;
+    height: auto;
+    box-sizing: border;
+    margin-left: 120px;
+    z-index: 1;
+}
+#article {
+    flow-into: article;
+}
+
+
+/*]]>*/
+</style>
+</head>
+<body>
+    <p>You should see a 300px hight gray border box with two blue boxes to the left tightly fitting
+        along the y-axis. The leftmost box should contain a gray box that also tightly fit along the
+        y-axis. The rightmost box should be empty.</p>
+    <div id="article">
+        <div style="width:50px;height: 300px; background: #a0a0a0;"></div>
+    </div>
+    
+    <div id="container">
+        <div id="rA"></div>
+        <div id="rB"></div>
+    </div>
+</body>
+</html>

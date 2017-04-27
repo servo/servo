@@ -1,0 +1,28 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Text-transform application to 'display: list-item' element</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#propdef-text-transform" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#caps-prop" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'text-transform' property is applied to 'display: list-item' elements." />
+        <style type="text/css">
+            div
+            {
+                margin-left: 1em;
+            }
+            span
+            {
+                display: list-item;
+                text-transform: capitalize;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the letter "F" in the words "Filler Text" below is in upper-case and there is a marker bullet on the left-hand side of the "Filler Text".</p>
+        <div>
+            <span>filler text</span>
+        </div>
+    </body>
+</html>

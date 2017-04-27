@@ -1,0 +1,101 @@
+﻿
+
+<html>
+<head>
+<title>CSS3 Border Left Color Test</title>
+
+<style type="text/css">
+h3 {border-left-color: aqua; border-left-style: solid;}
+h4 {border-left-color: silver; border-left-style: solid;}
+em {border-left-color: green; border-left-style: solid;}
+blockquote {border-left-color: 200%; border-left-style: solid;}
+p {border-left-style: solid;}
+</style>
+</head>
+
+<body>
+
+
+
+
+<h1>CSS3 Border Left Color Test</h1>
+
+
+
+
+
+<ul>
+<li >
+For "border-left-color", initial is the value of the "color" property,
+ it applies to all elements,
+it is not inherited, percentage values are N/A, media is visual, and computed value is
+"color".
+</li>
+</ul>
+<h2>
+PASS CRITERIA:
+</h2>
+<p>
+If statement above is correct, this paragraph should have UA-default
+border left color.  A CSS rule of "border-left-style: solid" is applied.  However, the
+border left color property does apply to the p element.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+</p>
+<h3>
+This h3 heading has a border left color of aqua, but this <em>emphasized text
+</em> has a border left color of green; the rules applied are:
+"h3 {border-left-color: aqua;}"
+"em {border-left-color: green}"
+So the border left color property applies to the h3 and em elements.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+</h3>
+<h4>
+This h4 heading has a border left color property of silver (because of the
+rule "h4 {border-left-color: silver}", but these <i>italicized words</i>
+have a border left color of UA-default, because the border-left-color
+property does not inherit.  
+However, the border left color property does apply to the h4 and i elements.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+</h4>
+<blockquote>
+This blockquote element should have a UA-default border left color.  The
+nonsensical rule "blockquote {border-left-color: 200%}" should be ignored,
+but the border-left-color property does apply to the blockquote element.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+Here is more text to test this more effectively.
+</blockquote>
+<p>
+All other properties of this page should be UA-default.
+This is a paragraph, like the one above.  Border left style of solid is applied to
+all CSS rules, so that left border is visible.
+</p>
+
+</body>
+</html>

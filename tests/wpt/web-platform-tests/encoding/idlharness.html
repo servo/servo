@@ -28,7 +28,7 @@ dictionary TextDecodeOptions {
 };
 
 [Constructor(optional DOMString label = "utf-8", optional TextDecoderOptions options),
- Exposed=Window,Worker]
+ Exposed=(Window,Worker)]
 interface TextDecoder {
   readonly attribute DOMString encoding;
   readonly attribute boolean fatal;
@@ -39,7 +39,7 @@ interface TextDecoder {
 // 8.2 Interface TextDecoder
 
 [Constructor,
- Exposed=Window,Worker]
+ Exposed=(Window,Worker)]
 interface TextEncoder {
   readonly attribute DOMString encoding;
   [NewObject] Uint8Array encode(optional USVString input = "");

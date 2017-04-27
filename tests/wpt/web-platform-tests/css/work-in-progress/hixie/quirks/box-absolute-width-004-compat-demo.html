@@ -1,0 +1,18 @@
+<!-- Quirks -->
+<html>
+ <head>
+  <title>CSS: width:auto with block width:100%</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/absolute/width/004-compat-demo.html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#abs-non-replaced-width" />
+  <style type="text/css">
+   .test { width: 10em; height: 10em; padding: 10em; border: solid; background: teal; position: relative; }
+   .test div { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: aqua; }
+  </style>
+ </head>
+ <body>
+  <div class="test">
+   <div> </div>
+  </div>
+ </body>
+</html>

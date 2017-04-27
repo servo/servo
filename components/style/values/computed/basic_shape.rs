@@ -9,45 +9,19 @@
 
 use std::fmt;
 use style_traits::ToCss;
-use values::computed::{BorderRadiusSize, LengthOrPercentage};
+use values::computed::LengthOrPercentage;
 use values::computed::position::Position;
-use values::specified::url::SpecifiedUrl;
+use values::generics::basic_shape::{BorderRadius as GenericBorderRadius, ShapeRadius as GenericShapeRadius};
+use values::generics::basic_shape::{InsetRect as GenericInsetRect, Polygon as GenericPolygon, ShapeSource};
 
-pub use values::specified::basic_shape::{self, FillRule, GeometryBox, ShapeBox};
+pub use values::generics::basic_shape::FillRule;
+pub use values::specified::basic_shape::{self, GeometryBox, ShapeBox};
 
-#[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-pub enum ShapeSource<T> {
-    Url(SpecifiedUrl),
-    Shape(BasicShape, Option<T>),
-    Box(T),
-    None,
-}
+/// The computed value used by `clip-path`
+pub type ShapeWithGeometryBox = ShapeSource<BasicShape, GeometryBox>;
 
-impl<T> Default for ShapeSource<T> {
-    fn default() -> Self {
-        ShapeSource::None
-    }
-}
-
-impl<T: ToCss> ToCss for ShapeSource<T> {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            ShapeSource::Url(ref url) => url.to_css(dest),
-            ShapeSource::Shape(ref shape, Some(ref reference)) => {
-                try!(shape.to_css(dest));
-                try!(dest.write_str(" "));
-                reference.to_css(dest)
-            }
-            ShapeSource::Shape(ref shape, None) => shape.to_css(dest),
-            ShapeSource::Box(ref reference) => reference.to_css(dest),
-            ShapeSource::None => dest.write_str("none"),
-
-        }
-    }
-}
-
+/// The computed value used by `shape-outside`
+pub type ShapeWithShapeBox = ShapeSource<BasicShape, ShapeBox>;
 
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -70,35 +44,8 @@ impl ToCss for BasicShape {
     }
 }
 
-#[derive(Clone, PartialEq, Copy, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-pub struct InsetRect {
-    pub top: LengthOrPercentage,
-    pub right: LengthOrPercentage,
-    pub bottom: LengthOrPercentage,
-    pub left: LengthOrPercentage,
-    pub round: Option<BorderRadius>,
-}
-
-impl ToCss for InsetRect {
-    // XXXManishearth again, we should try to reduce the number of values printed here
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        try!(dest.write_str("inset("));
-        try!(self.top.to_css(dest));
-        try!(dest.write_str(" "));
-        try!(self.right.to_css(dest));
-        try!(dest.write_str(" "));
-        try!(self.bottom.to_css(dest));
-        try!(dest.write_str(" "));
-        try!(self.left.to_css(dest));
-        if let Some(ref radius) = self.round {
-            try!(dest.write_str(" round "));
-            try!(radius.to_css(dest));
-        }
-        dest.write_str(")")
-    }
-}
+/// The computed value of `inset()`
+pub type InsetRect = GenericInsetRect<LengthOrPercentage>;
 
 #[derive(Clone, PartialEq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -140,77 +87,13 @@ impl ToCss for Ellipse {
     }
 }
 
-#[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-/// https://drafts.csswg.org/css-shapes/#funcdef-polygon
-pub struct Polygon {
-    pub fill: FillRule,
-    pub coordinates: Vec<(LengthOrPercentage, LengthOrPercentage)>,
-}
+/// The computed value of `Polygon`
+pub type Polygon = GenericPolygon<LengthOrPercentage>;
 
-impl ToCss for Polygon {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        try!(dest.write_str("polygon("));
-        let mut need_space = false;
-        if self.fill != Default::default() {
-            try!(self.fill.to_css(dest));
-            try!(dest.write_str(", "));
-        }
-        for coord in &self.coordinates {
-            if need_space {
-                try!(dest.write_str(", "));
-            }
-            try!(coord.0.to_css(dest));
-            try!(dest.write_str(" "));
-            try!(coord.1.to_css(dest));
-            need_space = true;
-        }
-        dest.write_str(")")
-    }
-}
+/// The computed value of `BorderRadius`
+pub type BorderRadius = GenericBorderRadius<LengthOrPercentage>;
 
-/// https://drafts.csswg.org/css-shapes/#typedef-shape-radius
-#[derive(Clone, PartialEq, Copy, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-pub enum ShapeRadius {
-    Length(LengthOrPercentage),
-    ClosestSide,
-    FarthestSide,
-}
+/// The computed value of `ShapeRadius`
+pub type ShapeRadius = GenericShapeRadius<LengthOrPercentage>;
 
-impl Default for ShapeRadius {
-    fn default() -> Self {
-        ShapeRadius::ClosestSide
-    }
-}
-
-impl ToCss for ShapeRadius {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            ShapeRadius::Length(lop) => lop.to_css(dest),
-            ShapeRadius::ClosestSide => dest.write_str("closest-side"),
-            ShapeRadius::FarthestSide => dest.write_str("farthest-side"),
-        }
-    }
-}
-
-/// https://drafts.csswg.org/css-backgrounds-3/#border-radius
-#[derive(Clone, PartialEq, Copy, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-pub struct BorderRadius {
-    pub top_left: BorderRadiusSize,
-    pub top_right: BorderRadiusSize,
-    pub bottom_right: BorderRadiusSize,
-    pub bottom_left: BorderRadiusSize,
-}
-
-impl ToCss for BorderRadius {
-    #[inline]
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        basic_shape::serialize_radius_values(dest, &self.top_left.0, &self.top_right.0,
-                                             &self.bottom_right.0, &self.bottom_left.0)
-    }
-}
+impl Copy for ShapeRadius {}

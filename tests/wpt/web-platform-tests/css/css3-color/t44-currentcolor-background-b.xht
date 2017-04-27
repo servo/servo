@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>CSS Test: currentColor (with 'background-color')</title>
+		<link rel="author" title="L. David Baron" href="https://dbaron.org/" />
+		<link rel="author" title="Mozilla Corporation" href="http://mozilla.com/" />
+		<link rel="help" href="http://www.w3.org/TR/css3-color/#currentcolor" />
+		<link rel="match" href="t44-currentcolor-background-b-ref.html" />
+		<meta name="flags" content="" />
+		<meta name="assert" content="currentColor uses the color from the color property" />
+		<style type="text/css"><![CDATA[
+		#two {
+			color: green;
+			background: red;
+			background: currentcolor;
+		}
+		#three {
+			color: green;
+			background-color: red;
+			background-color: currentColor;
+		}
+		]]></style>
+	</head>
+	<body>
+		<p>This paragraph should be followed by two green blocks.</p>
+		<p id="two">This text should NOT be visible.</p>
+		<p id="three">This text should NOT be visible.</p>
+	</body>
+</html>

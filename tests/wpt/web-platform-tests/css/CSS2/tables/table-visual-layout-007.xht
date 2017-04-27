@@ -1,0 +1,43 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Column boxes are rendered by page source order</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#table-layout" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Column boxes are placed consecutively by their order in the page source." />
+        <style type="text/css">
+            .blue1
+            {
+                background: navy;
+            }
+            .blue2
+            {
+                background: blue;
+            }
+            .blue3
+            {
+                background: aqua;
+            }
+            td
+            {
+                border: 1px solid black;
+                height: 2em;
+                width: 2em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if from left-to-right, each square is a lighter blue than the previous one.</p>
+        <table>
+            <col class="blue1" />
+            <col class="blue2" />
+            <col class="blue3" />
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+        </table>
+    </body>
+</html>

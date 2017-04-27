@@ -1,0 +1,15 @@
+<csstest def="::first-letter on inlines" module="W3C Selectors" modulename="css3-modsel" number="180" rev="1.1" date="10-november-2005" xmlns="http://www.example.org/css3tests">
+
+<author>Ian Hickson</author>
+
+<cssrules>
+  p { color: green; }
+  span:first-letter { background: red; color: yellow; font-size: 4em; }
+  span::first-letter { background: red; color: yellow; font-size: 4em; }
+</cssrules>
+
+<code>
+   <p xmlns="http://www.w3.org/1999/xhtml"><span>This line should be green.</span></p>
+</code>
+
+</csstest>

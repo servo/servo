@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test (Transforms): scale(-1) on Root Element With Background</title>
+    <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-rendering">
+    <meta name="assert" content="The background here extends to the whole
+    canvas, and a transform on the root element must transform the whole
+    canvas, background included.  Thus the entire tiled background of
+    left-pointing triangles needs to be rotated 180 degrees (same as scale(-1))
+    around the top center of the viewport, which is the default
+    transform-origin of 50% 50% in this case.  An implementation that doesn't
+    draw the background on parts of the canvas outside the viewport might
+    incorrectly display nothing, because the part of the background that's
+    supposed to be rotated into view was initially above the visible part of
+    the canvas.">
+    <link rel="match" href="transform-root-bg-001-ref.html">
+    <style>
+      html {
+        background: url(support/transform-triangle-left.svg);
+        transform: scale(-1);
+      }
+      body {
+        /* The default 8px margin makes the background not line up exactly */
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+  </body>
+</html>

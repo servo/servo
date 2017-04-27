@@ -1,0 +1,31 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Outline-width - outline the box with a 1mm solid outline</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/ui.html#propdef-outline-width" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/ui.html#dynamic-outlines" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'outline-width' property supports a minimum plus one length value in millimeters that sets the width of the outline." />
+        <style type="text/css">
+            #reference
+            {
+                border: solid green 1mm;
+                margin-top: 10mm;
+                width: 300px;
+            }
+            #test
+            {
+                margin: 1mm 0 0 1mm;
+                outline: solid green;
+                outline-width: 1mm;
+                width: 300px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the boxes below are the same size.</p>
+        <div id="test">Filler Text</div>
+        <div id="reference">Filler Text</div>
+    </body>
+</html>

@@ -1,0 +1,61 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>18th Test of Section 12.6 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+
+
+
+
+  LI:before {
+     display: marker;
+     content: "(" counter(counter) ")";
+     counter-increment: counter;
+     width: 6em;
+     text-align: center;
+    }
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing 18th Testable Statement of Sec 5.1 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+18. Markers are created by setting the "display" property to "marker"
+inside a ":before" or ":after" pseudo-element.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p >
+If statement #18 above is passed, then
+<ol>
+<li>This is the first item.
+<li>This is the second item.
+<li>This is the third item.
+</ol>
+should have divided lines.
+The rules applied are "LI:before {display: marker; content: "(" counter
+(counter) ")"; counter-increment: counter; width: 6em; text-align: center;
+}".
+<p>
+All other properties of this page should be UA-default.
+
+
+</BODY>
+</HTML>
+

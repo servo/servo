@@ -1,0 +1,21 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Double click (dblclick) event is a MouseEvent</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style>#clicktarget { width: 100px; height: 100px; background-color: red; }</style>
+  </head>
+  <body>
+    <div id='clicktarget'>Double Click in this box.</div>
+    <div id="log"></div>
+    <script type="text/javascript">
+var t = async_test('click event generated from user action "click" is a MouseEvent');
+document.querySelector("#clicktarget").addEventListener('dblclick', t.step_func(function (e) {
+    assert_equals(e.constructor, window.MouseEvent);
+    document.querySelector("#clicktarget").style.backgroundColor = "green";
+    t.done();
+}));
+    </script>
+  </body>
+</html>

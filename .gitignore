@@ -24,6 +24,10 @@ Servo.app
 # IntelliJ
 .idea
 *.iws
+*.iml
+
+#Gradle
+.gradle
 
 # VSCode
 .vscode

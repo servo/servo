@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta http-equiv="Content-Security-Policy" content="connect-src 'self'">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+    async_test(t => {
+      var errorEvent = false;
+      var cspEvent = false;
+
+      var ws = new WebSocket("ws://{{domains[www]}}:{{ports[ws][0]}}/echo");
+      ws.onopen = t.unreached_func("open should not fire.");
+      ws.onerror = t.step_func(e => {
+        assert_equals(ws.readyState, WebSocket.CLOSED);
+
+        assert_false(errorEvent);
+        errorEvent = true;
+        if (cspEvent)
+            t.done();
+      });
+
+      document.addEventListener("securitypolicyviolation", t.step_func(e => {
+        if (e.blockedURI != "ws://{{domains[www]}}:{{ports[ws][0]}}")
+            return;
+
+        assert_equals(ws.readyState, WebSocket.CLOSED);
+        assert_equals(e.violatedDirective, "connect-src");
+
+        assert_false(cspEvent);
+        cspEvent = true;
+        if (errorEvent)
+            t.done();
+      }));
+    }, "WebSocket should fire error event.");
+</script>

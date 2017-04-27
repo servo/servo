@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="flags" content="dom">
+    <meta name="assert" content="shape-outside declaration is invalid if inset shape function has an invalid left param">
+    <title>CSS Shapes Test: Inset Rectangles - invalid left param</title>
+    <link rel="author" title="Sherlock Zhong" href="mailto:sherlock.z0917@gmail.com">
+    <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#supported-basic-shapes">
+    <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#funcdef-inset">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style>
+#shape{
+    width: 300px;
+    height: 300px;
+    shape-outside: inset(50px 50px 50px 50);
+}
+    </style>
+</head>
+<body>
+
+    <div id="log"></div>
+
+    <div id="shape"></div>
+
+    <script>
+    var obj = document.getElementById('shape');
+    var val = getComputedStyle(obj).shapeOutside;
+    test(function() {assert_equals(val, "none", "declaration should not be valid")});
+    </script>
+
+</body>
+</html>

@@ -2,9 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 use bloom::BloomFilter;
-use parser::{CaseSensitivity, Combinator, ComplexSelector, LocalName};
-use parser::{SimpleSelector, Selector};
-use precomputed_hash::PrecomputedHash;
+use parser::{CaseSensitivity, Combinator, ComplexSelector, Component, LocalName};
+use parser::{Selector, SelectorInner, SelectorIter};
 use std::borrow::Borrow;
 use tree::Element;
 
@@ -18,51 +17,24 @@ bitflags! {
     /// the selector matching process.
     ///
     /// This is used to implement efficient sharing.
-    pub flags StyleRelations: u16 {
-        /// Whether this element has matched any rule that is determined by a
-        /// sibling (when using the `+` or `~` combinators).
-        const AFFECTED_BY_SIBLINGS = 1 << 0,
-
-        /// Whether this element has matched any rule whose matching is
-        /// determined by its position in the tree (i.e., first-child,
-        /// nth-child, etc.).
-        const AFFECTED_BY_CHILD_INDEX = 1 << 1,
-
-        /// Whether this flag is affected by any state (i.e., non
-        /// tree-structural pseudo-class).
-        const AFFECTED_BY_STATE = 1 << 2,
-
+    pub flags StyleRelations: usize {
         /// Whether this element is affected by an ID selector.
-        const AFFECTED_BY_ID_SELECTOR = 1 << 3,
-
-        /// Whether this element matches the :empty pseudo class.
-        const AFFECTED_BY_EMPTY = 1 << 5,
-
+        const AFFECTED_BY_ID_SELECTOR = 1 << 0,
         /// Whether this element has a style attribute. Computed
         /// externally.
-        const AFFECTED_BY_STYLE_ATTRIBUTE = 1 << 6,
-
+        const AFFECTED_BY_STYLE_ATTRIBUTE = 1 << 1,
         /// Whether this element is affected by presentational hints. This is
         /// computed externally (that is, in Servo).
-        const AFFECTED_BY_PRESENTATIONAL_HINTS = 1 << 7,
-
+        const AFFECTED_BY_PRESENTATIONAL_HINTS = 1 << 2,
         /// Whether this element has pseudo-element styles. Computed externally.
-        const AFFECTED_BY_PSEUDO_ELEMENTS = 1 << 8,
-
-        /// Whether this element has effective animation styles. Computed
-        /// externally.
-        const AFFECTED_BY_ANIMATIONS = 1 << 9,
-
-        /// Whether this element has effective transition styles. Computed
-        /// externally.
-        const AFFECTED_BY_TRANSITIONS = 1 << 10,
+        const AFFECTED_BY_PSEUDO_ELEMENTS = 1 << 3,
     }
 }
 
 bitflags! {
     /// Set of flags that are set on either the element or its parent (depending
     /// on the flag) if the element could potentially match a selector.
-    pub flags ElementSelectorFlags: u8 {
+    pub flags ElementSelectorFlags: usize {
         /// When a child is added or removed from the parent, all the children
         /// must be restyled, because they may match :nth-last-child,
         /// :last-of-type, :nth-last-of-type, or :only-of-type.
@@ -96,103 +68,61 @@ impl ElementSelectorFlags {
     }
 }
 
-pub fn matches<E>(selector_list: &[Selector<E::Impl>],
-                  element: &E,
-                  parent_bf: Option<&BloomFilter>)
-                  -> bool
+pub fn matches_selector_list<E>(selector_list: &[Selector<E::Impl>],
+                                element: &E,
+                                parent_bf: Option<&BloomFilter>)
+                                -> bool
     where E: Element
 {
     selector_list.iter().any(|selector| {
         selector.pseudo_element.is_none() &&
-        matches_complex_selector(&*selector.complex_selector,
-                                 element,
-                                 parent_bf,
-                                 &mut StyleRelations::empty(),
-                                 &mut |_, _| {})
+        matches_selector(&selector.inner,
+                         element,
+                         parent_bf,
+                         &mut StyleRelations::empty(),
+                         &mut |_, _| {})
     })
 }
 
-fn may_match<E>(mut selector: &ComplexSelector<E::Impl>,
+fn may_match<E>(sel: &SelectorInner<E::Impl>,
                 bf: &BloomFilter)
                 -> bool
     where E: Element,
 {
-    // See if the bloom filter can exclude any of the descendant selectors, and
-    // reject if we can.
-    loop {
-         match selector.next {
-             None => break,
-             Some((ref cs, Combinator::Child)) |
-             Some((ref cs, Combinator::Descendant)) => selector = &**cs,
-             Some((ref cs, _)) => {
-                 selector = &**cs;
-                 continue;
-             }
-         };
+    // Check against the list of precomputed hashes.
+    for hash in sel.ancestor_hashes.iter() {
+        // If we hit the 0 sentinel hash, that means the rest are zero as well.
+        if *hash == 0 {
+            break;
+        }
 
-        for ss in selector.compound_selector.iter() {
-            match *ss {
-                SimpleSelector::LocalName(LocalName { ref name, ref lower_name })  => {
-                    if !bf.might_contain_hash(name.precomputed_hash()) &&
-                       !bf.might_contain_hash(lower_name.precomputed_hash()) {
-                       return false
-                    }
-                },
-                SimpleSelector::Namespace(ref namespace) => {
-                    if !bf.might_contain_hash(namespace.url.precomputed_hash()) {
-                        return false
-                    }
-                },
-                SimpleSelector::ID(ref id) => {
-                    if !bf.might_contain_hash(id.precomputed_hash()) {
-                        return false
-                    }
-                },
-                SimpleSelector::Class(ref class) => {
-                    if !bf.might_contain_hash(class.precomputed_hash()) {
-                        return false
-                    }
-                },
-                _ => {},
-            }
+        if !bf.might_contain_hash(*hash) {
+            return false;
         }
     }
 
-    // If we haven't proven otherwise, it may match.
     true
 }
 
 /// Determines whether the given element matches the given complex selector.
-pub fn matches_complex_selector<E, F>(selector: &ComplexSelector<E::Impl>,
-                                      element: &E,
-                                      parent_bf: Option<&BloomFilter>,
-                                      relations: &mut StyleRelations,
-                                      flags_setter: &mut F)
-                                      -> bool
+pub fn matches_selector<E, F>(selector: &SelectorInner<E::Impl>,
+                              element: &E,
+                              parent_bf: Option<&BloomFilter>,
+                              relations: &mut StyleRelations,
+                              flags_setter: &mut F)
+                              -> bool
     where E: Element,
           F: FnMut(&E, ElementSelectorFlags),
 {
+    // Use the bloom filter to fast-reject.
     if let Some(filter) = parent_bf {
         if !may_match::<E>(selector, filter) {
             return false;
         }
     }
 
-    match matches_complex_selector_internal(selector,
-                                            element,
-                                            relations,
-                                            flags_setter) {
-        SelectorMatchingResult::Matched => {
-            match selector.next {
-                Some((_, Combinator::NextSibling)) |
-                Some((_, Combinator::LaterSibling)) => *relations |= AFFECTED_BY_SIBLINGS,
-                _ => {}
-            }
-
-            true
-        }
-        _ => false
-    }
+    // Match the selector.
+    matches_complex_selector(&selector.complex, element, relations, flags_setter)
 }
 
 /// A result of selector matching, includes 3 failure types,
@@ -245,7 +175,25 @@ enum SelectorMatchingResult {
     NotMatchedGlobally,
 }
 
-fn matches_complex_selector_internal<E, F>(selector: &ComplexSelector<E::Impl>,
+/// Matches a complex selector.
+pub fn matches_complex_selector<E, F>(selector: &ComplexSelector<E::Impl>,
+                                      element: &E,
+                                      relations: &mut StyleRelations,
+                                      flags_setter: &mut F)
+                                      -> bool
+     where E: Element,
+           F: FnMut(&E, ElementSelectorFlags),
+{
+    match matches_complex_selector_internal(selector.iter(),
+                                            element,
+                                            relations,
+                                            flags_setter) {
+        SelectorMatchingResult::Matched => true,
+        _ => false
+    }
+}
+
+fn matches_complex_selector_internal<E, F>(mut selector_iter: SelectorIter<E::Impl>,
                                            element: &E,
                                            relations: &mut StyleRelations,
                                            flags_setter: &mut F)
@@ -253,14 +201,12 @@ fn matches_complex_selector_internal<E, F>(selector: &ComplexSelector<E::Impl>,
      where E: Element,
            F: FnMut(&E, ElementSelectorFlags),
 {
-    let matches_all_simple_selectors = selector.compound_selector.iter().all(|simple| {
+    let matches_all_simple_selectors = selector_iter.all(|simple| {
         matches_simple_selector(simple, element, relations, flags_setter)
     });
 
-    let siblings = selector.next.as_ref().map_or(false, |&(_, combinator)| {
-        matches!(combinator, Combinator::NextSibling | Combinator::LaterSibling)
-    });
-
+    let combinator = selector_iter.next_sequence();
+    let siblings = combinator.map_or(false, |c| c.is_sibling());
     if siblings {
         flags_setter(element, HAS_SLOW_SELECTOR_LATER_SIBLINGS);
     }
@@ -269,9 +215,9 @@ fn matches_complex_selector_internal<E, F>(selector: &ComplexSelector<E::Impl>,
         return SelectorMatchingResult::NotMatchedAndRestartFromClosestLaterSibling;
     }
 
-    match selector.next {
+    match combinator {
         None => SelectorMatchingResult::Matched,
-        Some((ref next_selector, combinator)) => {
+        Some(c) => {
             let (mut next_element, candidate_not_found) = if siblings {
                 (element.prev_sibling_element(),
                  SelectorMatchingResult::NotMatchedAndRestartFromClosestDescendant)
@@ -285,11 +231,11 @@ fn matches_complex_selector_internal<E, F>(selector: &ComplexSelector<E::Impl>,
                     None => return candidate_not_found,
                     Some(next_element) => next_element,
                 };
-                let result = matches_complex_selector_internal(&**next_selector,
+                let result = matches_complex_selector_internal(selector_iter.clone(),
                                                                &element,
                                                                relations,
                                                                flags_setter);
-                match (result, combinator) {
+                match (result, c) {
                     // Return the status immediately.
                     (SelectorMatchingResult::Matched, _) => return result,
                     (SelectorMatchingResult::NotMatchedGlobally, _) => return result,
@@ -328,7 +274,7 @@ fn matches_complex_selector_internal<E, F>(selector: &ComplexSelector<E::Impl>,
 /// Determines whether the given element matches the given single selector.
 #[inline]
 fn matches_simple_selector<E, F>(
-        selector: &SimpleSelector<E::Impl>,
+        selector: &Component<E::Impl>,
         element: &E,
         relations: &mut StyleRelations,
         flags_setter: &mut F)
@@ -348,116 +294,98 @@ fn matches_simple_selector<E, F>(
     }
 
     match *selector {
-        SimpleSelector::LocalName(LocalName { ref name, ref lower_name }) => {
+        Component::Combinator(_) => unreachable!(),
+        Component::LocalName(LocalName { ref name, ref lower_name }) => {
             let name = if element.is_html_element_in_html_document() { lower_name } else { name };
             element.get_local_name() == name.borrow()
         }
-        SimpleSelector::Namespace(ref namespace) => {
+        Component::Namespace(ref namespace) => {
             element.get_namespace() == namespace.url.borrow()
         }
         // TODO: case-sensitivity depends on the document type and quirks mode
-        SimpleSelector::ID(ref id) => {
+        Component::ID(ref id) => {
             relation_if!(element.get_id().map_or(false, |attr| attr == *id),
                          AFFECTED_BY_ID_SELECTOR)
         }
-        SimpleSelector::Class(ref class) => {
+        Component::Class(ref class) => {
             element.has_class(class)
         }
-        SimpleSelector::AttrExists(ref attr) => {
+        Component::AttrExists(ref attr) => {
             element.match_attr_has(attr)
         }
-        SimpleSelector::AttrEqual(ref attr, ref value, case_sensitivity) => {
+        Component::AttrEqual(ref attr, ref value, case_sensitivity) => {
             match case_sensitivity {
                 CaseSensitivity::CaseSensitive => element.match_attr_equals(attr, value),
                 CaseSensitivity::CaseInsensitive => element.match_attr_equals_ignore_ascii_case(attr, value),
             }
         }
-        SimpleSelector::AttrIncludes(ref attr, ref value) => {
+        Component::AttrIncludes(ref attr, ref value) => {
             element.match_attr_includes(attr, value)
         }
-        SimpleSelector::AttrDashMatch(ref attr, ref value) => {
+        Component::AttrDashMatch(ref attr, ref value) => {
             element.match_attr_dash(attr, value)
         }
-        SimpleSelector::AttrPrefixMatch(ref attr, ref value) => {
+        Component::AttrPrefixMatch(ref attr, ref value) => {
             element.match_attr_prefix(attr, value)
         }
-        SimpleSelector::AttrSubstringMatch(ref attr, ref value) => {
+        Component::AttrSubstringMatch(ref attr, ref value) => {
             element.match_attr_substring(attr, value)
         }
-        SimpleSelector::AttrSuffixMatch(ref attr, ref value) => {
+        Component::AttrSuffixMatch(ref attr, ref value) => {
             element.match_attr_suffix(attr, value)
         }
-        SimpleSelector::AttrIncludesNeverMatch(..) |
-        SimpleSelector::AttrPrefixNeverMatch(..) |
-        SimpleSelector::AttrSubstringNeverMatch(..) |
-        SimpleSelector::AttrSuffixNeverMatch(..) => {
+        Component::AttrIncludesNeverMatch(..) |
+        Component::AttrPrefixNeverMatch(..) |
+        Component::AttrSubstringNeverMatch(..) |
+        Component::AttrSuffixNeverMatch(..) => {
             false
         }
-        SimpleSelector::NonTSPseudoClass(ref pc) => {
-            relation_if!(element.match_non_ts_pseudo_class(pc, relations, flags_setter),
-                         AFFECTED_BY_STATE)
+        Component::NonTSPseudoClass(ref pc) => {
+            element.match_non_ts_pseudo_class(pc, relations, flags_setter)
         }
-        SimpleSelector::FirstChild => {
-            relation_if!(matches_first_child(element, flags_setter),
-                         AFFECTED_BY_CHILD_INDEX)
+        Component::FirstChild => {
+            matches_first_child(element, flags_setter)
         }
-        SimpleSelector::LastChild => {
-            relation_if!(matches_last_child(element, flags_setter),
-                         AFFECTED_BY_CHILD_INDEX)
+        Component::LastChild => {
+            matches_last_child(element, flags_setter)
         }
-        SimpleSelector::OnlyChild => {
-            relation_if!(matches_first_child(element, flags_setter) &&
-                         matches_last_child(element, flags_setter),
-                         AFFECTED_BY_CHILD_INDEX)
+        Component::OnlyChild => {
+            matches_first_child(element, flags_setter) &&
+            matches_last_child(element, flags_setter)
         }
-        SimpleSelector::Root => {
+        Component::Root => {
             // We never share styles with an element with no parent, so no point
             // in creating a new StyleRelation.
             element.is_root()
         }
-        SimpleSelector::Empty => {
+        Component::Empty => {
             flags_setter(element, HAS_EMPTY_SELECTOR);
-            relation_if!(element.is_empty(), AFFECTED_BY_EMPTY)
+            element.is_empty()
         }
-        SimpleSelector::NthChild(a, b) => {
-            relation_if!(matches_generic_nth_child(element, a, b, false, false, flags_setter),
-                         AFFECTED_BY_CHILD_INDEX)
+        Component::NthChild(a, b) => {
+            matches_generic_nth_child(element, a, b, false, false, flags_setter)
         }
-        SimpleSelector::NthLastChild(a, b) => {
-            relation_if!(matches_generic_nth_child(element, a, b, false, true, flags_setter),
-                         AFFECTED_BY_CHILD_INDEX)
+        Component::NthLastChild(a, b) => {
+            matches_generic_nth_child(element, a, b, false, true, flags_setter)
         }
-        SimpleSelector::NthOfType(a, b) => {
-            relation_if!(matches_generic_nth_child(element, a, b, true, false, flags_setter),
-                         AFFECTED_BY_CHILD_INDEX)
+        Component::NthOfType(a, b) => {
+            matches_generic_nth_child(element, a, b, true, false, flags_setter)
         }
-        SimpleSelector::NthLastOfType(a, b) => {
-            relation_if!(matches_generic_nth_child(element, a, b, true, true, flags_setter),
-                         AFFECTED_BY_CHILD_INDEX)
+        Component::NthLastOfType(a, b) => {
+            matches_generic_nth_child(element, a, b, true, true, flags_setter)
         }
-        SimpleSelector::FirstOfType => {
-            relation_if!(matches_generic_nth_child(element, 0, 1, true, false, flags_setter),
-                         AFFECTED_BY_CHILD_INDEX)
+        Component::FirstOfType => {
+            matches_generic_nth_child(element, 0, 1, true, false, flags_setter)
         }
-        SimpleSelector::LastOfType => {
-            relation_if!(matches_generic_nth_child(element, 0, 1, true, true, flags_setter),
-                         AFFECTED_BY_CHILD_INDEX)
+        Component::LastOfType => {
+            matches_generic_nth_child(element, 0, 1, true, true, flags_setter)
         }
-        SimpleSelector::OnlyOfType => {
-            relation_if!(matches_generic_nth_child(element, 0, 1, true, false, flags_setter) &&
-                         matches_generic_nth_child(element, 0, 1, true, true, flags_setter),
-                         AFFECTED_BY_CHILD_INDEX)
+        Component::OnlyOfType => {
+            matches_generic_nth_child(element, 0, 1, true, false, flags_setter) &&
+            matches_generic_nth_child(element, 0, 1, true, true, flags_setter)
         }
-        SimpleSelector::Negation(ref negated) => {
-            !negated.iter().all(|s| {
-                match matches_complex_selector_internal(s,
-                                                        element,
-                                                        relations,
-                                                        flags_setter) {
-                    SelectorMatchingResult::Matched => true,
-                    _ => false,
-                }
-            })
+        Component::Negation(ref negated) => {
+            !negated.iter().all(|ss| matches_simple_selector(ss, element, relations, flags_setter))
         }
     }
 }
@@ -479,7 +407,7 @@ fn matches_generic_nth_child<E, F>(element: &E,
         HAS_SLOW_SELECTOR_LATER_SIBLINGS
     });
 
-    let mut index = 1;
+    let mut index: i32 = 1;
     let mut next_sibling = if is_from_end {
         element.next_sibling_element()
     } else {
@@ -507,11 +435,13 @@ fn matches_generic_nth_child<E, F>(element: &E,
         };
     }
 
-    if a == 0 {
-        b == index
-    } else {
-        (index - b) / a >= 0 &&
-        (index - b) % a == 0
+    // Is there a non-negative integer n such that An+B=index?
+    match index.checked_sub(b) {
+        None => false,
+        Some(an) => match an.checked_div(a) {
+            Some(n) => n >= 0 && a * n == an,
+            None /* a == 0 */ => an == 0,
+        },
     }
 }
 

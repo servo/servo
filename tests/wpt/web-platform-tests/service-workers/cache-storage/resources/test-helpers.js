@@ -141,23 +141,26 @@ var vary_entries = [
 // Run |test_function| with a Cache object and a map of entries. Prior to the
 // call, the Cache is populated by cache entries from |entries|. The latter is
 // expected to be an Object mapping arbitrary keys to objects of the form
-// {request: <Request object>, response: <Response object>}. There's no
-// guarantee on the order in which entries will be added to the cache.
+// {request: <Request object>, response: <Response object>}. Entries are
+// serially added to the cache in the order specified.
 //
 // |test_function| should return a Promise that can be used with promise_test.
 function prepopulated_cache_test(entries, test_function, description) {
   cache_test(function(cache) {
       var p = Promise.resolve();
       var hash = {};
-      return Promise.all(entries.map(function(entry) {
+      entries.forEach(function(entry) {
           hash[entry.name] = entry;
-          return cache.put(entry.request.clone(),
-                           entry.response.clone())
-            .catch(function(e) {
-                assert_unreached(
-                  'Test setup failed for entry ' + entry.name + ': ' + e);
-            });
-        }))
+          p = p.then(function() {
+              return cache.put(entry.request.clone(), entry.response.clone())
+                  .catch(function(e) {
+                      assert_unreached(
+                          'Test setup failed for entry ' + entry.name + ': ' + e
+                      );
+                  });
+          });
+      });
+      return p
         .then(function() {
             assert_equals(Object.keys(hash).length, entries.length);
         })
@@ -234,6 +237,30 @@ function assert_response_in_array(actual, expected_array, description) {
             return false;
         }
     }), description);
+}
+
+// Helper for testing with Request objects. Compares simple
+// attributes defined on the interfaces, as well as the headers.
+function assert_request_equals(actual, expected, description) {
+    assert_class_string(actual, "Request", description);
+    ["url"].forEach(function(attribute) {
+        assert_equals(actual[attribute], expected[attribute],
+                      description + " Attributes differ: " + attribute + ".");
+    });
+    assert_header_equals(actual.headers, expected.headers, description);
+}
+
+// Asserts that two arrays |actual| and |expected| contain the same
+// set of Requests as determined by assert_request_equals(). The
+// corresponding elements must occupy corresponding indices in their
+// respective arrays.
+function assert_request_array_equals(actual, expected, description) {
+    assert_true(Array.isArray(actual), description);
+    assert_equals(actual.length, expected.length, description);
+    actual.forEach(function(value, index) {
+        assert_request_equals(value, expected[index],
+                              description + " : object[" + index + "]");
+    });
 }
 
 // Deletes all caches, returning a promise indicating success.

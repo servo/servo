@@ -1,0 +1,30 @@
+root {
+	display: table;
+	background: #fff;
+	color: #000;
+	height: 100%;
+	min-height: 100%;
+	width: 100%;
+}
+
+document {
+	display: table-row;
+	height: 100%;
+	min-height: 100%;
+	width: 100%;
+
+}
+
+section {
+	display: table-cell;
+	vertical-align: middle;
+	text-align: center;
+	width: 100%;
+}
+
+info {
+	
+	background: lime;
+	font-weight: bold;
+	padding: 1em;
+}

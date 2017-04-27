@@ -1,0 +1,58 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: Spanning cell that intersects a 'visibility: collapse' column</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" title="17.5.5 Dynamic row and column effects" href="http://www.w3.org/TR/CSS21/tables.html#dynamic-effects" />
+  <link rel="match" href="column-visibility-004-ref.xht" />
+
+  <meta name="flags" content="ahem" />
+  <meta name="assert" content="Contents of a spanned cell which intersect with a collapsed column are clipped." />
+
+  <style type="text/css"><![CDATA[
+  table {font: 100px/1 Ahem;}
+
+  col#collapsed-column {visibility: collapse;}
+
+  td
+  {
+  color: green;
+  padding: 0;
+  width: 1em;
+  }
+
+  .column-intersection {color: red;}
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+  <table>
+   <col></col>
+   <col id="collapsed-column"></col>
+   <col></col>
+   <col></col>
+
+   <tr>
+    <td></td>
+    <td colspan="2"><span class="column-intersection">F</span>P</td>
+    <td></td>
+   </tr>
+
+   <tr>
+    <td></td>
+    <td class="column-intersection">F</td>
+    <td></td>
+    <td></td>
+   </tr>
+  </table>
+
+ </body>
+</html>

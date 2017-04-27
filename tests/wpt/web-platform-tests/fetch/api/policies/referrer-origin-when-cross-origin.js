@@ -1,10 +1,14 @@
 if (this.document === undefined) {
   importScripts("/resources/testharness.js");
   importScripts("../resources/utils.js");
+
+  // A nested importScripts() with a referrer-policy should have no effect
+  // on overall worker policy.
+  importScripts("nested-policy.js");
 }
 
-var referrerOrigin = "http://{{host}}:{{ports[http][0]}}/";
-var fetchedUrl = "http://{{host}}:{{ports[http][1]}}" + dirname(location.pathname) + RESOURCES_DIR + "inspect-headers.py?cors&headers=referer";
+var referrerOrigin = location.origin + '/';
+var fetchedUrl = "https://{{domains[www]}}:{{ports[https][0]}}" + dirname(location.pathname) + RESOURCES_DIR + "inspect-headers.py?cors&headers=referer";
 
 promise_test(function(test) {
   return fetch(fetchedUrl).then(function(resp) {

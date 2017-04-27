@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Image Fallbacks and Annotations: the 'image()' notation</title>
+    <link rel="author" title="Hirokazu Egashira" href="mailto:yo9ega@aol.com">
+    <link rel="help" href="http://www.w3.org/TR/css3-images/#image-notation">
+	<link rel="match" href="css-image-fallbacks-and-annotations-ref.html">
+	<meta name="assert" content="The rule below would tell the UA to load The first file if it can; failing that to load The second file; failing that to display The third file.">
+    <style type="text/css">
+ 		.square{
+ 			width: 200px;
+ 			height: 200px;
+ 			background-color: red;
+ 			background-image: image("1x1-green.svg", "support/1x1-green.png","support/1x1-green.gif");
+ 		}
+    </style>
+</head>
+<body>
+<p>Test passes if background is green and no red.</p>
+<div class="square"></div>
+</body>
+</html>

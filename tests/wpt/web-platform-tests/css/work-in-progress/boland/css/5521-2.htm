@@ -1,0 +1,83 @@
+
+<html>
+
+<title>Second Test of Section 5.5.21 of CSS1 Spec</title>
+
+<style type="text/css">
+p {border-left: }
+h3 {border-left: thick solid}
+h4 {border-left: solid}
+strong {border-left: red solid}
+blockquote {border-left: 200%}
+</style>
+</head>
+
+
+
+<body>
+
+
+
+
+<h1 >Testing Statement #2 Below of Section 5.5.21 of CSS1 Spec</h1>
+
+
+
+
+
+
+<ul>
+<li>
+2. For "border-left", initial is not defined for shorthand properties, it 
+applies to all elements, it is not inherited, and percentage values are N/A.
+</ul>
+
+
+
+
+<h2>
+PASS CRITERIA:
+</h2>
+<p >
+
+If statement #2 above is passed, this paragraph should have a left border
+of UA-default.
+The rule applied is "p {border-left: }".
+So the border-left property applies to the "p" element.
+<h3>
+This h3 element should have a left border of thick solid
+<em>
+This emphasized text should have a left border of UA-default, since the 
+border left property is not inherited, and "em" is a child of 'h3".
+No explicit rule is applied for "em".
+</em>
+THe rule applied is 'h3 {border-left: thick solid}".
+So the border left property applies to em and h3.
+</h3>
+<h4>
+THis h4 element should have a border left which is solid.
+The rule applied is "border-left: solid".
+So the border left property applies to h4.
+</h4>
+
+<strong>
+This strong text should have a border left of red solid
+; so the border left property applies
+to the strong element.
+The rule applied is "strong {border-left: red solid}".
+</strong>
+<blockquote>
+This blockquote element should have a margin top of UA-default.
+The rule applied is "blockquote {border-left: 200%}", which should be
+ignored since percentages do not apply.
+</blockquote>
+
+
+
+
+
+All other properties of this page should be UA-default.
+
+
+</body>
+</html>

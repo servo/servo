@@ -210,6 +210,23 @@ class WebdriverSpecTest(URLManifestItem):
         URLManifestItem.__init__(self, source_file, url, url_base=url_base, manifest=manifest)
         self.timeout = timeout
 
+    def to_json(self):
+        rv = URLManifestItem.to_json(self)
+        if self.timeout is not None:
+            rv[-1]["timeout"] = self.timeout
+        return rv
+
+    @classmethod
+    def from_json(cls, manifest, tests_root, path, obj, source_files=None):
+        source_file = get_source_file(source_files, tests_root, manifest, path)
+
+        url, extras = obj
+        return cls(source_file,
+                   url,
+                   url_base=manifest.url_base,
+                   timeout=extras.get("timeout"),
+                   manifest=manifest)
+
 
 class SupportFile(ManifestItem):
     item_type = "support"

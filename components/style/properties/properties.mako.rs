@@ -29,6 +29,7 @@ use logical_geometry::WritingMode;
 use media_queries::Device;
 use parser::{LengthParsingMode, Parse, ParserContext};
 use properties::animated_properties::TransitionProperty;
+use selector_parser::PseudoElement;
 #[cfg(feature = "servo")] use servo_config::prefs::PREFS;
 use shared_lock::StylesheetGuards;
 use style_traits::ToCss;
@@ -37,6 +38,7 @@ use stylesheets::{CssRuleType, Origin, UrlExtraData};
 use values::{HasViewportPercentage, computed};
 use cascade_info::CascadeInfo;
 use rule_tree::StrongRuleNode;
+use style_adjuster::StyleAdjuster;
 #[cfg(feature = "servo")] use values::specified::BorderStyle;
 
 pub use self::declaration_block::*;
@@ -257,7 +259,7 @@ impl LonghandIdSet {
                     TransitionProperty::${prop.camel_case} => self.insert(LonghandId::${prop.camel_case}),
                 % endif
             % endfor
-            TransitionProperty::All => unreachable!("Tried to set TransitionProperty::All in a PropertyBitfield"),
+            ref other => unreachable!("Tried to set TransitionProperty::{:?} in a PropertyBitfield", other),
         }
     }
 
@@ -270,7 +272,7 @@ impl LonghandIdSet {
                     TransitionProperty::${prop.camel_case} => self.contains(LonghandId::${prop.camel_case}),
                 % endif
             % endfor
-            TransitionProperty::All => unreachable!("Tried to get TransitionProperty::All in a PropertyBitfield"),
+            ref other => unreachable!("Tried to get TransitionProperty::{:?} in a PropertyBitfield", other),
         }
     }
 }
@@ -443,6 +445,7 @@ impl CSSWideKeyword {
     /// to a CSSWideKeyword.
     pub fn from_ident<'i>(ident: &Cow<'i, str>) -> Option<Self> {
         match_ignore_ascii_case! { ident,
+            // If modifying this set of keyword, also update values::CustomIdent::from_ident
             "initial" => Some(CSSWideKeyword::Initial),
             "inherit" => Some(CSSWideKeyword::Inherit),
             "unset" => Some(CSSWideKeyword::Unset),
@@ -469,13 +472,15 @@ bitflags! {
     /// A set of flags for properties.
     pub flags PropertyFlags: u8 {
         /// This property requires a stacking context.
-        const CREATES_STACKING_CONTEXT = 0x01,
+        const CREATES_STACKING_CONTEXT = 1 << 0,
         /// This property has values that can establish a containing block for
         /// fixed positioned and absolutely positioned elements.
-        const FIXPOS_CB = 0x02,
+        const FIXPOS_CB = 1 << 1,
         /// This property has values that can establish a containing block for
         /// absolutely positioned elements.
-        const ABSPOS_CB = 0x04,
+        const ABSPOS_CB = 1 << 2,
+        /// This property(shorthand) is an alias of another property.
+        const ALIAS_PROPERTY = 1 << 3,
     }
 }
 
@@ -518,20 +523,14 @@ impl LonghandId {
         }
     }
 
-    /// Returns PropertyFlags for given property.
+    /// Returns PropertyFlags for given longhand property.
     pub fn flags(&self) -> PropertyFlags {
         match *self {
             % for property in data.longhands:
                 LonghandId::${property.camel_case} =>
-                    %if property.creates_stacking_context:
-                        CREATES_STACKING_CONTEXT |
-                    %endif
-                    %if property.fixpos_cb:
-                        FIXPOS_CB |
-                    %endif
-                    %if property.abspos_cb:
-                        ABSPOS_CB |
-                    %endif
+                    % for flag in property.flags:
+                        ${flag} |
+                    % endfor
                     PropertyFlags::empty(),
             % endfor
         }
@@ -657,6 +656,19 @@ impl ShorthandId {
         }
 
         None
+    }
+
+    /// Returns PropertyFlags for given shorthand property.
+    pub fn flags(&self) -> PropertyFlags {
+        match *self {
+            % for property in data.shorthands:
+                ShorthandId::${property.camel_case} =>
+                    % for flag in property.flags:
+                        ${flag} |
+                    % endfor
+                    PropertyFlags::empty(),
+            % endfor
+        }
     }
 }
 
@@ -832,7 +844,7 @@ impl PropertyId {
 
         // FIXME(https://github.com/rust-lang/rust/issues/33156): remove this enum and use PropertyId
         // when stable Rust allows destructors in statics.
-        enum StaticId {
+        pub enum StaticId {
             Longhand(LonghandId),
             Shorthand(ShorthandId),
         }
@@ -1420,6 +1432,7 @@ pub use gecko_properties::style_structs;
 /// The module where all the style structs are defined.
 #[cfg(feature = "servo")]
 pub mod style_structs {
+    use app_units::Au;
     use fnv::FnvHasher;
     use super::longhands;
     use std::hash::{Hash, Hasher};
@@ -1517,6 +1530,23 @@ pub mod style_structs {
                     self.font_family.hash(&mut hasher);
                     self.hash = hasher.finish()
                 }
+
+                /// (Servo does not handle MathML, so this just calls copy_font_size_from)
+                pub fn inherit_font_size_from(&mut self, parent: &Self,
+                                              _: Option<Au>) {
+                    self.copy_font_size_from(parent);
+                }
+                /// (Servo does not handle MathML, so this just calls set_font_size)
+                pub fn apply_font_size(&mut self,
+                                       v: longhands::font_size::computed_value::T,
+                                       _: &Self) -> Option<Au> {
+                    self.set_font_size(v);
+                    None
+                }
+                /// (Servo does not handle MathML, so this does nothing)
+                pub fn apply_unconstrained_font_size(&mut self, _: Au) {
+                }
+
             % elif style_struct.name == "Outline":
                 /// Whether the outline-width property is non-zero.
                 #[inline]
@@ -1540,6 +1570,18 @@ pub mod style_structs {
                 #[inline]
                 pub fn has_line_through(&self) -> bool {
                     self.text_decoration_line.contains(longhands::text_decoration_line::LINE_THROUGH)
+                }
+            % elif style_struct.name == "Box":
+                /// Sets the display property, but without touching
+                /// __servo_display_for_hypothetical_box, except when the
+                /// adjustment comes from root or item display fixups.
+                pub fn set_adjusted_display(&mut self,
+                                            dpy: longhands::display::computed_value::T,
+                                            is_item_or_root: bool) {
+                    self.set_display(dpy);
+                    if is_item_or_root {
+                        self.set__servo_display_for_hypothetical_box(dpy);
+                    }
                 }
             % endif
         }
@@ -1576,7 +1618,7 @@ pub mod style_structs {
             /// Returns whether there is any animation specified with
             /// animation-name other than `none`.
             pub fn specifies_animations(&self) -> bool {
-                self.animation_name_iter().any(|name| name.0 != atom!(""))
+                self.animation_name_iter().any(|name| name.0.is_some())
             }
 
             /// Returns whether there are any transitions specified.
@@ -1697,6 +1739,11 @@ impl ComputedValues {
     /// Whether this style has a -moz-binding value. This is always false for
     /// Servo for obvious reasons.
     pub fn has_moz_binding(&self) -> bool { false }
+
+    /// Whether this style has a top-layer style. That's implemented in Gecko
+    /// via the -moz-top-layer property, but servo doesn't have any concept of a
+    /// top layer (yet, it's needed for fullscreen).
+    pub fn in_top_layer(&self) -> bool { false }
 
     /// Returns whether this style's display value is equal to contents.
     ///
@@ -1916,6 +1963,21 @@ impl ComputedValues {
     }
 }
 
+impl ComputedValues {
+    /// Returns whether this computed style represents a floated object.
+    pub fn floated(&self) -> bool {
+        self.get_box().clone_float() != longhands::float::computed_value::T::none
+    }
+
+    /// Returns whether this computed style represents an out of flow-positioned
+    /// object.
+    pub fn out_of_flow_positioned(&self) -> bool {
+        use properties::longhands::position::computed_value::T as position;
+        matches!(self.get_box().clone_position(),
+                 position::absolute | position::fixed)
+    }
+}
+
 
 /// Return a WritingMode bitflags from the relevant CSS properties.
 pub fn get_writing_mode(inheritedbox_style: &style_structs::InheritedBox) -> WritingMode {
@@ -1936,16 +1998,33 @@ pub fn get_writing_mode(inheritedbox_style: &style_structs::InheritedBox) -> Wri
             flags.insert(logical_geometry::FLAG_VERTICAL);
             flags.insert(logical_geometry::FLAG_VERTICAL_LR);
         },
-    }
-    % if product == "gecko":
-    match inheritedbox_style.clone_text_orientation() {
-        computed_values::text_orientation::T::mixed => {},
-        computed_values::text_orientation::T::upright => {
-            flags.insert(logical_geometry::FLAG_UPRIGHT);
-        },
-        computed_values::text_orientation::T::sideways => {
+        % if product == "gecko":
+        computed_values::writing_mode::T::sideways_rl => {
+            flags.insert(logical_geometry::FLAG_VERTICAL);
             flags.insert(logical_geometry::FLAG_SIDEWAYS);
         },
+        computed_values::writing_mode::T::sideways_lr => {
+            flags.insert(logical_geometry::FLAG_VERTICAL);
+            flags.insert(logical_geometry::FLAG_VERTICAL_LR);
+            flags.insert(logical_geometry::FLAG_LINE_INVERTED);
+            flags.insert(logical_geometry::FLAG_SIDEWAYS);
+        },
+        % endif
+    }
+    % if product == "gecko":
+    // If FLAG_SIDEWAYS is already set, this means writing-mode is either
+    // sideways-rl or sideways-lr, and for both of these values,
+    // text-orientation has no effect.
+    if !flags.intersects(logical_geometry::FLAG_SIDEWAYS) {
+        match inheritedbox_style.clone_text_orientation() {
+            computed_values::text_orientation::T::mixed => {},
+            computed_values::text_orientation::T::upright => {
+                flags.insert(logical_geometry::FLAG_UPRIGHT);
+            },
+            computed_values::text_orientation::T::sideways => {
+                flags.insert(logical_geometry::FLAG_SIDEWAYS);
+            },
+        }
     }
     % endif
     flags
@@ -2030,6 +2109,7 @@ bitflags! {
 ///
 pub fn cascade(device: &Device,
                rule_node: &StrongRuleNode,
+               pseudo: Option<<&PseudoElement>,
                guards: &StylesheetGuards,
                parent_style: Option<<&ComputedValues>,
                layout_parent_style: Option<<&ComputedValues>,
@@ -2075,6 +2155,7 @@ pub fn cascade(device: &Device,
     };
     apply_declarations(device,
                        is_root_element,
+                       pseudo,
                        iter_declarations,
                        inherited_style,
                        layout_parent_style,
@@ -2089,6 +2170,7 @@ pub fn cascade(device: &Device,
 #[allow(unused_mut)] // conditionally compiled code for "position"
 pub fn apply_declarations<'a, F, I>(device: &Device,
                                     is_root_element: bool,
+                                    pseudo: Option<<&PseudoElement>,
                                     iter_declarations: F,
                                     inherited_style: &ComputedValues,
                                     layout_parent_style: &ComputedValues,
@@ -2203,6 +2285,7 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
                     | LonghandId::AnimationName
                     | LonghandId::TransitionProperty
                     | LonghandId::XLang
+                    | LonghandId::MozScriptLevel
                 % endif
             );
             if
@@ -2274,12 +2357,12 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
                                                  &mut cacheable,
                                                  &mut cascade_info,
                                                  error_reporter);
-            } else if let Some((kw, fraction)) = inherited_style.font_size_keyword {
-                // Font size keywords will inherit as keywords and be recomputed
-                // each time.
+            } else {
+                // Font size must be explicitly inherited to handle keyword
+                // sizes and scriptlevel
                 let discriminant = LonghandId::FontSize as usize;
-                let size = PropertyDeclaration::FontSize(
-                    longhands::font_size::SpecifiedValue::Keyword(kw, fraction)
+                let size = PropertyDeclaration::CSSWideKeyword(
+                    LonghandId::FontSize, CSSWideKeyword::Inherit
                 );
                 (CASCADE_PROPERTY[discriminant])(&size,
                                                  inherited_style,
@@ -2294,155 +2377,9 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
 
     let mut style = context.style;
 
-    let mut positioned = matches!(style.get_box().clone_position(),
-        longhands::position::SpecifiedValue::absolute |
-        longhands::position::SpecifiedValue::fixed);
-
-    // https://fullscreen.spec.whatwg.org/#new-stacking-layer
-    // Any position value other than 'absolute' and 'fixed' are
-    // computed to 'absolute' if the element is in a top layer.
-    % if product == "gecko":
-        if !positioned &&
-            matches!(style.get_box().clone__moz_top_layer(),
-                     longhands::_moz_top_layer::SpecifiedValue::top) {
-            positioned = true;
-            style.mutate_box().set_position(longhands::position::computed_value::T::absolute);
-        }
-    % endif
-
-    let positioned = positioned; // To ensure it's not mutated further.
-
-    let floated = style.get_box().clone_float() != longhands::float::computed_value::T::none;
-    let is_item = matches!(context.layout_parent_style.get_box().clone_display(),
-        % if product == "gecko":
-        computed_values::display::T::grid |
-        computed_values::display::T::inline_grid |
-        % endif
-        computed_values::display::T::flex |
-        computed_values::display::T::inline_flex);
-
-    let (blockify_root, blockify_item) =
-        if flags.contains(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP) {
-            (false, false)
-        } else {
-            (is_root_element, is_item)
-        };
-
-    if positioned || floated || blockify_root || blockify_item {
-        use computed_values::display::T;
-
-        let specified_display = style.get_box().clone_display();
-        let computed_display = match specified_display {
-            // Values that have a corresponding block-outside version.
-            T::inline_table => Some(T::table),
-            % if product == "gecko":
-            T::inline_flex => Some(T::flex),
-            T::inline_grid => Some(T::grid),
-            T::_webkit_inline_box => Some(T::_webkit_box),
-            % endif
-
-            // Special handling for contents and list-item on the root element for Gecko.
-            % if product == "gecko":
-            T::contents | T::list_item if blockify_root => Some(T::block),
-            % endif
-
-            // Values that are not changed by blockification.
-            T::none | T::block | T::flex | T::list_item | T::table => None,
-            % if product == "gecko":
-            T::contents | T::flow_root | T::grid | T::_webkit_box => None,
-            % endif
-
-            // Everything becomes block.
-            _ => Some(T::block),
-        };
-        if let Some(computed_display) = computed_display {
-            let box_ = style.mutate_box();
-            % if product == "servo":
-                box_.set_display(computed_display);
-                box_.set__servo_display_for_hypothetical_box(if blockify_root || blockify_item {
-                    computed_display
-                } else {
-                    specified_display
-                });
-            % else:
-                box_.set_adjusted_display(computed_display);
-            % endif
-        }
-    }
-
-    {
-        use computed_values::display::T as display;
-        // CSS writing modes spec (https://drafts.csswg.org/css-writing-modes-3/#block-flow):
-        //
-        //  If a box has a different writing-mode value than its containing block:
-        //  - If the box has a specified display of inline, its display computes to inline-block. [CSS21]
-        //
-        // www-style mail regarding above spec: https://lists.w3.org/Archives/Public/www-style/2017Mar/0045.html
-        // See https://github.com/servo/servo/issues/15754
-        let our_writing_mode = style.get_inheritedbox().clone_writing_mode();
-        let parent_writing_mode = context.layout_parent_style.get_inheritedbox().clone_writing_mode();
-        if our_writing_mode != parent_writing_mode &&
-           style.get_box().clone_display() == display::inline {
-            style.mutate_box().set_display(display::inline_block);
-        }
-    }
-
-    {
-        use computed_values::overflow_x::T as overflow;
-        use computed_values::overflow_y;
-        match (style.get_box().clone_overflow_x() == longhands::overflow_x::computed_value::T::visible,
-               style.get_box().clone_overflow_y().0 == longhands::overflow_x::computed_value::T::visible) {
-            (true, true) => {}
-            (true, _) => {
-                style.mutate_box().set_overflow_x(overflow::auto);
-            }
-            (_, true) => {
-                style.mutate_box().set_overflow_y(overflow_y::T(overflow::auto));
-            }
-            _ => {}
-        }
-    }
-
-    // CSS 2.1 section 9.7:
-    //
-    //    If 'position' has the value 'absolute' or 'fixed', [...] the computed
-    //    value of 'float' is 'none'.
-    //
-    if positioned && floated {
-        style.mutate_box().set_float(longhands::float::computed_value::T::none);
-    }
-
-    // This implements an out-of-date spec. The new spec moves the handling of
-    // this to layout, which Gecko implements but Servo doesn't.
-    //
-    // See https://github.com/servo/servo/issues/15229
-    % if product == "servo" and "align-items" in data.longhands_by_name:
-    {
-        use computed_values::align_self::T as align_self;
-        use computed_values::align_items::T as align_items;
-        if style.get_position().clone_align_self() == computed_values::align_self::T::auto && !positioned {
-            let self_align =
-                match context.layout_parent_style.get_position().clone_align_items() {
-                    align_items::stretch => align_self::stretch,
-                    align_items::baseline => align_self::baseline,
-                    align_items::flex_start => align_self::flex_start,
-                    align_items::flex_end => align_self::flex_end,
-                    align_items::center => align_self::center,
-                };
-            style.mutate_position().set_align_self(self_align);
-        }
-    }
-    % endif
-
-    // The initial value of border-*-width may be changed at computed value time.
-    % for side in ["top", "right", "bottom", "left"]:
-        // Like calling to_computed_value, which wouldn't type check.
-        if style.get_border().clone_border_${side}_style().none_or_hidden() &&
-           style.get_border().border_${side}_has_nonzero_width() {
-            style.mutate_border().set_border_${side}_width(Au(0));
-        }
-    % endfor
-
+    StyleAdjuster::new(&mut style, is_root_element, pseudo)
+        .adjust(context.layout_parent_style,
+                flags.contains(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP));
 
     % if product == "gecko":
         // FIXME(emilio): This is effectively creating a new nsStyleBackground
@@ -2451,12 +2388,6 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
         style.mutate_background().fill_arrays();
         style.mutate_svg().fill_arrays();
     % endif
-
-    // The initial value of outline width may be changed at computed value time.
-    if style.get_outline().clone_outline_style().none_or_hidden() &&
-       style.get_outline().outline_has_nonzero_width() {
-        style.mutate_outline().set_outline_width(Au(0));
-    }
 
     if is_root_element {
         let s = style.get_font().clone_font_size();
@@ -2473,6 +2404,18 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
     % endif
 
     style
+}
+
+
+/// See StyleAdjuster::adjust_for_border_width.
+pub fn adjust_border_width(style: &mut ComputedValues) {
+    % for side in ["top", "right", "bottom", "left"]:
+        // Like calling to_computed_value, which wouldn't type check.
+        if style.get_border().clone_border_${side}_style().none_or_hidden() &&
+           style.get_border().border_${side}_has_nonzero_width() {
+            style.mutate_border().set_border_${side}_width(Au(0));
+        }
+    % endfor
 }
 
 /// Adjusts borders as appropriate to account for a fragment's status as the

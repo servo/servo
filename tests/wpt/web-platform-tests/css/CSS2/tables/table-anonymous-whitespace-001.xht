@@ -1,0 +1,63 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Table Anonymous Box Generation - interleaved whitespace</title>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visufx.html#clipping"/>
+  <meta name="assert" content="Anonymous white space inside a tabular container
+        does not generate any boxes."/>
+  <style type="text/css"><![CDATA[
+    /* Must use <div> tables for this test because parsers do weird things
+       to the contents of <table>-related elements. */
+    .pre {
+       white-space: pre;
+    }
+    .table, table {
+       display: table;
+       border: solid silver;
+       border-spacing: 1px;
+       margin: 0.5em;
+     }
+    .row {
+       display: table-row;
+    }
+    .cell, td {
+       display: table-cell;
+       border: solid blue;
+    }
+    table, td {
+      padding: 0;
+    }
+  ]]></style>
+
+ </head>
+ <body>
+    <p>The size and contents of the four silver boxes below must be identical.</p>
+
+    <div class="pre table">
+      <div class="cell">A</div>
+      <div class="cell">B</div>
+      <div class="row">
+        <div class="cell">C</div>
+        <div class="cell">D</div>
+      </div>
+    </div>
+
+    <div class="table">
+      <div class="cell">A</div>
+      <div class="cell">B</div>
+      <div class="row">
+        <div class="cell">C</div>
+        <div class="cell">D</div>
+      </div>
+    </div>
+
+    <div class="table"><div class="cell">A</div><div class="cell">B</div><div class="row"><div class="cell">C</div><div class="cell">D</div></div></div>
+
+    <!-- use a real <table> with all elements only as a control -->
+    <table>
+      <tr><td>A</td><td>B</td></tr>
+      <tr><td>C</td><td>D</td></tr>
+    </table>
+ </body>
+</html>

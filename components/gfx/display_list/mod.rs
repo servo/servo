@@ -19,7 +19,7 @@ use euclid::{Matrix4D, Point2D, Rect, Size2D};
 use euclid::num::{One, Zero};
 use euclid::rect::TypedRect;
 use euclid::side_offsets::SideOffsets2D;
-use gfx_traits::{ScrollRootId, StackingContextId};
+use gfx_traits::StackingContextId;
 use gfx_traits::print_tree::PrintTree;
 use ipc_channel::ipc::IpcSharedMemory;
 use msg::constellation_msg::PipelineId;
@@ -34,7 +34,7 @@ use style::computed_values::{border_style, filter, image_rendering, mix_blend_mo
 use style_traits::cursor::Cursor;
 use text::TextRun;
 use text::glyph::ByteIndex;
-use webrender_traits::{self, ColorF, GradientStop, ScrollPolicy, WebGLContextId};
+use webrender_traits::{self, ClipId, ColorF, GradientStop, ScrollPolicy, WebGLContextId};
 
 pub use style::dom::OpaqueNode;
 
@@ -373,14 +373,11 @@ pub struct StackingContext {
     /// The perspective matrix to be applied to children.
     pub perspective: Option<Matrix4D<f32>>,
 
-    /// Whether this stacking context creates a new 3d rendering context.
-    pub establishes_3d_context: bool,
-
     /// The scroll policy of this layer.
     pub scroll_policy: ScrollPolicy,
 
     /// The id of the parent scrolling area that contains this StackingContext.
-    pub parent_scroll_id: ScrollRootId,
+    pub parent_scroll_id: ClipId,
 }
 
 impl StackingContext {
@@ -395,9 +392,8 @@ impl StackingContext {
                blend_mode: mix_blend_mode::T,
                transform: Option<Matrix4D<f32>>,
                perspective: Option<Matrix4D<f32>>,
-               establishes_3d_context: bool,
                scroll_policy: ScrollPolicy,
-               parent_scroll_id: ScrollRootId)
+               parent_scroll_id: ClipId)
                -> StackingContext {
         StackingContext {
             id: id,
@@ -409,15 +405,14 @@ impl StackingContext {
             blend_mode: blend_mode,
             transform: transform,
             perspective: perspective,
-            establishes_3d_context: establishes_3d_context,
             scroll_policy: scroll_policy,
             parent_scroll_id: parent_scroll_id,
         }
     }
 
     #[inline]
-    pub fn root() -> StackingContext {
-        StackingContext::new(StackingContextId::new(0),
+    pub fn root(pipeline_id: PipelineId) -> StackingContext {
+        StackingContext::new(StackingContextId::root(),
                              StackingContextType::Real,
                              &Rect::zero(),
                              &Rect::zero(),
@@ -426,13 +421,12 @@ impl StackingContext {
                              mix_blend_mode::T::normal,
                              None,
                              None,
-                             true,
                              ScrollPolicy::Scrollable,
-                             ScrollRootId::root())
+                             pipeline_id.root_scroll_node())
     }
 
-    pub fn to_display_list_items(self) -> (DisplayItem, DisplayItem) {
-        let mut base_item = BaseDisplayItem::empty();
+    pub fn to_display_list_items(self, pipeline_id: PipelineId) -> (DisplayItem, DisplayItem) {
+        let mut base_item = BaseDisplayItem::empty(pipeline_id);
         base_item.stacking_context_id = self.id;
         base_item.scroll_root_id = self.parent_scroll_id;
 
@@ -501,11 +495,12 @@ impl fmt::Debug for StackingContext {
 /// Defines a stacking context.
 #[derive(Clone, Debug, HeapSizeOf, Deserialize, Serialize)]
 pub struct ScrollRoot {
-    /// The unique ID of this ScrollRoot.
-    pub id: ScrollRootId,
+    /// The WebRender clip id of this scroll root based on the source of this clip
+    /// and information about the fragment.
+    pub id: ClipId,
 
     /// The unique ID of the parent of this ScrollRoot.
-    pub parent_id: ScrollRootId,
+    pub parent_id: ClipId,
 
     /// The position of this scroll root's frame in the parent stacking context.
     pub clip: ClippingRegion,
@@ -515,9 +510,9 @@ pub struct ScrollRoot {
 }
 
 impl ScrollRoot {
-    pub fn to_push(&self) -> DisplayItem {
+    pub fn to_push(&self, pipeline_id: PipelineId) -> DisplayItem {
         DisplayItem::PushScrollRoot(box PushScrollRootItem {
-            base: BaseDisplayItem::empty(),
+            base: BaseDisplayItem::empty(pipeline_id),
             scroll_root: self.clone(),
         })
     }
@@ -561,7 +556,7 @@ pub struct BaseDisplayItem {
     pub stacking_context_id: StackingContextId,
 
     /// The id of the scroll root this item belongs to.
-    pub scroll_root_id: ScrollRootId,
+    pub scroll_root_id: ClipId,
 }
 
 impl BaseDisplayItem {
@@ -571,7 +566,7 @@ impl BaseDisplayItem {
                clip: &ClippingRegion,
                section: DisplayListSection,
                stacking_context_id: StackingContextId,
-               scroll_root_id: ScrollRootId)
+               scroll_root_id: ClipId)
                -> BaseDisplayItem {
         // Detect useless clipping regions here and optimize them to `ClippingRegion::max()`.
         // The painting backend may want to optimize out clipping regions and this makes it easier
@@ -591,7 +586,7 @@ impl BaseDisplayItem {
     }
 
     #[inline(always)]
-    pub fn empty() -> BaseDisplayItem {
+    pub fn empty(pipeline_id: PipelineId) -> BaseDisplayItem {
         BaseDisplayItem {
             bounds: TypedRect::zero(),
             metadata: DisplayItemMetadata {
@@ -601,7 +596,7 @@ impl BaseDisplayItem {
             clip: ClippingRegion::max(),
             section: DisplayListSection::Content,
             stacking_context_id: StackingContextId::root(),
-            scroll_root_id: ScrollRootId::root(),
+            scroll_root_id: pipeline_id.root_scroll_node(),
         }
     }
 }
@@ -872,7 +867,6 @@ pub struct ImageDisplayItem {
 #[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
 pub struct WebGLDisplayItem {
     pub base: BaseDisplayItem,
-    #[ignore_heap_size_of = "Defined in webrender_traits"]
     pub context_id: WebGLContextId,
 }
 
@@ -937,11 +931,9 @@ pub struct ImageBorder {
     pub fill: bool,
 
     /// How to repeat or stretch horizontal edges (border-image-repeat).
-    #[ignore_heap_size_of = "WebRender traits type, and tiny"]
     pub repeat_horizontal: webrender_traits::RepeatMode,
 
     /// How to repeat or stretch vertical edges (border-image-repeat).
-    #[ignore_heap_size_of = "WebRender traits type, and tiny"]
     pub repeat_vertical: webrender_traits::RepeatMode,
 }
 
@@ -1142,7 +1134,7 @@ impl DisplayItem {
         }
     }
 
-    pub fn scroll_root_id(&self) -> ScrollRootId {
+    pub fn scroll_root_id(&self) -> ClipId {
         self.base().scroll_root_id
     }
 
@@ -1268,7 +1260,6 @@ pub struct WebRenderImageInfo {
     pub width: u32,
     pub height: u32,
     pub format: PixelFormat,
-    #[ignore_heap_size_of = "WebRender traits type, and tiny"]
     pub key: Option<webrender_traits::ImageKey>,
 }
 
@@ -1285,7 +1276,7 @@ impl WebRenderImageInfo {
 }
 
 /// The type of the scroll offset list. This is only populated if WebRender is in use.
-pub type ScrollOffsetMap = HashMap<ScrollRootId, Point2D<f32>>;
+pub type ScrollOffsetMap = HashMap<ClipId, Point2D<f32>>;
 
 
 pub trait SimpleMatrixDetection {

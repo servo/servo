@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Shape Outside Valid Basic Shape Functional Notation</title>
+        <link rel="author" title="Adobe" href="http://html.adobe.com/">
+        <link rel="author" title="Bear Travis" href="mailto:betravis@adobe.com">
+        <link rel="reviewer" title="Alan Stearns" href="mailto:stearns@adobe.com"> <!-- 2014-03-04 -->
+        <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shape-outside-property">
+        <link rel="help" href="http://www.w3.org/TR/cssom-1/#serializing-css-values">
+        <meta name="assert" content="Basic shapes use functional notation, and may contain optional whitespace inside the parentheses">
+        <meta name="flags" content="dom">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="support/parsing-utils.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script type="text/javascript">
+            var shape_functional_notation_tests = [
+                {
+                  "name": "No whitespace",
+                  "actual": "polygon(nonzero,1px 2px,3px 4px)",
+                  "expected_inline": "polygon(1px 2px, 3px 4px)",
+                  "expected_computed": "polygon(1px 2px, 3px 4px)"
+                },
+                {
+                  "name": "Extra whitespace",
+                  "actual": "polygon( nonzero , 1px 2px\n\t,\n\t3px\n\t4px\n\t)",
+                  "expected_inline": "polygon(1px 2px, 3px 4px)",
+                  "expected_computed": "polygon(1px 2px, 3px 4px)"
+                }
+            ];
+            generate_tests( ParsingUtils.testInlineStyle,
+                            ParsingUtils.buildTestCases(shape_functional_notation_tests, "inline") );
+            generate_tests( ParsingUtils.testComputedStyle,
+                            ParsingUtils.buildTestCases(shape_functional_notation_tests, "computed") );
+        </script>
+    </body>
+</html>

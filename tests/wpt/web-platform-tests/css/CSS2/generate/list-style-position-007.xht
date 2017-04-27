@@ -1,0 +1,34 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+  <title>CSS Test: Marker box position (inside principal box) - block box with 'float:right' (as child of principal box)</title>
+  <link rel="author" title="James Hopkins" href="http://idreamincode.co.uk/css21testsuite"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#list-style"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#block-boxes"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#float-position"/>
+  <meta name="flags" content=""/>
+  <meta name="assert" content=""/>
+  <style type="text/css">
+  #test{
+  color:navy;
+  display:list-item;
+  font-size:85px;
+  list-style-position:inside;
+  }
+  #test div{
+  background:blue;
+  float:right;
+  height:100px;
+  width:100px;
+  }
+  </style>
+ </head>
+
+ <body>
+  <p>To pass, there <strong>must</strong> be a bullet (filled-in circle) to the left of the page, and a square to the right of the page.</p>
+  <div id="test">
+   <div></div>
+  </div>
+ </body>
+</html>

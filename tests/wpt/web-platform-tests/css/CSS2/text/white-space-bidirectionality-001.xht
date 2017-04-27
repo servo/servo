@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: White-space and bidirectionality (example from spec)</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#white-space-prop" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The white space processing model does not take bidi into account for the first half of the processing model but does for the second half." />
+        <style type="text/css">
+            div
+            {
+                white-space: normal;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the following text is below "A  BC" (there can be two spaces between letters 'A' and 'B').</p>
+        <div>
+            <bdo dir="ltr">A <bdo dir="rtl"> B </bdo> C</bdo>
+        </div>
+    </body>
+</html>

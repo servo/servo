@@ -624,6 +624,7 @@ mod bindings {
             .whitelisted_function("Gecko_.*");
         let structs_types = [
             "mozilla::css::URLValue",
+            "mozilla::Side",
             "RawGeckoAnimationPropertySegment",
             "RawGeckoComputedTiming",
             "RawGeckoDocument",
@@ -658,6 +659,7 @@ mod bindings {
             "StyleBasicShape",
             "StyleBasicShapeType",
             "StyleShapeSource",
+            "StyleTransition",
             "nsCSSFontFaceRule",
             "nsCSSKeyword",
             "nsCSSPropertyID",

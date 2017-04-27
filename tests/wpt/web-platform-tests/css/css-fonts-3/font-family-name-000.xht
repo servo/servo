@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+     <head>
+        <title>CSS Test: Test for prescense of test fonts</title>
+        <link rel="author" title="Mozilla" href="http://www.mozilla.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#propdef-font-family" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-family-prop" />
+        <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-family-prop"/>
+        <meta name="flags" content="font" />
+        <meta name="assert" content="Test will fail if CSSTest fonts are not installed" />
+        <style type="text/css">
+            div#test1 {
+                font-family: CSSTest Verify;
+            }
+            div#test2 {
+                font-family: CSSTest Unknown, CSSTest Fallback; /* should be no 'CSSTest Unknown' font installed */
+            }
+        </style>
+    </head>
+    <body>
+        <div><a href="http://www.w3.org/Style/CSS/Test/Fonts/">Test fonts</a> must be installed for this test: <span id="verify">FAIL</span></div>
+        <p>Test passes if FAIL does not appear below.</p>
+        <p>Prerequisites: these tests require that CSSTest fonts be installed.</p>
+        <div id="test1">FAIL</div>
+        <div id="test2">FAIL</div>
+    </body>
+</html>

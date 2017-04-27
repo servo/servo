@@ -1,0 +1,39 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Writing Modes Test: text baseline alignment - alphabetical alignment with vertical layout</title>
+    <link rel="author" title="Hajime Shiozawa" href="mailto:hajime.shiozawa@gmail.com" />
+    <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2015-12-05 -->
+    <link rel="help" title="4.2. Text Baseline" href="http://www.w3.org/TR/css-writing-modes-3/#text-baselines" />
+    <link rel="match" href="text-baseline-slr-009-ref.xht" />
+    <meta name="assert" content="When 'writing-mode' is 'sideways-lr', then the alphabetic baseline is used as the dominant baseline." />
+    <meta name="flags" content="ahem" />
+    <style type="text/css"><![CDATA[
+    div#slr
+    {
+      color: fuchsia;
+      font: 60px/1.5 Ahem; /* computes to 60px/90px */
+      writing-mode: sideways-lr;
+    }
+
+    span#fuchsia120
+    {
+      font-size: 2em; /* computes to 120px */
+    }
+
+    span#fuchsia30
+    {
+      font-size: 0.5em; /* computes to 30px */
+    }
+    ]]></style>
+
+  </head>
+
+  <body>
+
+  <p>Test passes if the <strong>right edge</strong> of an irregular polygon is straight and unbroken.</p>
+
+  <div id="slr"><span id="fuchsia30">É</span><span id="fuchsia120">É</span>É</div>
+
+  </body>
+</html>

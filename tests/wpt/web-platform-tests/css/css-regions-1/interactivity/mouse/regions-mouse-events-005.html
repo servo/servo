@@ -1,0 +1,57 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <title>CSS Regions: onmouseup events outside region</title>
+        <link rel="author" title="David Alcala" href="mailto:dalcala@adobe.com">
+        <link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+        <link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from">
+        <link rel="help" href="http://www.w3.org/TR/css3-regions/#relation-to-document-events">
+        <meta name="assert" content="CSS regions module does not alter the normal processing of events in the document
+            tree. Therefore, onmouseup events outside a named flow should function correctly.">
+        <meta name="flags" content="dom interact">
+        <link href="support/css/regions-mouse-events.css" rel="stylesheet" type="text/css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="support/js/regions-mouse-events-test-helper.js"></script>
+    </head>
+    <body>
+        <p id="msg">Mouse up on the orange square (Press the mouse button down somewhere outside the orange square.  Then drag the mouse to the orange square.  Release the mouse button while on the orange square.)</p>
+        <div id="content">
+            <div class="block"></div>
+            <div class="block"></div>
+            <div id="target-block" class="block"></div>
+        </div>
+        <div class="region"></div>
+        <div class="region"></div>
+        <div class="region"></div>
+        <br/>
+        <div id="outside-region">This div is outside the region</div>
+        <div id="log"></div>
+    </body>
+     <script type="text/javascript">
+
+        if(getLeftPosition("target-block") !== 0) {
+            var test1 = async_test("onmouseup event fired outside region", {timeout: testTimeout});
+            test1.step(function () {
+                var testTarget = document.getElementById("outside-region");
+                testTarget.onmouseup = test1.step_func(function (evt) {
+
+                    /* Verify the target outside the region has the correct ID */
+                    test(function() {
+                        assert_equals(evt.target.id, "outside-region");
+                    }, "Div that mouseup was performed on outside region has correct ID");
+
+                    test1.done();
+                });
+                mouseUp("outside-region");
+            });
+            completionCallback();
+        }
+        else {
+            test(function () {
+                assert_true(false);
+            }, "Regions are not enabled");
+        }
+
+    </script>
+</html>

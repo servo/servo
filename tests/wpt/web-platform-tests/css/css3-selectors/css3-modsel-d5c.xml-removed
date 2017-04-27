@@ -1,0 +1,37 @@
+<csstest def=":indeterminate and :checked" module="W3C Selectors" modulename="css3-modsel" number="d5c" rev="1.1" date="24-february-2005" xmlns="http://www.example.org/css3tests">
+
+<author>Tantek &#x00C7;elik</author>
+<author>Ian Hickson</author>
+
+<dynamic/>
+
+<cssrules>
+ input, span { background:red }
+ input:not(:indeterminate), input:not(:indeterminate) + span { background:green; }
+</cssrules>
+
+<code>
+
+ <div xmlns="http://www.w3.org/1999/xhtml">
+
+  <script type="text/javascript">
+   <![CDATA[
+
+    function test() {
+      /* Microsoft specs for .indeterminate say that this is an invalid test
+         as an element can be both .checked and .indeterminate; however the
+         selectors spec says no element can be :checked:indeterminate. */
+      document.getElementById("test").indeterminate = true;
+      document.getElementById("test").checked = true;
+    }
+
+    window.setTimeout("test()", 100);
+   ]]>
+  </script>
+
+  <p> <input id="test" type="checkbox"/> <span>Everything in this paragraph should have a green background.</span> </p>
+
+ </div>
+
+</code>
+</csstest>

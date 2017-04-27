@@ -1,0 +1,38 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+<html>
+ <head>
+  <title>CSS Stacking Context Model: Opacity (Evil test)</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/model/stacking/opacity/001.html"/>
+    <style type="text/css">
+    .block { height: 1em; width: 4em; display: block; }
+    .float { height: 1em; width: 4em; float: left; margin-bottom: -1em; }
+    .inline { display: inline; }
+    .spacer { padding: 0.4em 1.9em; height: 0.2em; width: 0.2em; vertical-align: bottom; }
+    div { background: red; font: 1em/1 Ahem, monospace; }
+    .block-control.block, .float-control.float, .inline-control.inline, .test.float { background: green; }
+    .test.float { opacity: 0.99; }
+    .fail.condition { color: yellow; background: red; } /* test for multiclass bug */
+  </style>
+ </head>
+ <body>
+  <p class="pass condition">There should be a single green square below.</p>
+  <div class="block-control block">
+  </div>
+  <div class="float-control block">
+   <div class="float-control float"></div>
+  </div>
+  <div class="inline-control block">
+   <div class="inline-control float"></div>
+   <div class="inline-control inline">
+    <img src="support/1x1-green.png" class="spacer" alt="FAIL">
+   </div>
+  </div>
+  <div class="test block">
+   <div class="test float"></div>
+   <div class="test inline">
+    <img src="support/1x1-green.png" class="spacer" alt="FAIL">
+   </div>
+  </div>
+ </body>
+</html>

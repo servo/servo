@@ -1,0 +1,76 @@
+
+<HTML>
+
+<HEAD>
+<TITLE>Third Test of Section 5.2.7 of CSS1 Spec</TITLE>
+
+<STYLE>
+
+#id1 { font: normal italic bold medium sans-serif }
+#id2 { font-style: italic;
+       font-variant: normal;
+       font-weight: bold;
+       font-size: medium;
+       font-family: sans-serif;
+     }
+#id3 { font: monospace;}
+</STYLE>
+</HEAD>
+
+
+
+
+
+<BODY>
+
+
+<h1 >Testing Statement #3 Below of Section 5.2.7 of CSS1 Spec</h1>
+
+
+
+
+
+<ul>
+<li>
+3. Setting the "font" property is equivalent to including separate declarations
+at the same point in the style sheet.  Properties for which no values are given
+are set to their initial value.
+</ul>
+
+<h2>
+PASS CRITERIA:
+</h2>
+<p>
+If statement #3 above is passed, then:
+
+<p ID=id1>
+This paragraph should have a font of normal italic bold medium sans-serif.
+The rule applied here is "#id1 {font: normal italic bold medium sans-serif}"
+
+<p ID=id2>
+This paragraph should also have a font of normal italic bold medium
+sans-serif.
+The rule applied here is "#id2 {font-style: italic;
+                                font-variant: normal;
+                                font-weight: bold;
+                                font-size: medium;
+                                font-family: sans-serif;
+                               }".
+This paragraph should look like the one above.
+
+<p ID=id3>
+This paragraph should have a font of monospace.  This actually refers to
+the font family particularly; the other properties (font style, font
+variant, font weight, font size, and line height should all be UA-default
+(or their initial values).
+
+
+
+<p>
+All other properties should be UA-default.
+NOTE: If font-family specified is not available, UA-default will be used.
+To move directly to the next test, click<a href="527-4.htm"> here</a>
+</BODY>
+</HTML>
+
+

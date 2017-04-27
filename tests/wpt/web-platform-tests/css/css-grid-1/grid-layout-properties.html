@@ -1,0 +1,233 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CSS Test: Grid Layout - Properties exist</title>
+  <link rel="author" title="贺师俊" href="mailto:johnhax@gmail.com">
+  <link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com" />
+  <link rel="reviewer" title="Dayang Shen" href="mailto:shendayang@baidu.com"> <!-- 2013-09-30 -->
+  <link rel="help" href="http://www.w3.org/TR/css-grid-1/#property-index">
+  <meta name="flags" content="ahem dom">
+  <meta name="assert" content="Test checks that css properties of grid layout exist.">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <style>
+    #container {
+        width: 800px;
+        height: 600px;
+    }
+    #myDiv {
+        font: 50px/1 Ahem;
+        justify-content: start;
+        align-content: start;
+    }
+  </style>
+</head>
+<body>
+  <div id="log"></div>
+  <div id="container">
+    <div id="myDiv">
+      <div>I T</div>
+      <div>IT</div>
+      <div>I</div>
+    </div>
+  </div>
+
+  <script>
+    var myDiv = document.getElementById('myDiv')
+
+    test(function(){
+      myDiv.style.display = 'grid'
+      assert_equals(myDiv.style.display, 'grid',
+        'display should be "grid"')
+    }, 'display: grid')
+
+    test(function(){
+      myDiv.style.display = 'inline-grid'
+      assert_equals(myDiv.style.display, 'inline-grid',
+        'display should be "inline-grid"')
+    }, 'display: inline-grid')
+
+    void function(data){
+
+      myDiv.style.display = 'grid'
+
+      Object.keys(data).forEach(function(prop){
+        test(function(){
+          assert_own_property(myDiv.style, prop)
+        }, prop)
+
+        if ('initial' in data[prop]) test(function(){
+          var initial = data[prop].initial
+          delete data[prop].initial
+          assert_equals(getComputedStyle(myDiv)[prop], initial, 'initial value of ' + prop + ' should be ' + initial)
+        }, prop + '.initial')
+
+        var syntaxTests = data[prop]
+        Object.keys(syntaxTests).forEach(function(testcase){
+          test(function(){
+            assert_own_property(myDiv.style, prop)
+            myDiv.style[prop] = syntaxTests[testcase][0]
+            assert_equals(myDiv.style[prop], syntaxTests[testcase][0], testcase)
+            assert_equals(getComputedStyle(myDiv)[prop], syntaxTests[testcase][1], testcase)
+          }, prop + '.' + testcase)
+        })
+      })
+
+    }({
+      'grid-template-columns': { // named 'grid-definition-columns' in last draft
+        initial: '150px',
+        'none': ['none', '150px'],
+        '<line-names>': ['[a] auto [b] auto [c]', '[a] 150px [b] 100px [c]'],
+        '<track-size>.auto': ['auto', '150px'],
+        '<track-size>.<track-breadth>.<length>': ['100px', '100px'],
+        '<track-size>.<track-breadth>.<percentage>': ['100%', '800px'],
+        '<track-size>.<track-breadth>.<flex>': ['1fr', '800px'],
+        '<track-size>.<track-breadth>.min-content': ['min-content', '100px'],
+        '<track-size>.<track-breadth>.max-content': ['max-content', '150px'],
+        '<track-size>.<track-breadth>.minmax()': ['minmax(100px, 200px)', '200px'],
+        'reset': ['none', '150px'],
+      },
+      'grid-template-rows': { // named 'grid-definition-rows' in last draft
+        initial: '50px 50px 50px',
+        'none': ['none', '50px 50px 50px'],
+        '<line-names>': ['[a] auto [b] auto [c]', '[a] 50px [b] 50px [c] 50px'],
+        '<track-size>.auto': ['auto', '50px 50px 50px'],
+        '<track-size>.<track-breadth>.<length>': ['100px', '100px 50px 50px'],
+        '<track-size>.<track-breadth>.<percentage>': ['100%', '50px 50px 50px'],
+        '<track-size>.<track-breadth>.<flex>': ['1fr', '50px 50px 50px'],
+        '<track-size>.<track-breadth>.min-content': ['min-content', '50px 50px 50px'],
+        '<track-size>.<track-breadth>.max-content': ['max-content', '50px 50px 50px'],
+        '<track-size>.<track-breadth>.minmax()': ['minmax(100px, 200px)', '200px 50px 50px'],
+        'reset': ['none', '50px 50px 50px'],
+      },
+      'grid-template-areas': {
+        initial: 'none',
+        'none': ['none', 'none'],
+        '<string>+': ['"a"', '"a"'],
+        'reset': ['none', 'none'],
+      },
+      'grid-template': {
+        initial: '150px / 50px 50px 50px',
+        'none': ['', '150px / 50px 50px 50px'],
+        '<grid-template-rows> / <grid-template-columns>': ['100px 100px / 200px 200px', '100px 100px / 200px 200px'],
+        '<line-names>': ['[a] auto [b] auto [c] / [d] auto [e] auto [f]', '[a] auto [b] auto [c] / [d] auto [e] auto [f]'],
+        '<string>+': ['"a b" "a b"', '"a b" "a b"'],
+        '<string><track-size>+': ['100px / "a b" 50px', '100px / "a b" 50px'],
+        'reset': ['', '150px / 50px 50px 50px'],
+      },
+      'grid-auto-columns': {
+        initial: 'auto',
+        '<track-size>.auto': ['auto', 'auto'],
+        '<track-size>.<track-breadth>.<length>': ['100px', '100px'],
+        '<track-size>.<track-breadth>.<percentage>': ['100%', '100%'],
+        '<track-size>.<track-breadth>.<flex>': ['1fr', '1fr'],
+        '<track-size>.<track-breadth>.min-content': ['min-content', 'min-content'],
+        '<track-size>.<track-breadth>.max-content': ['max-content', 'max-content'],
+        '<track-size>.<track-breadth>.minmax()': ['minmax(100px, 200px)', 'minmax(100px, 200px)'],
+        'reset': ['auto', 'auto'],
+      },
+      'grid-auto-rows': {
+        initial: 'auto',
+        '<track-size>.auto': ['auto', 'auto'],
+        '<track-size>.<track-breadth>.<length>': ['100px', '100px'],
+        '<track-size>.<track-breadth>.<percentage>': ['100%', '100%'],
+        '<track-size>.<track-breadth>.<flex>': ['1fr', '1fr'],
+        '<track-size>.<track-breadth>.min-content': ['min-content', 'min-content'],
+        '<track-size>.<track-breadth>.max-content': ['max-content', 'max-content'],
+        '<track-size>.<track-breadth>.minmax()': ['minmax(100px, 200px)', 'minmax(100px, 200px)'],
+        'reset': ['auto', 'auto'],
+      },
+      'grid-auto-flow': {
+        initial: 'row',
+        'row': ['row', 'row'],
+        'column': ['column', 'column'],
+        'dense': ['dense', 'row dense'],
+        'row dense': ['row dense', 'row dense'],
+        'column dense': ['column dense', 'column dense'],
+        'reset': ['row', 'row'],
+      },
+      'grid-row-start': {
+        initial: 'auto',
+        'auto': ['auto', 'auto'],
+        '<custom-ident>': ['a', 'a'],
+        '<integer>': ['1', '1'],
+        '<integer> <ident>': ['1 a', '1 a'],
+        'span <integer>': ['span 1', 'span 1'],
+        'span <custom-ident>': ['span a', 'span 1 a'],
+        'span <integer> <custom-ident>': ['span 2 a', 'span 2 a'],
+        'reset': ['auto', 'auto'],
+      },
+      'grid-column-start': {
+        initial: 'auto',
+        'auto': ['auto', 'auto'],
+        '<custom-ident>': ['a', 'a'],
+        '<integer>': ['1', '1'],
+        '<integer> <ident>': ['1 a', '1 a'],
+        'span <integer>': ['span 1', 'span 1'],
+        'span <custom-ident>': ['span a', 'span 1 a'],
+        'span <integer> <custom-ident>': ['span 2 a', 'span 2 a'],
+        'reset': ['auto', 'auto'],
+      },
+      'grid-row-end': {
+        initial: 'auto',
+        'auto': ['auto', 'auto'],
+        '<custom-ident>': ['a', 'a'],
+        '<integer>': ['1', '1'],
+        '<integer> <ident>': ['1 a', '1 a'],
+        'span <integer>': ['span 1', 'span 1'],
+        'span <custom-ident>': ['span a', 'span 1 a'],
+        'span <integer> <custom-ident>': ['span 2 a', 'span 2 a'],
+        'reset': ['auto', 'auto'],
+      },
+      'grid-column-end': {
+        initial: 'auto',
+        'auto': ['auto', 'auto'],
+        '<custom-ident>': ['a', 'a'],
+        '<integer>': ['1', '1'],
+        '<integer> <ident>': ['1 a', '1 a'],
+        'span <integer>': ['span 1', 'span 1'],
+        'span <custom-ident>': ['span a', 'span 1 a'],
+        'span <integer> <custom-ident>': ['span 2 a', 'span 2 a'],
+        'reset': ['auto', 'auto'],
+      },
+      'grid-column': {
+        initial: 'auto',
+        'auto': ['auto', 'auto'],
+        '<custom-ident>': ['a / b', 'a / b'],
+        '<integer> start': ['1', '1'],
+        '<integer>': ['1 / 3', '1 / 3'],
+        '<integer> <ident>': ['1 a / 2 b', '1 a / 2 b'],
+        'span <integer>': ['span 1 / span 2', 'span 1 / span 2'],
+        'span <custom-ident>': ['span a / span b', 'span 1 a / span 1 b'],
+        'span <integer> <custom-ident>': ['span 2 a / span 3 b', 'span 2 a / span 3 b'],
+        'reset': ['auto', 'auto'],
+      },
+      'grid-row': {
+        initial: 'auto',
+        'auto': ['auto', 'auto'],
+        '<custom-ident>': ['a / b', 'a / b'],
+        '<integer> start': ['1', '1'],
+        '<integer>': ['1 / 3', '1 / 3'],
+        '<integer> <ident>': ['1 a / 2 b', '1 a / 2 b'],
+        'span <integer>': ['span 1 / span 2', 'span 1 / span 2'],
+        'span <custom-ident>': ['span a / span b', 'span 1 a / span 1 b'],
+        'span <integer> <custom-ident>': ['span 2 a / span 3 b', 'span 2 a / span 3 b'],
+        'reset': ['auto', 'auto'],
+      },
+      'grid-area': {
+        initial: 'auto',
+        'auto': ['auto', 'auto'],
+        '<custom-ident>': ['a / b / c / d', 'a / b / c / d'],
+        '<integer> start': ['1 / 2', '1 / 2'],
+        '<integer>': ['1 / 2 / 3 / 4', '1 / 2 / 3 / 4'],
+        '<integer> <ident>': ['1 a / 2 b / 3 c / 4 d', '1 a / 2 b / 3 c / 4 d'],
+        'span <integer>': ['span 1 / span 2 / span 3 / span 4', 'span 1 / span 2 / span 3 / span 4'],
+        'span <custom-ident>': ['span a / span b / span c / span d', 'span 1 a / span 1 b / span 1 c / span 1 d'],
+        'span <integer> <custom-ident>': ['span 2 a / span 3 b / span 4 c / span 5 d', 'span 2 a / span 3 b / span 4 c / span 5 d'],
+        'reset': ['auto', 'auto'],
+      },
+    })
+  </script>
+</body>
+</html>

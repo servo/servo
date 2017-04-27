@@ -359,6 +359,21 @@ impl PropertyDeclarationBlock {
             longhands: longhands,
         }
     }
+
+    /// Returns true if the declaration block has a CSSWideKeyword for the given
+    /// property.
+    #[cfg(feature = "gecko")]
+    pub fn has_css_wide_keyword(&self, property: &PropertyId) -> bool {
+        if let PropertyId::Longhand(id) = *property {
+            if !self.longhands.contains(id) {
+                return false
+            }
+        }
+        self.declarations.iter().any(|&(ref decl, _)|
+            decl.id().is_or_is_longhand_of(property) &&
+            decl.get_css_wide_keyword().is_some()
+        )
+    }
 }
 
 impl ToCss for PropertyDeclarationBlock {
@@ -464,12 +479,23 @@ impl ToCss for PropertyDeclarationBlock {
                     };
 
                     // Substeps 7 and 8
-                    append_serialization::<_, Cloned<slice::Iter< _>>, _>(
-                         dest,
-                         &shorthand,
-                         value,
-                         importance,
-                         &mut is_first_serialization)?;
+                    // We need to check the shorthand whether it's an alias property or not.
+                    // If it's an alias property, it should be serialized like its longhand.
+                    if shorthand.flags().contains(ALIAS_PROPERTY) {
+                        append_serialization::<_, Cloned<slice::Iter< _>>, _>(
+                             dest,
+                             &property,
+                             value,
+                             importance,
+                             &mut is_first_serialization)?;
+                    } else {
+                        append_serialization::<_, Cloned<slice::Iter< _>>, _>(
+                             dest,
+                             &shorthand,
+                             value,
+                             importance,
+                             &mut is_first_serialization)?;
+                    }
 
                     for current_longhand in &current_longhands {
                         // Substep 9

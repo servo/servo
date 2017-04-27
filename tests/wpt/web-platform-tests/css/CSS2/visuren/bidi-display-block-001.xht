@@ -1,0 +1,25 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Test: bidi and inline with display:block</title>
+    <link rel="author" title="Eira Monstad, Opera Software ASA" href="mailto:public-testsuites@opera.com"/>
+    <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#direction"/>
+    <meta name="assert" content="An inline with display:block should be treated as a paragraph in the bidi algorithm"/>
+    <style type="text/css"><![CDATA[
+     div {direction:rtl;}
+     span {display:block;}
+    ]]></style>
+  </head>
+
+  <body>
+    <p>These lines should be identical:</p>
+    <div>
+      <span>
+	a (1) &#1575;&#1587;&#1571;&#1604; TEXT
+      </span>
+      <span>
+	a (1) &#1575;&#1587;&#1571;&#1604; TEXT
+      </span>
+    </div>
+  </body>
+</html>

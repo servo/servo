@@ -106,9 +106,7 @@ onload = function() {
         assert_equals(global.getComputedStyle(elm).visibility, 'visible', 'invalid selector matched');
       }, s + ' in ' + global.mode);
       test(function() {
-        // Should be TypeError but this is not widely implemented yet
-        // and this isn't intended to be a querySelector API conformance test.
-        assert_throws(null, function() {
+        assert_throws("SyntaxError", function() {
           global.document.querySelector(s);
         }, 'invalid selector');
       }, s + ' with querySelector in ' + global.mode);

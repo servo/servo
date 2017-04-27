@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML: window.open `features`: non-integer values for feature `width`</title>
+<meta name=timeout content=long>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#apis-for-creating-and-navigating-browsing-contexts-by-name">
+
+<!-- user agents are not required to support open features other than `noopener`
+     and on some platforms position and size features don't make sense -->
+<meta name="flags" content="may" />
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/PrefixedPostMessage.js"></script>
+<script>
+var featuresPrefix = `top=0,left=0,height=401,`;
+var windowURL = 'resources/message-opener.html';
+
+// https://html.spec.whatwg.org/multipage/infrastructure.html#rules-for-parsing-integers
+
+setup (() => {
+  // Before running tests, open a window using features that mimic
+  // what would happen if the feature tested here were set to 0
+  // for comparison later.
+  var featureString = `${featuresPrefix}width=0`;
+  var prefixedMessage = new PrefixedMessageTest();
+  prefixedMessage.onMessage((data, e) => {
+    e.source.close();
+    runWindowTests(data);
+  });
+  var win = window.open(prefixedMessage.url(windowURL), '', featureString);
+});
+
+function runWindowTests (baselineDimensions) {
+
+  // The absence of the sizing feature should have the same behavior
+  // as that feature set to 0
+  [ featuresPrefix,
+    'top=0,left=0',
+  ].forEach(feature => {
+    async_test(t => {
+      var prefixedMessage = new PrefixedMessageTest();
+      prefixedMessage.onMessage(t.step_func_done((data, e) => {
+        e.source.close();
+        assert_equals(data.width, baselineDimensions.width);
+      }));
+      var win = window.open(prefixedMessage.url(windowURL), '', feature);
+    }, `${feature}: absence of feature "width" should be treated same as "width=0"`);
+  });
+
+  // When code point in first position is not an ASCII digit, "+" or "-",
+  // that's an error and the value becomes 0
+  [ 'width=/404',
+    'width=_404',
+    'width=L404'
+  ].forEach(feature => {
+    async_test(t => {
+      var prefixedMessage = new PrefixedMessageTest();
+      var featureString = `${featuresPrefix}${feature}`;
+      prefixedMessage.onMessage(t.step_func_done((data, e) => {
+        e.source.close();
+        assert_equals(data.width, baselineDimensions.width, `"${feature} begins with an invalid character and should be ignored"`);
+      }));
+      var win = window.open(prefixedMessage.url(windowURL), '', featureString);
+    }, `features "${feature}" should NOT set "width=404"`);
+  });
+
+  // Codepoints that are valid ASCII digits should be collected
+  // Non-ASCII digits and subsequent code points are ignored
+  [ 'width=405.5',
+    'width=405.32',
+    'width=405LLl',
+    'width=405^4',
+    'width=405*3',
+    'width=405/5',
+    'width=405  ',
+    'width=405e1',
+    'width=405e-1'
+  ].forEach(feature => {
+    async_test(t => {
+      var prefixedMessage = new PrefixedMessageTest();
+      var featureString = `${featuresPrefix}${feature}`;
+      prefixedMessage.onMessage(t.step_func_done((data, e) => {
+        e.source.close();
+        assert_equals(data.width, 405, `"${featureString} value after first non-digit will be ignored"`);
+      }));
+      var win = window.open(prefixedMessage.url(windowURL), '', featureString);
+    }, `features "${feature}" should set "width=405"`);
+  });
+}
+
+</script>

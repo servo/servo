@@ -1,0 +1,61 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Font-weight comparison of 100 to 900</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-boldness" />
+        <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-weight-prop" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Font weight value 100 to 900 indicate a weight that is either darker than OR as dark as its predecessor." />
+        <style type="text/css">
+            #test1
+            {
+                font-weight: 100;
+            }
+            #test2
+            {
+                font-weight: 200;
+            }
+            #test3
+            {
+                font-weight: 300;
+            }
+            #test4
+            {
+                font-weight: 400;
+            }
+            #test5
+            {
+                font-weight: 500;
+            }
+            #test6
+            {
+                font-weight: 600;
+            }
+            #test7
+            {
+                font-weight: 700;
+            }
+            #test8
+            {
+                font-weight: 800;
+            }
+            #test9
+            {
+                font-weight: 900;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the darkness of the below lines are from light to dark. Each line needs to be either darker than or as dark as its previous line.</p>
+        <div id="test1">Filler Text</div>
+        <div id="test2">Filler Text</div>
+        <div id="test3">Filler Text</div>
+        <div id="test4">Filler Text</div>
+        <div id="test5">Filler Text</div>
+        <div id="test6">Filler Text</div>
+        <div id="test7">Filler Text</div>
+        <div id="test8">Filler Text</div>
+        <div id="test9">Filler Text</div>
+    </body>
+</html>

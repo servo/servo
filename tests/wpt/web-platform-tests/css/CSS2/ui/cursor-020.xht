@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: cursor - &lt;uri&gt; value</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/ui.html#cursor-props" />
+  <meta content="interact" name="flags" />
+  <meta content="If the user agent cannot handle an user-defined cursor, it must use the generic cursor at the end of the list. The auto value should make UA determine the cursor to display based on the current context." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  div {cursor: url("inexistent.cur"), auto;}
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Hovering the pointing device over the text sample should make it rendered as a text cursor (often an I-beam).</p>
+
+  <div>text sample</div>
+
+ </body>
+</html>

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Test: flow-into only on specific list items from multiple lists</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#properties" />
+        <link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property" />
+		<meta name="flags" content="">
+		<meta name="assert" content="Test checks that extracting only certain list items from a list into a named flow preseves their numbering and markings both in the region and outside the region.">
+		<link rel="match" href="reference/extract-list-items-008-ref.html">
+		<style>
+		ul {
+			list-style-type: disc;
+		}
+		ul ul {
+			list-style-type: circle;
+		}
+		ol {
+			list-style-type: decimal;
+		}
+		ul ol {
+			list-style-type: upper-roman;
+		}
+
+		.extract {
+			flow-into: f1;
+			color: blue;
+		}
+		.container {
+			color: #006400;
+			background-color: lightgreen;
+			margin: 2em;
+
+		}
+		.region {
+			margin: 2em;
+			background-color: lightblue;
+		}
+		#r1 {
+			flow-from: f1;
+		}
+		</style>
+	</head>
+	<body>
+		<!-- Individual list items are extracted from ordered/unordered lists. Some of them remain
+		in the normal document flow while others are rendered in a region. Both the items that remain
+		in the normal flow and items in the named flow should preserve their number/marks just as regions
+		were not applied at all. -->
+		<p>Test passes if you see two rectangles, one green and one blue, as described below:<br>
+		The green rectangle should contain two lists, separated by a small vertical space. The <strong>first list</strong> should be a numbered list starting with 2 that has 2 items;  the <strong>second list</strong> should be a bullet list with 3 items, the last one being indented and with a different type of bullet.<br>
+		The blue rectangle should contain a list with items numbered/marked in different ways, as follows. Except where noted, the numbers/markers should be <em>outside</em> the the blue rectangle. The <strong>first item</strong> should be numbered with the number 1, in decimal. The <strong>second item</strong> should be bulleted. The <strong>third and fourth items</strong> should be numbered with 2 and 1 respectively, with roman numerals. Also, the <strong>third item</strong> should be indented (with the number inside the blue rectangle). The <strong>fourth and fifth items</strong> should be bulleted, with the <strong>fourth item</strong> having a different kind of bullet than the second and fifth item.
+		</p>
+		<div class="container">
+			<ol>
+				<li class="extract">Numbered list, item 1</li>
+				<li>Numbered list, item 2</li>
+				<li>Numbered list, item 3</li>
+			</ol>
+			<ul>
+				<li>Bullet list, item 1</li>
+				<li class="extract">Bullet list, item 2
+					<ol>
+						<li class="extract">Numbered sub-list, item I</li>
+						<li>Numbered sub-list, item II</li>
+					</ol>
+				</li>
+				<li>Bullet list, item 3
+					<ul>
+						<li class="extract">Bullet sub-list, item 1</li>
+						<li>Bullet sub-list, item 2</li>
+					</ul>
+				</li>
+				<li class="extract">Bullet list, item 4</li>
+			</ul>
+		</div>
+		<div class="region" id="r1"></div>
+	</body>
+</html>

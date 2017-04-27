@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Fonts Test: @font-face rule</title>
+    <link rel="author" title="Koji Ishimoto" href="mailto:ijok.ijok@gmail.com">
+    <link rel="help" href="http://www.w3.org/TR/css3-fonts/#font-resources">
+    <link rel="match" href="">
+    <meta name="flags" content="">
+    <meta name="assert" content="Test passes if this is Serif text.">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style>
+        @font-face {
+            font-family: csstestfont;
+            src: url('../../../approved/fonts/CSSTest/csstest-ascii.ttf') format("truetype");
+        }
+        body {
+            font-family: sans-serif;
+        }
+        #test { 
+            font-family: csstestfont;
+            font-size: 200%;
+        }
+    </style>
+</head>
+<body>
+    <p id="test">Test passes if this is Serif text.</p>
+    <div id="log"></div>
+
+    <script>
+        test(function() {
+            var fontFaceProp = document.styleSheets[1].cssRules[0].style;
+            var fontFamily = fontFaceProp.fontFamily;
+            var fontSrc = fontFaceProp.src;
+            
+            test(function() {
+                assert_equals(fontFamily, 'csstestfont');
+            }, "`font-family` value is correct.");
+            test(function() {
+                assert_not_equals(fontSrc, '');
+            }, "`src` value is correct.");
+        });
+    </script>
+</body>
+</html>

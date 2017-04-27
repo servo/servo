@@ -1,0 +1,36 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  div
+  {
+  color: blue;
+  font-size: 2.5em;
+  line-height: 1;
+  margin: 1em 0em;
+  }
+
+  span
+  {
+  font-family: Ahem;
+  vertical-align: top;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is an "&#x0130;" in-between 2 blue stripes.</p>
+
+  <div><img src="support/swatch-blue.png" width="160" height="40" alt="Image download support must be enabled" /><img src="support/swatch-white.png" width="40" height="40" alt="Image download support must be enabled" /><span>&#x0130;</span><img src="support/swatch-white.png" width="40" height="40" alt="Image download support must be enabled" /><img src="support/swatch-blue.png" width="160" height="40" alt="Image download support must be enabled" /></div>
+
+ </body>
+</html>

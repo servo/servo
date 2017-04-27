@@ -1,0 +1,12 @@
+<script src="/common/PrefixedPostMessage.js"></script>
+<script>
+var prefixedMessage = new PrefixedMessageResource();
+window.addEventListener('load', () => {
+  prefixedMessage.postToOpener({
+    left: window.screenX,
+    top: window.screenY,
+    width: window.innerWidth,
+    height: window.innerHeight
+  });
+});
+</script>

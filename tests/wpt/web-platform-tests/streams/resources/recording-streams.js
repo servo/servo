@@ -52,18 +52,16 @@ self.recordingWritableStream = (extras = {}, strategy) => {
 
       return undefined;
     },
-    write(chunk) {
+    write(chunk, controller) {
       stream.events.push('write', chunk);
 
       if (extras.write) {
-        return extras.write(chunk);
+        return extras.write(chunk, controller);
       }
 
       return undefined;
     },
-    close(...args) {
-      assert_array_equals(args, [controllerToCopyOver], 'close must always be called with the controller');
-
+    close() {
       stream.events.push('close');
 
       if (extras.close) {

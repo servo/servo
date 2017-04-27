@@ -1,0 +1,31 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: Margin Box Inheritance</title>
+<link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+<link rel="help" href="http://www.w3.org/TR/css3-page/#page-properties"/>
+<meta name="flags" content="paged" />
+<meta name="assert" content="Margin boxes inherit inheritable properties from the page context."/>
+<style type="text/css">
+	@page { 
+		margin: 7%;
+		background: aqua;
+		@top-left {
+			content: "";
+			border: 1px solid black;
+		}	
+		@top-center {
+			content: "";
+			border: 1px solid black;
+		}	
+		@top-right {
+			content: "";
+			border: 1px solid black;
+		}	
+	}
+</style>
+</head>
+<body>
+	<p>There should be three boxes above this text. Each should have a black border and a blue background.</p>
+</body>
+</html>

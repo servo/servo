@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Filters Animation: Combined filters 001</title>
+    <link rel="author" title="Gunther Brunner" href="mailto:takeshimiya@gmail.com">
+    <link rel="reviewer" title="Dirk Schulze" href="mailto:dschulze@adobe.com">
+    <link rel="reviewer" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+    <link rel="help" href="http://www.w3.org/TR/filter-effects-1/#FilterProperty">
+    <link rel="help" href="http://www.w3.org/TR/filter-effects-1/#funcdef-blur">
+    <link rel="help" href="http://www.w3.org/TR/filter-effects-1/#funcdef-brightness">
+    <link rel="help" href="http://www.w3.org/TR/filter-effects-1/#funcdef-sepia">
+    <link rel="help" href="http://www.w3.org/TR/filter-effects-1/#funcdef-grayscale">
+    <link rel="help" href="http://www.w3.org/TR/filter-effects-1/#funcdef-saturate">
+    <link rel="help" href="http://www.w3.org/TR/filter-effects-1/#funcdef-hue-rotate">
+    <link rel="help" href="http://www.w3.org/TR/filter-effects-1/#funcdef-invert">
+    <link rel="help" href="http://www.w3.org/TR/filter-effects-1/#funcdef-opacity">
+    <link rel="help" href="http://www.w3.org/TR/css3-animations/#animations">
+    <link rel="match" href="css-filters-animation-combined-001-ref.html">
+    <meta name="assert" content="The black square should be a gray square 10px blurred">
+    <style type="text/css">
+        @keyframes animate {
+            0% {
+                filter:
+                    blur(20px)
+                    brightness(0%)
+                    sepia(100%)
+                    grayscale(100%)
+                    saturate(0%)
+                    hue-rotate(90deg)
+                    invert(100%)
+                    opacity(100%)
+            }
+            100% {
+                filter: none;
+            }
+        }
+
+        .square {
+            width: 100px;
+            height: 100px;
+            background: black;
+            animation-name: animate;
+            animation-play-state: paused;
+            animation-delay: -2s;
+            animation-duration: 4s;
+            animation-timing-function: linear;
+        }
+    </style>
+</head>
+<body>
+<p>You should see a gray blurred rectangle.</p>
+
+<div class="square"></div>
+</body>
+</html>

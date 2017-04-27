@@ -48,7 +48,7 @@ test(function() {
     client.open('GET', CROSSDOMAIN + 'resources/cors-makeheader.py?headers=x-print', false)
     client.setRequestHeader('x-print', 'unicorn')
     client.setRequestHeader('y-print', 'unicorn')
-    assert_throws(null, function() { client.send(null) })
+    assert_throws("NetworkError", function() { client.send(null) })
 }, 'Unspecified request headers are disallowed')
 
 test(function() {

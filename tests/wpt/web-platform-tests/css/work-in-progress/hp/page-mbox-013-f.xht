@@ -1,0 +1,38 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Margin Boxes - Top Left Margin</title>
+  <link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#margin-boxes"/>
+  <meta name="flags" content="paged" />
+  <meta name="assert" content="The used value of the top-left box's right margin is its computed value unless that value is 'auto' or unless honoring both this margin and the top-right box's computed left margin contradicts another constraint"/>
+  <style type="text/css"><![CDATA[
+  @page {
+       size: 5in 5in;
+	   margin: 0.5in;
+	   border: 1pt solid black;
+       @top-left {
+           width: 3in;
+		   margin: 0.5in;
+           text-align: right;
+           content: "X"
+		   border: 1pt solid black;
+       }
+		@top-right {
+           width: 3in;
+		   margin: 0.5in;
+           text-align: left;
+           content: "X"
+		   border: 1pt solid black;
+       }
+   }
+   html, body {
+   	margin: 0;
+	padding: 0;
+   }
+  ]]></style>
+ </head>
+ <body>
+  <p>There must be two boxes above this text. They should be as wide as the outer black box.</p>
+ </body>
+</html>

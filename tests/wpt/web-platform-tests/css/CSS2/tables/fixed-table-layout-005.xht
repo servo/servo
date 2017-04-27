@@ -1,0 +1,77 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Leftover table width is divided evenly among auto-sized columns</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#fixed-table-layout" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Any remaining horizontal table space is divided evenly among columns which do not have specified widths." />
+        <style type="text/css">
+            table
+            {
+                border-spacing: 0;
+                table-layout: fixed;
+                width: 300px;
+            }
+            #col1
+            {
+                width: 50px;
+            }
+            td
+            {
+                padding: 0;
+            }
+            #cell1
+            {
+                width: 50px;
+            }
+            #cell2
+            {
+                width: 100px;
+            }
+            #div1
+            {
+                border-top: 1px solid black;
+                height: 100px;
+                width: 300px;
+            }
+            #div1 > div
+            {
+                float: left;
+            }
+            .px50
+            {
+                width: 50px;
+            }
+            #px100
+            {
+                width: 100px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the numbers above the line are aligned with the numbers below the line.</p>
+        <table>
+            <col id="col1" />
+            <col />
+            <col />
+            <col />
+            <col />
+            <col />
+            <tr>
+                <td>1</td>
+                <td id="cell1">2</td>
+                <td id="cell2" colspan="2">3</td>
+                <td>4</td>
+                <td>5</td>
+           </tr>
+        </table>
+        <div id="div1">
+            <div class="px50">1</div>
+            <div class="px50">2</div>
+            <div id="px100">3</div>
+            <div class="px50">4</div>
+            <div class="px50">5</div>
+        </div>
+    </body>
+</html>

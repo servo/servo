@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: Margin Collapsing: top margins</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/block/margin-collapse/039.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#collapsing-margins"/>
+  <style type="text/css">
+   .a { margin: 0; background: red; }
+   .b { margin: 2em 0 0 0; background: red; }
+   .c { margin: 1em 0 0 0; background: red; }
+   .d { margin: 0; background: green; color: white; }
+  </style>
+ </head>
+ <body>
+  <p>There should be no red below.</p>
+  <div class="a">
+   <div class="b">
+    <div class="c">
+     <div class="d">
+      This line should be green.
+     </div>
+    </div>
+   </div>
+  </div>
+
+
+</body>
+</html>

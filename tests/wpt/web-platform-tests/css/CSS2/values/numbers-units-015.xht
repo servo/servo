@@ -1,0 +1,41 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Height of EX</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#length-units" />
+        <link rel="match" href="numbers-units-015-ref-a.xht"/>
+        <link rel="match" href="numbers-units-015-ref-b.xht"/>
+        <meta name="flags" content="ahem should" />
+        <meta name="assert" content="In the cases where it is impossible or impractical to determine the x-height, a value of 0.5em should be used." />
+        <style type="text/css">
+            #test
+            {
+                height: 1ex;
+                width: 1ex;
+            }
+            #div1
+            {
+                height: 0.5em;
+                width: 0.5em;
+            }
+            #div2
+            {
+                height: 0.8em;
+                width: 0.8em;
+            }
+            div
+            {
+                background: black;
+                font-family: Ahem;
+                margin-top: 2px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if any two of the boxes below are the same size.</p>
+        <div id="test"></div>
+        <div id="div1"></div>
+        <div id="div2"></div>
+    </body>
+</html>

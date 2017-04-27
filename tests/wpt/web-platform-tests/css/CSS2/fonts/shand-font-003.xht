@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Shorthand Properties (font)</title>
+  <link rel="author" title="L. David Baron" href="https://dbaron.org/"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/about.html#shorthand"/>
+  <link rel="match" href="shand-font-002-ref.xht"/>
+  <style type="text/css">
+
+  p.one { font-family: serif; font-weight: bold; } /* control */
+  p.two { font: 1em/normal serif; }
+  p.two { font-weight: bold; }
+
+  </style>
+ </head>
+ <body>
+
+ <p>The following paragraphs should be identical:</p>
+
+ <p class="one">This should be in a bold font.</p>
+ <p class="two">This should be in a bold font.</p>
+
+ </body>
+</html>

@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Font Matching Algorithm, match font-style</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#algorithm" />
+        <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-matching-algorithm" />
+        <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-style-matching" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="If the font contains definition of 'italic' or 'oblique' and italic or oblique is set by the style, then use that font." />
+        <style type="text/css">
+            div
+            {
+                font-family: Ahem;
+            }
+            #span1
+            {
+                font-style: italic;
+            }
+            #span2
+            {
+                font-style: oblique;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the box below slants to one side.</p>
+        <div>
+            <span id="span1">X</span><span id="span2">X</span>
+        </div>
+    </body>
+</html>

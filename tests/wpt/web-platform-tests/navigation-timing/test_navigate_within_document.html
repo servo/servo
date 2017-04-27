@@ -42,7 +42,7 @@
                     initial_timing[property] = timing[property];
                 }
                 window.location.href = "#1";
-                setTimeout("check_timing_not_changed()", 0);
+                step_timeout(check_timing_not_changed, 0);
             }
 
             function load_handler()
@@ -57,7 +57,7 @@
                 timing = performanceNamespace.timing;
 
                 window.removeEventListener("load", load_handler);
-                setTimeout("save_timing_after_load()", 0);
+                step_timeout(save_timing_after_load, 0);
             }
 
             window.addEventListener("load", load_handler, false);

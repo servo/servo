@@ -445,6 +445,30 @@ test(function() {
 }, "Basic functionality of setAttributeNode")
 
 test(function() {
+  var el = document.createElement("div");
+  var attr1 = document.createAttributeNS("ns1", "p1:name");
+  attr1.value = "value1";
+  var attr2 = document.createAttributeNS("ns2", "p2:name");
+  attr2.value = "value2";
+  el.setAttributeNode(attr1);
+  el.setAttributeNode(attr2);
+  assert_equals(el.getAttributeNodeNS("ns1", "name").value, "value1");
+  assert_equals(el.getAttributeNodeNS("ns2", "name").value, "value2");
+}, "setAttributeNode should distinguish attributes with same local name and different namespaces")
+
+test(function() {
+  var el = document.createElement("div");
+  var attr1 = document.createAttributeNS("ns1", "p1:name");
+  attr1.value = "value1";
+  var attr2 = document.createAttributeNS("ns1", "p1:NAME");
+  attr2.value = "VALUE2";
+  el.setAttributeNode(attr1);
+  el.setAttributeNode(attr2);
+  assert_equals(el.getAttributeNodeNS("ns1", "name").value, "value1");
+  assert_equals(el.getAttributeNodeNS("ns1", "NAME").value, "VALUE2");
+}, "setAttributeNode doesn't have case-insensitivity even with an HTMLElement")
+
+test(function() {
   var el = document.createElement("div")
   el.setAttributeNS("x", "foo", "bar")
   var attrNode = el.getAttributeNodeNS("x", "foo");

@@ -124,6 +124,11 @@ impl nsCSSValue {
         self.set_string_from_atom_internal(s, nsCSSUnit::eCSSUnit_String)
     }
 
+    /// Set to a ident value from the given atom
+    pub fn set_ident_from_atom(&mut self, s: &Atom) {
+        self.set_string_from_atom_internal(s, nsCSSUnit::eCSSUnit_Ident)
+    }
+
     /// Set to an identifier value
     pub fn set_ident(&mut self, s: &str) {
         self.set_string_internal(s, nsCSSUnit::eCSSUnit_Ident)

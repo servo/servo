@@ -1,0 +1,28 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: Margin Collapsing: basic overflow test</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-04-08 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/block/margin-collapse/030.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#collapsing-margins"/>
+  <link rel="match" href="margin-collapse-130-ref.xht" />
+
+  <meta name="flags" content="ahem" />
+  <style type="text/css">
+   .test { border: solid; background: red; width: 5em; font: 1.25em/1em Ahem; }
+   .test .a { height: 0; margin: 0 0 1em 0; background: red; color: lime; }
+   .test .b { height: 1em; margin: 1em 0 0 0; background: lime; }
+  </style>
+ </head>
+ <body>
+
+  <p>Test passes if there is a small filled bright green rectangle with a black border and <strong>no red</strong>.</p>
+  <div class="test">
+   <p class="a">XXXXX</p>
+   <p class="b"></p>
+  </div>
+
+
+</body>
+</html>

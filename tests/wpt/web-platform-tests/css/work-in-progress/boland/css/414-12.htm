@@ -1,0 +1,51 @@
+
+<HTML>
+<HEAD>
+<TITLE>Twelfth Test of Section 4.1.4 of CSS1 Spec</TITLE>
+
+
+<STYLE TYPE="text/css">
+ #id1 { float: left }
+ #id2 { float: right }
+</STYLE>
+</HEAD>
+
+
+
+
+
+<BODY>
+
+<h1 >Testing Statement #12 Below for Section 4.1.4 of CSS1 Spec</h1>
+
+
+
+
+
+
+<ul>
+<li>
+12. The right outer edge of a left-floating element may not be to the right of the 
+left outer edge of any right-floating element that is to the right of it.
+Analogously for right-floating elements.
+</ul>
+<h2>PASS CRITERIA
+</h2>
+<p>
+<img ID=id1 src="ovalbbut.gif">
+<img ID=id2 src="ovalbbut.gif">
+If statement #12 above is passed, then there should be an image to left and one
+to right of this paragraph.
+The rules applied are "#id1 {float: left}" (to the first image) and
+"#id2 {float: right}" (to the second image).
+<p>
+<img ID=id2 src="ovalbbut.gif">
+<img ID=id1 src="ovalbbut.gif">
+There should be an image to the left and one to the right of this paragraph.
+The rules applied are "#id2 {float: right}" (to the first image) and
+"#id1 {float: left}" (to the second image).
+All other properties are UA-default.
+
+
+</BODY>
+</HTML>

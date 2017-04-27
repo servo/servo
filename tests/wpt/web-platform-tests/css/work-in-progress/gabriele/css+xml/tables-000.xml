@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?xml-stylesheet href="css/tables-000.css" type="text/css"?>
+
+
+<root>
+
+
+
+
+	<document>
+	
+	
+	
+	
+		<info>You should see a normal table below with alternate rows.</info>
+		
+		
+		
+		
+		
+		<data>
+		
+			<title>Table caption</title>
+		
+		
+			<row>
+			
+			
+				<head>Table heading</head>
+				<head>Table heading</head>
+				<head>Table heading</head>
+				<head>Table heading</head>
+			
+			
+			
+			</row>
+			
+			<row>
+			
+				<entry>Table data</entry>
+				<entry>Table data</entry>
+				<entry>Table data</entry>
+				<entry>Table data</entry>
+			
+			</row>
+		
+		
+			<row class="odd">
+			
+				<entry>Table data</entry>
+				<entry>Table data</entry>
+				<entry>Table data</entry>
+				<entry>Table data</entry>
+			
+			</row>
+		
+		
+			<row>
+			
+				<entry>Table data</entry>
+				<entry>Table data</entry>
+				<entry>Table data</entry>
+				<entry>Table data</entry>
+			
+			</row>
+		
+		
+			<row class="odd">
+			
+				<entry>Table data</entry>
+				<entry>Table data</entry>
+				<entry>Table data</entry>
+				<entry>Table data</entry>
+			
+			</row>
+		
+		
+		
+		
+		</data>
+	
+	
+	
+	
+	
+	
+	
+	</document>
+
+
+
+
+
+
+
+
+
+
+
+
+
+</root>

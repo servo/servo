@@ -457,7 +457,7 @@ impl<'a> Iterator for &'a TreeWalker {
                 // will probably be using a native Rust filter,
                 // which cannot produce an Err result.
                 unreachable!()
-       }
+        }
     }
 }
 

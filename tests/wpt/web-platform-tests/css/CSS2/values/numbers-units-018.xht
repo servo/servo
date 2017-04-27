@@ -1,0 +1,49 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Specifying em/ex on the root element</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#length-units" />
+        <link rel="match" href="numbers-units-018-ref.xht"/>
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="Units 'em' and 'ex' refer to the initial value of the property when specified on the root element of a document." />
+        <style type="text/css">
+            html
+            {
+                border: 1px solid;
+                font: 20px/1 Ahem;
+                margin-left: 20em;
+                margin-top: 20ex;
+            }
+            div
+            {
+                position: absolute;
+            }
+            #div1
+            {
+                background: orange;
+                height: 20px;
+                left: 0;
+                top: 320px;
+                width: 400px;
+            }
+            #div2
+            {
+                background: blue;
+                height: 320px;
+                left: 400px;
+                top: 0;
+                width: 20px;
+            }
+            p
+            {
+                font: 16px serif;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the black box containing this text is to the right of the orange box and below the blue box.</p>
+        <div id="div1"></div>
+        <div id="div2"></div>
+    </body>
+</html>

@@ -1,0 +1,44 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Font shorthand set using the values font-weight, font-style, font-size, line-height and font-family</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#propdef-font" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-shorthand" />
+        <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-prop"/>
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The 'font' shorthand property accepts and sets font-weight, font-style, font-size, line-height and font-family." />
+        <style type="text/css">
+            #wrapper
+            {
+                position: relative;
+            }
+            #test
+            {
+                font: bold italic 1in/1em Ahem;
+                position: absolute;
+            }
+            #reference
+            {
+                color: red;
+                font-family: Ahem;
+                font-size: 1in;
+                font-style: italic;
+                font-weight: bold;
+                height: 1in;
+                left: 0;
+                line-height: 1em;
+                position: absolute;
+                top: 0;
+                width: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red except for antialiasing.</p>
+        <div id="wrapper">
+            <div id="reference">x</div>
+            <div id="test">x</div>
+        </div>
+    </body>
+</html>

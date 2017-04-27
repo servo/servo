@@ -1,0 +1,61 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Invalid curly brackets and pair matching</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="author" title="Arron Eicholz" href="http://www.microsoft.com/" />
+        <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-family-prop"/>
+        <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#parsing-errors"/>
+        <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-family-prop"/>
+        <link rel="match" href="font-family-invalid-characters-002-ref.html"/>
+        <meta name="flags" content="ahem invalid" />
+        <meta name="assert" content="Invalid characters in font family names."/>
+        <style type="text/css">
+            <![CDATA[
+            #div3
+            {
+                background: red;
+                color: red;
+            }
+            #div1
+            {
+                font-family: test{foo}, Ahem;
+            }
+            #div2
+            {
+                color: red;
+                font-family: test{foo, Ahem;
+                background: red;
+            }
+            body
+            {
+                background: red;};
+                color: inherit;
+            }
+            #div3
+            {
+                background: transparent;
+            }
+            #div3
+            {
+                font-family: test}foo, Ahem;
+            }
+            body
+            {
+               background: red;
+            }
+            #div3
+            {
+               color: inherit;
+            }
+            ]]>
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there are only numbers (1-3) below and no red visible on the page.</p>
+        <div id="div1">1</div>
+        <div id="div2">2</div>
+        <div id="div3">3</div>
+    </body>
+</html>

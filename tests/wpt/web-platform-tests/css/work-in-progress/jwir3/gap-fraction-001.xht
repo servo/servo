@@ -1,0 +1,62 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>multicolumn | column-rule</title>
+<link rel="author" title="Opera Software ASA" href="http://www.opera.com/"/>
+<link rel="help" href="http://www.w3.org/TR/css3-multicol/#column-gaps-and-rules"/>
+<link rel="match" href="gap-fraction-ref.xht"/>
+<meta name="flags" content="ahem"/>
+<style type="text/css"><![CDATA[
+body>div {
+	font-family: ahem;
+	font-size: 1em;
+	line-height: 1em;
+	background: gray;
+	margin: 0 1em;
+	width: 14.5em;
+	orphans: 1;
+	widows: 1;
+
+	column-count: 2;
+	column-gap: 0.5em;
+}
+#two {
+	column-gap: 2.5em;
+}
+#three {
+	column-gap: 4.5em;
+}
+#four {
+	column-gap: 6.5em;
+}
+span {
+	color: blue;
+}
+]]></style>
+</head>
+
+<body>
+
+<div id="one">
+	xxxx 
+	<span>xxxx</span>
+</div>
+
+<div id="two">
+	xxxx 
+	<span>xxxx</span>
+</div>
+
+<div id="three">
+	xxxx 
+	<span>xxxx</span>
+</div>
+
+<div id="four">
+	xxxx 
+	<span>xxxx</span>
+</div>
+
+</body>
+</html>

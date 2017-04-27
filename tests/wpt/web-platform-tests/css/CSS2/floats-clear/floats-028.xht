@@ -1,0 +1,36 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Floats and containment</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats" />
+        <link rel="match" href="floats-028-ref.xht" />
+
+        <meta name="flags" content="" />
+        <meta name="assert" content="Floating box's outer top cannot be higher than the top of its containing block." />
+        <style type="text/css">
+            div
+            {
+                border: solid 5px black;
+                height: 2in;
+                margin: 0.25in;
+                position: absolute;
+                top: 10px;
+                width: 2in;
+            }
+            span
+            {
+                background-color: blue;
+                float: left;
+                height: 1.25in;
+                width: 1.25in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the blue square is completely contained within the hollow black square.</p>
+        <div>
+            <span>Filler Text</span>
+        </div>
+    </body>
+</html>

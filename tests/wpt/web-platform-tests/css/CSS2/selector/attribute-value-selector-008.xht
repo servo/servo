@@ -1,0 +1,39 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Test: attribute selector - att=val</title>
+    <link rel="author" title="Richard Ishida" href="mailto:ishida@w3.org"/>
+    <link rel="author" title="Eira Monstad, Opera Software ASA" href="mailto:public-testsuites@opera.com"/>
+    <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#attribute-selectors"/>
+    <meta name="flags" content="nonHTML"/>
+    <meta name="assert" content="attribute selector with att=val in XHTML should be case sensitive, and should only match when att is exactly val"/>
+    <style type="text/css"><![CDATA[
+      div[title="es"] { color:white;background-color:green; }
+      p[title="es"] { color:white;background-color:green; }
+      div[title="en-GB"] { color:white;background-color:green; }
+      p[title="fr"] { color:white;background-color:green; }
+      em[title="de"] { color:white;background-color:green; }
+      div[title=" no"] { color:white;background-color:green; }
+    ]]></style>
+  </head>
+  <body>
+
+    <div title="es">This line should be green</div>
+    <div title='es'>This line should be green</div>
+    <div title="en-GB">This line should be green</div>
+    <p title="es">This line should be green <em>and this should also be green</em></p>
+
+    <div title="es-MX">This line should NOT be green</div>
+    <div title="ES">This line should NOT be green</div>
+    <div title="MX-es">This line should NOT be green</div>
+
+    <div title="en-GB-scouse">This line should NOT be green</div>
+    <div title="en-US">This line should NOT be green</div>
+    <div title="en">This line should NOT be green</div>
+    <div title="no">This line should NOT be green</div>
+
+    <div title="fr">This line should NOT be green<p>This line should NOT be green</p></div>
+    <p title="de">This line should NOT be green <em>and this should not be green either</em></p>
+
+</body>
+</html>

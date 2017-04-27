@@ -1,0 +1,48 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  div.container
+  {
+  background-color: fuchsia;
+  color: black;
+  font: 20px/1 Ahem;
+  margin: 1em;
+  }
+
+  div > div {margin: 1em 0em;}
+
+  span.inserted
+  {
+  border-left: yellow solid 0.5em;
+  border-right: yellow solid 0.5em;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if the 2 colorized rectangles are <strong>identical</strong>.</p>
+
+  <div class="container"><span class="inserted">Inserted new inline</span>1stInline ScndInline
+    <div>1stBlock</div>
+    FourthInline Fifth55Inline
+    <div>SecondBlock</div>
+    Seven777Inline Eight8888Inline</div>
+
+  <div class="container"><span class="inserted">Inserted new inline</span>1stInline ScndInline
+    <div>1stBlock</div>
+    FourthInline Fifth55Inline
+    <div>SecondBlock</div>
+    Seven777Inline Eight8888Inline</div>
+
+ </body>
+</html>

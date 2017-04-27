@@ -1,0 +1,68 @@
+﻿<html>
+<head>
+<title>CSS3 Border Break Test </title>
+
+<style type="text/css" id="internalStyle">
+p {border-break: 20px; border-style: solid; 
+   }
+h3 {border-break: dashed; border-style: dashed;}
+</style>
+</head>
+
+<body>
+
+
+
+
+<h1>CSS3 Border Break Test</h1>
+
+
+
+
+
+<ul>
+<li>
+For "border-break" property - When a box that has a border is broken at a page break,
+ column break, or, for inline elements, at a line break,
+ a border and some padding can be inserted at the break, or the border can be left open.
+</li>
+</ul>
+<h2>
+PASS CRITERIA:
+</h2>
+NOTE: This property may not be implemented yet.
+<p>
+If statement above is true, this paragraph should have a border break
+of 20px.  The paragraph has a border-style of "solid".  
+The rule applied is "p {border-break: 20px; border-style: solid;}".
+This is extra text to test this more effectively.
+This is extra text to test this more effectively.
+This is extra text to test this more effectively.
+This is extra text to test this more effectively.
+This is extra text to test this more effectively.
+This is extra text to test this more effectively.
+This is extra text to test this more effectively.
+This is extra text to test this more effectively.  
+</p>
+<h3>
+This h3 heading should have a border break of dashed.
+The rule applied is "h3 {border-break: dashed; border-style: dashed;}".
+The h3 element has a border-style of "dashed". 
+This is extra text to test this more effectively.
+This is extra text to test this more effectively.
+This is extra text to test this more effectively.
+This is extra text to test this more effectively.
+This is extra text to test this more effectively.
+This is extra text to test this more effectively.
+This is extra text to test this more effectively.
+This is extra text to test this more effectively.
+</h3>
+
+<p>
+All other properties of this page should be UA-default.
+This is a paragraph like the one above, so should also have
+20px border break and border style of solid.  
+</p>
+
+</body>
+</html>

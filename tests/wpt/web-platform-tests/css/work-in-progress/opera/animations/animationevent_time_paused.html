@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <title>CSS Animations - elapsedTime on animation that has been paused</title>
+   <link rel="author" title="Opera Software ASA" href="http://www.opera.com/">
+   <link rel="help" href="https://drafts.csswg.org/css3-animations/#animation-events-">
+   <meta name="flags" content="dom">
+   <meta name="assert" content="elapsedTime does not include any time the
+   animation was in the paused play state">
+   <script src="/resources/testharness.js"></script>
+   <script src="/resources/testharnessreport.js"></script>
+   <style type="text/css">
+      @keyframes grow {
+         from {
+            width: 100px;
+         }
+         to {
+            width: 200px;
+         }
+      }
+      div {
+         width: 100px;
+         height: 100px;
+         background: blue;
+      }
+      .test {
+         animation: grow 0.4s;
+      }
+   </style>
+   <script type="text/javascript">
+      setup({explicit_done:true});
+      onload = function() {
+         var testName = document.querySelector('title').firstChild.data;
+         var div = document.querySelector('div');
+         var log = document.querySelectorAll('p')[0].firstChild;
+         function aboutEqual(observed, actual) {
+            var maxDeviation = 0.1;
+            return (Math.abs(observed - actual) < maxDeviation);
+         }
+         var timeout = setTimeout(function() {
+            test(function(){assert_true(false);}, testName); done();
+            log.data = 'FAIL';
+         }, 1000);
+         div.addEventListener('animationend', function(evt) {
+            clearTimeout(timeout);
+            var passed = aboutEqual(evt.elapsedTime, 0.4);
+            test(function(){assert_true(passed);}, testName); done();
+            log.data = passed ? 'PASS' : 'FAIL';
+         });
+         setTimeout(function() {
+            div.style.setProperty('animation-play-state', 'paused', '');
+         }, 200);
+         setTimeout(function() {
+            div.style.setProperty('animation-play-state', 'running', '');
+         }, 700);
+         div.className = 'test';
+      };
+   </script>
+   <style>iframe{display:none}</style>
+</head>
+<body>
+   <p>Testing... (JavaScript required)</p>
+   <div></div>
+</body>
+</html>

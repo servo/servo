@@ -2699,6 +2699,18 @@
      {}
     ]
    ],
+   "css/inline_block_nested_margin.html": [
+    [
+     "/_mozilla/css/inline_block_nested_margin.html",
+     [
+      [
+       "/_mozilla/css/inline_block_nested_margin_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "css/inline_block_opacity_change.html": [
     [
      "/_mozilla/css/inline_block_opacity_change.html",
@@ -3126,6 +3138,18 @@
       [
        "/_mozilla/css/blackborder_ref.html",
        "!="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/intrinsic_border_box.html": [
+    [
+     "/_mozilla/css/intrinsic_border_box.html",
+     [
+      [
+       "/_mozilla/css/intrinsic_border_box_ref.html",
+       "=="
       ]
      ],
      {}
@@ -4121,6 +4145,18 @@
      [
       [
        "/_mozilla/css/overflow_border_radius_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/overflow_clipping.html": [
+    [
+     "/_mozilla/css/overflow_clipping.html",
+     [
+      [
+       "/_mozilla/css/overflow_clipping_ref.html",
        "=="
       ]
      ],
@@ -6461,6 +6497,18 @@
      {}
     ]
    ],
+   "mozilla/scroll_root.html": [
+    [
+     "/_mozilla/mozilla/scroll_root.html",
+     [
+      [
+       "/_mozilla/mozilla/scroll_root_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "mozilla/scrolling_div_background_borders.html": [
     [
      "/_mozilla/mozilla/scrolling_div_background_borders.html",
@@ -6662,30 +6710,6 @@
       [
        "/_mozilla/css/border_black_solid.html",
        "!="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "css/deferred-paint-ref.html": [
-    [
-     "/_mozilla/css/deferred-paint-ref.html",
-     [
-      [
-       "/_mozilla/css/deferred-paint-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "css/table_valign_presentational_hint_ref.html": [
-    [
-     "/_mozilla/css/table_valign_presentational_hint_ref.html",
-     [
-      [
-       "/_mozilla/css/table_valign_presentational_hint_ref.html",
-       "=="
       ]
      ],
      {}
@@ -7333,6 +7357,11 @@
      {}
     ]
    ],
+   "css/deferred-paint-ref.html": [
+    [
+     {}
+    ]
+   ],
    "css/direction_style_caching_ref.html": [
     [
      {}
@@ -7903,6 +7932,11 @@
      {}
     ]
    ],
+   "css/inline_block_nested_margin_ref.html": [
+    [
+     {}
+    ]
+   ],
    "css/inline_block_opacity_change_ref.html": [
     [
      {}
@@ -8069,6 +8103,11 @@
     ]
    ],
    "css/inset_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/intrinsic_border_box_ref.html": [
     [
      {}
     ]
@@ -8479,6 +8518,11 @@
     ]
    ],
    "css/overflow_border_radius_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/overflow_clipping_ref.html": [
     [
      {}
     ]
@@ -9049,6 +9093,11 @@
     ]
    ],
    "css/table_specified_width_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/table_valign_presentational_hint_ref.html": [
     [
      {}
     ]
@@ -10969,6 +11018,11 @@
     ]
    ],
    "mozilla/restyle-out-of-document-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/scroll_root_ref.html": [
     [
      {}
     ]
@@ -19920,7 +19974,7 @@
  },
  "paths": {
   "./lint.whitelist": [
-   "dda02f5662390c7b09417454f97ba06876e7ce31",
+   "05d60cf6c75b15a18cbd0b0526ea9edea7d933f9",
    "support"
   ],
   "css/100x100_green.png": [
@@ -20584,7 +20638,7 @@
    "support"
   ],
   "css/border_radius_in_border_radius_a.html": [
-   "ee5099078e3403236fafbe82879c203f4c13cf50",
+   "64ad2121d35db22286fbea2d0835f2a36aa90570",
    "reftest"
   ],
   "css/border_radius_in_border_radius_ref.html": [
@@ -20924,8 +20978,8 @@
    "support"
   ],
   "css/deferred-paint-ref.html": [
-   "93956251a11323321fe8b64d5a5de8d218994670",
-   "reftest_node"
+   "f1e7c5f4d65637df18ba3d9a363f5de2205364bb",
+   "support"
   ],
   "css/deferred-paint.html": [
    "f13aa73f06873575763ea926fbfac3d3f79dacff",
@@ -21835,6 +21889,14 @@
    "ed6e0f503cb26c1091270ed0992a0a41553846d9",
    "support"
   ],
+  "css/inline_block_nested_margin.html": [
+   "b4114aa6421b4c9117e60e66ccc09868e05f3239",
+   "reftest"
+  ],
+  "css/inline_block_nested_margin_ref.html": [
+   "5e00c77f55a3d12e841e9c99395f4d3783664fd8",
+   "support"
+  ],
   "css/inline_block_opacity_change.html": [
    "df6b37b744fdf79da9d33c54b8ce77abd462c53b",
    "reftest"
@@ -22113,6 +22175,14 @@
   ],
   "css/inset_ref.html": [
    "c78c6c992e47adb47ba00b621210ae8564d46389",
+   "support"
+  ],
+  "css/intrinsic_border_box.html": [
+   "261487f82f350ab020f49f362993b26711a89b5b",
+   "reftest"
+  ],
+  "css/intrinsic_border_box_ref.html": [
+   "9a8f19331c748658b71c85b823b5b3db68e4b7a4",
    "support"
   ],
   "css/issue-1324-ref.html": [
@@ -22793,6 +22863,14 @@
   ],
   "css/overflow_border_radius_ref.html": [
    "3798d0efb1b9858ad47ecf6f09357c3c0dae1b80",
+   "support"
+  ],
+  "css/overflow_clipping.html": [
+   "3e8eb236afa8013c19adbfa807b674a393fc1eed",
+   "reftest"
+  ],
+  "css/overflow_clipping_ref.html": [
+   "f645ece68f6c7afe273daee4d1ec172c7d245632",
    "support"
   ],
   "css/overflow_position_abs_inline_block.html": [
@@ -23700,8 +23778,8 @@
    "reftest"
   ],
   "css/table_valign_presentational_hint_ref.html": [
-   "c635e02c974e9d678aa79a0760e993ae8c92abf1",
-   "reftest_node"
+   "47a0c88951354f44853418e101d1f6e56a3843ec",
+   "support"
   ],
   "css/table_vertical_align_absolute_a.html": [
    "f749a3381382d06cd94a095a97feb6a971c6ce46",
@@ -23732,7 +23810,7 @@
    "support"
   ],
   "css/test_font_family_parsing.html": [
-   "e0df1ad62a5c72e841806c0debd64a36d2898abe",
+   "fb9155875cb9cee7eba6e7a9be311ef02c82a869",
    "testharness"
   ],
   "css/test_variable_legal_values.html": [
@@ -23744,7 +23822,7 @@
    "testharness"
   ],
   "css/test_variable_serialization_specified.html": [
-   "70137258ef07c0983e0927aacbab5ed87b037b54",
+   "b403085f651089d08d6a22731b1a255c357b20c7",
    "testharness"
   ],
   "css/text_align_complex_a.html": [
@@ -25384,7 +25462,7 @@
    "testharness"
   ],
   "mozilla/document_head.html": [
-   "31892b141aba3b317502e38a4a38fcd8531cb8aa",
+   "b861fe5a1159ba5fba44d3aee048cdb27d378be9",
    "testharness"
   ],
   "mozilla/document_images_cache.html": [
@@ -25644,7 +25722,7 @@
    "testharness"
   ],
   "mozilla/interfaces.js": [
-   "f218b241a43dbc8d8d9e2422b5b7999c0a0d95a8",
+   "de8259360671809646a21a5af3d7d87fd1da91a7",
    "support"
   ],
   "mozilla/interfaces.worker.js": [
@@ -31238,6 +31316,14 @@
   "mozilla/scrollTo.html": [
    "b9917be5fed364dbc46264f641f54f275b5c054a",
    "testharness"
+  ],
+  "mozilla/scroll_root.html": [
+   "21c447dd041a77fb54e2b28c8b76de684afb9560",
+   "reftest"
+  ],
+  "mozilla/scroll_root_ref.html": [
+   "ce75eb73232617c77309aca879ba8d34461538a6",
+   "support"
   ],
   "mozilla/scroll_top_null_target.html": [
    "8e419c3f33fba1bc1444cf4c6dd3e5977f6fd841",

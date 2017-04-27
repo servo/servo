@@ -93,7 +93,6 @@ use dom_struct::dom_struct;
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
 use euclid::point::Point2D;
-use gfx_traits::ScrollRootId;
 use html5ever_atoms::{LocalName, QualName};
 use hyper::header::{Header, SetCookie};
 use hyper_serde::Serde;
@@ -143,6 +142,7 @@ use time;
 use timers::OneshotTimerCallback;
 use url::Host;
 use url::percent_encoding::percent_decode;
+use webrender_traits::ClipId;
 
 /// The number of times we are allowed to see spurious `requestAnimationFrame()` calls before
 /// falling back to fake ones.
@@ -492,6 +492,7 @@ impl Document {
         // FIXME: This should check the dirty bit on the document,
         // not the document element. Needs some layout changes to make
         // that workable.
+        self.stylesheets_changed_since_reflow.get() ||
         match self.GetDocumentElement() {
             Some(root) => {
                 root.upcast::<Node>().has_dirty_descendants() ||
@@ -699,9 +700,11 @@ impl Document {
 
         if let Some((x, y)) = point {
             // Step 3
+            let global_scope = self.window.upcast::<GlobalScope>();
+            let webrender_pipeline_id = global_scope.pipeline_id().to_webrender();
             self.window.perform_a_scroll(x,
                                          y,
-                                         ScrollRootId::root(),
+                                         ClipId::root_scroll_node(webrender_pipeline_id),
                                          ScrollBehavior::Instant,
                                          target.r());
         }
@@ -2360,7 +2363,7 @@ impl Document {
         if attr.local_name() == &local_name!("width") ||
            attr.local_name() == &local_name!("height") {
             entry.hint |= RESTYLE_SELF;
-       }
+        }
 
         let mut snapshot = entry.snapshot.as_mut().unwrap();
         if snapshot.attrs.is_none() {
@@ -2772,7 +2775,14 @@ impl DocumentMethods for Document {
         if self.is_html_document {
             local_name.make_ascii_lowercase();
         }
-        let name = QualName::new(ns!(html), LocalName::from(local_name));
+
+        let ns = if self.is_html_document || self.content_type == "application/xhtml+xml" {
+            ns!(html)
+        } else {
+            ns!()
+        };
+
+        let name = QualName::new(ns, LocalName::from(local_name));
         Ok(Element::create(name, None, self, ElementCreator::ScriptCreated))
     }
 

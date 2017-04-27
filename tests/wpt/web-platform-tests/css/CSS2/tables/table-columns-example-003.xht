@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Table columns - assigning a fixed size to a column</title>
+        <link rel="author" title="W3C" href="http://www.w3c.org" />
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#columns" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="A specific width can be set on a table column (modified example from section 17.3)." />
+        <style type="text/css">
+            #reference
+            {
+                background: blue;
+                height: 1em;
+                width: 100px;
+            }
+            table
+            {
+                background: black;
+                table-layout: fixed;
+                width: 50px;
+            }
+            col.totals
+            {
+                width: 100px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if both bars below are the same width.</p>
+        <table cellspacing="0">
+            <col class="totals" />
+            <tr>
+                <td>X</td>
+            </tr>
+            <tr>
+                <td>X</td>
+            </tr>
+            <tr>
+                <td>X</td>
+            </tr>
+        </table>
+        <div id="reference"></div>
+    </body>
+</html>

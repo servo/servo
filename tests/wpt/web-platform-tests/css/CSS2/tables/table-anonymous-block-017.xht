@@ -1,0 +1,43 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: The anonymous block box around a table and the table 'margin-left' property</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#model" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'margin-left' property of a table is actually applied to its anonymous block box." />
+        <style type="text/css">
+            div
+            {
+                border-left: 5px solid black;
+                height: 100px;
+            }
+            table
+            {
+                margin-left: 100px;
+                border-collapse: collapse;
+            }
+            caption
+            {
+                background: orange;
+                color: orange;
+            }
+            td
+            {
+                background: blue;
+                color: blue;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the blue box is directly beneath the orange box and neither box is touching the black line.</p>
+        <div>
+            <table>
+                <caption>Filler TextFiller Text</caption>
+                <tr>
+                    <td>Filler TextFiller Text</td>
+                </tr>
+            </table>
+        </div>
+    </body>
+</html>

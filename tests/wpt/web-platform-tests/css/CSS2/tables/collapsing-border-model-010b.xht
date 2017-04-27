@@ -1,0 +1,97 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: border-collapse - 'border-spacing' does not apply to 'border-collapse: collapse' tables</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#collapsing-borders" />
+  <link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+
+  <meta content="ahem" name="flags" />
+  <meta content="'border-spacing' property only applies to tables applying the 'border-collapse: separate' model. When a CSS table applies the 'border-collapse: collapse' model, then any 'border-spacing' declaration is ignored." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  div#table
+  {
+  background-color: red;
+  border-collapse: collapse;
+  border-spacing: 50px;
+  color: green;
+  float: left; /* so that the CSS table only uses shrink-to-fit width */
+  font: 1em/1 Ahem;
+  }
+
+  div#table-header {display: table-header-group;}
+
+  div#table-footer {display: table-footer-group;}
+
+  div#table-body {display: table-row-group;}
+
+  div.table-row {display: table-row;}
+
+  div.table-cell
+  {
+  background-color: green;
+  border: 0.5em solid green;
+  display: table-cell;
+  padding: 5px;
+  }
+
+  div#table-body div.table-cell, div.table-row > div:first-child {padding: 0px;}
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+  <div id="table">
+
+   <div id="table-header">
+       <div class="table-row">
+           <div class="table-cell">1</div> <div class="table-cell">2</div> <div class="table-cell">3</div>
+       </div>
+   </div>
+
+   <div id="table-footer">
+       <div class="table-row">
+           <div class="table-cell">7</div> <div class="table-cell">8</div> <div class="table-cell">9</div>
+       </div>
+   </div>
+
+   <div id="table-body">
+       <div class="table-row">
+           <div class="table-cell">4</div> <div class="table-cell">5</div> <div class="table-cell">6</div>
+       </div>
+   </div>
+
+  </div>
+
+  <!--
+
+		  1st col		   2nd col		 3rd col
+
+			 8				 8				 8
+			 0				 5				 5
+	8	0	16	0	8	5	16	5	8	5	16	5	8		thead == 100px
+			 0				 5				 5
+			 8				 8				 8
+			 0				 0				 0
+	8	0	16	0	8	0	16	0	8	0	16	0	8		tbody == 100px
+			 0				 0				 0
+			 8				 8				 8
+  			 0				 5				 5
+	8	0	16	0	8	5	16	5	8	5	16	5	8		tfoot == 100px
+			 0				 5				 5
+			 8				 8				 8
+	====================================================
+			100px			100px			100px
+
+  -->
+
+ </body>
+</html>

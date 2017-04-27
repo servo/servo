@@ -1,0 +1,76 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Fourth Test of Section 17.5 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+
+
+#id1 {table-layout: }
+#id2 {table-layout: fixed}
+#id3 {table-layout: 200%}
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Fourth Testable Statement of Sec 17.5 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+4. The table-layout property has initial of auto, it applies to table and
+inline-table elements, it is not inherited, percentages are N/A, and media
+is visual.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p >
+If statement #4 above is passed, then
+the table below should have table layout of auto (initial value), because of
+rule "#id1 {table-layout: }".
+<p>This paragraph should have be UA-default. 
+Rule specified is "p {table-layout: fixed}", but is ignored, since this
+property only applies to table and inline-table elements.
+</p>
+<table ID=id1>
+<tr><td>1</td><td>2</td></tr>
+<tr><td>3</td><td>4</td></tr>
+</table>
+The table below should have table layout of fixed, because of
+rule "#id2 {table-layout: fixed}".
+NOTE: Table within a table is included, but this included table has
+table-layout of UA-default, since property is not inherited.
+<table ID=id2>
+<tr><td>5</td><td>6</td></tr>
+<tr><td>7</td><td>8</td></tr>
+<table>
+<tr><td>a</td><td>b</td></tr>
+</table>
+</table>
+The table below should have table-layout of UA-default, because of
+rule "#id3 {table-layout: 200%}".
+Since percentages do not apply, this rule should be ignored.
+<table ID=id3>
+<tr><td>9</td><td>10</td></tr>
+<tr><td>11</td><td>12</td></tr>
+</table>
+All other properties of this page should be UA-default.
+
+
+</BODY>
+</HTML>
+

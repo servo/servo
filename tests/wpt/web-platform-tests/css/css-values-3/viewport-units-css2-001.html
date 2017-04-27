@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+	<title>
+		CSS Values and Units Test:
+		Checks viewport units against CSS 2.1 properties and the CSSOM
+	</title>
+	<meta name="assert" content="Testing what happens when one applies and rereads viewport unit lengths to CSS 2.1 properties that accept length values" />
+
+	<link
+		rel="author"
+		title="Christian Schaefer"
+		href="mailto:schaepp@gmx.de"
+	/ >
+
+	<!-- You must have at least one spec link, but may have as many as are covered in the test. -->
+	<!-- Be sure to make the main testing area first in the order -->
+	<link rel="help" href="http://www.w3.org/TR/css3-values/#viewport-relative-lengths">
+
+    <!-- testharness inclusion for later submission -->
+	<script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+
+    <!-- testharness fallback for local testing -->
+	<script>
+		window.test || document.write('\
+			<script src="http://www.w3c-test.org/resources/testharness.js"><\/script>\
+			<script src="http://www.w3c-test.org/resources/testharnessreport.js"><\/script>\
+		');
+    </script>
+
+	<style>
+
+		#div {
+			position: relative;
+			width: 50vw;
+			height: 10vw;
+			background: green;
+			border: 0 green solid;
+			font-size: 4vw;
+		}
+
+		#table td {
+			border: 1px solid green;
+		}
+
+	</style>
+
+</head>
+<body>
+	<div id="log"></div>
+
+	<p>
+		Checks viewport units. Also re-check with zoom in/out.
+	</p>
+
+	<div id="div">
+    	Test the Web Forward!
+    </div>
+
+    <table id="table">
+    	<tbody>
+            <tr>
+                <td id="td">Test</td>
+                <td>T</td>
+                <td>W</td>
+                <td>F</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <script>
+
+	/* Boilerplate code */
+
+	var camelize = function (str) {
+		return str.replace(/\-(\w)/g, function(str, letter){
+			return letter.toUpperCase();
+		});
+	};
+
+	var retrieveComputedStyle = function(element,property){
+		var result =
+			document
+			.defaultView
+			.getComputedStyle(element,null)
+			.getPropertyValue(property);
+
+		// If there are multiple values, cut down to the first
+		result = result.split(' ')[0];
+
+		if(window.console) console.log('Retrieving ' + property + ' property. Result: ' + result);
+
+		return result;
+	}
+
+	var testit = function(element,vunit,property,expectedResult){
+
+		element.style[camelize(property)] = '0px';
+		element.style[camelize(property)] = lengthAmount + vunit;
+
+		if(window.console) console.log(element.nodeName.toLowerCase() + '.style.' + camelize(property) + ' = ' + lengthAmount + vunit);
+
+		var result = retrieveComputedStyle(element,property);
+
+		// Test against WebKit's getComputedStyle bug, where it does not return absolute values
+		// As required here: http://www.w3.org/TR/1998/REC-CSS2-19980512/cascade.html#computed-value
+		// If it returns a pixel value, but this value is 0px then it is considered a fail, too.
+		var px_result = result.search(/^[-\d\.]+px$/) !== -1 && result !== '0px' ? 'non-zero px-based value' : result;
+
+		// If browser returns pixel value, we compare against our expected pixel value
+		if(px_result === 'non-zero px-based value'){
+			test(function(){
+				assert_equals(Math.round(parseFloat(result.replace(/[^-\d\.]+/g,''))),expectedResult);
+			},vunit + ' length applied to ' + property);
+		}
+		// If not, we compare against the value we set initially
+		else {
+			test(function(){
+				assert_equals(result,lengthAmount + vunit);
+			},vunit + ' length applied to ' + property);
+		}
+
+		// Does the browser have a bug in getComputedStyle or not?
+		test(function(){
+			assert_equals(px_result,'non-zero px-based value');
+		},vunit + ' length applied to ' + property + ': getComputedStyle returns a non-zero px-based value');
+
+		element.style[camelize(property)] = '';
+	}
+
+	var lengthAmount = 10;
+	var layoutViewportWidth = document.documentElement.clientWidth;
+	var layoutViewportHeight = document.documentElement.clientHeight;
+
+	var viewportUnits = [
+		 {
+			 ident: 'vw',
+			 expectedResult: Math.round(layoutViewportWidth * (lengthAmount / 100))
+		}
+		,{
+			 ident: 'vh',
+			 expectedResult: Math.round(layoutViewportHeight * (lengthAmount / 100))
+		}
+		,{
+			 ident: 'vmin',
+			 expectedResult: layoutViewportWidth < layoutViewportHeight ? Math.round(layoutViewportWidth * (lengthAmount / 100)) : Math.round(layoutViewportHeight * (lengthAmount / 100))
+		}
+		,{
+			 ident: 'vmax',
+			 expectedResult: layoutViewportWidth > layoutViewportHeight ? Math.round(layoutViewportWidth * (lengthAmount / 100)) : Math.round(layoutViewportHeight * (lengthAmount / 100))
+		}
+	]
+
+	// List of length accepting properties and which element they map to
+	// http://www.w3.org/TR/CSS21/propidx.html
+	var lengthAcceptingProperties = [
+		 {
+			name: 'width',
+			element: 'div'
+		}
+		,{
+			name: 'height',
+			element: 'div'
+		}
+		,{
+			name: 'min-width',
+			element: 'div'
+		}
+		,{
+			name: 'min-height',
+			element: 'div'
+		}
+		,{
+			name: 'max-width',
+			element: 'div'
+		}
+		,{
+			name: 'max-height',
+			element: 'div'
+		}
+		,{
+			name: 'margin-top',
+			element: 'div'
+		}
+		,{
+			name: 'padding-top',
+			element: 'div'
+		}
+		,{
+			name: 'border-top-width',
+			element: 'div'
+		}
+		,{
+			name: 'font-size',
+			element: 'div'
+		}
+		,{
+			name: 'line-height',
+			element: 'div'
+		}
+		,{
+			name: 'border-spacing',
+			element: 'table'
+		}
+		,{
+			name: 'top',
+			element: 'div'
+		}
+		,{
+			name: 'right',
+			element: 'div'
+		}
+		,{
+			name: 'bottom',
+			element: 'div'
+		}
+		,{
+			name: 'left',
+			element: 'div'
+		}
+		,{
+			name: 'letter-spacing',
+			element: 'div'
+		}
+		,{
+			name: 'text-indent',
+			element: 'div'
+		}
+		,{
+			name: 'vertical-align',
+			element: 'td'
+		}
+		,{
+			name: 'word-spacing',
+			element: 'div'
+		}
+	];
+
+	var div = document.getElementById('div');
+	var table = document.getElementById('table');
+	var td = document.getElementById('td');
+
+	for(unitEntry in viewportUnits){
+		for(propertyEntry in lengthAcceptingProperties){
+
+			var vunit = viewportUnits[unitEntry].ident;
+			var expectedResult = viewportUnits[unitEntry].expectedResult;
+			var property = lengthAcceptingProperties[propertyEntry].name;
+			var element = window[lengthAcceptingProperties[propertyEntry].element];
+
+			testit(element,vunit,property,expectedResult);
+		}
+	}
+
+	</script>
+</body>
+</html>

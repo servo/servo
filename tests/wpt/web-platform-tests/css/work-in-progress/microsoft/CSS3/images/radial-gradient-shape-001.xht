@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: 'radial-gradient' implicit shape declaration</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="https://drafts.csswg.org/css3-images/#gradients" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Implicit declaration of shape of 'ellipse' is supported." />
+        <style type="text/css">
+            #test
+            {
+                background-color: blue;
+                background-image: radial-gradient(90px 40px, closest-side, transparent, white);
+                border: dashed;
+                height: 80px;
+                width: 180px;  
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a blue ellipse on the page.</p>
+        <div id="test"></div>
+    </body>
+</html>

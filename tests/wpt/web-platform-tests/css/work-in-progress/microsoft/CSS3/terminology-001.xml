@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<root xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Namespaces Test Suite: empty string namespace name == null namespace or lack of a namespace. </title>
+  <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+  <link rel="help" href="http://www.w3.org/TR/css3-namespace/#terminology" />
+  <meta name="flags" content="" />
+  <meta name="assert" content="In CSS Namespaces a namespace name consisting of the empty string is taken to represent the null namespace or lack of a namespace." />
+  <style type="text/css">
+    t, t1, t2 { background:red }
+  </style>
+  <style type="text/css">
+    @namespace empty "";
+    @namespace "";
+    t { background: lime }
+    |t1 { background: lime }
+    empty|t2 { background: lime }
+  </style>
+ </head>
+ <body>
+    <p>Test passes if the "Filler Text" text below has a green background.</p>
+    <p><t xmlns="">Filler Text</t></p>
+    <p><t1 xmlns="">Filler Text</t1></p>
+    <p><t2 xmlns="">Filler Text</t2></p>
+ </body>
+</root>

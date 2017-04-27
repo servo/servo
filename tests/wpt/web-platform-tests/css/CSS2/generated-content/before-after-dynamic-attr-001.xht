@@ -1,0 +1,30 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" class="reftest-wait"><head>
+    <title>CSS Test: generated content</title>
+    <link rel="author" title="Robert O'Callahan" href="mailto:robert@ocallahan.org" />
+    <link rel="author" title="Mozilla Corporation" href="http://mozilla.com/" />
+    <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#content" />
+    <link rel="match" href="before-after-dynamic-attr-001-ref.xht"/>
+    <meta name="flags" content="dom" />
+<style type="text/css">
+body {
+  font-family:sans-serif;
+}
+body:before {
+  content:attr(my-attr);
+}
+body:after {
+  content:attr(my-attr-2);
+}
+</style>
+<script type="text/javascript">
+function fixupDOM() {
+  document.body.setAttribute("my-attr", "before");
+  document.body.setAttribute("my-attr-2", "after!");
+  document.documentElement.className = "";
+}
+</script>
+</head>
+<body onload="fixupDOM()" my-attr-2="xyz">
+
+
+</body></html>

@@ -1,0 +1,48 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: CSS Tables: Margins</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/table/006.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#margin-properties" />
+  <style type="text/css">
+   * {
+     margin: 0;
+     padding: 0;
+     border: 0;
+     border-spacing: 0;
+   }
+   table {
+     margin-left: 1em;
+     margin-right: 19em;
+   }
+   div {
+     border: black solid;
+     width: 20em;
+     height: 10em;
+     font: 1em/1em monospace;
+     overflow: hidden;
+   }
+   span {
+     background: green;
+     color: white;
+     font-size: 0.9em;
+   }
+  </style>
+ </head>
+ <body>
+    <p> The word PASS should appear below. </p>
+    <div> <table> <tr> <td>
+~~~|~~~
+~~~|~~~
+~~~|~~~
+~~~|~~~
+~~~|~~~
+\~~|~~/
+\\~|~//
+~\\|//~
+~~\v/~~
+<span>_PASS!__</span>
+    </td> </tr> </table> </div>
+ </body>
+</html>

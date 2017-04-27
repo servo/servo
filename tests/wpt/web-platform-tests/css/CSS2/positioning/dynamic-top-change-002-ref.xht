@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  p
+  {
+  line-height: 1.25;
+  margin: 1em 0;
+  }
+
+  strong {line-height: 1;}
+
+  div
+  {
+  background-color: green;
+  height: 100px;
+  margin-top: 28px;
+  /*
+  The green square appears 12px below the p margin box:
+  2em + 2em - (16px + 20px + 16px) + 16px
+  max(margin-bottom of p, margin-top of div)
+  max(16px, margin-top of div) == 16px + 12px;
+  therefore, margin-top of div == 16px + 12px
+  */
+  width: 100px;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is <strong>no red</strong>.</p>
+
+  <div></div>
+
+ </body>
+</html>

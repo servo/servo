@@ -1,0 +1,44 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Pseudo-classes and layout</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#first-line-pseudo" />
+        <meta name="flags" content="interact may" />
+        <meta name="assert" content="User agents are not required to reflow a currently displayed document due to pseudo-class transitions." />
+        <style type="text/css">
+            div
+            {
+                float: left;
+                width: 60px;
+                height: 60px;
+            }
+            #div1
+            {
+                background: blue;
+            }
+            #div1:hover
+            {
+                width: 300px;
+                height: 300px;
+            }
+            #div3
+            {
+                background: purple;
+            }
+            #div2
+            {
+                clear: left;
+                background: orange;
+            }
+        </style>
+    </head>
+    <body>
+        <p>PREREQUISITE: Hover over the blue box.</p>
+        <p>Test passes if the blue square width and height increase significantly.</p>
+        <p>When this happens, the purple and orange squares may or may not reflow.</p>
+        <div id="div1"></div>
+        <div id="div3"></div>
+        <div id="div2"></div>
+    </body>
+</html>

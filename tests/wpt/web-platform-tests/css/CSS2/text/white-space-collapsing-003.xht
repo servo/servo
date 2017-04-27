@@ -1,0 +1,23 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: white-space normal: collapsing at line edges</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/text/white-space/normal/collapsing/003.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#white-space-model" />
+  <style type="text/css">
+   .test { margin: 0.25em; border: 0.25em solid navy; padding: 0.1em; background: blue; color: yellow; text-decoration: underline; width: 7em; text-align: center; font: 2em Ahem, monospace; }
+  </style>
+ </head>
+ <body>
+  <p>The following lines should all look identical:</p>
+  <div class="test a">XXXX</div>
+  <div class="test b">XXXX </div>
+  <div class="test c"> XXXX</div>
+  <div class="test d"> XXXX </div>
+  <div class="test a"><span>XXXX</span></div>
+  <div class="test b"><span>XXXX </span></div>
+  <div class="test c"><span> XXXX</span></div>
+  <div class="test d"><span> XXXX </span></div>
+ </body>
+</html>

@@ -1,0 +1,31 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: :before generated content - initial value of display </title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#before-after-content" />
+  <link rel="match" href="after-content-display-001-ref.xht" />
+  <meta content="" name="flags" />
+  <meta content="The initial value of the 'display' for generated content property is 'inline'." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  div:before
+  {
+  content: "Filler text ";
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if the 2 "Filler text" are both <strong>on the same line</strong>.</p>
+
+  <div>Filler text</div>
+
+ </body>
+</html>

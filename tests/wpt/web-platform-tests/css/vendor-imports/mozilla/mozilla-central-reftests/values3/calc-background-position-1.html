@@ -1,0 +1,27 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>CSS Test: Test for calc() on background-position</title>
+  <link rel="author" title="L. David Baron" href="https://bugzilla.mozilla.org/show_bug.cgi?id=594934">
+  <link rel="help" href="http://www.w3.org/TR/css3-values/#calc-notation">
+  <link rel="match" href="calc-background-position-1-ref.html">
+  <meta name="flags" content="">
+<style type="text/css">
+
+p {
+    height: 50px; width: 200px;
+    border: thin solid;
+    background-image: url(../backgrounds/blue-32x32.png);
+    background-repeat: no-repeat;
+}
+
+#one { background-position: calc(50px + 50%) calc(100% - 30px) }
+#two { background-position: calc(-12.5% + 3px) calc(-10px - 50%) }
+
+</style>
+</head>
+<body>
+<p id="one"></p>
+<p id="two"></p>
+</body>
+</html>

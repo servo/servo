@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Text-decoration on inline elements with multiple boxes</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#lining-striking-props" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'text-decoration' property set to 'underline' is applied to all boxes within inline element (in this case, with different styles)." />
+        <style type="text/css">
+           span
+            {
+               text-decoration: underline;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the "Filler Text" below is underlined regardless of styles alternating within it.</p>
+        <div>
+            <span>Filler Text<b> Filler Text </b><i> Filler Text</i> Filler Text <b> Filler Text</b> Filler Text</span>
+        </div>
+    </body>
+</html>

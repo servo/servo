@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: border-top-width</title>
+  <meta name="flags" content="image" />
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#border-top-width"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="match" href="c5511-brdr-tw-001-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+   .one { background: url(support/swatch-red.png) repeat-x top left; }
+   .one div { border-top-width: 15px; border-style: solid; color: green; }
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-properties" title="8.5 Border properties"/>
+ </head>
+ <body>
+  <div class="one">
+   <div>
+    There should be no red on this page.
+   </div>
+  </div>
+ </body>
+</html>

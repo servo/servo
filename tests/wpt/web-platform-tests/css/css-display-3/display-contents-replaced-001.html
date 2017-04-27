@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Display: display:contents and replaced elements</title>
+<link rel="author" title="Rune Lillesveen" href="mailto:rune@opera.com">
+<link rel="help" href="https://drafts.csswg.org/css-display-3/#valdef-display-contents">
+<link rel="match" href="display-contents-replaced-001-ref.html">
+<style>
+    button, img, input, textarea {
+        display: contents;
+        border: 10px solid green
+    }
+</style>
+<p>You should see five form inputs, and an orange image, with green border below.</p>
+<button>Button</button>
+<input type="text" value="text"></input>
+<input type="file"></input>
+<input type="password" value="password"></input>
+<textarea>textarea</textarea>
+<img src="support/swatch-orange.png">

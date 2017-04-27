@@ -1,0 +1,52 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: white-space</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="author" title="James Hopkins" href="http://idreamincode.co.uk/css21testsuite" />
+  <link rel="author" title="Justin Boss" href="http://www.bosspro.org/contactus/" />
+  <link rel="help" title="C.5.76 Section 16.6.1 The 'white-space' processing model" href="https://www.w3.org/TR/CSS21/changes.html#q21.363" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#white-space-model" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#white-space-prop" />
+  <meta name="flags" content="ahem" />
+  <meta name="assert" content="'white-space: normal' and 'white-space: nowrap' should collapse sequences of white space. Regarding wrapping, line breaking opportunities are determined on the text prior to white space collapsing steps." />
+
+  <style type="text/css"><![CDATA[
+  div#test
+  {
+  background-color: orange;
+  color: orange;
+  font: 50px/1 Ahem;
+  width: 500px;
+  white-space: normal;
+  }
+
+  span
+  {
+  white-space: nowrap;
+  }
+
+  div#control
+  {
+  background-color: blue;
+  height: 100px;
+  width: 500px;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if the wide orange and blue rectangles are the <strong>same width</strong> and the <strong>same height</strong>.</p>
+
+  <div id="test"><span>X </span> <span>X </span> <span>X </span> <span>X </span> <span>X </span> <span>X </span> <span>X </span> <span>X </span> <span>X </span> <span>X </span></div>
+
+  <div id="control">&nbsp;</div>
+
+ </body>
+</html>

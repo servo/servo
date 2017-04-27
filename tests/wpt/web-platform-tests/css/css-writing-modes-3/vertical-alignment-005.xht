@@ -1,0 +1,37 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Writing Modes Test: vertical-align - 'text-top' and vertical-lr writing-mode</title>
+    <link rel="author" title="Hajime Shiozawa" href="mailto:hajime.shiozawa@gmail.com" />
+    <link rel="reviewer" title="G?rard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2015-09-03 -->
+    <link rel="help" title="7.5 Line-Relative Mappings" href="http://www.w3.org/TR/css-writing-modes-3/#line-mappings" />
+    <link rel="help" title="10.8.1 Leading and half-leading" href="http://www.w3.org/TR/2011/REC-CSS2-20110607/visudet.html#leading" />
+    <meta name="assert" content="This test checks the position of an inline non-replaced box with vertical align property. When 'writing-mode' is 'vertical-lr', 'vertical-align' is 'text-top', the physical right (logical top) edge of an inline non-replaced box is aligned with the right side (logical top) of parent's content area." />
+    <link rel="match" href="vertical-alignment-004-ref.xht" />
+    <meta name="flags" content="ahem" />
+    <style type="text/css"><![CDATA[
+    div#lr
+    {
+      color: orange;
+      font: 60px/3 Ahem; /* computes to 60px/180px */
+      writing-mode: vertical-lr;
+    }
+
+    span#orange30
+    {
+      font-size: 0.5em; /* computes to 30px */
+      vertical-align: text-top;
+    }
+
+    ]]></style>
+
+  </head>
+
+  <body>
+
+  <p>Test passes if the <strong>left edge</strong> of an irregular orange polygon is straight and unbroken.</p>
+
+  <div id="lr">A<span id="orange30">O</span></div>
+
+  </body>
+</html>

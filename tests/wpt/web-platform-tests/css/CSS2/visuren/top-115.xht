@@ -1,0 +1,67 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: position relative - top offset percentage and auto-height containing block</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" title="9.3.2 Box offsets: 'top', 'right', 'bottom', 'left'" href="http://www.w3.org/TR/CSS21/visuren.html#position-props" />
+  <link rel="help" title="10.5 Content height: the 'height' property" href="http://www.w3.org/TR/CSS21/visudet.html#the-height-property" />
+  <link rel="match" href="top-115-ref.xht" />
+
+  <meta content="" name="flags" />
+  <meta content="'top: [percentage]' for a relatively positioned box refers to height of its containing block. If the height of the containing block is not specified explicitly (i.e., it depends on content height), and this element is not absolutely positioned, then the percentage height value computes to 'auto'." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  div
+  {
+  height: 100px;
+  left: auto;
+  position: relative;
+  width: 100px;
+  }
+
+  #rel-pos-overlapped-red
+  {
+  background-color: red;
+  color: white;
+  top: 50%;
+  }
+
+  #rel-pos-overlapping-green
+  {
+  background-color: green;
+  top: -100px;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled green square and if there is <strong>no red</strong> in this page, <strong>even at its bottom</strong>.</p>
+
+  <div id="rel-pos-overlapped-red">Test FAILED</div>
+
+  <div id="rel-pos-overlapping-green"></div>
+
+  <p>&nbsp;</p>
+
+  <p>&nbsp;</p>
+
+  <p>&nbsp;</p>
+
+  <p>&nbsp;</p>
+
+  <p>&nbsp;</p>
+
+  <p>&nbsp;</p>
+
+  <p>&nbsp;</p>
+
+  <p>&nbsp;</p>
+
+ </body>
+</html>

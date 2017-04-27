@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
+<% from data import SYSTEM_FONT_LONGHANDS %>
 
 <%helpers:shorthand name="font"
                     sub_properties="font-style font-variant-caps font-weight font-stretch
@@ -16,8 +17,10 @@
                                     ${'font-variant-position' if product == 'gecko' or data.testing else ''}
                                     ${'font-language-override' if product == 'gecko' or data.testing else ''}"
                     spec="https://drafts.csswg.org/css-fonts-3/#propdef-font">
-    use properties::longhands::{font_style, font_variant_caps, font_weight, font_stretch};
-    use properties::longhands::{font_size, line_height};
+    use properties::longhands::{font_family, font_style, font_weight, font_stretch};
+    use properties::longhands::{font_size, line_height, font_variant_caps};
+    #[cfg(feature = "gecko")]
+    use properties::longhands::system_font::SystemFont;
     <%
         gecko_sub_properties = "kerning language_override size_adjust \
                                 variant_alternates variant_east_asian \
@@ -29,7 +32,7 @@
             use properties::longhands::font_${prop};
         % endfor
     % endif
-    use properties::longhands::font_family::SpecifiedValue as FontFamily;
+    use self::font_family::SpecifiedValue as FontFamily;
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         let mut nb_normals = 0;
@@ -38,6 +41,17 @@
         let mut weight = None;
         let mut stretch = None;
         let size;
+        % if product == "gecko":
+            if let Ok(sys) = input.try(SystemFont::parse) {
+                return Ok(Longhands {
+                     % for name in SYSTEM_FONT_LONGHANDS:
+                         ${name}: ${name}::SpecifiedValue::system_font(sys),
+                     % endfor
+                     // line-height is just reset to initial
+                     line_height: line_height::get_initial_specified_value(),
+                 })
+            }
+        % endif
         loop {
             // Special-case 'normal' because it is valid in each of
             // font-style, font-weight, font-variant and font-stretch.
@@ -88,7 +102,7 @@
         };
         let family = FontFamily::parse(input)?;
         Ok(Longhands {
-            % for name in "style variant_caps weight stretch size".split():
+            % for name in "style weight stretch size variant_caps".split():
                 font_${name}: unwrap_or_initial!(font_${name}, ${name}),
             % endfor
             line_height: unwrap_or_initial!(line_height),
@@ -101,9 +115,51 @@
         })
     }
 
+    % if product == "gecko":
+        enum CheckSystemResult {
+            AllSystem(SystemFont),
+            SomeSystem,
+            None
+        }
+
+        impl<'a> LonghandsToSerialize<'a> {
+            /// Check if some or all members are system fonts
+            fn check_system(&self) -> CheckSystemResult {
+                let mut sys = None;
+                let mut all = true;
+
+                % for prop in SYSTEM_FONT_LONGHANDS:
+                    if let Some(s) = self.${prop}.get_system() {
+                        debug_assert!(sys.is_none() || s == sys.unwrap());
+                        sys = Some(s);
+                    } else {
+                        all = false;
+                    }
+                % endfor
+                if self.line_height != &line_height::get_initial_specified_value() {
+                    all = false
+                }
+                if all {
+                    CheckSystemResult::AllSystem(sys.unwrap())
+                } else if sys.is_some() {
+                    CheckSystemResult::SomeSystem
+                } else {
+                    CheckSystemResult::None
+                }
+            }
+        }
+    % endif
+
     // This may be a bit off, unsure, possibly needs changes
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            % if product == "gecko":
+                match self.check_system() {
+                    CheckSystemResult::AllSystem(sys) => return sys.to_css(dest),
+                    CheckSystemResult::SomeSystem => return Ok(()),
+                    CheckSystemResult::None => ()
+                }
+            % endif
 
     % if product == "gecko" or data.testing:
         % for name in gecko_sub_properties:

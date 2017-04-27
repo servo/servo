@@ -1,0 +1,65 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>27th Test of Section 10.8 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+#id1 {vertical-align: baseline}
+#id2 {vertical-align: top}
+#id3 {vertical-align: bottom}
+#id4 {vertical-align: middle}
+
+
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing 27th Testable Statement of Sec 10.8 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+27. The vertical-align property of each table cell determines its alignment
+within the row.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p id="id1">
+If statement #27 above is passed, then
+the baseline of the cell is put at th same height as the baseline of the
+first of the rows it spans.
+The rule applied is "#id1 {vertical-align: baseline}".
+<p id="id2">
+Here the top of the cell box is aligned with the top of the first row it
+spans.
+THe rule applied is "#id2 {vertical-align: top}".
+<h3 id="id3">
+In this h3 heading the bottom of the cell box is aligned with the bottom
+of the last row it spans.
+The rule applied is"#id3 {vertical-align: bottom}".
+</h3>
+<h3 id="id4">
+In this h3 heading the center of the cell is aligned with the center of
+the rows it spans.
+The rule applied is "#id4 {vertical-align: middle}".
+</h3>
+All other properties of this page should be UA-default.
+
+
+</BODY>
+</HTML>
+

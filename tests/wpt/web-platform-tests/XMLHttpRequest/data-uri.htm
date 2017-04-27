@@ -1,16 +1,14 @@
 <!doctype html>
 <meta charset=utf-8>
-<title>XMLHttpRequest: data uri</title>
+<title>XMLHttpRequest: data URLs</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-    <link rel="help" href="https://xhr.spec.whatwg.org/#data:-urls-and-http" data-tested-assertations="following::ul/li[1] following::ul/li[2] following::ul/li[4]" />
-    <link rel="help" href="https://xhr.spec.whatwg.org/#the-send()-method" data-tested-assertations="following::ul/li[10]/dl/dt[2]" />
 <div id="log"></div>
 
 <script>
-  function do_test(method, uri, charset, testNamePostfix) {
-    if (typeof charset === 'undefined' || charset === null) charset = 'text/plain';
-    var test = async_test("XHR method " + method + " with charset " + charset+(testNamePostfix||''));
+  function do_test(method, url, mimeType, testNamePostfix) {
+    if (typeof mimeType === 'undefined' || mimeType === null) mimeType = 'text/plain';
+    var test = async_test("XHR method " + method + " with MIME type " + mimeType + (testNamePostfix||''));
     test.step(function() {
       var client = new XMLHttpRequest();
       client.onreadystatechange = test.step_func(function () {
@@ -18,25 +16,15 @@
           return;
         }
 
-        // Note: fetching a data URL with a non-GET method returns a network
-        // error per <http://fetch.spec.whatwg.org/#basic-fetch>.
-        if (method.toUpperCase() !== 'GET') {
-          assert_equals(client.status, 0);
-          assert_equals(client.responseText, '');
-          assert_equals(client.statusText, '');
-          test.done();
-          return;
-        }
-
         assert_equals(client.responseText, "Hello, World!");
         assert_equals(client.status, 200);
-        assert_equals(client.getResponseHeader('Content-Type'), charset);
+        assert_equals(client.getResponseHeader('Content-Type'), mimeType);
         var allHeaders = client.getAllResponseHeaders();
         assert_regexp_match(allHeaders, /content\-type\:/i, 'getAllResponseHeaders() includes Content-Type');
         assert_false(/content\-length\:/i.test(allHeaders), 'getAllResponseHeaders() must not include Content-Length');
         test.done();
       });
-      client.open(method, uri);
+      client.open(method, url);
       client.send(null);
     });
   }

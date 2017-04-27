@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <title>CSS Animations - negative animation-delay, implied start value</title>
+   <link rel="author" title="Opera Software ASA" href="http://www.opera.com/">
+   <link rel="help" href="https://drafts.csswg.org/css3-animations/#the-animation-delay-property-">
+   <meta name="flags" content="dom">
+   <meta name="assert" content="In the case where an animation has implied
+   starting values and a negative 'animation-delay', the starting values are
+   taken from the moment the animation is applied">
+   <script src="/resources/testharness.js"></script>
+   <script src="/resources/testharnessreport.js"></script>
+   <style type="text/css">
+      @keyframes move {
+         to {
+            left: 0px;
+         }
+      }
+      body > div {
+         width: 50px;
+         height: 100px;
+         border-right: 50px solid red;
+      }
+      div > div {
+         width: 100px;
+         height: 100px;
+         background: blue;
+         position: relative;
+      }
+      .test {
+         animation-duration: 2s;
+         animation-delay: -1.5s;
+         animation-fill-mode: forwards;
+         animation-timing-function: steps(2);
+         animation-name: move;
+      }
+   </style>
+   <script type="text/javascript">
+      setup({explicit_done:true});
+      onload = function() {
+         var testName = document.querySelector('title').firstChild.data;
+         var div = document.querySelectorAll('div')[1];
+         var log = document.querySelectorAll('p')[1].firstChild;
+         var passed = false;
+         var timeout = setTimeout(function() {
+            test(function(){assert_true(false);}, testName); done();
+            log.data = 'FAIL';
+         }, 1500);
+         setTimeout(function() {
+            div.style.setProperty('left', '100px', '');
+            div.className = 'test';
+         }, 500);
+         div.addEventListener('animationstart', function() {
+            passed = (getComputedStyle(div, null).left == '50px');
+         });
+         div.addEventListener('animationend', function() {
+            clearTimeout(timeout);
+            passed = (passed && getComputedStyle(div, null).left == '0px');
+            test(function(){assert_true(passed);}, testName); done();
+            log.data = (passed ? 'PASS if the animation occurred.' : 'FAIL');
+         });
+      }
+   </script>
+   <style>iframe{display:none}</style>
+</head>
+<body>
+   <p>The blue square below should jump right and then back left, and there
+   should be no red.</p>
+   <p>Testing...</p>
+   <div>
+      <div></div>
+   </div>
+</body>
+</html>

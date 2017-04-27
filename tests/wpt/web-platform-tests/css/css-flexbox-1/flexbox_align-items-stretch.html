@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<title>flexbox | align-items: stretch</title>
+<link rel="author" href="http://opera.com" title="Opera Software">
+<link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#propdef-align-items">
+<link rel="match" href="flexbox_align-items-stretch-ref.html">
+<style>
+div {
+	background: blue;
+	margin: 1em 0;
+	border: 1px solid black;
+	height: 6em;
+	width: 30em;
+
+	display: flex;
+	align-items: stretch;
+}
+span {
+	background: white;
+	margin: 0 1em;
+	width: 8em;
+	display: inline-block;
+
+	flex: none;
+}
+span:nth-child(1) {background: yellow;}
+span:nth-child(2) {
+	background: pink;
+	margin-top: 3em;
+}
+span:nth-child(3) {
+	background: lightblue;
+}
+</style>
+
+<div>
+	<span>one</span>
+	<span>two</span>
+	<span>three</span>
+</div>

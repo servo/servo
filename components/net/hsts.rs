@@ -113,7 +113,7 @@ impl HstsList {
 
     fn has_subdomain(&self, host: &str, base_domain: &str) -> bool {
        self.entries_map.get(base_domain).map_or(false, |entries| {
-            entries.iter().any(|e| e.matches_subdomain(host))
+           entries.iter().any(|e| e.matches_subdomain(host))
        })
     }
 

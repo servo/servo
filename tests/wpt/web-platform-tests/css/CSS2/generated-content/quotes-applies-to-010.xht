@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Quotes applied to elements with 'display' set to 'list-item'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#propdef-quotes" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#quotes-specify" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'quotes' property applies to elements with a 'display' set to 'list-item'." />
+        <style type="text/css">
+            div
+            {
+                display: list-item;
+                margin-left: 2em;
+                quotes: "P" "S" "A" "S";
+            }
+            div:before
+            {
+                content: open-quote open-quote close-quote close-quote;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is the word "PASS" below and there is a marker bullet on the left-hand side of the word.</p>
+        <div></div>
+    </body>
+</html>

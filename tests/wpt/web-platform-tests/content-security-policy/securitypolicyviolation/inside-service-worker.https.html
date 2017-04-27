@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!--
+  Set a policy in the document to ensure that the block is triggering
+  in the worker and not in the document.
+-->
+<meta http-equiv="content-security-policy" content="connect-src 'self'">
+
+<script>
+  navigator.serviceWorker.register("./support/inside-worker.sub.js", { scope: "./support/" })
+    .then(r => {
+      var sw = r.active || r.installing || r.waiting;
+      add_completion_callback(_ => r.unregister());
+            
+      // Forward 'securitypolicyviolation' events from the document into the
+      // worker (we shouldn't actually see any, so the worker will assert that
+      // none are fired.
+      document.addEventListener('securitypolicyviolation', _ => {
+        sw.postMessage("SecurityPolicyViolation from Document");
+      });
+
+      fetch_tests_from_worker(sw);
+    });
+</script>
+

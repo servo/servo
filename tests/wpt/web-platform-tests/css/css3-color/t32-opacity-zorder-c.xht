@@ -1,0 +1,108 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>CSS Test: opacity</title>
+		<link rel="author" title="L. David Baron" href="https://dbaron.org/" />
+		<link rel="author" title="Mozilla Corporation" href="http://mozilla.com/" />
+		<link rel="help" href="http://www.w3.org/TR/css3-color/#transparency" />
+		<meta name="flags" content="" />
+		<meta name="assert" content="Opacity has z-ordering treatment of positioned elements and z-index applies." />
+		<style type="text/css"><![CDATA[
+		table { border-spacing: 2px; }
+		td { border: 1px solid; }
+		td, div { width: 10px; height: 10px; }
+		div.up { margin-top: -10px; }
+		div.pos { position: relative; }
+		div.opc { opacity: 0.99; }
+		div.red { background: red; }
+		div.green { background: green; }
+		.z0 { z-index: 0; }
+		.z1 { z-index: 1; }
+		.zm1 { z-index: -1; }
+		]]></style>
+	</head>
+	<body>
+		<p>Each of the following boxes should have a green or
+		very-nearly-green square inside of it:</p>
+		<table><tr>
+			<!-- baseline -->
+			<td>
+				<div class="red"></div>
+				<div class="up green"></div>
+			</td>
+			<!-- z-index auto or 0 is in positioned elements layer -->
+			<td>
+				<div class="pos red"></div>
+				<div class="up opc green"></div>
+				<div class="up red"></div>
+			</td>
+			<td>
+				<div class="opc red"></div>
+				<div class="up pos green"></div>
+				<div class="up red"></div>
+			</td>
+			<td>
+				<div class="pos red"></div>
+				<div class="up opc green z0"></div>
+				<div class="up red"></div>
+			</td>
+			<td>
+				<div class="opc red"></div>
+				<div class="up pos green z0"></div>
+				<div class="up red"></div>
+			</td>
+			<td>
+				<div class="pos red z0"></div>
+				<div class="up opc green"></div>
+				<div class="up red"></div>
+			</td>
+			<td>
+				<div class="opc red z0"></div>
+				<div class="up pos green"></div>
+				<div class="up red"></div>
+			</td>
+			<!-- baseline: make sure z-index: auto works -->
+			<td>
+				<div class="pos">
+					<div class="pos green z1"></div>
+					<div class="up pos red zm1"></div>
+				</div>
+				<div class="up pos red z0"></div>
+				<div class="up pos red"></div>
+				<div class="up red"></div>
+			</td>
+			<!-- baseline: make sure z-index: 0 works -->
+			<td>
+				<div class="pos z0">
+					<div class="pos red z1"></div>
+					<div class="up pos red zm1"></div>
+				</div>
+				<div class="up pos green"></div>
+				<div class="up red"></div>
+			</td>
+			<!-- make sure opacity acts like z-index: 0, not auto -->
+			<td>
+				<div class="opc">
+					<div class="pos red z1"></div>
+					<div class="up pos red zm1"></div>
+				</div>
+				<div class="up pos green"></div>
+				<div class="up red"></div>
+			</td>
+			<!-- make sure z-index does not apply to elements with opacity if they aren't positioned -->
+			<td>
+				<div class="opc z1 red"></div>
+				<div class="up opc red"></div>
+				<div class="up opc z0 red"></div>
+				<div class="up opc zm1 green"></div>
+			</td>
+			<!-- ... but that it does if they are positioned -->
+			<td>
+				<div class="pos opc z1 green"></div>
+				<div class="up pos opc red"></div>
+				<div class="up pos opc z0 red"></div>
+				<div class="up pos opc zm1 red"></div>
+			</td>
+		</tr></table>
+	</body>
+</html>

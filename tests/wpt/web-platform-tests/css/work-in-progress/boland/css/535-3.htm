@@ -1,0 +1,73 @@
+
+<html>
+<head>
+<title>Third Test of Section 5.3.5 of CSS1 Spec</title>
+
+<style type="text/css">
+blockquote,p,h3, h4 {background-image: url(flagbg.gif);
+               }
+blockquote {background-attachment: }
+p {background-attachment: fixed}
+h3 {background-attachment: scroll}
+strong {background-attachment: scroll}
+h4 {background-attachment: 200%}
+</style>
+</head>
+
+<body>
+
+
+
+
+<h1>Testing Statement #3 Below of Section 5.3.5 of CSS1 Spec</h1>
+
+
+
+
+
+<ul>
+<li >
+3. For "background-attachment", initial is "scroll", it applies to all elements,
+it is not inherited, and percentage values are N/A.
+</ul>
+
+
+<h2>
+PASS CRITERIA:
+</h2>
+<blockquote>
+If statement #3 above is passed, this blockquote should be
+UA-default.  The rule applied is "blockquote: background-attachment:
+}".
+However, there is a flag pattern.
+</blockquote>
+<p>
+This paragraph should have a flag pattern which is fixed with respect
+to the canvas.  The rule applied is "p {background-attachment: fixed}".
+<em>This emphasized text within the paragraph should have no flag
+pattern (neither fixed nor scroll), because the background-attachment
+property is not inherited, and "em" is a child of "p".
+</em>
+<h3>
+This h3 element should have a flag pattern which scrolls.
+The rule applied is "h3 {background-attachment: scroll}".
+</h3>
+<strong>
+This strong text should have a background-attachment of scroll, but
+there is no reference image.
+The only rule applied is "srong {background-attachment: scroll}".
+</strong>
+<h4>
+This h4 element should be UA-default.  The nonsensical rule applied
+here is"h4 {background-attachment: 200%}", which should be ignored
+by the UA.
+However, there is a flag pattern.
+</h4>
+
+Note that the rule "blockquote,p,h3,h4 {background-image: url(flagbg.gif)}"
+also applies to the above.  The background-attachment property applies
+to the blockquote, p, h3, h4, em, and strong elements, to name a few.
+All other properties of this page should be UA-default.
+
+</body>
+</html>

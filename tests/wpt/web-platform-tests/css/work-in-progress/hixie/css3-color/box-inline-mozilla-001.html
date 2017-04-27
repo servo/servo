@@ -1,0 +1,16 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+<html lang="en">
+ <head>
+  <title>CSS Inline Box Model: Layering Model</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/inline/mozilla/001.html"/>
+    <style type="text/css">
+   img { border-bottom: 1em solid green; vertical-align: text-bottom; }
+   span { background: red; -moz-opacity: 0.99; }
+  </style>
+ </head>
+ <body>
+  <p>Test: <span><img src="support/cat.png" alt="image"></span></p>
+  <p>Astrophy should be sitting on a green bar.</p>
+ </body>
+</html>

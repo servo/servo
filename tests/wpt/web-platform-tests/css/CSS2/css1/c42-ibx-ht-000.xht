@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Inline Elements</title>
+
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-06-27 -->
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#inline-elements"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#leading" title="10.8.1 Leading and half-leading"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#inline-non-replaced" title="10.6.1 Inline, non-replaced elements"/>
+  <link rel="match" href="c42-ibx-ht-000-ref.xht" />
+
+  <meta name="flags" content="ahem" />
+
+  <style type="text/css"><![CDATA[
+   div { width: 20em; font: 10px/12px Ahem; color: green; }
+   span { border: solid 10px lime; padding: 2px 0 2px 10px; margin: 10px 10px 0 0; }
+   em { font: 1em/1 Ahem; color: red; }
+  ]]></style>
+ </head>
+ <body>
+  <p>There should be no red below, only green lines and dots.</p>
+  <div>
+   z z <em> x x x x x x x x x x </em> <span> <em> x x x x x x x x x x
+   x x x </em> y y y y y y y y y </span> y y y y y y y y y y z z z z
+  </div>
+ </body>
+</html>

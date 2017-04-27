@@ -1,0 +1,110 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Basic functionality of the 'multiply' method on a 3D transform</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css3-3d-transforms/#cssmatrix-interface" />
+        <meta name="flags" content="dom" />
+        <meta name="assert" content="The 'multiply' method of the CSSMatrix interface is supported for 3D matrices" />
+        <style type="text/css">
+            #result
+            {
+                background: red;
+                height: 100px;
+                width: 100px;
+            }
+        </style>
+        <script type="text/javascript">
+            function startTest()
+            {
+                var testDiv = document.getElementById("result");
+                cssMatrixConstructor = "new CSSMatrix()";
+
+                var matrix1 = eval(cssMatrixConstructor);
+                matrix1.setMatrixValue("matrix3d(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16)");
+
+                var matrix2 = eval(cssMatrixConstructor);
+                matrix2.setMatrixValue("matrix3d(16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1)");
+
+                var resultMatrix = matrix1.multiply(matrix2);
+
+                var isMatrix1Unchanged = false;
+                var isMatrix2Unchanged = false;
+                var isResultMatrixCorrect = false;
+
+                //Verify the first matrix is unchanged after the multiply operation
+                if ((1 == matrix1.m11) &&
+                (2 == matrix1.m12) &&
+                (3 == matrix1.m13) &&
+                (4 == matrix1.m14) &&
+                (5 == matrix1.m21) &&
+                (6 == matrix1.m22) &&
+                (7 == matrix1.m23) &&
+                (8 == matrix1.m24) &&
+                (9 == matrix1.m31) &&
+                (10 == matrix1.m32) &&
+                (11 == matrix1.m33) &&
+                (12 == matrix1.m34) &&
+                (13 == matrix1.m41) &&
+                (14 == matrix1.m42) &&
+                (15 == matrix1.m43) &&
+                (16 == matrix1.m44))
+                {
+                    isMatrix1Unchanged = true;
+                }
+
+                //Verify the second matrix is unchanged after the multiply operation
+                if ((16 == matrix2.m11) &&
+                (15 == matrix2.m12) &&
+                (14 == matrix2.m13) &&
+                (13 == matrix2.m14) &&
+                (12 == matrix2.m21) &&
+                (11 == matrix2.m22) &&
+                (10 == matrix2.m23) &&
+                (9 == matrix2.m24) &&
+                (8 == matrix2.m31) &&
+                (7 == matrix2.m32) &&
+                (6 == matrix2.m33) &&
+                (5 == matrix2.m34) &&
+                (4 == matrix2.m41) &&
+                (3 == matrix2.m42) &&
+                (2 == matrix2.m43) &&
+                (1 == matrix2.m44))
+                {
+                    isMatrix2Unchanged = true;
+                }
+
+                //Verify the resulting matrix is the correct product
+                if ((386 == resultMatrix.m11) &&
+                (444 == resultMatrix.m12) &&
+                (502 == resultMatrix.m13) &&
+                (560 == resultMatrix.m14) &&
+                (274 == resultMatrix.m21) &&
+                (316 == resultMatrix.m22) &&
+                (358 == resultMatrix.m23) &&
+                (400 == resultMatrix.m24) &&
+                (162 == resultMatrix.m31) &&
+                (188 == resultMatrix.m32) &&
+                (214 == resultMatrix.m33) &&
+                (240 == resultMatrix.m34) &&
+                (50 == resultMatrix.m41) &&
+                (60 == resultMatrix.m42) &&
+                (70 == resultMatrix.m43) &&
+                (80 == resultMatrix.m44))
+                {
+                    isResultMatrixCorrect = true;
+                }
+
+                if (isMatrix1Unchanged && isMatrix2Unchanged && isResultMatrixCorrect)
+                {
+                    var testDiv = document.getElementById("result");
+                    testDiv.style.background = "black";
+                }
+            }
+        </script>
+    </head>
+    <body onload="startTest()">
+        <p>Test passes if there is no red visible on the page.</p>
+        <div id="result"></div>
+    </body>
+</html>

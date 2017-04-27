@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border-bottom-width using pixels with a minimum minus one (negative) value, -1px</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-05-22 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#propdef-border-bottom-width" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-width-properties" />
+        <link rel="match" href="border-bottom-width-001-ref.xht" />
+
+        <meta name="flags" content="invalid" />
+        <meta name="assert" content="The 'border-bottom-width' property does not support a negative length value in pixels and resets to the initial value." />
+        <style type="text/css">
+            div
+            {
+                border-bottom-style: solid;
+                border-bottom-width: -1px;
+                height: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a wide horizontal black line.</p>
+        <div></div>
+    </body>
+</html>

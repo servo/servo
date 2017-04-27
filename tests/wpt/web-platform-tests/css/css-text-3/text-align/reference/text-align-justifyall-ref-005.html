@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8">
+<title>text-align: justify-all, dir=auto, RTL first strong</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<style type='text/css'>
+.test, .ref { border: 1px solid orange;  margin: 20px; width: 399px; color: orange; font: 24px/24px ahem; }
+.ref { text-align: right; position: relative; height:72px;  }
+.rb { position: absolute;  background-color: orange;  width: 72px; }
+.rb1 { top: 0; left: 0; height: 48px;  }
+.rb2 { top: 0; left: 109px; height: 48px; }
+.rb3 { top: 0; left: 218px; height: 48px; }
+.rb4 { top: 0; left: 327px; height: 72px; }
+.rb5 { top: 48px; right: 96px; height: 24px; }
+.rb6 { top: 48px; right: 192px; height: 24px; }
+</style>
+</head>
+<body>
+<div id='instructions'>Test passes if the shading in both orange boxes is the same.</div>
+<div class="ref"><div class="rb rb1"></div><div class="rb rb2"></div><div class="rb rb3"></div><div class="rb rb4"></div><div class="rb rb5"></div><div class="rb rb6"></div></div>
+<div class="ref"><div class="rb rb1"></div><div class="rb rb2"></div><div class="rb rb3"></div><div class="rb rb4"></div><div class="rb rb5"></div><div class="rb rb6"></div></div>
+</body>
+</html>

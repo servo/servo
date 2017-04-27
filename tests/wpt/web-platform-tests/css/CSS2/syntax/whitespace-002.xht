@@ -1,0 +1,23 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: White space - ideographic space (U+3000)</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#tokenization" />
+        <link rel="match" href="../reference/no-red-filler-text-ref.xht"/>
+        <meta name="flags" content="" />
+        <meta name="assert" content="Ideographic space is not treated as white space." />
+        <style type="text/css">
+            div\3000p
+            {
+                color: red;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page.</p>
+        <div>
+            <p>Filler Text</p>
+        </div>
+    </body>
+</html>

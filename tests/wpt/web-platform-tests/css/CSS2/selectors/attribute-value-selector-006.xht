@@ -1,0 +1,21 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Multiple and repeating attributes</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#attribute-selectors" />
+        <link rel="match" href="../reference/filler-text-below-green.xht"/>
+        <meta name="flags" content="" />
+        <meta name="assert" content="Multiple attribute selectors can be used to refer to several attributes of an element, or even several times to the same attribute." />
+        <style type="text/css">
+            [class="class1"][id="div1"][class="class1"][id="div1"][id="div1"]
+            {
+                color: green;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the "Filler Text" below is green.</p>
+        <div class="class1" id="div1">Filler Text</div>
+    </body>
+</html>

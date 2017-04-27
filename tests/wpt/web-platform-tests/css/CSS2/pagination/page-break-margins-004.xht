@@ -1,0 +1,41 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: page break margin handling</title>
+<link rel="author" title="Melinda Grant" href="mailto:melinda.grant@hp.com"/>
+<link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-break-props"/>
+<link rel="help" href="http://www.w3.org/TR/css3-page/#allowed-pg-brk" />
+<meta name="assert" content="When a page break occurs in the vertical margin between sibling block boxes, the used values of the adjoining 'margin-top' property is set to '0'."/>
+<!-- This test targets just the top margin after the break; allowed-breaks-000-a also tests this, using a tight layout.  This test approach using a looser layout shows defects not revealed by allowed-breaks-000-a.
+-->
+<meta name="flags" content="paged" />
+<style type="text/css">
+	div {
+	    background: yellow;
+	    border: 1px white solid;
+	}
+  p.test {
+		page-break-after: always;
+		background: white;
+		margin-top: 0;
+		margin-bottom: .5in;
+	}
+	div.topper {
+        margin: 1in 0 0 0;
+        background: white;
+    }
+
+</style>
+</head>
+<body>
+
+	<p>When displayed in paged media, this test produces two pages of output.</p>
+
+	<div>
+	  <p class="test">There must be a page break after this paragraph.  There may or may not be a yellow background below;
+      however, there must <em>not</em> be a one half inch tall yellow bar below.</p>
+	  <div class="topper">There must be no yellow on this second page.</div>
+	</div>
+
+</body>
+</html>

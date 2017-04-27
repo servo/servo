@@ -1,0 +1,32 @@
+ids
+<link rel="help" href="https://w3c.github.io/webvtt/#collect-a-webvtt-block">
+
+assert_equals(cues.length, 5);
+assert_equals(cues[0].id, " leading space");
+assert_equals(cues[1].id, "trailing space ");
+assert_equals(cues[2].id, "-- >");
+assert_equals(cues[3].id, "->");
+assert_equals(cues[4].id, " ");
+
+===
+WEBVTT
+
+\x20leading space
+00:00:00.000 --> 00:00:01.000
+text0
+
+trailing space\x20
+00:00:00.000 --> 00:00:01.000
+text1
+
+-- >
+00:00:00.000 --> 00:00:01.000
+text2
+
+->
+00:00:00.000 --> 00:00:01.000
+text3
+
+\x20
+00:00:00.000 --> 00:00:01.000
+text4

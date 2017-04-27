@@ -12,7 +12,7 @@
                                              Method("has_overline", "bool"),
                                              Method("has_line_through", "bool")]) %>
 
-<%helpers:longhand name="text-overflow" animation_type="none" boxed="True"
+<%helpers:longhand name="text-overflow" animation_value_type="none" boxed="True"
                    spec="https://drafts.csswg.org/css-ui/#propdef-text-overflow">
     use std::fmt;
     use style_traits::ToCss;
@@ -97,13 +97,13 @@
 
 ${helpers.single_keyword("unicode-bidi",
                          "normal embed isolate bidi-override isolate-override plaintext",
-                         animation_type="none",
+                         animation_value_type="none",
                          spec="https://drafts.csswg.org/css-writing-modes/#propdef-unicode-bidi")}
 
 // FIXME: This prop should be animatable.
 <%helpers:longhand name="text-decoration-line"
                    custom_cascade="${product == 'servo'}"
-                   animation_type="none"
+                   animation_value_type="none"
                    spec="https://drafts.csswg.org/css-text-decor/#propdef-text-decoration-line">
     use std::fmt;
     use style_traits::ToCss;
@@ -219,7 +219,7 @@ ${helpers.single_keyword("unicode-bidi",
 ${helpers.single_keyword("text-decoration-style",
                          "solid double dotted dashed wavy -moz-none",
                          products="gecko",
-                         animation_type="none",
+                         animation_value_type="none",
                          spec="https://drafts.csswg.org/css-text-decor/#propdef-text-decoration-style")}
 
 ${helpers.predefined_type(
@@ -228,11 +228,11 @@ ${helpers.predefined_type(
     initial_specified_value="specified::CSSColor::currentcolor()",
     complex_color=True,
     products="gecko",
-    animation_type="normal",
+    animation_value_type="IntermediateColor",
     spec="https://drafts.csswg.org/css-text-decor/#propdef-text-decoration-color")}
 
 <%helpers:longhand name="initial-letter"
-                   animation_type="none"
+                   animation_value_type="none"
                    products="gecko"
                    spec="https://drafts.csswg.org/css-inline/#sizing-drop-initials">
     use std::fmt;

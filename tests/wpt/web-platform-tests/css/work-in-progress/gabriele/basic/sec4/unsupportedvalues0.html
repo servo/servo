@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS 2.1 Test Suite: Values: Unsupported values</title>
+  <link rel="author" title="Gabriele Romanato" href="mailto:gabriele.romanato@gmail.com" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#unsupported-values" />
+  <meta name="flags" content="" />
+  <meta name="assert" content="If a browser does not support a particular value, it should ignore that value when parsing style sheets, as if that value was an illegal value" />
+<style type="text/css">
+h4 {display: run-in; margin-right: 0.5em;}
+</style>
+ </head>
+ <body>
+ 
+ <p>If a browser supports the value, you should see the title on the same line of the next paragraph.</p>
+
+<h4>Title</h4>
+<p>Lorem ipsum dolor.</p>
+
+ </body>
+</html>

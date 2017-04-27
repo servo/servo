@@ -1,0 +1,20 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS: font-variant</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/fonts/variant/demo.xml"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/fonts/variant/demo.xml"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS2/fonts.html#small-caps" />
+  <style type="text/css">
+   p { color: blue; }
+   .small-caps { font-variant: small-caps; }
+   .normal { font-variant: normal; }
+  </style>
+ </head>
+ <body>
+  <p class="small-caps">small-caps: 0123456789 abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ</p>
+  <p class="normal">normal: 0123456789 abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ</p>
+ </body>
+</html>

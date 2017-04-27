@@ -1,0 +1,29 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+<html lang="en">
+ <head>
+  <title>CSS inline background policy: continuous, simple test, with positioning</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/background/inline/policy/continuous/013.html"/>
+    <style type="text/css">
+   .test {
+       background: url(/resources/images/1x1-green) repeat-x 0 2.6em;
+       -moz-background-inline-policy: continuous;
+       -moz-background-origin: border;
+       font: 20px/2.5 serif; padding: 0.6em 0 0 0; border-top: transparent 1em solid;
+   }
+  </style>
+ </head>
+ <body>
+  <p>The text below should be underlined in green.</p>
+  <p> <span class="test">
+  Filler text. Filler text. Filler text. Filler text. Filler text.
+  Filler text. Filler text. Filler text. Filler text. Filler text.
+  Filler text. Filler text. Filler text. Filler text. Filler text.
+  Filler text. Filler text. Filler text. Filler text. Filler text.
+  Filler text. Filler text. Filler text. Filler text. Filler text.
+  Filler text. Filler text. Filler text. Filler text. Filler text.
+  Filler text. Filler text. Filler text. Filler text. Filler text.
+  Filler text. Filler text. Filler text. Filler text. Filler text.
+  </span> </p>
+ </body>
+</html>

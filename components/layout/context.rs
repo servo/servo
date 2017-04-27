@@ -9,6 +9,7 @@ use gfx::display_list::{WebRenderImageInfo, OpaqueNode};
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context::FontContext;
 use heapsize::HeapSizeOf;
+use msg::constellation_msg::PipelineId;
 use net_traits::image_cache::{CanRequestImages, ImageCache, ImageState};
 use net_traits::image_cache::{ImageOrMetadataAvailable, UsePlaceholder};
 use opaque_node::OpaqueNodeMethods;
@@ -76,6 +77,9 @@ pub fn heap_size_of_persistent_local_context() -> usize {
 
 /// Layout information shared among all workers. This must be thread-safe.
 pub struct LayoutContext<'a> {
+    /// The pipeline id of this LayoutContext.
+    pub id: PipelineId,
+
     /// Bits shared by the layout and style system.
     pub style_context: SharedStyleContext<'a>,
 

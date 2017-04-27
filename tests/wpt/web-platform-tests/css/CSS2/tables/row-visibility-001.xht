@@ -1,0 +1,46 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Row and the 'visibility' property</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#dynamic-effects" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="A 'visibility' value of 'collapse' applies to table rows." />
+        <style type="text/css">
+            #table
+            {
+                display: table;
+            }
+            #row1
+            {
+                background: red;
+                visibility: collapse;
+            }
+            #row2
+            {
+                background: green;
+            }
+            #row1, #row2
+            {
+                display: table-row;
+            }
+            .cell
+            {
+                display: table-cell;
+                height: 1in;
+                width: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page.</p>
+        <div id="table">
+            <div id="row1">
+                <div class="cell"></div>
+            </div>
+            <div id="row2">
+                <div class="cell"></div>
+            </div>
+        </div>
+    </body>
+</html>

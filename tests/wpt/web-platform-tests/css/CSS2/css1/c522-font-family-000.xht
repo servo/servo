@@ -1,0 +1,43 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: font-family</title>
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#font-family"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <style type="text/css"><![CDATA[
+   p { margin: 0; color: navy; }
+   div.a {font-family: serif;}
+   div.b {font-family: monospace;}
+   .one {font-family: serif;}
+   .two {font-family: sans-serif;}
+   .three {font-family: cursive;}
+   .four {font-family: fantasy;}
+   .five {font-family: monospace;}
+   .six {font-family: sans-serif,cursive;}
+   .seven {font-family: monospace,serif;}
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-family-prop" title="15.3 Font family: the 'font-family' property"/>
+  <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-family-prop"/>
+ </head>
+ <body>
+  <div class="a">
+   <p> This sentence should be in a serif font. </p>
+   <p class="one"> This sentence should be in a serif font. </p>
+   <p class="two"> This sentence should be in a sans-serif font. </p>
+   <p class="three"> This sentence should be in a cursive font. </p>
+   <p class="four"> This sentence should be in a fantasy font. </p>
+   <p class="five"> This sentence should be in a monospace font. </p>
+  </div>
+  <p class="six"> This sentence should be in a sans-serif font. </p>
+  <p class="seven"> This sentence should be in a monospace font. </p>
+  <div class="b">
+   <p> This sentence should be in a monospace font. </p>
+   <p class="one"> This sentence should be in a serif font. </p>
+   <p class="two"> This sentence should be in a sans-serif font. </p>
+   <p class="three"> This sentence should be in a cursive font. </p>
+   <p class="four"> This sentence should be in a fantasy font. </p>
+   <p class="five"> This sentence should be in a monospace font. </p>
+  </div>
+ </body>
+</html>

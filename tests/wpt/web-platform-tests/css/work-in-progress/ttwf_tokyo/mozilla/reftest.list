@@ -1,0 +1,141 @@
+# NOTE: Most of our flexbox tests have moved to the w3c-css reftest directory.
+# The tests that remain in *this* directory are still here because either:
+#   a) They (or one of their closely-related tests) use some moz-prefixed
+#      feature, e.g. MozReftestInvalidate or -moz-max-content.
+# ...or...
+#   b) They test a feature that has known bugs (e.g. bug 874713)
+#
+# Where possible & practical, we should try to address these so we can migrate
+# tests over to the w3c-css directory, so that they can become part of the
+# W3C's test suite.
+
+# Tests for flexbox pref "layout.css.flexbox.enabled"
+# (Note that it defaults to being off in release builds - see bug 841876)
+# Check that manually setting the pref on/off w/ test-pref() works correctly:
+test-pref(layout.css.flexbox.enabled,false) == flexbox-pref-1.xhtml flexbox-pref-1-disabled-ref.xhtml
+test-pref(layout.css.flexbox.enabled,true) == flexbox-pref-1.xhtml flexbox-pref-1-enabled-ref.xhtml
+
+# Enable pref for remaining tests
+# (Most tests only need it in the testcase, but a few use it in the
+# reference case, so we'll just enable it using "pref()" to make
+# it available for both.)
+default-preferences pref(layout.css.flexbox.enabled,true)
+
+# Tests for cross-axis alignment (align-self / align-items properties)
+fails == flexbox-align-self-baseline-horiz-2.xhtml  flexbox-align-self-baseline-horiz-2-ref.xhtml # bug 793456, and possibly others
+# This one fails on windows R (but not Ru, strangely). On Windows R, the
+# single-line <label> flex item has a different background size in test vs. ref
+fuzzy-if(B2G,10,3) random-if(winWidget) == flexbox-align-self-baseline-horiz-3.xhtml  flexbox-align-self-baseline-horiz-3-ref.xhtml # XXXdholbert investigate
+== flexbox-align-self-baseline-horiz-4.xhtml flexbox-align-self-baseline-horiz-4-ref.xhtml
+
+# Tests for basic handling of <canvas>/<img>/etc as a flex item
+# NOTE: The "-1" versions of these tests have moved to the w3c-css directory;
+# the -2 variants remain behind, because they explicitly intend to test
+# how e.g. "min-width: -moz-min-content" affects the rendering, and we don't
+# want to upload tests with prefixed keywords to the W3C testsuite.
+
+== flexbox-basic-canvas-horiz-2.xhtml   flexbox-basic-canvas-horiz-2-ref.xhtml
+# NOTE: This test will only test something useful once we add support for
+# "min-height: -moz-min-content", bug 852367. At that point, it will probably
+# fail until bug 794660 is fixed:
+== flexbox-basic-canvas-vert-2.xhtml flexbox-basic-canvas-vert-2-ref.xhtml
+== flexbox-basic-fieldset-horiz-2.xhtml flexbox-basic-fieldset-horiz-2-ref.xhtml
+== flexbox-basic-fieldset-vert-2.xhtml  flexbox-basic-fieldset-vert-2-ref.xhtml
+== flexbox-basic-iframe-horiz-2.xhtml   flexbox-basic-iframe-horiz-2-ref.xhtml
+== flexbox-basic-iframe-vert-2.xhtml    flexbox-basic-iframe-vert-2-ref.xhtml
+== flexbox-basic-img-horiz-2.xhtml      flexbox-basic-img-horiz-2-ref.xhtml
+# NOTE: This test will only test something useful once we add support for
+# "min-height: -moz-min-content", bug 852367. At that point, it will probably
+# fail until bug 794660 is fixed:
+== flexbox-basic-img-vert-2.xhtml flexbox-basic-img-vert-2-ref.xhtml
+== flexbox-basic-textarea-horiz-2.xhtml flexbox-basic-textarea-horiz-2-ref.xhtml
+== flexbox-basic-textarea-vert-2.xhtml  flexbox-basic-textarea-vert-2-ref.xhtml
+== flexbox-basic-video-horiz-2.xhtml    flexbox-basic-video-horiz-2-ref.xhtml
+# NOTE: This test will only test something useful once we add support for
+# "min-height: -moz-min-content", bug 852367. At that point, it will probably
+# fail until bug 794660 is fixed:
+== flexbox-basic-video-vert-2.xhtml flexbox-basic-video-vert-2-ref.xhtml
+
+# Tests for dynamic modifications of content inside/around a flex container
+== flexbox-dyn-changeFrameWidth-1.xhtml flexbox-dyn-changeFrameWidth-1-ref.xhtml
+== flexbox-dyn-changeFrameWidth-2.xhtml flexbox-dyn-changeFrameWidth-2-ref.xhtml
+== flexbox-dyn-changeFrameWidth-3.xhtml flexbox-dyn-changeFrameWidth-3-ref.xhtml
+== flexbox-dyn-changeFrameWidth-4.xhtml flexbox-dyn-changeFrameWidth-4-ref.xhtml
+== flexbox-dyn-changePadding-1a.xhtml flexbox-dyn-changePadding-1-ref.xhtml
+== flexbox-dyn-changePadding-1b.xhtml flexbox-dyn-changePadding-1-ref.xhtml
+
+# Tests for dynamic insertions of content into a flex container
+# (with existing [div | span | text] inside the flexbox, and new content
+# inserted adjacent to that existing content.)
+== flexbox-dyn-insertAroundDiv-1.xhtml flexbox-dyn-insertAroundDiv-1-ref.xhtml
+fuzzy-if(d2d&&layersGPUAccelerated,24,14) == flexbox-dyn-insertAroundDiv-2.xhtml flexbox-dyn-insertAroundDiv-2-ref.xhtml # bug 849692
+== flexbox-dyn-insertAroundDiv-3.xhtml flexbox-dyn-insertAroundDiv-3-ref.xhtml
+
+== flexbox-dyn-insertAroundSpan-1.xhtml flexbox-dyn-insertAroundDiv-1-ref.xhtml
+fuzzy-if(d2d&&layersGPUAccelerated,24,14) == flexbox-dyn-insertAroundSpan-2.xhtml flexbox-dyn-insertAroundDiv-2-ref.xhtml # bug 849692
+== flexbox-dyn-insertAroundSpan-3.xhtml flexbox-dyn-insertAroundDiv-3-ref.xhtml
+
+== flexbox-dyn-insertAroundText-1.xhtml flexbox-dyn-insertAroundText-1-ref.xhtml
+== flexbox-dyn-insertAroundText-2.xhtml flexbox-dyn-insertAroundText-2-ref.xhtml
+== flexbox-dyn-insertAroundText-3.xhtml flexbox-dyn-insertAroundText-3-ref.xhtml
+
+# Variant of one of the above tests, to regression-test an invalidation issue
+== flexbox-dyn-insertEmptySpan-1.xhtml flexbox-dyn-insertEmptySpan-1-ref.xhtml
+
+# Tests for empty flexboxes (with no flex items)
+== flexbox-empty-1a.xhtml  flexbox-empty-1-ref.xhtml
+== flexbox-empty-1b.xhtml  flexbox-empty-1-ref.xhtml
+
+# Tests for handling of floated elements inside a flexbox
+== flexbox-float-1a.xhtml  flexbox-float-1-ref.xhtml
+== flexbox-float-1b.xhtml  flexbox-float-1-ref.xhtml
+== flexbox-float-1c.xhtml  flexbox-float-1-ref.xhtml
+== flexbox-float-1d.xhtml  flexbox-float-1-ref.xhtml
+== flexbox-float-2a.xhtml  flexbox-float-2-ref.xhtml
+== flexbox-float-2b.xhtml  flexbox-float-2-ref.xhtml
+
+# Tests for "min-width" and "min-height" on flex items.
+== flexbox-minSize-horiz-1.xhtml flexbox-minSize-horiz-1-ref.xhtml
+fails == flexbox-minSize-vert-1.xhtml  flexbox-minSize-vert-1-ref.xhtml # bug 852367
+
+# Tests for the order in which we paint flex items
+fails == flexbox-paint-ordering-3.html  flexbox-paint-ordering-3-ref.html # bug 874718
+
+# Tests for handling of absolutely/fixed/relatively-positioned flex items.
+== flexbox-position-absolute-1.xhtml  flexbox-position-absolute-1-ref.xhtml
+== flexbox-position-absolute-2.xhtml  flexbox-position-absolute-2-ref.xhtml
+== flexbox-position-absolute-3.xhtml  flexbox-position-absolute-3-ref.xhtml
+== flexbox-position-absolute-4.xhtml  flexbox-position-absolute-4-ref.xhtml
+== flexbox-position-fixed-3.xhtml     flexbox-position-fixed-3-ref.xhtml
+== flexbox-position-fixed-1.xhtml     flexbox-position-fixed-1-ref.xhtml
+== flexbox-position-fixed-2.xhtml     flexbox-position-fixed-2-ref.xhtml
+== flexbox-position-fixed-3.xhtml     flexbox-position-fixed-3-ref.xhtml
+== flexbox-position-fixed-4.xhtml     flexbox-position-fixed-4-ref.xhtml
+
+# Tests for inline content in a flexbox that gets wrapped in an anonymous block
+fails == flexbox-inlinecontent-horiz-1a.xhtml flexbox-inlinecontent-horiz-1-ref.xhtml # reference case rendering is incorrect; bug 858333
+fails == flexbox-inlinecontent-horiz-1b.xhtml flexbox-inlinecontent-horiz-1-ref.xhtml # reference case rendering is incorrect; bug 858333
+== flexbox-inlinecontent-horiz-2.xhtml  flexbox-inlinecontent-horiz-2-ref.xhtml
+== flexbox-inlinecontent-horiz-3a.xhtml flexbox-inlinecontent-horiz-3-ref.xhtml
+== flexbox-inlinecontent-horiz-3b.xhtml flexbox-inlinecontent-horiz-3-ref.xhtml
+== flexbox-inlinecontent-horiz-3c.xhtml flexbox-inlinecontent-horiz-3-ref.xhtml
+== flexbox-inlinecontent-horiz-4.xhtml  flexbox-inlinecontent-horiz-4-ref.xhtml
+== flexbox-inlinecontent-horiz-5.xhtml  flexbox-inlinecontent-horiz-5-ref.xhtml
+
+# Tests for intrinsic sizing of flexboxes
+== flexbox-intrinsic-sizing-horiz-1a.xhtml flexbox-intrinsic-sizing-horiz-1-ref.xhtml
+== flexbox-intrinsic-sizing-horiz-1b.xhtml flexbox-intrinsic-sizing-horiz-1-ref.xhtml
+== flexbox-intrinsic-sizing-horiz-2a.xhtml flexbox-intrinsic-sizing-horiz-2-ref.xhtml
+== flexbox-intrinsic-sizing-horiz-2b.xhtml flexbox-intrinsic-sizing-horiz-2-ref.xhtml
+
+# Tests for invalidation after dynamic modifications
+== flexbox-invalidation-1.html flexbox-invalidation-1-ref.html
+
+# Tests for flexbox in an iframe that gets resized.
+skip-if(B2G) == flexbox-resizeviewport-1.xhtml flexbox-resizeviewport-1-ref.xhtml
+
+# Tests with widgets as flex items
+fuzzy-if(gtk2Widget,1,66) == flexbox-widget-flex-items-1.html flexbox-widget-flex-items-1-ref.html
+fuzzy-if(gtk2Widget,1,74) == flexbox-widget-flex-items-2.html flexbox-widget-flex-items-2-ref.html
+fuzzy-if(gtk2Widget,1,58) == flexbox-widget-flex-items-3.html flexbox-widget-flex-items-3-ref.html
+fuzzy-if(gtk2Widget,1,31) == flexbox-widget-flex-items-4.html flexbox-widget-flex-items-4-ref.html

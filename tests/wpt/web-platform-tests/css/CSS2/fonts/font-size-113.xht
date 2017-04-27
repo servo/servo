@@ -1,0 +1,49 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: font-size - ex unit</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-size-props" />
+  <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-size-prop"/>
+  <meta name="flags" content="ahem" />
+  <meta name="assert" content="'em' and 'ex' length values when defining 'font-size' property refer to the computed font size of the parent element." />
+
+  <style type="text/css"><![CDATA[
+  div
+  {
+  font-family: Ahem;
+  line-height: 1;
+  margin-top: 8px;
+  }
+
+  div#parent {font-size: 40px;}
+
+  div#test {font-size: 20px;}
+
+  div#control, div#test {font-size: 2.5ex;}
+
+  div#control2 {font-size: 80px;}
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if the 3 black squares have <strong>the same width and the same height</strong>.</p>
+
+  <div id="parent">
+
+    <div id="control">C</div>
+
+    <div id="test">T</div>
+
+  </div>
+
+  <div id="control2">2</div>
+
+ </body>
+</html>

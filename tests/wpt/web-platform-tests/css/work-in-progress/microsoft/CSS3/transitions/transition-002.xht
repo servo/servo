@@ -1,0 +1,50 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: The 'all' keyword value is allowed in a list of identifiers.</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css3-transitions/#the-transition-property-property-" />
+        <meta name="flags" content="animated dom" />
+        <meta name="assert" content="The 'all' keyword value is allowed in a list of identifiers." />
+        <style type="text/css">
+            #testDiv1
+            {
+                background-color: blue;
+                height: 50px;
+                left: 0%;
+                position: relative;
+                transition-property: left, all;
+                transition-duration: 5s, 5s;
+                transition-timing-function: step-end, linear;
+                width: 50px;
+            }
+            #testDiv2
+            {
+                background-color: orange;
+                height: 50px;
+                left: 0%;
+                position: relative;
+                top: 20px;
+                transition-property: all, left;
+                transition-duration: 5s, 5s;
+                transition-timing-function: step-end, linear;
+                width: 50px;
+            }
+        </style>
+        <script type="text/javascript">
+            function startTest()
+            {
+                document.body.offsetWidth;
+                var element1 = document.getElementById("testDiv1");
+                var element2 = document.getElementById("testDiv2");
+                element1.style["left"] = "90%";
+                element2.style["left"] = "90%";
+            }
+        </script>
+    </head>
+    <body onload="startTest()">
+        <p>Test passes if both blocks slide across the page.</p>
+        <div id="testDiv1"></div>
+        <div id="testDiv2"></div>
+    </body>
+</html>

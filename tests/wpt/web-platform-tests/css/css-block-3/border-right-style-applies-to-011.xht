@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border-right-style applied to element with display run-in</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#propdef-border-right-style" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-style-properties" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'border-right-style' property applies to elements with a display of run-in." />
+        <style type="text/css">
+            div
+            {
+                border-right-style: dashed;
+                display: run-in;
+                height: 1in;
+                width: 0;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the line below is dashed.</p>
+        <div></div>
+    </body>
+</html>

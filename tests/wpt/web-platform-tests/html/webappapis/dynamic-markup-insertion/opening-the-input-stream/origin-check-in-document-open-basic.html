@@ -14,5 +14,13 @@ testInIFrame(undefined, (ctx) => {
     assert_unreached("Opening a same origin document throws");
   }
 }, "It should be possible to open same origin documents.");
+
+testInIFrame(undefined, (ctx) => {
+  try {
+    ctx.iframes[0].contentDocument.write("");
+  } catch (e) {
+    assert_unreached("Implicitly opening a same origin document throws");
+  }
+}, "It should be possible to implicitly open same origin documents.");
 </script>
 </body>

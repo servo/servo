@@ -6,7 +6,7 @@
     <link rel="help" href="https://xhr.spec.whatwg.org/#the-response-attribute"  data-tested-assertations="following::ol[1]/li[3]"/>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
-    <title>XmlHttpRequest: The send() method: FormData data</title>
+    <title>XMLHttpRequest: The send() method: FormData data</title>
 </head>
 
 <body>
@@ -22,18 +22,13 @@
             form.append("id", "0");
             form.append("value", "zero");
 
-            xhr.onreadystatechange = function()
-            {
-                test.step(function ()
-                {
-                    if (xhr.readyState == 4)
-                    {
-                        assert_equals(xhr.status, 200);
-                        assert_equals(xhr.response, "id:0;value:zero;");
-                        test.done();
-                    }
-                });
-            };
+            xhr.onreadystatechange = test.step_func(() => {
+                if (xhr.readyState == 4) {
+                    assert_equals(xhr.status, 200);
+                    assert_equals(xhr.response, "id:0;value:zero;");
+                    test.done();
+                }
+            });
 
             xhr.open("POST", "./resources/form.py", true);
             xhr.send(form);

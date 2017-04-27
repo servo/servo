@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!-- Testcase for behavior of the 'baseline' value for align-items (and
+     align-self, implicitly).  This test has various types of baseline-aligned
+     content, and the flexbox's vertical size depends on the aggregate
+     post-alignment height of its children.
+
+     This test checks baseline-alignment for text <button>, for
+     various <input> fields, for <label>, and for <fieldset>.
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <style>
+      .flexbox {
+        display: flex;
+        align-items: baseline;
+        border: 1px dashed blue;
+        font: 14px sans-serif;
+      }
+
+      .big {
+        height: 100px;
+        font: 24px sans-serif;
+        margin-top: 20px;
+      }
+
+      .lime   { background: lime;   }
+      .pink   { background: pink;   }
+      .aqua   { background: aqua;   }
+   </style>
+  </head>
+  <body>
+    <div class="flexbox">
+      <div class="lime">text</div>
+      <button>btn</button>
+      <input type="radio"/>
+      <input type="checkbox"/>
+      <label class="pink">label</label>
+      <label class="aqua">lab<br/>el</label>
+      <fieldset>field<br/>set</fieldset>
+      <fieldset><legend>leg</legend>field<br/>set</fieldset>
+      <fieldset><legend>leg<br/>end</legend>field<br/>set</fieldset>
+    </div>
+  </body>
+</html>

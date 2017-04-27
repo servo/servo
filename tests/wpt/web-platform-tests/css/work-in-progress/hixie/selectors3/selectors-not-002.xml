@@ -1,0 +1,22 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS: 4 simple tests of not matching a series of convoluted k:not()s</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/selectors/not/002.xml"/>
+  <style type="text/css">
+    @namespace html url(http://www.w3.org/1999/xhtml);
+    @namespace test url(http://www.example.org/);
+    *|* { color: green; display: block; margin: 0; padding: 0; }
+    head { display: none; }
+    :not(|*) > :not(test|*) :not(html|*) > * :not(test|testA):not(test|testB) { color: red; }
+  </style>
+ </head>
+ <body>
+  <tests xmlns="http://www.example.org/">
+    <testA> This should be green. </testA>
+    <star> <testB> This should be green. </testB> </star>
+    <star> <testA> This should be green. </testA> </star>
+    <star> <match> <testB> This should be green. </testB> </match> </star>
+  </tests>
+ </body>
+</html>

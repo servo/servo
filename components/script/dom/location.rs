@@ -13,7 +13,7 @@ use dom::globalscope::GlobalScope;
 use dom::urlhelper::UrlHelper;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use servo_url::ServoUrl;
+use servo_url::{MutableOrigin, ServoUrl};
 
 #[dom_struct]
 pub struct Location {
@@ -59,6 +59,11 @@ impl Location {
     // https://html.spec.whatwg.org/multipage/#dom-location-reload
     pub fn reload_without_origin_check(&self) {
         self.window.load_url(self.get_url(), true, true, None);
+    }
+
+    #[allow(dead_code)]
+    pub fn origin(&self) -> &MutableOrigin {
+        self.window.origin()
     }
 }
 

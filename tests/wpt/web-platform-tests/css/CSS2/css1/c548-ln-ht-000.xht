@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: line-height</title>
+  <meta name="flags" content="ahem" />
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#line-height"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-03-31 -->
+  <link rel="match" href="c548-ln-ht-000-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+   .test { font: 30px Ahem; background: teal; color: aqua; width: 4em; padding: 0.5em 0 0.5em 1em; border: solid navy; margin: 0.5em; line-height: 60px; }
+   .control { font: 30px/1 Ahem; background: teal; color: aqua; width: 5em; padding: 0; border: solid navy; margin: 0.5em; }
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#leading" title="10.8.1 Leading and half-leading"/>
+ </head>
+ <body>
+  <p>The two blocks below should be identical:</p>
+  <div class="test"> X X X X </div>
+  <pre class="control">
+ X X
+
+ X X
+     </pre>
+ </body>
+</html>

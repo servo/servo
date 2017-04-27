@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Test: flowing content that's relatively positioned and get fragmented</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from">
+		<meta name="flags" content="ahem">
+		<meta name="assert" content="Test checks that content that's relatively positioned gets properly fragmented between regions.">
+		<link rel="match" href="reference/content-node-layers-003-ref.html">
+		<style>
+		#content {
+			font-family: Ahem;
+			font-size: 20px;
+			line-height: 1em;
+			color: lime;
+			flow-into: f;
+		}
+		.region {
+			margin: .5em;
+			width: 100px;
+			height: 100px;
+			background-color: red;
+			flow-from: f;
+		}
+		</style>
+	</head>
+	<body>
+		<ol>
+			<li>You should see no red.</li>
+			<li>Test passes if you see two green squares below.</li>
+		</ol>
+		<div id="content">xxxxx<br>xxxxx<br>xxxxx<br>xxxxx<br>xxxxx<br>xxxxx<br>xxxxx<br>xxxxx<br>xxxxx<br>xxxxx</div>
+		<div class="region"></div>
+		<div class="region"></div>
+	</body>
+</html>

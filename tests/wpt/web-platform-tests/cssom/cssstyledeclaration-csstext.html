@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>CSSOM Test: CSSStyleDeclaration.cssText Test</title>
+        <link rel="author" title="kkoichi" href="mailto:coarse.ground@gmail.com">
+        <link rel="reviewer" title="Simon Pieters" href="mailto:simonp@opera.com"><!-- 06-27-2013 -->
+        <link rel="help" href="https://drafts.csswg.org/cssom-1/#dom-cssstyledeclaration-csstext">
+        <meta name="assert" content="CSS declarations is serialized as expected">
+        <meta name="flags" content="dom">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+    </head>
+    <body>
+    <div id="log"></div>
+    <script>
+        function newElm() {
+            return document.body.appendChild(document.createElement('div'));
+        }
+
+        test(function(){
+            var style = newElm().style;
+            style.COLOR = 'red';
+
+            assert_equals(style.cssText, '');
+
+        }, 'uppercase property');
+
+        test(function(){
+            var style = newElm().style;
+            style.color = 'RED';
+
+            // https://www.w3.org/Bugs/Public/show_bug.cgi?id=29317
+            assert_any(assert_equals, style.cssText, ['color: red;', 'color: RED;']);
+
+        }, 'uppercase value');
+
+        test(function(){
+            var style = newElm().style;
+
+            style.color = 'red';
+
+            style.color = 'unknown color';
+
+            assert_equals(style.cssText, 'color: red;');
+
+        }, 'overwriting with invalid value');
+
+        test(function(){
+            var style = newElm().style;
+            style.color = 'rgb(255, 0, 0)';
+
+            assert_equals(style.cssText, 'color: rgb(255, 0, 0);');
+
+        }, 'use rgb');
+
+        test(function(){
+            var e = newElm();
+            var style = e.style;
+
+            style.color = 'red';
+            style.fontSize = '10pt';
+            style.fontWeight = 'bold';
+
+            assert_equals(style.cssText, 'color: red; font-size: 10pt; font-weight: bold;');
+
+        }, 'cssText order');
+
+        test(function(){
+            var e = newElm();
+            var style = e.style;
+
+            style.fontWeight = 'bold';
+            style.color = 'red';
+            style.fontSize = '10pt';
+
+            assert_equals(style.cssText, 'font-weight: bold; color: red; font-size: 10pt;');
+
+        }, 'another cssText order (non-alphabetical order)');
+
+        test(function(){
+            var style = newElm().style;
+
+            style.color = '   red';
+            style.fontSize = '10pt   ';
+
+            assert_equals(style.cssText, 'color: red; font-size: 10pt;');
+
+        }, 'whitespaces in value');
+
+        test(function(){
+            var style = newElm().style;
+
+            style.color = 'red';
+            style.unknown = 'unknown';
+            style.fontSize = '10pt';
+            assert_equals(style.cssText, 'color: red; font-size: 10pt;');
+
+        }, 'invalid property does not appear');
+
+    </script>
+    </body>
+</html>

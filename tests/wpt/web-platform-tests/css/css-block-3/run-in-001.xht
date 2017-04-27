@@ -1,0 +1,34 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Run-in with a block box converts to a block box</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#run-in" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="Run-in boxes are converted to block boxes when the run-in box contains a block box." />
+        <style type="text/css">
+            div
+            {
+                font: 20px/1em Ahem;
+            }
+            #span1
+            {
+                display: run-in;
+            }
+            span span
+            {
+                display: block;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a square below.</p>
+        <div>
+            <span>XXX</span>
+            <span id="span1">
+                XXX
+                <span>XXX</span>
+            </span>
+        </div>
+    </body>
+</html>

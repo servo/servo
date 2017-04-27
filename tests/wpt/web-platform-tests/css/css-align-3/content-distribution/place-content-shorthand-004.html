@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>CSS Box Alignment: place-content shorthand - invalid values</title>
+<link rel="author" title="Javier Fernandez" href="mailto:jfernandez@igalia.com" />
+<link rel="help" href="http://www.w3.org/TR/css3-align/#propdef-place-content" />
+<meta name="assert" content="Check that place-content's invalid values are properly detected at parsing time." />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/alignment-parsing-utils.js"></script>
+<div id="log"></div>
+<script>
+    function checkInvalidValues(value)
+    {
+       checkPlaceShorthandInvalidValues("place-content", "align-content", "justify-content", value);
+    }
+
+    test(function() {
+        checkInvalidValues("center safe")
+        checkInvalidValues("true center")
+    }, "Verify overflow keywords are invalid");
+
+    test(function() {
+        checkInvalidValues("center space-between start")
+    }, "Verify fallback values are invalid");
+
+    test(function() {
+        checkInvalidValues("10px left")
+        checkInvalidValues("right 10%")
+    }, "Verify numeric values are invalid");
+
+    test(function() {
+        checkInvalidValues("auto")
+        checkInvalidValues("auto right")
+        checkInvalidValues("auto auto")
+        checkInvalidValues("left auto")
+    }, "Verify 'auto' values are invalid");
+
+    test(function() {
+        checkInvalidValues("")
+    }, "Verify empty declaration is invalid");
+</script>

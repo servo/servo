@@ -8,6 +8,7 @@ use style::properties::{PropertyDeclaration, Importance, PropertyId};
 use style::properties::longhands::outline_color::computed_value::T as ComputedColor;
 use style::properties::parse_property_declaration_list;
 use style::values::{RGBA, Auto};
+use style::values::CustomIdent;
 use style::values::specified::{BorderStyle, BorderWidth, CSSColor, Length, NoCalcLength};
 use style::values::specified::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrAutoOrContent};
 use style::values::specified::url::SpecifiedUrl;
@@ -16,8 +17,7 @@ use stylesheets::block_from;
 
 #[test]
 fn property_declaration_block_should_serialize_correctly() {
-    use style::properties::longhands::overflow_x::SpecifiedValue as OverflowXValue;
-    use style::properties::longhands::overflow_y::SpecifiedValue as OverflowYContainer;
+    use style::properties::longhands::overflow_x::SpecifiedValue as OverflowValue;
 
     let declarations = vec![
         (PropertyDeclaration::Width(
@@ -37,11 +37,11 @@ fn property_declaration_block_should_serialize_correctly() {
          Importance::Normal),
 
         (PropertyDeclaration::OverflowX(
-            OverflowXValue::auto),
+            OverflowValue::auto),
          Importance::Normal),
 
         (PropertyDeclaration::OverflowY(
-            OverflowYContainer(OverflowXValue::auto)),
+            OverflowValue::auto),
          Importance::Normal),
     ];
 
@@ -68,18 +68,15 @@ mod shorthand_serialization {
 
     mod overflow {
         pub use super::*;
-        use style::properties::longhands::overflow_x::SpecifiedValue as OverflowXValue;
-        use style::properties::longhands::overflow_y::SpecifiedValue as OverflowYContainer;
+        use style::properties::longhands::overflow_x::SpecifiedValue as OverflowValue;
 
         #[test]
         fn equal_overflow_properties_should_serialize_to_single_value() {
             let mut properties = Vec::new();
 
-            let overflow_x = OverflowXValue::auto;
-            properties.push(PropertyDeclaration::OverflowX(overflow_x));
-
-            let overflow_y = OverflowYContainer(OverflowXValue::auto);
-            properties.push(PropertyDeclaration::OverflowY(overflow_y));
+            let overflow = OverflowValue::auto;
+            properties.push(PropertyDeclaration::OverflowX(overflow));
+            properties.push(PropertyDeclaration::OverflowY(overflow));
 
             let serialization = shorthand_properties_to_string(properties);
             assert_eq!(serialization, "overflow: auto;");
@@ -89,10 +86,10 @@ mod shorthand_serialization {
         fn different_overflow_properties_should_serialize_to_two_values() {
             let mut properties = Vec::new();
 
-            let overflow_x = OverflowXValue::scroll;
+            let overflow_x = OverflowValue::scroll;
             properties.push(PropertyDeclaration::OverflowX(overflow_x));
 
-            let overflow_y = OverflowYContainer(OverflowXValue::auto);
+            let overflow_y = OverflowValue::auto;
             properties.push(PropertyDeclaration::OverflowY(overflow_y));
 
             let serialization = shorthand_properties_to_string(properties);
@@ -225,10 +222,10 @@ mod shorthand_serialization {
           let px_30 = BorderWidth::from_length(Length::from_px(30f32));
           let px_10 = BorderWidth::from_length(Length::from_px(10f32));
 
-          properties.push(PropertyDeclaration::BorderTopWidth(Box::new(px_30.clone())));
-          properties.push(PropertyDeclaration::BorderRightWidth(Box::new(px_30.clone())));
-          properties.push(PropertyDeclaration::BorderBottomWidth(Box::new(px_30.clone())));
-          properties.push(PropertyDeclaration::BorderLeftWidth(Box::new(px_10.clone())));
+          properties.push(PropertyDeclaration::BorderTopWidth(px_30.clone()));
+          properties.push(PropertyDeclaration::BorderRightWidth(px_30.clone()));
+          properties.push(PropertyDeclaration::BorderBottomWidth(px_30.clone()));
+          properties.push(PropertyDeclaration::BorderLeftWidth(px_10.clone()));
 
           let blue = CSSColor {
               parsed: ComputedColor::RGBA(RGBA::new(0, 0, 255, 255)),
@@ -258,10 +255,10 @@ mod shorthand_serialization {
 
           let px_30 = BorderWidth::from_length(Length::from_px(30f32));
 
-          properties.push(PropertyDeclaration::BorderTopWidth(Box::new(px_30.clone())));
-          properties.push(PropertyDeclaration::BorderRightWidth(Box::new(px_30.clone())));
-          properties.push(PropertyDeclaration::BorderBottomWidth(Box::new(px_30.clone())));
-          properties.push(PropertyDeclaration::BorderLeftWidth(Box::new(px_30.clone())));
+          properties.push(PropertyDeclaration::BorderTopWidth(px_30.clone()));
+          properties.push(PropertyDeclaration::BorderRightWidth(px_30.clone()));
+          properties.push(PropertyDeclaration::BorderBottomWidth(px_30.clone()));
+          properties.push(PropertyDeclaration::BorderLeftWidth(px_30.clone()));
 
           let blue = CSSColor {
               parsed: ComputedColor::RGBA(RGBA::new(0, 0, 255, 255)),
@@ -274,7 +271,7 @@ mod shorthand_serialization {
           properties.push(PropertyDeclaration::BorderLeftColor(blue.clone()));
 
           let serialization = shorthand_properties_to_string(properties);
-          assert_eq!(serialization, "border: 30px solid rgb(0, 0, 255);");
+          assert_eq!(serialization, "border-style: solid; border-width: 30px; border-color: rgb(0, 0, 255);");
         }
 
         #[test]
@@ -302,10 +299,10 @@ mod shorthand_serialization {
             let right_px = BorderWidth::from_length(Length::from_px(15f32));
             let left_px = BorderWidth::from_length(Length::from_px(15f32));
 
-            properties.push(PropertyDeclaration::BorderTopWidth(Box::new(top_px)));
-            properties.push(PropertyDeclaration::BorderRightWidth(Box::new(right_px)));
-            properties.push(PropertyDeclaration::BorderBottomWidth(Box::new(bottom_px)));
-            properties.push(PropertyDeclaration::BorderLeftWidth(Box::new(left_px)));
+            properties.push(PropertyDeclaration::BorderTopWidth(top_px));
+            properties.push(PropertyDeclaration::BorderRightWidth(right_px));
+            properties.push(PropertyDeclaration::BorderBottomWidth(bottom_px));
+            properties.push(PropertyDeclaration::BorderLeftWidth(left_px));
 
             let serialization = shorthand_properties_to_string(properties);
             assert_eq!(serialization, "border-width: 10px 15px;");
@@ -320,10 +317,10 @@ mod shorthand_serialization {
             let bottom_px = BorderWidth::Thick;
             let left_px = BorderWidth::from_length(Length::from_px(15f32));
 
-            properties.push(PropertyDeclaration::BorderTopWidth(Box::new(top_px)));
-            properties.push(PropertyDeclaration::BorderRightWidth(Box::new(right_px)));
-            properties.push(PropertyDeclaration::BorderBottomWidth(Box::new(bottom_px)));
-            properties.push(PropertyDeclaration::BorderLeftWidth(Box::new(left_px)));
+            properties.push(PropertyDeclaration::BorderTopWidth(top_px));
+            properties.push(PropertyDeclaration::BorderRightWidth(right_px));
+            properties.push(PropertyDeclaration::BorderBottomWidth(bottom_px));
+            properties.push(PropertyDeclaration::BorderLeftWidth(left_px));
 
             let serialization = shorthand_properties_to_string(properties);
             assert_eq!(serialization, "border-width: thin medium thick 15px;");
@@ -411,7 +408,7 @@ mod shorthand_serialization {
                 authored: None
             };
 
-            properties.push(PropertyDeclaration::BorderTopWidth(Box::new(width)));
+            properties.push(PropertyDeclaration::BorderTopWidth(width));
             properties.push(PropertyDeclaration::BorderTopStyle(style));
             properties.push(PropertyDeclaration::BorderTopColor(color));
 
@@ -429,7 +426,7 @@ mod shorthand_serialization {
         fn border_top_should_serialize_correctly() {
             let mut properties = Vec::new();
             let (width, style, color) = get_border_property_values();
-            properties.push(PropertyDeclaration::BorderTopWidth(Box::new(width)));
+            properties.push(PropertyDeclaration::BorderTopWidth(width));
             properties.push(PropertyDeclaration::BorderTopStyle(style));
             properties.push(PropertyDeclaration::BorderTopColor(color));
 
@@ -441,7 +438,7 @@ mod shorthand_serialization {
         fn border_right_should_serialize_correctly() {
             let mut properties = Vec::new();
             let (width, style, color) = get_border_property_values();
-            properties.push(PropertyDeclaration::BorderRightWidth(Box::new(width)));
+            properties.push(PropertyDeclaration::BorderRightWidth(width));
             properties.push(PropertyDeclaration::BorderRightStyle(style));
             properties.push(PropertyDeclaration::BorderRightColor(color));
 
@@ -453,7 +450,7 @@ mod shorthand_serialization {
         fn border_bottom_should_serialize_correctly() {
             let mut properties = Vec::new();
             let (width, style, color) = get_border_property_values();
-            properties.push(PropertyDeclaration::BorderBottomWidth(Box::new(width)));
+            properties.push(PropertyDeclaration::BorderBottomWidth(width));
             properties.push(PropertyDeclaration::BorderBottomStyle(style));
             properties.push(PropertyDeclaration::BorderBottomColor(color));
 
@@ -465,7 +462,7 @@ mod shorthand_serialization {
         fn border_left_should_serialize_correctly() {
             let mut properties = Vec::new();
             let (width, style, color) = get_border_property_values();
-            properties.push(PropertyDeclaration::BorderLeftWidth(Box::new(width)));
+            properties.push(PropertyDeclaration::BorderLeftWidth(width));
             properties.push(PropertyDeclaration::BorderLeftStyle(style));
             properties.push(PropertyDeclaration::BorderLeftColor(color));
 
@@ -475,26 +472,20 @@ mod shorthand_serialization {
 
         #[test]
         fn border_should_serialize_correctly() {
-            let mut properties = Vec::new();
-            let (width, style, color) = get_border_property_values();
+            // According to https://drafts.csswg.org/css-backgrounds-3/#the-border-shorthands,
+            // the ‘border’ shorthand resets ‘border-image’ to its initial value. To verify the
+            // serialization of 'border' shorthand, we need to set 'border-image' as well.
+            let block_text = "\
+                border-top: 4px solid; \
+                border-right: 4px solid; \
+                border-bottom: 4px solid; \
+                border-left: 4px solid; \
+                border-image: none;";
 
-            properties.push(PropertyDeclaration::BorderTopWidth(Box::new(width.clone())));
-            properties.push(PropertyDeclaration::BorderTopStyle(style.clone()));
-            properties.push(PropertyDeclaration::BorderTopColor(color.clone()));
+            let block = parse(|c, i| Ok(parse_property_declaration_list(c, i)), block_text).unwrap();
 
-            properties.push(PropertyDeclaration::BorderRightWidth(Box::new(width.clone())));
-            properties.push(PropertyDeclaration::BorderRightStyle(style.clone()));
-            properties.push(PropertyDeclaration::BorderRightColor(color.clone()));
+            let serialization = block.to_css_string();
 
-            properties.push(PropertyDeclaration::BorderBottomWidth(Box::new(width.clone())));
-            properties.push(PropertyDeclaration::BorderBottomStyle(style.clone()));
-            properties.push(PropertyDeclaration::BorderBottomColor(color.clone()));
-
-            properties.push(PropertyDeclaration::BorderLeftWidth(Box::new(width.clone())));
-            properties.push(PropertyDeclaration::BorderLeftStyle(style.clone()));
-            properties.push(PropertyDeclaration::BorderLeftColor(color.clone()));
-
-            let serialization = shorthand_properties_to_string(properties);
             assert_eq!(serialization, "border: 4px solid;");
         }
     }
@@ -575,7 +566,7 @@ mod shorthand_serialization {
         let width = Either::Second(Auto);
         let count = Either::Second(Auto);
 
-        properties.push(PropertyDeclaration::ColumnWidth(Box::new(width)));
+        properties.push(PropertyDeclaration::ColumnWidth(width));
         properties.push(PropertyDeclaration::ColumnCount(count));
 
         let serialization = shorthand_properties_to_string(properties);
@@ -805,8 +796,8 @@ mod shorthand_serialization {
         use style::properties::longhands::mask_position_y as position_y;
         use style::properties::longhands::mask_repeat as repeat;
         use style::properties::longhands::mask_size as size;
+        use style::values::generics::position::{HorizontalPosition, Keyword, PositionValue, VerticalPosition};
         use style::values::specified::Image;
-        use style::values::specified::position::{HorizontalPosition, VerticalPosition, Keyword};
         use super::*;
 
         macro_rules! single_vec_value_typedef {
@@ -842,16 +833,16 @@ mod shorthand_serialization {
             let mode = single_vec_keyword_value!(mode, luminance);
 
             let position_x = single_vec_value_typedef!(position_x,
-                HorizontalPosition {
+                HorizontalPosition(PositionValue {
                     keyword: None,
                     position: Some(LengthOrPercentage::Length(NoCalcLength::from_px(7f32))),
-                }
+                })
             );
             let position_y = single_vec_value_typedef!(position_y,
-                VerticalPosition {
+                VerticalPosition(PositionValue {
                     keyword: Some(Keyword::Bottom),
                     position: Some(LengthOrPercentage::Length(NoCalcLength::from_px(4f32))),
-                }
+                })
             );
 
             let size = single_vec_variant_value!(size,
@@ -897,17 +888,17 @@ mod shorthand_serialization {
             let mode = single_vec_keyword_value!(mode, luminance);
 
             let position_x = single_vec_value_typedef!(position_x,
-                HorizontalPosition {
+                HorizontalPosition(PositionValue {
                     keyword: None,
                     position: Some(LengthOrPercentage::Length(NoCalcLength::from_px(7f32))),
-                }
+                })
             );
 
             let position_y = single_vec_value_typedef!(position_y,
-                VerticalPosition {
+                VerticalPosition(PositionValue  {
                     keyword: None,
                     position: Some(LengthOrPercentage::Length(NoCalcLength::from_px(4f32))),
-                }
+                })
             );
 
             let size = single_vec_variant_value!(size,
@@ -1218,6 +1209,32 @@ mod shorthand_serialization {
 
             assert_eq!(serialization, block_text);
         }
+
+        #[test]
+        fn transition_should_serialize_acceptable_step_timing_function() {
+            let block_text = "transition-property: margin-left; \
+                              transition-duration: 3s; \
+                              transition-delay: 4s; \
+                              transition-timing-function: steps(2, start);";
+            let block = parse(|c, i| Ok(parse_property_declaration_list(c, i)), block_text).unwrap();
+
+            let serialization = block.to_css_string();
+
+            assert_eq!(serialization, "transition: margin-left 3s steps(2, start) 4s;");
+        }
+
+        #[test]
+        fn transition_should_serialize_acceptable_frames_timing_function() {
+            let block_text = "transition-property: margin-left; \
+                              transition-duration: 3s; \
+                              transition-delay: 4s; \
+                              transition-timing-function: frames(2);";
+            let block = parse(|c, i| Ok(parse_property_declaration_list(c, i)), block_text).unwrap();
+
+            let serialization = block.to_css_string();
+
+            assert_eq!(serialization, "transition: margin-left 3s frames(2) 4s;");
+        }
     }
 
     mod keywords {
@@ -1269,8 +1286,8 @@ mod shorthand_serialization {
         fn counter_increment_with_properties_should_serialize_correctly() {
             let mut properties = Vec::new();
 
-            properties.push(("counter1".to_owned(), Integer::new(1)));
-            properties.push(("counter2".to_owned(), Integer::new(-4)));
+            properties.push((CustomIdent("counter1".into()), Integer::new(1)));
+            properties.push((CustomIdent("counter2".into()), Integer::new(-4)));
 
             let counter_increment = CounterIncrement(properties);
             let counter_increment_css = "counter1 1 counter2 -4";

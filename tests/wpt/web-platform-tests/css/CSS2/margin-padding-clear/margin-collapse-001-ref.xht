@@ -1,0 +1,48 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  div.ib
+  {
+  display: inline-block;
+  left: 100px;
+  position: relative;
+  width: 100px;
+  }
+
+  div.ib + div.ib
+  {
+  position: relative;
+  left: 300px;
+  }
+
+  div > div {height: 20px;}
+
+  div.blue {background-color: blue;}
+
+  div.orange {background-color: orange;}
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if the blue and orange stripes have the same horizontal spacing between them.</p>
+
+  <div class="ib">
+    <div class="blue"></div>
+    <div class="orange"></div>
+  </div><div class="ib">
+    <div class="blue"></div>
+    <div class="orange"></div>
+  </div>
+
+ </body>
+</html>

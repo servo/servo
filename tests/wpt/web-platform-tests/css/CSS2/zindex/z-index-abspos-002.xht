@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: CSS: z-index auto and -1 (siblings)</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-07-03 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/absolute/z-index/002.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#z-index" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/zindex.html#painting-order"/>
+  <link rel="match" href="z-index-abspos-001-ref.xht" />
+
+  <style type="text/css">
+   .background { position: absolute; height: 150px; width: 400px; background: green; z-index: auto; }
+   .negative { position: absolute; height: 100px; width: 300px; background: red; z-index: -1; }
+  </style>
+ </head>
+ <body>
+  <p>Test passes if there is a filled green rectangle and <strong>no red</strong>.</p>
+  <div class="background"> </div>
+  <div class="negative"> </div>
+ </body>
+</html>

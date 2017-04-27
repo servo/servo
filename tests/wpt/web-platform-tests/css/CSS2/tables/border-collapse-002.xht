@@ -1,0 +1,36 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border-collapse set to 'separate'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#propdef-border-collapse" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#borders" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="A table with 'border-collapse' set to 'separate' separates the borders between its cells." />
+        <style type="text/css">
+            table
+            {
+                border-collapse: separate;
+                border-spacing: 5px;
+            }
+            td
+            {
+                background: black;
+                border: 5px solid black;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if four separate boxes appear below this line.</p>
+        <table>
+            <tr>
+                <td>XXXXX</td>
+                <td>XXXXX</td>
+            </tr>
+            <tr>
+                <td>XXXXX</td>
+                <td>XXXXX</td>
+            </tr>
+        </table>
+    </body>
+</html>

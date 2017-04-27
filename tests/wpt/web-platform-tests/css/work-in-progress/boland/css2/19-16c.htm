@@ -1,0 +1,65 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Fifth Test of Section 19.6 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+blockquote.sad {play-during: url(harp.wav)}
+blockquote q {play-during: url(violins.aiff) mix}
+span.quiet {play-during: none}
+
+
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Fifth Testable Statement of Sec 19.6 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+5. Another example of play-during is below.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p  >
+<blockquote class=sad>
+This blockquote element should have a play during of url(harp.wav)
+THe rule applied is "blockquote.sad {play during: url(harp.wav)}".
+</blockquote>
+<blockquote>
+<q>
+THis element should have a play during which is url(violins.aiff) mix.
+</q>
+The rule applied is "blockquote q {play during: url(violins.aiff) mix}".
+</blockquote>
+<span class=quiet>
+This span element should have a play-during of none.
+The rule applied is "span.quiet {play-during: none}".
+</span>
+All other properties of this page should be UA-default.
+
+
+
+All other properties of this page should be UA-default.
+Your browser rendering of this page should look similar to this <a href="c1916.gif"> 
+reference image </a> or to this <a href="d1916.gif">reference image</a>.
+
+
+</BODY>
+</HTML>
+

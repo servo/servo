@@ -13,6 +13,13 @@ LOGICAL_SIZES = ["block-size", "inline-size"]
 ALL_SIDES = [(side, False) for side in PHYSICAL_SIDES] + [(side, True) for side in LOGICAL_SIDES]
 ALL_SIZES = [(size, False) for size in PHYSICAL_SIZES] + [(size, True) for size in LOGICAL_SIZES]
 
+SYSTEM_FONT_LONGHANDS = """font_family font_size font_style
+                           font_variant_caps font_stretch font_kerning
+                           font_variant_position font_weight
+                           font_size_adjust font_variant_alternates
+                           font_variant_ligatures font_variant_east_asian
+                           font_variant_numeric font_language_override""".split()
+
 
 def maybe_moz_logical_alias(product, side, prop):
     if product == "gecko" and side[1]:
@@ -33,10 +40,25 @@ def to_camel_case(ident):
     return re.sub("(^|_|-)([a-z])", lambda m: m.group(2).upper(), ident.strip("_").strip("-"))
 
 
+def to_camel_case_lower(ident):
+    camel = to_camel_case(ident)
+    return camel[0].lower() + camel[1:]
+
+
+def parse_aliases(value):
+    aliases = {}
+    for pair in value.split():
+        [a, v] = pair.split("=")
+        aliases[a] = v
+    return aliases
+
+
 class Keyword(object):
     def __init__(self, name, values, gecko_constant_prefix=None,
                  gecko_enum_prefix=None, custom_consts=None,
                  extra_gecko_values=None, extra_servo_values=None,
+                 aliases=None,
+                 extra_gecko_aliases=None, extra_servo_aliases=None,
                  gecko_strip_moz_prefix=True,
                  gecko_inexhaustive=None):
         self.name = name
@@ -48,6 +70,9 @@ class Keyword(object):
         self.gecko_enum_prefix = gecko_enum_prefix
         self.extra_gecko_values = (extra_gecko_values or "").split()
         self.extra_servo_values = (extra_servo_values or "").split()
+        self.aliases = parse_aliases(aliases or "")
+        self.extra_gecko_aliases = parse_aliases(extra_gecko_aliases or "")
+        self.extra_servo_aliases = parse_aliases(extra_servo_aliases or "")
         self.consts_map = {} if custom_consts is None else custom_consts
         self.gecko_strip_moz_prefix = gecko_strip_moz_prefix
         self.gecko_inexhaustive = gecko_inexhaustive or (gecko_enum_prefix is None)
@@ -58,11 +83,29 @@ class Keyword(object):
     def servo_values(self):
         return self.values + self.extra_servo_values
 
+    def gecko_aliases(self):
+        aliases = self.aliases.copy()
+        aliases.update(self.extra_gecko_aliases)
+        return aliases
+
+    def servo_aliases(self):
+        aliases = self.aliases.copy()
+        aliases.update(self.extra_servo_aliases)
+        return aliases
+
     def values_for(self, product):
         if product == "gecko":
             return self.gecko_values()
         elif product == "servo":
             return self.servo_values()
+        else:
+            raise Exception("Bad product: " + product)
+
+    def aliases_for(self, product):
+        if product == "gecko":
+            return self.gecko_aliases()
+        elif product == "servo":
+            return self.servo_aliases()
         else:
             raise Exception("Bad product: " + product)
 
@@ -92,13 +135,12 @@ def arg_to_bool(arg):
 
 
 class Longhand(object):
-    def __init__(self, style_struct, name, spec=None, animation_type=None, derived_from=None, keyword=None,
+    def __init__(self, style_struct, name, spec=None, animation_value_type=None, derived_from=None, keyword=None,
                  predefined_type=None, custom_cascade=False, experimental=False, internal=False,
                  need_clone=False, need_index=False, gecko_ffi_name=None, depend_on_viewport_size=False,
                  allowed_in_keyframe_block=True, complex_color=False, cast_type='u8',
                  has_uncacheable_values=False, logical=False, alias=None, extra_prefixes=None, boxed=False,
-                 creates_stacking_context=False, fixpos_cb=False, abspos_cb=False,
-                 allowed_in_page_rule=False):
+                 flags=None, allowed_in_page_rule=False):
         self.name = name
         if not spec:
             raise TypeError("Spec should be specified for %s" % name)
@@ -122,9 +164,7 @@ class Longhand(object):
         self.alias = alias.split() if alias else []
         self.extra_prefixes = extra_prefixes.split() if extra_prefixes else []
         self.boxed = arg_to_bool(boxed)
-        self.creates_stacking_context = arg_to_bool(creates_stacking_context)
-        self.fixpos_cb = arg_to_bool(fixpos_cb)
-        self.abspos_cb = arg_to_bool(abspos_cb)
+        self.flags = flags.split() if flags else []
         self.allowed_in_page_rule = arg_to_bool(allowed_in_page_rule)
 
         # https://drafts.csswg.org/css-animations/#keyframes
@@ -136,17 +176,18 @@ class Longhand(object):
 
         # This is done like this since just a plain bool argument seemed like
         # really random.
-        if animation_type is None:
-            raise TypeError("animation_type should be specified for (" + name + ")")
-        animation_types = ["none", "normal", "discrete"]
-        if animation_type not in animation_types:
-            raise TypeError("animation_type should be one of (" + str(animation_types) + ")")
-        self.animation_type = animation_type
+        if animation_value_type is None:
+            raise TypeError("animation_value_type should be specified for (" + name + ")")
+        self.animation_value_type = animation_value_type
 
-        self.animatable = animation_type != "none"
+        self.animatable = animation_value_type != "none"
+        self.is_animatable_with_computed_value = animation_value_type == "ComputedValue" \
+            or animation_value_type == "discrete"
         if self.logical:
-            # Logical properties don't animate separately
+            # Logical properties will be animatable (i.e. the animation type is
+            # discrete). For now, it is still non-animatable.
             self.animatable = False
+            self.animation_type = None
         # NB: Animatable implies clone because a property animation requires a
         # copy of the computed value.
         #
@@ -157,7 +198,7 @@ class Longhand(object):
 class Shorthand(object):
     def __init__(self, name, sub_properties, spec=None, experimental=False, internal=False,
                  allowed_in_keyframe_block=True, alias=None, extra_prefixes=None,
-                 allowed_in_page_rule=False):
+                 allowed_in_page_rule=False, flags=None):
         self.name = name
         if not spec:
             raise TypeError("Spec should be specified for %s" % name)
@@ -171,6 +212,7 @@ class Shorthand(object):
         self.alias = alias.split() if alias else []
         self.extra_prefixes = extra_prefixes.split() if extra_prefixes else []
         self.allowed_in_page_rule = arg_to_bool(allowed_in_page_rule)
+        self.flags = flags.split() if flags else []
 
         # https://drafts.csswg.org/css-animations/#keyframes
         # > The <declaration-list> inside of <keyframe-block> accepts any CSS property

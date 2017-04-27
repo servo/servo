@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>The 'line-height' property: 'normal'</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/fonts/line-height/.-invalid-002.html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS2/visudet.html#line-height" />
+  <style type="text/css">
+   .ahemreq { display: inline; font: 1em/1 Ahem, sans-serif; background: red; color: white; }
+   .test { float: left; font: 40px/normal Ahem; background: blue; color: white; width: 2em; }
+   .control { float: left; width: 80px; }
+   .thin { height: 4px; background: navy; }
+   .text { height: 40px; background: white; }
+   .thick { height: 8px; background: navy; }
+  </style>
+ </head>
+ <body>
+  <div class="ahemreq">Ahem_font_required_for_this_test,_see_directory_listing.</div>
+  <p>There should be three continuous blue lines below (dark on the left, light on the right).</p>
+  <div class="control">
+   <div class="thin"></div>
+   <div class="text"></div>
+   <div class="thick"></div>
+   <div class="text"></div>
+   <div class="thin"></div>
+  </div>
+  <div class="test">xx xx</div>
+ </body>
+</html>

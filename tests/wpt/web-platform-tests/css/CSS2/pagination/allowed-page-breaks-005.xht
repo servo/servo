@@ -1,0 +1,44 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+                      "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Allowed Page Breaks - Between Blocks</title>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#spacing-props"/>
+  <meta name="flags" content="paged"/>
+  <meta name="assert" content="Page breaks can occur between block boxes."/>
+  <style type="text/css">
+    /* Most permissible breaking possible */
+    * { widows: 1; orphans: 1; widows: 0; orphans: 0; }
+
+    /* Leave 4em at bottom to play with, independent of page size. */
+    html, body {
+      height: 100%;
+      line-height: 1;
+    }
+    .spacer1 {
+      height: 70%;
+    }
+    .spacer2 {
+      height: 30%;
+      margin-top: -4em;
+    }
+
+    /* Test CSS */
+    .first, .second { /* Each border box is 1.5em; margin box is 2.5em. */
+      white-space: nowrap;
+      border: 0.25em solid blue;
+      margin: 0.5em;
+      /* Make test text more visible */
+      color: blue;
+      font-weight: bold;
+    }
+</style>
+</head>
+<body>
+   <div class="spacer1">This test requires 2 pages. Box A must appear on the first page and Box B on the second.</div>
+   <div class="spacer2"></div>
+   <div class="first">Page 1 Box A</div>
+   <div class="second">Page 2 Box B</div>
+</body>
+</html>

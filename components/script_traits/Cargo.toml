@@ -34,4 +34,5 @@ servo_url = {path = "../url"}
 style_traits = {path = "../style_traits", features = ["servo"]}
 time = "0.1.12"
 url = {version = "1.2", features = ["heap_size"]}
+webrender_traits = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 webvr_traits = {path = "../webvr_traits"}

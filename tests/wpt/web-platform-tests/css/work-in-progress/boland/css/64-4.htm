@@ -1,0 +1,61 @@
+
+<HTML>
+
+<HEAD>
+<TITLE>Fourth Test of Section 6.4 of CSS1 Spec</TITLE>
+
+
+<STYLE TYPE="text/css">
+#id1 {background: url(flagbg.gif)}
+#id2 {background: url(   flagbg.gif   )}
+#id3 {background: url('flagbg.gif')}
+#id4 {background: url("flagbg.gif")}
+</STYLE>
+</HEAD>
+
+
+
+
+
+<BODY>
+
+<h1>Testing Statement #4 Below of Section 6.4</h1>
+
+
+
+
+<ul>
+<li>
+4. The format of a URL value is "url(" followed by optional white space followed by optional single uqote or double quote character followed by the URL itself
+followed by n optional single quote or double quote character followed by 
+optional whitespace followed by ")".  Quote characters that are not part of
+the URL itself must be balanced.
+</ul>
+
+
+
+
+
+<h2>PASS CRITERIA:
+</h2>
+<p ID=id1>
+If statement #4 above is passed, this paragraph should have a flag pattern
+background.  The rule applied is '#id1 {background: url(flagbg.gif)}".
+The format here is "url(" then the url itself, followed by a ")".
+<p ID=id2>
+This paragraph should also have a flag pattern background.
+The rule applied is '#id2 {background: url(   flagbg.gif    )}".
+There is whitespace around the url here.
+<p ID=id3>
+This paragraph should also have a flag pattern background.
+The rule applied is "#id3 {background: url('flagbg.gif')}".
+There is a single quote before and after the url (balanced).
+<p ID=id4>
+This paragraph should also have a flag pattern background.
+The rule applied is "#id4 {background: url("flagbg.gif")}".
+There is a double quote before and after the url(balanced).
+<p>
+
+All other properties of this page should be UA-default.
+</BODY>
+</HTML>
