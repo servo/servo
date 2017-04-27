@@ -651,6 +651,23 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         dest.write_str(")")
     }
 
+    fn serialize_keyword<W>(dest: &mut W, keyword: FunctionKeyword) -> fmt::Result
+        where W: fmt::Write,
+    {
+        match keyword {
+            FunctionKeyword::StepStart => {
+                serialize_steps(dest, specified::Integer::new(1), StartEnd::Start)
+            },
+            FunctionKeyword::StepEnd => {
+                serialize_steps(dest, specified::Integer::new(1), StartEnd::End)
+            },
+            _ => {
+                keyword.to_css(dest)
+            },
+        }
+    }
+
+
     // https://drafts.csswg.org/css-transitions/#serializing-a-timing-function
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
@@ -675,17 +692,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                     dest.write_str(")")
                 },
                 SpecifiedValue::Keyword(keyword) => {
-                    match keyword {
-                        FunctionKeyword::StepStart => {
-                            serialize_steps(dest, specified::Integer::new(1), StartEnd::Start)
-                        },
-                        FunctionKeyword::StepEnd => {
-                            serialize_steps(dest, specified::Integer::new(1), StartEnd::End)
-                        },
-                        _ => {
-                            keyword.to_css(dest)
-                        },
-                    }
+                    serialize_keyword(dest, keyword)
                 },
             }
         }
