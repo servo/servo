@@ -845,7 +845,8 @@ impl Parse for Integer {
 }
 
 impl Integer {
-    fn parse_with_minimum(context: &ParserContext, input: &mut Parser, min: i32) -> Result<Integer, ()> {
+    #[allow(missing_docs)]
+    pub fn parse_with_minimum(context: &ParserContext, input: &mut Parser, min: i32) -> Result<Integer, ()> {
         match parse_integer(context, input) {
             Ok(value) if value.value() >= min => Ok(value),
             _ => Err(()),
