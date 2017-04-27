@@ -411,6 +411,7 @@ impl Stylist {
         let computed =
             properties::cascade(&self.device,
                                 &rule_node,
+                                Some(pseudo),
                                 guards,
                                 parent.map(|p| &**p),
                                 parent.map(|p| &**p),
@@ -530,6 +531,7 @@ impl Stylist {
         let computed =
             properties::cascade(&self.device,
                                 &rule_node,
+                                Some(pseudo),
                                 guards,
                                 Some(&**parent),
                                 Some(&**parent),
@@ -874,6 +876,7 @@ impl Stylist {
         let metrics = get_metrics_provider_for_product();
         Arc::new(properties::cascade(&self.device,
                                      &rule_node,
+                                     None,
                                      guards,
                                      Some(parent_style),
                                      Some(parent_style),
