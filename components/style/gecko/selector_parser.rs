@@ -342,6 +342,12 @@ impl NonTSPseudoClass {
         apply_non_ts_list!(pseudo_class_state)
     }
 
+    /// Returns true if the given pseudoclass should trigger style sharing cache revalidation.
+    pub fn needs_cache_revalidation(&self) -> bool {
+        self.state_flag().is_empty() &&
+        !matches!(*self, NonTSPseudoClass::MozAny(_))
+    }
+
     /// Convert NonTSPseudoClass to Gecko's CSSPseudoClassType.
     pub fn to_gecko_pseudoclasstype(&self) -> Option<CSSPseudoClassType> {
         macro_rules! gecko_type {

@@ -26,7 +26,8 @@ use selectors::Element;
 use selectors::bloom::BloomFilter;
 use selectors::matching::{AFFECTED_BY_STYLE_ATTRIBUTE, AFFECTED_BY_PRESENTATIONAL_HINTS};
 use selectors::matching::{ElementSelectorFlags, StyleRelations, matches_selector};
-use selectors::parser::{Component, Selector, SelectorInner, LocalName as LocalNameSelector};
+use selectors::parser::{Component, Selector, SelectorInner, SelectorMethods, LocalName as LocalNameSelector};
+use selectors::visitor::SelectorVisitor;
 use shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
 use sink::Push;
 use smallvec::VecLike;
@@ -114,7 +115,7 @@ pub struct Stylist {
     /// on state that is not otherwise visible to the cache, like attributes or
     /// tree-structural state like child index and pseudos).
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
-    selectors_for_cache_revalidation: Vec<Selector<SelectorImpl>>,
+    selectors_for_cache_revalidation: Vec<SelectorInner<SelectorImpl>>,
 
     /// The total number of selectors.
     num_selectors: usize,
@@ -332,10 +333,23 @@ impl Stylist {
                     self.rules_source_order += 1;
 
                     for selector in &style_rule.selectors.0 {
-                        let needs_cache_revalidation =
-                            self.dependencies.note_selector(selector);
-                        if needs_cache_revalidation {
-                            self.selectors_for_cache_revalidation.push(selector.clone());
+                        self.dependencies.note_selector(selector);
+
+                        if needs_revalidation(selector) {
+                            // For revalidation, we can skip everything left of the first ancestor
+                            // combinator.
+                            let revalidation_sel = selector.inner.slice_to_first_ancestor_combinator();
+
+                            // Because of the slicing we do above, we can often end up with
+                            // adjacent duplicate selectors when we have selectors like
+                            // body > foo, td > foo, th > foo, etc. Doing a check for
+                            // adjacent duplicates here reduces the number of revalidation
+                            // selectors for Gecko's UA sheet by 30%.
+                            let duplicate = self.selectors_for_cache_revalidation.last()
+                                                .map_or(false, |x| x.complex == revalidation_sel.complex);
+                            if !duplicate {
+                                self.selectors_for_cache_revalidation.push(revalidation_sel);
+                            }
                         }
                     }
                 }
@@ -836,7 +850,7 @@ impl Stylist {
 
         for (i, ref selector) in self.selectors_for_cache_revalidation
                                      .iter().enumerate() {
-            results.set(i, matches_selector(&selector.inner,
+            results.set(i, matches_selector(selector,
                                             element,
                                             Some(bloom),
                                             &mut StyleRelations::empty(),
@@ -902,6 +916,74 @@ impl Drop for Stylist {
     }
 }
 
+/// Visitor determine whether a selector requires cache revalidation.
+///
+/// Note that we just check simple selectors and eagerly return when the first
+/// need for revalidation is found, so we don't need to store state on the visitor.
+struct RevalidationVisitor;
+
+impl SelectorVisitor for RevalidationVisitor {
+    type Impl = SelectorImpl;
+
+    /// Check whether a rightmost sequence of simple selectors containing this
+    /// simple selector to be explicitly matched against both the style sharing
+    /// cache entry and the candidate.
+    ///
+    /// We use this for selectors that can have different matching behavior between
+    /// siblings that are otherwise identical as far as the cache is concerned.
+    fn visit_simple_selector(&mut self, s: &Component<SelectorImpl>) -> bool {
+        match *s {
+            Component::AttrExists(_) |
+            Component::AttrEqual(_, _, _) |
+            Component::AttrIncludes(_, _) |
+            Component::AttrDashMatch(_, _) |
+            Component::AttrPrefixMatch(_, _) |
+            Component::AttrSubstringMatch(_, _) |
+            Component::AttrSuffixMatch(_, _) |
+            Component::Empty |
+            Component::FirstChild |
+            Component::LastChild |
+            Component::OnlyChild |
+            Component::NthChild(..) |
+            Component::NthLastChild(..) |
+            Component::NthOfType(..) |
+            Component::NthLastOfType(..) |
+            Component::FirstOfType |
+            Component::LastOfType |
+            Component::OnlyOfType => {
+                false
+            },
+            Component::NonTSPseudoClass(ref p) if p.needs_cache_revalidation() => {
+                false
+            },
+            _ => {
+                true
+            }
+        }
+    }
+}
+
+/// Returns true if the given selector needs cache revalidation.
+pub fn needs_revalidation(selector: &Selector<SelectorImpl>) -> bool {
+    let mut visitor = RevalidationVisitor;
+
+    // We only need to consider the rightmost sequence of simple selectors, so
+    // we can stop at the first combinator. This is because:
+    // * If it's an ancestor combinator, we can ignore everything to the left
+    //   because matching won't differ between siblings.
+    // * If it's a sibling combinator, then we know we need revalidation.
+    let mut iter = selector.inner.complex.iter();
+    for ss in &mut iter {
+        if !ss.visit(&mut visitor) {
+            return true;
+        }
+    }
+
+    // If none of the simple selectors in the rightmost sequence required
+    // revalidaiton, we need revalidation if and only if the combinator is
+    // a sibling combinator.
+    iter.next_sequence().map_or(false, |c| c.is_sibling())
+}
 
 /// Map that contains the CSS rules for a specific PseudoElement
 /// (or lack of PseudoElement).

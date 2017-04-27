@@ -417,32 +417,6 @@ fn is_attr_selector(sel: &Component<SelectorImpl>) -> bool {
     }
 }
 
-/// Whether a selector containing this simple selector needs to be explicitly
-/// matched against both the style sharing cache entry and the candidate.
-///
-///
-/// We use this for selectors that can have different matching behavior between
-/// siblings that are otherwise identical as far as the cache is concerned.
-fn needs_cache_revalidation(sel: &Component<SelectorImpl>) -> bool {
-    match *sel {
-        Component::Empty |
-        Component::FirstChild |
-        Component::LastChild |
-        Component::OnlyChild |
-        Component::NthChild(..) |
-        Component::NthLastChild(..) |
-        Component::NthOfType(..) |
-        Component::NthLastOfType(..) |
-        Component::FirstOfType |
-        Component::LastOfType |
-        Component::OnlyOfType => true,
-        // FIXME(emilio): This sets the "revalidation" flag for :any, which is
-        // probably expensive given we use it a lot in UA sheets.
-        Component::NonTSPseudoClass(ref p) => p.state_flag().is_empty(),
-        _ => false,
-    }
-}
-
 fn combinator_to_restyle_hint(combinator: Option<Combinator>) -> RestyleHint {
     match combinator {
         None => RESTYLE_SELF,
@@ -509,7 +483,6 @@ struct Dependency {
 struct SensitivitiesVisitor {
     sensitivities: Sensitivities,
     hint: RestyleHint,
-    needs_revalidation: bool,
 }
 
 impl SelectorVisitor for SensitivitiesVisitor {
@@ -519,7 +492,6 @@ impl SelectorVisitor for SensitivitiesVisitor {
                               _: SelectorIter<SelectorImpl>,
                               combinator: Option<Combinator>) -> bool {
         self.hint |= combinator_to_restyle_hint(combinator);
-        self.needs_revalidation |= self.hint.contains(RESTYLE_LATER_SIBLINGS);
 
         true
     }
@@ -529,11 +501,6 @@ impl SelectorVisitor for SensitivitiesVisitor {
 
         if !self.sensitivities.attrs {
             self.sensitivities.attrs = is_attr_selector(s);
-            self.needs_revalidation = true;
-        }
-
-        if !self.needs_revalidation {
-            self.needs_revalidation = needs_cache_revalidation(s);
         }
 
         true
@@ -570,22 +537,18 @@ impl DependencySet {
         }
     }
 
-    /// Adds a selector to this `DependencySet`, and returns whether it may need
-    /// cache revalidation, that is, whether two siblings of the same "shape"
-    /// may have different style due to this selector.
-    pub fn note_selector(&mut self, selector: &Selector<SelectorImpl>) -> bool {
+    /// Adds a selector to this `DependencySet`.
+    pub fn note_selector(&mut self, selector: &Selector<SelectorImpl>) {
         let mut is_pseudo_element = selector.pseudo_element.is_some();
 
         let mut next = Some(selector.inner.complex.clone());
         let mut combinator = None;
-        let mut needs_revalidation = false;
 
         while let Some(current) = next.take() {
             // Set up our visitor.
             let mut visitor = SensitivitiesVisitor {
                 sensitivities: Sensitivities::new(),
                 hint: combinator_to_restyle_hint(combinator),
-                needs_revalidation: false,
             };
 
             if is_pseudo_element {
@@ -618,7 +581,6 @@ impl DependencySet {
             }
 
             // Note what we found.
-            needs_revalidation |= visitor.needs_revalidation;
             if !visitor.sensitivities.is_empty() {
                 self.add_dependency(Dependency {
                     sensitivities: visitor.sensitivities,
@@ -628,8 +590,6 @@ impl DependencySet {
             }
 
         }
-
-        needs_revalidation
     }
 
     /// Create an empty `DependencySet`.
