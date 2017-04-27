@@ -336,7 +336,20 @@ impl Stylist {
                         self.dependencies.note_selector(selector);
 
                         if needs_revalidation(selector) {
-                            self.selectors_for_cache_revalidation.push(selector.inner.slice_to_first_ancestor_combinator());
+                            // For revalidation, we can skip everything left of the first ancestor
+                            // combinator.
+                            let revalidation_sel = selector.inner.slice_to_first_ancestor_combinator();
+
+                            // Because of the slicing we do above, we can often end up with
+                            // adjacent duplicate selectors when we have selectors like
+                            // body > foo, td > foo, th > foo, etc. Doing a check for
+                            // adjacent duplicates here reduces the number of revalidation
+                            // selectors for Gecko's UA sheet by 30%.
+                            let duplicate = self.selectors_for_cache_revalidation.last()
+                                                .map_or(false, |x| x.complex == revalidation_sel.complex);
+                            if !duplicate {
+                                self.selectors_for_cache_revalidation.push(revalidation_sel);
+                            }
                         }
                     }
                 }
