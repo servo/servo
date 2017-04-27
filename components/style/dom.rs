@@ -319,6 +319,11 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     /// Get this element's style attribute.
     fn style_attribute(&self) -> Option<&Arc<Locked<PropertyDeclarationBlock>>>;
 
+    /// Get this element's SMIL override declarations.
+    fn get_smil_override(&self) -> Option<&Arc<Locked<PropertyDeclarationBlock>>> {
+        None
+    }
+
     /// Get this element's animation rules.
     fn get_animation_rules(&self, _pseudo: Option<&PseudoElement>) -> AnimationRules {
         AnimationRules(None, None)

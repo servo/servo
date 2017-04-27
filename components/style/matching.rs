@@ -19,7 +19,8 @@ use dom::{AnimationRules, SendElement, TElement, TNode};
 use font_metrics::FontMetricsProvider;
 use properties::{CascadeFlags, ComputedValues, SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP, cascade};
 use properties::longhands::display::computed_value as display;
-use restyle_hints::{RESTYLE_STYLE_ATTRIBUTE, RESTYLE_CSS_ANIMATIONS, RESTYLE_CSS_TRANSITIONS, RestyleHint};
+use restyle_hints::{RESTYLE_CSS_ANIMATIONS, RESTYLE_CSS_TRANSITIONS, RestyleHint};
+use restyle_hints::{RESTYLE_STYLE_ATTRIBUTE, RESTYLE_SMIL};
 use rule_tree::{CascadeLevel, RuleTree, StrongRuleNode};
 use selector_parser::{PseudoElement, RestyleDamage, SelectorImpl};
 use selectors::bloom::BloomFilter;
@@ -882,6 +883,7 @@ pub trait MatchMethods : TElement {
 
         let stylist = &context.shared.stylist;
         let style_attribute = self.style_attribute();
+        let smil_override = self.get_smil_override();
         let animation_rules = self.get_animation_rules(None);
         let mut rule_nodes_changed = false;
         let bloom = context.thread_local.bloom_filter.filter();
@@ -895,6 +897,7 @@ pub trait MatchMethods : TElement {
         *relations = stylist.push_applicable_declarations(self,
                                                           Some(bloom),
                                                           style_attribute,
+                                                          smil_override,
                                                           animation_rules,
                                                           None,
                                                           &context.shared.guards,
@@ -952,7 +955,9 @@ pub trait MatchMethods : TElement {
             };
             stylist.push_applicable_declarations(self,
                                                  Some(bloom_filter),
-                                                 None, pseudo_animation_rules,
+                                                 None,
+                                                 None,
+                                                 pseudo_animation_rules,
                                                  Some(&pseudo),
                                                  &guards,
                                                  &mut applicable_declarations,
@@ -1068,11 +1073,17 @@ pub trait MatchMethods : TElement {
                 }
             };
 
-            // RESTYLE_CSS_ANIMATIONS or RESTYLE_CSS_TRANSITIONS is processed prior to other
-            // restyle hints in the name of animation-only traversal. Rest of restyle hints
-            // will be processed in a subsequent normal traversal.
+            // Animation restyle hints are processed prior to other restyle hints in the
+            // animation-only traversal. Non-animation restyle hints will be processed in
+            // a subsequent normal traversal.
             if hint.intersects(RestyleHint::for_animations()) {
                 debug_assert!(context.shared.traversal_flags.for_animation_only());
+
+                if hint.contains(RESTYLE_SMIL) {
+                    replace_rule_node(CascadeLevel::SMILOverride,
+                                      self.get_smil_override(),
+                                      primary_rules);
+                }
 
                 use data::EagerPseudoStyles;
                 let mut replace_rule_node_for_animation = |level: CascadeLevel,
@@ -1330,7 +1341,7 @@ pub trait MatchMethods : TElement {
         let relevant_style = pseudo_style.unwrap_or(primary_style);
         let rule_node = &relevant_style.rules;
         let without_animation_rules =
-            shared_context.stylist.rule_tree.remove_animation_and_transition_rules(rule_node);
+            shared_context.stylist.rule_tree.remove_animation_rules(rule_node);
         if without_animation_rules == *rule_node {
             // Note that unwrapping here is fine, because the style is
             // only incomplete during the styling process.

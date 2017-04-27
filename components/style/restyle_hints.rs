@@ -62,6 +62,11 @@ bitflags! {
         /// attribute has changed, and this change didn't have any other
         /// dependencies.
         const RESTYLE_STYLE_ATTRIBUTE = 0x40,
+
+        /// Replace the style data coming from SMIL animations without updating
+        /// any other style data. This hint is only processed in animation-only
+        /// traversal which is prior to normal traversal.
+        const RESTYLE_SMIL = 0x80,
     }
 }
 
@@ -95,19 +100,22 @@ pub fn assert_restyle_hints_match() {
         nsRestyleHint_eRestyle_CSSTransitions => RESTYLE_CSS_TRANSITIONS,
         nsRestyleHint_eRestyle_CSSAnimations => RESTYLE_CSS_ANIMATIONS,
         nsRestyleHint_eRestyle_StyleAttribute => RESTYLE_STYLE_ATTRIBUTE,
+        nsRestyleHint_eRestyle_StyleAttribute_Animations => RESTYLE_SMIL,
     }
 }
 
 impl RestyleHint {
     /// The subset hints that affect the styling of a single element during the
     /// traversal.
+    #[inline]
     pub fn for_self() -> Self {
-        RESTYLE_SELF | RESTYLE_STYLE_ATTRIBUTE | RESTYLE_CSS_ANIMATIONS | RESTYLE_CSS_TRANSITIONS
+        RESTYLE_SELF | RESTYLE_STYLE_ATTRIBUTE | Self::for_animations()
     }
 
     /// The subset hints that are used for animation restyle.
+    #[inline]
     pub fn for_animations() -> Self {
-        RESTYLE_CSS_ANIMATIONS | RESTYLE_CSS_TRANSITIONS
+        RESTYLE_SMIL | RESTYLE_CSS_ANIMATIONS | RESTYLE_CSS_TRANSITIONS
     }
 }
 

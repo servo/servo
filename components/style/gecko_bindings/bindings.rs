@@ -624,6 +624,11 @@ extern "C" {
      -> bool;
 }
 extern "C" {
+    pub fn Gecko_GetSMILOverrideDeclarationBlock(element:
+                                                     RawGeckoElementBorrowed)
+     -> RawServoDeclarationBlockStrongBorrowedOrNull;
+}
+extern "C" {
     pub fn Gecko_StyleAnimationsEquals(arg1:
                                            RawGeckoStyleAnimationListBorrowed,
                                        arg2:

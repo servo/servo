@@ -38,6 +38,7 @@ use gecko_bindings::bindings::Gecko_ElementHasCSSTransitions;
 use gecko_bindings::bindings::Gecko_GetAnimationRule;
 use gecko_bindings::bindings::Gecko_GetExtraContentStyleDeclarations;
 use gecko_bindings::bindings::Gecko_GetHTMLPresentationAttrDeclarationBlock;
+use gecko_bindings::bindings::Gecko_GetSMILOverrideDeclarationBlock;
 use gecko_bindings::bindings::Gecko_GetStyleAttrDeclarationBlock;
 use gecko_bindings::bindings::Gecko_GetStyleContext;
 use gecko_bindings::bindings::Gecko_IsSignificantChild;
@@ -522,6 +523,11 @@ impl<'le> TElement for GeckoElement<'le> {
 
     fn style_attribute(&self) -> Option<&Arc<Locked<PropertyDeclarationBlock>>> {
         let declarations = unsafe { Gecko_GetStyleAttrDeclarationBlock(self.0) };
+        declarations.map(|s| s.as_arc_opt()).unwrap_or(None)
+    }
+
+    fn get_smil_override(&self) -> Option<&Arc<Locked<PropertyDeclarationBlock>>> {
+        let declarations = unsafe { Gecko_GetSMILOverrideDeclarationBlock(self.0) };
         declarations.map(|s| s.as_arc_opt()).unwrap_or(None)
     }
 
