@@ -1795,19 +1795,17 @@ pub extern "C" fn Servo_NoteExplicitHints(element: RawGeckoElementBorrowed,
     let damage = GeckoRestyleDamage::new(change_hint);
     debug!("Servo_NoteExplicitHints: {:?}, restyle_hint={:?}, change_hint={:?}",
            element, restyle_hint, change_hint);
-    debug_assert!(restyle_hint == structs::nsRestyleHint_eRestyle_CSSAnimations ||
-                  restyle_hint == structs::nsRestyleHint_eRestyle_CSSTransitions ||
-                  (restyle_hint.0 & (structs::nsRestyleHint_eRestyle_CSSAnimations.0 |
-                                     structs::nsRestyleHint_eRestyle_CSSTransitions.0)) == 0,
-                  "eRestyle_CSSAnimations or eRestyle_CSSTransitions should only appear by itself");
+
+    let restyle_hint: RestyleHint = restyle_hint.into();
+    debug_assert!(RestyleHint::for_animations().contains(restyle_hint) ||
+                  !RestyleHint::for_animations().intersects(restyle_hint),
+                  "Animation restyle hints should not appear with non-animation restyle hints");
 
     let mut maybe_data = element.mutate_data();
     let maybe_restyle_data = maybe_data.as_mut().and_then(|d| unsafe {
-        maybe_restyle(d, element, restyle_hint == structs::nsRestyleHint_eRestyle_CSSAnimations ||
-                                  restyle_hint == structs::nsRestyleHint_eRestyle_CSSTransitions)
+        maybe_restyle(d, element, restyle_hint.intersects(RestyleHint::for_animations()))
     });
     if let Some(restyle_data) = maybe_restyle_data {
-        let restyle_hint: RestyleHint = restyle_hint.into();
         restyle_data.hint.insert(&restyle_hint.into());
         restyle_data.damage |= damage;
     } else {
