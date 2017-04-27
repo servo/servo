@@ -512,6 +512,7 @@ impl Stylist {
         self.push_applicable_declarations(element,
                                           None,
                                           None,
+                                          None,
                                           AnimationRules(None, None),
                                           Some(pseudo),
                                           guards,
@@ -631,6 +632,7 @@ impl Stylist {
                                         element: &E,
                                         parent_bf: Option<&BloomFilter>,
                                         style_attribute: Option<&Arc<Locked<PropertyDeclarationBlock>>>,
+                                        smil_override: Option<&Arc<Locked<PropertyDeclarationBlock>>>,
                                         animation_rules: AnimationRules,
                                         pseudo_element: Option<&PseudoElement>,
                                         guards: &StylesheetGuards,
@@ -711,7 +713,17 @@ impl Stylist {
 
             debug!("style attr: {:?}", relations);
 
-            // Step 5: Animations.
+            // Step 5: SMIL override.
+            // Declarations from SVG SMIL animation elements.
+            if let Some(so) = smil_override {
+                Push::push(
+                    applicable_declarations,
+                    ApplicableDeclarationBlock::from_declarations(so.clone(),
+                                                                  CascadeLevel::SMILOverride));
+            }
+            debug!("SMIL: {:?}", relations);
+
+            // Step 6: Animations.
             // The animations sheet (CSS animations, script-generated animations,
             // and CSS transitions that are no longer tied to CSS markup)
             if let Some(anim) = animation_rules.0 {
@@ -722,7 +734,7 @@ impl Stylist {
             }
             debug!("animation: {:?}", relations);
 
-            // Step 6: Author-supplied `!important` rules.
+            // Step 7: Author-supplied `!important` rules.
             map.author.get_all_matching_rules(element,
                                               parent_bf,
                                               applicable_declarations,
@@ -732,7 +744,7 @@ impl Stylist {
 
             debug!("author important: {:?}", relations);
 
-            // Step 7: `!important` style attributes.
+            // Step 8: `!important` style attributes.
             if let Some(sa) = style_attribute {
                 if sa.read_with(guards.author).any_important() {
                     relations |= AFFECTED_BY_STYLE_ATTRIBUTE;
@@ -745,7 +757,7 @@ impl Stylist {
 
             debug!("style attr important: {:?}", relations);
 
-            // Step 8: User `!important` rules.
+            // Step 9: User `!important` rules.
             map.user.get_all_matching_rules(element,
                                             parent_bf,
                                             applicable_declarations,
@@ -758,7 +770,7 @@ impl Stylist {
             debug!("skipping non-agent rules");
         }
 
-        // Step 9: UA `!important` rules.
+        // Step 10: UA `!important` rules.
         map.user_agent.get_all_matching_rules(element,
                                               parent_bf,
                                               applicable_declarations,
@@ -768,7 +780,7 @@ impl Stylist {
 
         debug!("UA important: {:?}", relations);
 
-        // Step 10: Transitions.
+        // Step 11: Transitions.
         // The transitions sheet (CSS transitions that are tied to CSS markup)
         if let Some(anim) = animation_rules.1 {
             Push::push(

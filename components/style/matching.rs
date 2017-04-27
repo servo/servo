@@ -882,6 +882,7 @@ pub trait MatchMethods : TElement {
 
         let stylist = &context.shared.stylist;
         let style_attribute = self.style_attribute();
+        let smil_override = self.get_smil_override();
         let animation_rules = self.get_animation_rules(None);
         let mut rule_nodes_changed = false;
         let bloom = context.thread_local.bloom_filter.filter();
@@ -895,6 +896,7 @@ pub trait MatchMethods : TElement {
         *relations = stylist.push_applicable_declarations(self,
                                                           Some(bloom),
                                                           style_attribute,
+                                                          smil_override,
                                                           animation_rules,
                                                           None,
                                                           &context.shared.guards,
@@ -952,7 +954,9 @@ pub trait MatchMethods : TElement {
             };
             stylist.push_applicable_declarations(self,
                                                  Some(bloom_filter),
-                                                 None, pseudo_animation_rules,
+                                                 None,
+                                                 None,
+                                                 pseudo_animation_rules,
                                                  Some(&pseudo),
                                                  &guards,
                                                  &mut applicable_declarations,
