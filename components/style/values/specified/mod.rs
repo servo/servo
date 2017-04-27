@@ -29,8 +29,8 @@ pub use self::align::{AlignItems, AlignJustifyContent, AlignJustifySelf, Justify
 pub use self::color::Color;
 pub use self::grid::{GridLine, TrackKeyword};
 pub use self::image::{AngleOrCorner, ColorStop, EndingShape as GradientEndingShape, Gradient};
-pub use self::image::{GradientKind, HorizontalDirection, Image, ImageRect, LengthOrKeyword};
-pub use self::image::{LengthOrPercentageOrKeyword, SizeKeyword, VerticalDirection};
+pub use self::image::{GradientItem, GradientKind, HorizontalDirection, Image, ImageRect};
+pub use self::image::{LengthOrKeyword, LengthOrPercentageOrKeyword, SizeKeyword, VerticalDirection};
 pub use self::length::AbsoluteLength;
 pub use self::length::{FontRelativeLength, ViewportPercentageLength, CharacterWidth, Length, CalcLengthOrPercentage};
 pub use self::length::{Percentage, LengthOrNone, LengthOrNumber, LengthOrPercentage, LengthOrPercentageOrAuto};

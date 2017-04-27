@@ -16,7 +16,8 @@ use gecko_bindings::structs::{nsStyleCoord_CalcValue, nsStyleImage};
 use gecko_bindings::structs::{nsresult, SheetType};
 use gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordDataMut};
 use stylesheets::{Origin, RulesMutateError};
-use values::computed::{CalcLengthOrPercentage, Gradient, Image, LengthOrPercentage, LengthOrPercentageOrAuto};
+use values::computed::{CalcLengthOrPercentage, Gradient, GradientItem, Image};
+use values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 
 impl From<CalcLengthOrPercentage> for nsStyleCoord_CalcValue {
     fn from(other: CalcLengthOrPercentage) -> nsStyleCoord_CalcValue {
@@ -160,7 +161,7 @@ impl nsStyleImage {
         use values::computed::LengthOrPercentageOrKeyword;
         use values::specified::{HorizontalDirection, SizeKeyword, VerticalDirection};
 
-        let stop_count = gradient.stops.len();
+        let stop_count = gradient.items.len();
         if stop_count >= ::std::u32::MAX as usize {
             warn!("stylo: Prevented overflow due to too many gradient stops");
             return;
@@ -280,32 +281,40 @@ impl nsStyleImage {
             },
         };
 
-        for (index, stop) in gradient.stops.iter().enumerate() {
+        for (index, item) in gradient.items.iter().enumerate() {
             // NB: stops are guaranteed to be none in the gecko side by
             // default.
-            let mut coord: nsStyleCoord = nsStyleCoord::null();
-            coord.set(stop.position);
-            let color = match stop.color {
-                CSSColor::CurrentColor => {
-                    // TODO(emilio): gecko just stores an nscolor,
-                    // and it doesn't seem to support currentColor
-                    // as value in a gradient.
-                    //
-                    // Double-check it and either remove
-                    // currentColor for servo or see how gecko
-                    // handles this.
-                    0
-                },
-                CSSColor::RGBA(ref rgba) => convert_rgba_to_nscolor(rgba),
-            };
 
-            let mut stop = unsafe {
+            let mut gecko_stop = unsafe {
                 &mut (*gecko_gradient).mStops[index]
             };
+            let mut coord = nsStyleCoord::null();
 
-            stop.mColor = color;
-            stop.mIsInterpolationHint = false;
-            stop.mLocation.move_from(coord);
+            match *item {
+                GradientItem::ColorStop(ref stop) => {
+                    gecko_stop.mColor = match stop.color {
+                        CSSColor::CurrentColor => {
+                            // TODO(emilio): gecko just stores an nscolor,
+                            // and it doesn't seem to support currentColor
+                            // as value in a gradient.
+                            //
+                            // Double-check it and either remove
+                            // currentColor for servo or see how gecko
+                            // handles this.
+                            0
+                        },
+                        CSSColor::RGBA(ref rgba) => convert_rgba_to_nscolor(rgba),
+                    };
+                    gecko_stop.mIsInterpolationHint = false;
+                    coord.set(stop.position);
+                },
+                GradientItem::InterpolationHint(hint) => {
+                    gecko_stop.mIsInterpolationHint = true;
+                    coord.set(Some(hint));
+                }
+            }
+
+            gecko_stop.mLocation.move_from(coord);
         }
 
         unsafe {
