@@ -23,7 +23,7 @@ use style::font_metrics::get_metrics_provider_for_product;
 use style::gecko::data::{PerDocumentStyleData, PerDocumentStyleDataImpl};
 use style::gecko::global_style_data::{GLOBAL_STYLE_DATA, GlobalStyleData};
 use style::gecko::restyle_damage::GeckoRestyleDamage;
-use style::gecko::selector_parser::{SelectorImpl, PseudoElement};
+use style::gecko::selector_parser::PseudoElement;
 use style::gecko::traversal::RecalcStyleOnly;
 use style::gecko::wrapper::GeckoElement;
 use style::gecko_bindings::bindings;
@@ -166,7 +166,8 @@ fn create_shared_context<'a>(global_style_data: &GlobalStyleData,
     }
 }
 
-fn traverse_subtree(element: GeckoElement, raw_data: RawServoStyleSetBorrowed,
+fn traverse_subtree(element: GeckoElement,
+                    raw_data: RawServoStyleSetBorrowed,
                     traversal_flags: TraversalFlags) {
     // When new content is inserted in a display:none subtree, we will call into
     // servo to try to style it. Detect that here and bail out.
@@ -936,12 +937,15 @@ pub extern "C" fn Servo_ResolvePseudoStyle(element: RawGeckoElementBorrowed,
     }
 }
 
-fn get_pseudo_style(guard: &SharedRwLockReadGuard, element: GeckoElement, pseudo_tag: *mut nsIAtom,
-                    styles: &ElementStyles, doc_data: &PerDocumentStyleData)
+fn get_pseudo_style(guard: &SharedRwLockReadGuard,
+                    element: GeckoElement,
+                    pseudo_tag: *mut nsIAtom,
+                    styles: &ElementStyles,
+                    doc_data: &PerDocumentStyleData)
                     -> Option<Arc<ComputedValues>>
 {
     let pseudo = PseudoElement::from_atom_unchecked(Atom::from(pseudo_tag), false);
-    match SelectorImpl::pseudo_element_cascade_type(&pseudo) {
+    match pseudo.cascade_type() {
         PseudoElementCascadeType::Eager => styles.pseudos.get(&pseudo).map(|s| s.values().clone()),
         PseudoElementCascadeType::Precomputed => unreachable!("No anonymous boxes"),
         PseudoElementCascadeType::Lazy => {

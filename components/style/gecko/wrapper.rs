@@ -421,12 +421,15 @@ fn selector_flags_to_node_flags(flags: ElementSelectorFlags) -> u32 {
 }
 
 fn get_animation_rule(element: &GeckoElement,
-                      pseudo: Option<&PseudoElement>,
                       cascade_level: CascadeLevel)
                       -> Option<Arc<Locked<PropertyDeclarationBlock>>> {
-    let atom_ptr = PseudoElement::ns_atom_or_null_from_opt(pseudo);
+    // FIXME(emilio): This is quite dumb, why an RwLock, it's local to this
+    // function?
+    //
+    // Also, we should try to reuse the PDB, to avoid creating extra rule nodes.
     let animation_values = Arc::new(RwLock::new(AnimationValueMap::new()));
-    if unsafe { Gecko_GetAnimationRule(element.0, atom_ptr, cascade_level,
+    if unsafe { Gecko_GetAnimationRule(element.0,
+                                       cascade_level,
                                        HasArcFFI::arc_as_borrowed(&animation_values)) } {
         let shared_lock = &GLOBAL_STYLE_DATA.shared_lock;
         Some(Arc::new(shared_lock.wrap(
@@ -531,30 +534,28 @@ impl<'le> TElement for GeckoElement<'le> {
         declarations.map(|s| s.as_arc_opt()).unwrap_or(None)
     }
 
-    fn get_animation_rules(&self, pseudo: Option<&PseudoElement>) -> AnimationRules {
-        AnimationRules(self.get_animation_rule(pseudo),
-                       self.get_transition_rule(pseudo))
+    fn get_animation_rules(&self) -> AnimationRules {
+        AnimationRules(self.get_animation_rule(),
+                       self.get_transition_rule())
     }
 
-    fn get_animation_rule_by_cascade(&self,
-                                     pseudo: Option<&PseudoElement>,
-                                     cascade_level: ServoCascadeLevel)
+    fn get_animation_rule_by_cascade(&self, cascade_level: ServoCascadeLevel)
                                      -> Option<Arc<Locked<PropertyDeclarationBlock>>> {
         match cascade_level {
-            ServoCascadeLevel::Animations => self.get_animation_rule(pseudo),
-            ServoCascadeLevel::Transitions => self.get_transition_rule(pseudo),
+            ServoCascadeLevel::Animations => self.get_animation_rule(),
+            ServoCascadeLevel::Transitions => self.get_transition_rule(),
             _ => panic!("Unsupported cascade level for getting the animation rule")
         }
     }
 
-    fn get_animation_rule(&self, pseudo: Option<&PseudoElement>)
+    fn get_animation_rule(&self)
                           -> Option<Arc<Locked<PropertyDeclarationBlock>>> {
-        get_animation_rule(self, pseudo, CascadeLevel::Animations)
+        get_animation_rule(self, CascadeLevel::Animations)
     }
 
-    fn get_transition_rule(&self, pseudo: Option<&PseudoElement>)
+    fn get_transition_rule(&self)
                            -> Option<Arc<Locked<PropertyDeclarationBlock>>> {
-        get_animation_rule(self, pseudo, CascadeLevel::Transitions)
+        get_animation_rule(self, CascadeLevel::Transitions)
     }
 
     fn get_state(&self) -> ElementState {
@@ -589,7 +590,7 @@ impl<'le> TElement for GeckoElement<'le> {
                                              -> Option<&'a nsStyleContext> {
         let atom_ptr = PseudoElement::ns_atom_or_null_from_opt(pseudo);
         unsafe {
-            let context_ptr = Gecko_GetStyleContext(self.as_node().0, atom_ptr);
+            let context_ptr = Gecko_GetStyleContext(self.0, atom_ptr);
             context_ptr.as_ref()
         }
     }
@@ -641,6 +642,22 @@ impl<'le> TElement for GeckoElement<'le> {
         self.flags() & (NODE_IS_NATIVE_ANONYMOUS as u32) != 0
     }
 
+    fn implemented_pseudo_element(&self) -> Option<PseudoElement> {
+        if !self.is_native_anonymous() {
+            return None;
+        }
+
+        let maybe_atom =
+            unsafe { bindings::Gecko_GetImplementedPseudo(self.0) };
+
+        if maybe_atom.is_null() {
+            return None;
+        }
+
+        let atom = Atom::from(maybe_atom);
+        Some(PseudoElement::from_atom_unchecked(atom, /* anon_box = */ false))
+    }
+
     fn store_children_to_process(&self, _: isize) {
         // This is only used for bottom-up traversal, and is thus a no-op for Gecko.
     }
@@ -673,37 +690,27 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     fn update_animations(&self,
-                         pseudo: Option<&PseudoElement>,
                          before_change_style: Option<Arc<ComputedValues>>,
                          tasks: UpdateAnimationsTasks) {
-        // We have to update animations even if the element has no computed style
-        // since it means the element is in a display:none subtree, we should destroy
-        // all CSS animations in display:none subtree.
+        // We have to update animations even if the element has no computed
+        // style since it means the element is in a display:none subtree, we
+        // should destroy all CSS animations in display:none subtree.
         let computed_data = self.borrow_data();
         let computed_values =
-            computed_data.as_ref().map(|d|
-                pseudo.map_or_else(|| d.styles().primary.values(),
-                                   |p| d.styles().pseudos.get(p).unwrap().values())
-            );
-        let computed_values_opt = computed_values.map(|v|
-            *HasArcFFI::arc_as_borrowed(v)
-        );
-
-        let parent_element = if pseudo.is_none() {
-            self.parent_element()
-        } else {
-            Some(*self)
-        };
-        let parent_data = parent_element.as_ref().and_then(|e| e.borrow_data());
-        let parent_values = parent_data.as_ref().map(|d| d.styles().primary.values());
-        let parent_values_opt = parent_values.map(|v|
-            *HasArcFFI::arc_as_borrowed(v)
-        );
-
-        let atom_ptr = PseudoElement::ns_atom_or_null_from_opt(pseudo);
-        let before_change_values = before_change_style.as_ref().map(|v| *HasArcFFI::arc_as_borrowed(v));
+            computed_data.as_ref().map(|d| d.styles().primary.values());
+        let computed_values_opt =
+            computed_values.map(|v| *HasArcFFI::arc_as_borrowed(v));
+        let parent_element = self.parent_element();
+        let parent_data =
+            parent_element.as_ref().and_then(|e| e.borrow_data());
+        let parent_values =
+            parent_data.as_ref().map(|d| d.styles().primary.values());
+        let parent_values_opt =
+            parent_values.map(|v| *HasArcFFI::arc_as_borrowed(v));
+        let before_change_values =
+            before_change_style.as_ref().map(|v| *HasArcFFI::arc_as_borrowed(v));
         unsafe {
-            Gecko_UpdateAnimations(self.0, atom_ptr,
+            Gecko_UpdateAnimations(self.0,
                                    before_change_values,
                                    computed_values_opt,
                                    parent_values_opt,
@@ -711,35 +718,31 @@ impl<'le> TElement for GeckoElement<'le> {
         }
     }
 
-    fn has_animations(&self, pseudo: Option<&PseudoElement>) -> bool {
-        let atom_ptr = PseudoElement::ns_atom_or_null_from_opt(pseudo);
-        unsafe { Gecko_ElementHasAnimations(self.0, atom_ptr) }
+    fn has_animations(&self) -> bool {
+        unsafe { Gecko_ElementHasAnimations(self.0) }
     }
 
-    fn has_css_animations(&self, pseudo: Option<&PseudoElement>) -> bool {
-        let atom_ptr = PseudoElement::ns_atom_or_null_from_opt(pseudo);
-        unsafe { Gecko_ElementHasCSSAnimations(self.0, atom_ptr) }
+    fn has_css_animations(&self) -> bool {
+        unsafe { Gecko_ElementHasCSSAnimations(self.0) }
     }
 
-    fn has_css_transitions(&self, pseudo: Option<&PseudoElement>) -> bool {
-        let atom_ptr = PseudoElement::ns_atom_or_null_from_opt(pseudo);
-        unsafe { Gecko_ElementHasCSSTransitions(self.0, atom_ptr) }
+    fn has_css_transitions(&self) -> bool {
+        unsafe { Gecko_ElementHasCSSTransitions(self.0) }
     }
 
-    fn get_css_transitions_info(&self,
-                                pseudo: Option<&PseudoElement>)
+    fn get_css_transitions_info(&self)
                                 -> HashMap<TransitionProperty, Arc<AnimationValue>> {
         use gecko_bindings::bindings::Gecko_ElementTransitions_EndValueAt;
         use gecko_bindings::bindings::Gecko_ElementTransitions_Length;
         use gecko_bindings::bindings::Gecko_ElementTransitions_PropertyAt;
 
-        let atom_ptr = PseudoElement::ns_atom_or_null_from_opt(pseudo);
-        let collection_length = unsafe { Gecko_ElementTransitions_Length(self.0, atom_ptr) };
+        let collection_length =
+            unsafe { Gecko_ElementTransitions_Length(self.0) };
         let mut map = HashMap::with_capacity(collection_length);
         for i in 0..collection_length {
             let (property, raw_end_value) = unsafe {
-                (Gecko_ElementTransitions_PropertyAt(self.0, atom_ptr, i as usize).into(),
-                 Gecko_ElementTransitions_EndValueAt(self.0, atom_ptr, i as usize))
+                (Gecko_ElementTransitions_PropertyAt(self.0, i as usize).into(),
+                 Gecko_ElementTransitions_EndValueAt(self.0, i as usize))
             };
             let end_value = AnimationValue::arc_from_borrowed(&raw_end_value);
             debug_assert!(end_value.is_some());
@@ -749,21 +752,21 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     fn might_need_transitions_update(&self,
-                                     old_values: &Option<&Arc<ComputedValues>>,
-                                     new_values: &Arc<ComputedValues>,
-                                     pseudo: Option<&PseudoElement>) -> bool {
+                                     old_values: Option<&ComputedValues>,
+                                     new_values: &ComputedValues) -> bool {
         use properties::longhands::display::computed_value as display;
 
-        if old_values.is_none() {
-            return false;
-        }
+        let old_values = match old_values {
+            Some(v) => v,
+            None => return false,
+        };
 
-        let ref new_box_style = new_values.get_box();
-        let transition_not_running = !self.has_css_transitions(pseudo) &&
+        let new_box_style = new_values.get_box();
+        let transition_not_running = !self.has_css_transitions() &&
                                      new_box_style.transition_property_count() == 1 &&
                                      new_box_style.transition_combined_duration_at(0) <= 0.0f32;
         let new_display_style = new_box_style.clone_display();
-        let old_display_style = old_values.map(|ref old| old.get_box().clone_display()).unwrap();
+        let old_display_style = old_values.get_box().clone_display();
 
         new_box_style.transition_property_count() > 0 &&
         !transition_not_running &&
@@ -771,28 +774,31 @@ impl<'le> TElement for GeckoElement<'le> {
          old_display_style != display::T::none)
     }
 
-    // Detect if there are any changes that require us to update transitions. This is used as a
-    // more thoroughgoing check than the, cheaper might_need_transitions_update check.
+    // Detect if there are any changes that require us to update transitions.
+    // This is used as a more thoroughgoing check than the, cheaper
+    // might_need_transitions_update check.
+    //
     // The following logic shadows the logic used on the Gecko side
-    // (nsTransitionManager::DoUpdateTransitions) where we actually perform the update.
+    // (nsTransitionManager::DoUpdateTransitions) where we actually perform the
+    // update.
+    //
     // https://drafts.csswg.org/css-transitions/#starting
     fn needs_transitions_update(&self,
-                                before_change_style: &Arc<ComputedValues>,
-                                after_change_style: &Arc<ComputedValues>,
-                                pseudo: Option<&PseudoElement>) -> bool {
+                                before_change_style: &ComputedValues,
+                                after_change_style: &ComputedValues)
+                                -> bool {
         use gecko_bindings::structs::nsCSSPropertyID;
         use properties::{PropertyId, animated_properties};
         use std::collections::HashSet;
 
-        debug_assert!(self.might_need_transitions_update(&Some(before_change_style),
-                                                         after_change_style,
-                                                         pseudo),
+        debug_assert!(self.might_need_transitions_update(Some(before_change_style),
+                                                         after_change_style),
                       "We should only call needs_transitions_update if \
                        might_need_transitions_update returns true");
 
-        let ref after_change_box_style = after_change_style.get_box();
+        let after_change_box_style = after_change_style.get_box();
         let transitions_count = after_change_box_style.transition_property_count();
-        let existing_transitions = self.get_css_transitions_info(pseudo);
+        let existing_transitions = self.get_css_transitions_info();
         let mut transitions_to_keep = if !existing_transitions.is_empty() &&
                                          (after_change_box_style.transition_nscsspropertyid_at(0) !=
                                               nsCSSPropertyID::eCSSPropertyExtra_all_properties) {
@@ -865,8 +871,8 @@ impl<'le> TElement for GeckoElement<'le> {
     fn needs_transitions_update_per_property(&self,
                                              property: &TransitionProperty,
                                              combined_duration: f32,
-                                             before_change_style: &Arc<ComputedValues>,
-                                             after_change_style: &Arc<ComputedValues>,
+                                             before_change_style: &ComputedValues,
+                                             after_change_style: &ComputedValues,
                                              existing_transitions: &HashMap<TransitionProperty,
                                                                             Arc<AnimationValue>>)
                                              -> bool {

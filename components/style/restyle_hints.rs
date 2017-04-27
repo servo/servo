@@ -17,7 +17,7 @@ use selector_parser::{AttrValue, NonTSPseudoClass, Snapshot, SelectorImpl};
 use selectors::{Element, MatchAttr};
 use selectors::matching::{ElementSelectorFlags, StyleRelations};
 use selectors::matching::matches_selector;
-use selectors::parser::{AttrSelector, Combinator, ComplexSelector, Component};
+use selectors::parser::{AttrSelector, Combinator, Component, Selector};
 use selectors::parser::{SelectorInner, SelectorIter, SelectorMethods};
 use selectors::visitor::SelectorVisitor;
 use std::clone::Clone;
@@ -122,8 +122,7 @@ impl RestyleHint {
 #[cfg(feature = "gecko")]
 impl From<nsRestyleHint> for RestyleHint {
     fn from(raw: nsRestyleHint) -> Self {
-        use std::mem;
-        let raw_bits: u32 = unsafe { mem::transmute(raw) };
+        let raw_bits: u32 = raw.0;
         // FIXME(bholley): Finish aligning the binary representations here and
         // then .expect() the result of the checked version.
         if Self::from_bits(raw_bits).is_none() {
@@ -574,11 +573,10 @@ impl DependencySet {
     /// Adds a selector to this `DependencySet`, and returns whether it may need
     /// cache revalidation, that is, whether two siblings of the same "shape"
     /// may have different style due to this selector.
-    pub fn note_selector(&mut self,
-                         base: &ComplexSelector<SelectorImpl>)
-                         -> bool
-    {
-        let mut next = Some(base.clone());
+    pub fn note_selector(&mut self, selector: &Selector<SelectorImpl>) -> bool {
+        let mut is_pseudo_element = selector.pseudo_element.is_some();
+
+        let mut next = Some(selector.inner.complex.clone());
         let mut combinator = None;
         let mut needs_revalidation = false;
 
@@ -589,6 +587,19 @@ impl DependencySet {
                 hint: combinator_to_restyle_hint(combinator),
                 needs_revalidation: false,
             };
+
+            if is_pseudo_element {
+                // TODO(emilio): use more fancy restyle hints to avoid restyling
+                // the whole subtree when pseudos change.
+                //
+                // We currently need is_pseudo_element to handle eager pseudos
+                // (so the style the parent stores doesn't become stale), and
+                // restyle_descendants to handle all of them (::before and
+                // ::after, because we find them in the subtree, and other lazy
+                // pseudos for the same reason).
+                visitor.hint |= RESTYLE_SELF | RESTYLE_DESCENDANTS;
+                is_pseudo_element = false;
+            }
 
             {
                 // Visit all the simple selectors.
