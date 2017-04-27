@@ -953,9 +953,7 @@ impl SelectorVisitor for RevalidationVisitor {
             Component::OnlyOfType => {
                 false
             },
-            // FIXME(emilio): This sets the "revalidation" flag for :any, which is
-            // probably expensive given we use it a lot in UA sheets.
-            Component::NonTSPseudoClass(ref p) if p.state_flag().is_empty() => {
+            Component::NonTSPseudoClass(ref p) if p.needs_cache_revalidation() => {
                 false
             },
             _ => {

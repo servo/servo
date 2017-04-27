@@ -235,6 +235,11 @@ impl NonTSPseudoClass {
             ServoNonZeroBorder => ElementState::empty(),
         }
     }
+
+    /// Returns true if the given pseudoclass should trigger style sharing cache revalidation.
+    pub fn needs_cache_revalidation(&self) -> bool {
+        self.state_flag().is_empty()
+    }
 }
 
 /// The abstract struct we implement the selector parser implementation on top
