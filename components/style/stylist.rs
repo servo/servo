@@ -534,6 +534,10 @@ impl Stylist {
                                           &mut declarations,
                                           &mut set_selector_flags);
 
+        if declarations.is_empty() {
+            return None
+        }
+
         let rule_node =
             self.rule_tree.insert_ordered_rules(
                 declarations.into_iter().map(|a| (a.source, a.level)));
