@@ -17,8 +17,8 @@ use super::specified::grid::{TrackBreadth as GenericTrackBreadth, TrackSize as G
 
 pub use app_units::Au;
 pub use cssparser::Color as CSSColor;
-pub use self::image::{AngleOrCorner, EndingShape as GradientShape, Gradient, GradientKind, Image, ImageRect};
-pub use self::image::{LengthOrKeyword, LengthOrPercentageOrKeyword};
+pub use self::image::{AngleOrCorner, EndingShape as GradientShape, Gradient, GradientItem};
+pub use self::image::{GradientKind, Image, ImageRect, LengthOrKeyword, LengthOrPercentageOrKeyword};
 pub use super::{Auto, Either, None_};
 #[cfg(feature = "gecko")]
 pub use super::specified::{AlignItems, AlignJustifyContent, AlignJustifySelf, JustifyItems};

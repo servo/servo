@@ -58,8 +58,8 @@ use style::properties::longhands::border_image_repeat::computed_value::RepeatKey
 use style::properties::style_structs;
 use style::servo::restyle_damage::REPAINT;
 use style::values::{Either, RGBA, computed};
-use style::values::computed::{AngleOrCorner, Gradient, GradientKind, LengthOrPercentage};
-use style::values::computed::{LengthOrPercentageOrAuto, NumberOrPercentage};
+use style::values::computed::{AngleOrCorner, Gradient, GradientItem, GradientKind};
+use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto, NumberOrPercentage};
 use style::values::specified::{HorizontalDirection, VerticalDirection};
 use style_traits::CSSPixel;
 use style_traits::cursor::Cursor;
@@ -948,9 +948,15 @@ impl FragmentDisplayListBuilding for Fragment {
         // Determine the position of each stop per CSS-IMAGES § 3.4.
         //
         // FIXME(#3908, pcwalton): Make sure later stops can't be behind earlier stops.
-        let mut stops = Vec::with_capacity(gradient.stops.len());
+        let stop_items = gradient.items.iter().filter_map(|item| {
+            match *item {
+                GradientItem::ColorStop(ref stop) => Some(stop),
+                _ => None,
+            }
+        }).collect::<Vec<_>>();
+        let mut stops = Vec::with_capacity(stop_items.len());
         let mut stop_run = None;
-        for (i, stop) in gradient.stops.iter().enumerate() {
+        for (i, stop) in stop_items.iter().enumerate() {
             let offset = match stop.position {
                 None => {
                     if stop_run.is_none() {
@@ -960,14 +966,14 @@ impl FragmentDisplayListBuilding for Fragment {
                         } else {
                             // `unwrap()` here should never fail because this is the beginning of
                             // a stop run, which is always bounded by a length or percentage.
-                            position_to_offset(gradient.stops[i - 1].position.unwrap(), length)
+                            position_to_offset(stop_items[i - 1].position.unwrap(), length)
                         };
                         let (end_index, end_offset) =
-                            match gradient.stops[i..]
+                            match stop_items[i..]
                                           .iter()
                                           .enumerate()
                                           .find(|&(_, ref stop)| stop.position.is_some()) {
-                                None => (gradient.stops.len() - 1, 1.0),
+                                None => (stop_items.len() - 1, 1.0),
                                 Some((end_index, end_stop)) => {
                                     // `unwrap()` here should never fail because this is the end of
                                     // a stop run, which is always bounded by a length or
