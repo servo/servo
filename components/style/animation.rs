@@ -339,19 +339,24 @@ impl PropertyAnimation {
 
     /// Update the given animation at a given point of progress.
     pub fn update(&self, style: &mut ComputedValues, time: f64) {
-        let progress = match self.timing_function {
+        let timing_function = match self.timing_function {
+            TransitionTimingFunction::Keyword(keyword) =>
+                keyword.to_non_keyword_value(),
+            other => other,
+        };
+        let progress = match timing_function {
             TransitionTimingFunction::CubicBezier(p1, p2) => {
                 // See `WebCore::AnimationBase::solveEpsilon(double)` in WebKit.
                 let epsilon = 1.0 / (200.0 * (self.duration.seconds() as f64));
                 Bezier::new(Point2D::new(p1.x as f64, p1.y as f64),
                             Point2D::new(p2.x as f64, p2.y as f64)).solve(time, epsilon)
-            }
+            },
             TransitionTimingFunction::Steps(steps, StartEnd::Start) => {
                 (time * (steps as f64)).ceil() / (steps as f64)
-            }
+            },
             TransitionTimingFunction::Steps(steps, StartEnd::End) => {
                 (time * (steps as f64)).floor() / (steps as f64)
-            }
+            },
             TransitionTimingFunction::Frames(frames) => {
                 // https://drafts.csswg.org/css-timing/#frames-timing-functions
                 let mut out = (time * (frames as f64)).floor() / ((frames - 1) as f64);
@@ -367,7 +372,10 @@ impl PropertyAnimation {
                     out = 1.0;
                 }
                 out
-            }
+            },
+            TransitionTimingFunction::Keyword(_) => {
+                panic!("Keyword function should not appear")
+            },
         };
 
         self.property.update(style, progress);
