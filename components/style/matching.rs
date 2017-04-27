@@ -19,7 +19,8 @@ use dom::{AnimationRules, SendElement, TElement, TNode};
 use font_metrics::FontMetricsProvider;
 use properties::{CascadeFlags, ComputedValues, SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP, cascade};
 use properties::longhands::display::computed_value as display;
-use restyle_hints::{RESTYLE_STYLE_ATTRIBUTE, RESTYLE_CSS_ANIMATIONS, RESTYLE_CSS_TRANSITIONS, RestyleHint};
+use restyle_hints::{RESTYLE_CSS_ANIMATIONS, RESTYLE_CSS_TRANSITIONS, RestyleHint};
+use restyle_hints::{RESTYLE_STYLE_ATTRIBUTE, RESTYLE_SMIL};
 use rule_tree::{CascadeLevel, RuleTree, StrongRuleNode};
 use selector_parser::{PseudoElement, RestyleDamage, SelectorImpl};
 use selectors::bloom::BloomFilter;
@@ -1072,11 +1073,17 @@ pub trait MatchMethods : TElement {
                 }
             };
 
-            // RESTYLE_CSS_ANIMATIONS or RESTYLE_CSS_TRANSITIONS is processed prior to other
-            // restyle hints in the name of animation-only traversal. Rest of restyle hints
-            // will be processed in a subsequent normal traversal.
+            // Animation restyle hints are processed prior to other restyle hints in the
+            // animation-only traversal. Non-animation restyle hints will be processed in
+            // a subsequent normal traversal.
             if hint.intersects(RestyleHint::for_animations()) {
                 debug_assert!(context.shared.traversal_flags.for_animation_only());
+
+                if hint.contains(RESTYLE_SMIL) {
+                    replace_rule_node(CascadeLevel::SMILOverride,
+                                      self.get_smil_override(),
+                                      primary_rules);
+                }
 
                 use data::EagerPseudoStyles;
                 let mut replace_rule_node_for_animation = |level: CascadeLevel,
