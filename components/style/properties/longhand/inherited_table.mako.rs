@@ -20,7 +20,7 @@ ${helpers.single_keyword("caption-side", "top bottom",
                          animation_value_type="none",
                          spec="https://drafts.csswg.org/css-tables/#propdef-caption-side")}
 
-<%helpers:longhand name="border-spacing" animation_value_type="none" boxed="True"
+<%helpers:longhand name="border-spacing" animation_value_type="ComputedValue" boxed="True"
                    spec="https://drafts.csswg.org/css-tables/#propdef-border-spacing">
     use app_units::Au;
     use std::fmt;
@@ -29,7 +29,7 @@ ${helpers.single_keyword("caption-side", "top bottom",
 
     pub mod computed_value {
         use app_units::Au;
-        use properties::animated_properties::Interpolate;
+        use properties::animated_properties::{ComputeDistance, Interpolate};
 
         #[derive(Clone, Copy, Debug, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -46,6 +46,19 @@ ${helpers.single_keyword("caption-side", "top bottom",
                     horizontal: try!(self.horizontal.interpolate(&other.horizontal, time)),
                     vertical: try!(self.vertical.interpolate(&other.vertical, time)),
                 })
+            }
+        }
+
+        impl ComputeDistance for T {
+            #[inline]
+            fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
+                self.compute_squared_distance(other).map(|sd| sd.sqrt())
+            }
+
+            #[inline]
+            fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
+                Ok(try!(self.horizontal.compute_squared_distance(&other.horizontal)) +
+                   try!(self.vertical.compute_squared_distance(&other.vertical)))
             }
         }
     }
