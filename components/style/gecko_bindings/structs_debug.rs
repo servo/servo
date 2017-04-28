@@ -6682,6 +6682,13 @@ pub mod root {
         #[repr(i32)]
         #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
         pub enum LengthParsingMode { Default = 0, SVG = 1, }
+        #[repr(i32)]
+        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        pub enum InheritTarget {
+            Text = 0,
+            FirstLetterContinuation = 1,
+            PlaceholderFrame = 2,
+        }
         pub type CSSPseudoElementTypeBase = u8;
         pub const CSSPseudoElementType_InheritingAnonBox:
                   root::mozilla::CSSPseudoElementType =

@@ -410,8 +410,7 @@ trait PrivateMatchMethods: TElement {
                           font_metrics_provider: &FontMetricsProvider,
                           rule_node: &StrongRuleNode,
                           primary_style: &ComputedStyle,
-                          inherit_mode: InheritMode,
-                          pseudo: Option<&PseudoElement>)
+                          inherit_mode: InheritMode)
                           -> Arc<ComputedValues> {
         let mut cascade_info = CascadeInfo::new();
         let mut cascade_flags = CascadeFlags::empty();
@@ -476,7 +475,6 @@ trait PrivateMatchMethods: TElement {
         let values =
             Arc::new(cascade(&shared_context.stylist.device,
                              rule_node,
-                             pseudo,
                              &shared_context.guards,
                              style_to_inherit_from,
                              layout_parent_style,
@@ -493,7 +491,6 @@ trait PrivateMatchMethods: TElement {
     fn cascade_internal(&self,
                         context: &StyleContext<Self>,
                         primary_style: &ComputedStyle,
-                        pseudo: Option<&PseudoElement>,
                         eager_pseudo_style: Option<&ComputedStyle>)
                         -> Arc<ComputedValues> {
         // Grab the rule node.
@@ -508,8 +505,7 @@ trait PrivateMatchMethods: TElement {
                                 &context.thread_local.font_metrics_provider,
                                 rule_node,
                                 primary_style,
-                                inherit_mode,
-                                pseudo)
+                                inherit_mode)
     }
 
     /// Computes values and damage for the primary or pseudo style of an element,
@@ -561,7 +557,6 @@ trait PrivateMatchMethods: TElement {
                 } else {
                     self.cascade_internal(context,
                                           primary_style,
-                                          None,
                                           None)
                 }
             }
@@ -570,7 +565,6 @@ trait PrivateMatchMethods: TElement {
                 // work.
                 self.cascade_internal(context,
                                       primary_style,
-                                      pseudo,
                                       pseudo_style.as_ref().map(|s| &**s))
             }
         };
@@ -612,8 +606,7 @@ trait PrivateMatchMethods: TElement {
     #[cfg(feature = "gecko")]
     fn get_after_change_style(&self,
                               context: &mut StyleContext<Self>,
-                              primary_style: &ComputedStyle,
-                              pseudo: Option<&PseudoElement>)
+                              primary_style: &ComputedStyle)
                               -> Option<Arc<ComputedValues>> {
         let rule_node = &primary_style.rules;
         let without_transition_rules =
@@ -628,8 +621,7 @@ trait PrivateMatchMethods: TElement {
                                      &context.thread_local.font_metrics_provider,
                                      &without_transition_rules,
                                      primary_style,
-                                     InheritMode::FromParentElement,
-                                     pseudo))
+                                     InheritMode::FromParentElement))
     }
 
     #[cfg(feature = "gecko")]
@@ -674,7 +666,7 @@ trait PrivateMatchMethods: TElement {
         let before_change_style = if self.might_need_transitions_update(old_values.as_ref().map(|s| &**s),
                                                                         new_values) {
             let after_change_style = if self.has_css_transitions() {
-                self.get_after_change_style(context, primary_style, None)
+                self.get_after_change_style(context, primary_style)
             } else {
                 None
             };
@@ -1435,7 +1427,6 @@ pub trait MatchMethods : TElement {
                       shared_context: &SharedStyleContext,
                       font_metrics_provider: &FontMetricsProvider,
                       primary_style: &ComputedStyle,
-                      pseudo: Option<&PseudoElement>,
                       pseudo_style: Option<&ComputedStyle>)
                       -> Arc<ComputedValues> {
         let relevant_style = pseudo_style.unwrap_or(primary_style);
@@ -1452,8 +1443,7 @@ pub trait MatchMethods : TElement {
                                 font_metrics_provider,
                                 &without_animation_rules,
                                 primary_style,
-                                InheritMode::FromParentElement,
-                                pseudo)
+                                InheritMode::FromParentElement)
     }
 
 }

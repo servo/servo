@@ -83,6 +83,7 @@ use style::selector_parser::PseudoElementCascadeType;
 use style::sequential;
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards, ToCssWithGuard, Locked};
 use style::string_cache::Atom;
+use style::style_adjuster::StyleAdjuster;
 use style::stylesheets::{CssRule, CssRules, CssRuleType, CssRulesHelpers};
 use style::stylesheets::{ImportRule, MediaRule, NamespaceRule, Origin};
 use style::stylesheets::{PageRule, Stylesheet, StyleRule, SupportsRule};
@@ -467,7 +468,7 @@ pub extern "C" fn Servo_StyleSet_GetBaseComputedValuesForElement(raw_data: RawSe
     };
 
     let provider = get_metrics_provider_for_product();
-    element.get_base_style(shared_context, &provider, &styles.primary, pseudo.as_ref(), pseudo_style)
+    element.get_base_style(shared_context, &provider, &styles.primary, pseudo_style)
            .into_strong()
 }
 
@@ -992,15 +993,28 @@ fn get_pseudo_style(guard: &SharedRwLockReadGuard,
 #[no_mangle]
 pub extern "C" fn Servo_ComputedValues_Inherit(
   raw_data: RawServoStyleSetBorrowed,
-  parent_style: ServoComputedValuesBorrowedOrNull)
+  parent_style: ServoComputedValuesBorrowedOrNull,
+  target: structs::InheritTarget)
      -> ServoComputedValuesStrong {
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
     let maybe_arc = ComputedValues::arc_from_borrowed(&parent_style);
+
+    let for_text = target == structs::InheritTarget::Text;
     let style = if let Some(reference) = maybe_arc.as_ref() {
-        ComputedValues::inherit_from(reference, &data.default_computed_values())
+        let mut style =
+            ComputedValues::inherit_from(reference,
+                                         &data.default_computed_values());
+        if for_text {
+            StyleAdjuster::new(&mut style, /* is_root = */ false)
+                .adjust_for_text();
+        }
+
+        Arc::new(style)
     } else {
+        debug_assert!(!for_text);
         data.default_computed_values().clone()
     };
+
     style.into_strong()
 }
 
@@ -1037,8 +1051,11 @@ pub extern "C" fn Servo_ParseProperty(property: nsCSSPropertyID, value: *const n
 
     let url_data = unsafe { RefPtr::from_ptr_ref(&data) };
     let reporter = RustLogReporter;
-    let context = ParserContext::new(Origin::Author, url_data, &reporter,
-                                     Some(CssRuleType::Style), LengthParsingMode::Default,
+    let context = ParserContext::new(Origin::Author,
+                                     url_data,
+                                     &reporter,
+                                     Some(CssRuleType::Style),
+                                     LengthParsingMode::Default,
                                      QuirksMode::NoQuirks);
 
     match ParsedDeclaration::parse(id, &context, &mut Parser::new(value)) {
@@ -1061,8 +1078,11 @@ pub extern "C" fn Servo_ParseEasing(easing: *const nsAString,
 
     let url_data = unsafe { RefPtr::from_ptr_ref(&data) };
     let reporter = RustLogReporter;
-    let context = ParserContext::new(Origin::Author, url_data, &reporter,
-                                     Some(CssRuleType::Style), LengthParsingMode::Default,
+    let context = ParserContext::new(Origin::Author,
+                                     url_data,
+                                     &reporter,
+                                     Some(CssRuleType::Style),
+                                     LengthParsingMode::Default,
                                      QuirksMode::NoQuirks);
     let easing = unsafe { (*easing).to_string() };
     match transition_timing_function::single_value::parse(&context, &mut Parser::new(&easing)) {

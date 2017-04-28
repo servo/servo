@@ -30,7 +30,6 @@ use logical_geometry::WritingMode;
 use media_queries::Device;
 use parser::{LengthParsingMode, Parse, ParserContext};
 use properties::animated_properties::TransitionProperty;
-use selector_parser::PseudoElement;
 #[cfg(feature = "servo")] use servo_config::prefs::PREFS;
 use shared_lock::StylesheetGuards;
 use style_traits::ToCss;
@@ -2114,7 +2113,6 @@ bitflags! {
 ///
 pub fn cascade(device: &Device,
                rule_node: &StrongRuleNode,
-               pseudo: Option<<&PseudoElement>,
                guards: &StylesheetGuards,
                parent_style: Option<<&ComputedValues>,
                layout_parent_style: Option<<&ComputedValues>,
@@ -2161,7 +2159,6 @@ pub fn cascade(device: &Device,
     };
     apply_declarations(device,
                        is_root_element,
-                       pseudo,
                        iter_declarations,
                        inherited_style,
                        layout_parent_style,
@@ -2177,7 +2174,6 @@ pub fn cascade(device: &Device,
 #[allow(unused_mut)] // conditionally compiled code for "position"
 pub fn apply_declarations<'a, F, I>(device: &Device,
                                     is_root_element: bool,
-                                    pseudo: Option<<&PseudoElement>,
                                     iter_declarations: F,
                                     inherited_style: &ComputedValues,
                                     layout_parent_style: &ComputedValues,
@@ -2386,7 +2382,7 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
 
     let mut style = context.style;
 
-    StyleAdjuster::new(&mut style, is_root_element, pseudo)
+    StyleAdjuster::new(&mut style, is_root_element)
         .adjust(context.layout_parent_style,
                 flags.contains(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP));
 

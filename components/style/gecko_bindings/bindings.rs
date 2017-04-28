@@ -191,6 +191,7 @@ use gecko_bindings::structs::ServoStyleSheet;
 use gecko_bindings::structs::EffectCompositor_CascadeLevel;
 use gecko_bindings::structs::UpdateAnimationsTasks;
 use gecko_bindings::structs::LengthParsingMode;
+use gecko_bindings::structs::InheritTarget;
 pub type nsTArrayBorrowed_uintptr_t<'a> = &'a mut ::gecko_bindings::structs::nsTArray<usize>;
 pub type ServoCssRulesStrong = ::gecko_bindings::sugar::ownership::Strong<ServoCssRules>;
 pub type ServoCssRulesBorrowed<'a> = &'a ServoCssRules;
@@ -2107,7 +2108,8 @@ extern "C" {
 extern "C" {
     pub fn Servo_ComputedValues_Inherit(set: RawServoStyleSetBorrowed,
                                         parent_style:
-                                            ServoComputedValuesBorrowedOrNull)
+                                            ServoComputedValuesBorrowedOrNull,
+                                        target: InheritTarget)
      -> ServoComputedValuesStrong;
 }
 extern "C" {
