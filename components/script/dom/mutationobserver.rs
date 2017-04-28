@@ -10,6 +10,8 @@ use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationObserverI
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::str::DOMString;
+use dom::element::Atom;
 use dom::mutationrecord::MutationRecord;
 use dom::node::Node;
 use dom::window::Window;

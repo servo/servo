@@ -1019,8 +1019,8 @@ impl Element {
 
         let name = <string_cache::atom::Atom<servo_atoms::AtomStaticSet> as Trait>::From::from(attr.name());
         let namespace = Atom::From::from(attr.namespace());
-        let oldValue = DOMString::from(attr.value());
-        let attributeSpec = Mutation::Attribute{ name, namespace,oldValue, newValue};
+        let oldValue = attr.value().to_owned();
+        let attributeSpec = Mutation::Attribute{ name, namespace, oldValue, newValue };
     }
 
     pub fn get_attribute(&self, namespace: &Namespace, local_name: &LocalName) -> Option<Root<Attr>> {
