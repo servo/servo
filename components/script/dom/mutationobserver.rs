@@ -7,9 +7,12 @@ use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationCallback;
 use dom::bindings::error::Fallible;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::str::DOMString;
 use dom::window::Window;
 use dom_struct::dom_struct;
+use html5ever_atoms::Namespace;
 use script_thread::ScriptThread;
+use servo_atoms::Atom;
 use std::rc::Rc;
 
 #[dom_struct]
@@ -17,6 +20,11 @@ pub struct MutationObserver {
     reflector_: Reflector,
     #[ignore_heap_size_of = "can't measure Rc values"]
     callback: Rc<MutationCallback>,
+}
+
+#[derive(Debug)]
+pub enum Mutation{
+    Attribute {name: Atom, namespace: Namespace, oldValue: DOMString, newValue: DOMString}
 }
 
 impl MutationObserver {
