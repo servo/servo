@@ -2,13 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use core::borrow::BorrowMut;
 use dom::bindings::codegen::Bindings::MutationObserverBinding;
 use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationCallback;
 use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationObserverBinding::MutationObserverMethods;
 use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationObserverInit;
 use dom::bindings::error::{Error, Fallible};
-use dom::bindings::js::Root;
+use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::mutationrecord::MutationRecord;
 use dom::node::Node;
 use dom::window::Window;
 use dom_struct::dom_struct;
@@ -22,6 +24,7 @@ pub struct MutationObserver {
     reflector_: Reflector,
     #[ignore_heap_size_of = "can't measure Rc values"]
     callback: Rc<MutationCallback>,
+    record_queue: Vec<Root<MutationRecord>>,
 }
 
 impl MutationObserver {
@@ -34,6 +37,7 @@ impl MutationObserver {
         MutationObserver {
             reflector_: Reflector::new(),
             callback: callback,
+            record_queue: vec![],
         }
     }
 
@@ -45,7 +49,7 @@ impl MutationObserver {
 
     /// https://dom.spec.whatwg.org/#queue-a-mutation-observer-compound-microtask
     /// Queue a Mutation Observer compound Microtask.
-    pub fn enqueueMutationObserverCompoundMicrotask(&self, compoundMicrotask: Microtask) {
+    pub fn queueMutationObserverCompoundMicrotask(&self, compoundMicrotask: Microtask) {
         // Step 1
         if ScriptThread::get_mutation_observer_compound_microtask_queued() {
             return;
@@ -53,7 +57,7 @@ impl MutationObserver {
         // Step 2
         ScriptThread::set_mutation_observer_compound_microtask_queued(true);
         // Step 3
-        //MicrotaskQueue::enqueue(compoundMicrotask);
+        <Microtask as Trait>::MicrotaskQueue::enqueue(compoundMicrotask);
     }
 
     /// https://dom.spec.whatwg.org/#notify-mutation-observers
@@ -62,12 +66,13 @@ impl MutationObserver {
         // Step 1
         ScriptThread::set_mutation_observer_compound_microtask_queued(false);
         // Step 2
-        let notifyList = ScriptThread::get_mutation_observer();
-        // Step 3, Step 4 not needed as Servo doesn't implement anything related to slots yet.
+//        let notifyList = ScriptThread::get_mutation_observer();
+        // Step 3, Step 4 not needed1 as Servo doesn't implement anything related to slots yet.
         // Step 5
-        for mo in notifyList {
-            
-        }
+//        for i in 0..&notifyList.len() {
+//            let mo = notifyList[i];
+//            let queue = mo.record_queue;
+//        }
         // Step 6 not needed as Servo doesn't implement anything related to slots yet.
     }
 }

@@ -482,7 +482,7 @@ pub struct ScriptThread {
     microtask_queue: MicrotaskQueue,
 
     /// Microtask Queue for adding support for mutation observer microtasks
-    mutation_observer_compound_microtask_queued: bool,
+    mutation_observer_compound_microtask_queued: Cell<bool>,
 
     /// The unit of related similar-origin browsing contexts' list of MutationObserver objects
     mutation_observers: DOMRefCell<Vec<JS<MutationObserver>>>,
@@ -580,14 +580,14 @@ impl ScriptThread {
     pub fn set_mutation_observer_compound_microtask_queued(value: bool) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
-            script_thread.mutation_observer_compound_microtask_queued = value;
+            script_thread.mutation_observer_compound_microtask_queued.set(value);
         })
     }
 
     pub fn get_mutation_observer_compound_microtask_queued() -> bool {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
-            return script_thread.mutation_observer_compound_microtask_queued;
+            return script_thread.mutation_observer_compound_microtask_queued.get();
         })
     }
 
@@ -600,12 +600,12 @@ impl ScriptThread {
         })
     }
 
-    pub fn get_mutation_observer() -> DOMRefCell<Vec<JS<MutationObserver>>> {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            let script_thread = unsafe { &*root.get().unwrap() };
-            return script_thread.mutation_observers;
-        })
-    }
+//    pub fn get_mutation_observer() -> Root<Vec<JS<MutationObserver>>> {
+//        SCRIPT_THREAD_ROOT.with(|root| {
+//            let script_thread = unsafe { &*root.get().unwrap() };
+//            return Root::from_ref(script_thread.mutation_observers.borrow());
+//        })
+//    }
 
     pub fn mark_document_with_no_blocked_loads(doc: &Document) {
         SCRIPT_THREAD_ROOT.with(|root| {

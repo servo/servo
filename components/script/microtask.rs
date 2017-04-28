@@ -8,9 +8,12 @@
 
 use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DOMRefCell;
+use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationCallback;
 use dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
 use dom::bindings::js::Root;
 use dom::globalscope::GlobalScope;
+use dom::mutationrecord::MutationRecord;
+use dom::mutationobserver::MutationObserver;
 use msg::constellation_msg::PipelineId;
 use std::cell::Cell;
 use std::mem;
@@ -28,6 +31,7 @@ pub struct MicrotaskQueue {
 #[derive(JSTraceable, HeapSizeOf)]
 pub enum Microtask {
     Promise(EnqueuedPromiseCallback),
+    Mutation(EnqueuedMutationCallback),
 }
 
 /// A promise callback scheduled to run during the next microtask checkpoint (#4283).
@@ -36,6 +40,16 @@ pub struct EnqueuedPromiseCallback {
     #[ignore_heap_size_of = "Rc has unclear ownership"]
     pub callback: Rc<PromiseJobCallback>,
     pub pipeline: PipelineId,
+}
+
+/// A mutation callback 
+#[derive(JSTraceable, HeapSizeOf)]
+pub struct EnqueuedMutationCallback {
+	 #[ignore_heap_size_of = "Rc has unclear ownership"]
+    pub callback: Rc<MutationCallback>,
+    pub pipeline: PipelineId,
+    pub mutations: Vec<Root<MutationRecord>>,
+    pub observer: MutationObserver,
 }
 
 impl MicrotaskQueue {
@@ -69,6 +83,11 @@ impl MicrotaskQueue {
                     Microtask::Promise(ref job) => {
                         if let Some(target) = target_provider(job.pipeline) {
                             let _ = job.callback.Call_(&*target, ExceptionHandling::Report);
+                        }
+                    }
+                    Microtask::Mutation(ref job) => {
+                        if let Some(target) = target_provider(job.pipeline) {
+                            let _ = job.callback.Call_(&*target, job.mutations, &job.observer, ExceptionHandling::Report);
                         }
                     }
                 }
