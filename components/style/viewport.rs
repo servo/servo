@@ -12,20 +12,21 @@
 use app_units::Au;
 use context::QuirksMode;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser, parse_important};
-use cssparser::ToCss as ParserToCss;
-use error_reporting::ParseError;
+use cssparser::{ToCss as ParserToCss, BasicParseError, Token};
+use error_reporting::ContextualParseError;
 use euclid::size::TypedSize2D;
 use font_metrics::get_metrics_provider_for_product;
 use media_queries::Device;
 use parser::{Parse, ParserContext, log_css_error};
 use properties::StyleBuilder;
+use selectors::parser::SelectorParseError;
 use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
 use std::fmt;
 use std::iter::Enumerate;
 use std::str::Chars;
-use style_traits::{PinchZoomFactor, ToCss};
+use style_traits::{PinchZoomFactor, ToCss, ParseError, StyleParseError};
 use style_traits::viewport::{Orientation, UserZoom, ViewportConstraints, Zoom};
 use stylesheets::{Stylesheet, Origin};
 use values::computed::{Context, ToComputedValue};
@@ -169,7 +170,8 @@ impl FromMeta for ViewportLength {
 }
 
 impl ViewportLength {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                     -> Result<Self, ParseError<'i>> {
         // we explicitly do not accept 'extend-to-zoom', since it is a UA
         // internal value for <META> viewport translation
         LengthOrPercentageOrAuto::parse_non_negative(context, input).map(ViewportLength::Specified)
@@ -248,10 +250,11 @@ impl ToCss for ViewportDescriptorDeclaration {
     }
 }
 
-fn parse_shorthand(context: &ParserContext, input: &mut Parser) -> Result<(ViewportLength, ViewportLength), ()> {
+fn parse_shorthand<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                           -> Result<(ViewportLength, ViewportLength), ParseError<'i>> {
     let min = try!(ViewportLength::parse(context, input));
     match input.try(|i| ViewportLength::parse(context, i)) {
-        Err(()) => Ok((min.clone(), min)),
+        Err(_) => Ok((min.clone(), min)),
         Ok(max) => Ok((min, max))
     }
 }
@@ -259,12 +262,15 @@ fn parse_shorthand(context: &ParserContext, input: &mut Parser) -> Result<(Viewp
 impl<'a, 'b> AtRuleParser for ViewportRuleParser<'a, 'b> {
     type Prelude = ();
     type AtRule = Vec<ViewportDescriptorDeclaration>;
+    type Error = SelectorParseError<StyleParseError>;
 }
 
 impl<'a, 'b> DeclarationParser for ViewportRuleParser<'a, 'b> {
     type Declaration = Vec<ViewportDescriptorDeclaration>;
+    type Error = SelectorParseError<StyleParseError>;
 
-    fn parse_value(&mut self, name: &str, input: &mut Parser) -> Result<Vec<ViewportDescriptorDeclaration>, ()> {
+    fn parse_value<'i, 't>(&mut self, name: &str, input: &mut Parser<'i, 't>)
+                           -> Result<Vec<ViewportDescriptorDeclaration>, ParseError<'i>> {
         macro_rules! declaration {
             ($declaration:ident($parse:expr)) => {
                 declaration!($declaration(value: try!($parse(input)),
@@ -303,7 +309,7 @@ impl<'a, 'b> DeclarationParser for ViewportRuleParser<'a, 'b> {
             "max-zoom" => ok!(MaxZoom(Zoom::parse)),
             "user-zoom" => ok!(UserZoom(UserZoom::parse)),
             "orientation" => ok!(Orientation(Orientation::parse)),
-            _ => Err(()),
+            _ => Err(BasicParseError::UnexpectedToken(Token::Ident(name.to_owned().into())).into()),
         }
     }
 }
@@ -331,7 +337,8 @@ fn is_whitespace_separator_or_equals(c: &char) -> bool {
 
 impl Parse for ViewportRule {
     #[allow(missing_docs)]
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                     -> Result<Self, ParseError<'i>> {
         let parser = ViewportRuleParser { context: context };
 
         let mut cascade = Cascade::new();
@@ -343,9 +350,10 @@ impl Parse for ViewportRule {
                         cascade.add(Cow::Owned(declarations))
                     }
                 }
-                Err(range) => {
-                    let pos = range.start;
-                    let error = ParseError::UnsupportedViewportDescriptorDeclaration(parser.input.slice(range));
+                Err(err) => {
+                    let pos = err.span.start;
+                    let error = ContextualParseError::UnsupportedViewportDescriptorDeclaration(
+                        parser.input.slice(err.span), err.error);
                     log_css_error(parser.input, pos, error, &context);
                 }
             }

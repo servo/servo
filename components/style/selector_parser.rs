@@ -10,6 +10,7 @@ use cssparser::Parser as CssParser;
 use selectors::Element;
 use selectors::parser::SelectorList;
 use std::fmt::Debug;
+use style_traits::ParseError;
 use stylesheets::{Origin, Namespaces};
 
 /// A convenient alias for the type that represents an attribute value used for
@@ -59,7 +60,7 @@ impl<'a> SelectorParser<'a> {
     ///
     /// This is used for some DOM APIs like `querySelector`.
     pub fn parse_author_origin_no_namespace(input: &str)
-                                            -> Result<SelectorList<SelectorImpl>, ()> {
+                                            -> Result<SelectorList<SelectorImpl>, ParseError> {
         let namespaces = Namespaces::default();
         let parser = SelectorParser {
             stylesheet_origin: Origin::Author,

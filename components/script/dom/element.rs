@@ -2046,7 +2046,7 @@ impl ElementMethods for Element {
     // https://dom.spec.whatwg.org/#dom-element-matches
     fn Matches(&self, selectors: DOMString) -> Fallible<bool> {
         match SelectorParser::parse_author_origin_no_namespace(&selectors) {
-            Err(()) => Err(Error::Syntax),
+            Err(_) => Err(Error::Syntax),
             Ok(selectors) => {
                 Ok(matches_selector_list(&selectors.0, &Root::from_ref(self), None))
             }
@@ -2061,7 +2061,7 @@ impl ElementMethods for Element {
     // https://dom.spec.whatwg.org/#dom-element-closest
     fn Closest(&self, selectors: DOMString) -> Fallible<Option<Root<Element>>> {
         match SelectorParser::parse_author_origin_no_namespace(&selectors) {
-            Err(()) => Err(Error::Syntax),
+            Err(_) => Err(Error::Syntax),
             Ok(selectors) => {
                 let root = self.upcast::<Node>();
                 for element in root.inclusive_ancestors() {

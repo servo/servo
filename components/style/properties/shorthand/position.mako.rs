@@ -8,7 +8,8 @@
                     spec="https://drafts.csswg.org/css-flexbox/#flex-flow-property">
     use properties::longhands::{flex_direction, flex_wrap};
 
-    pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                               -> Result<Longhands, ParseError<'i>> {
         let mut direction = None;
         let mut wrap = None;
         loop {
@@ -28,7 +29,7 @@
         }
 
         if direction.is_none() && wrap.is_none() {
-            return Err(())
+            return Err(StyleParseError::UnspecifiedError.into())
         }
         Ok(Longhands {
             flex_direction: unwrap_or_initial!(flex_direction, direction),
@@ -50,14 +51,15 @@
                     spec="https://drafts.csswg.org/css-flexbox/#flex-property">
     use values::specified::Number;
 
-    fn parse_flexibility(context: &ParserContext, input: &mut Parser)
-                         -> Result<(Number, Option<Number>),()> {
+    fn parse_flexibility<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                 -> Result<(Number, Option<Number>),ParseError<'i>> {
         let grow = try!(Number::parse_non_negative(context, input));
         let shrink = input.try(|i| Number::parse_non_negative(context, i)).ok();
         Ok((grow, shrink))
     }
 
-    pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                               -> Result<Longhands, ParseError<'i>> {
         let mut grow = None;
         let mut shrink = None;
         let mut basis = None;
@@ -87,7 +89,7 @@
         }
 
         if grow.is_none() && basis.is_none() {
-            return Err(())
+            return Err(StyleParseError::UnspecifiedError.into())
         }
         Ok(Longhands {
             flex_grow: grow.unwrap_or(Number::new(1.0)),
@@ -114,7 +116,8 @@
                     products="gecko">
   use properties::longhands::{grid_row_gap, grid_column_gap};
 
-  pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+  pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                             -> Result<Longhands, ParseError<'i>> {
       let row_gap = grid_row_gap::parse(context, input)?;
       let column_gap = input.try(|input| grid_column_gap::parse(context, input)).unwrap_or(row_gap.clone());
 
@@ -148,7 +151,8 @@
     // NOTE: Since both the shorthands have the same code, we should (re-)use code from one to implement
     // the other. This might not be a big deal for now, but we should consider looking into this in the future
     // to limit the amount of code generated.
-    pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                               -> Result<Longhands, ParseError<'i>> {
         let start = input.try(|i| GridLine::parse(context, i))?;
         let end = if input.try(|i| i.expect_delim('/')).is_ok() {
             GridLine::parse(context, input)?
@@ -185,7 +189,8 @@
     use parser::Parse;
 
     // The code is the same as `grid-{row,column}` except that this can have four values at most.
-    pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                               -> Result<Longhands, ParseError<'i>> {
         fn line_with_ident_from(other: &GridLine) -> GridLine {
             let mut this = GridLine::default();
             if other.integer.is_none() && !other.is_span {
@@ -247,15 +252,16 @@
     use properties::longhands::align_content;
     use properties::longhands::justify_content;
 
-    pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                               -> Result<Longhands, ParseError<'i>> {
         let align = align_content::parse(context, input)?;
         if align.has_extra_flags() {
-            return Err(());
+            return Err(StyleParseError::UnspecifiedError.into());
         }
         let justify = input.try(|input| justify_content::parse(context, input))
                            .unwrap_or(justify_content::SpecifiedValue::from(align));
         if justify.has_extra_flags() {
-            return Err(());
+            return Err(StyleParseError::UnspecifiedError.into());
         }
 
         Ok(Longhands {
@@ -282,14 +288,15 @@
     use values::specified::align::AlignJustifySelf;
     use parser::Parse;
 
-    pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                               -> Result<Longhands, ParseError<'i>> {
         let align = AlignJustifySelf::parse(context, input)?;
         if align.has_extra_flags() {
-            return Err(());
+            return Err(StyleParseError::UnspecifiedError.into());
         }
         let justify = input.try(|input| AlignJustifySelf::parse(context, input)).unwrap_or(align.clone());
         if justify.has_extra_flags() {
-            return Err(());
+            return Err(StyleParseError::UnspecifiedError.into());
         }
 
         Ok(Longhands {
@@ -323,15 +330,16 @@
         }
     }
 
-    pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                               -> Result<Longhands, ParseError<'i>> {
         let align = AlignItems::parse(context, input)?;
         if align.has_extra_flags() {
-            return Err(());
+            return Err(StyleParseError::UnspecifiedError.into());
         }
         let justify = input.try(|input| JustifyItems::parse(context, input))
                            .unwrap_or(JustifyItems::from(align));
         if justify.has_extra_flags() {
-            return Err(());
+            return Err(StyleParseError::UnspecifiedError.into());
         }
 
         Ok(Longhands {

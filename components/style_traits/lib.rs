@@ -18,7 +18,10 @@ extern crate app_units;
 extern crate euclid;
 #[cfg(feature = "servo")] extern crate heapsize;
 #[cfg(feature = "servo")] #[macro_use] extern crate heapsize_derive;
+extern crate selectors;
 #[cfg(feature = "servo")] #[macro_use] extern crate serde_derive;
+
+use selectors::parser::SelectorParseError;
 
 /// Opaque type stored in type-unsafe work queues for parallel layout.
 /// Must be transmutable to and from `TNode`.
@@ -66,3 +69,57 @@ pub mod values;
 pub mod viewport;
 
 pub use values::{ToCss, OneOrMoreCommaSeparated};
+
+/// The error type for all CSS parsing routines.
+pub type ParseError<'i> = cssparser::ParseError<'i, SelectorParseError<StyleParseError>>;
+
+#[derive(Clone, Debug, PartialEq)]
+/// Errors that can be encountered while parsing CSS values.
+pub enum StyleParseError {
+    /// A bad URL token in a DVB.
+    BadUrlInDeclarationValueBlock,
+    /// A bad string token in a DVB.
+    BadStringInDeclarationValueBlock,
+    /// Unexpected closing parenthesis in a DVB.
+    CloseParenthesisInDeclarationValueBlock,
+    /// Unexpected closing bracket in a DVB.
+    CloseSquareBracketInDeclarationValueBlock,
+    /// Unexpected closing curly bracket in a DVB.
+    CloseCurlyBracketInDeclarationValueBlock,
+    /// A property declaration parsing error.
+    PropertyDeclaration(PropertyDeclarationParseError),
+    /// A property declaration value had input remaining after successfully parsing.
+    PropertyDeclarationValueNotExhausted,
+    /// A placeholder for many sources of errors that require more specific variants.
+    UnspecifiedError,
+}
+
+/// The result of parsing a property declaration.
+#[derive(Eq, PartialEq, Copy, Clone, Debug)]
+pub enum PropertyDeclarationParseError {
+    /// The property declaration was for an unknown property.
+    UnknownProperty,
+    /// The property declaration was for a disabled experimental property.
+    ExperimentalProperty,
+    /// The property declaration contained an invalid value.
+    InvalidValue,
+    /// The declaration contained an animation property, and we were parsing
+    /// this as a keyframe block (so that property should be ignored).
+    ///
+    /// See: https://drafts.csswg.org/css-animations/#keyframes
+    AnimationPropertyInKeyframeBlock,
+    /// The property is not allowed within a page rule.
+    NotAllowedInPageRule,
+}
+
+impl<'a> From<StyleParseError> for ParseError<'a> {
+    fn from(this: StyleParseError) -> Self {
+        cssparser::ParseError::Custom(SelectorParseError::Custom(this))
+    }
+}
+
+impl<'a> From<PropertyDeclarationParseError> for ParseError<'a> {
+    fn from(this: PropertyDeclarationParseError) -> Self {
+        cssparser::ParseError::Custom(SelectorParseError::Custom(StyleParseError::PropertyDeclaration(this)))
+    }
+}

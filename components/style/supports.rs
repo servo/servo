@@ -4,11 +4,11 @@
 
 //! [@supports rules](https://drafts.csswg.org/css-conditional-3/#at-supports)
 
-use cssparser::{parse_important, Parser, Token};
+use cssparser::{parse_important, Parser, Token, BasicParseError, ParseError as CssParseError};
 use parser::ParserContext;
 use properties::{PropertyId, ParsedDeclaration};
 use std::fmt;
-use style_traits::ToCss;
+use style_traits::{ToCss, ParseError};
 use stylesheets::CssRuleType;
 
 #[derive(Debug)]
@@ -34,7 +34,7 @@ impl SupportsCondition {
     /// Parse a condition
     ///
     /// https://drafts.csswg.org/css-conditional/#supports_condition
-    pub fn parse(input: &mut Parser) -> Result<SupportsCondition, ()> {
+    pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<SupportsCondition, ParseError<'i>> {
         if let Ok(_) = input.try(|i| i.expect_ident_matching("not")) {
             let inner = SupportsCondition::parse_in_parens(input)?;
             return Ok(SupportsCondition::Not(Box::new(inner)));
@@ -43,7 +43,7 @@ impl SupportsCondition {
         let in_parens = SupportsCondition::parse_in_parens(input)?;
 
         let (keyword, wrapper) = match input.next() {
-            Err(()) => {
+            Err(_) => {
                 // End of input
                 return Ok(in_parens)
             }
@@ -51,10 +51,11 @@ impl SupportsCondition {
                 match_ignore_ascii_case! { &ident,
                     "and" => ("and", SupportsCondition::And as fn(_) -> _),
                     "or" => ("or", SupportsCondition::Or as fn(_) -> _),
-                    _ => return Err(())
+                    _ => return Err(CssParseError::Basic(
+                        BasicParseError::UnexpectedToken(Token::Ident(ident.clone()))))
                 }
             }
-            _ => return Err(())
+            Ok(t) => return Err(CssParseError::Basic(BasicParseError::UnexpectedToken(t)))
         };
 
         let mut conditions = Vec::with_capacity(2);
@@ -71,7 +72,7 @@ impl SupportsCondition {
     }
 
     /// https://drafts.csswg.org/css-conditional-3/#supports_condition_in_parens
-    fn parse_in_parens(input: &mut Parser) -> Result<SupportsCondition, ()> {
+    fn parse_in_parens<'i, 't>(input: &mut Parser<'i, 't>) -> Result<SupportsCondition, ParseError<'i>> {
         // Whitespace is normally taken care of in `Parser::next`,
         // but we want to not include it in `pos` for the SupportsCondition::FutureSyntax cases.
         while input.try(Parser::expect_whitespace).is_ok() {}
@@ -80,17 +81,18 @@ impl SupportsCondition {
             Token::ParenthesisBlock => {
                 input.parse_nested_block(|input| {
                     // `input.try()` not needed here since the alternative uses `consume_all()`.
-                    parse_condition_or_declaration(input).or_else(|()| {
+                    parse_condition_or_declaration(input).or_else(|_| {
                         consume_all(input);
                         Ok(SupportsCondition::FutureSyntax(input.slice_from(pos).to_owned()))
                     })
                 })
             }
             Token::Function(_) => {
-                input.parse_nested_block(|i| Ok(consume_all(i))).unwrap();
+                let result: Result<_, ParseError> = input.parse_nested_block(|i| Ok(consume_all(i)));
+                result.unwrap();
                 Ok(SupportsCondition::FutureSyntax(input.slice_from(pos).to_owned()))
             }
-            _ => Err(())
+            t => Err(CssParseError::Basic(BasicParseError::UnexpectedToken(t)))
         }
     }
 
@@ -109,7 +111,8 @@ impl SupportsCondition {
 
 /// supports_condition | declaration
 /// https://drafts.csswg.org/css-conditional/#dom-css-supports-conditiontext-conditiontext
-pub fn parse_condition_or_declaration(input: &mut Parser) -> Result<SupportsCondition, ()> {
+pub fn parse_condition_or_declaration<'i, 't>(input: &mut Parser<'i, 't>)
+                                              -> Result<SupportsCondition, ParseError<'i>> {
     if let Ok(condition) = input.try(SupportsCondition::parse) {
         Ok(SupportsCondition::Parenthesized(Box::new(condition)))
     } else {
@@ -195,7 +198,7 @@ fn consume_all(input: &mut Parser) {
 
 impl Declaration {
     /// Parse a declaration
-    pub fn parse(input: &mut Parser) -> Result<Declaration, ()> {
+    pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Declaration, ParseError<'i>> {
         let prop = input.expect_ident()?.into_owned();
         input.expect_colon()?;
         let val = parse_anything(input);

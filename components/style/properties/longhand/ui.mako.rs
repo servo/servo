@@ -35,7 +35,6 @@ ${helpers.single_keyword("-moz-window-dragging", "default drag no-drag", product
                    products="gecko"
                    animation_value_type="none"
                    spec="None (Nonstandard Firefox-only property)">
-    use cssparser::Token;
     use std::fmt;
     use style_traits::ToCss;
     use values::HasViewportPercentage;
@@ -69,11 +68,12 @@ ${helpers.single_keyword("-moz-window-dragging", "default drag no-drag", product
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
 
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         match try!(input.expect_integer()) {
             0 => Ok(computed_value::T(false)),
             1 => Ok(computed_value::T(true)),
-            _ => Err(()),
+            _ => Err(StyleParseError::UnspecifiedError.into()),
         }
     }
 </%helpers:longhand>

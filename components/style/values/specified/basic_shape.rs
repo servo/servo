@@ -7,12 +7,12 @@
 //!
 //! [basic-shape]: https://drafts.csswg.org/css-shapes/#typedef-basic-shape
 
-use cssparser::Parser;
+use cssparser::{Parser, BasicParseError, Token};
 use parser::{Parse, ParserContext};
 use properties::shorthands::parse_four_sides;
 use std::ascii::AsciiExt;
 use std::fmt;
-use style_traits::ToCss;
+use style_traits::{ToCss, ParseError};
 use values::HasViewportPercentage;
 use values::computed::{ComputedValueAsSpecified, Context, ToComputedValue};
 use values::computed::basic_shape as computed_basic_shape;
@@ -39,22 +39,24 @@ pub enum BasicShape {
 }
 
 impl Parse for BasicShape {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<BasicShape, ()> {
-        match_ignore_ascii_case! { &input.try(|i| i.expect_function())?,
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                     -> Result<BasicShape, ParseError<'i>> {
+        let func = input.try(|i| i.expect_function())?;
+        (match_ignore_ascii_case! { &func,
             "inset" =>
-                input.parse_nested_block(|i| InsetRect::parse_function_arguments(context, i))
+                return input.parse_nested_block(|i| InsetRect::parse_function_arguments(context, i))
                      .map(BasicShape::Inset),
             "circle" =>
-                input.parse_nested_block(|i| Circle::parse_function_arguments(context, i))
+                return input.parse_nested_block(|i| Circle::parse_function_arguments(context, i))
                      .map(BasicShape::Circle),
             "ellipse" =>
-                input.parse_nested_block(|i| Ellipse::parse_function_arguments(context, i))
+                return input.parse_nested_block(|i| Ellipse::parse_function_arguments(context, i))
                      .map(BasicShape::Ellipse),
             "polygon" =>
-                input.parse_nested_block(|i| Polygon::parse_function_arguments(context, i))
+                return input.parse_nested_block(|i| Polygon::parse_function_arguments(context, i))
                      .map(BasicShape::Polygon),
             _ => Err(())
-        }
+        }).map_err(|()| BasicParseError::UnexpectedToken(Token::Function(func)).into())
     }
 }
 
@@ -101,7 +103,8 @@ pub type InsetRect = GenericInsetRect<LengthOrPercentage>;
 
 impl InsetRect {
     /// Parse the inner function arguments of `inset()`
-    pub fn parse_function_arguments(context: &ParserContext, input: &mut Parser) -> Result<InsetRect, ()> {
+    pub fn parse_function_arguments<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                            -> Result<InsetRect, ParseError<'i>> {
         let (t, r, b, l) = parse_four_sides(input, |i| LengthOrPercentage::parse(context, i))?;
         let mut rect = GenericInsetRect {
             top: t,
@@ -120,11 +123,12 @@ impl InsetRect {
 }
 
 impl Parse for InsetRect {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                     -> Result<Self, ParseError<'i>> {
         match input.try(|i| i.expect_function()) {
             Ok(ref s) if s.eq_ignore_ascii_case("inset") =>
                 input.parse_nested_block(|i| GenericInsetRect::parse_function_arguments(context, i)),
-            _ => Err(())
+            _ => Err(BasicParseError::ExpectedToken(Token::Function("inset".into())).into())
         }
     }
 }
@@ -220,7 +224,8 @@ pub struct Circle {
 
 impl Circle {
     #[allow(missing_docs)]
-    pub fn parse_function_arguments(context: &ParserContext, input: &mut Parser) -> Result<Circle, ()> {
+    pub fn parse_function_arguments<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                            -> Result<Circle, ParseError<'i>> {
         let radius = input.try(|i| ShapeRadius::parse(context, i)).ok().unwrap_or_default();
         let position = if input.try(|i| i.expect_ident_matching("at")).is_ok() {
             Position::parse(context, input)?
@@ -236,12 +241,13 @@ impl Circle {
 }
 
 impl Parse for Circle {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                     -> Result<Self, ParseError<'i>> {
         match_ignore_ascii_case! { &try!(input.expect_function()),
            "circle" => {
                input.parse_nested_block(|i| Circle::parse_function_arguments(context, i))
            },
-           _ => Err(())
+           _ => Err(BasicParseError::ExpectedToken(Token::Function("circle".into())).into())
         }
     }
 }
@@ -292,8 +298,9 @@ pub struct Ellipse {
 
 impl Ellipse {
     #[allow(missing_docs)]
-    pub fn parse_function_arguments(context: &ParserContext, input: &mut Parser) -> Result<Ellipse, ()> {
-        let (a, b) = input.try(|i| -> Result<_, ()> {
+    pub fn parse_function_arguments<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                            -> Result<Ellipse, ParseError<'i>> {
+        let (a, b) = input.try(|i| -> Result<_, ParseError> {
             Ok((ShapeRadius::parse(context, i)?, ShapeRadius::parse(context, i)?))
         }).ok().unwrap_or_default();
         let position = if input.try(|i| i.expect_ident_matching("at")).is_ok() {
@@ -311,11 +318,12 @@ impl Ellipse {
 }
 
 impl Parse for Ellipse {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                     -> Result<Self, ParseError<'i>> {
         match input.try(|i| i.expect_function()) {
             Ok(ref s) if s.eq_ignore_ascii_case("ellipse") =>
                 input.parse_nested_block(|i| Ellipse::parse_function_arguments(context, i)),
-            _ => Err(())
+            _ => Err(BasicParseError::ExpectedToken(Token::Function("ellipse".into())).into())
         }
     }
 }
@@ -365,16 +373,18 @@ pub type Polygon = GenericPolygon<LengthOrPercentage>;
 pub type ShapeRadius = GenericShapeRadius<LengthOrPercentage>;
 
 impl Parse for ShapeRadius {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                     -> Result<Self, ParseError<'i>> {
         if let Ok(lop) = input.try(|i| LengthOrPercentage::parse_non_negative(context, i)) {
             return Ok(GenericShapeRadius::Length(lop))
         }
 
-        match_ignore_ascii_case! { &input.expect_ident()?,
+        let ident = input.expect_ident()?;
+        (match_ignore_ascii_case! { &ident,
             "closest-side" => Ok(GenericShapeRadius::ClosestSide),
             "farthest-side" => Ok(GenericShapeRadius::FarthestSide),
             _ => Err(())
-        }
+        }).map_err(|()| BasicParseError::UnexpectedToken(Token::Ident(ident)).into())
     }
 }
 
@@ -382,7 +392,8 @@ impl Parse for ShapeRadius {
 pub type BorderRadius = GenericBorderRadius<LengthOrPercentage>;
 
 impl Parse for BorderRadius {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                     -> Result<Self, ParseError<'i>> {
         let mut widths = parse_one_set_of_border_values(context, input)?;
         let mut heights = if input.try(|input| input.expect_delim('/')).is_ok() {
             parse_one_set_of_border_values(context, input)?
@@ -402,8 +413,8 @@ impl Parse for BorderRadius {
     }
 }
 
-fn parse_one_set_of_border_values(context: &ParserContext, mut input: &mut Parser)
-                                 -> Result<[LengthOrPercentage; 4], ()> {
+fn parse_one_set_of_border_values<'i, 't>(context: &ParserContext, mut input: &mut Parser<'i, 't>)
+                                          -> Result<[LengthOrPercentage; 4], ParseError<'i>> {
     let a = try!(LengthOrPercentage::parse_non_negative(context, input));
     let b = if let Ok(b) = input.try(|i| LengthOrPercentage::parse_non_negative(context, i)) {
         b
@@ -436,17 +447,19 @@ pub enum GeometryBox {
 }
 
 impl Parse for GeometryBox {
-    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                     -> Result<Self, ParseError<'i>> {
         if let Ok(shape_box) = input.try(|i| ShapeBox::parse(i)) {
             return Ok(GeometryBox::ShapeBox(shape_box))
         }
 
-        match_ignore_ascii_case! { &input.expect_ident()?,
+        let ident = input.expect_ident()?;
+        (match_ignore_ascii_case! { &ident,
             "fill-box" => Ok(GeometryBox::FillBox),
             "stroke-box" => Ok(GeometryBox::StrokeBox),
             "view-box" => Ok(GeometryBox::ViewBox),
-            _ => Err(())
-        }
+            _ => Err(()),
+        }).map_err(|()| BasicParseError::UnexpectedToken(Token::Ident(ident)).into())
     }
 }
 

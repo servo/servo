@@ -8,12 +8,12 @@
 
 use Atom;
 use context::QuirksMode;
-use cssparser::{Delimiter, Parser, Token};
+use cssparser::{Delimiter, Parser, Token, BasicParseError};
 use parser::ParserContext;
 use serialize_comma_separated_list;
 use std::ascii::AsciiExt;
 use std::fmt;
-use style_traits::ToCss;
+use style_traits::{ToCss, ParseError, StyleParseError};
 
 #[cfg(feature = "servo")]
 pub use servo::media_queries::{Device, Expression};
@@ -209,7 +209,8 @@ impl MediaQuery {
     /// Parse a media query given css input.
     ///
     /// Returns an error if any of the expressions is unknown.
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<MediaQuery, ()> {
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<MediaQuery, ParseError<'i>> {
         let mut expressions = vec![];
 
         let qualifier = if input.try(|input| input.expect_ident_matching("only")).is_ok() {
@@ -221,11 +222,15 @@ impl MediaQuery {
         };
 
         let media_type = match input.try(|input| input.expect_ident()) {
-            Ok(ident) => try!(MediaQueryType::parse(&*ident)),
-            Err(()) => {
+            Ok(ident) => {
+                let result: Result<_, ParseError> = MediaQueryType::parse(&*ident)
+                    .map_err(|()| BasicParseError::UnexpectedToken(Token::Ident(ident)).into());
+                try!(result)
+            }
+            Err(_) => {
                 // Media type is only optional if qualifier is not specified.
                 if qualifier.is_some() {
-                    return Err(())
+                    return Err(StyleParseError::UnspecifiedError.into())
                 }
 
                 // Without a media type, require at least one expression.
@@ -270,7 +275,7 @@ pub fn parse_media_query_list(context: &ParserContext, input: &mut Parser) -> Me
         match input.next() {
             Ok(Token::Comma) => {},
             Ok(_) => unreachable!(),
-            Err(()) => break,
+            Err(_) => break,
         }
     }
 

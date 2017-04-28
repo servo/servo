@@ -151,17 +151,21 @@ ${helpers.predefined_type("background-image", "LayerImage",
         }
     }
 
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         let ident = input.expect_ident()?;
-        match_ignore_ascii_case! { &ident,
+        (match_ignore_ascii_case! { &ident,
             "repeat-x" => Ok(SpecifiedValue::RepeatX),
             "repeat-y" => Ok(SpecifiedValue::RepeatY),
-            _ => {
-                let horizontal = try!(RepeatKeyword::from_ident(&ident));
-                let vertical = input.try(RepeatKeyword::parse).ok();
-                Ok(SpecifiedValue::Other(horizontal, vertical))
-            }
-        }
+            _ => Err(()),
+        }).or_else(|()| {
+            let horizontal: Result<_, ParseError> = RepeatKeyword::from_ident(&ident)
+                .map_err(|()| BasicParseError::UnexpectedToken(
+                    ::cssparser::Token::Ident(ident)).into());
+            let horizontal = try!(horizontal);
+            let vertical = input.try(RepeatKeyword::parse).ok();
+            Ok(SpecifiedValue::Other(horizontal, vertical))
+        })
     }
 </%helpers:vector_longhand>
 
@@ -186,7 +190,6 @@ ${helpers.single_keyword("background-origin",
 
 <%helpers:vector_longhand name="background-size" animation_value_type="ComputedValue" extra_prefixes="webkit"
                           spec="https://drafts.csswg.org/css-backgrounds/#the-background-size">
-    use cssparser::Token;
     use std::ascii::AsciiExt;
     use std::fmt;
     use style_traits::ToCss;
@@ -361,7 +364,8 @@ ${helpers.single_keyword("background-origin",
         })
     }
 
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue,ParseError<'i>> {
         if input.try(|input| input.expect_ident_matching("cover")).is_ok() {
             return Ok(SpecifiedValue::Cover);
         }

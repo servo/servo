@@ -8,7 +8,7 @@
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use std::fmt;
-use style_traits::ToCss;
+use style_traits::{ToCss, ParseError, StyleParseError};
 use values::HasViewportPercentage;
 use values::computed::{ComputedValueAsSpecified, Context, ToComputedValue};
 use values::specified::{LengthOrPercentage, Percentage};
@@ -104,15 +104,15 @@ impl<L: HasViewportPercentage> HasViewportPercentage for PositionValue<L> {
 impl<L: Parse> PositionValue<L> {
     /// Internal parsing function which (after parsing) checks the keyword with the
     /// given function.
-    pub fn parse_internal<F>(context: &ParserContext, input: &mut Parser,
-                             mut is_allowed_keyword: F) -> Result<PositionValue<L>, ()>
+    pub fn parse_internal<'i, 't, F>(context: &ParserContext, input: &mut Parser<'i, 't>,
+                             mut is_allowed_keyword: F) -> Result<PositionValue<L>, ParseError<'i>>
         where F: FnMut(Keyword) -> bool
     {
         let (mut pos, mut keyword) = (None, None);
         for _ in 0..2 {
             if let Ok(l) = input.try(|i| L::parse(context, i)) {
                 if pos.is_some() {
-                    return Err(())
+                    return Err(StyleParseError::UnspecifiedError.into())
                 }
 
                 pos = Some(l);
@@ -120,7 +120,7 @@ impl<L: Parse> PositionValue<L> {
 
             if let Ok(k) = input.try(Keyword::parse) {
                 if keyword.is_some() || !is_allowed_keyword(k) {
-                    return Err(())
+                    return Err(StyleParseError::UnspecifiedError.into())
                 }
 
                 keyword = Some(k);
@@ -129,10 +129,10 @@ impl<L: Parse> PositionValue<L> {
 
         if pos.is_some() {
             if let Some(Keyword::Center) = keyword {
-                return Err(())      // "center" and <length> is not allowed
+                return Err(StyleParseError::UnspecifiedError.into())      // "center" and <length> is not allowed
             }
         } else if keyword.is_none() {
-            return Err(())      // at least one value is necessary
+            return Err(StyleParseError::UnspecifiedError.into())      // at least one value is necessary
         }
 
         Ok(PositionValue {
@@ -181,7 +181,7 @@ impl<L: HasViewportPercentage> HasViewportPercentage for HorizontalPosition<L> {
 
 impl<L: Parse> Parse for HorizontalPosition<PositionValue<L>> {
     #[inline]
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         PositionValue::parse_internal(context, input, |keyword| {
             matches!{ keyword,
                 Keyword::Left | Keyword::Right | Keyword::Center |
@@ -212,7 +212,7 @@ impl<L: HasViewportPercentage> HasViewportPercentage for VerticalPosition<L> {
 
 impl<L: Parse> Parse for VerticalPosition<PositionValue<L>> {
     #[inline]
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         PositionValue::parse_internal(context, input, |keyword| {
             matches!{ keyword,
                 Keyword::Top | Keyword::Bottom | Keyword::Center |

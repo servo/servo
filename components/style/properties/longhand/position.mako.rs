@@ -200,7 +200,8 @@ ${helpers.predefined_type("flex-basis",
                     use values::computed::${MinMax}Length;
                     ${MinMax}Length::${initial}
                 }
-                fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+                fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                 -> Result<SpecifiedValue, ParseError<'i>> {
                     % if logical:
                     let ret = ${MinMax}Length::parse(context, input);
                     % else:
@@ -209,7 +210,7 @@ ${helpers.predefined_type("flex-basis",
                     // Keyword values don't make sense in the block direction; don't parse them
                     % if "block" in size:
                         if let Ok(${MinMax}Length::ExtremumLength(..)) = ret {
-                            return Err(())
+                            return Err(StyleParseError::UnspecifiedError.into())
                         }
                     % endif
                     ret.map(SpecifiedValue)
@@ -372,27 +373,32 @@ ${helpers.predefined_type("object-position",
     }
 
     /// [ row | column ] || dense
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         use self::computed_value::AutoFlow;
 
         let mut value = None;
         let mut dense = false;
 
         while !input.is_exhausted() {
-            match_ignore_ascii_case! { &input.expect_ident()?,
+            let ident = input.expect_ident()?;
+            let success = match_ignore_ascii_case! { &ident,
                 "row" if value.is_none() => {
                     value = Some(AutoFlow::Row);
-                    continue
+                    true
                 },
                 "column" if value.is_none() => {
                     value = Some(AutoFlow::Column);
-                    continue
+                    true
                 },
                 "dense" if !dense => {
                     dense = true;
-                    continue
+                    true
                 },
-                _ => return Err(())
+                _ => false
+            };
+            if !success {
+                return Err(BasicParseError::UnexpectedToken(::cssparser::Token::Ident(ident)).into());
             }
         }
 
@@ -402,7 +408,7 @@ ${helpers.predefined_type("object-position",
                 dense: dense,
             })
         } else {
-            Err(())
+            Err(StyleParseError::UnspecifiedError.into())
         }
     }
 </%helpers:longhand>
@@ -434,7 +440,8 @@ ${helpers.predefined_type("object-position",
         Either::Second(None_)
     }
 
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         SpecifiedValue::parse(context, input)
     }
 
@@ -456,13 +463,14 @@ ${helpers.predefined_type("object-position",
     impl ComputedValueAsSpecified for TemplateAreas {}
 
     impl Parse for TemplateAreas {
-        fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<Self, ParseError<'i>> {
             let mut strings = vec![];
             while let Ok(string) = input.try(Parser::expect_string) {
                 strings.push(string.into_owned().into_boxed_str());
             }
             if strings.is_empty() {
-                return Err(());
+                return Err(StyleParseError::UnspecifiedError.into());
             }
             let mut areas: Vec<NamedArea> = vec![];
             let mut width = 0;
@@ -475,12 +483,14 @@ ${helpers.predefined_type("object-position",
                     let mut column = 0u32;
                     for token in Tokenizer(string) {
                         column += 1;
+                        let token: Result<_, ParseError> =
+                            token.map_err(|()| StyleParseError::UnspecifiedError.into());
                         let token = if let Some(token) = token? {
                             token
                         } else {
                             if let Some(index) = current_area_index.take() {
                                 if areas[index].columns.end != column {
-                                    return Err(());
+                                    return Err(StyleParseError::UnspecifiedError.into());
                                 }
                             }
                             continue;
@@ -493,12 +503,12 @@ ${helpers.predefined_type("object-position",
                                 continue;
                             }
                             if areas[index].columns.end != column {
-                                return Err(());
+                                return Err(StyleParseError::UnspecifiedError.into());
                             }
                         }
                         if let Some(index) = area_indices.get(token).cloned() {
                             if areas[index].columns.start != column || areas[index].rows.end != row {
-                                return Err(());
+                                return Err(StyleParseError::UnspecifiedError.into());
                             }
                             areas[index].rows.end += 1;
                             current_area_index = Some(index);
@@ -516,13 +526,13 @@ ${helpers.predefined_type("object-position",
                     if let Some(index) = current_area_index {
                         if areas[index].columns.end != column + 1 {
                             assert!(areas[index].rows.start != row);
-                            return Err(());
+                            return Err(StyleParseError::UnspecifiedError.into());
                         }
                     }
                     if row == 1 {
                         width = column;
                     } else if width != column {
-                        return Err(());
+                        return Err(StyleParseError::UnspecifiedError.into());
                     }
                 }
             }

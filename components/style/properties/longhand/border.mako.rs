@@ -156,8 +156,8 @@ ${helpers.gecko_keyword_conversion(Keyword('border-style',
         }
 
         #[inline]
-        pub fn parse(context: &ParserContext, input: &mut Parser)
-                     -> Result<SpecifiedValue, ()> {
+        pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                             -> Result<SpecifiedValue, ParseError<'i>> {
             if input.try(|input| input.expect_ident_matching("none")).is_ok() {
                 return Ok(SpecifiedValue::None)
             }
@@ -170,7 +170,7 @@ ${helpers.gecko_keyword_conversion(Keyword('border-style',
             if !result.is_empty() {
                 Ok(SpecifiedValue::Colors(result))
             } else {
-                Err(())
+                Err(StyleParseError::UnspecifiedError.into())
             }
         }
     </%helpers:longhand>
@@ -297,7 +297,8 @@ ${helpers.predefined_type("border-image-source", "LayerImage",
         }
     }
 
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         let mut values = vec![];
         for _ in 0..4 {
             let value = input.try(|input| LengthOrNumber::parse_non_negative(context, input));
@@ -310,7 +311,7 @@ ${helpers.predefined_type("border-image-source", "LayerImage",
         if values.len() > 0 {
             Ok(SpecifiedValue(values))
         } else {
-            Err(())
+            Err(StyleParseError::UnspecifiedError.into())
         }
     }
 </%helpers:longhand>
@@ -385,7 +386,8 @@ ${helpers.predefined_type("border-image-source", "LayerImage",
         }
     }
 
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         let first = try!(RepeatKeyword::parse(input));
         let second = input.try(RepeatKeyword::parse).ok();
 
@@ -561,7 +563,7 @@ ${helpers.predefined_type("border-image-source", "LayerImage",
     }
 
     impl Parse for SingleSpecifiedValue {
-        fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
             if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
                 return Ok(SingleSpecifiedValue::Auto);
             }
@@ -575,7 +577,8 @@ ${helpers.predefined_type("border-image-source", "LayerImage",
         }
     }
 
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                     -> Result<SpecifiedValue, ParseError<'i>> {
         let mut values = vec![];
         for _ in 0..4 {
             let value = input.try(|input| SingleSpecifiedValue::parse(context, input));
@@ -588,7 +591,7 @@ ${helpers.predefined_type("border-image-source", "LayerImage",
         if values.len() > 0 {
             Ok(SpecifiedValue(values))
         } else {
-            Err(())
+            Err(StyleParseError::UnspecifiedError.into())
         }
     }
 </%helpers:longhand>
@@ -712,7 +715,8 @@ ${helpers.predefined_type("border-image-source", "LayerImage",
         }
     }
 
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         let mut fill = input.try(|input| input.expect_ident_matching("fill")).is_ok();
 
         let mut values = vec![];
@@ -734,7 +738,7 @@ ${helpers.predefined_type("border-image-source", "LayerImage",
                 fill: fill
             })
         } else {
-            Err(())
+            Err(StyleParseError::UnspecifiedError.into())
         }
     }
 </%helpers:longhand>

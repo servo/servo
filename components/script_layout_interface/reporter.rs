@@ -9,7 +9,7 @@ use msg::constellation_msg::PipelineId;
 use script_traits::ConstellationControlMsg;
 use servo_url::ServoUrl;
 use std::sync::{Mutex, Arc};
-use style::error_reporting::{ParseErrorReporter, ParseError};
+use style::error_reporting::{ParseErrorReporter, ContextualParseError};
 
 #[derive(HeapSizeOf, Clone)]
 pub struct CSSErrorReporter {
@@ -25,7 +25,7 @@ impl ParseErrorReporter for CSSErrorReporter {
     fn report_error<'a>(&self,
                         input: &mut Parser,
                         position: SourcePosition,
-                        error: ParseError<'a>,
+                        error: ContextualParseError<'a>,
                         url: &ServoUrl,
                         line_number_offset: u64) {
         let location = input.source_location(position);

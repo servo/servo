@@ -30,9 +30,9 @@
         % endif
         #[allow(unused_variables)]
         #[inline]
-        pub fn parse(context: &ParserContext,
-                     input: &mut Parser)
-                     -> Result<SpecifiedValue, ()> {
+        pub fn parse<'i, 't>(context: &ParserContext,
+                             input: &mut Parser<'i, 't>)
+                             -> Result<SpecifiedValue, ParseError<'i>> {
             % if allow_quirks:
             specified::${type}::${parse_method}_quirky(context, input, AllowQuirks::Yes)
             % elif needs_context:
@@ -89,9 +89,10 @@
             }
 
             pub mod single_value {
-                use cssparser::Parser;
+                use cssparser::{Parser, BasicParseError};
                 use parser::{Parse, ParserContext};
                 use properties::ShorthandId;
+                use style_traits::{ParseError, StyleParseError};
                 use values::computed::{Context, ToComputedValue};
                 use values::{computed, specified};
                 use values::{Auto, Either, None_, Normal};
@@ -202,7 +203,8 @@
                 % endif
             }
 
-            pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+            pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                 -> Result<SpecifiedValue, ParseError<'i>> {
                 use parser::parse_space_or_comma_separated;
 
                 <%
@@ -260,7 +262,7 @@
     pub mod ${property.ident} {
         #![allow(unused_imports)]
         % if not property.derived_from:
-            use cssparser::Parser;
+            use cssparser::{Parser, BasicParseError, Token};
             use parser::{Parse, ParserContext};
             use properties::{UnparsedValue, ShorthandId};
         % endif
@@ -272,6 +274,7 @@
         use properties::{CSSWideKeyword, ComputedValues, PropertyDeclaration};
         use properties::style_structs;
         use stylearc::Arc;
+        use style_traits::{ParseError, StyleParseError};
         use values::computed::{Context, ToComputedValue};
         use values::{computed, generics, specified};
         use Atom;
@@ -404,12 +407,12 @@
             % endif
         }
         % if not property.derived_from:
-            pub fn parse_specified(context: &ParserContext, input: &mut Parser)
+            pub fn parse_specified<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                 % if property.boxed:
-                                   -> Result<Box<SpecifiedValue>, ()> {
+                                   -> Result<Box<SpecifiedValue>, ParseError<'i>> {
                     parse(context, input).map(|result| Box::new(result))
                 % else:
-                                   -> Result<SpecifiedValue, ()> {
+                                   -> Result<SpecifiedValue, ParseError<'i>> {
                     % if property.allow_quirks:
                         parse_quirky(context, input, specified::AllowQuirks::Yes)
                     % else:
@@ -417,11 +420,11 @@
                     % endif
                 % endif
             }
-            pub fn parse_declared(context: &ParserContext, input: &mut Parser)
-                                  -> Result<PropertyDeclaration, ()> {
+            pub fn parse_declared<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                          -> Result<PropertyDeclaration, ParseError<'i>> {
                 match input.try(|i| CSSWideKeyword::parse(context, i)) {
                     Ok(keyword) => Ok(PropertyDeclaration::CSSWideKeyword(LonghandId::${property.camel_case}, keyword)),
-                    Err(()) => {
+                    Err(_) => {
                         input.look_for_var_functions();
                         let start = input.position();
                         let specified = parse_specified(context, input);
@@ -469,7 +472,7 @@
             use cssparser::Parser;
             use parser::{Parse, ParserContext};
 
-            use style_traits::ToCss;
+            use style_traits::{ToCss, ParseError, StyleParseError};
             define_css_keyword_enum! { T:
                 % for value in keyword.values_for(product):
                     "${value}" => ${to_rust_ident(value)},
@@ -477,7 +480,7 @@
             }
 
             impl Parse for T {
-                fn parse(_: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+                fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
                     T::parse(input)
                 }
             }
@@ -500,7 +503,7 @@
             }
         }
 
-        pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        pub fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<SpecifiedValue, ParseError<'i>> {
             Ok(SpecifiedValue::Keyword(computed_value::T::parse(input)?))
         }
 
@@ -699,14 +702,14 @@
             SpecifiedValue::${to_rust_ident(values.split()[0])}
         }
         #[inline]
-        pub fn parse(_context: &ParserContext, input: &mut Parser)
-                     -> Result<SpecifiedValue, ()> {
+        pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                             -> Result<SpecifiedValue, ParseError<'i>> {
             SpecifiedValue::parse(input)
         }
         impl Parse for SpecifiedValue {
             #[inline]
-            fn parse(_context: &ParserContext, input: &mut Parser)
-                         -> Result<SpecifiedValue, ()> {
+            fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                             -> Result<SpecifiedValue, ParseError<'i>> {
                 SpecifiedValue::parse(input)
             }
         }
@@ -744,13 +747,13 @@
     /// ${shorthand.spec}
     pub mod ${shorthand.ident} {
         #[allow(unused_imports)]
-        use cssparser::Parser;
+        use cssparser::{Parser, BasicParseError, Token};
         use parser::ParserContext;
         use properties::{PropertyDeclaration, ParsedDeclaration};
         use properties::{ShorthandId, UnparsedValue, longhands};
         use std::fmt;
         use stylearc::Arc;
-        use style_traits::ToCss;
+        use style_traits::{ToCss, ParseError, StyleParseError};
 
         pub struct Longhands {
             % for sub_property in shorthand.sub_properties:
@@ -814,7 +817,8 @@
 
         /// Parse the given shorthand and fill the result into the
         /// `declarations` vector.
-        pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<ParsedDeclaration, ()> {
+        pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                             -> Result<ParsedDeclaration, ParseError<'i>> {
             input.look_for_var_functions();
             let start = input.position();
             let value = input.parse_entirely(|input| parse_value(context, input));
@@ -835,7 +839,7 @@
                     from_shorthand: Some(ShorthandId::${shorthand.camel_case}),
                 })))
             } else {
-                Err(())
+                Err(StyleParseError::UnspecifiedError.into())
             }
         }
 
@@ -853,7 +857,8 @@
         use super::parse_four_sides;
         use values::specified;
 
-        pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+        pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                   -> Result<Longhands, ParseError<'i>> {
             let (top, right, bottom, left) =
             % if allow_quirks:
                 try!(parse_four_sides(input, |i| ${parser_function}_quirky(context, i, specified::AllowQuirks::Yes)));

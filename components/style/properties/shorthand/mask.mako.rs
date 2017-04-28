@@ -35,7 +35,8 @@
         }
     }
 
-    pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                               -> Result<Longhands, ParseError<'i>> {
         % for name in "image mode position_x position_y size repeat origin clip composite".split():
             let mut mask_${name} = mask_${name}::SpecifiedValue(Vec::new());
         % endfor
@@ -109,7 +110,7 @@
                 % endfor
                 Ok(())
             } else {
-                Err(())
+                Err(StyleParseError::UnspecifiedError.into())
             }
         }));
 
@@ -186,7 +187,8 @@
     use values::specified::position::Position;
     use parser::Parse;
 
-    pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                               -> Result<Longhands, ParseError<'i>> {
         let mut position_x = mask_position_x::SpecifiedValue(Vec::new());
         let mut position_y = mask_position_y::SpecifiedValue(Vec::new());
         let mut any = false;
@@ -204,7 +206,7 @@
             Ok(())
         }));
         if any == false {
-            return Err(());
+            return Err(StyleParseError::UnspecifiedError.into());
         }
 
         Ok(Longhands {

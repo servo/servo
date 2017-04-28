@@ -8,7 +8,7 @@
 
 use app_units::Au;
 use context::QuirksMode;
-use cssparser::{self, Parser, Token};
+use cssparser::{self, Parser, Token, BasicParseError};
 use euclid::size::Size2D;
 use parser::{ParserContext, Parse};
 use self::grid::{TrackBreadth as GenericTrackBreadth, TrackSize as GenericTrackSize};
@@ -16,7 +16,7 @@ use self::url::SpecifiedUrl;
 use std::ascii::AsciiExt;
 use std::f32;
 use std::fmt;
-use style_traits::ToCss;
+use style_traits::{ToCss, ParseError, StyleParseError};
 use style_traits::values::specified::AllowedNumericType;
 use super::{Auto, CSSFloat, CSSInteger, HasViewportPercentage, Either, None_};
 use super::computed::{self, Context};
@@ -52,6 +52,7 @@ pub mod position;
 pub mod url {
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
+use style_traits::ParseError;
 use values::HasViewportPercentage;
 use values::computed::ComputedValueAsSpecified;
 
@@ -61,7 +62,7 @@ pub use ::servo::url::*;
 pub use ::gecko::url::*;
 
 impl Parse for SpecifiedUrl {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         let url = try!(input.expect_url());
         Self::parse_from_string(url, context)
     }
@@ -86,7 +87,7 @@ pub struct CSSColor {
 }
 
 impl Parse for CSSColor {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         let start_position = input.position();
         let authored = match input.next() {
             Ok(Token::Ident(s)) => Some(s.into_owned().into_boxed_str()),
@@ -155,9 +156,10 @@ impl ToCss for CSSRGBA {
 }
 
 /// Parse an `<integer>` value, handling `calc()` correctly.
-pub fn parse_integer(context: &ParserContext, input: &mut Parser) -> Result<Integer, ()> {
+pub fn parse_integer<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                             -> Result<Integer, ParseError<'i>> {
     match try!(input.next()) {
-        Token::Number(ref value) => value.int_value.ok_or(()).map(Integer::new),
+        Token::Number(ref value) => value.int_value.ok_or(StyleParseError::UnspecifiedError.into()).map(Integer::new),
         Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
             let result = try!(input.parse_nested_block(|i| {
                 CalcNode::parse_integer(context, i)
@@ -165,21 +167,22 @@ pub fn parse_integer(context: &ParserContext, input: &mut Parser) -> Result<Inte
 
             Ok(Integer::from_calc(result))
         }
-        _ => Err(())
+        t => Err(BasicParseError::UnexpectedToken(t).into())
     }
 }
 
 /// Parse a `<number>` value, handling `calc()` correctly, and without length
 /// limitations.
-pub fn parse_number(context: &ParserContext, input: &mut Parser) -> Result<Number, ()> {
+pub fn parse_number<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                            -> Result<Number, ParseError<'i>> {
     parse_number_with_clamping_mode(context, input, AllowedNumericType::All)
 }
 
 /// Parse a `<number>` value, with a given clamping mode.
-pub fn parse_number_with_clamping_mode(context: &ParserContext,
-                                       input: &mut Parser,
-                                       clamping_mode: AllowedNumericType)
-                                       -> Result<Number, ()> {
+pub fn parse_number_with_clamping_mode<'i, 't>(context: &ParserContext,
+                                               input: &mut Parser<'i, 't>,
+                                               clamping_mode: AllowedNumericType)
+                                               -> Result<Number, ParseError<'i>> {
     match try!(input.next()) {
         Token::Number(ref value) if clamping_mode.is_ok(value.value) => {
             Ok(Number {
@@ -197,7 +200,7 @@ pub fn parse_number_with_clamping_mode(context: &ParserContext,
                 calc_clamping_mode: Some(clamping_mode),
             })
         }
-        _ => Err(())
+        t => Err(BasicParseError::UnexpectedToken(t).into())
     }
 }
 
@@ -206,10 +209,10 @@ pub type BorderRadiusSize = GenericBorderRadiusSize<LengthOrPercentage>;
 
 impl Parse for BorderRadiusSize {
     #[inline]
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         let first = try!(LengthOrPercentage::parse_non_negative(context, input));
         let second = input.try(|i| LengthOrPercentage::parse_non_negative(context, i))
-            .unwrap_or_else(|()| first.clone());
+            .unwrap_or_else(|_| first.clone());
         Ok(GenericBorderRadiusSize(Size2D::new(first, second)))
     }
 }
@@ -297,18 +300,19 @@ impl Angle {
 
 impl Parse for Angle {
     /// Parses an angle according to CSS-VALUES § 6.1.
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        match try!(input.next()) {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        let token = try!(input.next());
+        match token {
             Token::Dimension(ref value, ref unit) => {
                 Angle::parse_dimension(value.value,
                                        unit,
                                        /* from_calc = */ false)
             }
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-                input.parse_nested_block(|i| CalcNode::parse_angle(context, i))
+                return input.parse_nested_block(|i| CalcNode::parse_angle(context, i))
             }
             _ => Err(())
-        }
+        }.map_err(|()| BasicParseError::UnexpectedToken(token).into())
     }
 }
 
@@ -337,8 +341,10 @@ impl Angle {
     ///
     /// We can remove this and get back to the unified version Angle::parse once
     /// https://github.com/w3c/csswg-drafts/issues/1162 is resolved.
-    pub fn parse_with_unitless(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        match try!(input.next()) {
+    pub fn parse_with_unitless<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                       -> Result<Self, ParseError<'i>> {
+        let token = try!(input.next());
+        match token {
             Token::Dimension(ref value, ref unit) => {
                 Angle::parse_dimension(value.value,
                                        unit,
@@ -346,17 +352,19 @@ impl Angle {
             }
             Token::Number(ref value) if value.value == 0. => Ok(Angle::zero()),
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-                input.parse_nested_block(|i| CalcNode::parse_angle(context, i))
+                return input.parse_nested_block(|i| CalcNode::parse_angle(context, i))
             }
             _ => Err(())
-        }
+        }.map_err(|()| BasicParseError::UnexpectedToken(token).into())
     }
 }
 
 #[allow(missing_docs)]
-pub fn parse_border_radius(context: &ParserContext, input: &mut Parser) -> Result<BorderRadiusSize, ()> {
+pub fn parse_border_radius<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                   -> Result<BorderRadiusSize, ParseError<'i>> {
     input.try(|i| BorderRadiusSize::parse(context, i)).or_else(|_| {
-        match_ignore_ascii_case! { &try!(input.expect_ident()),
+        let ident = try!(input.expect_ident());
+        (match_ignore_ascii_case! { &ident,
             "thin" => Ok(BorderRadiusSize::circle(
                              LengthOrPercentage::Length(NoCalcLength::from_px(1.)))),
             "medium" => Ok(BorderRadiusSize::circle(
@@ -364,19 +372,21 @@ pub fn parse_border_radius(context: &ParserContext, input: &mut Parser) -> Resul
             "thick" => Ok(BorderRadiusSize::circle(
                               LengthOrPercentage::Length(NoCalcLength::from_px(5.)))),
             _ => Err(())
-        }
+        }).map_err(|()| BasicParseError::UnexpectedToken(Token::Ident(ident)).into())
     })
 }
 
 #[allow(missing_docs)]
-pub fn parse_border_width(context: &ParserContext, input: &mut Parser) -> Result<Length, ()> {
-    input.try(|i| Length::parse_non_negative(context, i)).or_else(|()| {
-        match_ignore_ascii_case! { &try!(input.expect_ident()),
+pub fn parse_border_width<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                  -> Result<Length, ParseError<'i>> {
+    input.try(|i| Length::parse_non_negative(context, i)).or_else(|_| {
+        let ident = try!(input.expect_ident());
+        (match_ignore_ascii_case! { &ident,
             "thin" => Ok(Length::from_px(1.)),
             "medium" => Ok(Length::from_px(3.)),
             "thick" => Ok(Length::from_px(5.)),
             _ => Err(())
-        }
+        }).map_err(|()| BasicParseError::UnexpectedToken(Token::Ident(ident)).into())
     })
 }
 
@@ -391,24 +401,27 @@ pub enum BorderWidth {
 }
 
 impl Parse for BorderWidth {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<BorderWidth, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<BorderWidth, ParseError<'i>> {
         Self::parse_quirky(context, input, AllowQuirks::No)
     }
 }
 
 impl BorderWidth {
     /// Parses a border width, allowing quirks.
-    pub fn parse_quirky(context: &ParserContext,
-                        input: &mut Parser,
-                        allow_quirks: AllowQuirks)
-                        -> Result<BorderWidth, ()> {
+    pub fn parse_quirky<'i, 't>(context: &ParserContext,
+                                input: &mut Parser<'i, 't>,
+                                allow_quirks: AllowQuirks)
+                                -> Result<BorderWidth, ParseError<'i>> {
         match input.try(|i| Length::parse_non_negative_quirky(context, i, allow_quirks)) {
             Ok(length) => Ok(BorderWidth::Width(length)),
-            Err(_) => match_ignore_ascii_case! { &try!(input.expect_ident()),
-               "thin" => Ok(BorderWidth::Thin),
-               "medium" => Ok(BorderWidth::Medium),
-               "thick" => Ok(BorderWidth::Thick),
-               _ => Err(())
+            Err(_) => {
+                let ident = try!(input.expect_ident());
+                (match_ignore_ascii_case! { &ident,
+                   "thin" => Ok(BorderWidth::Thin),
+                   "medium" => Ok(BorderWidth::Medium),
+                   "thick" => Ok(BorderWidth::Thick),
+                   _ => Err(())
+                }).map_err(|()| BasicParseError::UnexpectedToken(Token::Ident(ident)).into())
             }
         }
     }
@@ -524,7 +537,7 @@ impl Time {
         let seconds = match_ignore_ascii_case! { unit,
             "s" => value,
             "ms" => value / 1000.0,
-            _ => return Err(()),
+            _ => return Err(())
         };
 
         Ok(Time {
@@ -558,16 +571,17 @@ impl ToComputedValue for Time {
 }
 
 impl Parse for Time {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        match input.next() {
-            Ok(Token::Dimension(ref value, ref unit)) => {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        let token = try!(input.next());
+        match token {
+            Token::Dimension(ref value, ref unit) => {
                 Time::parse_dimension(value.value, &unit, /* from_calc = */ false)
             }
-            Ok(Token::Function(ref name)) if name.eq_ignore_ascii_case("calc") => {
-                input.parse_nested_block(|i| CalcNode::parse_time(context, i))
+            Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
+                return input.parse_nested_block(|i| CalcNode::parse_time(context, i))
             }
             _ => Err(())
-        }
+        }.map_err(|()| BasicParseError::UnexpectedToken(token).into())
     }
 }
 
@@ -598,7 +612,7 @@ pub struct Number {
 no_viewport_percentage!(Number);
 
 impl Parse for Number {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         parse_number(context, input)
     }
 }
@@ -618,12 +632,14 @@ impl Number {
     }
 
     #[allow(missing_docs)]
-    pub fn parse_non_negative(context: &ParserContext, input: &mut Parser) -> Result<Number, ()> {
+    pub fn parse_non_negative<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                      -> Result<Number, ParseError<'i>> {
         parse_number_with_clamping_mode(context, input, AllowedNumericType::NonNegative)
     }
 
     #[allow(missing_docs)]
-    pub fn parse_at_least_one(context: &ParserContext, input: &mut Parser) -> Result<Number, ()> {
+    pub fn parse_at_least_one<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                      -> Result<Number, ParseError<'i>> {
         parse_number_with_clamping_mode(context, input, AllowedNumericType::AtLeastOne)
     }
 }
@@ -671,7 +687,8 @@ pub enum NumberOrPercentage {
 no_viewport_percentage!(NumberOrPercentage);
 
 impl Parse for NumberOrPercentage {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                     -> Result<Self, ParseError<'i>> {
         if let Ok(per) = input.try(Percentage::parse_non_negative) {
             return Ok(NumberOrPercentage::Percentage(per));
         }
@@ -697,7 +714,7 @@ pub struct Opacity(Number);
 no_viewport_percentage!(Opacity);
 
 impl Parse for Opacity {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         parse_number(context, input).map(Opacity)
     }
 }
@@ -756,27 +773,31 @@ impl Integer {
 no_viewport_percentage!(Integer);
 
 impl Parse for Integer {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         parse_integer(context, input)
     }
 }
 
 impl Integer {
     #[allow(missing_docs)]
-    pub fn parse_with_minimum(context: &ParserContext, input: &mut Parser, min: i32) -> Result<Integer, ()> {
+    pub fn parse_with_minimum<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>, min: i32)
+                                      -> Result<Integer, ParseError<'i>> {
         match parse_integer(context, input) {
             Ok(value) if value.value() >= min => Ok(value),
-            _ => Err(()),
+            Ok(_value) => Err(StyleParseError::UnspecifiedError.into()),
+            Err(e) => Err(e),
         }
     }
 
     #[allow(missing_docs)]
-    pub fn parse_non_negative(context: &ParserContext, input: &mut Parser) -> Result<Integer, ()> {
+    pub fn parse_non_negative<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                      -> Result<Integer, ParseError<'i>> {
         Integer::parse_with_minimum(context, input, 0)
     }
 
     #[allow(missing_docs)]
-    pub fn parse_positive(context: &ParserContext, input: &mut Parser) -> Result<Integer, ()> {
+    pub fn parse_positive<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                  -> Result<Integer, ParseError<'i>> {
         Integer::parse_with_minimum(context, input, 1)
     }
 }
@@ -813,11 +834,11 @@ pub type IntegerOrAuto = Either<Integer, Auto>;
 
 impl IntegerOrAuto {
     #[allow(missing_docs)]
-    pub fn parse_positive(context: &ParserContext,
-                          input: &mut Parser)
-                          -> Result<IntegerOrAuto, ()> {
+    pub fn parse_positive<'i, 't>(context: &ParserContext,
+                                  input: &mut Parser<'i, 't>)
+                                  -> Result<IntegerOrAuto, ParseError<'i>> {
         match IntegerOrAuto::parse(context, input) {
-            Ok(Either::First(integer)) if integer.value() <= 0 => Err(()),
+            Ok(Either::First(integer)) if integer.value() <= 0 => Err(StyleParseError::UnspecifiedError.into()),
             result => result,
         }
     }
@@ -887,7 +908,10 @@ impl ToComputedValue for Shadow {
 impl Shadow {
     // disable_spread_and_inset is for filter: drop-shadow(...)
     #[allow(missing_docs)]
-    pub fn parse(context: &ParserContext, input: &mut Parser, disable_spread_and_inset: bool) -> Result<Shadow, ()> {
+    pub fn parse<'i, 't>(context: &ParserContext,
+                         input: &mut Parser<'i, 't>,
+                         disable_spread_and_inset: bool)
+                         -> Result<Shadow, ParseError<'i>> {
         let mut lengths = [Length::zero(), Length::zero(), Length::zero(), Length::zero()];
         let mut lengths_parsed = false;
         let mut color = None;
@@ -927,7 +951,7 @@ impl Shadow {
 
         // Lengths must be specified.
         if !lengths_parsed {
-            return Err(())
+            return Err(StyleParseError::UnspecifiedError.into())
         }
 
         debug_assert!(!disable_spread_and_inset || lengths[3] == Length::zero());
@@ -977,18 +1001,20 @@ pub enum SVGPaintKind {
 }
 
 impl SVGPaintKind {
-    fn parse_ident(input: &mut Parser) -> Result<Self, ()> {
-        Ok(match_ignore_ascii_case! { &input.expect_ident()?,
-            "none" => SVGPaintKind::None,
-            "context-fill" => SVGPaintKind::ContextFill,
-            "context-stroke" => SVGPaintKind::ContextStroke,
-            _ => return Err(())
-        })
+    fn parse_ident<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        let ident = input.expect_ident()?;
+        (match_ignore_ascii_case! { &ident,
+            "none" => Ok(SVGPaintKind::None),
+            "context-fill" => Ok(SVGPaintKind::ContextFill),
+            "context-stroke" => Ok(SVGPaintKind::ContextStroke),
+            _ => Err(()),
+        }).map_err(|()| BasicParseError::UnexpectedToken(Token::Ident(ident)).into())
     }
 }
 
 impl Parse for SVGPaint {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                     -> Result<Self, ParseError<'i>> {
         if let Ok(url) = input.try(|i| SpecifiedUrl::parse(context, i)) {
             let fallback = input.try(|i| CSSColor::parse(context, i));
             Ok(SVGPaint {
@@ -1014,7 +1040,7 @@ impl Parse for SVGPaint {
                 fallback: None,
             })
         } else {
-            Err(())
+            Err(StyleParseError::UnspecifiedError.into())
         }
     }
 }
@@ -1101,7 +1127,8 @@ pub type LengthOrPercentageOrNumber = Either<Number, LengthOrPercentage>;
 
 impl LengthOrPercentageOrNumber {
     /// parse a <length-percentage> | <number> enforcing that the contents aren't negative
-    pub fn parse_non_negative(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    pub fn parse_non_negative<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                      -> Result<Self, ParseError<'i>> {
         // NB: Parse numbers before Lengths so we are consistent about how to
         // recognize and serialize "0".
         if let Ok(num) = input.try(|i| Number::parse_non_negative(context, i)) {
@@ -1197,10 +1224,11 @@ impl ToComputedValue for ClipRect {
 }
 
 impl Parse for ClipRect {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         use values::specified::{AllowQuirks, Length};
 
-        fn parse_argument(context: &ParserContext, input: &mut Parser) -> Result<Option<Length>, ()> {
+        fn parse_argument<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                  -> Result<Option<Length>, ParseError<'i>> {
             if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
                 Ok(None)
             } else {
@@ -1209,7 +1237,7 @@ impl Parse for ClipRect {
         }
 
         if !try!(input.expect_function()).eq_ignore_ascii_case("rect") {
-            return Err(())
+            return Err(BasicParseError::ExpectedToken(Token::Function("rect".into())).into())
         }
 
         input.parse_nested_block(|input| {

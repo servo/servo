@@ -49,14 +49,15 @@ ${helpers.predefined_type("outline-color", "CSSColor", "computed::CSSColor::Curr
         pub type T = super::SpecifiedValue;
     }
 
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         SpecifiedValue::parse(context, input)
             .and_then(|result| {
                 if let Either::Second(BorderStyle::hidden) = result {
                     // The outline-style property accepts the same values as
                     // border-style, except that 'hidden' is not a legal outline
                     // style.
-                    Err(())
+                    Err(BasicParseError::UnexpectedToken(::cssparser::Token::Ident("hidden".into())).into())
                 } else {
                     Ok(result)
                 }
@@ -77,7 +78,8 @@ ${helpers.predefined_type("outline-color", "CSSColor", "computed::CSSColor::Curr
         }
     }
 
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         specified::parse_border_width(context, input).map(SpecifiedValue)
     }
 

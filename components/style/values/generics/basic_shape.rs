@@ -5,13 +5,13 @@
 //! CSS handling for the [`basic-shape`](https://drafts.csswg.org/css-shapes/#typedef-basic-shape)
 //! types that are generic over their `ToCss` implementations.
 
-use cssparser::Parser;
+use cssparser::{Parser, Token, BasicParseError};
 use euclid::size::Size2D;
 use parser::{Parse, ParserContext};
 use properties::shorthands::serialize_four_sides;
 use std::ascii::AsciiExt;
 use std::fmt;
-use style_traits::ToCss;
+use style_traits::{ToCss, ParseError, StyleParseError};
 use values::HasViewportPercentage;
 use values::computed::{ComputedValueAsSpecified, Context, ToComputedValue};
 use values::generics::BorderRadiusSize;
@@ -162,8 +162,9 @@ pub struct Polygon<L> {
 
 impl<L: Parse> Polygon<L> {
     /// Parse the inner arguments of a `polygon` function.
-    pub fn parse_function_arguments(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        let fill = input.try(|i| -> Result<_, ()> {
+    pub fn parse_function_arguments<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                            -> Result<Self, ParseError<'i>> {
+        let fill = input.try(|i| -> Result<_, ParseError> {
             let fill = FillRule::parse(i)?;
             i.expect_comma()?;      // only eat the comma if there is something before it
             Ok(fill)
@@ -181,11 +182,12 @@ impl<L: Parse> Polygon<L> {
 }
 
 impl<L: Parse> Parse for Polygon<L> {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         match input.expect_function() {
             Ok(ref s) if s.eq_ignore_ascii_case("polygon") =>
                 input.parse_nested_block(|i| Polygon::parse_function_arguments(context, i)),
-            _ => Err(())
+            Ok(s) => Err(BasicParseError::UnexpectedToken(Token::Function(s)).into()),
+            Err(e) => Err(e.into())
         }
     }
 }
@@ -331,7 +333,7 @@ impl<B: ToCss, T: ToCss> ToCss for ShapeSource<B, T> {
 }
 
 impl<B: Parse, T: Parse> Parse for ShapeSource<B, T> {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         if input.try(|i| i.expect_ident_matching("none")).is_ok() {
             return Ok(ShapeSource::None)
         }
@@ -362,7 +364,7 @@ impl<B: Parse, T: Parse> Parse for ShapeSource<B, T> {
             return Ok(ShapeSource::Shape(shp, ref_box))
         }
 
-        ref_box.map(|v| ShapeSource::Box(v)).ok_or(())
+        ref_box.map(|v| ShapeSource::Box(v)).ok_or(StyleParseError::UnspecifiedError.into())
     }
 }
 

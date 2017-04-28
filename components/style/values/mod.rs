@@ -9,14 +9,15 @@
 #![deny(missing_docs)]
 
 use Atom;
-pub use cssparser::{RGBA, Token, Parser, serialize_identifier, serialize_string};
+pub use cssparser::RGBA;
+use cssparser::{BasicParseError, Token, Parser, serialize_identifier, serialize_string};
 use parser::{Parse, ParserContext};
 use properties::animated_properties::{ComputeDistance, Interpolate};
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
 use std::fmt::{self, Debug};
 use std::hash;
-use style_traits::ToCss;
+use style_traits::{ToCss, ParseError, StyleParseError};
 
 macro_rules! define_numbered_css_keyword_enum {
     ($name: ident: $( $css: expr => $variant: ident = $value: expr ),+,) => {
@@ -32,11 +33,13 @@ macro_rules! define_numbered_css_keyword_enum {
 
         impl Parse for $name {
             #[allow(missing_docs)]
-            fn parse(_context: &ParserContext, input: &mut ::cssparser::Parser) -> Result<$name, ()> {
-                match_ignore_ascii_case! { &try!(input.expect_ident()),
+            fn parse<'i, 't>(_context: &ParserContext, input: &mut ::cssparser::Parser<'i, 't>)
+                             -> Result<$name, ::style_traits::ParseError<'i>> {
+                let ident = try!(input.expect_ident());
+                (match_ignore_ascii_case! { &ident,
                     $( $css => Ok($name::$variant), )+
                     _ => Err(())
-                }
+                }).map_err(|()| ::cssparser::BasicParseError::UnexpectedToken(Token::Ident(ident)).into())
             }
         }
 
@@ -76,7 +79,8 @@ macro_rules! add_impls_for_keyword_enum {
     ($name:ident) => {
         impl Parse for $name {
             #[inline]
-            fn parse(_context: &ParserContext, input: &mut ::cssparser::Parser) -> Result<Self, ()> {
+            fn parse<'i, 't>(_context: &ParserContext, input: &mut ::cssparser::Parser<'i, 't>)
+                             -> Result<Self, ::style_traits::ParseError<'i>> {
                 $name::parse(input)
             }
         }
@@ -148,8 +152,9 @@ macro_rules! define_keyword_type {
         }
 
         impl Parse for $name {
-            fn parse(_context: &ParserContext, input: &mut ::cssparser::Parser) -> Result<$name, ()> {
-                input.expect_ident_matching($css).map(|_| $name)
+            fn parse<'i, 't>(_context: &ParserContext, input: &mut ::cssparser::Parser<'i, 't>)
+                             -> Result<$name, ::style_traits::ParseError<'i>> {
+                input.expect_ident_matching($css).map(|_| $name).map_err(|e| e.into())
             }
         }
 
@@ -200,7 +205,8 @@ impl<A: HasViewportPercentage, B: HasViewportPercentage> HasViewportPercentage f
 }
 
 impl<A: Parse, B: Parse> Parse for Either<A, B> {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Either<A, B>, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                     -> Result<Either<A, B>, ParseError<'i>> {
         if let Ok(v) = input.try(|i| A::parse(context, i)) {
             Ok(Either::First(v))
         } else {
@@ -237,13 +243,16 @@ pub struct CustomIdent(pub Atom);
 
 impl CustomIdent {
     /// Parse an already-tokenizer identifier
-    pub fn from_ident(ident: Cow<str>, excluding: &[&str]) -> Result<Self, ()> {
-        match_ignore_ascii_case! { &ident,
-            "initial" | "inherit" | "unset" | "default" => return Err(()),
-            _ => {}
+    pub fn from_ident<'i>(ident: Cow<'i, str>, excluding: &[&str]) -> Result<Self, ParseError<'i>> {
+        let valid = match_ignore_ascii_case! { &ident,
+            "initial" | "inherit" | "unset" | "default" => false,
+            _ => true
         };
+        if !valid {
+            return Err(BasicParseError::UnexpectedToken(Token::Ident(ident)).into());
+        }
         if excluding.iter().any(|s| ident.eq_ignore_ascii_case(s)) {
-            Err(())
+            Err(StyleParseError::UnspecifiedError.into())
         } else {
             Ok(CustomIdent(ident.into()))
         }
@@ -271,7 +280,7 @@ impl KeyframesName {
     pub fn from_ident(value: String) -> Self {
         match CustomIdent::from_ident((&*value).into(), &["none"]) {
             Ok(ident) => KeyframesName::Ident(ident),
-            Err(()) => KeyframesName::QuotedString(value.into()),
+            Err(_) => KeyframesName::QuotedString(value.into()),
         }
     }
 
@@ -299,11 +308,12 @@ impl hash::Hash for KeyframesName {
 }
 
 impl Parse for KeyframesName {
-    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         match input.next() {
             Ok(Token::Ident(s)) => Ok(KeyframesName::Ident(CustomIdent::from_ident(s, &["none"])?)),
             Ok(Token::QuotedString(s)) => Ok(KeyframesName::QuotedString(s.into())),
-            _ => Err(())
+            Ok(t) => Err(BasicParseError::UnexpectedToken(t).into()),
+            Err(e) => Err(e.into()),
         }
     }
 }

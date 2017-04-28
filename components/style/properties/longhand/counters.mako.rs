@@ -8,7 +8,6 @@
 
 <%helpers:longhand name="content" boxed="True" animation_value_type="none"
                    spec="https://drafts.csswg.org/css-content/#propdef-content">
-    use cssparser::Token;
     use std::ascii::AsciiExt;
     use values::computed::ComputedValueAsSpecified;
     use values::specified::url::SpecifiedUrl;
@@ -137,8 +136,8 @@
     // normal | none | [ <string> | <counter> | open-quote | close-quote | no-open-quote |
     // no-close-quote ]+
     // TODO: <uri>, attr(<identifier>)
-    pub fn parse(context: &ParserContext, input: &mut Parser)
-                 -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
             return Ok(SpecifiedValue::normal)
         }
@@ -158,16 +157,16 @@
                     content.push(ContentItem::String(value.into_owned()))
                 }
                 Ok(Token::Function(name)) => {
-                    content.push(try!(match_ignore_ascii_case! { &name,
-                        "counter" => input.parse_nested_block(|input| {
+                    let result = match_ignore_ascii_case! { &name,
+                        "counter" => Some(input.parse_nested_block(|input| {
                             let name = try!(input.expect_ident()).into_owned();
                             let style = input.try(|input| {
                                 try!(input.expect_comma());
                                 list_style_type::parse(context, input)
                             }).unwrap_or(list_style_type::computed_value::T::decimal);
                             Ok(ContentItem::Counter(name, style))
-                        }),
-                        "counters" => input.parse_nested_block(|input| {
+                        })),
+                        "counters" => Some(input.parse_nested_block(|input| {
                             let name = try!(input.expect_ident()).into_owned();
                             try!(input.expect_comma());
                             let separator = try!(input.expect_string()).into_owned();
@@ -176,9 +175,9 @@
                                 list_style_type::parse(context, input)
                             }).unwrap_or(list_style_type::computed_value::T::decimal);
                             Ok(ContentItem::Counters(name, separator, style))
-                        }),
+                        })),
                         % if product == "gecko":
-                            "attr" => input.parse_nested_block(|input| {
+                            "attr" => Some(input.parse_nested_block(|input| {
                                 // Syntax is `[namespace? `|`]? ident`
                                 // no spaces allowed
                                 // FIXME (bug 1346693) we should be checking that
@@ -193,44 +192,52 @@
                                             if let Token::Ident(second) = tok2 {
                                                 return Ok(ContentItem::Attr(first, second.into_owned()))
                                             } else {
-                                                return Err(())
+                                                return Err(BasicParseError::UnexpectedToken(tok2).into())
                                             }
                                         }
-                                        _ => return Err(())
+                                        t => return Err(BasicParseError::UnexpectedToken(t).into())
                                     }
                                 }
                                 if let Some(first) = first {
                                     Ok(ContentItem::Attr(None, first))
                                 } else {
-                                    Err(())
+                                    Err(StyleParseError::UnspecifiedError.into())
                                 }
-                            }),
+                            })),
                         % endif
-                        _ => return Err(())
-                    }));
+                        _ => None
+                    };
+                    match result {
+                        Some(result) => content.push(try!(result)),
+                        None => return Err(BasicParseError::UnexpectedToken(
+                            ::cssparser::Token::Function(name)).into())
+                    }
                 }
                 Ok(Token::Ident(ident)) => {
-                    match_ignore_ascii_case! { &ident,
-                        "open-quote" => content.push(ContentItem::OpenQuote),
-                        "close-quote" => content.push(ContentItem::CloseQuote),
-                        "no-open-quote" => content.push(ContentItem::NoOpenQuote),
-                        "no-close-quote" => content.push(ContentItem::NoCloseQuote),
+                    let valid = match_ignore_ascii_case! { &ident,
+                        "open-quote" => { content.push(ContentItem::OpenQuote); true },
+                        "close-quote" => { content.push(ContentItem::CloseQuote); true },
+                        "no-open-quote" => { content.push(ContentItem::NoOpenQuote); true },
+                        "no-close-quote" => { content.push(ContentItem::NoCloseQuote); true },
 
                         % if product == "gecko":
-                            "-moz-alt-content" => content.push(ContentItem::MozAltContent),
+                            "-moz-alt-content" => { content.push(ContentItem::MozAltContent); true },
                         % endif
 
-                        _ => return Err(())
+                        _ => false,
+                    };
+                    if !valid {
+                        return Err(BasicParseError::UnexpectedToken(::cssparser::Token::Ident(ident)).into())
                     }
                 }
                 Err(_) => break,
-                _ => return Err(())
+                Ok(t) => return Err(BasicParseError::UnexpectedToken(t).into())
             }
         }
         if !content.is_empty() {
             Ok(SpecifiedValue::Content(content))
         } else {
-            Err(())
+            Err(StyleParseError::UnspecifiedError.into())
         }
     }
 </%helpers:longhand>
@@ -242,7 +249,7 @@
     use super::content;
     use values::{HasViewportPercentage, CustomIdent};
 
-    use cssparser::{Token, serialize_identifier};
+    use cssparser::serialize_identifier;
     use std::borrow::{Cow, ToOwned};
 
     #[derive(Debug, Clone, PartialEq)]
@@ -326,11 +333,13 @@
         }
     }
 
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         parse_common(context, 1, input)
     }
 
-    pub fn parse_common(context: &ParserContext, default_value: i32, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse_common<'i, 't>(context: &ParserContext, default_value: i32, input: &mut Parser<'i, 't>)
+                                -> Result<SpecifiedValue, ParseError<'i>> {
         use std::ascii::AsciiExt;
 
         if input.try(|input| input.expect_ident_matching("none")).is_ok() {
@@ -341,7 +350,7 @@
         loop {
             let counter_name = match input.next() {
                 Ok(Token::Ident(ident)) => CustomIdent::from_ident(ident, &["none"])?,
-                Ok(_) => return Err(()),
+                Ok(t) => return Err(BasicParseError::UnexpectedToken(t).into()),
                 Err(_) => break,
             };
             let counter_delta = input.try(|input| specified::parse_integer(context, input))
@@ -352,7 +361,7 @@
         if !counters.is_empty() {
             Ok(SpecifiedValue(counters))
         } else {
-            Err(())
+            Err(StyleParseError::UnspecifiedError.into())
         }
     }
 </%helpers:longhand>
@@ -362,7 +371,8 @@
     pub use super::counter_increment::{SpecifiedValue, computed_value, get_initial_value};
     use super::counter_increment::parse_common;
 
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue,ParseError<'i>> {
         parse_common(context, 0, input)
     }
 </%helpers:longhand>

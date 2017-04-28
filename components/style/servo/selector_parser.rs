@@ -8,7 +8,8 @@
 
 use {Atom, Prefix, Namespace, LocalName};
 use attr::{AttrIdentifier, AttrValue};
-use cssparser::{Parser as CssParser, ToCss, serialize_identifier};
+use cssparser::{Parser as CssParser, ToCss, serialize_identifier, BasicParseError, Token};
+use cssparser::ParseError as CssParseError;
 use element_state::ElementState;
 use restyle_hints::ElementSnapshot;
 use selector_parser::{ElementExt, PseudoElementCascadeType, SelectorParser};
@@ -20,6 +21,7 @@ use std::borrow::Cow;
 use std::fmt;
 use std::fmt::Debug;
 use std::mem;
+use style_traits::{ParseError, StyleParseError};
 
 /// A pseudo-element, both public and private.
 ///
@@ -264,8 +266,10 @@ impl ::selectors::SelectorImpl for SelectorImpl {
 
 impl<'a> ::selectors::Parser for SelectorParser<'a> {
     type Impl = SelectorImpl;
+    type Error = StyleParseError;
 
-    fn parse_non_ts_pseudo_class(&self, name: Cow<str>) -> Result<NonTSPseudoClass, ()> {
+    fn parse_non_ts_pseudo_class<'i>(&self, name: Cow<'i, str>)
+                                     -> Result<NonTSPseudoClass, ParseError<'i>> {
         use self::NonTSPseudoClass::*;
         let pseudo_class = match_ignore_ascii_case! { &name,
             "active" => Active,
@@ -285,30 +289,33 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
             "visited" => Visited,
             "-servo-nonzero-border" => {
                 if !self.in_user_agent_stylesheet() {
-                    return Err(());
+                    return Err(CssParseError::Basic(BasicParseError::UnexpectedToken(
+                        Token::Ident("-servo-nonzero-border".into()))));
                 }
                 ServoNonZeroBorder
             },
-            _ => return Err(())
+            _ => return Err(CssParseError::Basic(BasicParseError::UnexpectedToken(
+                Token::Ident(name.clone())))),
         };
 
         Ok(pseudo_class)
     }
 
-    fn parse_non_ts_functional_pseudo_class(&self,
-                                            name: Cow<str>,
-                                            parser: &mut CssParser)
-                                            -> Result<NonTSPseudoClass, ()> {
+    fn parse_non_ts_functional_pseudo_class<'i, 't>(&self,
+                                            name: Cow<'i, str>,
+                                            parser: &mut CssParser<'i, 't>)
+                                            -> Result<NonTSPseudoClass, ParseError<'i>> {
         use self::NonTSPseudoClass::*;
         let pseudo_class = match_ignore_ascii_case!{ &name,
             "lang" => Lang(String::from(try!(parser.expect_ident_or_string())).into_boxed_str()),
-            _ => return Err(())
+            _ => return Err(CssParseError::Basic(BasicParseError::UnexpectedToken(
+                Token::Ident(name.clone())))),
         };
 
         Ok(pseudo_class)
     }
 
-    fn parse_pseudo_element(&self, name: Cow<str>) -> Result<PseudoElement, ()> {
+    fn parse_pseudo_element<'i>(&self, name: Cow<'i, str>) -> Result<PseudoElement, ParseError<'i>> {
         use self::PseudoElement::*;
         let pseudo_element = match_ignore_ascii_case! { &name,
             "before" => Before,
@@ -316,77 +323,78 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
             "selection" => Selection,
             "-servo-details-summary" => {
                 if !self.in_user_agent_stylesheet() {
-                    return Err(())
+                    return Err(CssParseError::Basic(BasicParseError::UnexpectedToken(Token::Ident(name.clone()))))
                 }
                 DetailsSummary
             },
             "-servo-details-content" => {
                 if !self.in_user_agent_stylesheet() {
-                    return Err(())
+                    return Err(CssParseError::Basic(BasicParseError::UnexpectedToken(Token::Ident(name.clone()))))
                 }
                 DetailsContent
             },
             "-servo-text" => {
                 if !self.in_user_agent_stylesheet() {
-                    return Err(())
+                    return Err(CssParseError::Basic(BasicParseError::UnexpectedToken(Token::Ident(name.clone()))))
                 }
                 ServoText
             },
             "-servo-input-text" => {
                 if !self.in_user_agent_stylesheet() {
-                    return Err(())
+                    return Err(CssParseError::Basic(BasicParseError::UnexpectedToken(Token::Ident(name.clone()))))
                 }
                 ServoInputText
             },
             "-servo-table-wrapper" => {
                 if !self.in_user_agent_stylesheet() {
-                    return Err(())
+                    return Err(CssParseError::Basic(BasicParseError::UnexpectedToken(Token::Ident(name.clone()))))
                 }
                 ServoTableWrapper
             },
             "-servo-anonymous-table-wrapper" => {
                 if !self.in_user_agent_stylesheet() {
-                    return Err(())
+                    return Err(CssParseError::Basic(BasicParseError::UnexpectedToken(Token::Ident(name.clone()))))
                 }
                 ServoAnonymousTableWrapper
             },
             "-servo-anonymous-table" => {
                 if !self.in_user_agent_stylesheet() {
-                    return Err(())
+                    return Err(CssParseError::Basic(BasicParseError::UnexpectedToken(Token::Ident(name.clone()))))
                 }
                 ServoAnonymousTable
             },
             "-servo-anonymous-table-row" => {
                 if !self.in_user_agent_stylesheet() {
-                    return Err(())
+                    return Err(CssParseError::Basic(BasicParseError::UnexpectedToken(Token::Ident(name.clone()))))
                 }
                 ServoAnonymousTableRow
             },
             "-servo-anonymous-table-cell" => {
                 if !self.in_user_agent_stylesheet() {
-                    return Err(())
+                    return Err(CssParseError::Basic(BasicParseError::UnexpectedToken(Token::Ident(name.clone()))))
                 }
                 ServoAnonymousTableCell
             },
             "-servo-anonymous-block" => {
                 if !self.in_user_agent_stylesheet() {
-                    return Err(())
+                    return Err(CssParseError::Basic(BasicParseError::UnexpectedToken(Token::Ident(name.clone()))))
                 }
                 ServoAnonymousBlock
             },
             "-servo-inline-block-wrapper" => {
                 if !self.in_user_agent_stylesheet() {
-                    return Err(())
+                    return Err(CssParseError::Basic(BasicParseError::UnexpectedToken(Token::Ident(name.clone()))))
                 }
                 ServoInlineBlockWrapper
             },
             "-servo-input-absolute" => {
                 if !self.in_user_agent_stylesheet() {
-                    return Err(())
+                    return Err(CssParseError::Basic(BasicParseError::UnexpectedToken(Token::Ident(name.clone()))))
                 }
                 ServoInlineAbsolute
             },
-            _ => return Err(())
+            _ => return Err(CssParseError::Basic(BasicParseError::UnexpectedToken(Token::Ident(name.clone()))))
+
         };
 
         Ok(pseudo_element)

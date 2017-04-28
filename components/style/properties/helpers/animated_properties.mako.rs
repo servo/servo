@@ -7,7 +7,7 @@
 <% from data import SYSTEM_FONT_LONGHANDS %>
 
 use app_units::Au;
-use cssparser::{Color as CSSParserColor, Parser, RGBA, serialize_identifier};
+use cssparser::{Color as CSSParserColor, Parser, BasicParseError, RGBA, serialize_identifier};
 use euclid::{Point2D, Size2D};
 #[cfg(feature = "gecko")] use gecko_bindings::bindings::RawServoAnimationValueMap;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::nsCSSPropertyID;
@@ -33,7 +33,7 @@ use smallvec::SmallVec;
 use std::cmp;
 #[cfg(feature = "gecko")] use std::collections::HashMap;
 use std::fmt;
-use style_traits::ToCss;
+use style_traits::{ToCss, ParseError};
 use super::ComputedValues;
 use values::CSSFloat;
 use values::{Auto, Either, generics};
@@ -96,9 +96,9 @@ impl TransitionProperty {
     }
 
     /// Parse a transition-property value.
-    pub fn parse(input: &mut Parser) -> Result<Self, ()> {
+    pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         let ident = try!(input.expect_ident());
-        match_ignore_ascii_case! { &ident,
+        (match_ignore_ascii_case! { &ident,
             "all" => Ok(TransitionProperty::All),
             % for prop in data.longhands:
                 % if prop.animatable:
@@ -115,7 +115,7 @@ impl TransitionProperty {
                     None => Ok(TransitionProperty::Unsupported((&*ident).into()))
                 }
             }
-        }
+        }).map_err(|()| BasicParseError::UnexpectedToken(::cssparser::Token::Ident(ident.into())).into())
     }
 
     /// Get a transition property from a property declaration.

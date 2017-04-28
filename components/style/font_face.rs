@@ -12,13 +12,15 @@
 use computed_values::{font_style, font_weight, font_stretch};
 use computed_values::font_family::FamilyName;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
-use error_reporting::ParseError;
+use cssparser::{Token, BasicParseError};
+use error_reporting::ContextualParseError;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::CSSFontFaceDescriptors;
 #[cfg(feature = "gecko")] use cssparser::UnicodeRange;
 use parser::{ParserContext, log_css_error, Parse};
+use selectors::parser::SelectorParseError;
 use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt;
-use style_traits::{ToCss, OneOrMoreCommaSeparated};
+use style_traits::{ToCss, OneOrMoreCommaSeparated, ParseError, StyleParseError};
 use values::specified::url::SpecifiedUrl;
 
 /// A source for a font-face rule.
@@ -84,9 +86,10 @@ pub fn parse_font_face_block(context: &ParserContext, input: &mut Parser) -> Fon
         };
         let mut iter = DeclarationListParser::new(input, parser);
         while let Some(declaration) = iter.next() {
-            if let Err(range) = declaration {
-                let pos = range.start;
-                let error = ParseError::UnsupportedFontFaceDescriptor(iter.input.slice(range));
+            if let Err(err) = declaration {
+                let pos = err.span.start;
+                let error = ContextualParseError::UnsupportedFontFaceDescriptor(
+                    iter.input.slice(err.span), err.error);
                 log_css_error(iter.input, pos, error, context);
             }
         }
@@ -143,10 +146,12 @@ struct FontFaceRuleParser<'a, 'b: 'a> {
 impl<'a, 'b> AtRuleParser for FontFaceRuleParser<'a, 'b> {
     type Prelude = ();
     type AtRule = ();
+    type Error = SelectorParseError<StyleParseError>;
 }
 
 impl Parse for Source {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Source, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                     -> Result<Source, ParseError<'i>> {
         if input.try(|input| input.expect_function_matching("local")).is_ok() {
             return input.parse_nested_block(|input| {
                 FamilyName::parse(context, input)
@@ -229,8 +234,10 @@ macro_rules! font_face_descriptors_common {
 
        impl<'a, 'b> DeclarationParser for FontFaceRuleParser<'a, 'b> {
             type Declaration = ();
+           type Error = SelectorParseError<StyleParseError>;
 
-            fn parse_value(&mut self, name: &str, input: &mut Parser) -> Result<(), ()> {
+           fn parse_value<'i, 't>(&mut self, name: &str, input: &mut Parser<'i, 't>)
+                                  -> Result<(), ParseError<'i>> {
                 match_ignore_ascii_case! { name,
                     $(
                         $name => {
@@ -242,7 +249,8 @@ macro_rules! font_face_descriptors_common {
                             self.rule.$ident = Some(value)
                         }
                     )*
-                    _ => return Err(())
+                    _ => return Err(BasicParseError::UnexpectedToken(
+                        Token::Ident(name.to_owned().into())).into())
                 }
                 Ok(())
             }

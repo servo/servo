@@ -4,11 +4,11 @@
 
 //! Necessary types for [grid](https://drafts.csswg.org/css-grid/).
 
-use cssparser::{Parser, Token};
+use cssparser::{Parser, Token, BasicParseError};
 use parser::{Parse, ParserContext};
 use std::ascii::AsciiExt;
 use std::fmt;
-use style_traits::ToCss;
+use style_traits::{ToCss, ParseError, StyleParseError};
 use values::{CSSFloat, HasViewportPercentage};
 use values::computed::{ComputedValueAsSpecified, Context, ToComputedValue};
 use values::specified::LengthOrPercentage;
@@ -63,7 +63,7 @@ impl ToCss for GridLine {
 }
 
 impl Parse for GridLine {
-    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         let mut grid_line = Default::default();
         if input.try(|i| i.expect_ident_matching("auto")).is_ok() {
             return Ok(grid_line)
@@ -72,17 +72,17 @@ impl Parse for GridLine {
         for _ in 0..3 {     // Maximum possible entities for <grid-line>
             if input.try(|i| i.expect_ident_matching("span")).is_ok() {
                 if grid_line.is_span {
-                    return Err(())
+                    return Err(BasicParseError::UnexpectedToken(Token::Ident("span".into())).into())
                 }
                 grid_line.is_span = true;
             } else if let Ok(i) = input.try(|i| i.expect_integer()) {
                 if i == 0 || grid_line.integer.is_some() {
-                    return Err(())
+                    return Err(StyleParseError::UnspecifiedError.into())
                 }
                 grid_line.integer = Some(i);
             } else if let Ok(name) = input.try(|i| i.expect_ident()) {
                 if grid_line.ident.is_some() {
-                    return Err(())
+                    return Err(BasicParseError::UnexpectedToken(Token::Ident(name)).into())
                 }
                 grid_line.ident = Some(name.into_owned());
             } else {
@@ -93,7 +93,7 @@ impl Parse for GridLine {
         if grid_line.is_span {
             if let Some(i) = grid_line.integer {
                 if i < 0 {      // disallow negative integers for grid spans
-                    return Err(())
+                    return Err(StyleParseError::UnspecifiedError.into())
                 }
             } else {
                 grid_line.integer = Some(1);
@@ -129,16 +129,16 @@ pub enum TrackBreadth<L> {
 }
 
 /// Parse a single flexible length.
-pub fn parse_flex(input: &mut Parser) -> Result<CSSFloat, ()> {
+pub fn parse_flex<'i, 't>(input: &mut Parser<'i, 't>) -> Result<CSSFloat, ParseError<'i>> {
     match try!(input.next()) {
         Token::Dimension(ref value, ref unit) if unit.eq_ignore_ascii_case("fr") && value.value.is_sign_positive()
             => Ok(value.value),
-        _ => Err(()),
+        t => Err(BasicParseError::UnexpectedToken(t).into()),
     }
 }
 
 impl Parse for TrackBreadth<LengthOrPercentage> {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         if let Ok(lop) = input.try(|i| LengthOrPercentage::parse_non_negative(context, i)) {
             return Ok(TrackBreadth::Breadth(lop))
         }
@@ -222,7 +222,7 @@ impl<L> Default for TrackSize<L> {
 }
 
 impl Parse for TrackSize<LengthOrPercentage> {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         if let Ok(b) = input.try(|i| TrackBreadth::parse(context, i)) {
             return Ok(TrackSize::Breadth(b))
         }

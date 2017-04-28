@@ -4,7 +4,7 @@
 
 //! Gecko-specific bits for selector-parsing.
 
-use cssparser::{Parser, ToCss};
+use cssparser::{Parser, ToCss, BasicParseError, Token};
 use element_state::ElementState;
 use gecko_bindings::structs::CSSPseudoClassType;
 use gecko_bindings::structs::nsIAtom;
@@ -15,6 +15,7 @@ use std::borrow::Cow;
 use std::fmt;
 use std::ptr;
 use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
+use style_traits::{ParseError, StyleParseError};
 
 /// A representation of a CSS pseudo-element.
 ///
@@ -389,14 +390,16 @@ impl ::selectors::SelectorImpl for SelectorImpl {
 
 impl<'a> ::selectors::Parser for SelectorParser<'a> {
     type Impl = SelectorImpl;
+    type Error = StyleParseError;
 
-    fn parse_non_ts_pseudo_class(&self, name: Cow<str>) -> Result<NonTSPseudoClass, ()> {
+    fn parse_non_ts_pseudo_class<'i>(&self, name: Cow<'i, str>)
+                                     -> Result<NonTSPseudoClass, ParseError<'i>> {
         macro_rules! pseudo_class_parse {
             (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
              string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*]) => {
                 match_ignore_ascii_case! { &name,
                     $($css => NonTSPseudoClass::$name,)*
-                    _ => return Err(())
+                    _ => return Err(BasicParseError::UnexpectedToken(Token::Ident(name.clone())).into())
                 }
             }
         }
@@ -404,14 +407,14 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
         if !pseudo_class.is_internal() || self.in_user_agent_stylesheet() {
             Ok(pseudo_class)
         } else {
-            Err(())
+            Err(BasicParseError::UnexpectedToken(Token::Ident(name)).into())
         }
     }
 
-    fn parse_non_ts_functional_pseudo_class(&self,
-                                            name: Cow<str>,
-                                            parser: &mut Parser)
-                                            -> Result<NonTSPseudoClass, ()> {
+    fn parse_non_ts_functional_pseudo_class<'i, 't>(&self,
+                                                    name: Cow<'i, str>,
+                                                    parser: &mut Parser<'i, 't>)
+                                                    -> Result<NonTSPseudoClass, ParseError<'i>> {
         macro_rules! pseudo_class_string_parse {
             (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
              string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*]) => {
@@ -429,11 +432,11 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
                         })?;
                         // Selectors inside `:-moz-any` may not include combinators.
                         if selectors.iter().flat_map(|x| x.iter_raw()).any(|s| s.is_combinator()) {
-                            return Err(())
+                            return Err(BasicParseError::UnexpectedToken(Token::Ident("-moz-any".into())).into())
                         }
                         NonTSPseudoClass::MozAny(selectors.into_boxed_slice())
                     }
-                    _ => return Err(())
+                    _ => return Err(BasicParseError::UnexpectedToken(Token::Ident(name.clone())).into())
                 }
             }
         }
@@ -441,14 +444,14 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
         if !pseudo_class.is_internal() || self.in_user_agent_stylesheet() {
             Ok(pseudo_class)
         } else {
-            Err(())
+            Err(BasicParseError::UnexpectedToken(Token::Ident(name)).into())
         }
     }
 
-    fn parse_pseudo_element(&self, name: Cow<str>) -> Result<PseudoElement, ()> {
+    fn parse_pseudo_element<'i>(&self, name: Cow<'i, str>) -> Result<PseudoElement, ParseError<'i>> {
         match PseudoElement::from_slice(&name, self.in_user_agent_stylesheet()) {
             Some(pseudo) => Ok(pseudo),
-            None => Err(()),
+            None => Err(BasicParseError::UnexpectedToken(Token::Ident(name.clone())).into()),
         }
     }
 

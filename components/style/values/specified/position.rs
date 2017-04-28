@@ -12,6 +12,7 @@ use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use properties::longhands::parse_origin;
 use std::mem;
+use style_traits::{ParseError, StyleParseError};
 use values::Either;
 use values::computed::{CalcLengthOrPercentage, Context};
 use values::computed::{LengthOrPercentage as ComputedLengthOrPercentage, ToComputedValue};
@@ -30,10 +31,10 @@ pub type Position = PositionWithKeyword<PositionValue<LengthOrPercentage>>;
 pub type OriginPosition = GenericPosition<LengthOrPercentage, LengthOrPercentage>;
 
 impl Parse for OriginPosition {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         let result = parse_origin(context, input)?;
         match result.depth {
-            Some(_) => Err(()),
+            Some(_) => Err(StyleParseError::UnspecifiedError.into()),
             None => Ok(GenericPosition {
                 horizontal: result.horizontal.unwrap_or(LengthOrPercentage::Percentage(Percentage(0.5))),
                 vertical: result.vertical.unwrap_or(LengthOrPercentage::Percentage(Percentage(0.5))),
@@ -131,17 +132,17 @@ impl Position {
 }
 
 impl Parse for Position {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         Position::parse_quirky(context, input, AllowQuirks::No)
     }
 }
 
 impl Position {
     /// Parses, with quirks.
-    pub fn parse_quirky(context: &ParserContext,
-                        input: &mut Parser,
-                        allow_quirks: AllowQuirks)
-                        -> Result<Self, ()> {
+    pub fn parse_quirky<'i, 't>(context: &ParserContext,
+                                input: &mut Parser<'i, 't>,
+                                allow_quirks: AllowQuirks)
+                                -> Result<Self, ParseError<'i>> {
         let first = input.try(|i| PositionComponent::parse_quirky(context, i, allow_quirks))?;
         let second = input.try(|i| PositionComponent::parse_quirky(context, i, allow_quirks))
                           .unwrap_or(Either::Second(Keyword::Center));
@@ -154,7 +155,8 @@ impl Position {
             } else {
                 // For 3 value background position, there are several options.
                 if let Either::First(_) = first {
-                    return Err(())      // <length-percentage> must be preceded by <keyword>
+                    // <length-percentage> must be preceded by <keyword>
+                    return Err(StyleParseError::UnspecifiedError.into())
                 }
 
                 // only 3 values.
@@ -179,18 +181,18 @@ impl Position {
                 (&Either::Second(_), &Either::Second(_)) =>
                     Position::from_components(None, None, Some(first), Some(second)),
             }
-        }
+        }.map_err(|()| StyleParseError::UnspecifiedError.into())
     }
 }
 
 impl PositionComponent {
     /// Parses, with quirks.
-    fn parse_quirky(context: &ParserContext,
-                    input: &mut Parser,
-                    allow_quirks: AllowQuirks) -> Result<Self, ()> {
+    fn parse_quirky<'i, 't>(context: &ParserContext,
+                            input: &mut Parser<'i, 't>,
+                            allow_quirks: AllowQuirks) -> Result<Self, ParseError<'i>> {
         input.try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks))
             .map(Either::First)
-            .or_else(|()| input.try(Keyword::parse).map(Either::Second))
+            .or_else(|_| input.try(Keyword::parse).map(Either::Second))
     }
 }
 

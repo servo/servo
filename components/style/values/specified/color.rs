@@ -12,21 +12,22 @@ mod servo {
     pub use cssparser::Color;
     use cssparser::Parser;
     use parser::{Parse, ParserContext};
+    use style_traits::ParseError;
 
     impl Parse for Color {
-        fn parse(_: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-            Color::parse(input)
+        fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+            Color::parse(input).map_err(|e| e.into())
         }
     }
 }
 
 #[cfg(feature = "gecko")]
 mod gecko {
-    use cssparser::{Color as CSSParserColor, Parser, RGBA};
+    use cssparser::{Color as CSSParserColor, Parser, RGBA, BasicParseError, Token};
     use parser::{Parse, ParserContext};
     use properties::longhands::color::SystemColor;
     use std::fmt;
-    use style_traits::ToCss;
+    use style_traits::{ToCss, ParseError};
     use values::HasViewportPercentage;
 
     /// Color value including non-standard -moz prefixed values.
@@ -55,7 +56,7 @@ mod gecko {
     no_viewport_percentage!(Color);
 
     impl Parse for Color {
-        fn parse(_: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
             if let Ok(value) = input.try(CSSParserColor::parse) {
                 match value {
                     CSSParserColor::CurrentColor => Ok(Color::CurrentColor),
@@ -65,14 +66,14 @@ mod gecko {
                 Ok(Color::System(system))
             } else {
                 let ident = input.expect_ident()?;
-                match_ignore_ascii_case! { &ident,
+                (match_ignore_ascii_case! { &ident,
                     "-moz-default-color" => Ok(Color::MozDefaultColor),
                     "-moz-default-background-color" => Ok(Color::MozDefaultBackgroundColor),
                     "-moz-hyperlinktext" => Ok(Color::MozHyperlinktext),
                     "-moz-activehyperlinktext" => Ok(Color::MozActiveHyperlinktext),
                     "-moz-visitedhyperlinktext" => Ok(Color::MozVisitedHyperlinktext),
                     _ => Err(())
-                }
+                }).map_err(|()| BasicParseError::UnexpectedToken(Token::Ident(ident)).into())
             }
         }
     }

@@ -9,10 +9,11 @@
 use context::QuirksMode;
 use cssparser::{DeclarationListParser, parse_important};
 use cssparser::{Parser, AtRuleParser, DeclarationParser, Delimiter};
-use error_reporting::{ParseErrorReporter, ParseError};
+use error_reporting::{ParseErrorReporter, ContextualParseError};
 use parser::{LengthParsingMode, ParserContext, log_css_error};
+use selectors::parser::SelectorParseError;
 use std::fmt;
-use style_traits::ToCss;
+use style_traits::{ToCss, ParseError, StyleParseError};
 use stylesheets::{CssRuleType, Origin, UrlExtraData};
 use super::*;
 #[cfg(feature = "gecko")] use properties::animated_properties::AnimationValueMap;
@@ -674,8 +675,8 @@ pub fn parse_one_declaration(id: PropertyId,
                                      quirks_mode);
     Parser::new(input).parse_entirely(|parser| {
         ParsedDeclaration::parse(id, &context, parser)
-            .map_err(|_| ())
-    })
+            .map_err(|e| e.into())
+    }).map_err(|_| ())
 }
 
 /// A struct to parse property declarations.
@@ -688,26 +689,27 @@ struct PropertyDeclarationParser<'a, 'b: 'a> {
 impl<'a, 'b> AtRuleParser for PropertyDeclarationParser<'a, 'b> {
     type Prelude = ();
     type AtRule = (ParsedDeclaration, Importance);
+    type Error = SelectorParseError<StyleParseError>;
 }
 
 
 impl<'a, 'b> DeclarationParser for PropertyDeclarationParser<'a, 'b> {
     type Declaration = (ParsedDeclaration, Importance);
+    type Error = SelectorParseError<StyleParseError>;
 
-    fn parse_value(&mut self, name: &str, input: &mut Parser)
-                   -> Result<(ParsedDeclaration, Importance), ()> {
-        let id = try!(PropertyId::parse(name.into()));
+    fn parse_value<'i, 't>(&mut self, name: &str, input: &mut Parser<'i, 't>)
+                   -> Result<(ParsedDeclaration, Importance), ParseError<'i>> {
+        let id = try!(PropertyId::parse(name.to_owned().into()));
         let parsed = input.parse_until_before(Delimiter::Bang, |input| {
-            ParsedDeclaration::parse(id, self.context, input)
-                .map_err(|_| ())
+            ParsedDeclaration::parse(id, self.context, input).map_err(|e| e.into())
         })?;
         let importance = match input.try(parse_important) {
             Ok(()) => Importance::Important,
-            Err(()) => Importance::Normal,
+            Err(_) => Importance::Normal,
         };
         // In case there is still unparsed text in the declaration, we should roll back.
         if !input.is_exhausted() {
-            return Err(())
+            return Err(StyleParseError::PropertyDeclarationValueNotExhausted.into())
         }
         Ok((parsed, importance))
     }
@@ -727,9 +729,10 @@ pub fn parse_property_declaration_list(context: &ParserContext,
     while let Some(declaration) = iter.next() {
         match declaration {
             Ok((parsed, importance)) => parsed.expand_push_into(&mut block, importance),
-            Err(range) => {
-                let pos = range.start;
-                let error = ParseError::UnsupportedPropertyDeclaration(iter.input.slice(range));
+            Err(err) => {
+                let pos = err.span.start;
+                let error = ContextualParseError::UnsupportedPropertyDeclaration(
+                    iter.input.slice(err.span), err.error);
                 log_css_error(iter.input, pos, error, &context);
             }
         }

@@ -13,3 +13,6 @@ opt-level = 3
 # Uncomment to profile on Linux:
 # debug = true
 # lto = false
+
+[replace]
+"cssparser:0.13.1" = { git = 'https://github.com/jdm/rust-cssparser', branch = 'parseerror' }

@@ -73,7 +73,8 @@ ${helpers.predefined_type("opacity",
         }
     }
 
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<specified::Shadow, ()> {
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<specified::Shadow, ParseError<'i>> {
         specified::Shadow::parse(context, input, false)
     }
 </%helpers:vector_longhand>
@@ -324,7 +325,8 @@ ${helpers.predefined_type("clip",
         computed_value::T::new(Vec::new())
     }
 
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         let mut filters = Vec::new();
         if input.try(|input| input.expect_ident_matching("none")).is_ok() {
             return Ok(SpecifiedValue(filters))
@@ -351,23 +353,25 @@ ${helpers.predefined_type("clip",
                         "drop-shadow" => specified::Shadow::parse(context, input, true)
                                              .map(SpecifiedFilter::DropShadow),
                         % endif
-                        _ => Err(())
+                        _ => Err(BasicParseError::UnexpectedToken(
+                            cssparser::Token::Function(function_name.clone())).into())
                     }
                 })));
             } else if filters.is_empty() {
-                return Err(())
+                return Err(StyleParseError::UnspecifiedError.into())
             } else {
                 return Ok(SpecifiedValue(filters))
             }
         }
     }
 
-    fn parse_factor(input: &mut Parser) -> Result<::values::CSSFloat, ()> {
+    fn parse_factor<'i, 't>(input: &mut Parser<'i, 't>) -> Result<::values::CSSFloat, ParseError<'i>> {
         use cssparser::Token;
         match input.next() {
             Ok(Token::Number(value)) if value.value.is_sign_positive() => Ok(value.value),
             Ok(Token::Percentage(value)) if value.unit_value.is_sign_positive() => Ok(value.unit_value),
-            _ => Err(())
+            Ok(t) => Err(BasicParseError::UnexpectedToken(t).into()),
+            Err(e) => Err(e.into())
         }
     }
 
@@ -440,11 +444,14 @@ pub struct OriginParseResult {
     pub depth: Option<specified::NoCalcLength>
 }
 
-pub fn parse_origin(context: &ParserContext, input: &mut Parser) -> Result<OriginParseResult,()> {
+pub fn parse_origin<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                            -> Result<OriginParseResult,::style_traits::ParseError<'i>> {
+    use cssparser::{Token, BasicParseError, ParseError as CssParseError};
+    use style_traits::{ParseError, StyleParseError};
     use values::specified::{LengthOrPercentage, Percentage};
     let (mut horizontal, mut vertical, mut depth, mut horizontal_is_center) = (None, None, None, false);
     loop {
-        if let Err(_) = input.try(|input| {
+        let result: Result<_, ParseError> = input.try(|input| {
             let token = try!(input.expect_ident());
             match_ignore_ascii_case! {
                 &token,
@@ -455,7 +462,8 @@ pub fn parse_origin(context: &ParserContext, input: &mut Parser) -> Result<Origi
                         vertical = Some(LengthOrPercentage::Percentage(Percentage(0.5)));
                         horizontal = Some(LengthOrPercentage::Percentage(Percentage(0.0)));
                     } else {
-                        return Err(())
+                        return Err(CssParseError::Basic(BasicParseError::UnexpectedToken(
+                            Token::Ident("left".into()))))
                     }
                 },
                 "center" => {
@@ -465,7 +473,8 @@ pub fn parse_origin(context: &ParserContext, input: &mut Parser) -> Result<Origi
                     } else if vertical.is_none() {
                         vertical = Some(LengthOrPercentage::Percentage(Percentage(0.5)))
                     } else {
-                        return Err(())
+                        return Err(CssParseError::Basic(BasicParseError::UnexpectedToken(
+                            Token::Ident("center".into()))))
                     }
                 },
                 "right" => {
@@ -475,27 +484,28 @@ pub fn parse_origin(context: &ParserContext, input: &mut Parser) -> Result<Origi
                         vertical = Some(LengthOrPercentage::Percentage(Percentage(0.5)));
                         horizontal = Some(LengthOrPercentage::Percentage(Percentage(1.0)));
                     } else {
-                        return Err(())
+                        return Err(CssParseError::Basic(BasicParseError::UnexpectedToken(Token::Ident("right".into()))))
                     }
                 },
                 "top" => {
                     if vertical.is_none() {
                         vertical = Some(LengthOrPercentage::Percentage(Percentage(0.0)))
                     } else {
-                        return Err(())
+                        return Err(CssParseError::Basic(BasicParseError::UnexpectedToken(Token::Ident("top".into()))))
                     }
                 },
                 "bottom" => {
                     if vertical.is_none() {
                         vertical = Some(LengthOrPercentage::Percentage(Percentage(1.0)))
                     } else {
-                        return Err(())
+                        return Err(BasicParseError::UnexpectedToken(Token::Ident("bottom".into())).into())
                     }
                 },
-                _ => return Err(())
+                _ => return Err(BasicParseError::UnexpectedToken(Token::Ident(token.clone())).into())
             }
             Ok(())
-        }) {
+        });
+        if result.is_err() {
             match input.try(|input| LengthOrPercentage::parse(context, input)) {
                 Ok(value) => {
                     if horizontal.is_none() {
@@ -520,7 +530,7 @@ pub fn parse_origin(context: &ParserContext, input: &mut Parser) -> Result<Origi
             depth: depth,
         })
     } else {
-        Err(())
+        Err(StyleParseError::UnspecifiedError.into())
     }
 }
 

@@ -691,7 +691,7 @@ impl Node {
         // Step 1.
         match SelectorParser::parse_author_origin_no_namespace(&selectors) {
             // Step 2.
-            Err(()) => Err(Error::Syntax),
+            Err(_) => Err(Error::Syntax),
             // Step 3.
             Ok(selectors) => {
                 Ok(self.traverse_preorder().filter_map(Root::downcast).find(|element| {
@@ -710,7 +710,7 @@ impl Node {
         // Step 1.
         match SelectorParser::parse_author_origin_no_namespace(&selectors) {
             // Step 2.
-            Err(()) => Err(Error::Syntax),
+            Err(_) => Err(Error::Syntax),
             // Step 3.
             Ok(selectors) => {
                 let mut descendants = self.traverse_preorder();

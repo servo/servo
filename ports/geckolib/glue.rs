@@ -1184,7 +1184,7 @@ macro_rules! get_property_id_from_property {
         let property = unsafe { $property.as_ref().unwrap().as_str_unchecked() };
         match PropertyId::parse(Cow::Borrowed(property)) {
             Ok(property_id) => property_id,
-            Err(()) => { return $ret; }
+            Err(_) => { return $ret; }
         }
     }}
 }

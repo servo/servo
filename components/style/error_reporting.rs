@@ -6,28 +6,30 @@
 
 #![deny(missing_docs)]
 
-use cssparser::{Parser, SourcePosition};
+use cssparser::{Parser, SourcePosition, BasicParseError, Token, NumericValue, PercentageValue};
+use cssparser::ParseError as CssParseError;
 use log;
+use style_traits::ParseError;
 use stylesheets::UrlExtraData;
 
 /// Errors that can be encountered while parsing CSS.
-pub enum ParseError<'a> {
+pub enum ContextualParseError<'a> {
     /// A property declaration was not recognized.
-    UnsupportedPropertyDeclaration(&'a str),
+    UnsupportedPropertyDeclaration(&'a str, ParseError<'a>),
     /// A font face descriptor was not recognized.
-    UnsupportedFontFaceDescriptor(&'a str),
+    UnsupportedFontFaceDescriptor(&'a str, ParseError<'a>),
     /// A keyframe rule was not valid.
-    InvalidKeyframeRule(&'a str),
+    InvalidKeyframeRule(&'a str, ParseError<'a>),
     /// A keyframe property declaration was not recognized.
-    UnsupportedKeyframePropertyDeclaration(&'a str),
+    UnsupportedKeyframePropertyDeclaration(&'a str, ParseError<'a>),
     /// A rule was invalid for some reason.
-    InvalidRule(&'a str),
+    InvalidRule(&'a str, ParseError<'a>),
     /// A rule was not recognized.
-    UnsupportedRule(&'a str),
+    UnsupportedRule(&'a str, ParseError<'a>),
     /// A viewport descriptor declaration was not recognized.
-    UnsupportedViewportDescriptorDeclaration(&'a str),
+    UnsupportedViewportDescriptorDeclaration(&'a str, ParseError<'a>),
     /// A counter style descriptor declaration was not recognized.
-    UnsupportedCounterStyleDescriptorDeclaration(&'a str),
+    UnsupportedCounterStyleDescriptorDeclaration(&'a str, ParseError<'a>),
     /// A counter style rule had no symbols.
     InvalidCounterStyleWithoutSymbols(String),
     /// A counter style rule had less than two symbols.
@@ -40,35 +42,97 @@ pub enum ParseError<'a> {
     InvalidCounterStyleExtendsWithAdditiveSymbols
 }
 
-impl<'a> ParseError<'a> {
+impl<'a> ContextualParseError<'a> {
     /// Turn a parse error into a string representation.
     pub fn to_string(&self) -> String {
+        fn token_to_str(t: &Token) -> String {
+            match *t {
+                Token::Ident(ref i) => format!("identifier {}", i),
+                Token::AtKeyword(ref kw) => format!("keyword @{}", kw),
+                Token::Hash(ref h) => format!("hash #{}", h),
+                Token::IDHash(ref h) => format!("id selector #{}", h),
+                Token::QuotedString(ref s) => format!("quoted string \"{}\"", s),
+                Token::UnquotedUrl(ref u) => format!("url {}", u),
+                Token::Delim(ref d) => format!("delimiter {}", d),
+                Token::Number(NumericValue { int_value: Some(i), .. }) => format!("number {}", i),
+                Token::Number(ref n) => format!("number {}", n.value),
+                Token::Percentage(PercentageValue { int_value: Some(i), .. }) => format!("percentage {}", i),
+                Token::Percentage(ref p) => format!("percentage {}", p.unit_value),
+                Token::Dimension(_, ref d) => format!("dimension {}", d),
+                Token::WhiteSpace(_) => format!("whitespace"),
+                Token::Comment(_) => format!("comment"),
+                Token::Colon => format!("colon (:)"),
+                Token::Semicolon => format!("semicolon (;)"),
+                Token::Comma => format!("comma (,)"),
+                Token::IncludeMatch => format!("include match (~=)"),
+                Token::DashMatch => format!("dash match (|=)"),
+                Token::PrefixMatch => format!("prefix match (^=)"),
+                Token::SuffixMatch => format!("suffix match ($=)"),
+                Token::SubstringMatch => format!("substring match (*=)"),
+                Token::Column => format!("column (||)"),
+                Token::CDO => format!("CDO (<!--)"),
+                Token::CDC => format!("CDC (-->)"),
+                Token::Function(ref f) => format!("function {}", f),
+                Token::ParenthesisBlock => format!("parenthesis ("),
+                Token::SquareBracketBlock => format!("square bracket ["),
+                Token::CurlyBracketBlock => format!("curly bracket {{"),
+                Token::BadUrl => format!("bad url parse error"),
+                Token::BadString => format!("bad string parse error"),
+                Token::CloseParenthesis => format!("unmatched close parenthesis"),
+                Token::CloseSquareBracket => format!("unmatched close square bracket"),
+                Token::CloseCurlyBracket => format!("unmatched close curly bracket"),
+            }
+        }
+
+        fn parse_error_to_str(err: &ParseError) -> String {
+            match *err {
+                CssParseError::Basic(BasicParseError::UnexpectedToken(ref t)) =>
+                    format!("found unexpected {}", token_to_str(t)),
+                CssParseError::Basic(BasicParseError::ExpectedToken(ref t)) =>
+                    format!("expected {}", token_to_str(t)),
+                CssParseError::Basic(BasicParseError::UnexpectedEof) =>
+                    format!("unexpected end of input"),
+                CssParseError::Basic(BasicParseError::AtRuleInvalid) =>
+                    format!("@ rule invalid"),
+                CssParseError::Basic(BasicParseError::QualifiedRuleInvalid) =>
+                    format!("qualified rule invalid"),
+                CssParseError::Custom(ref err) =>
+                    format!("{:?}", err)
+            }
+        }
+
         match *self {
-            ParseError::UnsupportedPropertyDeclaration(decl) =>
-                format!("Unsupported property declaration: '{}'", decl),
-            ParseError::UnsupportedFontFaceDescriptor(decl) =>
-                format!("Unsupported @font-face descriptor declaration: '{}'", decl),
-            ParseError::InvalidKeyframeRule(rule) =>
-                format!("Invalid keyframe rule: '{}'", rule),
-            ParseError::UnsupportedKeyframePropertyDeclaration(decl) =>
-                format!("Unsupported keyframe property declaration: '{}'", decl),
-            ParseError::InvalidRule(rule) =>
-                format!("Invalid rule: '{}'", rule),
-            ParseError::UnsupportedRule(rule) =>
-                format!("Unsupported rule: '{}'", rule),
-            ParseError::UnsupportedViewportDescriptorDeclaration(decl) =>
-                format!("Unsupported @viewport descriptor declaration: '{}'", decl),
-            ParseError::UnsupportedCounterStyleDescriptorDeclaration(decl) =>
-                format!("Unsupported @counter-style descriptor declaration: '{}'", decl),
-            ParseError::InvalidCounterStyleWithoutSymbols(ref system) =>
+            ContextualParseError::UnsupportedPropertyDeclaration(decl, ref err) =>
+                format!("Unsupported property declaration: '{}', {}", decl,
+                        parse_error_to_str(err)),
+            ContextualParseError::UnsupportedFontFaceDescriptor(decl, ref err) =>
+                format!("Unsupported @font-face descriptor declaration: '{}', {}", decl,
+                        parse_error_to_str(err)),
+            ContextualParseError::InvalidKeyframeRule(rule, ref err) =>
+                format!("Invalid keyframe rule: '{}', {}", rule,
+                        parse_error_to_str(err)),
+            ContextualParseError::UnsupportedKeyframePropertyDeclaration(decl, ref err) =>
+                format!("Unsupported keyframe property declaration: '{}', {}", decl,
+                        parse_error_to_str(err)),
+            ContextualParseError::InvalidRule(rule, ref err) =>
+                format!("Invalid rule: '{}', {}", rule, parse_error_to_str(err)),
+            ContextualParseError::UnsupportedRule(rule, ref err) =>
+                format!("Unsupported rule: '{}', {}", rule, parse_error_to_str(err)),
+            ContextualParseError::UnsupportedViewportDescriptorDeclaration(decl, ref err) =>
+                format!("Unsupported @viewport descriptor declaration: '{}', {}", decl,
+                        parse_error_to_str(err)),
+            ContextualParseError::UnsupportedCounterStyleDescriptorDeclaration(decl, ref err) =>
+                format!("Unsupported @counter-style descriptor declaration: '{}', {}", decl,
+                        parse_error_to_str(err)),
+            ContextualParseError::InvalidCounterStyleWithoutSymbols(ref system) =>
                 format!("Invalid @counter-style rule: 'system: {}' without 'symbols'", system),
-            ParseError::InvalidCounterStyleNotEnoughSymbols(ref system) =>
+            ContextualParseError::InvalidCounterStyleNotEnoughSymbols(ref system) =>
                 format!("Invalid @counter-style rule: 'system: {}' less than two 'symbols'", system),
-            ParseError::InvalidCounterStyleWithoutAdditiveSymbols =>
+            ContextualParseError::InvalidCounterStyleWithoutAdditiveSymbols =>
                 "Invalid @counter-style rule: 'system: additive' without 'additive-symbols'".into(),
-            ParseError::InvalidCounterStyleExtendsWithSymbols =>
+            ContextualParseError::InvalidCounterStyleExtendsWithSymbols =>
                 "Invalid @counter-style rule: 'system: extends …' with 'symbols'".into(),
-            ParseError::InvalidCounterStyleExtendsWithAdditiveSymbols =>
+            ContextualParseError::InvalidCounterStyleExtendsWithAdditiveSymbols =>
                 "Invalid @counter-style rule: 'system: extends …' with 'additive-symbols'".into(),
         }
     }
@@ -83,7 +147,7 @@ pub trait ParseErrorReporter : Sync {
     fn report_error<'a>(&self,
                         input: &mut Parser,
                         position: SourcePosition,
-                        error: ParseError<'a>,
+                        error: ContextualParseError<'a>,
                         url: &UrlExtraData,
                         line_number_offset: u64);
 }
@@ -100,7 +164,7 @@ impl ParseErrorReporter for RustLogReporter {
     fn report_error<'a>(&self,
                         input: &mut Parser,
                         position: SourcePosition,
-                        error: ParseError<'a>,
+                        error: ContextualParseError<'a>,
                         url: &UrlExtraData,
                         line_number_offset: u64) {
         if log_enabled!(log::LogLevel::Info) {
@@ -118,7 +182,7 @@ impl ParseErrorReporter for NullReporter {
     fn report_error<'a>(&self,
             _: &mut Parser,
             _: SourcePosition,
-            _: ParseError<'a>,
+            _: ContextualParseError<'a>,
             _: &UrlExtraData,
             _: u64) {
         // do nothing

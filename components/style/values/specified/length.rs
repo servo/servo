@@ -7,14 +7,14 @@
 //! [length]: https://drafts.csswg.org/css-values/#lengths
 
 use app_units::Au;
-use cssparser::{Parser, Token};
+use cssparser::{Parser, Token, BasicParseError};
 use euclid::size::Size2D;
 use font_metrics::FontMetricsQueryResult;
 use parser::{Parse, ParserContext};
 use std::{cmp, fmt, mem};
 use std::ascii::AsciiExt;
 use std::ops::Mul;
-use style_traits::ToCss;
+use style_traits::{ToCss, ParseError, StyleParseError};
 use style_traits::values::specified::AllowedLengthType;
 use stylesheets::CssRuleType;
 use super::{AllowQuirks, Number, ToComputedValue};
@@ -453,7 +453,8 @@ impl Mul<CSSFloat> for NoCalcLength {
 
 impl NoCalcLength {
     /// Parse a given absolute or relative dimension.
-    pub fn parse_dimension(context: &ParserContext, value: CSSFloat, unit: &str) -> Result<NoCalcLength, ()> {
+    pub fn parse_dimension(context: &ParserContext, value: CSSFloat, unit: &str)
+                           -> Result<NoCalcLength, ()> {
         let in_page_rule = context.rule_type.map_or(false, |rule_type| rule_type == CssRuleType::Page);
         match_ignore_ascii_case! { unit,
             "px" => Ok(NoCalcLength::Absolute(AbsoluteLength::Px(value))),
@@ -617,49 +618,52 @@ impl Length {
     }
 
     /// Parse a given absolute or relative dimension.
-    pub fn parse_dimension(context: &ParserContext, value: CSSFloat, unit: &str) -> Result<Length, ()> {
+    pub fn parse_dimension(context: &ParserContext, value: CSSFloat, unit: &str)
+                           -> Result<Length, ()> {
         NoCalcLength::parse_dimension(context, value, unit).map(Length::NoCalc)
     }
 
     #[inline]
-    fn parse_internal(context: &ParserContext,
-                      input: &mut Parser,
-                      num_context: AllowedLengthType,
-                      allow_quirks: AllowQuirks)
-                      -> Result<Length, ()> {
-        match try!(input.next()) {
+    fn parse_internal<'i, 't>(context: &ParserContext,
+                              input: &mut Parser<'i, 't>,
+                              num_context: AllowedLengthType,
+                              allow_quirks: AllowQuirks)
+                              -> Result<Length, ParseError<'i>> {
+        let token = try!(input.next());
+        match token {
             Token::Dimension(ref value, ref unit) if num_context.is_ok(value.value) =>
                 Length::parse_dimension(context, value.value, unit),
             Token::Number(ref value) if num_context.is_ok(value.value) => {
                 if value.value != 0. && !context.length_parsing_mode.allows_unitless_lengths() &&
                    !allow_quirks.allowed(context.quirks_mode) {
-                    return Err(())
+                    return Err(StyleParseError::UnspecifiedError.into())
                 }
                 Ok(Length::NoCalc(NoCalcLength::Absolute(AbsoluteLength::Px(value.value))))
             },
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") =>
-                input.parse_nested_block(|input| {
+                return input.parse_nested_block(|input| {
                     CalcNode::parse_length(context, input)
                         .map(|calc| {
                             Length::Calc(num_context, Box::new(calc))
                         })
                 }),
             _ => Err(())
-        }
+        }.map_err(|()| BasicParseError::UnexpectedToken(token).into())
     }
 
     /// Parse a non-negative length
     #[inline]
-    pub fn parse_non_negative(context: &ParserContext, input: &mut Parser) -> Result<Length, ()> {
+    pub fn parse_non_negative<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                      -> Result<Length, ParseError<'i>> {
         Self::parse_non_negative_quirky(context, input, AllowQuirks::No)
     }
 
     /// Parse a non-negative length, allowing quirks.
     #[inline]
-    pub fn parse_non_negative_quirky(context: &ParserContext,
-                                     input: &mut Parser,
-                                     allow_quirks: AllowQuirks)
-                                     -> Result<Length, ()> {
+    pub fn parse_non_negative_quirky<'i, 't>(context: &ParserContext,
+                                             input: &mut Parser<'i, 't>,
+                                             allow_quirks: AllowQuirks)
+                                             -> Result<Length, ParseError<'i>> {
         Self::parse_internal(context, input, AllowedLengthType::NonNegative, allow_quirks)
     }
 
@@ -679,17 +683,17 @@ impl Length {
 }
 
 impl Parse for Length {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         Self::parse_quirky(context, input, AllowQuirks::No)
     }
 }
 
 impl Length {
     /// Parses a length, with quirks.
-    pub fn parse_quirky(context: &ParserContext,
-                        input: &mut Parser,
-                        allow_quirks: AllowQuirks)
-                        -> Result<Self, ()> {
+    pub fn parse_quirky<'i, 't>(context: &ParserContext,
+                                input: &mut Parser<'i, 't>,
+                                allow_quirks: AllowQuirks)
+                                -> Result<Self, ParseError<'i>> {
         Self::parse_internal(context, input, AllowedLengthType::All, allow_quirks)
     }
 }
@@ -697,7 +701,8 @@ impl Length {
 impl<T: Parse> Either<Length, T> {
     /// Parse a non-negative length
     #[inline]
-    pub fn parse_non_negative_length(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    pub fn parse_non_negative_length<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                             -> Result<Self, ParseError<'i>> {
         if let Ok(v) = input.try(|input| T::parse(context, input)) {
             return Ok(Either::Second(v));
         }
@@ -731,24 +736,25 @@ impl ToCss for Percentage {
 }
 
 impl Percentage {
-    fn parse_internal(input: &mut Parser, context: AllowedLengthType) -> Result<Self, ()> {
+    fn parse_internal<'i, 't>(input: &mut Parser<'i, 't>, context: AllowedLengthType)
+                              -> Result<Self, ParseError<'i>> {
         match try!(input.next()) {
             Token::Percentage(ref value) if context.is_ok(value.unit_value) => {
                 Ok(Percentage(value.unit_value))
             }
-            _ => Err(())
+            t => Err(BasicParseError::UnexpectedToken(t).into())
         }
     }
 
     /// Parses a percentage token, but rejects it if it's negative.
-    pub fn parse_non_negative(input: &mut Parser) -> Result<Self, ()> {
+    pub fn parse_non_negative<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         Self::parse_internal(input, AllowedLengthType::NonNegative)
     }
 }
 
 impl Parse for Percentage {
     #[inline]
-    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         Self::parse_internal(input, AllowedLengthType::All)
     }
 }
@@ -815,13 +821,14 @@ impl LengthOrPercentage {
         LengthOrPercentage::Length(NoCalcLength::zero())
     }
 
-    fn parse_internal(context: &ParserContext,
-                      input: &mut Parser,
-                      num_context: AllowedLengthType,
-                      allow_quirks: AllowQuirks)
-                      -> Result<LengthOrPercentage, ()>
+    fn parse_internal<'i, 't>(context: &ParserContext,
+                              input: &mut Parser<'i, 't>,
+                              num_context: AllowedLengthType,
+                              allow_quirks: AllowQuirks)
+                              -> Result<LengthOrPercentage, ParseError<'i>>
     {
-        match try!(input.next()) {
+        let token = try!(input.next());
+        match token {
             Token::Dimension(ref value, ref unit) if num_context.is_ok(value.value) =>
                 NoCalcLength::parse_dimension(context, value.value, unit).map(LengthOrPercentage::Length),
             Token::Percentage(ref value) if num_context.is_ok(value.unit_value) =>
@@ -836,28 +843,30 @@ impl LengthOrPercentage {
                 Ok(LengthOrPercentage::Calc(Box::new(calc)))
             },
             _ => Err(())
-        }
+        }.map_err(|()| BasicParseError::UnexpectedToken(token).into())
     }
 
     /// Parse a non-negative length.
     #[inline]
-    pub fn parse_non_negative(context: &ParserContext, input: &mut Parser) -> Result<LengthOrPercentage, ()> {
+    pub fn parse_non_negative<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                      -> Result<LengthOrPercentage, ParseError<'i>> {
         Self::parse_non_negative_quirky(context, input, AllowQuirks::No)
     }
 
     /// Parse a non-negative length, with quirks.
     #[inline]
-    pub fn parse_non_negative_quirky(context: &ParserContext,
-                                     input: &mut Parser,
-                                     allow_quirks: AllowQuirks)
-                                     -> Result<LengthOrPercentage, ()> {
+    pub fn parse_non_negative_quirky<'i, 't>(context: &ParserContext,
+                                             input: &mut Parser<'i, 't>,
+                                             allow_quirks: AllowQuirks)
+                                             -> Result<LengthOrPercentage, ParseError<'i>> {
         Self::parse_internal(context, input, AllowedLengthType::NonNegative, allow_quirks)
     }
 
     /// Parse a length, treating dimensionless numbers as pixels
     ///
     /// https://www.w3.org/TR/SVG2/types.html#presentation-attribute-css-value
-    pub fn parse_numbers_are_pixels(context: &ParserContext, input: &mut Parser) -> Result<LengthOrPercentage, ()> {
+    pub fn parse_numbers_are_pixels<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                            -> Result<LengthOrPercentage, ParseError<'i>> {
         if let Ok(lop) = input.try(|i| Self::parse(context, i)) {
             return Ok(lop)
         }
@@ -871,9 +880,9 @@ impl LengthOrPercentage {
     /// Parse a non-negative length, treating dimensionless numbers as pixels
     ///
     /// This is nonstandard behavior used by Firefox for SVG
-    pub fn parse_numbers_are_pixels_non_negative(context: &ParserContext,
-                                                 input: &mut Parser)
-                                                 -> Result<LengthOrPercentage, ()> {
+    pub fn parse_numbers_are_pixels_non_negative<'i, 't>(context: &ParserContext,
+                                                         input: &mut Parser<'i, 't>)
+                                                         -> Result<LengthOrPercentage, ParseError<'i>> {
         if let Ok(lop) = input.try(|i| Self::parse_non_negative(context, i)) {
             return Ok(lop)
         }
@@ -884,7 +893,7 @@ impl LengthOrPercentage {
         if num >= 0. {
             Ok(LengthOrPercentage::Length(NoCalcLength::Absolute(AbsoluteLength::Px(num))))
         } else {
-            Err(())
+            Err(StyleParseError::UnspecifiedError.into())
         }
     }
 
@@ -899,7 +908,7 @@ impl LengthOrPercentage {
 
 impl Parse for LengthOrPercentage {
     #[inline]
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         Self::parse_quirky(context, input, AllowQuirks::No)
     }
 }
@@ -908,9 +917,9 @@ impl LengthOrPercentage {
     /// Parses a length or a percentage, allowing the unitless length quirk.
     /// https://quirks.spec.whatwg.org/#the-unitless-length-quirk
     #[inline]
-    pub fn parse_quirky(context: &ParserContext,
-                        input: &mut Parser,
-                        allow_quirks: AllowQuirks) -> Result<Self, ()> {
+    pub fn parse_quirky<'i, 't>(context: &ParserContext,
+                                input: &mut Parser<'i, 't>,
+                                allow_quirks: AllowQuirks) -> Result<Self, ParseError<'i>> {
         Self::parse_internal(context, input, AllowedLengthType::All, allow_quirks)
     }
 }
@@ -962,12 +971,13 @@ impl ToCss for LengthOrPercentageOrAuto {
 }
 
 impl LengthOrPercentageOrAuto {
-    fn parse_internal(context: &ParserContext,
-                      input: &mut Parser,
-                      num_context: AllowedLengthType,
-                      allow_quirks: AllowQuirks)
-                      -> Result<Self, ()> {
-        match try!(input.next()) {
+    fn parse_internal<'i, 't>(context: &ParserContext,
+                              input: &mut Parser<'i, 't>,
+                              num_context: AllowedLengthType,
+                              allow_quirks: AllowQuirks)
+                              -> Result<Self, ParseError<'i>> {
+        let token = try!(input.next());
+        match token {
             Token::Dimension(ref value, ref unit) if num_context.is_ok(value.value) =>
                 NoCalcLength::parse_dimension(context, value.value, unit).map(LengthOrPercentageOrAuto::Length),
             Token::Percentage(ref value) if num_context.is_ok(value.unit_value) =>
@@ -975,7 +985,7 @@ impl LengthOrPercentageOrAuto {
             Token::Number(ref value) if num_context.is_ok(value.value) => {
                 if value.value != 0. && !context.length_parsing_mode.allows_unitless_lengths() &&
                    !allow_quirks.allowed(context.quirks_mode) {
-                    return Err(())
+                    return Err(StyleParseError::UnspecifiedError.into())
                 }
                 Ok(LengthOrPercentageOrAuto::Length(
                     NoCalcLength::Absolute(AbsoluteLength::Px(value.value))
@@ -990,21 +1000,22 @@ impl LengthOrPercentageOrAuto {
                 Ok(LengthOrPercentageOrAuto::Calc(Box::new(calc)))
             },
             _ => Err(())
-        }
+        }.map_err(|()| BasicParseError::UnexpectedToken(token).into())
     }
 
     /// Parse a non-negative length, percentage, or auto.
     #[inline]
-    pub fn parse_non_negative(context: &ParserContext, input: &mut Parser) -> Result<LengthOrPercentageOrAuto, ()> {
+    pub fn parse_non_negative<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                      -> Result<LengthOrPercentageOrAuto, ParseError<'i>> {
         Self::parse_non_negative_quirky(context, input, AllowQuirks::No)
     }
 
     /// Parse a non-negative length, percentage, or auto.
     #[inline]
-    pub fn parse_non_negative_quirky(context: &ParserContext,
-                                     input: &mut Parser,
-                                     allow_quirks: AllowQuirks)
-                                     -> Result<Self, ()> {
+    pub fn parse_non_negative_quirky<'i, 't>(context: &ParserContext,
+                                             input: &mut Parser<'i, 't>,
+                                             allow_quirks: AllowQuirks)
+                                             -> Result<Self, ParseError<'i>> {
         Self::parse_internal(context, input, AllowedLengthType::NonNegative, allow_quirks)
     }
 
@@ -1021,7 +1032,7 @@ impl LengthOrPercentageOrAuto {
 
 impl Parse for LengthOrPercentageOrAuto {
     #[inline]
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         Self::parse_quirky(context, input, AllowQuirks::No)
     }
 }
@@ -1029,10 +1040,10 @@ impl Parse for LengthOrPercentageOrAuto {
 impl LengthOrPercentageOrAuto {
     /// Parses, with quirks.
     #[inline]
-    pub fn parse_quirky(context: &ParserContext,
-                        input: &mut Parser,
-                        allow_quirks: AllowQuirks)
-                        -> Result<Self, ()> {
+    pub fn parse_quirky<'i, 't>(context: &ParserContext,
+                                input: &mut Parser<'i, 't>,
+                                allow_quirks: AllowQuirks)
+                                -> Result<Self, ParseError<'i>> {
         Self::parse_internal(context, input, AllowedLengthType::All, allow_quirks)
     }
 }
@@ -1069,13 +1080,14 @@ impl ToCss for LengthOrPercentageOrNone {
     }
 }
 impl LengthOrPercentageOrNone {
-    fn parse_internal(context: &ParserContext,
-                      input: &mut Parser,
-                      num_context: AllowedLengthType,
-                      allow_quirks: AllowQuirks)
-                      -> Result<LengthOrPercentageOrNone, ()>
+    fn parse_internal<'i, 't>(context: &ParserContext,
+                              input: &mut Parser<'i, 't>,
+                              num_context: AllowedLengthType,
+                              allow_quirks: AllowQuirks)
+                              -> Result<LengthOrPercentageOrNone, ParseError<'i>>
     {
-        match try!(input.next()) {
+        let token = try!(input.next());
+        match token {
             Token::Dimension(ref value, ref unit) if num_context.is_ok(value.value) =>
                 NoCalcLength::parse_dimension(context, value.value, unit).map(LengthOrPercentageOrNone::Length),
             Token::Percentage(ref value) if num_context.is_ok(value.unit_value) =>
@@ -1083,7 +1095,7 @@ impl LengthOrPercentageOrNone {
             Token::Number(value) if num_context.is_ok(value.value) => {
                 if value.value != 0. && !context.length_parsing_mode.allows_unitless_lengths() &&
                    !allow_quirks.allowed(context.quirks_mode) {
-                    return Err(())
+                    return Err(StyleParseError::UnspecifiedError.into())
                 }
                 Ok(LengthOrPercentageOrNone::Length(
                     NoCalcLength::Absolute(AbsoluteLength::Px(value.value))
@@ -1098,28 +1110,29 @@ impl LengthOrPercentageOrNone {
             Token::Ident(ref value) if value.eq_ignore_ascii_case("none") =>
                 Ok(LengthOrPercentageOrNone::None),
             _ => Err(())
-        }
+        }.map_err(|()| BasicParseError::UnexpectedToken(token).into())
     }
 
     /// Parse a non-negative LengthOrPercentageOrNone.
     #[inline]
-    pub fn parse_non_negative(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    pub fn parse_non_negative<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                      -> Result<Self, ParseError<'i>> {
         Self::parse_non_negative_quirky(context, input, AllowQuirks::No)
     }
 
     /// Parse a non-negative LengthOrPercentageOrNone, with quirks.
     #[inline]
-    pub fn parse_non_negative_quirky(context: &ParserContext,
-                                     input: &mut Parser,
-                                     allow_quirks: AllowQuirks)
-                                     -> Result<Self, ()> {
+    pub fn parse_non_negative_quirky<'i, 't>(context: &ParserContext,
+                                             input: &mut Parser<'i, 't>,
+                                             allow_quirks: AllowQuirks)
+                                             -> Result<Self, ParseError<'i>> {
         Self::parse_internal(context, input, AllowedLengthType::NonNegative, allow_quirks)
     }
 }
 
 impl Parse for LengthOrPercentageOrNone {
     #[inline]
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         Self::parse_internal(context, input, AllowedLengthType::All, AllowQuirks::No)
     }
 }
@@ -1152,9 +1165,11 @@ pub enum LengthOrPercentageOrAutoOrContent {
 
 impl LengthOrPercentageOrAutoOrContent {
     /// Parse a non-negative LengthOrPercentageOrAutoOrContent.
-    pub fn parse_non_negative(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    pub fn parse_non_negative<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                      -> Result<Self, ParseError<'i>> {
         let num_context = AllowedLengthType::NonNegative;
-        match try!(input.next()) {
+        let token = try!(input.next());
+        match token {
             Token::Dimension(ref value, ref unit) if num_context.is_ok(value.value) =>
                 NoCalcLength::parse_dimension(context, value.value, unit)
                              .map(LengthOrPercentageOrAutoOrContent::Length),
@@ -1173,7 +1188,7 @@ impl LengthOrPercentageOrAutoOrContent {
                 Ok(LengthOrPercentageOrAutoOrContent::Calc(Box::new(calc)))
             },
             _ => Err(())
-        }
+        }.map_err(|()| BasicParseError::UnexpectedToken(token).into())
     }
 
     /// Returns the `auto` value.
@@ -1214,7 +1229,8 @@ pub type LengthOrNumber = Either<Length, Number>;
 
 impl LengthOrNumber {
     /// Parse a non-negative LengthOrNumber.
-    pub fn parse_non_negative(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    pub fn parse_non_negative<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                      -> Result<Self, ParseError<'i>> {
         // We try to parse as a Number first because, for cases like
         // LengthOrNumber, we want "0" to be parsed as a plain Number rather
         // than a Length (0px); this matches the behaviour of all major browsers
@@ -1261,20 +1277,21 @@ impl ToCss for MinLength {
 }
 
 impl Parse for MinLength {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         MinLength::parse_quirky(context, input, AllowQuirks::No)
     }
 }
 
 impl MinLength {
     /// Parses, with quirks.
-    pub fn parse_quirky(context: &ParserContext,
-                        input: &mut Parser,
-                        allow_quirks: AllowQuirks) -> Result<Self, ()> {
+    pub fn parse_quirky<'i, 't>(context: &ParserContext,
+                                input: &mut Parser<'i, 't>,
+                                allow_quirks: AllowQuirks) -> Result<Self, ParseError<'i>> {
         input.try(ExtremumLength::parse).map(MinLength::ExtremumLength)
-            .or_else(|()| input.try(|i| LengthOrPercentage::parse_non_negative_quirky(context, i, allow_quirks))
+            .or_else(|_| input.try(|i| LengthOrPercentage::parse_non_negative_quirky(context, i, allow_quirks))
                                .map(MinLength::LengthOrPercentage))
-            .or_else(|()| input.expect_ident_matching("auto").map(|()| MinLength::Auto))
+            .or_else(|_| input.expect_ident_matching("auto").map(|()| MinLength::Auto)
+                              .map_err(|e| e.into()))
     }
 }
 
@@ -1311,25 +1328,26 @@ impl ToCss for MaxLength {
 }
 
 impl Parse for MaxLength {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         MaxLength::parse_quirky(context, input, AllowQuirks::No)
     }
 }
 
 impl MaxLength {
     /// Parses, with quirks.
-    pub fn parse_quirky(context: &ParserContext,
-                        input: &mut Parser,
-                        allow_quirks: AllowQuirks) -> Result<Self, ()> {
+    pub fn parse_quirky<'i, 't>(context: &ParserContext,
+                                input: &mut Parser<'i, 't>,
+                                allow_quirks: AllowQuirks) -> Result<Self, ParseError<'i>> {
         input.try(ExtremumLength::parse).map(MaxLength::ExtremumLength)
-            .or_else(|()| input.try(|i| LengthOrPercentage::parse_non_negative_quirky(context, i, allow_quirks))
+            .or_else(|_| input.try(|i| LengthOrPercentage::parse_non_negative_quirky(context, i, allow_quirks))
                                .map(MaxLength::LengthOrPercentage))
-            .or_else(|()| {
-                match_ignore_ascii_case! { &try!(input.expect_ident()),
+            .or_else(|_| {
+                let ident = try!(input.expect_ident());
+                (match_ignore_ascii_case! { &ident,
                     "none" =>
                         Ok(MaxLength::None),
                     _ => Err(())
-                }
+                }).map_err(|()| BasicParseError::UnexpectedToken(Token::Ident(ident)).into())
             })
     }
 }
