@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //! Element nodes.
-
+pub type Atom = :: string_cache :: Atom < AtomStaticSet > ;
 use cssparser::Color;
 use devtools_traits::AttrInfo;
 use dom::activation::Activatable;
@@ -63,6 +63,7 @@ use dom::htmltablerowelement::{HTMLTableRowElement, HTMLTableRowElementLayoutHel
 use dom::htmltablesectionelement::{HTMLTableSectionElement, HTMLTableSectionElementLayoutHelpers};
 use dom::htmltemplateelement::HTMLTemplateElement;
 use dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
+use dom::mutationobserver::Mutation;
 use dom::namednodemap::NamedNodeMap;
 use dom::node::{CLICK_IN_PROGRESS, ChildrenMutation, LayoutNodeHelpers, Node};
 use dom::node::{NodeDamage, SEQUENTIALLY_FOCUSABLE, UnbindContext};
@@ -88,7 +89,9 @@ use script_thread::Runnable;
 use selectors::matching::{ElementSelectorFlags, StyleRelations, matches_selector_list};
 use selectors::matching::{HAS_EDGE_CHILD_SELECTOR, HAS_SLOW_SELECTOR, HAS_SLOW_SELECTOR_LATER_SIBLINGS};
 use selectors::parser::{AttrSelector, NamespaceConstraint};
+use servo_atoms;
 use servo_atoms::Atom;
+use servo_atoms::AtomStaticSet;
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
 use std::cell::{Cell, Ref};
@@ -97,7 +100,9 @@ use std::default::Default;
 use std::fmt;
 use std::rc::Rc;
 use std::sync::Arc;
+//use style::Atom;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
+//use style::attr::AttrValue::Atom;
 use style::context::{QuirksMode, ReflowGoal};
 use style::element_state::*;
 use style::properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock, parse_style_attribute};
@@ -1011,6 +1016,11 @@ impl Element {
         if attr.namespace() == &ns!() {
             vtable_for(self.upcast()).attribute_mutated(attr, AttributeMutation::Set(None));
         }
+
+        let name = <string_cache::atom::Atom<servo_atoms::AtomStaticSet> as Trait>::From::from(attr.name());
+        let namespace = Atom::From::from(attr.namespace());
+        let oldValue = DOMString::from(attr.value());
+        let attributeSpec = Mutation::Attribute{ name, namespace,oldValue, newValue};
     }
 
     pub fn get_attribute(&self, namespace: &Namespace, local_name: &LocalName) -> Option<Root<Attr>> {

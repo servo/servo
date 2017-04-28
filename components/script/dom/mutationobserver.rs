@@ -14,8 +14,10 @@ use dom::mutationrecord::MutationRecord;
 use dom::node::Node;
 use dom::window::Window;
 use dom_struct::dom_struct;
+use html5ever_atoms::Namespace;
 use microtask::Microtask;
 use script_thread::ScriptThread;
+use std::default::Default;
 use std::option::Option;
 use std::rc::Rc;
 
@@ -25,6 +27,11 @@ pub struct MutationObserver {
     #[ignore_heap_size_of = "can't measure Rc values"]
     callback: Rc<MutationCallback>,
     record_queue: Vec<Root<MutationRecord>>,
+}
+
+#[derive(Debug)]
+pub enum Mutation{
+    Attribute {name: Atom, namespace: Namespace, oldValue: DOMString, newValue: DOMString}
 }
 
 impl MutationObserver {
