@@ -509,6 +509,7 @@ pub extern "C" fn Servo_StyleSheet_Empty(mode: SheetParsingMode) -> RawServoStyl
         SheetParsingMode::eAuthorSheetFeatures => Origin::Author,
         SheetParsingMode::eUserSheetFeatures => Origin::User,
         SheetParsingMode::eAgentSheetFeatures => Origin::UserAgent,
+        SheetParsingMode::eSafeAgentSheetFeatures => Origin::UserAgent,
     };
     let shared_lock = global_style_data.shared_lock.clone();
     Arc::new(Stylesheet::from_str(
@@ -533,6 +534,7 @@ pub extern "C" fn Servo_StyleSheet_FromUTF8Bytes(loader: *mut Loader,
         SheetParsingMode::eAuthorSheetFeatures => Origin::Author,
         SheetParsingMode::eUserSheetFeatures => Origin::User,
         SheetParsingMode::eAgentSheetFeatures => Origin::UserAgent,
+        SheetParsingMode::eSafeAgentSheetFeatures => Origin::UserAgent,
     };
 
     let url_data = unsafe { RefPtr::from_ptr_ref(&extra_data) };
