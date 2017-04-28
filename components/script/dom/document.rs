@@ -542,7 +542,7 @@ impl Document {
         self.quirks_mode.set(mode);
 
         if mode == QuirksMode::Quirks {
-            self.window.layout_chan().send(Msg::SetQuirksMode).unwrap();
+            self.window.layout_chan().send(Msg::SetQuirksMode(mode)).unwrap();
         }
     }
 
