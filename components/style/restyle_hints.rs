@@ -18,7 +18,7 @@ use selectors::{Element, MatchAttr};
 use selectors::matching::{ElementSelectorFlags, StyleRelations};
 use selectors::matching::matches_selector;
 use selectors::parser::{AttrSelector, Combinator, Component, Selector};
-use selectors::parser::{SelectorInner, SelectorIter, SelectorMethods};
+use selectors::parser::{SelectorInner, SelectorMethods};
 use selectors::visitor::SelectorVisitor;
 use std::clone::Clone;
 
@@ -482,27 +482,13 @@ struct Dependency {
 /// of them is sensitive to attribute or state changes.
 struct SensitivitiesVisitor {
     sensitivities: Sensitivities,
-    hint: RestyleHint,
 }
 
 impl SelectorVisitor for SensitivitiesVisitor {
     type Impl = SelectorImpl;
-
-    fn visit_complex_selector(&mut self,
-                              _: SelectorIter<SelectorImpl>,
-                              combinator: Option<Combinator>) -> bool {
-        self.hint |= combinator_to_restyle_hint(combinator);
-
-        true
-    }
-
     fn visit_simple_selector(&mut self, s: &Component<SelectorImpl>) -> bool {
         self.sensitivities.states.insert(selector_to_state(s));
-
-        if !self.sensitivities.attrs {
-            self.sensitivities.attrs = is_attr_selector(s);
-        }
-
+        self.sensitivities.attrs |= is_attr_selector(s);
         true
     }
 }
@@ -547,9 +533,9 @@ impl DependencySet {
         while let Some(current) = next.take() {
             // Set up our visitor.
             let mut visitor = SensitivitiesVisitor {
-                sensitivities: Sensitivities::new(),
-                hint: combinator_to_restyle_hint(combinator),
+                sensitivities: Sensitivities::new()
             };
+            let mut hint = combinator_to_restyle_hint(combinator);
 
             if is_pseudo_element {
                 // TODO(emilio): use more fancy restyle hints to avoid restyling
@@ -560,7 +546,7 @@ impl DependencySet {
                 // restyle_descendants to handle all of them (::before and
                 // ::after, because we find them in the subtree, and other lazy
                 // pseudos for the same reason).
-                visitor.hint |= RESTYLE_SELF | RESTYLE_DESCENDANTS;
+                hint |= RESTYLE_SELF | RESTYLE_DESCENDANTS;
                 is_pseudo_element = false;
             }
 
@@ -584,7 +570,7 @@ impl DependencySet {
             if !visitor.sensitivities.is_empty() {
                 self.add_dependency(Dependency {
                     sensitivities: visitor.sensitivities,
-                    hint: visitor.hint,
+                    hint: hint,
                     selector: SelectorInner::new(current),
                 })
             }
