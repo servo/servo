@@ -33,9 +33,9 @@ use std::fmt;
 use style_traits::ToCss;
 use super::ComputedValues;
 use values::CSSFloat;
-use values::{Auto, Either, Normal, generics};
+use values::{Auto, Either, generics};
 use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
-use values::computed::{BorderRadiusSize, ClipRect, LengthOrNone};
+use values::computed::{BorderRadiusSize, ClipRect};
 use values::computed::{CalcLengthOrPercentage, Context, LengthOrPercentage};
 use values::computed::{MaxLength, MinLength};
 use values::computed::position::{HorizontalPosition, VerticalPosition};
@@ -630,20 +630,6 @@ impl Interpolate for Au {
     }
 }
 
-impl Interpolate for Auto {
-    #[inline]
-    fn interpolate(&self, _other: &Self, _progress: f64) -> Result<Self, ()> {
-        Ok(Auto)
-    }
-}
-
-impl Interpolate for Normal {
-    #[inline]
-    fn interpolate(&self, _other: &Self, _progress: f64) -> Result<Self, ()> {
-        Ok(Normal)
-    }
-}
-
 impl <T> Interpolate for Option<T>
     where T: Interpolate,
 {
@@ -1109,16 +1095,6 @@ impl Interpolate for ClipRect {
 
 ${impl_interpolate_for_shadow('BoxShadow', 'CSSParserColor::RGBA(RGBA::transparent())',)}
 ${impl_interpolate_for_shadow('TextShadow', 'CSSParserColor::RGBA(RGBA::transparent())',)}
-
-impl Interpolate for LengthOrNone {
-    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-        match (*self, *other) {
-            (Either::First(ref length), Either::First(ref other)) =>
-                length.interpolate(&other, progress).map(Either::First),
-            _ => Err(()),
-        }
-    }
-}
 
 /// Check if it's possible to do a direct numerical interpolation
 /// between these two transform lists.
@@ -2244,20 +2220,6 @@ impl ComputeDistance for Au {
     }
 }
 
-impl ComputeDistance for Auto {
-    #[inline]
-    fn compute_distance(&self, _other: &Self) -> Result<f64, ()> {
-        Err(())
-    }
-}
-
-impl ComputeDistance for Normal {
-    #[inline]
-    fn compute_distance(&self, _other: &Self) -> Result<f64, ()> {
-        Err(())
-    }
-}
-
 impl <T> ComputeDistance for Option<T>
     where T: ComputeDistance,
 {
@@ -2525,18 +2487,6 @@ impl ComputeDistance for LengthOrPercentageOrNone {
                 this.compute_distance(other)
             },
             _ => Err(())
-        }
-    }
-}
-
-impl ComputeDistance for LengthOrNone {
-    #[inline]
-    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
-        match (*self, *other) {
-            (Either::First(ref length), Either::First(ref other)) => {
-                length.compute_distance(other)
-            },
-            _ => Err(()),
         }
     }
 }
