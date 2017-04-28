@@ -199,6 +199,8 @@ fn element_matches_candidate<E: TElement>(element: &E,
     debug_assert!(data.has_current_styles());
     let current_styles = data.styles();
 
+    debug!("Sharing style between {:?} and {:?}", element, candidate_element);
+
     Ok(current_styles.primary.clone())
 }
 

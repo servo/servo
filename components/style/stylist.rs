@@ -336,20 +336,12 @@ impl Stylist {
                         self.dependencies.note_selector(selector);
 
                         if needs_revalidation(selector) {
-                            // For revalidation, we can skip everything left of the first ancestor
-                            // combinator.
-                            let revalidation_sel = selector.inner.slice_to_first_ancestor_combinator();
+                            // For revalidation, we can skip everything left of
+                            // the first ancestor combinator.
+                            let revalidation_sel =
+                                selector.inner.slice_to_first_ancestor_combinator();
 
-                            // Because of the slicing we do above, we can often end up with
-                            // adjacent duplicate selectors when we have selectors like
-                            // body > foo, td > foo, th > foo, etc. Doing a check for
-                            // adjacent duplicates here reduces the number of revalidation
-                            // selectors for Gecko's UA sheet by 30%.
-                            let duplicate = self.selectors_for_cache_revalidation.last()
-                                                .map_or(false, |x| x.complex == revalidation_sel.complex);
-                            if !duplicate {
-                                self.selectors_for_cache_revalidation.push(revalidation_sel);
-                            }
+                            self.selectors_for_cache_revalidation.push(revalidation_sel);
                         }
                     }
                 }
@@ -844,7 +836,7 @@ impl Stylist {
                                               flags_setter: &mut F)
                                               -> BitVec
         where E: TElement,
-              F: FnMut(&E, ElementSelectorFlags)
+              F: FnMut(&E, ElementSelectorFlags),
     {
         use selectors::matching::StyleRelations;
         use selectors::matching::matches_selector;
@@ -957,8 +949,8 @@ impl SelectorVisitor for RevalidationVisitor {
             Component::OnlyOfType => {
                 false
             },
-            Component::NonTSPseudoClass(ref p) if p.needs_cache_revalidation() => {
-                false
+            Component::NonTSPseudoClass(ref p) => {
+                !p.needs_cache_revalidation()
             },
             _ => {
                 true
@@ -984,8 +976,8 @@ pub fn needs_revalidation(selector: &Selector<SelectorImpl>) -> bool {
     }
 
     // If none of the simple selectors in the rightmost sequence required
-    // revalidaiton, we need revalidation if and only if the combinator is
-    // a sibling combinator.
+    // revalidation, we need revalidation if and only if the combinator is a
+    // sibling combinator.
     iter.next_sequence().map_or(false, |c| c.is_sibling())
 }
 
