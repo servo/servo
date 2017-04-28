@@ -159,7 +159,7 @@ pub struct RequestInit {
     pub redirect_mode: RedirectMode,
     pub integrity_metadata: String,
     // to keep track of redirects
-    pub url_list: Option<Vec<ServoUrl>>,
+    pub url_list: Vec<ServoUrl>,
 }
 
 impl Default for RequestInit {
@@ -184,7 +184,7 @@ impl Default for RequestInit {
             pipeline_id: None,
             redirect_mode: RedirectMode::Follow,
             integrity_metadata: "".to_owned(),
-            url_list: None,
+            url_list: vec![],
         }
     }
 }
@@ -293,7 +293,7 @@ impl Request {
     }
 
     pub fn from_init(init: RequestInit) -> Request {
-        let mut req = Request::new(init.url,
+        let mut req = Request::new(init.url.clone(),
                                    Some(Origin::Origin(init.origin.origin())),
                                    false,
                                    init.pipeline_id);
@@ -317,11 +317,12 @@ impl Request {
         req.referrer_policy = init.referrer_policy;
         req.pipeline_id = init.pipeline_id;
         req.redirect_mode = init.redirect_mode;
-        // use init's url_list only if initialized explicitly
-        if let Some(url_list) = init.url_list {
-            req.redirect_count = url_list.len() as u32;
-            req.url_list = url_list;
-        };
+        let mut url_list = init.url_list;
+        if url_list.is_empty() {
+            url_list.push(init.url);
+        }
+        req.redirect_count = url_list.len() as u32 - 1;
+        req.url_list = url_list;
         req.integrity_metadata = init.integrity_metadata;
         req
     }
