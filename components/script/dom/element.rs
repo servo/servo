@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //! Element nodes.
-pub type Atom = :: string_cache :: Atom < AtomStaticSet > ;
 use cssparser::Color;
 use devtools_traits::AttrInfo;
 use dom::activation::Activatable;
@@ -1017,7 +1016,7 @@ impl Element {
             vtable_for(self.upcast()).attribute_mutated(attr, AttributeMutation::Set(None));
         }
 
-        let name = <string_cache::atom::Atom<servo_atoms::AtomStaticSet> as Trait>::From::from(attr.name());
+        let name = Atom::From::from(attr.local_name().to_string());
         let namespace = Atom::From::from(attr.namespace());
         let oldValue = attr.value().to_owned();
         let attributeSpec = Mutation::Attribute{ name, namespace, oldValue, newValue };
