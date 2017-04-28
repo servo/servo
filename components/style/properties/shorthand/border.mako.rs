@@ -20,7 +20,8 @@ ${helpers.four_sides_shorthand("border-style", "border-%s-style",
     use values::generics::rect::Rect;
     use values::specified::{AllowQuirks, BorderSideWidth};
 
-    pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                               -> Result<Longhands, ParseError<'i>> {
         let rect = Rect::parse_with(context, input, |_, i| {
             BorderSideWidth::parse_quirky(context, i, AllowQuirks::Yes)
         })?;
@@ -43,10 +44,10 @@ ${helpers.four_sides_shorthand("border-style", "border-%s-style",
 </%helpers:shorthand>
 
 
-pub fn parse_border(context: &ParserContext, input: &mut Parser)
-                 -> Result<(specified::Color,
-                            specified::BorderStyle,
-                            specified::BorderSideWidth), ()> {
+pub fn parse_border<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                            -> Result<(specified::Color,
+                                       specified::BorderStyle,
+                                       specified::BorderSideWidth), ParseError<'i>> {
     use values::specified::{Color, BorderStyle, BorderSideWidth};
     let _unused = context;
     let mut color = None;
@@ -82,7 +83,7 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
             style.unwrap_or(BorderStyle::none),
             width.unwrap_or(BorderSideWidth::Medium)))
     } else {
-        Err(())
+        Err(StyleParseError::UnspecifiedError.into())
     }
 }
 
@@ -101,7 +102,8 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
         alias="${maybe_moz_logical_alias(product, (side, logical), '-moz-border-%s')}"
         spec="${spec}">
 
-    pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                               -> Result<Longhands, ParseError<'i>> {
         let (color, style, width) = try!(super::parse_border(context, input));
         Ok(expanded! {
             border_${to_rust_ident(side)}_color: color,
@@ -139,7 +141,8 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
                                     _moz_border_bottom_colors, _moz_border_left_colors};
     % endif
 
-    pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                               -> Result<Longhands, ParseError<'i>> {
         use properties::longhands::{border_image_outset, border_image_repeat, border_image_slice};
         use properties::longhands::{border_image_source, border_image_width};
 
@@ -209,7 +212,8 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
     use values::specified::border::BorderRadius;
     use parser::Parse;
 
-    pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                               -> Result<Longhands, ParseError<'i>> {
         let radii = try!(BorderRadius::parse(context, input));
         Ok(expanded! {
             border_top_left_radius: radii.top_left,
@@ -242,12 +246,13 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
     use properties::longhands::{border_image_outset, border_image_repeat, border_image_slice};
     use properties::longhands::{border_image_source, border_image_width};
 
-    pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                               -> Result<Longhands, ParseError<'i>> {
         % for name in "outset repeat slice source width".split():
             let mut border_image_${name} = border_image_${name}::get_initial_specified_value();
         % endfor
 
-        try!(input.try(|input| {
+        let result: Result<_, ParseError> = input.try(|input| {
             % for name in "outset repeat slice source width".split():
                 let mut ${name} = None;
             % endfor
@@ -256,7 +261,7 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
                     if let Ok(value) = input.try(|input| border_image_slice::parse(context, input)) {
                         slice = Some(value);
                         // Parse border image width and outset, if applicable.
-                        let maybe_width_outset: Result<_, ()> = input.try(|input| {
+                        let maybe_width_outset: Result<_, ParseError> = input.try(|input| {
                             try!(input.expect_delim('/'));
 
                             // Parse border image width, if applicable.
@@ -269,7 +274,7 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
                                 border_image_outset::parse(context, input)
                             }).ok();
                             if w.is_none() && o.is_none() {
-                               Err(())
+                               Err(StyleParseError::UnspecifiedError.into())
                             }
                             else {
                                Ok((w, o))
@@ -305,9 +310,10 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
                 % endfor
                 Ok(())
             } else {
-                Err(())
+                Err(StyleParseError::UnspecifiedError.into())
             }
-        }));
+        });
+        try!(result);
 
         Ok(expanded! {
             % for name in "outset repeat slice source width".split():

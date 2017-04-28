@@ -232,6 +232,15 @@ class MachCommands(CommandBase):
                 test_patterns.append(test)
 
         in_crate_packages = []
+
+        # Since the selectors tests have no corresponding selectors_tests crate in tests/unit,
+        # we need to treat them separately from those that do.
+        try:
+            packages.remove('selectors')
+            in_crate_packages += ["selectors"]
+        except KeyError:
+            pass
+
         if not packages:
             packages = set(os.listdir(path.join(self.context.topdir, "tests", "unit"))) - set(['.DS_Store'])
             in_crate_packages += ["selectors"]

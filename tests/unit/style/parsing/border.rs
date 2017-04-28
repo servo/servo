@@ -143,13 +143,13 @@ fn border_image_shorthand_should_parse_with_just_source() {
 #[test]
 fn border_image_outset_should_error_on_negative_length() {
     let result = parse(border_image_outset::parse, "-1em");
-    assert_eq!(result, Err(()));
+    assert!(result.is_err());
 }
 
 #[test]
 fn border_image_outset_should_error_on_negative_number() {
     let result = parse(border_image_outset::parse, "-15");
-    assert_eq!(result, Err(()));
+    assert!(result.is_err());
 }
 
 #[test]

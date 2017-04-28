@@ -183,7 +183,8 @@ ${helpers.predefined_type("marker-end", "UrlOrNone", "Either::Second(None_)",
         }
     }
 
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue,ParseError<'i>> {
         if let Ok(()) = input.try(|i| i.expect_ident_matching("normal")) {
             Ok(SpecifiedValue(0))
         } else {
@@ -195,33 +196,34 @@ ${helpers.predefined_type("marker-end", "UrlOrNone", "Either::Second(None_)",
 
             loop {
 
-                let result = input.try(|i| {
-                    match_ignore_ascii_case! { &i.expect_ident()?,
+                let result: Result<_, ParseError> = input.try(|i| {
+                    let ident = i.expect_ident()?;
+                    (match_ignore_ascii_case! { &ident,
                         "fill" => Ok(FILL),
                         "stroke" => Ok(STROKE),
                         "markers" => Ok(MARKERS),
                         _ => Err(())
-                    }
+                    }).map_err(|()| SelectorParseError::UnexpectedIdent(ident.into()).into())
                 });
 
                 match result {
                     Ok(val) => {
                         if (seen & (1 << val)) != 0 {
                             // don't parse the same ident twice
-                            return Err(())
+                            return Err(StyleParseError::UnspecifiedError.into())
                         } else {
                             value |= val << (pos * SHIFT);
                             seen |= 1 << val;
                             pos += 1;
                         }
                     }
-                    Err(()) => break,
+                    Err(_) => break,
                 }
             }
 
             if value == 0 {
                 // couldn't find any keyword
-                Err(())
+                Err(StyleParseError::UnspecifiedError.into())
             } else {
                 // fill in rest
                 for i in pos..COUNT {
@@ -285,7 +287,8 @@ ${helpers.predefined_type("marker-end", "UrlOrNone", "Either::Second(None_)",
     }
 
 
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         let i = input.expect_ident()?;
         CustomIdent::from_ident(i, &["all", "none", "auto"])
     }

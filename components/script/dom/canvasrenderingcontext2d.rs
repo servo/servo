@@ -6,7 +6,7 @@ use canvas_traits::{Canvas2dMsg, CanvasCommonMsg, CanvasMsg};
 use canvas_traits::{CompositionOrBlending, FillOrStrokeStyle, FillRule};
 use canvas_traits::{LineCapStyle, LineJoinStyle, LinearGradientStyle};
 use canvas_traits::{RadialGradientStyle, RepetitionStyle, byte_swap_and_premultiply};
-use cssparser::{Parser, RGBA};
+use cssparser::{Parser, ParserInput, RGBA};
 use cssparser::Color as CSSColor;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
@@ -463,7 +463,8 @@ impl CanvasRenderingContext2D {
     }
 
     fn parse_color(&self, string: &str) -> Result<RGBA, ()> {
-        let mut parser = Parser::new(&string);
+        let mut input = ParserInput::new(string);
+        let mut parser = Parser::new(&mut input);
         let color = CSSColor::parse(&mut parser);
         if parser.is_exhausted() {
             match color {
@@ -1314,7 +1315,8 @@ impl Drop for CanvasRenderingContext2D {
 }
 
 pub fn parse_color(string: &str) -> Result<RGBA, ()> {
-    let mut parser = Parser::new(&string);
+    let mut input = ParserInput::new(string);
+    let mut parser = Parser::new(&mut input);
     match CSSColor::parse(&mut parser) {
         Ok(CSSColor::RGBA(rgba)) => {
             if parser.is_exhausted() {

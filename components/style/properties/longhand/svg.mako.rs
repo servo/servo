@@ -129,7 +129,8 @@ ${helpers.single_keyword("mask-origin",
         background_size::get_initial_value()
     }
 
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue,ParseError<'i>> {
         background_size::parse(context, input)
     }
 </%helpers:longhand>

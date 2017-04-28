@@ -6,7 +6,9 @@
 
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
+use selectors::parser::SelectorParseError;
 use std::ascii::AsciiExt;
+use style_traits::ParseError;
 use values::computed::{Context, ToComputedValue};
 use values::computed::text::LineHeight as ComputedLineHeight;
 use values::generics::text::InitialLetter as GenericInitialLetter;
@@ -28,7 +30,7 @@ pub type WordSpacing = Spacing<LengthOrPercentage>;
 pub type LineHeight = GenericLineHeight<Number, LengthOrPercentage>;
 
 impl Parse for InitialLetter {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         if input.try(|i| i.expect_ident_matching("normal")).is_ok() {
             return Ok(GenericInitialLetter::Normal);
         }
@@ -39,7 +41,7 @@ impl Parse for InitialLetter {
 }
 
 impl Parse for LetterSpacing {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         Spacing::parse_with(context, input, |c, i| {
             Length::parse_quirky(c, i, AllowQuirks::Yes)
         })
@@ -47,7 +49,7 @@ impl Parse for LetterSpacing {
 }
 
 impl Parse for WordSpacing {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         Spacing::parse_with(context, input, |c, i| {
             LengthOrPercentage::parse_quirky(c, i, AllowQuirks::Yes)
         })
@@ -55,22 +57,23 @@ impl Parse for WordSpacing {
 }
 
 impl Parse for LineHeight {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         if let Ok(number) = input.try(|i| Number::parse_non_negative(context, i)) {
             return Ok(GenericLineHeight::Number(number))
         }
         if let Ok(lop) = input.try(|i| LengthOrPercentage::parse_non_negative(context, i)) {
             return Ok(GenericLineHeight::Length(lop))
         }
-        match &input.expect_ident()? {
-            ident if ident.eq_ignore_ascii_case("normal") => {
+        let ident = input.expect_ident()?;
+        match ident {
+            ref ident if ident.eq_ignore_ascii_case("normal") => {
                 Ok(GenericLineHeight::Normal)
             },
             #[cfg(feature = "gecko")]
-            ident if ident.eq_ignore_ascii_case("-moz-block-height") => {
+            ref ident if ident.eq_ignore_ascii_case("-moz-block-height") => {
                 Ok(GenericLineHeight::MozBlockHeight)
             },
-            _ => Err(()),
+            ident => Err(SelectorParseError::UnexpectedIdent(ident).into()),
         }
     }
 }

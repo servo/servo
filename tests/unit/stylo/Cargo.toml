@@ -16,7 +16,7 @@ testing = ["style/testing"]
 
 [dependencies]
 atomic_refcell = "0.1"
-cssparser = "0.13.7"
+cssparser = "0.14.0"
 env_logger = "0.4"
 euclid = "0.13"
 geckoservo = {path = "../../../ports/geckolib"}

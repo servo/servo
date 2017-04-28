@@ -91,37 +91,43 @@
     }
 
     impl Parse for computed_value::Keyword {
-        fn parse(_context: &ParserContext, input: &mut Parser) -> Result<computed_value::Keyword, ()> {
+        fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<computed_value::Keyword, ParseError<'i>> {
             use std::ascii::AsciiExt;
             use style_traits::cursor::Cursor;
             let ident = try!(input.expect_ident());
             if ident.eq_ignore_ascii_case("auto") {
                 Ok(computed_value::Keyword::Auto)
             } else {
-                Cursor::from_css_keyword(&ident).map(computed_value::Keyword::Cursor)
+                Cursor::from_css_keyword(&ident)
+                    .map(computed_value::Keyword::Cursor)
+                    .map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
             }
         }
     }
 
     #[cfg(feature = "gecko")]
-    fn parse_image(context: &ParserContext, input: &mut Parser) -> Result<computed_value::Image, ()> {
+    fn parse_image<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                           -> Result<computed_value::Image, ParseError<'i>> {
         Ok(computed_value::Image {
             url: try!(SpecifiedUrl::parse(context, input)),
             hotspot: match input.try(|input| input.expect_number()) {
                 Ok(number) => Some((number, try!(input.expect_number()))),
-                Err(()) => None,
+                Err(_) => None,
             },
         })
     }
 
     #[cfg(not(feature = "gecko"))]
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         computed_value::Keyword::parse(context, input)
     }
 
     /// cursor: [<url> [<number> <number>]?]# [auto | default | ...]
     #[cfg(feature = "gecko")]
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         let mut images = vec![];
         loop {
             match input.try(|input| parse_image(context, input)) {
@@ -129,7 +135,7 @@
                     image.url.build_image_value();
                     images.push(image)
                 }
-                Err(()) => break,
+                Err(_) => break,
             }
             try!(input.expect_comma());
         }

@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use cssparser::Parser;
+use cssparser::{Parser, ParserInput};
 use media_queries::CSSErrorReporterTest;
 use style::context::QuirksMode;
 use style::parser::{PARSING_MODE_ALLOW_ALL_NUMERIC_VALUES, ParserContext};
@@ -27,7 +27,8 @@ fn test_parsing_allo_all_numeric_values() {
     let context = ParserContext::new(Origin::Author, &url, &reporter,
                                      Some(CssRuleType::Style), PARSING_MODE_ALLOW_ALL_NUMERIC_VALUES,
                                      QuirksMode::NoQuirks);
-    let mut parser = Parser::new("-1");
+    let mut input = ParserInput::new("-1");
+    let mut parser = Parser::new(&mut input);
     let result = Number::parse_non_negative(&context, &mut parser);
     assert!(result.is_ok());
     assert_eq!(result.unwrap(), Number::new(-1.));

@@ -10,7 +10,8 @@
     use properties::longhands::{list_style_image, list_style_position, list_style_type};
     use values::{Either, None_};
 
-    pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                               -> Result<Longhands, ParseError<'i>> {
         // `none` is ambiguous until we've finished parsing the shorthands, so we count the number
         // of times we see it.
         let mut nones = 0u8;
@@ -19,7 +20,7 @@
             if input.try(|input| input.expect_ident_matching("none")).is_ok() {
                 nones = nones + 1;
                 if nones > 2 {
-                    return Err(())
+                    return Err(SelectorParseError::UnexpectedIdent("none".into()).into())
                 }
                 any = true;
                 continue
@@ -104,7 +105,7 @@
                     list_style_type: unwrap_or_initial!(list_style_type),
                 })
             }
-            _ => Err(()),
+            _ => Err(StyleParseError::UnspecifiedError.into()),
         }
     }
 

@@ -8,7 +8,8 @@
                     spec="https://drafts.csswg.org/css-flexbox/#flex-flow-property">
     use properties::longhands::{flex_direction, flex_wrap};
 
-    pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                               -> Result<Longhands, ParseError<'i>> {
         let mut direction = None;
         let mut wrap = None;
         loop {
@@ -28,7 +29,7 @@
         }
 
         if direction.is_none() && wrap.is_none() {
-            return Err(())
+            return Err(StyleParseError::UnspecifiedError.into())
         }
         Ok(expanded! {
             flex_direction: unwrap_or_initial!(flex_direction, direction),
@@ -50,14 +51,15 @@
                     spec="https://drafts.csswg.org/css-flexbox/#flex-property">
     use values::specified::Number;
 
-    fn parse_flexibility(context: &ParserContext, input: &mut Parser)
-                         -> Result<(Number, Option<Number>),()> {
+    fn parse_flexibility<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                 -> Result<(Number, Option<Number>),ParseError<'i>> {
         let grow = try!(Number::parse_non_negative(context, input));
         let shrink = input.try(|i| Number::parse_non_negative(context, i)).ok();
         Ok((grow, shrink))
     }
 
-    pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                               -> Result<Longhands, ParseError<'i>> {
         let mut grow = None;
         let mut shrink = None;
         let mut basis = None;
@@ -87,7 +89,7 @@
         }
 
         if grow.is_none() && basis.is_none() {
-            return Err(())
+            return Err(StyleParseError::UnspecifiedError.into())
         }
         Ok(expanded! {
             flex_grow: grow.unwrap_or(Number::new(1.0)),
@@ -118,7 +120,8 @@
                     products="gecko">
   use properties::longhands::{grid_row_gap, grid_column_gap};
 
-  pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+  pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                             -> Result<Longhands, ParseError<'i>> {
       let row_gap = grid_row_gap::parse(context, input)?;
       let column_gap = input.try(|input| grid_column_gap::parse(context, input)).unwrap_or(row_gap.clone());
 
@@ -152,7 +155,8 @@
     // NOTE: Since both the shorthands have the same code, we should (re-)use code from one to implement
     // the other. This might not be a big deal for now, but we should consider looking into this in the future
     // to limit the amount of code generated.
-    pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                               -> Result<Longhands, ParseError<'i>> {
         let start = input.try(|i| GridLine::parse(context, i))?;
         let end = if input.try(|i| i.expect_delim('/')).is_ok() {
             GridLine::parse(context, input)?
@@ -189,7 +193,8 @@
     use parser::Parse;
 
     // The code is the same as `grid-{row,column}` except that this can have four values at most.
-    pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                               -> Result<Longhands, ParseError<'i>> {
         fn line_with_ident_from(other: &GridLine) -> GridLine {
             let mut this = GridLine::default();
             if other.line_num.is_none() && !other.is_span {
@@ -259,8 +264,9 @@
     use values::specified::grid::parse_line_names;
 
     /// Parsing for `<grid-template>` shorthand (also used by `grid` shorthand).
-    pub fn parse_grid_template(context: &ParserContext, input: &mut Parser)
-                               -> Result<(TrackListOrNone, TrackListOrNone, Either<TemplateAreas, None_>), ()> {
+    pub fn parse_grid_template<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                       -> Result<(TrackListOrNone, TrackListOrNone, Either<TemplateAreas, None_>),
+                                                 ParseError<'i>> {
         if input.try(|i| i.expect_ident_matching("none")).is_ok() {
             return Ok((Either::Second(None_), Either::Second(None_), Either::Second(None_)))
         }
@@ -295,7 +301,8 @@
                 line_names.push(vec![]);        // should be one longer than track sizes
             }
 
-            let template_areas = TemplateAreas::from_vec(strings)?;
+            let template_areas = TemplateAreas::from_vec(strings)
+                .map_err(|()| StyleParseError::UnspecifiedError)?;
             let template_rows = TrackList {
                 list_type: TrackListType::Normal,
                 values: values,
@@ -306,7 +313,7 @@
             let template_cols = if input.try(|i| i.expect_delim('/')).is_ok() {
                 let track_list = TrackList::parse(context, input)?;
                 if track_list.list_type != TrackListType::Explicit {
-                    return Err(())
+                    return Err(StyleParseError::UnspecifiedError.into())
                 }
 
                 Either::First(track_list)
@@ -326,7 +333,8 @@
     }
 
     #[inline]
-    pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                               -> Result<Longhands, ParseError<'i>> {
         let (rows, columns, areas) = parse_grid_template(context, input)?;
         Ok(expanded! {
             grid_template_rows: rows,
@@ -410,7 +418,8 @@
     use values::{Either, None_};
     use values::specified::{LengthOrPercentage, TrackSize};
 
-    pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                               -> Result<Longhands, ParseError<'i>> {
         let mut temp_rows = Either::Second(None_);
         let mut temp_cols = Either::Second(None_);
         let mut temp_areas = Either::Second(None_);
@@ -418,7 +427,8 @@
         let mut auto_cols = TrackSize::default();
         let mut flow = grid_auto_flow::get_initial_value();
 
-        fn parse_auto_flow(input: &mut Parser, is_row: bool) -> Result<SpecifiedAutoFlow, ()> {
+        fn parse_auto_flow<'i, 't>(input: &mut Parser<'i, 't>, is_row: bool)
+                                   -> Result<SpecifiedAutoFlow, ParseError<'i>> {
             let mut auto_flow = None;
             let mut dense = false;
             for _ in 0..2 {
@@ -440,7 +450,7 @@
                     autoflow: flow,
                     dense: dense,
                 }
-            }).ok_or(())
+            }).ok_or(StyleParseError::UnspecifiedError.into())
         }
 
         if let Ok((rows, cols, areas)) = input.try(|i| super::grid_template::parse_grid_template(context, i)) {
@@ -506,15 +516,16 @@
     use properties::longhands::align_content;
     use properties::longhands::justify_content;
 
-    pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                               -> Result<Longhands, ParseError<'i>> {
         let align = align_content::parse(context, input)?;
         if align.has_extra_flags() {
-            return Err(());
+            return Err(StyleParseError::UnspecifiedError.into());
         }
         let justify = input.try(|input| justify_content::parse(context, input))
                            .unwrap_or(justify_content::SpecifiedValue::from(align));
         if justify.has_extra_flags() {
-            return Err(());
+            return Err(StyleParseError::UnspecifiedError.into());
         }
 
         Ok(expanded! {
@@ -541,14 +552,15 @@
     use values::specified::align::AlignJustifySelf;
     use parser::Parse;
 
-    pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                               -> Result<Longhands, ParseError<'i>> {
         let align = AlignJustifySelf::parse(context, input)?;
         if align.has_extra_flags() {
-            return Err(());
+            return Err(StyleParseError::UnspecifiedError.into());
         }
         let justify = input.try(|input| AlignJustifySelf::parse(context, input)).unwrap_or(align.clone());
         if justify.has_extra_flags() {
-            return Err(());
+            return Err(StyleParseError::UnspecifiedError.into());
         }
 
         Ok(expanded! {
@@ -582,15 +594,16 @@
         }
     }
 
-    pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                               -> Result<Longhands, ParseError<'i>> {
         let align = AlignItems::parse(context, input)?;
         if align.has_extra_flags() {
-            return Err(());
+            return Err(StyleParseError::UnspecifiedError.into());
         }
         let justify = input.try(|input| JustifyItems::parse(context, input))
                            .unwrap_or(JustifyItems::from(align));
         if justify.has_extra_flags() {
-            return Err(());
+            return Err(StyleParseError::UnspecifiedError.into());
         }
 
         Ok(expanded! {

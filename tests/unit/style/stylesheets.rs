@@ -14,7 +14,7 @@ use std::borrow::ToOwned;
 use std::sync::Mutex;
 use std::sync::atomic::AtomicBool;
 use style::context::QuirksMode;
-use style::error_reporting::ParseErrorReporter;
+use style::error_reporting::{ParseErrorReporter, ContextualParseError};
 use style::media_queries::MediaList;
 use style::properties::Importance;
 use style::properties::{CSSWideKeyword, DeclaredValueOwned, PropertyDeclaration, PropertyDeclarationBlock};
@@ -267,12 +267,12 @@ impl CSSInvalidErrorReporterTest {
 }
 
 impl ParseErrorReporter for CSSInvalidErrorReporterTest {
-    fn report_error(&self,
-                    input: &mut CssParser,
-                    position: SourcePosition,
-                    message: &str,
-                    url: &ServoUrl,
-                    line_number_offset: u64) {
+    fn report_error<'a>(&self,
+                        input: &mut CssParser,
+                        position: SourcePosition,
+                        error: ContextualParseError<'a>,
+                        url: &ServoUrl,
+                        line_number_offset: u64) {
 
         let location = input.source_location(position);
         let line_offset = location.line + line_number_offset as usize;
@@ -283,7 +283,7 @@ impl ParseErrorReporter for CSSInvalidErrorReporterTest {
                 url: url.clone(),
                 line: line_offset,
                 column: location.column,
-                message: message.to_owned()
+                message: error.to_string()
             }
         );
     }
@@ -312,12 +312,13 @@ fn test_report_error_stylesheet() {
     let mut errors = errors.lock().unwrap();
 
     let error = errors.pop().unwrap();
-    assert_eq!("Unsupported property declaration: 'invalid: true;'", error.message);
+    assert_eq!("Unsupported property declaration: 'invalid: true;', found unexpected identifier true", error.message);
     assert_eq!(10, error.line);
     assert_eq!(9, error.column);
 
     let error = errors.pop().unwrap();
-    assert_eq!("Unsupported property declaration: 'display: invalid;'", error.message);
+    assert_eq!("Unsupported property declaration: 'display: invalid;', \
+                Custom(PropertyDeclaration(InvalidValue))", error.message);
     assert_eq!(9, error.line);
     assert_eq!(9, error.column);
 

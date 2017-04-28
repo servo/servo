@@ -8,14 +8,15 @@
 //! [image]: https://drafts.csswg.org/css-images/#image-values
 
 use Atom;
-use cssparser::{Parser, Token};
+use cssparser::{Parser, Token, BasicParseError};
 use parser::{Parse, ParserContext};
+use selectors::parser::SelectorParseError;
 #[cfg(feature = "servo")]
 use servo_url::ServoUrl;
 use std::cmp::Ordering;
 use std::f32::consts::PI;
 use std::fmt;
-use style_traits::ToCss;
+use style_traits::{ToCss, ParseError, StyleParseError};
 use values::{Either, None_};
 use values::generics::image::{Circle, CompatMode, Ellipse, ColorStop as GenericColorStop};
 use values::generics::image::{EndingShape as GenericEndingShape, Gradient as GenericGradient};
@@ -82,7 +83,7 @@ pub type ColorStop = GenericColorStop<RGBAColor, LengthOrPercentage>;
 pub type ImageRect = GenericImageRect<NumberOrPercentage>;
 
 impl Parse for Image {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Image, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Image, ParseError<'i>> {
         #[cfg(feature = "gecko")]
         {
           if let Ok(mut url) = input.try(|input| SpecifiedUrl::parse(context, input)) {
@@ -132,53 +133,59 @@ impl Image {
     }
 
     /// Parses a `-moz-element(# <element-id>)`.
-    fn parse_element(input: &mut Parser) -> Result<Atom, ()> {
+    fn parse_element<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Atom, ParseError<'i>> {
         input.try(|i| i.expect_function_matching("-moz-element"))?;
         input.parse_nested_block(|i| {
             match i.next()? {
                 Token::IDHash(id) => Ok(Atom::from(id)),
-                _ => Err(()),
+                t => Err(BasicParseError::UnexpectedToken(t).into()),
             }
         })
     }
 }
 
 impl Parse for Gradient {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         enum Shape {
             Linear,
             Radial,
         }
 
-        let (shape, repeating, compat_mode) = match_ignore_ascii_case! { &try!(input.expect_function()),
+        let func = try!(input.expect_function());
+        let result = match_ignore_ascii_case! { &func,
             "linear-gradient" => {
-                (Shape::Linear, false, CompatMode::Modern)
+                Some((Shape::Linear, false, CompatMode::Modern))
             },
             "-webkit-linear-gradient" => {
-                (Shape::Linear, false, CompatMode::WebKit)
+                Some((Shape::Linear, false, CompatMode::WebKit))
             },
             "repeating-linear-gradient" => {
-                (Shape::Linear, true, CompatMode::Modern)
+                Some((Shape::Linear, true, CompatMode::Modern))
             },
             "-webkit-repeating-linear-gradient" => {
-                (Shape::Linear, true, CompatMode::WebKit)
+                Some((Shape::Linear, true, CompatMode::WebKit))
             },
             "radial-gradient" => {
-                (Shape::Radial, false, CompatMode::Modern)
+                Some((Shape::Radial, false, CompatMode::Modern))
             },
             "-webkit-radial-gradient" => {
-                (Shape::Radial, false, CompatMode::WebKit)
+                Some((Shape::Radial, false, CompatMode::WebKit))
             },
             "repeating-radial-gradient" => {
-                (Shape::Radial, true, CompatMode::Modern)
+                Some((Shape::Radial, true, CompatMode::Modern))
             },
             "-webkit-repeating-radial-gradient" => {
-                (Shape::Radial, true, CompatMode::WebKit)
+                Some((Shape::Radial, true, CompatMode::WebKit))
             },
             "-webkit-gradient" => {
                 return input.parse_nested_block(|i| Self::parse_webkit_gradient_argument(context, i));
             },
-            _ => { return Err(()); }
+            _ => None,
+        };
+
+        let (shape, repeating, compat_mode) = match result {
+            Some(result) => result,
+            None => return Err(StyleParseError::UnexpectedFunction(func).into()),
         };
 
         let (kind, items) = input.parse_nested_block(|i| {
@@ -191,7 +198,7 @@ impl Parse for Gradient {
         })?;
 
         if items.len() < 2 {
-            return Err(());
+            return Err(StyleParseError::UnspecifiedError.into());
         }
 
         Ok(Gradient {
@@ -204,7 +211,8 @@ impl Parse for Gradient {
 }
 
 impl Gradient {
-    fn parse_webkit_gradient_argument(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse_webkit_gradient_argument<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                              -> Result<Self, ParseError<'i>> {
         type Point = GenericPosition<Component<X>, Component<Y>>;
 
         #[derive(Clone, Copy)]
@@ -259,7 +267,8 @@ impl Gradient {
         }
 
         impl Parse for Point {
-            fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+            fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                             -> Result<Self, ParseError<'i>> {
                 input.try(|i| {
                     let x = Component::parse(context, i)?;
                     let y = Component::parse(context, i)?;
@@ -318,7 +327,8 @@ impl Gradient {
         }
 
         impl<S: Parse> Parse for Component<S> {
-            fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+            fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                             -> Result<Self, ParseError<'i>> {
                 if let Ok(side) = input.try(|i| S::parse(context, i)) {
                     return Ok(Component::Side(side));
                 }
@@ -365,7 +375,7 @@ impl Gradient {
 
                 (kind, reverse_stops)
             },
-            _ => return Err(()),
+            _ => return Err(SelectorParseError::UnexpectedIdent(ident.clone()).into()),
         };
 
         let mut items = input.try(|i| {
@@ -384,11 +394,11 @@ impl Gradient {
                         },
                         "from" => 0.,
                         "to" => 1.,
-                        _ => return Err(()),
+                        _ => return Err(StyleParseError::UnexpectedFunction(function.clone()).into()),
                     };
                     let color = Color::parse(context, i)?;
                     if color == Color::CurrentColor {
-                        return Err(());
+                        return Err(StyleParseError::UnspecifiedError.into());
                     }
                     Ok((color.into(), p))
                 })?;
@@ -450,10 +460,10 @@ impl Gradient {
 }
 
 impl GradientKind {
-    fn parse_linear(context: &ParserContext,
-                    input: &mut Parser,
-                    compat_mode: CompatMode)
-                    -> Result<Self, ()> {
+    fn parse_linear<'i, 't>(context: &ParserContext,
+                            input: &mut Parser<'i, 't>,
+                            compat_mode: CompatMode)
+                            -> Result<Self, ParseError<'i>> {
         let direction = if let Ok(d) = input.try(|i| LineDirection::parse(context, i, compat_mode)) {
             input.expect_comma()?;
             d
@@ -463,10 +473,10 @@ impl GradientKind {
         Ok(GenericGradientKind::Linear(direction))
     }
 
-    fn parse_radial(context: &ParserContext,
-                    input: &mut Parser,
-                    compat_mode: CompatMode)
-                    -> Result<Self, ()> {
+    fn parse_radial<'i, 't>(context: &ParserContext,
+                            input: &mut Parser<'i, 't>,
+                            compat_mode: CompatMode)
+                            -> Result<Self, ParseError<'i>> {
         let (shape, position) = if compat_mode == CompatMode::Modern {
             let shape = input.try(|i| EndingShape::parse(context, i, compat_mode));
             let position = input.try(|i| {
@@ -538,10 +548,10 @@ impl GenericsLineDirection for LineDirection {
 }
 
 impl LineDirection {
-    fn parse(context: &ParserContext,
-             input: &mut Parser,
-             compat_mode: CompatMode)
-             -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext,
+                     input: &mut Parser<'i, 't>,
+                     compat_mode: CompatMode)
+                     -> Result<Self, ParseError<'i>> {
         if let Ok(angle) = input.try(|i| Angle::parse_with_unitless(context, i)) {
             return Ok(LineDirection::Angle(angle));
         }
@@ -565,10 +575,10 @@ impl LineDirection {
 }
 
 impl EndingShape {
-    fn parse(context: &ParserContext,
-             input: &mut Parser,
-             compat_mode: CompatMode)
-             -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext,
+                     input: &mut Parser<'i, 't>,
+                     compat_mode: CompatMode)
+                     -> Result<Self, ParseError<'i>> {
         if let Ok(extent) = input.try(|i| ShapeExtent::parse_with_compat_mode(i, compat_mode)) {
             if input.try(|i| i.expect_ident_matching("circle")).is_ok() {
                 return Ok(GenericEndingShape::Circle(Circle::Extent(extent)));
@@ -592,7 +602,7 @@ impl EndingShape {
                 return Ok(GenericEndingShape::Ellipse(Ellipse::Extent(extent)));
             }
             if compat_mode == CompatMode::Modern {
-                let pair: Result<_, ()> = input.try(|i| {
+                let pair: Result<_, ParseError> = input.try(|i| {
                     let x = LengthOrPercentage::parse(context, i)?;
                     let y = LengthOrPercentage::parse(context, i)?;
                     Ok((x, y))
@@ -641,18 +651,20 @@ impl EndingShape {
 }
 
 impl ShapeExtent {
-    fn parse_with_compat_mode(input: &mut Parser,
-                              compat_mode: CompatMode)
-                              -> Result<Self, ()> {
+    fn parse_with_compat_mode<'i, 't>(input: &mut Parser<'i, 't>,
+                                      compat_mode: CompatMode)
+                                      -> Result<Self, ParseError<'i>> {
         match try!(Self::parse(input)) {
-            ShapeExtent::Contain | ShapeExtent::Cover if compat_mode == CompatMode::Modern => Err(()),
+            ShapeExtent::Contain | ShapeExtent::Cover if compat_mode == CompatMode::Modern =>
+                Err(StyleParseError::UnspecifiedError.into()),
             keyword => Ok(keyword),
         }
     }
 }
 
 impl GradientItem {
-    fn parse_comma_separated(context: &ParserContext, input: &mut Parser) -> Result<Vec<Self>, ()> {
+    fn parse_comma_separated<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                     -> Result<Vec<Self>, ParseError<'i>> {
         let mut seen_stop = false;
         let items = try!(input.parse_comma_separated(|input| {
             if seen_stop {
@@ -665,14 +677,15 @@ impl GradientItem {
             ColorStop::parse(context, input).map(GenericGradientItem::ColorStop)
         }));
         if !seen_stop || items.len() < 2 {
-            return Err(());
+            return Err(StyleParseError::UnspecifiedError.into());
         }
         Ok(items)
     }
 }
 
 impl Parse for ColorStop {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                     -> Result<Self, ParseError<'i>> {
         Ok(ColorStop {
             color: try!(RGBAColor::parse(context, input)),
             position: input.try(|i| LengthOrPercentage::parse(context, i)).ok(),
@@ -681,7 +694,7 @@ impl Parse for ColorStop {
 }
 
 impl Parse for PaintWorklet {
-    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         input.expect_function_matching("paint")?;
         input.parse_nested_block(|i| {
             let name = i.expect_ident()?;
@@ -693,7 +706,7 @@ impl Parse for PaintWorklet {
 }
 
 impl Parse for ImageRect {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         input.try(|i| i.expect_function_matching("-moz-image-rect"))?;
         input.parse_nested_block(|i| {
             let string = i.expect_url_or_string()?;

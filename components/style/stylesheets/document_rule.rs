@@ -6,12 +6,12 @@
 //! initially in CSS Conditional Rules Module Level 3, @document has been postponed to the level 4.
 //! We implement the prefixed `@-moz-document`.
 
-use cssparser::{Parser, Token, SourceLocation};
+use cssparser::{Parser, Token, SourceLocation, BasicParseError};
 use media_queries::Device;
 use parser::{Parse, ParserContext};
 use shared_lock::{DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt;
-use style_traits::ToCss;
+use style_traits::{ToCss, ParseError, StyleParseError};
 use stylearc::Arc;
 use stylesheets::CssRules;
 use values::specified::url::SpecifiedUrl;
@@ -90,9 +90,10 @@ macro_rules! parse_quoted_or_unquoted_string {
                 match input.next() {
                     Ok(Token::QuotedString(value)) =>
                         Ok($url_matching_function(value.into_owned())),
-                    _ => Err(()),
+                    Ok(t) => Err(BasicParseError::UnexpectedToken(t).into()),
+                    Err(e) => Err(e.into()),
                 }
-            }).or_else(|_| {
+            }).or_else(|_: ParseError| {
                 while let Ok(_) = input.next() {}
                 Ok($url_matching_function(input.slice_from(start).to_string()))
             })
@@ -102,8 +103,8 @@ macro_rules! parse_quoted_or_unquoted_string {
 
 impl UrlMatchingFunction {
     /// Parse a URL matching function for a`@document` rule's condition.
-    pub fn parse(context: &ParserContext, input: &mut Parser)
-        -> Result<UrlMatchingFunction, ()> {
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+        -> Result<UrlMatchingFunction, ParseError<'i>> {
         if input.try(|input| input.expect_function_matching("url-prefix")).is_ok() {
             parse_quoted_or_unquoted_string!(input, UrlMatchingFunction::UrlPrefix)
         } else if input.try(|input| input.expect_function_matching("domain")).is_ok() {
@@ -115,7 +116,7 @@ impl UrlMatchingFunction {
         } else if let Ok(url) = input.try(|input| SpecifiedUrl::parse(context, input)) {
             Ok(UrlMatchingFunction::Url(url))
         } else {
-            Err(())
+            Err(StyleParseError::UnspecifiedError.into())
         }
     }
 
@@ -189,8 +190,8 @@ pub struct DocumentCondition(Vec<UrlMatchingFunction>);
 
 impl DocumentCondition {
     /// Parse a document condition.
-    pub fn parse(context: &ParserContext, input: &mut Parser)
-        -> Result<Self, ()> {
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+        -> Result<Self, ParseError<'i>> {
         input.parse_comma_separated(|input| UrlMatchingFunction::parse(context, input))
              .map(DocumentCondition)
     }

@@ -5,11 +5,11 @@
 //! CSS handling for the computed value of
 //! [grids](https://drafts.csswg.org/css-grid/)
 
-use cssparser::{Parser, Token};
+use cssparser::{Parser, Token, BasicParseError};
 use parser::{Parse, ParserContext};
 use std::{mem, usize};
 use std::ascii::AsciiExt;
-use style_traits::HasViewportPercentage;
+use style_traits::{HasViewportPercentage, ParseError, StyleParseError};
 use values::{CSSFloat, CustomIdent, Either};
 use values::computed::{self, Context, ToComputedValue};
 use values::generics::grid::{RepeatCount, TrackBreadth, TrackKeyword, TrackRepeat};
@@ -17,16 +17,16 @@ use values::generics::grid::{TrackSize, TrackList, TrackListType};
 use values::specified::LengthOrPercentage;
 
 /// Parse a single flexible length.
-pub fn parse_flex(input: &mut Parser) -> Result<CSSFloat, ()> {
+pub fn parse_flex<'i, 't>(input: &mut Parser<'i, 't>) -> Result<CSSFloat, ParseError<'i>> {
     match input.next()? {
         Token::Dimension(ref value, ref unit) if unit.eq_ignore_ascii_case("fr") && value.value.is_sign_positive()
             => Ok(value.value),
-        _ => Err(()),
+        t => Err(BasicParseError::UnexpectedToken(t).into()),
     }
 }
 
 impl Parse for TrackBreadth<LengthOrPercentage> {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         if let Ok(lop) = input.try(|i| LengthOrPercentage::parse_non_negative(context, i)) {
             return Ok(TrackBreadth::Breadth(lop))
         }
@@ -51,7 +51,7 @@ impl HasViewportPercentage for TrackBreadth<LengthOrPercentage> {
 }
 
 impl Parse for TrackSize<LengthOrPercentage> {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         if let Ok(b) = input.try(|i| TrackBreadth::parse(context, i)) {
             return Ok(TrackSize::Breadth(b))
         }
@@ -81,13 +81,13 @@ impl Parse for TrackSize<LengthOrPercentage> {
 /// Parse the grid line names into a vector of owned strings.
 ///
 /// https://drafts.csswg.org/css-grid/#typedef-line-names
-pub fn parse_line_names(input: &mut Parser) -> Result<Vec<String>, ()> {
+pub fn parse_line_names<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Vec<String>, ParseError<'i>> {
     input.expect_square_bracket_block()?;
     input.parse_nested_block(|input| {
         let mut values = vec![];
         while let Ok(ident) = input.try(|i| i.expect_ident()) {
             if CustomIdent::from_ident((&*ident).into(), &["span"]).is_err() {
-                return Err(())
+                return Err(StyleParseError::UnspecifiedError.into())
             }
 
             values.push(ident.into_owned());
@@ -112,9 +112,10 @@ enum RepeatType {
 }
 
 impl TrackRepeat<LengthOrPercentage> {
-    fn parse_with_repeat_type(context: &ParserContext, input: &mut Parser)
-                              -> Result<(TrackRepeat<LengthOrPercentage>, RepeatType), ()> {
-        input.try(|i| i.expect_function_matching("repeat")).and_then(|_| {
+    fn parse_with_repeat_type<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                      -> Result<(TrackRepeat<LengthOrPercentage>, RepeatType),
+                                                ParseError<'i>> {
+        input.try(|i| i.expect_function_matching("repeat").map_err(|e| e.into())).and_then(|_| {
             input.parse_nested_block(|input| {
                 let count = RepeatCount::parse(context, input)?;
                 input.expect_comma()?;
@@ -135,7 +136,8 @@ impl TrackRepeat<LengthOrPercentage> {
                     if let Ok(track_size) = input.try(|i| TrackSize::parse(context, i)) {
                         if !track_size.is_fixed() {
                             if is_auto {
-                                return Err(())      // should be <fixed-size> for <auto-repeat>
+                                // should be <fixed-size> for <auto-repeat>
+                                return Err(StyleParseError::UnspecifiedError.into())
                             }
 
                             if repeat_type == RepeatType::Fixed {
@@ -147,7 +149,8 @@ impl TrackRepeat<LengthOrPercentage> {
                         names.push(current_names);
                     } else {
                         if values.is_empty() {
-                            return Err(())      // expecting at least one <track-size>
+                            // expecting at least one <track-size>
+                            return Err(StyleParseError::UnspecifiedError.into())
                         }
 
                         names.push(current_names);      // final `<line-names>`
@@ -181,7 +184,7 @@ impl HasViewportPercentage for TrackRepeat<LengthOrPercentage> {
 pub type TrackSizeOrRepeat = Either<TrackSize<LengthOrPercentage>, TrackRepeat<LengthOrPercentage>>;
 
 impl Parse for TrackList<TrackSizeOrRepeat> {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         let mut current_names;
         let mut names = vec![];
         let mut values = vec![];
@@ -198,7 +201,8 @@ impl Parse for TrackList<TrackSizeOrRepeat> {
                 if !track_size.is_fixed() {
                     atleast_one_not_fixed = true;
                     if is_auto {
-                        return Err(())      // <auto-track-list> only accepts <fixed-size> and <fixed-repeat>
+                        // <auto-track-list> only accepts <fixed-size> and <fixed-repeat>
+                        return Err(StyleParseError::UnspecifiedError.into())
                     }
                 }
 
@@ -213,13 +217,13 @@ impl Parse for TrackList<TrackSizeOrRepeat> {
                     RepeatType::Normal => {
                         atleast_one_not_fixed = true;
                         if is_auto {            // only <fixed-repeat>
-                            return Err(())
+                            return Err(StyleParseError::UnspecifiedError.into())
                         }
                     },
                     RepeatType::Auto => {
                         if is_auto || atleast_one_not_fixed {
                             // We've either seen <auto-repeat> earlier, or there's at least one non-fixed value
-                            return Err(())
+                            return Err(StyleParseError::UnspecifiedError.into())
                         }
 
                         is_auto = true;
@@ -232,7 +236,7 @@ impl Parse for TrackList<TrackSizeOrRepeat> {
                 values.push(Either::Second(repeat));
             } else {
                 if values.is_empty() {
-                    return Err(())
+                    return Err(StyleParseError::UnspecifiedError.into())
                 }
 
                 names.push(current_names);

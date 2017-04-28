@@ -161,8 +161,8 @@ ${helpers.gecko_keyword_conversion(Keyword('border-style',
         }
 
         #[inline]
-        pub fn parse(context: &ParserContext, input: &mut Parser)
-                     -> Result<SpecifiedValue, ()> {
+        pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                             -> Result<SpecifiedValue, ParseError<'i>> {
             if input.try(|input| input.expect_ident_matching("none")).is_ok() {
                 return Ok(SpecifiedValue::None)
             }
@@ -175,7 +175,7 @@ ${helpers.gecko_keyword_conversion(Keyword('border-style',
             if !result.is_empty() {
                 Ok(SpecifiedValue::Colors(result))
             } else {
-                Err(())
+                Err(StyleParseError::UnspecifiedError.into())
             }
         }
     </%helpers:longhand>
@@ -272,7 +272,8 @@ ${helpers.predefined_type("border-image-outset", "LengthOrNumberRect",
         }
     }
 
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         let first = try!(RepeatKeyword::parse(input));
         let second = input.try(RepeatKeyword::parse).ok();
 

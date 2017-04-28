@@ -2,19 +2,27 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::Parser;
+use cssparser::{Parser, ParserInput};
 use media_queries::CSSErrorReporterTest;
 use style::context::QuirksMode;
 use style::parser::{PARSING_MODE_DEFAULT, ParserContext};
 use style::stylesheets::{CssRuleType, Origin};
+use style_traits::ParseError;
 
-fn parse<T, F: Fn(&ParserContext, &mut Parser) -> Result<T, ()>>(f: F, s: &str) -> Result<T, ()> {
+fn parse<T, F>(f: F, s: &'static str) -> Result<T, ParseError<'static>>
+where F: for<'t> Fn(&ParserContext, &mut Parser<'static, 't>) -> Result<T, ParseError<'static>> {
+    let mut input = ParserInput::new(s);
+    parse_input(f, &mut input)
+}
+
+fn parse_input<'i: 't, 't, T, F>(f: F, input: &'t mut ParserInput<'i>) -> Result<T, ParseError<'i>>
+    where F: Fn(&ParserContext, &mut Parser<'i, 't>) -> Result<T, ParseError<'i>> {
     let url = ::servo_url::ServoUrl::parse("http://localhost").unwrap();
     let reporter = CSSErrorReporterTest;
     let context = ParserContext::new(Origin::Author, &url, &reporter, Some(CssRuleType::Style),
                                      PARSING_MODE_DEFAULT,
                                      QuirksMode::NoQuirks);
-    let mut parser = Parser::new(s);
+    let mut parser = Parser::new(input);
     f(&context, &mut parser)
 }
 
@@ -31,13 +39,14 @@ macro_rules! assert_roundtrip_with_context {
             Ok(serialized)
         }, $input).unwrap();
 
-        parse(|context, i| {
+        let mut input = ::cssparser::ParserInput::new(&serialized);
+        parse_input(|context, i| {
             let re_parsed = $fun(context, i)
                             .expect(&format!("Failed to parse serialization {}", $input));
             let re_serialized = ToCss::to_css_string(&re_parsed);
             assert_eq!(serialized, re_serialized);
             Ok(())
-        }, &serialized).unwrap()
+        }, &mut input).unwrap()
     }}
 }
 

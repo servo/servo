@@ -8,11 +8,12 @@ use cssparser::{Parser, ToCss};
 use element_state::ElementState;
 use gecko_bindings::structs::CSSPseudoClassType;
 use selector_parser::{SelectorParser, PseudoElementCascadeType};
-use selectors::parser::{Selector, SelectorMethods};
+use selectors::parser::{Selector, SelectorMethods, SelectorParseError};
 use selectors::visitor::SelectorVisitor;
 use std::borrow::Cow;
 use std::fmt;
 use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
+use style_traits::{ParseError, StyleParseError};
 
 pub use gecko::pseudo_element::{PseudoElement, EAGER_PSEUDOS, EAGER_PSEUDO_COUNT};
 pub use gecko::snapshot::SnapshotMap;
@@ -238,17 +239,20 @@ impl ::selectors::SelectorImpl for SelectorImpl {
     type NonTSPseudoClass = NonTSPseudoClass;
 }
 
-impl<'a> ::selectors::Parser for SelectorParser<'a> {
+impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
     type Impl = SelectorImpl;
+    type Error = StyleParseError<'i>;
 
-    fn parse_non_ts_pseudo_class(&self, name: Cow<str>) -> Result<NonTSPseudoClass, ()> {
+    fn parse_non_ts_pseudo_class(&self, name: Cow<'i, str>)
+                                 -> Result<NonTSPseudoClass, ParseError<'i>> {
         macro_rules! pseudo_class_parse {
             (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
              string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*],
              keyword: [$(($k_css:expr, $k_name:ident, $k_gecko_type:tt, $k_state:tt, $k_flags:tt),)*]) => {
                 match_ignore_ascii_case! { &name,
                     $($css => NonTSPseudoClass::$name,)*
-                    _ => return Err(())
+                    _ => return Err(::selectors::parser::SelectorParseError::UnexpectedIdent(
+                        name.clone()).into())
                 }
             }
         }
@@ -256,14 +260,14 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
         if !pseudo_class.is_internal() || self.in_user_agent_stylesheet() {
             Ok(pseudo_class)
         } else {
-            Err(())
+            Err(SelectorParseError::UnexpectedIdent(name).into())
         }
     }
 
-    fn parse_non_ts_functional_pseudo_class(&self,
-                                            name: Cow<str>,
-                                            parser: &mut Parser)
-                                            -> Result<NonTSPseudoClass, ()> {
+    fn parse_non_ts_functional_pseudo_class<'t>(&self,
+                                                name: Cow<'i, str>,
+                                                parser: &mut Parser<'i, 't>)
+                                                -> Result<NonTSPseudoClass, ParseError<'i>> {
         macro_rules! pseudo_class_string_parse {
             (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
              string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*],
@@ -289,11 +293,11 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
                         })?;
                         // Selectors inside `:-moz-any` may not include combinators.
                         if selectors.iter().flat_map(|x| x.iter_raw()).any(|s| s.is_combinator()) {
-                            return Err(())
+                            return Err(SelectorParseError::UnexpectedIdent("-moz-any".into()).into())
                         }
                         NonTSPseudoClass::MozAny(selectors.into_boxed_slice())
                     }
-                    _ => return Err(())
+                    _ => return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
                 }
             }
         }
@@ -301,13 +305,13 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
         if !pseudo_class.is_internal() || self.in_user_agent_stylesheet() {
             Ok(pseudo_class)
         } else {
-            Err(())
+            Err(SelectorParseError::UnexpectedIdent(name).into())
         }
     }
 
-    fn parse_pseudo_element(&self, name: Cow<str>) -> Result<PseudoElement, ()> {
+    fn parse_pseudo_element(&self, name: Cow<'i, str>) -> Result<PseudoElement, ParseError<'i>> {
         PseudoElement::from_slice(&name, self.in_user_agent_stylesheet())
-            .ok_or(())
+            .ok_or(SelectorParseError::UnexpectedIdent(name.clone()).into())
     }
 
     fn default_namespace(&self) -> Option<Namespace> {

@@ -18,11 +18,14 @@ macro_rules! define_numbered_css_keyword_enum {
 
         impl $crate::parser::Parse for $name {
             #[allow(missing_docs)]
-            fn parse(_context: &$crate::parser::ParserContext, input: &mut ::cssparser::Parser) -> Result<$name, ()> {
-                match_ignore_ascii_case! { &try!(input.expect_ident()),
+            fn parse<'i, 't>(_context: &$crate::parser::ParserContext,
+                             input: &mut ::cssparser::Parser<'i, 't>)
+                             -> Result<$name, ::style_traits::ParseError<'i>> {
+                let ident = try!(input.expect_ident());
+                (match_ignore_ascii_case! { &ident,
                     $( $css => Ok($name::$variant), )+
                     _ => Err(())
-                }
+                }).map_err(|()| ::selectors::parser::SelectorParseError::UnexpectedIdent(ident).into())
             }
         }
 
@@ -49,9 +52,9 @@ macro_rules! add_impls_for_keyword_enum {
     ($name:ident) => {
         impl $crate::parser::Parse for $name {
             #[inline]
-            fn parse(_context: &$crate::parser::ParserContext,
-                     input: &mut ::cssparser::Parser)
-                     -> Result<Self, ()> {
+            fn parse<'i, 't>(_context: &$crate::parser::ParserContext,
+                             input: &mut ::cssparser::Parser<'i, 't>)
+                             -> Result<Self, ::style_traits::ParseError<'i>> {
                 $name::parse(input)
             }
         }
@@ -89,10 +92,10 @@ macro_rules! define_keyword_type {
         }
 
         impl $crate::parser::Parse for $name {
-            fn parse(_context: &$crate::parser::ParserContext,
-                     input: &mut ::cssparser::Parser)
-                     -> Result<$name, ()> {
-                input.expect_ident_matching($css).map(|_| $name)
+            fn parse<'i, 't>(_context: &$crate::parser::ParserContext,
+                             input: &mut ::cssparser::Parser<'i, 't>)
+                             -> Result<$name, ::style_traits::ParseError<'i>> {
+                input.expect_ident_matching($css).map(|_| $name).map_err(|e| e.into())
             }
         }
 

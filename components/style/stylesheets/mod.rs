@@ -22,7 +22,7 @@ mod stylesheet;
 pub mod supports_rule;
 pub mod viewport_rule;
 
-use cssparser::{parse_one_rule, Parser};
+use cssparser::{parse_one_rule, Parser, ParserInput};
 use error_reporting::NullReporter;
 use parser::{ParserContext, PARSING_MODE_DEFAULT};
 use shared_lock::{DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
@@ -234,7 +234,8 @@ impl CssRule {
             parent_stylesheet.quirks_mode
         );
 
-        let mut input = Parser::new(css);
+        let mut input = ParserInput::new(css);
+        let mut input = Parser::new(&mut input);
 
         let mut guard = parent_stylesheet.namespaces.write();
 

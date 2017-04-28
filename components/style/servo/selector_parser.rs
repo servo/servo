@@ -16,7 +16,7 @@ use restyle_hints::ElementSnapshot;
 use selector_parser::{AttrValue as SelectorAttrValue, ElementExt, PseudoElementCascadeType, SelectorParser};
 use selectors::Element;
 use selectors::attr::{AttrSelectorOperation, NamespaceConstraint};
-use selectors::parser::SelectorMethods;
+use selectors::parser::{SelectorMethods, SelectorParseError};
 use selectors::visitor::SelectorVisitor;
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
@@ -24,6 +24,7 @@ use std::fmt;
 use std::fmt::Debug;
 use std::mem;
 use std::ops::{Deref, DerefMut};
+use style_traits::{ParseError, StyleParseError};
 
 /// A pseudo-element, both public and private.
 ///
@@ -300,10 +301,12 @@ impl ::selectors::SelectorImpl for SelectorImpl {
     type BorrowedNamespaceUrl = Namespace;
 }
 
-impl<'a> ::selectors::Parser for SelectorParser<'a> {
+impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
     type Impl = SelectorImpl;
+    type Error = StyleParseError<'i>;
 
-    fn parse_non_ts_pseudo_class(&self, name: Cow<str>) -> Result<NonTSPseudoClass, ()> {
+    fn parse_non_ts_pseudo_class(&self, name: Cow<'i, str>)
+                                 -> Result<NonTSPseudoClass, ParseError<'i>> {
         use self::NonTSPseudoClass::*;
         let pseudo_class = match_ignore_ascii_case! { &name,
             "active" => Active,
@@ -323,20 +326,21 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
             "visited" => Visited,
             "-servo-nonzero-border" => {
                 if !self.in_user_agent_stylesheet() {
-                    return Err(());
+                    return Err(SelectorParseError::UnexpectedIdent(
+                        "-servo-nonzero-border".into()).into());
                 }
                 ServoNonZeroBorder
             },
-            _ => return Err(())
+            _ => return Err(SelectorParseError::UnexpectedIdent(name.clone()).into()),
         };
 
         Ok(pseudo_class)
     }
 
-    fn parse_non_ts_functional_pseudo_class(&self,
-                                            name: Cow<str>,
-                                            parser: &mut CssParser)
-                                            -> Result<NonTSPseudoClass, ()> {
+    fn parse_non_ts_functional_pseudo_class<'t>(&self,
+                                                name: Cow<'i, str>,
+                                                parser: &mut CssParser<'i, 't>)
+                                                -> Result<NonTSPseudoClass, ParseError<'i>> {
         use self::NonTSPseudoClass::*;
         let pseudo_class = match_ignore_ascii_case!{ &name,
             "lang" => {
@@ -344,18 +348,17 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
             }
             "-servo-case-sensitive-type-attr" => {
                 if !self.in_user_agent_stylesheet() {
-                    return Err(());
+                    return Err(SelectorParseError::UnexpectedIdent(name.clone()).into());
                 }
                 ServoCaseSensitiveTypeAttr(Atom::from(parser.expect_ident()?))
             }
-            _ => return Err(())
+            _ => return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
         };
 
         Ok(pseudo_class)
     }
 
-    fn parse_pseudo_element(&self, name: Cow<str>)
-                            -> Result<PseudoElement, ()> {
+    fn parse_pseudo_element(&self, name: Cow<'i, str>) -> Result<PseudoElement, ParseError<'i>> {
         use self::PseudoElement::*;
         let pseudo_element = match_ignore_ascii_case! { &name,
             "before" => Before,
@@ -363,77 +366,78 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
             "selection" => Selection,
             "-servo-details-summary" => {
                 if !self.in_user_agent_stylesheet() {
-                    return Err(())
+                    return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
                 }
                 DetailsSummary
             },
             "-servo-details-content" => {
                 if !self.in_user_agent_stylesheet() {
-                    return Err(())
+                    return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
                 }
                 DetailsContent
             },
             "-servo-text" => {
                 if !self.in_user_agent_stylesheet() {
-                    return Err(())
+                    return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
                 }
                 ServoText
             },
             "-servo-input-text" => {
                 if !self.in_user_agent_stylesheet() {
-                    return Err(())
+                    return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
                 }
                 ServoInputText
             },
             "-servo-table-wrapper" => {
                 if !self.in_user_agent_stylesheet() {
-                    return Err(())
+                    return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
                 }
                 ServoTableWrapper
             },
             "-servo-anonymous-table-wrapper" => {
                 if !self.in_user_agent_stylesheet() {
-                    return Err(())
+                    return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
                 }
                 ServoAnonymousTableWrapper
             },
             "-servo-anonymous-table" => {
                 if !self.in_user_agent_stylesheet() {
-                    return Err(())
+                    return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
                 }
                 ServoAnonymousTable
             },
             "-servo-anonymous-table-row" => {
                 if !self.in_user_agent_stylesheet() {
-                    return Err(())
+                    return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
                 }
                 ServoAnonymousTableRow
             },
             "-servo-anonymous-table-cell" => {
                 if !self.in_user_agent_stylesheet() {
-                    return Err(())
+                    return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
                 }
                 ServoAnonymousTableCell
             },
             "-servo-anonymous-block" => {
                 if !self.in_user_agent_stylesheet() {
-                    return Err(())
+                    return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
                 }
                 ServoAnonymousBlock
             },
             "-servo-inline-block-wrapper" => {
                 if !self.in_user_agent_stylesheet() {
-                    return Err(())
+                    return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
                 }
                 ServoInlineBlockWrapper
             },
             "-servo-input-absolute" => {
                 if !self.in_user_agent_stylesheet() {
-                    return Err(())
+                    return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
                 }
                 ServoInlineAbsolute
             },
-            _ => return Err(())
+            _ => return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
+
         };
 
         Ok(pseudo_element)

@@ -8,8 +8,9 @@
 use counter_style::{Symbols, parse_counter_style_name};
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
+use selectors::parser::SelectorParseError;
 use std::fmt;
-use style_traits::{OneOrMoreCommaSeparated, ToCss};
+use style_traits::{OneOrMoreCommaSeparated, ToCss, ParseError, StyleParseError};
 use super::CustomIdent;
 use values::specified::url::SpecifiedUrl;
 
@@ -79,7 +80,7 @@ impl CounterStyleOrNone {
 no_viewport_percentage!(CounterStyleOrNone);
 
 impl Parse for CounterStyleOrNone {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         if let Ok(name) = input.try(|i| parse_counter_style_name(i)) {
             return Ok(CounterStyleOrNone::Name(name));
         }
@@ -95,16 +96,16 @@ impl Parse for CounterStyleOrNone {
                 // numeric system.
                 if (symbols_type == SymbolsType::Alphabetic ||
                     symbols_type == SymbolsType::Numeric) && symbols.0.len() < 2 {
-                    return Err(());
+                    return Err(StyleParseError::UnspecifiedError.into());
                 }
                 // Identifier is not allowed in symbols() function.
                 if symbols.0.iter().any(|sym| !sym.is_allowed_in_symbols()) {
-                    return Err(());
+                    return Err(StyleParseError::UnspecifiedError.into());
                 }
                 Ok(CounterStyleOrNone::Symbols(symbols_type, symbols))
             });
         }
-        Err(())
+        Err(StyleParseError::UnspecifiedError.into())
     }
 }
 
@@ -159,7 +160,7 @@ impl<T: Parse> Parse for FontSettingTag<T> {
     /// settings-control-the-font-variation-settings-property
     /// <string> [ on | off | <integer> ]
     /// <string> <number>
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         use byteorder::{ReadBytesExt, BigEndian};
         use std::io::Cursor;
 
@@ -169,7 +170,7 @@ impl<T: Parse> Parse for FontSettingTag<T> {
         if tag.len() != 4 ||
            tag.chars().any(|c| c < ' ' || c > '~')
         {
-            return Err(())
+            return Err(StyleParseError::UnspecifiedError.into())
         }
 
         let mut raw = Cursor::new(tag.as_bytes());
@@ -192,7 +193,7 @@ pub enum FontSettings<T> {
 
 impl<T: Parse> Parse for FontSettings<T> {
     /// https://www.w3.org/TR/css-fonts-3/#propdef-font-feature-settings
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         if input.try(|i| i.expect_ident_matching("normal")).is_ok() {
             return Ok(FontSettings::Normal);
         }
@@ -227,13 +228,13 @@ impl ToCss for FontSettingTagInt {
 }
 
 impl Parse for FontSettingTagInt {
-    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         if let Ok(value) = input.try(|input| input.expect_integer()) {
             // handle integer, throw if it is negative
             if value >= 0 {
                 Ok(FontSettingTagInt(value as u32))
             } else {
-                Err(())
+                Err(StyleParseError::UnspecifiedError.into())
             }
         } else if let Ok(_) = input.try(|input| input.expect_ident_matching("on")) {
             // on is an alias for '1'
@@ -250,8 +251,8 @@ impl Parse for FontSettingTagInt {
 
 
 impl Parse for FontSettingTagFloat {
-    fn parse(_: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        input.expect_number().map(FontSettingTagFloat)
+    fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        input.expect_number().map(FontSettingTagFloat).map_err(|e| e.into())
     }
 }
 
@@ -326,18 +327,19 @@ impl<ColorType> SVGPaint<ColorType> {
 
 impl<ColorType> SVGPaintKind<ColorType> {
     /// Parse a keyword value only
-    fn parse_ident(input: &mut Parser) -> Result<Self, ()> {
-        Ok(match_ignore_ascii_case! { &input.expect_ident()?,
-            "none" => SVGPaintKind::None,
-            "context-fill" => SVGPaintKind::ContextFill,
-            "context-stroke" => SVGPaintKind::ContextStroke,
-            _ => return Err(())
-        })
+    fn parse_ident<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        let ident = input.expect_ident()?;
+        (match_ignore_ascii_case! { &ident,
+            "none" => Ok(SVGPaintKind::None),
+            "context-fill" => Ok(SVGPaintKind::ContextFill),
+            "context-stroke" => Ok(SVGPaintKind::ContextStroke),
+            _ => Err(())
+        }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
     }
 }
 
 impl<ColorType: Parse> Parse for SVGPaint<ColorType> {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         if let Ok(url) = input.try(|i| SpecifiedUrl::parse(context, i)) {
             let fallback = input.try(|i| ColorType::parse(context, i));
             Ok(SVGPaint {
@@ -363,7 +365,7 @@ impl<ColorType: Parse> Parse for SVGPaint<ColorType> {
                 fallback: None,
             })
         } else {
-            Err(())
+            Err(StyleParseError::UnspecifiedError.into())
         }
     }
 }
