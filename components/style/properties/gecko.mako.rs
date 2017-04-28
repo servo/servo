@@ -1981,7 +1981,7 @@ fn static_assert() {
                 "length" : "bindings::Gecko_CSSValue_SetAbsoluteLength(%s, %s.0)",
                 "percentage" : "bindings::Gecko_CSSValue_SetPercentage(%s, %s)",
                 "lop" : "%s.set_lop(%s)",
-                "angle" : "bindings::Gecko_CSSValue_SetAngle(%s, %s.radians())",
+                "angle" : "%s.set_angle(%s)",
                 "number" : "bindings::Gecko_CSSValue_SetNumber(%s, %s)",
             }
         %>
@@ -2058,7 +2058,7 @@ fn static_assert() {
             css_value_getters = {
                 "length" : "Au(bindings::Gecko_CSSValue_GetAbsoluteLength(%s))",
                 "lop" : "%s.get_lop()",
-                "angle" : "Angle::from_radians(bindings::Gecko_CSSValue_GetAngle(%s))",
+                "angle" : "%s.get_angle()",
                 "number" : "bindings::Gecko_CSSValue_GetNumber(%s)",
             }
         %>
@@ -2087,7 +2087,6 @@ fn static_assert() {
         use properties::longhands::transform::computed_value;
         use properties::longhands::transform::computed_value::ComputedMatrix;
         use properties::longhands::transform::computed_value::ComputedOperation;
-        use values::computed::Angle;
 
         if self.gecko.mSpecifiedTransform.mRawPtr.is_null() {
             return computed_value::T(None);
@@ -3134,7 +3133,7 @@ fn static_assert() {
                                                   CoordDataValue::Factor(factor),
                                                   gecko_filter),
                 HueRotate(angle)   => fill_filter(NS_STYLE_FILTER_HUE_ROTATE,
-                                                  CoordDataValue::Radian(angle.radians()),
+                                                  CoordDataValue::from(angle),
                                                   gecko_filter),
                 Invert(factor)     => fill_filter(NS_STYLE_FILTER_INVERT,
                                                   CoordDataValue::Factor(factor),
