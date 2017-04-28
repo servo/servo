@@ -601,7 +601,7 @@ impl LayoutThread {
             Msg::AddStylesheet(style_info) => {
                 self.handle_add_stylesheet(style_info, possibly_locked_rw_data)
             }
-            Msg::SetQuirksMode => self.handle_set_quirks_mode(possibly_locked_rw_data),
+            Msg::SetQuirksMode(mode) => self.handle_set_quirks_mode(possibly_locked_rw_data, mode),
             Msg::GetRPC(response_chan) => {
                 response_chan.send(box LayoutRPCImpl(self.rw_data.clone()) as
                                    Box<LayoutRPC + Send>).unwrap();
@@ -772,9 +772,11 @@ impl LayoutThread {
     }
 
     /// Sets quirks mode for the document, causing the quirks mode stylesheet to be used.
-    fn handle_set_quirks_mode<'a, 'b>(&self, possibly_locked_rw_data: &mut RwData<'a, 'b>) {
+    fn handle_set_quirks_mode<'a, 'b>(&self,
+                                      possibly_locked_rw_data: &mut RwData<'a, 'b>,
+                                      quirks_mode: QuirksMode) {
         let mut rw_data = possibly_locked_rw_data.lock();
-        Arc::get_mut(&mut rw_data.stylist).unwrap().set_quirks_mode(true);
+        Arc::get_mut(&mut rw_data.stylist).unwrap().set_quirks_mode(quirks_mode);
         possibly_locked_rw_data.block(rw_data);
     }
 
@@ -1587,7 +1589,8 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
             MediaList::empty(),
             shared_lock.clone(),
             None,
-            &NullReporter))
+            &NullReporter,
+            QuirksMode::NoQuirks))
     }
 
     let shared_lock = SharedRwLock::new();
@@ -1600,7 +1603,7 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
     for &(ref contents, ref url) in &opts::get().user_stylesheets {
         user_or_user_agent_stylesheets.push(Stylesheet::from_bytes(
             &contents, url.clone(), None, None, Origin::User, MediaList::empty(),
-            shared_lock.clone(), None, &RustLogReporter));
+            shared_lock.clone(), None, &RustLogReporter, QuirksMode::NoQuirks));
     }
 
     let quirks_mode_stylesheet = try!(parse_ua_stylesheet(&shared_lock, "quirks-mode.css"));

@@ -483,7 +483,8 @@ trait PrivateMatchMethods: TElement {
                              Some(&mut cascade_info),
                              &*shared_context.error_reporter,
                              font_metrics_provider,
-                             cascade_flags));
+                             cascade_flags,
+                             shared_context.quirks_mode));
 
         cascade_info.finish(&self.as_node());
         values

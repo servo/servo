@@ -33,7 +33,9 @@
                               computed_type="::app_units::Au",
                               alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-width"),
                               spec=maybe_logical_spec(side, "width"),
-                              animation_value_type="ComputedValue", logical=side[1])}
+                              animation_value_type="ComputedValue",
+                              logical=side[1],
+                              allow_quirks=not side[1])}
 % endfor
 
 ${helpers.gecko_keyword_conversion(Keyword('border-style',

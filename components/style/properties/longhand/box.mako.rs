@@ -264,6 +264,7 @@ ${helpers.single_keyword("position", "static absolute relative fixed",
     use std::fmt;
     use style_traits::ToCss;
     use values::HasViewportPercentage;
+    use values::specified::AllowQuirks;
 
     <% vertical_align = data.longhands_by_name["vertical-align"] %>
     <% vertical_align.keyword = Keyword("vertical-align",
@@ -306,7 +307,7 @@ ${helpers.single_keyword("position", "static absolute relative fixed",
     /// baseline | sub | super | top | text-top | middle | bottom | text-bottom
     /// | <percentage> | <length>
     pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        input.try(|i| specified::LengthOrPercentage::parse(context, i))
+        input.try(|i| specified::LengthOrPercentage::parse_quirky(context, i, AllowQuirks::Yes))
         .map(SpecifiedValue::LengthOrPercentage)
         .or_else(|_| {
             match_ignore_ascii_case! { &try!(input.expect_ident()),

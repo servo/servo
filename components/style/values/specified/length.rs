@@ -17,7 +17,7 @@ use std::ops::Mul;
 use style_traits::ToCss;
 use style_traits::values::specified::AllowedLengthType;
 use stylesheets::CssRuleType;
-use super::{Angle, Number, SimplifiedValueNode, SimplifiedSumNode, Time, ToComputedValue};
+use super::{AllowQuirks, Angle, Number, SimplifiedValueNode, SimplifiedSumNode, Time, ToComputedValue};
 use values::{Auto, CSSFloat, Either, FONT_MEDIUM_PX, HasViewportPercentage, None_, Normal};
 use values::ExtremumLength;
 use values::computed::{ComputedValueAsSpecified, Context};
@@ -563,13 +563,17 @@ impl Length {
     }
 
     #[inline]
-    fn parse_internal(context: &ParserContext, input: &mut Parser, num_context: AllowedLengthType)
+    fn parse_internal(context: &ParserContext,
+                      input: &mut Parser,
+                      num_context: AllowedLengthType,
+                      allow_quirks: AllowQuirks)
                       -> Result<Length, ()> {
         match try!(input.next()) {
             Token::Dimension(ref value, ref unit) if num_context.is_ok(value.value) =>
                 Length::parse_dimension(context, value.value, unit),
-            Token::Number(ref value) => {
-                if value.value != 0. && !context.length_parsing_mode.allows_unitless_lengths() {
+            Token::Number(ref value) if num_context.is_ok(value.value) => {
+                if value.value != 0. && !context.length_parsing_mode.allows_unitless_lengths() &&
+                   !allow_quirks.allowed(context.quirks_mode) {
                     return Err(())
                 }
                 Ok(Length::NoCalc(NoCalcLength::Absolute(AbsoluteLength::Px(value.value))))
@@ -585,7 +589,16 @@ impl Length {
     /// Parse a non-negative length
     #[inline]
     pub fn parse_non_negative(context: &ParserContext, input: &mut Parser) -> Result<Length, ()> {
-        Self::parse_internal(context, input, AllowedLengthType::NonNegative)
+        Self::parse_non_negative_quirky(context, input, AllowQuirks::No)
+    }
+
+    /// Parse a non-negative length, allowing quirks.
+    #[inline]
+    pub fn parse_non_negative_quirky(context: &ParserContext,
+                                     input: &mut Parser,
+                                     allow_quirks: AllowQuirks)
+                                     -> Result<Length, ()> {
+        Self::parse_internal(context, input, AllowedLengthType::NonNegative, allow_quirks)
     }
 
     /// Get an absolute length from a px value.
@@ -605,7 +618,17 @@ impl Length {
 
 impl Parse for Length {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        Self::parse_internal(context, input, AllowedLengthType::All)
+        Self::parse_quirky(context, input, AllowQuirks::No)
+    }
+}
+
+impl Length {
+    /// Parses a length, with quirks.
+    pub fn parse_quirky(context: &ParserContext,
+                        input: &mut Parser,
+                        allow_quirks: AllowQuirks)
+                        -> Result<Self, ()> {
+        Self::parse_internal(context, input, AllowedLengthType::All, allow_quirks)
     }
 }
 
@@ -616,7 +639,7 @@ impl<T: Parse> Either<Length, T> {
         if let Ok(v) = input.try(|input| T::parse(context, input)) {
             return Ok(Either::Second(v));
         }
-        Length::parse_internal(context, input, AllowedLengthType::NonNegative).map(Either::First)
+        Length::parse_internal(context, input, AllowedLengthType::NonNegative, AllowQuirks::No).map(Either::First)
     }
 }
 
@@ -1154,7 +1177,10 @@ impl LengthOrPercentage {
         LengthOrPercentage::Length(NoCalcLength::zero())
     }
 
-    fn parse_internal(context: &ParserContext, input: &mut Parser, num_context: AllowedLengthType)
+    fn parse_internal(context: &ParserContext,
+                      input: &mut Parser,
+                      num_context: AllowedLengthType,
+                      allow_quirks: AllowQuirks)
                       -> Result<LengthOrPercentage, ()>
     {
         match try!(input.next()) {
@@ -1162,12 +1188,9 @@ impl LengthOrPercentage {
                 NoCalcLength::parse_dimension(context, value.value, unit).map(LengthOrPercentage::Length),
             Token::Percentage(ref value) if num_context.is_ok(value.unit_value) =>
                 Ok(LengthOrPercentage::Percentage(Percentage(value.unit_value))),
-            Token::Number(ref value) => {
-                if value.value != 0. && !context.length_parsing_mode.allows_unitless_lengths() {
-                    return Err(())
-                }
-                Ok(LengthOrPercentage::Length(NoCalcLength::Absolute(AbsoluteLength::Px(value.value))))
-            }
+            Token::Number(value) if value.value == 0. ||
+                                    (num_context.is_ok(value.value) && allow_quirks.allowed(context.quirks_mode)) =>
+                Ok(LengthOrPercentage::Length(NoCalcLength::from_px(value.value))),
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
                 let calc = try!(input.parse_nested_block(|i| {
                     CalcLengthOrPercentage::parse_length_or_percentage(context, i)
@@ -1181,14 +1204,23 @@ impl LengthOrPercentage {
     /// Parse a non-negative length.
     #[inline]
     pub fn parse_non_negative(context: &ParserContext, input: &mut Parser) -> Result<LengthOrPercentage, ()> {
-        Self::parse_internal(context, input, AllowedLengthType::NonNegative)
+        Self::parse_non_negative_quirky(context, input, AllowQuirks::No)
+    }
+
+    /// Parse a non-negative length, with quirks.
+    #[inline]
+    pub fn parse_non_negative_quirky(context: &ParserContext,
+                                     input: &mut Parser,
+                                     allow_quirks: AllowQuirks)
+                                     -> Result<LengthOrPercentage, ()> {
+        Self::parse_internal(context, input, AllowedLengthType::NonNegative, allow_quirks)
     }
 
     /// Parse a length, treating dimensionless numbers as pixels
     ///
     /// https://www.w3.org/TR/SVG2/types.html#presentation-attribute-css-value
     pub fn parse_numbers_are_pixels(context: &ParserContext, input: &mut Parser) -> Result<LengthOrPercentage, ()> {
-        if let Ok(lop) = input.try(|i| Self::parse_internal(context, i, AllowedLengthType::All)) {
+        if let Ok(lop) = input.try(|i| Self::parse(context, i)) {
             return Ok(lop)
         }
 
@@ -1204,7 +1236,7 @@ impl LengthOrPercentage {
     pub fn parse_numbers_are_pixels_non_negative(context: &ParserContext,
                                                  input: &mut Parser)
                                                  -> Result<LengthOrPercentage, ()> {
-        if let Ok(lop) = input.try(|i| Self::parse_internal(context, i, AllowedLengthType::NonNegative)) {
+        if let Ok(lop) = input.try(|i| Self::parse_non_negative(context, i)) {
             return Ok(lop)
         }
 
@@ -1230,7 +1262,18 @@ impl LengthOrPercentage {
 impl Parse for LengthOrPercentage {
     #[inline]
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        Self::parse_internal(context, input, AllowedLengthType::All)
+        Self::parse_quirky(context, input, AllowQuirks::No)
+    }
+}
+
+impl LengthOrPercentage {
+    /// Parses a length or a percentage, allowing the unitless length quirk.
+    /// https://quirks.spec.whatwg.org/#the-unitless-length-quirk
+    #[inline]
+    pub fn parse_quirky(context: &ParserContext,
+                        input: &mut Parser,
+                        allow_quirks: AllowQuirks) -> Result<Self, ()> {
+        Self::parse_internal(context, input, AllowedLengthType::All, allow_quirks)
     }
 }
 
@@ -1283,15 +1326,19 @@ impl ToCss for LengthOrPercentageOrAuto {
 }
 
 impl LengthOrPercentageOrAuto {
-    fn parse_internal(context: &ParserContext, input: &mut Parser, num_context: AllowedLengthType)
+    fn parse_internal(context: &ParserContext,
+                      input: &mut Parser,
+                      num_context: AllowedLengthType,
+                      allow_quirks: AllowQuirks)
                       -> Result<Self, ()> {
         match try!(input.next()) {
             Token::Dimension(ref value, ref unit) if num_context.is_ok(value.value) =>
                 NoCalcLength::parse_dimension(context, value.value, unit).map(LengthOrPercentageOrAuto::Length),
             Token::Percentage(ref value) if num_context.is_ok(value.unit_value) =>
                 Ok(LengthOrPercentageOrAuto::Percentage(Percentage(value.unit_value))),
-            Token::Number(ref value) if value.value == 0. => {
-                if value.value != 0. && !context.length_parsing_mode.allows_unitless_lengths() {
+            Token::Number(ref value) if num_context.is_ok(value.value) => {
+                if value.value != 0. && !context.length_parsing_mode.allows_unitless_lengths() &&
+                   !allow_quirks.allowed(context.quirks_mode) {
                     return Err(())
                 }
                 Ok(LengthOrPercentageOrAuto::Length(
@@ -1313,7 +1360,16 @@ impl LengthOrPercentageOrAuto {
     /// Parse a non-negative length, percentage, or auto.
     #[inline]
     pub fn parse_non_negative(context: &ParserContext, input: &mut Parser) -> Result<LengthOrPercentageOrAuto, ()> {
-        Self::parse_internal(context, input, AllowedLengthType::NonNegative)
+        Self::parse_non_negative_quirky(context, input, AllowQuirks::No)
+    }
+
+    /// Parse a non-negative length, percentage, or auto.
+    #[inline]
+    pub fn parse_non_negative_quirky(context: &ParserContext,
+                                     input: &mut Parser,
+                                     allow_quirks: AllowQuirks)
+                                     -> Result<Self, ()> {
+        Self::parse_internal(context, input, AllowedLengthType::NonNegative, allow_quirks)
     }
 
     /// Returns the `auto` value.
@@ -1330,7 +1386,18 @@ impl LengthOrPercentageOrAuto {
 impl Parse for LengthOrPercentageOrAuto {
     #[inline]
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        Self::parse_internal(context, input, AllowedLengthType::All)
+        Self::parse_quirky(context, input, AllowQuirks::No)
+    }
+}
+
+impl LengthOrPercentageOrAuto {
+    /// Parses, with quirks.
+    #[inline]
+    pub fn parse_quirky(context: &ParserContext,
+                        input: &mut Parser,
+                        allow_quirks: AllowQuirks)
+                        -> Result<Self, ()> {
+        Self::parse_internal(context, input, AllowedLengthType::All, allow_quirks)
     }
 }
 
@@ -1367,7 +1434,10 @@ impl ToCss for LengthOrPercentageOrNone {
     }
 }
 impl LengthOrPercentageOrNone {
-    fn parse_internal(context: &ParserContext, input: &mut Parser, num_context: AllowedLengthType)
+    fn parse_internal(context: &ParserContext,
+                      input: &mut Parser,
+                      num_context: AllowedLengthType,
+                      allow_quirks: AllowQuirks)
                       -> Result<LengthOrPercentageOrNone, ()>
     {
         match try!(input.next()) {
@@ -1375,8 +1445,9 @@ impl LengthOrPercentageOrNone {
                 NoCalcLength::parse_dimension(context, value.value, unit).map(LengthOrPercentageOrNone::Length),
             Token::Percentage(ref value) if num_context.is_ok(value.unit_value) =>
                 Ok(LengthOrPercentageOrNone::Percentage(Percentage(value.unit_value))),
-            Token::Number(ref value) if value.value == 0. => {
-                if value.value != 0. && !context.length_parsing_mode.allows_unitless_lengths() {
+            Token::Number(value) if num_context.is_ok(value.value) => {
+                if value.value != 0. && !context.length_parsing_mode.allows_unitless_lengths() &&
+                   !allow_quirks.allowed(context.quirks_mode) {
                     return Err(())
                 }
                 Ok(LengthOrPercentageOrNone::Length(
@@ -1394,17 +1465,27 @@ impl LengthOrPercentageOrNone {
             _ => Err(())
         }
     }
+
     /// Parse a non-negative LengthOrPercentageOrNone.
     #[inline]
     pub fn parse_non_negative(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        Self::parse_internal(context, input, AllowedLengthType::NonNegative)
+        Self::parse_non_negative_quirky(context, input, AllowQuirks::No)
+    }
+
+    /// Parse a non-negative LengthOrPercentageOrNone, with quirks.
+    #[inline]
+    pub fn parse_non_negative_quirky(context: &ParserContext,
+                                     input: &mut Parser,
+                                     allow_quirks: AllowQuirks)
+                                     -> Result<Self, ()> {
+        Self::parse_internal(context, input, AllowedLengthType::NonNegative, allow_quirks)
     }
 }
 
 impl Parse for LengthOrPercentageOrNone {
     #[inline]
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        Self::parse_internal(context, input, AllowedLengthType::All)
+        Self::parse_internal(context, input, AllowedLengthType::All, AllowQuirks::No)
     }
 }
 
@@ -1548,8 +1629,17 @@ impl ToCss for MinLength {
 
 impl Parse for MinLength {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        MinLength::parse_quirky(context, input, AllowQuirks::No)
+    }
+}
+
+impl MinLength {
+    /// Parses, with quirks.
+    pub fn parse_quirky(context: &ParserContext,
+                        input: &mut Parser,
+                        allow_quirks: AllowQuirks) -> Result<Self, ()> {
         input.try(ExtremumLength::parse).map(MinLength::ExtremumLength)
-            .or_else(|()| input.try(|i| LengthOrPercentage::parse_non_negative(context, i))
+            .or_else(|()| input.try(|i| LengthOrPercentage::parse_non_negative_quirky(context, i, allow_quirks))
                                .map(MinLength::LengthOrPercentage))
             .or_else(|()| input.expect_ident_matching("auto").map(|()| MinLength::Auto))
     }
@@ -1589,8 +1679,17 @@ impl ToCss for MaxLength {
 
 impl Parse for MaxLength {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        MaxLength::parse_quirky(context, input, AllowQuirks::No)
+    }
+}
+
+impl MaxLength {
+    /// Parses, with quirks.
+    pub fn parse_quirky(context: &ParserContext,
+                        input: &mut Parser,
+                        allow_quirks: AllowQuirks) -> Result<Self, ()> {
         input.try(ExtremumLength::parse).map(MaxLength::ExtremumLength)
-            .or_else(|()| input.try(|i| LengthOrPercentage::parse_non_negative(context, i))
+            .or_else(|()| input.try(|i| LengthOrPercentage::parse_non_negative_quirky(context, i, allow_quirks))
                                .map(MaxLength::LengthOrPercentage))
             .or_else(|()| {
                 match_ignore_ascii_case! { &try!(input.expect_ident()),

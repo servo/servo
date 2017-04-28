@@ -7,6 +7,7 @@
 //! TODO(emilio): Enhance docs.
 
 use app_units::Au;
+use context::QuirksMode;
 use cssparser::{self, Parser, Token};
 use euclid::size::Size2D;
 use parser::{ParserContext, Parse};
@@ -490,7 +491,17 @@ pub enum BorderWidth {
 
 impl Parse for BorderWidth {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<BorderWidth, ()> {
-        match input.try(|i| Length::parse_non_negative(context, i)) {
+        Self::parse_quirky(context, input, AllowQuirks::No)
+    }
+}
+
+impl BorderWidth {
+    /// Parses a border width, allowing quirks.
+    pub fn parse_quirky(context: &ParserContext,
+                        input: &mut Parser,
+                        allow_quirks: AllowQuirks)
+                        -> Result<BorderWidth, ()> {
+        match input.try(|i| Length::parse_non_negative_quirky(context, i, allow_quirks)) {
             Ok(length) => Ok(BorderWidth::Width(length)),
             Err(_) => match_ignore_ascii_case! { &try!(input.expect_ident()),
                "thin" => Ok(BorderWidth::Thin),
@@ -1281,13 +1292,13 @@ impl ToComputedValue for ClipRect {
 
 impl Parse for ClipRect {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        use values::specified::Length;
+        use values::specified::{AllowQuirks, Length};
 
         fn parse_argument(context: &ParserContext, input: &mut Parser) -> Result<Option<Length>, ()> {
             if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
                 Ok(None)
             } else {
-                Length::parse(context, input).map(Some)
+                Length::parse_quirky(context, input, AllowQuirks::Yes).map(Some)
             }
         }
 
@@ -1327,3 +1338,19 @@ pub type ClipRectOrAuto = Either<ClipRect, Auto>;
 
 /// <color> | auto
 pub type ColorOrAuto = Either<CSSColor, Auto>;
+
+/// Whether quirks are allowed in this context.
+#[derive(Clone, Copy, PartialEq)]
+pub enum AllowQuirks {
+    /// Quirks are allowed.
+    Yes,
+    /// Quirks are not allowed.
+    No,
+}
+
+impl AllowQuirks {
+    /// Returns `true` if quirks are allowed in this context.
+    pub fn allowed(self, quirks_mode: QuirksMode) -> bool {
+        self == AllowQuirks::Yes && quirks_mode == QuirksMode::Quirks
+    }
+}

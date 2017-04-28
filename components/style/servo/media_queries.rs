@@ -5,6 +5,7 @@
 //! Servo's media-query device and expression representation.
 
 use app_units::Au;
+use context::QuirksMode;
 use cssparser::Parser;
 use euclid::{Size2D, TypedSize2D};
 use font_metrics::ServoMetricsProvider;
@@ -128,12 +129,12 @@ impl Expression {
 
     /// Evaluate this expression and return whether it matches the current
     /// device.
-    pub fn matches(&self, device: &Device) -> bool {
+    pub fn matches(&self, device: &Device, quirks_mode: QuirksMode) -> bool {
         let viewport_size = device.au_viewport_size();
         let value = viewport_size.width;
         match self.0 {
             ExpressionKind::Width(ref range) => {
-                match range.to_computed_range(device) {
+                match range.to_computed_range(device, quirks_mode) {
                     Range::Min(ref width) => { value >= *width },
                     Range::Max(ref width) => { value <= *width },
                     Range::Eq(ref width) => { value == *width },
@@ -175,7 +176,7 @@ pub enum Range<T> {
 }
 
 impl Range<specified::Length> {
-    fn to_computed_range(&self, device: &Device) -> Range<Au> {
+    fn to_computed_range(&self, device: &Device, quirks_mode: QuirksMode) -> Range<Au> {
         let default_values = device.default_computed_values();
         // http://dev.w3.org/csswg/mediaqueries3/#units
         // em units are relative to the initial font-size.
@@ -192,6 +193,7 @@ impl Range<specified::Length> {
             // ch units can exist in media queries.
             font_metrics_provider: &ServoMetricsProvider,
             in_media_query: true,
+            quirks_mode: quirks_mode,
         };
 
         match *self {

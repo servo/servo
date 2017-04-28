@@ -6,6 +6,7 @@ use cssparser::{Parser, SourcePosition};
 use rayon;
 use servo_url::ServoUrl;
 use std::sync::Arc;
+use style::context::QuirksMode;
 use style::error_reporting::ParseErrorReporter;
 use style::media_queries::MediaList;
 use style::properties::{longhands, Importance, PropertyDeclaration, PropertyDeclarationBlock};
@@ -58,6 +59,7 @@ fn parse_rules(css: &str) -> Vec<(StyleSource, CascadeLevel)> {
                                  lock,
                                  None,
                                  &ErrorringErrorReporter,
+                                 QuirksMode::NoQuirks,
                                  0u64);
     let guard = s.shared_lock.read();
     let rules = s.rules.read_with(&guard);

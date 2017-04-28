@@ -7,6 +7,7 @@
 #![deny(missing_docs)]
 
 use {Atom, Prefix, Namespace};
+use context::QuirksMode;
 use counter_style::{CounterStyleRule, parse_counter_style_name, parse_counter_style_body};
 use cssparser::{AtRuleParser, Parser, QualifiedRuleParser};
 use cssparser::{AtRuleType, RuleListParser, parse_one_rule};
@@ -263,6 +264,8 @@ pub struct Stylesheet {
     pub dirty_on_viewport_size_change: AtomicBool,
     /// Whether this stylesheet should be disabled.
     pub disabled: AtomicBool,
+    /// The quirks mode of this stylesheet.
+    pub quirks_mode: QuirksMode,
 }
 
 
@@ -415,7 +418,8 @@ impl CssRule {
                                          &parent_stylesheet.url_data,
                                          &error_reporter,
                                          None,
-                                         LengthParsingMode::Default);
+                                         LengthParsingMode::Default,
+                                         parent_stylesheet.quirks_mode);
         let mut input = Parser::new(css);
 
         // nested rules are in the body state
@@ -663,7 +667,7 @@ impl Stylesheet {
         let (rules, dirty_on_viewport_size_change) = Stylesheet::parse_rules(
             css, url_data, existing.origin, &mut namespaces,
             &existing.shared_lock, stylesheet_loader, error_reporter,
-            0u64);
+            existing.quirks_mode, 0u64);
 
         *existing.namespaces.write() = namespaces;
         existing.dirty_on_viewport_size_change
@@ -681,6 +685,7 @@ impl Stylesheet {
                    shared_lock: &SharedRwLock,
                    stylesheet_loader: Option<&StylesheetLoader>,
                    error_reporter: &ParseErrorReporter,
+                   quirks_mode: QuirksMode,
                    line_number_offset: u64)
                    -> (Vec<CssRule>, bool) {
         let mut rules = Vec::new();
@@ -691,7 +696,8 @@ impl Stylesheet {
             shared_lock: shared_lock,
             loader: stylesheet_loader,
             context: ParserContext::new_with_line_number_offset(origin, url_data, error_reporter,
-                                                                line_number_offset, LengthParsingMode::Default),
+                                                                line_number_offset, LengthParsingMode::Default,
+                                                                quirks_mode),
             state: Cell::new(State::Start),
         };
 
@@ -726,11 +732,13 @@ impl Stylesheet {
                     shared_lock: SharedRwLock,
                     stylesheet_loader: Option<&StylesheetLoader>,
                     error_reporter: &ParseErrorReporter,
-                    line_number_offset: u64) -> Stylesheet {
+                    quirks_mode: QuirksMode,
+                    line_number_offset: u64)
+                    -> Stylesheet {
         let mut namespaces = Namespaces::default();
         let (rules, dirty_on_viewport_size_change) = Stylesheet::parse_rules(
             css, &url_data, origin, &mut namespaces,
-            &shared_lock, stylesheet_loader, error_reporter, line_number_offset
+            &shared_lock, stylesheet_loader, error_reporter, quirks_mode, line_number_offset,
         );
         Stylesheet {
             origin: origin,
@@ -741,6 +749,7 @@ impl Stylesheet {
             shared_lock: shared_lock,
             dirty_on_viewport_size_change: AtomicBool::new(dirty_on_viewport_size_change),
             disabled: AtomicBool::new(false),
+            quirks_mode: quirks_mode,
         }
     }
 
@@ -769,7 +778,7 @@ impl Stylesheet {
     ///
     /// Always true if no associated MediaList exists.
     pub fn is_effective_for_device(&self, device: &Device, guard: &SharedRwLockReadGuard) -> bool {
-        self.media.read_with(guard).evaluate(device)
+        self.media.read_with(guard).evaluate(device, self.quirks_mode)
     }
 
     /// Return an iterator over the effective rules within the style-sheet, as
@@ -781,7 +790,7 @@ impl Stylesheet {
     #[inline]
     pub fn effective_rules<F>(&self, device: &Device, guard: &SharedRwLockReadGuard, mut f: F)
     where F: FnMut(&CssRule) {
-        effective_rules(&self.rules.read_with(guard).0, device, guard, &mut f);
+        effective_rules(&self.rules.read_with(guard).0, device, self.quirks_mode, guard, &mut f);
     }
 
     /// Returns whether the stylesheet has been explicitly disabled through the
@@ -802,17 +811,22 @@ impl Stylesheet {
     }
 }
 
-fn effective_rules<F>(rules: &[CssRule], device: &Device, guard: &SharedRwLockReadGuard, f: &mut F)
-where F: FnMut(&CssRule) {
+fn effective_rules<F>(rules: &[CssRule],
+                      device: &Device,
+                      quirks_mode: QuirksMode,
+                      guard: &SharedRwLockReadGuard,
+                      f: &mut F)
+    where F: FnMut(&CssRule)
+{
     for rule in rules {
         f(rule);
         rule.with_nested_rules_and_mq(guard, |rules, mq| {
             if let Some(media_queries) = mq {
-                if !media_queries.evaluate(device) {
+                if !media_queries.evaluate(device, quirks_mode) {
                     return
                 }
             }
-            effective_rules(rules, device, guard, f)
+            effective_rules(rules, device, quirks_mode, guard, f)
         })
     }
 }
@@ -973,6 +987,7 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
                                 namespaces: RwLock::new(Namespaces::default()),
                                 dirty_on_viewport_size_change: AtomicBool::new(false),
                                 disabled: AtomicBool::new(false),
+                                quirks_mode: self.context.quirks_mode,
                             })
                         }
                     }, &mut |import_rule| {

@@ -16,7 +16,7 @@
 
 use app_units::Au;
 use atomic_refcell::AtomicRefCell;
-use context::{SharedStyleContext, UpdateAnimationsTasks};
+use context::{QuirksMode, SharedStyleContext, UpdateAnimationsTasks};
 use data::ElementData;
 use dom::{self, AnimationRules, DescendantsBit, LayoutIterator, NodeInfo, TElement, TNode, UnsafeNode};
 use dom::{OpaqueNode, PresentationalHintsSynthetizer};
@@ -325,7 +325,7 @@ impl<'le> GeckoElement<'le> {
     /// Parse the style attribute of an element.
     pub fn parse_style_attribute(value: &str,
                                  url_data: &UrlExtraData) -> PropertyDeclarationBlock {
-        parse_style_attribute(value, url_data, &RustLogReporter)
+        parse_style_attribute(value, url_data, &RustLogReporter, QuirksMode::NoQuirks)
     }
 
     fn flags(&self) -> u32 {

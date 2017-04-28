@@ -131,7 +131,8 @@ impl Keyframe {
                                          &parent_stylesheet.url_data,
                                          &error_reporter,
                                          Some(CssRuleType::Keyframe),
-                                         LengthParsingMode::Default);
+                                         LengthParsingMode::Default,
+                                         parent_stylesheet.quirks_mode);
         let mut input = Parser::new(css);
 
         let mut rule_parser = KeyframeListParser {

@@ -194,8 +194,8 @@
                     sub_properties="background-position-x background-position-y"
                     spec="https://drafts.csswg.org/css-backgrounds-4/#the-background-position">
     use properties::longhands::{background_position_x,background_position_y};
+    use values::specified::AllowQuirks;
     use values::specified::position::Position;
-    use parser::Parse;
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         let mut position_x = background_position_x::SpecifiedValue(Vec::new());
@@ -204,7 +204,7 @@
 
         try!(input.parse_comma_separated(|input| {
             loop {
-                if let Ok(value) = input.try(|input| Position::parse(context, input)) {
+                if let Ok(value) = input.try(|input| Position::parse_quirky(context, input, AllowQuirks::Yes)) {
                     position_x.0.push(value.horizontal);
                     position_y.0.push(value.vertical);
                     any = true;

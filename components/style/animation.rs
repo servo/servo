@@ -468,7 +468,8 @@ fn compute_style_for_animation_step(context: &SharedStyleContext,
                                                /* cascade_info = */ None,
                                                &*context.error_reporter,
                                                font_metrics_provider,
-                                               CascadeFlags::empty());
+                                               CascadeFlags::empty(),
+                                               context.quirks_mode);
             computed
         }
     }

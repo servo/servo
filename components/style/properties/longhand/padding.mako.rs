@@ -18,5 +18,6 @@
                               alias=maybe_moz_logical_alias(product, side, "-moz-padding-%s"),
                               animation_value_type="ComputedValue",
                               logical = side[1],
-                              spec = spec)}
+                              spec = spec,
+                              allow_quirks=not side[1])}
 % endfor

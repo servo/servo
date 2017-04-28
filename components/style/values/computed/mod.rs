@@ -4,6 +4,7 @@
 
 //! Computed values.
 
+use context::QuirksMode;
 use euclid::size::Size2D;
 use font_metrics::FontMetricsProvider;
 use media_queries::Device;
@@ -63,6 +64,9 @@ pub struct Context<'a> {
 
     /// Whether or not we are computing the media list in a media query
     pub in_media_query: bool,
+
+    /// The quirks mode of this context.
+    pub quirks_mode: QuirksMode,
 }
 
 impl<'a> Context<'a> {
