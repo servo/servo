@@ -468,7 +468,7 @@ impl ToCss for SVGPaint {
 }
 
 /// <length> | <percentage> | <number>
-pub type LengthOrPercentageOrNumber = Either<LengthOrPercentage, Number>;
+pub type LengthOrPercentageOrNumber = Either<Number, LengthOrPercentage>;
 
 #[derive(Clone, PartialEq, Eq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
