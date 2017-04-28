@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Regions: 3D transform on named flow (text) content with perspective property set on region</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from">
+		<link rel="help" href="http://www.w3.org/TR/css-transforms-1/#three-d-transform-functions">
+		<link rel="help" href="http://www.w3.org/TR/css-transforms-1/#perspective-property">
+		<link rel="help" href="http://www.w3.org/TR/css-transforms-1/#perspective-origin-property">
+		<!-- TODO: Link to fragmentation spec section about perspective, fragments and fragmentainers -
+		           once this gets in the spec. -->
+		<meta name="assert" content="Test checks that the 3D transform is applied named content flow, that the
+		                             perspective set on the region is applied, and that the content is not clipped when
+		                             the perspective is shifted"/>
+		<meta name="flags" content="ahem">
+		<link rel="match" href="reference/regions-transforms-019-ref.html">
+		<style>
+		.ahem {
+			font-family: Ahem;
+			font-size: 20px;
+			line-height: 1em;
+        }
+		#named-flow {
+			flow-into: f;
+			transform: rotateY(45deg);
+			color: green;
+		}
+		#region {
+			flow-from: f;
+			perspective: 200px;
+			perspective-origin: 100% 50%;
+			width: 100px;
+			height: 100px;
+			margin: 20px;
+		}
+		/* Adding a red div that will be covered by the properly transformed
+		   element with the perspective respected */
+		#failure {
+		    position: absolute;
+		    left: 25px;
+		    width: 10px;
+		    height: 112px;
+		    background-color: red;
+		    z-index: -1;
+		}
+		</style>
+	</head>
+	<body>
+		<p>Test passes if you see a green trapezoid and no red.</p>
+		<div id="failure"></div>
+		<div id="named-flow" class="ahem">
+			xxxxx<br>
+			xxxxx<br>
+			xxxxx<br>
+			xxxxx<br>
+			xxxxx<br>
+		</div>
+		<div id="region"></div>
+	</body>
+</html>

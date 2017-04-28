@@ -1,0 +1,49 @@
+
+<html>
+
+<title>Sixth Test of Section 5.5.22 of CSS1 Spec</title>
+
+<style type="text/css">
+#id1 {border: thin solid blue}
+#id2 {border: thin thick solid blue}
+</style>
+</head>
+
+
+
+<body>
+
+
+
+
+<h1 >Testing Statement #6 Below of Section 5.5.22 of CSS1 Spec</h1>
+
+
+
+
+
+
+<ul>
+<li>
+6. While the "border-width" property accepts up to four length values, this 
+property only accepts one.
+</ul>
+
+</h2>
+<p id=ID1>
+If statement #6 above is passed, this paragraph should have a border of
+thin solid blue.  The rule applied is "#id1 {border: thin solid blue}".
+There is only one value for border-width.
+<p ID=id2>
+This paragraph should have a border of thick solid blue, despite the
+fact that there are two values for border width in the stated rule.
+The rule is "#id2 {border: thin thick solid blue}", but the first border
+width value (thin) should be ignored since only one is allowed.
+
+
+
+All other properties of this page should be UA-default.
+
+
+</body>
+</html>

@@ -20,8 +20,8 @@ async_test(function(t) {
   ws.onclose = t.step_func(function(e) {
     assert_true(gotOpen, 'got open');
     assert_true(gotError, 'got error');
-    ws.onclose = t.step_func(function() {assert_unreached()});
-    setTimeout(t.step_func(function() {t.done();}), 50);
+    ws.onclose = t.unreached_func();
+    t.step_timeout(() => t.done(), 50);
   })
 });
 </script>

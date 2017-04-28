@@ -1850,6 +1850,7 @@ class CGImports(CGWrapper):
                 'unused_imports',
                 'unused_variables',
                 'unused_assignments',
+                'unused_mut',
             ]
 
         def componentTypes(type):

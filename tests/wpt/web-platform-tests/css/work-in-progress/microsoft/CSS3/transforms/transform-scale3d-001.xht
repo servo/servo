@@ -1,0 +1,44 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: 'Transform' property with 'scale3d' function</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css3-3d-transforms/#transform-functions" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'transform' property with 'scale3d' function is supported." />
+        <style type="text/css">
+            #idcontainer
+            {
+                left: 100px;
+                position: absolute;
+                top: 100px;
+            }
+            #idchild1
+            {
+                background-color: red;
+                height: 100px;
+                position: absolute;
+                transform: scale3d(1,1,1);
+                width: 100px;
+            }
+            #idchild2
+            {
+                background-color: black;
+                height: 50px;
+                left:25px;
+                position: absolute;
+                top: 25px;
+                transform: scale3d(2,2,2);
+                width: 50px;
+            }
+        </style>
+            
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page.</p>
+        <div id="idcontainer">
+            <div id="idchild1"></div>
+            <div id="idchild2"></div>
+        </div>
+    </body>
+</html>

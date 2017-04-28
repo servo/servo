@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Outline: three values in the order of 'outline-width outline-color outline-style'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/ui.html#propdef-outline" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/ui.html#dynamic-outlines" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Outline specified in the form of 'width color style' is correctly applied." />
+        <style type="text/css">
+            #div1
+            {
+                outline: 15px green dotted;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a dotted outline that goes around the following 'Sample Text' and the "Filler Text" below is overlapped by the outline.</p>
+        <div id="div1">Sample Text</div>
+        <div>Filler Text</div>
+    </body>
+</html>

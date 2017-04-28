@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>CSS Transitions Test: transitionend event with non matching lists</title>
+        <meta name="assert" content="Test checks that non-matching lists are properly resolved">
+        <link rel="help" title="2. Transitions - Example 3" href="http://www.w3.org/TR/css3-transitions/#list-matching">
+        <link rel="help" title="5. Transition Events" href="http://www.w3.org/TR/css3-transitions/#transition-events">
+        <link rel="author" title="Rodney Rehm" href="http://rodneyrehm.de/en/">
+        <meta name="flags" content="dom">
+
+        <script src="/resources/testharness.js" type="text/javascript"></script>
+        <script src="/resources/testharnessreport.js" type="text/javascript"></script>
+
+        <script src="./support/vendorPrefix.js" type="text/javascript"></script>
+        <script src="./support/helper.js" type="text/javascript"></script>
+        <script src="./support/runParallelAsyncHarness.js" type="text/javascript"></script>
+        <script src="./support/generalParallelTest.js" type="text/javascript"></script>
+        <script src="./support/properties.js" type="text/javascript"></script>
+
+        <style type="text/css">
+            #offscreen {
+                position: absolute;
+                top: -100000px;
+                left: -100000px;
+                width: 100000px;
+                height: 100000px;
+            }
+        </style>
+
+        <script id="metadata_cache">/*
+        {
+          "repeating lists / events": {},
+          "truncating lists / events": {}
+        }
+        */</script>
+    </head>
+    <body>
+        <!-- required by testharnessreport.js -->
+        <div id="log"></div>
+        <!-- elements used for testing -->
+        <div id="fixture" class="fixture">
+            <div class="container">
+                <div class="transition">Text sample</div>
+            </div>
+        </div>
+        <div id="offscreen"></div>
+
+        <!--
+            SEE ./support/README.md for an abstract explanation of the test procedure
+            http://test.csswg.org/source/contributors/rodneyrehm/submitted/css3-transitions/README.md
+        -->
+
+        <script>
+            // In the case where the lists of values in transition properties do not have the same length, the length of the
+            // ‘transition-property’ list determines the number of items in each list examined when starting transitions.
+            // The lists are matched up from the first value: excess values at the end are not used.
+
+            // this test takes its time, give it a minute to run
+            var timeout = 60000;
+            setup({timeout: timeout});
+
+            var tests = [
+                {
+                    name: "repeating lists",
+                    from: {'padding': '1px'},
+                    to: {
+                        'padding': '10px',
+                        'transition-property': 'padding-top, padding-right, padding-bottom, padding-left',
+                        'transition-duration': '0.1s, 0.05s',
+                        'transition-timing-function': 'linear, ease-in',
+                        'transition-delay': '0.01s, 0.02s',
+                    },
+                    expect: [
+                        'padding-top:0.1s',
+                        'padding-right:0.05s',
+                        'padding-bottom:0.1s',
+                        'padding-left:0.05s',
+                    ]
+                }, {
+                    name: "truncating lists",
+                    from: {'padding': '1px'},
+                    to: {
+                        'padding': '10px',
+                        'transition-property': 'padding-top',
+                        'transition-duration': '0.1s, 0.05s',
+                        'transition-timing-function': 'linear, ease-in',
+                        'transition-delay': '0.01s, 0.02s',
+                    },
+                    expect: [
+                        'padding-top:0.1s'
+                    ]
+                }
+            ];
+
+            // general transition-duration
+            var duration = '0.5s';
+
+            runParallelAsyncHarness({
+                // array of test data
+                tests: tests,
+                // the number of tests to run in parallel
+                testsPerSlice: 50,
+                // milliseconds to wait before calling teardown and ending test
+                duration: parseFloat(duration) * 1000,
+                // the global suite timeout
+                timeout: timeout,
+                // prepare individual test
+                setup: function(data, options) {
+                    var styles = {
+                        '.fixture': {},
+
+                        '.container': {},
+                        '.container.to': {},
+                        '.container.how': {},
+
+                        '.transition': data.from,
+                        '.transition.to' : data.to,
+                        '.transition.how' : {}
+                    };
+
+                    generalParallelTest.setup(data, options);
+                    generalParallelTest.addStyles(data, options, styles);
+                },
+                // cleanup after individual test
+                teardown: generalParallelTest.teardown,
+                // invoked prior to running a slice of tests
+                sliceStart: generalParallelTest.sliceStart,
+                // invoked after running a slice of tests
+                sliceDone: generalParallelTest.sliceDone,
+                // test cases, make them as granular as possible
+                cases: {
+                    // test TransitionEnd events
+                    'events': {
+                        start: function(test, data, options) {
+                            // kick off the transition
+                            generalParallelTest.startTransition(data);
+                        },
+                        done: function(test, data, options) {
+                            // make sure we got the event for the tested property only
+                            test.step(generalParallelTest.assertExpectedEventsFunc(data, 'transition', data.expect));
+                        }
+                    }
+                },
+                // called once all tests are done
+                done: generalParallelTest.done
+            });
+        </script>
+    </body>
+</html>

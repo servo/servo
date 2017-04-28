@@ -1,0 +1,33 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Bidirectional text runs can create additional line boxes</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-04-02 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#inline-formatting" />
+        <link rel="match" href="inline-formatting-context-023-ref.xht" />
+
+        <meta name="flags" content="" />
+        <meta name="assert" content="Additional inline boxes can be created for the bidirectional text." />
+        <style type="text/css">
+            #span1
+            {
+                margin: 1px;
+                padding: 1px;
+                line-height: 25px;
+            }
+            #span2
+            {
+                direction: rtl;
+                unicode-bidi: bidi-override;
+                line-height: 30px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there are 3 instances of "Filler Text".</p>
+        <div>
+            <span id="span1">Filler Text <span id="span2">txeT relliF</span> Filler Text</span>
+        </div>
+    </body>
+</html>

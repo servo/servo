@@ -1,0 +1,37 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border-right-style applied to element with display table-row</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-06-23 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#propdef-border-right-style" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-style-properties" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'border-right-style' property applies to elements with a display of table-row." />
+        <style type="text/css">
+            #test
+            {
+                border-right-style: dashed;
+                display: table-row;
+            }
+            #table
+            {
+                border-collapse: collapse;
+                display: table;
+            }
+            #cell
+            {
+                display: table-cell;
+                height: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a short vertical dashed line.</p>
+        <div id="table">
+            <div id="test">
+                <div id="cell"></div>
+            </div>
+        </div>
+    </body>
+</html>

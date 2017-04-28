@@ -1,0 +1,44 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: Margin Collapsing: in flow (height, control) - not really margin collapsing</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-08-17 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/block/margin-collapse/056.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#collapsing-margins"/>
+  <link rel="match" href="margin-collapse-156-ref.xht" />
+
+  <style type="text/css">
+   table { border-spacing: 0; font-size: 50px; border: solid; background: red; }
+   td { padding: 0; width: 1em; background: red; }
+
+   .a .container { height: 1em; background: red; }
+   .a .sized { height: 3em; margin: 0; background: aqua; }
+   .a .after { height: 1em; margin: 0 0 1em 0; background: yellow; }
+
+   .b .a { border-top: solid aqua 1em; }
+   .b .b { border-top: solid yellow 1em; }
+   .b .c { border-top: solid aqua 1em; }
+
+  </style>
+ </head>
+ <body>
+  <p>Test passes if there is a stack of 3 horizontal bands which are <strong>from top to bottom: aqua, yellow, aqua</strong> with no red.</p>
+  <table>
+   <tr>
+    <td class="a">
+     <div class="container">
+      <div class="sized"></div>
+     </div>
+     <div class="after"></div>
+    </td>
+    <td class="b">
+     <div class="a"></div>
+     <div class="b"></div>
+     <div class="c"></div>
+    </td>
+   </tr>
+  </table>
+
+</body>
+</html>

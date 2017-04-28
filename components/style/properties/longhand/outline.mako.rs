@@ -12,10 +12,10 @@
 // TODO(pcwalton): `invert`
 ${helpers.predefined_type("outline-color", "CSSColor", "computed::CSSColor::CurrentColor",
                           initial_specified_value="specified::CSSColor::currentcolor()",
-                          animation_type="normal", complex_color=True, need_clone=True,
+                          animation_value_type="IntermediateColor", complex_color=True, need_clone=True,
                           spec="https://drafts.csswg.org/css-ui/#propdef-outline-color")}
 
-<%helpers:longhand name="outline-style" need_clone="True" animation_type="none"
+<%helpers:longhand name="outline-style" need_clone="True" animation_value_type="none"
                    spec="https://drafts.csswg.org/css-ui/#propdef-outline-style">
 
     use std::fmt;
@@ -64,7 +64,7 @@ ${helpers.predefined_type("outline-color", "CSSColor", "computed::CSSColor::Curr
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="outline-width" animation_type="normal"
+<%helpers:longhand name="outline-width" animation_value_type="ComputedValue"
                    spec="https://drafts.csswg.org/css-ui/#propdef-outline-width">
     use app_units::Au;
     use std::fmt;
@@ -124,9 +124,10 @@ ${helpers.predefined_type("outline-color", "CSSColor", "computed::CSSColor::Curr
         "computed::BorderRadiusSize::zero()",
         "parse", products="gecko",
         boxed=True,
-        animation_type="none",
+        animation_value_type="none",
         spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-outline-radius)")}
 % endfor
 
-${helpers.predefined_type("outline-offset", "Length", "Au(0)", products="servo gecko", animation_type="normal",
+${helpers.predefined_type("outline-offset", "Length", "Au(0)", products="servo gecko",
+                          animation_value_type="ComputedValue",
                           spec="https://drafts.csswg.org/css-ui/#propdef-outline-offset")}

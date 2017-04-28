@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8">
+<title>Won and halfwidth characters around line break</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='https://drafts.csswg.org/css-text-3/#line-break-transform'>
+<meta name="assert" content="If the East Asian Width property of both the character before and after the line feed is F or H and neither side is Hangul, then the segment break is removed.">
+<style type='text/css'>
+/* the CSS below is not part of the test */
+.test span { font-size: 24px; font-family: sans-serif; background-color: #2AA5F7; color: white; }
+.ref span { font-size: 24px; font-family: sans-serif; background-color: #270CEF; color: white; }
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id='log'></div>
+<div id='test1' class="test"><span>₩
+２４</span></div>
+<div id='test2' class="test"><span>₩&#x20;&#x20;&#x20;
+２４</span></div>
+<div id='test3' class="test"><span>₩
+&#x20;&#x20;&#x20;&#x20;&#x20;&#x20;&#x20;&#x20;２４</span></div>
+<div id='test4' class="test"><span>₩&#x20;&#x20;&#x20;
+&#x20;&#x20;&#x20;&#x20;&#x20;２４</span></div>
+<div id='test5' class="test"><span>₩
+
+
+２４</span></div>
+<div id='test6' class="test"><span>₩&#x20;&#x20;
+&#x20;&#x20;&#x20;
+&#x20;&#x20;&#x20;
+&#x20;&#x20;&#x20;２４</span></div>
+<div id="ref1" class="ref"><span>₩２４</span></div>
+<div id='test7' class="test"><span>２４
+₩</span></div>
+<div id='test8' class="test"><span>２４&#x20;&#x20;&#x20;
+₩</span></div>
+<div id='test9' class="test"><span>２４
+&#x20;&#x20;&#x20;&#x20;&#x20;&#x20;&#x20;&#x20;₩</span></div>
+<div id='test10' class="test"><span>２４&#x20;&#x20;&#x20;
+&#x20;&#x20;&#x20;&#x20;&#x20;₩</span></div>
+<div id='test11' class="test"><span>２４
+
+
+₩</span></div>
+<div id='test12' class="test"><span>２４&#x20;&#x20;
+&#x20;&#x20;&#x20;
+&#x20;&#x20;&#x20;
+&#x20;&#x20;&#x20;₩</span></div>
+<div id="ref2" class="ref"><span>２４₩</span></div>
+<script>
+test(function() {
+assert_equals(document.getElementById('test1').firstChild.offsetWidth, document.getElementById('ref1').firstChild.offsetWidth);
+}, "linebreak only ₩２４");
+test(function() {
+assert_equals(document.getElementById('test2').firstChild.offsetWidth, document.getElementById('ref1').firstChild.offsetWidth);
+}, "spaces linebreak ₩２４");
+test(function() {
+assert_equals(document.getElementById('test3').firstChild.offsetWidth, document.getElementById('ref1').firstChild.offsetWidth);
+}, "linebreak spaces ₩２４");
+test(function() {
+assert_equals(document.getElementById('test4').firstChild.offsetWidth, document.getElementById('ref1').firstChild.offsetWidth);
+}, "spaces linebreak spaces ₩２４");
+test(function() {
+assert_equals(document.getElementById('test5').firstChild.offsetWidth, document.getElementById('ref1').firstChild.offsetWidth);
+}, "multiple linebreaks ₩２４");
+test(function() {
+assert_equals(document.getElementById('test6').firstChild.offsetWidth, document.getElementById('ref1').firstChild.offsetWidth);
+}, "multiple linebreaks + spaces ₩２４");
+test(function() {
+assert_equals(document.getElementById('test7').firstChild.offsetWidth, document.getElementById('ref2').firstChild.offsetWidth);
+}, "linebreak only ２４₩");
+test(function() {
+assert_equals(document.getElementById('test8').firstChild.offsetWidth, document.getElementById('ref2').firstChild.offsetWidth);
+}, "spaces linebreak ２４₩");
+test(function() {
+assert_equals(document.getElementById('test9').firstChild.offsetWidth, document.getElementById('ref2').firstChild.offsetWidth);
+}, "linebreak spaces ２４₩");
+test(function() {
+assert_equals(document.getElementById('test10').firstChild.offsetWidth, document.getElementById('ref2').firstChild.offsetWidth);
+}, "spaces linebreak spaces ２４₩");
+test(function() {
+assert_equals(document.getElementById('test11').firstChild.offsetWidth, document.getElementById('ref2').firstChild.offsetWidth);
+}, "multiple linebreaks ２４₩");
+test(function() {
+assert_equals(document.getElementById('test12').firstChild.offsetWidth, document.getElementById('ref2').firstChild.offsetWidth);
+}, "multiple linebreaks + spaces ２４₩");
+</script>
+<!-- Notes:
+The assertion will fail if space is produced for any line in the test paragraph.
+-->
+</body>
+</html>
+
+

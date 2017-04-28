@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>
+			CSS Ref Test: 'Background-origin' with value 'content-box' 
+		</title>
+		<link rel="author" title="Melanie Archer" href="mailto:job@twobanjos.com" />
+<style type="text/css">
+	div {
+		background-repeat: no-repeat;
+		border-style: solid;
+		border-width: 4px;
+	}
+	
+	#test-container {
+		border-color: magenta;
+		padding: 2em;
+	}
+	
+	#test-block {
+		background-image: url("../support/cat.png");
+		background-position: -4px -4px;
+		border: 0;
+		min-height: 100px;
+		min-width: 100px;
+		padding: 0;
+		position: absolute;
+		top: 0;
+		z-index: -1;
+	}
+	
+	#test-border {
+		border-color: blue;
+		position: relative;
+		height: 64px;
+	}</style> 
+	</head>
+	<body>
+		<div id="test-container">
+		<div id="test-border">&nbsp;
+			<div id="test-block">&nbsp;
+			</div>
+		</div></div>
+	</body>
+</html>

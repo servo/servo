@@ -1,0 +1,19 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head>
+<title>CSS Test: Test for inline-block</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/" />
+<link rel="author" title="Mozilla Corporation" href="http://mozilla.com/" />
+<link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#display-prop" />
+<meta name="assert" content="This value causes an element to generate a block box, which itself is flowed as a single inline box, similar to a replaced element. The inside of an inline-block is formatted as a block box, and the element itself is formatted as an inline replaced element." />
+<link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#leading" />
+<link rel="match" href="inline-block-000-ref.xht"/>
+<meta name="assert" content="The baseline of an 'inline-block' is the baseline of its last line box in the normal flow, unless it has either no in-flow line boxes or if its 'overflow' property has a computed value other than 'visible', in which case the baseline is the bottom margin edge." />
+<meta name="flags" content="" />
+<style type="text/css">
+span { display: inline-block; }
+</style>
+</head>
+<body>
+<p>a<span>b</span>c</p>
+
+
+</body></html>

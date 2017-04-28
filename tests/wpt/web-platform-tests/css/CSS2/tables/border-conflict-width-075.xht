@@ -1,0 +1,62 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border Conflict Resolution (by border width): 'outset' vs. 'hidden' - a border style of 'hidden' is always the dominant border</title>
+        <link rel="author" title="W3C" href="http://www.w3c.org/" />
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#border-conflict-resolution" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'hidden' border style takes precedence over all style and width definitions." />
+        <style type="text/css">
+            table
+            {
+                border-collapse: collapse;
+            }
+            td
+            {
+                border: 5px outset black;
+                height: 3em;
+            }
+            #cell3
+            {
+                border: 10px hidden black;
+            }
+            #cell1
+            {
+                border-bottom-color: red;
+            }
+            #cell4
+            {
+                border-left-color: red;
+            }
+            #cell5
+            {
+                border-top-color: red;
+            }
+            #cell2
+            {
+                border-right-color: red;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page.</p>
+        <table>
+            <tr>
+                <td>outset</td>
+                <td id="cell1">outset</td>
+                <td>outset</td>
+            </tr>
+            <tr>
+                <td id="cell2">outset</td>
+                <td id="cell3">hidden</td>
+                <td id="cell4">outset</td>
+            </tr>
+            <tr>
+                <td>outset</td>
+                <td id="cell5">outset</td>
+                <td>outset</td>
+            </tr>
+        </table>
+    </body>
+</html>

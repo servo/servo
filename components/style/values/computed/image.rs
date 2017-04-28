@@ -120,7 +120,7 @@ impl ToCss for Image {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct Gradient {
     /// The color stops.
-    pub stops: Vec<ColorStop>,
+    pub items: Vec<GradientItem>,
     /// True if this is a repeating gradient.
     pub repeating: bool,
     /// Gradient kind can be linear or radial.
@@ -149,9 +149,9 @@ impl ToCss for Gradient {
                 try!(position.to_css(dest));
             },
         }
-        for stop in &self.stops {
+        for item in &self.items {
             try!(dest.write_str(", "));
-            try!(stop.to_css(dest));
+            try!(item.to_css(dest));
         }
         try!(dest.write_str(")"));
         Ok(())
@@ -169,8 +169,8 @@ impl fmt::Debug for Gradient {
             },
         }
 
-        for stop in &self.stops {
-            let _ = write!(f, ", {:?}", stop);
+        for item in &self.items {
+            let _ = write!(f, ", {:?}", item);
         }
         Ok(())
     }
@@ -182,13 +182,13 @@ impl ToComputedValue for specified::Gradient {
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Gradient {
         let specified::Gradient {
-            ref stops,
+            ref items,
             repeating,
             ref gradient_kind,
             compat_mode,
         } = *self;
         Gradient {
-            stops: stops.iter().map(|s| s.to_computed_value(context)).collect(),
+            items: items.iter().map(|s| s.to_computed_value(context)).collect(),
             repeating: repeating,
             gradient_kind: gradient_kind.to_computed_value(context),
             compat_mode: compat_mode,
@@ -198,13 +198,13 @@ impl ToComputedValue for specified::Gradient {
     #[inline]
     fn from_computed_value(computed: &Gradient) -> Self {
         let Gradient {
-            ref stops,
+            ref items,
             repeating,
             ref gradient_kind,
             compat_mode,
         } = *computed;
         specified::Gradient {
-            stops: stops.iter().map(ToComputedValue::from_computed_value).collect(),
+            items: items.iter().map(ToComputedValue::from_computed_value).collect(),
             repeating: repeating,
             gradient_kind: ToComputedValue::from_computed_value(gradient_kind),
             compat_mode: compat_mode,
@@ -246,6 +246,53 @@ impl ToComputedValue for specified::GradientKind {
             GradientKind::Radial(ref shape, position) => {
                 specified::GradientKind::Radial(ToComputedValue::from_computed_value(shape),
                                                 ToComputedValue::from_computed_value(&position))
+            },
+        }
+    }
+}
+
+/// Specified values for color stops and interpolation hints.
+#[derive(Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum GradientItem {
+    /// A color stop.
+    ColorStop(ColorStop),
+    /// An interpolation hint.
+    InterpolationHint(LengthOrPercentage),
+}
+
+impl ToCss for GradientItem {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            GradientItem::ColorStop(stop) => stop.to_css(dest),
+            GradientItem::InterpolationHint(hint) => hint.to_css(dest),
+        }
+    }
+}
+
+impl ToComputedValue for specified::GradientItem {
+    type ComputedValue = GradientItem;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> GradientItem {
+        match *self {
+            specified::GradientItem::ColorStop(ref stop) => {
+                GradientItem::ColorStop(stop.to_computed_value(context))
+            },
+            specified::GradientItem::InterpolationHint(ref hint) => {
+                GradientItem::InterpolationHint(hint.to_computed_value(context))
+            },
+        }
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &GradientItem) -> Self {
+        match *computed {
+            GradientItem::ColorStop(ref stop) => {
+                specified::GradientItem::ColorStop(ToComputedValue::from_computed_value(stop))
+            },
+            GradientItem::InterpolationHint(ref hint) => {
+                specified::GradientItem::InterpolationHint(ToComputedValue::from_computed_value(hint))
             },
         }
     }

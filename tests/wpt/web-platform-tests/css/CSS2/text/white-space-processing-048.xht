@@ -1,0 +1,30 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Floats and line opportunity with 'white-space'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#white-space-model" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="A line breaking opportunity is not introduced with floats." />
+        <style type="text/css">
+            #div1
+            {
+                font-family: Ahem;
+                white-space: normal;
+                width: 5em;
+            }
+            div div
+            {
+                color: blue;
+                float: right;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the blue box is below the black box.</p>
+        <div id="div1">
+            <span>XXXXXX</span>
+            <div>XXX</div>
+        </div>
+    </body>
+</html>

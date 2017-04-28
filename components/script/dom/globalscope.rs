@@ -38,7 +38,7 @@ use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
 use script_thread::{MainThreadScriptChan, RunnableWrapper, ScriptThread};
 use script_traits::{MsDuration, ScriptMsg as ConstellationMsg, TimerEvent};
 use script_traits::{TimerEventId, TimerSchedulerMsg, TimerSource};
-use servo_url::ServoUrl;
+use servo_url::{MutableOrigin, ServoUrl};
 use std::cell::Cell;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
@@ -92,6 +92,9 @@ pub struct GlobalScope {
     resource_threads: ResourceThreads,
 
     timers: OneshotTimers,
+
+    /// The origin of the globalscope
+    origin: MutableOrigin,
 }
 
 impl GlobalScope {
@@ -103,7 +106,8 @@ impl GlobalScope {
             constellation_chan: IpcSender<ConstellationMsg>,
             scheduler_chan: IpcSender<TimerSchedulerMsg>,
             resource_threads: ResourceThreads,
-            timer_event_chan: IpcSender<TimerEvent>)
+            timer_event_chan: IpcSender<TimerEvent>,
+            origin: MutableOrigin)
             -> Self {
         GlobalScope {
             eventtarget: EventTarget::new_inherited(),
@@ -120,6 +124,7 @@ impl GlobalScope {
             in_error_reporting_mode: Default::default(),
             resource_threads: resource_threads,
             timers: OneshotTimers::new(timer_event_chan, scheduler_chan),
+            origin: origin,
         }
     }
 
@@ -236,6 +241,11 @@ impl GlobalScope {
     /// Get the `PipelineId` for this global scope.
     pub fn pipeline_id(&self) -> PipelineId {
         self.pipeline_id
+    }
+
+    /// Get the origin for this global scope
+    pub fn origin(&self) -> &MutableOrigin {
+        &self.origin
     }
 
     /// Get the [base url](https://html.spec.whatwg.org/multipage/#api-base-url)

@@ -1,0 +1,148 @@
+<!DOCTYPE HTML>
+<html>
+<!--
+-->
+<head>
+  <title>Test for computation of CSS '-moz-initial'</title>
+  <script type="text/javascript" src="../mochitest-simplified/packed.js"></script>
+  <script type="text/javascript" src="../mochitest-simplified/SimpleTest.js"></script>
+  <script type="text/javascript" src="property_database.js"></script>
+  <style type="text/css" id="stylesheet"></style>
+  <style type="text/css">
+  /* For 'width', 'height', etc., need a constant size container. */
+  #display { width: 500px; height: 200px }
+  </style>
+  <link rel="stylesheet" type="text/css" href="../mochitest-simplified/test.css" />
+  <script type="text/javascript">
+  SimpleTest.waitForExplicitFinish();
+
+  var load_count = 0;
+  function load_done() {
+    if (++load_count == 3)
+      run_tests();
+  }
+  </script>
+</head>
+<body>
+<p id="display"><span><span id="elementf"></span></span>
+<iframe id="unstyledn" src="unstyled.xml" height="10" width="10" onload="load_done()"></iframe>
+<iframe id="unstyledf" src="unstyled-frame.xml" height="10" width="10" onload="load_done()"></iframe>
+</p>
+<div id="content" style="display: none">
+
+<div><span id="elementn"></span></div>
+
+  
+</div>
+<pre id="test">
+<script class="testbody" type="text/javascript">
+
+/** Test for computation of CSS '-moz-initial' **/
+
+var gElementN = document.getElementById("elementn");
+var gElementF = document.getElementById("elementf");
+var gStyleSheet = document.getElementById("stylesheet").sheet;
+var gRule1 = gStyleSheet.cssRules[gStyleSheet.insertRule("#elementn, #elementf {}", gStyleSheet.cssRules.length)];
+var gRule2 = gStyleSheet.cssRules[gStyleSheet.insertRule("#elementn, #elementf {}", gStyleSheet.cssRules.length)];
+
+var gInitialValuesN;
+var gInitialValuesF;
+var gInitialPrereqsRuleN;
+var gInitialPrereqsRuleF;
+
+function setup_initial_values(id, ivalprop, prereqprop) {
+  var iframe = document.getElementById(id);
+  window[ivalprop] = iframe.contentWindow.getComputedStyle(
+                       iframe.contentDocument.documentElement.firstChild, "");
+  var sheet = iframe.contentDocument.styleSheets[0];
+  // For 'width', 'height', etc., need a constant size container.
+  sheet.insertRule(":root { height: 200px; width: 500px }", sheet.cssRules.length);
+
+  window[prereqprop] = sheet.cssRules[sheet.insertRule(":root > * {}", sheet.cssRules.length)];
+}
+
+function test_property(property)
+{
+  var info = gCSSProperties[property];
+  if (info.backend_only)
+    return;
+
+  if ("prerequisites" in info) {
+    var prereqs = info.prerequisites;
+    for (var prereq in prereqs) {
+      gRule1.style.setProperty(prereq, prereqs[prereq], "");
+      gInitialPrereqsRuleN.style.setProperty(prereq, prereqs[prereq], "");
+      gInitialPrereqsRuleF.style.setProperty(prereq, prereqs[prereq], "");
+    }
+  }
+  if (info.inherited) {
+    gElementN.parentNode.style.setProperty(property, info.other_values[0], "");
+    gElementF.parentNode.style.setProperty(property, info.other_values[0], "");
+  }
+
+  var initial_computed_n = get_computed_value(gInitialValuesN, property);
+  var initial_computed_f = get_computed_value(gInitialValuesF, property);
+  gRule1.style.setProperty(property, info.other_values[0], "");
+  var other_computed_n = get_computed_value(getComputedStyle(gElementN, ""), property);
+  var other_computed_f = get_computed_value(getComputedStyle(gElementF, ""), property);
+  isnot(other_computed_n, initial_computed_n,
+        "should be testing with values that compute to different things " +
+        "for '" + property + "'");
+  isnot(other_computed_f, initial_computed_f,
+        "should be testing with values that compute to different things " +
+        "for '" + property + "'");
+  // It's important (given the current design of nsRuleNode) that we're
+  // modifying the most specific rule that matches the element, and that
+  // we've already requested style while that rule was empty.  This
+  // means we'll have a cached aStartStruct from the parent in the rule
+  // tree (caching the "other" value), so we'll make sure we don't get
+  // the initial value from the luck of default-initialization.
+  // This means that it's important that we set the prereqs on
+  // gRule1.style rather than on gElement.style.
+  gRule2.style.setProperty(property, "-moz-initial", "");
+  var initial_val_computed_n = get_computed_value(getComputedStyle(gElementN, ""), property);
+  var initial_val_computed_f = get_computed_value(getComputedStyle(gElementF, ""), property);
+  is(initial_val_computed_n, initial_computed_n,
+     "-moz-initial should cause initial value for '" + property + "'");
+  is(initial_val_computed_f, initial_computed_f,
+     "-moz-initial should cause initial value for '" + property + "'");
+  gRule1.style.removeProperty(property);
+  gRule2.style.removeProperty(property);
+
+  if ("prerequisites" in info) {
+    var prereqs = info.prerequisites;
+    for (var prereq in prereqs) {
+      gRule1.style.removeProperty(prereq);
+      gInitialPrereqsRuleN.style.removeProperty(prereq);
+      gInitialPrereqsRuleF.style.removeProperty(prereq);
+    }
+  }
+  if (info.inherited) {
+    gElementN.parentNode.style.removeProperty(property);
+    gElementF.parentNode.style.removeProperty(property);
+  }
+
+  // FIXME: Something (maybe with the -moz-binding values in
+  // test_value_computation.html, but may as well do it here to match)
+  // causes gElementF's frame to get lost.  Force it to get recreated
+  // after each property.
+  gElementF.parentNode.style.display = "none";
+  get_computed_value(getComputedStyle(gElementF, ""), "width");
+  gElementF.parentNode.style.display = "";
+  get_computed_value(getComputedStyle(gElementF, ""), "width");
+}
+
+function run_tests() {
+  setup_initial_values("unstyledn", "gInitialValuesN", "gInitialPrereqsRuleN");
+  setup_initial_values("unstyledf", "gInitialValuesF", "gInitialPrereqsRuleF");
+  for (var prop in gCSSProperties)
+    test_property(prop);
+  SimpleTest.finish();
+}
+
+load_done();
+
+</script>
+</pre>
+</body>
+</html>

@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border-left-width using pixels with a minimum value with a minus sign, -0px</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-05-30 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#propdef-border-left-width" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-width-properties" />
+        <link rel="match" href="../reference/ref-if-there-is-no-red.xht" />
+
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'border-left-width' property supports a minimum length value in pixels that that has a minus sign before it." />
+        <style type="text/css">
+            div
+            {
+                border-left-style: solid;
+                border-left-width: -0px;
+                border-left-color: red;
+                height: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is <strong>no red</strong>.</p>
+        <div></div>
+    </body>
+</html>

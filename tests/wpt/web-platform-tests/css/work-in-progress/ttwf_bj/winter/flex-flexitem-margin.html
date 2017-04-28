@@ -1,0 +1,42 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>flexbox | flex item with percentage size</title>
+<link rel="author" href="http://shaofei.name" title="winter">
+<link rel="help" href="http://www.w3.org/TR/css3-flexbox/#flex-items">
+<style>
+#test 
+{
+    background: blue;
+    display: flex;
+    height:300px;
+}
+#test>div.flex {
+    width: 100px;  
+    background:red;
+    magin-right:30px;
+}
+#test>div.fixed 
+{  
+    height: 300px;
+    margin-left:30px;
+    flex:1;
+    background:red;
+}
+
+
+</style>
+</head>
+<body>
+
+<div id="test">
+    <div class="fixed">
+
+    </div>
+    <div class="flex">
+    </div>
+</div>
+
+</body>
+</html>

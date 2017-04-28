@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!-- Reference case for behavior of the 'baseline' value for align-items and
+     align-self.
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <style>
+      .flexbox {
+        display: block;
+        border: 1px dashed blue;
+        font: 14px sans-serif;
+      }
+
+      input { height: 30px; }
+
+      textarea {
+        width: 30px;
+        height: 50px;
+      }
+
+      div.multilinebutton {
+        /* For comparison vs. "button.multilinebutton" in the testcase: */
+        -moz-appearance: button;
+        display: block;
+        text-align: center;
+        font: 20px sans-serif;
+        padding-top: 1px;
+        height: 49px;
+        width: 20px;
+      }
+
+      div   { display: inline-block; }
+      table { display: inline-table; }
+
+      .lime   { background: lime;   }
+   </style>
+  </head>
+  <body>
+    <div class="flexbox">
+      <div class="lime">text</div
+      ><input type="text" style="width: 20px; min-width: 0;" value="input"
+     /><textarea style="width: 30px">t e x t a r e a </textarea
+      ><table cellspacing="0" cellpadding="0">
+        <div class="multilinebutton">b<br/>t<br/>n</div>
+      </table>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,16 @@
+<!doctype html>
+<title>CSS Test: overflow:hidden on HTML body element table</title>
+<link rel="author" title="Simon Pieters" href="mailto:simonp@opera.com">
+<link rel="help" href="http://www.w3.org/Style/css2-updates/REC-CSS2-20110607-errata.html#s.11.1.1b">
+<meta name="flags" content="">
+<meta name="assert" content="Test checks that overflow on HTML body table applies to viewport rather than the table box.">
+<link rel="match" href="s-11-1-1b-005-ref.html">
+<style>
+ body { overflow:hidden; display:table; border-spacing:0; margin:40px 8px 8px }
+ .caption { display:caption; margin-bottom:10px }
+ .td { display:table-cell; width:20px; height:20px; margin-top:-15px; background:black }
+ p { position:absolute; top:0; left:8px }
+</style>
+<div class=caption></div>
+<div class=td></div>
+<p>Test passes if there is a black square below.</p>

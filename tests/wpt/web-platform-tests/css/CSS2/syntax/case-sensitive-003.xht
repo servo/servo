@@ -1,0 +1,72 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Case-sensitivity of pseudo-classes and pseudo-elements</title>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#characters"/>
+  <link rel="match" href="case-sensitive-003-ref.xht"/>
+  <meta name="assert" content="Pseudo-class and pseudo-element names are ASCII
+        case-insensitive."/>
+  <style type="text/css">
+    * { color: red; }
+    *:before, *:after { color: red; }
+
+    p:FiRSt-cHIlD {
+      color: green;
+    }
+
+    :LinK, :viSiTed {
+      color: green;
+      text-decoration: none;
+      font: inherit;
+    }
+
+    :lAnG(en) {
+      color: green;
+    }
+
+    .flin {
+      white-space: nowrap;
+    }
+    .flin:fIrsT-LinE {
+      color: green;
+    }
+
+    .flet span {
+      color: green;
+    }
+    .flet:fIRst-LEttEr {
+      color: green;
+    }
+
+    .bef:before, .af:after {
+      content: "This sentence must be green.";
+    }
+    .bef:BeFoRe, .af:aFtEr {
+      color: green;
+    }
+
+    /* test for ASCII (not UNICODE) case-insensitivity */
+    p:fİrst-child {
+      color: red;
+    }
+    p:fırst-child {
+      color: red;
+    }
+    :lin&#x212a; {
+      color: red;
+    }
+  </style>
+
+ </head>
+ <body>
+   <p>This sentence must be green.</p>
+   <p><a href="">This sentence must be green.</a></p>
+   <p><a href="unvisited:link">This sentence must be green.</a></p>
+   <p lang="en">This sentence must be green.</p>
+   <p class="flin">This sentence must be green.</p>
+   <p class="flet">T<span>his sentence must be green.</span></p>
+   <p class="bef"></p>
+   <p class="af"></p>
+ </body>
+</html>

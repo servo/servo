@@ -1,0 +1,50 @@
+
+<html>
+<head>
+<title>Fourth Test of Section 5.3.3 of CSS1 Spec</title>
+
+<style type="text/css">
+
+p {background-color: aqua;}
+p {background-image: url(flagbg.gif);}
+h3 {background-image: url(great.gif); }
+h3 {background-color: red;}
+</style>
+</head>
+
+<body>
+
+
+
+
+<h1>Testing Statement #4 Below of Section 5.3.3 of CSS1 Spec</h1>
+
+
+
+
+
+<ul>
+<li >
+4. When setting a background image, one should also set a background color
+that will be used when the image is unavailable.
+</ul>
+
+<h2>
+PASS CRITERIA:
+</h2>
+<p>
+If statement #4 above is true, this paragraph should have a flag pattern
+background image, which is available.
+The rule applied is "p {background-image: url(flagbg.gif);}".
+Also "p {background-color: aqua;}", but this is ignored?.
+</p>
+<h3>
+This h3 heading should have a red background color only, because the image 
+choice (great.gif) is unavailable.
+The rule applied is "h3 {background-image: url(great.gif);}".
+Also "h3 {background-color: red;}".
+</h3>
+All other properties of this page should be UA-default.
+
+</body>
+</html>

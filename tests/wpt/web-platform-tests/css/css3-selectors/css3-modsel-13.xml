@@ -1,0 +1,19 @@
+<csstest def="Class selectors" module="W3C Selectors" modulename="css3-modsel" number="13" rev="1.0" date="11-july-2001" xmlns:a="http://www.example.org/a" xmlns:b="http://www.example.org/b" xmlns:html="http://www.w3.org/1999/xhtml" xmlns="http://www.example.org/css3tests">
+
+<author>Daniel Glazman</author>
+<cssrules>li { background-color : red }
+.t1 { background-color : lime }
+li.t2 { background-color : lime }
+.t3 { background-color : red }</cssrules>
+
+<code>
+<ul xmlns="http://www.w3.org/1999/xhtml">
+  <li class="t1">This list item should have green background because its class is "t1"</li>
+  <li class="t2">This list item should have green background because its class is "t2"</li>
+  <li class="t2">
+<span class="t33">This list item should have green background because
+        the inner SPAN does not match SPAN.t3</span>
+</li>
+</ul>
+</code>
+</csstest>

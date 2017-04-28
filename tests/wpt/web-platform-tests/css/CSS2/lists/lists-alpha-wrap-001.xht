@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Alphabetic list wrapping</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#list-style" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Alphabetic list wrapping does not exert unexpected behavior to a user." />
+        <style type="text/css">
+            ol
+            {
+                list-style-type: upper-alpha;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the letters "AA." are below.</p>
+        <ol start="27">
+            <li></li>
+        </ol>
+    </body>
+</html>

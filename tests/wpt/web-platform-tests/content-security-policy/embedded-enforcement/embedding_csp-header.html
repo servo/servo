@@ -18,9 +18,6 @@
       { "name": "Send Embedding-CSP Header on change of `src` attribute on iframe.", 
         "csp": "script-src 'unsafe-inline'", 
         "expected":  "script-src 'unsafe-inline'" },
-      { "name": "Wrong value of `csp` should not trigger sending Embedding-CSP Header.", 
-        "csp": "completely wrong csp", 
-        "expected": null},
     ];
 
     tests.forEach(test => {

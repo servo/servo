@@ -1,0 +1,52 @@
+
+<HTML>
+
+
+<HEAD>
+<TITLE>
+Fourth Test of Section 1.6 of CSS1 Spec
+</TITLE>
+
+
+<STYLE TYPE="text/css">
+UL UL LI {color: aqua;
+          font-family: cursive;}
+</STYLE>
+		
+</HEAD>
+
+
+<BODY>
+
+<h1 >Testing Statement #4 Below of Section 1.6 of CSS1 Spec</h1>
+
+
+<ul>
+<li >
+4. Contextual selectors consist of several simple selectors separated by
+whitespace.
+</ul>
+
+
+
+
+
+
+
+<h2 >"PASS" CRITERIA</h2>
+<p>
+If statement #4 is passed, then: 
+<ul>
+<li>
+This list-item should be UA-default.
+<ul>
+<li>
+This list-item should be aqua  (if cursive is supported).  There are two "ul" ancestors for an "li" tag. The rule applied is "ul ul li {color: aqua; font-family: cursive;}".
+Whitespace separates ul, ul, and li selectors above.
+</ul>
+</ul>
+
+
+To move directly to the next test, click<a href="16-5.htm"> here</a>
+</BODY>
+</HTML>

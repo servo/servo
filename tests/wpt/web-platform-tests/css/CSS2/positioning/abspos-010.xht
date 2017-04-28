@@ -1,0 +1,35 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: Absolutely positioned tables must shrink wrap</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/absolute/013.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#abs-non-replaced-width"/>
+  <style type="text/css">
+   table { position: absolute; background: red; border-spacing: 0; padding: 0;}
+   td { padding: 0; }
+   div { width: 3em; height: 2em; background: green; }
+   .fixed { table-layout: fixed; margin-top: 2em; }
+  </style>
+ </head>
+ <body>
+  <p>There should be a green block and no red below.</p>
+  <table>
+   <tr>
+    <td>
+     <div></div>
+    </td>
+   </tr>
+  </table>
+  <table class="fixed">
+   <tr>
+    <td>
+     <div></div>
+    </td>
+   </tr>
+  </table>
+
+
+</body>
+</html>

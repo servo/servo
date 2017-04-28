@@ -1,0 +1,47 @@
+settings, size
+<link rel="help" href="https://w3c.github.io/webvtt/#collect-webvtt-cue-timings-and-settings">
+
+assert_equals(cues.length, 8);
+
+var valid_vertical = [
+    '',
+    'lr',
+    'rl',
+    'lr',
+];
+valid_vertical.forEach(function(valid, index) {
+    assert_equals(cues[index].vertical, valid, 'Failed with cue ' + index);
+});
+
+for (var i = 0; i < 4; i++) {
+    var index = valid_vertical.length + i;
+
+    assert_equals(cues[index].vertical, '', 'Failed with cue ' + index);
+}
+
+===
+WEBVTT
+
+00:00:00.000 --> 00:00:01.000
+text0
+
+00:00:00.000 --> 00:00:01.000 vertical:lr
+text1
+
+00:00:00.000 --> 00:00:01.000 vertical:rl
+text2
+
+00:00:00.000 --> 00:00:01.000 vertical:rl vertical:lr
+text3
+
+00:00:00.000 --> 00:00:01.000 vertical:
+invalid4
+
+00:00:00.000 --> 00:00:01.000 vertical:RL
+invalid5
+
+00:00:00.000 --> 00:00:01.000 vertical: rl
+invalid6
+
+00:00:00.000 --> 00:00:01.000 vertical:vertical-rl
+invalid7

@@ -9,7 +9,8 @@ import threading
 import time
 import traceback
 import types
-import urlparse
+
+from six.moves.urllib.parse import urlsplit, urlunsplit
 
 from . import routes as default_routes
 from .logger import get_logger
@@ -89,7 +90,7 @@ class RequestRewriter(object):
         :param request_handler: BaseHTTPRequestHandler for which to
                                 rewrite the request.
         """
-        split_url = urlparse.urlsplit(request_handler.path)
+        split_url = urlsplit(request_handler.path)
         if split_url.path in self.rules:
             methods, destination = self.rules[split_url.path]
             if "*" in methods or request_handler.command in methods:
@@ -97,7 +98,7 @@ class RequestRewriter(object):
                              (request_handler.path, destination))
                 new_url = list(split_url)
                 new_url[2] = destination
-                new_url = urlparse.urlunsplit(new_url)
+                new_url = urlunsplit(new_url)
                 request_handler.path = new_url
 
 
@@ -456,6 +457,6 @@ class WebTestHttpd(object):
         if not self.started:
             return None
 
-        return urlparse.urlunsplit(("http" if not self.use_ssl else "https",
-                                    "%s:%s" % (self.host, self.port),
-                                    path, query, fragment))
+        return urlunsplit(("http" if not self.use_ssl else "https",
+                           "%s:%s" % (self.host, self.port),
+                           path, query, fragment))

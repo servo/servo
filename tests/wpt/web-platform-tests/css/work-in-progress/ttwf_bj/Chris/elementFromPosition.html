@@ -1,0 +1,127 @@
+<!DOCTYPE HTML>
+<html lang="en-US">
+<head>
+    <title>wwwwCSS Test: CSSOM View elementFromPoint</title>
+    <meta charset="UTF-8">
+    <link rel="author" title="Redky" href="mailto:redky@qq.com" />
+    <link rel="help" href="https://drafts.csswg.org/cssom-view/#extensions-to-the-document-interface" />
+    <link rel="help" href="https://drafts.csswg.org/cssom-view/#widl-Document-elementFromPoint-Element-float-x-float-y" />
+    <meta name="flags" content="dom" />
+    <script src="/resources/testharness.js" type="text/javascript"></script>
+    <script src="/resources/testharnessreport.js" type="text/javascript"></script>
+</head>
+<body>
+    <noscript>Test not run - JavaScript required!</noscript>
+    <div id="log"></div>
+    <script type="text/javascript">
+
+        var body = document.getElementsByTagName( 'body' )[0];
+        function createElement( id ) {
+            var elem = document.createElement( 'div' );
+            if ( id && typeof id == 'string' ) {
+                elem.id = id;
+            }
+            body.appendChild( elem );
+            return elem;
+        }
+
+        function setPosition( config ) {
+            var target = config.target;
+            target.style.position = 'absolute';
+            target.style.left = config.left + 'px';
+            target.style.top = config.top + 'px';
+            target.style.width = config.width + 'px';
+            target.style.height = config.height + 'px';
+            if ( config['z-index'] ) {
+                target.style.zIndex = config['z-index'];
+            }
+        }
+
+        var target = createElement( 'dom-1' );
+        setPosition( {
+            width: 100,
+            height: 100,
+            left: 10,
+            top: 10,
+            target: target
+        });
+
+        test( function () {
+            assert_inherits( document, 'elementFromPoint' );
+        }, 'document.elementFromPoint');
+
+        test( function () {
+            assert_true( document.elementFromPoint instanceof Function );
+        }, 'document.elementFromPoint is a Function');
+
+        test( function () {
+            var wrap = [
+                // 左上角.
+                {x: 10, y: 10, r: true},
+                // 上边线
+                {x: 50, y: 10, r: true},
+                // 右上角
+                {x: 110, y: 10, r: false},
+                // 左边线
+                {x: 10, y: 50, r: true},
+                // 元素范围内
+                {x: 50, y: 50, r: true},
+                // 右边线
+                {x: 110, y: 10, r: false},
+                // 左下角
+                {x: 10, y: 110, r: false},
+                // 下边线
+                {x: 50, y: 110, r: false},
+                // 右下角
+                {x: 110, y: 110, r: false}
+            ];
+
+            var i = 0, len = wrap.length, item;
+            for ( ; i < len; i++ ) {
+                item = wrap[ i ];
+                assert_equals( document.elementFromPoint( item.x, item.y).id == 'dom-1', item.r );
+            }
+        }, 'test some point of the element');
+
+        test( function () {
+            var elem = document.elementFromPoint( 0, 0 );
+            assert_true( elem.nodeName == 'HTML' );
+        }, 'Point (0, 0), return root element(HTML)' );
+
+        test( function () {
+            var elem = document.elementFromPoint( -1000, 0 );
+            assert_true( elem == null, 'negative x, return null' );
+        }, ' test negative x ');
+
+        test( function () {
+            var elem = document.elementFromPoint( 0, -1000 );
+            assert_true( elem == null, 'negative y, return null' );
+        }, ' test negative y ');
+
+        test( function () {
+            var elem = document.elementFromPoint( 100000, 0 );
+            assert_true( elem == null );
+        }, 'test outside of viewport');
+
+        test( function () {
+            var config = {
+                width: 100,
+                height: 100,
+                left: 5,
+                top: 5
+            };
+            var target2 = createElement( 'dom-2' );
+            config.target = target2;
+            setPosition( config );
+
+            var elem = document.elementFromPoint( 10, 10 );
+            var elem2 = document.elementFromPoint( 10, 10 );
+            assert_equals( elem.id, elem2.id );
+        }, 'test the top of layer');
+
+
+    </script>
+</body>
+</html>
+
+

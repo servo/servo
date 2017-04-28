@@ -1,0 +1,28 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Using 'min-width' with 'width' dependent on the containing block</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#min-max-widths" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="If the containing block's width depends on this element's width, then the resulting layout is undefined." />
+        <style type="text/css">
+            #div1
+            {
+                background-color: red;
+                float: left;
+            }
+            div div
+            {
+                background-color: green;
+                min-width: 200%;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is anything displayed below.</p>
+        <div id="div1">
+            <div>Filler Text</div>
+        </div>
+    </body>
+</html>

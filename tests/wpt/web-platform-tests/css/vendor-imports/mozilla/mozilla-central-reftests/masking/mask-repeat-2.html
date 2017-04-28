@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Masking: mask-repeat: repeated mask layer image</title>
+    <link rel="author" title="Astley Chen" href="mailto:aschen@mozilla.com">
+    <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+    <link rel="help" href="https://www.w3.org/TR/css-masking-1/#the-mask-repeat">
+    <link rel="match" href="mask-repeat-2-ref.html">
+    <meta name="assert" content="Test checks whether repeated mask layer works correctly or not.">
+    <style type="text/css">
+      div {
+        width: 128px;
+        height: 128px;
+      }
+
+      div.outer {
+        border: 1px solid black;
+      }
+
+      div.inner {
+        background-color: purple;
+        mask-image: url(support/50x50-opaque-blue.svg);
+        mask-position: left top;
+      }
+
+      #space {
+        mask-repeat: space;
+      }
+      #space-x {
+        mask-repeat: space no-repeat;
+      }
+      #space-y {
+        mask-repeat: no-repeat space;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="outer"><div class="inner" id="space"></div></div>
+    <div class="outer"><div class="inner" id="space-x"></div></div>
+    <div class="outer"><div class="inner" id="space-y"></div></div>
+  </body>
+</html>

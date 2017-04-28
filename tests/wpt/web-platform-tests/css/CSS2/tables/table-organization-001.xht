@@ -1,0 +1,66 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Table organization (columns in column groups)</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#tables-intro" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Table columns can be grouped into table column groups." />
+        <style type="text/css">
+            table
+            {
+                border: 1px solid black;
+            }
+            #cg1
+            {
+                background: blue;
+            }
+            #cg2
+            {
+                background: purple;
+            }
+            td
+            {
+                height: 2em;
+                width: 2em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the table below has two blue columns on the left and two purple columns on the right.</p>
+        <table>
+            <colgroup id="cg1">
+                <col />
+                <col />
+            </colgroup>
+            <colgroup id="cg2">
+                <col />
+                <col />
+            </colgroup>
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+        </table>
+    </body>
+ </html>

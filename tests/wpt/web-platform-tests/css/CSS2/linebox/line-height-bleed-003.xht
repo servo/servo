@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Leading and half leading line heights leads to space above and below</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#leading" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Line-height can be different from the content area so there is space above and below." />
+        <style type="text/css">
+            div
+            {
+                font: 0.5in/1em serif;
+            }
+            span
+            {
+                border-bottom: 1in solid blue;
+                line-height: 0;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is space between bottom of the first line of "Fillet Text" and the blue box.</p>
+        <div>
+            <span>Filler Text<br />Filler Text</span>
+        </div>
+    </body>
+</html>

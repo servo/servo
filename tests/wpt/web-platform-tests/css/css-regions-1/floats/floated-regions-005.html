@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Regions: floated and normal flow auto-sized regions</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#regions-visual-formatting-details">
+		<meta name="flags" content="">
+		<meta name="assert" content="Test checks that layout is correct when mixing floated and normal
+				flow auto-sized regions.">
+		<link rel="match" href="reference/floated-regions-005-ref.html">
+		<style>
+		article {
+			font-family: Ahem;
+			font-size: 20px;
+			line-height: 1em;
+		}
+		.flow {
+			flow-into: f;
+		}
+		.blue {
+			color: blue;
+		}
+		.green {
+			color: green;
+		}
+
+		.region {
+			flow-from: f;
+		}
+		.region p {
+			background: red;
+		}
+		.left {
+			float: left;
+		}
+		.sized {
+			max-height: 100px;
+		}
+		.inline-block {
+			display: inline-block;
+		}
+		</style>
+	</head>
+	<body>
+		<p>
+			Test passes if you two squares side by side. The left one should be green, the right one
+			should be blue and they should be flush to one another.<br>
+			You should see no red.
+		</p>
+
+		<div class="sized left region">
+			<p>&nbsp;</p>
+		</div>
+		<div class="inline-block region">
+			<p>&nbsp;</p>
+		</div>
+
+		<article class="flow">
+			<div class="green">
+				xxxxx<br>
+				xxxxx<br>
+				xxxxx<br>
+				xxxxx<br>
+				xxxxx
+			</div>
+			<div class="blue">
+				xxxxx<br>
+				xxxxx<br>
+				xxxxx<br>
+				xxxxx<br>
+				xxxxx
+			</div>
+		</article>
+	</body>
+</html>

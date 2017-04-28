@@ -1,0 +1,33 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Cell with hidden visibility content as an empty cell</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#empty-cells" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="A cell with 'visibility: hidden' is considered an empty cell." />
+        <style type="text/css">
+            table
+            {
+                background: green;
+                empty-cells: hide;
+            }
+            td
+            {
+                background: red;
+                color: green;
+                height: 100px;
+                visibility: hidden;
+                width: 100px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a box below and there is no red visible on the page.</p>
+        <table>
+            <tr>
+                <td>X</td>
+            </tr>
+        </table>
+    </body>
+</html>

@@ -1,0 +1,10 @@
+syntax: glob
+*.xcodeproj
+*.DS_Store
+local/*
+*.log
+*.pyc
+*.orig
+uritemplate-test/*
+.git/*
+._*

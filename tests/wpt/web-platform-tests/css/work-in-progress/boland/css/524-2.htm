@@ -1,0 +1,81 @@
+
+<HTML>
+
+<HEAD>
+<TITLE>Second Test of Section 5.2.4 of CSS1 Spec</TITLE>
+
+<STYLE>
+p {font-variant: small-caps }
+h3 {font-variant: normal}
+em {font-variant: small-caps}
+H4 {font-variant: normal}
+
+blockquote {font-variant: 200%}
+</STYLE>
+</HEAD>
+
+
+
+
+
+<BODY>
+
+
+
+<h1 >Testing Statement #2 Below of Section 5.2.4 of CSS1 Spec</h1>
+
+
+
+
+
+
+<ul>
+<li>
+2. For "font-variant", initial is "normal", it applies to all elements, it is
+inherited, and percentage values are N/A.
+</ul>
+
+<h2>
+PASS CRITERIA:
+</h2>
+<blockquote>
+If statement #2 above is passed, then
+this blockquote should be UA-default font variant.  
+The only explicit CSS1 rule is "blockquote {font-variant: 200%}", which
+should be ignored, so the initial value should be UA-specific, and the
+percentage value in the rule does not apply.
+</blockquote>
+
+
+<p>
+This paragraph should have small caps font variant.  
+The rule applied is "p {font-variant: small-caps}".
+So the font variant property applies to the "p" element.
+<h3>
+This paragraph should have normal font variant.
+The rule applied is "h3 {font-variant: normal}".
+So the font variant property applies to the "h3" element.
+</h3>
+<h4>
+This h4 heading should have normal font variant, but this emphasized
+<em>word(em)</em> should have small caps font variant.
+The rules applied are "h4 {font-variant: normal}" and
+"em {font-variant: small-caps}".
+So the font variant property applies to the "em" element.
+</h4>
+<h4>
+This h4 heading should have normal font variant, and this strong
+<strong>word</strong> should also have normal font variant, since
+"strong" is a descendant of "h4".  Thus the font variant property
+applies to the "strong" element.
+The rule applied is "h4 {font-variant: normal}".
+</h4>
+<strong>
+The text below is strong.
+All other properties should be UA-default.
+</strong>
+
+To move directly to the next test, click<a href="524-3.htm"> here</a>
+</BODY>
+</HTML>
+

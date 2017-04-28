@@ -1,0 +1,52 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Units: em (0.87em floats)</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/units/005.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#length-units" />
+  <link rel="match" href="units-005-ref.xht"/>
+
+  <style type="text/css">
+   div { width: 8.7em; height: 8.7em; background: red; border: solid lime; }
+   span { float: left; width: 0.87em; height: 0.87em; background: green; }
+   input[type="text"] { text-align: right; }
+  </style>
+ </head>
+ <body>
+  <p>You should see no red below, just a green square with a green border.</p>
+  <div>
+   <!-- 100 spans -->
+   <span></span> <span></span> <span></span> <span></span> <span></span>
+                 <span></span> <span></span> <span></span> <span></span> <span></span>
+   <span></span> <span></span> <span></span> <span></span> <span></span>
+                 <span></span> <span></span> <span></span> <span></span> <span></span>
+   <span></span> <span></span> <span></span> <span></span> <span></span>
+                 <span></span> <span></span> <span></span> <span></span> <span></span>
+   <span></span> <span></span> <span></span> <span></span> <span></span>
+                 <span></span> <span></span> <span></span> <span></span> <span></span>
+   <span></span> <span></span> <span></span> <span></span> <span></span>
+                 <span></span> <span></span> <span></span> <span></span> <span></span>
+   <span></span> <span></span> <span></span> <span></span> <span></span>
+                 <span></span> <span></span> <span></span> <span></span> <span></span>
+   <span></span> <span></span> <span></span> <span></span> <span></span>
+                 <span></span> <span></span> <span></span> <span></span> <span></span>
+   <span></span> <span></span> <span></span> <span></span> <span></span>
+                 <span></span> <span></span> <span></span> <span></span> <span></span>
+   <span></span> <span></span> <span></span> <span></span> <span></span>
+                 <span></span> <span></span> <span></span> <span></span> <span></span>
+   <span></span> <span></span> <span></span> <span></span> <span></span>
+                 <span></span> <span></span> <span></span> <span></span> <span></span>
+  </div>
+
+<!-- Try different font sizes, zooms, and resolutions, as well as
+  slightly different sizes for the floats.</p>
+  <form action="" method="get">
+   <p>
+    Set each float to width: <input type="text" name="size" value="${size}" size="5">em.
+    <input type="submit" value="Generate Test">
+   </p>
+  </form>
+-->
+ </body>
+</html>

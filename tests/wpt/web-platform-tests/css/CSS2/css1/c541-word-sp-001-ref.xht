@@ -1,0 +1,36 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  div
+  {
+  background-color: aqua;
+  margin-left: 50px;
+  width: 300px;
+  }
+
+  img {vertical-align: bottom;}
+
+  img.left-and-right-sides {margin-left: 25px;}
+
+  img.central {margin: 0px 25px;}
+  ]]>
+  </style>
+
+ </head>
+
+ <body>
+
+  <p>There should be a stripy pattern of yellow and aqua below (each vertical stripe should be straight and unbroken).</p>
+
+  <div><img src="support/swatch-yellow.png" width="50" height="150" alt="Image download support must be enabled" class="left-and-right-sides" /><img src="support/swatch-yellow.png" width="50" height="150" alt="Image download support must be enabled" class="central" /><img src="support/swatch-yellow.png" width="25" height="150" alt="Image download support must be enabled" class="central" /><img src="support/swatch-yellow.png" width="25" height="150" alt="Image download support must be enabled" class="left-and-right-sides" /></div>
+
+ </body>
+</html>

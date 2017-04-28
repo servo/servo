@@ -1,0 +1,57 @@
+
+<html>
+<head>
+<title>Thirteenth Test of Section 5.3.6 of CSS1 Spec</title>
+
+<style type="text/css">
+p {background-image: url(flagbg.gif)}
+#id1 {background-position: top}
+#id2 {background-position: top center}
+#id3 {background-position: center top}
+#id4 {background-position: 50%0%}
+</style>
+</head>
+
+<body>
+
+
+
+
+<h1>Testing Statement #13 Below of Section 5.3.6 of CSS1 Spec</h1>
+
+
+
+
+
+<ul>
+<li >
+13. "top", "top center" and "center top" mean the same as "50%0%".
+</ul>
+
+
+<h2>
+PASS CRITERIA:
+</h2>
+<p ID=id1>
+If statement #13 above is true, this paragraph should have a flag image
+which is centered at the top of this paragraph text.
+The rule applied is "#id1 {background-position: top}".
+<p ID=id2>
+This paragraph should have a flag image which is centered at the top of
+this paragraph text.  This paragraph should look like the one above.
+The rule applied is "#id2 {background-position: top center}".
+<p ID=id3>
+This paragraph should have a flag image which is centered at the top of
+this paragraph text.  This paragraph should look like the one above.
+The rule applied is "#id3 {background-position: center top}".
+<p ID=id4>
+This paragraph should have a flag image which is 50% across and 0% down
+this paragraph text.  This paragraph should look like the one above.
+The rule applied is "#id4 {background-position: 50%0%}".
+<p>
+The rule "p {background-image: url(flagbg.gif)}" also applies above.
+All other properties of this page should be UA-default.
+
+
+</body>
+</html>

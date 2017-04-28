@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?xml-stylesheet href="css/floats-000.css" type="text/css"?>
+
+<root>
+
+
+
+	<document>
+	
+	
+	
+	
+		<info>You should see an ordered line of three boxes below.</info>
+		
+		
+		
+		
+		<section type="container">
+		
+		
+			<float direction="left">Float</float>
+			<float direction="right">Float</float>
+			<section id="content">Content</section>
+		
+		
+		
+		
+		
+		</section>
+	
+	
+	
+	
+	
+	
+	
+	</document>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</root>

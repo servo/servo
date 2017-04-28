@@ -1,0 +1,49 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>multicolumn | column-count, clip</title>
+<link rel="author" title="Opera Software ASA" href="http://www.opera.com/"/>
+<meta name="flags" content="ahem"/>
+<style type="text/css"><![CDATA[
+body>div {
+	font-family: ahem;
+	font-size: 1em;
+	line-height: 1em;
+	background: white;
+	margin: 1em;
+	border: 1em solid gray;
+	width: 11em;
+	height: 3em;
+	position: relative;
+	orphans: 1;
+	widows: 1;
+}
+div div {
+	color: black;
+	width: 2em;
+	position: absolute;
+	top: 0;
+	left: 0;
+}
+#test {
+	left: 5em;
+}
+#test2 {
+	color: blue;
+	left: 10em;
+	width: 1em;
+}
+]]></style>
+</head>
+
+<body>
+
+<div>
+	<div>xx xx xx</div>
+	<div id="test">xx xx xx</div>
+	<div id="test2">x x</div>
+</div>
+
+</body>
+</html>

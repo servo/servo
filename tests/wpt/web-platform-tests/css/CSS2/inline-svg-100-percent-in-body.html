@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: SVG element with a view box with explicit 100% width and height should occupy the entire view port</title>
+<link rel="author" title="Google" href="http://www.google.com/" />
+<link rel="match" href="reference/inline-svg-100-percent-in-body-ref.html">
+<link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#inline-replaced-width">
+<link rel="help" href="http://www.w3.org/TR/SVG11/coords.html#IntrinsicSizing">
+<meta name="flags" content="svg image" />
+<meta name="assert" content="When width and height of 100% are specified on an inline SVG element with a view box in the body element,
+the aspecto ratio should be preserved and should occupy the entire view port." />
+<style type="text/css">
+
+* {
+    margin: 0;
+    padding: 0;
+}
+
+svg {
+    display: block;
+}
+
+</style>
+</head>
+<body>
+<p>The box below should occupy the entire view port.</p>
+<svg viewBox="0 0 100 100" width="100%" height="100%" version="1.1" xmlns="http://www.w3.org/2000/svg">
+    <rect x="0" y="0" width="100" height="100" fill="green" />
+</svg>
+</body>
+</html>

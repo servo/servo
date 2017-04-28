@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test (Transforms): "transform-origin: inherit" and em</title>
+    <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-origin-property">
+    <meta name="assert" content='The &apos;transform-origin&apos;
+    property&apos;s computed value (which is what&apos;s inherited if
+    &apos;inherit&apos; is specified) is defined as "For &lt;length&gt; the
+    absolute value, otherwise a percentage."  In this test, a parent element
+    has a transform-origin of &apos;5em 10em&apos; with a font-size of 10px, and
+    the child has "transform-origin: inherit".  Since the relative length of
+    5em is converted to an absolute length before inheritance, the
+    transform-origin should be at the bottom of the child, 50px 100px.  The
+    180deg rotation should thus effectively move the child down 100px.  An
+    implementation that incorrectly inherited the transform-origin value before
+    converting to an absolute length would treat it as 100px 200px, since the
+    child has a font-size of 20px, so it would effectively translate the child
+    100px right and 300px down.'>
+    <link rel="match" href="transform-inherit-origin-ref.html">
+    <style>
+      body {
+        font-size: 10px;
+        transform-origin: 5em 10em;
+      }
+      div {
+        height: 100px;
+        width: 100px;
+        font-size: 20px;
+        transform: rotate(180deg);
+        transform-origin: inherit;
+        background: blue;
+      }
+    </style>
+  </head>
+  <body>
+    <div></div>
+  </body>
+</html>

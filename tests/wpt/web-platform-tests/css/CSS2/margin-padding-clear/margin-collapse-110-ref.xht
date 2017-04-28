@@ -1,0 +1,48 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  table
+  {
+  background-color: orange;
+  border: solid 3px;
+  border-spacing: 0px;
+  table-layout: fixed;
+  width: 256px;
+  }
+
+  td {padding: 50px 0px;}
+
+  div#yellow
+  {
+  border-top: yellow solid 50px;
+  margin-bottom: 50px;
+  }
+
+  div#lime {border-top: lime solid 50px;}
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a stack of 5 bands which are <strong>from top to bottom: orange, yellow, orange, lime, orange</strong>.</p>
+
+  <table>
+   <tr>
+    <td>
+     <div id="yellow"></div>
+     <div id="lime"></div>
+    </td>
+   </tr>
+  </table>
+
+ </body>
+</html>

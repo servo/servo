@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Table borders overflowing the table container (rtl)</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#collapsing-borders" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Borders that spill into a table margin can overflow that table's container." />
+        <style type="text/css">
+            table
+            {
+                border-collapse: collapse;
+            }
+            td
+            {
+                background: black;
+                height: 1em
+            }
+            #div1
+            {
+                background: black;
+                direction: rtl;
+                width: 2em;
+            }
+            #cell
+            {
+                border-left: 1em solid black;
+                border-right: 1em solid black;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the upper-right corner of the box below is missing.</p>
+        <div id="div1">
+            <table>
+                <tr>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td id="cell"></td>
+                </tr>
+            </table>
+        </div>
+    </body>
+</html>

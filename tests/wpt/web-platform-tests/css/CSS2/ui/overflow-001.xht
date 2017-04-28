@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Overflow set to 'visible'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visufx.html#propdef-overflow" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visufx.html#overflow" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'overflow' property set to 'visible' properly shows all content that extends beyond the containing element." />
+        <style type="text/css">
+            #div1
+            {
+                border: 3px solid orange;
+                height: 1in;
+                overflow: visible;
+                width: 1in;
+            }
+            div div
+            {
+                background: blue;
+                height: 2in;
+                width: 2in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the blue background overlaps the orange border on the bottom and right sides.</p>
+        <div id="div1">
+            <div></div>
+        </div>
+    </body>
+</html>

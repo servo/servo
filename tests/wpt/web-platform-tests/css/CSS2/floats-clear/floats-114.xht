@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: CSS Floats: Generated Content</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/float/014.xml" type="application/xhtml+xml"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/float/014.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats" />
+  <link rel="match" href="floats-114-ref.xht" />
+
+  <style type="text/css">
+   .test { border: solid navy; padding: 0.5em; }
+   .a:before { float: none; content: 'PA'; width: 5em; }
+   .b:before { float: left; content: 'PA'; }
+   .c:after { float: left; content: 'PA'; height: 5em }
+  </style>
+ </head>
+ <body>
+  <p> The following three lines should be identical and should read 'PASS' as one unbroken word:</p>
+  <p class="test a">SS</p>
+  <p class="test b">SS</p>
+  <p class="test c">SS</p>
+ </body>
+</html>

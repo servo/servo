@@ -1,0 +1,18 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Pseudo-class :active defined in user stylesheet can be applied</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html" />
+        <meta name="flags" content="interact userstyle" />
+        <meta name="assert" content="The pseudo-class selector :active defined in user stylesheet is implemented." />
+        <style type="text/css"></style>
+    </head>
+    <body>
+        <p id="user-stylesheet">PREREQUISITE: The <a href="support/user-stylesheet.css">"user-stylesheet.css"</a> file is enabled as the user agent's user style sheet.</p>
+        <p>Test passes if activating the "Filler Text" below changes the text color to green.</p>
+        <div>
+            <a id="user-stylesheet-015" href="#">Filler Text</a>
+        </div>
+    </body>
+</html>

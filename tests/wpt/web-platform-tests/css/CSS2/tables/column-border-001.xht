@@ -1,0 +1,55 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Column border property</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#columns" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="A border can be set on a table column." />
+        <style type="text/css">
+            .table
+            {
+                background: black;
+                border-collapse: collapse;
+                display: table;
+            }
+            .column
+            {
+                border: 5px dotted green;
+                display: table-column;
+            }
+            .tr
+            {
+                display: table-row;
+            }
+            .td
+            {
+                display: table-cell;
+                height: 0.25in;
+                width: 0.5in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the left half of the black box below has green dotted border.</p>
+        <div class="table">
+            <div class="column"></div>
+            <div class="tr">
+                <div class="td"></div>
+                <div class="td"></div>
+            </div>
+            <div class="tr">
+                <div class="td"></div>
+                <div class="td"></div>
+            </div>
+            <div class="tr">
+                <div class="td"></div>
+                <div class="td"></div>
+            </div>
+            <div class="tr">
+                <div class="td"></div>
+                <div class="td"></div>
+            </div>
+        </div>
+    </body>
+</html>

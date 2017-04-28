@@ -1,0 +1,34 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Content property and white-space: pre-line</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#content" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="'white-space: pre-line' applies to generated string content." />
+        <style type="text/css">
+            #reference, #test
+            {
+                width: 25em;
+            }
+            #reference
+            {
+                border: solid green;
+            }
+            #test
+            {
+                border: solid blue;
+            }
+            #test:before
+            {
+                content: "This text\A            should be on                 two                 lines.";
+                white-space: pre-line;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the text in the green box and the blue box have the same spacing between words and the lines wrap at the same point.</p>
+        <div id="reference">This text<br />should be on two lines.</div>
+        <div id="test"></div>
+    </body>
+</html>

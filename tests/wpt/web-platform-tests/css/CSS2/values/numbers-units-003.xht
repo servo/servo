@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Parsing invalid decimal values - alphanumeric characters within number</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#numbers" />
+        <link rel="match" href="../reference/no-red-on-blank-page-ref.xht"/>
+        <meta name="flags" content="invalid" />
+        <meta name="assert" content="An alphanumeric character cannot be within the number value." />
+        <style type="text/css">
+            div
+            {
+                background: red;
+                height: 0;
+                height: a.6px;
+                width: 96px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page.</p>
+        <div></div>
+    </body>
+</html>

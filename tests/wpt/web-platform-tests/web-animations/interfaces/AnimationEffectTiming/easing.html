@@ -56,6 +56,14 @@ gInvalidEasings.forEach(function(invalidEasing) {
   }, 'Invalid effect easing value test: \'' + invalidEasing + '\'');
 });
 
+gRoundtripEasings.forEach(easing => {
+  test(function(t) {
+    const anim = createDiv(t).animate(null);
+    anim.effect.timing.easing = easing;
+    assert_equals(anim.effect.timing.easing, easing);
+  }, `Canonical easing '${easing}' is returned as set`);
+});
+
 test(function(t) {
   var delay = 1000 * MS_PER_SEC;
 

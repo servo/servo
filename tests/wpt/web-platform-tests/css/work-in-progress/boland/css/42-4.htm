@@ -1,0 +1,58 @@
+
+<HTML>
+<HEAD>
+<TITLE>Fourth Test of Section 4.2 of CSS1 Spec</TITLE>
+
+
+<STYLE TYPE="text/css">
+#id1 {border-style: dashed}
+
+
+</STYLE>
+</HEAD>
+
+
+
+<BODY>
+
+<h1 >Testing Statement #4 of Section 4.2 of CSS1 Spec</h1>
+
+
+
+
+
+<ul>
+<li>
+4. IF the inline element has attached margins, borders, padding, or text
+decorations, these will have no effect where the element is broken.
+</ul>
+
+
+<h2>
+PASS CRITERIA:
+</h2>
+<p>
+If statement #4 above is passed, then there are some words that follow that may be important.
+The words <em id="id1">now is the time for all good men to come to the aid of their
+country</em> are emphasized and have a dashed border surrounding them, but
+since the line is long the inline element "em" is broken into two boxes,
+along with the dashed line.
+The rule applied is "em {border-style: dashed}".
+All other properties should be UA-default.
+</p>
+
+<p>
+There are some more words below that may be important in the context of
+the information below.
+The words <em>now is the time for all good men to come to the aid of their
+country</em> are emphasized, but have no dashed border surrounding them
+like above.  However, the inline element "em" should be broken here exactly
+the same as in the above paragraph (e.g., borders, margins, padding, or
+text decorations should have no effect).
+</p>
+
+
+
+
+</BODY>
+</HTML>

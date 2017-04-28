@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <meta charset=utf-8>
 <title>CORS status</title>
-<meta name=help href=http://dvcs.w3.org/hg/cors/raw-file/tip/Overview.html#cross-origin-request-with-preflight-0>
+<link rel=help href=https://fetch.spec.whatwg.org/>
 <meta name=author title="Odin Hørthe Omdal" href="mailto:odiho@opera.com">
 
 <script src="/resources/testharness.js"></script>
@@ -37,10 +37,10 @@
                     assert_unreached("load event")
 
                 /* Allow spurious error events to fire */
-                setTimeout(this.step_func(function() {
+                this.step_timeout(() => {
                     assert_equals(client.status, status, "status")
                     this.done()
-                }), 10)
+                }, 10)
             })
 
             client.onerror = this.step_func(function() {

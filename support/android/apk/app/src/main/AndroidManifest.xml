@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- BEGIN_INCLUDE(manifest) -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" android:installLocation="auto"
+        package="com.mozilla.servo">
+
+    <uses-feature android:glEsVersion="0x00020000" android:required="true" />
+    <uses-feature android:name="android.hardware.bluetooth_le" android:required="true"/>
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"/>
+
+    <application android:label="Servo" android:icon="@mipmap/servo">
+        <activity android:name=".MainActivity"
+                android:label="Servo"
+                android:configChanges="orientation|keyboardHidden|screenSize">
+            <meta-data android:name="android.app.lib_name" android:value="servo" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- Web browser intents -->
+            <intent-filter>
+              <action android:name="android.intent.action.VIEW" />
+              <category android:name="android.intent.category.DEFAULT" />
+              <category android:name="android.intent.category.BROWSABLE" />
+              <data android:scheme="http" />
+              <data android:scheme="https" />
+              <data android:scheme="data" />
+              <data android:scheme="javascript" />
+            </intent-filter>
+            <intent-filter>
+              <action android:name="android.intent.action.VIEW" />
+              <category android:name="android.intent.category.DEFAULT" />
+              <category android:name="android.intent.category.BROWSABLE" />
+              <data android:scheme="file" />
+              <data android:scheme="http" />
+              <data android:scheme="https" />
+              <data android:mimeType="text/html"/>
+              <data android:mimeType="text/plain"/>
+              <data android:mimeType="application/xhtml+xml"/>
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>
+<!-- END_INCLUDE(manifest) -->

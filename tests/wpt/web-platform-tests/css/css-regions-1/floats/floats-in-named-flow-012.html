@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Test: floats with forced region breaks inside them</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+		<link rel="help" href="http://www.w3.org/TR/css3-break/#parallel-flows">
+		<meta name="flags" content="ahem">
+		<meta name="assert" content="Test checks that floats in named flow contents are floated relative
+				to the region container and not their initial container, even when multiple regions
+				are involved.">
+		<link rel="match" href="reference/floats-in-named-flow-012-ref.html">
+		<style>
+		article {
+			color: blue;
+			font-family: Ahem;
+			font-size: 20px;
+			line-height: 1em;
+		}
+		.flow {
+			flow-into: f;
+		}
+		.float {
+			color: green;
+			float: left;
+		}
+		.break {
+			break-before: region;
+		}
+		.region {
+			flow-from: f;
+			margin: 10px;
+			width: 200px;
+			background: red;
+		}
+
+		.region > p {
+			background: red;
+		}
+		</style>
+	</head>
+	<body>
+		<p>
+			Test passes if you see two identical rows of colored squares. Each row should have three
+			squares, from left to right as follows: blue, gray, green. The squares in a row should
+			be flush to each other, but the two rows should have some space between them.<br>
+			Test fails is you see any red.
+		</p>
+
+		<article>
+			<div class="flow">
+				<div class="float">
+					<div>
+						xxxxx<br>
+						xxxxx<br>
+						xxxxx<br>
+						xxxxx<br>
+						xxxxx
+					</div>
+					<div class="break">
+						xxxxx<br>
+						xxxxx<br>
+						xxxxx<br>
+						xxxxx<br>
+						xxxxx
+					</div>
+				</div>
+				<div>
+					xxxxx xxxxx xxxxx xxxxx xxxxx
+				</div>
+				<div class="break">
+					xxxxx xxxxx xxxxx xxxxx xxxxx
+				</div>
+			</div>
+		</article>
+
+		<div class="region">
+			<p>&nbsp;</p>
+		</div>
+		<div class="region">
+			<p>&nbsp;</p>
+		</div>
+	</body>
+</html>

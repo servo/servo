@@ -25,10 +25,11 @@ def test_window_size_types(http, session):
     with http.get("/session/%s/window/size" % session.session_id) as resp:
         assert resp.status == 200
         body = json.load(resp)
-    assert "width" in body
-    assert "height" in body
-    assert isinstance(body["width"], int)
-    assert isinstance(body["height"], int)
+    assert "value" in body
+    assert "width" in body["value"]
+    assert "height" in body["value"]
+    assert isinstance(body["value"]["width"], int)
+    assert isinstance(body["value"]["height"], int)
 
     size = session.window.size
     assert isinstance(size, tuple)
@@ -83,10 +84,11 @@ def test_window_position_types(http, session):
     with http.get("/session/%s/window/position" % session.session_id) as resp:
         assert resp.status == 200
         body = json.load(resp)
-    assert "x" in body
-    assert "y" in body
-    assert isinstance(body["x"], int)
-    assert isinstance(body["y"], int)
+    assert "value" in body
+    assert "x" in body["value"]
+    assert "y" in body["value"]
+    assert isinstance(body["value"]["x"], int)
+    assert isinstance(body["value"]["y"], int)
 
     pos = session.window.position
     assert isinstance(pos, tuple)

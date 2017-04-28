@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>CSS Test: Basic nested ruby</title>
+  <link rel="author" title="Xidorn Quan" href="mailto:csswg@upsuper.org">
+  <link rel="help" href="https://drafts.csswg.org/css-ruby-1/#nested-pairing">
+  <link rel="match" href="nested-ruby-pairing-001-ref.html">
+  <style>
+    div {
+      display: inline-block;
+      padding: 20px;
+      border: 1px solid black;
+    }
+  </style>
+</head>
+<body>
+  <p>Test passes if content in the two blocks are identical:</p>
+  <div id="test">
+    <ruby><ruby>東<rt>とう</rt>南<rt>なん</rt></ruby><rt lang=en>Southeast</rt></ruby>の方角
+  </div>
+  <div id="ref">
+    <ruby><rb>東<rb>南<rt>とう<rt>なん<rtc lang=en>Southeast</ruby>の方角
+  </div>
+</body>
+</html>

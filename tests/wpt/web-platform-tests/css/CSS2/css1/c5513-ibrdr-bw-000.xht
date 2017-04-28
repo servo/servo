@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: border-bottom-width</title>
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#border-bottom-width"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="match" href="c5513-ibrdr-bw-000-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+   .two {border-bottom-width: thin; border-style: solid;}
+   .three {border-bottom-width: 25px; color: red;}
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-properties" title="8.5 Border properties"/>
+ </head>
+ <body>
+  <p class="one">
+   <span class="two"> This box should have a thin bottom border.</span>
+  </p>
+  <p class="one">
+   There should be no red on this line. <span class="three">&#x00A0;&#x00A0;&#x00A0;</span>
+  </p>
+ </body>
+</html>

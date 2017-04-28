@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Reftest Reference</title>
+    <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com"/>
+    <style>
+      body { line-height: 0; }
+
+      div.flexbox > * {
+        display: inline-block;
+      }
+      div.a {
+        height: 20px;
+        width: 10px;
+        background: lightgreen;
+      }
+      div.b {
+        height: 20px;
+        width: 50px;
+        background: pink;
+      }
+      div.c {
+        height: 20px;
+        width: 100px;
+        background: orange;
+      }
+      .centerParent {
+        text-align: center;
+      }
+      .center {
+        display: inline-block;
+      }
+    </style>
+  </head>
+  <body>
+
+    <!-- default (start) -->
+    <div class="flexbox">
+      <div class="a"/>
+    </div>
+    <div class="flexbox">
+      <div class="a"/><div class="b"></div>
+    </div>
+    <div class="flexbox">
+      <div class="a"/><div class="b"/><div class="c"/>
+    </div>
+
+    <!-- flex-start -->
+    <div class="flexbox">
+      <div class="a"/>
+    </div>
+    <div class="flexbox">
+      <div class="a"/><div class="b"/>
+    </div>
+    <div class="flexbox">
+      <div class="a"/><div class="b"/><div class="c"/>
+    </div>
+
+    <!-- flex-end -->
+    <div class="flexbox" style="float:right; clear:right;">
+      <div class="a"/>
+    </div>
+    <div class="flexbox" style="float:right; clear:right;">
+      <div class="a"/><div class="b"/>
+    </div>
+    <div class="flexbox" style="float:right; clear:right;">
+      <div class="a"/><div class="b"/><div class="c"/>
+    </div>
+    <div style="clear:right;"></div>
+
+    <!-- center -->
+    <div class="centerParent">
+      <div class="flexbox center">
+        <div class="a"/>
+      </div>
+    </div>
+    <div class="centerParent">
+      <div class="flexbox center">
+        <div class="a"/><div class="b"/>
+      </div>
+    </div>
+    <div class="centerParent">
+      <div class="flexbox center">
+        <div class="a"/><div class="b"/><div class="c"/>
+      </div>
+    </div>
+
+    <!-- space-between -->
+    <div class="flexbox">
+      <div class="a"/>
+    </div>
+    <div class="flexbox">
+      <div class="a"/><div class="b" style="float: right"/>
+    </div>
+    <div class="flexbox">
+      <div class="a" style="display:block; float: left"/>
+      <div class="c" style="float:right"/>
+      <!-- Use fixed-size margins to subtract space for "a" and "c", and then
+           use auto margins to center 'b' within the remaining space -->
+      <div style="display: block; margin-left: 10px; margin-right: 100px">
+        <div class="b" style="margin: auto"/>
+      </div>
+    </div>
+
+    <!-- space-around -->
+    <!-- Center "a" here just as we did above in the "center" case. -->
+    <div class="centerParent">
+      <div class="flexbox center">
+        <div class="a"/>
+      </div>
+    </div>
+    <!-- For the rest, we'll use a flex container with invisible flexible items
+         instead of packing space. That's simpler than trying to hack up
+         a width-independent reference case for "justify-content: space-around".
+         (There are other reftests to ensure that basic flex container
+         behavior is correct, so it's safe to rely on it here.) -->
+    <div class="flexbox" style="display: flex">
+      <div style="flex: 0.5"/>
+      <div class="a"/>
+      <div style="flex: 1"/>
+      <div class="b"/>
+      <div style="flex: 0.5"/>
+    </div>
+    <div class="flexbox" style="display: flex">
+      <div style="flex: 0.5"/>
+      <div class="a"/>
+      <div style="flex: 1"/>
+      <div class="b"/>
+      <div style="flex: 1"/>
+      <div class="c"/>
+      <div style="flex: 0.5"/>
+    </div>
+
+    <!-- space-evenly -->
+    <!-- Center "a" here just as we did above in the "center" case. -->
+    <div class="centerParent">
+      <div class="flexbox center">
+        <div class="a"/>
+      </div>
+    </div>
+    <!-- As above with space-around, we'll use a flex container with invisible
+         flexible items instead of packing space. -->
+    <div class="flexbox" style="display: flex">
+      <div style="flex: 1"/>
+      <div class="a"/>
+      <div style="flex: 1"/>
+      <div class="b"/>
+      <div style="flex: 1"/>
+    </div>
+    <div class="flexbox" style="display: flex">
+      <div style="flex: 1"/>
+      <div class="a"/>
+      <div style="flex: 1"/>
+      <div class="b"/>
+      <div style="flex: 1"/>
+      <div class="c"/>
+      <div style="flex: 1"/>
+    </div>
+
+
+    <!-- left -->
+    <div class="flexbox">
+      <div class="a"/>
+    </div>
+    <div class="flexbox">
+      <div class="a"/><div class="b"/>
+    </div>
+    <div class="flexbox">
+      <div class="a"/><div class="b"/><div class="c"/>
+    </div>
+
+    <!-- right -->
+    <div class="flexbox" style="float:right; clear:right;">
+      <div class="a"/>
+    </div>
+    <div class="flexbox" style="float:right; clear:right;">
+      <div class="a"/><div class="b"/>
+    </div>
+    <div class="flexbox" style="float:right; clear:right;">
+      <div class="a"/><div class="b"/><div class="c"/>
+    </div>
+    <div style="clear:right;"></div>
+
+  </body>
+</html>

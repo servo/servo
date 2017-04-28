@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Line box distribution with the 'text-align' property</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#inline-formatting" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="When the inline box is wider than the line boxes the 'text-align' property is used to align the line boxes." />
+        <style type="text/css">
+            div
+            {
+                border: solid black;
+                text-align: right;
+                width: 200px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the "Filler Text" is aligned to the right side of the box.</p>
+        <div>
+            <span>Filler Text</span><span>Filler Text</span>
+        </div>
+    </body>
+</html>

@@ -218,6 +218,6 @@ function run_tests(tests)
 {
   tests.forEach(function(info) {
     promise_test(make_test("tag", info), info.name + " with Etag and " + info.state + " response");
-    promise_test(make_test("date", info), info.name + " with date and " + info.state + " response");
+    promise_test(make_test("date", info), info.name + " with Last-Modified and " + info.state + " response");
   });
 }

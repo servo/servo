@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<meta http-equiv="content-security-policy" content="script-src 'self' 'nonce-a' blob: filesystem:">
+<script nonce="a">
+  // SharedWorker URLs do not inherit policy.
+  fetch_tests_from_worker(new SharedWorker("./support/script-src-allow.sub.js"));
+  fetch_tests_from_worker(new SharedWorker("./support/script-src-self.sub.js?pipe=sub|header(Content-Security-Policy,script-src 'self'"));
+  fetch_tests_from_worker(new SharedWorker("./support/script-src-self.sub.js?pipe=sub|header(Content-Security-Policy,default-src 'self'"));
+</script>

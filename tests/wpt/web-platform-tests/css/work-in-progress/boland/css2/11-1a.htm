@@ -1,0 +1,79 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Second Test of Section 11.1 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+
+
+
+p {overflow: visible}
+strong {overflow: hidden}
+h3 {overflow: scroll}
+h4 {overflow: auto}
+h5 {overflow: 200%}
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<!--
+<h1 >
+Testing Second Testable Statement of Sec 11.1 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+2. The 'overflow' property has initial 'visible', it applies to block-level
+and replaced elements, it is not inherited, percentages are N/A, and
+media is visual.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p >
+If statement #2 above is passed, then
+-->
+<blockquote>
+This blockquote element has overflow visible (initial value, no explicit CSS
+rule defined)
+</blockquote>
+<p>
+This paragraph has overflow visible.  This <em>emphasized text</em> has
+overflow of UA-default, even though em is descendant of p (property not
+inherited).</p>
+<strong>This strong text has overflow hidden </strong>
+<h3>This h3 heading has overflow scroll</h3>
+<h4>This h4 text has overflow auto</h4>
+
+<h5>This h5 heading is UA-default (percentages don't apply)</h5>
+
+
+The rules applied are "p {overflow: visible}",
+"strong {overflow: hidden}",
+h3 {overflow: scroll}",
+h4 {overflow: auto}",
+h5 {overflow: 200%}".
+
+NOTE: From all elements listed above, overflow property should apply to all
+elements.
+<!--
+All other properties of this page should be UA-default.
+Your browser rendering of this page should look similar to this <a href="c83201.gif"> 
+reference image </a> or to this <a href="d83201.gif">reference image</a>.
+-->
+
+
+</BODY>
+</HTML>
+

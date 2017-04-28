@@ -1,0 +1,114 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: page properties: padding properties</title>
+<link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+<link rel="help" href="http://www.w3.org/TR/css3-page/#page-properties"/>
+<meta name="flags" content="paged" />
+<meta name="assert" content="Padding properties defined in CSS2.1 apply to margin boxes."/>
+<style type="text/css">
+	@page {
+		margin: 1in;
+		@top-left-corner {
+			border: 1pt solid green;
+			content: "";
+			padding: 0.25in;
+			margin: auto;
+		}	
+		@top-left {
+			border: 1pt solid green;
+			content: "";
+			padding: 0.25in;
+			margin: auto;
+		}	
+		@top-center {
+			border: 1pt solid green;
+			content: "";
+			padding: 0.25in;
+			margin: auto;
+		}	
+		@top-right {
+			border: 1pt solid green;
+			content: "";
+			padding: 0.25in;
+			margin: auto;
+		}	
+		@top-right-corner {
+			border: 1pt solid green;
+			content: "";
+			padding: 0.25in;
+			margin: auto;
+		}
+		@left-top {
+			border: 1pt solid green;
+			content: "";
+			padding: 0.25in;
+			margin: auto;
+		}
+		@left-middle {
+			border: 1pt solid green;
+			content: "";
+			padding: 0.25in;
+			margin: auto;
+		}
+		@left-bottom {
+			border: 1pt solid green;
+			content: "";
+			padding: 0.25in;
+			margin: auto;
+		}
+		@right-top {
+			border: 1pt solid green;
+			content: "";
+			padding: 0.25in;
+			margin: auto;
+		}
+		@right-middle {
+			border: 1pt solid green;
+			content: "";
+			padding: 0.25in;
+			margin: auto;
+		}
+		@right-bottom {
+			border: 1pt solid green;
+			content: "";
+			padding: 0.25in;
+			margin: auto;
+		}
+		@bottom-left-corner {
+			border: 1pt solid green;
+			content: "";
+			padding: 0.25in;
+			margin: auto;
+		}	
+		@bottom-left {
+			border: 1pt solid green;
+			content: "";
+			padding: 0.25in;
+			margin: auto;
+		}	
+		@bottom-center {
+			border: 1pt solid green;
+			content: "";
+			padding: 0.25in;
+			margin: auto;
+		}	
+		@bottom-right {
+			border: 1pt solid green;
+			content: "";
+			padding: 0.25in;
+			margin: auto;
+		}	
+		@bottom-right-corner {
+			border: 1pt solid green;
+			content: "";
+			padding: 0.25in;
+			margin: auto;
+		}
+	}
+</style>
+</head>
+<body>
+	<div>There must be 16 green boxes surrounding this content. Each box must be 0.5 inches by 0.5 inches.</div>
+</body>
+</html>

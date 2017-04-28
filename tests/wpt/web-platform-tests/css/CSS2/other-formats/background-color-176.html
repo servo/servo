@@ -1,0 +1,40 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
+
+<html>
+
+ <head>
+
+ <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+
+  <title>CSS Test: background-color</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="author" title="Jukka 'Yucca' Korpela" href="http://www.cs.tut.fi/~jkorpela/personal.html">
+  <link rel="reviewer" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/">
+  <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background-properties">
+  <meta name="flags" content="HTMLonly">
+  <meta name="assert" content="Background-color applied to a form should not affect a previous sibling block-level element when it does not have an optional closing tag.">
+
+  <style type="text/css">
+  form
+  {
+  background-color: orange;
+  color: white;
+  padding: 50px;
+  }
+  </style>
+
+ </head>
+
+ <body>
+
+  <div>There should be 1 (and only 1) wide orange rectangle across the page</div>
+
+  <p>
+
+  <form action="">
+   <div></div>
+  </form>
+
+ </body>
+</html>

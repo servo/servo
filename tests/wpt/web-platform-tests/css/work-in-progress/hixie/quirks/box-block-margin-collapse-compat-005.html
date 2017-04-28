@@ -1,0 +1,33 @@
+<!-- Compatability Mode -->
+<html lang="en">
+ <head>
+  <title>Margin Collapsing Quirks: Collapsing through other elements (top, explicitly set)</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/block/margin-collapse/compat/005.html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#collapsing-margins" />
+  <style type="text/css">
+   .ahem { display: inline; font: 1em/1 Ahem, sans-serif; background: red; color: white; }
+   td { background: red; font: 16px/1 Ahem; padding: 0; }
+   p { margin: 1em 0; }
+   .test { color: lime; background: green; }
+   .control div { background: lime; height: 1em; width: 5em; border: 1em green none; border-style: solid none; }
+  </style>
+ </head>
+ <body>
+  <div class="ahem">Ahem_font_required_for_this_test.</div>
+  <p>The following two columns should look identical.</p>
+  <table class="main">
+   <tr>
+    <td class="test">
+     <p></p>
+     <p></p>
+     <p></p>
+     <p>XXXXX</p>
+    </td>
+    <td class="control">
+     <div></div>
+    </td>
+   </tr>
+  </table>
+ </body>
+</html>

@@ -170,39 +170,6 @@ def salt(context, force=False):
     return retcode
 
 
-def windows_gnu(context, force=False):
-    '''Bootstrapper for msys2 based environments for building in Windows.'''
-
-    if not find_executable('pacman'):
-        print(
-            'The Windows GNU bootstrapper only works with msys2 with pacman. '
-            'Get msys2 at http://msys2.github.io/'
-        )
-        return 1
-
-    # Ensure repositories are up to date
-    command = ['pacman', '--sync', '--refresh']
-    subprocess.check_call(command)
-
-    # Install packages
-    command = ['pacman', '--sync', '--needed']
-    if force:
-        command.append('--noconfirm')
-    subprocess.check_call(command + list(packages.WINDOWS_GNU))
-
-    # Downgrade GCC to 5.4.0-1
-    gcc_pkgs = ["gcc", "gcc-ada", "gcc-fortran", "gcc-libgfortran", "gcc-libs", "gcc-objc"]
-    gcc_version = "5.4.0-1"
-    mingw_url = "http://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-{}-{}-any.pkg.tar.xz"
-    gcc_list = [mingw_url.format(gcc, gcc_version) for gcc in gcc_pkgs]
-
-    # Note: `--upgrade` also does downgrades
-    downgrade_command = ['pacman', '--upgrade']
-    if force:
-        downgrade_command.append('--noconfirm')
-    subprocess.check_call(downgrade_command + gcc_list)
-
-
 def windows_msvc(context, force=False):
     '''Bootstrapper for MSVC building on Windows.'''
 
@@ -264,9 +231,7 @@ def bootstrap(context, force=False):
 
     bootstrapper = None
 
-    if "windows-gnu" in host_triple():
-        bootstrapper = windows_gnu
-    elif "windows-msvc" in host_triple():
+    if "windows-msvc" in host_triple():
         bootstrapper = windows_msvc
     elif "linux-gnu" in host_triple():
         distro, version, _ = platform.linux_distribution()

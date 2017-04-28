@@ -5,15 +5,15 @@ if (self.importScripts) {
   self.importScripts('/resources/testharness.js');
 }
 
-let ReadableStreamReader;
+let ReadableStreamDefaultReader;
 let ReadableStreamController;
 
 test(() => {
 
   // It's not exposed globally, but we test a few of its properties here.
-  ReadableStreamReader = (new ReadableStream()).getReader().constructor;
+  ReadableStreamDefaultReader = (new ReadableStream()).getReader().constructor;
 
-}, 'Can get the ReadableStreamReader constructor indirectly');
+}, 'Can get the ReadableStreamDefaultReader constructor indirectly');
 
 test(() => {
 
@@ -29,7 +29,7 @@ test(() => {
 function fakeReadableStream() {
   return {
     cancel() { return Promise.resolve(); },
-    getReader() { return new ReadableStreamReader(new ReadableStream()); },
+    getReader() { return new ReadableStreamDefaultReader(new ReadableStream()); },
     pipeThrough(obj) { return obj.readable; },
     pipeTo() { return Promise.resolve(); },
     tee() { return [realReadableStream(), realReadableStream()]; }
@@ -40,7 +40,7 @@ function realReadableStream() {
   return new ReadableStream();
 }
 
-function fakeReadableStreamReader() {
+function fakeReadableStreamDefaultReader() {
   return {
     get closed() { return Promise.resolve(); },
     cancel() { return Promise.resolve(); },
@@ -77,44 +77,44 @@ test(() => {
 
 test(() => {
 
-  assert_throws(new TypeError(), () => new ReadableStreamReader(fakeReadableStream()),
-                'Constructing a ReadableStreamReader should throw');
+  assert_throws(new TypeError(), () => new ReadableStreamDefaultReader(fakeReadableStream()),
+                'Constructing a ReadableStreamDefaultReader should throw');
 
-}, 'ReadableStreamReader enforces a brand check on its argument');
-
-promise_test(t => {
-
-  return Promise.all([
-    getterRejects(t, ReadableStreamReader.prototype, 'closed', fakeReadableStreamReader()),
-    getterRejects(t, ReadableStreamReader.prototype, 'closed', realReadableStream())
-  ]);
-
-}, 'ReadableStreamReader.prototype.closed enforces a brand check');
+}, 'ReadableStreamDefaultReader enforces a brand check on its argument');
 
 promise_test(t => {
 
   return Promise.all([
-    methodRejects(t, ReadableStreamReader.prototype, 'cancel', fakeReadableStreamReader()),
-    methodRejects(t, ReadableStreamReader.prototype, 'cancel', realReadableStream())
+    getterRejects(t, ReadableStreamDefaultReader.prototype, 'closed', fakeReadableStreamDefaultReader()),
+    getterRejects(t, ReadableStreamDefaultReader.prototype, 'closed', realReadableStream())
   ]);
 
-}, 'ReadableStreamReader.prototype.cancel enforces a brand check');
+}, 'ReadableStreamDefaultReader.prototype.closed enforces a brand check');
 
 promise_test(t => {
 
   return Promise.all([
-    methodRejects(t, ReadableStreamReader.prototype, 'read', fakeReadableStreamReader()),
-    methodRejects(t, ReadableStreamReader.prototype, 'read', realReadableStream())
+    methodRejects(t, ReadableStreamDefaultReader.prototype, 'cancel', fakeReadableStreamDefaultReader()),
+    methodRejects(t, ReadableStreamDefaultReader.prototype, 'cancel', realReadableStream())
   ]);
 
-}, 'ReadableStreamReader.prototype.read enforces a brand check');
+}, 'ReadableStreamDefaultReader.prototype.cancel enforces a brand check');
+
+promise_test(t => {
+
+  return Promise.all([
+    methodRejects(t, ReadableStreamDefaultReader.prototype, 'read', fakeReadableStreamDefaultReader()),
+    methodRejects(t, ReadableStreamDefaultReader.prototype, 'read', realReadableStream())
+  ]);
+
+}, 'ReadableStreamDefaultReader.prototype.read enforces a brand check');
 
 test(() => {
 
-  methodThrows(ReadableStreamReader.prototype, 'releaseLock', fakeReadableStreamReader());
-  methodThrows(ReadableStreamReader.prototype, 'releaseLock', realReadableStream());
+  methodThrows(ReadableStreamDefaultReader.prototype, 'releaseLock', fakeReadableStreamDefaultReader());
+  methodThrows(ReadableStreamDefaultReader.prototype, 'releaseLock', realReadableStream());
 
-}, 'ReadableStreamReader.prototype.releaseLock enforces a brand check');
+}, 'ReadableStreamDefaultReader.prototype.releaseLock enforces a brand check');
 
 test(() => {
 

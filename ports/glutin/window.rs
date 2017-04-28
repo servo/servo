@@ -27,7 +27,7 @@ use msg::constellation_msg::{ALT, CONTROL, KeyState, NONE, SHIFT, SUPER};
 use net_traits::net_error_list::NetError;
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use osmesa_sys;
-use script_traits::{DevicePixel, TouchEventType, TouchpadPressurePhase};
+use script_traits::{DevicePixel, LoadData, TouchEventType, TouchpadPressurePhase};
 use servo_config::opts;
 use servo_config::prefs::PREFS;
 use servo_config::resource_files;
@@ -372,12 +372,17 @@ impl Window {
             self.event_queue.borrow_mut().push(event);
         } else {
             // Only send the character if we can print it (by ignoring characters like backspace)
-            if ch >= ' ' {
-                let event = WindowEvent::KeyEvent(Some(ch),
-                                                  Key::A /* unused */,
-                                                  KeyState::Pressed,
-                                                  modifiers);
-                self.event_queue.borrow_mut().push(event);
+            if !ch.is_control() {
+                match Window::char_to_script_key(ch) {
+                    Some(key) => {
+                        let event = WindowEvent::KeyEvent(Some(ch),
+                                                          key,
+                                                          KeyState::Pressed,
+                                                          modifiers);
+                        self.event_queue.borrow_mut().push(event);
+                    }
+                    None => {}
+                }
             }
         }
         self.last_pressed_key.set(None);
@@ -433,7 +438,6 @@ impl Window {
                 ElementState::Released => KeyState::Released,
             };
             let modifiers = Window::glutin_mods_to_script_mods(self.key_modifiers.get());
-            //self.event_queue.borrow_mut().push(WindowEvent::KeyEvent(None, key, state, modifiers));
             self.event_queue.borrow_mut().push(WindowEvent::KeyEvent(ch, key, state, modifiers));
         }
     }
@@ -540,10 +544,10 @@ impl Window {
     }
 
     /// Helper function to send a scroll event.
-    fn scroll_window(&self, scroll_location: ScrollLocation, phase: TouchEventType) {
+    fn scroll_window(&self, mut scroll_location: ScrollLocation, phase: TouchEventType) {
         // Scroll events snap to the major axis of movement, with vertical
         // preferred over horizontal.
-        if let ScrollLocation::Delta(mut delta) = scroll_location {
+        if let ScrollLocation::Delta(ref mut delta) = scroll_location {
             if delta.y.abs() >= delta.x.abs() {
                 delta.x = 0.0;
             } else {
@@ -687,6 +691,108 @@ impl Window {
 
     pub unsafe fn remove_nested_event_loop_listener(&self) {
         G_NESTED_EVENT_LOOP_LISTENER = None
+    }
+
+    #[cfg(target_os = "windows")]
+    fn char_to_script_key(c: char) -> Option<constellation_msg::Key> {
+        match c {
+            ' ' => Some(Key::Space),
+            '"' => Some(Key::Apostrophe),
+            '\'' => Some(Key::Apostrophe),
+            '<' => Some(Key::Comma),
+            ',' => Some(Key::Comma),
+            '_' => Some(Key::Minus),
+            '-' => Some(Key::Minus),
+            '>' => Some(Key::Period),
+            '.' => Some(Key::Period),
+            '?' => Some(Key::Slash),
+            '/' => Some(Key::Slash),
+            '~' => Some(Key::GraveAccent),
+            '`' => Some(Key::GraveAccent),
+            ')' => Some(Key::Num0),
+            '0' => Some(Key::Num0),
+            '!' => Some(Key::Num1),
+            '1' => Some(Key::Num1),
+            '@' => Some(Key::Num2),
+            '2' => Some(Key::Num2),
+            '#' => Some(Key::Num3),
+            '3' => Some(Key::Num3),
+            '$' => Some(Key::Num4),
+            '4' => Some(Key::Num4),
+            '%' => Some(Key::Num5),
+            '5' => Some(Key::Num5),
+            '^' => Some(Key::Num6),
+            '6' => Some(Key::Num6),
+            '&' => Some(Key::Num7),
+            '7' => Some(Key::Num7),
+            '*' => Some(Key::Num8),
+            '8' => Some(Key::Num8),
+            '(' => Some(Key::Num9),
+            '9' => Some(Key::Num9),
+            ':' => Some(Key::Semicolon),
+            ';' => Some(Key::Semicolon),
+            '+' => Some(Key::Equal),
+            '=' => Some(Key::Equal),
+            'A' => Some(Key::A),
+            'a' => Some(Key::A),
+            'B' => Some(Key::B),
+            'b' => Some(Key::B),
+            'C' => Some(Key::C),
+            'c' => Some(Key::C),
+            'D' => Some(Key::D),
+            'd' => Some(Key::D),
+            'E' => Some(Key::E),
+            'e' => Some(Key::E),
+            'F' => Some(Key::F),
+            'f' => Some(Key::F),
+            'G' => Some(Key::G),
+            'g' => Some(Key::G),
+            'H' => Some(Key::H),
+            'h' => Some(Key::H),
+            'I' => Some(Key::I),
+            'i' => Some(Key::I),
+            'J' => Some(Key::J),
+            'j' => Some(Key::J),
+            'K' => Some(Key::K),
+            'k' => Some(Key::K),
+            'L' => Some(Key::L),
+            'l' => Some(Key::L),
+            'M' => Some(Key::M),
+            'm' => Some(Key::M),
+            'N' => Some(Key::N),
+            'n' => Some(Key::N),
+            'O' => Some(Key::O),
+            'o' => Some(Key::O),
+            'P' => Some(Key::P),
+            'p' => Some(Key::P),
+            'Q' => Some(Key::Q),
+            'q' => Some(Key::Q),
+            'R' => Some(Key::R),
+            'r' => Some(Key::R),
+            'S' => Some(Key::S),
+            's' => Some(Key::S),
+            'T' => Some(Key::T),
+            't' => Some(Key::T),
+            'U' => Some(Key::U),
+            'u' => Some(Key::U),
+            'V' => Some(Key::V),
+            'v' => Some(Key::V),
+            'W' => Some(Key::W),
+            'w' => Some(Key::W),
+            'X' => Some(Key::X),
+            'x' => Some(Key::X),
+            'Y' => Some(Key::Y),
+            'y' => Some(Key::Y),
+            'Z' => Some(Key::Z),
+            'z' => Some(Key::Z),
+            '{' => Some(Key::LeftBracket),
+            '[' => Some(Key::LeftBracket),
+            '|' => Some(Key::Backslash),
+            '\\' => Some(Key::Backslash),
+            '}' => Some(Key::RightBracket),
+            ']' => Some(Key::RightBracket),
+            _ => None
+        }
     }
 
     fn glutin_key_to_script_key(key: glutin::VirtualKeyCode) -> Result<constellation_msg::Key, ()> {
@@ -835,14 +941,6 @@ impl Window {
     }
 }
 
-// WindowProxy is not implemented for android yet
-
-#[cfg(target_os = "android")]
-fn create_window_proxy(_: &Window) -> Option<glutin::WindowProxy> {
-    None
-}
-
-#[cfg(not(target_os = "android"))]
 fn create_window_proxy(window: &Window) -> Option<glutin::WindowProxy> {
     match window.kind {
         WindowKind::Window(ref window) => {
@@ -1001,18 +1099,14 @@ impl WindowMethods for Window {
         }
     }
 
-    fn set_page_url(&self, url: ServoUrl) {
-        *self.current_url.borrow_mut() = Some(url);
-    }
-
     fn status(&self, _: Option<String>) {
     }
 
-    fn load_start(&self, _: bool, _: bool) {
+    fn load_start(&self) {
     }
 
-    fn load_end(&self, _: bool, _: bool, root: bool) {
-        if root && opts::get().no_native_titlebar {
+    fn load_end(&self) {
+        if opts::get().no_native_titlebar {
             match self.kind {
                 WindowKind::Window(ref window) => {
                     window.show();
@@ -1020,6 +1114,10 @@ impl WindowMethods for Window {
                 WindowKind::Headless(..) => {}
             }
         }
+    }
+
+    fn history_changed(&self, history: Vec<LoadData>, current: usize) {
+        *self.current_url.borrow_mut() = Some(history[current].url.clone());
     }
 
     fn load_error(&self, _: NetError, _: String) {
@@ -1303,6 +1401,8 @@ fn is_printable(key_code: VirtualKeyCode) -> bool {
         _ => true,
     }
 }
+
+#[cfg(not(target_os = "windows"))]
 fn filter_nonprintable(ch: char, key_code: VirtualKeyCode) -> Option<char> {
     if is_printable(key_code) {
         Some(ch)

@@ -1,0 +1,28 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Font-family with white space</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-family-prop" />
+        <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-family-prop"/>
+        <meta name="flags" content="font" />
+        <meta name="assert" content="Font names containing any white space need to be quoted. It is also recognized if it is not quoted." />
+        <style type="text/css">
+            #div1
+            {
+                font-family: "White Space";
+            }
+            #div2
+            {
+                font-family: White Space;
+            }
+        </style>
+    </head>
+    <body>
+        <p>PREREQUISITE: Operating system needs to have the '<a href="support/AHEM_whitespace.ttf">White Space</a>' font installed.</p>
+        <p>Post Test: Remove test font after running the test.</p>
+        <p>Test passes if there is at least one box below. It is ok to have one letter "X".</p>
+        <div id="div1">X</div>
+        <div id="div2">X</div>
+    </body>
+</html>

@@ -1,0 +1,36 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>multicol-span-001</title>
+<link rel="author" title="Hakon Wium Lie" href="mailto:howcome@opera.com"/>
+<link rel="match" href="reftest/multicol-span-000.xht"/>
+<style type="text/css">
+div {
+  font: 10px/10px Ahem;
+  color: lime;
+  background: yellow;
+  width: 100px;
+}
+
+div.multicol { 
+  margin: 0;
+  columns: 2;
+  column-gap: 0px;
+  column-rule: none;
+  column-fill: balance;
+}
+
+div.column-span { column-span: all }
+</style>
+</head>
+<body>
+The two bars below should be identical.
+
+<div class="multicol">0<br/>0<div class="column-span">012345</div>0<br/>0</div>
+<br/>
+<div class="multicol">0<br/>0</div>
+<div>012345</div>
+<div class="multicol">0<br/>0</div>
+
+</body>
+</html>

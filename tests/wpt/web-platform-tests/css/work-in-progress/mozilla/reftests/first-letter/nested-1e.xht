@@ -1,0 +1,25 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html><head>
+  <title>CSS 2.1 Test Suite: :first-letter</title>
+  <link href="http://smontagu.org/" rel="author" title="Simon Montagu" />
+  <link href="http://mozilla.com/" rel="author" title="Mozilla Corporation" />
+  <link href="http://www.w3.org/TR/CSS21/selector.html#first-letter" rel="help" />
+  <link rel="match" href="nested-1-ref.xht"/>
+  <meta content="dom" name="flags" />
+  <style>
+  div { color: black; }
+  div:first-letter { color: green; }
+  </style>
+</head>
+<body>
+  <div>
+    <span></span>
+  </div>
+  <script>
+    document.body.offsetWidth;
+    document.getElementsByTagName("span")[0].
+      appendChild(document.createTextNode("This is text"));
+  </script>
+
+
+</body></html>

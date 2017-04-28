@@ -1,0 +1,71 @@
+
+<HTML>
+<HEAD>
+<TITLE>First Test of Section 5.2.2 of CSS1 Spec</TITLE>
+
+<STYLE>
+#id1 { font-family: serif, sans-serif }
+#id2 { font-family: sans-serif, serif }
+#id3 { font-family; monospace, fantasy }
+#id4 { font-family: cursive, monospace }
+#id5 { font-family: fantasy, monospace }
+#id6 {font-family: gill, helvetica, sans-serif}
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+
+<h1 >Testing Statement #1 Below of Section 5.2.2 of CSS1 Spec</h1>
+
+
+<ul>
+<li>
+1. For "font-family", value is: [[family-name | generic-family],]*
+    [family-name | generic-family
+</ul>
+
+
+<h2>PASS CRITERIA:
+</h2>
+<p>
+If statement #1 above is passed, then:
+
+<p ID=id1>
+This paragraph should be serif(first choice).
+The rule applied is "#id1 {font-family: serif, sans-serif}".
+<p ID=id2>
+This paragraph should be sans-serif(first choice).
+The rule applied is "#id2 {font-family: sans-serif, serif}".
+<p ID=id3>
+This paragraph should be monospace(first choice).
+The rule applied is "#id3 {font-family: monospace, fantasy}".
+
+
+<p ID=id4>
+This paragraph should be cursive (first choice).
+The rule applied is "#id4 {font-family: cursive, monospace}".
+<p ID=id5>
+This paragraph should be fantasy (first choice).
+The rule applied is "#id5 {font-family: fantasy, monospace}".
+
+<p ID=id6>
+This paragraph should be gill (first choice).
+The rule applied is "#id6 {font-family: gill, monospace, sans-serif}".
+
+
+
+
+<p>
+NOTE: If first choices are not available, other choices in lists will be 
+considered.  If none are available, UA-default will be used.
+Some of the font families above are generic, while others are particular.
+All other properties of this page should be UA-default.
+
+
+To move directly to the next test, click<a href="522-2.htm"> here</a>
+</BODY>
+</HTML>
+

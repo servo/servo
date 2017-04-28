@@ -1,0 +1,25 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Absolute Positioning: width:auto with table width:100%</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-09-14 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/absolute/width/001.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#abs-non-replaced-width" />
+  <link rel="match" href="../reference/ref-if-there-is-no-red.xht" />
+
+  <style type="text/css">
+   div { position: absolute; }
+   td { background: red; height: 2em; padding: 0; }
+   .a { top: 4em; }
+   .b { top: 8em; }
+   .b table { width: 100%; }
+  </style>
+ </head>
+ <body>
+  <p>Test passes if there is <strong>no red</strong>.</p>
+  <!-- both should shrink wrap to 0, and 100% of 0 is 0. -->
+  <div class="a"> <table> <tr> <td> </td> </tr> </table> </div>
+  <div class="b"> <table> <tr> <td> </td> </tr> </table> </div>
+ </body>
+</html>

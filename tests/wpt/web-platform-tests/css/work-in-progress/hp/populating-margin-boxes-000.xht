@@ -1,0 +1,85 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Creating margin boxes with 'content'</title>
+  <link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#populating-margin-boxes"/>
+  <meta name="flags" content="paged" />
+  <meta name="assert" content="A margin box is instantiated if the computed value of its 'content' property is not 'normal'"/>
+  <style type="text/css"><![CDATA[
+   @page {
+   		margin: 2cm;
+   		border: 2pt solid black;
+		@top-center { 
+			background: #ccffcc;
+			content: "Margin Box Test";
+		}
+		@bottom-left-corner { 
+			background: #ccffcc;
+			content: "";
+		}
+		/* Bad Boxen */
+		@top-left { 
+			background: red;
+			min-height: 2cm;
+		}
+		@top-right { 
+			background: red;
+			max-height: 2cm;
+		}
+		
+		@top-left-corner {
+			width: 2cm;
+			background: red;
+		}	
+		@top-right-corner {
+			height: 2cm;
+			background: red;
+		}
+		@left-top {
+			background: red;
+			min-width: 2cm;
+		}
+		@left-middle {
+			background: red;
+			max-width: 2cm;
+			visibility: visible;
+		}
+		@left-bottom {
+			z-index: 100;
+			background: red;
+		}
+		@right-top {
+			text-transform: uppercase;
+			background: red;
+		}
+		@right-middle {
+			overflow: visible;
+			background: red;
+		}
+		@right-bottom {
+			counter-increment: chapter;
+			background: red;
+		}
+		@bottom-left {
+			font-variant: small-caps;
+			background: red;
+		}	
+		@bottom-center {
+			border: 1px solid red;
+			background: red;
+		}	
+		@bottom-right {
+			background: red url(house-orientation.jpg) 0 0 repeat-x;
+		}	
+		@bottom-right-corner {
+			color: #fff;
+			background: red;
+		}
+	}
+  ]]></style>
+ </head>
+ <body>
+  <div>This page should say &quot;Margin Box Test&quot; in the top center. One green box should appear at the top of the page and one at the bottom. No red boxes should appear.</div>
+ </body>
+</html>

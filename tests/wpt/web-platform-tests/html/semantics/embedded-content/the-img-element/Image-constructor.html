@@ -26,4 +26,12 @@
     assert_true((new Image()).namespaceURI === "http://www.w3.org/1999/xhtml");
   }, "Image namespace URI is correct");
 
+  test(function() {
+      assert_equals(Image.name, "Image", "Image name should be Image (not HTMLImageElement)");
+      assert_equals(Image.__proto__, Function.prototype, "Image __proto__ is Function prototype");
+      assert_equals(Image.prototype, HTMLImageElement.prototype, "Image.prototype is same as HTMLImageElement.prototype");
+      assert_equals(new Image().__proto__, HTMLImageElement.prototype, "Image __proto__ is HTMLImageElement prototype ");
+      assert_equals(Image.prototype.__proto__, HTMLElement.prototype, "Image.prototype __proto__ is HTMLElement prototype");
+  }, "NamedConstructor creates the correct object structure.");
+
 </script>

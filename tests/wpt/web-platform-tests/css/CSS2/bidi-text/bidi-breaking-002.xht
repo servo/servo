@@ -1,0 +1,93 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+                      "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: Bidi paragraph boundaries: Forced Line Breaks</title>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#bidi-algo"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#direction"/>
+  <link rel="match" href="bidi-breaking-002-ref.xht" />
+
+  <meta name="flags" content=""/>
+  <meta name="assert" content="Forced line breaks of class B (but not class WS)
+        break bidi paragraphs."/>
+  <style type="text/css"><![CDATA[
+     /* Make test easier to read */
+    .test, .control {
+      color: blue;
+      font: bold larger monospace;
+      margin: 1em;
+      padding: 0.25em;
+      border: solid silver;
+      float: left;
+    }
+    .set {
+      clear: both;
+      float: left;
+      border-bottom: solid orange;
+    }
+    p + .set {
+      border-top: solid orange;
+    }
+
+    /* ensure BDO processing */
+    bdo {
+      unicode-bidi: bidi-override;
+      direction: ltr;
+    }
+
+    /* Enable preservation of source line breaks
+       (and PS and LS for certain nonconformant ws-collapsing implementations) */
+    .pre {
+      white-space: pre; white-space: pre-lines;
+    }
+  ]]></style>
+</head>
+<body>
+  <p>In each pair of silver boxes below, the two patterns must be identical.</p>
+
+  <!--
+  &#x05D0; א is hebrew letter alef
+  &#x05EA; ת is hebrew letter tav
+  -->
+
+  <!-- control for bidi support -->
+  <div class="set">
+    <div class="test">
+      <div>&rlm;&nbsp; + - &times; &divide; &#x05D0;</div>
+      <div>&#x05EA; + - &times; &divide; &nbsp;&rlm;</div>
+    </div>
+    <div class="control">
+      <div><bdo dir="ltr">&#x05D0; &divide; &times; - + &nbsp;</bdo></div>
+      <div><bdo dir="ltr">&nbsp; &divide; &times; - + &#x05EA;</bdo></div>
+    </div>
+  </div>
+
+  <!-- preserved source line break breaks bidi paragraph -->
+  <div class="set">
+    <div class="test">
+      <div class="pre">&#x05D0; + - &times; &divide; &nbsp;
+&nbsp; + - &times; &divide; &#x05EA;</div>
+    </div>
+    <div class="control">
+      <div><bdo dir="ltr">&#x05D0; + - &times; &divide; &nbsp;</bdo></div>
+      <div><bdo dir="ltr">&nbsp; + - &times; &divide; &#x05EA;</bdo></div>
+    </div>
+  </div>
+
+  <!-- <br> on shaky ground since HTML4 said it's an LS, but HTML5 will
+       likely side with PS due to better bidi safety; test below as PS for now;
+       move to a separate file when this is resolved in HTML5
+  <div class="set">
+    <div class="test">
+      &#x05D0; + - &times; &divide; &nbsp;<br/>
+      &nbsp; + - &times; &divide; &#x05EA;
+    </div>
+    <div class="control">
+      <div><bdo dir="ltr">&#x05D0; + - &times; &divide; &nbsp;</bdo></div>
+      <div><bdo dir="ltr">&nbsp; + - &times; &divide; &#x05EA;</bdo></div>
+    </div>
+  </div>
+  -->
+</body>
+</html>

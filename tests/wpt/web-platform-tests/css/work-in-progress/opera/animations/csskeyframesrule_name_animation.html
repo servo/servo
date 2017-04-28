@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <title>CSS Animations - name on CSSKeyframesRule and animation-name</title>
+   <link rel="author" title="Opera Software ASA" href="http://www.opera.com/">
+   <link rel="help" href="https://drafts.csswg.org/css3-animations/#dom-interfaces-">
+   <meta name="flags" content="dom">
+   <meta name="assert" content="The name attribute of CSSKeyframesRule
+   is the name used by the animation-name property">
+   <script src="/resources/testharness.js"></script>
+   <script src="/resources/testharnessreport.js"></script>
+   <style type="text/css">
+      @keyframes oldname {
+         from { width: 100px; }
+         to { width: 200px; }
+      }
+      .test {
+         animation: newname 1s;
+      }
+   </style>
+   <script type="text/javascript">
+      setup({explicit_done:true});
+      onload = function() {
+         var testName = document.querySelector('title').firstChild.data;
+         var div = document.querySelector('div');
+         var log = document.querySelectorAll('p')[0].firstChild;
+         var passed = false;
+         div.addEventListener('animationstart', function() {
+            passed = true;
+         });
+         try {
+            var testKeyframes = document.styleSheets[0].cssRules[0];
+            testKeyframes.name = 'newname';
+            div.className = 'test';
+         } catch(e) {
+         }
+         setTimeout(function() {
+            test(function(){assert_true(passed);}, testName); done();
+            log.data = (passed ? 'PASS' : 'FAIL');
+         }, 500);
+      };
+   </script>
+   <style>iframe{display:none}</style>
+</head>
+<body>
+   <p>Testing... (JavaScript required)</p>
+   <div></div>
+</body>
+</html>

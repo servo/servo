@@ -242,7 +242,7 @@ impl<'a> BuildDisplayList<'a> {
         self.state.current_stacking_context_id = flow::base(flow).stacking_context_id;
 
         let parent_scroll_root_id = self.state.current_scroll_root_id;
-        self.state.current_scroll_root_id = flow::base(flow).scroll_root_id;
+        self.state.current_scroll_root_id = flow.scroll_root_id(self.state.layout_context.id);
 
         if self.should_process() {
             flow.build_display_list(&mut self.state);

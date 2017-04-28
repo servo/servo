@@ -1,0 +1,34 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: display</title>
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#display"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="match" href="c561-list-displ-000-ref.xht" />
+
+  <meta name="flags" content=""/>
+  <style type="text/css"><![CDATA[
+   div { color: navy; white-space: nowrap; }
+   .one {display: block;}
+   .two {display: inline;}
+   .three {display: list-item; list-style-type: decimal; list-style-position: inside;}
+   .four {display: none; color: yellow; background: red;}
+   a {display: block;}
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#lists" title="12.5 Lists"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#display-prop" title="9.2.4 The 'display' property"/>
+ </head>
+ <body>
+  <p>There should be eight numbered lines stacked below, each
+    starting with the stated line number. </p>
+  <div class="three">Line one. </div>
+  <div class="one"> 2. Line two. </div>
+  <div class="two"> 3. Line </div>
+  <div class="two"> three. </div>
+  <div> 4. Line four. </div>
+  <div class="four"> FAIL: This text should not appear. </div>
+  <div> 5. Line five. <span class="four">FAIL: This text should not appear.</span> </div>
+  <div> 6. Line six. <a>7. Line seven.</a> 8. Line eight. </div>
+ </body>
+</html>

@@ -1,0 +1,30 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Table-Specific Border Style Behavior (separated border model/inset)</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#table-border-styles" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="In the separated border model, the 'inset' border style makes its box looks like it is embedded in the canvas." />
+        <style type="text/css">
+            table
+            {
+                border: 10px inset orange;
+                border-collapse: separate;
+            }
+            td
+            {
+                height: 3em;
+                width: 6em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the box below looks like it is embedded into the surface of the page.</p>
+        <table>
+            <tr>
+                <td></td>
+            </tr>
+        </table>
+    </body>
+</html>

@@ -1,0 +1,63 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html><head>
+  <title>CSS 2.1 Test Suite: :first-letter</title>
+  <link href="http://smontagu.org/" rel="author" title="Simon Montagu" />
+  <link href="http://mozilla.com/" rel="author" title="Mozilla Corporation" />
+  <link href="http://www.w3.org/TR/CSS21/selector.html#first-letter" rel="help" />
+  <link rel="match" href="dynamic-2-ref.xht"/>
+  <meta content="dom" name="flags" />
+<script>
+function boom1()
+{
+  initFuzzerSpecific();
+  setTextContent(stylesheets[1], "*:first-letter { }");
+  setTextContent(stylesheets[2], "*:before { counter-reset: chicken; }");
+  document.body.offsetWidth;
+  boom2();
+}
+
+function boom2()
+{
+  setTextContent(stylesheets[3], "#q2:first-letter { content: 'generated'; }");
+  setTextContent(stylesheets[1], "");
+  setTextContent(stylesheets[4], "#q2 { quotes: '&lt;1&gt;' '&lt;/1&gt;'; }");
+  document.body.offsetWidth;
+  boom3();
+}
+
+function boom3()
+{
+  document.getElementById("p2").style.counterReset = "egg";
+  setTextContent(stylesheets[1], "*:first-letter { }");
+}
+
+function setTextContent(n, t) { n.textContent = t; }
+
+var stylesheets = [];
+function initFuzzerSpecific()
+{
+  var myStylesheetHolder = document.getElementsByTagName("head")[0];
+
+  for (var i = 0; i &lt; 25; ++i) {
+    var s = document.createElementNS("http://www.w3.org/1999/xhtml", 'style');
+    s.style.display = "none";
+    myStylesheetHolder.appendChild(s);
+    stylesheets.push(s);
+  }
+}
+</script>
+
+</head>
+<body>
+
+<p><q>Foo</q></p>
+
+<p id="p2"><q id="q2">0</q></p>
+
+<script>
+  document.body.offsetWidth;
+  boom1();
+</script>
+
+
+</body></html>

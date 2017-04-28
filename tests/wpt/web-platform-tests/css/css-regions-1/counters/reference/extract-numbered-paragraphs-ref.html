@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Reftest Reference</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<style>
+		#region {
+			counter-reset: para 0;
+		}
+		#region p {
+			counter-increment: para;
+			margin: 1em 0;
+		}
+		#region p::before {
+			content: "(" counter(para) ") ";
+			background: darkblue;
+			color: white;
+		}
+		#region {
+			background-color: lightblue;
+			border: 1px solid lightblue;
+		}
+		</style>
+	</head>
+	<body>
+		<p>Test passes if you see a light blue rectangle below, with five lines of text in it. Each line of text should be black and preceded by the line number between parantheses. The line numbers should be white on a dark blue background.</p>
+		<div id="region">
+			<p>This is numbered paragraph no. 1</p>
+			<p>This is numbered paragraph no. 2</p>
+			<p>This is numbered paragraph no. 3</p>
+			<p>This is numbered paragraph no. 4</p>
+			<p>This is numbered paragraph no. 5</p>
+		</div>
+	</body>
+</html>

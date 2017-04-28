@@ -1,0 +1,58 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Table columns can induce a style on their cells</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#table-display" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Table columns can induce a style (background-color) on the cells they occupy." />
+        <style type="text/css">
+            .table
+            {
+                display: table;
+            }
+            .col
+            {
+                display: table-column;
+            }
+            #test
+            {
+                background: blue;
+            }
+            .tr
+            {
+                display: table-row;
+            }
+            .td
+            {
+                border: 1px solid black;
+                display: table-cell;
+                height: 2em;
+                width: 2em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the middle column of the three-by-three table below is blue.</p>
+        <div class="table">
+            <div class="col"></div>
+            <div id="test" class="col"></div>
+            <div class="col"></div>
+            <div class="tr">
+                <div class="td"></div>
+                <div class="td"></div>
+                <div class="td"></div>
+            </div>
+            <div class="tr">
+                <div class="td"></div>
+                <div class="td"></div>
+                <div class="td"></div>
+            </div>
+            <div class="tr">
+                <div class="td"></div>
+                <div class="td"></div>
+                <div class="td"></div>
+            </div>
+        </div>
+    </body>
+ </html>

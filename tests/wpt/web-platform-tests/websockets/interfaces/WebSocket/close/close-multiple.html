@@ -18,12 +18,12 @@ async_test(function(t) {
   ws.close();
   var f = t.step_func(function() {
     if (i < 1) {
-      setTimeout(f, 500);
+      t.step_timeout(f, 500);
       return;
     }
     assert_equals(i, 1);
     t.done()
   });
-  setTimeout(f, 500);
+  t.step_timeout(f, 500);
 });
 </script>

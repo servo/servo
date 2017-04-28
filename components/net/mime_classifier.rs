@@ -815,7 +815,7 @@ impl ByteMatcher {
                 mask: b"\xFF\xFF\xDF\xDF\xDF\xDF\xDF\xDF\xDF\xFF\xDF\xDF\xDF\xDF",
                 content_type: (TopLevel::Text, "html"),
                 leading_ignore: b"\t\n\x0C\r "
-           }
+            }
         }
     }
 

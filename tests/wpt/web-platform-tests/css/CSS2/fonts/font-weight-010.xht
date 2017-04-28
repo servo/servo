@@ -1,0 +1,31 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Font-weight set to the numerical value, 600</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#propdef-font-weight" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-boldness" />
+        <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-weight-prop" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'font-weight' property set to '600' properly sets the font to the correct bold rendering." />
+        <style type="text/css">
+            div
+            {
+                color: black;
+                font-size: 2in;
+                line-height: 1em;
+                position: absolute;
+            }
+            #test
+            {
+                color: green;
+                font-weight: 600;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the green text is visible. It can be partially obscured by the black text.</p>
+        <div id="test">Filler Text</div>
+        <div>Filler Text</div>
+    </body>
+</html>

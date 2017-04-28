@@ -1,0 +1,51 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Margin set to using three values</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-08-13 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#propdef-margin" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#margin-properties" />
+        <link rel="match" href="margin-003-ref.xht" />
+
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'margin' property set using three values properly assigns the first value to the top margin, the second value to the left and right margins, and the third value to the bottom margin." />
+        <style type="text/css">
+            #wrapper
+            {
+                position: relative;
+            }
+            #div1, #div2
+            {
+                border: 10px solid green;
+            }
+            #div1, #reference
+            {
+                left: 0;
+                position: absolute;
+                top: 0;
+            }
+            #div2
+            {
+                height: 1in;
+                margin: 2.54cm 0.5in 144pt;
+                width: 3in;
+            }
+            #reference
+            {
+                border: 10px solid red;
+                height: 404px;
+                width: 404px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is <strong>no red</strong>.</p>
+        <div id="wrapper">
+            <div id="reference"></div>
+            <div id="div1">
+                <div id="div2"></div>
+            </div>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,35 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Root element and the 'em' unit size</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#length-units" />
+        <link rel="match" href="numbers-units-021-ref.xht"/>
+        <meta name="flags" content="96dpi ahem" />
+        <meta name="assert" content="The 'em' unit refers to the property's initial value when specified on the root element." />
+        <style type="text/css">
+            html
+            {
+                font-family: Ahem;
+                font-size: 2em;
+            }
+            #div1
+            {
+                background-color: black;
+                height: 32px;
+                margin-bottom: 2px;
+                width: 32px;
+            }
+            p
+            {
+                font-family: serif;
+                font-size: 0.5em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the two boxes below are the same size.</p>
+        <div id="div1"></div>
+        <div>X</div>
+    </body>
+</html>

@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Inline Elements</title>
+
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-06-30 -->
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#inline-elements"/>
+  <link rel="match" href="c42-ibx-pad-000-ref.xht" />
+
+  <meta name="flags" content="ahem image" />
+
+  <style type="text/css"><![CDATA[
+   div { font: 10px/240% Ahem; color: black; width: 200px; margin: 0 0 0 10px; }
+   span { border: solid 10px blue; padding: 2px 20px 2px 10px; margin: 40px 30px 0 40px; }
+   td { padding: 0; border: 2px solid black; }
+   img { display: block; }
+   .control { background: red; color: yellow; }
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#inline-formatting" title="9.4.2 Inline formatting context"/>
+ </head>
+ <body>
+  <p>Test passes if the 2 diagrams are <strong>identical</strong> and with <strong>no red</strong>.</p>
+  <table>
+   <tr>
+    <td>
+     <div>
+      1 2 3 4 5 6 7 8 9 0
+      1 2 3 <span> 7 8 9 0
+      1 2 3 4 5 6 7 8 9 0
+      1 2 3 4 </span> 8 9 0
+      1 2 3 4 5 6 7 8 9 0
+     </div>
+    </td>
+    <td class="control">
+     <img src="support/css1test42a.png" alt="FAIL: Images required for this test."/>
+    </td>
+   </tr>
+  </table>
+ </body>
+</html>

@@ -125,6 +125,52 @@ promise_test(() => {
    'stream becomes non-empty and the writable stream starts desiring chunks');
 
 promise_test(() => {
+  const unreadChunks = ['b', 'c', 'd'];
+
+  const rs = recordingReadableStream({
+    pull(controller) {
+      controller.enqueue(unreadChunks.shift());
+      if (unreadChunks.length === 0) {
+        controller.close();
+      }
+    }
+  }, new CountQueuingStrategy({ highWaterMark: 0 }));
+
+  let resolveWritePromise;
+  const ws = recordingWritableStream({
+    write() {
+      if (!resolveWritePromise) {
+        // first write
+        return new Promise(resolve => {
+          resolveWritePromise = resolve;
+        });
+      }
+      return undefined;
+    }
+  }, new CountQueuingStrategy({ highWaterMark: 3 }));
+
+  const writer = ws.getWriter();
+  const firstWritePromise = writer.write('a');
+  assert_equals(writer.desiredSize, 2, 'after writing the writer\'s desiredSize must be 2');
+  writer.releaseLock();
+
+  // firstWritePromise won't settle until we call resolveWritePromise.
+
+  const pipePromise = rs.pipeTo(ws);
+
+  return flushAsyncEvents().then(() => {
+    assert_array_equals(ws.events, ['write', 'a']);
+    assert_equals(unreadChunks.length, 1, 'chunks should continue to be enqueued until the HWM is reached');
+  }).then(() => resolveWritePromise())
+    .then(() => Promise.all([firstWritePromise, pipePromise]))
+    .then(() => {
+      assert_array_equals(rs.events, ['pull', 'pull', 'pull']);
+      assert_array_equals(ws.events, ['write', 'a', 'write', 'b','write', 'c','write', 'd', 'close']);
+    });
+
+}, 'Piping from a ReadableStream to a WritableStream that desires more chunks before finishing with previous ones');
+
+promise_test(() => {
 
   const desiredSizes = [];
   const rs = recordingReadableStream({

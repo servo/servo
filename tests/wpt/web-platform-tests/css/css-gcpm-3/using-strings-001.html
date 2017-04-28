@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Test: using 'first' property of named strings</title>
+<link rel="author" title="Dave Cramer" href="mailto:dauwhe@gmail.com">
+<link rel="help" href="http://www.w3.org/TR/css-gcpm-3/#string-first">
+<meta name="flags" content="paged">
+<meta name="assert" content="Test checks that the default value of the string property is first, so that the first instance of a named string on the page is used.">
+<style>
+  @page {
+   @top-center {
+   content: string(section);
+   }
+  }
+
+ h2 {
+ string-set: section content();
+
+ }
+
+
+
+</style>
+</head>
+<body>
+<p>Test passes if “Section One” is in the running head at the top of the page.</p>
+<h2 id="s1">Section One</h2>
+<h2 id="s2">Section Two</h2>
+<h2 id="s3">Section Three</h2>
+<h2 id="s4">Section Four</h2>
+<h2 id="s5">Section Five</h2>
+<h2 id="s6">Section Six</h2>
+</body>
+</html>

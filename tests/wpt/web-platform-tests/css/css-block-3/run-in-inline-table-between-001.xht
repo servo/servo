@@ -1,0 +1,25 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Run in - inline-table should prevent running in</title>
+  <link rel="author" title="Boris Zbarsky" href="mailto:bzbarsky@mit.edu"/>
+  <link rel="reviewer" title="Microsoft" href="http://www.microsoft.com/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#run-in"/>
+  <link rel="match" href="run-in-text-ref.xht"/>
+  <meta name="flags" content="" />
+  <meta name="assert"
+        content="Tests that run-ins don't run in if there's a inline-table between
+                 them and the block."/>
+  <style type="text/css"><![CDATA[
+    div { display: block; }
+    .run-in { display: run-in; font-weight: bold }
+    #target { border: 2px solid black; }
+    span { display: inline-table; }
+  ]]></style>
+ </head>
+ <body>
+   <div class="run-in">Run-in header</div>
+   <span>Some text.</span>
+   <div id="target">Start of block.  The run-in header should NOT be inside the border around this block; it should be on a line by itself before the line containing "Some text".</div>
+ </body>
+</html>

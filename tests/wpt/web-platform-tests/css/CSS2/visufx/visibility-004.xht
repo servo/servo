@@ -1,0 +1,43 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Visibility set to 'inherit'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visufx.html#propdef-visibility" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visufx.html#visibility" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="A block can inherit its 'visibility' behavior from its parent container." />
+        <style type="text/css">
+            div
+            {
+                height: 1in;
+                width: 1in;
+            }
+            #div1
+            {
+                background: orange;
+            }
+            #div2
+            {
+                visibility: hidden;
+            }
+            div div
+            {
+                background: red;
+                visibility: inherit;
+            }
+            #div3
+            {
+                background: blue;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the blue and orange boxes below are not touching and there is no red visible on the page.</p>
+        <div id="div1"></div>
+        <div id="div2">
+            <div>FAIL FAIL</div>
+        </div>
+        <div id="div3"></div>
+    </body>
+</html>

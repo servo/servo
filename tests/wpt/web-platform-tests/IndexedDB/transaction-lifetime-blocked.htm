@@ -41,7 +41,7 @@
             db.onerror = fail(t, "db.error");
             db.abort = fail(t, "db.abort");
 
-            setTimeout(t.step_func(OpenSecond), 10);
+            step_timeout(t.step_func(OpenSecond), 10);
         });
 
         // Errors
@@ -91,7 +91,7 @@
                   "open2.success",
                 ]);
 
-            setTimeout(function() { t.done(); }, 10);
+            step_timeout(function() { t.done(); }, 10);
         });
 
         // Errors

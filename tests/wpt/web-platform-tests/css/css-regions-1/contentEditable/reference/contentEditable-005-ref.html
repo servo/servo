@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Reftest Reference</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<link rel="stylesheet" href="../support/common.css">
+		<style>
+		.content {
+			font-family: Times, serif;
+			font-size: 20px;
+			line-height: 1em;
+		}
+		.region {
+			width: 300px;
+			height: 75px;
+			border: 2px solid black;
+			margin: 0.5em 0 0.5em 0;
+		}
+		</style>
+	</head>
+	<body>
+		<ol>
+			<li>Below you should see a rectangle with a black border with some text inside it. No
+				red should be visible at any time during this test.</li>
+			<li>Click between the first pair of green and blue colored markers and type
+				&ldquo;<strong>foobar bazquux</strong>&rdquo;
+				<ul>
+					<li>The text you typed is displayed at the cursor position between the
+				two markers and the lines of text wrap inside the black border</li>
+				</ul>
+			</li>
+			<li>Click between the second pair of green and blue colored markers and type
+				&ldquo;<strong>foobar bazquux</strong>&rdquo;
+				<ul>
+					<li>The text you typed is displayed at the cursor position between the
+				two markers and the lines of text wrap inside the black border</li>
+				</ul>
+			</li>
+		</ol>
+
+		<div class="region">
+			<div class="content" contentEditable="true">
+				<!-- On a single line since new lines in contentEditable elements are messy :( -->
+				This is some text that should be editable. Even the text between <em><span class="inline-marker green"></span> <span id="marked-one">foobar bazquux</span> <span class="inline-marker blue"></span></em>.
+			</div>
+		</div>
+		<div class="region">
+			<div class="content" contentEditable="true">
+				Likewise, this text <em><span class="inline-marker green"></span> <span id="marked-two">foobar bazquux</span> <span class="inline-marker blue"></span></em> should be editable.
+			</div>
+		</div>
+	</body>
+</html>

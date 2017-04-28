@@ -16,6 +16,7 @@ use style::logical_geometry::{LogicalMargin, WritingMode};
 use style::properties::ServoComputedValues;
 use style::values::computed::{BorderRadiusSize, LengthOrPercentageOrAuto};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrNone};
+use style::values::generics;
 
 /// A collapsible margin. See CSS 2.1 § 8.3.1.
 #[derive(Copy, Clone, Debug)]
@@ -408,9 +409,17 @@ impl MaybeAuto {
                 MaybeAuto::Specified(containing_length.scale_by(percent))
             }
             LengthOrPercentageOrAuto::Calc(calc) => {
-                MaybeAuto::Specified(calc.length() + containing_length.scale_by(calc.percentage()))
+                MaybeAuto::from_option(calc.to_computed(Some(containing_length)))
             }
             LengthOrPercentageOrAuto::Length(length) => MaybeAuto::Specified(length)
+        }
+    }
+
+    #[inline]
+    pub fn from_option(au: Option<Au>) -> MaybeAuto {
+        match au {
+            Some(l) => MaybeAuto::Specified(l),
+            _ => MaybeAuto::Auto,
         }
     }
 
@@ -455,8 +464,7 @@ pub fn specified_or_none(length: LengthOrPercentageOrNone, containing_length: Au
     match length {
         LengthOrPercentageOrNone::None => None,
         LengthOrPercentageOrNone::Percentage(percent) => Some(containing_length.scale_by(percent)),
-        LengthOrPercentageOrNone::Calc(calc) =>
-            Some(containing_length.scale_by(calc.percentage()) + calc.length()),
+        LengthOrPercentageOrNone::Calc(calc) => calc.to_computed(Some(containing_length)),
         LengthOrPercentageOrNone::Length(length) => Some(length),
     }
 }
@@ -471,7 +479,7 @@ pub fn specified(length: LengthOrPercentage, containing_length: Au) -> Au {
 }
 
 pub fn specified_border_radius(radius: BorderRadiusSize, containing_length: Au) -> Size2D<Au> {
-    let BorderRadiusSize(size) = radius;
+    let generics::BorderRadiusSize(size) = radius;
     let w = specified(size.width, containing_length);
     let h = specified(size.height, containing_length);
     Size2D::new(w, h)

@@ -1,0 +1,47 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: line-height - padding-top of inline non-replaced element paint over previous line box</title>
+
+  <!--
+  Inspired by
+  http://archive.webstandards.org/css/winie/inline.html
+  -->
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#leading" title="10.8.1 Leading and half-leading" />
+  <link rel="bookmark" href="http://archive.webstandards.org/css/winie/inline.html" />
+  <link rel="match" href="border-padding-bleed-001-ref.xht" />
+
+  <meta content="ahem" name="flags" />
+  <meta content="Although margins, borders and padding of inline non-replaced elements do not enter into the line box calculation, they are still rendered around inline boxes. This means that if the height specified by 'line-height' (40px in this testcase) is equal to the content height (40px in this testcase) of contained boxes, then background-color of padding-top area and border-top may 'bleed' into the adjoining preceding line box. Since line boxes are rendered in document order, this causes padding-top of 2nd line box (the span element in this testcase) to be painted over border-bottom and padding-bottom of inline boxes of previous line and, in this testcase, over the 1st line box." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  div
+  {
+  color: red;
+  font: 40px/1 Ahem;
+  }
+
+  span
+  {
+  background-color: green; /* so that padding-top area is painted green */
+  color: green;
+  padding-top: 1em;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled green rectangle and <strong>no red</strong>.</p>
+
+  <div>shuldboverlaPPed<br />
+  <span>bleedover1stline</span></div>
+
+ </body>
+</html>

@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Populating Margin Boxes - Counter value should be calculated at start of page</title>
+  <link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#populating-margin-boxes"/>
+  <meta name="flags" content="paged" />
+  <meta name="assert" content="The value of the counter at the beginning of page processing must be used by default. "/>
+  <style type="text/css"><![CDATA[
+   	body {counter-reset: chapter;}
+	div.chapter {counter-increment: chapter;}
+	@page {
+	  @top-center { content: "Chapter " counter(chapter); }
+	}
+	div.section {page-break-before: always;}
+  ]]></style>
+ </head>
+ <body>
+  	<div class="chapter">These paragaraphs should appear on the first page, which should say &quot;Chapter 0&quot; at the top.</div>
+	<div class="chapter">These paragaraphs should appear on the first page, which should say &quot;Chapter 0&quot; at the top.</div>
+	<div class="chapter">These paragaraphs should appear on the first page, which should say &quot;Chapter 0&quot; at the top.</div>
+
+	<div class="section chapter">These paragaraphs should appear on the second page, which should say &quot;Chapter 4&quot; at the top.</div>
+	<div class="chapter">These paragaraphs should appear on the second page, which should say &quot;Chapter 4&quot; at the top.</div>
+	<div class="chapter">These paragaraphs should appear on the second page, which should say &quot;Chapter 4&quot; at the top.</div>
+ </body>
+</html>

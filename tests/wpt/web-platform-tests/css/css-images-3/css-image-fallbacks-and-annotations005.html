@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Image Fallbacks and Annotations: the 'image()' notation</title>
+    <link rel="author" title="Hirokazu Egashira" href="mailto:yo9ega@aol.com">
+    <link rel="help" href="http://www.w3.org/TR/css3-images/#image-notation">
+	<link rel="match" href="css-image-fallbacks-and-annotations-ref.html">
+	<meta name="assert" content="The 'image()' function specifies only a color without any URLs, the function immediately falls back to representing a solid-color image of the chosen color.">
+    <style type="text/css">
+ 		.square{
+ 			width: 200px;
+ 			height: 200px;
+ 			background-color: red;
+ 			background-image: image(rgba(0,0,255,0.5)), url("support/1x1-green.png");
+ 		}
+    </style>
+</head>
+<body>
+<p>Test passes if background is pale green and no green and no red.</p>
+<div class="square"></div>
+</body>
+</html>

@@ -1,0 +1,64 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Eighth Test of Section 9.8 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+body {display: block; line-height: 200%;
+      width: 400px; height: 400px }
+p {display: block}
+span {display: inline}
+#outer {color: red}
+#inner {position: absolute; top: 200px; left: -100px; height: 130px;
+width: 130px; color: blue;}
+
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Eighth Testable Statement of Sec 9.8 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+8. The outer box is not positioned.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+If statement #8 is passed then
+ <span id="outer"> start of outer contents
+ <span id="inner"> inner contents</span>
+ End of outer contents.</span>
+ End of body contents</span>
+</p>
+<p>
+The containing block for inner becomes the initial containing block.
+Inner contents should be blue, and outer contents red.
+Rules are "body {display: block; line-height: 200%;
+width: 400px; height: 400px}, p{display: block}", "span {display: inline}".
+Also, "#outer {color: red}", and
+"#inner {position: absolute; top: 200px; left: -100px; height: 130px;
+width: 130px; color: blue}".
+<p>
+All other properties of this page should be UA-default.
+Your browser rendering of this page should look similar to this <a href="c83402.gif"> 
+reference image </a> or to this <a href="d83402.gif">reference image</a>.
+
+
+</BODY>
+</HTML>
+

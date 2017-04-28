@@ -1,0 +1,30 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Margin box content is oriented relative to content (Rotated)</title>
+  <link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#margin-boxes"/>
+  <meta name="flags" content="paged" />
+  <meta name="assert" content="Margin boxes are oriented with respect to the content and are independent of page orientation."/>
+  <style type="text/css"><![CDATA[
+  	@page  {
+  		size: portrait;
+		@top-center { content: "Top"; }
+	}
+	@page rotated { 
+		size: landscape; 
+		@top-center { content: "Top"; }
+	}
+	div.first { page: rotated }
+	
+	div { 
+		page-break-before: always;
+	}
+  ]]></style>
+ </head>
+ <body>
+	<div class="first">This test produces two pages of printed output. This paragraph should be printed in landscape orientation. This page should say &quot;Top&quot; above the content in the middle of the page.</div>
+	
+	<div>This paragraph should be printed in portait orientation. This page should say &quot;Top&quot; above the content in the middle of the page.</div>
+ </body>
+</html>

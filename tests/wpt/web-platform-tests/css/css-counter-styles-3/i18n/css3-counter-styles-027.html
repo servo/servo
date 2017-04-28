@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8"/>
+<title>lower-greek, simple</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='http://www.w3.org/TR/css-counter-styles-3/#simple-alphabetic'>
+<link rel="reviewer" title="Chris Lilley" href="mailto:chris@w3.org" />
+<meta name='flags' content='font'>
+<meta name="assert" content="Setting list-style-type to lower-greek will produce list numbering for the basic alphabet as described in the CSS3 Counter Styles module.">
+<style type='text/css'>
+.test { font-size: 25px; }
+ol { margin: 0; padding-left: 8em; }
+ol li { list-style-type: lower-greek;  }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the two columns are the same, ignoring the suffix.</p>
+
+
+<div class="test"><ol><li title='1'>α.</li>
+<li title='2'>β.</li>
+<li title='3'>γ.</li>
+<li title='4'>δ.</li>
+<li title='5'>ε.</li>
+<li title='6'>ζ.</li>
+<li title='7'>η.</li>
+<li title='8'>θ.</li>
+<li title='9'>ι.</li>
+<li title='10'>κ.</li>
+<li title='11'>λ.</li>
+<li title='12'>μ.</li>
+<li title='13'>ν.</li>
+<li title='14'>ξ.</li>
+<li title='15'>ο.</li>
+<li title='16'>π.</li>
+<li title='17'>ρ.</li>
+<li title='18'>σ.</li>
+<li title='19'>τ.</li>
+<li title='20'>υ.</li>
+<li title='21'>φ.</li>
+<li title='22'>χ.</li>
+<li title='23'>ψ.</li>
+<li title='24'>ω.</li>
+</ol></div>
+
+
+<!--Notes:
+You will need an appropriate font to run this test.
+
+To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
+-->
+
+
+</body>
+</html>

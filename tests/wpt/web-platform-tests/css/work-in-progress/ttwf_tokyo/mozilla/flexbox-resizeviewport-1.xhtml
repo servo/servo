@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!-- Testcase to be sure a flex container gets reflowed properly when its
+     iframe changes size. -->
+<html xmlns="http://www.w3.org/1999/xhtml"
+      class="reftest-wait">
+  <head>
+    <style>
+      iframe {
+        width:  75px;
+        height: 75px;
+      }
+    </style>
+    <script>
+      function setElementPropertyTo(id, propertyName, propertyValue) {
+        var elem = document.getElementById(id);
+        elem.style[propertyName] = propertyValue;
+      }
+
+      function tweak() {
+        setElementPropertyTo("a", "width", "50px");
+        setElementPropertyTo("b", "width", "125px");
+        setElementPropertyTo("c", "height", "50px");
+        setElementPropertyTo("d", "height", "125px");
+        document.documentElement.removeAttribute("class");
+      }
+      window.addEventListener("MozReftestInvalidate", tweak, false);
+    </script>
+  </head>
+  <body>
+    <iframe id="a" src="flexbox-resizeviewport-1-helper.html"/>
+    <iframe id="b" src="flexbox-resizeviewport-1-helper.html"/>
+    <br/>
+    <iframe id="c" src="flexbox-resizeviewport-1-helper.html"/>
+    <iframe id="d" src="flexbox-resizeviewport-1-helper.html"/>
+  </body>
+</html>

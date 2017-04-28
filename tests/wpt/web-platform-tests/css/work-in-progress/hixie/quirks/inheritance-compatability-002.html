@@ -1,0 +1,47 @@
+<!-- Quirks mode -->
+<html>
+ <head>
+  <title>line-height reset at tables in quirks mode</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/inheritance/compatability/002.html"/>
+    <style type="text/css">
+   table, td, div { border-spacing: 1em 0; padding: 0; border: 0; margin: 0; }
+   td { font-family: Ahem; background: red; }
+   td div { color: green; }
+   .test { /* default (from table) */ }
+   .normal div { line-height: normal; }
+   .one div { line-height: 1; }
+  </style>
+ </head>
+ <body>
+  <p>There should be three green blocks below, with no red visible.</p>
+  <div class="test">
+   <table><tr>
+    <td class="test">
+     <div>
+      THIS<br>
+      TEST<br>
+      MUST<br>
+      ONLY<br>
+     </div>
+    </td>
+    <td class="normal">
+     <div>
+      _BE_<br>
+      USED<br>
+      WITH<br>
+      THE_<br>
+     </div>
+    </td>
+    <td class="one">
+     <div>
+      AHEM<br>
+      FONT<br>
+      SET_<br>
+      UP._<br>
+     </div>
+    </td>
+   </tr></table>
+  </div>
+ </body>
+</html>

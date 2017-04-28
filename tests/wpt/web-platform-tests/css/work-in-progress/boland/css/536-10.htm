@@ -1,0 +1,50 @@
+
+<html>
+<head>
+<title>Tenth Test of Section 5.3.6 of CSS1 Spec</title>
+
+<style type="text/css">
+p {background-image: url(flagbg.gif);
+   background-position: 50%2cm;}
+h3 {background-image: url(flagbg.gif);
+    background-position: -2cm-2cm;}
+</style>
+</head>
+
+<body>
+
+
+
+
+<h1>Testing Statement #10 Below of Section 5.3.6 of CSS1 Spec</h1>
+
+
+
+
+
+<li >
+10. Combinations of length and percentage values are allowed, e.g. "50%2cm".
+Negative positions are allowed.
+</ul>
+
+
+<h2>
+PASS CRITERIA:
+</h2>
+<p>
+If statement #10 above is passed, this paragraph should have a flag
+image where the point 50% across the image and 2cm down the image is
+at the corresponding point of th paragraph text.
+The rules applied are "p {background-image: url(flagbg.gif);
+                          background-position: 50%2cm;}"
+<h3>
+This h3 heading should have a flag image which is 2cm to the left and
+2cm above the heading text.  Negative values are specified.
+The rules applied are "h3 {background-image: url(flagbg.gif);
+                           background-position: -2cm-2cm;}"
+</h3>
+
+All other properties of this page should be UA-default.
+
+</body>
+</html>

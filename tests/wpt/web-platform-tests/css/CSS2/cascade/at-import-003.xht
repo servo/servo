@@ -1,0 +1,18 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Importing styles using @import with a string</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html" />
+        <link rel="match" href="../reference/filler-text-below-green.xht"/>
+        <meta name="flags" content="" />
+        <meta name="assert" content="An @import used with just a string is interpreted as if it had url(...) around it." />
+        <style type="text/css">
+            @import "support/at-import-002.css";
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the "Filler Text" below is green.</p>
+        <div>Filler Text</div>
+    </body>
+</html>

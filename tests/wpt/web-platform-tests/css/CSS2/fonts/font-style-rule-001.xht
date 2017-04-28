@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Font-style with font properties missing</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#algorithm" />
+        <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-matching-algorithm" />
+        <meta name="flags" content="font" />
+        <meta name="assert" content="When font-style italic is not available, find value oblique, if it's still not available, either use the alternate font-family that has italic or oblique value or use 'font-style: normal'." />
+        <style type="text/css">
+            div
+            {
+                font-style: italic;
+                font-family: "MissingItalicOblique";
+            }
+        </style>
+    </head>
+    <body>
+        <p>PREREQUISITE: Operating system needs to have the '<a href="support/AHEM_MissingItalicOblique.ttf">Missing Italic Oblique</a>' font installed.</p>
+        <p>Post Test: Remove test font after running the test.</p>
+        <p>Test passes if either there is an upright box below, a slanted box below or a letter "X" slanted to one side.</p>
+        <div>X</div>
+    </body>
+</html>

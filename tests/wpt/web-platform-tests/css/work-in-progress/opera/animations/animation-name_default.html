@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <title>CSS Animations - animation-name default</title>
+   <link rel="author" title="Opera Software ASA" href="http://www.opera.com/">
+   <link rel="help" href="https://drafts.csswg.org/css3-animations/#the-animation-name-property-">
+   <meta name="flags" content="dom">
+   <meta name="assert" content="animation-name does not inherit by default">
+   <script src="/resources/testharness.js"></script>
+   <script src="/resources/testharnessreport.js"></script>
+   <style type="text/css">
+      @keyframes grow {
+         from {
+            width: 100px;
+         }
+         to {
+            width: 200px;
+         }
+      }
+      div {
+         width: 100px;
+         height: 100px;
+         background: black;
+      }
+      div > div {
+         background: blue;
+      }
+      .test {
+         animation-duration: 1s;
+         animation-fill-mode: forwards;
+         animation-name: grow;
+      }
+   </style>
+   <script type="text/javascript">
+      setup({explicit_done:true});
+      onload = function() {
+         var testName = document.querySelector('title').firstChild.data;
+         var divs = document.querySelectorAll('div');
+         var log = document.querySelectorAll('p')[1].firstChild;
+         var passed = undefined;
+         var timeout = setTimeout(function() {
+            test(function(){assert_true(passed);}, testName); done();
+            log.data = (passed ? 'PASS if the animation occurred.' : 'FAIL');
+         }, 1500);
+         divs[0].addEventListener('animationend', function() {
+            if (passed === undefined) {
+               var style = getComputedStyle(divs[1], null);
+               passed = (style.getPropertyValue('animation-name') == 'none');
+            }
+         });
+         divs[1].addEventListener('animationend', function() {
+            passed = false;
+         });
+         divs[0].className = 'test';
+      }
+   </script>
+   <style>iframe{display:none}</style>
+</head>
+<body>
+   <p>A black square should grow out from the right edge of the blue square
+   below.</p>
+   <p>Testing...</p>
+   <div>
+      <div></div>
+   </div>
+</body>
+</html>

@@ -1,0 +1,47 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Case-sensitivity of :lang() arguments</title>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#characters"/>
+  <link rel="match" href="case-sensitive-003-ref.xht"/>
+  <meta name="assert" content="The argument to :lang() is ASCII case-insensitive."/>
+  <style type="text/css">
+    .test-folding { color: red; }
+
+    :lang(en) {
+      color: green;
+    }
+    :lang(FR) {
+      color: green;
+    }
+
+    /* test for ASCII (not UNICODE) case-insensitivity */
+    .test-unicode { color: green; }
+    :lang(fİ) {
+      color: red;
+    }
+    :lang(Fı) {
+      color: red;
+    }
+    :lang(&#x212a;l) {
+      color: red;
+    }
+  </style>
+
+ </head>
+ <body>
+  <div class="test-folding">
+   <p lang="En">This sentence must be green.</p>
+   <p xml:lang="eN">This sentence must be green.</p>
+   <p lang="fr">This sentence must be green.</p>
+   <p xml:lang="fR">This sentence must be green.</p>
+  </div>
+  <div class="test-unicode">
+   <p xml:lang="kl">This sentence must be green.</p>
+   <p lang="KL">This sentence must be green.</p>
+   <p xml:lang="fi">This sentence must be green.</p>
+   <p lang="FI">This sentence must be green.</p>
+  </div>
+ </body>
+</html>

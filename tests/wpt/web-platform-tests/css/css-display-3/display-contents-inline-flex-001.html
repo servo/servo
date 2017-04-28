@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: CSS display: contents in inline-flex layout</title>
+<!-- Imported from: https://bugzilla.mozilla.org/show_bug.cgi?id=907396 -->
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:ecobos@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-display-3/#valdef-display-contents">
+<link rel="match" href="display-contents-inline-flex-001-ref.html">
+<link rel="stylesheet" href="support/acid.css">
+<div style="color: red">
+  <div class="iflex"><div class="contents c2">
+  0
+  </div></div>
+  <div class="iflex"><div class="contents c2">
+  0
+  <div class="contents c1">1</div>
+  2
+  </div></div>
+  <div class="iflex"><div class="contents c2">
+  0
+  <div class="c1">1</div>
+  2
+  </div></div>
+  <div class="iflex c3">
+  0
+  <div class="contents c2"><div class="c1">1</div></div>
+  2
+  </div>
+  <div class="iflex c3">
+  <div class="contents c2">0</div>
+  <div class="contents c2"><div class="c1">1</div></div>
+  <div class="contents c2">2</div>
+  </div>
+  <div class="iflex c3">
+  <div class="inline">0</div>
+  <div class="contents"><div class="inline c1">1</div></div>
+  <div class="inline">2</div>
+  </div>
+</div>

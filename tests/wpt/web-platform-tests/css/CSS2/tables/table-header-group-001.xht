@@ -1,0 +1,63 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Table-header-group</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#table-display" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="An element with 'display: table-header-group' is rendered as if it were a table header group." />
+        <style type="text/css">
+            .table
+            {
+                border: 2px solid black;
+                display: table;
+            }
+            .header
+            {
+                background: blue;
+                display: table-header-group;
+            }
+            .tr
+            {
+                display: table-row;
+            }
+            .td
+            {
+                display: table-cell;
+                height: 2em;
+                width: 2em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a square below, and the top half of the square is blue.</p>
+        <div class="table">
+            <div class="tr">
+                 <div class="td"></div>
+                 <div class="td"></div>
+                 <div class="td"></div>
+                 <div class="td"></div>
+            </div>
+            <div class="tr">
+                 <div class="td"></div>
+                 <div class="td"></div>
+                 <div class="td"></div>
+                 <div class="td"></div>
+            </div>
+            <div class="header">
+                <div class="tr">
+                     <div class="td"></div>
+                     <div class="td"></div>
+                     <div class="td"></div>
+                     <div class="td"></div>
+                </div>
+                <div class="tr">
+                     <div class="td"></div>
+                     <div class="td"></div>
+                     <div class="td"></div>
+                     <div class="td"></div>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

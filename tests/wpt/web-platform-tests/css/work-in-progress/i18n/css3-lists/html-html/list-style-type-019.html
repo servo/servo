@@ -1,0 +1,57 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html >
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>CSS Test: list-style-type - cjk-ideographic, over 10</title>
+<link rel='author' title='Richard Ishida' href='http://rishida.net'>
+<link rel='reviewer' title='Elika J. Etemad' href='http://fantasai.inkedblade.net/contact'>
+<link rel='help' href='http://www.w3.org/TR/CSS21/generate.html#list-style'>
+<link rel='alternate' href='http://www.w3.org/International/tests/tests-html-css/tests-list-style-type/generate?test=19'>
+<meta name='flags' content=''>
+<meta name="assert" content="Setting list-style-type to cjk-ideographic will cause list numbering to format numbers over 10 as described in the CSS3 Lists module.">
+<style type='text/css'>
+ol { list-style-type: cjk-ideographic; }
+
+/* the CSS below is not part of the test */
+.test { font-size: 24px; font-family: sans-serif; }
+ol { margin: 0; padding-left: 8em; }
+.alt { color: #ff6633; margin-left: 40px;}
+
+</style>
+</head>
+<body>
+<p class="instructions">Assertion holds if the numbering in the two columns is the same.</p>
+
+
+<div class="test"> 
+			<ol start="0">
+				<li title="0">零</li>
+			</ol>
+			<ol start="48">
+				<li title="48">四十八</li>
+				<li title="49">四十九</li>
+				<li title="50">五十</li>
+				<li title="51">五十一</li>
+				<li title="52">五十亼</li>
+			</ol>
+			<ol start="99">
+				<li title="99">九十九</li>
+				<li title="100">百</li>
+				<li title="101">百一</li>
+			</ol>
+			<ol start="999">
+				<li title="999">九百九十九</li>
+				<li title="1000">一千</li>
+				<li title="1001">一千一</li>
+			</ol>
+			<ol start="9,999">
+				<li title="9,999">九千九百九十九</li>
+				<li title="10,000">一萬</li>
+				<li title="10,001">一萬一</li>
+			</ol>
+		</div>
+
+
+<!--p class="notes">Notes: <br><a href="http://www.w3.org/TR/CSS21/generate.html#propdef-list-style-type">CSS2.1</a> CR specifies a <span class="kw">cjk-ideographic</span> value for the list-style-type property, but does not specify in any detail the mechanism for implementing it. Expectations for behavior in these tests are based on the rules specified in the version of the <a href="http://www.w3.org/TR/css3-lists/#cjk-ideographic">CSS3 Lists module</a> current at the time this test was last updated, however that draft contains errors for ideographic scripts, so the expectations here are based on <a href="http://lists.w3.org/Archives/Public/www-style/2003Apr/0063.html">proposed corrections by Jungshik Shin</a>.</p><p class="notes">The test uses the start attribute to reduce the size of the list.  This attribute is deprecated or unavailable in some formats, causing the test page not to validate, but appears to be supported in major browsers anyway (and will be reinstated in HTML5).</p-->
+</body>
+</html>

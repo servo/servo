@@ -1,0 +1,72 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <title>CSS Regions: onmouseover and onmouseout events inside region</title>
+        <link rel="author" title="David Alcala" href="mailto:dalcala@adobe.com">
+        <link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+        <link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from">
+        <link rel="help" href="http://www.w3.org/TR/css3-regions/#relation-to-document-events">
+        <meta name="assert" content="CSS regions module does not alter the normal processing of events in the document
+         tree. Therefore, onmouseover and onmouseout events inside a named flow should function correctly.">
+        <meta name="flags" content="dom interact">
+        <link href="support/css/regions-mouse-events.css" rel="stylesheet" type="text/css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="support/js/regions-mouse-events-test-helper.js"></script>
+    </head>
+    <body>
+        <p id="msg">Move the mouse over the black square then away from it.</p>
+        <div id="content">
+            <div class="block"></div>
+            <div class="block"></div>
+            <div id="target-block" class="block" title="PASS"></div>
+        </div>
+        <div class="region"></div>
+        <div class="region"></div>
+        <div class="region"></div>
+        <br/>
+        <div id="outside-region">This div is outside the region</div>
+        <div id="log"></div>
+    </body>
+    <script type="text/javascript">
+
+        if(getLeftPosition("target-block") !== 0) {
+            var test1 = async_test("onmouseover event fired inside region", {timeout: testTimeout});
+            test1.step(function () {
+                var testTarget = document.getElementById("target-block");
+                testTarget.onmouseover = test1.step_func(function (evt) {
+
+                    /* Verify the hover color is correct */
+                    test(function () {
+                        assert_equals(getBackgroundColor("target-block"), "rgb(0, 255, 0)");
+                    }, "Color changes on mouseover");
+
+                    test1.done();
+                });
+                mouseOver("target-block");
+            });
+
+            var test2 = async_test("onmouseout event fired inside region", {timeout: testTimeout});
+            test2.step(function () {
+                var testTarget = document.getElementById("target-block");
+                testTarget.onmouseout = test2.step_func(function (evt) {
+
+                    /* Verify it returns to the original background color */
+                    test(function () {
+                        assert_equals(getBackgroundColor("target-block"), "rgb(0, 0, 0)");
+                    }, "Color changes back on mouseout");
+
+                    test2.done();
+                });
+                mouseOut("target-block");
+            });
+            completionCallback();
+        }
+        else {
+            test(function () {
+                assert_true(false);
+            }, "Regions are not enabled");
+        }
+
+    </script>
+</html>

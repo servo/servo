@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Test: Invalid inline transform style on SVG group with valid presentation attribute styles on group and child elements</title>
+    <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#svg-transform">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-attribute-specificity">
+    <link rel="match" href="reference/svg-inline-styles-ref.html">
+    <meta name="flags" content="svg">
+    <meta name="assert" content="Invalid inline transform styles on group elements should fall back to presentation attribute styles on the same element. Presentation attribute styles on the child should also be applied. The rect in the test should be rotated by 90 degrees clockwise, moved up 100 pixels and not scaled.">
+    <style type="text/css">
+    svg {
+        height: 300px;
+        width: 300px;
+    }
+    </style>
+</head>
+<body>
+    <p>The test passes if there is a vertical green stripe to the left of a yellow vertical stripe. You should see no red.</p>
+    <svg>
+       <!-- Fill with Gradient to avoid false positive. -->
+        <defs>
+            <linearGradient id="grad" x2="0%" y2="100%">
+                <stop offset="50%" stop-color="yellow"/>
+                <stop offset="50%" stop-color="green"/>
+            </linearGradient>
+        </defs>
+        <rect x="1" y="1" width="98" height="98" fill="red"/>
+        <g  style="transform: scale(invalid)" transform="rotate(90)">
+            <rect width="100" height="100" fill="url(#grad)" transform="translateY(-100)"/>
+        </g>
+    </svg>
+</body>
+</html>

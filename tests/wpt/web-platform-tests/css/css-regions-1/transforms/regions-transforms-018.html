@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Regions: 3D transform on named flow (text) content that overflows a region</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+		<link rel="reviewer" title="Mihai Balan" href="mailto:mibalan@adobe.com"> <!-- 2013-07-24 -->
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from">
+        <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#three-d-transform-functions">
+		<meta name="assert" content="Test checks that content that is transformed does not clip when flowed in a region.">
+		<meta name="flags" content="ahem">
+		<link rel="match" href="reference/regions-transforms-018-ref.html">
+		<style>
+		.ahem {
+			font-family: Ahem;
+			font-size: 20px;
+			line-height: 100px;
+		}
+		#named-flow {
+			flow-into: f;
+			transform: rotateZ(90deg);
+			color: green;
+		}
+		#region {
+			flow-from: f;
+			border-bottom: 20px solid green;
+			width: 100px;
+			height: 80px;
+		}
+		#failure {
+			position: absolute;
+			width: 18px;
+			height: 78px;
+			background-color: red;
+			top: 151px;
+			left: 49px;
+			z-index: -1;
+		}
+		</style>
+	</head>
+	<body>
+		<p>The test passes if you see a green cross and no red.</p>
+		<div id="named-flow" class="ahem">
+			XXXXXXXXX
+		</div>
+		<div id="region"></div>
+		<div id="failure"></div>
+	</body>
+</html>

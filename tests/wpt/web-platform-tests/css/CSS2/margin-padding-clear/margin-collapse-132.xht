@@ -1,0 +1,41 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: Margin Collapsing: float positioning</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/block/margin-collapse/032.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#collapsing-margins"/>
+  <style type="text/css">
+   table, td { padding: 0; border-spacing: 0; }
+   .comparator { border-spacing: 1em; }
+   .test, .control { border: solid; background: lime; }
+
+   .test .container { display: block; margin: 1em 0 0 0; width: 8em; background: red; }
+   .test .float { float: left; margin: 0; height: 1em; width: 8em; background: yellow; }
+   .test .block { display: block; margin: 2em 0 0 0; height: 1em; background: red; }
+
+   .control .lime { border-top: 2em solid lime; width: 8em; }
+   .control .yellow { border-top: 1em solid yellow; }
+
+  </style>
+ </head>
+ <body>
+  <p>The following two rectangles should be identical.</p>
+  <table class="comparator">
+   <tr>
+    <td class="test">
+     <div class="container">
+      <div class="float"> </div>
+      <div class="block"> </div>
+     </div>
+    </td>
+    <td class="control">
+     <div class="lime"> </div>
+     <div class="yellow"> </div>
+    </td>
+   </tr>
+  </table>
+
+
+</body>
+</html>

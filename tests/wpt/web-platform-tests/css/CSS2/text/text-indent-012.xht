@@ -1,0 +1,35 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+ <head>
+  <title>CSS Test: CSS text-indent: Hyatt's Evil Test Which Mixes Lots Of Stuff</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-06-28 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/block/text-indent/002.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#indentation-prop" />
+  <link rel="match" href="text-indent-012-ref.xht" />
+
+  <meta name="flags" content="ahem" />
+
+  <style type="text/css">
+   .control { background-color: yellow; position: absolute; top: 75px; height: 60px; width: 200px; border: 2px solid black; }
+   .control .a { background-color: orange; position: absolute; width: 50px; height: 50px; }
+   .control .b { background-color: orange; position: absolute; left: 150px; width: 50px; height: 50px; }
+   .test { background-color: yellow; text-indent: 100px; position: absolute; top: 175px; border: 2px solid black; font: 50px/1 Ahem; }
+   .test .a { background-color: orange; width: 50px; height: 50px; float: left; }
+   .test .b { background-color: orange; display: inline-block; width: 50px; height: 50px; }
+  </style>
+ </head>
+ <body>
+  <p>The following two blocks should be identical.</p>
+  <div class="control">
+   <div class="a"></div>
+   <div class="b"></div>
+  </div>
+  <div class="test"> <!-- this should shrink wrap to the intrinsic, no-line-wrapping width -->
+   <div class="a"></div> <!-- that's a float. -->
+   <div class="b"></div> <!-- that's an inline-block. it should be text-indented 100px from the left edge of the float. -->
+   <!-- the inline-block should sit on top of the baseline, which should be 0.2em from the bottom of the
+        block, since the Ahem font has a 0.2em descender. font-size is 50px, so 0.2em is 10px. -->
+  </div>
+ </body>
+</html>

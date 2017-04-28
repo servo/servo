@@ -1,0 +1,51 @@
+root, document, info, navigation, item, link {
+	display: block;
+}
+
+root {
+	background: white;
+	color: black;
+}
+
+document {
+	margin: 0.5em;
+}
+
+info {
+	margin: 1em 0;
+}
+
+navigation[type="tabbed-menu"] {
+	height: 1.4em;
+	border-bottom: 1px solid green;
+}
+
+navigation[type="tabbed-menu"] > item {
+	height: 100%;
+	line-height: 1.4em;
+	float: left;
+	margin-right: 0.5em;
+	width: 15%;
+	background: green url("../img/tabtopleft.png") no-repeat top left;
+}
+
+navigation[type="tabbed-menu"] > item > link {
+	width: 100%;
+	color: white;
+	height: 1.4em;
+	line-height: 1.4em;
+	font-weight: bold;
+	background: transparent url("../img/tabtopright.png") no-repeat top right;
+	text-align: center;
+}
+
+navigation[type="tabbed-menu"] > item:hover {
+	background: red url("../img/tabtopleft-hover.png") no-repeat top left;
+	border-bottom: 1px solid red;
+	cursor: pointer;
+}
+
+navigation[type="tabbed-menu"] > item:hover link {
+	background: transparent url("../img/tabtopright-hover.png") no-repeat top right;
+	cursor: pointer;
+}

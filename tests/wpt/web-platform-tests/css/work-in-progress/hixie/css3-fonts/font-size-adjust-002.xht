@@ -1,0 +1,19 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS font-size-adjust: Inheritance and Parental Influence</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/fonts/size/adjust/002.xml"/>
+    <style type="text/css">
+   div { font-family: Verdana; font-size: 1px; }
+   .a { font-size-adjust: 1; } /* not used by anything in this test case */
+   .a span, .b, .b span, .c { font-size-adjust: 20; }
+  </style>
+ </head>
+ <body>
+   <p>There are three lines that should say "pass" in large 20px text below:</p>
+   <div class="a"> <span>PASS 1/3</span> </div>
+   <div class="b"> <span>PASS 2/3</span> </div>
+   <div class="c"> <span>PASS 3/3</span> </div>
+   <!-- XXX this should be converted to an Ahem test -->
+ </body>
+</html>

@@ -40,7 +40,7 @@
                     initial_timing[property] = timing[property];
                 }
 
-                setTimeout("reload_the_frame();", 100);
+                step_timeout(reload_the_frame, 100);
             }
 
             function reload_the_frame()

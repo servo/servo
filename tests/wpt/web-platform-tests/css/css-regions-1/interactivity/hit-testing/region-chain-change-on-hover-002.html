@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>CSS Regions: Remove region from region chain on CSS :hover</title>
+	<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+	<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+	<link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from">
+	<meta name="assert" content="Changing the flow-from property should be possible in rules that use the :hover pseudoclass">
+	<meta name="flags" content="interact ahem">
+	<style>
+	p {
+		margin: 0;
+	}
+	.box {
+		width: 100px;
+		height: 100px;
+	}
+	#content {
+		font-family: Ahem;
+		font-size: 20px;
+		line-height: 1em;
+	}
+	#content p {
+		flow-into: f;
+	}
+	#region {
+		flow-from: f;
+		border-left: 100px solid lime;
+		background-color: lime;
+	}
+	#region:hover {
+		/*Remove the line below or make it to _NOT_ change the actual value of the flow-from property and it will trigger as expected*/
+		flow-from: none;
+		border-color: red;
+	}
+	#region p {
+		width: 100%;
+		height: 50%;
+		background-color: red;
+	}
+	</style>
+</head>
+<body>
+	You should not see any red before or during this test.
+	<ol>
+		<li>You should see a green and a black square side by side.</li>
+		<li>Move the mouse over the green square. <strong>Expected:</strong> The black square will turn green.</li>
+	</ol>
+	<div id="content">
+		<p>xxxxx<br>xxxxx<br>xxxxx<br>xxxxx<br>xxxxx</p>
+	</div>
+	<div id="region" class="box">
+		<p></p>
+	</div>
+</body>
+</html>

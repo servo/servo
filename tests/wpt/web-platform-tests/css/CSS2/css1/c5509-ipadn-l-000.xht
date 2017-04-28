@@ -1,0 +1,25 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: padding-left</title>
+  <meta name="flags" content="ahem image" />
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#padding-left"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="match" href="c5502-imrgn-r-000-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+   div { font: 15px/1 Ahem; margin: 1em; }
+   .one { width: 8em; height: 2em; background: red url(support/swatch-green.png) right repeat-y; color: white; }
+   .one p { width: 7em; background: white; }
+   .one span { padding-left: 4em; }
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#padding-properties" title="8.4 Padding properties: 'padding-top', 'padding-right', 'padding-bottom', 'padding-left', and 'padding'"/>
+ </head>
+ <body>
+  <p>Test passes if there is a short green vertical bar and no red.</p>
+  <div class="one">
+   <p>x <span>x</span>x</p>
+  </div>
+ </body>
+</html>

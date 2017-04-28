@@ -1,0 +1,27 @@
+The format is:
+
+   <csstest xmlns="http://www.example.org/css3tests"
+      def="<put the title of the test here>"
+      module="W3C Selectors"
+      modulename="css3-modsel"
+      number="<put your initials here>-<give each test a unique number>"
+      rev="1.0"
+      date="1-january-1979 <edit the date keeping the format>">
+    <author><!-- Put your name here --></author>
+    <cssrules>
+     /* put the rules here */
+    </cssrules>
+    <code>
+     <p xmlns="http://www.w3.org/1999/xhtml"> Put the test here. </p>
+    </code>
+   </csstest>
+
+
+You can also use a special <restrict> element in elements in the <code>
+element, as in:
+
+  <test:restrict xmlns:test="http://www.example.org/css3tests" for="xml xhtml">
+   ...
+  </test:restrict>
+
+See test -d2 for an example.

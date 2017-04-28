@@ -9,11 +9,14 @@ use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationObserverI
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::node::Node;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use html5ever_atoms::Namespace;
+use microtask::Microtask;
 use script_thread::ScriptThread;
 use std::default::Default;
+use std::option::Option;
 use std::rc::Rc;
 
 #[dom_struct]
@@ -45,6 +48,34 @@ impl MutationObserver {
         let observer = MutationObserver::new(global, callback);
         ScriptThread::add_mutation_observer(&*observer);
         Ok(observer)
+    }
+
+    /// https://dom.spec.whatwg.org/#queue-a-mutation-observer-compound-microtask
+    /// Queue a Mutation Observer compound Microtask.
+    pub fn enqueueMutationObserverCompoundMicrotask(&self, compoundMicrotask: Microtask) {
+        // Step 1
+        if ScriptThread::get_mutation_observer_compound_microtask_queued() {
+            return;
+        }
+        // Step 2
+        ScriptThread::set_mutation_observer_compound_microtask_queued(true);
+        // Step 3
+        //MicrotaskQueue::enqueue(compoundMicrotask);
+    }
+
+    /// https://dom.spec.whatwg.org/#notify-mutation-observers
+    /// Notify Mutation Observers.
+    pub fn notifyMutationObservers() {
+        // Step 1
+        ScriptThread::set_mutation_observer_compound_microtask_queued(false);
+        // Step 2
+        let notifyList = ScriptThread::get_mutation_observer();
+        // Step 3, Step 4 not needed as Servo doesn't implement anything related to slots yet.
+        // Step 5
+        for mo in notifyList {
+            
+        }
+        // Step 6 not needed as Servo doesn't implement anything related to slots yet.
     }
 }
 

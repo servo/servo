@@ -4,15 +4,17 @@
 
 use html5ever_atoms::LocalName;
 use selectors::parser::LocalName as LocalNameSelector;
+use selectors::parser::Selector;
 use servo_atoms::Atom;
 use std::sync::Arc;
 use style::properties::{PropertyDeclarationBlock, PropertyDeclaration};
 use style::properties::{longhands, Importance};
 use style::rule_tree::CascadeLevel;
-use style::selector_parser::SelectorParser;
+use style::selector_parser::{SelectorImpl, SelectorParser};
 use style::shared_lock::SharedRwLock;
 use style::stylesheets::StyleRule;
 use style::stylist::{Rule, SelectorMap};
+use style::stylist::needs_revalidation;
 use style::thread_state;
 
 /// Helper method to get some Rules from selector strings.
@@ -34,12 +36,11 @@ fn get_mock_rules(css_selectors: &[&str]) -> (Vec<Vec<Rule>>, SharedRwLock) {
         let guard = shared_lock.read();
         let rule = locked.read_with(&guard);
         rule.selectors.0.iter().map(|s| {
-            Rule {
-                selector: s.complex_selector.clone(),
-                style_rule: locked.clone(),
-                specificity: s.specificity,
-                source_order: i,
-            }
+            Rule::new(&guard,
+                      s.inner.clone(),
+                      locked.clone(),
+                      i,
+                      s.specificity)
         }).collect()
     }).collect(), shared_lock)
 }
@@ -57,12 +58,115 @@ fn get_mock_map(selectors: &[&str]) -> (SelectorMap, SharedRwLock) {
     (map, shared_lock)
 }
 
+fn parse_selectors(selectors: &[&str]) -> Vec<Selector<SelectorImpl>> {
+    selectors.iter()
+             .map(|x| SelectorParser::parse_author_origin_no_namespace(x).unwrap().0
+                                                                         .into_iter()
+                                                                         .nth(0)
+                                                                         .unwrap())
+             .collect()
+}
+
+#[test]
+fn test_revalidation_selectors() {
+    let test = parse_selectors(&[
+        // Not revalidation selectors.
+        "div",
+        "#bar",
+        "div:not(.foo)",
+        "div span",
+        "div > span",
+
+        // Attribute selectors.
+        "div[foo]",
+        "div:not([foo])",
+        "div[foo = \"bar\"]",
+        "div[foo ~= \"bar\"]",
+        "div[foo |= \"bar\"]",
+        "div[foo ^= \"bar\"]",
+        "div[foo $= \"bar\"]",
+        "div[foo *= \"bar\"]",
+        "*|div[foo][bar = \"baz\"]",
+
+        // Non-state-based pseudo-classes.
+        "div:empty",
+        "div:first-child",
+        "div:last-child",
+        "div:only-child",
+        "div:nth-child(2)",
+        "div:nth-last-child(2)",
+        "div:nth-of-type(2)",
+        "div:nth-last-of-type(2)",
+        "div:first-of-type",
+        "div:last-of-type",
+        "div:only-of-type",
+
+        // Note: it would be nice to test :moz-any and the various other non-TS
+        // pseudo classes supported by gecko, but we don't have access to those
+        // in these unit tests. :-(
+
+        // Sibling combinators.
+        "span + div",
+        "span ~ div",
+
+        // Revalidation selectors that will get sliced.
+        "td > h1[dir]",
+        "td > span + h1[dir]",
+        "table td > span + div ~ h1[dir]",
+    ]).into_iter()
+      .filter(|s| needs_revalidation(&s))
+      .map(|s| s.inner.slice_to_first_ancestor_combinator().complex)
+      .collect::<Vec<_>>();
+
+    let reference = parse_selectors(&[
+        // Attribute selectors.
+        "div[foo]",
+        "div:not([foo])",
+        "div[foo = \"bar\"]",
+        "div[foo ~= \"bar\"]",
+        "div[foo |= \"bar\"]",
+        "div[foo ^= \"bar\"]",
+        "div[foo $= \"bar\"]",
+        "div[foo *= \"bar\"]",
+        "*|div[foo][bar = \"baz\"]",
+
+        // Non-state-based pseudo-classes.
+        "div:empty",
+        "div:first-child",
+        "div:last-child",
+        "div:only-child",
+        "div:nth-child(2)",
+        "div:nth-last-child(2)",
+        "div:nth-of-type(2)",
+        "div:nth-last-of-type(2)",
+        "div:first-of-type",
+        "div:last-of-type",
+        "div:only-of-type",
+
+        // Sibling combinators.
+        "span + div",
+        "span ~ div",
+
+        // Revalidation selectors that got sliced.
+        "h1[dir]",
+        "span + h1[dir]",
+        "span + div ~ h1[dir]",
+    ]).into_iter()
+      .map(|s| s.inner.complex)
+      .collect::<Vec<_>>();
+
+    assert_eq!(test.len(), reference.len());
+    for (t, r) in test.into_iter().zip(reference.into_iter()) {
+        assert_eq!(t, r)
+    }
+}
+
 #[test]
 fn test_rule_ordering_same_specificity() {
     let (rules_list, _) = get_mock_rules(&["a.intro", "img.sidebar"]);
     let a = &rules_list[0][0];
     let b = &rules_list[1][0];
-    assert!((a.specificity, a.source_order) < ((b.specificity, b.source_order)),
+    assert!((a.specificity(), a.source_order) < ((b.specificity(), b.source_order)),
             "The rule that comes later should win.");
 }
 
@@ -77,7 +181,7 @@ fn test_get_id_name() {
 #[test]
 fn test_get_class_name() {
     let (rules_list, _) = get_mock_rules(&[".intro.foo", "#top"]);
-    assert_eq!(SelectorMap::get_class_name(&rules_list[0][0]), Some(Atom::from("intro")));
+    assert_eq!(SelectorMap::get_class_name(&rules_list[0][0]), Some(Atom::from("foo")));
     assert_eq!(SelectorMap::get_class_name(&rules_list[1][0]), None);
 }
 
@@ -103,8 +207,8 @@ fn test_insert() {
     selector_map.insert(rules_list[1][0].clone());
     assert_eq!(1, selector_map.id_hash.get(&Atom::from("top")).unwrap()[0].source_order);
     selector_map.insert(rules_list[0][0].clone());
-    assert_eq!(0, selector_map.class_hash.get(&Atom::from("intro")).unwrap()[0].source_order);
-    assert!(selector_map.class_hash.get(&Atom::from("foo")).is_none());
+    assert_eq!(0, selector_map.class_hash.get(&Atom::from("foo")).unwrap()[0].source_order);
+    assert!(selector_map.class_hash.get(&Atom::from("intro")).is_none());
 }
 
 #[test]

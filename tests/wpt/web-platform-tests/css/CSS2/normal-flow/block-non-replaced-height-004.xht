@@ -1,0 +1,46 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Block-level non-replaced elements in normal flow when 'overflow' does not compute to 'visible' and 'height' is 'auto'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#normal-block" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'height' is the 'height' of the child block box when a block-level non-replaced element is in normal flow and 'overflow' does not compute to 'visible'." />
+        <style type="text/css">
+            html, body
+            {
+                overflow: scroll;
+            }
+            div
+            {
+                position: relative;
+            }
+            div div
+            {
+                width: 1in;
+            }
+            #div1 div
+            {
+                background: blue;
+                height: 2in;
+            }
+            #div2
+            {
+                background: orange;
+                height: 2in;
+                left: 1in;
+                position: absolute;
+                top: 0;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the blue and orange boxes below are the same height.</p>
+        <div>
+            <div id="div1">
+                <div></div>
+            </div>
+            <div id="div2"></div>
+        </div>
+    </body>
+</html>

@@ -50,7 +50,7 @@ function createdb_for_multiple_tests(dbname, version) {
     function auto_fail(evt, current_test) {
         /* Fail handlers, if we haven't set on/whatever/, don't
          * expect to get event whatever. */
-        rq_open.manually_handled = {}
+        rq_open.manually_handled = {};
 
         rq_open.addEventListener(evt, function(e) {
             if (current_test !== test) {
@@ -71,15 +71,15 @@ function createdb_for_multiple_tests(dbname, version) {
                   this.db.onversionchange =
                       fail(test, 'unexpected db.versionchange');
                 }
-            })
-        })
+            });
+        });
         rq_open.__defineSetter__("on" + evt, function(h) {
             rq_open.manually_handled[evt] = true;
             if (!h)
                 rq_open.addEventListener(evt, function() {});
             else
                 rq_open.addEventListener(evt, test.step_func(h));
-        })
+        });
     }
 
     // add a .setTest method to the IDBOpenDBRequest object
@@ -123,6 +123,10 @@ function indexeddb_test(upgrade_func, open_func, description, options) {
     });
     open.onsuccess = t.step_func(function() {
       var db = open.result;
+      t.add_cleanup(function() {
+        db.close();
+        indexedDB.deleteDatabase(db.name);
+      });
       if (open_func)
         open_func(t, db);
     });
@@ -141,5 +145,46 @@ function expect(t, expected) {
       assert_array_equals(results, expected);
       t.done();
     }
+  };
+}
+
+// Checks to see if the passed transaction is active (by making
+// requests against the named store).
+function is_transaction_active(tx, store_name) {
+  try {
+    const request = tx.objectStore(store_name).get(0);
+    request.onerror = e => {
+      e.preventDefault();
+      e.stopPropagation();
+    };
+    return true;
+  } catch (ex) {
+    assert_equals(ex.name, 'TransactionInactiveError',
+                  'Active check should either not throw anything, or throw ' +
+                  'TransactionInactiveError');
+    return false;
+  }
+}
+
+// Keep the passed transaction alive indefinitely (by making requests
+// against the named store). Returns a function to to let the
+// transaction finish, and asserts that the transaction is not yet
+// finished.
+function keep_alive(tx, store_name) {
+  let completed = false;
+  tx.addEventListener('complete', () => { completed = true; });
+
+  let pin = true;
+
+  function spin() {
+    if (!pin)
+      return;
+    tx.objectStore(store_name).get(0).onsuccess = spin;
+  }
+  spin();
+
+  return () => {
+    assert_false(completed, 'Transaction completed while kept alive');
+    pin = false;
   };
 }

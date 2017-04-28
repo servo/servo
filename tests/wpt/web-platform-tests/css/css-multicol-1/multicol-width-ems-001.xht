@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>multicolumn | column-width</title>
+<link rel="author" title="Opera Software ASA" href="http://www.opera.com/"/>
+<link rel="help" href="http://www.w3.org/TR/css3-multicol/#the-number-and-width-of-columns"/>
+<link rel="match" href="multicol-width-ems-ref.xht"/>
+<meta name="flags" content=""/>
+<style type="text/css"><![CDATA[
+body {
+	margin: 0;
+	width: 40em;
+}
+div {
+	font-family: monospace;
+	font-size: 1em;
+	line-height: 1em;
+	color: black;
+	background: yellow;
+	orphans: 1;
+	widows: 1;
+
+	column-width: 8em;
+	column-gap: 0;
+}
+]]></style>
+</head>
+
+<body>
+<div>
+	one two three four
+	five six seven eight
+	nineten eleven twelve
+	thirtn fourtnfiftn sixtn
+	seventn eightn ninetn twenty
+	hundred thousand million billion
+	trillion
+</div>
+
+</body>
+</html>

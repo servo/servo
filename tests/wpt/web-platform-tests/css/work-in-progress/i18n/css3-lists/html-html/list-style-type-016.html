@@ -1,0 +1,81 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html >
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>CSS Test: list-style-type - katakana-iroha basic</title>
+<link rel='author' title='Richard Ishida' href='http://rishida.net'>
+<link rel='reviewer' title='Elika J. Etemad' href='http://fantasai.inkedblade.net/contact'>
+<link rel='help' href='http://www.w3.org/TR/CSS21/generate.html#list-style'>
+<link rel='alternate' href='http://www.w3.org/International/tests/tests-html-css/tests-list-style-type/generate?test=16'>
+<meta name='flags' content=''>
+<meta name="assert" content="Setting list-style-type to katakana-iroha will cause list numbering to format numbers as described in the CSS3 Lists module.">
+<style type='text/css'>
+ol { list-style-type: katakana-iroha; }
+
+/* the CSS below is not part of the test */
+.test { font-size: 24px; font-family: sans-serif; }
+ol { margin: 0; padding-left: 8em; }
+.alt { color: #ff6633; margin-left: 40px;}
+
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the numbering in the two columns is the same.</p>
+
+
+<div class="test"> 
+			<ol>
+				<li title="1">イ</li>
+				<li title="2">ロ </li>
+				<li title="3">ハ </li>
+				<li title="4">ニ </li>
+				<li title="5">ホ </li>
+				<li title="6">ヘ </li>
+				<li title="7">ト </li>
+				<li title="8">チ </li>
+				<li title="9">リ </li>
+				<li title="0">ヌ </li>
+				<li title="1">ル </li>
+				<li title="2">ヲ </li>
+				<li title="3">ワ </li>
+				<li title="4">カ </li>
+				<li title="5">ヨ </li>
+				<li title="6">タ </li>
+				<li title="7">レ </li>
+				<li title="8">ソ </li>
+				<li title="9">ツ </li>
+				<li title="0">ネ </li>
+				<li title="1">ナ </li>
+				<li title="2">ラ </li>
+				<li title="3">ム </li>
+				<li title="4">ウ </li>
+				<li title="5">ヰ </li>
+				<li title="6">ノ </li>
+				<li title="7">オ </li>
+				<li title="8">ク </li>
+				<li title="9">ヤ </li>
+				<li title="0">マ </li>
+				<li title="1">ケ </li>
+				<li title="2">フ </li>
+				<li title="3">コ </li>
+				<li title="4">エ </li>
+				<li title="5">テ </li>
+				<li title="6">ア </li>
+				<li title="7">サ </li>
+				<li title="8">キ </li>
+				<li title="9">ユ </li>
+				<li title="0">メ </li>
+				<li title="1">ミ </li>
+				<li title="2">シ </li>
+				<li title="3">ヱ </li>
+				<li title="4">ヒ </li>
+				<li title="5">モ </li>
+				<li title="6">セ </li>
+				<li title="7">ス</li>
+			</ol>
+		</div>
+
+
+<!--p class="notes">Notes: <br><a href="http://www.w3.org/TR/CSS21/generate.html#propdef-list-style-type">CSS2.1</a> CR specifies a <span class="kw">katakana-iroha</span> value for the list-style-type property, but does not specify in any detail the mechanism for implementing it. Expectations for behavior in these tests are based on the rules specified in the version of the <a href="http://www.w3.org/TR/css3-lists/#katakana-iroha">CSS3 Lists module</a> current at the time this test was last updated.</p><p class="notes">The test uses the start attribute to reduce the size of the list.  This attribute is deprecated or unavailable in some formats, causing the test page not to validate, but appears to be supported in major browsers anyway (and will be reinstated in HTML5).</p-->
+</body>
+</html>

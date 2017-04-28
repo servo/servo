@@ -1,0 +1,34 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: page properties: border properties - margin box overrides @page</title>
+<link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+<link rel="help" href="http://www.w3.org/TR/css3-page/#page-properties"/>
+<meta name="flags" content="paged" />
+<meta name="assert" content="Border properties defined in CSS2.1 apply to margin boxes."/>
+<style type="text/css">
+	@page {
+		border: 1pt solid green;
+		@right-top {
+			margin-right: 0.5in;
+			border-right: 6pt solid aqua;
+			border-bottom:none;
+			content: "";
+		}
+		@right-middle {
+			margin-right: 0.5in;
+			border-right: 6pt solid aqua;
+			content: "";
+		}
+		@right-bottom {
+			margin-right: 0.5in;
+			border-right: 6pt solid aqua;
+			content: "";
+		}
+	}
+</style>
+</head>
+<body>
+	<p>When printed, the blue bar on the right side of the page must be the same height as the border around the page.</p>
+</body>
+</html>

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: outline-color - inherit (basic) </title>
+<link rel="author" title="Intel" href="http://www.intel.com/">
+<link rel="help" title="7.4. 'outline-color' property" href="http://www.w3.org/TR/css3-ui/#outline-color">
+<link rel="author" title="Shiyou Tan" href="mailto:shiyoux.tan@intel.com">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="flags" content="">
+<meta name="assert" content="Test checks that the color of sub element outline is same as the color of parent element outline when outline-color set inherit">
+<style>
+  #container {
+    background-color: red;
+    height: 100px;
+    width: 100px;
+  }
+  #parent {
+    background-color: red;
+    height: 80px;
+    left: 10px;
+    outline-color: green;
+    outline-style: solid;
+    outline-width: 10px;
+    position: relative;
+    top: 10px;
+    width: 80px;
+  }
+  #child {
+    background-color: green;
+    height: 60px;
+    left: 10px;
+    outline-color: inherit;
+    outline-style: solid;
+    outline-width: 10px;
+    position: relative;
+    top: 10px;
+    width: 60px;
+  }
+</style>
+<body>
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+  <div id="container">
+    <div id="parent">
+      <div id="child"></div>
+    </div>
+  </div>
+</body>

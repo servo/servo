@@ -72,7 +72,7 @@ A_08_01_01_T01.step(function () {
     // should be reloaded, so iframe context shouldn't be affected
 
     // set timeout to give the iframe time to load content
-    setTimeout('A_08_01_01_T01.checkIframeContent()', 2000);
+    step_timeout(A_08_01_01_T01.checkIframeContent, 2000);
 });
 </script>
 </body>

@@ -1,0 +1,66 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Height of a cell is maximum between its specified 'height' and content minimum height</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#height-layout" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The height of a cell is the maximum between its specified 'height' and content minimum height." />
+        <style type="text/css">
+            #reference
+            {
+                background: black;
+                font: 16px/1em Ahem;
+                height: 10em;
+                width: 20em;
+            }
+            table
+            {
+                border-spacing: 0;
+            }
+            td
+            {
+                padding: 0;
+            }
+            .c1
+            {
+                background: blue;
+                color: blue;
+                height: 1em;
+            }
+            .c2
+            {
+                background: purple;
+                color: purple;
+                height: 5em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the blue and purple boxes below are half the height of the black box.</p>
+        <div id="reference">
+            <table>
+                <tr>
+                    <td class="c1">XXXXXXXXXX</td>
+                </tr>
+                <tr>
+                    <td class="c1">XXXXXXXXXX</td>
+                </tr>
+                <tr>
+                    <td class="c1">XXXXXXXXXX</td>
+                </tr>
+                <tr>
+                    <td class="c1">XXXXXXXXXX</td>
+                </tr>
+                <tr>
+                    <td class="c1">XXXXXXXXXX</td>
+                </tr>
+            </table>
+            <table>
+                <tr>
+                    <td class="c2">XXXXXXXXXX</td>
+                </tr>
+            </table>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Reftest Reference</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<style>
+		article {
+			font-family: Ahem;
+			font-size: 20px;
+			line-height: 1em;
+		}
+
+		.spaced {
+			margin: 0 2em 3em 5em;
+			color: green;
+		}
+		.float {
+			margin-top: 1em;
+			float: left;
+			color: blue;
+		}
+
+		.bordered {
+			border: 10px solid black;
+		}
+
+		.region {
+			/* float: left; is used to trigger shrink-to-fit sizing */
+			float: left;;
+			margin-left: 10px;
+		}
+		</style>
+	</head>
+	<body>
+		<p>
+			<!-- TODO Determine what the outcome should be - currently expecting a resolution on
+			the issue on www-style/css3-break -->
+			Test passes if you see two colored squares each inside a black-bordered rectangle:
+			<ul>
+				<li>The black-bordered rectangles should be separated by a small vertical space</li>
+				<li>The green square should have its top edge flush with the top border of its
+					containing rectangle</li>
+			</ul>
+			You should see no red.
+		</p>
+
+		<div class="bordered region" style="height: 125px;">
+			<article>
+				<div class="spaced float">
+					xxxxx<br>
+					xxxxx<br>
+					xxxxx<br>
+					xxxxx<br>
+					xxxxx
+				</div>
+			</article>
+		</div><div class="bordered region">
+			<article>
+				<div class="spaced">
+					xxxxx<br>
+					xxxxx<br>
+					xxxxx<br>
+					xxxxx<br>
+					xxxxx
+				</div>
+			</article>
+		</div>
+	</body>
+</html>

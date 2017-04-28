@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<meta http-equiv="content-type" content="text/html;charset=UTF-8"/>
+		<title>WOFF Test: Font access</title>
+		<link rel="author" title="Chris Lilley" href="http://www.w3.org/People" />
+		<link rel="help" href="http://dev.w3.org/webfonts/WOFF2/spec/#General" />
+		<link rel="help" href="http://dev.w3.org/webfonts/WOFF2/spec/#conform-css3font-available" />
+		<meta name="flags" content="font" />
+		<meta name="assert" content="Linked fonts are only available to the documents that reference them" />
+		<style type="text/css"><![CDATA[
+			body {
+				font-size: 20px;
+			}
+			pre {
+				font-size: 12px;
+			}
+			iframe {
+				width: 24em;
+				height: 300px;
+				border: thin solid green
+			}
+		]]></style>
+	</head>
+	<body>
+		<p><a href="support/FontsToInstall">Test fonts</a> must be installed for this test. The WOFF being tested will be loaded over the network so please wait until the download is complete before determing the success of this test.</p>
+		<p>Test passes if the word PASS appears <em>twice</em> below.</p>
+		<iframe src="support/available-001a.xht" />
+		<iframe src="support/available-001b.xht" />
+
+	</body>
+</html>

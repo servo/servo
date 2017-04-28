@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Transforms API Test: transform-oragin</title>
+    <link rel="author" title="Michael Downey" href="mailto:miked782000@yahoo.com">
+    <link rel="help" href="http://www.w3.org/TR/css3-transforms/#transform-origin">
+    <link rel="match" href="reference/transform-origin-ref.html" />
+    <meta name="assert" content="The transform should change the transform-origin to the bottom right and rotate 180 degrees">
+    <style type="text/css">
+        body {margin:0}
+        #greenSquare {
+            position: absolute;
+            top: 0px;
+            left: -100px;
+            width: 100px;
+            height: 100px;
+            background: green;
+            transform-origin: right bottom;
+            transform:rotate(90deg);
+        }
+        #relativeContainer {
+            position: relative;
+        }
+        #redSquare {
+            position: absolute;
+            top: 0px;
+            left: 0px;
+            width: 100px;
+            height: 100px;
+            background: red;
+        }
+    </style>
+
+</head>
+<body>
+
+<p>The test passes if there is a green square and no red.</p>
+<div id="relativeContainer" >
+    <div id="redSquare"></div>
+    <div id="greenSquare"></div>
+</div>
+
+</body>
+</html>

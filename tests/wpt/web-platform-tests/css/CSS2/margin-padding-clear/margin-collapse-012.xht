@@ -1,0 +1,43 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Margin collapsing - absolute positioning and siblings</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#collapsing-margins" />
+
+        <meta name="flags" content="ahem image" />
+        <meta name="assert" content="Absolutely positioned boxes do not collapse margins with siblings." />
+        <style type="text/css">
+            #div1
+            {
+                background: url('support/margin-collapse-2em-space.png') left -1em;
+                border-top: 1em solid green;
+                font: 20px/1em Ahem;
+                height: 3em;
+                width: 5em;
+            }
+            div div
+            {
+                height: 1em;
+                margin-top: 1em;
+                width: 5em;
+            }
+            #div2
+            {
+                height: 0;
+            }
+            #div3
+            {
+                background: green;
+                position: absolute;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is <strong>no red</strong>.</p>
+        <div id="div1">
+            <div id="div2"></div>
+            <div id="div3"></div>
+        </div>
+    </body>
+</html>

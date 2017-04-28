@@ -1,0 +1,46 @@
+
+<HTML>
+<TITLE>Fourth Test of Section 6.2</TITLE>
+
+
+<STYLE TYPE="text/css">
+p {font-size: 20px;
+   line-height: 150%;}
+em {font-size: 12px}
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+
+<h2>Testing Statement #4 Below of Section 6.2 of CSS1 Spec</h2>
+
+
+
+<ul>
+<li>
+4. In all inherited CSS1 properties, if the value is specified as a
+percentage, child elements inherit the resultant value, not the percentage
+value.
+</ul>
+
+
+<h2>PASS CRITERIA:
+</h2>
+<p>
+If statement #4 above is passed, this paragraph should have a font size of
+20px and a line height of 
+30px; the rule applied is "p {font-size: 20px; line-height: 150%;}"..
+<em>This emphasized text should also have a line height of 30px, because
+em is a child of p, and inherits the line height value of p;
+this is even though the rule "em {font-size: 12px}" is applied, so em
+should have a font size of 12px.
+</em>
+</p>
+
+All other properties of this page should be UA-default.
+
+</BODY>
+</HTML>

@@ -1,0 +1,41 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Margin collapsing - horizontal margins do not collapse</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-08-14 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#collapsing-margins" />
+		<link rel="match" href="margin-collapse-001-ref.xht" />
+
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="Horizontal margins of element do not collapse." />
+        <style type="text/css">
+            div
+            {
+                font: 20px/1em Ahem;
+            }
+            #test span
+            {
+                color: blue;
+                margin: 5em;
+            }
+            span
+            {
+                color: white;
+            }
+            .color1
+            {
+                color: orange;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the blue and orange stripes have the same horizontal spacing between them.</p>
+        <div id="test">
+            <span>XXXXX</span><span>XXXXX</span>
+        </div>
+        <div id="reference">
+            <span>XXXXX</span><span class="color1">XXXXX</span><span>XXXXXXXXXX</span><span class="color1">XXXXX</span>
+        </div>
+    </body>
+</html>

@@ -27,7 +27,7 @@ var t = async_test("Space characters are converted to U+0020 and collapsed (per 
 _addTest(function(canvas, ctx) {
 
 deferTest();
-setTimeout(t.step_func_done(function () {
+step_timeout(t.step_func_done(function () {
     ctx.font = '50px CanvasTest';
     _assertSame(ctx.measureText('A B').width, 150, "ctx.measureText('A B').width", "150");
     _assertSame(ctx.measureText('A  B').width, 150, "ctx.measureText('A  B').width", "150");

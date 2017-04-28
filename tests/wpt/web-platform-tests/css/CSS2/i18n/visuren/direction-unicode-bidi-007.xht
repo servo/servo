@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test:direction of a ltr tspan</title>
+<link rel='author' title='Richard Ishida' href='http://rishida.net' />
+<link rel='help' href='http://www.w3.org/TR/CSS21/visuren.html#direction' />
+<link rel='alternate' href='http://www.w3.org/International/tests/tests-html-css/tests-direction-unicode-bidi/generate?test=7' />
+<meta name='flags' content='' />
+<meta name="assert" content="In a RTL context, if direction:ltr and unicode-bidi:embed are applied to an inline element containing mixed direction text, the the inline element will interact with surrounding ltr text as a LTR directional run." />
+<style type='text/css'>
+.test { direction: rtl; } .test span { direction: ltr; unicode-bidi: embed; }
+
+/* the CSS below is not part of the test */
+.test { font-size: 28px; font-family: serif; }
+img { margin-left: 14px; margin-right: 10px;  }
+</style>
+</head>
+<body>
+<div dir='ltr'>
+<p class="instructions"><span class="instructionsymbol"><img src="support/same.png" alt="same" /></span> Test passes if characters are in the same order.</p></div>
+
+
+
+<div class="test">i18n activity "<span>نشاط التدويل، W3C</span>"!</div>
+
+
+<p style="text-align:right"><img src="support/direction-unicode-bidi-016.png" alt="reference graphic" /></p><div dir='ltr'>
+</div>
+</body>
+</html>

@@ -1,0 +1,46 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Vertical-align affects layout of margin boxes</title>
+  <link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#margin-text-alignment"/>
+  <meta name="flags" content="paged" />
+  <meta name="assert" content="When 'vertical-align' is set on margin boxes, it affects the placement of content within the box as for table cells."/>
+  <style type="text/css"><![CDATA[
+   @page {
+   	color: blue;
+   	margin: 60pt;
+   	@top-left { 
+		margin: auto;
+		height: 36pt;
+		width: 36pt;
+		border: 2pt solid;
+		font-size: 10pt;
+		content: "Left";
+		vertical-align: top;
+	}
+	@top-center { 
+		margin: auto;
+		height: 36pt;
+		width: 36pt;
+		border: 2pt solid;
+		font-size: 10pt;
+		content: "Center";
+		vertical-align: middle;
+	}
+	@top-right { 
+		margin: auto;
+		height: 36pt;
+		width: 36pt;
+		border: 2pt solid;
+		font-size: 10pt;
+		content: "Right";
+		vertical-align: bottom;
+	}
+   }
+  ]]></style>
+ </head>
+ <body>
+  <div>This page should have three boxes at the top. All three boxes should be in alignment vertically. The word &quot;Left&quot; must appear in the left-most box and be aligned to the top. The word &quot;Center&quot; must appear in the middle box and be centered vertically. The word &quot;Right&quot; must appear in the right-most box and be aligned to the bottom.</div>
+ </body>
+</html>

@@ -1,0 +1,144 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<meta http-equiv="content-type" content="text/html;charset=UTF-8"/>
+		<title>WOFF Test: Valid WOFF 6</title>
+		<link rel="author" title="Tal Leming" href="http://typesupply.com" />
+		<link rel="help" href="http://dev.w3.org/webfonts/WOFF2/spec/#FileStructure" />
+		<link rel="help" href="http://dev.w3.org/webfonts/WOFF2/spec/#conform-metadata-noeffect" />
+		<link rel="help" href="http://dev.w3.org/webfonts/WOFF2/spec/#conform-private-noeffect" />
+		<link rel="help" href="http://dev.w3.org/webfonts/WOFF2/spec/#conform-metadata-maydisplay" />
+<link  rel="reviewer" title="Chris Lilley" href="mailto:chris@w3.org" />
+		<meta name="flags" content="font" />
+		<meta name="assert" content="Valid TTF flavored WOFF with metadata" />
+		<style type="text/css"><![CDATA[
+			@font-face {
+				font-family: "WOFF Test";
+				src: url("support/valid-006.woff2") format("woff2");
+			}
+			body {
+				font-size: 20px;
+			}
+			pre {
+				font-size: 12px;
+			}
+			.test {
+				font-family: "WOFF Test", "WOFF Test TTF Fallback";
+				font-size: 200px;
+				margin-top: 50px;
+			}
+		]]></style>
+	</head>
+	<body>
+		<p><a href="support/FontsToInstall">Test fonts</a> must be installed for this test. The WOFF being tested will be loaded over the network so please wait until the download is complete before determing the success of this test.</p>
+		<p>Test passes if the word PASS appears below.</p>
+		<p>The Extended Metadata Block is valid and may be displayed to the user upon request.</p>
+		<div class="test">P</div>
+		<p>The XML contained in the Extended Metadata Block is below.</p>
+		<pre>
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;metadata version="1.0"&gt;
+	&lt;uniqueid id="org.w3.webfonts.wofftest" /&gt;
+	&lt;vendor name="Test Vendor" url="http://w3c.org/Fonts" /&gt;
+	&lt;credits&gt;
+		&lt;credit name="Credit 1" role="Role 1" url="http://w3c.org/Fonts" /&gt;
+		&lt;credit name="Credit 2" role="Role 2" url="http://w3c.org/Fonts" /&gt;
+	&lt;/credits&gt;
+	&lt;description url="http://w3c.org/Fonts"&gt;
+		&lt;text&gt;
+			Description without language.
+		&lt;/text&gt;
+		&lt;text lang="en"&gt;
+			Description with "en" language.
+		&lt;/text&gt;
+		&lt;text lang="fr"&gt;
+			Description with "fr" language.
+		&lt;/text&gt;
+	&lt;/description&gt;
+	&lt;license url="http://w3c.org/Fonts" id="License ID"&gt;
+		&lt;text&gt;
+			License without language.
+		&lt;/text&gt;
+		&lt;text lang="en"&gt;
+			License with "en" language.
+		&lt;/text&gt;
+		&lt;text lang="fr"&gt;
+			License with "fr" language.
+		&lt;/text&gt;
+	&lt;/license&gt;
+	&lt;copyright&gt;
+		&lt;text&gt;
+			Copyright without language.
+		&lt;/text&gt;
+		&lt;text lang="en"&gt;
+			Copyright with "en" language.
+		&lt;/text&gt;
+		&lt;text lang="fr"&gt;
+			Copyright with "fr" language.
+		&lt;/text&gt;
+	&lt;/copyright&gt;
+	&lt;trademark&gt;
+		&lt;text&gt;
+			Trademark without language.
+		&lt;/text&gt;
+		&lt;text lang="en"&gt;
+			Trademark with "en" language.
+		&lt;/text&gt;
+		&lt;text lang="fr"&gt;
+			Trademark with "fr" language.
+		&lt;/text&gt;
+	&lt;/trademark&gt;
+	&lt;licensee name="Licensee Name" /&gt;
+	&lt;extension id="Extension 1"&gt;
+		&lt;name&gt;Extension 1 - Name Without Language&lt;/name&gt;
+		&lt;name lang="en"&gt;Extension 1 - Name With "en" Language&lt;/name&gt;
+		&lt;name lang="fr"&gt;Extension 1 - Name With "fr" Language&lt;/name&gt;
+		&lt;item id="Extension 1 - Item 1 ID"&gt;
+			&lt;name&gt;Extension 1 - Item 1 - Name Without Language&lt;/name&gt;
+			&lt;name lang="en"&gt;Extension 1 - Item 1 - Name With "en" Language&lt;/name&gt;
+			&lt;name lang="fr"&gt;Extension 1 - Item 1 - Name With "fr" Language&lt;/name&gt;
+			&lt;value&gt;Extension 1 - Item 1 - Value Without Language&lt;/value&gt;
+			&lt;value lang="en"&gt;Extension 1 - Item 1 - Value With "en" Language&lt;/value&gt;
+			&lt;value lang="fr"&gt;Extension 1 - Item 1 - Value With "fr" Language&lt;/value&gt;
+		&lt;/item&gt;
+		&lt;item id="Extension 1 - Item 2 ID"&gt;
+			&lt;name&gt;Extension 1 - Item 2 - Name Without Language&lt;/name&gt;
+			&lt;name lang="en"&gt;Extension 1 - Item 2 - Name With "en" Language&lt;/name&gt;
+			&lt;name lang="fr"&gt;Extension 1 - Item 2 - Name With "fr" Language&lt;/name&gt;
+			&lt;value&gt;Extension 1 - Item 2 - Value Without Language&lt;/value&gt;
+			&lt;value lang="en"&gt;Extension 1 - Item 2 - Value With "en" Language&lt;/value&gt;
+			&lt;value lang="fr"&gt;Extension 1 - Item 2 - Value With "fr" Language&lt;/value&gt;
+		&lt;/item&gt;
+	&lt;/extension&gt;
+	&lt;extension id="Extension 2"&gt;
+		&lt;name&gt;Extension 2 - Name Without Language&lt;/name&gt;
+		&lt;name lang="en"&gt;Extension 2 - Name With "en" Language&lt;/name&gt;
+		&lt;name lang="fr"&gt;Extension 2 - Name With "fr" Language&lt;/name&gt;
+		&lt;item id="Extension 2 - Item 1 ID"&gt;
+			&lt;name&gt;Extension 2 - Item 1 - Name Without Language&lt;/name&gt;
+			&lt;name lang="en"&gt;Extension 2 - Item 1 - Name With "en" Language&lt;/name&gt;
+			&lt;name lang="fr"&gt;Extension 2 - Item 1 - Name With "fr" Language&lt;/name&gt;
+			&lt;value&gt;Extension 2 - Item 1 - Value Without Language&lt;/value&gt;
+			&lt;value lang="en"&gt;Extension 2 - Item 1 - Value With "en" Language&lt;/value&gt;
+			&lt;value lang="fr"&gt;Extension 2 - Item 1 - Value With "fr" Language&lt;/value&gt;
+		&lt;/item&gt;
+		&lt;item id="Extension 2 - Item 2 ID"&gt;
+			&lt;name&gt;Extension 2 - Item 2 - Name Without Language&lt;/name&gt;
+			&lt;name lang="en"&gt;Extension 2 - Item 2 - Name With "en" Language&lt;/name&gt;
+			&lt;name lang="fr"&gt;Extension 2 - Item 2 - Name With "fr" Language&lt;/name&gt;
+			&lt;value&gt;Extension 2 - Item 2 - Value Without Language&lt;/value&gt;
+			&lt;value lang="en"&gt;Extension 2 - Item 2 - Value With "en" Language&lt;/value&gt;
+			&lt;value lang="fr"&gt;Extension 2 - Item 2 - Value With "fr" Language&lt;/value&gt;
+		&lt;/item&gt;
+		&lt;item id="Extension 2 - Item 3 ID"&gt;
+			&lt;name&gt;Extension 2 - Item 3 - Name Without Language&lt;/name&gt;
+			&lt;name lang="en"&gt;Extension 2 - Item 3 - Name With "en" Language&lt;/name&gt;
+			&lt;name lang="fr"&gt;Extension 2 - Item 3 - Name With "fr" Language&lt;/name&gt;
+			&lt;value&gt;Extension 2 - Item 3 - Value Without Language&lt;/value&gt;
+			&lt;value lang="en"&gt;Extension 2 - Item 3 - Value With "en" Language&lt;/value&gt;
+		&lt;/item&gt;
+	&lt;/extension&gt;
+&lt;/metadata&gt;
+		</pre>
+	</body>
+</html>

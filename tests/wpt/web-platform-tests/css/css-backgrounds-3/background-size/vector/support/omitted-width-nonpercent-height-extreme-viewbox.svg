@@ -1,0 +1,11 @@
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<svg xmlns="http://www.w3.org/2000/svg"
+     height="8px"
+     viewBox="0 0 1 2147483647"
+     preserveAspectRatio="none">
+  <title>Image with omitted width, non-percent height, extreme viewbox</title>
+  <rect y="0" width="100%" height="100%" fill="lime"/>
+</svg>

@@ -211,7 +211,7 @@ def _ensure_case_insensitive_if_windows():
 
 
 def _is_windows():
-    return sys.platform == 'win32' or sys.platform == 'msys'
+    return sys.platform == 'win32'
 
 
 def bootstrap(topdir):
@@ -233,15 +233,6 @@ def bootstrap(topdir):
     if ' ' in topdir:
         print('Cannot run mach in a path with spaces.')
         print('Current path:', topdir)
-        sys.exit(1)
-
-    # We don't support MinGW Python
-    if os.path.join(os.sep, 'mingw64', 'bin') in sys.executable:
-        print('Cannot run mach with MinGW or MSYS Python.')
-        print('\nPlease add the path to Windows Python (usually /c/Python27) to your path.')
-        print('You can do this by appending the line:')
-        print('    export PATH=/c/Python27:$PATH')
-        print('to your ~/.profile.')
         sys.exit(1)
 
     # Ensure we are running Python 2.7+. We put this check here so we generate a

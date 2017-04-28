@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Selectors: ID selectors</title>
+  <link rel="author" title="Gabriele Romanato" href="mailto:gabriele.romanato@gmail.com" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#id-selectors" />
+  <meta name="flags" content="" />
+  <meta name="assert" content="Browsers should apply each rule to the elements which have the specified ID"/>
+<style type="text/css">
+p#foo {color: fuchsia}
+div#moo {color: orange}
+h4#title {color: blue}
+
+</style>
+ </head>
+ <body>
+<p id="foo">This text should be fuchsia.</p>
+<div id="moo">This text should be orange.</div>
+<h4 id="title">This text should be blue.</h4>
+ </body>
+</html>

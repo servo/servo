@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Counter-reset on pseudo-element that is not generated</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#content" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Pseudo-elements that are not generated do not reset counters." />
+        <style type="text/css">
+            #div1:before
+            {
+                counter-reset: notgenerated 10;
+                display: none;
+            }
+            div:before
+            {
+                content: counter(notgenerated);
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is the number '0' below.</p>
+        <div id="div1">
+            <div></div>
+        </div>
+    </body>
+</html>

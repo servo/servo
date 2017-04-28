@@ -1,0 +1,44 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: The anonymous block box around a table and the table 'margin-right' property</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#model" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'margin-right' property of a table is actually applied to its anonymous block box." />
+        <style type="text/css">
+            table
+            {
+                border-spacing: 0;
+                display: inline-table;
+                margin-right: 50px;
+            }
+            caption, td
+            {
+                background: blue;
+                color: blue;
+            }
+            td
+            {
+                padding: 0;
+            }
+            div
+            {
+                background: orange;
+                display: inline-block;
+                height: 50px;
+                width: 50px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a single blue box and orange square below, and the space between them is the same width as the orange square.</p>
+        <table>
+            <caption>XXXXXXXXX0</caption>
+            <tr>
+                <td>XXXXXXXXX0</td>
+            </tr>
+        </table>
+        <div></div>
+    </body>
+</html>

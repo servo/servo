@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Flexible Box Test: Negative margins</title>
+<link rel="author" title="Google Inc." href="https://www.google.com/">
+<link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#item-margins">
+<link rel="match" href="reference/negative-margins-001-ref.html">
+<meta name="assert" content="Negative margins get floored at zero for intrinsic size computations">
+<style>
+    .container {
+        width: 60px;
+        background-color: red;
+        line-height: 0px;
+        border: 3px black solid;
+    }
+
+    .flex {
+        display: inline-flex;
+        background-color: green;
+    }
+
+    .item {
+        width: 20px;
+        height: 10px;
+        background-color: green;
+    }
+
+    .first {
+        width: 40px;
+    }
+
+    .neg-marg {
+        margin-left: -40px;
+    }
+</style>
+<body>
+    <p>You should see a green rectangle with a black border, 60px wide. You should see no red.</p>
+
+    <div class="container">
+        <div class="flex">
+            <div class="item first"></div>
+            <div class="item neg-marg"></div>
+            <div class="item"></div>
+        </div>
+    </div>
+</body>

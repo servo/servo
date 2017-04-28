@@ -1,0 +1,19 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS: style attribute and 'inherit'</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/cascade/style/006.xml"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html#value-def-inherit" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html#cascading-order"/>
+  <link rel="help" href="http://www.w3.org/TR/css-style-attr/#interpret"/>
+  <link rel="match" href="reference/ref-green.html" />
+  <style type="text/css">
+   body { color: green; }
+   div { color: red; }
+  </style>
+ </head>
+ <body>
+  <div style="color: inherit">This should be green.</div>
+ </body>
+</html>

@@ -1,0 +1,19 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+ <head>
+  <title>CSS Test: text-decoration underlining and spaces</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact" />
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/text/decoration/001.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#lining-striking-props" />
+  <style type="text/css">
+   span { text-decoration: underline; color: orange; }
+   div { font-size: 3em; }
+  </style>
+ </head>
+ <body>
+  <p>There must be an <span>orange underline</span> in the space between
+    the two blue squares.</p>
+  <div><span><img src="support/swatch-blue.png" alt="X"/> <img src="support/swatch-blue.png" alt="X"/></span></div>
+ </body>
+</html>

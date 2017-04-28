@@ -1,0 +1,28 @@
+<!-- Tag Soup -->
+<html>
+ <head>
+  <title>CSS Compatability: 'font' Parsing</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/parsing/compatibility/001.html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#fonts-intro" />
+  <style type="text/css">
+   div { width: 160px; height: 160px; background: red; }
+   div div { width: 5em; height: 1em; font-size: 10px; background: green; }
+   .test1 { font: 32 serif; } /* 32px */
+   .test2 { font: 100 32 serif; } /* 32px */
+   .test3 { font: italic 32 serif; } /* 32px */
+   .test4 { font: normal 32 serif; } /* 32px */
+   .test5 { font: bold 32 serif; } /* 32px */
+  </style>
+ </head>
+ <body>
+  <p>The following should be a green square.</p>
+  <div>
+   <div class="test1">1</div>
+   <div class="test2">2</div>
+   <div class="test3">3</div>
+   <div class="test4">4</div>
+   <div class="test5">5</div>
+  </div>
+ </body>
+</html>

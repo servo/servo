@@ -1,0 +1,61 @@
+
+<HTML>
+<HEAD>
+<TITLE>Fifth Test of Section 4.4 of CSS1 Spec</TITLE>
+
+
+
+<STYLE TYPE="text/css">
+P {line-height: 14pt;
+   font-size: 12pt}
+em { line-height: 28pt }
+strong { line-height: 42pt }
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+
+
+<BODY>
+
+<h1>Testing Statement #5 Below of Section 4.4 of CSS1 Spec</h1>
+
+
+
+
+
+
+<ul>
+<li>
+5. The height of the line-box is from the top of the highest section to the
+bottom of the lowest one.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p >
+If statement #5 above is passed, then:
+<p>
+This text has three sections: (1) <em>emphasized(em)</em>text, (2)
+regular text, and (3) <strong>strong(strong)</strong>text.  Even though
+each of these has its own line height, the height of the line as a whole
+should be the maximum of these three.
+"em" and "strong" are inline elements.
+Rules applied are "P {line-height: 14pt; font-size: 12pt}".
+Also "em {line-height: 28pt;}" and "strong {line-height: 42pt;}
+"
+All other properties should be UA-default.
+
+
+
+To move directly to the next test, click<a href="44-6.htm"> here</a>
+</BODY>
+</HTML>

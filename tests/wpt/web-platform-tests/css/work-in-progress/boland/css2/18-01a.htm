@@ -1,0 +1,68 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Second Test of Section 18.1 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+#id1 {cursor: ne-resize}
+#id2 {cursor: nw-resize}
+#id3 {cursor: n-resize}
+#id4 {cursor: se-resize}
+#id5 {cursor: sw-resize}
+#id6 {cursor: s-resize}
+#id7 {cursor: w-resize}
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Second Testable Statement of Sec 18.1 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+2. The cursor property specifies the type of cursor to be displayed for the
+pointing device.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p ID=id1 >
+If statement #2 above is passed, then
+the UA determines the cursor to display based on the current context.
+The rule applied is "#id1 {cursor: ne-resize}".
+<p ID=id2>
+A nw-resize is used.  The rule applied is "#id2 {cursor: nw-resize}".
+<p ID=id3>
+The n-resize cursor is used.
+The rule applied is "#id3 {cursor: n-resize}".
+<p ID=id4>
+Here the cursor should be se-resize .
+The rule applied is "#id4 {cursor: se-resize}".
+<p ID=id5>
+Here a sw-resize cursor is used.
+The rule applied is "#id5 {cursor: sw-resize}".
+<p ID=id6>
+Here a s-resize cursor is used.
+The rule applied is "#id6 {cursor: s-resize}".
+<p ID=id7>
+Here a w-resize cursor is used.
+The rule applied is "#id7 {cursor: w-resize}".
+<p>
+All other properties of this page should be UA-default.
+
+
+</BODY>
+</HTML>
+

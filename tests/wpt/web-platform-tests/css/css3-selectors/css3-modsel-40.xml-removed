@@ -1,0 +1,11 @@
+<csstest def="::selection pseudo-element" module="W3C Selectors" modulename="css3-modsel" number="40" rev="1.1" date="20-november-2001" xmlns:a="http://www.example.org/a" xmlns:b="http://www.example.org/b" xmlns:html="http://www.w3.org/1999/xhtml" xmlns="http://www.example.org/css3tests">
+
+<author>Daniel Glazman</author>
+<author>Ian Hickson</author>
+<userinteraction/>
+<cssrules>p::selection { background-color : lime }
+</cssrules>
+<code>
+<p xmlns="http://www.w3.org/1999/xhtml">Any textual selection in this long paragraph should have green background. Any textual selection in this long paragraph should have green background. Any textual selection in this long paragraph should have green background.</p>
+</code>
+</csstest>

@@ -22,6 +22,8 @@ _addTest(function(canvas, ctx) {
 assert_throws("INDEX_SIZE_ERR", function() { ctx.createImageData(10, 0); });
 assert_throws("INDEX_SIZE_ERR", function() { ctx.createImageData(0, 10); });
 assert_throws("INDEX_SIZE_ERR", function() { ctx.createImageData(0, 0); });
+assert_throws("INDEX_SIZE_ERR", function() { ctx.createImageData(0.99, 10); });
+assert_throws("INDEX_SIZE_ERR", function() { ctx.createImageData(10, 0.1); });
 
 
 });

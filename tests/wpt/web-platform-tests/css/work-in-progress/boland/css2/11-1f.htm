@@ -1,0 +1,79 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Seventh Test of Section 11.1 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+
+
+
+p {clip: rect}
+strong {clip: auto}
+h3 {clip: inherit}
+h4 {clip: rect}
+h5 {clip: 200%}
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<!--
+<h1 >
+Testing Seventh Testable Statement of Sec 11.1 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+2. The 'clip' property has initial 'auto', it applies to block-level
+and replaced elements, it is not inherited, percentages are N/A, and
+media is visual.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p >
+If statement #7 above is passed, then
+-->
+<blockquote>
+This blockquote element has clip auto (initial value, no explicit CSS
+rule defined)
+</blockquote>
+<p>
+This paragraph has clip rect.  This <em>emphasized text</em> has
+clip of UA-default, even though em is descendant of p (property not
+inherited).</p>
+<strong>This strong text has clip auto</strong>
+<h3>This h3 heading has clip inherit </h3>
+<h4>This h4 text has clip rect</h4>
+
+<h5>This h5 heading is UA-default (percentages don't apply)</h5>
+
+
+The rules applied are "p {clip: rect}",
+"strong {clip: auto}",
+h3 {clip: inherit}",
+h4 {clip: rect}",
+h5 {clip: 200%}".
+
+NOTE: From all elements listed above, clip property should apply to all
+elements.
+<!--
+All other properties of this page should be UA-default.
+Your browser rendering of this page should look similar to this <a href="c83201.gif"> 
+reference image </a> or to this <a href="d83201.gif">reference image</a>.
+-->
+
+
+</BODY>
+</HTML>
+

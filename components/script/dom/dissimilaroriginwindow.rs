@@ -19,6 +19,7 @@ use js::jsval::{JSVal, UndefinedValue};
 use msg::constellation_msg::PipelineId;
 use script_traits::ScriptMsg as ConstellationMsg;
 use servo_url::ImmutableOrigin;
+use servo_url::MutableOrigin;
 use servo_url::ServoUrl;
 
 /// Represents a dissimilar-origin `Window` that exists in another script thread.
@@ -56,11 +57,17 @@ impl DissimilarOriginWindow {
                                                     global_to_clone_from.constellation_chan().clone(),
                                                     global_to_clone_from.scheduler_chan().clone(),
                                                     global_to_clone_from.resource_threads().clone(),
-                                                    timer_event_chan),
+                                                    timer_event_chan,
+                                                    global_to_clone_from.origin().clone()),
             browsing_context: JS::from_ref(browsing_context),
             location: MutNullableJS::new(None),
         };
         unsafe { DissimilarOriginWindowBinding::Wrap(cx, win) }
+    }
+
+    #[allow(dead_code)]
+    pub fn origin(&self) -> &MutableOrigin {
+        self.globalscope.origin()
     }
 }
 

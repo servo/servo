@@ -1,0 +1,36 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Line Breaking in Collapsed White Space</title>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#white-space-model"/>
+  <meta name="assert" content="Line break opportunities are determined before
+    white space collapsing."/>
+  <style type="text/css">
+    .control {
+      line-height: 1;
+      height: 2em;
+      background: red;
+    }
+    .cover {
+      color: green;
+      background: green;
+    }
+    .constraint {
+      width: 0;
+    }
+    .nobr { white-space: nowrap; }
+  </style>
+
+ </head>
+ <body>
+  <p>There must be a green box below and no red.</p>
+  <div class="control">
+    <div class="cover">
+      <div class="constraint">
+        <span class="nobr">AA </span> BB
+      </div>
+    </div>
+  </div>
+ </body>
+</html>

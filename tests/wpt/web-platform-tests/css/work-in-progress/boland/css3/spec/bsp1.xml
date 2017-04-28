@@ -1,0 +1,177 @@
+
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+      PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+      "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<title>CSS3 Background Spacing Test</title>
+
+<style type="text/css">
+p {background-spacing: 50px; 
+  background-image: url(flagbg.gif);
+   }
+h3 {background-spacing: 0;
+    background-image: url(ovalbbut.gif);
+    }
+</style>
+</head>
+
+<body>
+
+
+
+
+<h1>CSS3 Background Spacing Test</h1>
+
+
+
+
+
+<ul>
+<li>
+The "background-spacing" property sets the background spacing of an element.
+</li>
+</ul>
+<h2>
+PASS CRITERIA:
+</h2>
+<p>
+If statement above is true, the flag image of this paragraph should have
+a background spacing of 50px.
+The rule applied is "p {background-spacing: 50px;}"
+Also "p {background-image: url(flagbg.gif);}".
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
+eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+cccccccccccccccccccccccccccccccccccc
+dddddddddddddddddddddddddddddddddddddd
+eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+ffffffffffffffffffffffffffffffffffff
+ggggggggggggggggggggggggggggggggggggg
+hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh
+iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii
+jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj
+kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk
+lllllllllllllllllllllllllllllllllllllllll
+mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm
+nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn
+ooooooooooooooooooooooooooooooooooooooo
+pppppppppppppppppppppppppppppppppppppppp
+qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq
+rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr
+ssssssssssssssssssssssssssssssssssssssssssss
+ttttttttttttttttttttttttttttttttttttttttttttuuu
+uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu
+vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvw
+wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxy
+yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
+zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+cccccccccccccccccccccccccccccccccccc
+dddddddddddddddddddddddddddddddddddddd
+eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+ffffffffffffffffffffffffffffffffffff
+ggggggggggggggggggggggggggggggggggggg
+hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh
+iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii
+jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj
+kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk
+lllllllllllllllllllllllllllllllllllllllll
+mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm
+nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn
+ooooooooooooooooooooooooooooooooooooooo
+pppppppppppppppppppppppppppppppppppppppp
+qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq
+rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr
+ssssssssssssssssssssssssssssssssssssssssssss
+ttttttttttttttttttttttttttttttttttttttttttttuuu
+uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu
+vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvw
+wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxy
+yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
+zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
+</p>
+<h3>
+This h3 heading should have a background spacing of 0 for its
+oval button image.
+The rule applied is "h3 {background-spacing: 0;}"
+Also "h3 {background-image: url(ovalbbut.gif);}".
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
+eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+cccccccccccccccccccccccccccccccccccc
+dddddddddddddddddddddddddddddddddddddd
+eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+ffffffffffffffffffffffffffffffffffff
+ggggggggggggggggggggggggggggggggggggg
+hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh
+iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii
+jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj
+kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk
+lllllllllllllllllllllllllllllllllllllllll
+mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm
+nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn
+ooooooooooooooooooooooooooooooooooooooo
+pppppppppppppppppppppppppppppppppppppppp
+qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq
+rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr
+ssssssssssssssssssssssssssssssssssssssssssss
+ttttttttttttttttttttttttttttttttttttttttttttuuu
+uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu
+vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvw
+wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxy
+yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
+zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+cccccccccccccccccccccccccccccccccccc
+dddddddddddddddddddddddddddddddddddddd
+eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+ffffffffffffffffffffffffffffffffffff
+ggggggggggggggggggggggggggggggggggggg
+hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh
+iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii
+jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj
+kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk
+lllllllllllllllllllllllllllllllllllllllll
+mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm
+nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn
+ooooooooooooooooooooooooooooooooooooooo
+pppppppppppppppppppppppppppppppppppppppp
+qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq
+rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr
+ssssssssssssssssssssssssssssssssssssssssssss
+ttttttttttttttttttttttttttttttttttttttttttttuuu
+uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu
+vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvw
+wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxy
+yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
+zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
+</h3>
+
+<p>
+All other properties of this page should be UA-default.
+This is a paragraph like the one above.
+However, it may not be long enough for a background image.
+</p>
+
+</body>
+</html>

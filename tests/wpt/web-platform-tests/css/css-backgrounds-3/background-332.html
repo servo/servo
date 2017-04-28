@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Backgrounds and Borders Test: background shorthand - all values specified</title>
+    <link rel="author" title="Intel" href="http://www.intel.com" />
+    <link rel="help" href="http://www.w3.org/TR/css3-background/#the-background" />
+    <meta name="flags" content="dom image" />
+    <meta name="assert" content="Check that given a valid declaration, for each layer the shorthand 'backgound' first sets the corresponding layer of each of 'background-image', 'background-position', 'background-size', 'background-repeat', 'background-origin', 'background-clip' and 'background-attachment' to that property's initial value, then assigns any explicit values specified for this layer in the declaration" />
+    <style>
+        #test {
+            background: url("support/60x60-green.png") 40% / 10em gray round fixed border-box;
+        }
+    </style>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <div id="test"></div>
+    <script>
+        var cs = getComputedStyle(document.getElementById("test"), null);
+
+        test(function() {
+            assert_equals(cs.getPropertyValue("background-image"),
+                "url(support/60x60-green.png)", "background specified value for background-image");
+        }, "background_specified_image");
+
+        test(function() {
+            assert_equals(cs.getPropertyValue("background-position"),
+                "40% 50%", "background specified value for background-position");
+        }, "background_specified_position");
+
+        test(function() {
+            assert_equals(cs.getPropertyValue("background-size"),
+                "10em 10em", "background specified value for background-size");
+        }, "background_specified_size");
+
+        test(function() {
+            assert_equals(cs.getPropertyValue("background-repeat"),
+                "round round", "background specified value for background-repeat");
+        }, "background_specified_repeat");
+
+        test(function() {
+            assert_equals(cs.getPropertyValue("background-attachment"),
+                "fixed", "background specified value for background-attachment");
+        }, "background_specified_attachment");
+
+        test(function() {
+            assert_equals(cs.getPropertyValue("background-origin"),
+                "border-box", "background specified value for background-origin");
+        }, "background_specified_origin");
+
+        test(function() {
+            assert_equals(cs.getPropertyValue("background-clip"),
+                "border-box", "background specified value for background-clip");
+        }, "background_specified_clip");
+
+        test(function() {
+            assert_equals(cs.getPropertyValue("background-color"),
+                "gray", "background specified value for background-color");
+        }, "background_specified_color");
+    </script>
+  </body>
+</html>

@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Auxiliary Browing Contexts: window.opener noopener</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/PrefixedLocalStorage.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+    var prefixedLocalStorage;
+    setup(() => prefixedLocalStorage = new PrefixedLocalStorageTest());
+    async_test(t => {
+      t.add_cleanup(() => prefixedLocalStorage.cleanup());
+      prefixedLocalStorage.onSet('openerIsNull', t.step_func_done(e => {
+        assert_equals(e.newValue, 'true');
+      }));
+      window.open(prefixedLocalStorage.url('resources/no-opener.html'),
+        'iShouldNotHaveAnOpener',
+        'noopener');
+    }, 'Auxiliary browsing context created via `window.open` setting `noopener` should report `window.opener` `null`');
+    </script>
+  </body>
+</html>

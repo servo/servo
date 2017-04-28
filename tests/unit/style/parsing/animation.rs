@@ -7,6 +7,7 @@ use servo_atoms::Atom;
 use style::parser::Parse;
 use style::properties::longhands::animation_iteration_count::single_value::computed_value::T as AnimationIterationCount;
 use style::properties::longhands::animation_name;
+use style::values::{KeyframesName, CustomIdent};
 use style_traits::ToCss;
 
 #[test]
@@ -14,13 +15,13 @@ fn test_animation_name() {
     use self::animation_name::single_value::SpecifiedValue as SingleValue;
     let other_name = Atom::from("other-name");
     assert_eq!(parse_longhand!(animation_name, "none"),
-               animation_name::SpecifiedValue(vec![SingleValue(atom!(""))]));
+               animation_name::SpecifiedValue(vec![SingleValue(None)]));
     assert_eq!(parse_longhand!(animation_name, "other-name, none, 'other-name', \"other-name\""),
                animation_name::SpecifiedValue(
-                   vec![SingleValue(other_name.clone()),
-                        SingleValue(atom!("")),
-                        SingleValue(other_name.clone()),
-                        SingleValue(other_name.clone())]));
+                   vec![SingleValue(Some(KeyframesName::Ident(CustomIdent(other_name.clone())))),
+                        SingleValue(None),
+                        SingleValue(Some(KeyframesName::QuotedString(other_name.clone()))),
+                        SingleValue(Some(KeyframesName::QuotedString(other_name.clone())))]));
 }
 
 #[test]

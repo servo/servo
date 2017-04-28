@@ -1,0 +1,65 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Sixth Test of Section 10.1 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+#div1 {position: absolute; left: 75px; top: 75px }
+#p1 {color: red}
+#em1 {position: absolute; left: 100px; top: 100px }
+#strong1 {color: yellow}
+#p2 {color: green}
+
+
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Sixth Testable Statement of Sec 10.1 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+6. If the element has position: absolute, the containing block is established
+by several rules.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA(should be overlapping lines):
+</h2>
+<div id="div1" >
+<p id="p1">
+If statement #6 above is passed, then
+this paragraph should be in the initial containing block and red.
+The rule applied is "#div1 {position: absolute; left: 75px; top: 75px }".
+Also "#p1 {color: red}".
+</p>
+<p id="p2">
+This <em id="em1"> emphasized text is in the 
+<strong id="strong1">strong(yellow)</strong> part of the paragraph. 
+Rules are "#em1 {position: absolute; left: 100px; top: 100px}",
+"#strong1 {color: yellow}".
+Also "#p2 {color: green}".
+</em>
+This part of paragraph should be green.
+</p>
+</div>
+
+All other properties of this page should be UA-default.
+
+
+</BODY>
+</HTML>
+

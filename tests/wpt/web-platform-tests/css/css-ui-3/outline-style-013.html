@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: outline-style - dashed (basic)</title>
+<link rel="author" title="Intel" href="http://www.intel.com/">
+<link rel="author" title="Shiyou Tan" href="mailto:shiyoux.tan@intel.com">
+<link rel="help" title="7.3. 'outline-style' property" href="http://www.w3.org/TR/css3-ui/#outline-style">
+<link rel="help" href="http://www.w3.org/TR/CSS21/box.html#value-def-border-style">
+<link rel="match" href="reference/outline-style-013-ref.html">
+<meta name="flags" content="">
+<meta name="assert" content="Test checks that the outline style is dashed when outline-style set dashed">
+<style>
+  #test {
+    height: 150px;
+    margin: 30px;
+    outline-color: green;
+    outline-style: dashed;
+    outline-width: 2px;
+    width: 150px;
+  }
+</style>
+<body>
+  <p>Test passes if there is a blank square whose border is <strong>green dashed</strong>.</p>
+  <div id="test"></div>
+</body>

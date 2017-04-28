@@ -1,0 +1,78 @@
+
+<HTML>
+
+<HEAD>
+<TITLE>Second Test of Section 5.2.5 of CSS1 Spec</TITLE>
+
+<STYLE>
+h5 { font-weight: bold }
+strong { font-weight: 100}
+h3 { font-weight: 200 }
+p { font-weight: 800 }
+h4 {font-weight: 200%}
+
+</STYLE>
+</HEAD>
+
+
+
+
+
+<BODY>
+
+
+<h1 >Testing Statement #2 Below of Section 5.2.5 of CSS1 Spec</h1>
+
+<ul>
+<li>
+2. For "font-weight", initial is "normal", it applies to all elements, it is 
+inherited, and percentage values are N/A.
+</ul>
+
+
+<h2>
+PASS CRITERIA:
+</h2>
+<blockquote>
+If statement #2 above is passed, then
+this blockquote has a UA-default (or normal) font weight; the
+initial value is normal.  No explicit CSS1 rules are applied.
+</blockquote>
+<p>
+This paragraph has font weight of 800 (dark).
+The rule applied is "p {font-weight: 800}".
+So the font weight property applies to the "p" element.
+
+<h3>
+This h3 heading, including this emphasized <em>word</em>, has
+a font weight of 200 (light).
+The rule applied is "h3 {font-weight: 200}", and since "em" is
+a descendant of "h3", "em" inherits this font weight value.
+So the font weight property applies to the "h3" element.
+</h3>
+
+<h4>
+This "h4" heading should be UA-default.  There is a nonsensical
+rule applied, "h4 {font-weight: 200%}", which should be ignored,
+having no effect.
+</h4>
+<h5>
+This h5 heading should have a font weight of bold.  
+The rule applied is "h5 {font-weight: bold}".
+The word <strong>strong</strong>, however, should have a font
+weight of 100 (light).  This rule is "strong {font-weight: 100}".
+So the font weight property applies to the "strong" element.
+</h5>
+
+
+
+
+
+<em>
+Text below is emphasized.
+All other properties should be UA-default.
+</em>
+To move directly to the next test, click<a href="525-3.htm"> here</a>
+</BODY>
+</HTML>
+

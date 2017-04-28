@@ -1,0 +1,84 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Ninth Test of Section 16.3 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+
+
+p {text-shadow: }
+h3 {text-shadow: 0.2em 0.2em}
+h4 {text-shadow: 3px 3px 5px red}
+strong {text-shadow: inherit}
+blockquote {text-shadow: 50%}
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Ninth Testable Statement of Sec 16.3 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+9. The text-shadow property has initial none, it applies to all elements,
+it is not inherited, and percentage values are
+relative to parent element's font size.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p >
+
+If statement #9 above is passed, this paragraph should have a text-shadow
+of none.
+The rule applied is "p {text-shadow: }".
+So the text-shadow property applies to the "p" element.
+<h3>
+This h3 element should have a text-shadow of 0.2em 0.2em
+<em>
+This emphasized text should have a volume of UA-default, since the 
+text-shadow property is not inherited, and "em" is a child of 'h3".
+No explicit rule is applied for "em".
+</em>
+THe rule applied is 'h3 {text-shadow: 0.2em 0.2em}".
+So the text-shadow property applies to em and h3.
+</h3>
+<h4>
+THis h4 element should have a text-shadow which is 3px 3px 5px red.
+The rule applied is "h4 {text-shadow: 3px 3px 5px red}".
+So the text-shadow property applies to h4.
+</h4>
+
+<strong>
+This strong text should have a text-shadow of inherit
+; so the text-shadow property applies
+to the strong element.
+The rule applied is "strong {text-shadow: inherit}".
+</strong>
+<blockquote>
+This blockquote element should have a text-shadow of UA-default.
+The rule applied is "blockquote {text-shadow: 50%}".
+</blockquote>
+All other properties of this page should be UA-default.
+
+
+
+All other properties of this page should be UA-default.
+
+
+</BODY>
+</HTML>
+

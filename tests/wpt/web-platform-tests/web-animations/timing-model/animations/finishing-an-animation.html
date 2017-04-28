@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Finishing an animation</title>
+<link rel="help"
+  href="https://w3c.github.io/web-animations/#finishing-an-animation-section">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+promise_test(function(t) {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  const promise = animation.ready;
+  let readyResolved = false;
+
+  animation.finish();
+  animation.ready.then(() => { readyResolved = true; });
+
+  return animation.finished.then(p => {
+    assert_equals(p, animation);
+    assert_equals(animation.ready, promise);
+    assert_true(readyResolved);
+  });
+}, 'A pending ready promise should be resolved and not replaced when the'
+   + ' animation is finished');
+
+</script>
+</body>

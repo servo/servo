@@ -1,0 +1,28 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: First-line selector applicability to table cells</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#first-line-pseudo" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The :first-line pseudo-element can be attached to a table-cell." />
+        <style type="text/css">
+            table
+            {
+                width: 100%
+            }
+            table td:first-line
+            {
+                color: green;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the "Filler Text" below is green.</p>
+        <table>
+            <tr>
+                <td>Filler Text</td>
+            </tr>
+        </table>
+    </body>
+</html>

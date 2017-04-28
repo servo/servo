@@ -1,0 +1,30 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: If animation-name is ‘none’ then there will be no animation.</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css3-animations/#the-animation-name-property-" />
+        <meta name="flags" content="animated" />
+        <meta name="assert" content="If animation-name is ‘none’ then there will be no animation." />
+        <style type="text/css">
+            @keyframes doesntMatch
+            {
+                from {background-color: blue;}
+                to {background-color: red;}
+            }
+            #div0
+            {
+                animation-name: none;
+                animation-fill-mode: forwards;
+                background-color: blue;
+                height: 50px;
+                position: relative;
+                width: 50px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page.</p>
+        <div id="div0"></div>
+    </body>
+</html>

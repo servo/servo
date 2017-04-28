@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Reftest Reference</title>
+		<link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+		<link rel="reviewer" title="Mihai Balan" href="mailto:mibalan@adobe.com"> <!-- 2013-07-24 -->
+			<style>
+			#vertical {
+				color: green;
+				font-family: Ahem;
+				font-size: 20px;
+				line-height: 100px;
+				transform: rotateZ(90deg);
+			}
+			#horizontal {
+				border-bottom: 20px solid green;
+				width: 100px;
+				height: 80px;
+			}
+			</style>
+		</head>
+		<body>
+			<p>The test passes if you see a green cross and no red.</p>
+			<div id="horizontal">
+				<div id="vertical">
+					XXXXXXXXX
+				</div>
+			</div>
+		</body>
+	</html>

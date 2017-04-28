@@ -1,0 +1,23 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: page size: em/ex units</title>
+  <link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#page-size-prop"/>
+  <meta name="flags" content="ahem paged" />
+  <meta name="assert" content="In length values for the 'size' property, the 'em' and 'ex' units refer to the page context's font."/>
+  <style type="text/css"><![CDATA[
+	@page {
+		font: 18pt Ahem;
+		margin: 4em;
+		size: 8em 10ex;
+		border: 2pt solid black;
+	}
+	body {background: aqua;}
+	p {font: 12pt sans-serif;}
+  ]]></style>
+ </head>
+ <body>
+  <p>On paper 3 inches x 3 inches or larger, this content must be printed in a square box whose interior dimensions are 2 inches x 2 inches.</p>
+ </body>
+</html>

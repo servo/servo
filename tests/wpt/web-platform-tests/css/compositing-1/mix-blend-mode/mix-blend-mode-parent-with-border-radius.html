@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>CSS Test: blending with parent having border radius</title>
+        <link rel="author" title="Mirela Budăeș" href="mailto:mbudaes@adobe.com">
+        <link rel="author" title="Mihai Tica" href="mailto:mitica@adobe.com">
+        <link rel="reviewer" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+        <link rel="reviewer" title="Horia Olaru" href="mailto:olaru@adobe.com">
+        <link rel="help" href="https://drafts.fxtf.org/compositing-1/#mix-blend-mode">
+        <meta name="assert" content="Test checks that an element with mix-blend-mode blends
+            with the parent element having border-radius.">
+        <meta name="flags" content=""/>
+        <link rel="match" href="reference/mix-blend-mode-parent-with-border-radius-ref.html">
+        <style type="text/css">
+            body {
+                background: lightgray;
+            }
+            .parent {
+                position: absolute;
+                z-index: 1;
+                width: 100px;
+                height: 100px;
+                background: #F00;
+                border-radius: 50px;
+            }
+            .blended {
+                background: #FF0;
+                width: 100px;
+                height: 100px;
+                mix-blend-mode: difference;
+            }
+
+        </style>
+    </head>
+    <body>
+        <p>Test passes if a green circle is drawn on top of a yellow square, over a lightgray background.</p>
+        <div class="parent">
+            <div class="blended"></div>
+        </div>
+    </body>
+</html>

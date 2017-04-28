@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Inheriting 'top' changes from parent table through anonymous table boxes</title>
+  <link rel="author" title="Boris Zbarsky" href="mailto:bzbarsky@mit.edu"/>
+  <link rel="reviewer" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html#value-def-inherit"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#position-props"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#propdef-position"/>
+  <link rel="match" href="dynamic-top-change-002-ref.xht" />
+
+  <meta name="flags" content="dom" />
+  <meta name="assert" content="The position of a positioned element which inherits its 'top' value from its parent changes when the parent's 'top' value is changed even if the parent is display:table."/>
+  <style type="text/css"><![CDATA[
+    p
+    {
+    line-height: 1.25;
+    margin: 1em 0;
+    }
+
+    strong {line-height: 1;}
+
+    .testDiv { width: 100px; height: 100px; }
+    #green { top: 4em; background: green; position: absolute; }
+    #red { top: inherit; background: red; position: relative; }
+    #parent { position: absolute; top: 2em; }
+    #intermediate { display: table; }
+  ]]></style>
+  <script type="text/javascript"><![CDATA[
+    window.onload = function() {
+      document.body.offsetWidth;
+      document.getElementById("intermediate").style.top = "2em";
+    }
+  ]]></script>
+ </head>
+ <body>
+   <p>Test passes if there is <strong>no red</strong>.</p>
+   <div id="parent">
+     <div id="intermediate">
+       <div id="red" class="testDiv"></div>
+     </div>
+   </div>
+   <div id="green" class="testDiv"></div>
+ </body>
+</html>

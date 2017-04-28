@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: run-in and sibling blocks</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact" />
+  <link rel="reviewer" title="Microsoft" href="http://www.microsoft.com/" />
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/run-in/001.xml" type="application/xhtml+xml" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#run-in" />
+  <style type="text/css">
+   .r { display: run-in; color: blue; }
+   .b { background: blue; display: block; }
+   .fail { background: red; line-height: 0; margin-top: 1em; color: white; }
+  </style>
+ </head>
+ <body>
+  <p>There should be a blue box below.</p>
+  <div class="r">FAIL</div>
+  <div class="b"></div>
+  <div class="fail">
+   FAIL
+  </div>
+ </body>
+</html>
