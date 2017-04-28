@@ -672,13 +672,23 @@ impl<'le> TElement for GeckoElement<'le> {
         unsafe { self.0.mServoData.get().as_ref() }
     }
 
-    fn skip_root_and_item_based_display_fixup(&self) -> bool {
+    fn skip_root_and_item_based_display_fixup(&self, pseudo: Option<&PseudoElement>) -> bool {
         // We don't want to fix up display values of native anonymous content.
         // Additionally, we want to skip root-based display fixup for document
         // level native anonymous content subtree roots, since they're not
         // really roots from the style fixup perspective.  Checking that we
         // are NAC handles both cases.
-        self.flags() & (NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE as u32) != 0
+        if self.flags() & (NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE as u32) != 0 {
+            return true;
+        }
+
+        // Also, check whether this is a pseudo-element that explicitly opts out
+        // of parent display-based style fixups.
+        if pseudo.map_or(false, |p| p.skips_display_fixup()) {
+            return true;
+        }
+
+        false
     }
 
     unsafe fn set_selector_flags(&self, flags: ElementSelectorFlags) {
