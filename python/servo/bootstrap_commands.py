@@ -414,18 +414,23 @@ class MachCommands(CommandBase):
         git_dir = path.join(cargo_dir, "git")
         git_db_dir = path.join(git_dir, "db")
         git_checkout_dir = path.join(git_dir, "checkouts")
+        git_db_list = filter(lambda f: not f.startswith('.'), os.listdir(git_db_dir))
+        git_checkout_list = os.listdir(git_checkout_dir)
 
-        for d in os.listdir(git_checkout_dir):
+        for d in list(set(git_db_list + git_checkout_list)):
             crate_name = d.replace("-{}".format(d.split("-")[-1]), "")
             if not packages["git"].get(crate_name, False):
                 packages["git"][crate_name] = {
                     "current": [],
                     "exist": [],
                 }
-            for d2 in os.listdir(path.join(git_checkout_dir, d)):
-                dep_path = path.join(git_checkout_dir, d, d2)
-                if os.path.isdir(dep_path):
-                    packages["git"][crate_name]["exist"].append((path.getmtime(dep_path), d, d2))
+            if os.path.isdir(path.join(git_checkout_dir, d)):
+                for d2 in os.listdir(path.join(git_checkout_dir, d)):
+                    dep_path = path.join(git_checkout_dir, d, d2)
+                    if os.path.isdir(dep_path):
+                        packages["git"][crate_name]["exist"].append((path.getmtime(dep_path), d, d2))
+            elif os.path.isdir(path.join(git_db_dir, d)):
+                packages["git"][crate_name]["exist"].append(("db", d, ""))
 
         for d in os.listdir(crates_src_dir):
             crate_name = re.sub(r"\-\d+(\.\d+){1,3}.+", "", d)
@@ -453,25 +458,31 @@ class MachCommands(CommandBase):
                         if int(crate_count) >= int(keep) or not current_crate:
                             crate_paths = []
                             if packages_type == "git":
+                                exist_checkout_path = path.join(git_checkout_dir, exist[1])
+                                exist_db_path = path.join(git_db_dir, exist[1])
                                 exist_name = path.join(exist[1], exist[2])
                                 exist_path = path.join(git_checkout_dir, exist_name)
 
-                                crate_paths.append(exist_path)
+                                if exist[0] == "db":
+                                    crate_paths.append(exist_db_path)
+                                    crate_count += -1
+                                else:
+                                    crate_paths.append(exist_path)
 
-                                crate_checkout_dir = path.join(git_checkout_dir, exist[1])
-                                exist_path = path.join(git_checkout_dir, exist_name)
-                                crate_git_db_dir = path.join(git_db_dir, exist[1])
+                                    # remove crate from checkout if doesn't exist in db directory
+                                    if not os.path.isdir(exist_db_path):
+                                        crate_count += -1
 
-                                with cd(path.join(exist_path, ".git", "objects", "pack")):
-                                    for pack in glob.glob("*"):
-                                        pack_path = path.join(crate_git_db_dir, "objects", "pack", pack)
-                                        if os.path.exists(pack_path):
-                                            crate_paths.append(pack_path)
+                                    with cd(path.join(exist_path, ".git", "objects", "pack")):
+                                        for pack in glob.glob("*"):
+                                            pack_path = path.join(exist_db_path, "objects", "pack", pack)
+                                            if os.path.exists(pack_path):
+                                                crate_paths.append(pack_path)
 
-                                if len(os.listdir(crate_checkout_dir)) <= 1:
-                                    crate_paths.append(path.join(git_checkout_dir, exist[1]))
-                                    if os.path.isdir(crate_git_db_dir):
-                                        crate_paths.append(crate_git_db_dir)
+                                    if len(os.listdir(exist_checkout_path)) <= 1:
+                                        crate_paths.append(exist_checkout_path)
+                                        if os.path.isdir(exist_db_path):
+                                            crate_paths.append(exist_db_path)
 
                                 size = sum(get_size(p) for p in crate_paths) / (1024 * 1024.0)
                             else:
