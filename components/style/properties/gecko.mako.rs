@@ -102,8 +102,10 @@ pub struct ComputedValues {
 }
 
 impl ComputedValues {
-    pub fn inherit_from(parent: &Self, default: &Self) -> Arc<Self> {
-        Arc::new(ComputedValues {
+    /// Inherits style from the parent element, accounting for the default
+    /// computed values that need to be provided as well.
+    pub fn inherit_from(parent: &Self, default: &Self) -> Self {
+        ComputedValues {
             custom_properties: parent.custom_properties.clone(),
             writing_mode: parent.writing_mode,
             root_font_size: parent.root_font_size,
@@ -116,7 +118,7 @@ impl ComputedValues {
             ${style_struct.ident}: default.${style_struct.ident}.clone(),
             % endif
             % endfor
-        })
+        }
     }
 
     pub fn new(custom_properties: Option<Arc<ComputedValuesMap>>,
