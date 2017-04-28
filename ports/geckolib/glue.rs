@@ -780,13 +780,30 @@ macro_rules! impl_basic_rule_funcs {
     }
 }
 
+macro_rules! impl_group_rule_funcs {
+    { ($name:ident, $rule_type:ty, $raw_type:ty),
+      get_rules: $get_rules:ident,
+      $($basic:tt)+
+    } => {
+        impl_basic_rule_funcs! { ($name, $rule_type, $raw_type), $($basic)+ }
+
+        #[no_mangle]
+        pub extern "C" fn $get_rules(rule: &$raw_type) -> ServoCssRulesStrong {
+            read_locked_arc(rule, |rule: &$rule_type| {
+                rule.rules.clone().into_strong()
+            })
+        }
+    }
+}
+
 impl_basic_rule_funcs! { (Style, StyleRule, RawServoStyleRule),
     getter: Servo_CssRules_GetStyleRuleAt,
     debug: Servo_StyleRule_Debug,
     to_css: Servo_StyleRule_GetCssText,
 }
 
-impl_basic_rule_funcs! { (Media, MediaRule, RawServoMediaRule),
+impl_group_rule_funcs! { (Media, MediaRule, RawServoMediaRule),
+    get_rules: Servo_MediaRule_GetRules,
     getter: Servo_CssRules_GetMediaRuleAt,
     debug: Servo_MediaRule_Debug,
     to_css: Servo_MediaRule_GetCssText,
@@ -844,13 +861,6 @@ pub extern "C" fn Servo_StyleRule_GetSelectorText(rule: RawServoStyleRuleBorrowe
 pub extern "C" fn Servo_MediaRule_GetMedia(rule: RawServoMediaRuleBorrowed) -> RawServoMediaListStrong {
     read_locked_arc(rule, |rule: &MediaRule| {
         rule.media_queries.clone().into_strong()
-    })
-}
-
-#[no_mangle]
-pub extern "C" fn Servo_MediaRule_GetRules(rule: RawServoMediaRuleBorrowed) -> ServoCssRulesStrong {
-    read_locked_arc(rule, |rule: &MediaRule| {
-        rule.rules.clone().into_strong()
     })
 }
 
