@@ -476,12 +476,12 @@ pub enum Component<Impl: SelectorImpl> {
     //
     // CSS3 Negation only takes a simple simple selector, but we still need to
     // treat it as a compound selector because it might be a type selector which
-    // we represent as a namespace and and localname.
+    // we represent as a namespace and a localname.
     //
-    // Note: if/when we upgrade this to CSS4, which supports combinators, we need
-    // to think about how this should interact with visit_complex_selector, and
-    // what the consumers of those APIs should do about the presence of combinators
-    // in negation.
+    // Note: if/when we upgrade this to CSS4, which supports combinators, we
+    // need to think about how this should interact with visit_complex_selector,
+    // and what the consumers of those APIs should do about the presence of
+    // combinators in negation.
     Negation(Box<[Component<Impl>]>),
     FirstChild, LastChild, OnlyChild,
     Root,
