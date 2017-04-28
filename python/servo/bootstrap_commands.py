@@ -18,6 +18,7 @@ import shutil
 import subprocess
 import sys
 import urllib2
+import glob
 
 from mach.decorators import (
     CommandArgument,
@@ -26,7 +27,7 @@ from mach.decorators import (
 )
 
 import servo.bootstrap as bootstrap
-from servo.command_base import CommandBase, BIN_SUFFIX
+from servo.command_base import CommandBase, BIN_SUFFIX, cd
 from servo.util import delete, download_bytes, download_file, extract, host_triple
 
 
@@ -411,7 +412,7 @@ class MachCommands(CommandBase):
                 crates_src_dir = path.join(crates_dir, "src", p)
 
         git_dir = path.join(cargo_dir, "git")
-        # git_db_dir = path.join(git_dir, "db")
+        git_db_dir = path.join(git_dir, "db")
         git_checkout_dir = path.join(git_dir, "checkouts")
 
         for d in os.listdir(git_checkout_dir):
@@ -440,8 +441,8 @@ class MachCommands(CommandBase):
             sorted_packages = sorted(packages[packages_type])
             for crate_name in sorted_packages:
                 crate_count = 0
-                exited_crates = packages[packages_type][crate_name]["exist"]
-                for exist in sorted(exited_crates, reverse=True):
+                existed_crates = packages[packages_type][crate_name]["exist"]
+                for exist in sorted(existed_crates, reverse=True):
                     current_crate = packages[packages_type][crate_name]["current"]
                     size = 0
                     exist_name = exist
@@ -450,25 +451,47 @@ class MachCommands(CommandBase):
                         crate_count += 1
                         removing_anything = True
                         if int(crate_count) >= int(keep) or not current_crate:
+                            crate_paths = []
                             if packages_type == "git":
                                 exist_name = path.join(exist[1], exist[2])
-                                crate_path = path.normpath(path.join(git_checkout_dir, exist_name))
-                                size = get_size(crate_path) / (1024 * 1024.0)
+                                exist_path = path.join(git_checkout_dir, exist_name)
+
+                                crate_paths.append(exist_path)
+
+                                crate_checkout_dir = path.join(git_checkout_dir, exist[1])
+                                exist_path = path.join(git_checkout_dir, exist_name)
+                                crate_git_db_dir = path.join(git_db_dir, exist[1])
+
+                                with cd(path.join(exist_path, ".git", "objects", "pack")):
+                                    for pack in glob.glob("*"):
+                                        pack_path = path.join(crate_git_db_dir, "objects", "pack", pack)
+                                        if os.path.exists(pack_path):
+                                            crate_paths.append(pack_path)
+
+                                if len(os.listdir(crate_checkout_dir)) <= 1:
+                                    crate_paths.append(path.join(git_checkout_dir, exist[1]))
+                                    if os.path.isdir(crate_git_db_dir):
+                                        crate_paths.append(crate_git_db_dir)
+
+                                size = sum(get_size(p) for p in crate_paths) / (1024 * 1024.0)
                             else:
-                                crate_path = path.join(crates_cache_dir, "{}.crate".format(exist))
-                                crate_path2 = path.join(crates_src_dir, exist)
-                                size = (get_size(crate_path) + get_size(crate_path2)) / (1024 * 1024.0)
+                                crate_paths.append(path.join(crates_cache_dir, "{}.crate".format(exist)))
+                                crate_paths.append(path.join(crates_src_dir, exist))
+
+                                size = sum(get_size(p) for p in crate_paths) / (1024 * 1024.0)
+
                             total_size += size
                             print_msg = (exist_name, round(size, 2), cargo_dir)
                             if force:
                                 print("Removing `{}` ({}MB) package from {}".format(*print_msg))
-                                delete(crate_path)
-                                if packages_type == "crates":
-                                    delete(crate_path2)
+                                for crate_path in crate_paths:
+                                    if os.path.exists(crate_path):
+                                        delete(crate_path)
                             else:
                                 print("Would remove `{}` ({}MB) package from {}".format(*print_msg))
 
-        print("\nTotal size of {} MB".format(round(total_size, 2)))
+        if removing_anything:
+            print("\nTotal size of {} MB".format(round(total_size, 2)))
 
         if not removing_anything:
             print("Nothing to remove.")
