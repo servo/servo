@@ -36,6 +36,7 @@ use style::gecko_bindings::bindings::{RawServoPageRule, RawServoPageRuleBorrowed
 use style::gecko_bindings::bindings::{RawServoStyleSetBorrowed, RawServoStyleSetOwned};
 use style::gecko_bindings::bindings::{RawServoStyleSheetBorrowed, ServoComputedValuesBorrowed};
 use style::gecko_bindings::bindings::{RawServoStyleSheetStrong, ServoComputedValuesStrong};
+use style::gecko_bindings::bindings::{RawServoSupportsRule, RawServoSupportsRuleBorrowed};
 use style::gecko_bindings::bindings::{ServoCssRulesBorrowed, ServoCssRulesStrong};
 use style::gecko_bindings::bindings::{nsACString, nsAString};
 use style::gecko_bindings::bindings::Gecko_AnimationAppendKeyframe;
@@ -84,7 +85,7 @@ use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards, 
 use style::string_cache::Atom;
 use style::stylesheets::{CssRule, CssRules, CssRuleType, CssRulesHelpers};
 use style::stylesheets::{ImportRule, MediaRule, NamespaceRule, Origin};
-use style::stylesheets::{PageRule, Stylesheet, StyleRule};
+use style::stylesheets::{PageRule, Stylesheet, StyleRule, SupportsRule};
 use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
 use style::supports::parse_condition_or_declaration;
 use style::thread_state;
@@ -821,6 +822,13 @@ impl_basic_rule_funcs! { (Page, PageRule, RawServoPageRule),
     to_css: Servo_PageRule_GetCssText,
 }
 
+impl_group_rule_funcs! { (Supports, SupportsRule, RawServoSupportsRule),
+    get_rules: Servo_SupportsRule_GetRules,
+    getter: Servo_CssRules_GetSupportsRuleAt,
+    debug: Servo_SupportsRule_Debug,
+    to_css: Servo_SupportsRule_GetCssText,
+}
+
 #[no_mangle]
 pub extern "C" fn Servo_CssRules_GetFontFaceRuleAt(rules: ServoCssRulesBorrowed, index: u32)
                                                    -> *mut nsCSSFontFaceRule
@@ -889,6 +897,14 @@ pub extern "C" fn Servo_PageRule_SetStyle(rule: RawServoPageRuleBorrowed,
     let declarations = Locked::<PropertyDeclarationBlock>::as_arc(&declarations);
     write_locked_arc(rule, |rule: &mut PageRule| {
         rule.0 = declarations.clone();
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_SupportsRule_GetConditionText(rule: RawServoSupportsRuleBorrowed,
+                                                      result: *mut nsAString) {
+    read_locked_arc(rule, |rule: &SupportsRule| {
+        rule.condition.to_css(unsafe { result.as_mut().unwrap() }).unwrap();
     })
 }
 
