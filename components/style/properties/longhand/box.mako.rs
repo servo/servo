@@ -2008,8 +2008,8 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                                 m32: Number::from_computed_value(&computed.m32),
                                 m33: Number::from_computed_value(&computed.m33),
                                 m34: Number::from_computed_value(&computed.m34),
-                                m41: Either::First(LengthOrPercentage::from_computed_value(&computed.m41)),
-                                m42: Either::First(LengthOrPercentage::from_computed_value(&computed.m42)),
+                                m41: Either::Second(LengthOrPercentage::from_computed_value(&computed.m41)),
+                                m42: Either::Second(LengthOrPercentage::from_computed_value(&computed.m42)),
                                 m43: LengthOrNumber::from_computed_value(&Either::First(computed.m43)),
                                 m44: Number::from_computed_value(&computed.m44),
                             });
@@ -2056,8 +2056,8 @@ ${helpers.predefined_type("scroll-snap-coordinate",
     // LengthOrPercentage. Number maps into Length
     fn lopon_to_lop(value: &ComputedLoPoNumber) -> ComputedLoP {
         match *value {
-            Either::First(length_or_percentage) => length_or_percentage,
-            Either::Second(number) => ComputedLoP::Length(Au::from_f32_px(number)),
+            Either::First(number) => ComputedLoP::Length(Au::from_f32_px(number)),
+            Either::Second(length_or_percentage) => length_or_percentage,
         }
     }
 

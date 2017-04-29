@@ -3784,8 +3784,8 @@ clip-path
 
         for (mut gecko, servo) in self.gecko.mStrokeDasharray.iter_mut().zip(v.0.into_iter()) {
             match servo {
-                Either::First(lop) => gecko.set(lop),
-                Either::Second(number) => gecko.set_value(CoordDataValue::Factor(number)),
+                Either::First(number) => gecko.set_value(CoordDataValue::Factor(number)),
+                Either::Second(lop) => gecko.set(lop),
             }
         }
     }
