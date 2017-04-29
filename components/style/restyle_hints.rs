@@ -694,6 +694,7 @@ impl DependencySet {
 #[cfg(all(test, feature = "servo"))]
 fn smoke_restyle_hints() {
     use cssparser::Parser;
+    use selectors::parser::ComplexSelector;
     use selector_parser::SelectorParser;
     use stylesheets::{Origin, Namespaces};
     let namespaces = Namespaces::default();
