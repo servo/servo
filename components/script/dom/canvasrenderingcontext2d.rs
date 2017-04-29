@@ -350,7 +350,7 @@ impl CanvasRenderingContext2D {
                                                                      dh);
 
         if !is_rect_valid(source_rect) || !is_rect_valid(dest_rect) {
-            return Err(Error::IndexSize);
+            return Ok(());
         }
 
         let smoothing_enabled = self.state.borrow().image_smoothing_enabled;
@@ -407,7 +407,7 @@ impl CanvasRenderingContext2D {
                                                                      dh);
 
         if !is_rect_valid(source_rect) || !is_rect_valid(dest_rect) {
-            return Err(Error::IndexSize);
+            return Ok(());
         }
 
         let smoothing_enabled = self.state.borrow().image_smoothing_enabled;
