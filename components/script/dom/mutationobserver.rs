@@ -2,18 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use core::borrow::Borrow;
-use core::borrow::BorrowMut;
 use dom::bindings::codegen::Bindings::MutationObserverBinding;
 use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationCallback;
 use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationObserverBinding::MutationObserverMethods;
 use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationObserverInit;
 use dom::bindings::error::{Error, Fallible};
-use dom::bindings::js::{JS, Root};
+use dom::bindings::js::{Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::mutationrecord::MutationRecord;
-//use dom::element::Atom;
 use dom::node::Node;
 use dom::window::Window;
 use dom_struct::dom_struct;
@@ -21,7 +18,6 @@ use html5ever_atoms::Namespace;
 use microtask::Microtask;
 use script_thread::ScriptThread;
 use servo_atoms::Atom;
-use std::default::Default;
 use std::option::Option;
 use std::rc::Rc;
 
@@ -97,7 +93,7 @@ impl MutationObserver {
         }
         // Step 3
         for node in &nodes {
-            for registered_observer in node.registered_mutation_observers_for_type().borrow_mut().iter() {
+            for registered_observer in node.registered_mutation_observers_for_type().borrow().iter() {
             }
         }
     }
@@ -107,16 +103,15 @@ impl MutationObserverMethods for MutationObserver {
     /// https://dom.spec.whatwg.org/#dom-mutationobserver-observe
     /// MutationObserver.observe method
     fn Observe(&self, target: &Node, options: &MutationObserverInit) -> Fallible<()> {
-        let mut options = options;
         // Step 1: If either options’ attributeOldValue or attributeFilter is present and
         // options’ attributes is omitted, set options’ attributes to true.
         if (options.attributeOldValue.is_some() || options.attributeFilter.is_some()) && options.attributes.is_none() {
-            options.attributes = Some(true);
+//            options.attributes = Some(true);
         }
         // Step2: If options’ characterDataOldValue is present and options’ characterData is omitted,
         // set options’ characterData to true.
         if options.characterDataOldValue.is_some() && options.characterData.is_some() {
-            options.characterData = Some(true);
+//            options.characterData = Some(true);
         }
         // Step3: If none of options’ childList, attributes, and characterData is true, throw a TypeError.
         if !options.childList && !options.attributes.unwrap() && !options.characterData.unwrap() {
