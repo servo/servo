@@ -118,7 +118,7 @@ impl MutationObserverMethods for MutationObserver {
         // TODO: Step 7
         //let mut registeredObservers = &target.registered_mutation_observers_for_type().into_iter();
 
-        for registered in &target.registered_mutation_observers_for_type().borrow().iter(){
+        for registered in target.registered_mutation_observers_for_type().borrow().iter(){
             if &*registered as *const MutationObserver == self as *const MutationObserver{
                 
                //TODO: 
