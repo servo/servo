@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //! Element nodes.
-pub type Atom = :: string_cache :: Atom < AtomStaticSet > ;
 use cssparser::Color;
 use devtools_traits::AttrInfo;
 use dom::activation::Activatable;

@@ -90,6 +90,7 @@ impl MutationObserverMethods for MutationObserver {
     /// https://dom.spec.whatwg.org/#dom-mutationobserver-observe
     /// MutationObserver.observe method
     fn Observe(&self, target: &Node, options: &MutationObserverInit) -> Fallible<()> {
+    	let mut options = options;
         // Step 1: If either options’ attributeOldValue or attributeFilter is present and
         // options’ attributes is omitted, set options’ attributes to true.
         if (options.attributeOldValue.is_some() || options.attributeFilter.is_some()) && options.attributes.is_none() {
