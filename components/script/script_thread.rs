@@ -600,7 +600,7 @@ impl ScriptThread {
         })
     }
 
-//    pub fn get_mutation_observer() -> Root<Vec<JS<MutationObserver>>> {
+//    pub fn get_mutation_observer() -> &DOMRefCell<Vec<JS<MutationObserver>>> {
 //        SCRIPT_THREAD_ROOT.with(|root| {
 //            let script_thread = unsafe { &*root.get().unwrap() };
 //            return Root::from_ref(script_thread.mutation_observers.borrow());
