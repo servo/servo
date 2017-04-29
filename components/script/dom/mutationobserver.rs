@@ -11,14 +11,15 @@ use dom::bindings::error::{Error, Fallible};
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
-use dom::element::Atom;
 use dom::mutationrecord::MutationRecord;
+//use dom::element::Atom;
 use dom::node::Node;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use html5ever_atoms::Namespace;
 use microtask::Microtask;
 use script_thread::ScriptThread;
+use servo_atoms::Atom;
 use std::default::Default;
 use std::option::Option;
 use std::rc::Rc;
@@ -66,7 +67,7 @@ impl MutationObserver {
         // Step 2
         ScriptThread::set_mutation_observer_compound_microtask_queued(true);
         // Step 3
-        <Microtask as Trait>::MicrotaskQueue::enqueue(compoundMicrotask);
+        ScriptThread::enqueue_microtask(compoundMicrotask);
     }
 
     /// https://dom.spec.whatwg.org/#notify-mutation-observers
@@ -78,7 +79,7 @@ impl MutationObserver {
 //        let notifyList = ScriptThread::get_mutation_observer();
         // Step 3, Step 4 not needed as Servo doesn't implement anything related to slots yet.
         // Step 5
-//        Ignoring the specific text about execute a compound microtask.
+//        Ignore the specific text about execute a compound microtask.
         // Step 6 not needed as Servo doesn't implement anything related to slots yet.
     }
 }
