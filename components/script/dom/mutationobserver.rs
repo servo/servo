@@ -116,7 +116,19 @@ impl MutationObserverMethods for MutationObserver {
             return Err(Error::Type("characterDataOldValue is true but characterData is false".to_owned()));
         }
         // TODO: Step 7
-        // TODO: Step 8
+        for observer in &target.mutation_observers {
+            //if observer is context object{
+                if observer.Source { //TODO: Need to Identify the transient registered observer
+                    target.mutation_observers.remove(observer);
+                }
+                //Replace the "registered's" options with options
+            //}
+            // TODO: Step 8
+            //else {
+
+                
+            //}
+        }
         Ok(())
     }
 }
