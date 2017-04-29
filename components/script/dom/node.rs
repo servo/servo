@@ -354,7 +354,10 @@ impl Node {
             kid.teardown();
         }
     }
-
+    /// method on Node that returns Vec<Root<MutationObserver>>
+    pub fn registered_mutation_observers_for_type(&mut self) -> &DOMRefCell<Vec<JS<MutationObserver>>> {
+         return &self.mutation_observers ;
+    }
     /// Dumps the subtree rooted at this node, for debugging.
     pub fn dump(&self) {
         self.dump_indent(0);
