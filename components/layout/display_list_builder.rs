@@ -58,9 +58,10 @@ use style::properties::longhands::border_image_repeat::computed_value::RepeatKey
 use style::properties::style_structs;
 use style::servo::restyle_damage::REPAINT;
 use style::values::{Either, RGBA, computed};
-use style::values::computed::{AngleOrCorner, Gradient, GradientKind, LengthOrPercentage, LengthOrPercentageOrAuto};
-use style::values::computed::{LengthOrKeyword, LengthOrPercentageOrKeyword, NumberOrPercentage, Position};
-use style::values::computed::image::{ColorStop, EndingShape, SizeKeyword};
+use style::values::computed::{AngleOrCorner, Gradient, GradientItem, GradientKind, LengthOrPercentage};
+use style::values::computed::{LengthOrPercentageOrAuto, LengthOrKeyword, LengthOrPercentageOrKeyword};
+use style::values::computed::{NumberOrPercentage, Position};
+use style::values::computed::image::{EndingShape, SizeKeyword};
 use style::values::specified::{HorizontalDirection, VerticalDirection};
 use style_traits::CSSPixel;
 use style_traits::cursor::Cursor;
@@ -388,7 +389,7 @@ pub trait FragmentDisplayListBuilding {
 
     fn convert_linear_gradient(&self,
                                bounds: &Rect<Au>,
-                               stops: &[ColorStop],
+                               stops: &[GradientItem],
                                angle_or_corner: &AngleOrCorner,
                                repeating: bool,
                                style: &ServoComputedValues)
@@ -396,7 +397,7 @@ pub trait FragmentDisplayListBuilding {
 
     fn convert_radial_gradient(&self,
                                bounds: &Rect<Au>,
-                               stops: &[ColorStop],
+                               stops: &[GradientItem],
                                shape: &EndingShape,
                                center: &Position,
                                repeating: bool,
@@ -601,13 +602,13 @@ fn build_border_radius_for_inner_rect(outer_rect: &Rect<Au>,
     radii
 }
 
-fn convert_gradient_stops(gradient_stops: &[ColorStop],
+fn convert_gradient_stops(gradient_items: &[GradientItem],
                           length: Au,
                           style: &ServoComputedValues) -> Vec<GradientStop> {
     // Determine the position of each stop per CSS-IMAGES § 3.4.
     //
     // FIXME(#3908, pcwalton): Make sure later stops can't be behind earlier stops.
-    let stop_items = gradient.items.iter().filter_map(|item| {
+    let stop_items = gradient_items.iter().filter_map(|item| {
         match *item {
             GradientItem::ColorStop(ref stop) => Some(stop),
             _ => None,
@@ -720,6 +721,7 @@ fn convert_circle_size_keyword(keyword: SizeKeyword,
         ClosestCorner => get_distance_to_corner(size, center, ::std::cmp::min),
         FarthestCorner => get_distance_to_corner(size, center, ::std::cmp::max),
         _ => {
+            // TODO(#16542)
             println!("TODO: implement size keyword {:?} for circles", keyword);
             Au::new(0)
         }
@@ -739,6 +741,7 @@ fn convert_ellipse_size_keyword(keyword: SizeKeyword,
         ClosestCorner => get_ellipse_radius(size, center, ::std::cmp::min),
         FarthestCorner => get_ellipse_radius(size, center, ::std::cmp::max),
         _ => {
+            // TODO(#16542)
             println!("TODO: implement size keyword {:?} for ellipses", keyword);
             Size2D::new(Au::new(0), Au::new(0))
         }
@@ -1050,7 +1053,7 @@ impl FragmentDisplayListBuilding for Fragment {
 
     fn convert_linear_gradient(&self,
                                bounds: &Rect<Au>,
-                               stops: &[ColorStop],
+                               stops: &[GradientItem],
                                angle_or_corner: &AngleOrCorner,
                                repeating: bool,
                                style: &ServoComputedValues)
@@ -1108,14 +1111,14 @@ impl FragmentDisplayListBuilding for Fragment {
 
     fn convert_radial_gradient(&self,
                                bounds: &Rect<Au>,
-                               stops: &[ColorStop],
+                               stops: &[GradientItem],
                                shape: &EndingShape,
                                center: &Position,
                                repeating: bool,
                                style: &ServoComputedValues)
                                -> display_list::RadialGradient {
-        let center = Point2D::new(specified(center.horizontal, bounds.size.width),
-                                  specified(center.vertical, bounds.size.height));
+        let center = Point2D::new(specified(center.horizontal.0, bounds.size.width),
+                                  specified(center.vertical.0, bounds.size.height));
         let radius = match *shape {
             EndingShape::Circle(LengthOrKeyword::Length(length))
                 => Size2D::new(length, length),
@@ -1165,7 +1168,7 @@ impl FragmentDisplayListBuilding for Fragment {
         let display_item = match gradient.gradient_kind {
             GradientKind::Linear(ref angle_or_corner) => {
                 let gradient = self.convert_linear_gradient(&bounds,
-                                                            &gradient.stops[..],
+                                                            &gradient.items[..],
                                                             angle_or_corner,
                                                             gradient.repeating,
                                                             style);
@@ -1176,7 +1179,7 @@ impl FragmentDisplayListBuilding for Fragment {
             }
             GradientKind::Radial(ref shape, ref center) => {
                 let gradient = self.convert_radial_gradient(&bounds,
-                                                            &gradient.stops[..],
+                                                            &gradient.items[..],
                                                             shape,
                                                             center,
                                                             gradient.repeating,
@@ -1302,7 +1305,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 match gradient.gradient_kind {
                     GradientKind::Linear(angle_or_corner) => {
                         let grad = self.convert_linear_gradient(&bounds,
-                                                                &gradient.stops[..],
+                                                                &gradient.items[..],
                                                                 &angle_or_corner,
                                                                 gradient.repeating,
                                                                 style);
@@ -1319,7 +1322,7 @@ impl FragmentDisplayListBuilding for Fragment {
                         }));
                     }
                     GradientKind::Radial(_, _) => {
-                        // TODO(gw): Handle border-image with radial gradient.
+                        // TODO(#16638): Handle border-image with radial gradient.
                     }
                 }
             }
