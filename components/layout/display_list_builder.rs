@@ -710,7 +710,7 @@ fn convert_circle_size_keyword(keyword: SizeKeyword,
                                center: &Point2D<Au>) -> Size2D<Au> {
     use style::values::computed::image::SizeKeyword::*;
     let radius = match keyword {
-        ClosestSide => {
+        ClosestSide | Contain => {
             let dist = get_distance_to_sides(size, center, ::std::cmp::min);
             ::std::cmp::min(dist.width, dist.height)
         }
@@ -719,12 +719,7 @@ fn convert_circle_size_keyword(keyword: SizeKeyword,
             ::std::cmp::max(dist.width, dist.height)
         }
         ClosestCorner => get_distance_to_corner(size, center, ::std::cmp::min),
-        FarthestCorner => get_distance_to_corner(size, center, ::std::cmp::max),
-        _ => {
-            // TODO(#16542)
-            println!("TODO: implement size keyword {:?} for circles", keyword);
-            Au::new(0)
-        }
+        FarthestCorner | Cover => get_distance_to_corner(size, center, ::std::cmp::max),
     };
     Size2D::new(radius, radius)
 }
@@ -736,15 +731,10 @@ fn convert_ellipse_size_keyword(keyword: SizeKeyword,
                                 center: &Point2D<Au>) -> Size2D<Au> {
     use style::values::computed::image::SizeKeyword::*;
     match keyword {
-        ClosestSide => get_distance_to_sides(size, center, ::std::cmp::min),
+        ClosestSide | Contain => get_distance_to_sides(size, center, ::std::cmp::min),
         FarthestSide => get_distance_to_sides(size, center, ::std::cmp::max),
         ClosestCorner => get_ellipse_radius(size, center, ::std::cmp::min),
-        FarthestCorner => get_ellipse_radius(size, center, ::std::cmp::max),
-        _ => {
-            // TODO(#16542)
-            println!("TODO: implement size keyword {:?} for ellipses", keyword);
-            Size2D::new(Au::new(0), Au::new(0))
-        }
+        FarthestCorner | Cover => get_ellipse_radius(size, center, ::std::cmp::max),
     }
 }
 
