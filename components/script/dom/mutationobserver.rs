@@ -116,13 +116,13 @@ impl MutationObserverMethods for MutationObserver {
             return Err(Error::Type("characterDataOldValue is true but characterData is false".to_owned()));
         }
         // TODO: Step 7
-        for observer in &target.mutation_observers {
-            //if observer is context object{
-                if observer.Source { //TODO: Need to Identify the transient registered observer
-                    target.mutation_observers.remove(observer);
-                }
-                //Replace the "registered's" options with options
-            //}
+        //let mut registeredObservers = &target.registered_mutation_observers_for_type().into_iter();
+
+        for registered in &target.registered_mutation_observers_for_type().borrow().iter(){
+            if &*registered as *const MutationObserver == self as *const MutationObserver{
+                
+               //TODO: 
+            }
             // TODO: Step 8
             //else {
 

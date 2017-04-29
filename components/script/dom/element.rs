@@ -1016,7 +1016,7 @@ impl Element {
             vtable_for(self.upcast()).attribute_mutated(attr, AttributeMutation::Set(None));
         }
 
-        let name = Atom::From::from(attr.local_name().to_string());
+        let name = Atom::from(attr.local_name().to_string());
         let namespace = Atom::from(attr.namespace());
         let oldValue = attr.value().to_owned();
         let newValue = DOMString::from(attr.value().to_owned());
