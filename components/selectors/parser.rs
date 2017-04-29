@@ -1457,7 +1457,7 @@ pub mod tests {
             where V: SelectorVisitor<Impl = Self::Impl> { true }
     }
 
-    #[derive(PartialEq, Debug)]
+    #[derive(Clone, PartialEq, Debug)]
     pub struct DummySelectorImpl;
 
     #[derive(Default)]
