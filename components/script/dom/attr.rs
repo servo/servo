@@ -14,6 +14,8 @@ use dom::virtualmethods::vtable_for;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use html5ever_atoms::{Prefix, LocalName, Namespace};
+use dom::mutationobserver::Mutation;
+use dom::mutationobserver::MutationObserver;
 use servo_atoms::Atom;
 use std::borrow::ToOwned;
 use std::cell::Ref;
@@ -170,6 +172,14 @@ impl AttrMethods for Attr {
 
 impl Attr {
     pub fn set_value(&self, mut value: AttrValue, owner: &Element) {
+        let name = Atom::from(self.local_name().to_string());
+        let namespace = Namespace::from(self.namespace().to_string());
+        let oldValue = DOMString::from(self.value().to_string());
+        let newValue = DOMString::from(value.to_string());
+        let attributeSpec = Mutation::Attribute { name, namespace, oldValue, newValue };
+
+        MutationObserver::queue_a_mutation_record(Element::get_node(&owner),attributeSpec);
+
         assert!(Some(owner) == self.owner().r());
         owner.will_mutate_attr(self);
         self.swap_value(&mut value);

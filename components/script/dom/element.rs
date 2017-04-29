@@ -63,6 +63,7 @@ use dom::htmltablesectionelement::{HTMLTableSectionElement, HTMLTableSectionElem
 use dom::htmltemplateelement::HTMLTemplateElement;
 use dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
 use dom::mutationobserver::Mutation;
+use dom::mutationobserver::MutationObserver;
 use dom::namednodemap::NamedNodeMap;
 use dom::node::{CLICK_IN_PROGRESS, ChildrenMutation, LayoutNodeHelpers, Node};
 use dom::node::{NodeDamage, SEQUENTIALLY_FOCUSABLE, UnbindContext};
@@ -1009,18 +1010,20 @@ impl Element {
     }
 
     pub fn push_attribute(&self, attr: &Attr) {
+        let name = Atom::from(attr.local_name().to_string());
+        let namespace = Namespace::from(attr.namespace().to_string());
+        let oldValue = DOMString::from(attr.value().to_string());
+        let newValue = DOMString::from(attr.value().to_string());
+        let attributeSpec = Mutation::Attribute { name, namespace, oldValue, newValue };
+
+        MutationObserver::queue_a_mutation_record(&self.node,attributeSpec);
+
         assert!(attr.GetOwnerElement().r() == Some(self));
         self.will_mutate_attr(attr);
         self.attrs.borrow_mut().push(JS::from_ref(attr));
         if attr.namespace() == &ns!() {
             vtable_for(self.upcast()).attribute_mutated(attr, AttributeMutation::Set(None));
         }
-
-        let name = Atom::from(attr.local_name().to_string());
-        let namespace = Namespace::from(attr.namespace().to_string());
-        let oldValue = DOMString::from(attr.value().to_string());
-        let newValue = DOMString::from(attr.value().to_string());
-        let attributeSpec = Mutation::Attribute { name, namespace, oldValue, newValue };
     }
 
     pub fn get_attribute(&self, namespace: &Namespace, local_name: &LocalName) -> Option<Root<Attr>> {
@@ -1139,11 +1142,20 @@ impl Element {
     fn remove_first_matching_attribute<F>(&self, find: F) -> Option<Root<Attr>>
         where F: Fn(&Attr) -> bool
     {
+
         let idx = self.attrs.borrow().iter().position(|attr| find(&attr));
 
         idx.map(|idx| {
             let attr = Root::from_ref(&*(*self.attrs.borrow())[idx]);
             self.will_mutate_attr(&attr);
+            let name = Atom::from(attr.local_name().to_string());
+            let namespace = Namespace::from(attr.namespace().to_string());
+            let oldValue = DOMString::from(attr.value().to_string());
+            let newValue = DOMString::from(attr.value().to_string());
+            let attributeSpec = Mutation::Attribute { name, namespace, oldValue, newValue };
+
+            MutationObserver::queue_a_mutation_record(&self.node,attributeSpec);
+
             self.attrs.borrow_mut().remove(idx);
             attr.set_owner(None);
             if attr.namespace() == &ns!() {
@@ -2826,6 +2838,11 @@ impl Element {
         self.set_disabled_state(has_disabled_attrib);
         self.set_enabled_state(!has_disabled_attrib);
     }
+
+    pub fn get_node(&self) -> &Node {
+        return &self.node;
+    }
+
 }
 
 #[derive(Clone, Copy)]
