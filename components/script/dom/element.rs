@@ -1018,8 +1018,8 @@ impl Element {
 
         let name = Atom::from(attr.local_name().to_string());
         let namespace = Namespace::from(attr.namespace().to_string());
-        let oldValue = attr.value().to_owned();
-        let newValue = DOMString::from(attr.value().to_owned());
+        let oldValue = DOMString::from(attr.value().to_string());
+        let newValue = DOMString::from(attr.value().to_string());
         let attributeSpec = Mutation::Attribute { name, namespace, oldValue, newValue };
     }
 
