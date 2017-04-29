@@ -43,7 +43,25 @@ impl MutationObserver {
         let boxed_observer = box MutationObserver::new_inherited(callback);
         reflect_dom_object(boxed_observer, global, MutationObserverBinding::Wrap)
     }
-
+    
+    //https://dom.spec.whatwg.org/#queueing-a-mutation-record 
+    //Queuing a mutation record
+    pub fn queue_a_mutation_record(target: &Node,attr_type: Mutation) {
+        // Step 1 :Let interested observers be an initially empty set of MutationObserver objects optionally paired with a string
+        let mut interestedObservers: Vec<Root<MutationObserver>> = vec![];
+        let mut pairedStrings: Vec<DOMString> = vec![];
+        // Step 2: Let nodes be the inclusive ancestors of target.
+        let mut nodes: Vec<Root<Node>> = vec![];
+        for ancestor in target.inclusive_ancestors() {
+            nodes.push(ancestor);
+        }
+        // Step 3: For each node in nodes
+        for node in &nodes {
+            for registered_observer in node.registered_mutation_observers_for_type().borrow_mut().iter() {
+            }
+        }
+    }
+    
     fn new_inherited(callback: Rc<MutationCallback>) -> MutationObserver {
         MutationObserver {
             reflector_: Reflector::new(),
