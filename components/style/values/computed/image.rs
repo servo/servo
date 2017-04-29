@@ -14,10 +14,11 @@ use std::fmt;
 use style_traits::ToCss;
 use values::computed::{Angle, Context, Length, LengthOrPercentage, NumberOrPercentage, ToComputedValue};
 use values::computed::position::Position;
-use values::specified::{self, HorizontalDirection, SizeKeyword, VerticalDirection};
+use values::specified::{self, HorizontalDirection, VerticalDirection};
 use values::specified::image::CompatMode;
 use values::specified::url::SpecifiedUrl;
 
+pub use values::specified::SizeKeyword;
 
 impl ToComputedValue for specified::Image {
     type ComputedValue = Image;
