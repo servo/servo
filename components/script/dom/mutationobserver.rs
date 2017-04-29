@@ -2,17 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use core::borrow::BorrowMut;
 use dom::bindings::codegen::Bindings::MutationObserverBinding;
 use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationCallback;
 use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationObserverBinding::MutationObserverMethods;
 use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationObserverInit;
 use dom::bindings::error::{Error, Fallible};
-use dom::bindings::js::{JS, Root};
+use dom::bindings::js::{Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::mutationrecord::MutationRecord;
-//use dom::element::Atom;
 use dom::node::Node;
 use dom::window::Window;
 use dom_struct::dom_struct;
@@ -20,7 +18,6 @@ use html5ever_atoms::Namespace;
 use microtask::Microtask;
 use script_thread::ScriptThread;
 use servo_atoms::Atom;
-use std::default::Default;
 use std::option::Option;
 use std::rc::Rc;
 
@@ -82,22 +79,39 @@ impl MutationObserver {
 //        Ignore the specific text about execute a compound microtask.
         // Step 6 not needed as Servo doesn't implement anything related to slots yet.
     }
+
+    //https://dom.spec.whatwg.org/#queueing-a-mutation-record
+    //Queuing a mutation record
+    pub fn queue_a_mutation_record(target: &Node, attr_type: Mutation) {
+        // Step 1
+        let mut interestedObservers: Vec<Root<MutationObserver>> = vec![];
+        let mut pairedStrings: Vec<DOMString> = vec![];
+        // Step 2
+        let mut nodes: Vec<Root<Node>> = vec![];
+        for ancestor in target.inclusive_ancestors() {
+            nodes.push(ancestor);
+        }
+        // Step 3
+        for node in &nodes {
+            for registered_observer in node.registered_mutation_observers_for_type().borrow().iter() {
+            }
+        }
+    }
 }
 
 impl MutationObserverMethods for MutationObserver {
     /// https://dom.spec.whatwg.org/#dom-mutationobserver-observe
     /// MutationObserver.observe method
     fn Observe(&self, target: &Node, options: &MutationObserverInit) -> Fallible<()> {
-        let mut options = options;
         // Step 1: If either options’ attributeOldValue or attributeFilter is present and
         // options’ attributes is omitted, set options’ attributes to true.
         if (options.attributeOldValue.is_some() || options.attributeFilter.is_some()) && options.attributes.is_none() {
-            options.attributes = Some(true);
+//            options.attributes = Some(true);
         }
         // Step2: If options’ characterDataOldValue is present and options’ characterData is omitted,
         // set options’ characterData to true.
         if options.characterDataOldValue.is_some() && options.characterData.is_some() {
-            options.characterData = Some(true);
+//            options.characterData = Some(true);
         }
         // Step3: If none of options’ childList, attributes, and characterData is true, throw a TypeError.
         if !options.childList && !options.attributes.unwrap() && !options.characterData.unwrap() {
@@ -118,16 +132,11 @@ impl MutationObserverMethods for MutationObserver {
         // TODO: Step 7
         //let mut registeredObservers = &target.registered_mutation_observers_for_type().into_iter();
 
-        for registered in target.registered_mutation_observers_for_type().borrow().iter(){
-            if &*registered as *const MutationObserver == self as *const MutationObserver{
-                
-               //TODO: 
+        for registered in target.registered_mutation_observers_for_type().borrow().iter() {
+            if &*registered as *const MutationObserver == self as *const MutationObserver {
+                // TODO: remove matching transient registered observers
             }
             // TODO: Step 8
-            //else {
-
-                
-            //}
         }
         Ok(())
     }

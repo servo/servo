@@ -141,7 +141,7 @@ pub struct Node {
     style_and_layout_data: Cell<Option<OpaqueStyleAndLayoutData>>,
 
     /// vector of mutation observer objects.
-    mutation_observers: DOMRefCell<Vec<JS<MutationObserver>>>,
+    mutation_observers: DOMRefCell<Vec<MutationObserver>>,
 
     unique_id: UniqueId,
 }
@@ -355,7 +355,7 @@ impl Node {
         }
     }
     /// method on Node that returns Vec<Root<MutationObserver>>
-    pub fn registered_mutation_observers_for_type(&mut self) -> &DOMRefCell<Vec<JS<MutationObserver>>> {
+    pub fn registered_mutation_observers_for_type(&self) -> &DOMRefCell<Vec<MutationObserver>> {
          return &self.mutation_observers ;
     }
     /// Dumps the subtree rooted at this node, for debugging.
