@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use core::borrow::Borrow;
 use core::borrow::BorrowMut;
 use dom::bindings::codegen::Bindings::MutationObserverBinding;
 use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationCallback;
@@ -118,16 +119,11 @@ impl MutationObserverMethods for MutationObserver {
         // TODO: Step 7
         //let mut registeredObservers = &target.registered_mutation_observers_for_type().into_iter();
 
-        for registered in target.registered_mutation_observers_for_type().borrow().iter(){
-            if &*registered as *const MutationObserver == self as *const MutationObserver{
-                
-               //TODO: 
+        for registered in target.registered_mutation_observers_for_type().borrow().iter() {
+            if &*registered as *const MutationObserver == self as *const MutationObserver {
+                // TODO: remove matching transient registered observers
             }
             // TODO: Step 8
-            //else {
-
-                
-            //}
         }
         Ok(())
     }
