@@ -1397,7 +1397,7 @@ impl Node {
             ranges: WeakRangeVec::new(),
 
             style_and_layout_data: Cell::new(None),
-            
+
             mutation_observers: Default::default(),
 
             unique_id: UniqueId::new(),

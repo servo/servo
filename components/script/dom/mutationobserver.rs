@@ -32,8 +32,8 @@ pub struct MutationObserver {
 }
 
 #[derive(Debug)]
-pub enum Mutation{
-    Attribute {name: Atom, namespace: Namespace, oldValue: DOMString, newValue: DOMString}
+pub enum Mutation {
+    Attribute { name: Atom, namespace: Namespace, oldValue: DOMString, newValue: DOMString}
 }
 
 impl MutationObserver {
@@ -76,12 +76,9 @@ impl MutationObserver {
         ScriptThread::set_mutation_observer_compound_microtask_queued(false);
         // Step 2
 //        let notifyList = ScriptThread::get_mutation_observer();
-        // Step 3, Step 4 not needed1 as Servo doesn't implement anything related to slots yet.
+        // Step 3, Step 4 not needed as Servo doesn't implement anything related to slots yet.
         // Step 5
-//        for i in 0..&notifyList.len() {
-//            let mo = notifyList[i];
-//            let queue = mo.record_queue;
-//        }
+//        Ignoring the specific text about execute a compound microtask.
         // Step 6 not needed as Servo doesn't implement anything related to slots yet.
     }
 }
@@ -90,7 +87,7 @@ impl MutationObserverMethods for MutationObserver {
     /// https://dom.spec.whatwg.org/#dom-mutationobserver-observe
     /// MutationObserver.observe method
     fn Observe(&self, target: &Node, options: &MutationObserverInit) -> Fallible<()> {
-    	let mut options = options;
+        let mut options = options;
         // Step 1: If either options’ attributeOldValue or attributeFilter is present and
         // options’ attributes is omitted, set options’ attributes to true.
         if (options.attributeOldValue.is_some() || options.attributeFilter.is_some()) && options.attributes.is_none() {
