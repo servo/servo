@@ -274,11 +274,11 @@ impl HTMLImageElement {
         let (trigger_image_load, trigger_image_error) = match (image, self.image_request.get()) {
             (ImageResponse::Loaded(image), ImageRequestPhase::Current) |
             (ImageResponse::PlaceholderLoaded(image), ImageRequestPhase::Current) => {
-                self.current_request.borrow_mut().image = Some(image.clone());
                 self.current_request.borrow_mut().metadata = Some(ImageMetadata {
                     height: image.height,
                     width: image.width
                 });
+                self.current_request.borrow_mut().image = Some(image);
                 self.current_request.borrow_mut().state = State::CompletelyAvailable;
                 LoadBlocker::terminate(&mut self.current_request.borrow_mut().blocker);
                 // Mark the node dirty
@@ -289,11 +289,11 @@ impl HTMLImageElement {
             (ImageResponse::PlaceholderLoaded(image), ImageRequestPhase::Pending) => {
                 self.abort_request(State::CompletelyAvailable, ImageRequestPhase::Current);
                 self.image_request.set(ImageRequestPhase::Current);
-                self.current_request.borrow_mut().image = Some(image.clone());
                 self.current_request.borrow_mut().metadata = Some(ImageMetadata {
                     height: image.height,
                     width: image.width
                 });
+                self.current_request.borrow_mut().image = Some(image);
                 self.current_request.borrow_mut().state = State::CompletelyAvailable;
                 LoadBlocker::terminate(&mut self.current_request.borrow_mut().blocker);
                 // Mark the node dirty
