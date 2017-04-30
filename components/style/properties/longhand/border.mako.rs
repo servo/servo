@@ -145,7 +145,7 @@ ${helpers.gecko_keyword_conversion(Keyword('border-style',
                 match *computed {
                     computed_value::T(Some(ref vec)) => {
                         SpecifiedValue::Colors(vec.iter()
-                                                  .map(|c| ToComputedValue::from_computed_value((c)))
+                                                  .map(ToComputedValue::from_computed_value)
                                                   .collect())
                     },
                     computed_value::T(None) => {
@@ -675,7 +675,7 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
         #[derive(Debug, Clone, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T {
-            pub corners: Vec<NumberOrPercentage>,
+            pub corners: [NumberOrPercentage; 4],
             pub fill: bool,
         }
     }
@@ -721,10 +721,10 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
         computed_value::T {
-            corners: vec![ComputedNumberOrPercentage::Percentage(Percentage(1.0)),
-                          ComputedNumberOrPercentage::Percentage(Percentage(1.0)),
-                          ComputedNumberOrPercentage::Percentage(Percentage(1.0)),
-                          ComputedNumberOrPercentage::Percentage(Percentage(1.0))],
+            corners: [ComputedNumberOrPercentage::Percentage(Percentage(1.0)),
+                      ComputedNumberOrPercentage::Percentage(Percentage(1.0)),
+                      ComputedNumberOrPercentage::Percentage(Percentage(1.0)),
+                      ComputedNumberOrPercentage::Percentage(Percentage(1.0))],
             fill: false,
         }
     }
@@ -744,22 +744,22 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
         fn to_computed_value(&self, context: &Context) -> computed_value::T {
             let length = self.corners.len();
             let corners = match length {
-                4 => vec![self.corners[0].to_computed_value(context),
-                          self.corners[1].to_computed_value(context),
-                          self.corners[2].to_computed_value(context),
-                          self.corners[3].to_computed_value(context)],
-                3 => vec![self.corners[0].to_computed_value(context),
-                          self.corners[1].to_computed_value(context),
-                          self.corners[2].to_computed_value(context),
-                          self.corners[1].to_computed_value(context)],
-                2 => vec![self.corners[0].to_computed_value(context),
-                          self.corners[1].to_computed_value(context),
-                          self.corners[0].to_computed_value(context),
-                          self.corners[1].to_computed_value(context)],
-                1 => vec![self.corners[0].to_computed_value(context),
-                          self.corners[0].to_computed_value(context),
-                          self.corners[0].to_computed_value(context),
-                          self.corners[0].to_computed_value(context)],
+                4 => [self.corners[0].to_computed_value(context),
+                      self.corners[1].to_computed_value(context),
+                      self.corners[2].to_computed_value(context),
+                      self.corners[3].to_computed_value(context)],
+                3 => [self.corners[0].to_computed_value(context),
+                      self.corners[1].to_computed_value(context),
+                      self.corners[2].to_computed_value(context),
+                      self.corners[1].to_computed_value(context)],
+                2 => [self.corners[0].to_computed_value(context),
+                      self.corners[1].to_computed_value(context),
+                      self.corners[0].to_computed_value(context),
+                      self.corners[1].to_computed_value(context)],
+                1 => [self.corners[0].to_computed_value(context),
+                      self.corners[0].to_computed_value(context),
+                      self.corners[0].to_computed_value(context),
+                      self.corners[0].to_computed_value(context)],
                 _ => unreachable!(),
             };
             computed_value::T {
@@ -791,11 +791,11 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
             }
         }
 
-        if fill == false {
+        if !fill {
             fill = input.try(|input| input.expect_ident_matching("fill")).is_ok();
         }
 
-        if values.len() > 0 {
+        if !values.is_empty() {
             Ok(SpecifiedValue {
                 corners: values,
                 fill: fill

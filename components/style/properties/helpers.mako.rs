@@ -15,6 +15,7 @@
         use app_units::Au;
         use cssparser::{Color as CSSParserColor, RGBA};
         use values::specified::AllowQuirks;
+        use smallvec::SmallVec;
         pub use values::specified::${type} as SpecifiedValue;
         pub mod computed_value {
             % if computed_type:
@@ -75,6 +76,7 @@
             delegate_animate=False, space_separated_allowed=False, **kwargs)">
     <%call expr="longhand(name, **kwargs)">
         % if not gecko_only:
+            use smallvec::SmallVec;
             use std::fmt;
             use values::HasViewportPercentage;
             use style_traits::ToCss;
@@ -100,10 +102,11 @@
             pub mod computed_value {
                 pub use super::single_value::computed_value as single_value;
                 pub use self::single_value::T as SingleComputedValue;
+                use smallvec::SmallVec;
                 /// The computed value, effectively a list of single values.
                 #[derive(Debug, Clone, PartialEq)]
                 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-                pub struct T(pub Vec<single_value::T>);
+                pub struct T(pub SmallVec<[single_value::T; 1]>);
 
                 % if delegate_animate:
                     use properties::animated_properties::Interpolate;
@@ -179,9 +182,11 @@
 
             pub fn get_initial_value() -> computed_value::T {
                 % if allow_empty:
-                    computed_value::T(vec![])
+                    computed_value::T(SmallVec::new())
                 % else:
-                    computed_value::T(vec![single_value::get_initial_value()])
+                    let mut v = SmallVec::new();
+                    v.push(single_value::get_initial_value());
+                    computed_value::T(v)
                 % endif
             }
 
@@ -193,19 +198,16 @@
                     if space_separated_allowed:
                         parse_func = "parse_space_or_comma_separated"
                 %>
+
                 % if allow_empty:
                     if input.try(|input| input.expect_ident_matching("none")).is_ok() {
-                        Ok(SpecifiedValue(Vec::new()))
-                    } else {
-                        ${parse_func}(input, |parser| {
-                            single_value::parse(context, parser)
-                        }).map(SpecifiedValue)
+                        return Ok(SpecifiedValue(Vec::new()))
                     }
-                % else:
-                    ${parse_func}(input, |parser| {
-                        single_value::parse(context, parser)
-                    }).map(SpecifiedValue)
                 % endif
+
+                ${parse_func}(input, |parser| {
+                    single_value::parse(context, parser)
+                }).map(SpecifiedValue)
             }
 
             pub use self::single_value::SpecifiedValue as SingleSpecifiedValue;
@@ -220,7 +222,7 @@
                 #[inline]
                 fn from_computed_value(computed: &computed_value::T) -> Self {
                     SpecifiedValue(computed.0.iter()
-                                       .map(|x| ToComputedValue::from_computed_value(x))
+                                       .map(ToComputedValue::from_computed_value)
                                        .collect())
                 }
             }

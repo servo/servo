@@ -214,7 +214,7 @@
             }
             Ok(())
         }));
-        if any == false {
+        if !any {
             return Err(());
         }
 

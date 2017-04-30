@@ -27,6 +27,7 @@ use properties::longhands::vertical_align::computed_value::T as VerticalAlign;
 use properties::longhands::visibility::computed_value::T as Visibility;
 #[cfg(feature = "gecko")] use properties::{PropertyDeclarationId, LonghandId};
 #[cfg(feature = "servo")] use servo_atoms::Atom;
+use smallvec::SmallVec;
 use std::cmp;
 #[cfg(feature = "gecko")] use std::collections::HashMap;
 use std::fmt;
@@ -612,7 +613,7 @@ pub trait Interpolate: Sized {
 /// https://drafts.csswg.org/css-transitions/#animtype-repeatable-list
 pub trait RepeatableListInterpolate: Interpolate {}
 
-impl<T: RepeatableListInterpolate> Interpolate for Vec<T> {
+impl<T: RepeatableListInterpolate> Interpolate for SmallVec<[T; 1]> {
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         use num_integer::lcm;
         let len = lcm(self.len(), other.len());
@@ -1065,7 +1066,12 @@ impl Interpolate for ClipRect {
             };
 
             let max_len = cmp::max(self.0.len(), other.0.len());
-            let mut result = Vec::with_capacity(max_len);
+
+            let mut result = if max_len > 1 {
+                SmallVec::from_vec(Vec::with_capacity(max_len))
+            } else {
+                SmallVec::new()
+            };
 
             for i in 0..max_len {
                 let shadow = match (self.0.get(i), other.0.get(i)) {
@@ -2192,7 +2198,7 @@ pub trait ComputeDistance: Sized {
     }
 }
 
-impl<T: ComputeDistance> ComputeDistance for Vec<T> {
+impl<T: ComputeDistance> ComputeDistance for SmallVec<[T; 1]> {
     #[inline]
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
         self.compute_squared_distance(other).map(|sd| sd.sqrt())
@@ -2848,7 +2854,7 @@ impl <'a> From<<&'a IntermediateColor> for CSSParserColor {
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     #[allow(missing_docs)]
     /// Intermediate type for box-shadow list and text-shadow list.
-    pub struct Intermediate${type}ShadowList(pub Vec<Intermediate${type}Shadow>);
+    pub struct Intermediate${type}ShadowList(pub SmallVec<[Intermediate${type}Shadow; 1]>);
 
     impl <'a> From<<&'a Intermediate${type}ShadowList> for ${type}ShadowList {
         fn from(shadow_list: &Intermediate${type}ShadowList) -> ${type}ShadowList {

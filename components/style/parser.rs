@@ -4,8 +4,6 @@
 
 //! The context within which CSS code is parsed.
 
-#![deny(missing_docs)]
-
 use context::QuirksMode;
 use cssparser::{Parser, SourcePosition, UnicodeRange};
 use error_reporting::ParseErrorReporter;
