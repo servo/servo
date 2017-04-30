@@ -341,22 +341,14 @@ impl HTMLImageElement {
 
     /// https://html.spec.whatwg.org/multipage/#abort-the-image-request
     fn abort_request(&self, state: State, request: ImageRequestPhase) {
-        match request {
-            ImageRequestPhase::Current => {
-                let mut request = self.current_request.borrow_mut();
-                LoadBlocker::terminate(&mut request.blocker);
-                request.state = state;
-                request.image = None;
-                request.metadata = None;
-            },
-            ImageRequestPhase::Pending => {
-                let mut request = self.pending_request.borrow_mut();
-                LoadBlocker::terminate(&mut request.blocker);
-                request.state = state;
-                request.image = None;
-                request.metadata = None;
-            },
-        }
+        let mut request = match request {
+            ImageRequestPhase::Current => self.current_request.borrow_mut(),
+            ImageRequestPhase::Pending => self.pending_request.borrow_mut(),
+        };
+        LoadBlocker::terminate(&mut request.blocker);
+        request.state = state;
+        request.image = None;
+        request.metadata = None;
     }
 
     fn init_pending_request(&self,
