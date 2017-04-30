@@ -95,6 +95,9 @@ impl MutationObserver {
     //Queuing a mutation record
     pub fn queue_a_mutation_record(target: &Node, attr_type: Mutation) {
         use self::Mutation::*;
+        let mut given_name = "";
+        let mut given_namespace = "";
+        let mut old_value = "";
         // Step 1
         let mut interestedObservers: Vec<MutationObserver> = vec![];
         let mut pairedStrings: Vec<DOMString> = vec![];
@@ -107,9 +110,6 @@ impl MutationObserver {
         // Step 3
         for node in &nodes {
             for registered_observer in node.registered_mutation_observers_for_type().borrow().iter() {
-                let mut given_name = "";
-                let mut given_namespace = "";
-                let mut old_value = "";
                 match attr_type {
                     Mutation::Attribute { ref name, ref namespace, ref oldValue, ref newValue } => {
                         given_name = &*name.clone();
@@ -145,13 +145,13 @@ impl MutationObserver {
         // Step 4
         for observer in &interestedObservers {
             //Step 4.1
-            //let mut record= MutationRecord::new(target);
+            let mut record= MutationRecord::new(DOMString::from(&*given_name),target);
             //Step 4.2
-            match attr_type {
-                Mutation::Attribute { ref name, ref namespace, ref oldValue, ref newValue }
-                    => { let mut given_name = name.clone();
-                        let mut given_namespace = namespace; },
+            if given_name!="" && given_namespace != "" {
+                record.SetAttributeName(DOMString::from(&*given_name));
+                record.SetAttributeNamespace(DOMString::from(&*given_namespace));
             }
+
         }
     }
 

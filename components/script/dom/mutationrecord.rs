@@ -46,7 +46,7 @@ pub struct MutationRecord {
 }
 
 impl MutationRecord {
-     fn new(&self, record_type: DOMString, target: &Node) -> MutationRecord {
+     pub fn new(record_type: DOMString, target: &Node) -> MutationRecord {
         MutationRecord {
             reflector_: Reflector::new(),
             record_type: record_type,
