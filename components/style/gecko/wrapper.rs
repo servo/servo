@@ -71,8 +71,8 @@ use std::collections::HashMap;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::ptr;
-use std::sync::Arc;
 use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
+use stylearc::Arc;
 use stylesheets::UrlExtraData;
 use stylist::ApplicableDeclarationBlock;
 

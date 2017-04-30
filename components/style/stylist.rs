@@ -39,8 +39,8 @@ use std::fmt;
 use std::hash::Hash;
 #[cfg(feature = "servo")]
 use std::marker::PhantomData;
-use std::sync::Arc;
 use style_traits::viewport::ViewportConstraints;
+use stylearc::Arc;
 use stylesheets::{CssRule, FontFaceRule, Origin, StyleRule, Stylesheet, UserAgentStylesheets};
 use thread_state;
 use viewport::{self, MaybeNew, ViewportRule};

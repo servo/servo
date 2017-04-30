@@ -132,7 +132,6 @@ pub mod values;
 pub mod viewport;
 
 use std::fmt;
-use std::sync::Arc;
 use style_traits::ToCss;
 
 #[cfg(feature = "gecko")] pub use gecko_string_cache as string_cache;
@@ -176,14 +175,6 @@ macro_rules! reexport_computed_values {
     }
 }
 longhand_properties_idents!(reexport_computed_values);
-
-/// Returns whether the two arguments point to the same value.
-///
-/// FIXME: Remove this and use Arc::ptr_eq once we require Rust 1.17
-#[inline]
-pub fn arc_ptr_eq<T: 'static>(a: &Arc<T>, b: &Arc<T>) -> bool {
-    ptr_eq::<T>(&**a, &**b)
-}
 
 /// Pointer equality
 ///
