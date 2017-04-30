@@ -2830,10 +2830,6 @@ impl Element {
         self.set_enabled_state(!has_disabled_attrib);
     }
 
-    pub fn get_node(&self) -> &Node {
-        return &self.node;
-    }
-
 }
 
 #[derive(Clone, Copy)]

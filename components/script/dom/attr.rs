@@ -10,6 +10,7 @@ use dom::bindings::js::{LayoutJS, MutNullableJS, Root, RootedReference};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::element::{AttributeMutation, Element};
+use dom::node::Node;
 use dom::virtualmethods::vtable_for;
 use dom::window::Window;
 use dom_struct::dom_struct;
@@ -178,7 +179,7 @@ impl Attr {
         let newValue = DOMString::from(value.to_string());
         let attributeSpec = Mutation::Attribute { name, namespace, oldValue, newValue };
 
-        MutationObserver::queue_a_mutation_record(Element::get_node(&owner),attributeSpec);
+        MutationObserver::queue_a_mutation_record(owner.upcast::<Node>(),attributeSpec);
 
         assert!(Some(owner) == self.owner().r());
         owner.will_mutate_attr(self);
