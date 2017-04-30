@@ -94,14 +94,12 @@ impl MutationObserver {
     //https://dom.spec.whatwg.org/#queueing-a-mutation-record
     //Queuing a mutation record
     pub fn queue_a_mutation_record(target: &Node, attr_type: Mutation) {
-        use self::Mutation::*;
         let mut given_name = "";
         let mut given_namespace = "";
         let mut old_value = "";
         // Step 1
         let mut interestedObservers: Vec<MutationObserver> = vec![];
         let mut pairedStrings: Vec<DOMString> = vec![];
-        let mut given_type = "NULL";
         // Step 2
         let mut nodes: Vec<Root<Node>> = vec![];
         for ancestor in target.inclusive_ancestors() {
