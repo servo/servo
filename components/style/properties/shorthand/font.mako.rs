@@ -7,9 +7,9 @@
 <%helpers:shorthand name="font"
                     sub_properties="font-style font-variant font-weight font-stretch
                                     font-size line-height font-family
-                                    font-size-adjust' if product == 'gecko' or data.testing else ''}
-                                    font-kerning' if product == 'gecko' or data.testing else ''}
-                                    font-variant-caps' if product == 'gecko' or data.testing else ''}
+                                    ${'font-size-adjust' if product == 'gecko' or data.testing else ''}
+                                    ${'font-kerning' if product == 'gecko' or data.testing else ''}
+                                    ${'font-variant-caps' if product == 'gecko' or data.testing else ''}
                                     ${'font-variant-position' if product == 'gecko' or data.testing else ''}
                                     ${'font-variant-alternates' if product == 'gecko' or data.testing else ''}
                                     ${'font-variant-east-asian' if product == 'gecko' or data.testing else ''}

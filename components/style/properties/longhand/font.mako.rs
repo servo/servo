@@ -973,6 +973,7 @@ ${helpers.single_keyword("font-variant-position",
 <%helpers:longhand name="-x-lang" products="gecko" animatable="False" internal="True"
                    spec="Internal (not web-exposed)"
                    internal="True">
+    use cssparser::serialize_identifier;
     use values::HasViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
     pub use self::computed_value::T as SpecifiedValue;
@@ -1066,7 +1067,7 @@ ${helpers.single_keyword("font-variant-position",
                             }
                             first = false;
 
-                            try!(dest.write_str(arg));
+                            try!(serialize_identifier(arg, dest));
                         }
 
                         try!(dest.write_str(")"));
@@ -1088,7 +1089,7 @@ ${helpers.single_keyword("font-variant-position",
                             }
                             first = false;
 
-                            try!(dest.write_str(&arg));
+                            try!(serialize_identifier(arg, dest));
                         }
 
                         try!(dest.write_str(")"));
@@ -1101,7 +1102,9 @@ ${helpers.single_keyword("font-variant-position",
                             try!(dest.write_str(" "));
                         }
 
-                        try!(write!(dest, "swash({})", arg));
+                        try!(dest.write_str("swash("));
+                        try!(serialize_identifier(arg, dest));
+                        try!(dest.write_str(")"));
 
                         is_empty = false;
                     }
@@ -1111,7 +1114,9 @@ ${helpers.single_keyword("font-variant-position",
                             try!(dest.write_str(" "));
                         }
 
-                        try!(write!(dest, "ornaments({})", arg));
+                        try!(dest.write_str("ornaments("));
+                        try!(serialize_identifier(arg, dest));
+                        try!(dest.write_str(")"));
 
                         is_empty = false;
                     }
@@ -1121,7 +1126,9 @@ ${helpers.single_keyword("font-variant-position",
                             try!(dest.write_str(" "));
                         }
 
-                        try!(write!(dest, "annotation({})", arg));
+                        try!(dest.write_str("annotation("));
+                        try!(serialize_identifier(arg, dest));
+                        try!(dest.write_str(")"));
 
                         is_empty = false;
                     }
