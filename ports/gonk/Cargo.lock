@@ -1,0 +1,652 @@
+[root]
+name = "b2s"
+version = "0.0.1"
+dependencies = [
+ "compositing 0.0.1",
+ "egl 0.1.0 (git+https://github.com/servo/rust-egl)",
+ "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
+ "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
+ "msg 0.0.1",
+ "script 0.0.1",
+ "servo 0.0.1",
+ "util 0.0.1",
+]
+
+[[package]]
+name = "azure"
+version = "0.1.0"
+source = "git+https://github.com/servo/rust-azure#d323c3c7c248d3d5a2d46a6a5ee61c6e92aec0b0"
+dependencies = [
+ "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
+ "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
+ "core_text 0.1.0 (git+https://github.com/servo/rust-core-text)",
+ "egl 0.1.0 (git+https://github.com/servo/rust-egl)",
+ "freetype 0.1.0 (git+https://github.com/servo/rust-freetype)",
+ "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
+ "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
+ "skia-sys 0.0.20130412 (git+https://github.com/servo/skia)",
+ "xlib 0.1.0 (git+https://github.com/servo/rust-xlib)",
+]
+
+[[package]]
+name = "canvas"
+version = "0.0.1"
+dependencies = [
+ "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
+ "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
+ "util 0.0.1",
+]
+
+[[package]]
+name = "cgl"
+version = "0.0.1"
+source = "git+https://github.com/servo/rust-cgl#7b7090729f65e2287c3d80651df02e547911b119"
+dependencies = [
+ "gleam 0.0.1 (git+https://github.com/servo/gleam)",
+]
+
+[[package]]
+name = "compositing"
+version = "0.0.1"
+dependencies = [
+ "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
+ "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
+ "core_text 0.1.0 (git+https://github.com/servo/rust-core-text)",
+ "devtools 0.0.1",
+ "devtools_traits 0.0.1",
+ "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
+ "gfx 0.0.1",
+ "gleam 0.0.1 (git+https://github.com/servo/gleam)",
+ "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
+ "layout_traits 0.0.1",
+ "msg 0.0.1",
+ "net 0.0.1",
+ "png 0.1.0 (git+https://github.com/servo/rust-png)",
+ "script_traits 0.0.1",
+ "url 0.1.0 (git+https://github.com/servo/rust-url)",
+ "util 0.0.1",
+]
+
+[[package]]
+name = "cookie"
+version = "0.0.1"
+source = "git+https://github.com/servo/cookie-rs#30520767a95b92e39265aaf6822db515b2418f1d"
+dependencies = [
+ "openssl 0.0.1 (git+https://github.com/servo/rust-openssl)",
+ "url 0.1.0 (git+https://github.com/servo/rust-url)",
+]
+
+[[package]]
+name = "core_foundation"
+version = "0.1.0"
+source = "git+https://github.com/servo/rust-core-foundation#6fa0b908f3912e20d081193e83bf5a9aa958fb83"
+
+[[package]]
+name = "core_graphics"
+version = "0.1.0"
+source = "git+https://github.com/servo/rust-core-graphics#9434e2bda65d259f825104170b5fa6cc6dbaf5a9"
+dependencies = [
+ "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
+]
+
+[[package]]
+name = "core_text"
+version = "0.1.0"
+source = "git+https://github.com/servo/rust-core-text#85784007b6fa1b8f9614059edcd0429b2bd69a11"
+dependencies = [
+ "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
+ "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
+]
+
+[[package]]
+name = "cssparser"
+version = "0.1.0"
+source = "git+https://github.com/servo/rust-cssparser#cbbfd66f794bd019bbdeaefc88b29eff455b62e5"
+dependencies = [
+ "encoding 0.2.0 (git+https://github.com/lifthrasiir/rust-encoding)",
+]
+
+[[package]]
+name = "devtools"
+version = "0.0.1"
+dependencies = [
+ "devtools_traits 0.0.1",
+ "msg 0.0.1",
+ "util 0.0.1",
+]
+
+[[package]]
+name = "devtools_traits"
+version = "0.0.1"
+dependencies = [
+ "msg 0.0.1",
+]
+
+[[package]]
+name = "egl"
+version = "0.1.0"
+source = "git+https://github.com/servo/rust-egl#88f2a13812ddbce2bf2317221663a61c31b3e220"
+
+[[package]]
+name = "encoding"
+version = "0.2.0"
+source = "git+https://github.com/lifthrasiir/rust-encoding#a06637cc6d0da37c12c68661e2ee9ca1999764a4"
+dependencies = [
+ "encoding-index-japanese 1.0.20140915 (git+https://github.com/lifthrasiir/rust-encoding)",
+ "encoding-index-korean 1.0.20140915 (git+https://github.com/lifthrasiir/rust-encoding)",
+ "encoding-index-simpchinese 1.0.20140915 (git+https://github.com/lifthrasiir/rust-encoding)",
+ "encoding-index-singlebyte 1.0.20140915 (git+https://github.com/lifthrasiir/rust-encoding)",
+ "encoding-index-tradchinese 1.0.20140915 (git+https://github.com/lifthrasiir/rust-encoding)",
+]
+
+[[package]]
+name = "encoding-index-japanese"
+version = "1.0.20140915"
+source = "git+https://github.com/lifthrasiir/rust-encoding#a06637cc6d0da37c12c68661e2ee9ca1999764a4"
+
+[[package]]
+name = "encoding-index-korean"
+version = "1.0.20140915"
+source = "git+https://github.com/lifthrasiir/rust-encoding#a06637cc6d0da37c12c68661e2ee9ca1999764a4"
+
+[[package]]
+name = "encoding-index-simpchinese"
+version = "1.0.20140915"
+source = "git+https://github.com/lifthrasiir/rust-encoding#a06637cc6d0da37c12c68661e2ee9ca1999764a4"
+
+[[package]]
+name = "encoding-index-singlebyte"
+version = "1.0.20140915"
+source = "git+https://github.com/lifthrasiir/rust-encoding#a06637cc6d0da37c12c68661e2ee9ca1999764a4"
+
+[[package]]
+name = "encoding-index-tradchinese"
+version = "1.0.20140915"
+source = "git+https://github.com/lifthrasiir/rust-encoding#a06637cc6d0da37c12c68661e2ee9ca1999764a4"
+
+[[package]]
+name = "expat-sys"
+version = "2.1.0"
+source = "git+https://github.com/servo/libexpat#da2ddaf78cbef836b8790807bb76b357c58df3a1"
+
+[[package]]
+name = "fontconfig"
+version = "0.1.0"
+source = "git+https://github.com/servo/rust-fontconfig#f42ff5cbd0404fe4d2cd64e8d9bb6307bad8fd7c"
+dependencies = [
+ "fontconfig-sys 2.11.1 (git+https://github.com/servo/libfontconfig)",
+]
+
+[[package]]
+name = "fontconfig-sys"
+version = "2.11.1"
+source = "git+https://github.com/servo/libfontconfig#fcc324d2c8175d2e8e8c0aab032c03a404809f6d"
+dependencies = [
+ "expat-sys 2.1.0 (git+https://github.com/servo/libexpat)",
+ "freetype-sys 2.4.11 (git+https://github.com/servo/libfreetype2)",
+]
+
+[[package]]
+name = "freetype"
+version = "0.1.0"
+source = "git+https://github.com/servo/rust-freetype#e55b06110fb2d74a2db68ead740db7e98fb98060"
+
+[[package]]
+name = "freetype-sys"
+version = "2.4.11"
+source = "git+https://github.com/servo/libfreetype2#5b6499164106f094937565595c7b96d07de55521"
+
+[[package]]
+name = "geom"
+version = "0.1.0"
+source = "git+https://github.com/servo/rust-geom#e5e74911ac6d3201009879b72499d6c681302611"
+
+[[package]]
+name = "gfx"
+version = "0.0.1"
+dependencies = [
+ "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
+ "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
+ "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
+ "core_text 0.1.0 (git+https://github.com/servo/rust-core-text)",
+ "fontconfig 0.1.0 (git+https://github.com/servo/rust-fontconfig)",
+ "freetype 0.1.0 (git+https://github.com/servo/rust-freetype)",
+ "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
+ "harfbuzz 0.1.0 (git+https://github.com/servo/rust-harfbuzz)",
+ "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
+ "msg 0.0.1",
+ "net 0.0.1",
+ "plugins 0.0.1",
+ "png 0.1.0 (git+https://github.com/servo/rust-png)",
+ "script_traits 0.0.1",
+ "stb_image 0.1.0 (git+https://github.com/servo/rust-stb-image)",
+ "style 0.0.1",
+ "url 0.1.0 (git+https://github.com/servo/rust-url)",
+ "util 0.0.1",
+]
+
+[[package]]
+name = "gl_common"
+version = "0.0.1"
+source = "git+https://github.com/bjz/gl-rs.git#79cd3b3f9f19aa0e39f6af572fc8673a6d9760bc"
+
+[[package]]
+name = "gl_generator"
+version = "0.0.1"
+source = "git+https://github.com/bjz/gl-rs.git#79cd3b3f9f19aa0e39f6af572fc8673a6d9760bc"
+dependencies = [
+ "gl_common 0.0.1 (git+https://github.com/bjz/gl-rs.git)",
+ "khronos_api 0.0.1 (git+https://github.com/bjz/gl-rs.git)",
+ "rust-xml 0.1.0 (git+https://github.com/netvl/rust-xml)",
+]
+
+[[package]]
+name = "gleam"
+version = "0.0.1"
+source = "git+https://github.com/servo/gleam#aaea38be25ce9de6e1e8620fa5b554669ac6475c"
+dependencies = [
+ "gl_generator 0.0.1 (git+https://github.com/bjz/gl-rs.git)",
+]
+
+[[package]]
+name = "glx"
+version = "0.0.1"
+source = "git+https://github.com/servo/rust-glx#7126ffa09fcfcc9f85f1406f3b5db729f5fdb7c3"
+dependencies = [
+ "gl_generator 0.0.1 (git+https://github.com/bjz/gl-rs.git)",
+]
+
+[[package]]
+name = "green"
+version = "0.0.1"
+source = "git+https://github.com/servo/green-rs?ref=servo#9300d7e7dc73680c7446d78b10a309095636e64d"
+
+[[package]]
+name = "harfbuzz"
+version = "0.1.0"
+source = "git+https://github.com/servo/rust-harfbuzz#8aab215463214647b7a81f66011da552bbb1121c"
+
+[[package]]
+name = "html5ever"
+version = "0.0.0"
+source = "git+https://github.com/servo/html5ever?ref=servo#87c7e8b710391338b2463652be835f498923653c"
+dependencies = [
+ "html5ever_macros 0.0.0 (git+https://github.com/servo/html5ever?ref=servo)",
+ "phf 0.0.0 (git+https://github.com/sfackler/rust-phf)",
+ "phf_mac 0.0.0 (git+https://github.com/sfackler/rust-phf)",
+ "string_cache 0.0.0 (git+https://github.com/servo/string-cache)",
+ "string_cache_macros 0.0.0 (git+https://github.com/servo/string-cache)",
+]
+
+[[package]]
+name = "html5ever_macros"
+version = "0.0.0"
+source = "git+https://github.com/servo/html5ever?ref=servo#87c7e8b710391338b2463652be835f498923653c"
+
+[[package]]
+name = "hyper"
+version = "0.0.1"
+source = "git+https://github.com/servo/hyper?ref=servo#dd9d1830f35f7a8371b1b3bcb2d3e9cf2763f33f"
+dependencies = [
+ "cookie 0.0.1 (git+https://github.com/servo/cookie-rs)",
+ "mime 0.0.1 (git+https://github.com/hyperium/mime.rs)",
+ "move-acceptor 0.0.1 (git+https://github.com/reem/rust-move-acceptor)",
+ "openssl 0.0.1 (git+https://github.com/servo/rust-openssl)",
+ "typeable 0.0.3 (git+https://github.com/reem/rust-typeable)",
+ "unsafe-any 0.1.1 (git+https://github.com/reem/rust-unsafe-any)",
+ "url 0.1.0 (git+https://github.com/servo/rust-url)",
+]
+
+[[package]]
+name = "io_surface"
+version = "0.1.0"
+source = "git+https://github.com/servo/rust-io-surface#691cbccc320c4fb9b75e215da9b0b82539d729bd"
+dependencies = [
+ "cgl 0.0.1 (git+https://github.com/servo/rust-cgl)",
+ "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
+ "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
+ "gleam 0.0.1 (git+https://github.com/servo/gleam)",
+]
+
+[[package]]
+name = "js"
+version = "0.1.0"
+source = "git+https://github.com/servo/rust-mozjs#2a7acd8c04949796c71145db61b7868128e497f2"
+dependencies = [
+ "green 0.0.1 (git+https://github.com/servo/green-rs?ref=servo)",
+ "mozjs-sys 0.0.0 (git+https://github.com/servo/mozjs)",
+ "rustuv 0.0.1 (git+https://github.com/servo/green-rs?ref=servo)",
+]
+
+[[package]]
+name = "khronos_api"
+version = "0.0.1"
+source = "git+https://github.com/bjz/gl-rs.git#79cd3b3f9f19aa0e39f6af572fc8673a6d9760bc"
+
+[[package]]
+name = "layers"
+version = "0.1.0"
+source = "git+https://github.com/servo/rust-layers#b068d2a96d54bf173b548aece36f5ea4ef9353cf"
+dependencies = [
+ "cgl 0.0.1 (git+https://github.com/servo/rust-cgl)",
+ "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
+ "egl 0.1.0 (git+https://github.com/servo/rust-egl)",
+ "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
+ "gleam 0.0.1 (git+https://github.com/servo/gleam)",
+ "glx 0.0.1 (git+https://github.com/servo/rust-glx)",
+ "io_surface 0.1.0 (git+https://github.com/servo/rust-io-surface)",
+ "xlib 0.1.0 (git+https://github.com/servo/rust-xlib)",
+]
+
+[[package]]
+name = "layout"
+version = "0.0.1"
+dependencies = [
+ "encoding 0.2.0 (git+https://github.com/lifthrasiir/rust-encoding)",
+ "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
+ "gfx 0.0.1",
+ "layout_traits 0.0.1",
+ "net 0.0.1",
+ "plugins 0.0.1",
+ "script 0.0.1",
+ "script_traits 0.0.1",
+ "string_cache 0.0.0 (git+https://github.com/servo/string-cache)",
+ "string_cache_macros 0.0.0 (git+https://github.com/servo/string-cache)",
+ "style 0.0.1",
+ "url 0.1.0 (git+https://github.com/servo/rust-url)",
+ "util 0.0.1",
+]
+
+[[package]]
+name = "layout_traits"
+version = "0.0.1"
+dependencies = [
+ "gfx 0.0.1",
+ "msg 0.0.1",
+ "net 0.0.1",
+ "script_traits 0.0.1",
+ "util 0.0.1",
+]
+
+[[package]]
+name = "lazy_static"
+version = "0.1.0"
+source = "git+https://github.com/Kimundi/lazy-static.rs#62976cb611c5396e11315ae64c9c389576240eb7"
+
+[[package]]
+name = "libressl-pnacl-sys"
+version = "2.0.2"
+source = "git+https://github.com/DiamondLovesYou/libressl-pnacl-sys.git#8e9349e0280b069bfab247a2202cd10b8beae154"
+dependencies = [
+ "pnacl-build-helper 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "mime"
+version = "0.0.1"
+source = "git+https://github.com/hyperium/mime.rs#5264e04655974f85c8d6581395cc24597266c653"
+
+[[package]]
+name = "move-acceptor"
+version = "0.0.1"
+source = "git+https://github.com/reem/rust-move-acceptor#25c5c33a83f605fdd0f3d37d2589e2b0b4e6cbd1"
+
+[[package]]
+name = "mozjs-sys"
+version = "0.0.0"
+source = "git+https://github.com/servo/mozjs#0dd618fcc78fe7aa64e4e2a3b0f7f0d8a2f0f08a"
+
+[[package]]
+name = "msg"
+version = "0.0.1"
+dependencies = [
+ "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
+ "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
+ "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
+ "hyper 0.0.1 (git+https://github.com/servo/hyper?ref=servo)",
+ "io_surface 0.1.0 (git+https://github.com/servo/rust-io-surface)",
+ "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
+ "url 0.1.0 (git+https://github.com/servo/rust-url)",
+ "util 0.0.1",
+]
+
+[[package]]
+name = "net"
+version = "0.0.1"
+dependencies = [
+ "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
+ "hyper 0.0.1 (git+https://github.com/servo/hyper?ref=servo)",
+ "png 0.1.0 (git+https://github.com/servo/rust-png)",
+ "stb_image 0.1.0 (git+https://github.com/servo/rust-stb-image)",
+ "url 0.1.0 (git+https://github.com/servo/rust-url)",
+ "util 0.0.1",
+]
+
+[[package]]
+name = "openssl"
+version = "0.0.1"
+source = "git+https://github.com/servo/rust-openssl#0a3cace0265fe286b505508aa6e5096fc94a6896"
+dependencies = [
+ "libressl-pnacl-sys 2.0.2 (git+https://github.com/DiamondLovesYou/libressl-pnacl-sys.git)",
+ "openssl-sys 0.0.1 (git+https://github.com/servo/rust-openssl)",
+]
+
+[[package]]
+name = "openssl-sys"
+version = "0.0.1"
+source = "git+https://github.com/servo/rust-openssl#0a3cace0265fe286b505508aa6e5096fc94a6896"
+dependencies = [
+ "pkg-config 0.1.0 (git+https://github.com/alexcrichton/pkg-config-rs)",
+]
+
+[[package]]
+name = "phf"
+version = "0.0.0"
+source = "git+https://github.com/sfackler/rust-phf#18a5ecc028055c3dbd650cc5a064b6fb033d82ef"
+dependencies = [
+ "xxhash 0.0.1 (git+https://github.com/Jurily/rust-xxhash)",
+]
+
+[[package]]
+name = "phf_mac"
+version = "0.0.0"
+source = "git+https://github.com/sfackler/rust-phf#18a5ecc028055c3dbd650cc5a064b6fb033d82ef"
+dependencies = [
+ "xxhash 0.0.1 (git+https://github.com/Jurily/rust-xxhash)",
+]
+
+[[package]]
+name = "pkg-config"
+version = "0.1.0"
+source = "git+https://github.com/alexcrichton/pkg-config-rs#9b3b44a2e1a8ccc70c3f701aeb5154ad79e665e9"
+
+[[package]]
+name = "plugins"
+version = "0.0.1"
+
+[[package]]
+name = "pnacl-build-helper"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "png"
+version = "0.1.0"
+source = "git+https://github.com/servo/rust-png#b0b4acde0080dd475dee93615276bfc19207a21e"
+dependencies = [
+ "png-sys 1.6.3 (git+https://github.com/servo/libpng?ref=servo)",
+]
+
+[[package]]
+name = "png-sys"
+version = "1.6.3"
+source = "git+https://github.com/servo/libpng?ref=servo#d01f32b4eb86904695efe7fc02b574f902e21a98"
+
+[[package]]
+name = "rust-xml"
+version = "0.1.0"
+source = "git+https://github.com/netvl/rust-xml#d6c57380a300b94f7e7881979dbe5459dbe4ca06"
+
+[[package]]
+name = "rustuv"
+version = "0.0.1"
+source = "git+https://github.com/servo/green-rs?ref=servo#9300d7e7dc73680c7446d78b10a309095636e64d"
+dependencies = [
+ "green 0.0.1 (git+https://github.com/servo/green-rs?ref=servo)",
+ "tls 0.0.1 (git+https://github.com/alexcrichton/tls-rs)",
+]
+
+[[package]]
+name = "script"
+version = "0.0.1"
+dependencies = [
+ "canvas 0.0.1",
+ "cssparser 0.1.0 (git+https://github.com/servo/rust-cssparser)",
+ "devtools_traits 0.0.1",
+ "encoding 0.2.0 (git+https://github.com/lifthrasiir/rust-encoding)",
+ "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
+ "gfx 0.0.1",
+ "html5ever 0.0.0 (git+https://github.com/servo/html5ever?ref=servo)",
+ "hyper 0.0.1 (git+https://github.com/servo/hyper?ref=servo)",
+ "js 0.1.0 (git+https://github.com/servo/rust-mozjs)",
+ "msg 0.0.1",
+ "net 0.0.1",
+ "plugins 0.0.1",
+ "script_traits 0.0.1",
+ "string_cache 0.0.0 (git+https://github.com/servo/string-cache)",
+ "string_cache_macros 0.0.0 (git+https://github.com/servo/string-cache)",
+ "style 0.0.1",
+ "url 0.1.0 (git+https://github.com/servo/rust-url)",
+ "util 0.0.1",
+ "uuid 0.0.1 (git+https://github.com/rust-lang/uuid)",
+]
+
+[[package]]
+name = "script_traits"
+version = "0.0.1"
+dependencies = [
+ "devtools_traits 0.0.1",
+ "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
+ "msg 0.0.1",
+ "net 0.0.1",
+ "url 0.1.0 (git+https://github.com/servo/rust-url)",
+ "util 0.0.1",
+]
+
+[[package]]
+name = "servo"
+version = "0.0.1"
+dependencies = [
+ "compositing 0.0.1",
+ "gfx 0.0.1",
+ "layout 0.0.1",
+ "msg 0.0.1",
+ "net 0.0.1",
+ "script 0.0.1",
+ "url 0.1.0 (git+https://github.com/servo/rust-url)",
+ "util 0.0.1",
+]
+
+[[package]]
+name = "skia-sys"
+version = "0.0.20130412"
+source = "git+https://github.com/servo/skia#79aa9354837bc195b83fa041b9632ea628e6f7d0"
+dependencies = [
+ "expat-sys 2.1.0 (git+https://github.com/servo/libexpat)",
+ "freetype-sys 2.4.11 (git+https://github.com/servo/libfreetype2)",
+]
+
+[[package]]
+name = "stb_image"
+version = "0.1.0"
+source = "git+https://github.com/servo/rust-stb-image#74488fef4740acf287ff5dc248d65cc74033467a"
+
+[[package]]
+name = "string_cache"
+version = "0.0.0"
+source = "git+https://github.com/servo/string-cache#ae950525434b642eff5f4904f5e0c76cd6ea99b9"
+dependencies = [
+ "lazy_static 0.1.0 (git+https://github.com/Kimundi/lazy-static.rs)",
+ "phf 0.0.0 (git+https://github.com/sfackler/rust-phf)",
+ "phf_mac 0.0.0 (git+https://github.com/sfackler/rust-phf)",
+ "string_cache_macros 0.0.0 (git+https://github.com/servo/string-cache)",
+ "xxhash 0.0.1 (git+https://github.com/Jurily/rust-xxhash)",
+]
+
+[[package]]
+name = "string_cache_macros"
+version = "0.0.0"
+source = "git+https://github.com/servo/string-cache#ae950525434b642eff5f4904f5e0c76cd6ea99b9"
+dependencies = [
+ "lazy_static 0.1.0 (git+https://github.com/Kimundi/lazy-static.rs)",
+]
+
+[[package]]
+name = "style"
+version = "0.0.1"
+dependencies = [
+ "cssparser 0.1.0 (git+https://github.com/servo/rust-cssparser)",
+ "encoding 0.2.0 (git+https://github.com/lifthrasiir/rust-encoding)",
+ "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
+ "lazy_static 0.1.0 (git+https://github.com/Kimundi/lazy-static.rs)",
+ "plugins 0.0.1",
+ "string_cache 0.0.0 (git+https://github.com/servo/string-cache)",
+ "string_cache_macros 0.0.0 (git+https://github.com/servo/string-cache)",
+ "url 0.1.0 (git+https://github.com/servo/rust-url)",
+ "util 0.0.1",
+]
+
+[[package]]
+name = "task_info"
+version = "0.0.1"
+
+[[package]]
+name = "tls"
+version = "0.0.1"
+source = "git+https://github.com/alexcrichton/tls-rs#e5e240c35e2c3401ea750ee61221d917398c5ef1"
+
+[[package]]
+name = "typeable"
+version = "0.0.3"
+source = "git+https://github.com/reem/rust-typeable#db8975daaa3889871f67eea11baeaefd8e706eaf"
+
+[[package]]
+name = "unsafe-any"
+version = "0.1.1"
+source = "git+https://github.com/reem/rust-unsafe-any#eb3fe87bea85f375b8fcefa0cdecfd131fae9624"
+
+[[package]]
+name = "url"
+version = "0.1.0"
+source = "git+https://github.com/servo/rust-url#8a61b7654ab5378b488225a1d8a9cbbbcbd38894"
+dependencies = [
+ "encoding 0.2.0 (git+https://github.com/lifthrasiir/rust-encoding)",
+]
+
+[[package]]
+name = "util"
+version = "0.0.1"
+dependencies = [
+ "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
+ "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
+ "string_cache 0.0.0 (git+https://github.com/servo/string-cache)",
+ "string_cache_macros 0.0.0 (git+https://github.com/servo/string-cache)",
+ "task_info 0.0.1",
+ "url 0.1.0 (git+https://github.com/servo/rust-url)",
+]
+
+[[package]]
+name = "uuid"
+version = "0.0.1"
+source = "git+https://github.com/rust-lang/uuid#7c5af48d4f9074717199e05a1895f42b9fb1c1f0"
+
+[[package]]
+name = "xlib"
+version = "0.1.0"
+source = "git+https://github.com/servo/rust-xlib#58ec3847b592aeabdcfeb6a2d02033d3a2c7f427"
+
+[[package]]
+name = "xxhash"
+version = "0.0.1"
+source = "git+https://github.com/Jurily/rust-xxhash#7e4174e780af0cfb29a5e53ede0b987adca16396"
+
