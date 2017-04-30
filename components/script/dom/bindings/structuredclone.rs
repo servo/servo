@@ -71,7 +71,7 @@ struct StructuredCloneWriter {
     w: *mut JSStructuredCloneWriter,
 }
 
-impl StructuturedCloneWriter {
+impl StructuredCloneWriter {
     unsafe fn write_slice(&self, v: &[u8]) {
         // writers bytesl takes in a vec! and its length
         let blob_length = v.len();
@@ -95,7 +95,7 @@ impl StructuredCloneReader {
     unsafe fn read_str(&self) -> String {
         // return string from vec!
         let type_str_length = read_length(self.r);
-        let mut type_str_buffer = vec![0u8; type_str_lenth];
+        let mut type_str_buffer = vec![0u8; type_str_length];
         return String::from_utf8_unchecked(type_str_buffer);
     }
     unsafe fn read_slice(&self) -> Vec<u8> {
