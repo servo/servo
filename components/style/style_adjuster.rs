@@ -6,7 +6,7 @@
 //! for it to adhere to the CSS spec.
 
 use app_units::Au;
-use properties::{self, ComputedValues};
+use properties::{self, ComputedValues, StyleBuilder};
 use properties::longhands::display::computed_value::T as display;
 use properties::longhands::float::computed_value::T as float;
 use properties::longhands::overflow_x::computed_value::T as overflow;
@@ -14,14 +14,14 @@ use properties::longhands::position::computed_value::T as position;
 
 
 /// An unsized struct that implements all the adjustment methods.
-pub struct StyleAdjuster<'a> {
-    style: &'a mut ComputedValues,
+pub struct StyleAdjuster<'a, 'b: 'a> {
+    style: &'a mut StyleBuilder<'b>,
     is_root_element: bool,
 }
 
-impl<'a> StyleAdjuster<'a> {
+impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// Trivially constructs a new StyleAdjuster.
-    pub fn new(style: &'a mut ComputedValues, is_root_element: bool) -> Self {
+    pub fn new(style: &'a mut StyleBuilder<'b>, is_root_element: bool) -> Self {
         StyleAdjuster {
             style: style,
             is_root_element: is_root_element,
@@ -264,7 +264,7 @@ impl<'a> StyleAdjuster<'a> {
     ///
     /// When comparing to Gecko, this is similar to the work done by
     /// `nsStyleContext::ApplyStyleFixups`.
-    pub fn adjust(mut self,
+    pub fn adjust(&mut self,
                   layout_parent_style: &ComputedValues,
                   skip_root_and_element_display_fixup: bool) {
         self.adjust_for_top_layer();

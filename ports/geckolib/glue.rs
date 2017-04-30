@@ -72,7 +72,7 @@ use style::keyframes::KeyframesStepValue;
 use style::media_queries::{MediaList, parse_media_query_list};
 use style::parallel;
 use style::parser::{LengthParsingMode, ParserContext};
-use style::properties::{CascadeFlags, ComputedValues, Importance, ParsedDeclaration};
+use style::properties::{CascadeFlags, ComputedValues, Importance, ParsedDeclaration, StyleBuilder};
 use style::properties::{PropertyDeclarationBlock, PropertyId};
 use style::properties::SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP;
 use style::properties::animated_properties::{AnimationValue, ComputeDistance, Interpolate, TransitionProperty};
@@ -1002,14 +1002,14 @@ pub extern "C" fn Servo_ComputedValues_Inherit(
     let for_text = target == structs::InheritTarget::Text;
     let style = if let Some(reference) = maybe_arc.as_ref() {
         let mut style =
-            ComputedValues::inherit_from(reference,
-                                         &data.default_computed_values());
+            StyleBuilder::for_inheritance(reference,
+                                          &data.default_computed_values());
         if for_text {
             StyleAdjuster::new(&mut style, /* is_root = */ false)
                 .adjust_for_text();
         }
 
-        Arc::new(style)
+        Arc::new(style.build())
     } else {
         debug_assert!(!for_text);
         data.default_computed_values().clone()
@@ -2002,8 +2002,9 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
         device: &data.stylist.device,
         inherited_style: parent_style.unwrap_or(default_values),
         layout_parent_style: parent_style.unwrap_or(default_values),
-        style: (**style).clone(),
+        style: StyleBuilder::for_derived_style(&style),
         font_metrics_provider: &metrics,
+        cached_system_font: None,
         in_media_query: false,
         quirks_mode: QuirksMode::NoQuirks,
     };

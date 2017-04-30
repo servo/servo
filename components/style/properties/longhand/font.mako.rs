@@ -50,7 +50,7 @@
                 SpecifiedValue::Value(v) => v,
                 SpecifiedValue::System(_) => {
                     <%self:nongecko_unreachable>
-                        _context.style.cached_system_font.as_ref().unwrap().${name}
+                        _context.cached_system_font.as_ref().unwrap().${name}
                     </%self:nongecko_unreachable>
                 }
             }
@@ -270,7 +270,7 @@
                 SpecifiedValue::Values(ref v) => computed_value::T(v.clone()),
                 SpecifiedValue::System(_) => {
                     <%self:nongecko_unreachable>
-                        _cx.style.cached_system_font.as_ref().unwrap().font_family.clone()
+                        _cx.cached_system_font.as_ref().unwrap().font_family.clone()
                     </%self:nongecko_unreachable>
                 }
             }
@@ -532,7 +532,7 @@ ${helpers.single_keyword_system("font-variant-caps",
                 },
                 SpecifiedValue::System(_) => {
                     <%self:nongecko_unreachable>
-                        context.style.cached_system_font.as_ref().unwrap().font_weight.clone()
+                        context.cached_system_font.as_ref().unwrap().font_weight.clone()
                     </%self:nongecko_unreachable>
                 }
             }
@@ -809,7 +809,7 @@ ${helpers.single_keyword_system("font-variant-caps",
 
                 SpecifiedValue::System(_) => {
                     <%self:nongecko_unreachable>
-                        context.style.cached_system_font.as_ref().unwrap().font_size
+                        context.cached_system_font.as_ref().unwrap().font_size
                     </%self:nongecko_unreachable>
                 }
             }
@@ -982,7 +982,7 @@ ${helpers.single_keyword_system("font-variant-caps",
                 SpecifiedValue::Number(ref n) => computed_value::T::Number(n.to_computed_value(context)),
                 SpecifiedValue::System(_) => {
                     <%self:nongecko_unreachable>
-                        context.style.cached_system_font.as_ref().unwrap().font_size_adjust
+                        context.cached_system_font.as_ref().unwrap().font_size_adjust
                     </%self:nongecko_unreachable>
                 }
             }
@@ -1966,7 +1966,7 @@ ${helpers.single_keyword_system("font-variant-position",
                 }
                 SpecifiedValue::System(_) => {
                     <%self:nongecko_unreachable>
-                        _context.style.cached_system_font.as_ref().unwrap().font_language_override
+                        _context.cached_system_font.as_ref().unwrap().font_language_override
                     </%self:nongecko_unreachable>
                 }
             }
@@ -2365,11 +2365,11 @@ ${helpers.single_keyword("-moz-math-variant",
         /// Must be called before attempting to compute a system font
         /// specified value
         pub fn resolve_system_font(system: SystemFont, context: &mut Context) {
-            if context.style.cached_system_font.is_none() {
+            if context.cached_system_font.is_none() {
                 let computed = system.to_computed_value(context);
-                context.style.cached_system_font = Some(computed);
+                context.cached_system_font = Some(computed);
             }
-            debug_assert!(system == context.style.cached_system_font.as_ref().unwrap().system_font)
+            debug_assert!(system == context.cached_system_font.as_ref().unwrap().system_font)
         }
 
         #[derive(Clone, Debug)]
