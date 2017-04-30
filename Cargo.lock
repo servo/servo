@@ -987,7 +987,7 @@ dependencies = [
  "servo_geometry 0.0.1",
  "servo_url 0.0.1",
  "simd 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "smallvec 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "smallvec 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "style 0.0.1",
  "style_traits 0.0.1",
  "time 0.1.36 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1385,7 +1385,7 @@ dependencies = [
  "servo_config 0.0.1",
  "servo_geometry 0.0.1",
  "servo_url 0.0.1",
- "smallvec 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "smallvec 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "style 0.0.1",
  "style_traits 0.0.1",
  "unicode-bidi 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1966,7 +1966,7 @@ dependencies = [
  "kernel32-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.21 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
- "smallvec 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "smallvec 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "winapi 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -2293,7 +2293,7 @@ dependencies = [
  "servo_geometry 0.0.1",
  "servo_rand 0.0.1",
  "servo_url 0.0.1",
- "smallvec 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "smallvec 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "style 0.0.1",
  "style_traits 0.0.1",
  "time 0.1.36 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2389,7 +2389,7 @@ dependencies = [
  "fnv 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "matches 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "precomputed-hash 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "smallvec 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "smallvec 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -2685,8 +2685,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "smallvec"
-version = "0.3.2"
+version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "heapsize 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "string_cache"
@@ -2762,7 +2765,7 @@ dependencies = [
  "servo_atoms 0.0.1",
  "servo_config 0.0.1",
  "servo_url 0.0.1",
- "smallvec 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "smallvec 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "style_traits 0.0.1",
  "time 0.1.36 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicode-segmentation 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3520,7 +3523,7 @@ dependencies = [
 "checksum simd 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "7a94d14a2ae1f1f110937de5fb69e494372560181c7e1739a097fcc2cee37ba0"
 "checksum siphasher 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "0df90a788073e8d0235a67e50441d47db7c8ad9debd91cbf43736a2a92d36537"
 "checksum slab 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "17b4fcaed89ab08ef143da37bc52adbcc04d4a69014f4c1208d6b51f0c47bc23"
-"checksum smallvec 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)" = "dca03f2f42500a9ef8ac0d16183dff8bed40e3dcf98f9d4147928548d5c4236e"
+"checksum smallvec 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)" = "4f8266519bc1d17d0b5b16f6c21295625d562841c708f6376f49028a43e9c11e"
 "checksum string_cache 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "f55fba06c5e294108f22e8512eb598cb13388a117991e411a8df8f41a1219a75"
 "checksum string_cache_codegen 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "479cde50c3539481f33906a387f2bd17c8e87cb848c35b6021d41fb81ff9b4d7"
 "checksum string_cache_shared 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "b1884d1bc09741d466d9b14e6d37ac89d6909cbcac41dd9ae982d4d063bbedfc"

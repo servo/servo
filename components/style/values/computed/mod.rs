@@ -332,7 +332,7 @@ pub struct Shadow {
 /// A `<number>` value.
 pub type Number = CSSFloat;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
 pub enum NumberOrPercentage {
