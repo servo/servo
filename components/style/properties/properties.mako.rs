@@ -2044,6 +2044,15 @@ impl<'a, T: 'a> StyleStructRef<'a, T>
         }
     }
 
+    /// Get a mutable reference to the owned struct, or `None` if the struct
+    /// hasn't been mutated.
+    pub fn get_mut(&mut self) -> Option<<&mut T> {
+        match *self {
+            StyleStructRef::Owned(ref mut v) => Some(v),
+            StyleStructRef::Borrowed(..) => None,
+        }
+    }
+
     /// Returns an `Arc` to the internal struct, constructing one if
     /// appropriate.
     pub fn build(self) -> Arc<T> {
@@ -2145,6 +2154,12 @@ impl<'a> StyleBuilder<'a> {
         /// Gets a mutable view of the current `${style_struct.name}` style.
         pub fn mutate_${style_struct.name_lower}(&mut self) -> &mut style_structs::${style_struct.name} {
             self.${style_struct.ident}.mutate()
+        }
+
+        /// Gets a mutable view of the current `${style_struct.name}` style,
+        /// only if it's been mutated before.
+        pub fn get_${style_struct.name_lower}_mut(&mut self) -> Option<<&mut style_structs::${style_struct.name}> {
+            self.${style_struct.ident}.get_mut()
         }
     % endfor
 
@@ -2551,11 +2566,13 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
     }
 
     % if product == "gecko":
-        // FIXME(emilio): This is effectively creating a new nsStyleBackground
-        // and nsStyleSVG per element. We should only do this when necessary
-        // using the `seen` bitfield!
-        style.mutate_background().fill_arrays();
-        style.mutate_svg().fill_arrays();
+        if let Some(ref mut bg) = style.get_background_mut() {
+            bg.fill_arrays();
+        }
+
+        if let Some(ref mut svg) = style.get_svg_mut() {
+            svg.fill_arrays();
+        }
     % endif
 
     if is_root_element {
