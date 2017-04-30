@@ -73,7 +73,9 @@ struct StructuredCloneWriter {
 
 impl StructuturedCloneWriter {
     unsafe fn write_slice(&self, v: &[u8]) {
-        assert!(JS_WriteBytes(self.w, v.as_ptr() as *const raw::c_void, v.len()));
+        // writers bytesl takes in a vec! and its length
+        let blob_length = v.len();
+        assert!(JS_WriteBytes(self.w, v.as_ptr() as *const raw::c_void, blob_length));
     }
     unsafe fn write_usize(&self, mut u: &usize) {
         write_length(self.w, u.to_be());
@@ -85,17 +87,28 @@ struct StructuredCloneReader {
 }
 
 impl StructuredCloneReader {
-    unsafe fn read_bytes(&self) {
-        assert!(JS_ReadBytes(self.r, vec![0u8; self.read_usize()].as_mut_ptr() as *mut raw::c_void, self.read_usize()));
+    unsafe fn read_bytes(&self) -> usize {
+        // reads and return length
+        let type_length = read_length(self.r);
+        return type_length;
     }
     unsafe fn read_str(&self) -> String {
-        String::from_utf8_unchecked(vec![0u8; self.read_usize()];
-    }
-    unsafe fn read_usize(&self) -> usize {
-        read_length(self.r)
+        // return string from vec!
+        let type_str_length = read_length(self.r);
+        let mut type_str_buffer = vec![0u8; type_str_lenth];
+        return String::from_utf8_unchecked(type_str_buffer);
     }
     unsafe fn read_slice(&self) -> Vec<u8> {
-        vec![0u8; self.read_usize()]
+        // returns vec! with blob/str length
+        let blob_buffer = read_length(self.r);
+        let vect = vec![0u8; blob_buffer];
+        return vect;
+    }
+    unsafe fn read_assert(&self, v: &mut [u8], l: usize) {
+        // Reads bytes; takes in vec! and length
+        let blob_length = l;
+        let vect = v.as_mut_ptr();
+        assert!(JS_ReadBytes(self.r, vect as *mut raw::c_void, blob_length));
     }
 }
 
@@ -103,12 +116,12 @@ unsafe fn read_blob(cx: *mut JSContext,
                     r: *mut JSStructuredCloneReader)
                     -> *mut JSObject {
     let structured_reader = StructuredCloneReader{r: r};
-    let blob_length = structured_reader.read_usize();
-    let type_str_length = structured_reader.read_usize();
+    let blob_length = structured_reader.read_bytes();
+    let type_str_length = structured_reader.read_bytes();
     let mut blob_buffer = structured_reader.read_slice();
-    structured_reader.read_bytes();
+    structured_reader.read_assert(&mut blob_buffer, blob_length);
     let mut type_str_buffer = structured_reader.read_slice();
-    structured_reader.read_bytes();
+    structured_reader.read_assert(&mut type_str_buffer, type_str_length);
     let type_str = structured_reader.read_str();
     let target_global = GlobalScope::from_context(cx);
     let blob = Blob::new(&target_global, BlobImpl::new_from_bytes(blob_buffer), type_str);
