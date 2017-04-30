@@ -145,13 +145,13 @@ impl MutationObserver {
         // Step 4
         for observer in &interestedObservers {
             //Step 4.1
-            //let mut record= MutationRecord::new(target);
+            let mut record= MutationRecord::new(DOMString::from(&*given_name),target);
             //Step 4.2
-            match attr_type {
-                Mutation::Attribute { ref name, ref namespace, ref oldValue, ref newValue }
-                    => { let mut given_name = name.clone();
-                        let mut given_namespace = namespace; },
+            if given_name!="" && given_namespace != "" {
+                record.SetAttributeName(DOMString::from(&*given_name));
+                record.SetAttributeNamespace(DOMString::from(&*given_namespace));
             }
+
         }
     }
 
