@@ -143,6 +143,7 @@ impl MutationObserver {
             }
         }
         // Step 4
+        let mut i= 0;
         for observer in &interestedObservers {
             //Step 4.1
             let mut record= MutationRecord::new(DOMString::from(&*given_name),target);
@@ -151,7 +152,11 @@ impl MutationObserver {
                 record.SetAttributeName(DOMString::from(&*given_name));
                 record.SetAttributeNamespace(DOMString::from(&*given_namespace));
             }
-
+            //Step 4.3-4.6- TODO currently not relevant to mutation records for attribute mutations
+            //Step 4.7
+            if pairedStrings[i]!=""{
+                record.SetoldValue(pairedStrings[i]);
+            }
         }
     }
 
