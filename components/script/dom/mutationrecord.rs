@@ -46,10 +46,10 @@ pub struct MutationRecord {
 }
 
 impl MutationRecord {
-     fn new(&self, target: &Node) -> MutationRecord {
+     fn new(&self, record_type: DOMString, target: &Node) -> MutationRecord {
         MutationRecord {
             reflector_: Reflector::new(),
-            record_type: Default::default(),
+            record_type: record_type,
             target: JS::from_ref(target),
             attribute_name: Default::default(),
             attribute_namespace: Default::default(),
