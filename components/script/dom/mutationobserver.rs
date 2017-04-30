@@ -75,8 +75,7 @@ impl MutationObserver {
         // Step 2
 //        let notifyList = ScriptThread::get_mutation_observer();
         // Step 3, Step 4 not needed as Servo doesn't implement anything related to slots yet.
-        // Step 5
-//        Ignore the specific text about execute a compound microtask.
+        // Step 5: Ignore the specific text about execute a compound microtask.
         // Step 6 not needed as Servo doesn't implement anything related to slots yet.
     }
 

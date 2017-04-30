@@ -6,6 +6,7 @@
 //! microtask queues. It is up to implementations of event loops to store a queue and
 //! perform checkpoints at appropriate times, as well as enqueue microtasks as required.
 
+use core::borrow::BorrowMut;
 use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationCallback;
@@ -87,7 +88,7 @@ impl MicrotaskQueue {
                     }
                     Microtask::Mutation(ref job) => {
                         if let Some(target) = target_provider(job.pipeline) {
-                            let _ = job.callback.Call_(&*target, job.mutations, &job.observer, ExceptionHandling::Report);
+                            let _ = job.callback.Call_(&*target, job.borrow_mut().mutations, &job.observer, ExceptionHandling::Report);
                         }
                     }
                 }
