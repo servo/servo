@@ -600,12 +600,12 @@ impl ScriptThread {
         })
     }
 
-//    pub fn get_mutation_observer() -> &DOMRefCell<Vec<JS<MutationObserver>>> {
-//        SCRIPT_THREAD_ROOT.with(|root| {
-//            let script_thread = unsafe { &*root.get().unwrap() };
-//            return Root::from_ref(script_thread.mutation_observers.borrow());
-//        })
-//    }
+    pub fn get_mutation_observer() -> DOMRefCell<Vec<JS<MutationObserver>>> {
+        SCRIPT_THREAD_ROOT.with(|root| {
+            let script_thread = unsafe { &*root.get().unwrap() };
+            return script_thread.mutation_observers.clone();
+        })
+    }
 
     pub fn mark_document_with_no_blocked_loads(doc: &Document) {
         SCRIPT_THREAD_ROOT.with(|root| {

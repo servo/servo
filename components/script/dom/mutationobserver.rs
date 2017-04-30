@@ -85,7 +85,7 @@ impl MutationObserver {
         // Step 1
         ScriptThread::set_mutation_observer_compound_microtask_queued(false);
         // Step 2
-//        let notifyList = ScriptThread::get_mutation_observer();
+        let notifyList = ScriptThread::get_mutation_observer();
         // Step 3, Step 4 not needed as Servo doesn't implement anything related to slots yet.
         // Step 5: Ignore the specific text about execute a compound microtask.
         // Step 6 not needed as Servo doesn't implement anything related to slots yet.
@@ -108,6 +108,11 @@ impl MutationObserver {
         for node in &nodes {
             for registered_observer in node.registered_mutation_observers_for_type().borrow().iter() {
                //let bool condition1 = (node!=target);
+               let mut given_name = attr_type.Attribute.name.clone();
+               let condition2:bool = given_name=="attribute" && registered_observer.options.into_inner().attributes == Some(false);
+               let condition3:bool = given_name=="attribute" && registered_observer.options.into_inner().attributeFilter != None;
+               let condition4:bool = given_name=="characterData" && registered_observer.options.into_inner().characterData == Some(false);
+               let condition5:bool = given_name=="childList" && !registered_observer.options.into_inner().childList;
             }
         }
         // Step 4
