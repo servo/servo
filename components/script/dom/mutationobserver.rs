@@ -18,6 +18,7 @@ use html5ever_atoms::Namespace;
 use microtask::Microtask;
 use script_thread::ScriptThread;
 use servo_atoms::Atom;
+use std::cell::Cell;
 use std::option::Option;
 use std::rc::Rc;
 
@@ -27,6 +28,8 @@ pub struct MutationObserver {
     #[ignore_heap_size_of = "can't measure Rc values"]
     callback: Rc<MutationCallback>,
     record_queue: Vec<Root<MutationRecord>>,
+    #[ignore_heap_size_of = "can't measure DomRefCell values"]
+    options: Cell<MutationObserverInit>,
 }
 
 #[derive(Debug)]
@@ -45,6 +48,7 @@ impl MutationObserver {
             reflector_: Reflector::new(),
             callback: callback,
             record_queue: vec![],
+            //options: Default::default(),
         }
     }
 
@@ -129,13 +133,15 @@ impl MutationObserverMethods for MutationObserver {
             return Err(Error::Type("characterDataOldValue is true but characterData is false".to_owned()));
         }
         // TODO: Step 7
-        //let mut registeredObservers = &target.registered_mutation_observers_for_type().into_iter();
-
         for registered in target.registered_mutation_observers_for_type().borrow().iter() {
+        	// registered observer registered in target’s list of registered observers whose observer is the context object
             if &*registered as *const MutationObserver == self as *const MutationObserver {
                 // TODO: remove matching transient registered observers
+                registered.options = Cell::from(*options);
             }
             // TODO: Step 8
+            let callback: Rc<MutationCallback>;
+//            let observer: Root<MutationObserver> = MutationObserver::new(target.GetRootNode(), callback);
         }
         Ok(())
     }
