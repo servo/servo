@@ -388,11 +388,7 @@ impl HTMLImageElement {
     /// https://html.spec.whatwg.org/multipage/#select-an-image-source
     fn select_image_source(&self) -> Option<DOMString> {
         // TODO: select an image source from source set
-        let source_set = self.update_source_set();
-        if let Some(src) = source_set.first() {
-            return Some(src.clone())
-        }
-        return None
+        self.update_source_set().first().cloned()
     }
 
     /// Step 9.2 of https://html.spec.whatwg.org/multipage/#update-the-image-data
