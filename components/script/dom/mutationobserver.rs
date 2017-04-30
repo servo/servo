@@ -109,10 +109,12 @@ impl MutationObserver {
             for registered_observer in node.registered_mutation_observers_for_type().borrow().iter() {
                 let mut given_name = "";
                 let mut given_namespace = "";
+                let mut old_value = "";
                 match attr_type {
                     Mutation::Attribute { ref name, ref namespace, ref oldValue, ref newValue } => {
                         given_name = &*name.clone();
                         given_namespace = &*namespace.clone();
+                        old_value = &*oldValue.clone();
                     },
                 }
                 let condition1: bool = node != &Root::from_ref(target) &&
@@ -135,7 +137,7 @@ impl MutationObserver {
                             (given_name == "characterData" &&
                                 registered_observer.options.into_inner().characterDataOldValue == Some(true));
                     if condition {
-                    	// do something here
+                        pairedStrings.push(DOMString::from(old_value));
                     }
                 }
             }
