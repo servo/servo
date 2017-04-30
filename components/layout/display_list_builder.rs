@@ -1334,8 +1334,24 @@ impl FragmentDisplayListBuilding for Fragment {
                             }),
                         }));
                     }
-                    GradientKind::Radial(_, _) => {
-                        // TODO(#16638): Handle border-image with radial gradient.
+                    GradientKind::Radial(ref shape, ref center) => {
+                        let grad = self.convert_radial_gradient(&bounds,
+                                                                &gradient.items[..],
+                                                                shape,
+                                                                center,
+                                                                gradient.repeating,
+                                                                style);
+                        state.add_display_item(DisplayItem::Border(box BorderDisplayItem {
+                            base: base,
+                            border_widths: border.to_physical(style.writing_mode),
+                            details: BorderDetails::RadialGradient(
+                                display_list::RadialGradientBorder {
+                                    gradient: grad,
+
+                                    // TODO(gw): Support border-image-outset
+                                    outset: SideOffsets2D::zero(),
+                                }),
+                        }));
                     }
                 }
             }
