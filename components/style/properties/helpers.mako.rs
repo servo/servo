@@ -478,7 +478,7 @@
                     SpecifiedValue::Keyword(v) => v,
                     SpecifiedValue::System(_) => {
                         % if product == "gecko":
-                            _cx.style.cached_system_font.as_ref().unwrap().${to_rust_ident(name)}
+                            _cx.cached_system_font.as_ref().unwrap().${to_rust_ident(name)}
                         % else:
                             unreachable!()
                         % endif

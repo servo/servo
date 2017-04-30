@@ -17,6 +17,7 @@ use euclid::size::TypedSize2D;
 use font_metrics::get_metrics_provider_for_product;
 use media_queries::Device;
 use parser::{Parse, ParserContext, log_css_error};
+use properties::StyleBuilder;
 use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
@@ -678,14 +679,17 @@ impl MaybeNew for ViewportConstraints {
 
         let provider = get_metrics_provider_for_product();
 
+        let default_values = device.default_computed_values();
+
         // TODO(emilio): Stop cloning `ComputedValues` around!
         let context = Context {
             is_root_element: false,
             device: device,
-            inherited_style: device.default_computed_values(),
-            layout_parent_style: device.default_computed_values(),
-            style: device.default_computed_values().clone(),
+            inherited_style: default_values,
+            layout_parent_style: default_values,
+            style: StyleBuilder::for_derived_style(default_values),
             font_metrics_provider: &provider,
+            cached_system_font: None,
             in_media_query: false,
             quirks_mode: quirks_mode,
         };
