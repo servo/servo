@@ -16,7 +16,11 @@ use dom::node::Node;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use html5ever_atoms::Namespace;
+use microtask::EnqueuedMutationCallback;
 use microtask::Microtask;
+use msg::constellation_msg::PipelineId;
+use msg::constellation_msg::PipelineIndex;
+use msg::constellation_msg::PipelineNamespaceId;
 use script_thread::ScriptThread;
 use servo_atoms::Atom;
 use std::cell::Cell;
@@ -68,7 +72,7 @@ impl MutationObserver {
 
     /// https://dom.spec.whatwg.org/#queue-a-mutation-observer-compound-microtask
     /// Queue a Mutation Observer compound Microtask.
-    pub fn queueMutationObserverCompoundMicrotask(&self, compoundMicrotask: Microtask) {
+    pub fn queueMutationObserverCompoundMicrotask(compoundMicrotask: Microtask) {
         // Step 1
         if ScriptThread::get_mutation_observer_compound_microtask_queued() {
             return;
@@ -143,23 +147,27 @@ impl MutationObserver {
             }
         }
         // Step 4
-        let mut i= 0;
+        let mut i = 0;
         for observer in &interestedObservers {
             //Step 4.1
-            let mut record= MutationRecord::new(DOMString::from(&*given_name),target);
+            let mut record = MutationRecord::new(DOMString::from(&*given_name), target);
             //Step 4.2
-            if given_name!="" && given_namespace != "" {
+            if given_name != "" && given_namespace != "" {
                 record.SetAttributeName(DOMString::from(&*given_name));
                 record.SetAttributeNamespace(DOMString::from(&*given_namespace));
             }
             //Step 4.3-4.6- TODO currently not relevant to mutation records for attribute mutations
             //Step 4.7
-            if pairedStrings[i]!=""{
+            if pairedStrings[i] != ""{
                 record.SetoldValue(pairedStrings[i]);
             }
         }
+        // Step 5
+        let pipelineId = PipelineId { namespace_id: PipelineNamespaceId(0), index: PipelineIndex(0) };
+        let enqueuedMutationCallback = EnqueuedMutationCallback { pipeline: pipelineId };
+        let compoundMicrotask = Microtask::Mutation(enqueuedMutationCallback);
+        MutationObserver::queueMutationObserverCompoundMicrotask(compoundMicrotask);
     }
-
 }
 
 impl MutationObserverMethods for MutationObserver {

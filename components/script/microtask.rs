@@ -13,8 +13,8 @@ use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationCallback;
 use dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
 use dom::bindings::js::Root;
 use dom::globalscope::GlobalScope;
-use dom::mutationrecord::MutationRecord;
 use dom::mutationobserver::MutationObserver;
+use dom::mutationrecord::MutationRecord;
 use msg::constellation_msg::PipelineId;
 use std::cell::Cell;
 use std::mem;
@@ -31,7 +31,7 @@ pub struct MicrotaskQueue {
 
 #[derive(JSTraceable, HeapSizeOf)]
 pub enum Microtask {
-    Promise(EnqueuedPromiseCallback),    
+    Promise(EnqueuedPromiseCallback),
     Mutation(EnqueuedMutationCallback),
 }
 
@@ -43,14 +43,14 @@ pub struct EnqueuedPromiseCallback {
     pub pipeline: PipelineId,
 }
 
-/// A mutation callback 
+/// A mutation callback
 #[derive(JSTraceable, HeapSizeOf)]
 pub struct EnqueuedMutationCallback {
-	 #[ignore_heap_size_of = "Rc has unclear ownership"]
-    pub callback: Rc<MutationCallback>,
+//    #[ignore_heap_size_of = "Rc has unclear ownership"]
+//    pub callback: Rc<MutationCallback>,
     pub pipeline: PipelineId,
-    pub mutations: Vec<Root<MutationRecord>>,
-    pub observer: MutationObserver,
+//    pub mutations: Vec<Root<MutationRecord>>,
+//    pub observer: MutationObserver,
 }
 
 impl MicrotaskQueue {
@@ -58,7 +58,7 @@ impl MicrotaskQueue {
     /// microtask checkpoint.
     pub fn enqueue(&self, job: Microtask) {
         self.microtask_queue.borrow_mut().push(job);
-    }    
+    }
 
     /// https://html.spec.whatwg.org/multipage/#perform-a-microtask-checkpoint
     /// Perform a microtask checkpoint, executing all queued microtasks until the queue is empty.
@@ -88,7 +88,9 @@ impl MicrotaskQueue {
                     }
                     Microtask::Mutation(ref job) => {
                         if let Some(target) = target_provider(job.pipeline) {
-                            let _ = job.callback.Call_(&*target, job.borrow_mut().mutations, &job.observer, ExceptionHandling::Report);
+//                            let observer = MutationObserver::new(job.borrow_mut().callback);
+//                            let _ = job.callback.Call_(&*target, job.borrow_mut().mutations,
+//                                &job.observer, ExceptionHandling::Report);
                         }
                     }
                 }
