@@ -130,7 +130,7 @@ impl MutationObserver {
                     !registered_observer.options.into_inner().childList;
                 if !condition1 && !condition2 && !condition3 && !condition4 && !condition5 {
                     if !interestedObservers.contains(&registered_observer) {
-                    	interestedObservers.push(*registered_observer);
+                        interestedObservers.push(*registered_observer);
                     }
                     let condition: bool = (given_name == "attribute" &&
                         registered_observer.options.into_inner().attributeOldValue == Some(true)) ||
