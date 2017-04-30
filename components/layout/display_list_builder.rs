@@ -608,12 +608,48 @@ fn convert_gradient_stops(gradient_items: &[GradientItem],
     // Determine the position of each stop per CSS-IMAGES § 3.4.
     //
     // FIXME(#3908, pcwalton): Make sure later stops can't be behind earlier stops.
-    let stop_items = gradient_items.iter().filter_map(|item| {
+
+    // Only keep the color stops. Discard the color items.
+    let mut stop_items = gradient_items.iter().filter_map(|item| {
         match *item {
-            GradientItem::ColorStop(ref stop) => Some(stop),
+            GradientItem::ColorStop(ref stop) => Some(*stop),
             _ => None,
         }
     }).collect::<Vec<_>>();
+
+    assert!(stop_items.len() >= 2);
+
+    // Run the algorithm from
+    // https://drafts.csswg.org/css-images-3/#color-stop-syntax
+
+    // Step 1: If nothing else is specified the first stop is
+    // at 0% and the last stop is at 100%.
+    {
+        let first = stop_items.first_mut().unwrap();
+        if first.position.is_none() {
+            first.position = Some(LengthOrPercentage::Percentage(0.0));
+        }
+    }
+    {
+        let last = stop_items.last_mut().unwrap();
+        if last.position.is_none() {
+            last.position = Some(LengthOrPercentage::Percentage(1.0));
+        }
+    }
+
+    // Step 2: Move any stops placed before earlier stops to the
+    // same position as the preceding stop.
+    let mut state = stop_items.first().unwrap().position.unwrap();
+    for stop in stop_items.iter_mut() {
+        if let Some(pos) = stop.position {
+            if position_to_offset(state, length) > position_to_offset(pos, length) {
+                stop.position = Some(state);
+            }
+            state = stop.position.unwrap();
+        }
+    }
+
+    // Step 3: Evenly space stops without position.
     let mut stops = Vec::with_capacity(stop_items.len());
     let mut stop_run = None;
     for (i, stop) in stop_items.iter().enumerate() {
@@ -621,44 +657,31 @@ fn convert_gradient_stops(gradient_items: &[GradientItem],
             None => {
                 if stop_run.is_none() {
                     // Initialize a new stop run.
-                    let start_offset = if i == 0 {
-                        0.0
-                    } else {
-                        // `unwrap()` here should never fail because this is the beginning of
-                        // a stop run, which is always bounded by a length or percentage.
-                        position_to_offset(stop_items[i - 1].position.unwrap(), length)
-                    };
-                    let (end_index, end_offset) =
-                        match stop_items[i..]
-                                        .iter()
-                                        .enumerate()
-                                        .find(|&(_, ref stop)| stop.position.is_some()) {
-                            None => (stop_items.len() - 1, 1.0),
-                            Some((end_index, end_stop)) => {
-                                // `unwrap()` here should never fail because this is the end of
-                                // a stop run, which is always bounded by a length or
-                                // percentage.
-                                (end_index,
-                                    position_to_offset(end_stop.position.unwrap(), length))
-                            }
-                        };
+                    // `unwrap()` here should never fail because this is the beginning of
+                    // a stop run, which is always bounded by a length or percentage.
+                    let start_offset =
+                        position_to_offset(stop_items[i - 1].position.unwrap(), length);
+                    // `unwrap()` here should never fail because this is the end of
+                    // a stop run, which is always bounded by a length or percentage.
+                    let (end_index, end_stop) = stop_items[(i + 1)..]
+                        .iter()
+                        .enumerate()
+                        .find(|&(_, ref stop)| stop.position.is_some())
+                        .unwrap();
+                    let end_offset = position_to_offset(end_stop.position.unwrap(), length);
                     stop_run = Some(StopRun {
                         start_offset: start_offset,
                         end_offset: end_offset,
-                        start_index: i,
-                        stop_count: end_index - i,
+                        start_index: i - 1,
+                        stop_count: end_index,
                     })
                 }
 
                 let stop_run = stop_run.unwrap();
                 let stop_run_length = stop_run.end_offset - stop_run.start_offset;
-                if stop_run.stop_count == 0 {
-                    stop_run.end_offset
-                } else {
-                    stop_run.start_offset +
-                        stop_run_length * (i - stop_run.start_index) as f32 /
-                            (stop_run.stop_count as f32)
-                }
+                stop_run.start_offset +
+                    stop_run_length * (i - stop_run.start_index) as f32 /
+                        ((2 + stop_run.stop_count) as f32)
             }
             Some(position) => {
                 stop_run = None;
@@ -2692,12 +2715,10 @@ struct StopRun {
 
 fn position_to_offset(position: LengthOrPercentage, Au(total_length): Au) -> f32 {
     match position {
-        LengthOrPercentage::Length(Au(length)) => {
-            (1.0f32).min(length as f32 / total_length as f32)
-        }
+        LengthOrPercentage::Length(Au(length)) => length as f32 / total_length as f32,
         LengthOrPercentage::Percentage(percentage) => percentage as f32,
         LengthOrPercentage::Calc(calc) =>
-            (1.0f32).min(calc.percentage() + (calc.length().0 as f32) / (total_length as f32)),
+            calc.percentage() + (calc.length().0 as f32) / (total_length as f32),
     }
 }
 
