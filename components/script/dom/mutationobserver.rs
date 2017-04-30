@@ -98,14 +98,12 @@ impl MutationObserver {
     //https://dom.spec.whatwg.org/#queueing-a-mutation-record
     //Queuing a mutation record
     pub fn queue_a_mutation_record(target: &Node, attr_type: Mutation) {
-        use self::Mutation::*;
         let mut given_name = "";
         let mut given_namespace = "";
         let mut old_value = "";
         // Step 1
         let mut interestedObservers: Vec<MutationObserver> = vec![];
         let mut pairedStrings: Vec<DOMString> = vec![];
-        let mut given_type = "NULL";
         // Step 2
         let mut nodes: Vec<Root<Node>> = vec![];
         for ancestor in target.inclusive_ancestors() {
@@ -133,9 +131,11 @@ impl MutationObserver {
                 let condition5: bool = given_name == "childList" &&
                     !registered_observer.options.into_inner().childList;
                 if !condition1 && !condition2 && !condition3 && !condition4 && !condition5 {
+                    // Step 3.1
                     if !interestedObservers.contains(&registered_observer) {
                         interestedObservers.push(*registered_observer);
                     }
+                    // Step 3.2
                     let condition: bool = (given_name == "attribute" &&
                         registered_observer.options.into_inner().attributeOldValue == Some(true)) ||
                             (given_name == "characterData" &&
