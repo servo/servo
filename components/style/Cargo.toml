@@ -17,7 +17,7 @@ gecko = ["nsstring_vendor", "rayon/unstable", "num_cpus"]
 use_bindgen = ["bindgen", "regex"]
 servo = ["serde/unstable", "serde", "serde_derive", "heapsize", "heapsize_derive",
          "style_traits/servo", "servo_atoms", "servo_config", "html5ever-atoms",
-         "cssparser/heapsize", "cssparser/serde", "encoding",
+         "cssparser/heapsize", "cssparser/serde", "encoding", "smallvec/heapsizeof",
          "rayon/unstable", "servo_url"]
 testing = []
 gecko_debug = ["nsstring_vendor/gecko_debug"]
@@ -53,7 +53,7 @@ serde = {version = "0.9", optional = true}
 serde_derive = {version = "0.9", optional = true}
 servo_atoms = {path = "../atoms", optional = true}
 servo_config = {path = "../config", optional = true}
-smallvec = "0.3"
+smallvec = "0.3.3"
 style_traits = {path = "../style_traits"}
 servo_url = {path = "../url", optional = true}
 time = "0.1"

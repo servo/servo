@@ -753,10 +753,11 @@ ${helpers.single_keyword("text-align-last",
     pub mod computed_value {
         use app_units::Au;
         use cssparser::Color;
+        use smallvec::SmallVec;
 
         #[derive(Clone, PartialEq, Debug)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct T(pub Vec<TextShadow>);
+        pub struct T(pub SmallVec<[TextShadow; 1]>);
 
         #[derive(Clone, PartialEq, Debug)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -833,7 +834,8 @@ ${helpers.single_keyword("text-align-last",
 
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
-        computed_value::T(Vec::new())
+        use smallvec::SmallVec;
+        computed_value::T(SmallVec::new())
     }
 
     pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
