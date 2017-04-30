@@ -457,7 +457,7 @@ impl HTMLImageElement {
     fn prepare_image_request(&self, url: &ServoUrl, src: &DOMString) {
         match self.image_request.get() {
             ImageRequestPhase::Pending => {
-                if let Some(pending_url) = self.pending_request.borrow_mut().parsed_url.clone() {
+                if let Some(pending_url) = self.pending_request.borrow().parsed_url.clone() {
                     // Step 12.1
                     if pending_url == *url {
                         return
