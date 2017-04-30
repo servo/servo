@@ -102,32 +102,13 @@ pub struct ComputedValues {
 }
 
 impl ComputedValues {
-    /// Inherits style from the parent element, accounting for the default
-    /// computed values that need to be provided as well.
-    pub fn inherit_from(parent: &Self, default: &Self) -> Self {
-        ComputedValues {
-            custom_properties: parent.custom_properties.clone(),
-            writing_mode: parent.writing_mode,
-            root_font_size: parent.root_font_size,
-            font_size_keyword: parent.font_size_keyword,
-            cached_system_font: None,
-            % for style_struct in data.style_structs:
-            % if style_struct.inherited:
-            ${style_struct.ident}: parent.${style_struct.ident}.clone(),
-            % else:
-            ${style_struct.ident}: default.${style_struct.ident}.clone(),
-            % endif
-            % endfor
-        }
-    }
-
     pub fn new(custom_properties: Option<Arc<ComputedValuesMap>>,
-           writing_mode: WritingMode,
-           root_font_size: Au,
-           font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
-            % for style_struct in data.style_structs:
-           ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
-            % endfor
+               writing_mode: WritingMode,
+               root_font_size: Au,
+               font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
+               % for style_struct in data.style_structs:
+               ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
+               % endfor
     ) -> Self {
         ComputedValues {
             custom_properties: custom_properties,
@@ -168,6 +149,11 @@ impl ComputedValues {
     pub fn get_${style_struct.name_lower}(&self) -> &style_structs::${style_struct.name} {
         &self.${style_struct.ident}
     }
+
+    pub fn ${style_struct.name_lower}_arc(&self) -> &Arc<style_structs::${style_struct.name}> {
+        &self.${style_struct.ident}
+    }
+
     #[inline]
     pub fn mutate_${style_struct.name_lower}(&mut self) -> &mut style_structs::${style_struct.name} {
         Arc::make_mut(&mut self.${style_struct.ident})
@@ -175,18 +161,12 @@ impl ComputedValues {
     % endfor
 
     pub fn custom_properties(&self) -> Option<Arc<ComputedValuesMap>> {
-        self.custom_properties.as_ref().map(|x| x.clone())
+        self.custom_properties.clone()
     }
 
     #[allow(non_snake_case)]
     pub fn has_moz_binding(&self) -> bool {
         !self.get_box().gecko.mBinding.mPtr.mRawPtr.is_null()
-    }
-
-    #[allow(non_snake_case)]
-    pub fn in_top_layer(&self) -> bool {
-        matches!(self.get_box().clone__moz_top_layer(),
-                 longhands::_moz_top_layer::SpecifiedValue::top)
     }
 
     // FIXME(bholley): Implement this properly.
