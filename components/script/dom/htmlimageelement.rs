@@ -351,18 +351,6 @@ impl HTMLImageElement {
         request.metadata = None;
     }
 
-    fn init_pending_request(&self,
-                              url: &ServoUrl,
-                              src: &DOMString) {
-        let mut pending_request = self.pending_request.borrow_mut();
-        pending_request.parsed_url = Some(url.clone());
-        pending_request.source_url = Some(src.clone());
-        pending_request.image = None;
-        pending_request.metadata = None;
-        let document = document_from_node(self);
-        pending_request.blocker = Some(LoadBlocker::new(&*document, LoadType::Image(url.clone())));
-    }
-
     fn dispatch_progress_event(&self, type_: Atom, loaded: u64, total: Option<u64>) {
         let progressevent = ProgressEvent::new(&self.global(),
             type_, EventBubbles::DoesNotBubble, EventCancelable::NotCancelable,
@@ -454,6 +442,21 @@ impl HTMLImageElement {
         let _ = task.queue(runnable, window.upcast());
     }
 
+    fn init_image_request(&self,
+                          url: &ServoUrl,
+                          src: &DOMString) {
+        let mut request = match self.image_request.get() {
+            ImageRequestPhase::Pending => self.pending_request.borrow_mut(),
+            ImageRequestPhase::Current => self.current_request.borrow_mut(),
+        };
+        request.parsed_url = Some(url.clone());
+        request.source_url = Some(src.clone());
+        request.image = None;
+        request.metadata = None;
+        let document = document_from_node(self);
+        request.blocker = Some(LoadBlocker::new(&*document, LoadType::Image(url.clone())));
+    }
+
     /// Step 12 of html.spec.whatwg.org/multipage/#update-the-image-data
     fn prepare_image_request(&self, url: &ServoUrl, src: &DOMString) {
         match self.image_request.get() {
@@ -466,7 +469,7 @@ impl HTMLImageElement {
                 }
             },
             ImageRequestPhase::Current => {
-                let mut current_request = self.current_request.borrow_mut();
+                let current_request = self.current_request.borrow_mut();
                 // step 12.4, create a new "image_request"
                 match (current_request.parsed_url.clone(), current_request.state) {
                     (Some(parsed_url), State::PartiallyAvailable) => {
@@ -480,24 +483,19 @@ impl HTMLImageElement {
                             // TODO: queue a task to restart animation, if restart-animation is set
                             return
                         }
-                        self.init_pending_request(&url, &src);
                         self.image_request.set(ImageRequestPhase::Pending);
+                        self.init_image_request(&url, &src);
                         self.fetch_image(&url);
                     },
                     (_, State::Broken) | (_, State::Unavailable) => {
                         // Step 12.5
-                        current_request.parsed_url = Some(url.clone());
-                        current_request.source_url = Some(src.clone());
-                        current_request.image = None;
-                        current_request.metadata = None;
-                        let document = document_from_node(self);
-                        current_request.blocker = Some(LoadBlocker::new(&*document, LoadType::Image(url.clone())));
+                        self.init_image_request(&url, &src);
                         self.fetch_image(&url);
                     },
                     (_, _) => {
                         // step 12.6
-                        self.init_pending_request(&url, &src);
                         self.image_request.set(ImageRequestPhase::Pending);
+                        self.init_image_request(&url, &src);
                         self.fetch_image(&url);
                     },
                 }
