@@ -32,7 +32,7 @@ pub struct MutationObserver {
     options: Cell<MutationObserverInit>,
 }
 
-#[derive(Debug)]
+#[derive(Clone)]
 pub enum Mutation {
     Attribute { name: Atom, namespace: Namespace, oldValue: DOMString, newValue: DOMString}
 }
@@ -89,9 +89,11 @@ impl MutationObserver {
     //https://dom.spec.whatwg.org/#queueing-a-mutation-record
     //Queuing a mutation record
     pub fn queue_a_mutation_record(target: &Node, attr_type: Mutation) {
+        use self::Mutation::*;
         // Step 1
         let mut interestedObservers: Vec<Root<MutationObserver>> = vec![];
         let mut pairedStrings: Vec<DOMString> = vec![];
+        let mut given_type = "NULL";
         // Step 2
         let mut nodes: Vec<Root<Node>> = vec![];
         for ancestor in target.inclusive_ancestors() {
@@ -100,9 +102,21 @@ impl MutationObserver {
         // Step 3
         for node in &nodes {
             for registered_observer in node.registered_mutation_observers_for_type().borrow().iter() {
+               //let bool condition1 = (node!=target);
+            }
+        }
+        // Step 4
+        for observer in &interestedObservers {
+            //Step 4.1
+            //let mut record= MutationRecord::new(target);
+            //Step 4.2
+            match *attr_type {
+               Mutation::Attribute {ref name, ref namespace,ref oldValue, ref newValue} => { let mut given_name = name.clone();let mut given_namespace = namespace;
+               },
             }
         }
     }
+
 }
 
 impl MutationObserverMethods for MutationObserver {
