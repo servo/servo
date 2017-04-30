@@ -107,16 +107,22 @@ impl MutationObserver {
         // Step 3
         for node in &nodes {
             for registered_observer in node.registered_mutation_observers_for_type().borrow().iter() {
-               //let bool condition1 = (node!=target);
-               let mut given_name = "";
+                let mut given_name = "";
+                let mut given_namespace = "";
                 match attr_type {
-                    Mutation::Attribute {ref name, ref namespace,ref oldValue, ref newValue} => { given_name = &*name.clone();
+                    Mutation::Attribute {ref name, ref namespace,ref oldValue, ref newValue} => {
+                    	given_name = &*name.clone();
+                    	given_namespace = &*namespace.clone();
                     },
                 }
-               let condition2:bool = given_name=="attribute" && registered_observer.options.into_inner().attributes == Some(false);
-               let condition3:bool = given_name=="attribute" && registered_observer.options.into_inner().attributeFilter != None;
-               let condition4:bool = given_name=="characterData" && registered_observer.options.into_inner().characterData == Some(false);
-               let condition5:bool = given_name=="childList" && !registered_observer.options.into_inner().childList;
+                let condition1: bool = node != &Root::from_ref(target) && !registered_observer.options.into_inner().subtree;
+                let condition2: bool = given_name=="attribute" && registered_observer.options.into_inner().attributes == Some(false);
+                let condition3: bool = given_name=="attribute" && registered_observer.options.into_inner().attributeFilter != None;
+                let condition4: bool = given_name=="characterData" && registered_observer.options.into_inner().characterData == Some(false);
+                let condition5: bool = given_name=="childList" && !registered_observer.options.into_inner().childList;
+                if !condition1 && !condition2 && !condition3 && !condition4 && !condition5 {
+                    // do something here.
+                }
             }
         }
         // Step 4
