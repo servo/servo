@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationObserverB
 use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationObserverInit;
 use dom::bindings::codegen::Bindings::MutationRecordBinding::MutationRecordBinding::MutationRecordMethods;
 use dom::bindings::error::{Error, Fallible};
-use dom::bindings::js::{Root};
+use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::mutationrecord::MutationRecord;
@@ -49,14 +49,14 @@ impl MutationObserver {
             reflector_: Reflector::new(),
             callback: callback,
             record_queue: vec![],
-            options: Cell::from(MutationObserverInit { 
-            		attributeFilter: Some(vec![]), 
-            		attributeOldValue: Some(false), 
-            		attributes: Some(false), 
-            		characterData: Some(false), 
-            		characterDataOldValue: Some(false), 
-            		childList: false, 
-            		subtree: false }),
+            options: Cell::from(MutationObserverInit {
+                    attributeFilter: Some(vec![]),
+                    attributeOldValue: Some(false),
+                    attributes: Some(false),
+                    characterData: Some(false),
+                    characterDataOldValue: Some(false),
+                    childList: false,
+                    subtree: false }),
         }
     }
 
@@ -110,16 +110,21 @@ impl MutationObserver {
                 let mut given_name = "";
                 let mut given_namespace = "";
                 match attr_type {
-                    Mutation::Attribute {ref name, ref namespace,ref oldValue, ref newValue} => {
-                    	given_name = &*name.clone();
-                    	given_namespace = &*namespace.clone();
+                    Mutation::Attribute { ref name, ref namespace, ref oldValue, ref newValue } => {
+                        given_name = &*name.clone();
+                        given_namespace = &*namespace.clone();
                     },
                 }
-                let condition1: bool = node != &Root::from_ref(target) && !registered_observer.options.into_inner().subtree;
-                let condition2: bool = given_name=="attribute" && registered_observer.options.into_inner().attributes == Some(false);
-                let condition3: bool = given_name=="attribute" && registered_observer.options.into_inner().attributeFilter != None;
-                let condition4: bool = given_name=="characterData" && registered_observer.options.into_inner().characterData == Some(false);
-                let condition5: bool = given_name=="childList" && !registered_observer.options.into_inner().childList;
+                let condition1: bool = node != &Root::from_ref(target) &&
+                    !registered_observer.options.into_inner().subtree;
+                let condition2: bool = given_name == "attribute" &&
+                    registered_observer.options.into_inner().attributes == Some(false);
+                let condition3: bool = given_name == "attribute" &&
+                    registered_observer.options.into_inner().attributeFilter != None;
+                let condition4: bool = given_name == "characterData" &&
+                    registered_observer.options.into_inner().characterData == Some(false);
+                let condition5: bool = given_name == "childList" &&
+                    !registered_observer.options.into_inner().childList;
                 if !condition1 && !condition2 && !condition3 && !condition4 && !condition5 {
                     // do something here.
                 }
@@ -131,8 +136,9 @@ impl MutationObserver {
             //let mut record= MutationRecord::new(target);
             //Step 4.2
             match attr_type {
-               Mutation::Attribute {ref name, ref namespace,ref oldValue, ref newValue} => { let mut given_name = name.clone();let mut given_namespace = namespace;
-               },
+                Mutation::Attribute { ref name, ref namespace, ref oldValue, ref newValue }
+                    => { let mut given_name = name.clone();
+                        let mut given_namespace = namespace; },
             }
         }
     }
@@ -171,7 +177,7 @@ impl MutationObserverMethods for MutationObserver {
         }
         // TODO: Step 7
         for registered in target.registered_mutation_observers_for_type().borrow().iter() {
-        	// registered observer registered in target’s list of registered observers whose observer is the context object
+            // registered observer in target’s list of registered observers whose observer is the context object
             if &*registered as *const MutationObserver == self as *const MutationObserver {
                 // TODO: remove matching transient registered observers
                 registered.options = Cell::from(*options);

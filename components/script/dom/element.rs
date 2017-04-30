@@ -1013,9 +1013,7 @@ impl Element {
         let oldValue = DOMString::from(attr.value().to_string());
         let newValue = DOMString::from(attr.value().to_string());
         let attributeSpec = Mutation::Attribute { name, namespace, oldValue, newValue };
-
-        MutationObserver::queue_a_mutation_record(&self.node,attributeSpec);
-
+        MutationObserver::queue_a_mutation_record(&self.node, attributeSpec);
         assert!(attr.GetOwnerElement().r() == Some(self));
         self.will_mutate_attr(attr);
         self.attrs.borrow_mut().push(JS::from_ref(attr));
@@ -1138,11 +1136,8 @@ impl Element {
     }
 
     fn remove_first_matching_attribute<F>(&self, find: F) -> Option<Root<Attr>>
-        where F: Fn(&Attr) -> bool
-    {
-
+        where F: Fn(&Attr) -> bool {
         let idx = self.attrs.borrow().iter().position(|attr| find(&attr));
-
         idx.map(|idx| {
             let attr = Root::from_ref(&*(*self.attrs.borrow())[idx]);
             self.will_mutate_attr(&attr);
@@ -1151,9 +1146,7 @@ impl Element {
             let oldValue = DOMString::from(attr.value().to_string());
             let newValue = DOMString::from(attr.value().to_string());
             let attributeSpec = Mutation::Attribute { name, namespace, oldValue, newValue };
-    
-            MutationObserver::queue_a_mutation_record(&self.node,attributeSpec);
-
+            MutationObserver::queue_a_mutation_record(&self.node, attributeSpec);
             self.attrs.borrow_mut().remove(idx);
             attr.set_owner(None);
             if attr.namespace() == &ns!() {
