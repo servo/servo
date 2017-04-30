@@ -13,6 +13,7 @@
 use std::borrow::Cow;
 use std::collections::HashSet;
 use std::fmt;
+use std::ops::Deref;
 use std::sync::Arc;
 
 use app_units::Au;
@@ -1725,6 +1726,12 @@ impl ComputedValues {
             &self.${style_struct.ident}
         }
 
+        /// Gets an immutable reference to the refcounted value that wraps
+        /// `${style_struct.name}`.
+        pub fn ${style_struct.name_lower}_arc(&self) -> &Arc<style_structs::${style_struct.name}> {
+            &self.${style_struct.ident}
+        }
+
         /// Get a mutable reference to the ${style_struct.name} struct.
         #[inline]
         pub fn mutate_${style_struct.name_lower}(&mut self) -> &mut style_structs::${style_struct.name} {
@@ -1737,17 +1744,12 @@ impl ComputedValues {
     /// Cloning the Arc here is fine because it only happens in the case where
     /// we have custom properties, and those are both rare and expensive.
     fn custom_properties(&self) -> Option<Arc<::custom_properties::ComputedValuesMap>> {
-        self.custom_properties.as_ref().map(|x| x.clone())
+        self.custom_properties.clone()
     }
 
     /// Whether this style has a -moz-binding value. This is always false for
     /// Servo for obvious reasons.
     pub fn has_moz_binding(&self) -> bool { false }
-
-    /// Whether this style has a top-layer style. That's implemented in Gecko
-    /// via the -moz-top-layer property, but servo doesn't have any concept of a
-    /// top layer (yet, it's needed for fullscreen).
-    pub fn in_top_layer(&self) -> bool { false }
 
     /// Returns whether this style's display value is equal to contents.
     ///
@@ -1967,22 +1969,6 @@ impl ComputedValues {
     }
 }
 
-impl ComputedValues {
-    /// Returns whether this computed style represents a floated object.
-    pub fn floated(&self) -> bool {
-        self.get_box().clone_float() != longhands::float::computed_value::T::none
-    }
-
-    /// Returns whether this computed style represents an out of flow-positioned
-    /// object.
-    pub fn out_of_flow_positioned(&self) -> bool {
-        use properties::longhands::position::computed_value::T as position;
-        matches!(self.get_box().clone_position(),
-                 position::absolute | position::fixed)
-    }
-}
-
-
 /// Return a WritingMode bitflags from the relevant CSS properties.
 pub fn get_writing_mode(inheritedbox_style: &style_structs::InheritedBox) -> WritingMode {
     use logical_geometry;
@@ -2034,6 +2020,176 @@ pub fn get_writing_mode(inheritedbox_style: &style_structs::InheritedBox) -> Wri
     flags
 }
 
+/// A reference to a style struct of the parent, or our own style struct.
+pub enum StyleStructRef<'a, T: 'a> {
+    /// A borrowed struct from the parent, for example, for inheriting style.
+    Borrowed(&'a Arc<T>),
+    /// An owned struct, that we've already mutated.
+    Owned(T),
+}
+
+impl<'a, T: 'a> StyleStructRef<'a, T>
+    where T: Clone,
+{
+    /// Ensure a mutable reference of this value exists, either cloning the
+    /// borrowed value, or returning the owned one.
+    pub fn mutate(&mut self) -> &mut T {
+        if let StyleStructRef::Borrowed(v) = *self {
+            *self = StyleStructRef::Owned((**v).clone());
+        }
+
+        match *self {
+            StyleStructRef::Owned(ref mut v) => v,
+            StyleStructRef::Borrowed(..) => unreachable!(),
+        }
+    }
+
+    /// Returns an `Arc` to the internal struct, constructing one if
+    /// appropriate.
+    pub fn build(self) -> Arc<T> {
+        match self {
+            StyleStructRef::Owned(v) => Arc::new(v),
+            StyleStructRef::Borrowed(v) => v.clone(),
+        }
+    }
+}
+
+impl<'a, T: 'a> Deref for StyleStructRef<'a, T> {
+    type Target = T;
+
+    fn deref(&self) -> &T {
+        match *self {
+            StyleStructRef::Owned(ref v) => v,
+            StyleStructRef::Borrowed(v) => &**v,
+        }
+    }
+}
+
+/// A type used to compute a struct with minimal overhead.
+///
+/// This allows holding references to the parent/default computed values without
+/// actually cloning them, until we either build the style, or mutate the
+/// inherited value.
+pub struct StyleBuilder<'a> {
+    custom_properties: Option<Arc<::custom_properties::ComputedValuesMap>>,
+    /// The writing mode flags.
+    ///
+    /// TODO(emilio): Make private.
+    pub writing_mode: WritingMode,
+    /// The font size of the root element.
+    pub root_font_size: Au,
+    /// The keyword behind the current font-size property, if any.
+    pub font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
+    % for style_struct in data.active_style_structs():
+        ${style_struct.ident}: StyleStructRef<'a, style_structs::${style_struct.name}>,
+    % endfor
+}
+
+impl<'a> StyleBuilder<'a> {
+    /// Trivially construct a `StyleBuilder`.
+    pub fn new(
+        custom_properties: Option<Arc<::custom_properties::ComputedValuesMap>>,
+        writing_mode: WritingMode,
+        root_font_size: Au,
+        font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
+        % for style_struct in data.active_style_structs():
+            ${style_struct.ident}: &'a Arc<style_structs::${style_struct.name}>,
+        % endfor
+    ) -> Self {
+        StyleBuilder {
+            custom_properties: custom_properties,
+            writing_mode: writing_mode,
+            root_font_size: root_font_size,
+            font_size_keyword: font_size_keyword,
+        % for style_struct in data.active_style_structs():
+            ${style_struct.ident}: StyleStructRef::Borrowed(${style_struct.ident}),
+        % endfor
+        }
+    }
+
+    /// Creates a StyleBuilder holding only references to the structs of `s`, in
+    /// order to create a derived style.
+    pub fn for_derived_style(s: &'a ComputedValues) -> Self {
+        Self::for_inheritance(s, s)
+    }
+
+    /// Inherits style from the parent element, accounting for the default
+    /// computed values that need to be provided as well.
+    pub fn for_inheritance(parent: &'a ComputedValues, default: &'a ComputedValues) -> Self {
+        Self::new(parent.custom_properties(),
+                  parent.writing_mode,
+                  parent.root_font_size,
+                  parent.font_size_keyword,
+                  % for style_struct in data.active_style_structs():
+                  % if style_struct.inherited:
+                  parent.${style_struct.name_lower}_arc(),
+                  % else:
+                  default.${style_struct.name_lower}_arc(),
+                  % endif
+                  % endfor
+        )
+    }
+
+
+    % for style_struct in data.active_style_structs():
+        /// Gets an immutable view of the current `${style_struct.name}` style.
+        pub fn get_${style_struct.name_lower}(&self) -> &style_structs::${style_struct.name} {
+            &self.${style_struct.ident}
+        }
+
+        /// Gets a mutable view of the current `${style_struct.name}` style.
+        pub fn mutate_${style_struct.name_lower}(&mut self) -> &mut style_structs::${style_struct.name} {
+            self.${style_struct.ident}.mutate()
+        }
+    % endfor
+
+    /// Returns whether this computed style represents a floated object.
+    pub fn floated(&self) -> bool {
+        self.get_box().clone_float() != longhands::float::computed_value::T::none
+    }
+
+    /// Returns whether this computed style represents an out of flow-positioned
+    /// object.
+    pub fn out_of_flow_positioned(&self) -> bool {
+        use properties::longhands::position::computed_value::T as position;
+        matches!(self.get_box().clone_position(),
+                 position::absolute | position::fixed)
+    }
+
+    /// Whether this style has a top-layer style. That's implemented in Gecko
+    /// via the -moz-top-layer property, but servo doesn't have any concept of a
+    /// top layer (yet, it's needed for fullscreen).
+    #[cfg(feature = "servo")]
+    pub fn in_top_layer(&self) -> bool { false }
+
+    /// Whether this style has a top-layer style.
+    #[cfg(feature = "gecko")]
+    pub fn in_top_layer(&self) -> bool {
+        matches!(self.get_box().clone__moz_top_layer(),
+                 longhands::_moz_top_layer::computed_value::T::top)
+    }
+
+
+    /// Turns this `StyleBuilder` into a proper `ComputedValues` instance.
+    pub fn build(self) -> ComputedValues {
+        ComputedValues::new(self.custom_properties,
+                            self.writing_mode,
+                            self.root_font_size,
+                            self.font_size_keyword,
+                            % for style_struct in data.active_style_structs():
+                            self.${style_struct.ident}.build(),
+                            % endfor
+        )
+    }
+
+    /// Get the custom properties map if necessary.
+    ///
+    /// Cloning the Arc here is fine because it only happens in the case where
+    /// we have custom properties, and those are both rare and expensive.
+    fn custom_properties(&self) -> Option<Arc<::custom_properties::ComputedValuesMap>> {
+        self.custom_properties.clone()
+    }
+}
 
 #[cfg(feature = "servo")]
 pub use self::lazy_static_module::INITIAL_SERVO_VALUES;
@@ -2202,28 +2358,28 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
         ::custom_properties::finish_cascade(
             custom_properties, &inherited_custom_properties);
 
-    let starting_style = if !flags.contains(INHERIT_ALL) {
-        ComputedValues::new(custom_properties,
-                            WritingMode::empty(),
-                            inherited_style.root_font_size,
-                            inherited_style.font_size_keyword,
-                            % for style_struct in data.active_style_structs():
-                                % if style_struct.inherited:
-                                    inherited_style.clone_${style_struct.name_lower}(),
-                                % else:
-                                    default_style.clone_${style_struct.name_lower}(),
-                                % endif
-                            % endfor
-                            )
+    let builder = if !flags.contains(INHERIT_ALL) {
+        StyleBuilder::new(custom_properties,
+                          WritingMode::empty(),
+                          inherited_style.root_font_size,
+                          inherited_style.font_size_keyword,
+                          % for style_struct in data.active_style_structs():
+                              % if style_struct.inherited:
+                                  inherited_style.${style_struct.name_lower}_arc(),
+                              % else:
+                                  default_style.${style_struct.name_lower}_arc(),
+                              % endif
+                          % endfor
+                          )
     } else {
-        ComputedValues::new(custom_properties,
-                            WritingMode::empty(),
-                            inherited_style.root_font_size,
-                            inherited_style.font_size_keyword,
-                            % for style_struct in data.active_style_structs():
-                                inherited_style.clone_${style_struct.name_lower}(),
-                            % endfor
-                            )
+        StyleBuilder::new(custom_properties,
+                          WritingMode::empty(),
+                          inherited_style.root_font_size,
+                          inherited_style.font_size_keyword,
+                          % for style_struct in data.active_style_structs():
+                              inherited_style.${style_struct.name_lower}_arc(),
+                          % endfor
+                          )
     };
 
     let mut context = computed::Context {
@@ -2231,8 +2387,9 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
         device: device,
         inherited_style: inherited_style,
         layout_parent_style: layout_parent_style,
-        style: starting_style,
+        style: builder,
         font_metrics_provider: font_metrics_provider,
+        cached_system_font: None,
         in_media_query: false,
         quirks_mode: quirks_mode,
     };
@@ -2382,9 +2539,11 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
 
     let mut style = context.style;
 
-    StyleAdjuster::new(&mut style, is_root_element)
-        .adjust(context.layout_parent_style,
-                flags.contains(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP));
+    {
+        StyleAdjuster::new(&mut style, is_root_element)
+            .adjust(context.layout_parent_style,
+                    flags.contains(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP));
+    }
 
     % if product == "gecko":
         // FIXME(emilio): This is effectively creating a new nsStyleBackground
@@ -2408,12 +2567,12 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
         }
     % endif
 
-    style
+    style.build()
 }
 
 
 /// See StyleAdjuster::adjust_for_border_width.
-pub fn adjust_border_width(style: &mut ComputedValues) {
+pub fn adjust_border_width(style: &mut StyleBuilder) {
     % for side in ["top", "right", "bottom", "left"]:
         // Like calling to_computed_value, which wouldn't type check.
         if style.get_border().clone_border_${side}_style().none_or_hidden() &&

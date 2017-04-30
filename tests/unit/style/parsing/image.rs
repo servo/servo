@@ -8,7 +8,7 @@ use std::f32::consts::PI;
 use style::context::QuirksMode;
 use style::font_metrics::ServoMetricsProvider;
 use style::media_queries::{Device, MediaType};
-use style::properties::ComputedValues;
+use style::properties::{ComputedValues, StyleBuilder};
 use style::values::computed;
 use style::values::computed::{Angle, Context, ToComputedValue};
 use style::values::specified;
@@ -49,7 +49,8 @@ fn test_linear_gradient() {
         device: &device,
         inherited_style: initial_style,
         layout_parent_style: initial_style,
-        style: initial_style.clone(),
+        style: StyleBuilder::for_derived_style(&initial_style),
+        cached_system_font: None,
         font_metrics_provider: &ServoMetricsProvider,
         in_media_query: false,
         quirks_mode: QuirksMode::NoQuirks,

@@ -16,7 +16,7 @@ use gecko_bindings::structs::{nsMediaFeature_ValueType, nsMediaFeature_RangeType
 use gecko_bindings::structs::RawGeckoPresContextOwned;
 use media_queries::MediaType;
 use parser::ParserContext;
-use properties::ComputedValues;
+use properties::{ComputedValues, StyleBuilder};
 use std::fmt::{self, Write};
 use std::sync::Arc;
 use str::starts_with_ignore_ascii_case;
@@ -552,6 +552,7 @@ impl Expression {
 
         let default_values = device.default_computed_values();
 
+
         let provider = get_metrics_provider_for_product();
 
         // http://dev.w3.org/csswg/mediaqueries3/#units
@@ -561,10 +562,9 @@ impl Expression {
             device: device,
             inherited_style: default_values,
             layout_parent_style: default_values,
-            // This cloning business is kind of dumb.... It's because Context
-            // insists on having an actual ComputedValues inside itself.
-            style: default_values.clone(),
+            style: StyleBuilder::for_derived_style(default_values),
             font_metrics_provider: &provider,
+            cached_system_font: None,
             in_media_query: true,
             // TODO: pass the correct value here.
             quirks_mode: quirks_mode,

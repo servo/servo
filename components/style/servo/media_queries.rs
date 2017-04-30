@@ -11,7 +11,7 @@ use euclid::{Size2D, TypedSize2D};
 use font_metrics::ServoMetricsProvider;
 use media_queries::MediaType;
 use parser::ParserContext;
-use properties::ComputedValues;
+use properties::{ComputedValues, StyleBuilder};
 use std::fmt;
 use style_traits::{CSSPixel, ToCss};
 use style_traits::viewport::ViewportConstraints;
@@ -185,14 +185,13 @@ impl Range<specified::Length> {
             device: device,
             inherited_style: default_values,
             layout_parent_style: default_values,
-            // This cloning business is kind of dumb.... It's because Context
-            // insists on having an actual ComputedValues inside itself.
-            style: default_values.clone(),
+            style: StyleBuilder::for_derived_style(default_values),
             // Servo doesn't support font metrics
             // A real provider will be needed here once we do; since
             // ch units can exist in media queries.
             font_metrics_provider: &ServoMetricsProvider,
             in_media_query: true,
+            cached_system_font: None,
             quirks_mode: quirks_mode,
         };
 
