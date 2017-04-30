@@ -6,6 +6,7 @@ use dom::bindings::codegen::Bindings::MutationObserverBinding;
 use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationCallback;
 use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationObserverBinding::MutationObserverMethods;
 use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationObserverInit;
+use dom::bindings::codegen::Bindings::MutationRecordBinding::MutationRecordBinding::MutationRecordMethods;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::js::{Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
@@ -44,14 +45,18 @@ impl MutationObserver {
     }
 
     fn new_inherited(callback: Rc<MutationCallback>) -> MutationObserver {
-    	let val = Some(false);
-    	let val2 = Some(vec![]);
-    	let val3:bool = false;
         MutationObserver {
             reflector_: Reflector::new(),
             callback: callback,
             record_queue: vec![],
-            options: Cell::from(MutationObserverInit { attributeFilter: val2, attributeOldValue: val, attributes: val, characterData: val, characterDataOldValue: val, childList: val3, subtree: val3 }),
+            options: Cell::from(MutationObserverInit { 
+            		attributeFilter: Some(vec![]), 
+            		attributeOldValue: Some(false), 
+            		attributes: Some(false), 
+            		characterData: Some(false), 
+            		characterDataOldValue: Some(false), 
+            		childList: false, 
+            		subtree: false }),
         }
     }
 
@@ -144,7 +149,8 @@ impl MutationObserverMethods for MutationObserver {
             }
             // TODO: Step 8
             let callback: Rc<MutationCallback>;
-            let observer: Root<MutationObserver>;
+            let observer: MutationObserver;
+            observer.options = Cell::from(*options);
             target.add_registered_mutation_observer(observer);
         }
         Ok(())
