@@ -44,11 +44,14 @@ impl MutationObserver {
     }
 
     fn new_inherited(callback: Rc<MutationCallback>) -> MutationObserver {
+    	let val = Some(false);
+    	let val2 = Some(vec![]);
+    	let val3:bool = false;
         MutationObserver {
             reflector_: Reflector::new(),
             callback: callback,
             record_queue: vec![],
-            //options: Default::default(),
+            options: Cell::from(MutationObserverInit { attributeFilter: val2, attributeOldValue: val, attributes: val, characterData: val, characterDataOldValue: val, childList: val3, subtree: val3 }),
         }
     }
 
@@ -141,7 +144,8 @@ impl MutationObserverMethods for MutationObserver {
             }
             // TODO: Step 8
             let callback: Rc<MutationCallback>;
-//            let observer: Root<MutationObserver> = MutationObserver::new(target.GetRootNode(), callback);
+            let observer: Root<MutationObserver>;
+            target.add_registered_mutation_observer(observer);
         }
         Ok(())
     }
