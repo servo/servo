@@ -56,6 +56,18 @@ impl MutationRecord {
             old_value: Default::default(),
         }
      }
+     // setter for attr_name
+     pub fn SetAttributeName(&mut self, attr_name: DOMString) {
+         self.attribute_name = Some(attr_name);
+     }
+     // setter for attr_namespace
+     pub fn SetAttributeNamespace(&mut self, attr_namespace: DOMString) {
+         self.attribute_namespace = Some(attr_namespace);
+     }
+     // setter for attr_oldvalue
+     pub fn SetoldValue(&mut self, attr_oldvalue: DOMString) {
+         self.old_value = Some(attr_oldvalue);
+     }
 }
 
 impl MutationRecordMethods for MutationRecord {
