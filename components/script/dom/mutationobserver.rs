@@ -108,7 +108,11 @@ impl MutationObserver {
         for node in &nodes {
             for registered_observer in node.registered_mutation_observers_for_type().borrow().iter() {
                //let bool condition1 = (node!=target);
-               let mut given_name = attr_type.Attribute.name.clone();
+               let mut given_name = "";
+                match attr_type {
+                    Mutation::Attribute {ref name, ref namespace,ref oldValue, ref newValue} => { given_name = &*name.clone();
+                    },
+                }
                let condition2:bool = given_name=="attribute" && registered_observer.options.into_inner().attributes == Some(false);
                let condition3:bool = given_name=="attribute" && registered_observer.options.into_inner().attributeFilter != None;
                let condition4:bool = given_name=="characterData" && registered_observer.options.into_inner().characterData == Some(false);
@@ -120,7 +124,7 @@ impl MutationObserver {
             //Step 4.1
             //let mut record= MutationRecord::new(target);
             //Step 4.2
-            match *attr_type {
+            match attr_type {
                Mutation::Attribute {ref name, ref namespace,ref oldValue, ref newValue} => { let mut given_name = name.clone();let mut given_namespace = namespace;
                },
             }

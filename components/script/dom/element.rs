@@ -1151,7 +1151,7 @@ impl Element {
             let oldValue = DOMString::from(attr.value().to_string());
             let newValue = DOMString::from(attr.value().to_string());
             let attributeSpec = Mutation::Attribute { name, namespace, oldValue, newValue };
-
+    
             MutationObserver::queue_a_mutation_record(&self.node,attributeSpec);
 
             self.attrs.borrow_mut().remove(idx);
