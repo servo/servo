@@ -15,7 +15,6 @@ use self::grid::{TrackBreadth as GenericTrackBreadth, TrackSize as GenericTrackS
 use self::url::SpecifiedUrl;
 use std::ascii::AsciiExt;
 use std::f32;
-use std::f32::consts::PI;
 use std::fmt;
 use std::ops::Mul;
 use style_traits::ToCss;
@@ -300,36 +299,13 @@ impl Parse for BorderRadiusSize {
 #[derive(Clone, PartialEq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
 /// An angle consisting of a value and a unit.
+///
+/// Computed Angle is essentially same as specified angle except calc
+/// value serialization. Therefore we are using computed Angle enum
+/// to hold the value and unit type.
 pub struct Angle {
-    value: CSSFloat,
-    unit: AngleUnit,
+    value: computed::Angle,
     was_calc: bool,
-}
-
-#[derive(Copy, Clone, Debug, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
-/// A unit used together with an angle.
-pub enum AngleUnit {
-    /// Degrees, short name "deg".
-    Degree,
-    /// Gradians, short name "grad".
-    Gradian,
-    /// Radians, short name "rad".
-    Radian,
-    /// Turns, short name "turn".
-    Turn,
-}
-
-impl ToCss for AngleUnit {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        use self::AngleUnit::*;
-        dest.write_str(match *self {
-            Degree => "deg",
-            Gradian => "grad",
-            Radian => "rad",
-            Turn => "turn",
-        })
-    }
 }
 
 impl ToCss for Angle {
@@ -338,7 +314,6 @@ impl ToCss for Angle {
             dest.write_str("calc(")?;
         }
         self.value.to_css(dest)?;
-        self.unit.to_css(dest)?;
         if self.was_calc {
             dest.write_str(")")?;
         }
@@ -350,48 +325,39 @@ impl ToComputedValue for Angle {
     type ComputedValue = computed::Angle;
 
     fn to_computed_value(&self, _context: &Context) -> Self::ComputedValue {
-        computed::Angle::from_radians(self.radians())
+        self.value
     }
 
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        Angle::from_radians(computed.radians())
+        Angle {
+            value: *computed,
+            was_calc: false,
+        }
     }
 }
 
 impl Angle {
     /// Returns an angle with the given value in degrees.
     pub fn from_degrees(value: CSSFloat) -> Self {
-        Angle { value: value, unit: AngleUnit::Degree, was_calc: false }
+        Angle { value: computed::Angle::Degree(value), was_calc: false }
     }
     /// Returns an angle with the given value in gradians.
     pub fn from_gradians(value: CSSFloat) -> Self {
-        Angle { value: value, unit: AngleUnit::Gradian, was_calc: false }
+        Angle { value: computed::Angle::Gradian(value), was_calc: false }
     }
     /// Returns an angle with the given value in turns.
     pub fn from_turns(value: CSSFloat) -> Self {
-        Angle { value: value, unit: AngleUnit::Turn, was_calc: false }
+        Angle { value: computed::Angle::Turn(value), was_calc: false }
     }
     /// Returns an angle with the given value in radians.
     pub fn from_radians(value: CSSFloat) -> Self {
-        Angle { value: value, unit: AngleUnit::Radian, was_calc: false }
+        Angle { value: computed::Angle::Radian(value), was_calc: false }
     }
 
     #[inline]
     #[allow(missing_docs)]
     pub fn radians(self) -> f32 {
-        use self::AngleUnit::*;
-
-        const RAD_PER_DEG: CSSFloat = PI / 180.0;
-        const RAD_PER_GRAD: CSSFloat = PI / 200.0;
-        const RAD_PER_TURN: CSSFloat = PI * 2.0;
-
-        let radians = match self.unit {
-            Degree => self.value * RAD_PER_DEG,
-            Gradian => self.value * RAD_PER_GRAD,
-            Turn => self.value * RAD_PER_TURN,
-            Radian => self.value,
-        };
-        radians.min(f32::MAX).max(f32::MIN)
+        self.value.radians()
     }
 
     /// Returns an angle value that represents zero.
@@ -402,8 +368,7 @@ impl Angle {
     /// Returns an `Angle` parsed from a `calc()` expression.
     pub fn from_calc(radians: CSSFloat) -> Self {
         Angle {
-            value: radians,
-            unit: AngleUnit::Radian,
+            value: computed::Angle::Radian(radians),
             was_calc: true,
         }
     }

@@ -12,7 +12,7 @@ use gecko_string_cache::Atom;
 use std::mem;
 use std::ops::{Index, IndexMut};
 use std::slice;
-use values::computed::LengthOrPercentage;
+use values::computed::{Angle, LengthOrPercentage};
 use values::specified::url::SpecifiedUrl;
 
 impl nsCSSValue {
@@ -172,6 +172,26 @@ impl nsCSSValue {
     /// Generic set from any value that implements the ToNsCssValue trait.
     pub fn set_from<T: ToNsCssValue>(&mut self, value: &T) {
         value.convert(self)
+    }
+
+    /// Returns an `Angle` value from this `nsCSSValue`.
+    ///
+    /// Panics if the unit is not `eCSSUnit_Degree` `eCSSUnit_Grad`, `eCSSUnit_Turn`
+    /// or `eCSSUnit_Radian`.
+    pub fn get_angle(&self) -> Angle {
+        unsafe {
+            Angle::from_gecko_values(self.float_unchecked(), self.mUnit)
+        }
+    }
+
+    /// Sets Angle value to this nsCSSValue.
+    pub fn set_angle(&mut self, angle: Angle) {
+        debug_assert_eq!(self.mUnit, nsCSSUnit::eCSSUnit_Null);
+        let (value, unit) = angle.to_gecko_values();
+        self.mUnit = unit;
+        unsafe {
+            *self.mValue.mFloat.as_mut() = value;
+        }
     }
 }
 

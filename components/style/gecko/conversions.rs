@@ -12,11 +12,11 @@ use app_units::Au;
 use gecko::values::{convert_rgba_to_nscolor, GeckoStyleCoordConvertible};
 use gecko_bindings::bindings::{Gecko_CreateGradient, Gecko_SetGradientImageValue, Gecko_SetUrlImageValue};
 use gecko_bindings::bindings::{Gecko_InitializeImageCropRect, Gecko_SetImageElement};
-use gecko_bindings::structs::{nsStyleCoord_CalcValue, nsStyleImage};
+use gecko_bindings::structs::{nsCSSUnit, nsStyleCoord_CalcValue, nsStyleImage};
 use gecko_bindings::structs::{nsresult, SheetType};
 use gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordDataMut};
 use stylesheets::{Origin, RulesMutateError};
-use values::computed::{CalcLengthOrPercentage, Gradient, GradientItem, Image};
+use values::computed::{Angle, CalcLengthOrPercentage, Gradient, GradientItem, Image};
 use values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 
 impl From<CalcLengthOrPercentage> for nsStyleCoord_CalcValue {
@@ -96,6 +96,40 @@ impl From<nsStyleCoord_CalcValue> for LengthOrPercentage {
             (false, _) => LengthOrPercentage::Length(Au(other.mLength)),
             (true, 0) => LengthOrPercentage::Percentage(other.mPercent),
             _ => LengthOrPercentage::Calc(other.into()),
+        }
+    }
+}
+
+impl From<Angle> for CoordDataValue {
+    fn from(reference: Angle) -> Self {
+        match reference {
+            Angle::Degree(val) => CoordDataValue::Degree(val),
+            Angle::Gradian(val) => CoordDataValue::Grad(val),
+            Angle::Radian(val) => CoordDataValue::Radian(val),
+            Angle::Turn(val) => CoordDataValue::Turn(val),
+        }
+    }
+}
+
+impl Angle {
+    /// Converts Angle struct into (value, unit) pair.
+    pub fn to_gecko_values(&self) -> (f32, nsCSSUnit) {
+        match *self {
+            Angle::Degree(val) => (val, nsCSSUnit::eCSSUnit_Degree),
+            Angle::Gradian(val) => (val, nsCSSUnit::eCSSUnit_Grad),
+            Angle::Radian(val) => (val, nsCSSUnit::eCSSUnit_Radian),
+            Angle::Turn(val) => (val, nsCSSUnit::eCSSUnit_Turn),
+        }
+    }
+
+    /// Converts gecko (value, unit) pair into Angle struct
+    pub fn from_gecko_values(value: f32, unit: nsCSSUnit) -> Angle {
+        match unit {
+            nsCSSUnit::eCSSUnit_Degree => Angle::Degree(value),
+            nsCSSUnit::eCSSUnit_Grad => Angle::Gradian(value),
+            nsCSSUnit::eCSSUnit_Radian => Angle::Radian(value),
+            nsCSSUnit::eCSSUnit_Turn => Angle::Turn(value),
+            _ => panic!("Unexpected unit {:?} for angle", unit),
         }
     }
 }

@@ -11,6 +11,8 @@ use media_queries::Device;
 #[cfg(feature = "gecko")]
 use properties;
 use properties::{ComputedValues, StyleBuilder};
+use std::f32;
+use std::f32::consts::PI;
 use std::fmt;
 use style_traits::ToCss;
 use super::{CSSFloat, CSSInteger, RGBA};
@@ -139,27 +141,42 @@ impl<T> ToComputedValue for T
 /// A computed `<angle>` value.
 #[derive(Clone, PartialEq, PartialOrd, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
-pub struct Angle {
-    radians: CSSFloat,
+pub enum Angle {
+    /// An angle with degree unit
+    Degree(CSSFloat),
+    /// An angle with gradian unit
+    Gradian(CSSFloat),
+    /// An angle with radian unit
+    Radian(CSSFloat),
+    /// An angle with turn unit
+    Turn(CSSFloat),
 }
 
 impl Angle {
     /// Construct a computed `Angle` value from a radian amount.
     pub fn from_radians(radians: CSSFloat) -> Self {
-        Angle {
-            radians: radians,
-        }
+        Angle::Radian(radians)
     }
 
     /// Return the amount of radians this angle represents.
     #[inline]
     pub fn radians(&self) -> CSSFloat {
-        self.radians
+        const RAD_PER_DEG: CSSFloat = PI / 180.0;
+        const RAD_PER_GRAD: CSSFloat = PI / 200.0;
+        const RAD_PER_TURN: CSSFloat = PI * 2.0;
+
+        let radians = match *self {
+            Angle::Degree(val) => val * RAD_PER_DEG,
+            Angle::Gradian(val) => val * RAD_PER_GRAD,
+            Angle::Turn(val) => val * RAD_PER_TURN,
+            Angle::Radian(val) => val,
+        };
+        radians.min(f32::MAX).max(f32::MIN)
     }
 
     /// Returns an angle that represents a rotation of zero radians.
     pub fn zero() -> Self {
-        Self::from_radians(0.0)
+        Angle::Radian(0.0)
     }
 }
 
@@ -167,7 +184,12 @@ impl ToCss for Angle {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result
         where W: fmt::Write,
     {
-        write!(dest, "{}rad", self.radians())
+        match *self {
+            Angle::Degree(val) => write!(dest, "{}deg", val),
+            Angle::Gradian(val) => write!(dest, "{}grad", val),
+            Angle::Radian(val) => write!(dest, "{}rad", val),
+            Angle::Turn(val) => write!(dest, "{}turn", val),
+        }
     }
 }
 

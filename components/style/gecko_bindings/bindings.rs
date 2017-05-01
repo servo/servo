@@ -1075,9 +1075,6 @@ extern "C" {
      -> nscoord;
 }
 extern "C" {
-    pub fn Gecko_CSSValue_GetAngle(css_value: nsCSSValueBorrowed) -> f32;
-}
-extern "C" {
     pub fn Gecko_CSSValue_GetKeyword(aCSSValue: nsCSSValueBorrowed)
      -> nsCSSKeyword;
 }
@@ -1109,10 +1106,6 @@ extern "C" {
 extern "C" {
     pub fn Gecko_CSSValue_SetPercentage(css_value: nsCSSValueBorrowedMut,
                                         percent: f32);
-}
-extern "C" {
-    pub fn Gecko_CSSValue_SetAngle(css_value: nsCSSValueBorrowedMut,
-                                   radians: f32);
 }
 extern "C" {
     pub fn Gecko_CSSValue_SetCalc(css_value: nsCSSValueBorrowedMut,
