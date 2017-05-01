@@ -12,9 +12,7 @@ macro_rules! stub(
         #[allow(non_snake_case)]
         pub extern "C" fn $name() {
             println!("CEF stub function called: {}", stringify!($name));
-            unsafe {
-                ::std::intrinsics::abort()
-            }
+            ::std::process::abort()
         }
     )
 );
