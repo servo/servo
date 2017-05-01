@@ -26200,7 +26200,7 @@ pub mod root {
                     "Alignment of field: " , stringify ! ( nsStyleColumn ) ,
                     "::" , stringify ! ( mTwipsPerPixel ) ));
     }
-    #[repr(u32)]
+    #[repr(u8)]
     #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
     pub enum nsStyleSVGPaintType {
         eStyleSVGPaintType_None = 1,
@@ -26209,11 +26209,19 @@ pub mod root {
         eStyleSVGPaintType_ContextFill = 4,
         eStyleSVGPaintType_ContextStroke = 5,
     }
+    #[repr(u8)]
+    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    pub enum nsStyleSVGFallbackType {
+        eStyleSVGFallbackType_NotSet = 0,
+        eStyleSVGFallbackType_None = 1,
+        eStyleSVGFallbackType_Color = 2,
+    }
     #[repr(C)]
     #[derive(Debug)]
     pub struct nsStyleSVGPaint {
         pub mPaint: root::nsStyleSVGPaint__bindgen_ty_1,
         pub mType: root::nsStyleSVGPaintType,
+        pub mFallbackType: root::nsStyleSVGFallbackType,
         pub mFallbackColor: root::nscolor,
     }
     #[repr(C)]
@@ -26266,6 +26274,11 @@ pub mod root {
                     const _ as usize } , 8usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleSVGPaint ) ,
                     "::" , stringify ! ( mType ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const nsStyleSVGPaint ) ) . mFallbackType
+                    as * const _ as usize } , 9usize , concat ! (
+                    "Alignment of field: " , stringify ! ( nsStyleSVGPaint ) ,
+                    "::" , stringify ! ( mFallbackType ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleSVGPaint ) ) . mFallbackColor
                     as * const _ as usize } , 12usize , concat ! (

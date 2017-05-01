@@ -395,6 +395,7 @@ fn color_to_nscolor_zero_currentcolor(color: Color) -> structs::nscolor {
     pub fn set_${ident}(&mut self, mut v: longhands::${ident}::computed_value::T) {
         use values::computed::SVGPaintKind;
         use self::structs::nsStyleSVGPaintType;
+        use self::structs::nsStyleSVGFallbackType;
 
         let ref mut paint = ${get_gecko_property(gecko_ffi_name)};
         unsafe {
@@ -423,6 +424,7 @@ fn color_to_nscolor_zero_currentcolor(color: Color) -> structs::nscolor {
         }
 
         if let Some(fallback) = fallback {
+            paint.mFallbackType = nsStyleSVGFallbackType::eStyleSVGFallbackType_Color;
             paint.mFallbackColor = color_to_nscolor_zero_currentcolor(fallback);
         }
     }
