@@ -31,7 +31,7 @@ use js::jsval::UndefinedValue;
 use js::panic::maybe_resume_unwind;
 use js::rust::Runtime;
 use microtask::{MicrotaskQueue, Microtask};
-use net_traits::{IpcSend, load_whole_resource};
+use net_traits::{HttpsState, IpcSend, load_whole_resource};
 use net_traits::request::{CredentialsMode, Destination, RequestInit as NetRequestInit, Type as RequestType};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
 use script_thread::RunnableWrapper;
@@ -172,6 +172,23 @@ impl WorkerGlobalScope {
             assert_eq!(global.pipeline_id(), id);
             Some(Root::from_ref(global))
         });
+    }
+
+    pub fn https_state(&self) -> HttpsState {
+        // TODO: proper value.
+        HttpsState::None
+    }
+
+    /// https://w3c.github.io/webappsec-mixed-content/#categorize-settings-object
+    pub fn prohibit_mixed_security_contexts(&self) -> bool {
+        // TODO: proper value.
+        self.https_state() != HttpsState::None
+    }
+
+    /// https://w3c.github.io/webappsec-mixed-content/#categorize-settings-object
+    pub fn target_browsing_context_has_parent_browsing_context(&self) -> bool {
+        // TODO: proper value.
+        false
     }
 }
 

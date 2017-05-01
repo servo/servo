@@ -101,12 +101,11 @@ use js::jsapi::{JSContext, JSObject, JSRuntime};
 use js::jsapi::JS_GetRuntime;
 use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
 use msg::constellation_msg::{FrameId, Key, KeyModifiers, KeyState};
-use net_traits::{FetchResponseMsg, IpcSend, ReferrerPolicy};
+use net_traits::{FetchResponseMsg, HttpsState, IpcSend, ReferrerPolicy};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
 use net_traits::pub_domains::is_pub_domain;
 use net_traits::request::RequestInit;
-use net_traits::response::HttpsState;
 use num_traits::ToPrimitive;
 use script_layout_interface::message::{Msg, ReflowQueryType};
 use script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
@@ -1956,6 +1955,11 @@ impl Document {
         };
 
         self.window.layout().nodes_from_point_response()
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#concept-document-https-state
+    pub fn https_state(&self) -> HttpsState {
+        self.https_state.get()
     }
 }
 

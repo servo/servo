@@ -4,7 +4,8 @@
 
 //! The [Response](https://fetch.spec.whatwg.org/#responses) object
 //! resulting from a [fetch operation](https://fetch.spec.whatwg.org/#concept-fetch)
-use {FetchMetadata, FilteredMetadata, Metadata, NetworkError};
+
+use {FetchMetadata, FilteredMetadata, HttpsState, Metadata, NetworkError};
 use hyper::header::{AccessControlExposeHeaders, ContentType, Headers};
 use hyper::status::StatusCode;
 use hyper_serde::Serde;
@@ -58,14 +59,6 @@ pub enum CacheState {
     Local,
     Validated,
     Partial,
-}
-
-/// [Https state](https://fetch.spec.whatwg.org/#concept-response-https-state)
-#[derive(Debug, Clone, Copy, HeapSizeOf, Deserialize, Serialize)]
-pub enum HttpsState {
-    None,
-    Deprecated,
-    Modern,
 }
 
 pub enum ResponseMsg {

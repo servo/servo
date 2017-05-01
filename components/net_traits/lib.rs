@@ -43,7 +43,7 @@ use ipc_channel::Error as IpcError;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use request::{Request, RequestInit};
-use response::{HttpsState, Response};
+use response::Response;
 use servo_url::ServoUrl;
 use std::error::Error;
 use storage_thread::StorageThreadMsg;
@@ -64,6 +64,14 @@ pub mod storage_thread;
 /// caching is involved) and as a result it must live in here.
 pub mod image {
     pub mod base;
+}
+
+/// [HTTPS state value](https://fetch.spec.whatwg.org/#concept-https-state-value)
+#[derive(Clone, Copy, Debug, Deserialize, HeapSizeOf, PartialEq, Serialize)]
+pub enum HttpsState {
+    None,
+    Deprecated,
+    Modern,
 }
 
 /// A loading context, for context-specific sniffing, as defined in

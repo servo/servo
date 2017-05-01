@@ -60,7 +60,7 @@ use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use layout_image::fetch_image_for_layout;
 use msg::constellation_msg::{FrameType, PipelineId};
-use net_traits::{ResourceThreads, ReferrerPolicy};
+use net_traits::{HttpsState, ReferrerPolicy, ResourceThreads};
 use net_traits::image_cache::{ImageCache, ImageResponder, ImageResponse};
 use net_traits::image_cache::{PendingImageId, PendingImageResponse};
 use net_traits::storage_thread::StorageType;
@@ -75,8 +75,8 @@ use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse, Lay
 use script_layout_interface::rpc::{MarginStyleResponse, NodeScrollRootIdResponse};
 use script_layout_interface::rpc::{ResolvedStyleResponse, TextIndexResponse};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, ScriptThreadEventCategory};
-use script_thread::{MainThreadScriptChan, MainThreadScriptMsg, Runnable, RunnableWrapper};
-use script_thread::{SendableMainThreadScriptChan, ImageCacheMsg};
+use script_thread::{ImageCacheMsg, MainThreadScriptChan, MainThreadScriptMsg, Runnable};
+use script_thread::{RunnableWrapper, ScriptThread, SendableMainThreadScriptChan};
 use script_traits::{ConstellationControlMsg, LoadData, MozBrowserEvent, UntrustedNodeAddress};
 use script_traits::{DocumentState, TimerEvent, TimerEventId};
 use script_traits::{ScriptMsg as ConstellationMsg, TimerSchedulerMsg, WindowSizeData, WindowSizeType};
@@ -391,6 +391,31 @@ impl Window {
             ImageResponse::None => { nodes.remove(); }
         }
         self.add_pending_reflow();
+    }
+
+    pub fn https_state(&self) -> HttpsState {
+        self.Document().https_state()
+    }
+
+    /// https://w3c.github.io/webappsec-mixed-content/#categorize-settings-object
+    pub fn prohibit_mixed_security_contexts(&self) -> bool {
+        let mut responsible_document = self.Document();
+        loop {
+            if responsible_document.https_state() != HttpsState::None {
+                return true;
+            }
+            match responsible_document.window().parent_info() {
+                Some((parent_id, FrameType::IFrame)) => {
+                    responsible_document = ScriptThread::find_document(parent_id).unwrap();
+                },
+                _ => return false,
+            }
+        }
+    }
+
+    /// https://w3c.github.io/webappsec-mixed-content/#categorize-settings-object
+    pub fn target_browsing_context_has_parent_browsing_context(&self) -> bool {
+        self.is_top_level()
     }
 }
 

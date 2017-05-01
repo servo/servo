@@ -31,7 +31,8 @@ use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsval::UndefinedValue;
 use net_traits::{FetchMetadata, FetchResponseListener, Metadata, NetworkError};
-use net_traits::request::{CorsSettings, CredentialsMode, Destination, RequestInit, RequestMode, Type as RequestType};
+use net_traits::request::{Client, CorsSettings, CredentialsMode, Destination};
+use net_traits::request::{RequestInit, RequestMode, Type as RequestType};
 use network_listener::{NetworkListener, PreInvoke};
 use servo_atoms::Atom;
 use servo_config::opts;
@@ -231,6 +232,7 @@ impl PreInvoke for ScriptContext {}
 fn fetch_a_classic_script(script: &HTMLScriptElement,
                           kind: ExternalScriptKind,
                           url: ServoUrl,
+                          client: Client,
                           cors_setting: Option<CorsSettings>,
                           integrity_metadata: String,
                           character_encoding: EncodingRef) {
@@ -239,6 +241,7 @@ fn fetch_a_classic_script(script: &HTMLScriptElement,
     // Step 1, 2.
     let request = RequestInit {
         url: url.clone(),
+        client: Some(client),
         type_: RequestType::Script,
         destination: Destination::Script,
         // https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
@@ -342,9 +345,13 @@ impl HTMLScriptElement {
             return;
         }
 
-        // TODO(#4577): Step 11: CSP.
+        // Step 11.
+        // TODO: handle "nomodule" attribute.
 
         // Step 12.
+        // TODO(#4577): handle CSP.
+
+        // Step 13.
         let for_attribute = element.get_attribute(&ns!(), &local_name!("for"));
         let event_attribute = element.get_attribute(&ns!(), &local_name!("event"));
         match (for_attribute.r(), event_attribute.r()) {
@@ -364,19 +371,21 @@ impl HTMLScriptElement {
             (_, _) => (),
         }
 
-        // Step 13.
+        // Step 14.
         let encoding = element.get_attribute(&ns!(), &local_name!("charset"))
                               .and_then(|charset| encoding_from_whatwg_label(&charset.value()))
                               .unwrap_or_else(|| doc.encoding());
 
-        // Step 14.
+        // Step 15.
         let cors_setting = cors_setting_for_element(element);
 
-        // TODO: Step 15: Module script credentials mode.
+        // Step 16.
+        // TODO: handle module script credentials.
 
-        // TODO: Step 16: Nonce.
+        // Step 17.
+        // TODO: handle "nonce" attribute.
 
-        // Step 17: Integrity metadata.
+        // Step 18.
         let im_attribute = element.get_attribute(&ns!(), &local_name!("integrity"));
         let integrity_val = im_attribute.r().map(|a| a.value());
         let integrity_metadata = match integrity_val {
@@ -384,26 +393,27 @@ impl HTMLScriptElement {
             None => "",
         };
 
-        // TODO: Step 18: parser state.
-
-        // TODO: Step 19: environment settings object.
+        // Step 19.
+        // TODO: handle parser state.
 
         let base_url = doc.base_url();
         if let Some(src) = element.get_attribute(&ns!(), &local_name!("src")) {
-            // Step 20.
+            // Step 21.
 
-            // Step 20.1.
+            // Step 21.1.
             let src = src.value();
 
-            // Step 20.2.
+            // Step 21.2.
             if src.is_empty() {
                 self.queue_error_event();
                 return;
             }
 
-            // Step 20.3: The "from an external file"" flag is stored in ClassicScript.
+            // Step 21.3.
+            // Not applicable: the "from an external file" flag is stored
+            // in ClassicScript.
 
-            // Step 20.4-20.5.
+            // Steps 21.4-5.
             let url = match base_url.join(&src) {
                 Ok(url) => url,
                 Err(_) => {
@@ -413,25 +423,28 @@ impl HTMLScriptElement {
                 },
             };
 
-            // Preparation for step 22.
+            // Preparation for step 23.
             let kind = if element.has_attribute(&local_name!("defer")) && was_parser_inserted && !async {
-                // Step 22.a: classic, has src, has defer, was parser-inserted, is not async.
+                // Step 23.a: classic, has src, has defer, was parser-inserted, is not async.
                 ExternalScriptKind::Deferred
             } else if was_parser_inserted && !async {
-                // Step 22.b: classic, has src, was parser-inserted, is not async.
+                // Step 23.b: classic, has src, was parser-inserted, is not async.
                 ExternalScriptKind::ParsingBlocking
             } else if !async && !self.non_blocking.get() {
-                // Step 22.c: classic, has src, is not async, is not non-blocking.
+                // Step 23.c: classic, has src, is not async, is not non-blocking.
                 ExternalScriptKind::AsapInOrder
             } else {
-                // Step 22.d: classic, has src.
+                // Step 23.d: classic, has src.
                 ExternalScriptKind::Asap
             };
 
-            // Step 20.6.
-            fetch_a_classic_script(self, kind, url, cors_setting, integrity_metadata.to_owned(), encoding);
+            // Step 20.
+            let client = self.global().get_request_client();
 
-            // Step 22.
+            // Step 21.6.
+            fetch_a_classic_script(self, kind, url, client, cors_setting, integrity_metadata.to_owned(), encoding);
+
+            // Step 23.
             match kind {
                 ExternalScriptKind::Deferred => doc.add_deferred_script(self),
                 ExternalScriptKind::ParsingBlocking => doc.set_pending_parsing_blocking_script(self, None),
@@ -439,18 +452,18 @@ impl HTMLScriptElement {
                 ExternalScriptKind::Asap => doc.add_asap_script(self),
             }
         } else {
-            // Step 21.
+            // Step 22.
             assert!(!text.is_empty());
             let result = Ok(ClassicScript::internal(text, base_url));
 
-            // Step 22.
+            // Step 23.
             if was_parser_inserted &&
                doc.get_current_parser().map_or(false, |parser| parser.script_nesting_level() <= 1) &&
                doc.get_script_blocking_stylesheets_count() > 0 {
-                // Step 22.e: classic, has no src, was parser-inserted, is blocked on stylesheet.
+                // Step 23.e: classic, has no src, was parser-inserted, is blocked on stylesheet.
                 doc.set_pending_parsing_blocking_script(self, Some(result));
             } else {
-                // Step 22.f: otherwise.
+                // Step 23.f: otherwise.
                 self.execute(result);
             }
         }

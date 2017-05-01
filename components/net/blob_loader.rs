@@ -63,6 +63,8 @@ pub fn load_blob_sync
     headers.set(ContentLength(blob_buf.size as u64));
     // Basic fetch, Step 5.
     headers.set(ContentType(content_type.clone()));
+    // Basic fetch, step 6.
+    // TODO: handle HTTPS state.
 
     let mut bytes = blob_buf.bytes;
     loop {

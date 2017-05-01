@@ -354,7 +354,6 @@ impl EventSource {
             CorsSettings::Anonymous
         };
         // Step 8
-        // TODO: Step 9 set request's client settings
         let mut request = RequestInit {
             url: url_record,
             origin: global.get_url(),
@@ -369,6 +368,8 @@ impl EventSource {
             },
             ..RequestInit::default()
         };
+        // Step 9.
+        request.client = Some(global.get_request_client());
         // Step 10
         request.headers.set(Accept(vec![qitem(mime!(Text / EventStream))]));
         // Step 11

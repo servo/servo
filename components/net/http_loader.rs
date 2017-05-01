@@ -15,6 +15,7 @@ use hsts::HstsList;
 use hyper::Error as HttpError;
 use hyper::LanguageTag;
 use hyper::client::{Pool, Request as HyperRequest, Response as HyperResponse};
+use hyper::client::pool::PooledStream;
 use hyper::header::{Accept, AccessControlAllowCredentials, AccessControlAllowHeaders};
 use hyper::header::{AccessControlAllowMethods, AccessControlAllowOrigin};
 use hyper::header::{AccessControlMaxAge, AccessControlRequestHeaders};
@@ -25,17 +26,19 @@ use hyper::header::{Host, Origin as HyperOrigin, IfMatch, IfRange};
 use hyper::header::{IfUnmodifiedSince, IfModifiedSince, IfNoneMatch, Location};
 use hyper::header::{Pragma, Quality, QualityItem, Referer, SetCookie};
 use hyper::header::{UserAgent, q, qitem};
+use hyper::http::h1::Http11Message;
 use hyper::method::Method;
+use hyper::net::{HttpStream, HttpsStream};
 use hyper::status::StatusCode;
-use hyper_openssl::OpensslClient;
+use hyper_openssl::{OpensslClient, SslStream};
 use hyper_serde::Serde;
 use log;
 use msg::constellation_msg::PipelineId;
-use net_traits::{CookieSource, FetchMetadata, NetworkError, ReferrerPolicy};
+use net_traits::{CookieSource, FetchMetadata, HttpsState, NetworkError, ReferrerPolicy};
 use net_traits::request::{CacheMode, CredentialsMode, Destination, Origin};
 use net_traits::request::{RedirectMode, Referrer, Request, RequestMode};
 use net_traits::request::{ResponseTainting, Type};
-use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
+use net_traits::response::{Response, ResponseBody, ResponseType};
 use resource_thread::AuthCache;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use std::collections::HashSet;
@@ -87,39 +90,6 @@ impl HttpState {
 
 fn precise_time_ms() -> u64 {
     time::precise_time_ns() / (1000 * 1000)
-}
-
-pub struct WrappedHttpResponse {
-    pub response: HyperResponse
-}
-
-impl Read for WrappedHttpResponse {
-    #[inline]
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        self.response.read(buf)
-    }
-}
-
-impl WrappedHttpResponse {
-    fn headers(&self) -> &Headers {
-        &self.response.headers
-    }
-
-    fn content_encoding(&self) -> Option<Encoding> {
-        let encodings = match self.headers().get::<ContentEncoding>() {
-            Some(&ContentEncoding(ref encodings)) => encodings,
-            None => return None,
-        };
-        if encodings.contains(&Encoding::Gzip) {
-            Some(Encoding::Gzip)
-        } else if encodings.contains(&Encoding::Deflate) {
-            Some(Encoding::Deflate)
-        } else if encodings.contains(&Encoding::EncodingExt("br".to_owned())) {
-            Some(Encoding::EncodingExt("br".to_owned()))
-        } else {
-            None
-        }
-    }
 }
 
 // Step 3 of https://fetch.spec.whatwg.org/#concept-fetch.
@@ -296,26 +266,32 @@ fn set_cookies_from_headers(url: &ServoUrl, headers: &Headers, cookie_jar: &RwLo
     }
 }
 
-struct StreamedResponse {
-    decoder: Decoder,
+enum Decoder {
+    Gzip(GzDecoder<HyperResponse>),
+    Deflate(DeflateDecoder<HyperResponse>),
+    Brotli(Decompressor<HyperResponse>),
+    Plain(HyperResponse),
 }
 
-
-impl Read for StreamedResponse {
-    #[inline]
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        match self.decoder {
-            Decoder::Gzip(ref mut d) => d.read(buf),
-            Decoder::Deflate(ref mut d) => d.read(buf),
-            Decoder::Brotli(ref mut d) => d.read(buf),
-            Decoder::Plain(ref mut d) => d.read(buf)
+impl Decoder {
+    fn content_encoding(response: &HyperResponse) -> Option<Encoding> {
+        let encodings = match response.headers.get::<ContentEncoding>() {
+            Some(encodings) => encodings,
+            None => return None,
+        };
+        if encodings.contains(&Encoding::Gzip) {
+            Some(Encoding::Gzip)
+        } else if encodings.contains(&Encoding::Deflate) {
+            Some(Encoding::Deflate)
+        } else if encodings.contains(&Encoding::EncodingExt("br".to_owned())) {
+            Some(Encoding::EncodingExt("br".to_owned()))
+        } else {
+            None
         }
     }
-}
 
-impl StreamedResponse {
-    fn from_http_response(response: WrappedHttpResponse) -> io::Result<StreamedResponse> {
-        let decoder = match response.content_encoding() {
+    fn from_http_response(response: HyperResponse) -> io::Result<Self> {
+        let decoder = match Decoder::content_encoding(&response) {
             Some(Encoding::Gzip) => {
                 Decoder::Gzip(try!(GzDecoder::new(response)))
             }
@@ -329,15 +305,20 @@ impl StreamedResponse {
                 Decoder::Plain(response)
             }
         };
-        Ok(StreamedResponse { decoder: decoder })
+        Ok(decoder)
     }
 }
 
-enum Decoder {
-    Gzip(GzDecoder<WrappedHttpResponse>),
-    Deflate(DeflateDecoder<WrappedHttpResponse>),
-    Brotli(Decompressor<WrappedHttpResponse>),
-    Plain(WrappedHttpResponse)
+impl Read for Decoder {
+    #[inline]
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        match *self {
+            Decoder::Gzip(ref mut d) => d.read(buf),
+            Decoder::Deflate(ref mut d) => d.read(buf),
+            Decoder::Brotli(ref mut d) => d.read(buf),
+            Decoder::Plain(ref mut d) => d.read(buf)
+        }
+    }
 }
 
 fn prepare_devtools_request(request_id: String,
@@ -404,7 +385,7 @@ fn obtain_response(connector: &Pool<Connector>,
                    iters: u32,
                    request_id: Option<&str>,
                    is_xhr: bool)
-                   -> Result<(WrappedHttpResponse, Option<ChromeToDevtoolsControlMsg>), NetworkError> {
+                   -> Result<(HyperResponse, Option<ChromeToDevtoolsControlMsg>), NetworkError> {
     let null_data = None;
 
     // loop trying connections in connection pool
@@ -498,7 +479,7 @@ fn obtain_response(connector: &Pool<Connector>,
             None
         };
 
-        return Ok((WrappedHttpResponse { response: response }, msg));
+        return Ok((response, msg));
     }
 }
 
@@ -1103,11 +1084,24 @@ fn http_network_fetch(request: &Request,
     }
 
     let mut response = Response::new(url.clone());
-    response.status = Some(res.response.status);
-    response.raw_status = Some((res.response.status_raw().0,
-                                res.response.status_raw().1.as_bytes().to_vec()));
-    response.headers = res.response.headers.clone();
+    response.status = Some(res.status);
+    response.raw_status = Some((res.status_raw().0,
+                                res.status_raw().1.as_bytes().to_vec()));
+    response.headers = res.headers.clone();
     response.referrer = request.referrer.to_url().cloned();
+
+    {
+        let http_message = res.get_ref().downcast_ref::<Http11Message>().unwrap();
+        let pooled_stream = http_message.get_ref()
+            .downcast_ref::<PooledStream<HttpsStream<SslStream<HttpStream>>>>()
+            .unwrap();
+        if let HttpsStream::Https(_) = *pooled_stream.get_ref() {
+            // As per connector::DEFAULT_CIPHERS, we don't currently accept
+            // any deprecated cipher.
+            // https://github.com/servo/servo/issues/16357
+            response.https_state = HttpsState::Modern;
+        }
+    }
 
     let res_body = response.body.clone();
 
@@ -1122,7 +1116,7 @@ fn http_network_fetch(request: &Request,
     let meta_status = meta.status.clone();
     let meta_headers = meta.headers.clone();
     thread::Builder::new().name(format!("fetch worker thread")).spawn(move || {
-        match StreamedResponse::from_http_response(res) {
+        match Decoder::from_http_response(res) {
             Ok(mut res) => {
                 *res_body.lock().unwrap() = ResponseBody::Receiving(vec![]);
 
@@ -1177,10 +1171,6 @@ fn http_network_fetch(request: &Request,
         // Substep 1
 
         // Substep 2
-
-    // TODO Determine if response was retrieved over HTTPS
-    // TODO Servo needs to decide what ciphers are to be treated as "deprecated"
-    response.https_state = HttpsState::None;
 
     // TODO Read request
 

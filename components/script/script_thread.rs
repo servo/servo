@@ -2126,6 +2126,7 @@ impl ScriptThread {
         let request = RequestInit {
             url: load_data.url.clone(),
             method: load_data.method,
+            // TODO: handle request's client.
             destination: Destination::Document,
             credentials_mode: CredentialsMode::Include,
             use_url_credentials: true,
