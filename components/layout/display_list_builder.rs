@@ -650,7 +650,8 @@ fn convert_gradient_stops(gradient_items: &[GradientItem],
     }
 
     // Step 3: Evenly space stops without position.
-    let mut stops = Vec::with_capacity(stop_items.len());
+    // Note: Remove the + 1 if fix_gradient_stops is changed.
+    let mut stops = Vec::with_capacity(stop_items.len() + 1);
     let mut stop_run = None;
     for (i, stop) in stop_items.iter().enumerate() {
         let offset = match stop.position {
@@ -694,6 +695,25 @@ fn convert_gradient_stops(gradient_items: &[GradientItem],
         })
     }
     stops
+}
+
+#[inline]
+/// Duplicate the last stop if its position is smaller 100%.
+///
+/// Explanation by pyfisch:
+/// If the last stop is at the same position as the previous stop the
+/// last color is ignored by webrender. This differs from the spec
+/// (I think so). The  implementations of Chrome and Firefox seem
+/// to have the same problem but work fine if the position of the last
+/// stop is smaller than 100%. (Otherwise they ignore the last stop.)
+fn fix_gradient_stops(stops: &mut Vec<GradientStop>) {
+    if stops.last().unwrap().offset < 1.0 {
+        let color = stops.last().unwrap().color;
+        stops.push(GradientStop {
+            offset: 1.0,
+            color: color,
+        })
+    }
 }
 
 /// Returns the the distance to the nearest or farthest corner depending on the comperator.
@@ -1110,7 +1130,10 @@ impl FragmentDisplayListBuilding for Fragment {
         let length = Au::from_f32_px(
             (delta.x.to_f32_px() * 2.0).hypot(delta.y.to_f32_px() * 2.0));
 
-        let stops = convert_gradient_stops(stops, length, style);
+        let mut stops = convert_gradient_stops(stops, length, style);
+        if !repeating {
+            fix_gradient_stops(&mut stops);
+        }
 
         let center = Point2D::new(bounds.size.width / 2, bounds.size.height / 2);
 
@@ -1145,7 +1168,12 @@ impl FragmentDisplayListBuilding for Fragment {
                 => convert_ellipse_size_keyword(word, &bounds.size, &center),
         };
         let length = Au::from_f32_px(radius.width.to_f32_px().hypot(radius.height.to_f32_px()));
-        let stops = convert_gradient_stops(stops, length, style);
+
+        let mut stops = convert_gradient_stops(stops, length, style);
+        if !repeating {
+            fix_gradient_stops(&mut stops);
+        }
+
         display_list::RadialGradient {
             center: center,
             radius: radius,
