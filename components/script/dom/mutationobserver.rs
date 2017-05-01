@@ -2,13 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use core::borrow::Borrow;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::MutationObserverBinding;
 use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationCallback;
 use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationObserverBinding::MutationObserverMethods;
 use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationObserverInit;
-use dom::bindings::codegen::Bindings::MutationRecordBinding::MutationRecordBinding::MutationRecordMethods;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
@@ -20,13 +18,9 @@ use dom_struct::dom_struct;
 use html5ever_atoms::Namespace;
 use microtask::EnqueuedMutationCallback;
 use microtask::Microtask;
-use msg::constellation_msg::PipelineId;
-use msg::constellation_msg::PipelineIndex;
-use msg::constellation_msg::PipelineNamespaceId;
 use script_thread::ScriptThread;
 use servo_atoms::Atom;
 use std::cell::Cell;
-use std::option::Option;
 use std::rc::Rc;
 
 #[dom_struct]
@@ -128,26 +122,26 @@ impl MutationObserver {
                     },
                 }
                 let condition1: bool = node != &Root::from_ref(target) &&
-                    !registered_observer.borrow().subtree.into_inner();
+                    !registered_observer.subtree.get();
                 let condition2: bool = given_name == "attribute" &&
-                    registered_observer.borrow().attributes.into_inner() == false;
+                    registered_observer.attributes.get() == false;
                 let condition3: bool = (given_name == "attribute" &&
-                    registered_observer.borrow().attribute_filter != DOMRefCell::new(vec![])) &&
+                    registered_observer.attribute_filter != DOMRefCell::new(vec![])) &&
                     (given_namespace != "");
                 let condition4: bool = given_name == "characterData" &&
-                    registered_observer.borrow().character_data.into_inner() == false;
+                    registered_observer.character_data.get() == false;
                 let condition5: bool = given_name == "childList" &&
-                    !registered_observer.borrow().child_list.into_inner();
+                    !registered_observer.child_list.get();
                 if !condition1 && !condition2 && !condition3 && !condition4 && !condition5 {
                     // Step 3.1
                     if !interestedObservers.contains(&registered_observer) {
-                        interestedObservers.push(*registered_observer);
+                        interestedObservers.push(JS::from_ref(registered_observer));
                     }
                     // Step 3.2
                     let condition: bool = (given_name == "attribute" &&
-                        registered_observer.attribute_old_value.into_inner() == true) ||
+                        registered_observer.attribute_old_value.get() == true) ||
                             (given_name == "characterData" &&
-                                registered_observer.character_data_old_value.into_inner() == true);
+                                registered_observer.character_data_old_value.get() == true);
                     if condition {
                         pairedStrings.push(DOMString::from(old_value));
                     }
@@ -167,8 +161,9 @@ impl MutationObserver {
             //Step 4.3-4.6- TODO currently not relevant to mutation records for attribute mutations
             //Step 4.7
             if pairedStrings[i] != ""{
-                record.SetoldValue(pairedStrings[i]);
+                record.SetoldValue(pairedStrings[i].clone());
             }
+            i = i + 1;
         }
         // Step 5
         let enqueuedMutationCallback = EnqueuedMutationCallback { pipeline: target.global().pipeline_id() };
@@ -209,7 +204,6 @@ impl MutationObserverMethods for MutationObserver {
         }
         // TODO: Step 7
         for registered in target.registered_mutation_observers().borrow().iter() {
-            // registered observer in target’s list of registered observers whose observer is the context object
 //            if &*registered as *const JS<MutationObserver> == self as *const MutationObserver {
                 // TODO: remove matching transient registered observers
                 registered.attribute_old_value.set(options.attributeOldValue.unwrap());
@@ -218,7 +212,7 @@ impl MutationObserverMethods for MutationObserver {
                 registered.character_data_old_value.set(options.characterDataOldValue.unwrap());
                 registered.child_list.set(options.childList);
                 registered.subtree.set(options.subtree);
-                registered.attribute_filter == DOMRefCell::new(options.attributeFilter.unwrap());
+                registered.attribute_filter == DOMRefCell::new(options.attributeFilter.clone().unwrap());
 //            }
             // TODO: Step 8
             target.add_registered_mutation_observer(&self);

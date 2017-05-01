@@ -4,13 +4,10 @@
 
 use core::default::Default;
 use dom::bindings::codegen::Bindings::MutationRecordBinding::MutationRecordBinding::MutationRecordMethods;
-use dom::bindings::error::Fallible;
-use dom::bindings::js::{JS, Root, MutNullableJS};
+use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::Reflector;
 use dom::bindings::str::DOMString;
 use dom::node::Node;
-use dom::nodelist::NodeList;
-use dom::window::Window;
 use dom_struct::dom_struct;
 
 #[dom_struct]
@@ -33,8 +30,9 @@ pub struct MutationRecord {
     old_value: Option<DOMString>,
 }
 
+#[allow(unrooted_must_root)]
 impl MutationRecord {
-     pub fn new(record_type: DOMString, target: &Node) -> MutationRecord {
+    pub fn new(record_type: DOMString, target: &Node) -> MutationRecord {
         MutationRecord {
             reflector_: Reflector::new(),
             record_type: record_type,
@@ -43,19 +41,19 @@ impl MutationRecord {
             attribute_namespace: Default::default(),
             old_value: Default::default(),
         }
-     }
-     // setter for attr_name
-     pub fn SetAttributeName(&mut self, attr_name: DOMString) {
-         self.attribute_name = Some(attr_name);
-     }
-     // setter for attr_namespace
-     pub fn SetAttributeNamespace(&mut self, attr_namespace: DOMString) {
-         self.attribute_namespace = Some(attr_namespace);
-     }
-     // setter for attr_oldvalue
-     pub fn SetoldValue(&mut self, attr_oldvalue: DOMString) {
-         self.old_value = Some(attr_oldvalue);
-     }
+    }
+    // setter for attr_name
+    pub fn SetAttributeName(&mut self, attr_name: DOMString) {
+        self.attribute_name = Some(attr_name);
+    }
+    // setter for attr_namespace
+    pub fn SetAttributeNamespace(&mut self, attr_namespace: DOMString) {
+        self.attribute_namespace = Some(attr_namespace);
+    }
+    // setter for attr_oldvalue
+    pub fn SetoldValue(&mut self, attr_oldvalue: DOMString) {
+        self.old_value = Some(attr_oldvalue);
+    }
 }
 
 impl MutationRecordMethods for MutationRecord {

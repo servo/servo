@@ -361,8 +361,8 @@ impl Node {
 
     /// add a registered observer
     pub fn add_registered_mutation_observer(&self, observer: &MutationObserver) {
-    	self.mutation_observers.borrow_mut().push(JS::from_ref(observer));
-    }   
+        self.mutation_observers.borrow_mut().push(JS::from_ref(observer));
+    }
     /// Dumps the subtree rooted at this node, for debugging.
     pub fn dump(&self) {
         self.dump_indent(0);
