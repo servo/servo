@@ -466,7 +466,6 @@ mod bindings {
             "mozilla::DefaultDelete",
             "mozilla::Side",
             "mozilla::binding_danger::AssertAndSuppressCleanupPolicy",
-            "RawServoAnimationValueMapBorrowed",
             "mozilla::LengthParsingMode",
             "mozilla::InheritTarget",
         ];
@@ -636,7 +635,6 @@ mod bindings {
             "RawGeckoNode",
             "RawGeckoAnimationValueList",
             "RawServoAnimationValue",
-            "RawServoAnimationValueMap",
             "RawServoDeclarationBlock",
             "RawServoStyleRule",
             "RawGeckoPresContext",
@@ -743,6 +741,7 @@ mod bindings {
             ServoOwnedType { name: "RawServoStyleSet", opaque: true },
             ServoOwnedType { name: "StyleChildrenIterator", opaque: true },
             ServoOwnedType { name: "ServoElementSnapshot", opaque: false },
+            ServoOwnedType { name: "RawServoAnimationValueMap", opaque: true },
         ];
         let servo_immutable_borrow_types = [
             "RawGeckoNode",
