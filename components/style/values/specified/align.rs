@@ -36,11 +36,11 @@ bitflags! {
         const ALIGN_CENTER =          structs::NS_STYLE_ALIGN_CENTER as u8,
         /// 'left'
         const ALIGN_LEFT =            structs::NS_STYLE_ALIGN_LEFT as u8,
-        /// 'left'
-        const ALIGN_RIGHT =           structs::NS_STYLE_ALIGN_RIGHT as u8,
         /// 'right'
-        const ALIGN_BASELINE =        structs::NS_STYLE_ALIGN_BASELINE as u8,
+        const ALIGN_RIGHT =           structs::NS_STYLE_ALIGN_RIGHT as u8,
         /// 'baseline'
+        const ALIGN_BASELINE =        structs::NS_STYLE_ALIGN_BASELINE as u8,
+        /// 'last-baseline'
         const ALIGN_LAST_BASELINE =   structs::NS_STYLE_ALIGN_LAST_BASELINE as u8,
         /// 'stretch'
         const ALIGN_STRETCH =         structs::NS_STYLE_ALIGN_STRETCH as u8,
@@ -79,7 +79,7 @@ impl ToCss for AlignFlags {
             ALIGN_FLEX_END => "flex-end",
             ALIGN_CENTER => "center",
             ALIGN_LEFT => "left",
-            ALIGN_RIGHT => "left",
+            ALIGN_RIGHT => "right",
             ALIGN_BASELINE => "baseline",
             ALIGN_LAST_BASELINE => "last baseline",
             ALIGN_STRETCH => "stretch",
