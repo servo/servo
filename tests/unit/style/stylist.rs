@@ -113,7 +113,7 @@ fn test_revalidation_selectors() {
         "p:first-child span",
     ]).into_iter()
       .filter(|s| needs_revalidation(&s))
-      .map(|s| s.inner.slice_to_first_ancestor_combinator().complex)
+      .map(|s| s.inner.complex)
       .collect::<Vec<_>>();
 
     let reference = parse_selectors(&[
