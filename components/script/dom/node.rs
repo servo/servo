@@ -1353,6 +1353,16 @@ pub enum CloneChildrenFlag {
 
 fn as_uintptr<T>(t: &T) -> uintptr_t { t as *const T as uintptr_t }
 
+// Checks if parent element only cares about text nodes
+fn accepts_only_text_nodes(node: &Node, parent: &Node) -> bool {
+    let isTextNode = node.children_count() == 0;
+    match parent.type_id() {
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLHeadingElement)) |
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTitleElement)) => isTextNode,
+        _ => false
+    }
+}
+
 impl Node {
     pub fn reflect_node<N>(
             node: Box<N>,
@@ -1564,6 +1574,8 @@ impl Node {
         debug_assert!(&*node.owner_doc() == &*parent.owner_doc());
         debug_assert!(child.map_or(true, |child| Some(parent) == child.GetParentNode().r()));
 
+        let text_only = accepts_only_text_nodes(node, parent);
+
         // Step 1.
         let count = if node.is::<DocumentFragment>() {
             node.children_count()
@@ -1587,7 +1599,9 @@ impl Node {
             for kid in new_nodes.r() {
                 Node::remove(*kid, node, SuppressObserver::Suppressed);
             }
-            vtable_for(&node).children_changed(&ChildrenMutation::replace_all(new_nodes.r(), &[]));
+            if !text_only {
+                vtable_for(&node).children_changed(&ChildrenMutation::replace_all(new_nodes.r(), &[]));
+            }
             new_nodes.r()
         } else {
             // Step 3.
@@ -1610,8 +1624,10 @@ impl Node {
             // Step 7.2: insertion steps.
         }
         if let SuppressObserver::Unsuppressed = suppress_observers {
-            vtable_for(&parent).children_changed(
-                &ChildrenMutation::insert(previous_sibling.r(), new_nodes, child));
+            if !text_only {
+                vtable_for(&parent).children_changed(
+                    &ChildrenMutation::insert(previous_sibling.r(), new_nodes, child));
+            }
         }
     }
 
@@ -1644,8 +1660,10 @@ impl Node {
             Node::insert(node, parent, None, SuppressObserver::Suppressed);
         }
         // Step 6: mutation observers.
-        vtable_for(&parent).children_changed(
-            &ChildrenMutation::replace_all(removed_nodes.r(), added_nodes));
+        if !accepts_only_text_nodes(node.unwrap(), parent) {
+            vtable_for(&parent).children_changed(
+                &ChildrenMutation::replace_all(removed_nodes.r(), added_nodes));
+        }
     }
 
     // https://dom.spec.whatwg.org/#concept-node-pre-remove
@@ -1692,10 +1710,12 @@ impl Node {
         // Step 11. transient registered observers
         // Step 12.
         if let SuppressObserver::Unsuppressed = suppress_observers {
-            vtable_for(&parent).children_changed(
-                &ChildrenMutation::replace(old_previous_sibling.r(),
-                                           &Some(&node), &[],
-                                           old_next_sibling.r()));
+            if !accepts_only_text_nodes(node, parent) {
+                vtable_for(&parent).children_changed(
+                    &ChildrenMutation::replace(old_previous_sibling.r(),
+                                               &Some(&node), &[],
+                                               old_next_sibling.r()));
+            }
         }
     }
 
