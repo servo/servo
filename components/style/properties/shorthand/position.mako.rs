@@ -269,7 +269,7 @@
             if self.align_content == self.justify_content {
                 self.align_content.to_css(dest)
             } else {
-                self.justify_content.to_css(dest)?;
+                self.align_content.to_css(dest)?;
                 dest.write_str(" ")?;
                 self.justify_content.to_css(dest)
             }
