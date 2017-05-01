@@ -109,13 +109,11 @@ fn test_revalidation_selectors() {
         "span + div",
         "span ~ div",
 
-        // Revalidation selectors that will get sliced.
-        "td > h1[dir]",
-        "td > span + h1[dir]",
-        "table td > span + div ~ h1[dir]",
+        // Selectors in the ancestor chain (needed for cousin sharing).
+        "p:first-child span",
     ]).into_iter()
       .filter(|s| needs_revalidation(&s))
-      .map(|s| s.inner.slice_to_first_ancestor_combinator().complex)
+      .map(|s| s.inner.complex)
       .collect::<Vec<_>>();
 
     let reference = parse_selectors(&[
@@ -147,10 +145,8 @@ fn test_revalidation_selectors() {
         "span + div",
         "span ~ div",
 
-        // Revalidation selectors that got sliced.
-        "h1[dir]",
-        "span + h1[dir]",
-        "span + div ~ h1[dir]",
+        // Selectors in the ancestor chain (needed for cousin sharing).
+        "p:first-child span",
     ]).into_iter()
       .map(|s| s.inner.complex)
       .collect::<Vec<_>>();

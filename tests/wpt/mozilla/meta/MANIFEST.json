@@ -1211,6 +1211,18 @@
      {}
     ]
    ],
+   "css/bug-1361013-cousin-sharing.html": [
+    [
+     "/_mozilla/css/bug-1361013-cousin-sharing.html",
+     [
+      [
+       "/_mozilla/css/bug-1361013-cousin-sharing-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "css/button_css_width.html": [
     [
      "/_mozilla/css/button_css_width.html",
@@ -7258,6 +7270,11 @@
     ]
    ],
    "css/bubbles.png": [
+    [
+     {}
+    ]
+   ],
+   "css/bug-1361013-cousin-sharing-ref.html": [
     [
      {}
     ]
@@ -20834,6 +20851,14 @@
   "css/bubbles.png": [
    "2ebf9c8f963a2f3971a3c1b64b6b01825eacdedc",
    "support"
+  ],
+  "css/bug-1361013-cousin-sharing-ref.html": [
+   "3451cb4533d650f6f624b89548ce7117bcc8bef3",
+   "support"
+  ],
+  "css/bug-1361013-cousin-sharing.html": [
+   "95c8c8d33cca3d6e969338a98c60ec9804256ef5",
+   "reftest"
   ],
   "css/bug_1345483.html": [
    "41b55af9d5c95910b1af74c0fbffb24e20bbe869",
