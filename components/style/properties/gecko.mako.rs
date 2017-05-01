@@ -4041,6 +4041,15 @@ clip-path
     % endfor
 </%self:impl_trait>
 
+<%self:impl_trait style_struct_name="UI" skip_longhands="-moz-force-broken-image-icon">
+    #[allow(non_snake_case)]
+    pub fn set__moz_force_broken_image_icon(&mut self, v: longhands::_moz_force_broken_image_icon::computed_value::T) {
+        self.gecko.mForceBrokenImageIcon = v.0 as u8;
+    }
+
+    ${impl_simple_copy("_moz_force_broken_image_icon", "mForceBrokenImageIcon")}
+</%self:impl_trait>
+
 <%self:impl_trait style_struct_name="XUL"
                   skip_longhands="-moz-stack-sizing -moz-box-ordinal-group">
 
