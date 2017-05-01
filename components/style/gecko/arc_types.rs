@@ -11,13 +11,12 @@
 use gecko_bindings::bindings::{RawServoMediaList, RawServoMediaRule, RawServoNamespaceRule, RawServoPageRule};
 use gecko_bindings::bindings::{RawServoStyleSheet, RawServoImportRule, RawServoSupportsRule};
 use gecko_bindings::bindings::{ServoComputedValues, ServoCssRules};
-use gecko_bindings::structs::{RawServoAnimationValue, RawServoAnimationValueMap};
 use gecko_bindings::structs::{RawServoDeclarationBlock, RawServoStyleRule};
+use gecko_bindings::structs::RawServoAnimationValue;
 use gecko_bindings::sugar::ownership::{HasArcFFI, HasFFI};
 use media_queries::MediaList;
-use parking_lot::RwLock;
 use properties::{ComputedValues, PropertyDeclarationBlock};
-use properties::animated_properties::{AnimationValue, AnimationValueMap};
+use properties::animated_properties::AnimationValue;
 use shared_lock::Locked;
 use stylesheets::{CssRules, Stylesheet, StyleRule, ImportRule, MediaRule};
 use stylesheets::{NamespaceRule, PageRule, SupportsRule};
@@ -61,9 +60,6 @@ impl_arc_ffi!(Locked<ImportRule> => RawServoImportRule
 
 impl_arc_ffi!(AnimationValue => RawServoAnimationValue
               [Servo_AnimationValue_AddRef, Servo_AnimationValue_Release]);
-
-impl_arc_ffi!(RwLock<AnimationValueMap> => RawServoAnimationValueMap
-              [Servo_AnimationValueMap_AddRef, Servo_AnimationValueMap_Release]);
 
 impl_arc_ffi!(Locked<MediaList> => RawServoMediaList
               [Servo_MediaList_AddRef, Servo_MediaList_Release]);

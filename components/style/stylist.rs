@@ -752,7 +752,7 @@ impl Stylist {
             if let Some(anim) = animation_rules.0 {
                 Push::push(
                     applicable_declarations,
-                    ApplicableDeclarationBlock::from_declarations(anim.clone(),
+                    ApplicableDeclarationBlock::from_declarations(anim,
                                                                   CascadeLevel::Animations));
             }
             debug!("animation: {:?}", relations);
@@ -808,7 +808,7 @@ impl Stylist {
         if let Some(anim) = animation_rules.1 {
             Push::push(
                 applicable_declarations,
-                ApplicableDeclarationBlock::from_declarations(anim.clone(), CascadeLevel::Transitions));
+                ApplicableDeclarationBlock::from_declarations(anim, CascadeLevel::Transitions));
         }
         debug!("transition: {:?}", relations);
 

@@ -9,7 +9,9 @@
 use app_units::Au;
 use cssparser::{Color as CSSParserColor, Parser, RGBA, serialize_identifier};
 use euclid::{Point2D, Size2D};
+#[cfg(feature = "gecko")] use gecko_bindings::bindings::RawServoAnimationValueMap;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::nsCSSPropertyID;
+#[cfg(feature = "gecko")] use gecko_bindings::sugar::ownership::{HasFFI, HasSimpleFFI};
 #[cfg(feature = "gecko")] use gecko_string_cache::Atom;
 use properties::{CSSWideKeyword, PropertyDeclaration};
 use properties::longhands;
@@ -388,6 +390,12 @@ impl AnimatedProperty {
 /// composed for each TransitionProperty.
 #[cfg(feature = "gecko")]
 pub type AnimationValueMap = HashMap<TransitionProperty, AnimationValue>;
+#[cfg(feature = "gecko")]
+unsafe impl HasFFI for AnimationValueMap {
+    type FFIType = RawServoAnimationValueMap;
+}
+#[cfg(feature = "gecko")]
+unsafe impl HasSimpleFFI for AnimationValueMap {}
 
 /// An enum to represent a single computed value belonging to an animated
 /// property in order to be interpolated with another one. When interpolating,

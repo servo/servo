@@ -6,7 +6,6 @@ use atomic_refcell::AtomicRefMut;
 use cssparser::Parser;
 use cssparser::ToCss as ParserToCss;
 use env_logger::LogBuilder;
-use parking_lot::RwLock;
 use selectors::Element;
 use std::borrow::Cow;
 use std::env;
@@ -47,7 +46,7 @@ use style::gecko_bindings::bindings::RawGeckoElementBorrowed;
 use style::gecko_bindings::bindings::RawGeckoFontFaceRuleListBorrowedMut;
 use style::gecko_bindings::bindings::RawGeckoServoStyleRuleListBorrowedMut;
 use style::gecko_bindings::bindings::RawServoAnimationValueBorrowed;
-use style::gecko_bindings::bindings::RawServoAnimationValueMapBorrowed;
+use style::gecko_bindings::bindings::RawServoAnimationValueMapBorrowedMut;
 use style::gecko_bindings::bindings::RawServoAnimationValueStrong;
 use style::gecko_bindings::bindings::RawServoImportRuleBorrowed;
 use style::gecko_bindings::bindings::RawServoStyleRuleBorrowed;
@@ -279,19 +278,19 @@ pub extern "C" fn Servo_AnimationValues_ComputeDistance(from: RawServoAnimationV
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_AnimationValueMap_Push(value_map: RawServoAnimationValueMapBorrowed,
+pub extern "C" fn Servo_AnimationValueMap_Push(value_map: RawServoAnimationValueMapBorrowedMut,
                                                property: nsCSSPropertyID,
                                                value: RawServoAnimationValueBorrowed)
 {
     use style::properties::animated_properties::AnimationValueMap;
 
-    let value_map = RwLock::<AnimationValueMap>::as_arc(&value_map);
+    let value_map = AnimationValueMap::from_ffi_mut(value_map);
     let value = AnimationValue::as_arc(&value).as_ref();
-    value_map.write().insert(property.into(), value.clone());
+    value_map.insert(property.into(), value.clone());
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_AnimationCompose(raw_value_map: RawServoAnimationValueMapBorrowed,
+pub extern "C" fn Servo_AnimationCompose(raw_value_map: RawServoAnimationValueMapBorrowedMut,
                                          base_values: *mut ::std::os::raw::c_void,
                                          css_property: nsCSSPropertyID,
                                          segment: RawGeckoAnimationPropertySegmentBorrowed,
@@ -303,7 +302,7 @@ pub extern "C" fn Servo_AnimationCompose(raw_value_map: RawServoAnimationValueMa
     use style::properties::animated_properties::AnimationValueMap;
 
     let property: TransitionProperty = css_property.into();
-    let value_map = RwLock::<AnimationValueMap>::as_arc(&raw_value_map);
+    let value_map = AnimationValueMap::from_ffi_mut(raw_value_map);
 
     // If either of the segment endpoints are null, get the underlying value to
     // use from the current value in the values map (set by a lower-priority
@@ -311,7 +310,7 @@ pub extern "C" fn Servo_AnimationCompose(raw_value_map: RawServoAnimationValueMa
     // for this property.
     let underlying_value = if segment.mFromValue.mServo.mRawPtr.is_null() ||
                               segment.mToValue.mServo.mRawPtr.is_null() {
-        let previous_composed_value = value_map.read().get(&property).cloned();
+        let previous_composed_value = value_map.get(&property).cloned();
         previous_composed_value.or_else(|| {
             let raw_base_style = unsafe { Gecko_AnimationGetBaseStyle(base_values, css_property) };
             AnimationValue::arc_from_borrowed(&raw_base_style).map(|v| v.as_ref()).cloned()
@@ -347,9 +346,9 @@ pub extern "C" fn Servo_AnimationCompose(raw_value_map: RawServoAnimationValueMa
     let progress = unsafe { Gecko_GetProgressFromComputedTiming(computed_timing) };
     if segment.mToKey == segment.mFromKey {
         if progress < 0. {
-            value_map.write().insert(property, from_value.clone());
+            value_map.insert(property, from_value.clone());
         } else {
-            value_map.write().insert(property, to_value.clone());
+            value_map.insert(property, to_value.clone());
         }
         return;
     }
@@ -358,11 +357,11 @@ pub extern "C" fn Servo_AnimationCompose(raw_value_map: RawServoAnimationValueMa
         Gecko_GetPositionInSegment(segment, progress, computed_timing.mBeforeFlag)
     };
     if let Ok(value) = from_value.interpolate(to_value, position) {
-        value_map.write().insert(property, value);
+        value_map.insert(property, value);
     } else if progress < 0.5 {
-        value_map.write().insert(property, from_value.clone());
+        value_map.insert(property, from_value.clone());
     } else {
-        value_map.write().insert(property, to_value.clone());
+        value_map.insert(property, to_value.clone());
     }
 }
 

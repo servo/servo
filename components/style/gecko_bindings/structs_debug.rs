@@ -957,6 +957,8 @@ pub mod root {
         3;
     pub const NS_STYLE_GRADIENT_SIZE_EXPLICIT_SIZE: ::std::os::raw::c_uint =
         4;
+    pub const NS_STYLE_CONTEXT_PROPERTY_FILL: ::std::os::raw::c_uint = 1;
+    pub const NS_STYLE_CONTEXT_PROPERTY_STROKE: ::std::os::raw::c_uint = 2;
     pub const NS_STYLE_DOMINANT_BASELINE_AUTO: ::std::os::raw::c_uint = 0;
     pub const NS_STYLE_DOMINANT_BASELINE_USE_SCRIPT: ::std::os::raw::c_uint =
         1;
@@ -1451,6 +1453,12 @@ pub mod root {
             pub type LinkedListElementTraits_ConstRawType<T> = *mut T;
             pub type LinkedListElementTraits_ClientType<T> = *mut T;
             pub type LinkedListElementTraits_ConstClientType<T> = *mut T;
+            #[repr(C)]
+            #[derive(Debug, Copy, Clone)]
+            pub struct AllocPolicyBasedFreePolicy<AllocPolicy> {
+                pub _address: u8,
+                pub _phantom_0: ::std::marker::PhantomData<AllocPolicy>,
+            }
             #[repr(C)]
             #[derive(Debug)]
             pub struct MutexImpl {
@@ -4148,6 +4156,7 @@ pub mod root {
         pub const SERVO_PREF_ENABLED_columns: bool = false;
         pub const SERVO_PREF_ENABLED_contain: bool = true;
         pub const SERVO_PREF_ENABLED_content: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_context_properties: bool = false;
         pub const SERVO_PREF_ENABLED__moz_control_character_visibility: bool =
             false;
         pub const SERVO_PREF_ENABLED_counter_increment: bool = false;
@@ -5983,23 +5992,22 @@ pub mod root {
             eUseCounter_ShowModalDialog = 71,
             eUseCounter_Window_Content = 72,
             eUseCounter_SyncXMLHttpRequest = 73,
-            eUseCounter_DataContainerEvent = 74,
-            eUseCounter_Window_Controllers = 75,
-            eUseCounter_ImportXULIntoContent = 76,
-            eUseCounter_PannerNodeDoppler = 77,
-            eUseCounter_NavigatorGetUserMedia = 78,
-            eUseCounter_WebrtcDeprecatedPrefix = 79,
-            eUseCounter_RTCPeerConnectionGetStreams = 80,
-            eUseCounter_AppCache = 81,
-            eUseCounter_PrefixedImageSmoothingEnabled = 82,
-            eUseCounter_PrefixedFullscreenAPI = 83,
-            eUseCounter_LenientSetter = 84,
-            eUseCounter_FileLastModifiedDate = 85,
-            eUseCounter_ImageBitmapRenderingContext_TransferImageBitmap = 86,
-            eUseCounter_URLCreateObjectURL_MediaStream = 87,
-            eUseCounter_XMLBaseAttribute = 88,
-            eUseCounter_XMLBaseAttributeForStyleAttr = 89,
-            eUseCounter_Count = 90,
+            eUseCounter_Window_Controllers = 74,
+            eUseCounter_ImportXULIntoContent = 75,
+            eUseCounter_PannerNodeDoppler = 76,
+            eUseCounter_NavigatorGetUserMedia = 77,
+            eUseCounter_WebrtcDeprecatedPrefix = 78,
+            eUseCounter_RTCPeerConnectionGetStreams = 79,
+            eUseCounter_AppCache = 80,
+            eUseCounter_PrefixedImageSmoothingEnabled = 81,
+            eUseCounter_PrefixedFullscreenAPI = 82,
+            eUseCounter_LenientSetter = 83,
+            eUseCounter_FileLastModifiedDate = 84,
+            eUseCounter_ImageBitmapRenderingContext_TransferImageBitmap = 85,
+            eUseCounter_URLCreateObjectURL_MediaStream = 86,
+            eUseCounter_XMLBaseAttribute = 87,
+            eUseCounter_XMLBaseAttributeForStyleAttr = 88,
+            eUseCounter_Count = 89,
         }
         #[repr(u32)]
         #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -9856,6 +9864,7 @@ pub mod root {
         NS_ERROR_DOM_PUSH_SERVICE_UNREACHABLE = 2154627076,
         NS_ERROR_DOM_PUSH_INVALID_KEY_ERR = 2154627077,
         NS_ERROR_DOM_PUSH_MISMATCHED_KEY_ERR = 2154627078,
+        NS_ERROR_DOM_PUSH_GCM_DISABLED = 2154627079,
         NS_ERROR_DOM_MEDIA_ABORT_ERR = 2154692609,
         NS_ERROR_DOM_MEDIA_NOT_ALLOWED_ERR = 2154692610,
         NS_ERROR_DOM_MEDIA_NOT_SUPPORTED_ERR = 2154692611,
@@ -12890,23 +12899,22 @@ pub mod root {
         eShowModalDialog = 24,
         eWindow_Content = 25,
         eSyncXMLHttpRequest = 26,
-        eDataContainerEvent = 27,
-        eWindow_Controllers = 28,
-        eImportXULIntoContent = 29,
-        ePannerNodeDoppler = 30,
-        eNavigatorGetUserMedia = 31,
-        eWebrtcDeprecatedPrefix = 32,
-        eRTCPeerConnectionGetStreams = 33,
-        eAppCache = 34,
-        ePrefixedImageSmoothingEnabled = 35,
-        ePrefixedFullscreenAPI = 36,
-        eLenientSetter = 37,
-        eFileLastModifiedDate = 38,
-        eImageBitmapRenderingContext_TransferImageBitmap = 39,
-        eURLCreateObjectURL_MediaStream = 40,
-        eXMLBaseAttribute = 41,
-        eXMLBaseAttributeForStyleAttr = 42,
-        eDeprecatedOperationCount = 43,
+        eWindow_Controllers = 27,
+        eImportXULIntoContent = 28,
+        ePannerNodeDoppler = 29,
+        eNavigatorGetUserMedia = 30,
+        eWebrtcDeprecatedPrefix = 31,
+        eRTCPeerConnectionGetStreams = 32,
+        eAppCache = 33,
+        ePrefixedImageSmoothingEnabled = 34,
+        ePrefixedFullscreenAPI = 35,
+        eLenientSetter = 36,
+        eFileLastModifiedDate = 37,
+        eImageBitmapRenderingContext_TransferImageBitmap = 38,
+        eURLCreateObjectURL_MediaStream = 39,
+        eXMLBaseAttribute = 40,
+        eXMLBaseAttributeForStyleAttr = 41,
+        eDeprecatedOperationCount = 42,
     }
     #[repr(u32)]
     #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -18281,7 +18289,7 @@ pub mod root {
     }
     #[repr(C)]
     #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-    pub struct nsChangeHint(pub ::std::os::raw::c_uint);
+    pub struct nsChangeHint(pub u32);
     pub const nsRestyleHint_eRestyle_Self: root::nsRestyleHint =
         nsRestyleHint(1);
     pub const nsRestyleHint_eRestyle_SomeDescendants: root::nsRestyleHint =
@@ -18336,7 +18344,7 @@ pub mod root {
  * RestyleManager::RestyleHintToString.
  */
     #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-    pub struct nsRestyleHint(pub ::std::os::raw::c_uint);
+    pub struct nsRestyleHint(pub u32);
     #[repr(C)]
     #[derive(Debug)]
     pub struct nsFontFaceRuleContainer {
@@ -19828,751 +19836,752 @@ pub mod root {
         eCSSKeyword__moz_center = 11,
         eCSSKeyword__moz_combobox = 12,
         eCSSKeyword__moz_comboboxtext = 13,
-        eCSSKeyword__moz_block_height = 14,
-        eCSSKeyword__moz_deck = 15,
-        eCSSKeyword__moz_default_background_color = 16,
-        eCSSKeyword__moz_default_color = 17,
-        eCSSKeyword__moz_desktop = 18,
-        eCSSKeyword__moz_dialog = 19,
-        eCSSKeyword__moz_dialogtext = 20,
-        eCSSKeyword__moz_document = 21,
-        eCSSKeyword__moz_dragtargetzone = 22,
-        eCSSKeyword__moz_element = 23,
-        eCSSKeyword__moz_eventreerow = 24,
-        eCSSKeyword__moz_field = 25,
-        eCSSKeyword__moz_fieldtext = 26,
-        eCSSKeyword__moz_fit_content = 27,
-        eCSSKeyword__moz_fixed = 28,
-        eCSSKeyword__moz_grabbing = 29,
-        eCSSKeyword__moz_grab = 30,
-        eCSSKeyword__moz_grid_group = 31,
-        eCSSKeyword__moz_grid_line = 32,
-        eCSSKeyword__moz_grid = 33,
-        eCSSKeyword__moz_groupbox = 34,
-        eCSSKeyword__moz_gtk_info_bar = 35,
-        eCSSKeyword__moz_gtk_info_bar_text = 36,
-        eCSSKeyword__moz_hidden_unscrollable = 37,
-        eCSSKeyword__moz_hyperlinktext = 38,
-        eCSSKeyword__moz_html_cellhighlight = 39,
-        eCSSKeyword__moz_html_cellhighlighttext = 40,
-        eCSSKeyword__moz_image_rect = 41,
-        eCSSKeyword__moz_info = 42,
-        eCSSKeyword__moz_inline_box = 43,
-        eCSSKeyword__moz_inline_grid = 44,
-        eCSSKeyword__moz_inline_stack = 45,
-        eCSSKeyword__moz_left = 46,
-        eCSSKeyword__moz_list = 47,
-        eCSSKeyword__moz_mac_buttonactivetext = 48,
-        eCSSKeyword__moz_mac_chrome_active = 49,
-        eCSSKeyword__moz_mac_chrome_inactive = 50,
-        eCSSKeyword__moz_mac_defaultbuttontext = 51,
-        eCSSKeyword__moz_mac_focusring = 52,
-        eCSSKeyword__moz_mac_fullscreen_button = 53,
-        eCSSKeyword__moz_mac_menuselect = 54,
-        eCSSKeyword__moz_mac_menushadow = 55,
-        eCSSKeyword__moz_mac_menutextdisable = 56,
-        eCSSKeyword__moz_mac_menutextselect = 57,
-        eCSSKeyword__moz_mac_disabledtoolbartext = 58,
-        eCSSKeyword__moz_mac_secondaryhighlight = 59,
-        eCSSKeyword__moz_max_content = 60,
-        eCSSKeyword__moz_menuhover = 61,
-        eCSSKeyword__moz_menuhovertext = 62,
-        eCSSKeyword__moz_menubartext = 63,
-        eCSSKeyword__moz_menubarhovertext = 64,
-        eCSSKeyword__moz_middle_with_baseline = 65,
-        eCSSKeyword__moz_min_content = 66,
-        eCSSKeyword__moz_nativehyperlinktext = 67,
-        eCSSKeyword__moz_none = 68,
-        eCSSKeyword__moz_oddtreerow = 69,
-        eCSSKeyword__moz_popup = 70,
-        eCSSKeyword__moz_pre_space = 71,
-        eCSSKeyword__moz_pull_down_menu = 72,
-        eCSSKeyword__moz_right = 73,
-        eCSSKeyword__moz_scrollbars_horizontal = 74,
-        eCSSKeyword__moz_scrollbars_none = 75,
-        eCSSKeyword__moz_scrollbars_vertical = 76,
-        eCSSKeyword__moz_stack = 77,
-        eCSSKeyword__moz_text = 78,
-        eCSSKeyword__moz_use_system_font = 79,
-        eCSSKeyword__moz_visitedhyperlinktext = 80,
-        eCSSKeyword__moz_window = 81,
-        eCSSKeyword__moz_workspace = 82,
-        eCSSKeyword__moz_zoom_in = 83,
-        eCSSKeyword__moz_zoom_out = 84,
-        eCSSKeyword__webkit_box = 85,
-        eCSSKeyword__webkit_flex = 86,
-        eCSSKeyword__webkit_inline_box = 87,
-        eCSSKeyword__webkit_inline_flex = 88,
-        eCSSKeyword_absolute = 89,
-        eCSSKeyword_active = 90,
-        eCSSKeyword_activeborder = 91,
-        eCSSKeyword_activecaption = 92,
-        eCSSKeyword_add = 93,
-        eCSSKeyword_additive = 94,
-        eCSSKeyword_alias = 95,
-        eCSSKeyword_all = 96,
-        eCSSKeyword_all_petite_caps = 97,
-        eCSSKeyword_all_scroll = 98,
-        eCSSKeyword_all_small_caps = 99,
-        eCSSKeyword_alpha = 100,
-        eCSSKeyword_alternate = 101,
-        eCSSKeyword_alternate_reverse = 102,
-        eCSSKeyword_always = 103,
-        eCSSKeyword_annotation = 104,
-        eCSSKeyword_appworkspace = 105,
-        eCSSKeyword_auto = 106,
-        eCSSKeyword_auto_fill = 107,
-        eCSSKeyword_auto_fit = 108,
-        eCSSKeyword_auto_flow = 109,
-        eCSSKeyword_avoid = 110,
-        eCSSKeyword_background = 111,
-        eCSSKeyword_backwards = 112,
-        eCSSKeyword_balance = 113,
-        eCSSKeyword_baseline = 114,
-        eCSSKeyword_bidi_override = 115,
-        eCSSKeyword_blink = 116,
-        eCSSKeyword_block = 117,
-        eCSSKeyword_block_axis = 118,
-        eCSSKeyword_blur = 119,
-        eCSSKeyword_bold = 120,
-        eCSSKeyword_bold_fraktur = 121,
-        eCSSKeyword_bold_italic = 122,
-        eCSSKeyword_bold_sans_serif = 123,
-        eCSSKeyword_bold_script = 124,
-        eCSSKeyword_bolder = 125,
-        eCSSKeyword_border_box = 126,
-        eCSSKeyword_both = 127,
-        eCSSKeyword_bottom = 128,
-        eCSSKeyword_bottom_outside = 129,
-        eCSSKeyword_break_all = 130,
-        eCSSKeyword_break_word = 131,
-        eCSSKeyword_brightness = 132,
-        eCSSKeyword_browser = 133,
-        eCSSKeyword_bullets = 134,
-        eCSSKeyword_button = 135,
-        eCSSKeyword_buttonface = 136,
-        eCSSKeyword_buttonhighlight = 137,
-        eCSSKeyword_buttonshadow = 138,
-        eCSSKeyword_buttontext = 139,
-        eCSSKeyword_capitalize = 140,
-        eCSSKeyword_caption = 141,
-        eCSSKeyword_captiontext = 142,
-        eCSSKeyword_cell = 143,
-        eCSSKeyword_center = 144,
-        eCSSKeyword_ch = 145,
-        eCSSKeyword_character_variant = 146,
-        eCSSKeyword_circle = 147,
-        eCSSKeyword_cjk_decimal = 148,
-        eCSSKeyword_clip = 149,
-        eCSSKeyword_clone = 150,
-        eCSSKeyword_close_quote = 151,
-        eCSSKeyword_closest_corner = 152,
-        eCSSKeyword_closest_side = 153,
-        eCSSKeyword_cm = 154,
-        eCSSKeyword_col_resize = 155,
-        eCSSKeyword_collapse = 156,
-        eCSSKeyword_color = 157,
-        eCSSKeyword_color_burn = 158,
-        eCSSKeyword_color_dodge = 159,
-        eCSSKeyword_common_ligatures = 160,
-        eCSSKeyword_column = 161,
-        eCSSKeyword_column_reverse = 162,
-        eCSSKeyword_condensed = 163,
-        eCSSKeyword_contain = 164,
-        eCSSKeyword_content_box = 165,
-        eCSSKeyword_contents = 166,
-        eCSSKeyword_context_fill = 167,
-        eCSSKeyword_context_fill_opacity = 168,
-        eCSSKeyword_context_menu = 169,
-        eCSSKeyword_context_stroke = 170,
-        eCSSKeyword_context_stroke_opacity = 171,
-        eCSSKeyword_context_value = 172,
-        eCSSKeyword_continuous = 173,
-        eCSSKeyword_contrast = 174,
-        eCSSKeyword_copy = 175,
-        eCSSKeyword_contextual = 176,
-        eCSSKeyword_cover = 177,
-        eCSSKeyword_crop = 178,
-        eCSSKeyword_cross = 179,
-        eCSSKeyword_crosshair = 180,
-        eCSSKeyword_currentcolor = 181,
-        eCSSKeyword_cursive = 182,
-        eCSSKeyword_cyclic = 183,
-        eCSSKeyword_darken = 184,
-        eCSSKeyword_dashed = 185,
-        eCSSKeyword_dense = 186,
-        eCSSKeyword_decimal = 187,
-        eCSSKeyword_default = 188,
-        eCSSKeyword_deg = 189,
-        eCSSKeyword_diagonal_fractions = 190,
-        eCSSKeyword_dialog = 191,
-        eCSSKeyword_difference = 192,
-        eCSSKeyword_digits = 193,
-        eCSSKeyword_disabled = 194,
-        eCSSKeyword_disc = 195,
-        eCSSKeyword_disclosure_closed = 196,
-        eCSSKeyword_disclosure_open = 197,
-        eCSSKeyword_discretionary_ligatures = 198,
-        eCSSKeyword_distribute = 199,
-        eCSSKeyword_dot = 200,
-        eCSSKeyword_dotted = 201,
-        eCSSKeyword_double = 202,
-        eCSSKeyword_double_circle = 203,
-        eCSSKeyword_double_struck = 204,
-        eCSSKeyword_drag = 205,
-        eCSSKeyword_drop_shadow = 206,
-        eCSSKeyword_e_resize = 207,
-        eCSSKeyword_ease = 208,
-        eCSSKeyword_ease_in = 209,
-        eCSSKeyword_ease_in_out = 210,
-        eCSSKeyword_ease_out = 211,
-        eCSSKeyword_economy = 212,
-        eCSSKeyword_element = 213,
-        eCSSKeyword_elements = 214,
-        eCSSKeyword_ellipse = 215,
-        eCSSKeyword_ellipsis = 216,
-        eCSSKeyword_em = 217,
-        eCSSKeyword_embed = 218,
-        eCSSKeyword_enabled = 219,
-        eCSSKeyword_end = 220,
-        eCSSKeyword_ethiopic_numeric = 221,
-        eCSSKeyword_ex = 222,
-        eCSSKeyword_exact = 223,
-        eCSSKeyword_exclude = 224,
-        eCSSKeyword_exclusion = 225,
-        eCSSKeyword_expanded = 226,
-        eCSSKeyword_extends = 227,
-        eCSSKeyword_extra_condensed = 228,
-        eCSSKeyword_extra_expanded = 229,
-        eCSSKeyword_ew_resize = 230,
-        eCSSKeyword_fallback = 231,
-        eCSSKeyword_fantasy = 232,
-        eCSSKeyword_farthest_side = 233,
-        eCSSKeyword_farthest_corner = 234,
-        eCSSKeyword_fill = 235,
-        eCSSKeyword_filled = 236,
-        eCSSKeyword_fill_box = 237,
-        eCSSKeyword_first = 238,
-        eCSSKeyword_fit_content = 239,
-        eCSSKeyword_fixed = 240,
-        eCSSKeyword_flat = 241,
-        eCSSKeyword_flex = 242,
-        eCSSKeyword_flex_end = 243,
-        eCSSKeyword_flex_start = 244,
-        eCSSKeyword_flip = 245,
-        eCSSKeyword_flow_root = 246,
-        eCSSKeyword_forwards = 247,
-        eCSSKeyword_fraktur = 248,
-        eCSSKeyword_frames = 249,
-        eCSSKeyword_from_image = 250,
-        eCSSKeyword_full_width = 251,
-        eCSSKeyword_fullscreen = 252,
-        eCSSKeyword_grab = 253,
-        eCSSKeyword_grabbing = 254,
-        eCSSKeyword_grad = 255,
-        eCSSKeyword_grayscale = 256,
-        eCSSKeyword_graytext = 257,
-        eCSSKeyword_grid = 258,
-        eCSSKeyword_groove = 259,
-        eCSSKeyword_hard_light = 260,
-        eCSSKeyword_hebrew = 261,
-        eCSSKeyword_help = 262,
-        eCSSKeyword_hidden = 263,
-        eCSSKeyword_hide = 264,
-        eCSSKeyword_highlight = 265,
-        eCSSKeyword_highlighttext = 266,
-        eCSSKeyword_historical_forms = 267,
-        eCSSKeyword_historical_ligatures = 268,
-        eCSSKeyword_horizontal = 269,
-        eCSSKeyword_horizontal_tb = 270,
-        eCSSKeyword_hue = 271,
-        eCSSKeyword_hue_rotate = 272,
-        eCSSKeyword_hz = 273,
-        eCSSKeyword_icon = 274,
-        eCSSKeyword_ignore = 275,
-        eCSSKeyword_in = 276,
-        eCSSKeyword_interlace = 277,
-        eCSSKeyword_inactive = 278,
-        eCSSKeyword_inactiveborder = 279,
-        eCSSKeyword_inactivecaption = 280,
-        eCSSKeyword_inactivecaptiontext = 281,
-        eCSSKeyword_infinite = 282,
-        eCSSKeyword_infobackground = 283,
-        eCSSKeyword_infotext = 284,
-        eCSSKeyword_inherit = 285,
-        eCSSKeyword_initial = 286,
-        eCSSKeyword_inline = 287,
-        eCSSKeyword_inline_axis = 288,
-        eCSSKeyword_inline_block = 289,
-        eCSSKeyword_inline_end = 290,
-        eCSSKeyword_inline_flex = 291,
-        eCSSKeyword_inline_grid = 292,
-        eCSSKeyword_inline_start = 293,
-        eCSSKeyword_inline_table = 294,
-        eCSSKeyword_inset = 295,
-        eCSSKeyword_inside = 296,
-        eCSSKeyword_inter_character = 297,
-        eCSSKeyword_inter_word = 298,
-        eCSSKeyword_interpolatematrix = 299,
-        eCSSKeyword_accumulatematrix = 300,
-        eCSSKeyword_intersect = 301,
-        eCSSKeyword_isolate = 302,
-        eCSSKeyword_isolate_override = 303,
-        eCSSKeyword_invert = 304,
-        eCSSKeyword_italic = 305,
-        eCSSKeyword_japanese_formal = 306,
-        eCSSKeyword_japanese_informal = 307,
-        eCSSKeyword_jis78 = 308,
-        eCSSKeyword_jis83 = 309,
-        eCSSKeyword_jis90 = 310,
-        eCSSKeyword_jis04 = 311,
-        eCSSKeyword_justify = 312,
-        eCSSKeyword_keep_all = 313,
-        eCSSKeyword_khz = 314,
-        eCSSKeyword_korean_hangul_formal = 315,
-        eCSSKeyword_korean_hanja_formal = 316,
-        eCSSKeyword_korean_hanja_informal = 317,
-        eCSSKeyword_landscape = 318,
-        eCSSKeyword_large = 319,
-        eCSSKeyword_larger = 320,
-        eCSSKeyword_last = 321,
-        eCSSKeyword_last_baseline = 322,
-        eCSSKeyword_layout = 323,
-        eCSSKeyword_left = 324,
-        eCSSKeyword_legacy = 325,
-        eCSSKeyword_lighten = 326,
-        eCSSKeyword_lighter = 327,
-        eCSSKeyword_line_through = 328,
-        eCSSKeyword_linear = 329,
-        eCSSKeyword_lining_nums = 330,
-        eCSSKeyword_list_item = 331,
-        eCSSKeyword_local = 332,
-        eCSSKeyword_logical = 333,
-        eCSSKeyword_looped = 334,
-        eCSSKeyword_lowercase = 335,
-        eCSSKeyword_lr = 336,
-        eCSSKeyword_lr_tb = 337,
-        eCSSKeyword_ltr = 338,
-        eCSSKeyword_luminance = 339,
-        eCSSKeyword_luminosity = 340,
-        eCSSKeyword_mandatory = 341,
-        eCSSKeyword_manipulation = 342,
-        eCSSKeyword_manual = 343,
-        eCSSKeyword_margin_box = 344,
-        eCSSKeyword_markers = 345,
-        eCSSKeyword_match_parent = 346,
-        eCSSKeyword_match_source = 347,
-        eCSSKeyword_matrix = 348,
-        eCSSKeyword_matrix3d = 349,
-        eCSSKeyword_max_content = 350,
-        eCSSKeyword_medium = 351,
-        eCSSKeyword_menu = 352,
-        eCSSKeyword_menutext = 353,
-        eCSSKeyword_message_box = 354,
-        eCSSKeyword_middle = 355,
-        eCSSKeyword_min_content = 356,
-        eCSSKeyword_minmax = 357,
-        eCSSKeyword_mix = 358,
-        eCSSKeyword_mixed = 359,
-        eCSSKeyword_mm = 360,
-        eCSSKeyword_monospace = 361,
-        eCSSKeyword_move = 362,
-        eCSSKeyword_ms = 363,
-        eCSSKeyword_multiply = 364,
-        eCSSKeyword_n_resize = 365,
-        eCSSKeyword_narrower = 366,
-        eCSSKeyword_ne_resize = 367,
-        eCSSKeyword_nesw_resize = 368,
-        eCSSKeyword_no_clip = 369,
-        eCSSKeyword_no_close_quote = 370,
-        eCSSKeyword_no_common_ligatures = 371,
-        eCSSKeyword_no_contextual = 372,
-        eCSSKeyword_no_discretionary_ligatures = 373,
-        eCSSKeyword_no_drag = 374,
-        eCSSKeyword_no_drop = 375,
-        eCSSKeyword_no_historical_ligatures = 376,
-        eCSSKeyword_no_open_quote = 377,
-        eCSSKeyword_no_repeat = 378,
-        eCSSKeyword_none = 379,
-        eCSSKeyword_normal = 380,
-        eCSSKeyword_not_allowed = 381,
-        eCSSKeyword_nowrap = 382,
-        eCSSKeyword_numeric = 383,
-        eCSSKeyword_ns_resize = 384,
-        eCSSKeyword_nw_resize = 385,
-        eCSSKeyword_nwse_resize = 386,
-        eCSSKeyword_oblique = 387,
-        eCSSKeyword_oldstyle_nums = 388,
-        eCSSKeyword_opacity = 389,
-        eCSSKeyword_open = 390,
-        eCSSKeyword_open_quote = 391,
-        eCSSKeyword_optional = 392,
-        eCSSKeyword_ordinal = 393,
-        eCSSKeyword_ornaments = 394,
-        eCSSKeyword_outset = 395,
-        eCSSKeyword_outside = 396,
-        eCSSKeyword_over = 397,
-        eCSSKeyword_overlay = 398,
-        eCSSKeyword_overline = 399,
-        eCSSKeyword_paint = 400,
-        eCSSKeyword_padding_box = 401,
-        eCSSKeyword_painted = 402,
-        eCSSKeyword_pan_x = 403,
-        eCSSKeyword_pan_y = 404,
-        eCSSKeyword_paused = 405,
-        eCSSKeyword_pc = 406,
-        eCSSKeyword_perspective = 407,
-        eCSSKeyword_petite_caps = 408,
-        eCSSKeyword_physical = 409,
-        eCSSKeyword_plaintext = 410,
-        eCSSKeyword_pointer = 411,
-        eCSSKeyword_polygon = 412,
-        eCSSKeyword_portrait = 413,
-        eCSSKeyword_pre = 414,
-        eCSSKeyword_pre_wrap = 415,
-        eCSSKeyword_pre_line = 416,
-        eCSSKeyword_preserve_3d = 417,
-        eCSSKeyword_progress = 418,
-        eCSSKeyword_progressive = 419,
-        eCSSKeyword_proportional_nums = 420,
-        eCSSKeyword_proportional_width = 421,
-        eCSSKeyword_proximity = 422,
-        eCSSKeyword_pt = 423,
-        eCSSKeyword_px = 424,
-        eCSSKeyword_rad = 425,
-        eCSSKeyword_read_only = 426,
-        eCSSKeyword_read_write = 427,
-        eCSSKeyword_relative = 428,
-        eCSSKeyword_repeat = 429,
-        eCSSKeyword_repeat_x = 430,
-        eCSSKeyword_repeat_y = 431,
-        eCSSKeyword_reverse = 432,
-        eCSSKeyword_ridge = 433,
-        eCSSKeyword_right = 434,
-        eCSSKeyword_rl = 435,
-        eCSSKeyword_rl_tb = 436,
-        eCSSKeyword_rotate = 437,
-        eCSSKeyword_rotate3d = 438,
-        eCSSKeyword_rotatex = 439,
-        eCSSKeyword_rotatey = 440,
-        eCSSKeyword_rotatez = 441,
-        eCSSKeyword_round = 442,
-        eCSSKeyword_row = 443,
-        eCSSKeyword_row_resize = 444,
-        eCSSKeyword_row_reverse = 445,
-        eCSSKeyword_rtl = 446,
-        eCSSKeyword_ruby = 447,
-        eCSSKeyword_ruby_base = 448,
-        eCSSKeyword_ruby_base_container = 449,
-        eCSSKeyword_ruby_text = 450,
-        eCSSKeyword_ruby_text_container = 451,
-        eCSSKeyword_running = 452,
-        eCSSKeyword_s = 453,
-        eCSSKeyword_s_resize = 454,
-        eCSSKeyword_safe = 455,
-        eCSSKeyword_saturate = 456,
-        eCSSKeyword_saturation = 457,
-        eCSSKeyword_scale = 458,
-        eCSSKeyword_scale_down = 459,
-        eCSSKeyword_scale3d = 460,
-        eCSSKeyword_scalex = 461,
-        eCSSKeyword_scaley = 462,
-        eCSSKeyword_scalez = 463,
-        eCSSKeyword_screen = 464,
-        eCSSKeyword_script = 465,
-        eCSSKeyword_scroll = 466,
-        eCSSKeyword_scrollbar = 467,
-        eCSSKeyword_scrollbar_small = 468,
-        eCSSKeyword_scrollbar_horizontal = 469,
-        eCSSKeyword_scrollbar_vertical = 470,
-        eCSSKeyword_se_resize = 471,
-        eCSSKeyword_select_after = 472,
-        eCSSKeyword_select_all = 473,
-        eCSSKeyword_select_before = 474,
-        eCSSKeyword_select_menu = 475,
-        eCSSKeyword_select_same = 476,
-        eCSSKeyword_self_end = 477,
-        eCSSKeyword_self_start = 478,
-        eCSSKeyword_semi_condensed = 479,
-        eCSSKeyword_semi_expanded = 480,
-        eCSSKeyword_separate = 481,
-        eCSSKeyword_sepia = 482,
-        eCSSKeyword_serif = 483,
-        eCSSKeyword_sesame = 484,
-        eCSSKeyword_show = 485,
-        eCSSKeyword_sideways = 486,
-        eCSSKeyword_sideways_lr = 487,
-        eCSSKeyword_sideways_right = 488,
-        eCSSKeyword_sideways_rl = 489,
-        eCSSKeyword_simp_chinese_formal = 490,
-        eCSSKeyword_simp_chinese_informal = 491,
-        eCSSKeyword_simplified = 492,
-        eCSSKeyword_skew = 493,
-        eCSSKeyword_skewx = 494,
-        eCSSKeyword_skewy = 495,
-        eCSSKeyword_slashed_zero = 496,
-        eCSSKeyword_slice = 497,
-        eCSSKeyword_small = 498,
-        eCSSKeyword_small_caps = 499,
-        eCSSKeyword_small_caption = 500,
-        eCSSKeyword_smaller = 501,
-        eCSSKeyword_smooth = 502,
-        eCSSKeyword_soft = 503,
-        eCSSKeyword_soft_light = 504,
-        eCSSKeyword_solid = 505,
-        eCSSKeyword_space_around = 506,
-        eCSSKeyword_space_between = 507,
-        eCSSKeyword_space_evenly = 508,
-        eCSSKeyword_span = 509,
-        eCSSKeyword_spell_out = 510,
-        eCSSKeyword_square = 511,
-        eCSSKeyword_stacked_fractions = 512,
-        eCSSKeyword_start = 513,
-        eCSSKeyword_static = 514,
-        eCSSKeyword_standalone = 515,
-        eCSSKeyword_status_bar = 516,
-        eCSSKeyword_step_end = 517,
-        eCSSKeyword_step_start = 518,
-        eCSSKeyword_sticky = 519,
-        eCSSKeyword_stretch = 520,
-        eCSSKeyword_stretch_to_fit = 521,
-        eCSSKeyword_stretched = 522,
-        eCSSKeyword_strict = 523,
-        eCSSKeyword_stroke = 524,
-        eCSSKeyword_stroke_box = 525,
-        eCSSKeyword_style = 526,
-        eCSSKeyword_styleset = 527,
-        eCSSKeyword_stylistic = 528,
-        eCSSKeyword_sub = 529,
-        eCSSKeyword_subgrid = 530,
-        eCSSKeyword_subtract = 531,
-        eCSSKeyword_super = 532,
-        eCSSKeyword_sw_resize = 533,
-        eCSSKeyword_swash = 534,
-        eCSSKeyword_swap = 535,
-        eCSSKeyword_table = 536,
-        eCSSKeyword_table_caption = 537,
-        eCSSKeyword_table_cell = 538,
-        eCSSKeyword_table_column = 539,
-        eCSSKeyword_table_column_group = 540,
-        eCSSKeyword_table_footer_group = 541,
-        eCSSKeyword_table_header_group = 542,
-        eCSSKeyword_table_row = 543,
-        eCSSKeyword_table_row_group = 544,
-        eCSSKeyword_tabular_nums = 545,
-        eCSSKeyword_tailed = 546,
-        eCSSKeyword_tb = 547,
-        eCSSKeyword_tb_rl = 548,
-        eCSSKeyword_text = 549,
-        eCSSKeyword_text_bottom = 550,
-        eCSSKeyword_text_top = 551,
-        eCSSKeyword_thick = 552,
-        eCSSKeyword_thin = 553,
-        eCSSKeyword_threeddarkshadow = 554,
-        eCSSKeyword_threedface = 555,
-        eCSSKeyword_threedhighlight = 556,
-        eCSSKeyword_threedlightshadow = 557,
-        eCSSKeyword_threedshadow = 558,
-        eCSSKeyword_titling_caps = 559,
-        eCSSKeyword_toggle = 560,
-        eCSSKeyword_top = 561,
-        eCSSKeyword_top_outside = 562,
-        eCSSKeyword_trad_chinese_formal = 563,
-        eCSSKeyword_trad_chinese_informal = 564,
-        eCSSKeyword_traditional = 565,
-        eCSSKeyword_translate = 566,
-        eCSSKeyword_translate3d = 567,
-        eCSSKeyword_translatex = 568,
-        eCSSKeyword_translatey = 569,
-        eCSSKeyword_translatez = 570,
-        eCSSKeyword_transparent = 571,
-        eCSSKeyword_triangle = 572,
-        eCSSKeyword_tri_state = 573,
-        eCSSKeyword_ultra_condensed = 574,
-        eCSSKeyword_ultra_expanded = 575,
-        eCSSKeyword_under = 576,
-        eCSSKeyword_underline = 577,
-        eCSSKeyword_unicase = 578,
-        eCSSKeyword_unsafe = 579,
-        eCSSKeyword_unset = 580,
-        eCSSKeyword_uppercase = 581,
-        eCSSKeyword_upright = 582,
-        eCSSKeyword_vertical = 583,
-        eCSSKeyword_vertical_lr = 584,
-        eCSSKeyword_vertical_rl = 585,
-        eCSSKeyword_vertical_text = 586,
-        eCSSKeyword_view_box = 587,
-        eCSSKeyword_visible = 588,
-        eCSSKeyword_visiblefill = 589,
-        eCSSKeyword_visiblepainted = 590,
-        eCSSKeyword_visiblestroke = 591,
-        eCSSKeyword_w_resize = 592,
-        eCSSKeyword_wait = 593,
-        eCSSKeyword_wavy = 594,
-        eCSSKeyword_weight = 595,
-        eCSSKeyword_wider = 596,
-        eCSSKeyword_window = 597,
-        eCSSKeyword_windowframe = 598,
-        eCSSKeyword_windowtext = 599,
-        eCSSKeyword_words = 600,
-        eCSSKeyword_wrap = 601,
-        eCSSKeyword_wrap_reverse = 602,
-        eCSSKeyword_write_only = 603,
-        eCSSKeyword_x_large = 604,
-        eCSSKeyword_x_small = 605,
-        eCSSKeyword_xx_large = 606,
-        eCSSKeyword_xx_small = 607,
-        eCSSKeyword_zoom_in = 608,
-        eCSSKeyword_zoom_out = 609,
-        eCSSKeyword_radio = 610,
-        eCSSKeyword_checkbox = 611,
-        eCSSKeyword_button_bevel = 612,
-        eCSSKeyword_toolbox = 613,
-        eCSSKeyword_toolbar = 614,
-        eCSSKeyword_toolbarbutton = 615,
-        eCSSKeyword_toolbargripper = 616,
-        eCSSKeyword_dualbutton = 617,
-        eCSSKeyword_toolbarbutton_dropdown = 618,
-        eCSSKeyword_button_arrow_up = 619,
-        eCSSKeyword_button_arrow_down = 620,
-        eCSSKeyword_button_arrow_next = 621,
-        eCSSKeyword_button_arrow_previous = 622,
-        eCSSKeyword_separator = 623,
-        eCSSKeyword_splitter = 624,
-        eCSSKeyword_statusbar = 625,
-        eCSSKeyword_statusbarpanel = 626,
-        eCSSKeyword_resizerpanel = 627,
-        eCSSKeyword_resizer = 628,
-        eCSSKeyword_listbox = 629,
-        eCSSKeyword_listitem = 630,
-        eCSSKeyword_numbers = 631,
-        eCSSKeyword_number_input = 632,
-        eCSSKeyword_treeview = 633,
-        eCSSKeyword_treeitem = 634,
-        eCSSKeyword_treetwisty = 635,
-        eCSSKeyword_treetwistyopen = 636,
-        eCSSKeyword_treeline = 637,
-        eCSSKeyword_treeheader = 638,
-        eCSSKeyword_treeheadercell = 639,
-        eCSSKeyword_treeheadersortarrow = 640,
-        eCSSKeyword_progressbar = 641,
-        eCSSKeyword_progressbar_vertical = 642,
-        eCSSKeyword_progresschunk = 643,
-        eCSSKeyword_progresschunk_vertical = 644,
-        eCSSKeyword_tab = 645,
-        eCSSKeyword_tabpanels = 646,
-        eCSSKeyword_tabpanel = 647,
-        eCSSKeyword_tab_scroll_arrow_back = 648,
-        eCSSKeyword_tab_scroll_arrow_forward = 649,
-        eCSSKeyword_tooltip = 650,
-        eCSSKeyword_spinner = 651,
-        eCSSKeyword_spinner_upbutton = 652,
-        eCSSKeyword_spinner_downbutton = 653,
-        eCSSKeyword_spinner_textfield = 654,
-        eCSSKeyword_scrollbarbutton_up = 655,
-        eCSSKeyword_scrollbarbutton_down = 656,
-        eCSSKeyword_scrollbarbutton_left = 657,
-        eCSSKeyword_scrollbarbutton_right = 658,
-        eCSSKeyword_scrollbartrack_horizontal = 659,
-        eCSSKeyword_scrollbartrack_vertical = 660,
-        eCSSKeyword_scrollbarthumb_horizontal = 661,
-        eCSSKeyword_scrollbarthumb_vertical = 662,
-        eCSSKeyword_sheet = 663,
-        eCSSKeyword_textfield = 664,
-        eCSSKeyword_textfield_multiline = 665,
-        eCSSKeyword_caret = 666,
-        eCSSKeyword_searchfield = 667,
-        eCSSKeyword_menubar = 668,
-        eCSSKeyword_menupopup = 669,
-        eCSSKeyword_menuitem = 670,
-        eCSSKeyword_checkmenuitem = 671,
-        eCSSKeyword_radiomenuitem = 672,
-        eCSSKeyword_menucheckbox = 673,
-        eCSSKeyword_menuradio = 674,
-        eCSSKeyword_menuseparator = 675,
-        eCSSKeyword_menuarrow = 676,
-        eCSSKeyword_menuimage = 677,
-        eCSSKeyword_menuitemtext = 678,
-        eCSSKeyword_menulist = 679,
-        eCSSKeyword_menulist_button = 680,
-        eCSSKeyword_menulist_text = 681,
-        eCSSKeyword_menulist_textfield = 682,
-        eCSSKeyword_meterbar = 683,
-        eCSSKeyword_meterchunk = 684,
-        eCSSKeyword_minimal_ui = 685,
-        eCSSKeyword_range = 686,
-        eCSSKeyword_range_thumb = 687,
-        eCSSKeyword_sans_serif = 688,
-        eCSSKeyword_sans_serif_bold_italic = 689,
-        eCSSKeyword_sans_serif_italic = 690,
-        eCSSKeyword_scale_horizontal = 691,
-        eCSSKeyword_scale_vertical = 692,
-        eCSSKeyword_scalethumb_horizontal = 693,
-        eCSSKeyword_scalethumb_vertical = 694,
-        eCSSKeyword_scalethumbstart = 695,
-        eCSSKeyword_scalethumbend = 696,
-        eCSSKeyword_scalethumbtick = 697,
-        eCSSKeyword_groupbox = 698,
-        eCSSKeyword_checkbox_container = 699,
-        eCSSKeyword_radio_container = 700,
-        eCSSKeyword_checkbox_label = 701,
-        eCSSKeyword_radio_label = 702,
-        eCSSKeyword_button_focus = 703,
-        eCSSKeyword__moz_win_media_toolbox = 704,
-        eCSSKeyword__moz_win_communications_toolbox = 705,
-        eCSSKeyword__moz_win_browsertabbar_toolbox = 706,
-        eCSSKeyword__moz_win_mediatext = 707,
-        eCSSKeyword__moz_win_communicationstext = 708,
-        eCSSKeyword__moz_win_glass = 709,
-        eCSSKeyword__moz_win_borderless_glass = 710,
-        eCSSKeyword__moz_window_titlebar = 711,
-        eCSSKeyword__moz_window_titlebar_maximized = 712,
-        eCSSKeyword__moz_window_frame_left = 713,
-        eCSSKeyword__moz_window_frame_right = 714,
-        eCSSKeyword__moz_window_frame_bottom = 715,
-        eCSSKeyword__moz_window_button_close = 716,
-        eCSSKeyword__moz_window_button_minimize = 717,
-        eCSSKeyword__moz_window_button_maximize = 718,
-        eCSSKeyword__moz_window_button_restore = 719,
-        eCSSKeyword__moz_window_button_box = 720,
-        eCSSKeyword__moz_window_button_box_maximized = 721,
-        eCSSKeyword__moz_mac_help_button = 722,
-        eCSSKeyword__moz_win_exclude_glass = 723,
-        eCSSKeyword__moz_mac_vibrancy_light = 724,
-        eCSSKeyword__moz_mac_vibrancy_dark = 725,
-        eCSSKeyword__moz_mac_disclosure_button_closed = 726,
-        eCSSKeyword__moz_mac_disclosure_button_open = 727,
-        eCSSKeyword__moz_mac_source_list = 728,
-        eCSSKeyword__moz_mac_source_list_selection = 729,
-        eCSSKeyword__moz_mac_active_source_list_selection = 730,
-        eCSSKeyword_alphabetic = 731,
-        eCSSKeyword_bevel = 732,
-        eCSSKeyword_butt = 733,
-        eCSSKeyword_central = 734,
-        eCSSKeyword_crispedges = 735,
-        eCSSKeyword_evenodd = 736,
-        eCSSKeyword_geometricprecision = 737,
-        eCSSKeyword_hanging = 738,
-        eCSSKeyword_ideographic = 739,
-        eCSSKeyword_linearrgb = 740,
-        eCSSKeyword_mathematical = 741,
-        eCSSKeyword_miter = 742,
-        eCSSKeyword_no_change = 743,
-        eCSSKeyword_non_scaling_stroke = 744,
-        eCSSKeyword_nonzero = 745,
-        eCSSKeyword_optimizelegibility = 746,
-        eCSSKeyword_optimizequality = 747,
-        eCSSKeyword_optimizespeed = 748,
-        eCSSKeyword_reset_size = 749,
-        eCSSKeyword_srgb = 750,
-        eCSSKeyword_symbolic = 751,
-        eCSSKeyword_symbols = 752,
-        eCSSKeyword_text_after_edge = 753,
-        eCSSKeyword_text_before_edge = 754,
-        eCSSKeyword_use_script = 755,
-        eCSSKeyword__moz_crisp_edges = 756,
-        eCSSKeyword_space = 757,
-        eCSSKeyword_COUNT = 758,
+        eCSSKeyword__moz_context_properties = 14,
+        eCSSKeyword__moz_block_height = 15,
+        eCSSKeyword__moz_deck = 16,
+        eCSSKeyword__moz_default_background_color = 17,
+        eCSSKeyword__moz_default_color = 18,
+        eCSSKeyword__moz_desktop = 19,
+        eCSSKeyword__moz_dialog = 20,
+        eCSSKeyword__moz_dialogtext = 21,
+        eCSSKeyword__moz_document = 22,
+        eCSSKeyword__moz_dragtargetzone = 23,
+        eCSSKeyword__moz_element = 24,
+        eCSSKeyword__moz_eventreerow = 25,
+        eCSSKeyword__moz_field = 26,
+        eCSSKeyword__moz_fieldtext = 27,
+        eCSSKeyword__moz_fit_content = 28,
+        eCSSKeyword__moz_fixed = 29,
+        eCSSKeyword__moz_grabbing = 30,
+        eCSSKeyword__moz_grab = 31,
+        eCSSKeyword__moz_grid_group = 32,
+        eCSSKeyword__moz_grid_line = 33,
+        eCSSKeyword__moz_grid = 34,
+        eCSSKeyword__moz_groupbox = 35,
+        eCSSKeyword__moz_gtk_info_bar = 36,
+        eCSSKeyword__moz_gtk_info_bar_text = 37,
+        eCSSKeyword__moz_hidden_unscrollable = 38,
+        eCSSKeyword__moz_hyperlinktext = 39,
+        eCSSKeyword__moz_html_cellhighlight = 40,
+        eCSSKeyword__moz_html_cellhighlighttext = 41,
+        eCSSKeyword__moz_image_rect = 42,
+        eCSSKeyword__moz_info = 43,
+        eCSSKeyword__moz_inline_box = 44,
+        eCSSKeyword__moz_inline_grid = 45,
+        eCSSKeyword__moz_inline_stack = 46,
+        eCSSKeyword__moz_left = 47,
+        eCSSKeyword__moz_list = 48,
+        eCSSKeyword__moz_mac_buttonactivetext = 49,
+        eCSSKeyword__moz_mac_chrome_active = 50,
+        eCSSKeyword__moz_mac_chrome_inactive = 51,
+        eCSSKeyword__moz_mac_defaultbuttontext = 52,
+        eCSSKeyword__moz_mac_focusring = 53,
+        eCSSKeyword__moz_mac_fullscreen_button = 54,
+        eCSSKeyword__moz_mac_menuselect = 55,
+        eCSSKeyword__moz_mac_menushadow = 56,
+        eCSSKeyword__moz_mac_menutextdisable = 57,
+        eCSSKeyword__moz_mac_menutextselect = 58,
+        eCSSKeyword__moz_mac_disabledtoolbartext = 59,
+        eCSSKeyword__moz_mac_secondaryhighlight = 60,
+        eCSSKeyword__moz_max_content = 61,
+        eCSSKeyword__moz_menuhover = 62,
+        eCSSKeyword__moz_menuhovertext = 63,
+        eCSSKeyword__moz_menubartext = 64,
+        eCSSKeyword__moz_menubarhovertext = 65,
+        eCSSKeyword__moz_middle_with_baseline = 66,
+        eCSSKeyword__moz_min_content = 67,
+        eCSSKeyword__moz_nativehyperlinktext = 68,
+        eCSSKeyword__moz_none = 69,
+        eCSSKeyword__moz_oddtreerow = 70,
+        eCSSKeyword__moz_popup = 71,
+        eCSSKeyword__moz_pre_space = 72,
+        eCSSKeyword__moz_pull_down_menu = 73,
+        eCSSKeyword__moz_right = 74,
+        eCSSKeyword__moz_scrollbars_horizontal = 75,
+        eCSSKeyword__moz_scrollbars_none = 76,
+        eCSSKeyword__moz_scrollbars_vertical = 77,
+        eCSSKeyword__moz_stack = 78,
+        eCSSKeyword__moz_text = 79,
+        eCSSKeyword__moz_use_system_font = 80,
+        eCSSKeyword__moz_visitedhyperlinktext = 81,
+        eCSSKeyword__moz_window = 82,
+        eCSSKeyword__moz_workspace = 83,
+        eCSSKeyword__moz_zoom_in = 84,
+        eCSSKeyword__moz_zoom_out = 85,
+        eCSSKeyword__webkit_box = 86,
+        eCSSKeyword__webkit_flex = 87,
+        eCSSKeyword__webkit_inline_box = 88,
+        eCSSKeyword__webkit_inline_flex = 89,
+        eCSSKeyword_absolute = 90,
+        eCSSKeyword_active = 91,
+        eCSSKeyword_activeborder = 92,
+        eCSSKeyword_activecaption = 93,
+        eCSSKeyword_add = 94,
+        eCSSKeyword_additive = 95,
+        eCSSKeyword_alias = 96,
+        eCSSKeyword_all = 97,
+        eCSSKeyword_all_petite_caps = 98,
+        eCSSKeyword_all_scroll = 99,
+        eCSSKeyword_all_small_caps = 100,
+        eCSSKeyword_alpha = 101,
+        eCSSKeyword_alternate = 102,
+        eCSSKeyword_alternate_reverse = 103,
+        eCSSKeyword_always = 104,
+        eCSSKeyword_annotation = 105,
+        eCSSKeyword_appworkspace = 106,
+        eCSSKeyword_auto = 107,
+        eCSSKeyword_auto_fill = 108,
+        eCSSKeyword_auto_fit = 109,
+        eCSSKeyword_auto_flow = 110,
+        eCSSKeyword_avoid = 111,
+        eCSSKeyword_background = 112,
+        eCSSKeyword_backwards = 113,
+        eCSSKeyword_balance = 114,
+        eCSSKeyword_baseline = 115,
+        eCSSKeyword_bidi_override = 116,
+        eCSSKeyword_blink = 117,
+        eCSSKeyword_block = 118,
+        eCSSKeyword_block_axis = 119,
+        eCSSKeyword_blur = 120,
+        eCSSKeyword_bold = 121,
+        eCSSKeyword_bold_fraktur = 122,
+        eCSSKeyword_bold_italic = 123,
+        eCSSKeyword_bold_sans_serif = 124,
+        eCSSKeyword_bold_script = 125,
+        eCSSKeyword_bolder = 126,
+        eCSSKeyword_border_box = 127,
+        eCSSKeyword_both = 128,
+        eCSSKeyword_bottom = 129,
+        eCSSKeyword_bottom_outside = 130,
+        eCSSKeyword_break_all = 131,
+        eCSSKeyword_break_word = 132,
+        eCSSKeyword_brightness = 133,
+        eCSSKeyword_browser = 134,
+        eCSSKeyword_bullets = 135,
+        eCSSKeyword_button = 136,
+        eCSSKeyword_buttonface = 137,
+        eCSSKeyword_buttonhighlight = 138,
+        eCSSKeyword_buttonshadow = 139,
+        eCSSKeyword_buttontext = 140,
+        eCSSKeyword_capitalize = 141,
+        eCSSKeyword_caption = 142,
+        eCSSKeyword_captiontext = 143,
+        eCSSKeyword_cell = 144,
+        eCSSKeyword_center = 145,
+        eCSSKeyword_ch = 146,
+        eCSSKeyword_character_variant = 147,
+        eCSSKeyword_circle = 148,
+        eCSSKeyword_cjk_decimal = 149,
+        eCSSKeyword_clip = 150,
+        eCSSKeyword_clone = 151,
+        eCSSKeyword_close_quote = 152,
+        eCSSKeyword_closest_corner = 153,
+        eCSSKeyword_closest_side = 154,
+        eCSSKeyword_cm = 155,
+        eCSSKeyword_col_resize = 156,
+        eCSSKeyword_collapse = 157,
+        eCSSKeyword_color = 158,
+        eCSSKeyword_color_burn = 159,
+        eCSSKeyword_color_dodge = 160,
+        eCSSKeyword_common_ligatures = 161,
+        eCSSKeyword_column = 162,
+        eCSSKeyword_column_reverse = 163,
+        eCSSKeyword_condensed = 164,
+        eCSSKeyword_contain = 165,
+        eCSSKeyword_content_box = 166,
+        eCSSKeyword_contents = 167,
+        eCSSKeyword_context_fill = 168,
+        eCSSKeyword_context_fill_opacity = 169,
+        eCSSKeyword_context_menu = 170,
+        eCSSKeyword_context_stroke = 171,
+        eCSSKeyword_context_stroke_opacity = 172,
+        eCSSKeyword_context_value = 173,
+        eCSSKeyword_continuous = 174,
+        eCSSKeyword_contrast = 175,
+        eCSSKeyword_copy = 176,
+        eCSSKeyword_contextual = 177,
+        eCSSKeyword_cover = 178,
+        eCSSKeyword_crop = 179,
+        eCSSKeyword_cross = 180,
+        eCSSKeyword_crosshair = 181,
+        eCSSKeyword_currentcolor = 182,
+        eCSSKeyword_cursive = 183,
+        eCSSKeyword_cyclic = 184,
+        eCSSKeyword_darken = 185,
+        eCSSKeyword_dashed = 186,
+        eCSSKeyword_dense = 187,
+        eCSSKeyword_decimal = 188,
+        eCSSKeyword_default = 189,
+        eCSSKeyword_deg = 190,
+        eCSSKeyword_diagonal_fractions = 191,
+        eCSSKeyword_dialog = 192,
+        eCSSKeyword_difference = 193,
+        eCSSKeyword_digits = 194,
+        eCSSKeyword_disabled = 195,
+        eCSSKeyword_disc = 196,
+        eCSSKeyword_disclosure_closed = 197,
+        eCSSKeyword_disclosure_open = 198,
+        eCSSKeyword_discretionary_ligatures = 199,
+        eCSSKeyword_distribute = 200,
+        eCSSKeyword_dot = 201,
+        eCSSKeyword_dotted = 202,
+        eCSSKeyword_double = 203,
+        eCSSKeyword_double_circle = 204,
+        eCSSKeyword_double_struck = 205,
+        eCSSKeyword_drag = 206,
+        eCSSKeyword_drop_shadow = 207,
+        eCSSKeyword_e_resize = 208,
+        eCSSKeyword_ease = 209,
+        eCSSKeyword_ease_in = 210,
+        eCSSKeyword_ease_in_out = 211,
+        eCSSKeyword_ease_out = 212,
+        eCSSKeyword_economy = 213,
+        eCSSKeyword_element = 214,
+        eCSSKeyword_elements = 215,
+        eCSSKeyword_ellipse = 216,
+        eCSSKeyword_ellipsis = 217,
+        eCSSKeyword_em = 218,
+        eCSSKeyword_embed = 219,
+        eCSSKeyword_enabled = 220,
+        eCSSKeyword_end = 221,
+        eCSSKeyword_ethiopic_numeric = 222,
+        eCSSKeyword_ex = 223,
+        eCSSKeyword_exact = 224,
+        eCSSKeyword_exclude = 225,
+        eCSSKeyword_exclusion = 226,
+        eCSSKeyword_expanded = 227,
+        eCSSKeyword_extends = 228,
+        eCSSKeyword_extra_condensed = 229,
+        eCSSKeyword_extra_expanded = 230,
+        eCSSKeyword_ew_resize = 231,
+        eCSSKeyword_fallback = 232,
+        eCSSKeyword_fantasy = 233,
+        eCSSKeyword_farthest_side = 234,
+        eCSSKeyword_farthest_corner = 235,
+        eCSSKeyword_fill = 236,
+        eCSSKeyword_filled = 237,
+        eCSSKeyword_fill_box = 238,
+        eCSSKeyword_first = 239,
+        eCSSKeyword_fit_content = 240,
+        eCSSKeyword_fixed = 241,
+        eCSSKeyword_flat = 242,
+        eCSSKeyword_flex = 243,
+        eCSSKeyword_flex_end = 244,
+        eCSSKeyword_flex_start = 245,
+        eCSSKeyword_flip = 246,
+        eCSSKeyword_flow_root = 247,
+        eCSSKeyword_forwards = 248,
+        eCSSKeyword_fraktur = 249,
+        eCSSKeyword_frames = 250,
+        eCSSKeyword_from_image = 251,
+        eCSSKeyword_full_width = 252,
+        eCSSKeyword_fullscreen = 253,
+        eCSSKeyword_grab = 254,
+        eCSSKeyword_grabbing = 255,
+        eCSSKeyword_grad = 256,
+        eCSSKeyword_grayscale = 257,
+        eCSSKeyword_graytext = 258,
+        eCSSKeyword_grid = 259,
+        eCSSKeyword_groove = 260,
+        eCSSKeyword_hard_light = 261,
+        eCSSKeyword_hebrew = 262,
+        eCSSKeyword_help = 263,
+        eCSSKeyword_hidden = 264,
+        eCSSKeyword_hide = 265,
+        eCSSKeyword_highlight = 266,
+        eCSSKeyword_highlighttext = 267,
+        eCSSKeyword_historical_forms = 268,
+        eCSSKeyword_historical_ligatures = 269,
+        eCSSKeyword_horizontal = 270,
+        eCSSKeyword_horizontal_tb = 271,
+        eCSSKeyword_hue = 272,
+        eCSSKeyword_hue_rotate = 273,
+        eCSSKeyword_hz = 274,
+        eCSSKeyword_icon = 275,
+        eCSSKeyword_ignore = 276,
+        eCSSKeyword_in = 277,
+        eCSSKeyword_interlace = 278,
+        eCSSKeyword_inactive = 279,
+        eCSSKeyword_inactiveborder = 280,
+        eCSSKeyword_inactivecaption = 281,
+        eCSSKeyword_inactivecaptiontext = 282,
+        eCSSKeyword_infinite = 283,
+        eCSSKeyword_infobackground = 284,
+        eCSSKeyword_infotext = 285,
+        eCSSKeyword_inherit = 286,
+        eCSSKeyword_initial = 287,
+        eCSSKeyword_inline = 288,
+        eCSSKeyword_inline_axis = 289,
+        eCSSKeyword_inline_block = 290,
+        eCSSKeyword_inline_end = 291,
+        eCSSKeyword_inline_flex = 292,
+        eCSSKeyword_inline_grid = 293,
+        eCSSKeyword_inline_start = 294,
+        eCSSKeyword_inline_table = 295,
+        eCSSKeyword_inset = 296,
+        eCSSKeyword_inside = 297,
+        eCSSKeyword_inter_character = 298,
+        eCSSKeyword_inter_word = 299,
+        eCSSKeyword_interpolatematrix = 300,
+        eCSSKeyword_accumulatematrix = 301,
+        eCSSKeyword_intersect = 302,
+        eCSSKeyword_isolate = 303,
+        eCSSKeyword_isolate_override = 304,
+        eCSSKeyword_invert = 305,
+        eCSSKeyword_italic = 306,
+        eCSSKeyword_japanese_formal = 307,
+        eCSSKeyword_japanese_informal = 308,
+        eCSSKeyword_jis78 = 309,
+        eCSSKeyword_jis83 = 310,
+        eCSSKeyword_jis90 = 311,
+        eCSSKeyword_jis04 = 312,
+        eCSSKeyword_justify = 313,
+        eCSSKeyword_keep_all = 314,
+        eCSSKeyword_khz = 315,
+        eCSSKeyword_korean_hangul_formal = 316,
+        eCSSKeyword_korean_hanja_formal = 317,
+        eCSSKeyword_korean_hanja_informal = 318,
+        eCSSKeyword_landscape = 319,
+        eCSSKeyword_large = 320,
+        eCSSKeyword_larger = 321,
+        eCSSKeyword_last = 322,
+        eCSSKeyword_last_baseline = 323,
+        eCSSKeyword_layout = 324,
+        eCSSKeyword_left = 325,
+        eCSSKeyword_legacy = 326,
+        eCSSKeyword_lighten = 327,
+        eCSSKeyword_lighter = 328,
+        eCSSKeyword_line_through = 329,
+        eCSSKeyword_linear = 330,
+        eCSSKeyword_lining_nums = 331,
+        eCSSKeyword_list_item = 332,
+        eCSSKeyword_local = 333,
+        eCSSKeyword_logical = 334,
+        eCSSKeyword_looped = 335,
+        eCSSKeyword_lowercase = 336,
+        eCSSKeyword_lr = 337,
+        eCSSKeyword_lr_tb = 338,
+        eCSSKeyword_ltr = 339,
+        eCSSKeyword_luminance = 340,
+        eCSSKeyword_luminosity = 341,
+        eCSSKeyword_mandatory = 342,
+        eCSSKeyword_manipulation = 343,
+        eCSSKeyword_manual = 344,
+        eCSSKeyword_margin_box = 345,
+        eCSSKeyword_markers = 346,
+        eCSSKeyword_match_parent = 347,
+        eCSSKeyword_match_source = 348,
+        eCSSKeyword_matrix = 349,
+        eCSSKeyword_matrix3d = 350,
+        eCSSKeyword_max_content = 351,
+        eCSSKeyword_medium = 352,
+        eCSSKeyword_menu = 353,
+        eCSSKeyword_menutext = 354,
+        eCSSKeyword_message_box = 355,
+        eCSSKeyword_middle = 356,
+        eCSSKeyword_min_content = 357,
+        eCSSKeyword_minmax = 358,
+        eCSSKeyword_mix = 359,
+        eCSSKeyword_mixed = 360,
+        eCSSKeyword_mm = 361,
+        eCSSKeyword_monospace = 362,
+        eCSSKeyword_move = 363,
+        eCSSKeyword_ms = 364,
+        eCSSKeyword_multiply = 365,
+        eCSSKeyword_n_resize = 366,
+        eCSSKeyword_narrower = 367,
+        eCSSKeyword_ne_resize = 368,
+        eCSSKeyword_nesw_resize = 369,
+        eCSSKeyword_no_clip = 370,
+        eCSSKeyword_no_close_quote = 371,
+        eCSSKeyword_no_common_ligatures = 372,
+        eCSSKeyword_no_contextual = 373,
+        eCSSKeyword_no_discretionary_ligatures = 374,
+        eCSSKeyword_no_drag = 375,
+        eCSSKeyword_no_drop = 376,
+        eCSSKeyword_no_historical_ligatures = 377,
+        eCSSKeyword_no_open_quote = 378,
+        eCSSKeyword_no_repeat = 379,
+        eCSSKeyword_none = 380,
+        eCSSKeyword_normal = 381,
+        eCSSKeyword_not_allowed = 382,
+        eCSSKeyword_nowrap = 383,
+        eCSSKeyword_numeric = 384,
+        eCSSKeyword_ns_resize = 385,
+        eCSSKeyword_nw_resize = 386,
+        eCSSKeyword_nwse_resize = 387,
+        eCSSKeyword_oblique = 388,
+        eCSSKeyword_oldstyle_nums = 389,
+        eCSSKeyword_opacity = 390,
+        eCSSKeyword_open = 391,
+        eCSSKeyword_open_quote = 392,
+        eCSSKeyword_optional = 393,
+        eCSSKeyword_ordinal = 394,
+        eCSSKeyword_ornaments = 395,
+        eCSSKeyword_outset = 396,
+        eCSSKeyword_outside = 397,
+        eCSSKeyword_over = 398,
+        eCSSKeyword_overlay = 399,
+        eCSSKeyword_overline = 400,
+        eCSSKeyword_paint = 401,
+        eCSSKeyword_padding_box = 402,
+        eCSSKeyword_painted = 403,
+        eCSSKeyword_pan_x = 404,
+        eCSSKeyword_pan_y = 405,
+        eCSSKeyword_paused = 406,
+        eCSSKeyword_pc = 407,
+        eCSSKeyword_perspective = 408,
+        eCSSKeyword_petite_caps = 409,
+        eCSSKeyword_physical = 410,
+        eCSSKeyword_plaintext = 411,
+        eCSSKeyword_pointer = 412,
+        eCSSKeyword_polygon = 413,
+        eCSSKeyword_portrait = 414,
+        eCSSKeyword_pre = 415,
+        eCSSKeyword_pre_wrap = 416,
+        eCSSKeyword_pre_line = 417,
+        eCSSKeyword_preserve_3d = 418,
+        eCSSKeyword_progress = 419,
+        eCSSKeyword_progressive = 420,
+        eCSSKeyword_proportional_nums = 421,
+        eCSSKeyword_proportional_width = 422,
+        eCSSKeyword_proximity = 423,
+        eCSSKeyword_pt = 424,
+        eCSSKeyword_px = 425,
+        eCSSKeyword_rad = 426,
+        eCSSKeyword_read_only = 427,
+        eCSSKeyword_read_write = 428,
+        eCSSKeyword_relative = 429,
+        eCSSKeyword_repeat = 430,
+        eCSSKeyword_repeat_x = 431,
+        eCSSKeyword_repeat_y = 432,
+        eCSSKeyword_reverse = 433,
+        eCSSKeyword_ridge = 434,
+        eCSSKeyword_right = 435,
+        eCSSKeyword_rl = 436,
+        eCSSKeyword_rl_tb = 437,
+        eCSSKeyword_rotate = 438,
+        eCSSKeyword_rotate3d = 439,
+        eCSSKeyword_rotatex = 440,
+        eCSSKeyword_rotatey = 441,
+        eCSSKeyword_rotatez = 442,
+        eCSSKeyword_round = 443,
+        eCSSKeyword_row = 444,
+        eCSSKeyword_row_resize = 445,
+        eCSSKeyword_row_reverse = 446,
+        eCSSKeyword_rtl = 447,
+        eCSSKeyword_ruby = 448,
+        eCSSKeyword_ruby_base = 449,
+        eCSSKeyword_ruby_base_container = 450,
+        eCSSKeyword_ruby_text = 451,
+        eCSSKeyword_ruby_text_container = 452,
+        eCSSKeyword_running = 453,
+        eCSSKeyword_s = 454,
+        eCSSKeyword_s_resize = 455,
+        eCSSKeyword_safe = 456,
+        eCSSKeyword_saturate = 457,
+        eCSSKeyword_saturation = 458,
+        eCSSKeyword_scale = 459,
+        eCSSKeyword_scale_down = 460,
+        eCSSKeyword_scale3d = 461,
+        eCSSKeyword_scalex = 462,
+        eCSSKeyword_scaley = 463,
+        eCSSKeyword_scalez = 464,
+        eCSSKeyword_screen = 465,
+        eCSSKeyword_script = 466,
+        eCSSKeyword_scroll = 467,
+        eCSSKeyword_scrollbar = 468,
+        eCSSKeyword_scrollbar_small = 469,
+        eCSSKeyword_scrollbar_horizontal = 470,
+        eCSSKeyword_scrollbar_vertical = 471,
+        eCSSKeyword_se_resize = 472,
+        eCSSKeyword_select_after = 473,
+        eCSSKeyword_select_all = 474,
+        eCSSKeyword_select_before = 475,
+        eCSSKeyword_select_menu = 476,
+        eCSSKeyword_select_same = 477,
+        eCSSKeyword_self_end = 478,
+        eCSSKeyword_self_start = 479,
+        eCSSKeyword_semi_condensed = 480,
+        eCSSKeyword_semi_expanded = 481,
+        eCSSKeyword_separate = 482,
+        eCSSKeyword_sepia = 483,
+        eCSSKeyword_serif = 484,
+        eCSSKeyword_sesame = 485,
+        eCSSKeyword_show = 486,
+        eCSSKeyword_sideways = 487,
+        eCSSKeyword_sideways_lr = 488,
+        eCSSKeyword_sideways_right = 489,
+        eCSSKeyword_sideways_rl = 490,
+        eCSSKeyword_simp_chinese_formal = 491,
+        eCSSKeyword_simp_chinese_informal = 492,
+        eCSSKeyword_simplified = 493,
+        eCSSKeyword_skew = 494,
+        eCSSKeyword_skewx = 495,
+        eCSSKeyword_skewy = 496,
+        eCSSKeyword_slashed_zero = 497,
+        eCSSKeyword_slice = 498,
+        eCSSKeyword_small = 499,
+        eCSSKeyword_small_caps = 500,
+        eCSSKeyword_small_caption = 501,
+        eCSSKeyword_smaller = 502,
+        eCSSKeyword_smooth = 503,
+        eCSSKeyword_soft = 504,
+        eCSSKeyword_soft_light = 505,
+        eCSSKeyword_solid = 506,
+        eCSSKeyword_space_around = 507,
+        eCSSKeyword_space_between = 508,
+        eCSSKeyword_space_evenly = 509,
+        eCSSKeyword_span = 510,
+        eCSSKeyword_spell_out = 511,
+        eCSSKeyword_square = 512,
+        eCSSKeyword_stacked_fractions = 513,
+        eCSSKeyword_start = 514,
+        eCSSKeyword_static = 515,
+        eCSSKeyword_standalone = 516,
+        eCSSKeyword_status_bar = 517,
+        eCSSKeyword_step_end = 518,
+        eCSSKeyword_step_start = 519,
+        eCSSKeyword_sticky = 520,
+        eCSSKeyword_stretch = 521,
+        eCSSKeyword_stretch_to_fit = 522,
+        eCSSKeyword_stretched = 523,
+        eCSSKeyword_strict = 524,
+        eCSSKeyword_stroke = 525,
+        eCSSKeyword_stroke_box = 526,
+        eCSSKeyword_style = 527,
+        eCSSKeyword_styleset = 528,
+        eCSSKeyword_stylistic = 529,
+        eCSSKeyword_sub = 530,
+        eCSSKeyword_subgrid = 531,
+        eCSSKeyword_subtract = 532,
+        eCSSKeyword_super = 533,
+        eCSSKeyword_sw_resize = 534,
+        eCSSKeyword_swash = 535,
+        eCSSKeyword_swap = 536,
+        eCSSKeyword_table = 537,
+        eCSSKeyword_table_caption = 538,
+        eCSSKeyword_table_cell = 539,
+        eCSSKeyword_table_column = 540,
+        eCSSKeyword_table_column_group = 541,
+        eCSSKeyword_table_footer_group = 542,
+        eCSSKeyword_table_header_group = 543,
+        eCSSKeyword_table_row = 544,
+        eCSSKeyword_table_row_group = 545,
+        eCSSKeyword_tabular_nums = 546,
+        eCSSKeyword_tailed = 547,
+        eCSSKeyword_tb = 548,
+        eCSSKeyword_tb_rl = 549,
+        eCSSKeyword_text = 550,
+        eCSSKeyword_text_bottom = 551,
+        eCSSKeyword_text_top = 552,
+        eCSSKeyword_thick = 553,
+        eCSSKeyword_thin = 554,
+        eCSSKeyword_threeddarkshadow = 555,
+        eCSSKeyword_threedface = 556,
+        eCSSKeyword_threedhighlight = 557,
+        eCSSKeyword_threedlightshadow = 558,
+        eCSSKeyword_threedshadow = 559,
+        eCSSKeyword_titling_caps = 560,
+        eCSSKeyword_toggle = 561,
+        eCSSKeyword_top = 562,
+        eCSSKeyword_top_outside = 563,
+        eCSSKeyword_trad_chinese_formal = 564,
+        eCSSKeyword_trad_chinese_informal = 565,
+        eCSSKeyword_traditional = 566,
+        eCSSKeyword_translate = 567,
+        eCSSKeyword_translate3d = 568,
+        eCSSKeyword_translatex = 569,
+        eCSSKeyword_translatey = 570,
+        eCSSKeyword_translatez = 571,
+        eCSSKeyword_transparent = 572,
+        eCSSKeyword_triangle = 573,
+        eCSSKeyword_tri_state = 574,
+        eCSSKeyword_ultra_condensed = 575,
+        eCSSKeyword_ultra_expanded = 576,
+        eCSSKeyword_under = 577,
+        eCSSKeyword_underline = 578,
+        eCSSKeyword_unicase = 579,
+        eCSSKeyword_unsafe = 580,
+        eCSSKeyword_unset = 581,
+        eCSSKeyword_uppercase = 582,
+        eCSSKeyword_upright = 583,
+        eCSSKeyword_vertical = 584,
+        eCSSKeyword_vertical_lr = 585,
+        eCSSKeyword_vertical_rl = 586,
+        eCSSKeyword_vertical_text = 587,
+        eCSSKeyword_view_box = 588,
+        eCSSKeyword_visible = 589,
+        eCSSKeyword_visiblefill = 590,
+        eCSSKeyword_visiblepainted = 591,
+        eCSSKeyword_visiblestroke = 592,
+        eCSSKeyword_w_resize = 593,
+        eCSSKeyword_wait = 594,
+        eCSSKeyword_wavy = 595,
+        eCSSKeyword_weight = 596,
+        eCSSKeyword_wider = 597,
+        eCSSKeyword_window = 598,
+        eCSSKeyword_windowframe = 599,
+        eCSSKeyword_windowtext = 600,
+        eCSSKeyword_words = 601,
+        eCSSKeyword_wrap = 602,
+        eCSSKeyword_wrap_reverse = 603,
+        eCSSKeyword_write_only = 604,
+        eCSSKeyword_x_large = 605,
+        eCSSKeyword_x_small = 606,
+        eCSSKeyword_xx_large = 607,
+        eCSSKeyword_xx_small = 608,
+        eCSSKeyword_zoom_in = 609,
+        eCSSKeyword_zoom_out = 610,
+        eCSSKeyword_radio = 611,
+        eCSSKeyword_checkbox = 612,
+        eCSSKeyword_button_bevel = 613,
+        eCSSKeyword_toolbox = 614,
+        eCSSKeyword_toolbar = 615,
+        eCSSKeyword_toolbarbutton = 616,
+        eCSSKeyword_toolbargripper = 617,
+        eCSSKeyword_dualbutton = 618,
+        eCSSKeyword_toolbarbutton_dropdown = 619,
+        eCSSKeyword_button_arrow_up = 620,
+        eCSSKeyword_button_arrow_down = 621,
+        eCSSKeyword_button_arrow_next = 622,
+        eCSSKeyword_button_arrow_previous = 623,
+        eCSSKeyword_separator = 624,
+        eCSSKeyword_splitter = 625,
+        eCSSKeyword_statusbar = 626,
+        eCSSKeyword_statusbarpanel = 627,
+        eCSSKeyword_resizerpanel = 628,
+        eCSSKeyword_resizer = 629,
+        eCSSKeyword_listbox = 630,
+        eCSSKeyword_listitem = 631,
+        eCSSKeyword_numbers = 632,
+        eCSSKeyword_number_input = 633,
+        eCSSKeyword_treeview = 634,
+        eCSSKeyword_treeitem = 635,
+        eCSSKeyword_treetwisty = 636,
+        eCSSKeyword_treetwistyopen = 637,
+        eCSSKeyword_treeline = 638,
+        eCSSKeyword_treeheader = 639,
+        eCSSKeyword_treeheadercell = 640,
+        eCSSKeyword_treeheadersortarrow = 641,
+        eCSSKeyword_progressbar = 642,
+        eCSSKeyword_progressbar_vertical = 643,
+        eCSSKeyword_progresschunk = 644,
+        eCSSKeyword_progresschunk_vertical = 645,
+        eCSSKeyword_tab = 646,
+        eCSSKeyword_tabpanels = 647,
+        eCSSKeyword_tabpanel = 648,
+        eCSSKeyword_tab_scroll_arrow_back = 649,
+        eCSSKeyword_tab_scroll_arrow_forward = 650,
+        eCSSKeyword_tooltip = 651,
+        eCSSKeyword_spinner = 652,
+        eCSSKeyword_spinner_upbutton = 653,
+        eCSSKeyword_spinner_downbutton = 654,
+        eCSSKeyword_spinner_textfield = 655,
+        eCSSKeyword_scrollbarbutton_up = 656,
+        eCSSKeyword_scrollbarbutton_down = 657,
+        eCSSKeyword_scrollbarbutton_left = 658,
+        eCSSKeyword_scrollbarbutton_right = 659,
+        eCSSKeyword_scrollbartrack_horizontal = 660,
+        eCSSKeyword_scrollbartrack_vertical = 661,
+        eCSSKeyword_scrollbarthumb_horizontal = 662,
+        eCSSKeyword_scrollbarthumb_vertical = 663,
+        eCSSKeyword_sheet = 664,
+        eCSSKeyword_textfield = 665,
+        eCSSKeyword_textfield_multiline = 666,
+        eCSSKeyword_caret = 667,
+        eCSSKeyword_searchfield = 668,
+        eCSSKeyword_menubar = 669,
+        eCSSKeyword_menupopup = 670,
+        eCSSKeyword_menuitem = 671,
+        eCSSKeyword_checkmenuitem = 672,
+        eCSSKeyword_radiomenuitem = 673,
+        eCSSKeyword_menucheckbox = 674,
+        eCSSKeyword_menuradio = 675,
+        eCSSKeyword_menuseparator = 676,
+        eCSSKeyword_menuarrow = 677,
+        eCSSKeyword_menuimage = 678,
+        eCSSKeyword_menuitemtext = 679,
+        eCSSKeyword_menulist = 680,
+        eCSSKeyword_menulist_button = 681,
+        eCSSKeyword_menulist_text = 682,
+        eCSSKeyword_menulist_textfield = 683,
+        eCSSKeyword_meterbar = 684,
+        eCSSKeyword_meterchunk = 685,
+        eCSSKeyword_minimal_ui = 686,
+        eCSSKeyword_range = 687,
+        eCSSKeyword_range_thumb = 688,
+        eCSSKeyword_sans_serif = 689,
+        eCSSKeyword_sans_serif_bold_italic = 690,
+        eCSSKeyword_sans_serif_italic = 691,
+        eCSSKeyword_scale_horizontal = 692,
+        eCSSKeyword_scale_vertical = 693,
+        eCSSKeyword_scalethumb_horizontal = 694,
+        eCSSKeyword_scalethumb_vertical = 695,
+        eCSSKeyword_scalethumbstart = 696,
+        eCSSKeyword_scalethumbend = 697,
+        eCSSKeyword_scalethumbtick = 698,
+        eCSSKeyword_groupbox = 699,
+        eCSSKeyword_checkbox_container = 700,
+        eCSSKeyword_radio_container = 701,
+        eCSSKeyword_checkbox_label = 702,
+        eCSSKeyword_radio_label = 703,
+        eCSSKeyword_button_focus = 704,
+        eCSSKeyword__moz_win_media_toolbox = 705,
+        eCSSKeyword__moz_win_communications_toolbox = 706,
+        eCSSKeyword__moz_win_browsertabbar_toolbox = 707,
+        eCSSKeyword__moz_win_mediatext = 708,
+        eCSSKeyword__moz_win_communicationstext = 709,
+        eCSSKeyword__moz_win_glass = 710,
+        eCSSKeyword__moz_win_borderless_glass = 711,
+        eCSSKeyword__moz_window_titlebar = 712,
+        eCSSKeyword__moz_window_titlebar_maximized = 713,
+        eCSSKeyword__moz_window_frame_left = 714,
+        eCSSKeyword__moz_window_frame_right = 715,
+        eCSSKeyword__moz_window_frame_bottom = 716,
+        eCSSKeyword__moz_window_button_close = 717,
+        eCSSKeyword__moz_window_button_minimize = 718,
+        eCSSKeyword__moz_window_button_maximize = 719,
+        eCSSKeyword__moz_window_button_restore = 720,
+        eCSSKeyword__moz_window_button_box = 721,
+        eCSSKeyword__moz_window_button_box_maximized = 722,
+        eCSSKeyword__moz_mac_help_button = 723,
+        eCSSKeyword__moz_win_exclude_glass = 724,
+        eCSSKeyword__moz_mac_vibrancy_light = 725,
+        eCSSKeyword__moz_mac_vibrancy_dark = 726,
+        eCSSKeyword__moz_mac_disclosure_button_closed = 727,
+        eCSSKeyword__moz_mac_disclosure_button_open = 728,
+        eCSSKeyword__moz_mac_source_list = 729,
+        eCSSKeyword__moz_mac_source_list_selection = 730,
+        eCSSKeyword__moz_mac_active_source_list_selection = 731,
+        eCSSKeyword_alphabetic = 732,
+        eCSSKeyword_bevel = 733,
+        eCSSKeyword_butt = 734,
+        eCSSKeyword_central = 735,
+        eCSSKeyword_crispedges = 736,
+        eCSSKeyword_evenodd = 737,
+        eCSSKeyword_geometricprecision = 738,
+        eCSSKeyword_hanging = 739,
+        eCSSKeyword_ideographic = 740,
+        eCSSKeyword_linearrgb = 741,
+        eCSSKeyword_mathematical = 742,
+        eCSSKeyword_miter = 743,
+        eCSSKeyword_no_change = 744,
+        eCSSKeyword_non_scaling_stroke = 745,
+        eCSSKeyword_nonzero = 746,
+        eCSSKeyword_optimizelegibility = 747,
+        eCSSKeyword_optimizequality = 748,
+        eCSSKeyword_optimizespeed = 749,
+        eCSSKeyword_reset_size = 750,
+        eCSSKeyword_srgb = 751,
+        eCSSKeyword_symbolic = 752,
+        eCSSKeyword_symbols = 753,
+        eCSSKeyword_text_after_edge = 754,
+        eCSSKeyword_text_before_edge = 755,
+        eCSSKeyword_use_script = 756,
+        eCSSKeyword__moz_crisp_edges = 757,
+        eCSSKeyword_space = 758,
+        eCSSKeyword_COUNT = 759,
     }
     pub const nsCSSPropertyID_eCSSProperty_COUNT_no_shorthands:
               root::nsCSSPropertyID =
@@ -20690,393 +20699,394 @@ pub mod root {
         eCSSProperty_column_width = 92,
         eCSSProperty_contain = 93,
         eCSSProperty_content = 94,
-        eCSSProperty__moz_control_character_visibility = 95,
-        eCSSProperty_counter_increment = 96,
-        eCSSProperty_counter_reset = 97,
-        eCSSProperty_cursor = 98,
-        eCSSProperty_direction = 99,
-        eCSSProperty_display = 100,
-        eCSSProperty_dominant_baseline = 101,
-        eCSSProperty_empty_cells = 102,
-        eCSSProperty_fill = 103,
-        eCSSProperty_fill_opacity = 104,
-        eCSSProperty_fill_rule = 105,
-        eCSSProperty_filter = 106,
-        eCSSProperty_flex_basis = 107,
-        eCSSProperty_flex_direction = 108,
-        eCSSProperty_flex_grow = 109,
-        eCSSProperty_flex_shrink = 110,
-        eCSSProperty_flex_wrap = 111,
-        eCSSProperty_float_ = 112,
-        eCSSProperty__moz_float_edge = 113,
-        eCSSProperty_flood_color = 114,
-        eCSSProperty_flood_opacity = 115,
-        eCSSProperty_font_family = 116,
-        eCSSProperty_font_feature_settings = 117,
-        eCSSProperty_font_kerning = 118,
-        eCSSProperty_font_language_override = 119,
-        eCSSProperty_font_size = 120,
-        eCSSProperty_font_size_adjust = 121,
-        eCSSProperty_font_stretch = 122,
-        eCSSProperty_font_style = 123,
-        eCSSProperty_font_synthesis = 124,
-        eCSSProperty_font_variant_alternates = 125,
-        eCSSProperty_font_variant_caps = 126,
-        eCSSProperty_font_variant_east_asian = 127,
-        eCSSProperty_font_variant_ligatures = 128,
-        eCSSProperty_font_variant_numeric = 129,
-        eCSSProperty_font_variant_position = 130,
-        eCSSProperty_font_variation_settings = 131,
-        eCSSProperty_font_weight = 132,
-        eCSSProperty__moz_force_broken_image_icon = 133,
-        eCSSProperty_grid_auto_columns = 134,
-        eCSSProperty_grid_auto_flow = 135,
-        eCSSProperty_grid_auto_rows = 136,
-        eCSSProperty_grid_column_end = 137,
-        eCSSProperty_grid_column_gap = 138,
-        eCSSProperty_grid_column_start = 139,
-        eCSSProperty_grid_row_end = 140,
-        eCSSProperty_grid_row_gap = 141,
-        eCSSProperty_grid_row_start = 142,
-        eCSSProperty_grid_template_areas = 143,
-        eCSSProperty_grid_template_columns = 144,
-        eCSSProperty_grid_template_rows = 145,
-        eCSSProperty_height = 146,
-        eCSSProperty_hyphens = 147,
-        eCSSProperty_initial_letter = 148,
-        eCSSProperty_image_orientation = 149,
-        eCSSProperty__moz_image_region = 150,
-        eCSSProperty_image_rendering = 151,
-        eCSSProperty_ime_mode = 152,
-        eCSSProperty_inline_size = 153,
-        eCSSProperty_isolation = 154,
-        eCSSProperty_justify_content = 155,
-        eCSSProperty_justify_items = 156,
-        eCSSProperty_justify_self = 157,
-        eCSSProperty__x_lang = 158,
-        eCSSProperty_left = 159,
-        eCSSProperty_letter_spacing = 160,
-        eCSSProperty_lighting_color = 161,
-        eCSSProperty_line_height = 162,
-        eCSSProperty_list_style_image = 163,
-        eCSSProperty_list_style_position = 164,
-        eCSSProperty_list_style_type = 165,
-        eCSSProperty_margin_block_end = 166,
-        eCSSProperty_margin_block_start = 167,
-        eCSSProperty_margin_bottom = 168,
-        eCSSProperty_margin_inline_end = 169,
-        eCSSProperty_margin_inline_start = 170,
-        eCSSProperty_margin_left = 171,
-        eCSSProperty_margin_right = 172,
-        eCSSProperty_margin_top = 173,
-        eCSSProperty_marker_end = 174,
-        eCSSProperty_marker_mid = 175,
-        eCSSProperty_marker_start = 176,
-        eCSSProperty_mask_clip = 177,
-        eCSSProperty_mask_composite = 178,
-        eCSSProperty_mask_image = 179,
-        eCSSProperty_mask_mode = 180,
-        eCSSProperty_mask_origin = 181,
-        eCSSProperty_mask_position_x = 182,
-        eCSSProperty_mask_position_y = 183,
-        eCSSProperty_mask_repeat = 184,
-        eCSSProperty_mask_size = 185,
-        eCSSProperty_mask_type = 186,
-        eCSSProperty__moz_math_display = 187,
-        eCSSProperty__moz_math_variant = 188,
-        eCSSProperty_max_block_size = 189,
-        eCSSProperty_max_height = 190,
-        eCSSProperty_max_inline_size = 191,
-        eCSSProperty_max_width = 192,
-        eCSSProperty_min_block_size = 193,
-        eCSSProperty__moz_min_font_size_ratio = 194,
-        eCSSProperty_min_height = 195,
-        eCSSProperty_min_inline_size = 196,
-        eCSSProperty_min_width = 197,
-        eCSSProperty_mix_blend_mode = 198,
-        eCSSProperty_object_fit = 199,
-        eCSSProperty_object_position = 200,
-        eCSSProperty_offset_block_end = 201,
-        eCSSProperty_offset_block_start = 202,
-        eCSSProperty_offset_inline_end = 203,
-        eCSSProperty_offset_inline_start = 204,
-        eCSSProperty_opacity = 205,
-        eCSSProperty_order = 206,
-        eCSSProperty__moz_orient = 207,
-        eCSSProperty__moz_osx_font_smoothing = 208,
-        eCSSProperty_outline_color = 209,
-        eCSSProperty_outline_offset = 210,
-        eCSSProperty__moz_outline_radius_bottomleft = 211,
-        eCSSProperty__moz_outline_radius_bottomright = 212,
-        eCSSProperty__moz_outline_radius_topleft = 213,
-        eCSSProperty__moz_outline_radius_topright = 214,
-        eCSSProperty_outline_style = 215,
-        eCSSProperty_outline_width = 216,
-        eCSSProperty_overflow_clip_box = 217,
-        eCSSProperty_overflow_x = 218,
-        eCSSProperty_overflow_y = 219,
-        eCSSProperty_padding_block_end = 220,
-        eCSSProperty_padding_block_start = 221,
-        eCSSProperty_padding_bottom = 222,
-        eCSSProperty_padding_inline_end = 223,
-        eCSSProperty_padding_inline_start = 224,
-        eCSSProperty_padding_left = 225,
-        eCSSProperty_padding_right = 226,
-        eCSSProperty_padding_top = 227,
-        eCSSProperty_page_break_after = 228,
-        eCSSProperty_page_break_before = 229,
-        eCSSProperty_page_break_inside = 230,
-        eCSSProperty_paint_order = 231,
-        eCSSProperty_perspective = 232,
-        eCSSProperty_perspective_origin = 233,
-        eCSSProperty_pointer_events = 234,
-        eCSSProperty_position = 235,
-        eCSSProperty_quotes = 236,
-        eCSSProperty_resize = 237,
-        eCSSProperty_right = 238,
-        eCSSProperty_ruby_align = 239,
-        eCSSProperty_ruby_position = 240,
-        eCSSProperty__moz_script_level = 241,
-        eCSSProperty__moz_script_min_size = 242,
-        eCSSProperty__moz_script_size_multiplier = 243,
-        eCSSProperty_scroll_behavior = 244,
-        eCSSProperty_scroll_snap_coordinate = 245,
-        eCSSProperty_scroll_snap_destination = 246,
-        eCSSProperty_scroll_snap_points_x = 247,
-        eCSSProperty_scroll_snap_points_y = 248,
-        eCSSProperty_scroll_snap_type_x = 249,
-        eCSSProperty_scroll_snap_type_y = 250,
-        eCSSProperty_shape_outside = 251,
-        eCSSProperty_shape_rendering = 252,
-        eCSSProperty__x_span = 253,
-        eCSSProperty__moz_stack_sizing = 254,
-        eCSSProperty_stop_color = 255,
-        eCSSProperty_stop_opacity = 256,
-        eCSSProperty_stroke = 257,
-        eCSSProperty_stroke_dasharray = 258,
-        eCSSProperty_stroke_dashoffset = 259,
-        eCSSProperty_stroke_linecap = 260,
-        eCSSProperty_stroke_linejoin = 261,
-        eCSSProperty_stroke_miterlimit = 262,
-        eCSSProperty_stroke_opacity = 263,
-        eCSSProperty_stroke_width = 264,
-        eCSSProperty__x_system_font = 265,
-        eCSSProperty__moz_tab_size = 266,
-        eCSSProperty_table_layout = 267,
-        eCSSProperty_text_align = 268,
-        eCSSProperty_text_align_last = 269,
-        eCSSProperty_text_anchor = 270,
-        eCSSProperty_text_combine_upright = 271,
-        eCSSProperty_text_decoration_color = 272,
-        eCSSProperty_text_decoration_line = 273,
-        eCSSProperty_text_decoration_style = 274,
-        eCSSProperty_text_emphasis_color = 275,
-        eCSSProperty_text_emphasis_position = 276,
-        eCSSProperty_text_emphasis_style = 277,
-        eCSSProperty__webkit_text_fill_color = 278,
-        eCSSProperty_text_indent = 279,
-        eCSSProperty_text_justify = 280,
-        eCSSProperty_text_orientation = 281,
-        eCSSProperty_text_overflow = 282,
-        eCSSProperty_text_rendering = 283,
-        eCSSProperty_text_shadow = 284,
-        eCSSProperty__moz_text_size_adjust = 285,
-        eCSSProperty__webkit_text_stroke_color = 286,
-        eCSSProperty__webkit_text_stroke_width = 287,
-        eCSSProperty_text_transform = 288,
-        eCSSProperty__x_text_zoom = 289,
-        eCSSProperty_top = 290,
-        eCSSProperty__moz_top_layer = 291,
-        eCSSProperty_touch_action = 292,
-        eCSSProperty_transform = 293,
-        eCSSProperty_transform_box = 294,
-        eCSSProperty_transform_origin = 295,
-        eCSSProperty_transform_style = 296,
-        eCSSProperty_transition_delay = 297,
-        eCSSProperty_transition_duration = 298,
-        eCSSProperty_transition_property = 299,
-        eCSSProperty_transition_timing_function = 300,
-        eCSSProperty_unicode_bidi = 301,
-        eCSSProperty__moz_user_focus = 302,
-        eCSSProperty__moz_user_input = 303,
-        eCSSProperty__moz_user_modify = 304,
-        eCSSProperty__moz_user_select = 305,
-        eCSSProperty_vector_effect = 306,
-        eCSSProperty_vertical_align = 307,
-        eCSSProperty_visibility = 308,
-        eCSSProperty_white_space = 309,
-        eCSSProperty_width = 310,
-        eCSSProperty_will_change = 311,
-        eCSSProperty__moz_window_dragging = 312,
-        eCSSProperty__moz_window_shadow = 313,
-        eCSSProperty_word_break = 314,
-        eCSSProperty_word_spacing = 315,
-        eCSSProperty_overflow_wrap = 316,
-        eCSSProperty_writing_mode = 317,
-        eCSSProperty_z_index = 318,
-        eCSSProperty_all = 319,
-        eCSSProperty_animation = 320,
-        eCSSProperty_background = 321,
-        eCSSProperty_background_position = 322,
-        eCSSProperty_border = 323,
-        eCSSProperty_border_block_end = 324,
-        eCSSProperty_border_block_start = 325,
-        eCSSProperty_border_bottom = 326,
-        eCSSProperty_border_color = 327,
-        eCSSProperty_border_image = 328,
-        eCSSProperty_border_inline_end = 329,
-        eCSSProperty_border_inline_start = 330,
-        eCSSProperty_border_left = 331,
-        eCSSProperty_border_radius = 332,
-        eCSSProperty_border_right = 333,
-        eCSSProperty_border_style = 334,
-        eCSSProperty_border_top = 335,
-        eCSSProperty_border_width = 336,
-        eCSSProperty_column_rule = 337,
-        eCSSProperty_columns = 338,
-        eCSSProperty_flex = 339,
-        eCSSProperty_flex_flow = 340,
-        eCSSProperty_font = 341,
-        eCSSProperty_font_variant = 342,
-        eCSSProperty_grid = 343,
-        eCSSProperty_grid_area = 344,
-        eCSSProperty_grid_column = 345,
-        eCSSProperty_grid_gap = 346,
-        eCSSProperty_grid_row = 347,
-        eCSSProperty_grid_template = 348,
-        eCSSProperty_list_style = 349,
-        eCSSProperty_margin = 350,
-        eCSSProperty_marker = 351,
-        eCSSProperty_mask = 352,
-        eCSSProperty_mask_position = 353,
-        eCSSProperty_outline = 354,
-        eCSSProperty__moz_outline_radius = 355,
-        eCSSProperty_overflow = 356,
-        eCSSProperty_padding = 357,
-        eCSSProperty_place_content = 358,
-        eCSSProperty_place_items = 359,
-        eCSSProperty_place_self = 360,
-        eCSSProperty_scroll_snap_type = 361,
-        eCSSProperty_text_decoration = 362,
-        eCSSProperty_text_emphasis = 363,
-        eCSSProperty__webkit_text_stroke = 364,
-        eCSSProperty__moz_transform = 365,
-        eCSSProperty_transition = 366,
-        eCSSPropertyAlias_WordWrap = 367,
-        eCSSPropertyAlias_MozTransformOrigin = 368,
-        eCSSPropertyAlias_MozPerspectiveOrigin = 369,
-        eCSSPropertyAlias_MozPerspective = 370,
-        eCSSPropertyAlias_MozTransformStyle = 371,
-        eCSSPropertyAlias_MozBackfaceVisibility = 372,
-        eCSSPropertyAlias_MozBorderImage = 373,
-        eCSSPropertyAlias_MozTransition = 374,
-        eCSSPropertyAlias_MozTransitionDelay = 375,
-        eCSSPropertyAlias_MozTransitionDuration = 376,
-        eCSSPropertyAlias_MozTransitionProperty = 377,
-        eCSSPropertyAlias_MozTransitionTimingFunction = 378,
-        eCSSPropertyAlias_MozAnimation = 379,
-        eCSSPropertyAlias_MozAnimationDelay = 380,
-        eCSSPropertyAlias_MozAnimationDirection = 381,
-        eCSSPropertyAlias_MozAnimationDuration = 382,
-        eCSSPropertyAlias_MozAnimationFillMode = 383,
-        eCSSPropertyAlias_MozAnimationIterationCount = 384,
-        eCSSPropertyAlias_MozAnimationName = 385,
-        eCSSPropertyAlias_MozAnimationPlayState = 386,
-        eCSSPropertyAlias_MozAnimationTimingFunction = 387,
-        eCSSPropertyAlias_MozBoxSizing = 388,
-        eCSSPropertyAlias_MozFontFeatureSettings = 389,
-        eCSSPropertyAlias_MozFontLanguageOverride = 390,
-        eCSSPropertyAlias_MozPaddingEnd = 391,
-        eCSSPropertyAlias_MozPaddingStart = 392,
-        eCSSPropertyAlias_MozMarginEnd = 393,
-        eCSSPropertyAlias_MozMarginStart = 394,
-        eCSSPropertyAlias_MozBorderEnd = 395,
-        eCSSPropertyAlias_MozBorderEndColor = 396,
-        eCSSPropertyAlias_MozBorderEndStyle = 397,
-        eCSSPropertyAlias_MozBorderEndWidth = 398,
-        eCSSPropertyAlias_MozBorderStart = 399,
-        eCSSPropertyAlias_MozBorderStartColor = 400,
-        eCSSPropertyAlias_MozBorderStartStyle = 401,
-        eCSSPropertyAlias_MozBorderStartWidth = 402,
-        eCSSPropertyAlias_MozHyphens = 403,
-        eCSSPropertyAlias_MozColumnCount = 404,
-        eCSSPropertyAlias_MozColumnFill = 405,
-        eCSSPropertyAlias_MozColumnGap = 406,
-        eCSSPropertyAlias_MozColumnRule = 407,
-        eCSSPropertyAlias_MozColumnRuleColor = 408,
-        eCSSPropertyAlias_MozColumnRuleStyle = 409,
-        eCSSPropertyAlias_MozColumnRuleWidth = 410,
-        eCSSPropertyAlias_MozColumnWidth = 411,
-        eCSSPropertyAlias_MozColumns = 412,
-        eCSSPropertyAlias_WebkitAnimation = 413,
-        eCSSPropertyAlias_WebkitAnimationDelay = 414,
-        eCSSPropertyAlias_WebkitAnimationDirection = 415,
-        eCSSPropertyAlias_WebkitAnimationDuration = 416,
-        eCSSPropertyAlias_WebkitAnimationFillMode = 417,
-        eCSSPropertyAlias_WebkitAnimationIterationCount = 418,
-        eCSSPropertyAlias_WebkitAnimationName = 419,
-        eCSSPropertyAlias_WebkitAnimationPlayState = 420,
-        eCSSPropertyAlias_WebkitAnimationTimingFunction = 421,
-        eCSSPropertyAlias_WebkitAppearance = 422,
-        eCSSPropertyAlias_WebkitFilter = 423,
-        eCSSPropertyAlias_WebkitTextSizeAdjust = 424,
-        eCSSPropertyAlias_WebkitTransform = 425,
-        eCSSPropertyAlias_WebkitTransformOrigin = 426,
-        eCSSPropertyAlias_WebkitTransformStyle = 427,
-        eCSSPropertyAlias_WebkitBackfaceVisibility = 428,
-        eCSSPropertyAlias_WebkitPerspective = 429,
-        eCSSPropertyAlias_WebkitPerspectiveOrigin = 430,
-        eCSSPropertyAlias_WebkitTransition = 431,
-        eCSSPropertyAlias_WebkitTransitionDelay = 432,
-        eCSSPropertyAlias_WebkitTransitionDuration = 433,
-        eCSSPropertyAlias_WebkitTransitionProperty = 434,
-        eCSSPropertyAlias_WebkitTransitionTimingFunction = 435,
-        eCSSPropertyAlias_WebkitBorderRadius = 436,
-        eCSSPropertyAlias_WebkitBorderTopLeftRadius = 437,
-        eCSSPropertyAlias_WebkitBorderTopRightRadius = 438,
-        eCSSPropertyAlias_WebkitBorderBottomLeftRadius = 439,
-        eCSSPropertyAlias_WebkitBorderBottomRightRadius = 440,
-        eCSSPropertyAlias_WebkitBackgroundClip = 441,
-        eCSSPropertyAlias_WebkitBackgroundOrigin = 442,
-        eCSSPropertyAlias_WebkitBackgroundSize = 443,
-        eCSSPropertyAlias_WebkitBorderImage = 444,
-        eCSSPropertyAlias_WebkitBoxShadow = 445,
-        eCSSPropertyAlias_WebkitBoxSizing = 446,
-        eCSSPropertyAlias_WebkitBoxFlex = 447,
-        eCSSPropertyAlias_WebkitBoxOrdinalGroup = 448,
-        eCSSPropertyAlias_WebkitBoxOrient = 449,
-        eCSSPropertyAlias_WebkitBoxDirection = 450,
-        eCSSPropertyAlias_WebkitBoxAlign = 451,
-        eCSSPropertyAlias_WebkitBoxPack = 452,
-        eCSSPropertyAlias_WebkitFlexDirection = 453,
-        eCSSPropertyAlias_WebkitFlexWrap = 454,
-        eCSSPropertyAlias_WebkitFlexFlow = 455,
-        eCSSPropertyAlias_WebkitOrder = 456,
-        eCSSPropertyAlias_WebkitFlex = 457,
-        eCSSPropertyAlias_WebkitFlexGrow = 458,
-        eCSSPropertyAlias_WebkitFlexShrink = 459,
-        eCSSPropertyAlias_WebkitFlexBasis = 460,
-        eCSSPropertyAlias_WebkitJustifyContent = 461,
-        eCSSPropertyAlias_WebkitAlignItems = 462,
-        eCSSPropertyAlias_WebkitAlignSelf = 463,
-        eCSSPropertyAlias_WebkitAlignContent = 464,
-        eCSSPropertyAlias_WebkitUserSelect = 465,
-        eCSSPropertyAlias_WebkitMask = 466,
-        eCSSPropertyAlias_WebkitMaskClip = 467,
-        eCSSPropertyAlias_WebkitMaskComposite = 468,
-        eCSSPropertyAlias_WebkitMaskImage = 469,
-        eCSSPropertyAlias_WebkitMaskOrigin = 470,
-        eCSSPropertyAlias_WebkitMaskPosition = 471,
-        eCSSPropertyAlias_WebkitMaskPositionX = 472,
-        eCSSPropertyAlias_WebkitMaskPositionY = 473,
-        eCSSPropertyAlias_WebkitMaskRepeat = 474,
-        eCSSPropertyAlias_WebkitMaskSize = 475,
-        eCSSPropertyExtra_no_properties = 476,
-        eCSSPropertyExtra_all_properties = 477,
-        eCSSPropertyExtra_x_none_value = 478,
-        eCSSPropertyExtra_x_auto_value = 479,
-        eCSSPropertyExtra_variable = 480,
-        eCSSProperty_DOM = 481,
+        eCSSProperty__moz_context_properties = 95,
+        eCSSProperty__moz_control_character_visibility = 96,
+        eCSSProperty_counter_increment = 97,
+        eCSSProperty_counter_reset = 98,
+        eCSSProperty_cursor = 99,
+        eCSSProperty_direction = 100,
+        eCSSProperty_display = 101,
+        eCSSProperty_dominant_baseline = 102,
+        eCSSProperty_empty_cells = 103,
+        eCSSProperty_fill = 104,
+        eCSSProperty_fill_opacity = 105,
+        eCSSProperty_fill_rule = 106,
+        eCSSProperty_filter = 107,
+        eCSSProperty_flex_basis = 108,
+        eCSSProperty_flex_direction = 109,
+        eCSSProperty_flex_grow = 110,
+        eCSSProperty_flex_shrink = 111,
+        eCSSProperty_flex_wrap = 112,
+        eCSSProperty_float_ = 113,
+        eCSSProperty__moz_float_edge = 114,
+        eCSSProperty_flood_color = 115,
+        eCSSProperty_flood_opacity = 116,
+        eCSSProperty_font_family = 117,
+        eCSSProperty_font_feature_settings = 118,
+        eCSSProperty_font_kerning = 119,
+        eCSSProperty_font_language_override = 120,
+        eCSSProperty_font_size = 121,
+        eCSSProperty_font_size_adjust = 122,
+        eCSSProperty_font_stretch = 123,
+        eCSSProperty_font_style = 124,
+        eCSSProperty_font_synthesis = 125,
+        eCSSProperty_font_variant_alternates = 126,
+        eCSSProperty_font_variant_caps = 127,
+        eCSSProperty_font_variant_east_asian = 128,
+        eCSSProperty_font_variant_ligatures = 129,
+        eCSSProperty_font_variant_numeric = 130,
+        eCSSProperty_font_variant_position = 131,
+        eCSSProperty_font_variation_settings = 132,
+        eCSSProperty_font_weight = 133,
+        eCSSProperty__moz_force_broken_image_icon = 134,
+        eCSSProperty_grid_auto_columns = 135,
+        eCSSProperty_grid_auto_flow = 136,
+        eCSSProperty_grid_auto_rows = 137,
+        eCSSProperty_grid_column_end = 138,
+        eCSSProperty_grid_column_gap = 139,
+        eCSSProperty_grid_column_start = 140,
+        eCSSProperty_grid_row_end = 141,
+        eCSSProperty_grid_row_gap = 142,
+        eCSSProperty_grid_row_start = 143,
+        eCSSProperty_grid_template_areas = 144,
+        eCSSProperty_grid_template_columns = 145,
+        eCSSProperty_grid_template_rows = 146,
+        eCSSProperty_height = 147,
+        eCSSProperty_hyphens = 148,
+        eCSSProperty_initial_letter = 149,
+        eCSSProperty_image_orientation = 150,
+        eCSSProperty__moz_image_region = 151,
+        eCSSProperty_image_rendering = 152,
+        eCSSProperty_ime_mode = 153,
+        eCSSProperty_inline_size = 154,
+        eCSSProperty_isolation = 155,
+        eCSSProperty_justify_content = 156,
+        eCSSProperty_justify_items = 157,
+        eCSSProperty_justify_self = 158,
+        eCSSProperty__x_lang = 159,
+        eCSSProperty_left = 160,
+        eCSSProperty_letter_spacing = 161,
+        eCSSProperty_lighting_color = 162,
+        eCSSProperty_line_height = 163,
+        eCSSProperty_list_style_image = 164,
+        eCSSProperty_list_style_position = 165,
+        eCSSProperty_list_style_type = 166,
+        eCSSProperty_margin_block_end = 167,
+        eCSSProperty_margin_block_start = 168,
+        eCSSProperty_margin_bottom = 169,
+        eCSSProperty_margin_inline_end = 170,
+        eCSSProperty_margin_inline_start = 171,
+        eCSSProperty_margin_left = 172,
+        eCSSProperty_margin_right = 173,
+        eCSSProperty_margin_top = 174,
+        eCSSProperty_marker_end = 175,
+        eCSSProperty_marker_mid = 176,
+        eCSSProperty_marker_start = 177,
+        eCSSProperty_mask_clip = 178,
+        eCSSProperty_mask_composite = 179,
+        eCSSProperty_mask_image = 180,
+        eCSSProperty_mask_mode = 181,
+        eCSSProperty_mask_origin = 182,
+        eCSSProperty_mask_position_x = 183,
+        eCSSProperty_mask_position_y = 184,
+        eCSSProperty_mask_repeat = 185,
+        eCSSProperty_mask_size = 186,
+        eCSSProperty_mask_type = 187,
+        eCSSProperty__moz_math_display = 188,
+        eCSSProperty__moz_math_variant = 189,
+        eCSSProperty_max_block_size = 190,
+        eCSSProperty_max_height = 191,
+        eCSSProperty_max_inline_size = 192,
+        eCSSProperty_max_width = 193,
+        eCSSProperty_min_block_size = 194,
+        eCSSProperty__moz_min_font_size_ratio = 195,
+        eCSSProperty_min_height = 196,
+        eCSSProperty_min_inline_size = 197,
+        eCSSProperty_min_width = 198,
+        eCSSProperty_mix_blend_mode = 199,
+        eCSSProperty_object_fit = 200,
+        eCSSProperty_object_position = 201,
+        eCSSProperty_offset_block_end = 202,
+        eCSSProperty_offset_block_start = 203,
+        eCSSProperty_offset_inline_end = 204,
+        eCSSProperty_offset_inline_start = 205,
+        eCSSProperty_opacity = 206,
+        eCSSProperty_order = 207,
+        eCSSProperty__moz_orient = 208,
+        eCSSProperty__moz_osx_font_smoothing = 209,
+        eCSSProperty_outline_color = 210,
+        eCSSProperty_outline_offset = 211,
+        eCSSProperty__moz_outline_radius_bottomleft = 212,
+        eCSSProperty__moz_outline_radius_bottomright = 213,
+        eCSSProperty__moz_outline_radius_topleft = 214,
+        eCSSProperty__moz_outline_radius_topright = 215,
+        eCSSProperty_outline_style = 216,
+        eCSSProperty_outline_width = 217,
+        eCSSProperty_overflow_clip_box = 218,
+        eCSSProperty_overflow_x = 219,
+        eCSSProperty_overflow_y = 220,
+        eCSSProperty_padding_block_end = 221,
+        eCSSProperty_padding_block_start = 222,
+        eCSSProperty_padding_bottom = 223,
+        eCSSProperty_padding_inline_end = 224,
+        eCSSProperty_padding_inline_start = 225,
+        eCSSProperty_padding_left = 226,
+        eCSSProperty_padding_right = 227,
+        eCSSProperty_padding_top = 228,
+        eCSSProperty_page_break_after = 229,
+        eCSSProperty_page_break_before = 230,
+        eCSSProperty_page_break_inside = 231,
+        eCSSProperty_paint_order = 232,
+        eCSSProperty_perspective = 233,
+        eCSSProperty_perspective_origin = 234,
+        eCSSProperty_pointer_events = 235,
+        eCSSProperty_position = 236,
+        eCSSProperty_quotes = 237,
+        eCSSProperty_resize = 238,
+        eCSSProperty_right = 239,
+        eCSSProperty_ruby_align = 240,
+        eCSSProperty_ruby_position = 241,
+        eCSSProperty__moz_script_level = 242,
+        eCSSProperty__moz_script_min_size = 243,
+        eCSSProperty__moz_script_size_multiplier = 244,
+        eCSSProperty_scroll_behavior = 245,
+        eCSSProperty_scroll_snap_coordinate = 246,
+        eCSSProperty_scroll_snap_destination = 247,
+        eCSSProperty_scroll_snap_points_x = 248,
+        eCSSProperty_scroll_snap_points_y = 249,
+        eCSSProperty_scroll_snap_type_x = 250,
+        eCSSProperty_scroll_snap_type_y = 251,
+        eCSSProperty_shape_outside = 252,
+        eCSSProperty_shape_rendering = 253,
+        eCSSProperty__x_span = 254,
+        eCSSProperty__moz_stack_sizing = 255,
+        eCSSProperty_stop_color = 256,
+        eCSSProperty_stop_opacity = 257,
+        eCSSProperty_stroke = 258,
+        eCSSProperty_stroke_dasharray = 259,
+        eCSSProperty_stroke_dashoffset = 260,
+        eCSSProperty_stroke_linecap = 261,
+        eCSSProperty_stroke_linejoin = 262,
+        eCSSProperty_stroke_miterlimit = 263,
+        eCSSProperty_stroke_opacity = 264,
+        eCSSProperty_stroke_width = 265,
+        eCSSProperty__x_system_font = 266,
+        eCSSProperty__moz_tab_size = 267,
+        eCSSProperty_table_layout = 268,
+        eCSSProperty_text_align = 269,
+        eCSSProperty_text_align_last = 270,
+        eCSSProperty_text_anchor = 271,
+        eCSSProperty_text_combine_upright = 272,
+        eCSSProperty_text_decoration_color = 273,
+        eCSSProperty_text_decoration_line = 274,
+        eCSSProperty_text_decoration_style = 275,
+        eCSSProperty_text_emphasis_color = 276,
+        eCSSProperty_text_emphasis_position = 277,
+        eCSSProperty_text_emphasis_style = 278,
+        eCSSProperty__webkit_text_fill_color = 279,
+        eCSSProperty_text_indent = 280,
+        eCSSProperty_text_justify = 281,
+        eCSSProperty_text_orientation = 282,
+        eCSSProperty_text_overflow = 283,
+        eCSSProperty_text_rendering = 284,
+        eCSSProperty_text_shadow = 285,
+        eCSSProperty__moz_text_size_adjust = 286,
+        eCSSProperty__webkit_text_stroke_color = 287,
+        eCSSProperty__webkit_text_stroke_width = 288,
+        eCSSProperty_text_transform = 289,
+        eCSSProperty__x_text_zoom = 290,
+        eCSSProperty_top = 291,
+        eCSSProperty__moz_top_layer = 292,
+        eCSSProperty_touch_action = 293,
+        eCSSProperty_transform = 294,
+        eCSSProperty_transform_box = 295,
+        eCSSProperty_transform_origin = 296,
+        eCSSProperty_transform_style = 297,
+        eCSSProperty_transition_delay = 298,
+        eCSSProperty_transition_duration = 299,
+        eCSSProperty_transition_property = 300,
+        eCSSProperty_transition_timing_function = 301,
+        eCSSProperty_unicode_bidi = 302,
+        eCSSProperty__moz_user_focus = 303,
+        eCSSProperty__moz_user_input = 304,
+        eCSSProperty__moz_user_modify = 305,
+        eCSSProperty__moz_user_select = 306,
+        eCSSProperty_vector_effect = 307,
+        eCSSProperty_vertical_align = 308,
+        eCSSProperty_visibility = 309,
+        eCSSProperty_white_space = 310,
+        eCSSProperty_width = 311,
+        eCSSProperty_will_change = 312,
+        eCSSProperty__moz_window_dragging = 313,
+        eCSSProperty__moz_window_shadow = 314,
+        eCSSProperty_word_break = 315,
+        eCSSProperty_word_spacing = 316,
+        eCSSProperty_overflow_wrap = 317,
+        eCSSProperty_writing_mode = 318,
+        eCSSProperty_z_index = 319,
+        eCSSProperty_all = 320,
+        eCSSProperty_animation = 321,
+        eCSSProperty_background = 322,
+        eCSSProperty_background_position = 323,
+        eCSSProperty_border = 324,
+        eCSSProperty_border_block_end = 325,
+        eCSSProperty_border_block_start = 326,
+        eCSSProperty_border_bottom = 327,
+        eCSSProperty_border_color = 328,
+        eCSSProperty_border_image = 329,
+        eCSSProperty_border_inline_end = 330,
+        eCSSProperty_border_inline_start = 331,
+        eCSSProperty_border_left = 332,
+        eCSSProperty_border_radius = 333,
+        eCSSProperty_border_right = 334,
+        eCSSProperty_border_style = 335,
+        eCSSProperty_border_top = 336,
+        eCSSProperty_border_width = 337,
+        eCSSProperty_column_rule = 338,
+        eCSSProperty_columns = 339,
+        eCSSProperty_flex = 340,
+        eCSSProperty_flex_flow = 341,
+        eCSSProperty_font = 342,
+        eCSSProperty_font_variant = 343,
+        eCSSProperty_grid = 344,
+        eCSSProperty_grid_area = 345,
+        eCSSProperty_grid_column = 346,
+        eCSSProperty_grid_gap = 347,
+        eCSSProperty_grid_row = 348,
+        eCSSProperty_grid_template = 349,
+        eCSSProperty_list_style = 350,
+        eCSSProperty_margin = 351,
+        eCSSProperty_marker = 352,
+        eCSSProperty_mask = 353,
+        eCSSProperty_mask_position = 354,
+        eCSSProperty_outline = 355,
+        eCSSProperty__moz_outline_radius = 356,
+        eCSSProperty_overflow = 357,
+        eCSSProperty_padding = 358,
+        eCSSProperty_place_content = 359,
+        eCSSProperty_place_items = 360,
+        eCSSProperty_place_self = 361,
+        eCSSProperty_scroll_snap_type = 362,
+        eCSSProperty_text_decoration = 363,
+        eCSSProperty_text_emphasis = 364,
+        eCSSProperty__webkit_text_stroke = 365,
+        eCSSProperty__moz_transform = 366,
+        eCSSProperty_transition = 367,
+        eCSSPropertyAlias_WordWrap = 368,
+        eCSSPropertyAlias_MozTransformOrigin = 369,
+        eCSSPropertyAlias_MozPerspectiveOrigin = 370,
+        eCSSPropertyAlias_MozPerspective = 371,
+        eCSSPropertyAlias_MozTransformStyle = 372,
+        eCSSPropertyAlias_MozBackfaceVisibility = 373,
+        eCSSPropertyAlias_MozBorderImage = 374,
+        eCSSPropertyAlias_MozTransition = 375,
+        eCSSPropertyAlias_MozTransitionDelay = 376,
+        eCSSPropertyAlias_MozTransitionDuration = 377,
+        eCSSPropertyAlias_MozTransitionProperty = 378,
+        eCSSPropertyAlias_MozTransitionTimingFunction = 379,
+        eCSSPropertyAlias_MozAnimation = 380,
+        eCSSPropertyAlias_MozAnimationDelay = 381,
+        eCSSPropertyAlias_MozAnimationDirection = 382,
+        eCSSPropertyAlias_MozAnimationDuration = 383,
+        eCSSPropertyAlias_MozAnimationFillMode = 384,
+        eCSSPropertyAlias_MozAnimationIterationCount = 385,
+        eCSSPropertyAlias_MozAnimationName = 386,
+        eCSSPropertyAlias_MozAnimationPlayState = 387,
+        eCSSPropertyAlias_MozAnimationTimingFunction = 388,
+        eCSSPropertyAlias_MozBoxSizing = 389,
+        eCSSPropertyAlias_MozFontFeatureSettings = 390,
+        eCSSPropertyAlias_MozFontLanguageOverride = 391,
+        eCSSPropertyAlias_MozPaddingEnd = 392,
+        eCSSPropertyAlias_MozPaddingStart = 393,
+        eCSSPropertyAlias_MozMarginEnd = 394,
+        eCSSPropertyAlias_MozMarginStart = 395,
+        eCSSPropertyAlias_MozBorderEnd = 396,
+        eCSSPropertyAlias_MozBorderEndColor = 397,
+        eCSSPropertyAlias_MozBorderEndStyle = 398,
+        eCSSPropertyAlias_MozBorderEndWidth = 399,
+        eCSSPropertyAlias_MozBorderStart = 400,
+        eCSSPropertyAlias_MozBorderStartColor = 401,
+        eCSSPropertyAlias_MozBorderStartStyle = 402,
+        eCSSPropertyAlias_MozBorderStartWidth = 403,
+        eCSSPropertyAlias_MozHyphens = 404,
+        eCSSPropertyAlias_MozColumnCount = 405,
+        eCSSPropertyAlias_MozColumnFill = 406,
+        eCSSPropertyAlias_MozColumnGap = 407,
+        eCSSPropertyAlias_MozColumnRule = 408,
+        eCSSPropertyAlias_MozColumnRuleColor = 409,
+        eCSSPropertyAlias_MozColumnRuleStyle = 410,
+        eCSSPropertyAlias_MozColumnRuleWidth = 411,
+        eCSSPropertyAlias_MozColumnWidth = 412,
+        eCSSPropertyAlias_MozColumns = 413,
+        eCSSPropertyAlias_WebkitAnimation = 414,
+        eCSSPropertyAlias_WebkitAnimationDelay = 415,
+        eCSSPropertyAlias_WebkitAnimationDirection = 416,
+        eCSSPropertyAlias_WebkitAnimationDuration = 417,
+        eCSSPropertyAlias_WebkitAnimationFillMode = 418,
+        eCSSPropertyAlias_WebkitAnimationIterationCount = 419,
+        eCSSPropertyAlias_WebkitAnimationName = 420,
+        eCSSPropertyAlias_WebkitAnimationPlayState = 421,
+        eCSSPropertyAlias_WebkitAnimationTimingFunction = 422,
+        eCSSPropertyAlias_WebkitAppearance = 423,
+        eCSSPropertyAlias_WebkitFilter = 424,
+        eCSSPropertyAlias_WebkitTextSizeAdjust = 425,
+        eCSSPropertyAlias_WebkitTransform = 426,
+        eCSSPropertyAlias_WebkitTransformOrigin = 427,
+        eCSSPropertyAlias_WebkitTransformStyle = 428,
+        eCSSPropertyAlias_WebkitBackfaceVisibility = 429,
+        eCSSPropertyAlias_WebkitPerspective = 430,
+        eCSSPropertyAlias_WebkitPerspectiveOrigin = 431,
+        eCSSPropertyAlias_WebkitTransition = 432,
+        eCSSPropertyAlias_WebkitTransitionDelay = 433,
+        eCSSPropertyAlias_WebkitTransitionDuration = 434,
+        eCSSPropertyAlias_WebkitTransitionProperty = 435,
+        eCSSPropertyAlias_WebkitTransitionTimingFunction = 436,
+        eCSSPropertyAlias_WebkitBorderRadius = 437,
+        eCSSPropertyAlias_WebkitBorderTopLeftRadius = 438,
+        eCSSPropertyAlias_WebkitBorderTopRightRadius = 439,
+        eCSSPropertyAlias_WebkitBorderBottomLeftRadius = 440,
+        eCSSPropertyAlias_WebkitBorderBottomRightRadius = 441,
+        eCSSPropertyAlias_WebkitBackgroundClip = 442,
+        eCSSPropertyAlias_WebkitBackgroundOrigin = 443,
+        eCSSPropertyAlias_WebkitBackgroundSize = 444,
+        eCSSPropertyAlias_WebkitBorderImage = 445,
+        eCSSPropertyAlias_WebkitBoxShadow = 446,
+        eCSSPropertyAlias_WebkitBoxSizing = 447,
+        eCSSPropertyAlias_WebkitBoxFlex = 448,
+        eCSSPropertyAlias_WebkitBoxOrdinalGroup = 449,
+        eCSSPropertyAlias_WebkitBoxOrient = 450,
+        eCSSPropertyAlias_WebkitBoxDirection = 451,
+        eCSSPropertyAlias_WebkitBoxAlign = 452,
+        eCSSPropertyAlias_WebkitBoxPack = 453,
+        eCSSPropertyAlias_WebkitFlexDirection = 454,
+        eCSSPropertyAlias_WebkitFlexWrap = 455,
+        eCSSPropertyAlias_WebkitFlexFlow = 456,
+        eCSSPropertyAlias_WebkitOrder = 457,
+        eCSSPropertyAlias_WebkitFlex = 458,
+        eCSSPropertyAlias_WebkitFlexGrow = 459,
+        eCSSPropertyAlias_WebkitFlexShrink = 460,
+        eCSSPropertyAlias_WebkitFlexBasis = 461,
+        eCSSPropertyAlias_WebkitJustifyContent = 462,
+        eCSSPropertyAlias_WebkitAlignItems = 463,
+        eCSSPropertyAlias_WebkitAlignSelf = 464,
+        eCSSPropertyAlias_WebkitAlignContent = 465,
+        eCSSPropertyAlias_WebkitUserSelect = 466,
+        eCSSPropertyAlias_WebkitMask = 467,
+        eCSSPropertyAlias_WebkitMaskClip = 468,
+        eCSSPropertyAlias_WebkitMaskComposite = 469,
+        eCSSPropertyAlias_WebkitMaskImage = 470,
+        eCSSPropertyAlias_WebkitMaskOrigin = 471,
+        eCSSPropertyAlias_WebkitMaskPosition = 472,
+        eCSSPropertyAlias_WebkitMaskPositionX = 473,
+        eCSSPropertyAlias_WebkitMaskPositionY = 474,
+        eCSSPropertyAlias_WebkitMaskRepeat = 475,
+        eCSSPropertyAlias_WebkitMaskSize = 476,
+        eCSSPropertyExtra_no_properties = 477,
+        eCSSPropertyExtra_all_properties = 478,
+        eCSSPropertyExtra_x_none_value = 479,
+        eCSSPropertyExtra_x_auto_value = 480,
+        eCSSPropertyExtra_variable = 481,
+        eCSSProperty_DOM = 482,
     }
     #[repr(i32)]
     #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -21241,29 +21251,29 @@ pub mod root {
     extern "C" {
         #[link_name = "_ZN10nsCSSProps9kSIDTableE"]
         pub static mut nsCSSProps_kSIDTable:
-                   [root::nsStyleStructID; 319usize];
+                   [root::nsStyleStructID; 320usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps18kKeywordTableTableE"]
         pub static mut nsCSSProps_kKeywordTableTable:
-                   [*const root::nsCSSProps_KTableEntry; 319usize];
+                   [*const root::nsCSSProps_KTableEntry; 320usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps14kAnimTypeTableE"]
         pub static mut nsCSSProps_kAnimTypeTable:
-                   [root::nsStyleAnimType; 319usize];
+                   [root::nsStyleAnimType; 320usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps23kStyleStructOffsetTableE"]
-        pub static mut nsCSSProps_kStyleStructOffsetTable: [isize; 319usize];
+        pub static mut nsCSSProps_kStyleStructOffsetTable: [isize; 320usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps11kFlagsTableE"]
-        pub static mut nsCSSProps_kFlagsTable: [u32; 367usize];
+        pub static mut nsCSSProps_kFlagsTable: [u32; 368usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps19kParserVariantTableE"]
-        pub static mut nsCSSProps_kParserVariantTable: [u32; 319usize];
+        pub static mut nsCSSProps_kParserVariantTable: [u32; 320usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps17kSubpropertyTableE"]
@@ -21273,7 +21283,7 @@ pub mod root {
     extern "C" {
         #[link_name = "_ZN10nsCSSProps26gShorthandsContainingTableE"]
         pub static mut nsCSSProps_gShorthandsContainingTable:
-                   [*mut root::nsCSSPropertyID; 319usize];
+                   [*mut root::nsCSSPropertyID; 320usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps25gShorthandsContainingPoolE"]
@@ -21286,7 +21296,7 @@ pub mod root {
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps22gPropertyIndexInStructE"]
-        pub static mut nsCSSProps_gPropertyIndexInStruct: [usize; 319usize];
+        pub static mut nsCSSProps_gPropertyIndexInStruct: [usize; 320usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps18kLogicalGroupTableE"]
@@ -21295,21 +21305,21 @@ pub mod root {
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps16gPropertyEnabledE"]
-        pub static mut nsCSSProps_gPropertyEnabled: [bool; 476usize];
+        pub static mut nsCSSProps_gPropertyEnabled: [bool; 477usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps13kIDLNameTableE"]
         pub static mut nsCSSProps_kIDLNameTable:
-                   [*const ::std::os::raw::c_char; 367usize];
+                   [*const ::std::os::raw::c_char; 368usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps25kIDLNameSortPositionTableE"]
-        pub static mut nsCSSProps_kIDLNameSortPositionTable: [i32; 367usize];
+        pub static mut nsCSSProps_kIDLNameSortPositionTable: [i32; 368usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps19gPropertyUseCounterE"]
         pub static mut nsCSSProps_gPropertyUseCounter:
-                   [root::mozilla::UseCounter; 319usize];
+                   [root::mozilla::UseCounter; 320usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps25kAnimationDirectionKTableE"]
@@ -22422,6 +22432,7 @@ pub mod root {
         pub mIsRadial: bool,
         pub mIsRepeating: bool,
         pub mIsLegacySyntax: bool,
+        pub mIsMozLegacySyntax: bool,
         pub mIsExplicitSize: bool,
         pub mBgPos: root::nsCSSValuePair,
         pub mAngle: root::nsCSSValue,
@@ -22458,7 +22469,13 @@ pub mod root {
                     ) , "::" , stringify ! ( mIsLegacySyntax ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsCSSValueGradient ) ) .
-                    mIsExplicitSize as * const _ as usize } , 3usize , concat
+                    mIsMozLegacySyntax as * const _ as usize } , 3usize ,
+                    concat ! (
+                    "Alignment of field: " , stringify ! ( nsCSSValueGradient
+                    ) , "::" , stringify ! ( mIsMozLegacySyntax ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const nsCSSValueGradient ) ) .
+                    mIsExplicitSize as * const _ as usize } , 4usize , concat
                     ! (
                     "Alignment of field: " , stringify ! ( nsCSSValueGradient
                     ) , "::" , stringify ! ( mIsExplicitSize ) ));
@@ -23735,6 +23752,7 @@ pub mod root {
         pub mSize: u8,
         pub mRepeating: bool,
         pub mLegacySyntax: bool,
+        pub mMozLegacySyntax: bool,
         pub mBgPosX: root::nsStyleCoord,
         pub mBgPosY: root::nsStyleCoord,
         pub mAngle: root::nsStyleCoord,
@@ -23772,6 +23790,12 @@ pub mod root {
                     as * const _ as usize } , 3usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleGradient ) ,
                     "::" , stringify ! ( mLegacySyntax ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const nsStyleGradient ) ) .
+                    mMozLegacySyntax as * const _ as usize } , 4usize , concat
+                    ! (
+                    "Alignment of field: " , stringify ! ( nsStyleGradient ) ,
+                    "::" , stringify ! ( mMozLegacySyntax ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleGradient ) ) . mBgPosX as *
                     const _ as usize } , 8usize , concat ! (
@@ -26294,6 +26318,7 @@ pub mod root {
         pub mMarkerMid: root::RefPtr<root::mozilla::css::URLValue>,
         pub mMarkerStart: root::RefPtr<root::mozilla::css::URLValue>,
         pub mStrokeDasharray: root::nsTArray<root::nsStyleCoord>,
+        pub mContextProps: root::nsTArray<root::nsCOMPtr<root::nsIAtom>>,
         pub mStrokeDashoffset: root::nsStyleCoord,
         pub mStrokeWidth: root::nsStyleCoord,
         pub mFillOpacity: f32,
@@ -26308,6 +26333,7 @@ pub mod root {
         pub mStrokeLinecap: u8,
         pub mStrokeLinejoin: u8,
         pub mTextAnchor: u8,
+        pub mContextPropsBits: u8,
         pub mContextFlags: u8,
     }
     pub const nsStyleSVG_FILL_OPACITY_SOURCE_MASK:
@@ -26344,7 +26370,7 @@ pub mod root {
     }
     #[test]
     fn bindgen_test_layout_nsStyleSVG() {
-        assert_eq!(::std::mem::size_of::<nsStyleSVG>() , 120usize , concat ! (
+        assert_eq!(::std::mem::size_of::<nsStyleSVG>() , 128usize , concat ! (
                    "Size of: " , stringify ! ( nsStyleSVG ) ));
         assert_eq! (::std::mem::align_of::<nsStyleSVG>() , 8usize , concat ! (
                     "Alignment of " , stringify ! ( nsStyleSVG ) ));
@@ -26379,79 +26405,89 @@ pub mod root {
                     "Alignment of field: " , stringify ! ( nsStyleSVG ) , "::"
                     , stringify ! ( mStrokeDasharray ) ));
         assert_eq! (unsafe {
+                    & ( * ( 0 as * const nsStyleSVG ) ) . mContextProps as *
+                    const _ as usize } , 64usize , concat ! (
+                    "Alignment of field: " , stringify ! ( nsStyleSVG ) , "::"
+                    , stringify ! ( mContextProps ) ));
+        assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleSVG ) ) . mStrokeDashoffset as
-                    * const _ as usize } , 64usize , concat ! (
+                    * const _ as usize } , 72usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleSVG ) , "::"
                     , stringify ! ( mStrokeDashoffset ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleSVG ) ) . mStrokeWidth as *
-                    const _ as usize } , 80usize , concat ! (
+                    const _ as usize } , 88usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleSVG ) , "::"
                     , stringify ! ( mStrokeWidth ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleSVG ) ) . mFillOpacity as *
-                    const _ as usize } , 96usize , concat ! (
+                    const _ as usize } , 104usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleSVG ) , "::"
                     , stringify ! ( mFillOpacity ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleSVG ) ) . mStrokeMiterlimit as
-                    * const _ as usize } , 100usize , concat ! (
+                    * const _ as usize } , 108usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleSVG ) , "::"
                     , stringify ! ( mStrokeMiterlimit ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleSVG ) ) . mStrokeOpacity as *
-                    const _ as usize } , 104usize , concat ! (
+                    const _ as usize } , 112usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleSVG ) , "::"
                     , stringify ! ( mStrokeOpacity ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleSVG ) ) . mClipRule as * const
-                    _ as usize } , 108usize , concat ! (
+                    _ as usize } , 116usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleSVG ) , "::"
                     , stringify ! ( mClipRule ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleSVG ) ) . mColorInterpolation
-                    as * const _ as usize } , 109usize , concat ! (
+                    as * const _ as usize } , 117usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleSVG ) , "::"
                     , stringify ! ( mColorInterpolation ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleSVG ) ) .
                     mColorInterpolationFilters as * const _ as usize } ,
-                    110usize , concat ! (
+                    118usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleSVG ) , "::"
                     , stringify ! ( mColorInterpolationFilters ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleSVG ) ) . mFillRule as * const
-                    _ as usize } , 111usize , concat ! (
+                    _ as usize } , 119usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleSVG ) , "::"
                     , stringify ! ( mFillRule ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleSVG ) ) . mPaintOrder as *
-                    const _ as usize } , 112usize , concat ! (
+                    const _ as usize } , 120usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleSVG ) , "::"
                     , stringify ! ( mPaintOrder ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleSVG ) ) . mShapeRendering as *
-                    const _ as usize } , 113usize , concat ! (
+                    const _ as usize } , 121usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleSVG ) , "::"
                     , stringify ! ( mShapeRendering ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleSVG ) ) . mStrokeLinecap as *
-                    const _ as usize } , 114usize , concat ! (
+                    const _ as usize } , 122usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleSVG ) , "::"
                     , stringify ! ( mStrokeLinecap ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleSVG ) ) . mStrokeLinejoin as *
-                    const _ as usize } , 115usize , concat ! (
+                    const _ as usize } , 123usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleSVG ) , "::"
                     , stringify ! ( mStrokeLinejoin ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleSVG ) ) . mTextAnchor as *
-                    const _ as usize } , 116usize , concat ! (
+                    const _ as usize } , 124usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleSVG ) , "::"
                     , stringify ! ( mTextAnchor ) ));
         assert_eq! (unsafe {
+                    & ( * ( 0 as * const nsStyleSVG ) ) . mContextPropsBits as
+                    * const _ as usize } , 125usize , concat ! (
+                    "Alignment of field: " , stringify ! ( nsStyleSVG ) , "::"
+                    , stringify ! ( mContextPropsBits ) ));
+        assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleSVG ) ) . mContextFlags as *
-                    const _ as usize } , 117usize , concat ! (
+                    const _ as usize } , 126usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleSVG ) , "::"
                     , stringify ! ( mContextFlags ) ));
     }
@@ -26822,6 +26858,9 @@ pub mod root {
     pub struct RawServoStyleSet([u8; 0]);
     #[repr(C)]
     #[derive(Debug, Copy, Clone)]
+    pub struct RawServoAnimationValueMap([u8; 0]);
+    #[repr(C)]
+    #[derive(Debug, Copy, Clone)]
     pub struct RawServoDeclarationBlock([u8; 0]);
     #[repr(C)]
     #[derive(Debug, Copy, Clone)]
@@ -26829,9 +26868,6 @@ pub mod root {
     #[repr(C)]
     #[derive(Debug, Copy, Clone)]
     pub struct RawServoAnimationValue([u8; 0]);
-    #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
-    pub struct RawServoAnimationValueMap([u8; 0]);
     pub type RawGeckoNode = root::nsINode;
     pub type RawGeckoElement = root::mozilla::dom::Element;
     pub type RawGeckoDocument = root::nsIDocument;
@@ -26851,8 +26887,8 @@ pub mod root {
     pub type RawGeckoComputedTiming = root::mozilla::ComputedTiming;
     pub type RawGeckoServoStyleRuleList =
         root::nsTArray<*const root::RawServoStyleRule>;
-    pub type RawServoAnimationValueMapBorrowed =
-        *const root::RawServoAnimationValueMap;
+    pub type RawServoAnimationValueMapBorrowedMut =
+        *mut root::RawServoAnimationValueMap;
     pub type RawGeckoNodeBorrowed = *const root::RawGeckoNode;
     pub type RawGeckoNodeBorrowedOrNull = *const root::RawGeckoNode;
     pub type RawGeckoElementBorrowed = *const root::RawGeckoElement;
@@ -28401,6 +28437,17 @@ pub mod root {
     }
     #[test]
     fn __bindgen_test_layout_template_61() {
+        assert_eq!(::std::mem::size_of::<root::nsTArray<root::nsCOMPtr<root::nsIAtom>>>()
+                   , 8usize , concat ! (
+                   "Size of template specialization: " , stringify ! (
+                   root::nsTArray<root::nsCOMPtr<root::nsIAtom>> ) ));
+        assert_eq!(::std::mem::align_of::<root::nsTArray<root::nsCOMPtr<root::nsIAtom>>>()
+                   , 8usize , concat ! (
+                   "Alignment of template specialization: " , stringify ! (
+                   root::nsTArray<root::nsCOMPtr<root::nsIAtom>> ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_template_62() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::nsIContent>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28411,7 +28458,7 @@ pub mod root {
                    root::already_AddRefed<root::nsIContent> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_62() {
+    fn __bindgen_test_layout_template_63() {
         assert_eq!(::std::mem::size_of::<[u64; 6usize]>() , 48usize , concat !
                    (
                    "Size of template specialization: " , stringify ! (
@@ -28422,7 +28469,7 @@ pub mod root {
                    [u64; 6usize] ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_63() {
+    fn __bindgen_test_layout_template_64() {
         assert_eq!(::std::mem::size_of::<root::mozilla::OwningNonNull<root::nsINode>>()
                    , 16usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28431,17 +28478,6 @@ pub mod root {
                    , 8usize , concat ! (
                    "Alignment of template specialization: " , stringify ! (
                    root::mozilla::OwningNonNull<root::nsINode> ) ));
-    }
-    #[test]
-    fn __bindgen_test_layout_template_64() {
-        assert_eq!(::std::mem::size_of::<[u32; 2usize]>() , 8usize , concat !
-                   (
-                   "Size of template specialization: " , stringify ! (
-                   [u32; 2usize] ) ));
-        assert_eq!(::std::mem::align_of::<[u32; 2usize]>() , 4usize , concat !
-                   (
-                   "Alignment of template specialization: " , stringify ! (
-                   [u32; 2usize] ) ));
     }
     #[test]
     fn __bindgen_test_layout_template_65() {
@@ -28467,17 +28503,6 @@ pub mod root {
     }
     #[test]
     fn __bindgen_test_layout_template_67() {
-        assert_eq!(::std::mem::size_of::<[u32; 4usize]>() , 16usize , concat !
-                   (
-                   "Size of template specialization: " , stringify ! (
-                   [u32; 4usize] ) ));
-        assert_eq!(::std::mem::align_of::<[u32; 4usize]>() , 4usize , concat !
-                   (
-                   "Alignment of template specialization: " , stringify ! (
-                   [u32; 4usize] ) ));
-    }
-    #[test]
-    fn __bindgen_test_layout_template_68() {
         assert_eq!(::std::mem::size_of::<[u32; 2usize]>() , 8usize , concat !
                    (
                    "Size of template specialization: " , stringify ! (
@@ -28486,6 +28511,17 @@ pub mod root {
                    (
                    "Alignment of template specialization: " , stringify ! (
                    [u32; 2usize] ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_template_68() {
+        assert_eq!(::std::mem::size_of::<[u32; 4usize]>() , 16usize , concat !
+                   (
+                   "Size of template specialization: " , stringify ! (
+                   [u32; 4usize] ) ));
+        assert_eq!(::std::mem::align_of::<[u32; 4usize]>() , 4usize , concat !
+                   (
+                   "Alignment of template specialization: " , stringify ! (
+                   [u32; 4usize] ) ));
     }
     #[test]
     fn __bindgen_test_layout_template_69() {
@@ -28500,14 +28536,14 @@ pub mod root {
     }
     #[test]
     fn __bindgen_test_layout_template_70() {
-        assert_eq!(::std::mem::size_of::<[u32; 4usize]>() , 16usize , concat !
+        assert_eq!(::std::mem::size_of::<[u32; 2usize]>() , 8usize , concat !
                    (
                    "Size of template specialization: " , stringify ! (
-                   [u32; 4usize] ) ));
-        assert_eq!(::std::mem::align_of::<[u32; 4usize]>() , 4usize , concat !
+                   [u32; 2usize] ) ));
+        assert_eq!(::std::mem::align_of::<[u32; 2usize]>() , 4usize , concat !
                    (
                    "Alignment of template specialization: " , stringify ! (
-                   [u32; 4usize] ) ));
+                   [u32; 2usize] ) ));
     }
     #[test]
     fn __bindgen_test_layout_template_71() {
@@ -28533,23 +28569,23 @@ pub mod root {
     }
     #[test]
     fn __bindgen_test_layout_template_73() {
+        assert_eq!(::std::mem::size_of::<[u32; 4usize]>() , 16usize , concat !
+                   (
+                   "Size of template specialization: " , stringify ! (
+                   [u32; 4usize] ) ));
+        assert_eq!(::std::mem::align_of::<[u32; 4usize]>() , 4usize , concat !
+                   (
+                   "Alignment of template specialization: " , stringify ! (
+                   [u32; 4usize] ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_template_74() {
         assert_eq!(::std::mem::size_of::<u32>() , 4usize , concat ! (
                    "Size of template specialization: " , stringify ! ( u32 )
                    ));
         assert_eq!(::std::mem::align_of::<u32>() , 4usize , concat ! (
                    "Alignment of template specialization: " , stringify ! (
                    u32 ) ));
-    }
-    #[test]
-    fn __bindgen_test_layout_template_74() {
-        assert_eq!(::std::mem::size_of::<[u32; 2usize]>() , 8usize , concat !
-                   (
-                   "Size of template specialization: " , stringify ! (
-                   [u32; 2usize] ) ));
-        assert_eq!(::std::mem::align_of::<[u32; 2usize]>() , 4usize , concat !
-                   (
-                   "Alignment of template specialization: " , stringify ! (
-                   [u32; 2usize] ) ));
     }
     #[test]
     fn __bindgen_test_layout_template_75() {
@@ -28575,6 +28611,17 @@ pub mod root {
     }
     #[test]
     fn __bindgen_test_layout_template_77() {
+        assert_eq!(::std::mem::size_of::<[u32; 2usize]>() , 8usize , concat !
+                   (
+                   "Size of template specialization: " , stringify ! (
+                   [u32; 2usize] ) ));
+        assert_eq!(::std::mem::align_of::<[u32; 2usize]>() , 4usize , concat !
+                   (
+                   "Alignment of template specialization: " , stringify ! (
+                   [u32; 2usize] ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_template_78() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<f64>>() , 8usize ,
                    concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28585,7 +28632,7 @@ pub mod root {
                    root::nsTArray<f64> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_78() {
+    fn __bindgen_test_layout_template_79() {
         assert_eq!(::std::mem::size_of::<root::RefPtr<root::mozilla::dom::DOMIntersectionObserverEntry>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28598,7 +28645,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_79() {
+    fn __bindgen_test_layout_template_80() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::RefPtr<root::mozilla::dom::DOMIntersectionObserverEntry>>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28611,7 +28658,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_80() {
+    fn __bindgen_test_layout_template_81() {
         assert_eq!(::std::mem::size_of::<root::mozilla::UniquePtr<root::ProfilerBacktrace,
                                                root::ProfilerBacktraceDestructor>>()
                    , 8usize , concat ! (
@@ -28628,7 +28675,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_81() {
+    fn __bindgen_test_layout_template_82() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::mozilla::FontFamilyName>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28639,7 +28686,7 @@ pub mod root {
                    root::nsTArray<root::mozilla::FontFamilyName> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_82() {
+    fn __bindgen_test_layout_template_83() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<::std::os::raw::c_uint>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28650,7 +28697,7 @@ pub mod root {
                    root::nsTArray<::std::os::raw::c_uint> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_83() {
+    fn __bindgen_test_layout_template_84() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::mozilla::FramePropertyTable_PropertyValue>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28663,7 +28710,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_84() {
+    fn __bindgen_test_layout_template_85() {
         assert_eq!(::std::mem::size_of::<root::nsPtrHashKey<root::nsIFrame>>()
                    , 16usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28674,7 +28721,7 @@ pub mod root {
                    root::nsPtrHashKey<root::nsIFrame> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_85() {
+    fn __bindgen_test_layout_template_86() {
         assert_eq!(::std::mem::size_of::<[u64; 6usize]>() , 48usize , concat !
                    (
                    "Size of template specialization: " , stringify ! (
@@ -28685,7 +28732,7 @@ pub mod root {
                    [u64; 6usize] ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_86() {
+    fn __bindgen_test_layout_template_87() {
         assert_eq!(::std::mem::size_of::<root::mozilla::OwningNonNull<root::mozilla::EffectCompositor_AnimationStyleRuleProcessor>>()
                    , 16usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28698,7 +28745,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_87() {
+    fn __bindgen_test_layout_template_88() {
         assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete<root::ProxyBehaviour>>()
                    , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28709,7 +28756,7 @@ pub mod root {
                    root::mozilla::DefaultDelete<root::ProxyBehaviour> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_88() {
+    fn __bindgen_test_layout_template_89() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::mozilla::URLExtraData>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28720,7 +28767,7 @@ pub mod root {
                    root::already_AddRefed<root::mozilla::URLExtraData> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_89() {
+    fn __bindgen_test_layout_template_90() {
         assert_eq!(::std::mem::size_of::<root::nsMainThreadPtrHolder<root::nsIURI>>()
                    , 24usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28731,7 +28778,7 @@ pub mod root {
                    root::nsMainThreadPtrHolder<root::nsIURI> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_90() {
+    fn __bindgen_test_layout_template_91() {
         assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete<root::nsCSSValueList>>()
                    , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28742,7 +28789,7 @@ pub mod root {
                    root::mozilla::DefaultDelete<root::nsCSSValueList> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_91() {
+    fn __bindgen_test_layout_template_92() {
         assert_eq!(::std::mem::size_of::<root::mozilla::UniquePtr<root::nsCSSValueList,
                                                root::mozilla::DefaultDelete<root::nsCSSValueList>>>()
                    , 8usize , concat ! (
@@ -28759,7 +28806,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_92() {
+    fn __bindgen_test_layout_template_93() {
         assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete<root::nsCSSValuePairList>>()
                    , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28772,7 +28819,7 @@ pub mod root {
                    ));
     }
     #[test]
-    fn __bindgen_test_layout_template_93() {
+    fn __bindgen_test_layout_template_94() {
         assert_eq!(::std::mem::size_of::<root::mozilla::UniquePtr<root::nsCSSValuePairList,
                                                root::mozilla::DefaultDelete<root::nsCSSValuePairList>>>()
                    , 8usize , concat ! (
@@ -28789,7 +28836,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_94() {
+    fn __bindgen_test_layout_template_95() {
         assert_eq!(::std::mem::size_of::<[u64; 2usize]>() , 16usize , concat !
                    (
                    "Size of template specialization: " , stringify ! (
@@ -28800,7 +28847,7 @@ pub mod root {
                    [u64; 2usize] ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_95() {
+    fn __bindgen_test_layout_template_96() {
         assert_eq!(::std::mem::size_of::<u64>() , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! ( u64 )
                    ));
@@ -28809,7 +28856,7 @@ pub mod root {
                    u64 ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_96() {
+    fn __bindgen_test_layout_template_97() {
         assert_eq!(::std::mem::size_of::<[u32; 3usize]>() , 12usize , concat !
                    (
                    "Size of template specialization: " , stringify ! (
@@ -28820,7 +28867,7 @@ pub mod root {
                    [u32; 3usize] ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_97() {
+    fn __bindgen_test_layout_template_98() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::nsStyleImageRequest>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28831,7 +28878,7 @@ pub mod root {
                    root::already_AddRefed<root::nsStyleImageRequest> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_98() {
+    fn __bindgen_test_layout_template_99() {
         assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete<root::nsStyleSides>>()
                    , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28842,7 +28889,7 @@ pub mod root {
                    root::mozilla::DefaultDelete<root::nsStyleSides> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_99() {
+    fn __bindgen_test_layout_template_100() {
         assert_eq!(::std::mem::size_of::<root::mozilla::UniquePtr<root::nsStyleSides,
                                                root::mozilla::DefaultDelete<root::nsStyleSides>>>()
                    , 8usize , concat ! (
@@ -28859,7 +28906,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_100() {
+    fn __bindgen_test_layout_template_101() {
         assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete<root::CachedBorderImageData>>()
                    , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28872,7 +28919,7 @@ pub mod root {
                    ));
     }
     #[test]
-    fn __bindgen_test_layout_template_101() {
+    fn __bindgen_test_layout_template_102() {
         assert_eq!(::std::mem::size_of::<root::std::pair<::nsstring::nsStringRepr, ::nsstring::nsStringRepr>>()
                    , 32usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28883,7 +28930,7 @@ pub mod root {
                    root::std::pair<::nsstring::nsStringRepr, ::nsstring::nsStringRepr> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_102() {
+    fn __bindgen_test_layout_template_103() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::std::pair<::nsstring::nsStringRepr,
                                                      ::nsstring::nsStringRepr>>>()
                    , 8usize , concat ! (
@@ -28898,7 +28945,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_103() {
+    fn __bindgen_test_layout_template_104() {
         assert_eq!(::std::mem::size_of::<[u64; 18usize]>() , 144usize , concat
                    ! (
                    "Size of template specialization: " , stringify ! (
@@ -28909,7 +28956,18 @@ pub mod root {
                    [u64; 18usize] ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_104() {
+    fn __bindgen_test_layout_template_105() {
+        assert_eq!(::std::mem::size_of::<root::RefPtr<root::RawServoAnimationValue>>()
+                   , 8usize , concat ! (
+                   "Size of template specialization: " , stringify ! (
+                   root::RefPtr<root::RawServoAnimationValue> ) ));
+        assert_eq!(::std::mem::align_of::<root::RefPtr<root::RawServoAnimationValue>>()
+                   , 8usize , concat ! (
+                   "Alignment of template specialization: " , stringify ! (
+                   root::RefPtr<root::RawServoAnimationValue> ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_template_106() {
         assert_eq!(::std::mem::size_of::<root::mozilla::BaseTimeDuration<root::mozilla::StickyTimeDurationValueCalculator>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28922,7 +28980,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_105() {
+    fn __bindgen_test_layout_template_107() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::mozilla::DisplayItemClip_RoundedRect>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28935,7 +28993,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_106() {
+    fn __bindgen_test_layout_template_108() {
         assert_eq!(::std::mem::size_of::<root::RefPtr<root::mozilla::dom::DOMRect>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28946,7 +29004,7 @@ pub mod root {
                    root::RefPtr<root::mozilla::dom::DOMRect> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_107() {
+    fn __bindgen_test_layout_template_109() {
         assert_eq!(::std::mem::size_of::<u64>() , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! ( u64 )
                    ));
@@ -28955,7 +29013,7 @@ pub mod root {
                    u64 ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_108() {
+    fn __bindgen_test_layout_template_110() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::mozilla::css::DocumentRule>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -28966,7 +29024,7 @@ pub mod root {
                    root::nsTArray<*mut root::mozilla::css::DocumentRule> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_109() {
+    fn __bindgen_test_layout_template_111() {
         assert_eq!(::std::mem::size_of::<root::nsAutoPtr<root::nsMediaQuery>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (

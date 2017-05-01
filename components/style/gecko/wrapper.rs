@@ -55,7 +55,6 @@ use gecko_bindings::structs::NODE_IS_NATIVE_ANONYMOUS;
 use gecko_bindings::sugar::ownership::HasArcFFI;
 use logical_geometry::WritingMode;
 use media_queries::Device;
-use parking_lot::RwLock;
 use properties::{ComputedValues, parse_style_attribute};
 use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock};
 use properties::animated_properties::{AnimationValue, AnimationValueMap, TransitionProperty};
@@ -423,17 +422,15 @@ fn selector_flags_to_node_flags(flags: ElementSelectorFlags) -> u32 {
 fn get_animation_rule(element: &GeckoElement,
                       cascade_level: CascadeLevel)
                       -> Option<Arc<Locked<PropertyDeclarationBlock>>> {
-    // FIXME(emilio): This is quite dumb, why an RwLock, it's local to this
-    // function?
-    //
+    use gecko_bindings::sugar::ownership::HasSimpleFFI;
     // Also, we should try to reuse the PDB, to avoid creating extra rule nodes.
-    let animation_values = Arc::new(RwLock::new(AnimationValueMap::new()));
+    let mut animation_values = AnimationValueMap::new();
     if unsafe { Gecko_GetAnimationRule(element.0,
                                        cascade_level,
-                                       HasArcFFI::arc_as_borrowed(&animation_values)) } {
+                                       AnimationValueMap::as_ffi_mut(&mut animation_values)) } {
         let shared_lock = &GLOBAL_STYLE_DATA.shared_lock;
         Some(Arc::new(shared_lock.wrap(
-            PropertyDeclarationBlock::from_animation_value_map(&animation_values.read()))))
+            PropertyDeclarationBlock::from_animation_value_map(&animation_values))))
     } else {
         None
     }
