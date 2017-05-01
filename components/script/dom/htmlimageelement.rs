@@ -287,7 +287,7 @@ impl HTMLImageElement {
             },
             (ImageResponse::Loaded(image), ImageRequestPhase::Pending) |
             (ImageResponse::PlaceholderLoaded(image), ImageRequestPhase::Pending) => {
-                self.abort_request(State::CompletelyAvailable, ImageRequestPhase::Current);
+                self.abort_request(State::Unavailable, ImageRequestPhase::Pending);
                 self.image_request.set(ImageRequestPhase::Current);
                 self.current_request.borrow_mut().metadata = Some(ImageMetadata {
                     height: image.height,
