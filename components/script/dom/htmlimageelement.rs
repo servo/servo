@@ -50,7 +50,7 @@ use num_traits::ToPrimitive;
 use script_thread::{Runnable, ScriptThread};
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
-use std::cell::Cell;
+use std::cell::{Cell, RefMut};
 use std::default::Default;
 use std::i32;
 use std::sync::{Arc, Mutex};
@@ -439,12 +439,9 @@ impl HTMLImageElement {
     }
 
     fn init_image_request(&self,
+                          request: &mut RefMut<ImageRequest>,
                           url: &ServoUrl,
                           src: &DOMString) {
-        let mut request = match self.image_request.get() {
-            ImageRequestPhase::Pending => self.pending_request.borrow_mut(),
-            ImageRequestPhase::Current => self.current_request.borrow_mut(),
-        };
         request.parsed_url = Some(url.clone());
         request.source_url = Some(src.clone());
         request.image = None;
@@ -465,14 +462,14 @@ impl HTMLImageElement {
                 }
             },
             ImageRequestPhase::Current => {
-                let current_request = self.current_request.borrow_mut();
+                let mut current_request = self.current_request.borrow_mut();
+                let mut pending_request = self.pending_request.borrow_mut();
                 // step 12.4, create a new "image_request"
                 match (current_request.parsed_url.clone(), current_request.state) {
                     (Some(parsed_url), State::PartiallyAvailable) => {
                         // Step 12.2
                         if parsed_url == *url {
                             // 12.3 abort pending request
-                            let mut pending_request = self.pending_request.borrow_mut();
                             pending_request.image = None;
                             pending_request.parsed_url = None;
                             LoadBlocker::terminate(&mut pending_request.blocker);
@@ -480,18 +477,18 @@ impl HTMLImageElement {
                             return
                         }
                         self.image_request.set(ImageRequestPhase::Pending);
-                        self.init_image_request(&url, &src);
+                        self.init_image_request(&mut pending_request, &url, &src);
                         self.fetch_image(&url);
                     },
                     (_, State::Broken) | (_, State::Unavailable) => {
                         // Step 12.5
-                        self.init_image_request(&url, &src);
+                        self.init_image_request(&mut current_request, &url, &src);
                         self.fetch_image(&url);
                     },
                     (_, _) => {
                         // step 12.6
                         self.image_request.set(ImageRequestPhase::Pending);
-                        self.init_image_request(&url, &src);
+                        self.init_image_request(&mut pending_request, &url, &src);
                         self.fetch_image(&url);
                     },
                 }
