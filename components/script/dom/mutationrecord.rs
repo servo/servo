@@ -30,7 +30,6 @@ pub struct MutationRecord {
     old_value: Option<DOMString>,
 }
 
-#[allow(unrooted_must_root)]
 impl MutationRecord {
     pub fn new(record_type: DOMString, target: &Node) -> MutationRecord {
         MutationRecord {

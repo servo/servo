@@ -6,6 +6,7 @@
 //! microtask queues. It is up to implementations of event loops to store a queue and
 //! perform checkpoints at appropriate times, as well as enqueue microtasks as required.
 
+use dom;
 use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationCallback;
@@ -14,6 +15,7 @@ use dom::bindings::js::Root;
 use dom::globalscope::GlobalScope;
 use dom::mutationobserver::MutationObserver;
 use dom::mutationrecord::MutationRecord;
+use dom::types::Window;
 use msg::constellation_msg::PipelineId;
 use std::cell::Cell;
 use std::mem;
@@ -45,11 +47,9 @@ pub struct EnqueuedPromiseCallback {
 /// A mutation callback
 #[derive(JSTraceable, HeapSizeOf)]
 pub struct EnqueuedMutationCallback {
-//    #[ignore_heap_size_of = "Rc has unclear ownership"]
-//    pub callback: Rc<MutationCallback>,
+    #[ignore_heap_size_of = "Rc has unclear ownership"]
+    pub callback: Rc<MutationCallback>,
     pub pipeline: PipelineId,
-//    pub mutations: Vec<Root<MutationRecord>>,
-//    pub observer: MutationObserver,
 }
 
 impl MicrotaskQueue {
@@ -87,9 +87,11 @@ impl MicrotaskQueue {
                     }
                     Microtask::Mutation(ref job) => {
                         if let Some(target) = target_provider(job.pipeline) {
-//                            let observer = MutationObserver::new(job.borrow_mut().callback);
-//                            let _ = job.callback.Call_(&*target, job.borrow_mut().mutations,
-//                                &job.observer, ExceptionHandling::Report);
+                            let global = Root::downcast::<dom::types::Window>(target_provider(job.pipeline)
+                                .unwrap()).unwrap();
+                            let observer = MutationObserver::Constructor(&global, job.callback);
+                            let _ = job.callback.Call_(&*target, Default::default(),
+                                &observer.unwrap(), ExceptionHandling::Report);
                         }
                     }
                 }

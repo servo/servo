@@ -16,6 +16,7 @@ use dom::node::Node;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use html5ever_atoms::Namespace;
+use js::jsapi::{JSContext, JSObject};
 use microtask::EnqueuedMutationCallback;
 use microtask::Microtask;
 use script_thread::ScriptThread;
@@ -152,21 +153,25 @@ impl MutationObserver {
         let mut i = 0;
         for observer in &interestedObservers {
             //Step 4.1
-            let mut record = MutationRecord::new(DOMString::from(&*given_name), target);
+            let mut record = Root::from_ref(&MutationRecord::new(DOMString::from(&*given_name), target));
             //Step 4.2
             if given_name != "" && given_namespace != "" {
-                record.SetAttributeName(DOMString::from(&*given_name));
-                record.SetAttributeNamespace(DOMString::from(&*given_namespace));
+//                mutableRootedRecord.deref().SetAttributeName(DOMString::from(&*given_name));
+//                mutableRootedRecord.deref().SetAttributeNamespace(DOMString::from(&*given_namespace));
             }
             //Step 4.3-4.6- TODO currently not relevant to mutation records for attribute mutations
             //Step 4.7
-            if pairedStrings[i] != ""{
-                record.SetoldValue(pairedStrings[i].clone());
+            if pairedStrings[i] != "" {
+//                mutableRootedRecord.deref().SetoldValue(pairedStrings[i].clone());
             }
             i = i + 1;
         }
         // Step 5
-        let enqueuedMutationCallback = EnqueuedMutationCallback { pipeline: target.global().pipeline_id() };
+        let cx: *mut JSContext = JSContext::new();
+        let callback: *mut JSObject = JSObject::new();
+        let mutationCallback: Rc<MutationCallback> = MutationCallback::new(cx, callback);
+        let enqueuedMutationCallback = EnqueuedMutationCallback { callback: mutationCallback,
+            pipeline: target.global().pipeline_id() };
         let compoundMicrotask = Microtask::Mutation(enqueuedMutationCallback);
         MutationObserver::queueMutationObserverCompoundMicrotask(compoundMicrotask);
     }
