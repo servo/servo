@@ -2774,10 +2774,6 @@ fn static_assert() {
         % for member in fill_fields.split():
             max_len = cmp::max(max_len, self.gecko.${image_layers_field}.${member}Count);
         % endfor
-
-        // XXXManishearth Gecko does an optimization here where it only
-        // fills things in if any of the properties have been set
-
         unsafe {
             // While we could do this manually, we'd need to also manually
             // run all the copy constructors, so we just delegate to gecko
