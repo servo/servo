@@ -1167,9 +1167,8 @@ impl FragmentDisplayListBuilding for Fragment {
             EndingShape::Ellipse(LengthOrPercentageOrKeyword::Keyword(word))
                 => convert_ellipse_size_keyword(word, &bounds.size, &center),
         };
-        let length = Au::from_f32_px(radius.width.to_f32_px().hypot(radius.height.to_f32_px()));
 
-        let mut stops = convert_gradient_stops(stops, length, style);
+        let mut stops = convert_gradient_stops(stops, radius.width, style);
         if !repeating {
             fix_gradient_stops(&mut stops);
         }
