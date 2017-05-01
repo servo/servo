@@ -23,18 +23,6 @@ pub struct MutationRecord {
     //property for target node
     target: JS<Node>,
 
-    //property for added nodes
-//    added_nodes: JS<NodeList>,
-//
-//    //property for removed nodes
-//    removed_nodes: JS<NodeList>,
-//
-//    //property for previous sibling node
-//    previous_sibling: MutNullableJS<Node>,
-//
-//    //property for next sibling node
-//    next_sibling: MutNullableJS<Node>,
-
     //property for attribute name
     attribute_name: Option<DOMString>,
 
@@ -80,26 +68,6 @@ impl MutationRecordMethods for MutationRecord {
     fn Target(&self) -> Root<Node> {
         return Root::from_ref(&*self.target);
     }
-
-//    // https://dom.spec.whatwg.org/#dom-mutationrecord-addednodes
-//    fn AddedNodes(&self) -> Root<NodeList> {
-//        Root::from_ref(&*self.added_nodes)
-//    }
-//
-//    // https://dom.spec.whatwg.org/#dom-mutationrecord-removednodes
-//    fn RemovedNodes(&self) -> Root<NodeList>{
-//        Root::from_ref(&*self.removed_nodes)
-//    }
-//
-//    // https://dom.spec.whatwg.org/#dom-mutationrecord-previoussibling
-//    fn GetPreviousSibling(&self) -> Option<Root<Node>> {
-//        self.previous_sibling.get()
-//    }
-//
-//    // https://dom.spec.whatwg.org/#dom-mutationrecord-nextsibling
-//    fn GetNextSibling(&self) -> Option<Root<Node>> {
-//        self.next_sibling.get()
-//    }
 
     // https://dom.spec.whatwg.org/#dom-mutationrecord-attributename
     fn GetAttributeName(&self) -> Option<DOMString> {

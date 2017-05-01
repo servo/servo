@@ -2,14 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use core::borrow::Borrow;
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::MutationObserverBinding;
 use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationCallback;
 use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationObserverBinding::MutationObserverMethods;
 use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationObserverInit;
 use dom::bindings::codegen::Bindings::MutationRecordBinding::MutationRecordBinding::MutationRecordMethods;
 use dom::bindings::error::{Error, Fallible};
-use dom::bindings::js::Root;
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::js::{JS, Root};
+use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::mutationrecord::MutationRecord;
 use dom::node::Node;
@@ -33,8 +35,15 @@ pub struct MutationObserver {
     #[ignore_heap_size_of = "can't measure Rc values"]
     callback: Rc<MutationCallback>,
     record_queue: Vec<Root<MutationRecord>>,
-    #[ignore_heap_size_of = "can't measure DomRefCell values"]
-    options: Cell<MutationObserverInit>,
+//    #[ignore_heap_size_of = "can't measure DomRefCell values"]
+//    options: Cell<MutationObserverInit>,
+    attribute_old_value: Cell<bool>,
+    attributes: Cell<bool>,
+    character_data: Cell<bool>,
+    character_data_old_value: Cell<bool>,
+    child_list: Cell<bool>,
+    subtree: Cell<bool>,
+    attribute_filter: DOMRefCell<Vec<DOMString>>,
 }
 
 #[derive(Clone)]
@@ -53,14 +62,13 @@ impl MutationObserver {
             reflector_: Reflector::new(),
             callback: callback,
             record_queue: vec![],
-            options: Cell::from(MutationObserverInit {
-                    attributeFilter: Some(vec![]),
-                    attributeOldValue: Some(false),
-                    attributes: Some(false),
-                    characterData: Some(false),
-                    characterDataOldValue: Some(false),
-                    childList: false,
-                    subtree: false }),
+            attribute_filter: DOMRefCell::new(vec![]),
+            attribute_old_value: Cell::from(false),
+            attributes: Cell::from(false),
+            character_data: Cell::from(false),
+            character_data_old_value: Cell::from(false),
+            child_list: Cell::from(false),
+            subtree: Cell::from(false),
         }
     }
 
@@ -74,7 +82,7 @@ impl MutationObserver {
     /// Queue a Mutation Observer compound Microtask.
     pub fn queueMutationObserverCompoundMicrotask(compoundMicrotask: Microtask) {
         // Step 1
-        if ScriptThread::get_mutation_observer_compound_microtask_queued() {
+        if ScriptThread::is_mutation_observer_compound_microtask_queued() {
             return;
         }
         // Step 2
@@ -102,7 +110,7 @@ impl MutationObserver {
         let mut given_namespace = "";
         let mut old_value = "";
         // Step 1
-        let mut interestedObservers: Vec<MutationObserver> = vec![];
+        let mut interestedObservers: Vec<JS<MutationObserver>> = vec![];
         let mut pairedStrings: Vec<DOMString> = vec![];
         // Step 2
         let mut nodes: Vec<Root<Node>> = vec![];
@@ -111,25 +119,25 @@ impl MutationObserver {
         }
         // Step 3
         for node in &nodes {
-            for registered_observer in node.registered_mutation_observers_for_type().borrow().iter() {
+            for registered_observer in node.registered_mutation_observers().borrow().iter() {
                 match attr_type {
                     Mutation::Attribute { ref name, ref namespace, ref oldValue, ref newValue } => {
-                        given_name = &*name.clone();
-                        given_namespace = &*namespace.clone();
-                        old_value = &*oldValue.clone();
+                        let given_name = &*name.clone();
+                        let given_namespace = &*namespace.clone();
+                        let old_value = &*oldValue.clone();
                     },
                 }
                 let condition1: bool = node != &Root::from_ref(target) &&
-                    !registered_observer.options.into_inner().subtree;
+                    !registered_observer.borrow().subtree.into_inner();
                 let condition2: bool = given_name == "attribute" &&
-                    registered_observer.options.into_inner().attributes == Some(false);
+                    registered_observer.borrow().attributes.into_inner() == false;
                 let condition3: bool = (given_name == "attribute" &&
-                    registered_observer.options.into_inner().attributeFilter != None) &&
+                    registered_observer.borrow().attribute_filter != DOMRefCell::new(vec![])) &&
                     (given_namespace != "");
                 let condition4: bool = given_name == "characterData" &&
-                    registered_observer.options.into_inner().characterData == Some(false);
+                    registered_observer.borrow().character_data.into_inner() == false;
                 let condition5: bool = given_name == "childList" &&
-                    !registered_observer.options.into_inner().childList;
+                    !registered_observer.borrow().child_list.into_inner();
                 if !condition1 && !condition2 && !condition3 && !condition4 && !condition5 {
                     // Step 3.1
                     if !interestedObservers.contains(&registered_observer) {
@@ -137,9 +145,9 @@ impl MutationObserver {
                     }
                     // Step 3.2
                     let condition: bool = (given_name == "attribute" &&
-                        registered_observer.options.into_inner().attributeOldValue == Some(true)) ||
+                        registered_observer.attribute_old_value.into_inner() == true) ||
                             (given_name == "characterData" &&
-                                registered_observer.options.into_inner().characterDataOldValue == Some(true));
+                                registered_observer.character_data_old_value.into_inner() == true);
                     if condition {
                         pairedStrings.push(DOMString::from(old_value));
                     }
@@ -163,8 +171,7 @@ impl MutationObserver {
             }
         }
         // Step 5
-        let pipelineId = PipelineId { namespace_id: PipelineNamespaceId(0), index: PipelineIndex(0) };
-        let enqueuedMutationCallback = EnqueuedMutationCallback { pipeline: pipelineId };
+        let enqueuedMutationCallback = EnqueuedMutationCallback { pipeline: target.global().pipeline_id() };
         let compoundMicrotask = Microtask::Mutation(enqueuedMutationCallback);
         MutationObserver::queueMutationObserverCompoundMicrotask(compoundMicrotask);
     }
@@ -201,17 +208,20 @@ impl MutationObserverMethods for MutationObserver {
             return Err(Error::Type("characterDataOldValue is true but characterData is false".to_owned()));
         }
         // TODO: Step 7
-        for registered in target.registered_mutation_observers_for_type().borrow().iter() {
+        for registered in target.registered_mutation_observers().borrow().iter() {
             // registered observer in target’s list of registered observers whose observer is the context object
-            if &*registered as *const MutationObserver == self as *const MutationObserver {
+//            if &*registered as *const JS<MutationObserver> == self as *const MutationObserver {
                 // TODO: remove matching transient registered observers
-                registered.options = Cell::from(*options);
-            }
+                registered.attribute_old_value.set(options.attributeOldValue.unwrap());
+                registered.attributes.set(options.attributes.unwrap());
+                registered.character_data.set(options.characterData.unwrap());
+                registered.character_data_old_value.set(options.characterDataOldValue.unwrap());
+                registered.child_list.set(options.childList);
+                registered.subtree.set(options.subtree);
+                registered.attribute_filter == DOMRefCell::new(options.attributeFilter.unwrap());
+//            }
             // TODO: Step 8
-            let callback: Rc<MutationCallback>;
-            let observer: MutationObserver;
-            observer.options = Cell::from(*options);
-            target.add_registered_mutation_observer(observer);
+            target.add_registered_mutation_observer(&self);
         }
         Ok(())
     }

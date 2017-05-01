@@ -584,7 +584,7 @@ impl ScriptThread {
         })
     }
 
-    pub fn get_mutation_observer_compound_microtask_queued() -> bool {
+    pub fn is_mutation_observer_compound_microtask_queued() -> bool {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
             return script_thread.mutation_observer_compound_microtask_queued.get();
