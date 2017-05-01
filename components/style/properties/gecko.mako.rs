@@ -3249,13 +3249,12 @@ fn static_assert() {
                   skip_longhands="text-align text-emphasis-style text-shadow line-height letter-spacing word-spacing
                                   -webkit-text-stroke-width text-emphasis-position -moz-tab-size -moz-text-size-adjust">
 
-    <% text_align_keyword = Keyword("text-align", "start end left right center justify -moz-center -moz-left " +
-                                                  "-moz-right char") %>
+    <% text_align_keyword = Keyword("text-align",
+                                    "start end left right center justify -moz-center -moz-left -moz-right char",
+                                    gecko_strip_moz_prefix=False) %>
     <% text_align_reachable_keyword = Keyword("text-align", "start end left right center justify char") %>
     ${impl_keyword('text_align', 'mTextAlign', text_align_keyword, need_clone=False)}
-    // Stable rust errors on unreachable patterns, and there is overlap, so we run with the overlapping
-    // constants removed
-    ${impl_keyword_clone('text_align', 'mTextAlign', text_align_reachable_keyword)}
+    ${impl_keyword_clone('text_align', 'mTextAlign', text_align_keyword)}
 
     pub fn set_text_shadow(&mut self, v: longhands::text_shadow::computed_value::T) {
         self.gecko.mTextShadow.replace_with_new(v.0.len() as u32);
