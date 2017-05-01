@@ -169,27 +169,6 @@ impl<Impl: SelectorImpl> SelectorInner<Impl> {
         }
     }
 
-    /// Creates a clone of this selector with everything to the left of
-    /// (and including) the rightmost ancestor combinator removed. So
-    /// the selector |span foo > bar + baz| will become |bar + baz|.
-    /// This is used for revalidation selectors in servo.
-    ///
-    /// The bloom filter hashes are copied, even though they correspond to
-    /// parts of the selector that have been stripped out, because they are
-    /// still useful for fast-rejecting the reduced selectors.
-    pub fn slice_to_first_ancestor_combinator(&self) -> Self {
-        let maybe_pos = self.complex.iter_raw()
-                            .position(|s| s.as_combinator()
-                                           .map_or(false, |c| c.is_ancestor()));
-        match maybe_pos {
-            None => self.clone(),
-            Some(index) => SelectorInner {
-                complex: self.complex.slice_to(index),
-                ancestor_hashes: self.ancestor_hashes.clone(),
-            },
-        }
-    }
-
     /// Creates a SelectorInner from a Vec of Components. Used in tests.
     pub fn from_vec(vec: Vec<Component<Impl>>) -> Self {
         let complex = ComplexSelector::from_vec(vec);
