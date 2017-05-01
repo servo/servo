@@ -55,16 +55,14 @@
 <script>
   // test: The final task that is queued by the networking task source once the resource has been fetched has been queued, but has not yet been run, and the img element is not in the broken state
   async_test(function(t) {
-    var loaded = false;
-    imageInstance.onload = imageInstance.onerror = t.step_func(function() {
-      loaded = true;
-    });
     assert_false(imageInstance.complete, "imageInstance.complete should be false");
-    t.step_timeout(function(){
-      assert_false(loaded, "image should not have loaded yet");
-      assert_true(imageInstance.complete, "imageInstance.complete should be true");
-      t.done();
-    }, 2000);
+    var startTime = Date.now();
+    while (true) {
+      if (Date.now() - startTime > 2000)
+        assert_unreached('.complete didn\'t change to true');
+      if (imageInstance.complete === true) break;
+    }
+    t.done();
   },
   'IDL attribute complete returns true when image resource has been fetched but not run yet & image is not in broken state');
 
