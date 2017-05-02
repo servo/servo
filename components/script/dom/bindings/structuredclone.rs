@@ -112,7 +112,7 @@ unsafe fn write_blob(blob: Root<Blob>,
                      -> Result<(), ()> {
     let structured_writer = StructuredCloneWriter{w: w};
     let blob_vec = try!(blob.get_bytes());
-    let type_string_bytes = blob.type_string().as_bytes().to_vec();
+    let type_string_bytes = blob.type_string().as_bytes();
     assert!(JS_WriteUint32Pair(w, StructuredCloneTags::DomBlob as u32, 0));
     structured_writer.write_slice(&blob_vec);
     structured_writer.write_slice(&type_string_bytes);
