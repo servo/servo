@@ -35,7 +35,8 @@
   t.step(function(){
     document.getElementById("imgTestTag3").onload = t.step_func(function(){
       assert_true(document.getElementById("imgTestTag3").complete);
-      assert_equals(document.getElementById("imgTestTag3").currentSrc.split("/").pop().split('?')[0], "3.jpg");
+      var currentSrc = document.getElementById("imgTestTag3").currentSrc
+      assert_equals(new URL(window.location.origin + "/" + currentSrc).pathname, "/3.jpg");
       t.done();
     });
 
