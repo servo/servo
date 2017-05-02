@@ -290,9 +290,13 @@ class MachCommands(CommandBase):
                      default='1',
                      help='Keep up to this many most recent nightlies')
     def clean_nightlies(self, force=False, keep=None):
-        rust_current = self.rust_version()
+        self.set_use_stable_rust(False)
+        rust_current_nightly = self.rust_version()
+        self.set_use_stable_rust(True)
+        rust_current_stable = self.rust_version()
         cargo_current = self.cargo_build_id()
-        print("Current Rust version: {}".format(rust_current))
+        print("Current Rust nightly version: {}".format(rust_current_nightly))
+        print("Current Rust stable version: {}".format(rust_current_stable))
         print("Current Cargo version: {}".format(cargo_current))
         to_keep = {
             'rust': set(),
@@ -300,20 +304,24 @@ class MachCommands(CommandBase):
         }
         if int(keep) == 1:
             # Optimize keep=1 case to not invoke git
-            to_keep['rust'].add(rust_current)
+            to_keep['rust'].add(rust_current_nightly)
+            to_keep['rust'].add(rust_current_stable)
             to_keep['cargo'].add(cargo_current)
         else:
-            for tool in ["rust", "cargo"]:
-                commit_file = '{}-commit-hash'.format(tool)
-                cmd = subprocess.Popen(
-                    ['git', 'log', '--oneline', '--no-color', '-n', keep, '--patch', commit_file],
-                    stdout=subprocess.PIPE,
-                    universal_newlines=True
-                )
-                stdout, _ = cmd.communicate()
-                for line in stdout.splitlines():
-                    if line.startswith("+") and not line.startswith("+++"):
-                        to_keep[tool].add(line[1:])
+            for tool, version_files in {
+                'rust': ['rust-commit-hash', 'rust-stable-version'],
+                'cargo': ['cargo-commit-hash'],
+            }.items():
+                for version_file in version_files:
+                    cmd = subprocess.Popen(
+                        ['git', 'log', '--oneline', '--no-color', '-n', keep, '--patch', version_file],
+                        stdout=subprocess.PIPE,
+                        universal_newlines=True
+                    )
+                    stdout, _ = cmd.communicate()
+                    for line in stdout.splitlines():
+                        if line.startswith("+") and not line.startswith("+++"):
+                            to_keep[tool].add(line[1:])
 
         removing_anything = False
         for tool in ["rust", "cargo"]:
