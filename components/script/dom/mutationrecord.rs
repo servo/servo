@@ -3,11 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use core::default::Default;
+use core::ops::Deref;
+use dom::bindings::codegen::Bindings::MutationRecordBinding::MutationRecordBinding;
 use dom::bindings::codegen::Bindings::MutationRecordBinding::MutationRecordBinding::MutationRecordMethods;
 use dom::bindings::js::{JS, Root};
-use dom::bindings::reflector::Reflector;
+use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
-use dom::node::Node;
+use dom::node::{Node, window_from_node};
 use dom_struct::dom_struct;
 
 #[dom_struct]
@@ -31,7 +33,12 @@ pub struct MutationRecord {
 }
 
 impl MutationRecord {
-    pub fn new(record_type: DOMString, target: &Node) -> MutationRecord {
+    pub fn new(record_type: DOMString, target: &Node) -> Root<MutationRecord> {
+        let boxed_record = box MutationRecord::new_inherited(record_type, target);
+        return reflect_dom_object(boxed_record, window_from_node(target).deref(), MutationRecordBinding::Wrap);
+    }
+
+    fn new_inherited(record_type: DOMString, target: &Node) -> MutationRecord {
         MutationRecord {
             reflector_: Reflector::new(),
             record_type: record_type,
@@ -41,6 +48,7 @@ impl MutationRecord {
             old_value: Default::default(),
         }
     }
+
     // setter for attr_name
     pub fn SetAttributeName(&mut self, attr_name: DOMString) {
         self.attribute_name = Some(attr_name);

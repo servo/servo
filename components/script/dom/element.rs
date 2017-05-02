@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //! Element nodes.
+use core::ops::Deref;
 use cssparser::Color;
 use devtools_traits::AttrInfo;
 use dom::activation::Activatable;
@@ -14,6 +15,7 @@ use dom::bindings::codegen::Bindings::ElementBinding;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
+use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationCallback;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
@@ -1013,7 +1015,11 @@ impl Element {
         let oldValue = DOMString::from(attr.value().to_string());
         let newValue = DOMString::from(attr.value().to_string());
         let attributeSpec = Mutation::Attribute { name, namespace, oldValue, newValue };
-        MutationObserver::queue_a_mutation_record(&self.node, attributeSpec);
+        let callback: Rc<MutationCallback>;
+        let mo = MutationObserver::Constructor(window_from_node(&self.node).deref(), callback);
+        let moRef = mo.unwrap();
+        let observer: &MutationObserver = moRef.deref();
+        MutationObserver::queue_a_mutation_record(observer, &self.node, attributeSpec);
         assert!(attr.GetOwnerElement().r() == Some(self));
         self.will_mutate_attr(attr);
         self.attrs.borrow_mut().push(JS::from_ref(attr));
@@ -1146,7 +1152,11 @@ impl Element {
             let oldValue = DOMString::from(attr.value().to_string());
             let newValue = DOMString::from(attr.value().to_string());
             let attributeSpec = Mutation::Attribute { name, namespace, oldValue, newValue };
-            MutationObserver::queue_a_mutation_record(&self.node, attributeSpec);
+            let callback: Rc<MutationCallback>;
+            let mo = MutationObserver::Constructor(window_from_node(&self.node).deref(), callback);
+            let moRef = mo.unwrap();
+            let observer: &MutationObserver = moRef.deref();
+            MutationObserver::queue_a_mutation_record(observer, &self.node, attributeSpec);
             self.attrs.borrow_mut().remove(idx);
             attr.set_owner(None);
             if attr.namespace() == &ns!() {

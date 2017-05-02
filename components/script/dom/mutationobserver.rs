@@ -100,7 +100,7 @@ impl MutationObserver {
 
     //https://dom.spec.whatwg.org/#queueing-a-mutation-record
     //Queuing a mutation record
-    pub fn queue_a_mutation_record(target: &Node, attr_type: Mutation) {
+    pub fn queue_a_mutation_record(&self, target: &Node, attr_type: Mutation) {
         let mut given_name = "";
         let mut given_namespace = "";
         let mut old_value = "";
@@ -153,28 +153,26 @@ impl MutationObserver {
         let mut i = 0;
         for observer in &interestedObservers {
             //Step 4.1
-            let mut record = Root::from_ref(&MutationRecord::new(DOMString::from(&*given_name), target));
+            let mut record = &MutationRecord::new(DOMString::from(&*given_name), target);
             //Step 4.2
             if given_name != "" && given_namespace != "" {
-//                mutableRootedRecord.deref().SetAttributeName(DOMString::from(&*given_name));
-//                mutableRootedRecord.deref().SetAttributeNamespace(DOMString::from(&*given_namespace));
+                record.SetAttributeName(DOMString::from(&*given_name));
+                record.SetAttributeNamespace(DOMString::from(&*given_namespace));
             }
             //Step 4.3-4.6- TODO currently not relevant to mutation records for attribute mutations
             //Step 4.7
             if pairedStrings[i] != "" {
-//                mutableRootedRecord.deref().SetoldValue(pairedStrings[i].clone());
+                record.SetoldValue(pairedStrings[i].clone());
             }
             i = i + 1;
         }
         // Step 5
-        let cx: *mut JSContext = JSContext::new();
-        let callback: *mut JSObject = JSObject::new();
-        let mutationCallback: Rc<MutationCallback> = MutationCallback::new(cx, callback);
-        let enqueuedMutationCallback = EnqueuedMutationCallback { callback: mutationCallback,
+        let enqueuedMutationCallback = EnqueuedMutationCallback { callback: self.callback,
             pipeline: target.global().pipeline_id() };
         let compoundMicrotask = Microtask::Mutation(enqueuedMutationCallback);
         MutationObserver::queueMutationObserverCompoundMicrotask(compoundMicrotask);
     }
+
 }
 
 impl MutationObserverMethods for MutationObserver {

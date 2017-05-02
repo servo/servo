@@ -2,9 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use core::ops::Deref;
 use devtools_traits::AttrInfo;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::{self, AttrMethods};
+use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationCallback;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{LayoutJS, MutNullableJS, Root, RootedReference};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
@@ -12,7 +14,7 @@ use dom::bindings::str::DOMString;
 use dom::element::{AttributeMutation, Element};
 use dom::mutationobserver::Mutation;
 use dom::mutationobserver::MutationObserver;
-use dom::node::Node;
+use dom::node::{Node, window_from_node};
 use dom::virtualmethods::vtable_for;
 use dom::window::Window;
 use dom_struct::dom_struct;
@@ -21,6 +23,7 @@ use servo_atoms::Atom;
 use std::borrow::ToOwned;
 use std::cell::Ref;
 use std::mem;
+use std::rc::Rc;
 use style::attr::{AttrIdentifier, AttrValue};
 
 // https://dom.spec.whatwg.org/#interface-attr
@@ -178,8 +181,12 @@ impl Attr {
         let oldValue = DOMString::from(self.value().to_string());
         let newValue = DOMString::from(value.to_string());
         let attributeSpec = Mutation::Attribute { name, namespace, oldValue, newValue };
+        let callback: Rc<MutationCallback>;
+        let mo = MutationObserver::Constructor(window_from_node(owner.upcast::<Node>()).deref(), callback);
+        let moRef = mo.unwrap();
+        let observer: &MutationObserver = moRef.deref();
 
-        MutationObserver::queue_a_mutation_record(owner.upcast::<Node>(), attributeSpec);
+        MutationObserver::queue_a_mutation_record(observer, owner.upcast::<Node>(), attributeSpec);
 
         assert!(Some(owner) == self.owner().r());
         owner.will_mutate_attr(self);
