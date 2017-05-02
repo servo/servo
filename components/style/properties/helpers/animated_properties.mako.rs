@@ -621,6 +621,8 @@ pub trait Interpolate: Sized {
 /// https://drafts.csswg.org/css-transitions/#animtype-repeatable-list
 pub trait RepeatableListInterpolate: Interpolate {}
 
+impl RepeatableListInterpolate for Either<f32, LengthOrPercentage> {}
+
 impl<T: RepeatableListInterpolate> Interpolate for SmallVec<[T; 1]> {
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         use num_integer::lcm;

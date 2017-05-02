@@ -3808,6 +3808,26 @@ clip-path
             bindings::Gecko_nsStyleSVG_CopyDashArray(&mut self.gecko, &other.gecko);
         }
     }
+
+    pub fn clone_stroke_dasharray(&self) -> longhands::stroke_dasharray::computed_value::T {
+        use smallvec::SmallVec;
+        use values::computed::LengthOrPercentage;
+
+        let mut vec = SmallVec::new();
+        for gecko in self.gecko.mStrokeDasharray.iter() {
+            match gecko.as_value() {
+                CoordDataValue::Factor(number) => vec.push(Either::First(number)),
+                CoordDataValue::Coord(coord) =>
+                    vec.push(Either::Second(LengthOrPercentage::Length(Au(coord)))),
+                CoordDataValue::Percent(p) =>
+                    vec.push(Either::Second(LengthOrPercentage::Percentage(p))),
+                CoordDataValue::Calc(calc) =>
+                    vec.push(Either::Second(LengthOrPercentage::Calc(calc.into()))),
+                _ => unreachable!(),
+            }
+        }
+        longhands::stroke_dasharray::computed_value::T(vec)
+    }
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Color"
