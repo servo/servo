@@ -12,7 +12,7 @@ use dom::bindings::str::DOMString;
 use dom::element::Element;
 use dom::node::window_from_node;
 use dom_struct::dom_struct;
-use html5ever_atoms::LocalName;
+use html5ever::LocalName;
 use servo_atoms::Atom;
 use style::str::HTML_SPACE_CHARACTERS;
 

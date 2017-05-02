@@ -42,7 +42,7 @@ use dom::node::{CAN_BE_FRAGMENTED, DIRTY_ON_VIEWPORT_SIZE_CHANGE, HAS_DIRTY_DESC
 use dom::node::{LayoutNodeHelpers, Node};
 use dom::text::Text;
 use gfx_traits::ByteIndex;
-use html5ever_atoms::{LocalName, Namespace};
+use html5ever::{LocalName, Namespace};
 use msg::constellation_msg::PipelineId;
 use range::Range;
 use script_layout_interface::{HTMLCanvasData, LayoutNodeType, SVGSVGData, TrustedNodeAddress};

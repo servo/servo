@@ -9,7 +9,7 @@ use dom::document::Document;
 use dom::htmlelement::HTMLElement;
 use dom::node::Node;
 use dom_struct::dom_struct;
-use html5ever_atoms::LocalName;
+use html5ever::LocalName;
 
 #[derive(JSTraceable, HeapSizeOf)]
 pub enum HeadingLevel {

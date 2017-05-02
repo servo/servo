@@ -15,7 +15,7 @@ use dom::htmloptionelement::HTMLOptionElement;
 use dom::node::Node;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever_atoms::LocalName;
+use html5ever::LocalName;
 use style::element_state::*;
 
 #[dom_struct]

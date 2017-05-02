@@ -13,7 +13,7 @@ use dom::htmlelement::HTMLElement;
 use dom::node::Node;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever_atoms::LocalName;
+use html5ever::LocalName;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 
 #[dom_struct]

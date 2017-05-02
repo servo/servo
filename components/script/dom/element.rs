@@ -75,11 +75,11 @@ use dom::validation::Validatable;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
 use dom::window::ReflowReason;
 use dom_struct::dom_struct;
+use html5ever::{Prefix, LocalName, Namespace, QualName};
 use html5ever::serialize;
 use html5ever::serialize::SerializeOpts;
 use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
-use html5ever_atoms::{Prefix, LocalName, Namespace, QualName};
 use js::jsapi::{HandleValue, JSAutoCompartment};
 use net_traits::request::CorsSettings;
 use ref_filter_map::ref_filter_map;
@@ -195,10 +195,10 @@ impl<'a> TryFrom<&'a str> for AdjacentPosition {
 // Element methods
 //
 impl Element {
-    pub fn create(name: QualName, prefix: Option<Prefix>,
+    pub fn create(name: QualName,
                   document: &Document, creator: ElementCreator)
                   -> Root<Element> {
-        create_element(name, prefix, document, creator)
+        create_element(name, document, creator)
     }
 
     pub fn new_inherited(local_name: LocalName,
@@ -1955,8 +1955,8 @@ impl ElementMethods for Element {
 
             // Step 4.
             NodeTypeId::DocumentFragment => {
-                let body_elem = Element::create(QualName::new(ns!(html), local_name!("body")),
-                                                None, &context_document,
+                let body_elem = Element::create(QualName::new(None, ns!(html), local_name!("body")),
+                                                &context_document,
                                                 ElementCreator::ScriptCreated);
                 Root::upcast(body_elem)
             },

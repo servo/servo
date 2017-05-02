@@ -20,7 +20,7 @@ fnv = "1.0"
 gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}
 heapsize = "0.3.0"
-html5ever-atoms = "0.3"
+html5ever = "0.16"
 ipc-channel = "0.7"
 libc = "0.2"
 log = "0.3.5"

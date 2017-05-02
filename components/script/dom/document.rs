@@ -93,7 +93,7 @@ use dom_struct::dom_struct;
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
 use euclid::point::Point2D;
-use html5ever_atoms::{LocalName, QualName};
+use html5ever::{LocalName, QualName};
 use hyper::header::{Header, SetCookie};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
@@ -2733,7 +2733,7 @@ impl DocumentMethods for Document {
                               -> Root<HTMLCollection> {
         let ns = namespace_from_domstring(maybe_ns);
         let local = LocalName::from(tag_name);
-        let qname = QualName::new(ns, local);
+        let qname = QualName::new(None, ns, local);
         match self.tagns_map.borrow_mut().entry(qname.clone()) {
             Occupied(entry) => Root::from_ref(entry.get()),
             Vacant(entry) => {
@@ -2782,8 +2782,8 @@ impl DocumentMethods for Document {
             ns!()
         };
 
-        let name = QualName::new(ns, LocalName::from(local_name));
-        Ok(Element::create(name, None, self, ElementCreator::ScriptCreated))
+        let name = QualName::new(None, ns, LocalName::from(local_name));
+        Ok(Element::create(name, self, ElementCreator::ScriptCreated))
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createelementns
@@ -2793,8 +2793,8 @@ impl DocumentMethods for Document {
                        -> Fallible<Root<Element>> {
         let (namespace, prefix, local_name) = try!(validate_and_extract(namespace,
                                                                         &qualified_name));
-        let name = QualName::new(namespace, local_name);
-        Ok(Element::create(name, prefix, self, ElementCreator::ScriptCreated))
+        let name = QualName::new(prefix, namespace, local_name);
+        Ok(Element::create(name, self, ElementCreator::ScriptCreated))
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createattribute
@@ -3047,8 +3047,8 @@ impl DocumentMethods for Document {
             match elem {
                 Some(elem) => Root::upcast::<Node>(elem),
                 None => {
-                    let name = QualName::new(ns!(svg), local_name!("title"));
-                    let elem = Element::create(name, None, self, ElementCreator::ScriptCreated);
+                    let name = QualName::new(None, ns!(svg), local_name!("title"));
+                    let elem = Element::create(name, self, ElementCreator::ScriptCreated);
                     let parent = root.upcast::<Node>();
                     let child = elem.upcast::<Node>();
                     parent.InsertBefore(child, parent.GetFirstChild().r())
@@ -3064,9 +3064,8 @@ impl DocumentMethods for Document {
                 None => {
                     match self.GetHead() {
                         Some(head) => {
-                            let name = QualName::new(ns!(html), local_name!("title"));
+                            let name = QualName::new(None, ns!(html), local_name!("title"));
                             let elem = Element::create(name,
-                                                       None,
                                                        self,
                                                        ElementCreator::ScriptCreated);
                             head.upcast::<Node>()
