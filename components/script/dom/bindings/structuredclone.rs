@@ -72,13 +72,10 @@ struct StructuredCloneWriter {
 }
 
 impl StructuredCloneWriter {
-    unsafe fn write_slice(&self, v: &[u8]) {
-        // writers bytesl takes in a vec! and its length
+    unsafe fn write_slice(&self, s: &usize, v: &[u8]) {
+        write_length(self.w, s.to_be());
         let blob_length = v.len();
         assert!(JS_WriteBytes(self.w, v.as_ptr() as *const raw::c_void, blob_length));
-    }
-    unsafe fn write_usize(&self, mut u: &usize) {
-        write_length(self.w, u.to_be());
     }
 }
 
@@ -87,28 +84,16 @@ struct StructuredCloneReader {
 }
 
 impl StructuredCloneReader {
-    unsafe fn read_bytes(&self) -> usize {
-        // reads and return length
+    unsafe fn read_bytes(&self) -> Vec<u8> {
         let type_length = read_length(self.r);
-        return type_length;
+        let mut v = vec![0u8; type_length];
+        let blob_length = v.len();
+        assert!(JS_ReadBytes(self.r, v.as_mut_ptr() as *mut raw::c_void, blob_length));
+        return v;
     }
     unsafe fn read_str(&self) -> String {
-        // return string from vec!
-        let type_str_length = read_length(self.r);
-        let mut type_str_buffer = vec![0u8; type_str_length];
+        let type_str_buffer = self.read_bytes();
         return String::from_utf8_unchecked(type_str_buffer);
-    }
-    unsafe fn read_slice(&self) -> Vec<u8> {
-        // returns vec! with blob/str length
-        let blob_buffer = read_length(self.r);
-        let vect = vec![0u8; blob_buffer];
-        return vect;
-    }
-    unsafe fn read_assert(&self, v: &mut [u8], l: usize) {
-        // Reads bytes; takes in vec! and length
-        let blob_length = l;
-        let vect = v.as_mut_ptr();
-        assert!(JS_ReadBytes(self.r, vect as *mut raw::c_void, blob_length));
     }
 }
 
@@ -116,12 +101,7 @@ unsafe fn read_blob(cx: *mut JSContext,
                     r: *mut JSStructuredCloneReader)
                     -> *mut JSObject {
     let structured_reader = StructuredCloneReader{r: r};
-    let blob_length = structured_reader.read_bytes();
-    let type_str_length = structured_reader.read_bytes();
-    let mut blob_buffer = structured_reader.read_slice();
-    structured_reader.read_assert(&mut blob_buffer, blob_length);
-    let mut type_str_buffer = structured_reader.read_slice();
-    structured_reader.read_assert(&mut type_str_buffer, type_str_length);
+    let blob_buffer = structured_reader.read_bytes();
     let type_str = structured_reader.read_str();
     let target_global = GlobalScope::from_context(cx);
     let blob = Blob::new(&target_global, BlobImpl::new_from_bytes(blob_buffer), type_str);
@@ -137,10 +117,8 @@ unsafe fn write_blob(blob: Root<Blob>,
     let type_string_bytes = blob.get_type_string().as_bytes().to_vec();
     let type_string_length = type_string_bytes.len();
     assert!(JS_WriteUint32Pair(w, StructuredCloneTags::DomBlob as u32, 0));
-    structured_writer.write_usize(&blob_length);
-    structured_writer.write_usize(&type_string_length);
-    structured_writer.write_slice(&blob_vec);
-    structured_writer.write_slice(&type_string_bytes);
+    structured_writer.write_slice(&blob_length, &blob_vec);
+    structured_writer.write_slice(&type_string_length, &type_string_bytes);
     return Ok(())
 }
 
