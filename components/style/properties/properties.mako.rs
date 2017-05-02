@@ -2056,7 +2056,7 @@ pub enum StyleStructRef<'a, T: 'a> {
     /// A borrowed struct from the parent, for example, for inheriting style.
     Borrowed(&'a Arc<T>),
     /// An owned struct, that we've already mutated.
-    Owned(T),
+    Owned(Arc<T>),
 }
 
 impl<'a, T: 'a> StyleStructRef<'a, T>
@@ -2066,11 +2066,11 @@ impl<'a, T: 'a> StyleStructRef<'a, T>
     /// borrowed value, or returning the owned one.
     pub fn mutate(&mut self) -> &mut T {
         if let StyleStructRef::Borrowed(v) = *self {
-            *self = StyleStructRef::Owned((**v).clone());
+            *self = StyleStructRef::Owned(Arc::new((**v).clone()));
         }
 
         match *self {
-            StyleStructRef::Owned(ref mut v) => v,
+            StyleStructRef::Owned(ref mut v) => Arc::get_mut(v).unwrap(),
             StyleStructRef::Borrowed(..) => unreachable!(),
         }
     }
@@ -2079,7 +2079,7 @@ impl<'a, T: 'a> StyleStructRef<'a, T>
     /// hasn't been mutated.
     pub fn get_if_mutated(&mut self) -> Option<<&mut T> {
         match *self {
-            StyleStructRef::Owned(ref mut v) => Some(v),
+            StyleStructRef::Owned(ref mut v) => Some(Arc::get_mut(v).unwrap()),
             StyleStructRef::Borrowed(..) => None,
         }
     }
@@ -2088,7 +2088,7 @@ impl<'a, T: 'a> StyleStructRef<'a, T>
     /// appropriate.
     pub fn build(self) -> Arc<T> {
         match self {
-            StyleStructRef::Owned(v) => Arc::new(v),
+            StyleStructRef::Owned(v) => v,
             StyleStructRef::Borrowed(v) => v.clone(),
         }
     }
@@ -2099,7 +2099,7 @@ impl<'a, T: 'a> Deref for StyleStructRef<'a, T> {
 
     fn deref(&self) -> &T {
         match *self {
-            StyleStructRef::Owned(ref v) => v,
+            StyleStructRef::Owned(ref v) => &**v,
             StyleStructRef::Borrowed(v) => &**v,
         }
     }
