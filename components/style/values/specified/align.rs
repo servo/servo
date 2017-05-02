@@ -332,12 +332,12 @@ impl Parse for JustifyItems {
         if let Ok(value) = input.try(parse_auto_normal_stretch_baseline) {
             return Ok(JustifyItems(value))
         }
-        // [ <overflow-position>? && <self-position> ]
-        if let Ok(value) = input.try(parse_overflow_self_position) {
+        // [ legacy && [ left | right | center ] ]
+        if let Ok(value) = input.try(parse_legacy) {
             return Ok(JustifyItems(value))
         }
-        // [ legacy && [ left | right | center ] ]
-        if let Ok(value) = parse_legacy(input) {
+        // [ <overflow-position>? && <self-position> ]
+        if let Ok(value) = parse_overflow_self_position(input) {
             return Ok(JustifyItems(value))
         }
         Err(())
