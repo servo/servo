@@ -2514,3 +2514,82 @@ ${helpers.predefined_type("shape-outside", "basic_shape::ShapeWithShapeBox",
                           products="gecko", boxed="True",
                           animation_value_type="none",
                           spec="https://drafts.csswg.org/css-shapes/#shape-outside-property")}
+
+<%helpers:longhand name="touch-action"
+                   products="gecko"
+                   animation_value_type="none"
+                   disable_when_testing="True"
+                   spec="https://compat.spec.whatwg.org/#touch-action">
+    use gecko_bindings::structs;
+    use std::fmt;
+    use style_traits::ToCss;
+    use values::HasViewportPercentage;
+    use values::computed::ComputedValueAsSpecified;
+
+    impl ComputedValueAsSpecified for SpecifiedValue {}
+    no_viewport_percentage!(SpecifiedValue);
+
+    pub mod computed_value {
+        pub use super::SpecifiedValue as T;
+    }
+
+    bitflags! {
+        /// These constants match Gecko's `NS_STYLE_TOUCH_ACTION_*` constants.
+        pub flags SpecifiedValue: u8 {
+            const TOUCH_ACTION_NONE = structs::NS_STYLE_TOUCH_ACTION_NONE as u8,
+            const TOUCH_ACTION_AUTO = structs::NS_STYLE_TOUCH_ACTION_AUTO as u8,
+            const TOUCH_ACTION_PAN_X = structs::NS_STYLE_TOUCH_ACTION_PAN_X as u8,
+            const TOUCH_ACTION_PAN_Y = structs::NS_STYLE_TOUCH_ACTION_PAN_Y as u8,
+            const TOUCH_ACTION_MANIPULATION = structs::NS_STYLE_TOUCH_ACTION_MANIPULATION as u8,
+        }
+    }
+
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match *self {
+                TOUCH_ACTION_NONE => dest.write_str("none"),
+                TOUCH_ACTION_AUTO => dest.write_str("auto"),
+                TOUCH_ACTION_MANIPULATION => dest.write_str("manipulation"),
+                _ if self.contains(TOUCH_ACTION_PAN_X | TOUCH_ACTION_PAN_Y) => {
+                    dest.write_str("pan-x pan-y")
+                },
+                _ if self.contains(TOUCH_ACTION_PAN_X) => {
+                    dest.write_str("pan-x")
+                },
+                _ if self.contains(TOUCH_ACTION_PAN_Y) => {
+                    dest.write_str("pan-y")
+                },
+                _ => panic!("invalid touch-action value"),
+            }
+        }
+    }
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        TOUCH_ACTION_AUTO
+    }
+
+    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        let ident = input.expect_ident()?;
+        match_ignore_ascii_case! { &ident,
+            "auto" => Ok(TOUCH_ACTION_AUTO),
+            "none" => Ok(TOUCH_ACTION_NONE),
+            "manipulation" => Ok(TOUCH_ACTION_MANIPULATION),
+            "pan-x" => {
+                if input.try(|i| i.expect_ident_matching("pan-y")).is_ok() {
+                    Ok(TOUCH_ACTION_PAN_X | TOUCH_ACTION_PAN_Y)
+                } else {
+                    Ok(TOUCH_ACTION_PAN_X)
+                }
+            },
+            "pan-y" => {
+                if input.try(|i| i.expect_ident_matching("pan-x")).is_ok() {
+                    Ok(TOUCH_ACTION_PAN_X | TOUCH_ACTION_PAN_Y)
+                } else {
+                    Ok(TOUCH_ACTION_PAN_Y)
+                }
+            },
+            _ => Err(()),
+        }
+    }
+</%helpers:longhand>

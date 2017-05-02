@@ -1771,7 +1771,7 @@ fn static_assert() {
                           scroll-snap-points-x scroll-snap-points-y transform
                           scroll-snap-type-y scroll-snap-coordinate
                           perspective-origin transform-origin -moz-binding will-change
-                          shape-outside contain""" %>
+                          shape-outside contain touch-action""" %>
 <%self:impl_trait style_struct_name="Box" skip_longhands="${skip_box_longhands}">
 
     // We manually-implement the |display| property until we get general
@@ -2488,6 +2488,12 @@ fn static_assert() {
     }
 
     ${impl_simple_copy("contain", "mContain")}
+
+    pub fn set_touch_action(&mut self, v: longhands::touch_action::computed_value::T) {
+        self.gecko.mTouchAction = v.bits();
+    }
+
+    ${impl_simple_copy("touch_action", "mTouchAction")}
 </%self:impl_trait>
 
 <%def name="simple_image_array_property(name, shorthand, field_name)">
