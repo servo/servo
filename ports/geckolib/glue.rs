@@ -1169,7 +1169,7 @@ pub extern "C" fn Servo_DeclarationBlock_GetNthProperty(declarations: RawServoDe
     read_locked_arc(declarations, |decls: &PropertyDeclarationBlock| {
         if let Some(&(ref decl, _)) = decls.declarations().get(index as usize) {
             let result = unsafe { result.as_mut().unwrap() };
-            decl.id().to_css(result).unwrap();
+            result.assign_utf8(&decl.id().name());
             true
         } else {
             false

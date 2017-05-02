@@ -18,7 +18,7 @@ use std::sync::Arc;
 
 use app_units::Au;
 #[cfg(feature = "servo")] use cssparser::{Color as CSSParserColor, RGBA};
-use cssparser::{Parser, TokenSerializationType};
+use cssparser::{Parser, TokenSerializationType, serialize_identifier};
 use error_reporting::ParseErrorReporter;
 #[cfg(feature = "servo")] use euclid::side_offsets::SideOffsets2D;
 use computed_values;
@@ -775,7 +775,9 @@ impl<'a> ToCss for PropertyDeclarationId<'a> {
     {
         match *self {
             PropertyDeclarationId::Longhand(id) => dest.write_str(id.name()),
-            PropertyDeclarationId::Custom(name) => write!(dest, "--{}", name),
+            PropertyDeclarationId::Custom(_) => {
+                serialize_identifier(&self.name(), dest)
+            }
         }
     }
 }
@@ -806,6 +808,19 @@ impl<'a> PropertyDeclarationId<'a> {
             _ => false,
         }
     }
+
+    /// Returns the name of the property without CSS escaping.
+    pub fn name(&self) -> Cow<'static, str> {
+        match *self {
+            PropertyDeclarationId::Longhand(id) => id.name().into(),
+            PropertyDeclarationId::Custom(name) => {
+                use std::fmt::Write;
+                let mut s = String::new();
+                write!(&mut s, "--{}", name).unwrap();
+                s.into()
+            }
+        }
+    }
 }
 
 /// Servo's representation of a CSS property, that is, either a longhand, a
@@ -833,7 +848,9 @@ impl ToCss for PropertyId {
         match *self {
             PropertyId::Longhand(id) => dest.write_str(id.name()),
             PropertyId::Shorthand(id) => dest.write_str(id.name()),
-            PropertyId::Custom(ref name) => write!(dest, "--{}", name),
+            PropertyId::Custom(_) => {
+                serialize_identifier(&self.name(), dest)
+            }
         }
     }
 }
@@ -933,6 +950,20 @@ impl PropertyId {
             PropertyId::Shorthand(id) => Ok(id),
             PropertyId::Longhand(id) => Err(PropertyDeclarationId::Longhand(id)),
             PropertyId::Custom(ref name) => Err(PropertyDeclarationId::Custom(name)),
+        }
+    }
+
+    /// Returns the name of the property without CSS escaping.
+    pub fn name(&self) -> Cow<'static, str> {
+        match *self {
+            PropertyId::Shorthand(id) => id.name().into(),
+            PropertyId::Longhand(id) => id.name().into(),
+            PropertyId::Custom(ref name) => {
+                use std::fmt::Write;
+                let mut s = String::new();
+                write!(&mut s, "--{}", name).unwrap();
+                s.into()
+            }
         }
     }
 }
