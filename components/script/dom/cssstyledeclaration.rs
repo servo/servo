@@ -16,13 +16,13 @@ use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_url::ServoUrl;
 use std::ascii::AsciiExt;
-use std::sync::Arc;
 use style::attr::AttrValue;
 use style::parser::LengthParsingMode;
 use style::properties::{Importance, PropertyDeclarationBlock, PropertyId, LonghandId, ShorthandId};
 use style::properties::{parse_one_declaration, parse_style_attribute};
 use style::selector_parser::PseudoElement;
 use style::shared_lock::Locked;
+use style::stylearc::Arc;
 use style_traits::ToCss;
 
 // http://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface

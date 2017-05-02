@@ -15,10 +15,10 @@ use dom::cssstylesheet::CSSStyleSheet;
 use dom::medialist::MediaList;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use std::sync::Arc;
 use style::media_queries::parse_media_query_list;
 use style::parser::{LengthParsingMode, ParserContext};
 use style::shared_lock::{Locked, ToCssWithGuard};
+use style::stylearc::Arc;
 use style::stylesheets::{CssRuleType, MediaRule};
 use style_traits::ToCss;
 

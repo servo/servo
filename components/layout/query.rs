@@ -55,7 +55,7 @@ pub struct LayoutThreadData {
     pub display_list: Option<Arc<DisplayList>>,
 
     /// Performs CSS selector matching and style resolution.
-    pub stylist: Arc<Stylist>,
+    pub stylist: ::StyleArc<Stylist>,
 
     /// A queued response for the union of the content boxes of a node.
     pub content_box_response: Option<Rect<Au>>,

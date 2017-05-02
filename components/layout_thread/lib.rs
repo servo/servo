@@ -115,6 +115,7 @@ use style::logical_geometry::LogicalPoint;
 use style::media_queries::{Device, MediaList, MediaType};
 use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, REPOSITION, STORE_OVERFLOW};
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards};
+use style::stylearc::Arc as StyleArc;
 use style::stylesheets::{Origin, Stylesheet, UserAgentStylesheets};
 use style::stylist::{ExtraStyleData, Stylist};
 use style::thread_state;
@@ -192,10 +193,10 @@ pub struct LayoutThread {
     document_shared_lock: Option<SharedRwLock>,
 
     /// The list of currently-running animations.
-    running_animations: Arc<RwLock<HashMap<OpaqueNode, Vec<Animation>>>>,
+    running_animations: StyleArc<RwLock<HashMap<OpaqueNode, Vec<Animation>>>>,
 
     /// The list of animations that have expired since the last style recalculation.
-    expired_animations: Arc<RwLock<HashMap<OpaqueNode, Vec<Animation>>>>,
+    expired_animations: StyleArc<RwLock<HashMap<OpaqueNode, Vec<Animation>>>>,
 
     /// A counter for epoch messages
     epoch: Epoch,
@@ -412,7 +413,7 @@ impl LayoutThread {
         let font_cache_receiver =
             ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_font_cache_receiver);
 
-        let stylist = Arc::new(Stylist::new(device));
+        let stylist = StyleArc::new(Stylist::new(device));
         let outstanding_web_fonts_counter = Arc::new(AtomicUsize::new(0));
         let ua_stylesheets = &*UA_STYLESHEETS;
         let guard = ua_stylesheets.shared_lock.read();
@@ -448,8 +449,8 @@ impl LayoutThread {
             outstanding_web_fonts: outstanding_web_fonts_counter,
             root_flow: None,
             document_shared_lock: None,
-            running_animations: Arc::new(RwLock::new(HashMap::new())),
-            expired_animations: Arc::new(RwLock::new(HashMap::new())),
+            running_animations: StyleArc::new(RwLock::new(HashMap::new())),
+            expired_animations: StyleArc::new(RwLock::new(HashMap::new())),
             epoch: Epoch(0),
             viewport_size: Size2D::new(Au(0), Au(0)),
             webrender_api: webrender_api_sender.create_api(),
@@ -741,7 +742,7 @@ impl LayoutThread {
     }
 
     fn handle_add_stylesheet<'a, 'b>(&self,
-                                     stylesheet: Arc<Stylesheet>,
+                                     stylesheet: StyleArc<Stylesheet>,
                                      possibly_locked_rw_data: &mut RwData<'a, 'b>) {
         // Find all font-face rules and notify the font cache of them.
         // GWTODO: Need to handle unloading web fonts.
@@ -776,7 +777,7 @@ impl LayoutThread {
                                       possibly_locked_rw_data: &mut RwData<'a, 'b>,
                                       quirks_mode: QuirksMode) {
         let mut rw_data = possibly_locked_rw_data.lock();
-        Arc::get_mut(&mut rw_data.stylist).unwrap().set_quirks_mode(quirks_mode);
+        StyleArc::get_mut(&mut rw_data.stylist).unwrap().set_quirks_mode(quirks_mode);
         possibly_locked_rw_data.block(rw_data);
     }
 
@@ -1034,7 +1035,7 @@ impl LayoutThread {
         self.document_shared_lock = Some(document_shared_lock.clone());
         let author_guard = document_shared_lock.read();
         let device = Device::new(MediaType::Screen, initial_viewport);
-        Arc::get_mut(&mut rw_data.stylist).unwrap()
+        StyleArc::get_mut(&mut rw_data.stylist).unwrap()
             .set_device(device, &author_guard, &data.document_stylesheets);
 
         self.viewport_size =
@@ -1088,7 +1089,7 @@ impl LayoutThread {
         let mut extra_data = ExtraStyleData {
             marker: PhantomData,
         };
-        let needs_dirtying = Arc::get_mut(&mut rw_data.stylist).unwrap().update(
+        let needs_dirtying = StyleArc::get_mut(&mut rw_data.stylist).unwrap().update(
             &data.document_stylesheets,
             &guards,
             Some(ua_stylesheets),

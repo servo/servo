@@ -99,6 +99,7 @@ use style::media_queries::MediaList;
 use style::properties::PropertyDeclarationBlock;
 use style::selector_parser::{PseudoElement, Snapshot};
 use style::shared_lock::{SharedRwLock as StyleSharedRwLock, Locked as StyleLocked};
+use style::stylearc::Arc as StyleArc;
 use style::stylesheets::{CssRules, FontFaceRule, KeyframesRule, MediaRule};
 use style::stylesheets::{NamespaceRule, StyleRule, ImportRule, SupportsRule};
 use style::values::specified::Length;
@@ -161,6 +162,12 @@ unsafe impl<T: JSTraceable> JSTraceable for Rc<T> {
 }
 
 unsafe impl<T: JSTraceable> JSTraceable for Arc<T> {
+    unsafe fn trace(&self, trc: *mut JSTracer) {
+        (**self).trace(trc)
+    }
+}
+
+unsafe impl<T: JSTraceable> JSTraceable for StyleArc<T> {
     unsafe fn trace(&self, trc: *mut JSTracer) {
         (**self).trace(trc)
     }

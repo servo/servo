@@ -424,7 +424,7 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
 
     /// Attempts to perform incremental fixup of this flow by replacing its fragment's style with
     /// the new style. This can only succeed if the flow has exactly one fragment.
-    fn repair_style(&mut self, new_style: &Arc<ServoComputedValues>);
+    fn repair_style(&mut self, new_style: &::StyleArc<ServoComputedValues>);
 
     /// Print any extra children (such as fragments) contained in this Flow
     /// for debugging purposes. Any items inserted into the tree will become
@@ -561,7 +561,7 @@ pub trait MutableFlowUtils {
 
     /// Calls `repair_style` and `bubble_inline_sizes`. You should use this method instead of
     /// calling them individually, since there is no reason not to perform both operations.
-    fn repair_style_and_bubble_inline_sizes(self, style: &Arc<ServoComputedValues>);
+    fn repair_style_and_bubble_inline_sizes(self, style: &::StyleArc<ServoComputedValues>);
 }
 
 pub trait MutableOwnedFlowUtils {
@@ -1361,7 +1361,7 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
 
     /// Calls `repair_style` and `bubble_inline_sizes`. You should use this method instead of
     /// calling them individually, since there is no reason not to perform both operations.
-    fn repair_style_and_bubble_inline_sizes(self, style: &Arc<ServoComputedValues>) {
+    fn repair_style_and_bubble_inline_sizes(self, style: &::StyleArc<ServoComputedValues>) {
         self.repair_style(style);
         self.bubble_inline_sizes();
     }
