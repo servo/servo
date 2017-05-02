@@ -11369,6 +11369,12 @@
      {}
     ]
    ],
+   "mozilla/adopted_node_is_same_origin_domain.html": [
+    [
+     "/_mozilla/mozilla/adopted_node_is_same_origin_domain.html",
+     {}
+    ]
+   ],
    "mozilla/binding_keyword.html": [
     [
      "/_mozilla/mozilla/binding_keyword.html",
@@ -24491,6 +24497,10 @@
   "mozilla/adopt-panic.css": [
    "170d51460da58c16f5cf94ecda18f18a1c18c116",
    "support"
+  ],
+  "mozilla/adopted_node_is_same_origin_domain.html": [
+   "3ec450e4f71eaebae081674d2b393a705dd58051",
+   "testharness"
   ],
   "mozilla/binding_keyword.html": [
    "c79aa6d506fbabbed0f6f31d1b8600ea6ba8ff41",
