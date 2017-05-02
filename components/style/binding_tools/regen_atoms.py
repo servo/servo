@@ -40,6 +40,11 @@ class GkAtomSource:
     CLASS = "nsGkAtoms"
     TYPE = "nsIAtom"
 
+    def parse_atom(self, line):
+        result = re.match(self.PATTERN, line)
+        if result:
+            return Atom(self, result.group(1), result.group(2), None)
+
 
 class CSSPseudoElementsAtomSource:
     PATTERN = re.compile('^CSS_PSEUDO_ELEMENT\((.+),\s*"(.*)",')
@@ -49,18 +54,33 @@ class CSSPseudoElementsAtomSource:
     # this for MSVC name mangling.
     TYPE = "nsICSSPseudoElement"
 
+    def parse_atom(self, line):
+        result = re.match(self.PATTERN, line)
+        if result:
+            return Atom(self, result.group(1), result.group(2), None)
+
 
 class CSSAnonBoxesAtomSource:
-    PATTERN = re.compile('^(?:CSS_ANON_BOX|CSS_NON_INHERITING_ANON_BOX)\((.+),\s*"(.*)"\)')
+    PATTERN = re.compile('^(CSS_ANON_BOX|CSS_NON_INHERITING_ANON_BOX)\((.+),\s*"(.*)"(?:,\s*(true|false)\s*)?\)')
     FILE = "include/nsCSSAnonBoxList.h"
     CLASS = "nsCSSAnonBoxes"
     TYPE = "nsICSSAnonBoxPseudo"
 
+    def parse_atom(self, line):
+        result = re.match(self.PATTERN, line)
+        if result:
+            if result.group(1) == "CSS_NON_INHERITING_ANON_BOX":
+                skips_display_fixup = "true"
+                assert not result.group(4)
+            else:
+                skips_display_fixup = result.group(4)
+            return Atom(self, result.group(2), result.group(3), skips_display_fixup)
+
 
 SOURCES = [
-    GkAtomSource,
-    CSSPseudoElementsAtomSource,
-    CSSAnonBoxesAtomSource,
+    GkAtomSource(),
+    CSSPseudoElementsAtomSource(),
+    CSSAnonBoxesAtomSource(),
 ]
 
 
@@ -72,11 +92,12 @@ def map_atom(ident):
 
 
 class Atom:
-    def __init__(self, source, ident, value):
+    def __init__(self, source, ident, value, skips_display_fixup):
         self.ident = "{}_{}".format(source.CLASS, ident)
         self._original_ident = ident
         self.value = value
         self.source = source
+        self.skips_display_fixup = skips_display_fixup
 
     def cpp_class(self):
         return self.source.CLASS
@@ -99,9 +120,9 @@ def collect_atoms(objdir):
     for source in SOURCES:
         with open(os.path.join(objdir, source.FILE)) as f:
             for line in f.readlines():
-                result = re.match(source.PATTERN, line)
-                if result:
-                    atoms.append(Atom(source, result.group(1), result.group(2)))
+                atom = source.parse_atom(line)
+                if atom:
+                    atoms.append(atom)
     return atoms
 
 
@@ -224,7 +245,7 @@ PSEUDO_ELEMENT_HEADER = """
  * ```
  * fn have_to_use_pseudo_elements() {
  *     macro_rules! pseudo_element {
- *         ($pseudo_str_with_colon:expr, $pseudo_atom:expr, $is_anon_box:true) => {{
+ *         ($pseudo_str_with_colon:expr, $pseudo_atom:expr, $is_anon_box:expr, $skips_display_fixup:expr) => {{
  *             // Stuff stuff stuff.
  *         }}
  *     }
@@ -238,6 +259,7 @@ PSEUDO_ELEMENT_HEADER = """
 PSEUDO_ELEMENT_MACRO_INVOCATION = """
     pseudo_element!(\"{}\",
                     atom!(\"{}\"),
+                    {},
                     {});
 """[1:]
 
@@ -249,9 +271,10 @@ def write_pseudo_element_helper(atoms, target_filename):
         f.write("{\n")
         for atom in atoms:
             if atom.type() == "nsICSSPseudoElement":
-                f.write(PSEUDO_ELEMENT_MACRO_INVOCATION.format(atom.value, atom.value, "false"))
+                f.write(PSEUDO_ELEMENT_MACRO_INVOCATION.format(atom.value, atom.value, "false", "false"))
             elif atom.type() == "nsICSSAnonBoxPseudo":
-                f.write(PSEUDO_ELEMENT_MACRO_INVOCATION.format(atom.value, atom.value, "true"))
+                f.write(PSEUDO_ELEMENT_MACRO_INVOCATION.format(atom.value, atom.value, "true",
+                                                               atom.skips_display_fixup))
         f.write("}\n")
 
 

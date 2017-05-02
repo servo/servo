@@ -472,7 +472,7 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     /// Whether we should skip any root- or item-based display property
     /// blockification on this element.  (This function exists so that Gecko
     /// native anonymous content can opt out of this style fixup.)
-    fn skip_root_and_item_based_display_fixup(&self) -> bool;
+    fn skip_root_and_item_based_display_fixup(&self, pseudo: Option<&PseudoElement>) -> bool;
 
     /// Sets selector flags, which indicate what kinds of selectors may have
     /// matched on this element and therefore what kind of work may need to

@@ -414,7 +414,7 @@ trait PrivateMatchMethods: TElement {
                           -> Arc<ComputedValues> {
         let mut cascade_info = CascadeInfo::new();
         let mut cascade_flags = CascadeFlags::empty();
-        if self.skip_root_and_item_based_display_fixup() {
+        if self.skip_root_and_item_based_display_fixup(pseudo) {
             cascade_flags.insert(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP)
         }
 

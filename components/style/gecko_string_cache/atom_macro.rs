@@ -168,8 +168,6 @@ cfg_if! {
             pub static nsGkAtoms_applyImports: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms14applyTemplatesE"]
             pub static nsGkAtoms_applyTemplates: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms10mozapptypeE"]
-            pub static nsGkAtoms_mozapptype: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms7archiveE"]
             pub static nsGkAtoms_archive: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms4areaE"]
@@ -5101,8 +5099,6 @@ cfg_if! {
             pub static nsGkAtoms_applyImports: *mut nsIAtom;
             #[link_name = "?applyTemplates@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_applyTemplates: *mut nsIAtom;
-            #[link_name = "?mozapptype@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_mozapptype: *mut nsIAtom;
             #[link_name = "?archive@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_archive: *mut nsIAtom;
             #[link_name = "?area@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -10034,8 +10030,6 @@ cfg_if! {
             pub static nsGkAtoms_applyImports: *mut nsIAtom;
             #[link_name = "\x01?applyTemplates@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_applyTemplates: *mut nsIAtom;
-            #[link_name = "\x01?mozapptype@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_mozapptype: *mut nsIAtom;
             #[link_name = "\x01?archive@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_archive: *mut nsIAtom;
             #[link_name = "\x01?area@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -14970,8 +14964,6 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_applyImports as *mut _) } };
 ("apply-templates") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_applyTemplates as *mut _) } };
-("mozapptype") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozapptype as *mut _) } };
 ("archive") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_archive as *mut _) } };
 ("area") =>
