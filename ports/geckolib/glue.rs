@@ -2019,6 +2019,7 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
         // mServoDeclarationBlock is null in the case where we have an invalid css property.
         let iter = keyframe.mPropertyValues.iter()
                                            .filter(|&property| !property.mServoDeclarationBlock.mRawPtr.is_null());
+        let mut property_index = 0;
         for property in iter {
             let declarations = unsafe { &*property.mServoDeclarationBlock.mRawPtr.clone() };
             let declarations = Locked::<PropertyDeclarationBlock>::as_arc(&declarations);
@@ -2045,17 +2046,18 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
                                 }
                             });
 
-            for (i, anim) in anim_iter.enumerate() {
+            for anim in anim_iter {
                 if !seen.has_transition_property_bit(&anim.0) {
                     // This is safe since we immediately write to the uninitialized values.
-                    unsafe { animation_values.set_len((i + 1) as u32) };
+                    unsafe { animation_values.set_len((property_index + 1) as u32) };
                     seen.set_transition_property_bit(&anim.0);
-                    animation_values[i].mProperty = (&anim.0).into();
+                    animation_values[property_index].mProperty = (&anim.0).into();
                     // We only make sure we have enough space for this variable,
                     // but didn't construct a default value for StyleAnimationValue,
                     // so we should zero it to avoid getting undefined behaviors.
-                    animation_values[i].mValue.mGecko = unsafe { mem::zeroed() };
-                    animation_values[i].mValue.mServo.set_arc_leaky(Arc::new(anim.1));
+                    animation_values[property_index].mValue.mGecko = unsafe { mem::zeroed() };
+                    animation_values[property_index].mValue.mServo.set_arc_leaky(Arc::new(anim.1));
+                    property_index += 1;
                 }
             }
         }
