@@ -1541,7 +1541,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetLengthValue(declarations:
                                                         unit: structs::nsCSSUnit) {
     use style::properties::{PropertyDeclaration, LonghandId};
     use style::properties::longhands::_moz_script_min_size::SpecifiedValue as MozScriptMinSize;
-    use style::values::specified::length::{AbsoluteLength, FontRelativeLength};
+    use style::values::specified::length::{AbsoluteLength, FontRelativeLength, PhysicalLength};
     use style::values::specified::length::{LengthOrPercentage, NoCalcLength};
 
     let long = get_longhand_from_id!(property);
@@ -1552,6 +1552,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetLengthValue(declarations:
         structs::nsCSSUnit::eCSSUnit_Inch => NoCalcLength::Absolute(AbsoluteLength::In(value)),
         structs::nsCSSUnit::eCSSUnit_Centimeter => NoCalcLength::Absolute(AbsoluteLength::Cm(value)),
         structs::nsCSSUnit::eCSSUnit_Millimeter => NoCalcLength::Absolute(AbsoluteLength::Mm(value)),
+        structs::nsCSSUnit::eCSSUnit_PhysicalMillimeter => NoCalcLength::Physical(PhysicalLength(value)),
         structs::nsCSSUnit::eCSSUnit_Point => NoCalcLength::Absolute(AbsoluteLength::Pt(value)),
         structs::nsCSSUnit::eCSSUnit_Pica => NoCalcLength::Absolute(AbsoluteLength::Pc(value)),
         structs::nsCSSUnit::eCSSUnit_Quarter => NoCalcLength::Absolute(AbsoluteLength::Q(value)),
@@ -2222,4 +2223,3 @@ pub extern "C" fn Servo_StyleSet_ResolveForDeclarations(raw_data: RawServoStyleS
                                               parent_style,
                                               declarations.clone()).into_strong()
 }
-
