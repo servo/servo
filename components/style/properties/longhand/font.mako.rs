@@ -927,10 +927,14 @@ ${helpers.single_keyword_system("font-variant-caps",
         let kw_inherited_size = context.style().font_size_keyword.map(|(kw, ratio)| {
             SpecifiedValue::Keyword(kw, ratio).to_computed_value(context)
         });
-        context.mutate_style().mutate_font()
+        let used_kw = context.mutate_style().mutate_font()
                .inherit_font_size_from(parent, kw_inherited_size);
-        context.mutate_style().font_size_keyword =
-            context.inherited_style.font_size_keyword;
+        if used_kw {
+            context.mutate_style().font_size_keyword =
+                context.inherited_style.font_size_keyword;
+        } else {
+            context.mutate_style().font_size_keyword = None;
+        }
     }
 
     pub fn cascade_initial_font_size(context: &mut Context) {
