@@ -148,6 +148,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "binary-space-partition"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "bincode"
 version = "1.0.0-alpha6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2032,6 +2037,17 @@ version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "plane-split"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "binary-space-partition 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "euclid 0.11.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "log 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "num-traits 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "plugin_compiletest"
 version = "0.0.1"
 dependencies = [
@@ -3179,7 +3195,7 @@ dependencies = [
 [[package]]
 name = "webrender"
 version = "0.36.0"
-source = "git+https://github.com/servo/webrender#7b499ba9b5a34f0b5f4e3a8d9993bfdbcc452c11"
+source = "git+https://github.com/servo/webrender#d126ebae1ad960f95791c747537c88181106173f"
 dependencies = [
  "app_units 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bincode 1.0.0-alpha6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3198,6 +3214,7 @@ dependencies = [
  "log 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "num-traits 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)",
  "offscreen_gl_context 0.8.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "plane-split 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "thread_profiler 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "threadpool 1.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3207,7 +3224,7 @@ dependencies = [
 [[package]]
 name = "webrender_traits"
 version = "0.36.0"
-source = "git+https://github.com/servo/webrender#7b499ba9b5a34f0b5f4e3a8d9993bfdbcc452c11"
+source = "git+https://github.com/servo/webrender#d126ebae1ad960f95791c747537c88181106173f"
 dependencies = [
  "app_units 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3341,6 +3358,7 @@ dependencies = [
 "checksum backtrace 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "f551bc2ddd53aea015d453ef0b635af89444afa5ed2405dd0b2062ad5d600d80"
 "checksum backtrace-sys 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)" = "d192fd129132fbc97497c1f2ec2c2c5174e376b95f535199ef4fe0a293d33842"
 "checksum base64 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)" = "9892882c3bd89ed02dec391c128984c772b663a29700c32b5de0b33861cdf2bd"
+"checksum binary-space-partition 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "df65281d9b2b5c332f5bfbd9bb5e5f2e62f627c259cf9dc9cd10fecb758be33d"
 "checksum bincode 1.0.0-alpha6 (registry+https://github.com/rust-lang/crates.io-index)" = "fb0cdeac1c5d567fdb487ae5853c024e4acf1ea85ba6a6552fe084e0805fea5d"
 "checksum bindgen 0.22.1 (registry+https://github.com/rust-lang/crates.io-index)" = "88f9d9abd7964621201c558021ff4f39b7b4d571a9a56a88844da9971e2344ce"
 "checksum bit-set 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "d9bf6104718e80d7b26a68fdbacff3481cfc05df670821affc7e9cbc1884400c"
@@ -3493,6 +3511,7 @@ dependencies = [
 "checksum phf_generator 0.7.21 (registry+https://github.com/rust-lang/crates.io-index)" = "6b07ffcc532ccc85e3afc45865469bf5d9e4ef5bfcf9622e3cfe80c2d275ec03"
 "checksum phf_shared 0.7.21 (registry+https://github.com/rust-lang/crates.io-index)" = "07e24b0ca9643bdecd0632f2b3da6b1b89bbb0030e0b992afc1113b23a7bc2f2"
 "checksum pkg-config 0.3.9 (registry+https://github.com/rust-lang/crates.io-index)" = "3a8b4c6b8165cd1a1cd4b9b120978131389f64bdaf456435caa41e630edba903"
+"checksum plane-split 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "a05e1e40e37630095627acfd2c7c6cf259e8b4f4ef4f01b2adf2a35331e45975"
 "checksum png 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)" = "3cb773e9a557edb568ce9935cf783e3cdcabe06a9449d41b3e5506d88e582c82"
 "checksum precomputed-hash 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "cdf1fc3616b3ef726a847f2cd2388c646ef6a1f1ba4835c2629004da48184150"
 "checksum procedural-masquerade 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "9f566249236c6ca4340f7ca78968271f0ed2b0f234007a61b66f9ecd0af09260"
