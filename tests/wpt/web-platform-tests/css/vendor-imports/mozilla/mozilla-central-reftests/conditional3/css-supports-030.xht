@@ -1,0 +1,19 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: An @supports rule with valid syntax and a passing condition must apply rules inside it</title>
+  <link rel="author" title="Cameron McCormack" href="mailto:cam@mcc.id.au" />
+  <link rel="help" href="http://www.w3.org/TR/css3-conditional/#at-supports" />
+  <meta name="flags" content="" />
+  <meta name="assert" content="A disjunction in an @supports condition must have both sub-conditions enclosed in parentheses." />
+  <link rel="match" href="support/pass.xht" />
+  <style type="text/css"><![CDATA[
+    html { background-color: green }
+    @supports (not (color: rainbow) or (color: green)) {
+      html { background-color: red }
+    }
+  ]]></style>
+ </head>
+ <body>
+ </body>
+</html>

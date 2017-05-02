@@ -1,0 +1,21 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Font Matching Algorithm, small-caps synthesized</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#algorithm" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The small-caps font is rendered similar to uppercase letters except with a smaller size." />
+        <style type="text/css">
+            div
+            {
+                font: 1in/1 Ahem;
+                font-variant: small-caps;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a box below and the right half is the same height or shorter than the left half.</p>
+        <div>Xx</div>
+    </body>
+</html>

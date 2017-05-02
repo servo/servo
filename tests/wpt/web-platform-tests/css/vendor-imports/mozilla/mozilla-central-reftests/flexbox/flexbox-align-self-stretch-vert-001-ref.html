@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!-- In this reference case, we just have the testcases's text placed directly
+     in the outermost wrapper-block, with a lime background on that wrapper
+     instead of on a flex item.
+-->
+<html>
+<head>
+  <title>CSS Reftest Reference</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <meta charset="utf-8">
+  <style>
+    div.fixedWidthWrapper {
+      width: 200px;
+      /* Small enough that 3 characters can _easily_ fit in our width */
+      font-size: 12px;
+      background: lime;
+    }
+  </style>
+</head>
+<body>
+  <div class="fixedWidthWrapper">
+    A B C
+  </div>
+</body>
+</html>

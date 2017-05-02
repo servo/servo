@@ -1,0 +1,37 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Relatively positioned boxes preserve the space created for it in flow</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+		<link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-09-22 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#comp-relpos" />
+		<link rel="match" href="position-relative-035-ref.xht" />
+
+        <meta name="flags" content="" />
+        <meta name="assert" content="Relative positioned content keeps its normal flow size including line breaks and the space originally reserved for it." />
+        <style type="text/css">
+            #div1
+            {
+                line-height: 1.25;
+                width: 5em;
+            }
+            #div2
+            {
+                position: relative;
+                top: 16px;
+                background: black;
+            }
+            #div3
+            {
+                background: orange;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if a black rectangle has one and only one orange line of text below it.</p>
+        <div id="div1">
+            <div id="div2">Filler Text Filler Text Filler Text</div>
+            <div id="div3">&nbsp;FAIL&nbsp; Text</div>
+        </div>
+    </body>
+</html>

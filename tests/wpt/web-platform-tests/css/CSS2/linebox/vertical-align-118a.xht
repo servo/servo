@@ -1,0 +1,51 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: 'vertical-align: text-top' - line-height</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#leading" title="Section 10.8.1 Leading and half-leading" />
+  <link rel="match" href="vertical-align-118a-ref.xht" />
+
+  <meta content="ahem" name="flags" />
+  <meta content="For inline non-replaced elements (such as the span element in this testcase), the box used for vertical-alignment is the box whose height is the 'line-height' (containing the box's glyphs and the half-leading on each side). 'vertical-align: text-top' will align the top of such box with the top of the parent's content area and not with the bottom of the parent's box." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  div
+  {
+  background-color: yellow;
+  /*
+  The sole purpose for such yellow background
+  is to help delimit and visually identify the
+  content area of the block container box.
+  */
+  font: 2.5em/3.25 Ahem;
+  /*
+  equivalent to font: 40px/130px (with top-half-leading
+  and bottom-half-leading each equal to 45px) but
+  entirely font-size-relative and perfectly
+  text-size-scalable in all browsers
+  */
+  }
+
+  span
+  {
+  color: blue;
+  margin: auto -1em;
+  vertical-align: text-top;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if the blue stripe is vertically offset <strong>below the black stripes on both sides</strong>. The blue stripe must be clearly and entirely below the black stripes.</p>
+
+  <div>LLLL<span>MustBeBelow</span>LLLL</div>
+
+ </body>
+</html>

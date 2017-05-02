@@ -1,0 +1,60 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: Solving 'width: auto' of a block-level non-replaced element in normal flow with one other property set to an 'auto' value</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" title="10.3.3 Block-level, non-replaced elements in normal flow" href="http://www.w3.org/TR/CSS21/visudet.html#blockwidth" />
+  <meta content="" name="flags" />
+  <meta content="If 'width' is set to 'auto', any other 'auto' values become '0' and the determination of 'width' proceeds from the following equality: 'margin-left' + 'border-left-width' + 'padding-left' + 'width' + 'padding-right' + 'border-right-width' + 'margin-right' = width of containing block" name="assert" />
+
+  <style type="text/css"><![CDATA[
+  div {height: 200px;}
+
+  div#containing-block
+  {
+  border-right: red solid 200px;
+  padding-right: 200px;
+  width: 0px;
+  }
+
+  div#child
+  {
+  border-right: green solid 200px;
+  margin-right: -400px;
+  }
+
+  /*
+  Calculation of used width for div#child:
+
+    margin-left             :    0px (or auto)
+  + border-left-width       :    0px
+  + padding-left            :    0px
+  + width                   :    auto
+  + padding-right           :    0px
+  + border-right-width      :  200px
+  + margin-right            : -400px
+  ====================================
+  width of containing block :    0px
+
+  Therefore 'width: auto' must be resolved as 'width: 200px'.
+  Therefore div#child's green border-right should overlap perfectly
+  div#containing-block's red border-right.
+  */
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+  <div id="containing-block">
+    <div id="child"></div>
+  </div>
+
+ </body>
+</html>

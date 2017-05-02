@@ -1,0 +1,57 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: margin collapsing - resolving vertical padding percentage</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#collapsing-margins" />
+  <meta name="flags" content="" />
+  <meta content="Adjoining of vertical (top and bottom) margins must be determined only after resolving percentage padding-top and padding-bottom values." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  div#grand-parent-block-container
+  {
+  background-color: red;
+  border: black solid 3px;
+  /* Such border prevents margin collapsing with the body vertical margins */
+  }
+
+  div#parent-block-container
+  {
+  background-color: green;
+  color: white;
+  padding: 2%;
+  }
+
+  div#child-block {margin: 100px 0px;}
+
+  /*
+  In this testcase, div#child-block's vertical (top and bottom)
+  margins should collapse with div#parent-block-container's vertical
+  (top and bottom) margins because div#child-block has no used
+  padding-top and no used padding-bottom. On the other hand,
+  div#parent-block-container's vertical (top and bottom) margins
+  should NOT collapse with div#grand-parent-block-container's vertical
+  (top and bottom) margins because div#parent-block-container, after
+  resolving percentage values, has an used padding-top value and an used
+  padding-bottom value.
+  */
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <div id="grand-parent-block-container">
+   <div id="parent-block-container">
+    <div id="child-block">
+     Test passes if there is <strong>no red</strong>.
+    </div>
+   </div>
+  </div>
+
+ </body>
+</html>

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <title>CSS Animations - 0% or "from" keyframe not specified</title>
+   <link rel="author" title="Opera Software ASA" href="http://www.opera.com/">
+   <link rel="help" href="https://drafts.csswg.org/css3-animations/#keyframes">
+   <meta name="flags" content="dom">
+   <meta name="assert" content='If a 0% or "from" keyframe is not specified,
+   then the user agent constructs a 0% keyframe using the computed values of
+   the properties being animated'>
+   <script src="/resources/testharness.js"></script>
+   <script src="/resources/testharnessreport.js"></script>
+   <style type="text/css">
+      @keyframes slide {
+         100% {
+            left: 100px;
+         }
+      }
+      div {
+         width: 100px;
+         height: 100px;
+         background: blue;
+         position: relative;
+         left: 0;
+      }
+      .test {
+         animation: slide 1s forwards;
+      }
+   </style>
+   <script type="text/javascript">
+      setup({explicit_done:true});
+      onload = function() {
+         var testName = document.querySelector('title').firstChild.data;
+         var div = document.querySelector('div');
+         var log = document.querySelectorAll('p')[1].firstChild;
+         var passed;
+         var timeout = setTimeout(function() {
+            test(function(){assert_true(false);}, testName); done();
+            log.data = 'FAIL';
+         }, 1500);
+         div.addEventListener('animationend', function() {
+            clearTimeout(timeout);
+            test(function(){assert_true(passed);}, testName); done();
+            log.data = passed ? 'PASS if the animation occurred.' : 'FAIL';
+         });
+         setTimeout(function() {
+            var divStyle = getComputedStyle(div, null);
+            var offset = parseFloat(getComputedStyle(div, null).left);
+            passed = (offset < 100 && offset > 0);
+         }, 500);
+         div.className = 'test';
+      }
+   </script>
+   <style>iframe{display:none}</style>
+</head>
+<body>
+   <p>The square below should slide straight rightwards for one second.</p>
+   <p>Testing...</p>
+   <div></div>
+</body>
+</html>

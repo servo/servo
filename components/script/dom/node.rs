@@ -68,7 +68,7 @@ use script_layout_interface::{LayoutElementType, LayoutNodeType, TrustedNodeAddr
 use script_layout_interface::message::Msg;
 use script_traits::DocumentActivity;
 use script_traits::UntrustedNodeAddress;
-use selectors::matching::matches;
+use selectors::matching::matches_selector_list;
 use selectors::parser::SelectorList;
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
@@ -332,7 +332,7 @@ impl<'a> Iterator for QuerySelectorIterator {
         // (instead of passing `None`)? Probably.
         self.iterator.by_ref().filter_map(|node| {
             if let Some(element) = Root::downcast(node) {
-                if matches(selectors, &element, None) {
+                if matches_selector_list(selectors, &element, None) {
                     return Some(Root::upcast(element));
                 }
             }
@@ -695,7 +695,7 @@ impl Node {
             // Step 3.
             Ok(selectors) => {
                 Ok(self.traverse_preorder().filter_map(Root::downcast).find(|element| {
-                    matches(&selectors.0, element, None)
+                    matches_selector_list(&selectors.0, element, None)
                 }))
             }
         }
@@ -2383,7 +2383,7 @@ impl NodeMethods for Node {
 
         // Step 2.
         Node::namespace_to_string(Node::locate_namespace(self, prefix))
-     }
+    }
 
     // https://dom.spec.whatwg.org/#dom-node-isdefaultnamespace
     fn IsDefaultNamespace(&self, namespace: Option<DOMString>) -> bool {

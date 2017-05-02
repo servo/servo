@@ -1,0 +1,38 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: punctuation classes for :first-letter extension</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/" />
+<link rel="author" title="Mozilla Corporation" href="http://mozilla.com/" />
+<link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#first-letter" />
+<meta name="assert" content='Punctuation (i.e, characters defined in Unicode [UNICODE]  in the "open" (Ps), "close" (Pe), "initial" (Pi). "final" (Pf) and "other" (Po) punctuation classes), that precedes or follows the first letter should be included' />
+<meta name="flags" content="" />
+<!-- THIS TEST IS GENERATED VIA SCRIPT. DO NOT EDIT GENERATED CONTENTS, EDIT THE SCRIPT. -->
+<style type="text/css">
+
+/* each test is a 2*2 pixel square */
+.test { display: inline-block; width: 2px; height: 2px; vertical-align: top;
+        overflow: hidden; white-space: pre; }
+
+/* forces the right edge of the inside to be the visible horizontal position,
+   and aligns the text to that edge */
+.test > div { width: 1000px; text-align: right; margin-top: -100em; margin-left: -998px; }
+
+/* forces 0.2em above the baseline to be the visible vertical position */
+.test > div > span.spacer { display: inline-block; vertical-align: baseline;
+                            height: 100.2em; width: 0; }
+
+/* for tests where the first-letter should include the second character,
+   make the div red and the first letter green */
+.extend { background: red; color: red; }
+.extend > div:first-letter { background: green; color: green; }
+
+/* otherwise, do the reverse */
+.dontextend { background: green; color: green; }
+.dontextend > div:first-letter { background: red; color: red; }
+
+</style>
+</head>
+<body>
+
+<p>There must be no red on this page.</p>

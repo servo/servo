@@ -1,0 +1,70 @@
+
+<html>
+
+<title>First Test of Section 5.6 of CSS1 Spec</title>
+
+<style type="text/css">
+ol {
+    list-style-image: url(ovalbbut.gif);
+    }
+li {list-style-position: inside;
+    display: list-item;}
+p {list-style-type: square}
+</style>
+</head>
+
+
+
+<body>
+
+
+
+
+<h1 >Testing Statement #1 Below of Section 5.6 of CSS1 Spec</h1>
+
+
+
+
+
+
+<p>
+1. The list-style properties describe how list items (i.e., elements with a
+display value of "list-item") are formatted.  The list-style properties can be
+set on any element, and it will inherit normally down the tree.
+
+
+
+
+<h2>
+PASS CRITERIA:
+</h2>
+<p >
+If statement #1 above is passed, the list below should have
+a list style image of an oval button.
+The rule applied is "ol {
+                         list-style-image: url(ovalbbut.gif);}".
+
+<ol>
+<li>
+This li element should have a display value of list item and a list style
+position of inside; this is because of the rule "li {display: list-item;
+list-style-position: inside;}"
+</ol>
+<ol>
+<ol>
+<li>
+This inherited "ol ol li" element should have the same characteristics as
+the item above, since these properties are inherited normally
+</ol>
+</ol>
+
+
+
+<p>
+This p element and the paragraph above should be UA-default.  The rule
+stated is "p {list-style-type: square}" which should have no effect.
+All other properties of this page should be UA-default.
+
+
+</body>
+</html>

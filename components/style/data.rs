@@ -9,7 +9,7 @@
 use dom::TElement;
 use properties::ComputedValues;
 use properties::longhands::display::computed_value as display;
-use restyle_hints::{RESTYLE_CSS_ANIMATIONS, RESTYLE_DESCENDANTS, RESTYLE_LATER_SIBLINGS, RESTYLE_SELF, RestyleHint};
+use restyle_hints::{RESTYLE_DESCENDANTS, RESTYLE_LATER_SIBLINGS, RESTYLE_SELF, RestyleHint};
 use rule_tree::StrongRuleNode;
 use selector_parser::{EAGER_PSEUDO_COUNT, PseudoElement, RestyleDamage, Snapshot};
 #[cfg(feature = "servo")] use std::collections::HashMap;
@@ -19,6 +19,7 @@ use std::ops::Deref;
 use std::sync::Arc;
 use stylist::Stylist;
 use thread_state;
+use traversal::TraversalFlags;
 
 /// The structure that represents the result of style computation. This is
 /// effectively a tuple of rules and computed values, that is, the rule node,
@@ -192,16 +193,21 @@ pub struct StoredRestyleHint(RestyleHint);
 
 impl StoredRestyleHint {
     /// Propagates this restyle hint to a child element.
-    pub fn propagate(&mut self) -> Self {
+    pub fn propagate(&mut self, traversal_flags: &TraversalFlags) -> Self {
         use std::mem;
 
-        // If we have RESTYLE_CSS_ANIMATIONS restyle hint, it means we are in
-        // the middle of an animation only restyle. In that case, we don't need
-        // to propagate any restyle hints, and we need to remove ourselves.
-        if self.0.contains(RESTYLE_CSS_ANIMATIONS) {
-            self.0.remove(RESTYLE_CSS_ANIMATIONS);
+        // In the middle of an animation only restyle, we don't need to
+        // propagate any restyle hints, and we need to remove ourselves.
+        if traversal_flags.for_animation_only() {
+            if self.0.intersects(RestyleHint::for_animations()) {
+                self.0.remove(RestyleHint::for_animations());
+            }
             return Self::empty();
         }
+
+        debug_assert!(!self.0.intersects(RestyleHint::for_animations()),
+                      "There should not be any animation restyle hints \
+                       during normal traversal");
 
         // Else we should clear ourselves, and return the propagated hint.
         let hint = mem::replace(&mut self.0, RestyleHint::empty());
@@ -253,7 +259,7 @@ impl StoredRestyleHint {
 
     /// Returns true if the hint has animation-only restyle.
     pub fn has_animation_hint(&self) -> bool {
-        self.0.contains(RESTYLE_CSS_ANIMATIONS)
+        self.0.intersects(RestyleHint::for_animations())
     }
 }
 
@@ -524,6 +530,21 @@ impl ElementData {
         debug_assert!(self.get_restyle().map_or(true, |r| r.snapshot.is_none()),
                       "Traversal should have expanded snapshots");
         self.styles = Some(styles);
+    }
+
+    /// Sets the computed element rules, and returns whether the rules changed.
+    pub fn set_primary_rules(&mut self, rules: StrongRuleNode) -> bool {
+        if !self.has_styles() {
+            self.set_styles(ElementStyles::new(ComputedStyle::new_partial(rules)));
+            return true;
+        }
+
+        if self.styles().primary.rules == rules {
+            return false;
+        }
+
+        self.styles_mut().primary.rules = rules;
+        true
     }
 
     /// Returns true if the Element has a RestyleData.

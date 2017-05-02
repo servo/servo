@@ -1,0 +1,83 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Second Test of Section 19.9 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+p {speak-punctuation: }
+h3 {speak-punctuation: code}
+h4 {speak-punctuation: none}
+strong {speak-punctuation-code}
+blockquote {speak-punctuation: 50%}
+
+
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Second Testable Statement of Sec 19.9 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+2. The speak-punctuation property has initial of none, it applies to all
+elements, it is inherited, and percentage values are N/A.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p  >
+NOTE: NEEDS TO BE TRANSLATED TO VOICE.
+If statement #2 above is passed, this paragraph should have a speak punctuation
+of none.
+The rule applied is "p {speak-punctuation: }".
+So the speak-punctuation property applies to the "p" element.
+<h3>
+This h3 element should have a speak punctuation of code
+<em>
+This emphasized text should have a speak punctuation of code, since the 
+speak punctuation property is inherited, and "em" is a child of 'h3".
+No explicit rule is applied for "em".
+</em>
+THe rule applied is 'h3 {speak-punctuation: code}".
+So the speak punctuation property applies to em and h3.
+</h3>
+<h4>
+THis h4 element should have a speak punctuation which is none.
+The rule applied is "h4 {speak-punctuation: none}".
+So the speak punctuation property applies to h4.
+</h4>
+
+<strong>
+This strong text should have a speak punctuation of code
+; so the speak punctuation property applies
+to the strong element.
+The rule applied is "strong {speak-punctuation: code}".
+</strong>
+<blockquote>
+This blockquote element should have a speak punctuation of UA-default.
+The rule applied is "blockquote {speak-punctuation: 50%}", which should be
+UA-default.
+</blockquote>
+All other properties of this page should be UA-default.
+
+
+
+
+
+</BODY>
+</HTML>
+

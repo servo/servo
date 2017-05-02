@@ -1,0 +1,29 @@
+<!doctype html>
+<title>XMLHttpRequest: timeout, redirects, and CORS preflights</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/common/get-host-info.sub.js></script>
+<div id=log></div>
+<script>
+async_test(t => {
+  const client = new XMLHttpRequest
+  client.open("GET", "resources/redirect.py?delay=500&location=delay.py") // 500 + 500 = 1000
+  client.timeout = 1000
+  client.send()
+  client.ontimeout = t.step_func_done(() => {
+    assert_equals(client.readyState, 4)
+  })
+  client.onload = t.unreached_func("load event fired")
+}, "Redirects should not reset the timer")
+
+async_test(t => {
+  const client = new XMLHttpRequest
+  client.open("YO", get_host_info().HTTP_REMOTE_ORIGIN + "/XMLHttpRequest/resources/delay.py")
+  client.timeout = 1000
+  client.send()
+  client.ontimeout = t.step_func_done(() => {
+    assert_equals(client.readyState, 4)
+  })
+  client.onload = t.unreached_func("load event fired")
+}, "CORS preflights should not reset the timer")
+</script>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Flexbox Test: flex-basis - auto</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="author" title="Intel" href="mailto:shiyoux.tan@intel.com">
+<link rel="help" title="7.3.3. The 'flex-basis' property" href="http://www.w3.org/TR/css-flexbox-1/#propdef-flex-basis">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="flags" content="">
+<meta name="assert" content="The 'flex-basis' property set 'auto', the actual width of tested element same as the value which specified by width property.">
+<style>
+  #container {
+    background-color: red;
+    display: flex;
+    height: 100px;
+    width: 100px;
+  }
+  #container div{
+    background-color: green;
+    height: 100px;
+  }
+  #ref {
+    width: 50px;
+  }
+  #test {
+    flex-basis: auto;
+    width: 50px;
+  }
+</style>
+<body>
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+  <div id="container">
+    <div id="test"></div>
+    <div id="ref"></div>
+  </div>
+</body>

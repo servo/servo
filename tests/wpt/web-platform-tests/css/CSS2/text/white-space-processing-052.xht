@@ -1,0 +1,35 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: White-space 'pre-wrap' on a 'pre' element</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#white-space-model" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The 'white-space' property set to 'pre-wrap' does not remove extra spacing when two spaces are next to each other and introduces line breaking opportunities when set on a 'pre' element." />
+        <style type="text/css">
+            pre
+            {
+                font: 16px/1em Ahem;
+                margin: 0;
+                padding: 0;
+            }
+            #pre1
+            {
+                white-space: pre-wrap;
+                width: 5em;
+            }
+            #pre2
+            {
+                background: black;
+                display: inline-block;
+                height: 1em;
+                width: 2em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is one box below.</p>
+        <pre id="pre1">XX  XX</pre>
+        <pre id="pre2"></pre>
+    </body>
+</html>

@@ -31,6 +31,7 @@ mod common {
 #[cfg(feature = "bindgen")]
 mod bindings {
     use bindgen::{Builder, CodegenConfig};
+    use bindgen::chooser::{EnumVariantCustomBehavior, EnumVariantValue, TypeChooser};
     use regex::Regex;
     use std::cmp;
     use std::collections::HashSet;
@@ -258,6 +259,23 @@ mod bindings {
             .collect()
     }
 
+    #[derive(Debug)]
+    struct Callbacks;
+    impl TypeChooser for Callbacks {
+        fn enum_variant_behavior(&self,
+                                 enum_name: Option<&str>,
+                                 variant_name: &str,
+                                 _variant_value: EnumVariantValue)
+                                 -> Option<EnumVariantCustomBehavior> {
+            if enum_name.map_or(false, |n| n == "nsCSSPropertyID") &&
+               variant_name.starts_with("eCSSProperty_COUNT") {
+                Some(EnumVariantCustomBehavior::Constify)
+            } else {
+                None
+            }
+        }
+    }
+
     pub fn generate_structs(build_type: BuildType) {
         let mut builder = Builder::get_initial_builder(build_type)
             .enable_cxx_namespaces()
@@ -296,12 +314,14 @@ mod bindings {
             .hide_type("nsString")
             .bitfield_enum("nsChangeHint")
             .bitfield_enum("nsRestyleHint")
-            .constified_enum("UpdateAnimationsTasks");
+            .constified_enum("UpdateAnimationsTasks")
+            .type_chooser(Box::new(Callbacks));
         let whitelist_vars = [
             "NS_THEME_.*",
             "NODE_.*",
             "NS_FONT_.*",
             "NS_STYLE_.*",
+            "NS_MATHML_.*",
             "NS_RADIUS_.*",
             "BORDER_COLOR_.*",
             "BORDER_STYLE_.*",
@@ -343,6 +363,7 @@ mod bindings {
             "FragmentOrURL",
             "FrameRequestCallback",
             "GeckoParserExtraData",
+            "GeckoFontMetrics",
             "gfxAlternateValue",
             "gfxFontFeature",
             "gfxFontVariation",
@@ -445,7 +466,8 @@ mod bindings {
             "mozilla::DefaultDelete",
             "mozilla::Side",
             "mozilla::binding_danger::AssertAndSuppressCleanupPolicy",
-            "RawServoAnimationValueMapBorrowed",
+            "mozilla::LengthParsingMode",
+            "mozilla::InheritTarget",
         ];
         let opaque_types = [
             "std::pair__PCCP",
@@ -602,6 +624,7 @@ mod bindings {
             .whitelisted_function("Gecko_.*");
         let structs_types = [
             "mozilla::css::URLValue",
+            "mozilla::Side",
             "RawGeckoAnimationPropertySegment",
             "RawGeckoComputedTiming",
             "RawGeckoDocument",
@@ -612,11 +635,12 @@ mod bindings {
             "RawGeckoNode",
             "RawGeckoAnimationValueList",
             "RawServoAnimationValue",
-            "RawServoAnimationValueMap",
             "RawServoDeclarationBlock",
+            "RawServoStyleRule",
             "RawGeckoPresContext",
             "RawGeckoPresContextOwned",
             "RawGeckoStyleAnimationList",
+            "RawGeckoServoStyleRuleList",
             "RawGeckoURLExtraData",
             "RefPtr",
             "CSSPseudoClassType",
@@ -626,6 +650,7 @@ mod bindings {
             "FontFamilyList",
             "FontFamilyType",
             "FontSizePrefs",
+            "GeckoFontMetrics",
             "Keyframe",
             "ServoBundledURI",
             "ServoElementSnapshot",
@@ -633,6 +658,7 @@ mod bindings {
             "StyleBasicShape",
             "StyleBasicShapeType",
             "StyleShapeSource",
+            "StyleTransition",
             "nsCSSFontFaceRule",
             "nsCSSKeyword",
             "nsCSSPropertyID",
@@ -697,6 +723,8 @@ mod bindings {
             "ServoStyleSheet",
             "EffectCompositor_CascadeLevel",
             "UpdateAnimationsTasks",
+            "LengthParsingMode",
+            "InheritTarget",
         ];
         struct ArrayType {
             cpp_type: &'static str,
@@ -713,6 +741,7 @@ mod bindings {
             ServoOwnedType { name: "RawServoStyleSet", opaque: true },
             ServoOwnedType { name: "StyleChildrenIterator", opaque: true },
             ServoOwnedType { name: "ServoElementSnapshot", opaque: false },
+            ServoOwnedType { name: "RawServoAnimationValueMap", opaque: true },
         ];
         let servo_immutable_borrow_types = [
             "RawGeckoNode",
@@ -731,6 +760,7 @@ mod bindings {
             "RawGeckoKeyframeList",
             "RawGeckoComputedKeyframeValuesList",
             "RawGeckoFontFaceRuleList",
+            "RawGeckoServoStyleRuleList",
         ];
         for &ty in structs_types.iter() {
             builder = builder.hide_type(ty)

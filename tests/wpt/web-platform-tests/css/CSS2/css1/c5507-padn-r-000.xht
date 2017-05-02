@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: padding-right</title>
+  <meta name="flags" content="ahem image" />
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#padding-right"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-03-29 -->
+  <link rel="match" href="c5507-padn-r-000-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+   body { color: navy; }
+   div { font: 10px/1 Ahem; width: 106px; color: blue; }
+   img { vertical-align: bottom; }
+   .zero {padding-right: 0; text-align: center; background-color: navy;}
+   .one {padding-right: 0.5in; text-align: right; background-color: navy;}
+   .two {padding-right: 48px; text-align: right; background-color: navy;}
+   .three {padding-right: 4.8em; text-align: right; background-color: navy;}
+   .four {padding-right: 45.3%; text-align: right; background-color: navy;}
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#padding-properties" title="8.4 Padding properties: 'padding-top', 'padding-right', 'padding-bottom', 'padding-left', and 'padding'"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#alignment-prop" title="16.2 Alignment: the 'text-align' property"/>
+ </head>
+ <body>
+  <p>The five bars below should be identical.</p>
+  <div>
+   <p class="zero">
+    x
+   </p>
+   <p class="one">
+    x
+   </p>
+   <p class="two">
+    x
+   </p>
+   <p class="three">
+    x
+   </p>
+   <p class="four">
+    x
+   </p>
+  </div>
+ </body>
+</html>

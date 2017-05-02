@@ -1,0 +1,47 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+<html lang="en">
+ <head>
+  <title>Test</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/table/positioning/002-demo.html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#dis-pos-flo" />
+  <style type="text/css">
+   * { border: solid; }
+   td { height: 5em; width: 5em; }
+   .relative { position: relative; background: teal; empty-cells: show; }
+   .absolute { position: absolute; border: solid thick aqua; top: 0; left: 0; bottom: 0; right: 0; }
+  </style>
+ </head>
+ <body>
+  <p>The teal element is the relatively positioned element, the aqua
+  border is the absolutely positioned element.</p>
+  <table>
+   <tbody>
+    <tr>
+     <td>1</td>
+     <td>2</td>
+     <td>3</td>
+    </tr>
+   </tbody>
+   <tbody class="relative">
+    <tr>
+     <td>4</td>
+     <td>5<div class="absolute"></div></td>
+     <td>6</td>
+    </tr>
+    <tr>
+     <td>7</td>
+     <td>8</td>
+     <td>9</td>
+    </tr>
+   </tbody>
+   <tbody>
+    <tr>
+     <td>A</td>
+     <td>B</td>
+     <td>C</td>
+    </tr>
+   </tbody>
+  </table>
+ </body>
+</html>

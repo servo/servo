@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<root xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Namespaces Test Suite: syntactically invalid @namespace rule must be ignored. </title>
+  <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+  <link rel="help" href="http://www.w3.org/TR/css3-namespace/#syntax" />
+  <meta name="flags" content="invalid" />
+  <meta name="assert" content="A syntactically invalid @namespace rule (whether malformed or misplaced) must be ignored." />
+  <style type="text/css">
+    t { background: red }
+  </style>
+  <style type="text/css">
+    @namespace; /* @namespace must be ignored */
+    t { background: lime }
+  </style>
+ </head>
+ <body>
+    <p>Test passes if the "Filler Text" text below has a green background.</p>
+    <p><t xmlns="test">Filler Text</t></p>
+    <p><t xmlns="">Filler Text</t></p>
+ </body>
+</root>

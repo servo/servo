@@ -1,0 +1,35 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline'; style-src http://{{domains[www1]}}:{{ports[http][0]}};">
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+
+    <script>
+      var t = async_test("Programatically injected stylesheet should load");
+      document.addEventListener("securitypolicyviolation", t.unreached_func("Should not trigger a security policy violation"));
+    </script>
+
+    <script>
+      var head = document.getElementsByTagName('head')[0];
+      var link = document.createElement('link');
+      link.setAttribute('rel', 'stylesheet');
+      link.setAttribute('type', 'text/css');
+      link.setAttribute('href', 'http://{{domains[www1]}}:{{ports[http][0]}}/content-security-policy/style-src/resources/style-src.css');
+
+      onload = t.step_func_done(function(e) {
+        var contentEl = document.getElementById("content");
+        var marginLeftVal = getComputedStyle(contentEl).getPropertyValue('margin-left');
+        assert_true(marginLeftVal == "2px");
+      });
+
+      head.appendChild(link);
+    </script>
+</head>
+<body>
+    <div id='log'></div>
+
+    <div id="content">Lorem ipsum</div>
+
+</body>
+</html>

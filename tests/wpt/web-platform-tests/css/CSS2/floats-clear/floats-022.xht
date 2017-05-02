@@ -1,0 +1,25 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Elements do not float when 'float' is set to 'none'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats" />
+        <link rel="match" href="floats-022-ref.xht" />
+
+        <meta name="flags" content="" />
+        <meta name="assert" content="An element with 'float: none' behaves as if it were never set to begin with." />
+        <style type="text/css">
+            #div1
+            {
+                float: left;
+                float: none;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there are three lines of "Filler Text".</p>
+        <div>Filler Text</div>
+        <div id="div1">Filler Text</div>
+        <div>Filler Text</div>
+    </body>
+</html>

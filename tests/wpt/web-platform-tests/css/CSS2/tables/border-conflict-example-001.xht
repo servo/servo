@@ -1,0 +1,72 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border conflict resolution - borders are collapsed according to precdence rules (example 1)</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#border-conflict-resolution" />
+        <meta name="flags" content="image" />
+        <meta name="assert" content="Borders are collapsed according to the precedence rules (example from spec section 17.6.2.1)." />
+        <style type="text/css">
+            table
+            {
+                border-collapse: collapse;
+                border: 5px solid yellow;
+            }
+            *#col1
+            {
+                border: 3px solid black;
+            }
+            td
+            {
+                border: 1px solid red;
+                padding: 1em;
+                width: 2em;
+                height: 2em;
+            }
+            td.cell5
+            {
+                border: 5px dashed blue;
+            }
+            td.cell6
+            {
+                border: 5px solid lime;
+            }
+        </style>
+    </head>
+    <body>
+        <table>
+            <col id="col1" />
+            <col id="col2" />
+            <col id="col3" />
+            <tr id="row1">
+                <td> 1</td>
+                <td> 2</td>
+                <td> 3</td>
+            </tr>
+            <tr id="row2">
+                <td> 4</td>
+                <td class="cell5"> 5</td>
+                <td class="cell6"> 6</td>
+            </tr>
+            <tr id="row3">
+                <td> 7</td>
+                <td> 8</td>
+                <td> 9</td>
+            </tr>
+            <tr id="row4">
+                <td> 10</td>
+                <td> 11</td>
+                <td> 12</td>
+            </tr>
+            <tr id="row5">
+                <td> 13</td>
+                <td> 14</td>
+                <td> 15</td>
+            </tr>
+        </table>
+        <p>Test passes if the table above has the same border colors and styles as the table below. (Note: colors in the bottom image might appear slightly faded.)</p>
+        <div>
+            <img alt="Illustration of proper border collapsing (from spec)" src="support/border_conflict_example_001.png" />
+        </div>
+    </body>
+</html>

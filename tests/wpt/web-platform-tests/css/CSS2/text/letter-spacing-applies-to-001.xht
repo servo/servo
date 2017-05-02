@@ -1,0 +1,36 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Letter-spacing application on a 'display: inline' element</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#propdef-letter-spacing" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#spacing-props" />
+        <link rel="match" href="../../reference/black_box_ends_when_blue_box_ends_6_boxes_ahem.html"/>
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The 'letter-spacing' property is applied to 'display: inline' elements." />
+        <style type="text/css">
+            div
+            {
+                font: 16px/1em Ahem;
+            }
+            #div1
+            {
+                display: inline;
+                letter-spacing: 1em;
+            }
+            #div2
+            {
+                background: blue;
+                height: 1em;
+                width: 11em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there are six black boxes below and the last black box ends when the blue box ends.</p>
+        <div>
+            <div id="div1">XXXXXX</div>
+            <div id="div2"></div>
+        </div>
+    </body>
+</html>

@@ -25,7 +25,8 @@ use script_layout_interface::message::Msg;
 use std::cell::Cell;
 use std::sync::Arc;
 use style::media_queries::parse_media_query_list;
-use style::stylesheets::{Stylesheet, Origin};
+use style::parser::{LengthParsingMode, ParserContext as CssParserContext};
+use style::stylesheets::{CssRuleType, Stylesheet, Origin};
 use stylesheet_loader::{StylesheetLoader, StylesheetOwner};
 
 #[dom_struct]
@@ -39,6 +40,7 @@ pub struct HTMLStyleElement {
     in_stack_of_open_elements: Cell<bool>,
     pending_loads: Cell<u32>,
     any_failed_load: Cell<bool>,
+    line_number: u64,
 }
 
 impl HTMLStyleElement {
@@ -54,6 +56,7 @@ impl HTMLStyleElement {
             in_stack_of_open_elements: Cell::new(creator.is_parser_created()),
             pending_loads: Cell::new(0),
             any_failed_load: Cell::new(false),
+            line_number: creator.return_line_number(),
         }
     }
 
@@ -73,7 +76,7 @@ impl HTMLStyleElement {
         assert!(node.is_in_doc());
 
         let win = window_from_node(node);
-        let url = win.get_url();
+        let doc = document_from_node(self);
 
         let mq_attribute = element.get_attribute(&ns!(), &local_name!("media"));
         let mq_str = match mq_attribute {
@@ -82,12 +85,21 @@ impl HTMLStyleElement {
         };
 
         let data = node.GetTextContent().expect("Element.textContent must be a string");
-        let mq = parse_media_query_list(&mut CssParser::new(&mq_str));
+        let url = win.get_url();
+        let context = CssParserContext::new_for_cssom(&url,
+                                                      win.css_error_reporter(),
+                                                      Some(CssRuleType::Media),
+                                                      LengthParsingMode::Default,
+                                                      doc.quirks_mode());
         let shared_lock = node.owner_doc().style_shared_lock().clone();
+        let mq = Arc::new(shared_lock.wrap(
+                    parse_media_query_list(&context, &mut CssParser::new(&mq_str))));
         let loader = StylesheetLoader::for_element(self.upcast());
-        let sheet = Stylesheet::from_str(&data, url, Origin::Author, mq,
+        let sheet = Stylesheet::from_str(&data, win.get_url(), Origin::Author, mq,
                                          shared_lock, Some(&loader),
-                                         win.css_error_reporter());
+                                         win.css_error_reporter(),
+                                         doc.quirks_mode(),
+                                         self.line_number);
 
         let sheet = Arc::new(sheet);
 
@@ -98,7 +110,6 @@ impl HTMLStyleElement {
 
         win.layout_chan().send(Msg::AddStylesheet(sheet.clone())).unwrap();
         *self.stylesheet.borrow_mut() = Some(sheet);
-        let doc = document_from_node(self);
         doc.invalidate_stylesheets();
     }
 

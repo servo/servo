@@ -1,0 +1,34 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: CSS: sanity tests for relative keyword values of font-size</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-03-24 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/fonts/size/002.xml" type="application/xhtml+xml"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-size-props" />
+  <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-size-prop"/>
+
+  <style type="text/css"><![CDATA[
+
+    .tests * { line-height: 0; border: none; margin: 0; padding: 0; display: block; }
+    .tests { margin: 20em 2em 0 2em; display: block; }
+    .text { display: inline; white-space: pre; }
+
+    .big { font-size: 20em; }
+    .xxlarge { font-size: xx-large; }
+    .smaller { font-size: smaller; }
+
+    .xxlarge > .text { background: red; font-weight: bold; }
+    .smaller > .text { background: white; }
+    .p { color: green; }
+
+  ]]></style>
+ </head>
+ <body class="test">
+  <p>Test passes if there is <strong>no red</strong>.</p>
+  <div class="tests">
+    <div class="xxlarge"><div class="text">        </div></div>
+    <div class="big"><div class="smaller"><div class="text">        </div></div></div>
+  </div>
+ </body>
+</html>

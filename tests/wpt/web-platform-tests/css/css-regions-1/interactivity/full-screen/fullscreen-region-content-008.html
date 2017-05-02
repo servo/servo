@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Test: calling requestFullscreen() on an auto-sized region</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property" />
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from" />
+		<link rel="help" href="http://www.w3.org/TR/fullscreen/#api" />
+		<meta name="flags" content="ahem dom interact">
+		<meta name="assert" content="This test checks that calling the requestFullscreen() method
+				on an auto-sized region displays the region and the content flowed in it without
+				resizing the window or reflowing the content.">
+		<link rel="stylesheet" href="support/common.css" media="all">
+		<script src="support/util.js"></script>
+		<style>
+		#content {
+			flow-into: flow;
+			color: green;
+			font-family: Ahem;
+			font-size: 20px;
+			line-height: 1em;
+			margin: 0;
+		}
+		#region {
+			flow-from: flow;
+			width: auto;
+			height: auto;
+		}
+		#region > p {
+			background: red;
+
+		}
+		</style>
+	</head>
+	<body>
+		<section id="instructions">
+			<ol>
+				<li>You should see no red rectangles or squares before or during the text</li>
+				<li>You should see a green horizontal line below</li>
+				<li>Click the <em>Go full screen</em> button below
+					<ul>
+						<li>The page should enter full screen mode, with only the green line being visible.</li>
+						<li>The browser might display a permission window asking you to allow full
+						screen on this page. Allow it.</li>
+					</ul>
+				</li>
+				<li>Exit full screen (e.g. by pressing <em>Esc</em>)
+					<ul>
+						<li>The green block should be visible, along with all the other initial content.</li>
+					</ul>
+				</li>
+			</ol>
+			<button>Go full screen</button>
+		</section>
+
+		<div id="content">
+			xxxxx&#8203;xxxxx&#8203;xxxxx&#8203;xxxxx&#8203;xxxxx
+		</div>
+
+		<div id="region">
+			<p>&nbsp;</p>
+		</div>
+		<div id="fail-marker"></div>
+
+		<script>
+		makeFullScreenToggle("button", "#region");
+		</script>
+	</body>
+</html>

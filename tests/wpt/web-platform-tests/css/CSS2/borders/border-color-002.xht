@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border-color with two color values</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#propdef-border-color" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-color-properties" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'border-color' property with two color values is supported and applied to the correct sides of the box." />
+        <style type="text/css">
+            div
+            {
+                border-color: blue green;
+                border-style: solid;
+                border-width: 10px;
+                height: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a box with top and bottom borders that are blue and left and right borders that are green.</p>
+        <div></div>
+    </body>
+</html>

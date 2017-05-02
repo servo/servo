@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Transforms Test: transform property with translate function</title>
+    <link rel="author" title="Serena Wales" href="mailto:serena@codeforamerica.org">
+    <link rel="help" href="http://www.w3.org/TR/css3-transforms/#transform-property">
+    <link rel="help" href="http://www.w3.org/TR/css3-transforms/#two-d-transform-functions">
+    <link rel="match" href="reference/transform-translateX-002.html">
+    <meta name="assert" content="This tests that translateX(50%) translates a box by 50% of its width in the X direction">
+    <style type="text/css">
+        /* Positioned container allows for the self-describing statement to still 
+           be visible in the case of failure */
+        .container {
+            position: absolute;
+        }
+        .greenSquare {
+            position: absolute; 
+            top: 0;
+            left: 0;
+            width: 100px;
+            height: 100px;
+            background-color: green;
+            transform: translateX(50%);
+         }
+         /* This div should only be visible if the test fails */
+        .redSquare {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            background-color: red;
+            top: 0px;
+            left: 50px;
+        }
+    </style>
+</head>
+<body>
+    <p>The test passes if there is a green square and no red.</p>
+    <div class="container">
+        <!-- This is the square that should not be visible if the test passes -->
+        <div class="redSquare"></div>
+        <!-- This is the square being tested with the transform -->
+        <div class="greenSquare"></div>
+    </div>
+</body>
+</html>

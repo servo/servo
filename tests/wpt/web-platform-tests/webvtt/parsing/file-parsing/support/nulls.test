@@ -1,0 +1,232 @@
+nulls
+<link rel="help" href="https://w3c.github.io/webvtt/#webvtt-parser-algorithm">
+
+assert_equals(cues.length, 7, cues);
+
+assert_equals(cues[0].id, "");
+assert_equals(cues[0].text, "text0");
+
+assert_equals(cues[1].id, "\uFFFD (null in id)");
+assert_equals(cues[1].text, "text1");
+
+assert_equals(cues[2].id, "\uFFFD (null in cue data)");
+assert_equals(cues[2].text, "\uFFFDtext\uFFFD2");
+
+assert_equals(cues[3].align, "center");
+assert_equals(cues[3].text, "text3");
+
+assert_equals(cues[4].align, "center");
+assert_equals(cues[4].text, "text4");
+
+assert_equals(cues[5].align, "center");
+assert_equals(cues[5].text, "text5");
+
+assert_equals(cues[6].align, "end");
+assert_equals(cues[6].text, "text6");
+
+===
+WEBVTT
+\x00
+(null in previous line should make this line also part of the header)
+00:00:00.000 --> 00:00:01.000
+text0
+
+\x00 (null in id)
+00:00:00.000 --> 00:00:01.000
+text1
+
+\uFFFD (null in cue data)
+00:00:00.000 --> 00:00:01.000
+\uFFFDtext\x002
+
+00:00:00.000 --> 00:00:01.000 align\x00:end
+text3
+
+00:00:00.000 --> 00:00:01.000 align:end\x00
+text4
+
+00:00:00.000 --> 00:00:01.000\x00align:end
+text5
+
+00:00:00.000 --> 00:00:01.000\x00 align:end
+text6
+
+00:00:00.000\x00 --> 00:00:01.000
+invalid
+
+00:00:00.000 -->\x0000:00:01.000
+invalid
+
+\x0000:00:00.000 --> 00:00:01.000
+invalid
+
+0\x000:00:00.000 --> 00:00:01.000
+invalid
+
+00\x00:00:00.000 --> 00:00:01.000
+invalid
+
+00:\x0000:00.000 --> 00:00:01.000
+invalid
+
+00:0\x000:00.000 --> 00:00:01.000
+invalid
+
+00:00\x00:00.000 --> 00:00:01.000
+invalid
+
+00:00:\x0000.000 --> 00:00:01.000
+invalid
+
+00:00:0\x000.000 --> 00:00:01.000
+invalid
+
+00:00:00\x00.000 --> 00:00:01.000
+invalid
+
+00:00:00.\x00000 --> 00:00:01.000
+invalid
+
+00:00:00.0\x0000 --> 00:00:01.000
+invalid
+
+00:00:00.00\x000 --> 00:00:01.000
+invalid
+
+00:00:00.000\x00 --> 00:00:01.000
+invalid
+
+00:00:00.000 \x00--> 00:00:01.000
+invalid
+
+00:00:00.000 -\x00-> 00:00:01.000
+invalid
+
+00:00:00.000 --\x00> 00:00:01.000
+invalid
+
+00:00:00.000 -->\x00 00:00:01.000
+invalid
+
+00:00:00.000 --> \x0000:00:01.000
+invalid
+
+00:00:00.000 --> 0\x000:00:01.000
+invalid
+
+00:00:00.000 --> 00\x00:00:01.000
+invalid
+
+00:00:00.000 --> 00:\x0000:01.000
+invalid
+
+00:00:00.000 --> 00:0\x000:01.000
+invalid
+
+00:00:00.000 --> 00:00\x00:01.000
+invalid
+
+00:00:00.000 --> 00:00:\x0001.000
+invalid
+
+00:00:00.000 --> 00:00:0\x001.000
+invalid
+
+00:00:00.000 --> 00:00:01\x00.000
+invalid
+
+00:00:00.000 --> 00:00:01.\x00000
+invalid
+
+00:00:00.000 --> 00:00:01.0\x0000
+invalid
+
+00:00:00.000 --> 00:00:01.00\x000
+invalid
+
+\x000:00:00.000 --> 00:00:01.000
+invalid
+
+0\x00:00:00.000 --> 00:00:01.000
+invalid
+
+00\x0000:00.000 --> 00:00:01.000
+invalid
+
+00:\x000:00.000 --> 00:00:01.000
+invalid
+
+00:0\x00:00.000 --> 00:00:01.000
+invalid
+
+00:00\x0000.000 --> 00:00:01.000
+invalid
+
+00:00:\x000.000 --> 00:00:01.000
+invalid
+
+00:00:0\x00.000 --> 00:00:01.000
+invalid
+
+00:00:00\x00000 --> 00:00:01.000
+invalid
+
+00:00:00.\x0000 --> 00:00:01.000
+invalid
+
+00:00:00.0\x000 --> 00:00:01.000
+invalid
+
+00:00:00.00\x00 --> 00:00:01.000
+invalid
+
+00:00:00.000\x00--> 00:00:01.000
+invalid
+
+00:00:00.000 \x00-> 00:00:01.000
+invalid
+
+00:00:00.000 -\x00> 00:00:01.000
+invalid
+
+00:00:00.000 --\x00 00:00:01.000
+invalid
+
+00:00:00.000 -->\x0000:00:01.000
+invalid
+
+00:00:00.000 --> \x000:00:01.000
+invalid
+
+00:00:00.000 --> 0\x00:00:01.000
+invalid
+
+00:00:00.000 --> 00\x0000:01.000
+invalid
+
+00:00:00.000 --> 00:\x000:01.000
+invalid
+
+00:00:00.000 --> 00:0\x00:01.000
+invalid
+
+00:00:00.000 --> 00:00\x0001.000
+invalid
+
+00:00:00.000 --> 00:00:\x001.000
+invalid
+
+00:00:00.000 --> 00:00:0\x00.000
+invalid
+
+00:00:00.000 --> 00:00:01\x00000
+invalid
+
+00:00:00.000 --> 00:00:01.\x0000
+invalid
+
+00:00:00.000 --> 00:00:01.0\x000
+invalid
+
+00:00:00.000 --> 00:00:01.00\x00
+invalid

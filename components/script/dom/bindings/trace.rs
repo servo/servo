@@ -107,6 +107,7 @@ use time::Duration;
 use uuid::Uuid;
 use webrender_traits::{WebGLBufferId, WebGLError, WebGLFramebufferId, WebGLProgramId};
 use webrender_traits::{WebGLRenderbufferId, WebGLShaderId, WebGLTextureId};
+use webvr_traits::WebVRGamepadHand;
 
 /// A trait to allow tracing (only) DOM objects.
 pub unsafe trait JSTraceable {
@@ -381,6 +382,7 @@ unsafe_no_jsmanaged_fields!(WebGLRenderbufferId);
 unsafe_no_jsmanaged_fields!(WebGLShaderId);
 unsafe_no_jsmanaged_fields!(WebGLTextureId);
 unsafe_no_jsmanaged_fields!(MediaList);
+unsafe_no_jsmanaged_fields!(WebVRGamepadHand);
 
 unsafe impl<'a> JSTraceable for &'a str {
     #[inline]
@@ -726,7 +728,7 @@ impl<T: JSTraceable> RootableVec<T> {
         RootableVec {
             v: vec![],
         }
-   }
+    }
 }
 
 /// A vector of items that are rooted for the lifetime 'a.

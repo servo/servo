@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<?xml-stylesheet href="css/namespace-001.css" type="text/css"?>
+
+<Order xmlns="http://www.ns.com/ns/Order"
+xmlns:product="http://www.ns.com/ns/Product"
+xmlns:client="http://www.ns.com/ns/Client">
+
+  <product:Product>
+
+     <product:Code>This should be green, bold, and with a thick green border.</product:Code>
+     <product:Price>Foo</product:Price>
+
+  </product:Product>
+  
+  <client:Client>
+
+    <client:Code>This should be blue, italic, and with a thick green border.</client:Code>
+    <client:Name>Foo</client:Name>
+    <client:Address>Baz</client:Address>
+
+  </client:Client>
+  
+  
+  <info>This document should have a silver background.</info>
+
+
+
+</Order>

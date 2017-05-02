@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Backgrounds and Borders Test: border_style_values</title>
+    <link rel="author" title="disound" href="mailto:disound@gmail.com" />
+    <link rel="help" href="http://www.w3.org/TR/css3-background/#the-border-style" />
+    <meta name="assert" content="'Border-style' is a shorthand for the other four. Its four values set the top, right, bottom and left border respectively. A missing left is the same as right, a missing bottom is the same as top, and a missing right is also the same as top. <border-style> = none | hidden | dotted | dashed | solid | double | groove | ridge | inset | outset" />
+    <style>
+        #test {
+            width: 100%;
+            height: 100%;
+        }
+        #test div {
+            float: left;
+            height: 100px;
+            width: 100px;
+            margin: 25px;
+            display: block;
+            position: relative;
+            border-width: 5px;
+            background: blue;
+        }
+        #none {
+            border-style: none;
+        }
+        #hidden {
+            border-style: hidden;
+        }
+        #dotted {
+            border-style: dotted;
+        }
+        #dashed {
+            border-style: dashed;
+        }
+        #solid {
+            border-style: solid;
+        }
+        #double {
+            border-style: double;
+        }
+        #groove {
+            border-style: groove;
+        }
+        #ridge {
+            border-style: ridge;
+        }
+        #inset {
+            border-style: inset;
+        }
+        #outset {
+            border-style: outset;
+        }
+    </style>
+  </head>
+  <body>
+    <p>Test passes if there are green squares with border style from left to right: none | hidden | dotted | dashed | solid | double | groove | ridge | inset | outset.</p>
+    <div id="test">
+        <div id="none">none</div>
+        <div id="hidden">hidden</div>
+        <div id="dotted">dotted</div>
+        <div id="dashed">dashed</div>
+        <div id="solid">solid</div>
+        <div id="double">double</div>
+        <div id="groove">groove</div>
+        <div id="ridge">ridge</div>
+        <div id="inset">inset</div>
+        <div id="outset">outset</div>
+    </div>
+  </body>
+</html>

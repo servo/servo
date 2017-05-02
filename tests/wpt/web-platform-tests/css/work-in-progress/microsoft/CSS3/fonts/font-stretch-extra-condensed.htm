@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>CSS Test: font-stretch:extra-condensed</title>
+    <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+    <link rel="help" href="https://drafts.csswg.org/css3-fonts/#font-stretch-prop" />
+    <meta name="flags" content="" />
+    <meta name="assert" content="the 'font-stretch' property set to 'extra-condensed' renders the font face narrower width compare to normal font face." />
+    <style type="text/css">
+        div
+        {
+            font-family: arial;
+            font-size: 96px;
+        }
+        #test
+        {
+            font-stretch: extra-condensed;
+        }
+    </style>
+</head>
+<body>
+    <p>
+        Test passes if the first line is shorter than the second line.</p>
+    <div id="test">
+        abcd</div>
+    <div>
+        abcd</div>
+</body>
+</html>

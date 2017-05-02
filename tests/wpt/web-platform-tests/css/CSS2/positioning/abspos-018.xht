@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: position: fixed; top: auto; test - body margin</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/absolute/018-alt.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#comp-abspos"/>
+  <link rel="match" href="abspos-013-ref.xht" />
+
+  <meta name="flags" content="may"/>
+  <style type="text/css">
+   html { margin: 0; padding: 0; }
+   body { margin: 10px; padding: 0; }
+   .a { position: static; top: 10px; left: 10px; width: 20em; height: 4em;
+        background: red; color: yellow; }
+   .b { position: fixed;  top: auto; left: auto; width: 20em; height: 4em;
+        background: green; color: white; }
+  </style>
+ </head>
+ <body>
+  <div class="b">This block should be green.</div>
+  <div class="a">FAIL</div>
+
+
+</body>
+</html>

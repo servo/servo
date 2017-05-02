@@ -1,0 +1,36 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Caption border and table border</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#caption-position" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Caption-side, text-align and width properties of a caption work together as expected (example from section 17.4.1)." />
+        <style type="text/css">
+            table
+            {
+                background-color: blue;
+            }
+            caption
+            {
+                caption-side: bottom;
+                text-align: left;
+                width: auto;
+            }
+            td
+            {
+                height: 10em;
+                width: 20em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the "Filler Text" is below the blue box and does not extend beyond the boxes right edge.</p>
+            <table>
+                <caption>Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text</caption>
+                <tr>
+                    <td></td>
+                </tr>
+            </table>
+    </body>
+</html>

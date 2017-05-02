@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Each table row box occupies one row of cells</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#table-layout" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Each table row box occupies one row of cells." />
+        <style type="text/css">
+            #row
+            {
+                background: blue;
+            }
+            td
+            {
+                border: 1px solid black;
+                height: 2em;
+                width: 2em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the middle row of the table below is blue.</p>
+        <table>
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr id="row">
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+        </table>
+    </body>
+</html>

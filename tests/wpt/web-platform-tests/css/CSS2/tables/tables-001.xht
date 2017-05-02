@@ -1,0 +1,36 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: CSS Tables: Nested anonymous table objects and border-spacing</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/table/009.xml" type="application/xhtml+xml"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#anonymous-boxes" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#separated-borders" />
+  <meta name="flags" content=""/>
+  <meta name="assert" content="border-spacing is applied around anonymous table objects, but anonymous table objects only exist if the table has content."/>
+  <style type="text/css">
+
+    /* test */
+    body * { display: table-cell; } /* turn any non-existent elements into table cells */
+    .table { display: table; background: red; }
+    .row   { display: table-row; }
+    /* reset all the other properties that might give us gaps */
+    .table, .row { padding: 0; margin: 0; border: 0; border-spacing: 1em; }
+
+    /* control */
+    .table, .control { position: absolute; top: 4em; left: 2em; }
+    .control { display: block; height: 2em; width: 2em; background: green; }
+
+  </style>
+ </head>
+ <body>
+  <p>Test passes if there is a green square below and no red.</p>
+  <div class="table">
+   <div class="row">
+    <div class="table"/>
+    <!-- nothing -->
+   </div>
+  </div>
+  <div class="control"/>
+ </body>
+</html>

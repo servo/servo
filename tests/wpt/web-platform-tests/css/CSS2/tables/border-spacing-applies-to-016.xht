@@ -1,0 +1,33 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border-spacing and 'display: none' elements</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#propdef-border-spacing" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#separated-borders" />
+        <link rel="match" href="../reference/no-red-on-blank-page-ref.xht"/>
+        <meta name="flags" content="" />
+        <meta name="assert" content="Border-spacing does not apply to 'display: none' elements." />
+        <style type="text/css">
+            div
+            {
+                background: red;
+            }
+            div div
+            {
+                border: 10px solid red;
+                border-spacing: 20px;
+                display: none;
+                height: 100px;
+                width: 100px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page.</p>
+        <div>
+            <div></div>
+            <div></div>
+        </div>
+    </body>
+</html>

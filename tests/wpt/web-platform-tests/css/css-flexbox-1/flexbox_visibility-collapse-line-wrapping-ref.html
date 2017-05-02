@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>flexbox | visibility: collapse and line wrapping</title>
+<link rel="author" href="http://opera.com" title="Opera Software">
+<style>
+body {
+	margin: 0;
+	width: 602px;
+}
+div {
+	background: #3366cc;
+	border: 1px solid black;
+}
+div::after {
+	content: "";
+	clear: both;
+	display: block;
+}
+p {
+	background: #ffcc00;
+	margin: 1em 0;
+	width: 300px;
+	float: left;
+}
+</style>
+
+<div>
+	<p>damer</p>
+	<p>damer</p>
+	<p>damer</p>
+	<p>damer</p>
+</div>

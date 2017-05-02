@@ -1,0 +1,23 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Text-align set to 'justify'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#propdef-text-align" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#alignment-prop" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Text-align justify on a block element aligns the text on both the left and right sides." />
+        <style type="text/css">
+            div
+            {
+                border: 1px solid blue;
+                text-align: justify;
+                width: 150px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the words "Filler Text" are justified and spaced out on the first two lines of text inside the blue box. The final line of text does not have to be justified but can be based on user agent implementation.</p>
+        <div>Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text</div>
+    </body>
+</html>

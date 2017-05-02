@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: @page size B5</title>
+  <link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+  <link rel="author" title="Hewlett-Packard Company" href="http://www.hp.com/"/>
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#page-size-prop"/>
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="flags" content="paged" />
+  <meta name="assert" content="The 'B5' value of the 'size' property specifies that the page box's width be 176mm and its height 250mm."/>
+  <style type="text/css"><![CDATA[
+	@page {
+		size: B5;
+		border: 2pt solid black;
+		margin: 20mm;
+	}
+  ]]></style>
+ </head>
+ <body>
+  <div>If B5 (176mm x 250mm) or larger paper is available, this content should be printed in a black box that has a width of 136mm and a height of 210mm.</div>
+ </body>
+</html>

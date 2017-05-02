@@ -5,15 +5,9 @@ title: Introduction
 
 web-platform-tests is a W3C-coordinated effort to build a
 cross-browser testsuite for the majority of
-the [web platform][web-platform]; it excludes only CSS (whose
-testsuite lives in [csswg-test][csswg-test]), ECMAScript (whose
-testsuite lives in [test262][test262]), and WebGL (whose testsuite
+the [web platform][web-platform]; it excludes only ECMAScript (whose
+testsuite lives in [test262][test262]) and WebGL (whose testsuite
 lives in [WebGL][WebGL]).
-
-That said, csswg-test follows a superset of the policies of
-web-platform-tests, so the documentation provided here should
-similarly apply to it. Where extra policies apply, they are provided
-in separate documents and linked from the appropriate section.
 
 ## Help!
 
@@ -63,7 +57,7 @@ The testsuite has a few types of tests, outlined below:
 
 * [Reftests][], which render two (or more) web
   pages and combine them with equality assertions about their
-  rendering (e.g., A.html and B.html must render identically), run
+  rendering (e.g., `A.html` and `B.html` must render identically), run
   either by the user switching between tabs/windows and trying to
   observe differences or through automated scripts.
 
@@ -193,7 +187,6 @@ partition from there to launch wptserve.
 
 [web-platform]: https://platform.html5.org
 [test262]: https://github.com/tc39/test262
-[csswg-test]: https://github.com/w3c/csswg-test
 [webgl]: https://github.com/KhronosGroup/WebGL
 [public-test-infra]: https://lists.w3.org/Archives/Public/public-test-infra/
 [IRC]: irc://irc.w3.org:6667/testing

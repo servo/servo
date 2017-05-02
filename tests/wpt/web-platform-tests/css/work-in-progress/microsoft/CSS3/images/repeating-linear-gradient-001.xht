@@ -1,0 +1,21 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: 'repeating-linear-gradient' value assigned with 'background-image' property</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="https://drafts.csswg.org/css3-images/#gradients" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Applying 'repeating-linear-gradient' to the 'background-image' property is supported." />
+        <style type="text/css">
+            #test
+            {
+                background-image: repeating-linear-gradient(blue, white 20px);
+                height: 200px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there are horizontal white lines with blue in between.</p>
+        <div id="test"></div>
+    </body>
+</html>

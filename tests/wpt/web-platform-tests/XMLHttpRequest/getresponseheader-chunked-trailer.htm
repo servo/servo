@@ -18,7 +18,7 @@
               assert_equals(client.getResponseHeader('Trailer'), 'X-Test-Me')
               assert_equals(client.getResponseHeader('X-Test-Me'), null)
               assert_equals(client.getAllResponseHeaders().indexOf('Trailer header value'), -1)
-              assert_regexp_match(client.getAllResponseHeaders(), /Trailer:\sX-Test-Me/)
+              assert_regexp_match(client.getAllResponseHeaders(), /trailer:\sX-Test-Me/)
               assert_equals(client.responseText, "First chunk\r\nSecond chunk\r\nYet another (third) chunk\r\nYet another (fourth) chunk\r\n")
               test.done()
             }

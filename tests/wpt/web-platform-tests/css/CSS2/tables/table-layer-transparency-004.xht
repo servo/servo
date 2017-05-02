@@ -1,0 +1,56 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Background on a column element shows if all elements above its layer are transparent</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#table-layers" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="A background set on a column element will show if all table element layers above it are transparent." />
+        <style type="text/css">
+            table
+            {
+                border-collapse: collapse;
+            }
+            table, colgroup
+            {
+                background-color: red;
+            }
+            col
+            {
+                background-color: green;
+            }
+            td
+            {
+                height: 2em;
+                width: 2em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page.</p>
+        <table>
+            <colgroup>
+                <col />
+                <col />
+                <col />
+            </colgroup>
+            <tbody>
+                <tr>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+    </body>
+</html>

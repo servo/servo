@@ -1,0 +1,40 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Max-height on absolutely positioned, non-replaced elements, 'margin-bottom' set to 'auto'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-08-31 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#abs-non-replaced-height" />
+		<link rel="match" href="absolute-non-replaced-height-003-ref.xht" />
+
+        <meta name="flags" content="" />
+        <meta name="assert" content="When 'top', 'bottom' and 'height' are all are not 'auto', 'margin-top' is not 'auto' and 'margin-bottom' is 'auto'. Then 'margin-bottom' becomes the remainder of the height of the containing box." />
+        <style type="text/css">
+            #div1
+            {
+                border: solid black;
+                height: 3in;
+                position: relative;
+                width: 3in;
+            }
+            div div
+            {
+                background: blue;
+                bottom: 0.5in;
+                height: 2in;
+                margin-bottom: auto;
+                margin-top: 0.5in;
+                max-height: 1in;
+                position: absolute;
+                top: 0.5in;
+                width: 100%;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if a blue rectangle is <strong>vertically centered</strong> in an hollow black square.</p>
+        <div id="div1">
+            <div></div>
+        </div>
+    </body>
+</html>

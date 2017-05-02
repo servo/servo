@@ -1,0 +1,58 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Seventh Test of Section 6.1 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+body {font-size: 24pt}
+p {color: green}
+h3 {font-size: 200%}
+
+
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Seventh Testable Statement of Sec 6.1 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+7. Relative values must be transformed into computed values.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p >
+If statement #7 above is passed, then
+this paragraph should have a color of green.
+The rule applied is "p {color: green}".  All  text in this paragraph
+should have font size of 24pt, because of inherited rule
+"body {font-size: 24pt}".
+<h3>
+This h3 heading should have a font size of 48pt, computed from the "body"
+element.
+Rule is "h3 {font-size: 200%}".
+</h3>
+<p style="color: yellow">
+This paragraph should have color yellow, because of cascading in-line style
+"color: yellow".
+All other properties of this page should be UA-default.
+
+
+</BODY>
+</HTML>
+

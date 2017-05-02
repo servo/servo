@@ -21,6 +21,9 @@
             {
                 // The optional deferred load steps (for preload none) for MediaStream resources should be skipped.
                 mediaElement.addEventListener("suspend", t.unreached_func("'suspend' should not be fired."));
+                mediaElement.addEventListener("error", t.step_func(function() {
+                  assert_unreached("'error' should not be fired, code=" + mediaElement.error.code);
+                }));
 
                 mediaElement.addEventListener("loadeddata", t.step_func(function()
                 {

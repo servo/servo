@@ -1,0 +1,30 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Quotes with fifty-eight values</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#propdef-quotes" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#quotes-specify" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Verify that quotes is supported when specifying twenty-nine sets of quotes." />
+        <style type="text/css">
+            div:before
+            {
+                content: open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote open-quote;
+            }
+            div:after
+            {
+                content: close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote close-quote;
+            }
+            div
+            {
+                quotes: "A" "t" "B" "s" "C" "r" "D" "q" "E" "p" "F" "o" "G" "n" "H" "m" "I" "l" "J" "k" "K" "j" "L" "i" "M" "h" "N" "g" "O" "f" "P" "e" "Q" "d" "R" "c" "S" "b" "T" "a" "U" "|" "V" "*" "W" "0" "X" "9" "Y" "8" "Z" "7" "1" "6" "2" "5" "3" "4";
+                border: 2px solid black;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the characters "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890*|abcdefghijklmnopqrst" appear, in the same order, in the box below.</p>
+        <div></div>
+    </body>
+</html>

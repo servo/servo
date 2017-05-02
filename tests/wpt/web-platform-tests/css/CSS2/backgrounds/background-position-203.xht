@@ -1,0 +1,134 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: CSS background position: parsing</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/background/position/003.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background"/>
+  <meta name="flags" content="invalid"/>
+  <style type="text/css">
+   .case { float: left; border: solid; margin: 0.2em; background: #FFFFCC; } /* 150 x 100 */
+   .test { padding: 16px; background: red; }
+   .negative .test { background: url(support/ring.png) no-repeat; }
+   .control { width: 118px; height: 68px; }
+
+   .a .control, .b .control, .c .control, .d .control, .e .control, .f .control { background: url(support/diamond.png) no-repeat 100% 100%; }
+   .case.a .test { background: url(support/ring.png) no-repeat right bottom; }
+   .case.b .test { background: url(support/ring.png) no-repeat bottom right; }
+   .case.c .test { background: url(support/ring.png) no-repeat 100% bottom; }
+   .case.d .test { background: url(support/ring.png) no-repeat right 100%; }
+   .case.e .test { background: url(support/ring.png) no-repeat 100% 58px; }
+   .case.f .test { background: url(support/ring.png) no-repeat 108px 100%; }
+
+   .g .control, .h .control, .i .control, .j .control, .k .control, .l .control, .m .control { background: url(support/diamond.png) no-repeat 54px 28px; }
+   .case.g .test { background: url(support/ring.png) no-repeat center center; }
+   .case.h .test { background: url(support/ring.png) no-repeat 50% 50%; }
+   .case.i .test { background: url(support/ring.png) no-repeat center 50%; }
+   .case.j .test { background: url(support/ring.png) no-repeat 50% center; }
+   .case.k .test { background: url(support/ring.png) no-repeat 50%; }
+   .case.l .test { background: url(support/ring.png) no-repeat center; }
+   .case.m .test { background: url(support/ring.png) no-repeat 54px; }
+
+   .n .control, .o .control { background: url(support/diamond.png) no-repeat 54px 56px; }
+   .case.n .test { background: url(support/ring.png) no-repeat bottom center; }
+   .case.o .test { background: url(support/ring.png) no-repeat center bottom; }
+
+   .p .control, .q .control { background: url(support/diamond.png) no-repeat 108px 28px; }
+   .case.p .test { background: url(support/ring.png) no-repeat right center; }
+   .case.q .test { background: url(support/ring.png) no-repeat center right; }
+
+   .r .control { background: url(support/diamond.png) no-repeat top right; }
+   .case.r0 .test { background: url(support/ring.png) no-repeat right top; }
+   .case.r1 .test { background: url(support/ring.png) no-repeat right 0; }
+   .case.r2 .test { background: url(support/ring.png) no-repeat right 0px; }
+   .case.r3 .test { background: url(support/ring.png) no-repeat right 0%; }
+   .case.r4 .test { background: url(support/ring.png) no-repeat 100% top; }
+   .case.r5 .test { background: url(support/ring.png) no-repeat 100% 0; }
+   .case.r6 .test { background: url(support/ring.png) no-repeat 100% 0px; }
+   .case.r7 .test { background: url(support/ring.png) no-repeat 100% 0%; }
+   .case.r8 .test { background: url(support/ring.png) no-repeat 108px top; }
+   .case.r9 .test { background: url(support/ring.png) no-repeat 108px 0; }
+   .case.r10 .test { background: url(support/ring.png) no-repeat 108px 0px; }
+   .case.r11 .test { background: url(support/ring.png) no-repeat 108px 0%; }
+
+   .negative .control { background: url(support/diamond.png) no-repeat 0% 0%; }
+   .case.t1 .test { background: red right bottom bottom; }
+   .case.t2 .test { background: red bottom right bottom; }
+   .case.t3 .test { background: red bottom 100%; }
+   .case.t4 .test { background: red 100% right; }
+   .case.t5 .test { background: red bottom 8px; }
+   .case.t6 .test { background: red 23px right; }
+   .case.t7 .test { background: red center 50% center; }
+   .case.t8 .test { background: red 50% 50% 50%; }
+   .case.t9 .test { background: red center 50% 50%; }
+   .case.t10 .test { background: red 50%, center; }
+   .case.t11 .test { background: red bottom 54px; }
+   .case.t12 .test { background: red 50 50%; }
+   .case.t13 .test { background: red bottom 100; }
+   .case.t14 .test { background: red rightbottom; }
+   .case.t15 .test { background: red 0 right; }
+   .case.t16 .test { background: red 0px right; }
+   .case.t17 .test { background: red 0% right; }
+   .case.t18 .test { background: red top 100%; }
+   .case.t19 .test { background: red top 108px; }
+   .case.t20 .test { background: red top top; }
+   .case.t21 .test { background: red left right; }
+   .case.t22 .test { background: red left left; }
+  </style>
+ </head>
+<body>
+  <p>In all the following boxes, the fuchsia diamond should be surrounded by a ring.</p>
+  <div class="case a"><div class="test"><div class="control"></div></div></div>
+  <div class="case b"><div class="test"><div class="control"></div></div></div>
+  <div class="case c"><div class="test"><div class="control"></div></div></div>
+  <div class="case d"><div class="test"><div class="control"></div></div></div>
+  <div class="case e"><div class="test"><div class="control"></div></div></div>
+  <div class="case f"><div class="test"><div class="control"></div></div></div>
+  <div class="case g"><div class="test"><div class="control"></div></div></div>
+  <div class="case h"><div class="test"><div class="control"></div></div></div>
+  <div class="case i"><div class="test"><div class="control"></div></div></div>
+  <div class="case j"><div class="test"><div class="control"></div></div></div>
+  <div class="case k"><div class="test"><div class="control"></div></div></div>
+  <div class="case l"><div class="test"><div class="control"></div></div></div>
+  <div class="case m"><div class="test"><div class="control"></div></div></div>
+  <div class="case n"><div class="test"><div class="control"></div></div></div>
+  <div class="case o"><div class="test"><div class="control"></div></div></div>
+  <div class="case p"><div class="test"><div class="control"></div></div></div>
+  <div class="case q"><div class="test"><div class="control"></div></div></div>
+  <div class="case r r0"><div class="test"><div class="control"></div></div></div>
+  <div class="case r r1"><div class="test"><div class="control"></div></div></div>
+  <div class="case r r2"><div class="test"><div class="control"></div></div></div>
+  <div class="case r r3"><div class="test"><div class="control"></div></div></div>
+  <div class="case r r4"><div class="test"><div class="control"></div></div></div>
+  <div class="case r r5"><div class="test"><div class="control"></div></div></div>
+  <div class="case r r6"><div class="test"><div class="control"></div></div></div>
+  <div class="case r r7"><div class="test"><div class="control"></div></div></div>
+  <div class="case r r8"><div class="test"><div class="control"></div></div></div>
+  <div class="case r r9"><div class="test"><div class="control"></div></div></div>
+  <div class="case r r10"><div class="test"><div class="control"></div></div></div>
+  <div class="case negative t1"><div class="test"><div class="control"></div></div></div>
+  <div class="case negative t2"><div class="test"><div class="control"></div></div></div>
+  <div class="case negative t3"><div class="test"><div class="control"></div></div></div>
+  <div class="case negative t4"><div class="test"><div class="control"></div></div></div>
+  <div class="case negative t5"><div class="test"><div class="control"></div></div></div>
+  <div class="case negative t6"><div class="test"><div class="control"></div></div></div>
+  <div class="case negative t7"><div class="test"><div class="control"></div></div></div>
+  <div class="case negative t8"><div class="test"><div class="control"></div></div></div>
+  <div class="case negative t9"><div class="test"><div class="control"></div></div></div>
+  <div class="case negative t10"><div class="test"><div class="control"></div></div></div>
+  <div class="case negative t11"><div class="test"><div class="control"></div></div></div>
+  <div class="case negative t12"><div class="test"><div class="control"></div></div></div>
+  <div class="case negative t13"><div class="test"><div class="control"></div></div></div>
+  <div class="case negative t14"><div class="test"><div class="control"></div></div></div>
+  <div class="case negative t15"><div class="test"><div class="control"></div></div></div>
+  <div class="case negative t16"><div class="test"><div class="control"></div></div></div>
+  <div class="case negative t17"><div class="test"><div class="control"></div></div></div>
+  <div class="case negative t18"><div class="test"><div class="control"></div></div></div>
+  <div class="case negative t19"><div class="test"><div class="control"></div></div></div>
+  <div class="case negative t20"><div class="test"><div class="control"></div></div></div>
+  <div class="case negative t21"><div class="test"><div class="control"></div></div></div>
+  <div class="case negative t22"><div class="test"><div class="control"></div></div></div>
+
+
+</body>
+</html>

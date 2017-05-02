@@ -1,0 +1,23 @@
+{
+  "name": "generators",
+  "version": "1.0.0",
+  "description": "",
+  "main": "gulpfile.js",
+  "dependencies": {},
+  "devDependencies": {
+    "browser-sync": "^2.10.1",
+    "connect": "^3.4.0",
+    "ejs": "^2.3.1",
+    "gulp": "^3.8.11",
+    "gulp-ejs": "^1.1.0",
+    "gulp-rename": "^1.2.2",
+    "minimist": "^1.1.1",
+    "serve-index": "^1.7.2",
+    "serve-static": "^1.10.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}

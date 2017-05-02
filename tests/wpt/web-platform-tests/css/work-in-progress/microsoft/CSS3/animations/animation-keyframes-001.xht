@@ -1,0 +1,63 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: The keyword 'from' is equivalent to the value 0%.</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css3-animations/#keyframes-" />
+        <meta name="flags" content="animated dom" />
+        <meta name="assert" content="The keyword 'from' is equivalent to the value 0%." />
+        <style type="text/css">
+            @keyframes testAnimation1
+            {
+                from {left: 225px;}
+                100% {left: 500px;}
+            }
+            @keyframes testAnimation2
+            {
+                0% {left: 225px;}
+                100% {left: 0px;}
+            }
+            #parent
+            {
+                position: relative;
+            }
+            #testDiv1
+            {
+                animation-duration: 3s;
+                animation-delay: 5s;
+                animation-fill-mode: backwards;
+                background-color: blue;
+                height: 50px;
+                left: 500px;
+                position: absolute;
+                width: 50px;
+            }
+            #testDiv2
+            {
+                animation-duration: 3s;
+                animation-delay: 5s;
+                animation-fill-mode: backwards;
+                background-color: orange;
+                height: 50px;
+                left: 0px;
+                position: absolute;
+                width: 50px;
+            }
+        </style>
+        <script type="text/javascript">
+            function startTest()
+            {
+                document.body.offsetWidth;
+                var element = document.getElementById("testDiv1");
+                var element2 = document.getElementById("testDiv2");
+                element.style["animationName"] = "testAnimation1";
+                element2.style["animationName"] = "testAnimation2";
+            }
+        </script>
+    </head>
+    <body onload="startTest()">
+        <p>Test passes if no part of the blue square can be seen before the two squares move in separate directions.</p>
+        <div id="testDiv1"></div>
+        <div id="testDiv2"></div>
+    </body>
+</html>

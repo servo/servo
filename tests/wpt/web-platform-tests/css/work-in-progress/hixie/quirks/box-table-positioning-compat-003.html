@@ -1,0 +1,22 @@
+<!-- Quirks -->
+<html>
+ <head>
+  <title></title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/table/positioning/compat/003.html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#dis-pos-flo" />
+  <style type="text/css">
+   .test { position: absolute; background: red; }
+   table { background: white; color: green; }
+  </style>
+ </head>
+ <body>
+  <div class="test">
+   <table align="center">
+    <tr>
+     <td>There should be no red on this page.</td>
+    </tr>
+   </table>
+  </div>
+ </body>
+</html>

@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Valid control characters in identifiers</title>
+
+  <link rel="author" title="Bert Bos" href="mailto:bert@w3.org/" />
+
+  <style type="text/css">
+    div p::before {content: counter(item, lower-latin) ". "}
+    div p {counter-increment: item}
+  </style>
+ </head>
+
+ <body>
+   <p>The next items should be numbered a to f.</p>
+   <div>
+     <p>Item</p>
+     <p>Item</p>
+     <p>Item</p>
+     <p>Item</p>
+     <p>Item</p>
+     <p>Item</p>
+   </div>
+ </body>
+</html>

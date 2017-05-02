@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<!-- Any copyright is dedicated to the Public Domain.
+   - http://creativecommons.org/publicdomain/zero/1.0/ -->
+
+<html>
+  <meta charset="utf-8">
+  <title>CSS Shape Test: vertical-lr, float right, polygon(60px 20px, 100px 60px, 20px 60px, 60px 100px) border-box reference</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="http://www.mozilla.org/">
+  <style>
+  .container {
+    writing-mode: vertical-lr;
+    direction: rtl;
+    position: absolute;
+    inline-size: 200px;
+    line-height: 0;
+  }
+
+  .shape {
+    float: right;
+    /* Omit shape-outside */
+    clip-path: polygon(60px 20px, 100px 60px, 20px 60px, 60px 100px) border-box;
+    box-sizing: content-box;
+    block-size: 40px;
+    inline-size: 40px;
+    padding: 20px;
+    border: 20px solid lightgreen;
+    margin: 20px;
+    background-color: orange;
+  }
+
+  .box {
+    position: absolute;
+    inline-size: 80px;
+    background-color: blue;
+  }
+
+  .long {
+    inline-size: 200px;
+  }
+  </style>
+
+  <body class="container">
+    <div class="shape"></div>
+    <div class="long box" style="block-size: 30px; offset-block-start: 0; offset-inline-start: 0;"></div> <!-- Fill the margin and partial border space -->
+    <div class="box" style="block-size: 30px; offset-block-start: 30px; offset-inline-start: 80px;"></div>
+    <div class="box" style="block-size: 20px; offset-block-start: 60px; offset-inline-start: 80px;"></div>
+    <div class="box" style="block-size: 20px; offset-block-start: 80px; offset-inline-start: 120px;"></div>
+    <div class="box" style="block-size: 30px; offset-block-start: 100px; offset-inline-start: 100px;"></div>
+    <div class="long box" style="block-size: 30px; offset-block-start: 130px; offset-inline-start: 0;"></div> <!-- Fill the margin and partial border space -->
+  </body>
+</html>

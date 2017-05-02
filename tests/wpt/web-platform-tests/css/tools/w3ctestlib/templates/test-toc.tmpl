@@ -1,0 +1,97 @@
+[%# variables in this template
+  isXML       [bool]
+  extmap      [ExtensionMap object]
+  suitetitle  [string]
+  specroot    [URI of spec]
+  formatdir   [string]
+  chaptitle   [string]
+  chapdir     [string]
+  testcount   [number]
+  sections    [list of struct]
+    .id          [string - section number or id]
+    .uri         [URI of section]
+    .tests       [list of struct]
+       .asserts    [list of strings]
+       .flags      [list of token strings]
+       .links      [list of uri strings]
+       .name       [string]
+%]
+[% PROCESS suitedata.tmpl %]
+[% IF isXML %]
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+[% formatMismatchFlag = 'HTMLonly' %]
+[% ELSE %]
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+[% formatMismatchFlag = 'nonHTML' %]
+[% END %]
+ <head>
+  <title>[% chaptertitle %] - [% suitetitle %]</title>
+  <style type="text/css">
+    @import "http://www.w3.org/StyleSheets/TR/base.css";
+    @import "[% IF formatdir %]../[% END %]indices.css";
+  </style>
+ </head>
+
+ <body>
+
+  <h1>[% suitetitle %]</h1>
+[% IF chaptertitle %]
+  <h2>[% chaptertitle %] ([% testcount %] tests)</h2>
+[% END %]
+  <table width="100%">
+    <col id="test-column">[% IF isXML %]</col>[% END %]
+    <col id="refs-column">[% IF isXML %]</col>[% END %]
+    <col id="flags-column">[% IF isXML %]</col>[% END %]
+    <col id="info-column">[% IF isXML %]</col>[% END %]
+    <thead>
+      <tr>
+        <th>Test</th>
+        <th><abbr title="Rendering References">Refs</abbr></th>
+        <th>Flags</th>
+        <th>Info</th>
+      </tr>
+    </thead>
+[% FOREACH section IN sections %]
+    <tbody id="s[% section.numstr %]">
+      [% IF section.title %]
+      <tr><th colspan="4" scope="rowgroup">
+        <a href="#s[% section.numstr %]">+</a>
+        <a href="[% section.uri %]">[% section.numstr +%] [%+ section.title %]</a></th></tr>
+      [% END %]
+      <!-- [% section.tests.size %] tests -->
+  [% FOREACH entry IN section.tests.sort('name') %]
+    [% FOREACH flag IN entry.flags %]
+      [% SET skip = 1 IF flag == formatMismatchFlag %]
+    [% END %]
+    [% UNLESS skip %]
+      [% primary = (entry.links.0 == section.uri) or (entry.links.0 == section.uri.replace(specroot, draftroot)) %]
+      <tr id="[% entry.name %]-[% section.numstr %]" class="
+              [% 'primary' IF primary %]
+              [% ' ' IF primary and entry.flags.size > 0 %]
+              [% entry.flags.join(' ') %]">
+        <td>[% '<strong>' IF primary %]
+            <a href="[% extmap.translate(entry.file) %]">[% entry.name%]</a>
+            [% '</strong>' IF primary %]</td>
+        <td>[% FOREACH refList IN entry.references %][% FOREACH ref IN refList %]<a href="[% extmap.translate(ref.relpath) %]">[% refCompMap.${ref.type} %]</a> [%+ END %][%+ END %]</td>
+        <td>[% FOREACH flag IN entry.flags %][% IF flag != 'nonHTML' and flag != 'HTMLonly' %]<abbr class="[% flag %]" title="[% flagInfo.$flag.title %]">[% flagInfo.$flag.abbr %]</abbr>[% END %][% END %]</td>
+        <td>[% entry.title | collapse | html %]
+      [% IF entry.asserts.size > 0 %]
+          <ul class="assert">
+        [% FOREACH assertion IN entry.asserts %]
+            <li>[% assertion | collapse | html %]</li>
+        [% END %]
+          </ul>
+      [% END %]
+        </td>
+      </tr>
+    [% END %]
+    [% skip = 0 %]
+  [% END %]
+    </tbody>
+[% END %]
+  </table>
+
+ </body>
+</html>

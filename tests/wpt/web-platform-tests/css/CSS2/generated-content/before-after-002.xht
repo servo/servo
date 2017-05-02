@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Before, after is included in formatting changes</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#before-after-content" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Generated content is included in any formatting changes made to an element." />
+        <style type="text/css">
+            div
+            {
+                border: solid;
+                color: green;
+            }
+            div:before
+            {
+                content: 'PASS ';
+            }
+            div:after
+            {
+                content: 'PASS';
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the words "PASS PASS" appear in green inside the box.</p>
+        <div></div>
+    </body>
+</html>

@@ -1,0 +1,53 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>First Test of Section 9.7 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+
+
+p {display: none;
+   position: relative;
+   float: left:}
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing First Testable Statement of Sec 9.7 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+1. The three properties that affect box generation and layout-display,
+position, and float - interact according to four principles.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+(nothing should be displayed below)
+</h2>
+<p >
+If statement #1 above is passed, then
+this paragraph should have no box around it.
+The rules stated are "p {display; none; position: relative; float: left;}",
+and if display is none, the user agent should ignore position and float.
+
+All other properties of this page should be UA-default.
+Your browser rendering of this page should look similar to this <a href="c83201.gif"> 
+reference image </a> or to this <a href="d83201.gif">reference image</a>.
+
+
+</BODY>
+</HTML>
+

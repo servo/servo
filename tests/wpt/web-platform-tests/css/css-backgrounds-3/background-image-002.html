@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>CSS Backgrounds: background-image layered background on div</title>
+<link rel="author" title="Justin Hill" href="http://www.justin-hill.com">
+<link rel="help" href="http://www.w3.org/TR/css3-background/#the-background-image">
+<link rel="match" href="reference/background-image-001-ref.html">
+<meta name="assert" content="Test checks that background-image displays layerd images in the correct order for div background.">
+<style>
+    .container {
+      top:50px;
+      left:50px;
+      width: 100px;
+      height: 100px;
+      background-image: url("support/green.png"), url("support/red.png");
+      background-color: red;
+    }
+</style>
+<body>
+    <p> Test passes if green image shows and no red visable.</p>
+    <div class="container"></div>
+</body>

@@ -1,0 +1,460 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+<html>
+ <head>
+  <title>Automatic table sizing algorithm investigation (two rows)</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/table/inspection/inspection-two-rows.html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#auto-table-layout" />
+  <style type="text/css">
+   html, body p { background: white; padding: 1.5em 1em 0.5em 1em; margin: 0; border: 0; }
+   body { background: url(support/horizontal-ruler) top left repeat-y; padding: 0; margin: 0; border: 0; }
+   body * { border: solid 3px black; }
+   table { width: 600px; margin: 1em 0; }
+   td { height: 1em; }
+   .p100 { width: 100%; }
+   .p50 { width: 50%; }
+   .f100 { width: 100px; }
+   .f200 { width: 200px; }
+   .f600 { width: 600px; }
+  </style>
+ </head>
+ <body>
+
+  <p>Blank rows have the same dimensions as the preceeding row, but with zero width spaces in the cells instead of text.</p>
+
+  <p>combinations of 50% and 100%</p>
+
+  <table>
+   <tr>
+    <td class="p50"> 50% </td>
+    <td class="p50"> 50% </td>
+   </tr>
+   <tr>
+    <td class="p100"> 100% </td>
+    <td class="p100"> 100% </td>
+   </tr>
+  </table>
+  <table>
+   <tr>
+    <td class="p100"> 100% </td>
+    <td class="p100"> 100% </td>
+   </tr>
+   <tr>
+    <td class="p50"> 50% </td>
+    <td class="p50"> 50% </td>
+   </tr>
+  </table>
+  <table>
+   <tr>
+    <td class="p50"> 50% </td>
+    <td class="p100"> 100% </td>
+   </tr>
+   <tr>
+    <td class="p100"> 100% </td>
+    <td class="p50"> 50% </td>
+   </tr>
+  </table>
+  <table>
+   <tr>
+    <td class="p100"> 100% </td>
+    <td class="p50"> 50% </td>
+   </tr>
+   <tr>
+    <td class="p50"> 50% </td>
+    <td class="p100"> 100% </td>
+   </tr>
+  </table>
+  <table>
+   <tr>
+    <td class="p50"> 50% </td>
+    <td class="p100"> 100% </td>
+   </tr>
+   <tr>
+    <td class="p50"> 50% </td>
+    <td class="p100"> 100% </td>
+   </tr>
+  </table>
+  <table>
+   <tr>
+    <td class="p100"> 100% </td>
+    <td class="p50"> 50% </td>
+   </tr>
+   <tr>
+    <td class="p100"> 100% </td>
+    <td class="p50"> 50% </td>
+   </tr>
+  </table>
+
+  <p>combinations of 50% and 100px</p>
+
+  <table>
+   <tr>
+    <td class="p50"> 50% </td>
+    <td class="p50"> 50% </td>
+   </tr>
+   <tr>
+    <td class="f100"> 100px </td>
+    <td class="f100"> 100px </td>
+   </tr>
+  </table>
+  <table>
+   <tr>
+    <td class="f100"> 100px </td>
+    <td class="f100"> 100px </td>
+   </tr>
+   <tr>
+    <td class="p50"> 50% </td>
+    <td class="p50"> 50% </td>
+   </tr>
+  </table>
+  <table>
+   <tr>
+    <td class="p50"> 50% </td>
+    <td class="f100"> 100px </td>
+   </tr>
+   <tr>
+    <td class="f100"> 100px </td>
+    <td class="p50"> 50% </td>
+   </tr>
+  </table>
+  <table>
+   <tr>
+    <td class="f100"> 100px </td>
+    <td class="p50"> 50% </td>
+   </tr>
+   <tr>
+    <td class="p50"> 50% </td>
+    <td class="f100"> 100px </td>
+   </tr>
+  </table>
+  <table>
+   <tr>
+    <td class="p50"> 50% </td>
+    <td class="f100"> 100px </td>
+   </tr>
+   <tr>
+    <td class="p50"> 50% </td>
+    <td class="f100"> 100px </td>
+   </tr>
+  </table>
+  <table>
+   <tr>
+    <td class="f100"> 100px </td>
+    <td class="p50"> 50% </td>
+   </tr>
+   <tr>
+    <td class="f100"> 100px </td>
+    <td class="p50"> 50% </td>
+   </tr>
+  </table>
+
+  <p>combinations of 50% and auto</p>
+
+  <table>
+   <tr>
+    <td class="p50"> 50% </td>
+    <td class="p50"> 50% </td>
+   </tr>
+   <tr>
+    <td class="auto"> auto </td>
+    <td class="auto"> auto </td>
+   </tr>
+  </table>
+  <table>
+   <tr>
+    <td class="auto"> auto </td>
+    <td class="auto"> auto </td>
+   </tr>
+   <tr>
+    <td class="p50"> 50% </td>
+    <td class="p50"> 50% </td>
+   </tr>
+  </table>
+  <table>
+   <tr>
+    <td class="p50"> 50% </td>
+    <td class="auto"> auto </td>
+   </tr>
+   <tr>
+    <td class="auto"> auto </td>
+    <td class="p50"> 50% </td>
+   </tr>
+  </table>
+  <table>
+   <tr>
+    <td class="auto"> auto </td>
+    <td class="p50"> 50% </td>
+   </tr>
+   <tr>
+    <td class="p50"> 50% </td>
+    <td class="auto"> auto </td>
+   </tr>
+  </table>
+  <table>
+   <tr>
+    <td class="p50"> 50% </td>
+    <td class="auto"> auto </td>
+   </tr>
+   <tr>
+    <td class="p50"> 50% </td>
+    <td class="auto"> auto </td>
+   </tr>
+  </table>
+  <table>
+   <tr>
+    <td class="auto"> auto </td>
+    <td class="p50"> 50% </td>
+   </tr>
+   <tr>
+    <td class="auto"> auto </td>
+    <td class="p50"> 50% </td>
+   </tr>
+  </table>
+
+  <p>combinations of 100px and 200px</p>
+
+  <table>
+   <tr>
+    <td class="f100"> 100px </td>
+    <td class="f100"> 100px </td>
+   </tr>
+   <tr>
+    <td class="f200"> 200px </td>
+    <td class="f200"> 200px </td>
+   </tr>
+  </table>
+  <table>
+   <tr>
+    <td class="f200"> 200px </td>
+    <td class="f200"> 200px </td>
+   </tr>
+   <tr>
+    <td class="f100"> 100px </td>
+    <td class="f100"> 100px </td>
+   </tr>
+  </table>
+  <table>
+   <tr>
+    <td class="f100"> 100px </td>
+    <td class="f200"> 200px </td>
+   </tr>
+   <tr>
+    <td class="f200"> 200px </td>
+    <td class="f100"> 100px </td>
+   </tr>
+  </table>
+  <table>
+   <tr>
+    <td class="f200"> 200px </td>
+    <td class="f100"> 100px </td>
+   </tr>
+   <tr>
+    <td class="f100"> 100px </td>
+    <td class="f200"> 200px </td>
+   </tr>
+  </table>
+  <table>
+   <tr>
+    <td class="f100"> 100px </td>
+    <td class="f200"> 200px </td>
+   </tr>
+   <tr>
+    <td class="f100"> 100px </td>
+    <td class="f200"> 200px </td>
+   </tr>
+  </table>
+  <table>
+   <tr>
+    <td class="f200"> 200px </td>
+    <td class="f100"> 100px </td>
+   </tr>
+   <tr>
+    <td class="f200"> 200px </td>
+    <td class="f100"> 100px </td>
+   </tr>
+  </table>
+
+  <p>combinations of auto, 100px, and 200px</p>
+
+  <table>
+   <tr>
+    <td class="f100"> 100px </td>
+    <td class="f200"> 200px </td>
+    <td class="auto"> auto </td>
+   </tr>
+   <tr>
+    <td class="f100"> 100px </td>
+    <td class="f200"> 200px </td>
+    <td class="auto"> auto </td>
+   </tr>
+  </table>
+  <table>
+   <tr>
+    <td class="f100"> 100px </td>
+    <td class="f100"> 100px </td>
+    <td class="auto"> auto </td>
+   </tr>
+   <tr>
+    <td class="f200"> 200px </td>
+    <td class="f200"> 200px </td>
+    <td class="auto"> auto </td>
+   </tr>
+  </table>
+  <table>
+   <tr>
+    <td class="f100"> 100px </td>
+    <td class="f200"> 200px </td>
+    <td class="auto"> auto </td>
+   </tr>
+   <tr>
+    <td class="f200"> 200px </td>
+    <td class="f100"> 100px </td>
+    <td class="auto"> auto </td>
+   </tr>
+  </table>
+  <table>
+   <tr>
+    <td class="f100"> 100px </td>
+    <td class="auto"> auto </td>
+    <td class="f200"> 200px </td>
+   </tr>
+   <tr>
+    <td class="f200"> 200px </td>
+    <td class="f100"> 100px </td>
+    <td class="auto"> auto </td>
+   </tr>
+  </table>
+  <table>
+   <tr>
+    <td class="f100"> 100px </td>
+    <td class="auto"> auto </td>
+    <td class="auto"> auto </td>
+   </tr>
+   <tr>
+    <td class="f200"> 200px </td>
+    <td class="auto"> auto </td>
+    <td class="auto"> auto </td>
+   </tr>
+  </table>
+
+  <p>combinations of auto, 100px, and 600px</p>
+
+  <table>
+   <tr>
+    <td class="f100"> 100px </td>
+    <td class="f600"> 600px </td>
+    <td class="auto"> auto </td>
+   </tr>
+   <tr>
+    <td class="f100"> 100px </td>
+    <td class="f600"> 600px </td>
+    <td class="auto"> auto </td>
+   </tr>
+  </table>
+  <table>
+   <tr>
+    <td class="f100"> 100px </td>
+    <td class="f100"> 100px </td>
+    <td class="auto"> auto </td>
+   </tr>
+   <tr>
+    <td class="f600"> 600px </td>
+    <td class="f600"> 600px </td>
+    <td class="auto"> auto </td>
+   </tr>
+  </table>
+  <table>
+   <tr>
+    <td class="f100"> 100px </td>
+    <td class="f600"> 600px </td>
+    <td class="auto"> auto </td>
+   </tr>
+   <tr>
+    <td class="f600"> 600px </td>
+    <td class="f100"> 100px </td>
+    <td class="auto"> auto </td>
+   </tr>
+  </table>
+  <table>
+   <tr>
+    <td class="f100"> 100px </td>
+    <td class="auto"> auto </td>
+    <td class="f600"> 600px </td>
+   </tr>
+   <tr>
+    <td class="f600"> 600px </td>
+    <td class="f100"> 100px </td>
+    <td class="auto"> auto </td>
+   </tr>
+  </table>
+  <table>
+   <tr>
+    <td class="f100"> 100px </td>
+    <td class="auto"> auto </td>
+    <td class="auto"> auto </td>
+   </tr>
+   <tr>
+    <td class="f600"> 600px </td>
+    <td class="auto"> auto </td>
+    <td class="auto"> auto </td>
+   </tr>
+  </table>
+
+  <p>combinations of 100px and wide minimums</p>
+
+  <table>
+   <tr>
+    <td class="auto"> auto </td>
+    <td class="auto"> <div class="f200"> 200px in auto</div> </td>
+    <td class="auto"> auto </td>
+   </tr>
+   <tr>
+    <td class="f100"> 100px </td>
+    <td class="f100"> 100px </td>
+    <td class="f100"> 100px </td>
+   </tr>
+  </table>
+
+  <table>
+   <tr>
+    <td class="auto"> auto </td>
+    <td class="auto"> <div class="f600"> 600px in auto</div> </td>
+    <td class="auto"> auto </td>
+   </tr>
+   <tr>
+    <td class="f100"> 100px </td>
+    <td class="f100"> 100px </td>
+    <td class="f100"> 100px </td>
+   </tr>
+  </table>
+
+  <p>combinations of auto, 100px, and percentage-sized children</p>
+
+  <table>
+   <tr>
+    <td class="auto"> auto </td>
+    <td class="auto"> <div class="p100"> 100% in auto</div> </td>
+    <td class="auto"> auto </td>
+   </tr>
+   <tr>
+    <td class="f100"> 100px </td>
+    <td class="f100"> 100px </td>
+    <td class="f100"> 100px </td>
+   </tr>
+  </table>
+
+  <table>
+   <tr>
+    <td class="auto"> auto </td>
+    <td class="auto"> <div class="p50"> 50% in auto</div> </td>
+    <td class="auto"> auto </td>
+   </tr>
+   <tr>
+    <td class="f100"> 100px </td>
+    <td class="f100"> 100px </td>
+    <td class="f100"> 100px </td>
+   </tr>
+  </table>
+
+ </body>
+</html>

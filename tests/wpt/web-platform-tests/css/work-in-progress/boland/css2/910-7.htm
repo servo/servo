@@ -1,0 +1,79 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Seventh Test of Section 9.10 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+
+
+
+p {unicode-bidi: normal}
+strong {unicode-bidi: embed}
+h3 {unicode-bidi: bidi-override}
+h4 {unicode-bidi: inherit}
+h5 {unicode-bidi: 200%}
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<!--
+<h1 >
+Testing Seventh Testable Statement of Sec 9.10 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+7. The 'unicode-bidi' property has initial 'normal', it applies to all
+elements, it is not inherited, percentages are N/A, and
+media is visual.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p >
+If statement #7 above is passed, then
+-->
+<blockquote>
+This blockquote element has unicode-bidi normal (initial value, no explicit CSS
+rule defined)
+</blockquote>
+<p>
+This paragraph has unicode-bidi normal.  This <em>emphasized text</em> has
+unicode-bidi of UA-default , even if em is descendant of p (property is
+not inherited).</p>
+<strong>This strong text has unicode-bidi embed (if applicable)</strong>
+<h3>This h3 heading has unicode-bidi bidi-override (if applicable)</h3>
+<h4>This h4 text has unicode-bidi inherit (if applicable)</h4>
+
+<h5>This h5 heading is UA-default (percentages don't apply)</h5>
+
+
+The rules applied are "p {unicode-bidi: normal}",
+"strong {unicode-bidi: embed}",
+h3 {unicode-bidi: bidi-override}",
+h4 {unicode-bidi: inherit}",
+h5 {unicode-bidi: 200%}".
+
+NOTE: From all elements listed above, unicode-bidi property should apply to all
+elements.
+<!--
+All other properties of this page should be UA-default.
+Your browser rendering of this page should look similar to this <a href="c83201.gif"> 
+reference image </a> or to this <a href="d83201.gif">reference image</a>.
+-->
+
+
+</BODY>
+</HTML>
+

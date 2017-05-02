@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Floats: No higher than earlier floats</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/float/041.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats" />
+  <link rel="match" href="floats-141-ref.xht" />
+
+  <style type="text/css">
+    p { color: blue; }
+   .container { width: 20em; }
+   .float { float: left; padding: 0.2em; margin: 0.2em; border: thin solid; }
+   .a { color: fuchsia; width: 12em; }
+   .b { color: orange; width: 8em; }
+   .c { color: orange; width: 4em; }
+  </style>
+ </head>
+ <body>
+  <p>C must not be above B.</p>
+  <div class="container">
+   <div class="float a">A</div>
+   <div class="float b">B</div>
+   <div class="float c">C</div>
+  </div>
+ </body>
+</html>

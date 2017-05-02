@@ -1,0 +1,77 @@
+
+<HTML>
+
+<HEAD>
+<TITLE>Second Test of Section 5.4.5</TITLE>
+
+<STYLE>
+p {text-transform: }
+h3 {text-transform: capitalize}
+h4 {text-transform: uppercase}
+strong {text-transform: lowercase}
+blockquote {text-transform: 200%}
+</STYLE>
+</HEAD>
+
+<BODY>
+
+
+<h1>Testing Statement #2 Below of Section 5.4.5 of CSS1 Spec</h1>
+
+
+
+
+
+
+
+
+<ul>
+<li>
+2. For "text-transform", initial is "none", it applies to all elements, it is
+inherited, and percentage values are N/A.
+</ul>
+
+<h2>
+PASS CRITERIA:
+</h2>
+<p>
+
+If statement #2 above is passed, this paragraph should have no text
+transform.
+The rule applied is "p {text-transform: }".
+So the text-transform property applies to the "p" element.
+<h3>
+This h3 element should have a text transform of capitalize
+<em>
+This emphasized text should have a text transform of capitalize, since the 
+text transform property is inherited, and "em" is a child of 'h3".
+No explicit rule is applied for "em".
+</em>
+THe rule applied is 'h3 {text-transform: capitalize}".
+So the text transform property applies to em and h3.
+</h3>
+<h4>
+THis h4 element should have a text transform which is uppercase.
+The rule applied is "text-transform: uppercase".
+So the text transform property applies to h4.
+</h4>
+
+<strong>
+This strong text should have a text transform of lowercase
+; so the text transform property applies
+to the strong element.
+The rule applied is "strong {text-transform: 1.2em}".
+</strong>
+<blockquote>
+This blockquote element should be UA-default.
+The rule applied is "blockquote {text-transform: 200%}", which should be
+ignored since percentages are not applicable.
+</blockquote>
+All other properties of this page should be UA-default.
+
+
+To move to the next test, click<a href="545-3.htm"> here</a>
+
+</BODY>
+</HTML>
+

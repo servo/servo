@@ -55,6 +55,7 @@ use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::fmt;
 use std::fmt::Debug;
+use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 use std::mem::transmute;
 use std::sync::Arc;
@@ -460,12 +461,16 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         self.element.has_selector_flags(flags)
     }
 
-    fn has_animations(&self, _pseudo: Option<&PseudoElement>) -> bool {
-        panic!("this should be only called on gecko");
+    fn has_animations(&self) -> bool {
+        unreachable!("this should be only called on gecko");
     }
 
-    fn has_css_animations(&self, _pseudo: Option<&PseudoElement>) -> bool {
-        panic!("this should be only called on gecko");
+    fn has_css_animations(&self) -> bool {
+        unreachable!("this should be only called on gecko");
+    }
+
+    fn has_css_transitions(&self) -> bool {
+        unreachable!("this should be only called on gecko");
     }
 }
 
@@ -474,6 +479,14 @@ impl<'le> PartialEq for ServoLayoutElement<'le> {
         self.as_node() == other.as_node()
     }
 }
+
+impl<'le> Hash for ServoLayoutElement<'le> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.element.hash(state);
+    }
+}
+
+impl<'le> Eq for ServoLayoutElement<'le> {}
 
 impl<'le> ServoLayoutElement<'le> {
     fn from_layout_js(el: LayoutJS<Element>) -> ServoLayoutElement<'le> {

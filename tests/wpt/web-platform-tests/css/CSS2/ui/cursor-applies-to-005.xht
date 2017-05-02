@@ -1,0 +1,43 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Cursor applied to element with 'display' set to 'table-column-group'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/ui.html#propdef-cursor" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/ui.html#cursor-props" />
+        <meta name="flags" content="interact" />
+        <meta name="assert" content="The 'cursor' property does not apply to elements with a display of table-column-group." />
+        <style type="text/css">
+            #test
+            {
+                display: table-column-group;
+                cursor: pointer;
+            }
+            #row
+            {
+                display: table-row;
+            }
+            #table
+            {
+                display: table;
+                table-layout: fixed;
+            }
+            #cell
+            {
+                background-color: blue;
+                display: table-cell;
+                height: 1in;
+                width: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the cursor is the default cursor when it is over the blue area.</p>
+        <div id="table">
+            <div id="test"></div>
+            <div id="row">
+                <div id="cell"></div>
+            </div>
+        </div>
+    </body>
+</html>

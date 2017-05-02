@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<root xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Namespaces Test Suite: qualified name</title>
+  <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+  <link rel="help" href="http://www.w3.org/TR/css3-namespace/#css-qnames" />
+  <meta name="flags" content="" />
+  <meta name="assert" content="The prefix of a qualified name may be omitted to indicate that the name belongs to no namespace. Some contexts (as defined by the host language) may allow the use of an asterisk (*, U+002A) as a wildcard prefix to indicate a name in any namespace, including no namespace." />
+  <style type="text/css">
+    t, t1, t2, t3 { background: red }
+  </style>
+  <style type="text/css">
+    @namespace "ns_default";
+    @namespace toto "http://toto.example.org";
+    toto|t { background: lime }
+    |t1 { background: lime }
+    *|t2 { background: lime }
+    t3 { background: lime }
+  </style>
+ </head>
+ <body>
+    <p>Test passes if the "Filler Text" text below has a green background.</p>
+    <p><t xmlns="http://toto.example.org">Filler Text</t></p>
+    <p><t1 xmlns="">Filler Text</t1></p>
+    <p><t2 xmlns="test-a">Filler Text</t2></p>
+    <p><t3 xmlns="ns_default">Filler Text</t3></p>
+ </body>
+</root>

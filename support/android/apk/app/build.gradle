@@ -1,0 +1,299 @@
+apply plugin: 'com.android.application'
+
+import groovy.io.FileType
+import org.apache.tools.ant.taskdefs.condition.Os
+import java.util.regex.Matcher
+import java.util.regex.Pattern
+
+android {
+    compileSdkVersion 25
+    buildToolsVersion "25.0.2"
+
+    defaultConfig {
+        applicationId "com.mozilla.servo"
+        minSdkVersion 18
+        targetSdkVersion 25
+        versionCode 1
+        versionName "1.0.0"
+        jackOptions {
+            enabled true
+        }
+    }
+
+    compileOptions {
+        incremental false
+    }
+
+    splits {
+        density {
+            enable false
+        }
+        abi {
+            enable false
+        }
+    }
+
+    sourceSets {
+        main {
+            java.srcDirs = ['src/main/java']
+            assets.srcDirs = ['../../../../resources']
+        }
+        armDebug {
+            jniLibs.srcDirs = [getJniLibsPath(true, 'arm')]
+        }
+        armRelease {
+            jniLibs.srcDirs = [getJniLibsPath(false, 'arm')]
+        }
+        armv7Debug {
+            jniLibs.srcDirs = [getJniLibsPath(true, 'armv7')]
+        }
+        armv7Release {
+            jniLibs.srcDirs = [getJniLibsPath(false, 'armv7')]
+        }
+        arm64Debug {
+            jniLibs.srcDirs = [getJniLibsPath(true, 'arm64')]
+        }
+        arm64Release {
+            jniLibs.srcDirs = [getJniLibsPath(false, 'arm64')]
+        }
+        x86Debug {
+            jniLibs.srcDirs = [getJniLibsPath(true, 'x86')]
+        }
+        x86Release {
+            jniLibs.srcDirs = [getJniLibsPath(false, 'x86')]
+        }
+    }
+
+    buildTypes {
+        // Default debug and release build types are used as templates
+        debug {
+            jniDebuggable true
+        }
+
+        release {
+            signingConfig signingConfigs.debug // Change this to sign with a production key
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+
+        // Custom build types
+        armDebug {
+            initWith(debug)
+            ndk {
+                abiFilters getNDKAbi('arm')
+            }
+        }
+        armRelease {
+            initWith(release)
+            ndk {
+                abiFilters getNDKAbi('arm')
+            }
+        }
+        armv7Debug {
+            initWith(debug)
+            ndk {
+                abiFilters getNDKAbi('armv7')
+            }
+        }
+        armv7Release {
+            initWith(release)
+            ndk {
+                abiFilters getNDKAbi('armv7')
+            }
+        }
+        arm64Debug {
+            initWith(debug)
+            ndk {
+                abiFilters getNDKAbi('arm64')
+            }
+        }
+        arm64Release {
+            initWith(release)
+            ndk {
+                abiFilters getNDKAbi('arm64')
+            }
+        }
+        x86Debug {
+            initWith(debug)
+            ndk {
+                abiFilters getNDKAbi('x86')
+            }
+        }
+        x86Release {
+            initWith(release)
+            ndk {
+                abiFilters getNDKAbi('x86')
+            }
+        }
+    }
+
+    // Ignore default 'debug' and 'release' build types
+    variantFilter { variant ->
+        if(variant.buildType.name.equals('release') || variant.buildType.name.equals('debug')) {
+            variant.setIgnore(true);
+        }
+    }
+    
+    // Define apk output directory
+    applicationVariants.all { variant ->
+        variant.outputs.each { output ->
+            def name = variant.buildType.name
+            output.outputFile = new File(getApkPath(isDebug(name), getArch(name)))
+        }
+    }
+
+    // Call our custom NDK Build task using flavor parameters
+    tasks.all {
+        compileTask ->
+            Pattern pattern = Pattern.compile(/^transformJackWithJackFor([\w\d]+)(Debug|Release)/);
+            Matcher matcher = pattern.matcher(compileTask.name);
+            // You can use this alternative pattern when jackCompiler is disabled
+            // Pattern pattern = Pattern.compile(/^compile([\w\d]+)(Debug|Release)/);
+            // Matcher matcher = pattern.matcher(compileTask.name);
+            if (!matcher.find()) {
+                return
+            }
+
+            def taskName = "ndkbuild" + compileTask.name
+            tasks.create(name: taskName, type: Exec) {
+                def debug = compileTask.name.contains("Debug")
+                def arch = matcher.group(1)
+                commandLine getNdkDir(),
+                        'APP_BUILD_SCRIPT=../jni/Android.mk',
+                        'NDK_APPLICATION_MK=../jni/Application.mk',
+                        'NDK_LIBS_OUT=' + getJniLibsPath(debug, arch),
+                        'NDK_OUT=' + getTargetDir(debug, arch) + '/apk/obj',
+                        'NDK_DEBUG=' + (debug ? '1' : '0'),
+                        'APP_ABI=' + getNDKAbi(arch),
+                        'SERVO_TARGET_DIR=' + getTargetDir(debug, arch)
+            }
+
+            compileTask.dependsOn taskName
+    }
+}
+
+dependencies {
+    //Dependency list
+    def deps = [
+       new ServoDependency("blurdroid.jar", "blurdroid")
+    ]
+
+    // Iterate all build types and dependencies
+    // For each dependency call the proper compile command and set the correct dependency path
+    def list = ['arm', 'armv7', 'arm64', 'x86']
+    for (arch in list) {
+        for (debug in [true, false]) {
+            String basePath = getTargetDir(debug, arch) + "/build"
+            String cmd = arch + (debug ? "Debug" : "Release") + "Compile"
+
+            for (ServoDependency dep: deps) {
+                String path = findDependencyPath(basePath, dep.fileName, dep.folderFilter)
+                if (path) {
+                    "${cmd}" files(path)
+                }
+            }
+        }
+    }
+}
+
+// Utility methods
+String getTargetDir(boolean debug, String arch) {
+    def basePath = project.rootDir.getParentFile().getParentFile().getParentFile().absolutePath
+    return basePath + '/target/' + getRustTarget(arch) + '/' + (debug ? 'debug' : 'release')
+}
+
+String getApkPath(boolean debug, String arch) {
+    return getTargetDir(debug, arch) + '/servo.apk'
+}
+
+String getJniLibsPath(boolean debug, String arch) {
+    return getTargetDir(debug, arch) + '/apk/jniLibs'
+}
+
+String getArch(String buildType) {
+    return buildType.replaceAll(/(Debug|Release)/, '')
+}
+
+boolean isDebug(String buildType) {
+    return buildType.contains("Debug")
+}
+
+String getRustTarget(String arch) {
+    switch (arch.toLowerCase()) {
+        case 'arm' : return 'arm-linux-androideabi'
+        case 'armv7' : return 'armv7-linux-androideabi'
+        case 'arm64' : return 'aarch64-linux-android'
+        case 'x86' : return 'x86'
+        default: throw new GradleException("Invalid target architecture " + arch)
+    }
+}
+
+String getNDKAbi(String arch) {
+    switch (arch.toLowerCase()) {
+        case 'arm' : return 'armeabi'
+        case 'armv7' : return 'armeabi-v7a'
+        case 'arm64' : return 'arm64-v8a'
+        case 'x86' : return 'x86'
+        default: throw new GradleException("Invalid target architecture " + arch)
+    }
+}
+
+String getNdkDir() {
+    // Read environment variable used in rust build system
+    String ndkDir = System.getenv('ANDROID_NDK')
+    if (ndkDir == null) {
+        ndkDir = System.getenv('ANDROID_NDK_HOME')
+    }
+    if (ndkDir == null) {
+        // Fallback to ndkDir in local.properties
+        def rootDir = project.rootDir
+        def localProperties = new File(rootDir, "local.properties")
+        Properties properties = new Properties()
+        localProperties.withInputStream { instr ->
+            properties.load(instr)
+        }
+
+        ndkDir = properties.getProperty('ndk.dir')
+    }
+
+    def cmd = Os.isFamily(Os.FAMILY_WINDOWS) ? 'ndk-build.cmd' : 'ndk-build'
+    def ndkbuild = new File(ndkDir + '/' + cmd)
+    if (!ndkbuild.exists()) {
+        throw new GradleException("Please set a valid NDK_HOME environment variable" +
+                "or ndk.dir path in local.properties file");
+    }
+    return ndkbuild.absolutePath
+}
+
+// folderFilter can be used to improve search performance
+String findDependencyPath(String basePath, String filename, String folderFilter) {
+    File path = new File(basePath);
+    if (!path.exists()) {
+        return ''
+    }
+
+    if (folderFilter) {
+        path.eachDir {
+            if (it.name.contains(folderFilter)) {
+                path = new File(it.absolutePath)
+            }
+        }
+    }
+    def result = ''
+    path.eachFileRecurse(FileType.FILES) {
+        if(it.name.equals(filename)) {
+            result = it.absolutePath
+        }
+    }
+
+    return result
+}
+
+class ServoDependency {
+    public ServoDependency(String fileName, String folderFilter = null) {
+        this.fileName = fileName;
+        this.folderFilter = folderFilter;
+    }
+    public String fileName;
+    public String folderFilter;
+}

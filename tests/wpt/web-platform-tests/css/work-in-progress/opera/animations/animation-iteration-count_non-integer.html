@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <title>CSS Animations - animation-iteration-count, non-integer value</title>
+   <link rel="author" title="Opera Software ASA" href="http://www.opera.com/">
+   <link rel="help" href="https://drafts.csswg.org/css3-animations/#the-animation-iteration-count-property-">
+   <meta name="flags" content="dom">
+   <meta name="assert" content="A non-integer animation-iteration-count will
+   cause the animation to end part-way through a cycle">
+   <script src="/resources/testharness.js"></script>
+   <script src="/resources/testharnessreport.js"></script>
+   <style type="text/css">
+      @keyframes borderize {
+         0% {
+            border-right-width: 0px;
+         }
+         50% {
+            border-right-width: 100px;
+         }
+         100% {
+            border-right-width: 200px;
+         }
+      }
+      div {
+         width: 100px;
+         height: 100px;
+         background: blue;
+         border-right: 0px solid black;
+         animation-duration: 1s;
+         animation-fill-mode: forwards;
+         animation-timing-function: step-end;
+         animation-iteration-count: 0.5;
+      }
+      .test {
+         animation-name: borderize;
+      }
+   </style>
+   <script type="text/javascript">
+      setup({explicit_done:true});
+      onload = function() {
+         var testName = document.querySelector('title').firstChild.data;
+         var div = document.querySelector('div');
+         var log = document.querySelectorAll('p')[1].firstChild;
+         function aboutEqual(observed, actual) {
+            var maxDeviation = 0.1;
+            return (Math.abs(observed - actual) < maxDeviation);
+         }
+         var timeout = setTimeout(function() {
+            test(function(){assert_true(false);}, testName); done();
+            log.data = 'FAIL';
+         }, 1500);
+         div.addEventListener('animationend', function(evt) {
+            clearTimeout(timeout);
+            var width = getComputedStyle(div, null).borderRightWidth;
+            var passed = aboutEqual(evt.elapsedTime, 0.5) && width == '100px';
+            test(function(){assert_true(passed);}, testName); done();
+            log.data = (passed ? 'PASS if the animation occurred.' : 'FAIL');
+         });
+         div.className = 'test';
+      }
+   </script>
+   <style>iframe{display:none}</style>
+</head>
+<body>
+   <p>A black square should appear next to the blue square below. It should not
+   become wider than the blue square.</p>
+   <p>Testing...</p>
+   <div></div>
+</body>
+</html>

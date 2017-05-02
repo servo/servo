@@ -1,0 +1,50 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>25th Test of Section 12.6 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+ol.alpha li {list-style: lower-alpha}
+ul li {list-style: disc}
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing 25th Testable Statement of Sec 5.1 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+25. Use of only the descendant selector may caus unexpected results.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p >
+If statement #25 above is passed, then
+<ol class="alpha">
+ <li>Level 1
+  <ul>
+     <li>Level 2
+  </ul>
+</ol>
+The first style rule should mask the second, so that Item 2 will be lower-
+alpha instead of disc.
+Rules applied are "ol.alpha li {list-style: lower-alpha}", and
+"ul li {list-style: disc}".
+All other properties of this page should be UA-default.
+
+
+</BODY>
+</HTML>
+

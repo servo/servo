@@ -6,7 +6,7 @@
 
 <% data.new_style_struct("Counters", inherited=False, gecko_name="Content") %>
 
-<%helpers:longhand name="content" boxed="True" animation_type="none"
+<%helpers:longhand name="content" boxed="True" animation_value_type="none"
                    spec="https://drafts.csswg.org/css-content/#propdef-content">
     use cssparser::Token;
     use std::ascii::AsciiExt;
@@ -134,11 +134,6 @@
         computed_value::T::normal
     }
 
-    pub fn counter_name_is_illegal(name: &str) -> bool {
-        name.eq_ignore_ascii_case("none") || name.eq_ignore_ascii_case("inherit") ||
-            name.eq_ignore_ascii_case("initial")
-    }
-
     // normal | none | [ <string> | <counter> | open-quote | close-quote | no-open-quote |
     // no-close-quote ]+
     // TODO: <uri>, attr(<identifier>)
@@ -240,26 +235,27 @@
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="counter-increment" animation_type="none"
+<%helpers:longhand name="counter-increment" animation_value_type="none"
                    spec="https://drafts.csswg.org/css-lists/#propdef-counter-increment">
     use std::fmt;
     use style_traits::ToCss;
     use super::content;
-    use values::HasViewportPercentage;
+    use values::{HasViewportPercentage, CustomIdent};
 
     use cssparser::{Token, serialize_identifier};
     use std::borrow::{Cow, ToOwned};
 
     #[derive(Debug, Clone, PartialEq)]
-    pub struct SpecifiedValue(pub Vec<(String, specified::Integer)>);
+    pub struct SpecifiedValue(pub Vec<(CustomIdent, specified::Integer)>);
 
     pub mod computed_value {
         use std::fmt;
         use style_traits::ToCss;
+        use values::CustomIdent;
 
         #[derive(Debug, Clone, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct T(pub Vec<(String, i32)>);
+        pub struct T(pub Vec<(CustomIdent, i32)>);
 
         impl ToCss for T {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result
@@ -271,14 +267,14 @@
                 }
 
                 let mut first = true;
-                for pair in &self.0 {
+                for &(ref name, value) in &self.0 {
                     if !first {
-                        try!(dest.write_str(" "));
+                        dest.write_str(" ")?;
                     }
                     first = false;
-                    try!(serialize_identifier(&pair.0, dest));
-                    try!(dest.write_str(" "));
-                    try!(pair.1.to_css(dest));
+                    name.to_css(dest)?;
+                    dest.write_str(" ")?;
+                    value.to_css(dest)?;
                 }
                 Ok(())
             }
@@ -289,14 +285,14 @@
         type ComputedValue = computed_value::T;
 
         fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-            computed_value::T(self.0.iter().map(|entry| {
-                (entry.0.clone(), entry.1.to_computed_value(context))
+            computed_value::T(self.0.iter().map(|&(ref name, ref value)| {
+                (name.clone(), value.to_computed_value(context))
             }).collect::<Vec<_>>())
         }
 
         fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-            SpecifiedValue(computed.0.iter().map(|entry| {
-                (entry.0.clone(), specified::Integer::from_computed_value(&entry.1))
+            SpecifiedValue(computed.0.iter().map(|&(ref name, ref value)| {
+                (name.clone(), specified::Integer::from_computed_value(&value))
             }).collect::<Vec<_>>())
         }
     }
@@ -316,25 +312,27 @@
                 return dest.write_str("none");
             }
             let mut first = true;
-            for pair in &self.0 {
+            for &(ref name, ref value) in &self.0 {
                 if !first {
-                    try!(dest.write_str(" "));
+                    dest.write_str(" ")?;
                 }
                 first = false;
-                try!(serialize_identifier(&pair.0, dest));
-                try!(dest.write_str(" "));
-                try!(pair.1.to_css(dest));
+                name.to_css(dest)?;
+                dest.write_str(" ")?;
+                value.to_css(dest)?;
             }
 
             Ok(())
         }
     }
 
-    pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        parse_common(1, input)
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        parse_common(context, 1, input)
     }
 
-    pub fn parse_common(default_value: i32, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse_common(context: &ParserContext, default_value: i32, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        use std::ascii::AsciiExt;
+
         if input.try(|input| input.expect_ident_matching("none")).is_ok() {
             return Ok(SpecifiedValue(Vec::new()))
         }
@@ -342,15 +340,12 @@
         let mut counters = Vec::new();
         loop {
             let counter_name = match input.next() {
-                Ok(Token::Ident(ident)) => (*ident).to_owned(),
+                Ok(Token::Ident(ident)) => CustomIdent::from_ident(ident, &["none"])?,
                 Ok(_) => return Err(()),
                 Err(_) => break,
             };
-            if content::counter_name_is_illegal(&counter_name) {
-                return Err(())
-            }
-            let counter_delta =
-                input.try(|input| specified::parse_integer(input)).unwrap_or(specified::Integer::new(default_value));
+            let counter_delta = input.try(|input| specified::parse_integer(context, input))
+                                     .unwrap_or(specified::Integer::new(default_value));
             counters.push((counter_name, counter_delta))
         }
 
@@ -362,12 +357,12 @@
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="counter-reset" animation_type="none"
+<%helpers:longhand name="counter-reset" animation_value_type="none"
                    spec="https://drafts.csswg.org/css-lists-3/#propdef-counter-reset">
     pub use super::counter_increment::{SpecifiedValue, computed_value, get_initial_value};
     use super::counter_increment::parse_common;
 
-    pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
-        parse_common(0, input)
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+        parse_common(context, 0, input)
     }
 </%helpers:longhand>

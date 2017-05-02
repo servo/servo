@@ -10,7 +10,7 @@ use std::fmt;
 use style_traits::ToCss;
 use super::{Number, ToComputedValue, Context};
 use values::{Auto, CSSFloat, Either, ExtremumLength, None_, Normal, specified};
-use values::specified::length::{FontRelativeLength, ViewportPercentageLength};
+use values::specified::length::{AbsoluteLength, FontBaseSize, FontRelativeLength, ViewportPercentageLength};
 
 pub use super::image::{EndingShape as GradientShape, Gradient, GradientKind, Image};
 pub use super::image::{LengthOrKeyword, LengthOrPercentageOrKeyword};
@@ -22,19 +22,23 @@ impl ToComputedValue for specified::NoCalcLength {
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Au {
         match *self {
-            specified::NoCalcLength::Absolute(length) => length,
+            specified::NoCalcLength::Absolute(length) =>
+                length.to_computed_value(context),
             specified::NoCalcLength::FontRelative(length) =>
-                length.to_computed_value(context, /* use inherited */ false),
+                length.to_computed_value(context, FontBaseSize::CurrentStyle),
             specified::NoCalcLength::ViewportPercentage(length) =>
                 length.to_computed_value(context.viewport_size()),
             specified::NoCalcLength::ServoCharacterWidth(length) =>
-                length.to_computed_value(context.style().get_font().clone_font_size())
+                length.to_computed_value(context.style().get_font().clone_font_size()),
+            #[cfg(feature = "gecko")]
+            specified::NoCalcLength::Physical(length) =>
+                length.to_computed_value(context),
         }
     }
 
     #[inline]
     fn from_computed_value(computed: &Au) -> Self {
-        specified::NoCalcLength::Absolute(*computed)
+        specified::NoCalcLength::Absolute(AbsoluteLength::Px(computed.to_f32_px()))
     }
 }
 
@@ -45,7 +49,7 @@ impl ToComputedValue for specified::Length {
     fn to_computed_value(&self, context: &Context) -> Au {
         match *self {
             specified::Length::NoCalc(l) => l.to_computed_value(context),
-            specified::Length::Calc(ref calc, range) => range.clamp(calc.to_computed_value(context).length()),
+            specified::Length::Calc(range, ref calc) => range.clamp(calc.to_computed_value(context).length()),
         }
     }
 
@@ -74,6 +78,16 @@ impl CalcLengthOrPercentage {
     #[allow(missing_docs)]
     pub fn percentage(&self) -> CSSFloat {
         self.percentage.unwrap_or(0.)
+    }
+
+    /// If there are special rules for computing percentages in a value (e.g. the height property),
+    /// they apply whenever a calc() expression contains percentages.
+    pub fn to_computed(&self, container_len: Option<Au>) -> Option<Au> {
+        match (container_len, self.percentage) {
+            (Some(len), Some(percent)) => Some(self.length + len.scale_by(percent)),
+            (_, None) => Some(self.length),
+            _ => None,
+        }
     }
 }
 
@@ -158,7 +172,7 @@ impl ToComputedValue for specified::CalcLengthOrPercentage {
                      self.ex.map(FontRelativeLength::Ex),
                      self.rem.map(FontRelativeLength::Rem)] {
             if let Some(val) = *val {
-                length += val.to_computed_value(context, /* use inherited */ false);
+                length += val.to_computed_value(context, FontBaseSize::CurrentStyle);
             }
         }
 

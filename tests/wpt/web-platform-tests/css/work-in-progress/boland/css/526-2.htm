@@ -1,0 +1,78 @@
+
+<HTML>
+
+<HEAD>
+<TITLE>Second Test of Section 5.2.6 of CSS1 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+p {font-size: 0.50in}
+h3 {font-size: 10pt}
+h4 {font-size: 5pt}
+strong {font-size: 50%}
+</STYLE>
+</HEAD>
+
+
+
+
+
+
+<BODY>
+
+
+
+<h1 >Testing Statement #2 Below of Section 5.2.6 of CSS1 Spec</h1>
+
+
+
+
+
+
+
+
+<ul>
+<li>
+2. For "font-size", initial is "medium", it applies to all elements, it is
+inherited, adn percentage values are relative to parent element's font size.
+</ul>
+
+
+
+
+<h2>
+PASS CRITERIA:
+</h2>
+If statement #2 above is passed, then:
+
+<blockquote>
+This font size of this "blockquote" element is medium (initial or UA-default).
+No explicit CSS1 rules are applied, but the font size property does apply
+to the "blockquote" element.
+</blockquote>
+
+<h3>This h3 heading has a font size of 10pt; this <em>emphasized text</em>
+within this heading also has font size of 10pt, since "em" inherits from
+"h3".  Thus the font size property applies to the "em" and "h3" elements.
+The rule applied is "h3 {font-size: 10pt}".
+</h3>
+
+<h4>
+This h4 heading has a font size of 5 pt, but this <strong>strong</strong>
+word has a font size of 2.5 pt.  Thus the font size property applies to the
+"h4" and "strong" elements.
+The rules applied are "h4 {font-size: 5pt}" and "strong {font-size: 50%}".
+The percentage in the "strong" rule is relative to the parent (h4).
+</h4>
+<p>
+This "p" element has a font size of .50 in; thus the font size property
+applies to the "p" element
+The rule applied is "p {font-size: .50in}"
+(NOTE: Should I list any more HTML elements on this page?)
+
+
+All other properties on this page should be UA-default.
+To move directly to the next test, click<a href="526-3.htm"> here</a>
+
+</BODY>
+</HTML>
+

@@ -1,0 +1,44 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: Height percentage - 100% of the initial containing block's height</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="bookmark" href="http://lists.w3.org/Archives/Public/www-style/2012Jan/1176.html" title="[CSS21] min-height: 100% in html, body" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#the-height-property" title="10.5 Content height: the 'height' property" />
+  <link rel="match" href="height-percentage-003a-ref.xht" />
+
+  <meta name="flags" content="" />
+  <meta name="assert" content="The initial containing block has the dimensions of the viewport. A percentage height on the root element is relative to the initial containing block. A 'height: 100%' of the document root element should use all of the document root element's height." />
+
+  <style type="text/css"><![CDATA[
+  html
+  {
+  background-color: red;
+  height: 100%;
+  }
+
+  body, p
+  {
+  height: 100%;
+  margin: 0px;
+  }
+
+  p
+  {
+  background-color: green;
+  color: white;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if the background of this page is green and if there is <strong>no red and no vertical scrollbar</strong>.</p>
+
+ </body>
+</html>

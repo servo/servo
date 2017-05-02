@@ -7,15 +7,18 @@
 //!
 //! [image]: https://drafts.csswg.org/css-images/#image-values
 
-use cssparser::Color as CSSColor;
+use Atom;
+use cssparser::{Color as CSSColor, serialize_identifier};
 use std::f32::consts::PI;
 use std::fmt;
 use style_traits::ToCss;
 use values::computed::{Angle, Context, Length, LengthOrPercentage, NumberOrPercentage, ToComputedValue};
 use values::computed::position::Position;
-use values::specified::{self, HorizontalDirection, SizeKeyword, VerticalDirection};
+use values::specified::{self, HorizontalDirection, VerticalDirection};
+use values::specified::image::CompatMode;
 use values::specified::url::SpecifiedUrl;
 
+pub use values::specified::SizeKeyword;
 
 impl ToComputedValue for specified::Image {
     type ComputedValue = Image;
@@ -31,6 +34,9 @@ impl ToComputedValue for specified::Image {
             },
             specified::Image::ImageRect(ref image_rect) => {
                 Image::ImageRect(image_rect.to_computed_value(context))
+            },
+            specified::Image::Element(ref selector) => {
+                Image::Element(selector.clone())
             }
         }
     }
@@ -51,6 +57,9 @@ impl ToComputedValue for specified::Image {
                     ToComputedValue::from_computed_value(image_rect)
                 )
             },
+            Image::Element(ref selector) => {
+                specified::Image::Element(selector.clone())
+            },
         }
     }
 }
@@ -64,6 +73,7 @@ pub enum Image {
     Url(SpecifiedUrl),
     Gradient(Gradient),
     ImageRect(ImageRect),
+    Element(Atom),
 }
 
 impl fmt::Debug for Image {
@@ -80,6 +90,11 @@ impl fmt::Debug for Image {
                 }
             },
             Image::ImageRect(ref image_rect) => write!(f, "{:?}", image_rect),
+            Image::Element(ref selector) => {
+                f.write_str("-moz-element(#")?;
+                serialize_identifier(&*selector.to_string(), f)?;
+                f.write_str(")")
+            },
         }
     }
 }
@@ -90,6 +105,12 @@ impl ToCss for Image {
             Image::Url(ref url) => url.to_css(dest),
             Image::Gradient(ref gradient) => gradient.to_css(dest),
             Image::ImageRect(ref image_rect) => image_rect.to_css(dest),
+            Image::Element(ref selector) => {
+                dest.write_str("-moz-element(#")?;
+                // FIXME: We should get rid of these intermediate strings.
+                serialize_identifier(&*selector.to_string(), dest)?;
+                dest.write_str(")")
+            },
         }
     }
 }
@@ -100,22 +121,27 @@ impl ToCss for Image {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct Gradient {
     /// The color stops.
-    pub stops: Vec<ColorStop>,
+    pub items: Vec<GradientItem>,
     /// True if this is a repeating gradient.
     pub repeating: bool,
     /// Gradient kind can be linear or radial.
     pub gradient_kind: GradientKind,
+    /// Compatibility mode.
+    pub compat_mode: CompatMode,
 }
 
 impl ToCss for Gradient {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        if self.compat_mode == CompatMode::WebKit {
+            try!(dest.write_str("-webkit-"));
+        }
         if self.repeating {
             try!(dest.write_str("repeating-"));
         }
         match self.gradient_kind {
             GradientKind::Linear(angle_or_corner) => {
                 try!(dest.write_str("linear-gradient("));
-                try!(angle_or_corner.to_css(dest));
+                try!(angle_or_corner.to_css(dest, self.compat_mode));
             },
             GradientKind::Radial(ref shape, position) => {
                 try!(dest.write_str("radial-gradient("));
@@ -124,9 +150,9 @@ impl ToCss for Gradient {
                 try!(position.to_css(dest));
             },
         }
-        for stop in &self.stops {
+        for item in &self.items {
             try!(dest.write_str(", "));
-            try!(stop.to_css(dest));
+            try!(item.to_css(dest));
         }
         try!(dest.write_str(")"));
         Ok(())
@@ -144,8 +170,8 @@ impl fmt::Debug for Gradient {
             },
         }
 
-        for stop in &self.stops {
-            let _ = write!(f, ", {:?}", stop);
+        for item in &self.items {
+            let _ = write!(f, ", {:?}", item);
         }
         Ok(())
     }
@@ -157,27 +183,32 @@ impl ToComputedValue for specified::Gradient {
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Gradient {
         let specified::Gradient {
-            ref stops,
+            ref items,
             repeating,
-            ref gradient_kind
+            ref gradient_kind,
+            compat_mode,
         } = *self;
         Gradient {
-            stops: stops.iter().map(|s| s.to_computed_value(context)).collect(),
+            items: items.iter().map(|s| s.to_computed_value(context)).collect(),
             repeating: repeating,
             gradient_kind: gradient_kind.to_computed_value(context),
+            compat_mode: compat_mode,
         }
     }
+
     #[inline]
     fn from_computed_value(computed: &Gradient) -> Self {
         let Gradient {
-            ref stops,
+            ref items,
             repeating,
-            ref gradient_kind
+            ref gradient_kind,
+            compat_mode,
         } = *computed;
         specified::Gradient {
-            stops: stops.iter().map(ToComputedValue::from_computed_value).collect(),
+            items: items.iter().map(ToComputedValue::from_computed_value).collect(),
             repeating: repeating,
             gradient_kind: ToComputedValue::from_computed_value(gradient_kind),
+            compat_mode: compat_mode,
         }
     }
 }
@@ -216,6 +247,53 @@ impl ToComputedValue for specified::GradientKind {
             GradientKind::Radial(ref shape, position) => {
                 specified::GradientKind::Radial(ToComputedValue::from_computed_value(shape),
                                                 ToComputedValue::from_computed_value(&position))
+            },
+        }
+    }
+}
+
+/// Specified values for color stops and interpolation hints.
+#[derive(Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum GradientItem {
+    /// A color stop.
+    ColorStop(ColorStop),
+    /// An interpolation hint.
+    InterpolationHint(LengthOrPercentage),
+}
+
+impl ToCss for GradientItem {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            GradientItem::ColorStop(stop) => stop.to_css(dest),
+            GradientItem::InterpolationHint(hint) => hint.to_css(dest),
+        }
+    }
+}
+
+impl ToComputedValue for specified::GradientItem {
+    type ComputedValue = GradientItem;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> GradientItem {
+        match *self {
+            specified::GradientItem::ColorStop(ref stop) => {
+                GradientItem::ColorStop(stop.to_computed_value(context))
+            },
+            specified::GradientItem::InterpolationHint(ref hint) => {
+                GradientItem::InterpolationHint(hint.to_computed_value(context))
+            },
+        }
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &GradientItem) -> Self {
+        match *computed {
+            GradientItem::ColorStop(ref stop) => {
+                specified::GradientItem::ColorStop(ToComputedValue::from_computed_value(stop))
+            },
+            GradientItem::InterpolationHint(ref hint) => {
+                specified::GradientItem::InterpolationHint(ToComputedValue::from_computed_value(hint))
             },
         }
     }
@@ -583,12 +661,14 @@ impl ToComputedValue for specified::AngleOrCorner {
     }
 }
 
-impl ToCss for AngleOrCorner {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+impl AngleOrCorner {
+    fn to_css<W>(&self, dest: &mut W, mode: CompatMode) -> fmt::Result where W: fmt::Write {
         match *self {
             AngleOrCorner::Angle(angle) => angle.to_css(dest),
             AngleOrCorner::Corner(horizontal, vertical) => {
-                try!(dest.write_str("to "));
+                if mode == CompatMode::Modern {
+                    try!(dest.write_str("to "));
+                }
                 try!(horizontal.to_css(dest));
                 try!(dest.write_str(" "));
                 try!(vertical.to_css(dest));

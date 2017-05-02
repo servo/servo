@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!--
+     This test verifies that we reconstruct frames as necessary, after content
+     (including whitespace & text) is dynamically inserted as a child of a
+     flexbox.  (Note that in cases where we know the whitespace is going to be
+     dropped, we don't bother reconstructing frames. This test is to be sure we
+     aren't overzealous with that optimization.)
+-->
+<html xmlns="http://www.w3.org/1999/xhtml"
+      class="reftest-wait">
+  <head>
+    <style>
+      body { font-size: 10px; }
+
+      div.flexbox {
+        border: 1px dashed blue;
+        width: 300px;
+        display: flex;
+        justify-content: space-around;
+        margin-bottom: 1px;
+        white-space: pre;
+      }
+    </style>
+    <script>
+      function insertNodeAtPosnInElem(aNodeToInsert, aPosn, aParentId) {
+        var parent = document.getElementById(aParentId);
+        var insertBeforeTarget = parent.firstChild;
+        for (var i = 0; i &lt; aPosn; i++) {
+          insertBeforeTarget = insertBeforeTarget.nextSibling;
+        }
+        parent.insertBefore(aNodeToInsert, insertBeforeTarget);
+      }
+
+      function tweak() {
+        // Just inserting whitespace
+        // -------------------------
+        insertNodeAtPosnInElem(document.createTextNode("  "), 0, "f0");
+        insertNodeAtPosnInElem(document.createTextNode("  "), 1, "f1");
+
+        // Inserting text or text with whitespace
+        // --------------------------------------
+        insertNodeAtPosnInElem(document.createTextNode("[NewText]"),   0, "f2");
+        insertNodeAtPosnInElem(document.createTextNode("[NewText]  "), 0, "f3");
+        insertNodeAtPosnInElem(document.createTextNode("  [NewText]"), 0, "f4");
+        insertNodeAtPosnInElem(document.createTextNode("[NewText]"),   1, "f5");
+        insertNodeAtPosnInElem(document.createTextNode("[NewText]  "), 1, "f6");
+        insertNodeAtPosnInElem(document.createTextNode("  [NewText]"), 1, "f7");
+
+        // Same as the whitespace cases immediately above, but now with separate
+        // text nodes for the whitespace vs. the text
+        insertNodeAtPosnInElem(document.createTextNode("  "),        0, "f8");
+        insertNodeAtPosnInElem(document.createTextNode("[NewText]"), 0, "f8");
+
+        insertNodeAtPosnInElem(document.createTextNode("[NewText]"), 0, "f9");
+        insertNodeAtPosnInElem(document.createTextNode("  "),        0, "f9");
+
+        insertNodeAtPosnInElem(document.createTextNode("  "),        1, "f10");
+        insertNodeAtPosnInElem(document.createTextNode("[NewText]"), 1, "f10");
+
+        insertNodeAtPosnInElem(document.createTextNode("[NewText]"), 1, "f11");
+        insertNodeAtPosnInElem(document.createTextNode("  "),        1, "f11");
+
+        document.documentElement.removeAttribute("class");
+      }
+
+      window.addEventListener("MozReftestInvalidate", tweak, false);
+    </script>
+  </head>
+  <body>
+    <div class="flexbox" id="f0">[OldText]</div>
+    <div class="flexbox" id="f1">[OldText]</div>
+    <div class="flexbox" id="f2">[OldText]</div>
+    <div class="flexbox" id="f3">[OldText]</div>
+    <div class="flexbox" id="f4">[OldText]</div>
+    <div class="flexbox" id="f5">[OldText]</div>
+    <div class="flexbox" id="f6">[OldText]</div>
+    <div class="flexbox" id="f7">[OldText]</div>
+    <div class="flexbox" id="f8">[OldText]</div>
+    <div class="flexbox" id="f9">[OldText]</div>
+    <div class="flexbox" id="f10">[OldText]</div>
+    <div class="flexbox" id="f11">[OldText]</div>
+  </body>
+</html>

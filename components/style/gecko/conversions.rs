@@ -11,12 +11,13 @@
 use app_units::Au;
 use gecko::values::{convert_rgba_to_nscolor, GeckoStyleCoordConvertible};
 use gecko_bindings::bindings::{Gecko_CreateGradient, Gecko_SetGradientImageValue, Gecko_SetUrlImageValue};
-use gecko_bindings::bindings::Gecko_InitializeImageCropRect;
-use gecko_bindings::structs::{nsStyleCoord_CalcValue, nsStyleImage};
+use gecko_bindings::bindings::{Gecko_InitializeImageCropRect, Gecko_SetImageElement};
+use gecko_bindings::structs::{nsCSSUnit, nsStyleCoord_CalcValue, nsStyleImage};
 use gecko_bindings::structs::{nsresult, SheetType};
 use gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordDataMut};
 use stylesheets::{Origin, RulesMutateError};
-use values::computed::{CalcLengthOrPercentage, Gradient, Image, LengthOrPercentage, LengthOrPercentageOrAuto};
+use values::computed::{Angle, CalcLengthOrPercentage, Gradient, GradientItem, Image};
+use values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 
 impl From<CalcLengthOrPercentage> for nsStyleCoord_CalcValue {
     fn from(other: CalcLengthOrPercentage) -> nsStyleCoord_CalcValue {
@@ -99,14 +100,48 @@ impl From<nsStyleCoord_CalcValue> for LengthOrPercentage {
     }
 }
 
+impl From<Angle> for CoordDataValue {
+    fn from(reference: Angle) -> Self {
+        match reference {
+            Angle::Degree(val) => CoordDataValue::Degree(val),
+            Angle::Gradian(val) => CoordDataValue::Grad(val),
+            Angle::Radian(val) => CoordDataValue::Radian(val),
+            Angle::Turn(val) => CoordDataValue::Turn(val),
+        }
+    }
+}
+
+impl Angle {
+    /// Converts Angle struct into (value, unit) pair.
+    pub fn to_gecko_values(&self) -> (f32, nsCSSUnit) {
+        match *self {
+            Angle::Degree(val) => (val, nsCSSUnit::eCSSUnit_Degree),
+            Angle::Gradian(val) => (val, nsCSSUnit::eCSSUnit_Grad),
+            Angle::Radian(val) => (val, nsCSSUnit::eCSSUnit_Radian),
+            Angle::Turn(val) => (val, nsCSSUnit::eCSSUnit_Turn),
+        }
+    }
+
+    /// Converts gecko (value, unit) pair into Angle struct
+    pub fn from_gecko_values(value: f32, unit: nsCSSUnit) -> Angle {
+        match unit {
+            nsCSSUnit::eCSSUnit_Degree => Angle::Degree(value),
+            nsCSSUnit::eCSSUnit_Grad => Angle::Gradian(value),
+            nsCSSUnit::eCSSUnit_Radian => Angle::Radian(value),
+            nsCSSUnit::eCSSUnit_Turn => Angle::Turn(value),
+            _ => panic!("Unexpected unit {:?} for angle", unit),
+        }
+    }
+}
+
 impl nsStyleImage {
     /// Set a given Servo `Image` value into this `nsStyleImage`.
-    pub fn set(&mut self, image: Image, with_url: bool, cacheable: &mut bool) {
+    pub fn set(&mut self, image: Image, cacheable: &mut bool) {
         match image {
             Image::Gradient(gradient) => {
                 self.set_gradient(gradient)
             },
-            Image::Url(ref url) if with_url => {
+            Image::Url(ref url) => {
                 unsafe {
                     Gecko_SetUrlImageValue(self, url.for_ffi());
                     // We unfortunately must make any url() value uncacheable, since
@@ -119,7 +154,7 @@ impl nsStyleImage {
                     *cacheable = false;
                 }
             },
-            Image::ImageRect(ref image_rect) if with_url => {
+            Image::ImageRect(ref image_rect) => {
                 unsafe {
                     Gecko_SetUrlImageValue(self, image_rect.url.for_ffi());
                     Gecko_InitializeImageCropRect(self);
@@ -141,7 +176,11 @@ impl nsStyleImage {
                     image_rect.left.to_gecko_style_coord(&mut rect.data_at_mut(3));
                 }
             }
-            _ => (),
+            Image::Element(ref element) => {
+                unsafe {
+                    Gecko_SetImageElement(self, element.as_ptr());
+                }
+            }
         }
     }
 
@@ -156,7 +195,7 @@ impl nsStyleImage {
         use values::computed::LengthOrPercentageOrKeyword;
         use values::specified::{HorizontalDirection, SizeKeyword, VerticalDirection};
 
-        let stop_count = gradient.stops.len();
+        let stop_count = gradient.items.len();
         if stop_count >= ::std::u32::MAX as usize {
             warn!("stylo: Prevented overflow due to too many gradient stops");
             return;
@@ -202,16 +241,21 @@ impl nsStyleImage {
                 gecko_gradient
             },
             GradientKind::Radial(shape, position) => {
+                let keyword_to_gecko_size = |keyword| {
+                    match keyword {
+                        SizeKeyword::ClosestSide => NS_STYLE_GRADIENT_SIZE_CLOSEST_SIDE,
+                        SizeKeyword::FarthestSide => NS_STYLE_GRADIENT_SIZE_FARTHEST_SIDE,
+                        SizeKeyword::ClosestCorner => NS_STYLE_GRADIENT_SIZE_CLOSEST_CORNER,
+                        SizeKeyword::FarthestCorner => NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER,
+                        SizeKeyword::Contain => NS_STYLE_GRADIENT_SIZE_CLOSEST_SIDE,
+                        SizeKeyword::Cover => NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER,
+                    }
+                };
                 let (gecko_shape, gecko_size) = match shape {
                     GradientShape::Circle(ref length) => {
                         let size = match *length {
                             LengthOrKeyword::Keyword(keyword) => {
-                                match keyword {
-                                    SizeKeyword::ClosestSide => NS_STYLE_GRADIENT_SIZE_CLOSEST_SIDE,
-                                    SizeKeyword::FarthestSide => NS_STYLE_GRADIENT_SIZE_FARTHEST_SIDE,
-                                    SizeKeyword::ClosestCorner => NS_STYLE_GRADIENT_SIZE_CLOSEST_CORNER,
-                                    SizeKeyword::FarthestCorner => NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER,
-                                }
+                                keyword_to_gecko_size(keyword)
                             },
                             _ => NS_STYLE_GRADIENT_SIZE_EXPLICIT_SIZE,
                         };
@@ -220,12 +264,7 @@ impl nsStyleImage {
                     GradientShape::Ellipse(ref length) => {
                         let size = match *length {
                             LengthOrPercentageOrKeyword::Keyword(keyword) => {
-                                match keyword {
-                                    SizeKeyword::ClosestSide => NS_STYLE_GRADIENT_SIZE_CLOSEST_SIDE,
-                                    SizeKeyword::FarthestSide => NS_STYLE_GRADIENT_SIZE_FARTHEST_SIDE,
-                                    SizeKeyword::ClosestCorner => NS_STYLE_GRADIENT_SIZE_CLOSEST_CORNER,
-                                    SizeKeyword::FarthestCorner => NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER,
-                                }
+                                keyword_to_gecko_size(keyword)
                             },
                             _ => NS_STYLE_GRADIENT_SIZE_EXPLICIT_SIZE,
                         };
@@ -268,40 +307,48 @@ impl nsStyleImage {
                     },
                 }
                 unsafe {
-                    (*gecko_gradient).mBgPosX.set(position.horizontal);
-                    (*gecko_gradient).mBgPosY.set(position.vertical);
+                    (*gecko_gradient).mBgPosX.set(position.horizontal.0);
+                    (*gecko_gradient).mBgPosY.set(position.vertical.0);
                 }
 
                 gecko_gradient
             },
         };
 
-        for (index, stop) in gradient.stops.iter().enumerate() {
+        for (index, item) in gradient.items.iter().enumerate() {
             // NB: stops are guaranteed to be none in the gecko side by
             // default.
-            let mut coord: nsStyleCoord = nsStyleCoord::null();
-            coord.set(stop.position);
-            let color = match stop.color {
-                CSSColor::CurrentColor => {
-                    // TODO(emilio): gecko just stores an nscolor,
-                    // and it doesn't seem to support currentColor
-                    // as value in a gradient.
-                    //
-                    // Double-check it and either remove
-                    // currentColor for servo or see how gecko
-                    // handles this.
-                    0
-                },
-                CSSColor::RGBA(ref rgba) => convert_rgba_to_nscolor(rgba),
-            };
 
-            let mut stop = unsafe {
+            let mut gecko_stop = unsafe {
                 &mut (*gecko_gradient).mStops[index]
             };
+            let mut coord = nsStyleCoord::null();
 
-            stop.mColor = color;
-            stop.mIsInterpolationHint = false;
-            stop.mLocation.move_from(coord);
+            match *item {
+                GradientItem::ColorStop(ref stop) => {
+                    gecko_stop.mColor = match stop.color {
+                        CSSColor::CurrentColor => {
+                            // TODO(emilio): gecko just stores an nscolor,
+                            // and it doesn't seem to support currentColor
+                            // as value in a gradient.
+                            //
+                            // Double-check it and either remove
+                            // currentColor for servo or see how gecko
+                            // handles this.
+                            0
+                        },
+                        CSSColor::RGBA(ref rgba) => convert_rgba_to_nscolor(rgba),
+                    };
+                    gecko_stop.mIsInterpolationHint = false;
+                    coord.set(stop.position);
+                },
+                GradientItem::InterpolationHint(hint) => {
+                    gecko_stop.mIsInterpolationHint = true;
+                    coord.set(Some(hint));
+                }
+            }
+
+            gecko_stop.mLocation.move_from(coord);
         }
 
         unsafe {
@@ -313,7 +360,6 @@ impl nsStyleImage {
 pub mod basic_shape {
     //! Conversions from and to CSS shape representations.
 
-    use euclid::size::Size2D;
     use gecko::values::GeckoStyleCoordConvertible;
     use gecko_bindings::structs;
     use gecko_bindings::structs::{StyleBasicShape, StyleBasicShapeType, StyleFillRule};
@@ -324,6 +370,9 @@ pub mod basic_shape {
     use values::computed::{BorderRadiusSize, LengthOrPercentage};
     use values::computed::basic_shape::*;
     use values::computed::position;
+    use values::generics::BorderRadiusSize as GenericBorderRadiusSize;
+    use values::generics::basic_shape::FillRule;
+    use values::generics::position::{HorizontalPosition, VerticalPosition};
 
     // using Borrow so that we can have a non-moving .into()
     impl<T: Borrow<StyleBasicShape>> From<T> for BasicShape {
@@ -386,11 +435,11 @@ pub mod basic_shape {
         fn from(other: T) -> Self {
             let other = other.borrow();
             let get_corner = |index| {
-                BorderRadiusSize(Size2D::new(
+                GenericBorderRadiusSize::new(
                     LengthOrPercentage::from_gecko_style_coord(&other.data_at(index))
                         .expect("<border-radius> should be a length, percentage, or calc value"),
                     LengthOrPercentage::from_gecko_style_coord(&other.data_at(index + 1))
-                        .expect("<border-radius> should be a length, percentage, or calc value")))
+                        .expect("<border-radius> should be a length, percentage, or calc value"))
             };
 
             BorderRadius {
@@ -434,8 +483,8 @@ pub mod basic_shape {
     impl From<position::Position> for structs::Position {
         fn from(other: position::Position) -> Self {
             structs::Position {
-                mXPosition: other.horizontal.into(),
-                mYPosition: other.vertical.into()
+                mXPosition: other.horizontal.0.into(),
+                mYPosition: other.vertical.0.into()
             }
         }
     }
@@ -452,8 +501,20 @@ pub mod basic_shape {
         fn from(other: T) -> Self {
             let other = other.borrow();
             position::Position {
-                horizontal: other.mXPosition.into(),
-                vertical: other.mYPosition.into(),
+                horizontal: HorizontalPosition(other.mXPosition.into()),
+                vertical: VerticalPosition(other.mYPosition.into()),
+            }
+        }
+    }
+
+    impl From<ShapeBox> for StyleGeometryBox {
+        fn from(reference: ShapeBox) -> Self {
+            use gecko_bindings::structs::StyleGeometryBox::*;
+            match reference {
+                ShapeBox::ContentBox => ContentBox,
+                ShapeBox::PaddingBox => PaddingBox,
+                ShapeBox::BorderBox => BorderBox,
+                ShapeBox::MarginBox => MarginBox,
             }
         }
     }
@@ -462,10 +523,7 @@ pub mod basic_shape {
         fn from(reference: GeometryBox) -> Self {
             use gecko_bindings::structs::StyleGeometryBox::*;
             match reference {
-                GeometryBox::ShapeBox(ShapeBox::ContentBox) => ContentBox,
-                GeometryBox::ShapeBox(ShapeBox::PaddingBox) => PaddingBox,
-                GeometryBox::ShapeBox(ShapeBox::BorderBox) => BorderBox,
-                GeometryBox::ShapeBox(ShapeBox::MarginBox) => MarginBox,
+                GeometryBox::ShapeBox(shape_box) => From::from(shape_box),
                 GeometryBox::FillBox => FillBox,
                 GeometryBox::StrokeBox => StrokeBox,
                 GeometryBox::ViewBox => ViewBox,

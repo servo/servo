@@ -17,6 +17,9 @@ def main(request, response):
     cache_control = request.headers.get("Cache-Control", None)
     ignore = "ignore" in request.GET
 
+    if tag:
+        tag = '"%s"' % tag
+
     server_state = request.server.stash.take(token)
     if not server_state:
         server_state = []
@@ -34,7 +37,7 @@ def main(request, response):
     request.server.stash.put(token, server_state)
 
     if tag:
-        response.headers.set("ETag", '"%s"' % tag)
+        response.headers.set("ETag", '%s' % tag)
     elif date:
         response.headers.set("Last-Modified", date)
     if expires:

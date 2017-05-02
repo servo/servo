@@ -1,0 +1,95 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: inherit applied on margin set with em</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" title="4.3.2 Length" href="http://www.w3.org/TR/CSS21/syndata.html#length-units" />
+  <link rel="help" title="6.2.1 The 'inherit' value" href="http://www.w3.org/TR/CSS21/cascade.html#value-def-inherit" />
+  <link rel="help" title="8.3 Margin properties" href="http://www.w3.org/TR/CSS21/box.html#margin-properties" />
+  <link rel="match" href="margin-em-inherit-001-ref.xht" />
+
+  <meta content="The 'em' unit is equal to the computed value of the 'font-size' property of the element on which it is used. When inherit keyword is used, the property takes the same computed value - a length value in this testcase - as the property for the element's parent." name="assert" />
+  <meta content="image" name="flags" />
+
+  <style type="text/css"><![CDATA[
+  body {margin: 8px;}
+
+  p
+  {
+  font: 1em/1.25 serif;
+  margin: 1em 0em;
+  }
+
+  div#grand-parent {width: 600px;}
+
+  div#parent
+  {
+  background-color: green;
+  border: white solid 6px;
+  /*
+  Such border prevents margin collapsing between
+  #parent's vertical margins and #child's vertical margins
+  */
+  font-size: 28px;
+  margin: 2em 3em 1em 4em; /* 56px 84px 28px 112px */
+  }
+
+  div#child
+  {
+  font-size: 40px;
+  margin: inherit;
+  /*
+  What is inherited is a computed length value: so
+  it is 56px 84px 28px 112px and not 80px 120px 40px 160px
+  */
+  }
+
+  div#abs-pos-overlapping-green
+  {
+  left: 238px;
+  position: absolute;
+  top: 174px;
+  }
+
+  /*
+       8px (body's margin-left)
+   + 112px (#parent's margin-left)
+   +   6px (#parent's border-left)
+   + 112px (#child's margin-left)
+  ==================
+     238px
+  */
+
+  /*
+      16px (max(8px, 16px): body's margin-top collapses with p's margin-top)
+   +  20px (first line)
+   +  20px (second line)
+   +  56px (max(16px, 56px): p's margin-bottom collapses with #parent's margin-top)
+   +   6px (#parent's border-top)
+   +  56px (#child's margin-top)
+  ==================
+     174px
+  */
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled green<br />
+  rectangle and if there is no red.</p>
+
+  <div id="grand-parent">
+    <div id="parent">
+      <div id="child"><img src="support/100x100-red.png" alt="Image download support must be enabled" /></div>
+    </div>
+  </div>
+
+  <div id="abs-pos-overlapping-green"><img src="support/swatch-green.png" width="100" height="100" alt="Image download support must be enabled" /></div>
+
+ </body>
+</html>

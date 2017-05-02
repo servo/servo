@@ -1,0 +1,28 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Letter-spacing using pixels with a negative zero value, -0px</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#propdef-letter-spacing" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#spacing-props" />
+        <link rel="match" href="letter-spacing-004-ref.xht" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The 'letter-spacing' property sets a negative zero length value in pixels." />
+        <style type="text/css">
+            div
+            {
+                font: 24px/1em Ahem;
+            }
+            div div
+            {
+                letter-spacing: -0px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is only one box below (with no jagged edges).</p>
+        <div>
+            <div>xx</div>
+        </div>
+    </body>
+</html>

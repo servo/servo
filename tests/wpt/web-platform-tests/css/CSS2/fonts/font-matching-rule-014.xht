@@ -1,0 +1,25 @@
+ <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Font Matching Algorithm, same fonts</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#algorithm" />
+        <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-matching-algorithm" />
+        <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-style-matching" />
+        <meta name="flags" content="font" />
+        <meta name="assert" content="If all available fonts are exactly same in all properties, the user agent selects one of them." />
+        <style type="text/css">
+            div
+            {
+                font-family: MissingItalicOblique, serif;
+                font-style: italic;
+            }
+        </style>
+    </head>
+    <body>
+        <p>PREREQUISITE: Operating system needs to have the '<a href="support/AHEM_MissingItalicOblique.ttf">Missing Italic Oblique</a>' font installed. User agent needs to have the generic fonts all set to the "Missing Italic Oblique" font.</p>
+        <p>Post Test: Remove test font after running the test.</p>
+        <p>Test passes if either there is a slanted box below or a letter "X" slanted to one side.</p>
+        <div>X</div>
+    </body>
+</html>

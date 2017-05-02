@@ -18,6 +18,7 @@ use std::fs::File;
 use std::io::{Read, Error as IoError};
 use std::ops::Deref;
 use std::sync::Mutex;
+use webrender_traits::NativeFontHandle;
 
 /// Platform specific font representation for mac.
 /// The identifier is a PostScript font name. The
@@ -106,8 +107,8 @@ impl FontTemplateData {
     }
 
     /// Returns the native font that underlies this font template, if applicable.
-    pub fn native_font(&self) -> Option<CGFont> {
-        self.ctfont(0.0).map(|ctfont| ctfont.copy_to_CGFont())
+    pub fn native_font(&self) -> Option<NativeFontHandle> {
+        self.ctfont(0.0).map(|ctfont| NativeFontHandle(ctfont.copy_to_CGFont()))
     }
 }
 

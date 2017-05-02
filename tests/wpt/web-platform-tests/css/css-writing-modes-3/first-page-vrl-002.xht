@@ -1,0 +1,58 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Writing Modes Test: first page of a document with vertical-rl writing-mode</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#writing-mode" title="3.1 Block Flow Direction: the writing-mode property" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-selectors" title="13.2.2 Page selectors: selecting left, right, and first pages" />
+
+  <meta content="image paged" name="flags" />
+  <meta content="When 'writing-mode' is set on the root element, then it determines the default page flow (or progression) direction. In this test, the page flow (or progression) direction is right-to-left. This test checks that the first page of a document whose document root has 'writing-mode' set to 'vertical-rl' is the :left page." name="assert" />
+
+  <style type="text/css" media="print"><![CDATA[
+  html
+    {
+      writing-mode: vertical-rl;
+    }
+
+  @page :right
+    {
+      margin-right: 0%;
+    }
+
+  @page :left
+    {
+      margin-right: 50%;
+    }
+
+  p
+    {
+      border-right: orange solid 6px;
+      margin: 0;
+      padding-right: 1em;
+    }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p><img src="support/pass-cdts-first-page-vrl-002.png" alt="Image download support must be enabled" /></p>
+
+  <!--
+  The image says:
+
+  PREREQUISITE: switch to a print preview
+  or page media view of the page.
+
+  Test passes if an orange vertical line is
+  <strong>in the horizontal center</strong> of the page
+  and <strong>not on the right side</strong> of the page.
+  -->
+
+ </body>
+</html>

@@ -1,0 +1,80 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Writing Modes Test: over-constrained relatively positioned element - 'direction: rtl' and 'top' and 'bottom' are not 'auto' in vertical-rl context</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <!--
+  Credits should go to Aleks Totić for reporting
+  Issue 695270: overconstrained position:relative in vertical-xx is not in compliance with spec
+  https://bugs.chromium.org/p/chromium/issues/detail?id=695270
+  and for providing an excellent test originally demonstrating the particular feature
+  being checked in this test.
+  -->
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#vertical-layout" title="7.1 Principles of Layout in Vertical Writing Modes" />
+  <link rel="match" href="overconstrained-rel-pos-rtl-top-bottom-vrl-006-ref.xht" />
+
+  <meta name="flags" content="image" />
+  <meta name="assert" content="When a relatively positioned element's 'direction' is 'rtl' and its 'top' and 'bottom' are not 'auto' in a vertical-rl context, then the value of 'top' wins and 'bottom' becomes -'top'." />
+
+  <meta name="DC.date.created" content="2017-02-23T09:54:03+11:00" scheme="W3CDTF" />
+  <meta name="DC.date.modified" content="2017-02-28T09:54:03+11:00" scheme="W3CDTF" />
+
+  <style type="text/css"><![CDATA[
+  html
+    {
+      background: transparent url("support/bg-red-4col-3row-320x320.png") no-repeat calc(100% - 278px) calc(100% - 8px);
+      /*
+        16px : p's margin-right
+       246px : img's width
+        16px : p's margin-left
+      ========
+       278px : background-position from the right edge of document box
+      */
+
+      /* top = 8px since the red fail square is already on 3rd row in bg-red-4col-3row-320x320 */
+
+      direction: rtl;
+      writing-mode: vertical-rl;
+    }
+
+/*
+Layout calculation rules (such as those in CSS2.1, Section 9.4.3) that apply to the horizontal dimension in horizontal writing modes instead apply to the vertical dimension in vertical writing modes.
+
+So here, top and bottom offset properties are input into the §9.4.3 algorithms where top offset property refer to left offset property in the layout rules and where bottom offset property refer to right offset property in the layout rules.
+*/
+
+  div
+    {
+      background-color: green;
+      bottom: 80px;
+      height: 80px;
+      position: relative;
+      top: 80px;
+      width: 80px;
+    }
+
+  /*
+  Here, 'bottom' should win, 'top' should be ignored and the used top value should become -'bottom'.
+  */
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p><img src="support/pass-cdts-abs-pos-non-replaced.png" width="246" height="36" alt="Image download support must be enabled" /></p>
+
+  <!--
+  The image says:
+  Test passes if there is a filled
+  green square and <strong>no red</strong>.
+  -->
+
+  <div></div>
+
+ </body>
+</html>

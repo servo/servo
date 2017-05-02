@@ -1,0 +1,28 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: Background propagation on &lt;body&gt; and &lt;html&gt; - repeat-y</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/background/05.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background"/>
+  <link rel="match" href="background-root-008-ref.xht" />
+
+  <meta name="flags" content="image"/>
+
+<style type="text/css"><![CDATA[
+   body { border: solid lime; background: green url(support/square-white.png) repeat-y top left; color: white; }
+   html { border: solid blue; background: transparent; color: yellow; }
+   * { margin: 1em; padding: 1em; }
+]]></style>
+
+</head>
+<body>
+<p>There should be a blue rectangle enclosing the bright green rectangle
+enclosing this text. Just inside the left hand edge of the blue rectangle
+should be a line of white square tiles, which should continue up and down the entire
+height of the page. The rest of the page, around, between, and inside the
+boxes, should be green.</p>
+
+
+</body>
+</html>

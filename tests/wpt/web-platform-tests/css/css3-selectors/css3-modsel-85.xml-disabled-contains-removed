@@ -1,0 +1,18 @@
+<csstest def="NEGATED :contains() pseudo-class" module="W3C Selectors" modulename="css3-modsel" number="85" rev="1.2" date="29-september-2005" xmlns:a="http://www.example.org/a" xmlns:b="http://www.example.org/b" xmlns:html="http://www.w3.org/1999/xhtml" xmlns="http://www.example.org/css3tests">
+
+<author>Daniel Glazman</author>
+<author>Ian Hickson</author>
+
+<cssrules>div.stub *:not(:contains("red")) { background-color: lime; }
+.red { background-color: red; }</cssrules>
+
+<code>
+<div class="stub" xmlns="http://www.w3.org/1999/xhtml">
+  <p class="red">This paragraph should have a green background.</p>
+  <ul class="red">
+    <li>All the text in this list should have a</li>
+    <li>green background throughout as well.</li>
+  </ul>
+</div>
+</code>
+</csstest>

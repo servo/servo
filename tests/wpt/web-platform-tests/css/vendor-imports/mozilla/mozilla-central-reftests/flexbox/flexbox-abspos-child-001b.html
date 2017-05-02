@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+<head>
+  <title>CSS Test: Testing that "min-width", "max-width", "min-height", and "max-height" are applied on absolutely positioned children of a vertical flex container</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#abspos-items">
+  <link rel="match" href="flexbox-abspos-child-001-ref.html">
+  <meta charset="utf-8">
+  <style>
+    .flexContainer {
+      display: flex;
+      flex-direction: column;
+      height: 10px;
+      width: 10px;
+      background: purple;
+      margin-bottom: 15px;
+      position: relative;
+    }
+    .absPos {
+      position: absolute;
+      background: teal;
+    }
+    .testMinWidth {
+      width: 10px;
+      height: 20px;
+      min-width: 20px;
+    }
+    .testMaxWidth {
+      width: 50px;
+      height: 20px;
+      max-width: 20px;
+    }
+    .testMinHeight {
+      width: 20px;
+      height: 10px;
+      min-height: 20px;
+    }
+    .testMaxHeight {
+      width: 20px;
+      height: 50px;
+      max-height: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="flexContainer"><div class="absPos testMinWidth"></div></div>
+  <div class="flexContainer"><div class="absPos testMaxWidth"></div></div>
+  <div class="flexContainer"><div class="absPos testMinHeight"></div></div>
+  <div class="flexContainer"><div class="absPos testMaxHeight"></div></div>
+</body>
+</html>

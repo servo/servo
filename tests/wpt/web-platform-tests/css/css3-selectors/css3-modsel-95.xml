@@ -1,0 +1,20 @@
+<csstest def="Universal selector with universal namespace" module="W3C Selectors" modulename="css3-modsel" number="95" rev="1.1" date="12-november-2001" xmlns:a="http://www.example.org/a" xmlns:b="http://www.example.org/b" xmlns="http://www.example.org/css3tests">
+
+<author>Daniel Glazman</author>
+<author>Ian Hickson</author>
+
+<cssrules>@namespace a url(http://www.example.org/a);
+@namespace b url(http://www.example.org/b);
+div.test * { background-color : red ; display : block ; margin-bottom : 1em }
+div.test *|* { background-color : lime }</cssrules>
+
+<code>
+ <div class="test" xmlns="http://www.w3.org/1999/xhtml">
+  <p>This line should  have a green background</p>
+  <p xmlns="http://www.example.org/b">This line should have a green background</p>
+  <q xmlns="http://www.example.org/b">This line should have a green background</q>
+  <p xmlns="http://www.example.org/a">This line should have a green background</p>
+  <foo xmlns="http://www.example.org/b">This line should have a green background</foo>
+ </div>
+</code>
+</csstest>

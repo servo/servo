@@ -1,0 +1,86 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: CSS table display types</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#table-display" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="CSS display table types are supported." />
+        <style type="text/css">
+            .table
+            {
+                display: table;
+                border: 1px solid gray;
+            }
+            .caption
+            {
+                display: table-caption;
+                background: black;
+            }
+            .colgroup
+            {
+                display: table-column-group;
+            }
+            .col
+            {
+                display: table-column;
+            }
+            .thead
+            {
+                display: table-header-group;
+            }
+            .tfoot
+            {
+                display: table-footer-group;
+            }
+            .tbody
+            {
+                display: table-row-group;
+            }
+            .tr
+            {
+                display: table-row;
+            }
+            .td
+            {
+                background: black;
+                border: 1px solid gray;
+                display: table-cell;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a solid bar on top of a three-by-three grid of boxes below.</p>
+        <div class="table">
+            <div class="caption">X</div>
+            <div class="colgroup">
+                <div class="col"></div>
+                <div class="col"></div>
+            </div>
+            <div class="colgroup">
+                <div class="col"></div>
+            </div>
+            <div class="thead">
+                <div class="tr">
+                    <div class="td">XXXXX</div>
+                    <div class="td">XXXXX</div>
+                    <div class="td">XXXXX</div>
+                </div>
+            </div>
+            <div class="tfoot">
+                <div class="tr">
+                    <div class="td">XXXXX</div>
+                    <div class="td">XXXXX</div>
+                    <div class="td">XXXXX</div>
+                </div>
+            </div>
+            <div class="tbody">
+                <div class="tr">
+                    <div class="td">XXXXX</div>
+                    <div class="td">XXXXX</div>
+                    <div class="td">XXXXX</div>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

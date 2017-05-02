@@ -1,0 +1,47 @@
+root, document, info, heading {
+	display: block;
+}
+
+root {
+	background: white;
+	color: black;
+}
+
+document {
+	margin: 0.5em;
+}
+
+info {
+	margin: 1em 0;
+}
+
+heading {
+	font-family: sans-serif;
+	margin-bottom: 0.2em;
+	font-weight: bold;
+}
+
+heading[level="h1"] {
+	font-size: 2em;
+}
+
+
+heading[level="h2"] {
+	font-size: 1.6em;
+}
+
+heading[level="h3"] {
+	font-size: 1.4em;
+}
+
+heading[level="h4"] {
+	font-size: 1.2em;
+}
+
+heading[level="h5"] {
+	font-size: 1em;
+}
+
+heading[level="h6"] {
+	font-size: 0.8em;
+}

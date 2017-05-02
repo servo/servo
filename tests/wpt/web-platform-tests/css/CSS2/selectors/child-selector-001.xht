@@ -1,0 +1,21 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Child selector does not match when there is no matching parent</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#child-selectors" />
+        <link rel="match" href="child-selector-001-ref.xht"/>
+        <meta name="flags" content="" />
+        <meta name="assert" content="Child selectors only apply when parent and child elements match." />
+        <style type="text/css">
+            div > h1
+            {
+                color: red;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page.</p>
+        <h1>Filler Text</h1>
+    </body>
+</html>

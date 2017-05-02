@@ -1,0 +1,49 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: test translate</title>
+  <link rel="author" title="Ebay Inc." href="mailto:xiatian@ebay.com"/>
+  <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#3d-transform-rendering"/>
+  <link rel="match" href="translate-ref.html"/>
+  <meta name="flags" content="" />
+  <meta name="assert" content="translate x, y "/>
+  <style type="text/css">
+      .container {
+        border: 1px solid gray;
+        width: 300px;
+        height: 300px;
+      }
+
+      .inner {
+        z-index: 98;
+        position: relative;
+           width: 100px;
+           height: 100px;
+           background-color: green;
+          transform: translate(100px, 100px);
+      }
+
+      .hidden {
+          z-index: 67;
+          position: relative;
+          left: 100px;
+            width: 100px;
+           height: 100px;
+           background-color: red;
+      }
+  </style>
+
+ </head>
+ <body>
+  <p style="margin-top:70px;">You should see only one green area, no red area</p>
+
+  <div class="container">
+
+      <div class="inner">
+      </div>
+      <div class="hidden">
+      </div>
+  </div>
+
+</body>
+</html>

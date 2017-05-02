@@ -1,0 +1,40 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Position 'right' property defines the offset from the right of the box itself for relative positioning</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-09-25 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#propdef-right" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#position-props" />
+		<link rel="match" href="left-offset-001-ref.xht" />
+
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'right' property, for relative positioning, specifies the offset of the box itself from the right toward the left. If 'left' is 'auto', then its used value is minus the value of 'right' in which case the box will move from the right toward the left by the value of 'right'." />
+        <style type="text/css">
+            #div1
+            {
+                background: blue;
+                height: 100px;
+                position: relative;
+                width: 100px;
+            }
+            div div
+            {
+                background: white;
+                height: 50px;
+                position: relative;
+                right: -50px;
+                /* In this testcase, right offset is -50px;
+                so, it will move toward the right from its
+                normal in-flow position by a value of 50px. */
+                width: 50px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a blue square with its top-right corner missing.</p>
+        <div id="div1">
+            <div></div>
+        </div>
+    </body>
+</html>

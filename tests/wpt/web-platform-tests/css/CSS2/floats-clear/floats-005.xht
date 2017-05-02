@@ -1,0 +1,56 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Floats, shifting down below all other floated elements</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats" />
+        <link rel="match" href="floats-005-ref.xht" />
+
+        <meta name="flags" content="image" />
+        <meta name="assert" content="Floated boxes shift down until it fits." />
+        <style type="text/css">
+            #parentDiv
+            {
+                background: red url('support/floats-005.png');
+                width: 1.25in;
+            }
+            div
+            {
+                float: left;
+            }
+            div div
+            {
+                background: green;
+            }
+            #div1
+            {
+                height: 1in;
+                width: 1.2in;
+            }
+            #div2
+            {
+                height: 1in;
+                width: 0.75in;
+            }
+            #div3
+            {
+                height: 0.25in;
+                width: 0.2in;
+            }
+            #div4
+            {
+                width: 0.5in;
+                height: 0.25in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red.</p>
+        <div id="parentDiv">
+           <div id="div1"></div>
+           <div id="div2"></div>
+           <div id="div3"></div>
+           <div id="div4"></div>
+        </div>
+    </body>
+</html>

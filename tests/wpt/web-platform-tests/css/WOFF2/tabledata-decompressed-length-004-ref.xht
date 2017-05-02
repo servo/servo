@@ -1,0 +1,31 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<meta http-equiv="content-type" content="text/html;charset=UTF-8"/>
+		<title>WOFF Test: Font Table Data Decompressed Length Greater Than Transformed Length</title>
+		<link rel="author" title="Khaled Hosny" href="http://khaledhosny.org" />
+		<link rel="help" href="http://dev.w3.org/webfonts/WOFF2/spec/#DataTables" />
+		<link rel="help" href="http://dev.w3.org/webfonts/WOFF2/spec/#conform-mustBeInvalidated-FailSize" />
+<link  rel="reviewer" title="Chris Lilley" href="mailto:chris@w3.org" />
+		<meta name="flags" content="font" />
+		<meta name="assert" content="The transformed length of the glyf table in the directory is decreased by 1, making the decompressed length of the table data greater than the sum of transformed table lengths." />
+		<style type="text/css"><![CDATA[
+			body {
+				font-size: 20px;
+			}
+			pre {
+				font-size: 12px;
+			}
+			.test {
+				font-family: "WOFF Test CFF Reference";
+				font-size: 200px;
+				margin-top: 50px;
+			}
+		]]></style>
+	</head>
+	<body>
+		<p><a href="support/FontsToInstall">Test fonts</a> must be installed for this test. The WOFF being tested will be loaded over the network so please wait until the download is complete before determing the success of this test.</p>
+		<p>Test passes if the word PASS appears below.</p>
+		<div class="test">P</div>
+	</body>
+</html>

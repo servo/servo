@@ -437,6 +437,26 @@ IdlArray.prototype.test = function()
 IdlArray.prototype.assert_type_is = function(value, type)
 //@{
 {
+    if (type.union) {
+        for (var i = 0; i < type.idlType.length; i++) {
+            try {
+                this.assert_type_is(value, type.idlType[i]);
+                // No AssertionError, so we match one type in the union
+                return;
+            } catch(e) {
+                if (e instanceof AssertionError) {
+                    // We didn't match this type, let's try some others
+                    continue;
+                }
+                throw e;
+            }
+        }
+        // TODO: Is there a nice way to list the union's types in the message?
+        assert_true(false, "Attribute has value " + format_value(value)
+                    + " which doesn't match any of the types in the union");
+
+    }
+
     /**
      * Helper function that tests that value is an instance of type according
      * to the rules of WebIDL.  value is any JavaScript value, and type is an

@@ -138,8 +138,8 @@ pub fn parse_flex(input: &mut Parser) -> Result<CSSFloat, ()> {
 }
 
 impl Parse for TrackBreadth<LengthOrPercentage> {
-    fn parse(_: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        if let Ok(lop) = input.try(LengthOrPercentage::parse_non_negative) {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        if let Ok(lop) = input.try(|i| LengthOrPercentage::parse_non_negative(context, i)) {
             return Ok(TrackBreadth::Breadth(lop))
         }
 
@@ -230,7 +230,7 @@ impl Parse for TrackSize<LengthOrPercentage> {
         if input.try(|i| i.expect_function_matching("minmax")).is_ok() {
             return input.parse_nested_block(|input| {
                 let inflexible_breadth =
-                    match input.try(LengthOrPercentage::parse_non_negative) {
+                    match input.try(|i| LengthOrPercentage::parse_non_negative(context, i)) {
                         Ok(lop) => TrackBreadth::Breadth(lop),
                         Err(..) => {
                             let keyword = try!(TrackKeyword::parse(input));

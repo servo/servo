@@ -1,0 +1,18 @@
+<!doctype html>
+<title>CSS Test: overflow:hidden on table with bottom caption overflowing downwards</title>
+<link rel="author" title="Simon Pieters" href="mailto:simonp@opera.com">
+<link rel="help" href="http://www.w3.org/Style/css2-updates/REC-CSS2-20110607-errata.html#s.11.1.1b">
+<meta name="flags" content="">
+<meta name="assert" content="Test checks that overflow:hidden on table applies to the table box rather than the table wrapper box.">
+<link rel="match" href="s-11-1-1b-002-ref.html">
+<style>
+ table { overflow:hidden; border-spacing:0 }
+ caption { margin-top:10px; caption-side:bottom }
+ td { padding:0 }
+ div { width:20px; height:25px; border-bottom:solid red 10px; margin-top:-15px; position:relative; top:15px; background:black }
+</style>
+<p>Test passes if there is a black square below.</p>
+<table>
+ <caption></caption>
+ <tr><td><div></div>
+</table>

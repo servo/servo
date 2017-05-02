@@ -1,0 +1,58 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Cascading Order</title>
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#cascading-order"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="stylesheet" href="support/c-red.css"/>
+  <link rel="match" href="c32-cascading-000-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+   body * { color: red; list-style: none; margin: 0; padding: 0; }
+   span { color: red; }
+   li span.a { color: red; }
+   li span.b { color: red; }
+   li span.c { color: red; }
+   li span.d { color: red; }
+   li span.e { color: red; }
+   li span.f { color: red; }
+   ul li span.a { color: green; }
+   ul li span.b { color: green; }
+   ul li li span.c { color: red; }
+   ul li li span.d { color: red; }
+   ul li li span.e { color: red; }
+   ul li li span.f { color: red; }
+   ul li li span.c { color: green; }
+   li.test1 span.d { color: green; }
+   ul li.test2 span.e { color: green; }
+   ul li.test3 span.f { color: red; }
+   ul li#test3 span.f { color: green; }
+   .test4 { color: red; }
+   .test4 { color: green; }
+   .c { color: green; }
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html#cascading-order" title="6.4.1 Cascading order"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html#specificity" title="6.4.3 Calculating a selector's specificity"/>
+
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+ </head>
+ <body>
+  <ul>
+   <li> <span class="a"> This sentence should be green. </span> </li>
+   <li> <span class="b"> This sentence should be green. </span>
+    <ul>
+     <li> <span class="c"> This sentence should be green. </span> </li>
+     <li> <span class="c"> This sentence should be green. </span> </li>
+     <li class="test1"> <span class="d"> This sentence should be green. </span> </li>
+    </ul>
+   </li>
+   <li class="test2"> <span class="e"> This sentence should be green. </span> </li>
+   <li class="test3" id="test3"> <span class="f"> This sentence should be green. </span> </li>
+   <li> <span class="a"> This sentence should be green. </span> </li>
+  </ul>
+  <p style="color: green;"> This sentence should be green. </p>
+  <p class="test4"> This sentence should be green. </p>
+  <p class="c"> This sentence should be green. </p>
+ </body>
+</html>

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>Navigation Timing 2 WPT</title>
+        <link rel="author" title="Google" href="http://www.google.com/" />
+        <link rel="help" href="http://www.w3.org/TR/navigation-timing/#sec-navigation-timing-interface"/>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script>
+            var navigation_frame;
+            var pnt1;
+            var step = 1;
+            function onload_test()
+            {
+                navigation_frame = document.getElementById("frameContext").contentWindow;
+                setTimeout("nav_frame();", 0);
+            }
+
+            function nav_frame()
+            {
+                switch (step)
+                {
+                    case 1:
+                    {
+                        pnt1 = navigation_frame.performance.getEntriesByType("navigation")[0];
+                        navigation_frame.location.href = '/navigation-timing/resources/blank_page_green_with_onunload.html';
+                        step++;
+                        break;
+                    }
+                    case 2:
+                    {
+                        navigation_frame.history.back();
+                        step++;
+                        break;
+                    }
+                    case 3:
+                    {
+                        var pnt2 = navigation_frame.performance.getEntriesByType("navigation")[0];
+                        assert_equals(pnt1.type, "navigate");
+                        assert_equals(pnt2.type, "back_forward");
+                        done();
+                        break;
+                    }
+                    default:
+                        break;
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <h1>
+            Description</h1>
+        <p>
+            This test validates that a PerformanceNavigatingTiming corresponding to a detached document can't access a different document's state. </p>
+        <iframe id="frameContext" onload="onload_test();" src="resources/blank_page_yellow_with_onunload.html" style="width: 250px; height: 250px;"></iframe>
+    </body>
+</html>

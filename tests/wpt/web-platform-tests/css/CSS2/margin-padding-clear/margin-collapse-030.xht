@@ -1,0 +1,47 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Margin collapsing - position of top border edge for elements that collapse margins with parents whose bottom margin only participates in margin collapsing</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#collapsing-margins" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="When margins collapse through empty elements and only the parent element's bottom margin is participating in margin collapsing then the position of the elements top border should be in the same position as if the element had a top border specified." />
+        <style type="text/css">
+            div
+            {
+                width: 5em;
+            }
+            #div1
+            {
+                border-top: 1em solid black;
+            }
+            #div2
+            {
+                margin-top: 2em;
+                margin-bottom: 4em;
+                border-top: 1em solid black;
+            }
+            #div3
+            {
+                height: 0;
+                margin-top: 2em;
+                margin-bottom: 2em;
+            }
+            #div4
+            {
+                margin-top: 2em;
+                margin-bottom: 2em;
+                border-top: 1em solid black;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there are three evenly-spaced black boxes stacked on the page.</p>
+        <div id="div1">
+            <div id="div2">
+                <div id="div3"></div>
+                <div id="div4"></div>
+            </div>
+        </div>
+    </body>
+</html>

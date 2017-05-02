@@ -1,0 +1,48 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border-width applied to element with display table-row-group</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#propdef-border-width" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-width-properties" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'border-width' property applies to elements with a display of table-row-group." />
+        <style type="text/css">
+            #test
+            {
+                border-style: solid;
+                border-width: 1in;
+                display: table-row-group;
+            }
+            #table
+            {
+                border-collapse: collapse;
+                display: table;
+                height: 1in;
+                margin: 1in;
+                table-layout: fixed;
+                width: 1in;
+            }
+            #row
+            {
+                display: table-row;
+            }
+            #cell
+            {
+                display: table-cell;
+                height: 1in;
+                width: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a box below with four sides that are the same width. (Note: this will make a large square surrounding a smaller white square.)</p>
+        <div id="table">
+            <div id="test">
+                <div id="row">
+                    <div id="cell"></div>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

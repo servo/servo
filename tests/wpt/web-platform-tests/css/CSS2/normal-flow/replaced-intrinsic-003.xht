@@ -1,0 +1,23 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+ <head>
+  <title>CSS Test: Replaced block elements (using &lt;object&gt;) and SVG intrinsic widths</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/replaced/intrinsic/svg/003.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#inline-replaced-width" />
+  <link rel="match" href="replaced-intrinsic-003-ref.xht" />
+
+  <meta name="flags" content="image svg"/>
+  <style type="text/css">
+   html { background: white; }
+   body { background: 100px 0 url(support/test-tr.png) no-repeat; }
+   div { width: 100px; background: url(support/test-bl.png) bottom left no-repeat; }
+   div p { background: url(support/test-tl.png) top left no-repeat; }
+   object { display: block; margin: auto; padding-right: 100px; background: url(support/test-br.png) bottom right no-repeat; }
+  </style>
+ </head>
+ <body>
+  <div><p><object data="support/replaced-intrinsic-003.svg" type="image/svg+xml"> FAIL (SVG not supported) </object></p></div>
+  <p>Test passes if there is a complete unbroken yin-yang symbol (&#x262F;) above.</p>
+ </body>
+</html>

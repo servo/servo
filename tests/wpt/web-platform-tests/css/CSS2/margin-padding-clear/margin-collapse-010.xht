@@ -1,0 +1,40 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Margin collapsing and elements with 'overflow' set to 'scroll'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-08-14 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#collapsing-margins" />
+
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="Elements with 'overflow' set to 'scroll' do not collapse margin with in-flow children." />
+        <style type="text/css">
+            div
+            {
+                font: 20px/1em Ahem;
+                height: 5em;
+                width: 5em;
+            }
+            #div1
+            {
+                height: 2em;
+                margin-top: 2em;
+                overflow: scroll;
+            }
+            #div2
+            {
+                background: red;
+                height: 1em;
+                margin-top: 2em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is <strong>no red</strong>.</p>
+        <div>
+            <div id="div1">
+                <div id="div2"></div>
+            </div>
+        </div>
+    </body>
+</html>

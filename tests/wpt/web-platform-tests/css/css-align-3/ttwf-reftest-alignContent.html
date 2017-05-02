@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ttwf-reftest-alignContent-ref</title>
+    <link rel="author" title="Heechang Kang" href="mailto:hckang80@gmail.com">
+    <link rel="help" href="http://www.w3.org/TR/css3-align/#content-distribution">
+    <style type="text/css">
+		#main{
+			display:flex;
+			flex-flow:row wrap;
+			align-content:space-around;
+			position:relative;
+			width:70px;
+			height:170px;
+			border:1px solid #c3c3c3;
+		}
+		#main .sample{
+			position:absolute;
+			left:0;
+			top:50%;
+			z-index:-1;
+			margin:-35px 0 0;
+		}
+		#main > span{
+			display:inline-block;
+			width:70px;
+			height:70px;
+			vertical-align:middle;
+		}
+    </style>
+</head>
+<body>
+<p>PASS if there is no red box.</p>
+<div id="main">
+	<span class="sample" style="background-color:red;"></span>
+	<span style="background-color:green;"></span>
+</div>
+</body>
+</html>

@@ -1,0 +1,83 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Fourth Test of Section 19.4 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+p {cue-after: }
+h3 {cue-after: url(pop.au)}
+h4 {cue-after: url(bell.aiff)}
+strong {cue-after: none}
+blockquote {cue-after: 50%}
+
+
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Fourth Testable Statement of Sec 19.5 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+4. The cue-after property has initial of none, it applies to all
+elements, it is not inherited, and percentage values are N/A.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p  >
+NOTE: NEEDS TO BE TRANSLATED TO VOICE.
+If statement #4 above is passed, this paragraph should have a cue after
+of none.
+The rule applied is "p {cue-after: }".
+So the cue-after property applies to the "p" element.
+<h3>
+This h3 element should have a cue-after of url(pop.au)
+<em>
+This emphasized text should have a cue-after of UA-default, since the 
+cue after property is not inherited, and "em" is a child of 'h3".
+No explicit rule is applied for "em".
+</em>
+THe rule applied is 'h3 {cue-after: url(pop.au)}".
+So the cue-after property applies to em and h3.
+</h3>
+<h4>
+THis h4 element should have a cue-after which is url(bell.aiff).
+The rule applied is "h4 {cue-after: url(bell.aiff)}".
+So the cue-after property applies to h4.
+</h4>
+
+<strong>
+This strong text should have a cue after of none
+; so the cue after property applies
+to the strong element.
+The rule applied is "strong {cue-after: none}".
+</strong>
+<blockquote>
+This blockquote element should have a cue after of UA-default.
+The rule applied is "blockquote {cue-after: 50%}", which should be
+UA-default.
+</blockquote>
+All other properties of this page should be UA-default.
+
+
+
+
+
+</BODY>
+</HTML>
+

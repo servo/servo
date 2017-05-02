@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <head>
+    <meta charset="UTF-8">
+    <title>CSS Test: :dir() selector</title>
+    <link rel="author" title="Astley Chen" href="mailto:aschen@mozilla.com">
+    <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+    <link rel="help" href="https://drafts.csswg.org/selectors-4/#the-dir-pseudo">
+    <meta name="assert" content="Test checks if :dir() can work with other selectors correctly after a dynamic directionality change on specified divs.">
+    <link rel="match" href="dir-style-03-ref.html">
+    <style>
+      div { color: lime; text-align: left; }
+      :not(:dir(ltr)) + div { color: blue }
+    </style>
+    <script>
+      function switchDir()
+      {
+        theDiv = document.getElementById("div");
+        theDiv.offsetWidth; // ensure it's a dynamic change
+        if (theDiv.dir == "ltr") {
+          theDiv.dir = "rtl";
+        } else if (theDiv.dir == "rtl") {
+          theDiv.dir = "ltr";
+        }
+
+        document.documentElement.removeAttribute("class");
+      }
+    </script>
+  </head>
+  <body onload="switchDir()">
+    <div id="div" dir="ltr">This element is rtl.</div>
+    <div>This element has default direction.</div>
+  </body>
+</html>

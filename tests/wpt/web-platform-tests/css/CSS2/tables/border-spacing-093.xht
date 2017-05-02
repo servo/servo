@@ -1,0 +1,39 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border-spacing set to inherit with two values, 50px 5px</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#propdef-border-spacing" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#separated-borders" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="Verify that a table with 'border-spacing: inherit' uses both of its parent container's border-spacing values if two are specified." />
+        <style type="text/css">
+            body
+            {
+                border-spacing: 50px 5px;
+            }
+            table
+            {
+                border-spacing: inherit;
+                font: 20px/1 Ahem;
+            }
+            td
+            {
+                padding: 0;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if four bars appear, and the horizontal space between them is greater than the vertical space between them.</p>
+        <table>
+            <tr>
+                <td>XXXXXX</td>
+                <td>XXXXXX</td>
+            </tr>
+            <tr>
+                <td>XXXXXX</td>
+                <td>XXXXXX</td>
+            </tr>
+        </table>
+    </body>
+</html>

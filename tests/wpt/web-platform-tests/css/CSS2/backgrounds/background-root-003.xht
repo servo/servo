@@ -1,0 +1,37 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: Background - background on root propagates to canvas</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#table-display" />
+  <meta content="" name="flags" />
+  <meta content="Background set on root element should cover the canvas" name="assert" />
+
+  <style type="text/css"><![CDATA[
+  html
+  {
+  background-color: blue;
+  display: table;
+  width: 500px;
+  }
+
+  body
+  {
+  background-color: lime;
+  margin: 100px;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>The whole area of this page should be blue and only this text should be in a bright green box.</p>
+
+ </body>
+</html>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>CSS Masking: mask-repeat:round repeat;</title>
+<link rel="author" title="Li Jun" href="mailto:64835173@qq.com">
+<link rel="reviewer" title="Dirk Schulze" href="mailto:dschulze@adobe.com"><!-- 11-09-2013 @TestTWF Shenzhen -->
+<link rel="help" href="http://www.w3.org/TR/css-masking-1/#the-mask-repeat">
+<link rel="match" href="test-mask-ref.html">
+<meta name="assert" content="Test checks that the mask-repeart value "round" is working properly: it should scale to fit the whole area.">
+<style>
+.test {
+	width:200px;
+	height:200px;
+	white-space:normal;
+	background:blue;
+ 	mask-image:radial-gradient(black, black);
+ 	mask-repeat:round;
+ 	mask-size:100px 100px;
+ 	mask-box-image:none;
+ 	mask-origin:border;
+};
+</style>
+<body>
+    <p>Test passes if there is a blue square and no red.</p>
+    <div style="width: 200px; height:200px; position: fixed; background-color:red;"></div>
+	<div class="test"></div>
+</body>
+</html>

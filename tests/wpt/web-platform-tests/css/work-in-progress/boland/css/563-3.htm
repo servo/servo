@@ -1,0 +1,69 @@
+
+<html>
+
+<title>Third Test of Section 5.6.3 of CSS1 Spec</title>
+
+<style type="text/css">
+#id1 {list-style-image: none;
+      list-style-type: circle;}
+#id2 {list-style-image: url(any.gif);
+      list-style-type: square;}
+#id3 {list-style-image: url(ovalbbut.gif);
+      list-style-type: decimal;}
+</style>
+</head>
+
+
+
+<body>
+
+
+
+
+<h1 >Testing Statement #3 Below of Section 5.6.3 of CSS1 Spec</h1>
+
+
+
+
+
+
+<p>
+3. The "list-style-type" property is used to determine the appearance of the
+list-item marker if "list-style-image" is none or if the image pointed to by 
+the URL cannot be specified.
+
+
+
+
+<h2>
+PASS CRITERIA:
+</h2>
+<p >
+If statement #3 above is passed, then:
+<ol ID=id1>
+<li>
+This list item should have a marker of circle; the rule applied is 
+"#id1 {list-style-image: none; list-style-type: circle}" applied to ol
+</ol>
+<ol ID=id2>
+<li>
+This list item should have a marker of square; the rule applied is
+"#id2 {list-style-image: url(any.gif); list-style-type: square;}" where
+any.gif is not available.  This rule is applied to ol
+</ol>
+<ol ID=id3>
+<li>
+This list item should have a marker of oval button; the rule applied is
+"#id3 {list-style-image: url(ovlabbut.gif); list-style-type: decimal;}"
+where ovalbbut.gif should be available, so it is used.  This rule is
+applied to ol.
+</ol>
+
+
+
+
+All other properties of this page should be UA-default.
+
+
+</body>
+</html>

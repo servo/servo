@@ -1,0 +1,67 @@
+<!doctype html>
+<meta http-equiv="Content-Security-Policy" content="script-src 'nonce-abc'; style-src 'self'; img-src 'none'">
+<script nonce="abc" src="/resources/testharness.js"></script>
+<script nonce="abc" src="/resources/testharnessreport.js"></script>
+<body>
+<script nonce="abc">
+    function waitForViolation(el) {
+      return new Promise(resolve => {
+        el.addEventListener('securitypolicyviolation', e => resolve(e));
+      });
+    }
+
+    async_test(t => {
+      var s = document.createElement('script');
+      s.innerText = "assert_unreached('inline script block')";
+
+      waitForViolation(s)
+        .then(t.step_func_done(e => {
+          assert_equals(e.blockedURI, "inline");
+          assert_equals(e.sample, "");
+        }));
+
+      document.head.append(s);
+    }, "Inline script should not have a sample.");
+
+    async_test(t => {
+      var a = document.createElement("a");
+      a.setAttribute("onclick", "assert_unreached('inline event handler')");
+
+      waitForViolation(a)
+        .then(t.step_func_done(e => {
+          assert_equals(e.blockedURI, "inline");
+          assert_equals(e.sample, "");
+        }));     
+      
+      document.body.append(a);
+      a.click();
+    }, "Inline event handlers should not have a sample.");
+
+    async_test(t => {
+      var i = document.createElement("iframe");
+      i.src = "javascript:'inline url'";
+
+      waitForViolation(i)
+        .then(t.step_func_done(e => {
+          assert_equals(e.blockedURI, "inline");
+          assert_equals(e.sample, "");
+        }));     
+      
+      document.body.append(i);
+    }, "JavaScript URLs in iframes should not have a sample.");
+
+    async_test(t => {
+      document.addEventListener('securitypolicyviolation', t.step_func(e => {
+        if (e.blockedURI != "eval")
+          return;
+
+        assert_equals(e.sample, "");
+        t.done();
+      }));
+      try {
+        eval("assert_unreached('eval')");
+        assert_unreached('eval');
+      } catch (e) {
+      }
+    }, "eval() should not have a sample.");
+</script>

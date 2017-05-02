@@ -1,0 +1,46 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Visibility applied to elements with 'display' set to 'table-row'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visufx.html#propdef-visibility" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visufx.html#visibility" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'visibility' property applies to elements with 'display' set to 'table-row'." />
+        <style type="text/css">
+            #table
+            {
+                display: table;
+                table-layout: fixed;
+            }
+            #row
+            {
+                display: table-row;
+                visibility: hidden;
+            }
+            #cell
+            {
+                background: red;
+                display: table-cell;
+                height: 1in;
+                width: 1in;
+            }
+            .box
+            {
+                background: black;
+                height: 1em;
+                width: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is white space between the boxes below and there is no red visible on the page.</p>
+        <div class="box"></div>
+        <div id="table">
+            <div id="row">
+                <div id="cell"></div>
+            </div>
+        </div>
+        <div class="box"></div>
+    </body>
+</html>

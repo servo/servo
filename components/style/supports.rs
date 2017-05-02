@@ -9,6 +9,7 @@ use parser::ParserContext;
 use properties::{PropertyId, ParsedDeclaration};
 use std::fmt;
 use style_traits::ToCss;
+use stylesheets::CssRuleType;
 
 #[derive(Debug)]
 /// An @supports condition
@@ -211,7 +212,8 @@ impl Declaration {
             return false
         };
         let mut input = Parser::new(&self.val);
-        let res = ParsedDeclaration::parse(id, cx, &mut input, /* in_keyframe */ false);
+        let context = ParserContext::new_with_rule_type(cx, Some(CssRuleType::Style));
+        let res = ParsedDeclaration::parse(id, &context, &mut input);
         let _ = input.try(parse_important);
         res.is_ok() && input.is_exhausted()
     }

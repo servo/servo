@@ -1,0 +1,53 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: list-style-position - text-indent</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="author" title="James Hopkins" href="http://idreamincode.co.uk/css21testsuite" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#lists" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#list-style" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#propdef-text-indent" />
+  <link rel="help" href="http://www.w3.org/TR/html4/struct/lists.html#h-10.3.1" />
+  <meta name="flags" content="ahem" />
+  <meta name="assert" content="Text-indent should only format the indentation of the first line of text of a list-item's principal block box when the list-item's list-style-position is set to outside" />
+
+  <style type="text/css"><![CDATA[
+  li
+  {
+  background-color: black;
+  color: lime;
+  font: 30px/1 Ahem;
+  list-style-position: outside;
+  }
+
+  li#left {text-indent: 10%;}
+
+  li#center {text-indent: 50%;}
+
+  li#right {text-indent: 90%;}
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>There must be 3 thick horizontal black bars below, each preceded by a bright green bullet (filled-in circle). Such bullet must be located outside of and prior to each of the 3 thick horizontal black bars. Inside of the thick horizontal black bars, there must be a small bright green square located respectively toward the left side of the first thick horizontal black bar, in the center of the second thick horizontal black bar and toward the right side of third thick horizontal black bar.</p>
+
+  <ul>
+    <li id="left">L</li>
+  </ul>
+
+  <ul>
+    <li id="center">C</li>
+  </ul>
+
+  <ul>
+    <li id="right">R</li>
+  </ul>
+
+ </body>
+</html>

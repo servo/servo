@@ -1,0 +1,65 @@
+
+<html>
+
+<title>Fourth Test of Section 5.5.5 of CSS1 Spec</title>
+
+<style type="text/css">
+#id1 {margin: 2em}
+#id2 {margin: 1em 2em}
+#id3 {margin: 1em 2em 3em}
+#id4 {margin: 1em 2em 3em 4em}
+</style>
+</head>
+
+
+
+<body>
+
+
+
+
+<h1 >Testing Statement #4 Below of Section 5.5.5 of CSS1 Spec</h1>
+
+
+
+
+
+
+<ul>
+<li>
+4. If four length values are specified they apply to top, right, bottom, and
+left respectively.  If there is only one value, it applies to all sides, if
+there are two or three, the missing values are taken from the opposite side.
+</ul>
+
+
+
+
+
+<h2>
+PASS CRITERIA:
+</h2>
+<p ID=id1 >
+If statement #4 above is passed, this paragraph should have all margins set
+to 2em.  The rule applied is '#id1 {margin: 2em}".
+<p ID=id2>
+This paragraph should have top and bottom margins set to 1em, and right and
+left margins set to 2em.
+The rule applied is "#id2 {margin: 1em 2em}".
+<p ID=id3>
+This paragarph should have a top margin of 1em, a right margin of 2em, a
+bottom margin of 3em, and a left margin of 2em.
+The rule applied is '#id3 {margin: 1em 2em 3em}".
+<p ID=id4>
+This paragraph should have a top margin of 1em, a right margin of 2em, a
+bottom margin of 3em, and a left margin of 4em.
+The rule appleid is "#id4 {margin: 1em 2em 3em 4em}".
+<p>
+
+
+
+All other properties of this page should be UA-default.
+
+
+</body>
+</html>

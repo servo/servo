@@ -8,14 +8,12 @@ use cssparser::{Parser, ToCss};
 use element_state::ElementState;
 use gecko_bindings::structs::CSSPseudoClassType;
 use gecko_bindings::structs::nsIAtom;
-use restyle_hints::complex_selector_to_state;
 use selector_parser::{SelectorParser, PseudoElementCascadeType};
 use selectors::parser::{ComplexSelector, SelectorMethods};
 use selectors::visitor::SelectorVisitor;
 use std::borrow::Cow;
 use std::fmt;
 use std::ptr;
-use std::sync::Arc;
 use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 
 /// A representation of a CSS pseudo-element.
@@ -56,6 +54,26 @@ pub const EAGER_PSEUDO_COUNT: usize = 2;
 
 
 impl PseudoElement {
+    /// Returns the kind of cascade type that a given pseudo is going to use.
+    ///
+    /// In Gecko we only compute ::before and ::after eagerly. We save the rules
+    /// for anonymous boxes separately, so we resolve them as precomputed
+    /// pseudos.
+    ///
+    /// We resolve the others lazily, see `Servo_ResolvePseudoStyle`.
+    pub fn cascade_type(&self) -> PseudoElementCascadeType {
+        if self.is_eager() {
+            debug_assert!(!self.is_anon_box());
+            return PseudoElementCascadeType::Eager
+        }
+
+        if self.is_anon_box() {
+            return PseudoElementCascadeType::Precomputed
+        }
+
+        PseudoElementCascadeType::Lazy
+    }
+
     /// Gets the canonical index of this eagerly-cascaded pseudo-element.
     #[inline]
     pub fn eager_index(&self) -> usize {
@@ -219,7 +237,7 @@ macro_rules! pseudo_class_name {
             ///
             /// TODO(emilio): We disallow combinators and pseudos here, so we
             /// should use SimpleSelector instead
-            MozAny(Vec<Arc<ComplexSelector<SelectorImpl>>>),
+            MozAny(Box<[ComplexSelector<SelectorImpl>]>),
         }
     }
 }
@@ -237,8 +255,12 @@ impl ToCss for NonTSPseudoClass {
                     $(NonTSPseudoClass::$s_name(ref s) => {
                         write!(dest, ":{}(", $s_css)?;
                         {
+                            // FIXME(emilio): Avoid the extra allocation!
                             let mut css = CssStringWriter::new(dest);
-                            css.write_str(&String::from_utf16(&s).unwrap())?;
+
+                            // Discount the null char in the end from the
+                            // string.
+                            css.write_str(&String::from_utf16(&s[..s.len() - 1]).unwrap())?;
                         }
                         return dest.write_str(")")
                     }, )*
@@ -268,7 +290,7 @@ impl SelectorMethods for NonTSPseudoClass {
         where V: SelectorVisitor<Impl = Self::Impl>,
     {
         if let NonTSPseudoClass::MozAny(ref selectors) = *self {
-            for selector in selectors {
+            for selector in selectors.iter() {
                 if !selector.visit(visitor) {
                     return false;
                 }
@@ -313,15 +335,17 @@ impl NonTSPseudoClass {
                 match *self {
                     $(NonTSPseudoClass::$name => flag!($state),)*
                     $(NonTSPseudoClass::$s_name(..) => flag!($s_state),)*
-                    NonTSPseudoClass::MozAny(ref selectors) => {
-                        selectors.iter().fold(ElementState::empty(), |state, s| {
-                            state | complex_selector_to_state(s)
-                        })
-                    }
+                    NonTSPseudoClass::MozAny(..) => ElementState::empty(),
                 }
             }
         }
         apply_non_ts_list!(pseudo_class_state)
+    }
+
+    /// Returns true if the given pseudoclass should trigger style sharing cache revalidation.
+    pub fn needs_cache_revalidation(&self) -> bool {
+        self.state_flag().is_empty() &&
+        !matches!(*self, NonTSPseudoClass::MozAny(_))
     }
 
     /// Convert NonTSPseudoClass to Gecko's CSSPseudoClassType.
@@ -401,13 +425,13 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
                     }, )*
                     "-moz-any" => {
                         let selectors = parser.parse_comma_separated(|input| {
-                            ComplexSelector::parse(self, input).map(Arc::new)
+                            ComplexSelector::parse(self, input)
                         })?;
                         // Selectors inside `:-moz-any` may not include combinators.
-                        if selectors.iter().any(|s| s.next.is_some()) {
+                        if selectors.iter().flat_map(|x| x.iter_raw()).any(|s| s.is_combinator()) {
                             return Err(())
                         }
-                        NonTSPseudoClass::MozAny(selectors)
+                        NonTSPseudoClass::MozAny(selectors.into_boxed_slice())
                     }
                     _ => return Err(())
                 }
@@ -439,24 +463,9 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
 
 impl SelectorImpl {
     #[inline]
-    /// Returns the kind of cascade type that a given pseudo is going to use.
-    ///
-    /// In Gecko we only compute ::before and ::after eagerly. We save the rules
-    /// for anonymous boxes separately, so we resolve them as precomputed
-    /// pseudos.
-    ///
-    /// We resolve the others lazily, see `Servo_ResolvePseudoStyle`.
+    /// Legacy alias for PseudoElement::cascade_type.
     pub fn pseudo_element_cascade_type(pseudo: &PseudoElement) -> PseudoElementCascadeType {
-        if pseudo.is_eager() {
-            debug_assert!(!pseudo.is_anon_box());
-            return PseudoElementCascadeType::Eager
-        }
-
-        if pseudo.is_anon_box() {
-            return PseudoElementCascadeType::Precomputed
-        }
-
-        PseudoElementCascadeType::Lazy
+        pseudo.cascade_type()
     }
 
     /// A helper to traverse each eagerly cascaded pseudo-element, executing

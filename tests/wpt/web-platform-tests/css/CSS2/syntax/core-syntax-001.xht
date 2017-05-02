@@ -1,0 +1,17 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+ <head>
+  <title>CSS Test: Nested blocks in unexpected places</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/parsing/core-syntax/001.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#parsing-errors" />
+  <link rel="match" href="core-syntax-001-ref.xht"/>
+  <style type="text/css">
+   .test { color: green; }
+   .test { test { :nested; color: yellow; background: red; }: not-nested; text-decoration: underline; }
+  </style>
+ </head>
+ <body>
+  <p class="test">This sentence should be green and underlined.</p>
+ </body>
+</html>

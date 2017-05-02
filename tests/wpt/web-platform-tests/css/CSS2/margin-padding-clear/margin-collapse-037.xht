@@ -1,0 +1,57 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: Collapsing margins - margin-bottom of the last in-flow child block collapsing with its parent min-height block's bottom margin</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="author" title="Bruno Fassino" href="http://www.brunildo.org/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#collapsing-margins" />
+  <link rel="match" href="margin-collapse-037-ref.xht" />
+
+  <meta content="" name="flags" />
+  <meta content="The 'min-height' of a parent block element should have no influence over whether such parent block element's bottom margin is adjoining to its last child's bottom margin. In such situation, the bottom margin of the parent block element and the bottom margin of its last child should collapse as long as such parent block element has no bottom padding and has no bottom border." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  body {margin: 8px;}
+
+  p {margin: 8px 0px 0px;}
+
+  div#reference-overlapping-green
+  {
+  background-color: green;
+  height: 100px;
+  left: 8px;
+  position: absolute;
+  right: 8px;
+  }
+
+  #test-overlapped-red
+  {
+  background-color: red;
+  min-height: 50px;
+  }
+
+  #last-child
+  {
+  height: 100px;
+  margin-bottom: 100px;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled green rectangle across the page and <strong>no red</strong>.</p>
+
+  <div id="reference-overlapping-green"></div>
+
+  <div id="test-overlapped-red">
+    <div id="last-child"></div>
+  </div>
+
+ </body>
+</html>

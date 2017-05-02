@@ -44,7 +44,7 @@ function shouldFail(origin) {
                             + '/resources/cors-makeheader.py?origin='
                             + encodeURIComponent(origin),
                     false)
-        assert_throws(null, function() { client.send() }, 'send')
+        assert_throws("NetworkError", function() { client.send() }, 'send')
     }, 'Disallow origin: ' + origin.replace('\0', '\\0'));
 }
 

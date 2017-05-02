@@ -1,0 +1,54 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Fixed table layout - specified column width overrides specified column-group width</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#fixed-table-layout" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="A column that has both a column width and column-group width specified will use its column specified width." />
+        <style type="text/css">
+            table
+            {
+                border-collapse: collapse;
+                table-layout: fixed;
+                width: 100px;
+            }
+            #colgroup
+            {
+                width: 300px;
+            }
+            #cell
+            {
+                background: black;
+            }
+            #div1
+            {
+                background: blue;
+            }
+            #div1, #cell
+            {
+                height: 1em;
+            }
+            #div1, #col
+            {
+                width: 100px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the boxes below are the same width.</p>
+        <table>
+            <colgroup id="colgroup">
+                <col id="col" />
+            </colgroup>
+            <colgroup>
+                <col />
+            </colgroup>
+            <tr>
+                <td id="cell"></td>
+                <td></td>
+           </tr>
+        </table>
+        <div id="div1"></div>
+    </body>
+</html>

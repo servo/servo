@@ -29,21 +29,21 @@ use app_units::Au;
 use block::{BlockFlow, FormattingContextType};
 use context::LayoutContext;
 use display_list_builder::DisplayListBuildState;
-use euclid::{Matrix4D, Point2D, Size2D};
+use euclid::{Matrix4D, Point2D, Rect, Size2D};
 use flex::FlexFlow;
 use floats::{Floats, SpeculatedFloatPlacement};
 use flow_list::{FlowList, MutFlowListIterator};
 use flow_ref::{FlowRef, WeakFlowRef};
-use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
-use gfx::display_list::ClippingRegion;
-use gfx_traits::{ScrollRootId, StackingContextId};
+use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow};
+use gfx_traits::StackingContextId;
 use gfx_traits::print_tree::PrintTree;
 use inline::InlineFlow;
 use model::{CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo};
+use msg::constellation_msg::PipelineId;
 use multicol::MulticolFlow;
 use parallel::FlowParallelInfo;
 use serde::ser::{Serialize, SerializeStruct, Serializer};
-use servo_geometry::{au_rect_to_f32_rect, f32_rect_to_au_rect};
+use servo_geometry::{au_rect_to_f32_rect, f32_rect_to_au_rect, max_rect};
 use std::{fmt, mem, raw};
 use std::iter::Zip;
 use std::slice::IterMut;
@@ -63,6 +63,7 @@ use table_colgroup::TableColGroupFlow;
 use table_row::TableRowFlow;
 use table_rowgroup::TableRowGroupFlow;
 use table_wrapper::TableWrapperFlow;
+use webrender_traits::ClipId;
 
 /// Virtual methods that make up a float context.
 ///
@@ -264,6 +265,24 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
             }
         }
 
+        let border_box = self.as_block().fragment.stacking_relative_border_box(
+            &base(self).stacking_relative_position,
+            &base(self).early_absolute_position_info.relative_containing_block_size,
+            base(self).early_absolute_position_info.relative_containing_block_mode,
+            CoordinateSystem::Own);
+        if overflow_x::T::visible != self.as_block().fragment.style.get_box().overflow_x {
+            overflow.paint.origin.x = Au(0);
+            overflow.paint.size.width = border_box.size.width;
+            overflow.scroll.origin.x = Au(0);
+            overflow.scroll.size.width = border_box.size.width;
+        }
+        if overflow_x::T::visible != self.as_block().fragment.style.get_box().overflow_y {
+            overflow.paint.origin.y = Au(0);
+            overflow.paint.size.height = border_box.size.height;
+            overflow.scroll.origin.y = Au(0);
+            overflow.scroll.size.height = border_box.size.height;
+        }
+
         if !self.as_block().fragment.establishes_stacking_context() ||
            self.as_block().fragment.style.get_box().transform.0.is_none() {
             overflow.translate(&position.origin);
@@ -311,40 +330,8 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
             FlowClass::Block |
             FlowClass::TableCaption |
             FlowClass::TableCell => {
-                let overflow_x = self.as_block().fragment.style.get_box().overflow_x;
-                let overflow_y = self.as_block().fragment.style.get_box().overflow_y;
-
                 for kid in mut_base(self).children.iter_mut() {
-                    let mut kid_overflow = kid.get_overflow_in_parent_coordinates();
-
-                    // If the overflow for this flow is hidden on a given axis, just
-                    // put the existing overflow in the kid rect, so that the union
-                    // has no effect on this axis.
-                    match overflow_x {
-                        overflow_x::T::hidden => {
-                            kid_overflow.paint.origin.x = overflow.paint.origin.x;
-                            kid_overflow.paint.size.width = overflow.paint.size.width;
-                            kid_overflow.scroll.origin.x = overflow.scroll.origin.x;
-                            kid_overflow.scroll.size.width = overflow.scroll.size.width;
-                        }
-                        overflow_x::T::scroll |
-                        overflow_x::T::auto |
-                        overflow_x::T::visible => {}
-                    }
-
-                    match overflow_y.0 {
-                        overflow_x::T::hidden => {
-                            kid_overflow.paint.origin.y = overflow.paint.origin.y;
-                            kid_overflow.paint.size.height = overflow.paint.size.height;
-                            kid_overflow.scroll.origin.y = overflow.scroll.origin.y;
-                            kid_overflow.scroll.size.height = overflow.scroll.size.height;
-                        }
-                        overflow_x::T::scroll |
-                        overflow_x::T::auto |
-                        overflow_x::T::visible => {}
-                    }
-
-                    overflow.union(&kid_overflow)
+                    overflow.union(&kid.get_overflow_in_parent_coordinates());
                 }
             }
             _ => {}
@@ -444,8 +431,14 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
     /// children of this flow.
     fn print_extra_flow_children(&self, _: &mut PrintTree) { }
 
-    fn scroll_root_id(&self) -> ScrollRootId {
-        base(self).scroll_root_id
+    fn scroll_root_id(&self, pipeline_id: PipelineId) -> ClipId {
+        match base(self).scroll_root_id {
+            Some(id) => id,
+            None => {
+                warn!("Tried to access scroll root id on Flow before assignment");
+                pipeline_id.root_scroll_node()
+            }
+        }
     }
 }
 
@@ -957,10 +950,10 @@ pub struct BaseFlow {
     /// assignment.
     pub late_absolute_position_info: LateAbsolutePositionInfo,
 
-    /// The clipping region for this flow and its descendants, in the coordinate system of the
+    /// The clipping rectangle for this flow and its descendants, in the coordinate system of the
     /// nearest ancestor stacking context. If this flow itself represents a stacking context, then
     /// this is in the flow's own coordinate system.
-    pub clip: ClippingRegion,
+    pub clip: Rect<Au>,
 
     /// The writing mode for this flow.
     pub writing_mode: WritingMode,
@@ -976,7 +969,7 @@ pub struct BaseFlow {
     /// list construction.
     pub stacking_context_id: StackingContextId,
 
-    pub scroll_root_id: ScrollRootId,
+    pub scroll_root_id: Option<ClipId>,
 }
 
 impl fmt::Debug for BaseFlow {
@@ -1115,12 +1108,12 @@ impl BaseFlow {
             absolute_cb: ContainingBlockLink::new(),
             early_absolute_position_info: EarlyAbsolutePositionInfo::new(writing_mode),
             late_absolute_position_info: LateAbsolutePositionInfo::new(),
-            clip: ClippingRegion::max(),
+            clip: max_rect(),
             flags: flags,
             writing_mode: writing_mode,
             thread_id: 0,
-            stacking_context_id: StackingContextId::new(0),
-            scroll_root_id: ScrollRootId::root(),
+            stacking_context_id: StackingContextId::root(),
+            scroll_root_id: None,
         }
     }
 

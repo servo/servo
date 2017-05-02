@@ -15,7 +15,7 @@
 //!
 //! [glutin]: https://github.com/tomaka/glutin
 
-#![feature(start, core_intrinsics)]
+#![feature(start)]
 
 #[cfg(target_os = "android")]
 extern crate android_injected_glue;
@@ -33,6 +33,8 @@ extern crate sig;
 use backtrace::Backtrace;
 use servo::Browser;
 use servo::compositing::windowing::WindowEvent;
+#[cfg(target_os = "android")]
+use servo::config;
 use servo::config::opts::{self, ArgumentParsingResult};
 use servo::config::servo_version;
 use std::env;
@@ -56,7 +58,7 @@ pub mod platform {
 fn install_crash_handler() {
     use backtrace::Backtrace;
     use sig::ffi::Sig;
-    use std::intrinsics::abort;
+    use std::process::abort;
     use std::thread;
 
     fn handler(_sig: i32) {
@@ -65,9 +67,7 @@ fn install_crash_handler() {
             .map(|n| format!(" for thread \"{}\"", n))
             .unwrap_or("".to_owned());
         println!("Stack trace{}\n{:?}", name, Backtrace::new());
-        unsafe {
-            abort();
-        }
+        abort();
     }
 
     signal!(Sig::SEGV, handler); // handle segfaults
@@ -219,8 +219,9 @@ fn args() -> Vec<String> {
     use std::fs::File;
     use std::io::{BufRead, BufReader};
 
-    const PARAMS_FILE: &'static str = "/sdcard/servo/android_params";
-    match File::open(PARAMS_FILE) {
+    let mut params_file = config::basedir::default_config_dir().unwrap();
+    params_file.push("android_params");
+    match File::open(params_file.to_str().unwrap()) {
         Ok(f) => {
             let mut vec = Vec::new();
             let file = BufReader::new(&f);
@@ -236,7 +237,7 @@ fn args() -> Vec<String> {
         },
         Err(e) => {
             debug!("Failed to open params file '{}': {}",
-                   PARAMS_FILE,
+                   params_file.to_str().unwrap(),
                    Error::description(&e));
             vec!["servo".to_owned(), "http://en.wikipedia.org/wiki/Rust".to_owned()]
         },

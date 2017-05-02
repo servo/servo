@@ -1,0 +1,46 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>multicolumn | column-gap</title>
+<link rel="author" title="Opera Software ASA" href="http://www.opera.com/"/>
+<link rel="help" href="http://www.w3.org/TR/css3-multicol/#column-gaps-and-rules"/>
+<link rel="match" href="gap-2-ref.xht"/>
+<meta name="flags" content="ahem"/>
+<style type="text/css"><![CDATA[
+div {
+	font-family: ahem;
+	font-size: 1em;
+	line-height: 1em;
+	color: black;
+	background: yellow;
+	margin: 1em;
+	border: 1em solid gray;
+	width: 11em;
+	orphans: 1;
+	widows: 1;
+
+	column-count: 4;
+	column-gap: 1em;
+}
+span {
+	color: blue;
+}
+]]></style>
+</head>
+
+<body>
+
+<div>
+	xx xx 
+<span>
+	xx xx
+</span>
+<span>
+	xx xx 
+</span>
+	xx xx
+</div>
+
+</body>
+</html>

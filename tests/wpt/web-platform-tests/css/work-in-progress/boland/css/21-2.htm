@@ -1,0 +1,48 @@
+
+<HTML>
+
+
+<head>
+<title>Second Test for Section 2.1 of CSS Spec</title>
+<STYLE TYPE="text/css">
+<!--
+A:link { color: red }   /*unvisited link */
+A:visited { color: blue } /* visited link */
+A:active { color: green } /* active links */
+-->
+</STYLE>
+</head>
+
+
+
+<BODY>
+
+<h1 >Testing Statement #2 Below of Section 2.1 of CSS1 Spec</h1>
+
+
+
+<ul>
+<li >
+2. All "A" elements with an "HREF" attribute will be put into one and only one
+of the referenced groups (i.e., target anchors are not affected).
+</ul>
+
+
+<h2>
+PASS CRITERIA:
+</h2>
+<p>
+If statement #2 above is passed, then <a href="ovalbbut.gif">this
+link</a> should be red if unvisited, <a href="ovalbbut.gif">this
+link</a> should be blue if visited, and <a href="ovalbbut.gif">this
+link</a> should be green if active.  All "a" elements above are in
+only one category at a time.  This also applies to "a" elements
+below.  All other properties are UA-default.
+The pseudo-classes applied above are, respectively, "A:link {color: red}",
+"A:visited {color: blue}", and "A:active {color: green}".
+
+Your browser should render this page similarly to this<a href="a212.gif">
+reference image</a> or to this<a href="b212.gif">reference image</a>.
+To move directly to the next test, click<a href="21-3.htm"> here</a>
+</BODY>
+</HTML>

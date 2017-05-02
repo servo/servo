@@ -6,7 +6,6 @@
 
 #![deny(missing_docs)]
 
-use context::TraversalStatistics;
 use dom::{TElement, TNode};
 use std::borrow::BorrowMut;
 use std::collections::VecDeque;
@@ -22,7 +21,7 @@ pub fn traverse_dom<E, D>(traversal: &D,
     where E: TElement,
           D: DomTraversal<E>,
 {
-    let dump_stats = TraversalStatistics::should_dump();
+    let dump_stats = traversal.shared_context().options.dump_style_statistics;
     let start_time = if dump_stats { Some(time::precise_time_s()) } else { None };
 
     debug_assert!(!traversal.is_parallel());
@@ -65,6 +64,8 @@ pub fn traverse_dom<E, D>(traversal: &D,
     if dump_stats {
         let tlsc = tlc.borrow_mut();
         tlsc.statistics.finish(traversal, start_time.unwrap());
-        println!("{}", tlsc.statistics);
+        if tlsc.statistics.is_large_traversal() {
+            println!("{}", tlsc.statistics);
+        }
     }
 }

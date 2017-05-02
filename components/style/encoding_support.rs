@@ -6,12 +6,14 @@
 
 extern crate encoding;
 
+use context::QuirksMode;
 use cssparser::{stylesheet_encoding, EncodingSupport};
 use error_reporting::ParseErrorReporter;
 use media_queries::MediaList;
 use self::encoding::{EncodingRef, DecoderTrap};
 use shared_lock::SharedRwLock;
 use std::str;
+use std::sync::Arc;
 use stylesheets::{Stylesheet, StylesheetLoader, Origin, UrlExtraData};
 
 struct RustEncoding;
@@ -55,17 +57,20 @@ impl Stylesheet {
                       media: MediaList,
                       shared_lock: SharedRwLock,
                       stylesheet_loader: Option<&StylesheetLoader>,
-                      error_reporter: &ParseErrorReporter)
+                      error_reporter: &ParseErrorReporter,
+                      quirks_mode: QuirksMode)
                       -> Stylesheet {
         let (string, _) = decode_stylesheet_bytes(
             bytes, protocol_encoding_label, environment_encoding);
         Stylesheet::from_str(&string,
                              url_data,
                              origin,
-                             media,
+                             Arc::new(shared_lock.wrap(media)),
                              shared_lock,
                              stylesheet_loader,
-                             error_reporter)
+                             error_reporter,
+                             quirks_mode,
+                             0u64)
     }
 
     /// Updates an empty stylesheet with a set of bytes that reached over the

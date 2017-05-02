@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Masking: mask-repeat: repeated mask layer image</title>
+    <link rel="author" title="Astley Chen" href="mailto:aschen@mozilla.com">
+    <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+    <style type="text/css">
+      div.outer {
+        width: 128px;
+        height: 128px;
+        position: relative;
+        border: 1px solid black;
+      }
+
+      .color {
+        background-color: purple;
+      }
+
+      #default {
+        position: absolute;
+        width: 50px; height: 50px;
+      }
+
+      #repeat-x {
+        position: absolute;
+        width: 100%; height: 50px;
+      }
+
+      #repeat-y {
+        position: absolute;
+        width: 50px; height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="outer color"></div>
+    <div class="outer">
+      <div class="color" id="default"></div>
+    </div>
+    <div class="outer color"></div>
+    <div class="outer">
+      <div class="color" id="repeat-x"></div>
+    </div>
+    <div class="outer">
+      <div class="color" id="repeat-y"></div>
+    </div>
+  </body>
+</html>

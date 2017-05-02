@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>CSS Transforms Test: skewY(90deg)</title>
+	<link href="mailto:tomomi.i@gmail.com" title="Tomomi Imura" rel="author">
+	<link href="http://www.w3.org/TR/css3-transforms/#two-d-transform-functions" rel="help">
+	<link href="reference/ttwf-reftest-tutorial-ref.html" rel="match">
+	<meta content="This 2D skew transformation along the Y axis by 90-degree angle, which should become invisible." name="assert">
+	<style type="text/css">
+		.redSquare {
+			background: red;
+			width: 100px;
+			height: 100px;
+		}
+		.skew-y {
+			transform: skewY(90deg);
+		}
+	</style>
+</head>
+<body>
+<p>The test passes if there is no red. (The tested element should be invisible).</p>
+	<!-- <div class="redSquare skew-x"></div> -->
+	<div class="redSquare skew-y"></div>
+</body>
+</html>

@@ -15,6 +15,7 @@ import os
 import os.path as path
 import re
 import shutil
+import subprocess
 import sys
 import urllib2
 
@@ -26,7 +27,7 @@ from mach.decorators import (
 
 import servo.bootstrap as bootstrap
 from servo.command_base import CommandBase, BIN_SUFFIX
-from servo.util import download_bytes, download_file, extract, host_triple
+from servo.util import delete, download_bytes, download_file, extract, host_triple
 
 
 @CommandProvider
@@ -285,26 +286,61 @@ class MachCommands(CommandBase):
     @CommandArgument('--force', '-f',
                      action='store_true',
                      help='Actually remove stuff')
-    def clean_nightlies(self, force=False):
-        rust_current = self.rust_path().split('/')[0]
+    @CommandArgument('--keep',
+                     default='1',
+                     help='Keep up to this many most recent nightlies')
+    def clean_nightlies(self, force=False, keep=None):
+        self.set_use_stable_rust(False)
+        rust_current_nightly = self.rust_version()
+        self.set_use_stable_rust(True)
+        rust_current_stable = self.rust_version()
         cargo_current = self.cargo_build_id()
-        print("Current Rust version: " + rust_current)
-        print("Current Cargo version: " + cargo_current)
+        print("Current Rust nightly version: {}".format(rust_current_nightly))
+        print("Current Rust stable version: {}".format(rust_current_stable))
+        print("Current Cargo version: {}".format(cargo_current))
+        to_keep = {
+            'rust': set(),
+            'cargo': set(),
+        }
+        if int(keep) == 1:
+            # Optimize keep=1 case to not invoke git
+            to_keep['rust'].add(rust_current_nightly)
+            to_keep['rust'].add(rust_current_stable)
+            to_keep['cargo'].add(cargo_current)
+        else:
+            for tool, version_files in {
+                'rust': ['rust-commit-hash', 'rust-stable-version'],
+                'cargo': ['cargo-commit-hash'],
+            }.items():
+                for version_file in version_files:
+                    cmd = subprocess.Popen(
+                        ['git', 'log', '--oneline', '--no-color', '-n', keep, '--patch', version_file],
+                        stdout=subprocess.PIPE,
+                        universal_newlines=True
+                    )
+                    stdout, _ = cmd.communicate()
+                    for line in stdout.splitlines():
+                        if line.startswith("+") and not line.startswith("+++"):
+                            to_keep[tool].add(line[1:])
+
         removing_anything = False
-        for current, base in [(rust_current, "rust"), (cargo_current, "cargo")]:
-            base = path.join(self.context.sharedir, base)
+        for tool in ["rust", "cargo"]:
+            base = path.join(self.context.sharedir, tool)
+            if not path.isdir(base):
+                continue
             for name in os.listdir(base):
-                if name != current:
+                # We append `-alt` if LLVM assertions aren't enabled,
+                # so use just the commit hash itself.
+                # This may occasionally leave an extra nightly behind
+                # but won't remove too many nightlies.
+                if name.partition('-')[0] not in to_keep[tool]:
                     removing_anything = True
-                    name = path.join(base, name)
+                    full_path = path.join(base, name)
                     if force:
-                        print("Removing " + name)
-                        if os.path.isdir(name):
-                            shutil.rmtree(name)
-                        else:
-                            os.remove(name)
+                        print("Removing {}".format(full_path))
+                        delete(full_path)
                     else:
-                        print("Would remove " + name)
+                        print("Would remove {}".format(full_path))
         if not removing_anything:
             print("Nothing to remove.")
         elif not force:

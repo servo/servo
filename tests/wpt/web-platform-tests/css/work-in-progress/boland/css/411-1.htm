@@ -1,0 +1,67 @@
+
+<HTML>
+<HEAD>
+<TITLE>First Test for Section 4.1.1 of CSS1 Spec</TITLE>
+
+
+<STYLE TYPE="text/css">
+p {
+   background: red;
+   margin: 10px 20px 30px 40px;
+   padding: 40px 30px 20px 10px;
+   }
+em {
+   color: white;
+   background: blue;
+   margin: 10px 20px 30px 40px;
+   padding; 40px 30px 20px 10px;
+   }
+
+
+</STYLE>
+</head>
+
+
+
+
+<BODY>
+
+<h1 >Testing Statement #1 Below of Section 4.1.1 of CSS1 Spec</h1>
+
+
+
+
+<ul>
+<li>
+1. Technically, padding and margin properties are not inherited.  But the
+placement of an element is relative to ancestors and siblings, so these
+elements' padding and margin properties have an effect on their children.
+</ul>
+
+
+
+
+
+<h2>
+PASS CRITERIA:
+</h2>
+<p>
+If statement #1 above is true, then:
+This first element in the list should have margins of (clockwise) 10px,
+20px, 30px, and 40px, and padding of (clockwise) 40px, 30px, 20px, and 10px,
+relative to the edge of the canvas
+(also a red background).
+<em>
+This emphasized text (which is blue) should have margins of (clockwise) 10px,
+20px, 30px, and 40px, and padding of (clockwise) 40px, 30px, 20px, and 10px,
+relative to the edge of the canvas.
+</em>
+
+The enclosing "p" should have margins of (clockwise) 10px, 20px, 30px, and
+40px, and padding of (clockwise) 40px, 30px, 20px, and 10px, relative to
+the edge of the canvas.
+There are no borders in this example.
+
+
+</BODY>
+</HTML>

@@ -106,9 +106,11 @@ impl WebGLShader {
         }
 
         if let Some(ref source) = *self.source.borrow() {
+            let mut params = BuiltInResources::default();
+            params.FragmentPrecisionHigh = 1;
             let validator = ShaderValidator::for_webgl(self.gl_type,
                                                        SHADER_OUTPUT_FORMAT,
-                                                       &BuiltInResources::default()).unwrap();
+                                                       &params).unwrap();
             match validator.compile_and_translate(&[source]) {
                 Ok(translated_source) => {
                     debug!("Shader translated: {}", translated_source);

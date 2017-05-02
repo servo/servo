@@ -1,0 +1,39 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: word-spacing</title>
+  <meta name="flags" content="ahem" />
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#word-spacing"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2013-06-08 -->
+  <link rel="match" href="c541-word-sp-000-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+   div { font: 30px/1 Ahem; width: 18em; background: yellow; color: aqua; }
+   .one {word-spacing: 0.3125in;}
+   .two {word-spacing: 0.79375cm;}
+   .three {word-spacing: 7.9375mm;}
+   .four {word-spacing: 22.5pt;}
+   .five {word-spacing: 1.875pc;}
+   .six {word-spacing: 1em;}
+   .seven {word-spacing: 1.25ex;}
+   .eight {word-spacing: 30px;}
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#spacing-props" title="16.4 Letter and word spacing: the 'letter-spacing' and 'word-spacing' properties"/>
+ </head>
+ <body>
+  <p>There should be a stripy pattern of yellow and aqua below (each vertical stripe should be straight and unbroken).</p>
+  <div class="test">x&#xA0;&#xA0;xx&#xA0;&#xA0;xxx&#xA0;&#xA0;xxxx</div>
+  <div class="test">x&#xA0;&#xA0;xx&#xA0;&#xA0;xxx&#xA0;&#xA0;xxxx</div>
+  <div class="test">x&#xA0;&#xA0;xx&#xA0;&#xA0;xxx&#xA0;&#xA0;xxxx</div>
+  <div class="one"> x xx xxx xxxx </div>
+  <div class="two"> x xx xxx xxxx </div>
+  <div class="three"> x xx xxx xxxx </div>
+  <div class="four"> x xx xxx xxxx </div>
+  <div class="five"> x xx xxx xxxx </div>
+  <div class="six"> x xx xxx xxxx </div>
+  <div class="seven"> x xx xxx xxxx </div>
+  <div class="eight"> x xx xxx xxxx </div>
+ </body>
+</html>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>CSS Flexible Box Reference File</title>
+	<link rel="author" href="mailto:Ping Huang" href="mailto:phuangce@gmail.com" />
+	<style type="text/css">
+		#container {
+			position: absolute;
+			top: 100px;
+			left: 10px;
+			width: 200px;
+			height: 300px;
+		}
+
+		.box {
+			width: 100px;
+			height: 100px;
+			background-color: green;
+		}
+
+		#box1 {
+			margin: 50px 0;
+		}
+
+		#box2 {
+			margin: 100px 0;
+		}
+
+	</style>
+</head>
+<body>
+	<p>The test passes if there are two green boxes and no red.</p>
+	<div id="container">
+		<div id="box1" class="box"></div>
+		<div id="box2" class="box"></div>
+	</div>
+</body>
+</html>

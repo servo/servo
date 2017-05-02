@@ -37,7 +37,7 @@ impl DOMMatrixReadOnly {
             reflector_: Reflector::new(),
             matrix: DOMRefCell::new(matrix),
             is2D: Cell::new(is2D),
-         }
+        }
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-dommatrixreadonly

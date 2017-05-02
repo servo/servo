@@ -1,0 +1,54 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Margin collapsing - element with clearance</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#collapsing-margins" />
+        <link rel="match" href="clearance-006-ref.xht" />
+
+        <meta name="flags" content="ahem image" />
+        <meta name="assert" content="An element that has clearance applied to it will not collapse its top margin with its parent's bottom margin." />
+        <style type="text/css">
+            div
+            {
+                font: 20px/1em Ahem;
+                width: 5em;
+            }
+            #div1
+            {
+                background: url('support/margin-collapse-4em-space.png');
+                height: 6em
+            }
+            .class1
+            {
+                background: green;
+                height: 1em;
+            }
+            #div2
+            {
+                margin-bottom: 1em;
+            }
+            #div3
+            {
+                float: left;
+                height: 3em;
+            }
+            #div4
+            {
+                clear: both;
+                margin-top: 1em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red.</p>
+        <div id="div1">
+            <div class="class1"></div>
+            <div id="div2">
+                <div id="div3"></div>
+                <div id="div4"></div>
+            </div>
+            <div class="class1"></div>
+        </div>
+    </body>
+</html>

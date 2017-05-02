@@ -1,0 +1,17 @@
+<csstest def="NEGATED :enabled pseudo-class" module="W3C Selectors" modulename="css3-modsel" number="68" rev="1.1" date="3-march-2004" xmlns:a="http://www.example.org/a" xmlns:b="http://www.example.org/b" xmlns:html="http://www.w3.org/1999/xhtml" xmlns="http://www.example.org/css3tests">
+
+<author>Daniel Glazman</author>
+<cssrules>button { background-color : red }
+input { background-color : red }
+button:not(:enabled) { background-color : lime }
+input:not(:enabled)  { background-color : lime }</cssrules>
+
+<code>
+<p xmlns="http://www.w3.org/1999/xhtml">
+ <button disabled="disabled">A button (disabled) with green background</button>
+ <br/>
+ <input disabled="disabled" type="text" size="36" value="a text area (disabled) with green background"/>
+</p>
+</code>
+
+</csstest>

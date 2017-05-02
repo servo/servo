@@ -1,0 +1,79 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Writing Modes Test: border in 'vertical-rl' writing-mode context</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#vertical-layout" title="7.1 Principles of Layout in Vertical Writing Modes" />
+  <!--
+  Test inspired by
+  http://lxr.mozilla.org/mozilla-central/source/layout/reftests/writing-mode/1096224-1b.html
+  -->
+  <link rel="match" href="margin-vrl-002-ref.xht" />
+
+  <meta content="image" name="flags" />
+  <meta content="This test checks that border-left, border-right, border-top and border-bottom do not change in vertical writing-mode. The border-left property of a box still affects the lefthand border of such box." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  .outer
+    {
+      border: blue solid 3px;
+      width: 200px;
+    }
+
+  hr
+    {
+      background-color: blue;
+      border: transparent none 0px;
+      height: 9px;
+      margin: 0px;
+    }
+
+  .inner
+    {
+      background-color: transparent;
+      height: 50px; /* necessary, otherwise inner blocks must grow as tall as the height of viewport */
+    }
+
+  .foo
+    {
+      border-bottom: blue solid 5px;
+      border-left: blue solid 100px;
+      border-right: blue solid 50px;
+      border-top: blue solid 20px;
+      writing-mode: vertical-rl;
+    }
+
+  .bar
+    {
+      border-bottom: blue solid 20px;
+      border-left: blue solid 50px;
+      border-right: blue solid 100px;
+      border-top: blue solid 5px;
+      writing-mode: vertical-rl;
+    }
+
+  div#reference
+    {
+      margin-top: 1em;
+    }
+  ]]></style>
+ </head>
+
+ <body>
+
+  <p>Test passes if there are 2 <strong>identical</strong> blue rectangles, each with 2 small yellow squares: the layout must be identical.</p>
+
+  <div class="outer">
+    <div class="inner foo"><img src="support/swatch-yellow.png" width="50" height="50" alt="Image download support must be enabled" /></div>
+    <hr />
+    <div class="inner bar"><img src="support/swatch-yellow.png" width="50" height="50" alt="Image download support must be enabled" /></div>
+  </div>
+
+  <div id="reference"><img src="support/blue-yellow-206w-165h.png" width="206" height="165" alt="Image download support must be enabled" /></div>
+
+ </body>
+</html>

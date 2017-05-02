@@ -1,0 +1,83 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Absolutely positioned, non-replaced elements, over-constrained</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-08-27 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#abs-non-replaced-height" />
+		<link rel="match" href="absolute-non-replaced-height-006-ref.xht" />
+
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'bottom' value is ignored and the equation solves for the bottom value, when the values for 'top', 'bottom', 'height', 'margin-top', 'margin-bottom' add up to more than the containing blocks height." />
+        <style type="text/css">
+            #div1
+            {
+                border: 10px solid black;
+                height: 300px;
+                position: relative;
+                width: 300px;
+                overflow: auto;
+            }
+            div div
+            {
+                background: blue;
+                height: 150px;
+                margin-bottom: 50px;
+                margin-top: 50px;
+                position: absolute;
+                top: 50px;
+                width: 50%;
+            }
+            #div2
+            {
+                bottom: 50px;
+            }
+
+		/*
+
+		50px : top
+	+
+		50px : margin-top
+	+
+		0 : border-top-width
+	+
+		0 : padding-top
+	+
+		150px : height
+	+
+		0 : padding-bottom
+	+
+		0 : border-bottom-width
+	+
+		50px : margin-bottom
+	+
+		50px : bottom
+	=============
+		350px  while the height of containing block is only 300px.
+
+		So, here we definitely have an overconstrained situation. In which
+		case the spec clearly states
+		"If the values are over-constrained, ignore the value for 'bottom'
+		and solve for that value."
+		http://www.w3.org/TR/CSS21/visudet.html#abs-non-replaced-height
+
+		So, here, the used value for bottom will be 0px so that the equation
+		gets balanced.
+
+		*/
+
+            #div3
+            {
+                bottom: 0;
+                left: 50%;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is one and only one blue rectangle inside an hollow black square and if such black square does not have a vertical scrollbar.</p>
+        <div id="div1">
+            <div id="div2"></div>
+            <div id="div3"></div>
+        </div>
+    </body>
+</html>

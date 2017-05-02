@@ -1,0 +1,38 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: CSS: Blocks Within Inlines - Backgrounds</title>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact" />
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-07-01 -->
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#anonymous-block-level" />
+  <link rel="match" href="block-in-inline-001-ref.xht" />
+
+  <meta name="assert" content="When an inline box contains a block box,
+    the inline box is broken around the box and its background is drawn
+    only behind the inline's pieces, not behind the block."/>
+  <meta name="flags" content=""/>
+  <style type="text/css">
+   td { border: solid black; color: black; padding: 0; background: green; }
+   .inline { display: inline; background: lime; }
+   .block { display: block; }
+   .a, .c { background: lime; }
+   .b { background: green; }
+  </style>
+ </head>
+ <body>
+  <p>The following two boxes should look identical.</p>
+  <table>
+   <tr>
+    <td>
+     <span class="inline">Line 1<span class="block">Line 2</span>Line 3</span>
+    </td>
+    <td>
+     <div class="a">Line 1</div>
+     <div class="b">Line 2</div>
+     <div class="c">Line 3</div>
+    </td>
+   </tr>
+  </table>
+ </body>
+</html>

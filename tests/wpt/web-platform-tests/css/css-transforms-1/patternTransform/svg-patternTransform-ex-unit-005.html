@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Transforms Test: SVG patternTransform presentation attribute and translation-value negative argument with ex unit in scientific notation on translateX</title>
+    <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#svg-transform">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#two-d-transform-functions">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#svg-number">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#svg-gradient-transform-pattern-transform">
+    <link rel="match" href="reference/svg-patternTransform-ex-unit-ref.html">
+    <meta name="flags" content="svg ahem">
+    <meta name="assert" content="The patternTransform attribute must support functions with the relative length unit 'ex' in negative scientific numbers on translation-value arguments. The pattern in the test should be moved 40 pixels in the X direction resulting in a solid green rect.">
+    <style type="text/css">
+    svg {
+        width: 160px;
+        height: 160px;
+        background:red;
+        line-height: 1;
+        font: 50px Ahem;
+    }
+    </style>
+</head>
+<body>
+    <p>The test passes if there is a green square and no red.</p>
+    <svg>
+        <defs>
+            <pattern id="greenRects" patternUnits="userSpaceOnUse" x="0" y="0" width="80" height="80" patternTransform="translateX(-0.1e1ex)">
+                <rect x="0" y="0" width="40" height="40" fill="green"/>
+                <rect x="0" y="40" width="40" height="40" fill="green"/>
+            </pattern>
+        </defs>
+        <rect fill="green" x="0" y="0" width="40" height="160"/>
+        <rect fill="green" x="80" y="0" width="40" height="160"/>
+        <rect fill="url(#greenRects)" x="0" y="0" width="160" height="160"/>
+    </svg>
+</body>
+</html>

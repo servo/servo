@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8"/>
+<title>CSS3 Text, text transform: German sharp S, uppercase</title>
+<meta name="assert" content="text-transform: uppercase will uppercase the German sharp S as described in Unicode's SpecialCasing.txt .">
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='https://drafts.csswg.org/css-text-3/#text-transform'>
+<link rel="match" href="reference/text-transform-upperlower-032-ref.html">
+<style type='text/css'>
+.test, .ref { font-size: 200%; line-height: 2.5em; }
+.test span, .ref span { margin-right: 1em; white-space: nowrap; }
+/* the CSS above is not part of the test */
+.test { text-transform: uppercase; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if both characters below match.</p>
+<div class="test" lang="de"><span>&#x00DF; SS</span></div>
+</body>
+</html>

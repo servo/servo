@@ -1,0 +1,23 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Text-transform and unicase scripts</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#caps-prop" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Verifies that text-transform does not capitalize a unicase script." />
+        <style type="text/css">
+            #test
+            {
+                text-transform: uppercase;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the two characters below look exactly alike.</p>
+        <div>
+            <span id="test">&#4304;</span>
+            <span>&#4304;</span>
+        </div>
+    </body>
+</html>

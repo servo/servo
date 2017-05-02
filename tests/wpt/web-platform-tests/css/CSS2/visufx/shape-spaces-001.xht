@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Clip with 'rect()' function values separated</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visufx.html#clipping" />
+        <meta name="flags" content="may" />
+        <meta name="assert" content="User agent may also support separation of the 'rect()' function values 'top', 'right', 'bottom', and 'left' with spaces." />
+        <style type="text/css">
+            div
+            {
+                border: 10px solid green;
+                background: red;
+                clip: rect(5px 50px 8px 0);
+                color: yellow;
+                height: 100px;
+                position: absolute;
+                width: 100px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a single horizontal green line below and no red visible on the page.</p>
+        <div>FAIL</div>
+    </body>
+</html>

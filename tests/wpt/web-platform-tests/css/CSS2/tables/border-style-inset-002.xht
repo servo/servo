@@ -1,0 +1,48 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Table-Specific Border Style Behavior (collapsing border model/inset)</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#table-border-styles" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="In the collapsing border model, the 'inset' border style looks the same as the 'ridge' border style." />
+        <style type="text/css">
+            #table1
+            {
+                border-collapse: separate;
+            }
+            #table2
+            {
+                border: 30px inset orange;
+                border-collapse: collapse;
+            }
+            td
+            {
+                height: 5em;
+                width: 5em;
+            }
+            #table1 td
+            {
+                border: 30px ridge orange;
+            }
+            #table2 td
+            {
+                border: 30px inset orange;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the two boxes below have identical borders that look as if they are popping out of the canvas.</p>
+        <table id="table1">
+            <tr>
+                <td>&nbsp;</td>
+            </tr>
+        </table>
+        <div>&nbsp;</div>
+        <table id="table2">
+            <tr>
+                <td>&nbsp;</td>
+            </tr>
+        </table>
+    </body>
+</html>

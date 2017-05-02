@@ -1,0 +1,30 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Word-spacing using picas with a zero value, 0pc</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#propdef-word-spacing" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#spacing-props" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The 'word-spacing' property sets a zero length value in picas." />
+        <style type="text/css">
+            div
+            {
+                font: 24px/1em Ahem;
+            }
+            #test
+            {
+                word-spacing: 0pc;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there are only two boxes below (with no jagged edges).</p>
+        <div>
+            <div>
+                <span>x x</span>
+            </div>
+            <div id="test">x x</div>
+        </div>
+    </body>
+</html>

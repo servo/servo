@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Regions: floats and non-floats content flowed in a shrink-to fit autosized region</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+		<meta name="flags" content="ahem">
+		<meta name="assert" content="Test checks that an autosized region that has display: inline-block
+				is properly sized when the content flowed in it has both floats and non-floats elements.">
+		<link rel="match" href="reference/floats-in-named-flow-023-ref.html">
+		<style>
+		article {
+			font-family: Ahem;
+			font-size: 20px;
+			line-height: 1em;
+			color: blue;
+		}
+		.flow {
+			flow-into: f;
+		}
+		.float {
+			float: right;
+			color: green;
+		}
+
+		.region {
+			border: 10px solid black;
+			display: inline-block;
+			flow-from: f;
+		}
+
+		.region > p {
+			background: red;
+		}
+		</style>
+	</head>
+	<body>
+		<p>
+			Test passes if you see two squares inside a black rectangular border. The left square
+			should be blue, the right square should be green, and the squares should be flush to one
+			another.<br>
+			You should see no red.
+		</p>
+
+		<div class="region">
+			<p>&nbsp;</p>
+		</div>
+
+		<article class="flow">
+			<span class="float">
+				xxxxx<br>
+				xxxxx<br>
+				xxxxx<br>
+				xxxxx<br>
+				xxxxx
+			</span>
+			xxxxx<br>
+			xxxxx<br>
+			xxxxx<br>
+			xxxxx<br>
+			xxxxx
+		</article>
+	</body>
+</html>

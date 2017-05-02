@@ -1,0 +1,86 @@
+
+<HTML>
+<HEAD>
+<TITLE>Third Test for Appendix B of CSS1 Spec</TITLE>
+
+
+<STYLE TYPE="text/css">
+
+<LINK REL=STYLESHEET HREF="test9.css" TYPE="text/css">
+<STYLE TYPE="text/css">
+@import url(test8.css);
+p {font: italic small-caps 700 120%/120% monospace;
+   color: red;
+   background: url(any.gif) yellow 50% repeat fixed;
+   margin: 5px;
+   padding: 5px;
+   border: 5px;
+   width: 10px;
+   height: 10px;
+   float: left;
+   clear: none;}
+</STYLE>
+
+
+</STYLE>
+</head>
+
+
+
+
+<BODY>
+
+<h1 >Testing Statement #3 Below of Appendix B of CSS1 Spec</h1>
+
+
+
+<ul>
+<li>
+3. This grammar is LL(1).  Most UA's should not use it directly, since it does
+not express the parsing conventions, only the CSS syntax.
+</ul>
+
+
+
+
+
+<h2>PASS CRITERIA:
+</h2>
+
+
+<p ID="test8">
+If statement #3 above is passed, this paragraph should have the following CSS
+properties(from local style sheet):
+font of italic small caps 700 120%/120% monospace, color of red, background
+of yellow (gif not available) 50% repeat fixed, margin-border-padding of 5px,
+width and height of 10px, float left, and clear none.
+The rule applied is "p {font: italic small-caps 700 120%/120% monospace;
+color: red; background: url(any.gif) yellow 50% repeat fixed; margin: 5px;
+border: 5px; padding: 5px; width: 10px; height: 10px; float: left; clear:
+none;}".
+The properties from imported style sheet are:
+word spacing of 0.5em, letter spacing of 0.5em, text decoration of 
+underline, vertical align of sub, text transform of capitalize, text align
+of right, text indent of 3em, and line height of 1.2
+The rule applied is "p {word-spacing: 0.5em; letter-spacing: 0.5em;
+text-decoration: underline; vertical-align: sub; text-transform: capitalize;
+text-align: right; text-indent: 3em; line-height: 1.2;}".
+</p>
+<ul ID="test9">
+<li>
+This list item should have the following properties from imported style
+sheet:
+display of list item, white space of normal, list style type of disc, list
+style image of url(any.gif) (not available), and list style position of
+inside.
+The rule applied is "ul {display: list-item; white-space: normal; list-style-
+type: disc; list-style-image: url(any.gif); list-style-position: inside;}".
+</ul>
+
+
+All CSS proeprties should be included on this page.
+Parsing conventions should be correctly expressed on this page.
+Your browser should render this page similarly to this<a href="ab3.gif">
+reference image</a> or to this<a href="bb3.gif">reference image</a>.
+</BODY>
+</HTML>

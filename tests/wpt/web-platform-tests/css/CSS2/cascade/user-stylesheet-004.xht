@@ -1,0 +1,17 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Rules with normal declarations in an user defined stylesheet can be overriden by normal declarations from author in an inline style attribute</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html" />
+        <meta name="flags" content="userstyle" />
+        <meta name="assert" content="A normal - not !important - declaration in an inline style from author have more weight than a CSS rule (with normal - not !important -) declarations in an user style sheet." />
+        <meta http-equiv="Content-Style-Type" content="text/css" />
+        <style type="text/css"></style>
+    </head>
+    <body>
+        <p id="user-stylesheet">PREREQUISITE: The <a href="support/user-stylesheet.css">"user-stylesheet.css"</a> file is enabled as the user agent's user style sheet.</p>
+        <p>Test passes if the "Filler Text" below is green.</p>
+        <p id="user-stylesheet-004" style="color: green;">Filler Text</p>
+    </body>
+</html>

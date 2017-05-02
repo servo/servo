@@ -1,0 +1,18 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+<html>
+ <head>
+  <title>Compact: Joining the line box model without changing the inheritance chain</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/compact/001.html"/>
+    <style type="text/css">
+   .compact { display: compact; }
+   .block { display: block; color: red; background: lime; line-height: 0; margin-left: 10em; }
+   span { color: black; }
+  </style>
+ </head>
+ <body>
+  <p>There should be no red below.</p>
+  <div class="compact"> Test: </div>
+  <div class="block"> <span>This sentence should have a green background.</span> </div>
+ </body>
+</html>

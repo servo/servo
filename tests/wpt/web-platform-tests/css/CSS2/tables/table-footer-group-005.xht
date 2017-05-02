@@ -1,0 +1,71 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Multiple table footer groups</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#table-display" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="A table containing multiple table-footer-group elements only uses the first one as its footer and treats the others as table row groups." />
+        <style type="text/css">
+            .table
+            {
+                display: table;
+            }
+            .tfoot
+            {
+                display: table-footer-group;
+            }
+            .tbody
+            {
+                display: table-row-group;
+            }
+            .tr
+            {
+                display: table-row;
+            }
+            .td
+            {
+                border: 1px solid black;
+                color: blue;
+                display: table-cell;
+                font-size: 3em;
+                width: 1em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if from top-to-bottom, the boxes are labeled one through six.</p>
+        <div class="table">
+            <div class="tbody">
+                <div class="tr">
+                     <div class="td">1</div>
+                </div>
+            </div>
+            <div class="tfoot">
+                <div class="tr">
+                     <div class="td">6</div>
+                </div>
+            </div>
+            <div class="tfoot">
+                <div class="tr">
+                     <div class="td">2</div>
+                </div>
+            </div>
+            <div class="tbody">
+                <div class="tr">
+                     <div class="td">3</div>
+                </div>
+            </div>
+            <div class="tfoot">
+                <div class="tr">
+                     <div class="td">4</div>
+                </div>
+            </div>
+            <div class="tbody">
+                <div class="tr">
+                     <div class="td">5</div>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

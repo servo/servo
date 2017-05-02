@@ -1,0 +1,216 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Parser recovery after invalid '['</title>
+  <link rel="author" title="Boris Zbarsky" href="mailto:bzbarsky@mit.edu"/>
+  <link rel="reviewer" title="Ms2ger" href="mailto:Ms2ger@gmail.com"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#parsing-errors"/>
+  <link rel="help" href="https://drafts.csswg.org/css-syntax-3/#css-stylesheets"/>
+  <link rel="match" href="../reference/ref-this-text-should-be-green.xht"/>
+  <meta name="flags" content="invalid" />
+  <meta name="assert" content="When an invalid '[' is encountered where a
+                               selector is expected, the CSS parser skips to
+                               the matching ']' and then ignores the following
+                               ruleset."/>
+  <style type="text/css"><![CDATA[
+      p { color: red; }
+      [
+      p { color: red !important; }
+      p { color: red !important; }
+      ] p { color: red !important; }
+      p { color: green; }
+  ]]></style>
+ </head>
+ <body>
+   <p>This text should be green.</p>
+ </body>
+</html>
+<!--
+<https://drafts.csswg.org/css-syntax/#tokenization>:
+line 1
+  <whitespace-token>
+  <ident-token> p
+  <whitespace-token>
+  <{-token>
+  <whitespace-token>
+  <ident-token> color
+  <colon-token>
+  <whitespace-token>
+  <ident-token> red
+  <semicolon-token>
+  <whitespace-token>
+  <}-token>
+line 2
+  <whitespace-token>
+  <[-token>
+line 3
+  <whitespace-token>
+  <ident-token> p
+  <whitespace-token>
+  <{-token>
+  <whitespace-token>
+  <ident-token> color
+  <colon-token>
+  <whitespace-token>
+  <ident-token> red
+  <whitespace-token>
+  <delim-token> !
+  <ident-token> important
+  <semicolon-token>
+  <whitespace-token>
+  <}-token>
+line 4
+  <whitespace-token>
+  <ident-token> p
+  <whitespace-token>
+  <{-token>
+  <whitespace-token>
+  <ident-token> color
+  <colon-token>
+  <whitespace-token>
+  <ident-token> red
+  <whitespace-token>
+  <delim-token> !
+  <ident-token> important
+  <semicolon-token>
+  <whitespace-token>
+  <}-token>
+line 5
+  <whitespace-token>
+  <]-token>
+  <ident-token> p
+  <whitespace-token>
+  <{-token>
+  <whitespace-token>
+  <ident-token> color
+  <colon-token>
+  <whitespace-token>
+  <ident-token> red
+  <whitespace-token>
+  <delim-token> !
+  <ident-token> important
+  <semicolon-token>
+  <whitespace-token>
+  <}-token>
+line 6
+  <whitespace-token>
+  <ident-token> p
+  <whitespace-token>
+  <{-token>
+  <whitespace-token>
+  <ident-token> color
+  <colon-token>
+  <whitespace-token>
+  <ident-token> green
+  <semicolon-token>
+  <whitespace-token>
+  <}-token>
+line 7
+  <whitespace-token>
+
+<https://drafts.csswg.org/css-syntax/#consume-a-list-of-rules>:
+[
+  qualified rule {
+    prelude: [
+      <ident-token> p
+      <whitespace-token>
+    ]
+    block:
+      simple block {
+        associated token: <{-token>
+        value: [
+          <whitespace-token>
+          <ident-token> color
+          <colon-token>
+          <whitespace-token>
+          <ident-token> red
+          <semicolon-token>
+          <whitespace-token>
+        ]
+      }
+  }
+  qualified rule {
+    prelude: [
+      simple block {
+        associated token: <[-token>
+        value: [
+          <whitespace-token>
+          <ident-token> p
+          <whitespace-token>
+          simple block {
+            associated token: <{-token>
+            value: [
+              <whitespace-token>
+              <ident-token> color
+              <colon-token>
+              <whitespace-token>
+              <ident-token> red
+              <whitespace-token>
+              <delim-token> !
+              <ident-token> important
+              <semicolon-token>
+              <whitespace-token>
+            ]
+          }
+          <whitespace-token>
+          <ident-token> p
+          <whitespace-token>
+          simple block {
+            associated token: <{-token>
+            value: [
+              <whitespace-token>
+              <ident-token> color
+              <colon-token>
+              <whitespace-token>
+              <ident-token> red
+              <whitespace-token>
+              <delim-token> !
+              <ident-token> important
+              <semicolon-token>
+              <whitespace-token>
+            ]
+          }
+          <whitespace-token>
+        ]
+      }
+      <ident-token> p
+      <whitespace-token>
+    ]
+    block:
+      simple block {
+        associated token: <{-token>
+        value: [
+          <whitespace-token>
+          <ident-token> color
+          <colon-token>
+          <whitespace-token>
+          <ident-token> red
+          <whitespace-token>
+          <delim-token> !
+          <ident-token> important
+          <semicolon-token>
+          <whitespace-token>
+        ]
+      }
+  }
+  qualified rule {
+    prelude: [
+      <ident-token> p
+      <whitespace-token>
+    ]
+    block:
+      simple block {
+        associated token: <{-token>
+        value: [
+          <whitespace-token>
+          <ident-token> color
+          <colon-token>
+          <whitespace-token>
+          <ident-token> green
+          <semicolon-token>
+          <whitespace-token>
+        ]
+      }
+  }
+]
+-->

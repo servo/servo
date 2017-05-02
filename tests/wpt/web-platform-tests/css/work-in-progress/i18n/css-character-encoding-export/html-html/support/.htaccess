@@ -1,0 +1,69 @@
+AddType 'text/html' html
+AddType 'text/css' css
+
+<Files ~ "http1\.css">
+ForceType 'text/css; charset=iso-8859-1'
+</Files>
+<Files ~ "http15\.css">
+ForceType 'text/css; charset=iso-8859-15'
+</Files>
+<Files ~ "http8\.css">
+ForceType 'text/css; charset=utf-8'
+</Files>
+<Files ~ "charset8\.css">
+ForceType 'text/css'
+</Files>
+<Files ~ "charset1\.css">
+ForceType 'text/css'
+</Files>
+<Files ~ "charset15\.css">
+ForceType 'text/css'
+</Files>
+<Files ~ "none\.css">
+ForceType 'text/css'
+</Files>
+<Files ~ "utf8-none\.html">
+ForceType 'text/html; charset=utf-8'
+</Files>
+<Files ~ "iso1-none\.html">
+ForceType 'text/html; charset=iso-8859-1'
+</Files>
+<Files ~ "iso15-none\.html">
+ForceType 'text/html; charset=iso-8859-15'
+</Files>
+<Files ~ "none-none\.html">
+ForceType 'text/html'
+</Files>
+<Files ~ "bom\.css">
+ForceType 'text/css'
+</Files>
+<Files ~ "iso1-bom\.html">
+ForceType 'text/html; charset=iso-8859-1'
+</Files>
+<Files ~ "iso15-bom\.html">
+ForceType 'text/html; charset=iso-8859-15'
+</Files>
+<Files ~ "iso1-bom-charset1\.html">
+ForceType 'text/html; charset=iso-8859-1'
+</Files>
+<Files ~ "bom-charset1\.css">
+ForceType 'text/css'
+</Files>
+<Files ~ "iso15-bom-charset15\.html">
+ForceType 'text/html; charset=iso-8859-15'
+</Files>
+<Files ~ "bom-charset15\.css">
+ForceType 'text/css'
+</Files>
+<Files ~ "illegalcharset\.css">
+ForceType 'text/css'
+</Files>
+<Files ~ "http8-charset1\.css">
+ForceType 'text/css; charset=utf-8'
+</Files>
+<Files ~ "http1-charset8\.css">
+ForceType 'text/css; charset=iso-8859-1'
+</Files>
+<Files ~ "http1-bom\.css">
+ForceType 'text/css; charset=iso-8859-1'
+</Files>

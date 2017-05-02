@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Focus pseudo-element case sensitivity</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#first-line-pseudo" />
+        <meta name="flags" content="interact" />
+        <meta name="assert" content="Focus is case-insensitive." />
+        <style type="text/css">
+            a:fOcUs
+            {
+                color: green;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the "Filler Text" below changes to green when the text has focus.</p>
+        <div>
+            <a href="#">Filler Text</a>
+        </div>
+    </body>
+</html>

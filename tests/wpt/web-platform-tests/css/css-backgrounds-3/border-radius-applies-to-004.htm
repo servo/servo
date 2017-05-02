@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: 'Border-radius' applied to element with 'display' set to run-in.</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css3-background/#border-radius" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="When 'border-radius' is applied to an element with 'displaye: run-in' it produces rounded corners." />
+        <style type="text/css">
+            div
+            {
+                border: solid green;
+                border-radius: 10px;
+                display: run-in;
+                height: 1in;
+                width: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a box with rounded corners below.</p>
+        <div></div>
+    </body>
+</html>

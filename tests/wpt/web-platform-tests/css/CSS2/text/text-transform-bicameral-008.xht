@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: text-transform - Greek, lowercase</title>
+<link rel='author' title='Richard Ishida' href='http://rishida.net' />
+<link rel='reviewer' title='Elika J. Etemad' href='http://fantasai.inkedblade.net/contact' />
+<link rel='help' href='http://www.w3.org/TR/CSS21/text.html#caps-prop' />
+<link rel='alternate' href='http://www.w3.org/International/tests/tests-html-css/tests-text-transform/generate?test=8' />
+<meta name='flags' content='' />
+<meta name="assert" content="The UA will lowercase Unicode Greek when text-transform is set to lowercase." />
+<style type='text/css'>
+.test span { text-transform: lowercase; }
+
+/* the CSS below is not part of the test */
+.test { font-size: 130%; line-height: 2.5; color: blue; }
+.test div { white-space: nowrap; text-align: center;
+             width: 5em; display: inline-block; }</style>
+<script type='text/javascript'>
+//<![CDATA[
+function setFontFamily () {var fontName = document.getElementById( 'fontName' ).value;	var divs = document.getElementsByTagName('div');	var i = 0; var div;	while (i < divs.length) {	 	div = divs.item(i);		if (div.className == 'test') { 			div.style.fontFamily = fontName; 			}		i++;		}	}
+//]]>
+</script>
+</head>
+<body>
+<p class="instructions">Test passes if the left-hand character in each pair matches the right-hand one.</p>
+
+
+<div class="test">
+<div><span>Ά</span> ά</div>
+<div><span>Έ</span> έ</div>
+<div><span>Ή</span> ή</div>
+<div><span>Ί</span> ί</div>
+<div><span>Α</span> α</div>
+<div><span>Β</span> β</div>
+<div><span>Γ</span> γ</div>
+<div><span>Δ</span> δ</div>
+<div><span>Ε</span> ε</div>
+<div><span>Ζ</span> ζ</div>
+<div><span>Η</span> η</div>
+<div><span>Θ</span> θ</div>
+<div><span>Ι</span> ι</div>
+<div><span>Κ</span> κ</div>
+<div><span>Λ</span> λ</div>
+<div><span>Μ</span> μ</div>
+<div><span>Ν</span> ν</div>
+<div><span>Ξ</span> ξ</div>
+<div><span>Ο</span> ο</div>
+<div><span>Π</span> π</div>
+<div><span>Ρ</span> ρ</div>
+<div><span>ς</span> ς</div>
+<div><span>Σ</span> σ</div>
+<div><span>Τ</span> τ</div>
+<div><span>Υ</span> υ</div>
+<div><span>Φ</span> φ</div>
+<div><span>Χ</span> χ</div>
+<div><span>Ψ</span> ψ</div>
+<div><span>Ω</span> ω</div>
+<div><span>Ϊ</span> ϊ</div>
+<div><span>Ϋ</span> ϋ</div>
+<div><span>Ό</span> ό</div>
+<div><span>Ύ</span> ύ</div>
+<div><span>Ώ</span> ώ</div>
+<div><span>ϐ</span> ϐ</div>
+<div><span>ϑ</span> ϑ</div>
+<div><span>ϕ</span> ϕ</div>
+<div><span>ϖ</span> ϖ</div>
+<div><span>Ϙ</span> ϙ</div>
+<div><span>Ϛ</span> ϛ</div>
+<div><span>Ϝ</span> ϝ</div>
+<div><span>Ϟ</span> ϟ</div>
+<div><span>Ϡ</span> ϡ</div>
+<div><span>ϰ</span> ϰ</div>
+<div><span>ϱ</span> ϱ</div>
+<div><span>Ϲ</span> ϲ</div>
+<div><span>ϵ</span> ϵ</div>
+<div><span>Ϸ</span> ϸ</div>
+<div><span>Ϻ</span> ϻ</div>
+<div><span>Ἀ</span> ἀ</div>
+<div><span>Ἁ</span> ἁ</div>
+<div><span>Ἂ</span> ἂ</div>
+<div><span>Ἃ</span> ἃ</div>
+<div><span>Ἄ</span> ἄ</div>
+<div><span>Ἅ</span> ἅ</div>
+<div><span>Ἆ</span> ἆ</div>
+<div><span>Ἇ</span> ἇ</div>
+<div><span>Ἐ</span> ἐ</div>
+<div><span>Ἑ</span> ἑ</div>
+<div><span>Ἒ</span> ἒ</div>
+<div><span>Ἓ</span> ἓ</div>
+<div><span>Ἔ</span> ἔ</div>
+<div><span>Ἕ</span> ἕ</div>
+<div><span>Ἠ</span> ἠ</div>
+<div><span>Ἡ</span> ἡ</div>
+<div><span>Ἢ</span> ἢ</div>
+<div><span>Ἣ</span> ἣ</div>
+<div><span>Ἤ</span> ἤ</div>
+<div><span>Ἥ</span> ἥ</div>
+<div><span>Ἦ</span> ἦ</div>
+<div><span>Ἧ</span> ἧ</div>
+<div><span>Ἰ</span> ἰ</div>
+<div><span>Ἱ</span> ἱ</div>
+<div><span>Ἲ</span> ἲ</div>
+<div><span>Ἳ</span> ἳ</div>
+<div><span>Ἴ</span> ἴ</div>
+<div><span>Ἵ</span> ἵ</div>
+<div><span>Ἶ</span> ἶ</div>
+<div><span>Ἷ</span> ἷ</div>
+<div><span>Ὀ</span> ὀ</div>
+<div><span>Ὁ</span> ὁ</div>
+<div><span>Ὂ</span> ὂ</div>
+<div><span>Ὃ</span> ὃ</div>
+<div><span>Ὄ</span> ὄ</div>
+<div><span>Ὅ</span> ὅ</div>
+<div><span>Ὑ</span> ὑ</div>
+<div><span>Ὓ</span> ὓ</div>
+<div><span>Ὕ</span> ὕ</div>
+<div><span>Ὗ</span> ὗ</div>
+<div><span>Ὠ</span> ὠ</div>
+<div><span>Ὡ</span> ὡ</div>
+<div><span>Ὢ</span> ὢ</div>
+<div><span>Ὣ</span> ὣ</div>
+<div><span>Ὤ</span> ὤ</div>
+<div><span>Ὥ</span> ὥ</div>
+<div><span>Ὦ</span> ὦ</div>
+<div><span>Ὧ</span> ὧ</div>
+<div><span>Ὰ</span> ὰ</div>
+<div><span>Ά</span> ά</div>
+<div><span>Ὲ</span> ὲ</div>
+<div><span>Έ</span> έ</div>
+<div><span>Ὴ</span> ὴ</div>
+<div><span>Ή</span> ή</div>
+<div><span>Ὶ</span> ὶ</div>
+<div><span>Ί</span> ί</div>
+<div><span>Ὸ</span> ὸ</div>
+<div><span>Ό</span> ό</div>
+<div><span>Ὺ</span> ὺ</div>
+<div><span>Ύ</span> ύ</div>
+<div><span>Ὼ</span> ὼ</div>
+<div><span>Ώ</span> ώ</div>
+<div><span>ᾈ</span> ᾀ</div>
+<div><span>ᾉ</span> ᾁ</div>
+<div><span>ᾊ</span> ᾂ</div>
+<div><span>ᾋ</span> ᾃ</div>
+<div><span>ᾌ</span> ᾄ</div>
+<div><span>ᾍ</span> ᾅ</div>
+<div><span>ᾎ</span> ᾆ</div>
+<div><span>ᾏ</span> ᾇ</div>
+<div><span>ᾘ</span> ᾐ</div>
+<div><span>ᾙ</span> ᾑ</div>
+<div><span>ᾚ</span> ᾒ</div>
+<div><span>ᾛ</span> ᾓ</div>
+<div><span>ᾜ</span> ᾔ</div>
+<div><span>ᾝ</span> ᾕ</div>
+<div><span>ᾞ</span> ᾖ</div>
+<div><span>ᾟ</span> ᾗ</div>
+<div><span>ᾨ</span> ᾠ</div>
+<div><span>ᾩ</span> ᾡ</div>
+<div><span>ᾪ</span> ᾢ</div>
+<div><span>ᾫ</span> ᾣ</div>
+<div><span>ᾬ</span> ᾤ</div>
+<div><span>ᾭ</span> ᾥ</div>
+<div><span>ᾮ</span> ᾦ</div>
+<div><span>ᾯ</span> ᾧ</div>
+<div><span>Ᾰ</span> ᾰ</div>
+<div><span>Ᾱ</span> ᾱ</div>
+<div><span>ᾼ</span> ᾳ</div>
+<div><span>Ι</span> ι</div>
+<div><span>ῌ</span> ῃ</div>
+<div><span>Ῐ</span> ῐ</div>
+<div><span>Ῑ</span> ῑ</div>
+<div><span>Ῠ</span> ῠ</div>
+<div><span>Ῡ</span> ῡ</div>
+<div><span>Ῥ</span> ῥ</div>
+<div><span>ῼ</span> ῳ</div>
+</div>
+
+
+<p id='fontChange' style='display: none;' class='notes'>If you are unable to see font glyphs for certain characters using the browsers default font you can apply a specific font by typing its name in the following box: <input class='css' name='fontName' id='fontName' value='' type='text' /> <button class='notes' type='button' onclick='setFontFamily()'>Apply</button></p><script type='text/javascript'>if (document.getElementById) {document.getElementById('fontChange').style.display = 'block'}</script></body>
+</html>

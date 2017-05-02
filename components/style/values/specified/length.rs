@@ -9,14 +9,15 @@
 use app_units::Au;
 use cssparser::{Parser, Token};
 use euclid::size::Size2D;
-use font_metrics::FontMetrics;
+use font_metrics::FontMetricsQueryResult;
 use parser::{Parse, ParserContext};
 use std::{cmp, fmt, mem};
 use std::ascii::AsciiExt;
 use std::ops::Mul;
 use style_traits::ToCss;
-use style_traits::values::specified::AllowedNumericType;
-use super::{Angle, Number, SimplifiedValueNode, SimplifiedSumNode, Time};
+use style_traits::values::specified::AllowedLengthType;
+use stylesheets::CssRuleType;
+use super::{AllowQuirks, Angle, Number, SimplifiedValueNode, SimplifiedSumNode, Time, ToComputedValue};
 use values::{Auto, CSSFloat, Either, FONT_MEDIUM_PX, HasViewportPercentage, None_, Normal};
 use values::ExtremumLength;
 use values::computed::{ComputedValueAsSpecified, Context};
@@ -25,13 +26,20 @@ pub use super::image::{AngleOrCorner, ColorStop, EndingShape as GradientEndingSh
 pub use super::image::{GradientKind, HorizontalDirection, Image, LengthOrKeyword, LengthOrPercentageOrKeyword};
 pub use super::image::{SizeKeyword, VerticalDirection};
 
-const AU_PER_PX: CSSFloat = 60.;
-const AU_PER_IN: CSSFloat = AU_PER_PX * 96.;
-const AU_PER_CM: CSSFloat = AU_PER_IN / 2.54;
-const AU_PER_MM: CSSFloat = AU_PER_IN / 25.4;
-const AU_PER_Q: CSSFloat = AU_PER_MM / 4.;
-const AU_PER_PT: CSSFloat = AU_PER_IN / 72.;
-const AU_PER_PC: CSSFloat = AU_PER_PT * 12.;
+/// Number of app units per pixel
+pub const AU_PER_PX: CSSFloat = 60.;
+/// Number of app units per inch
+pub const AU_PER_IN: CSSFloat = AU_PER_PX * 96.;
+/// Number of app units per centimeter
+pub const AU_PER_CM: CSSFloat = AU_PER_IN / 2.54;
+/// Number of app units per millimeter
+pub const AU_PER_MM: CSSFloat = AU_PER_IN / 25.4;
+/// Number of app units per quarter
+pub const AU_PER_Q: CSSFloat = AU_PER_MM / 4.;
+/// Number of app units per point
+pub const AU_PER_PT: CSSFloat = AU_PER_IN / 72.;
+/// Number of app units per pica
+pub const AU_PER_PC: CSSFloat = AU_PER_PT * 12.;
 
 /// Same as Gecko's AppUnitsToIntCSSPixels
 ///
@@ -68,60 +76,59 @@ impl ToCss for FontRelativeLength {
     }
 }
 
+/// A source to resolve font-relative units against
+pub enum FontBaseSize {
+    /// Use the font-size of the current element
+    CurrentStyle,
+    /// Use the inherited font-size
+    InheritedStyle,
+    /// Use a custom base size
+    Custom(Au),
+}
+
+impl FontBaseSize {
+    /// Calculate the actual size for a given context
+    pub fn resolve(&self, context: &Context) -> Au {
+        match *self {
+            FontBaseSize::Custom(size) => size,
+            FontBaseSize::CurrentStyle => context.style().get_font().clone_font_size(),
+            FontBaseSize::InheritedStyle => context.inherited_style().get_font().clone_font_size(),
+        }
+    }
+}
+
 impl FontRelativeLength {
-    /// Gets the first available font metrics from the current context's
-    /// font-family list.
-    pub fn find_first_available_font_metrics(context: &Context) -> Option<FontMetrics> {
-        use font_metrics::FontMetricsQueryResult::*;
-        for family in context.style().get_font().font_family_iter() {
-            if let Available(metrics) = context.font_metrics_provider.query(family.atom()) {
-                return metrics;
-            }
+    /// Computes the font-relative length. We use the base_size
+    /// flag to pass a different size for computing font-size and unconstrained font-size
+    pub fn to_computed_value(&self, context: &Context, base_size: FontBaseSize) -> Au {
+        fn query_font_metrics(context: &Context, reference_font_size: Au) -> FontMetricsQueryResult {
+            context.font_metrics_provider.query(context.style().get_font(),
+                                                reference_font_size,
+                                                context.style().writing_mode,
+                                                context.in_media_query,
+                                                context.device)
         }
 
-        None
-    }
-
-    /// Computes the font-relative length. We use the use_inherited flag to
-    /// special-case the computation of font-size.
-    pub fn to_computed_value(&self, context: &Context, use_inherited: bool) -> Au {
-        let reference_font_size = if use_inherited {
-            context.inherited_style().get_font().clone_font_size()
-        } else {
-            context.style().get_font().clone_font_size()
-        };
+        let reference_font_size = base_size.resolve(context);
 
         let root_font_size = context.style().root_font_size;
         match *self {
             FontRelativeLength::Em(length) => reference_font_size.scale_by(length),
             FontRelativeLength::Ex(length) => {
-                match Self::find_first_available_font_metrics(context) {
-                    Some(metrics) => metrics.x_height,
+                match query_font_metrics(context, reference_font_size) {
+                    FontMetricsQueryResult::Available(metrics) => metrics.x_height.scale_by(length),
                     // https://drafts.csswg.org/css-values/#ex
                     //
                     //     In the cases where it is impossible or impractical to
                     //     determine the x-height, a value of 0.5em must be
                     //     assumed.
                     //
-                    None => reference_font_size.scale_by(0.5 * length),
+                    FontMetricsQueryResult::NotAvailable => reference_font_size.scale_by(0.5 * length),
                 }
             },
             FontRelativeLength::Ch(length) => {
-                let wm = context.style().writing_mode;
-
-                // TODO(emilio, #14144): Compute this properly once we support
-                // all the relevant writing-mode related properties, this should
-                // be equivalent to "is the text in the block direction?".
-                let vertical = wm.is_vertical();
-
-                match Self::find_first_available_font_metrics(context) {
-                    Some(metrics) => {
-                        if vertical {
-                            metrics.zero_advance_measure.height
-                        } else {
-                            metrics.zero_advance_measure.width
-                        }
-                    }
+                match query_font_metrics(context, reference_font_size) {
+                    FontMetricsQueryResult::Available(metrics) => metrics.zero_advance_measure.scale_by(length),
                     // https://drafts.csswg.org/css-values/#ch
                     //
                     //     In the cases where it is impossible or impractical to
@@ -132,8 +139,8 @@ impl FontRelativeLength {
                     //     writing-mode is vertical-rl or vertical-lr and
                     //     text-orientation is upright).
                     //
-                    None => {
-                        if vertical {
+                    FontMetricsQueryResult::NotAvailable => {
+                        if context.style().writing_mode.is_vertical() {
                             reference_font_size.scale_by(length)
                         } else {
                             reference_font_size.scale_by(0.5 * length)
@@ -220,14 +227,167 @@ impl CharacterWidth {
     }
 }
 
+/// Same as Gecko
+const ABSOLUTE_LENGTH_MAX: i32 = (1 << 30);
+const ABSOLUTE_LENGTH_MIN: i32 = - (1 << 30);
+
+/// Helper to convert a floating point length to application units
+fn to_au_round(length: CSSFloat, au_per_unit: CSSFloat) -> Au {
+    Au(
+        (length * au_per_unit)
+        .min(ABSOLUTE_LENGTH_MAX as f32)
+        .max(ABSOLUTE_LENGTH_MIN as f32)
+        .round() as i32
+    )
+}
+
+/// Represents an absolute length with its unit
+#[derive(Clone, PartialEq, Copy, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum AbsoluteLength {
+    /// An absolute length in pixels (px)
+    Px(CSSFloat),
+    /// An absolute length in inches (in)
+    In(CSSFloat),
+    /// An absolute length in centimeters (cm)
+    Cm(CSSFloat),
+    /// An absolute length in millimeters (mm)
+    Mm(CSSFloat),
+    /// An absolute length in quarter-millimeters (q)
+    Q(CSSFloat),
+    /// An absolute length in points (pt)
+    Pt(CSSFloat),
+    /// An absolute length in pica (pc)
+    Pc(CSSFloat),
+}
+
+impl AbsoluteLength {
+    fn is_zero(&self) -> bool {
+        match *self {
+            AbsoluteLength::Px(0.)
+            | AbsoluteLength::In(0.)
+            | AbsoluteLength::Cm(0.)
+            | AbsoluteLength::Mm(0.)
+            | AbsoluteLength::Q(0.)
+            | AbsoluteLength::Pt(0.)
+            | AbsoluteLength::Pc(0.) => true,
+            _ => false,
+        }
+    }
+}
+
+impl ToComputedValue for AbsoluteLength {
+    type ComputedValue = Au;
+
+    fn to_computed_value(&self, _: &Context) -> Au {
+        Au::from(*self)
+    }
+
+    fn from_computed_value(computed: &Au) -> AbsoluteLength {
+        AbsoluteLength::Px(computed.to_f32_px())
+    }
+}
+
+impl From<AbsoluteLength> for Au {
+    fn from(length: AbsoluteLength) -> Au {
+        match length {
+            AbsoluteLength::Px(value) => to_au_round(value, AU_PER_PX),
+            AbsoluteLength::In(value) => to_au_round(value, AU_PER_IN),
+            AbsoluteLength::Cm(value) => to_au_round(value, AU_PER_CM),
+            AbsoluteLength::Mm(value) => to_au_round(value, AU_PER_MM),
+            AbsoluteLength::Q(value) => to_au_round(value, AU_PER_Q),
+            AbsoluteLength::Pt(value) => to_au_round(value, AU_PER_PT),
+            AbsoluteLength::Pc(value) => to_au_round(value, AU_PER_PC),
+        }
+    }
+}
+
+impl ToCss for AbsoluteLength {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            AbsoluteLength::Px(length) => write!(dest, "{}px", length),
+            AbsoluteLength::In(length) => write!(dest, "{}in", length),
+            AbsoluteLength::Cm(length) => write!(dest, "{}cm", length),
+            AbsoluteLength::Mm(length) => write!(dest, "{}mm", length),
+            AbsoluteLength::Q(length) => write!(dest, "{}q", length),
+            AbsoluteLength::Pt(length) => write!(dest, "{}pt", length),
+            AbsoluteLength::Pc(length) => write!(dest, "{}pc", length),
+        }
+    }
+}
+
+impl Mul<CSSFloat> for AbsoluteLength {
+    type Output = AbsoluteLength;
+
+    #[inline]
+    fn mul(self, scalar: CSSFloat) -> AbsoluteLength {
+        match self {
+            AbsoluteLength::Px(v) => AbsoluteLength::Px(v * scalar),
+            AbsoluteLength::In(v) => AbsoluteLength::In(v * scalar),
+            AbsoluteLength::Cm(v) => AbsoluteLength::Cm(v * scalar),
+            AbsoluteLength::Mm(v) => AbsoluteLength::Mm(v * scalar),
+            AbsoluteLength::Q(v) => AbsoluteLength::Q(v * scalar),
+            AbsoluteLength::Pt(v) => AbsoluteLength::Pt(v * scalar),
+            AbsoluteLength::Pc(v) => AbsoluteLength::Pc(v * scalar),
+        }
+    }
+}
+
+/// Represents a physical length (mozmm) based on DPI
+#[derive(Clone, PartialEq, Copy, Debug)]
+#[cfg(feature = "gecko")]
+pub struct PhysicalLength(pub CSSFloat);
+
+#[cfg(feature = "gecko")]
+impl PhysicalLength {
+    fn is_zero(&self) -> bool {
+        self.0 == 0.
+    }
+
+    /// Computes the given character width.
+    pub fn to_computed_value(&self, context: &Context) -> Au {
+        use gecko_bindings::bindings;
+        // Same as Gecko
+        const MM_PER_INCH: f32 = 25.4;
+
+        let physical_inch = unsafe {
+            let pres_context = &*context.device.pres_context;
+            bindings::Gecko_GetAppUnitsPerPhysicalInch(&pres_context)
+        };
+
+        let inch = self.0 / MM_PER_INCH;
+
+        to_au_round(inch, physical_inch as f32)
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl ToCss for PhysicalLength {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        write!(dest, "{}mozmm", self.0)
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl Mul<CSSFloat> for PhysicalLength {
+    type Output = PhysicalLength;
+
+    #[inline]
+    fn mul(self, scalar: CSSFloat) -> PhysicalLength {
+        PhysicalLength(self.0 * scalar)
+    }
+}
+
 /// A `<length>` without taking `calc` expressions into account
 ///
 /// https://drafts.csswg.org/css-values/#lengths
 #[derive(Clone, PartialEq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum NoCalcLength {
-    /// An absolute length: https://drafts.csswg.org/css-values/#absolute-length
-    Absolute(Au),  // application units
+    /// An absolute length
+    ///
+    /// https://drafts.csswg.org/css-values/#absolute-length
+    Absolute(AbsoluteLength),
 
     /// A font-relative length:
     ///
@@ -244,6 +404,10 @@ pub enum NoCalcLength {
     /// This cannot be specified by the user directly and is only generated by
     /// `Stylist::synthesize_rules_for_legacy_attributes()`.
     ServoCharacterWidth(CharacterWidth),
+
+    /// A physical length (mozmm) based on DPI
+    #[cfg(feature = "gecko")]
+    Physical(PhysicalLength),
 }
 
 impl HasViewportPercentage for NoCalcLength {
@@ -258,11 +422,13 @@ impl HasViewportPercentage for NoCalcLength {
 impl ToCss for NoCalcLength {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
-            NoCalcLength::Absolute(length) => write!(dest, "{}px", length.to_f32_px()),
+            NoCalcLength::Absolute(length) => length.to_css(dest),
             NoCalcLength::FontRelative(length) => length.to_css(dest),
             NoCalcLength::ViewportPercentage(length) => length.to_css(dest),
             /* This should only be reached from style dumping code */
             NoCalcLength::ServoCharacterWidth(CharacterWidth(i)) => write!(dest, "CharWidth({})", i),
+            #[cfg(feature = "gecko")]
+            NoCalcLength::Physical(length) => length.to_css(dest),
         }
     }
 }
@@ -273,35 +439,60 @@ impl Mul<CSSFloat> for NoCalcLength {
     #[inline]
     fn mul(self, scalar: CSSFloat) -> NoCalcLength {
         match self {
-            NoCalcLength::Absolute(Au(v)) => NoCalcLength::Absolute(Au(((v as f32) * scalar) as i32)),
+            NoCalcLength::Absolute(v) => NoCalcLength::Absolute(v * scalar),
             NoCalcLength::FontRelative(v) => NoCalcLength::FontRelative(v * scalar),
             NoCalcLength::ViewportPercentage(v) => NoCalcLength::ViewportPercentage(v * scalar),
             NoCalcLength::ServoCharacterWidth(_) => panic!("Can't multiply ServoCharacterWidth!"),
+            #[cfg(feature = "gecko")]
+            NoCalcLength::Physical(v) => NoCalcLength::Physical(v * scalar),
         }
     }
 }
 
 impl NoCalcLength {
     /// Parse a given absolute or relative dimension.
-    pub fn parse_dimension(value: CSSFloat, unit: &str) -> Result<NoCalcLength, ()> {
+    pub fn parse_dimension(context: &ParserContext, value: CSSFloat, unit: &str) -> Result<NoCalcLength, ()> {
+        let in_page_rule = context.rule_type.map_or(false, |rule_type| rule_type == CssRuleType::Page);
         match_ignore_ascii_case! { unit,
-            "px" => Ok(NoCalcLength::Absolute(Au((value * AU_PER_PX) as i32))),
-            "in" => Ok(NoCalcLength::Absolute(Au((value * AU_PER_IN) as i32))),
-            "cm" => Ok(NoCalcLength::Absolute(Au((value * AU_PER_CM) as i32))),
-            "mm" => Ok(NoCalcLength::Absolute(Au((value * AU_PER_MM) as i32))),
-            "q" => Ok(NoCalcLength::Absolute(Au((value * AU_PER_Q) as i32))),
-            "pt" => Ok(NoCalcLength::Absolute(Au((value * AU_PER_PT) as i32))),
-            "pc" => Ok(NoCalcLength::Absolute(Au((value * AU_PER_PC) as i32))),
+            "px" => Ok(NoCalcLength::Absolute(AbsoluteLength::Px(value))),
+            "in" => Ok(NoCalcLength::Absolute(AbsoluteLength::In(value))),
+            "cm" => Ok(NoCalcLength::Absolute(AbsoluteLength::Cm(value))),
+            "mm" => Ok(NoCalcLength::Absolute(AbsoluteLength::Mm(value))),
+            "q" => Ok(NoCalcLength::Absolute(AbsoluteLength::Q(value))),
+            "pt" => Ok(NoCalcLength::Absolute(AbsoluteLength::Pt(value))),
+            "pc" => Ok(NoCalcLength::Absolute(AbsoluteLength::Pc(value))),
             // font-relative
             "em" => Ok(NoCalcLength::FontRelative(FontRelativeLength::Em(value))),
             "ex" => Ok(NoCalcLength::FontRelative(FontRelativeLength::Ex(value))),
             "ch" => Ok(NoCalcLength::FontRelative(FontRelativeLength::Ch(value))),
             "rem" => Ok(NoCalcLength::FontRelative(FontRelativeLength::Rem(value))),
             // viewport percentages
-            "vw" => Ok(NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vw(value))),
-            "vh" => Ok(NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vh(value))),
-            "vmin" => Ok(NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vmin(value))),
-            "vmax" => Ok(NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vmax(value))),
+            "vw" => {
+                if in_page_rule {
+                    return Err(())
+                }
+                Ok(NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vw(value)))
+            },
+            "vh" => {
+                if in_page_rule {
+                    return Err(())
+                }
+                Ok(NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vh(value)))
+            },
+            "vmin" => {
+                if in_page_rule {
+                    return Err(())
+                }
+                Ok(NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vmin(value)))
+            },
+            "vmax" => {
+                if in_page_rule {
+                    return Err(())
+                }
+                Ok(NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vmax(value)))
+            },
+            #[cfg(feature = "gecko")]
+            "mozmm" => Ok(NoCalcLength::Physical(PhysicalLength(value))),
             _ => Err(())
         }
     }
@@ -309,25 +500,30 @@ impl NoCalcLength {
     #[inline]
     /// Returns a `zero` length.
     pub fn zero() -> NoCalcLength {
-        NoCalcLength::Absolute(Au(0))
+        NoCalcLength::Absolute(AbsoluteLength::Px(0.))
     }
 
     #[inline]
     /// Checks whether the length value is zero.
     pub fn is_zero(&self) -> bool {
-        *self == NoCalcLength::Absolute(Au(0))
+        match *self {
+            NoCalcLength::Absolute(length) => length.is_zero(),
+            #[cfg(feature = "gecko")]
+            NoCalcLength::Physical(length) => length.is_zero(),
+            _ => false
+        }
     }
 
     #[inline]
     /// Returns a `medium` length.
     pub fn medium() -> NoCalcLength {
-        NoCalcLength::Absolute(Au::from_px(FONT_MEDIUM_PX))
+        NoCalcLength::Absolute(AbsoluteLength::Px(FONT_MEDIUM_PX as f32))
     }
 
     /// Get an absolute length from a px value.
     #[inline]
     pub fn from_px(px_value: CSSFloat) -> NoCalcLength {
-        NoCalcLength::Absolute(Au((px_value * AU_PER_PX) as i32))
+        NoCalcLength::Absolute(AbsoluteLength::Px(px_value))
     }
 }
 
@@ -343,7 +539,7 @@ pub enum Length {
     /// A calc expression.
     ///
     /// https://drafts.csswg.org/css-values/#calc-notation
-    Calc(Box<CalcLengthOrPercentage>, AllowedNumericType),
+    Calc(AllowedLengthType, Box<CalcLengthOrPercentage>),
 }
 
 impl From<NoCalcLength> for Length {
@@ -357,7 +553,7 @@ impl HasViewportPercentage for Length {
     fn has_viewport_percentage(&self) -> bool {
         match *self {
             Length::NoCalc(ref inner) => inner.has_viewport_percentage(),
-            Length::Calc(ref calc, _) => calc.has_viewport_percentage(),
+            Length::Calc(_, ref calc) => calc.has_viewport_percentage(),
         }
     }
 }
@@ -366,7 +562,7 @@ impl ToCss for Length {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
             Length::NoCalc(ref inner) => inner.to_css(dest),
-            Length::Calc(ref calc, _) => calc.to_css(dest),
+            Length::Calc(_, ref calc) => calc.to_css(dest),
         }
     }
 }
@@ -419,19 +615,29 @@ impl Length {
     }
 
     /// Parse a given absolute or relative dimension.
-    pub fn parse_dimension(value: CSSFloat, unit: &str) -> Result<Length, ()> {
-        NoCalcLength::parse_dimension(value, unit).map(Length::NoCalc)
+    pub fn parse_dimension(context: &ParserContext, value: CSSFloat, unit: &str) -> Result<Length, ()> {
+        NoCalcLength::parse_dimension(context, value, unit).map(Length::NoCalc)
     }
 
     #[inline]
-    fn parse_internal(input: &mut Parser, context: AllowedNumericType) -> Result<Length, ()> {
+    fn parse_internal(context: &ParserContext,
+                      input: &mut Parser,
+                      num_context: AllowedLengthType,
+                      allow_quirks: AllowQuirks)
+                      -> Result<Length, ()> {
         match try!(input.next()) {
-            Token::Dimension(ref value, ref unit) if context.is_ok(value.value) =>
-                Length::parse_dimension(value.value, unit),
-            Token::Number(ref value) if value.value == 0. => Ok(Length::zero()),
+            Token::Dimension(ref value, ref unit) if num_context.is_ok(value.value) =>
+                Length::parse_dimension(context, value.value, unit),
+            Token::Number(ref value) if num_context.is_ok(value.value) => {
+                if value.value != 0. && !context.length_parsing_mode.allows_unitless_lengths() &&
+                   !allow_quirks.allowed(context.quirks_mode) {
+                    return Err(())
+                }
+                Ok(Length::NoCalc(NoCalcLength::Absolute(AbsoluteLength::Px(value.value))))
+            },
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") =>
                 input.parse_nested_block(|input| {
-                    CalcLengthOrPercentage::parse_length(input, context)
+                    CalcLengthOrPercentage::parse_length(context, input, num_context)
                 }),
             _ => Err(())
         }
@@ -439,8 +645,17 @@ impl Length {
 
     /// Parse a non-negative length
     #[inline]
-    pub fn parse_non_negative(input: &mut Parser) -> Result<Length, ()> {
-        Self::parse_internal(input, AllowedNumericType::NonNegative)
+    pub fn parse_non_negative(context: &ParserContext, input: &mut Parser) -> Result<Length, ()> {
+        Self::parse_non_negative_quirky(context, input, AllowQuirks::No)
+    }
+
+    /// Parse a non-negative length, allowing quirks.
+    #[inline]
+    pub fn parse_non_negative_quirky(context: &ParserContext,
+                                     input: &mut Parser,
+                                     allow_quirks: AllowQuirks)
+                                     -> Result<Length, ()> {
+        Self::parse_internal(context, input, AllowedLengthType::NonNegative, allow_quirks)
     }
 
     /// Get an absolute length from a px value.
@@ -459,41 +674,29 @@ impl Length {
 }
 
 impl Parse for Length {
-    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        Self::parse_internal(input, AllowedNumericType::All)
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        Self::parse_quirky(context, input, AllowQuirks::No)
     }
 }
 
-impl Either<Length, None_> {
-    /// Parse a non-negative length or none
-    #[inline]
-    pub fn parse_non_negative_length(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        if input.try(|input| None_::parse(context, input)).is_ok() {
-            return Ok(Either::Second(None_));
-        }
-        Length::parse_non_negative(input).map(Either::First)
+impl Length {
+    /// Parses a length, with quirks.
+    pub fn parse_quirky(context: &ParserContext,
+                        input: &mut Parser,
+                        allow_quirks: AllowQuirks)
+                        -> Result<Self, ()> {
+        Self::parse_internal(context, input, AllowedLengthType::All, allow_quirks)
     }
 }
 
-impl Either<Length, Normal> {
+impl<T: Parse> Either<Length, T> {
+    /// Parse a non-negative length
     #[inline]
-    #[allow(missing_docs)]
     pub fn parse_non_negative_length(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        if input.try(|input| Normal::parse(context, input)).is_ok() {
-            return Ok(Either::Second(Normal));
+        if let Ok(v) = input.try(|input| T::parse(context, input)) {
+            return Ok(Either::Second(v));
         }
-        Length::parse_internal(input, AllowedNumericType::NonNegative).map(Either::First)
-    }
-}
-
-impl Either<Length, Auto> {
-    #[inline]
-    #[allow(missing_docs)]
-    pub fn parse_non_negative_length(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        if input.try(|input| Auto::parse(context, input)).is_ok() {
-            return Ok(Either::Second(Auto));
-        }
-        Length::parse_internal(input, AllowedNumericType::NonNegative).map(Either::First)
+        Length::parse_internal(context, input, AllowedLengthType::NonNegative, AllowQuirks::No).map(Either::First)
     }
 }
 
@@ -552,9 +755,9 @@ pub struct CalcLengthOrPercentage {
 
 impl CalcLengthOrPercentage {
     /// Parse a calc sum node.
-    pub fn parse_sum(input: &mut Parser, expected_unit: CalcUnit) -> Result<CalcSumNode, ()> {
+    pub fn parse_sum(context: &ParserContext, input: &mut Parser, expected_unit: CalcUnit) -> Result<CalcSumNode, ()> {
         let mut products = Vec::new();
-        products.push(try!(CalcLengthOrPercentage::parse_product(input, expected_unit)));
+        products.push(try!(CalcLengthOrPercentage::parse_product(context, input, expected_unit)));
 
         loop {
             let position = input.position();
@@ -565,10 +768,10 @@ impl CalcLengthOrPercentage {
                     }
                     match input.next() {
                         Ok(Token::Delim('+')) => {
-                            products.push(try!(CalcLengthOrPercentage::parse_product(input, expected_unit)));
+                            products.push(try!(CalcLengthOrPercentage::parse_product(context, input, expected_unit)));
                         }
                         Ok(Token::Delim('-')) => {
-                            let mut right = try!(CalcLengthOrPercentage::parse_product(input, expected_unit));
+                            let mut right = try!(CalcLengthOrPercentage::parse_product(context, input, expected_unit));
                             right.values.push(CalcValueNode::Number(-1.));
                             products.push(right);
                         }
@@ -586,15 +789,16 @@ impl CalcLengthOrPercentage {
         Ok(CalcSumNode { products: products })
     }
 
-    fn parse_product(input: &mut Parser, expected_unit: CalcUnit) -> Result<CalcProductNode, ()> {
+    fn parse_product(context: &ParserContext, input: &mut Parser, expected_unit: CalcUnit)
+                     -> Result<CalcProductNode, ()> {
         let mut values = Vec::new();
-        values.push(try!(CalcLengthOrPercentage::parse_value(input, expected_unit)));
+        values.push(try!(CalcLengthOrPercentage::parse_value(context, input, expected_unit)));
 
         loop {
             let position = input.position();
             match input.next() {
                 Ok(Token::Delim('*')) => {
-                    values.push(try!(CalcLengthOrPercentage::parse_value(input, expected_unit)));
+                    values.push(try!(CalcLengthOrPercentage::parse_value(context, input, expected_unit)));
                 }
                 Ok(Token::Delim('/')) if expected_unit != CalcUnit::Integer => {
                     if let Ok(Token::Number(ref value)) = input.next() {
@@ -616,12 +820,12 @@ impl CalcLengthOrPercentage {
         Ok(CalcProductNode { values: values })
     }
 
-    fn parse_value(input: &mut Parser, expected_unit: CalcUnit) -> Result<CalcValueNode, ()> {
+    fn parse_value(context: &ParserContext, input: &mut Parser, expected_unit: CalcUnit) -> Result<CalcValueNode, ()> {
         match (try!(input.next()), expected_unit) {
             (Token::Number(ref value), _) => Ok(CalcValueNode::Number(value.value)),
             (Token::Dimension(ref value, ref unit), CalcUnit::Length) |
             (Token::Dimension(ref value, ref unit), CalcUnit::LengthOrPercentage) => {
-                NoCalcLength::parse_dimension(value.value, unit).map(CalcValueNode::Length)
+                NoCalcLength::parse_dimension(context, value.value, unit).map(CalcValueNode::Length)
             }
             (Token::Dimension(ref value, ref unit), CalcUnit::Angle) => {
                 Angle::parse_dimension(value.value, unit).map(|angle| {
@@ -636,7 +840,7 @@ impl CalcLengthOrPercentage {
             (Token::Percentage(ref value), CalcUnit::LengthOrPercentage) =>
                 Ok(CalcValueNode::Percentage(value.unit_value)),
             (Token::ParenthesisBlock, _) => {
-                input.parse_nested_block(|i| CalcLengthOrPercentage::parse_sum(i, expected_unit))
+                input.parse_nested_block(|i| CalcLengthOrPercentage::parse_sum(context, i, expected_unit))
                      .map(|result| CalcValueNode::Sum(Box::new(result)))
             },
             _ => Err(())
@@ -717,21 +921,23 @@ impl CalcLengthOrPercentage {
         }
     }
 
-    fn parse_length(input: &mut Parser,
-                    context: AllowedNumericType) -> Result<Length, ()> {
-        CalcLengthOrPercentage::parse(input, CalcUnit::Length).map(|calc| {
-            Length::Calc(Box::new(calc), context)
+    fn parse_length(context: &ParserContext,
+                    input: &mut Parser,
+                    num_context: AllowedLengthType) -> Result<Length, ()> {
+        CalcLengthOrPercentage::parse(context, input, CalcUnit::Length).map(|calc| {
+            Length::Calc(num_context, Box::new(calc))
         })
     }
 
-    fn parse_length_or_percentage(input: &mut Parser) -> Result<CalcLengthOrPercentage, ()> {
-        CalcLengthOrPercentage::parse(input, CalcUnit::LengthOrPercentage)
+    fn parse_length_or_percentage(context: &ParserContext, input: &mut Parser) -> Result<CalcLengthOrPercentage, ()> {
+        CalcLengthOrPercentage::parse(context, input, CalcUnit::LengthOrPercentage)
     }
 
     #[allow(missing_docs)]
-    pub fn parse(input: &mut Parser,
+    pub fn parse(context: &ParserContext,
+                 input: &mut Parser,
                  expected_unit: CalcUnit) -> Result<CalcLengthOrPercentage, ()> {
-        let ast = try!(CalcLengthOrPercentage::parse_sum(input, expected_unit));
+        let ast = try!(CalcLengthOrPercentage::parse_sum(context, input, expected_unit));
 
         let mut simplified = Vec::new();
         for ref node in ast.products {
@@ -756,8 +962,8 @@ impl CalcLengthOrPercentage {
             match value {
                 SimplifiedValueNode::Percentage(p) =>
                     percentage = Some(percentage.unwrap_or(0.) + p),
-                SimplifiedValueNode::Length(NoCalcLength::Absolute(Au(au))) =>
-                    absolute = Some(absolute.unwrap_or(0) + au),
+                SimplifiedValueNode::Length(NoCalcLength::Absolute(length)) =>
+                    absolute = Some(absolute.unwrap_or(0.) + Au::from(length).to_f32_px()),
                 SimplifiedValueNode::Length(NoCalcLength::ViewportPercentage(v)) =>
                     match v {
                         ViewportPercentageLength::Vw(val) =>
@@ -786,7 +992,7 @@ impl CalcLengthOrPercentage {
         }
 
         Ok(CalcLengthOrPercentage {
-            absolute: absolute.map(Au),
+            absolute: absolute.map(Au::from_f32_px),
             vw: vw,
             vh: vh,
             vmax: vmax,
@@ -800,8 +1006,8 @@ impl CalcLengthOrPercentage {
     }
 
     #[allow(missing_docs)]
-    pub fn parse_time(input: &mut Parser) -> Result<Time, ()> {
-        let ast = try!(CalcLengthOrPercentage::parse_sum(input, CalcUnit::Time));
+    pub fn parse_time(context: &ParserContext, input: &mut Parser) -> Result<Time, ()> {
+        let ast = try!(CalcLengthOrPercentage::parse_sum(context, input, CalcUnit::Time));
 
         let mut simplified = Vec::new();
         for ref node in ast.products {
@@ -828,8 +1034,8 @@ impl CalcLengthOrPercentage {
     }
 
     #[allow(missing_docs)]
-    pub fn parse_angle(input: &mut Parser) -> Result<Angle, ()> {
-        let ast = try!(CalcLengthOrPercentage::parse_sum(input, CalcUnit::Angle));
+    pub fn parse_angle(context: &ParserContext, input: &mut Parser) -> Result<Angle, ()> {
+        let ast = try!(CalcLengthOrPercentage::parse_sum(context, input, CalcUnit::Angle));
 
         let mut simplified = Vec::new();
         for ref node in ast.products {
@@ -913,7 +1119,7 @@ impl ToCss for CalcLengthOrPercentage {
         }
 
         write!(dest, ")")
-     }
+    }
 }
 
 /// A percentage value.
@@ -942,7 +1148,7 @@ impl ToCss for Percentage {
 }
 
 impl Percentage {
-    fn parse_internal(input: &mut Parser, context: AllowedNumericType) -> Result<Self, ()> {
+    fn parse_internal(input: &mut Parser, context: AllowedLengthType) -> Result<Self, ()> {
         match try!(input.next()) {
             Token::Percentage(ref value) if context.is_ok(value.unit_value) => {
                 Ok(Percentage(value.unit_value))
@@ -953,14 +1159,14 @@ impl Percentage {
 
     /// Parses a percentage token, but rejects it if it's negative.
     pub fn parse_non_negative(input: &mut Parser) -> Result<Self, ()> {
-        Self::parse_internal(input, AllowedNumericType::NonNegative)
+        Self::parse_internal(input, AllowedLengthType::NonNegative)
     }
 }
 
 impl Parse for Percentage {
     #[inline]
     fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        Self::parse_internal(input, AllowedNumericType::All)
+        Self::parse_internal(input, AllowedLengthType::All)
     }
 }
 
@@ -982,7 +1188,7 @@ impl From<Length> for LengthOrPercentage {
     fn from(len: Length) -> LengthOrPercentage {
         match len {
             Length::NoCalc(l) => LengthOrPercentage::Length(l),
-            Length::Calc(l, _) => LengthOrPercentage::Calc(l),
+            Length::Calc(_, l) => LengthOrPercentage::Calc(l),
         }
     }
 }
@@ -1020,24 +1226,32 @@ impl ToCss for LengthOrPercentage {
         }
     }
 }
+
 impl LengthOrPercentage {
+    #[inline]
     /// Returns a `zero` length.
     pub fn zero() -> LengthOrPercentage {
         LengthOrPercentage::Length(NoCalcLength::zero())
     }
 
-    fn parse_internal(input: &mut Parser, context: AllowedNumericType)
+    fn parse_internal(context: &ParserContext,
+                      input: &mut Parser,
+                      num_context: AllowedLengthType,
+                      allow_quirks: AllowQuirks)
                       -> Result<LengthOrPercentage, ()>
     {
         match try!(input.next()) {
-            Token::Dimension(ref value, ref unit) if context.is_ok(value.value) =>
-                NoCalcLength::parse_dimension(value.value, unit).map(LengthOrPercentage::Length),
-            Token::Percentage(ref value) if context.is_ok(value.unit_value) =>
+            Token::Dimension(ref value, ref unit) if num_context.is_ok(value.value) =>
+                NoCalcLength::parse_dimension(context, value.value, unit).map(LengthOrPercentage::Length),
+            Token::Percentage(ref value) if num_context.is_ok(value.unit_value) =>
                 Ok(LengthOrPercentage::Percentage(Percentage(value.unit_value))),
-            Token::Number(ref value) if value.value == 0. =>
-                Ok(LengthOrPercentage::zero()),
+            Token::Number(value) if value.value == 0. ||
+                                    (num_context.is_ok(value.value) && allow_quirks.allowed(context.quirks_mode)) =>
+                Ok(LengthOrPercentage::Length(NoCalcLength::from_px(value.value))),
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-                let calc = try!(input.parse_nested_block(CalcLengthOrPercentage::parse_length_or_percentage));
+                let calc = try!(input.parse_nested_block(|i| {
+                    CalcLengthOrPercentage::parse_length_or_percentage(context, i)
+                }));
                 Ok(LengthOrPercentage::Calc(Box::new(calc)))
             },
             _ => Err(())
@@ -1046,29 +1260,40 @@ impl LengthOrPercentage {
 
     /// Parse a non-negative length.
     #[inline]
-    pub fn parse_non_negative(input: &mut Parser) -> Result<LengthOrPercentage, ()> {
-        Self::parse_internal(input, AllowedNumericType::NonNegative)
+    pub fn parse_non_negative(context: &ParserContext, input: &mut Parser) -> Result<LengthOrPercentage, ()> {
+        Self::parse_non_negative_quirky(context, input, AllowQuirks::No)
+    }
+
+    /// Parse a non-negative length, with quirks.
+    #[inline]
+    pub fn parse_non_negative_quirky(context: &ParserContext,
+                                     input: &mut Parser,
+                                     allow_quirks: AllowQuirks)
+                                     -> Result<LengthOrPercentage, ()> {
+        Self::parse_internal(context, input, AllowedLengthType::NonNegative, allow_quirks)
     }
 
     /// Parse a length, treating dimensionless numbers as pixels
     ///
     /// https://www.w3.org/TR/SVG2/types.html#presentation-attribute-css-value
-    pub fn parse_numbers_are_pixels(input: &mut Parser) -> Result<LengthOrPercentage, ()> {
-        if let Ok(lop) = input.try(|i| Self::parse_internal(i, AllowedNumericType::All)) {
+    pub fn parse_numbers_are_pixels(context: &ParserContext, input: &mut Parser) -> Result<LengthOrPercentage, ()> {
+        if let Ok(lop) = input.try(|i| Self::parse(context, i)) {
             return Ok(lop)
         }
 
         // TODO(emilio): Probably should use Number::parse_non_negative to
         // handle calc()?
         let num = input.expect_number()?;
-        Ok(LengthOrPercentage::Length(NoCalcLength::Absolute(Au((AU_PER_PX * num) as i32))))
+        Ok(LengthOrPercentage::Length(NoCalcLength::Absolute(AbsoluteLength::Px(num))))
     }
 
     /// Parse a non-negative length, treating dimensionless numbers as pixels
     ///
     /// This is nonstandard behavior used by Firefox for SVG
-    pub fn parse_numbers_are_pixels_non_negative(input: &mut Parser) -> Result<LengthOrPercentage, ()> {
-        if let Ok(lop) = input.try(|i| Self::parse_internal(i, AllowedNumericType::NonNegative)) {
+    pub fn parse_numbers_are_pixels_non_negative(context: &ParserContext,
+                                                 input: &mut Parser)
+                                                 -> Result<LengthOrPercentage, ()> {
+        if let Ok(lop) = input.try(|i| Self::parse_non_negative(context, i)) {
             return Ok(lop)
         }
 
@@ -1076,7 +1301,7 @@ impl LengthOrPercentage {
         // handle calc()?
         let num = input.expect_number()?;
         if num >= 0. {
-            Ok(LengthOrPercentage::Length(NoCalcLength::Absolute(Au((AU_PER_PX * num) as i32))))
+            Ok(LengthOrPercentage::Length(NoCalcLength::Absolute(AbsoluteLength::Px(num))))
         } else {
             Err(())
         }
@@ -1093,8 +1318,19 @@ impl LengthOrPercentage {
 
 impl Parse for LengthOrPercentage {
     #[inline]
-    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        Self::parse_internal(input, AllowedNumericType::All)
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        Self::parse_quirky(context, input, AllowQuirks::No)
+    }
+}
+
+impl LengthOrPercentage {
+    /// Parses a length or a percentage, allowing the unitless length quirk.
+    /// https://quirks.spec.whatwg.org/#the-unitless-length-quirk
+    #[inline]
+    pub fn parse_quirky(context: &ParserContext,
+                        input: &mut Parser,
+                        allow_quirks: AllowQuirks) -> Result<Self, ()> {
+        Self::parse_internal(context, input, AllowedLengthType::All, allow_quirks)
     }
 }
 
@@ -1147,19 +1383,31 @@ impl ToCss for LengthOrPercentageOrAuto {
 }
 
 impl LengthOrPercentageOrAuto {
-    fn parse_internal(input: &mut Parser, context: AllowedNumericType)
+    fn parse_internal(context: &ParserContext,
+                      input: &mut Parser,
+                      num_context: AllowedLengthType,
+                      allow_quirks: AllowQuirks)
                       -> Result<Self, ()> {
         match try!(input.next()) {
-            Token::Dimension(ref value, ref unit) if context.is_ok(value.value) =>
-                NoCalcLength::parse_dimension(value.value, unit).map(LengthOrPercentageOrAuto::Length),
-            Token::Percentage(ref value) if context.is_ok(value.unit_value) =>
+            Token::Dimension(ref value, ref unit) if num_context.is_ok(value.value) =>
+                NoCalcLength::parse_dimension(context, value.value, unit).map(LengthOrPercentageOrAuto::Length),
+            Token::Percentage(ref value) if num_context.is_ok(value.unit_value) =>
                 Ok(LengthOrPercentageOrAuto::Percentage(Percentage(value.unit_value))),
-            Token::Number(ref value) if value.value == 0. =>
-                Ok(Self::zero()),
+            Token::Number(ref value) if num_context.is_ok(value.value) => {
+                if value.value != 0. && !context.length_parsing_mode.allows_unitless_lengths() &&
+                   !allow_quirks.allowed(context.quirks_mode) {
+                    return Err(())
+                }
+                Ok(LengthOrPercentageOrAuto::Length(
+                    NoCalcLength::Absolute(AbsoluteLength::Px(value.value))
+                ))
+            }
             Token::Ident(ref value) if value.eq_ignore_ascii_case("auto") =>
                 Ok(LengthOrPercentageOrAuto::Auto),
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-                let calc = try!(input.parse_nested_block(CalcLengthOrPercentage::parse_length_or_percentage));
+                let calc = try!(input.parse_nested_block(|i| {
+                    CalcLengthOrPercentage::parse_length_or_percentage(context, i)
+                }));
                 Ok(LengthOrPercentageOrAuto::Calc(Box::new(calc)))
             },
             _ => Err(())
@@ -1168,8 +1416,17 @@ impl LengthOrPercentageOrAuto {
 
     /// Parse a non-negative length, percentage, or auto.
     #[inline]
-    pub fn parse_non_negative(input: &mut Parser) -> Result<LengthOrPercentageOrAuto, ()> {
-        Self::parse_internal(input, AllowedNumericType::NonNegative)
+    pub fn parse_non_negative(context: &ParserContext, input: &mut Parser) -> Result<LengthOrPercentageOrAuto, ()> {
+        Self::parse_non_negative_quirky(context, input, AllowQuirks::No)
+    }
+
+    /// Parse a non-negative length, percentage, or auto.
+    #[inline]
+    pub fn parse_non_negative_quirky(context: &ParserContext,
+                                     input: &mut Parser,
+                                     allow_quirks: AllowQuirks)
+                                     -> Result<Self, ()> {
+        Self::parse_internal(context, input, AllowedLengthType::NonNegative, allow_quirks)
     }
 
     /// Returns the `auto` value.
@@ -1185,8 +1442,19 @@ impl LengthOrPercentageOrAuto {
 
 impl Parse for LengthOrPercentageOrAuto {
     #[inline]
-    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        Self::parse_internal(input, AllowedNumericType::All)
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        Self::parse_quirky(context, input, AllowQuirks::No)
+    }
+}
+
+impl LengthOrPercentageOrAuto {
+    /// Parses, with quirks.
+    #[inline]
+    pub fn parse_quirky(context: &ParserContext,
+                        input: &mut Parser,
+                        allow_quirks: AllowQuirks)
+                        -> Result<Self, ()> {
+        Self::parse_internal(context, input, AllowedLengthType::All, allow_quirks)
     }
 }
 
@@ -1223,18 +1491,30 @@ impl ToCss for LengthOrPercentageOrNone {
     }
 }
 impl LengthOrPercentageOrNone {
-    fn parse_internal(input: &mut Parser, context: AllowedNumericType)
+    fn parse_internal(context: &ParserContext,
+                      input: &mut Parser,
+                      num_context: AllowedLengthType,
+                      allow_quirks: AllowQuirks)
                       -> Result<LengthOrPercentageOrNone, ()>
     {
         match try!(input.next()) {
-            Token::Dimension(ref value, ref unit) if context.is_ok(value.value) =>
-                NoCalcLength::parse_dimension(value.value, unit).map(LengthOrPercentageOrNone::Length),
-            Token::Percentage(ref value) if context.is_ok(value.unit_value) =>
+            Token::Dimension(ref value, ref unit) if num_context.is_ok(value.value) =>
+                NoCalcLength::parse_dimension(context, value.value, unit).map(LengthOrPercentageOrNone::Length),
+            Token::Percentage(ref value) if num_context.is_ok(value.unit_value) =>
                 Ok(LengthOrPercentageOrNone::Percentage(Percentage(value.unit_value))),
-            Token::Number(ref value) if value.value == 0. =>
-                Ok(LengthOrPercentageOrNone::Length(NoCalcLength::zero())),
+            Token::Number(value) if num_context.is_ok(value.value) => {
+                if value.value != 0. && !context.length_parsing_mode.allows_unitless_lengths() &&
+                   !allow_quirks.allowed(context.quirks_mode) {
+                    return Err(())
+                }
+                Ok(LengthOrPercentageOrNone::Length(
+                    NoCalcLength::Absolute(AbsoluteLength::Px(value.value))
+                ))
+            }
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-                let calc = try!(input.parse_nested_block(CalcLengthOrPercentage::parse_length_or_percentage));
+                let calc = try!(input.parse_nested_block(|i| {
+                    CalcLengthOrPercentage::parse_length_or_percentage(context, i)
+                }));
                 Ok(LengthOrPercentageOrNone::Calc(Box::new(calc)))
             },
             Token::Ident(ref value) if value.eq_ignore_ascii_case("none") =>
@@ -1242,17 +1522,27 @@ impl LengthOrPercentageOrNone {
             _ => Err(())
         }
     }
+
     /// Parse a non-negative LengthOrPercentageOrNone.
     #[inline]
-    pub fn parse_non_negative(input: &mut Parser) -> Result<Self, ()> {
-        Self::parse_internal(input, AllowedNumericType::NonNegative)
+    pub fn parse_non_negative(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        Self::parse_non_negative_quirky(context, input, AllowQuirks::No)
+    }
+
+    /// Parse a non-negative LengthOrPercentageOrNone, with quirks.
+    #[inline]
+    pub fn parse_non_negative_quirky(context: &ParserContext,
+                                     input: &mut Parser,
+                                     allow_quirks: AllowQuirks)
+                                     -> Result<Self, ()> {
+        Self::parse_internal(context, input, AllowedLengthType::NonNegative, allow_quirks)
     }
 }
 
 impl Parse for LengthOrPercentageOrNone {
     #[inline]
-    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        Self::parse_internal(input, AllowedNumericType::All)
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        Self::parse_internal(context, input, AllowedLengthType::All, AllowQuirks::No)
     }
 }
 
@@ -1286,12 +1576,13 @@ pub enum LengthOrPercentageOrAutoOrContent {
 
 impl LengthOrPercentageOrAutoOrContent {
     /// Parse a non-negative LengthOrPercentageOrAutoOrContent.
-    pub fn parse_non_negative(input: &mut Parser) -> Result<Self, ()> {
-        let context = AllowedNumericType::NonNegative;
+    pub fn parse_non_negative(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        let num_context = AllowedLengthType::NonNegative;
         match try!(input.next()) {
-            Token::Dimension(ref value, ref unit) if context.is_ok(value.value) =>
-                NoCalcLength::parse_dimension(value.value, unit).map(LengthOrPercentageOrAutoOrContent::Length),
-            Token::Percentage(ref value) if context.is_ok(value.unit_value) =>
+            Token::Dimension(ref value, ref unit) if num_context.is_ok(value.value) =>
+                NoCalcLength::parse_dimension(context, value.value, unit)
+                             .map(LengthOrPercentageOrAutoOrContent::Length),
+            Token::Percentage(ref value) if num_context.is_ok(value.unit_value) =>
                 Ok(LengthOrPercentageOrAutoOrContent::Percentage(Percentage(value.unit_value))),
             Token::Number(ref value) if value.value == 0. =>
                 Ok(Self::zero()),
@@ -1300,7 +1591,9 @@ impl LengthOrPercentageOrAutoOrContent {
             Token::Ident(ref value) if value.eq_ignore_ascii_case("content") =>
                 Ok(LengthOrPercentageOrAutoOrContent::Content),
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-                let calc = try!(input.parse_nested_block(CalcLengthOrPercentage::parse_length_or_percentage));
+                let calc = try!(input.parse_nested_block(|i| {
+                    CalcLengthOrPercentage::parse_length_or_percentage(context, i)
+                }));
                 Ok(LengthOrPercentageOrAutoOrContent::Calc(Box::new(calc)))
             },
             _ => Err(())
@@ -1345,15 +1638,15 @@ pub type LengthOrNumber = Either<Length, Number>;
 
 impl LengthOrNumber {
     /// Parse a non-negative LengthOrNumber.
-    pub fn parse_non_negative(_: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    pub fn parse_non_negative(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         // We try to parse as a Number first because, for cases like
         // LengthOrNumber, we want "0" to be parsed as a plain Number rather
         // than a Length (0px); this matches the behaviour of all major browsers
-        if let Ok(v) = input.try(Number::parse_non_negative) {
+        if let Ok(v) = input.try(|i| Number::parse_non_negative(context, i)) {
             return Ok(Either::Second(v))
         }
 
-        Length::parse_non_negative(input).map(Either::First)
+        Length::parse_non_negative(context, input).map(Either::First)
     }
 }
 
@@ -1392,9 +1685,19 @@ impl ToCss for MinLength {
 }
 
 impl Parse for MinLength {
-    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        MinLength::parse_quirky(context, input, AllowQuirks::No)
+    }
+}
+
+impl MinLength {
+    /// Parses, with quirks.
+    pub fn parse_quirky(context: &ParserContext,
+                        input: &mut Parser,
+                        allow_quirks: AllowQuirks) -> Result<Self, ()> {
         input.try(ExtremumLength::parse).map(MinLength::ExtremumLength)
-            .or_else(|()| input.try(LengthOrPercentage::parse_non_negative).map(MinLength::LengthOrPercentage))
+            .or_else(|()| input.try(|i| LengthOrPercentage::parse_non_negative_quirky(context, i, allow_quirks))
+                               .map(MinLength::LengthOrPercentage))
             .or_else(|()| input.expect_ident_matching("auto").map(|()| MinLength::Auto))
     }
 }
@@ -1432,9 +1735,19 @@ impl ToCss for MaxLength {
 }
 
 impl Parse for MaxLength {
-    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        MaxLength::parse_quirky(context, input, AllowQuirks::No)
+    }
+}
+
+impl MaxLength {
+    /// Parses, with quirks.
+    pub fn parse_quirky(context: &ParserContext,
+                        input: &mut Parser,
+                        allow_quirks: AllowQuirks) -> Result<Self, ()> {
         input.try(ExtremumLength::parse).map(MaxLength::ExtremumLength)
-            .or_else(|()| input.try(LengthOrPercentage::parse_non_negative).map(MaxLength::LengthOrPercentage))
+            .or_else(|()| input.try(|i| LengthOrPercentage::parse_non_negative_quirky(context, i, allow_quirks))
+                               .map(MaxLength::LengthOrPercentage))
             .or_else(|()| {
                 match_ignore_ascii_case! { &try!(input.expect_ident()),
                     "none" =>

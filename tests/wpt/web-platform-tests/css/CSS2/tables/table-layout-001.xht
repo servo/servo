@@ -1,0 +1,44 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Table-layout set to 'auto'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#propdef-table-layout" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#width-layout" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="Cell content width is taken into account in the used width of a table when the table has 'table-layout' set to 'auto'." />
+        <style type="text/css">
+            table, div
+            {
+                font: 1em Ahem;
+            }
+            table
+            {
+                background: black;
+                border-spacing: 0;
+                table-layout: auto;
+                width: 5em;
+            }
+            td
+            {
+                padding: 0;
+            }
+            div
+            {
+                background: black;
+                margin-top: 10px;
+                width: 10em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if both bars below are the same width.</p>
+        <table>
+            <tr>
+               <td>XXXXX</td>
+               <td>XXXXX</td>
+            </tr>
+        </table>
+        <div>X</div>
+    </body>
+</html>

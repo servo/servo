@@ -1,0 +1,66 @@
+
+<HTML>
+<HEAD>
+<TITLE>
+Second Test of Section 2.0 of CSS1 Specification</TITLE>
+
+
+<STYLE TEXT="text/css">
+A:link {color: lime}
+A:visited {color: maroon}
+A.link {color: silver}
+P:first-line {font-style: italic}
+P:first-letter {font-size: 200%; float: left;}
+</STYLE>
+</HEAD>
+
+
+<BODY>
+
+<h1 >
+Testing Second Testable Statement of Section 2.0 of CSS1 Spec
+</h1>
+
+
+<ul>
+<li >
+2. The concept of pseudo-classes and pseudo-elements extends addressing in CSS1
+to allow external information ot influence the formatting process.
+</ul>
+
+
+
+
+<h2 >"PASS" CRITERIA:
+</h2>
+If statement #2 above is passed, then:
+<A HREF="ovalbbut.gif">This link</a> is lime if unvisited; the pseudo-class is
+"A:link {color: lime}". <A HREF="ovalbbut.gif">This link</a> is
+maroon if visited; the pseudo-class is "A:visited {color: maroon}".  
+<p>
+<p:first-line>
+The first line of this paragraph should have italic font style.
+Plus a large "T" as first letter.
+</p:first-line>
+The remaining lines should be UA-default.  The pseudo-element applied is
+"P:first-line {font-style: italic}".
+</p>
+<p>
+<span>
+<P:first-letter>
+T
+</P:first-letter>he first
+</span>
+line of this paragraph should be italic with a large "T" to start.
+The pseudo-element
+applied is "P:first-letter {font-size: 200%; float-left;}".  Everything 
+else is UA-default.
+External information above influences the presentation of this page.
+Your browser rendering of this page should be similar to this 
+<a class=link href="a202.gif">reference image</a> or to this <a class=link href="b202.gif">reference
+image</a>.
+</p>
+
+To move directly to the next test, click<a href="20-3.htm"> here</a>
+</BODY>
+</HTML>

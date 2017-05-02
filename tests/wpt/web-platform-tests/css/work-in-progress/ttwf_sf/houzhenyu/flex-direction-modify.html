@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Test: flex flow direction</title>
+<link rel="author" title="houzhenyu" href="http://www.github.com/sskyy" />
+<link rel="help" href="http://www.w3.org/TR/css3-flexbox/#flex-direction">
+<link rel="match" href="reference/flex-direction-modify.html">
+<meta name="assert" content="Changing 'flex-direction' with JavaScript and then changing it back should returns to the original look." />
+<style>
+    .flex-container{
+        display: flex;
+        margin:20px;
+        background: #333;
+    }
+    .flex-item{
+        width:50px;
+        height:50px;
+        margin:20px;
+        background: #eee;
+        line-height: 50px;
+        text-align: center;
+    }
+    
+    
+    .flex-container.flex-direction-row{
+        flex-direction : row;
+    }
+    
+    .flex-container.flex-direction-row-reverse{
+        flex-direction : row-reverse;
+    }
+    
+    .flex-container.flex-direction-column{
+        flex-direction : column;
+    }
+    .flex-container.flex-direction-column-reverse{
+        flex-direction : column-reverse;
+    }
+</style>
+</head>
+<body>
+    <h1>flex-direction:<span id="current_direction">row</h1>
+    <div id="flex_container" class="flex-container"><div class="flex-item">1</div><div class="flex-item">2</div><div class="flex-item">3</div></div>
+    
+    <script>
+        var container  = document.getElementById("flex_container");
+        var direction_text = document.getElementById("current_direction");
+        var baseClass = "flex-container ";
+        var classPrefix = "flex-direction-";
+        function change_direction( direction ){
+            container.className = baseClass + classPrefix + direction;
+            notify( direction );
+        }
+        
+        function notify( direction ){
+            direction_text.innerHTML = direction;
+        }
+        
+        change_direction("row");
+        change_direction("row-reverse");
+        change_direction("column");
+        change_direction("row-column-reverse");
+        change_direction("row");
+    </script>
+</body>
+</html>

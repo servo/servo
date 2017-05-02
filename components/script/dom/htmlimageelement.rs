@@ -423,6 +423,11 @@ impl HTMLImageElement {
         };
 
         let value = usemap_attr.value();
+
+        if value.len() == 0 || !value.is_char_boundary(1) {
+            return None
+        }
+
         let (first, last) = value.split_at(1);
 
         if first != "#" || last.len() == 0 {

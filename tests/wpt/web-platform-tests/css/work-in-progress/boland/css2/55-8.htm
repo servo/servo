@@ -1,0 +1,61 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Eighth Test of Section 5.5 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+h3 {color: red}
+em {color: red}
+h3 em {color: blue}
+div * p {color: green}
+div p *[href] {color: yellow}
+
+
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Eighth Testable Statement of Sec 5.4 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+8. A descendant selector of the form "A B" matches when an element B is
+an arbitrary descendatn of some ancestor element A.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<div>
+<p >
+If statement #8 above is passed, then
+this paragraph should be green, because p follows div, and 
+rule is "div * p {color: green}".
+<h3>
+This h3 heading should have a color of red.
+This <em>emphasized text</em> should be blue, because of rule 
+"h3 em {color: blue}".
+</h3>
+<div>
+<p>
+This <a href="ovalbbut.gif">link should be yellow</a>, because p inside div,
+and rule "div p *[href] {color: yellow}".
+All other properties of this page should be UA-default.
+
+
+</BODY>
+</HTML>
+

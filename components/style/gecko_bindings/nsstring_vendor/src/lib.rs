@@ -899,12 +899,12 @@ macro_rules! ns_auto_string {
     }
 }
 
-#[cfg(not(debug_assertions))]
+#[cfg(not(feature = "gecko_debug"))]
 #[allow(non_snake_case)]
 unsafe fn Gecko_IncrementStringAdoptCount(_: *mut c_void) {}
 
 extern "C" {
-    #[cfg(debug_assertions)]
+    #[cfg(feature = "gecko_debug")]
     fn Gecko_IncrementStringAdoptCount(data: *mut c_void);
 
     // Gecko implementation in nsSubstring.cpp

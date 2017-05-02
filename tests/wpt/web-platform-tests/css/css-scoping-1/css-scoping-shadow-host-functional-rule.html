@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Scoping Module Level 1 - :host() rules must apply to the shadow host.</title>
+    <link rel="author" title="Ryosuke Niwa" href="mailto:rniwa@webkit.org"/>
+    <link rel="help" href="http://www.w3.org/TR/css-scoping-1/#host-selector">
+    <link rel="match" href="reference/green-box.html"/>
+</head>
+<body>
+    <style>
+        host-1, host-2, host-3, host-4, host-5 {
+            display: block;
+            width: 100px;
+            height: 20px;
+            background: red;
+        }
+        host-3, host-4, host-5  {
+            background: green;
+        }
+    </style>
+    <p>Test passes if you see a single 100px by 100px green box below.</p>
+    <host-1>
+        <div>FAIL1</div>
+    </host-1>
+    <host-2 id="bar" class="foo" name="baz">
+        <div>FAIL2</div>
+    </host-2>
+    <div>
+        <host-3>
+            FAIL3
+        </host-3>
+    </div>
+    <host-4>
+        <div class="child">FAIL4</div>
+    </host-4>
+    <host-5>
+        <div>FAIL5</div>
+    </host-5>
+    <script>
+
+        try {
+            var shadowHost = document.querySelector('host-1');
+            shadowRoot = shadowHost.attachShadow({mode: 'open'});
+            shadowRoot.innerHTML = '<style> :host(host-1) { background: green !important; } </style>';
+
+            shadowHost = document.querySelector('host-2');
+            shadowRoot = shadowHost.attachShadow({mode: 'open'});
+            shadowRoot.innerHTML = '<style> :host(host-2.foo#bar[name=baz]) { background: green !important; } </style>';
+
+            shadowHost = document.querySelector('host-3');
+            shadowRoot = shadowHost.attachShadow({mode: 'open'});
+            shadowRoot.innerHTML = '<style> :host(div host-3) { background: red !important; } </style>';
+
+            shadowHost = document.querySelector('host-4');
+            shadowRoot = shadowHost.attachShadow({mode: 'open'});
+            shadowRoot.innerHTML = '<style> :host(.child) { background: red !important; } </style>';
+
+            shadowHost = document.querySelector('host-5');
+            shadowRoot = shadowHost.attachShadow({mode: 'open'});
+            shadowRoot.innerHTML = '<style> :host(host-1) { background: red !important; } </style>';
+        } catch (exception) {
+            document.body.appendChild(document.createTextNode(exception));
+        }
+
+    </script>
+</body>
+</html>

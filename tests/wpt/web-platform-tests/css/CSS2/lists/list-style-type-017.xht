@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: CSS Lists: Negative Numbers</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-03-06 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/list/list-style-type/002.xml" type="application/xhtml+xml"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/list/list-style-type/002.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#list-style" />
+
+  <style type="text/css">
+   ol { counter-reset: list-item -3; }
+   li { list-style: decimal; }
+  </style>
+ </head>
+ <body>
+  <p>The two columns of numbers should be <strong>identical</strong>.</p>
+  <ol start="-3">
+   <li> -3. </li>
+   <li> -2. </li>
+   <li> -1. </li>
+   <li> 0. </li>
+   <li> 1. </li>
+   <li> 2. </li>
+   <li> 3. </li>
+  </ol>
+ </body>
+</html>

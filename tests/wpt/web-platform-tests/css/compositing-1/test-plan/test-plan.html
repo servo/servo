@@ -1,0 +1,1821 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" typeof="bibo:Document " about="" property="dcterms:language" content="en" prefix="bibo: http://purl.org/ontology/bibo/ w3p: http://www.w3.org/2001/02pd/rec54#"><head>
+		<title>Compositing and Blending Test Plan</title>
+		<meta charset="utf-8">
+
+
+		<style>
+			table
+			{
+				border-collapse:collapse;
+			}
+			table, td, th
+			{
+				border:1px solid black;
+				padding: 13px;
+			}
+			table
+			{
+				width: 100%;
+			}
+			img
+			{
+				width: 400px;
+			}
+		</style>
+	<style>/*****************************************************************
+ * ReSpec 3 CSS
+ * Robin Berjon - http://berjon.com/
+ *****************************************************************/
+
+/* --- INLINES --- */
+em.rfc2119 {
+    text-transform:     lowercase;
+    font-variant:       small-caps;
+    font-style:         normal;
+    color:              #900;
+}
+
+h1 acronym, h2 acronym, h3 acronym, h4 acronym, h5 acronym, h6 acronym, a acronym,
+h1 abbr, h2 abbr, h3 abbr, h4 abbr, h5 abbr, h6 abbr, a abbr {
+    border: none;
+}
+
+dfn {
+    font-weight:    bold;
+}
+
+a.internalDFN {
+    color:  inherit;
+    border-bottom:  1px solid #99c;
+    text-decoration:    none;
+}
+
+a.externalDFN {
+    color:  inherit;
+    border-bottom:  1px dotted #ccc;
+    text-decoration:    none;
+}
+
+a.bibref {
+    text-decoration:    none;
+}
+
+cite .bibref {
+    font-style: normal;
+}
+
+code {
+    color:  #ff4500;
+}
+
+/* --- TOC --- */
+.toc a, .tof a {
+    text-decoration:    none;
+}
+
+a .secno, a .figno {
+    color:  #000;
+}
+
+ul.tof, ol.tof {
+    list-style: none outside none;
+}
+
+.caption {
+    margin-top: 0.5em;
+    font-style:   italic;
+}
+
+/* --- TABLE --- */
+table.simple {
+    border-spacing: 0;
+    border-collapse:    collapse;
+    border-bottom:  3px solid #005a9c;
+}
+
+.simple th {
+    background: #005a9c;
+    color:  #fff;
+    padding:    3px 5px;
+    text-align: left;
+}
+
+.simple th[scope="row"] {
+    background: inherit;
+    color:  inherit;
+    border-top: 1px solid #ddd;
+}
+
+.simple td {
+    padding:    3px 10px;
+    border-top: 1px solid #ddd;
+}
+
+.simple tr:nth-child(even) {
+    background: #f0f6ff;
+}
+
+/* --- DL --- */
+.section dd > p:first-child {
+    margin-top: 0;
+}
+
+.section dd > p:last-child {
+    margin-bottom: 0;
+}
+
+.section dd {
+    margin-bottom:  1em;
+}
+
+.section dl.attrs dd, .section dl.eldef dd {
+    margin-bottom:  0;
+}
+</style><link rel="stylesheet" href="https://www.w3.org/StyleSheets/TR/w3c-unofficial"><!--[if lt IE 9]><script src='https://www.w3.org/2008/site/js/html5shiv.js'></script><![endif]--></head>
+	<body class="h-entry" style="" role="document" id="respecDocument"><div class="head" role="contentinfo" id="respecHeader">
+  <p>
+
+  </p>
+  <h1 class="title p-name" id="title" property="dcterms:title">Compositing and Blending Test Plan</h1>
+
+  <h2 property="dcterms:issued" datatype="xsd:dateTime" content="2013-12-03T10:52:36.000Z" id="unofficial-draft-03-december-2013">Unofficial Draft <time class="dt-published" datetime="2013-12-03">03 December 2013</time></h2>
+  <dl>
+
+
+
+
+
+
+
+    <dt>Editors:</dt>
+    <dd class="p-author h-card vcard" rel="bibo:editor" inlist=""><span typeof="foaf:Person"><span property="foaf:name" class="p-name fn">Mirela Budaes</span>, <a rel="foaf:workplaceHomepage" class="p-org org h-org h-card" href="http://www.adobe.com/">Adobe Systems, Inc.</a></span>
+</dd>
+<dd class="p-author h-card vcard" rel="bibo:editor" inlist=""><span typeof="foaf:Person"><span property="foaf:name" class="p-name fn">Horia Olaru</span>, <a rel="foaf:workplaceHomepage" class="p-org org h-org h-card" href="http://www.adobe.com/">Adobe Systems, Inc.</a></span>
+</dd>
+<dd class="p-author h-card vcard" rel="bibo:editor" inlist=""><span typeof="foaf:Person"><span property="foaf:name" class="p-name fn">Mihai Tica</span>, <a rel="foaf:workplaceHomepage" class="p-org org h-org h-card" href="http://www.adobe.com/">Adobe Systems, Inc.</a></span>
+</dd>
+
+
+
+  </dl>
+
+
+
+
+
+
+        <p class="copyright">
+          This document is licensed under a
+          <a class="subfoot" href="http://creativecommons.org/licenses/by/3.0/" rel="license">Creative Commons
+          Attribution 3.0 License</a>.
+        </p>
+
+
+
+  <hr>
+</div>
+		<section id="abstract" class="introductory" property="dcterms:abstract" datatype="" typeof="bibo:Chapter" resource="#ref" rel="bibo:Chapter"><h2 aria-level="1" role="heading" id="h2_abstract">Abstract</h2>
+			<p>
+				This document is intended to be used as a guideline for the testing
+				activities related to the Compositing and Blending spec [<cite><a class="bibref" href="#bib-compositing-1">compositing-1</a></cite>]. Its main
+				goal is to provide an overview of the general testing areas and an informative
+				description of possible test cases.
+			</p>
+			<p>
+				This document is not meant to replace the spec in determining the
+				normative and non-normative assertions to be tested, but rather
+				complement it.
+			</p>
+		</section><section id="sotd" class="introductory" typeof="bibo:Chapter" resource="#ref" rel="bibo:Chapter"><h2 aria-level="1" role="heading" id="h2_sotd">Status of This Document</h2>
+
+    <p>
+      This document is merely a public working draft of a potential specification. It has
+      no official standing of any kind and does not represent the support or consensus of any
+      standards organisation.
+    </p>
+
+
+</section><section id="toc"><h2 class="introductory" aria-level="1" role="heading" id="h2_toc">Table of Contents</h2><ul class="toc" role="directory" id="respecContents"><li class="tocline"><a href="#goals" class="tocxref"><span class="secno">1. </span>Goals</a><ul class="toc"><li class="tocline"><a href="#providing-guidance-on-testing" class="tocxref"><span class="secno">1.1 </span>Providing guidance on testing</a></li><li class="tocline"><a href="#creating-automation-friendly-tests" class="tocxref"><span class="secno">1.2 </span>Creating automation-friendly tests</a></li></ul></li><li class="tocline"><a href="#approach" class="tocxref"><span class="secno">2. </span>Approach</a></li><li class="tocline"><a href="#testing-areas" class="tocxref"><span class="secno">3. </span>Testing areas</a><ul class="toc"><li class="tocline"><a href="#explicit-testing-areas" class="tocxref"><span class="secno">3.1 </span>Explicit testing areas</a></li><li class="tocline"><a href="#implicit-testing-areas" class="tocxref"><span class="secno">3.2 </span>Implicit testing areas</a></li></ul></li><li class="tocline"><a href="#test-cases-description" class="tocxref"><span class="secno">4. </span>Test cases description</a><ul class="toc"><li class="tocline"><a href="#test-cases-for-mix-blend-mode" class="tocxref"><span class="secno">4.1 </span>Test cases for <code>mix-blend-mode</code></a><ul class="toc"><li class="tocline"><a href="#an-element-with-mix-blend-mode-other-than-normal-creates-a-stacking-context" class="tocxref"><span class="secno">4.1.1 </span>An element with <code>mix-blend-mode</code> other than normal creates a stacking context</a></li><li class="tocline"><a href="#an-element-with-mix-blend-mode-blends-with-the-content-within-the-current-stacking-context" class="tocxref"><span class="secno">4.1.2 </span>An element with <code>mix-blend-mode</code> blends with the content within the current stacking context</a></li><li class="tocline"><a href="#an-element-with-mix-blend-mode-doesn-t-blend-with-anything-outside-the-current-stacking-context" class="tocxref"><span class="secno">4.1.3 </span>An element with <code>mix-blend-mode</code> doesn't blend with anything outside the current stacking context</a></li><li class="tocline"><a href="#an-element-with-mix-blend-mode-other-than-normal-must-cause-a-group-to-be-isolated" class="tocxref"><span class="secno">4.1.4 </span>An element with <code>mix-blend-mode</code> other than normal must cause a group to be isolated</a></li><li class="tocline"><a href="#an-element-with-mix-blend-mode-must-work-properly-with-css-transforms" class="tocxref"><span class="secno">4.1.5 </span>An element with <code>mix-blend-mode</code> must work properly with css transforms</a></li><li class="tocline"><a href="#an-element-with-mix-blend-mode-must-work-properly-with-elements-with-overflow-property" class="tocxref"><span class="secno">4.1.6 </span>An element with <code>mix-blend-mode</code> must work properly with elements with <code>overflow</code> property</a></li><li class="tocline"><a href="#other-test-cases" class="tocxref"><span class="secno">4.1.7 </span>Other test cases</a></li></ul></li><li class="tocline"><a href="#test-cases-for-svg-elements-with-mix-blend-mode" class="tocxref"><span class="secno">4.2 </span>Test cases for SVG elements with <code>mix-blend-mode</code></a><ul class="toc"><li class="tocline"><a href="#mix-blend-mode-with-simple-svg-graphical-elements" class="tocxref"><span class="secno">4.2.1 </span><code>mix-blend-mode</code> with simple SVG graphical elements</a></li><li class="tocline"><a href="#mix-blend-mode-with-svg-groups" class="tocxref"><span class="secno">4.2.2 </span><code>mix-blend-mode</code> with SVG groups</a></li><li class="tocline"><a href="#mix-blend-mode-with-isolated-groups" class="tocxref"><span class="secno">4.2.3 </span><code>mix-blend-mode</code> with isolated groups</a></li><li class="tocline"><a href="#other-test-cases-for-svg" class="tocxref"><span class="secno">4.2.4 </span>Other test cases for SVG</a></li></ul></li><li class="tocline"><a href="#test-cases-for-background-blend-mode" class="tocxref"><span class="secno">4.3 </span>Test cases for <code>background-blend-mode</code></a><ul class="toc"><li class="tocline"><a href="#blending-between-the-background-layers-and-the-background-color-for-an-element-with-background-blend-mode" class="tocxref"><span class="secno">4.3.1 </span>Blending between the background layers and the background color for an element with <code>background-blend-mode</code> </a></li><li class="tocline"><a href="#background-layers-do-not-blend-with-content-outside-the-background-or-behind-the-element" class="tocxref"><span class="secno">4.3.2 </span>Background layers do not blend with content outside the background (or behind the element)</a></li><li class="tocline"><a href="#background-blend-mode-list-values-apply-to-the-corresponding-background-layer" class="tocxref"><span class="secno">4.3.3 </span> <code>background-blend-mode</code> list values apply to the corresponding background layer</a></li><li class="tocline"><a href="#background-blend-mode-list-values-are-repeated-if-the-list-is-shorter-than-the-background-layer-list" class="tocxref"><span class="secno">4.3.4 </span><code>background-blend-mode</code> list values are repeated if the list is shorter than the background layer list</a></li><li class="tocline"><a href="#the-default-background-blend-mode-value-for-the-background-shorthand-is-normal" class="tocxref"><span class="secno">4.3.5 </span>The default <code>background-blend-mode</code> value for the <code>background</code> shorthand is 'normal' </a></li><li class="tocline"><a href="#background-blend-mode-for-an-element-with-background-position" class="tocxref"><span class="secno">4.3.6 </span><code>background-blend-mode</code> for an element with <code>background-position</code></a></li><li class="tocline"><a href="#background-blend-mode-for-an-element-with-background-size" class="tocxref"><span class="secno">4.3.7 </span><code>background-blend-mode</code> for an element with <code>background-size</code></a></li><li class="tocline"><a href="#background-blend-mode-for-an-element-with-background-repeat" class="tocxref"><span class="secno">4.3.8 </span><code>background-blend-mode</code> for an element with <code>background-repeat</code></a></li><li class="tocline"><a href="#background-blend-mode-for-an-element-with-background-clip" class="tocxref"><span class="secno">4.3.9 </span><code>background-blend-mode</code> for an element with <code>background-clip</code></a></li><li class="tocline"><a href="#background-blend-mode-for-an-element-with-background-origin" class="tocxref"><span class="secno">4.3.10 </span><code>background-blend-mode</code> for an element with <code>background-origin</code></a></li><li class="tocline"><a href="#background-blend-mode-for-an-element-with-background-attachement" class="tocxref"><span class="secno">4.3.11 </span><code>background-blend-mode</code> for an element with <code>background-attachement</code></a></li></ul></li><li class="tocline"><a href="#test-cases-for-isolation" class="tocxref"><span class="secno">4.4 </span>Test cases for <code>isolation</code></a><ul class="toc"><li class="tocline"><a href="#an-element-with-isolation-isolate-creates-a-stacking-context" class="tocxref"><span class="secno">4.4.1 </span>An element with <code>isolation:isolate</code> creates a stacking context</a></li><li class="tocline"><a href="#an-element-with-isolation-isolate-creates-an-isolated-group-for-blended-children" class="tocxref"><span class="secno">4.4.2 </span>An element with <code>isolation:isolate</code> creates an isolated group for blended children</a></li><li class="tocline"><a href="#an-element-with-isolation-auto-set-does-not-change-the-elements-existing-stacking-context-behavior" class="tocxref"><span class="secno">4.4.3 </span>An element with <code>isolation:auto</code> set does not change the elements existing stacking context behavior</a></li></ul></li><li class="tocline"><a href="#test-cases-for-isolation-in-svg" class="tocxref"><span class="secno">4.5 </span>Test cases for <code>isolation</code> in SVG</a><ul class="toc"><li class="tocline"><a href="#in-svg-an-element-with-isolation-isolate-creates-an-isolated-group-for-blended-children" class="tocxref"><span class="secno">4.5.1 </span>In SVG, an element with <code>isolation:isolate</code> creates an isolated group for blended children</a></li><li class="tocline"><a href="#in-svg-an-element-with-isolation-auto-set-does-not-change-the-rendering-behaviour" class="tocxref"><span class="secno">4.5.2 </span>In SVG, an element with <code>isolation:auto</code> set does not change the rendering behaviour</a></li></ul></li></ul></li><li class="tocline"><a href="#references" class="tocxref"><span class="secno">A. </span>References</a><ul class="toc"><li class="tocline"><a href="#normative-references" class="tocxref"><span class="secno">A.1 </span>Normative references</a></li><li class="tocline"><a href="#informative-references" class="tocxref"><span class="secno">A.2 </span>Informative references</a></li></ul></li></ul></section>
+		<section id="goals">
+			<!--OddPage--><h2 aria-level="1" role="heading" id="h2_goals"><span class="secno">1. </span>Goals</h2>
+			<section id="providing-guidance-on-testing">
+				<h3 aria-level="2" role="heading" id="h3_providing-guidance-on-testing"><span class="secno">1.1 </span>Providing guidance on testing</h3>
+				<p>
+					In order to increase the quality of the test contributions, this
+					document offers a set of test cases description for conducting testing (see
+					<a href="#test-cases-description" class="sectionRef sec-ref">section <span class="secno">4.</span> <span class="sec-title">Test cases description</span></a>).
+				</p>
+			</section>
+			<section id="creating-automation-friendly-tests">
+				<h3 aria-level="2" role="heading" id="h3_creating-automation-friendly-tests"><span class="secno">1.2 </span>Creating automation-friendly tests</h3>
+				<p>
+					In terms of actual tests produced for the CSS Compositing and Blending, the main goal
+					is to ensure that most tests are automatable (i.e. they're either
+					reftests or use <code>testharness.js</code>). Even where manual tests
+					are absolutely necessary they should be written so that they can be
+					easily automated – as there are on-going efforts to make
+					WebDriver [<cite><a class="bibref" href="#bib-webdriver">webdriver</a></cite>] automated tests a first class citizen in W3C
+					testing. This means that even if a manual test requires user
+					interaction, the validation or PASS/FAIL conditions should still be
+					clear enough as to allow automatic validation if said interaction is
+					later automated.
+				</p>
+			</section>
+		</section>
+		<section id="approach">
+			<!--OddPage--><h2 aria-level="1" role="heading" id="h2_approach"><span class="secno">2. </span>Approach</h2>
+			<p>
+				Since CSS blending has only three new CSS properties,
+				the approach is to deep dive into every aspect of the spec as much as possible.
+
+				Tests will be created for the testing areas listed in <a href="#testig-areas" class="sectionRef"></a>
+				and having as guidance the test cases description from <a href="#test-cases-description" class="sectionRef sec-ref">section <span class="secno">4.</span> <span class="sec-title">Test cases description</span></a>.
+			</p>
+		</section>
+		<section id="testing-areas">
+			<!--OddPage--><h2 aria-level="1" role="heading" id="h2_testing-areas"><span class="secno">3. </span>Testing areas</h2>
+			<section id="explicit-testing-areas">
+				<h3 aria-level="2" role="heading" id="h3_explicit-testing-areas"><span class="secno">3.1 </span>Explicit testing areas</h3>
+					<p>
+					  These testing areas cover things explicitly defined in the normative sections of the Blending and Compositing spec. Please note that while detailed, this list is not necessarily
+					  exhaustive and some normative behaviors may not be contained in it.
+					  When in doubt, consult the Blending and Compositing spec or ask a question on the
+					  <a href="http://lists.w3.org/Archives/Public/www-style/">mailing
+					  list</a>.
+					</p>
+				<p>Below is the list of explicit testing areas:</p>
+				<ol>
+					<li>Proper parsing of the CSS properties and rendering according to the spec
+						<ul><code>mix-blend-mode</code></ul>
+						<ul><code>isolation</code></ul>
+						<ul><code>background-blend-mode</code></ul>
+					</li>
+					<li>SVG blending</li>
+					<li>Canvas 2D blending</li>
+				</ol>
+			</section>
+			<section id="implicit-testing-areas">
+				<h3 aria-level="2" role="heading" id="h3_implicit-testing-areas"><span class="secno">3.2 </span>Implicit testing areas</h3>
+				<p>
+				  These are testing areas either normatively defined in other specs
+				  that explicitly refer to the Blending and Compositing spec (e.g. [<cite><a class="bibref" href="#bib-css3-transforms">css3-transforms</a></cite>])
+				  or simply not explicitly defined, but implied by various aspects of
+				  the spec (e.g. processing model, CSS 2.1 compliance, etc.).
+				  Please note that while detailed, this list is not necessarily
+				  exhaustive and some normative behaviors may not be contained in it.
+				  When in doubt, consult the Blending and Compositing spec or ask a question on the
+				  <a href="http://lists.w3.org/Archives/Public/www-style/">mailing
+				  list</a>.
+				</p>
+				<p>Below is the list of implicit testing areas:</p>
+				<ol>
+					<li>Blending different types of elements
+						<ul>
+							<li><code>&lt;video&gt;</code></li>
+							<li><code>&lt;canvas&gt;</code></li>
+							<li><code>&lt;table&gt;</code></li>
+							</ul>
+					</li>
+					<li>Blending elements with specific style rules applied
+						<ul>
+							<li><code>transforms</code></li>
+							<li><code>transitions</code> </li>
+							<li><code>animations</code> </li>
+						</ul>
+					</li>
+				</ol>
+			</section>
+		</section>
+		<section id="test-cases-description">
+				<!--OddPage--><h2 aria-level="1" role="heading" id="h2_test-cases-description"><span class="secno">4. </span>Test cases description</h2>
+				<section id="test-cases-for-mix-blend-mode">
+					<h3 aria-level="2" role="heading" id="h3_test-cases-for-mix-blend-mode"><span class="secno">4.1 </span>Test cases for <code>mix-blend-mode</code></h3>
+					<p>
+						The following diagram describes a list of notations to be used later on in the document as well as the general document structure the test cases will follow. The test cases should not be limited to this structure. This should be a wireframe and people are encouraged to come up with complex test cases as well.
+					</p>
+					<p>
+						<img id="test_outline" src="test_template.png" alt="Mix-blend-mode sample elements">
+					</p>
+					<p>The intended structure of the document is the following:</p>
+						<pre>&lt;body&gt;
+  &lt;div id="[P]"&gt;
+    &lt;div id="[IN-S]"&gt;&lt;/div&gt;
+    &lt;div id="[IN-P]"&gt;
+      &lt;div id="[B]"&gt;
+        &lt;div id="[CB]"&gt;&lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/body&gt;
+						</pre>
+					<p> Unless otherwise stated, test cases assume the following properties for the elements: <br>
+						</p><ul>
+						<li> default value for the <code>background-color</code> of the <code>body</code></li>
+						<li> <code>background-color</code> set to a fully opaque color for all the other elements </li>
+						</ul>
+					<p></p>
+					<p>The CSS associated to the elements used in the tests shouldn't use properties that creates a stacking context, except the ones specified in the test case descriptions.</p>
+					<p><a href="http://www.w3.org/TR/CSS2/visuren.html#propdef-z-index">Here you can find a description of stacking contexts.</a> Note that z-index applied to positioned elements creates a stacking context. This means that for [P], we must set the z-index and position (absolute, for example) properties to make sure it creates the stacking context.</p>
+					<p>Every test case has a description of the elements used. The notation from the image is used in the test case description too (e.g. for parent element the notation is [P]). Each test case uses only a subset of the elements while the other elements should just be removed.
+					</p><p></p>
+					<section id="an-element-with-mix-blend-mode-other-than-normal-creates-a-stacking-context">
+						<h4 aria-level="3" role="heading" id="h4_an-element-with-mix-blend-mode-other-than-normal-creates-a-stacking-context"><span class="secno">4.1.1 </span>An element with <code>mix-blend-mode</code> other than normal creates a stacking context</h4>
+						<p>Refers to the following assertion in the <a href="https://drafts.fxtf.org/compositing-1/#mix-blend-mode">spec</a>: <q>Applying a blendmode other than ‘normal’ to the element must establish a new stacking context [CSS21].</q></p>
+						<table>
+							<tbody><tr>
+								<th>Test name</th>
+								<th>Elements and styles</th>
+								<th>Expected result</th>
+							</tr>
+							<tr>
+								<td>Simple <code>&lt;div&gt;</code></td>
+								<td>1 element required: <a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> <br>
+									[B] - element with <code>mix-blend-mode</code> other than normal
+								 </td>
+								<td>The element [B] creates a stacking context</td>
+							</tr>
+						</tbody></table>
+					</section>
+					<section id="an-element-with-mix-blend-mode-blends-with-the-content-within-the-current-stacking-context">
+						<h4 aria-level="3" role="heading" id="h4_an-element-with-mix-blend-mode-blends-with-the-content-within-the-current-stacking-context"><span class="secno">4.1.2 </span>An element with <code>mix-blend-mode</code> blends with the content within the current stacking context</h4>
+						<p>Refers to the following assertion in the <a href="https://drafts.fxtf.org/compositing-1/#csscompositingrules_CSS">spec</a>: <q>An element that has blending applied, must blend with all the underlying content of the stacking context [CSS21] that that element belongs to.</q><br>
+						This section tests if the blending operation is performed. </p>
+						<table>
+							<tbody><tr>
+								<th>Test name</th>
+								<th>Elements and styles</th>
+								<th>Expected result</th>
+							</tr>
+							<tr>
+								<td>Blending simple elements </td>
+								<td>2 elements required: <a href="#test_outline" title="parent element with a property that creates stacking context">[P]</a> and  <a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> <br>
+									[P] - parent element with a property that creates a stacking context (e.g. <code>position:fixed</code>) <br>
+									[B] - element with <code>mix-blend-mode</code> other than normal
+								</td>
+								<td>The color of the parent element [P] mixes with the color of the child element [B].</td>
+							</tr>
+							<tr>
+								<td>Blending with a sibling</td>
+								<td>3 elements required: <a href="#test_outline" title="parent element with a property that creates stacking context">[P]</a>, <a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> and <a href="#test_outline" title="Sibling of the element [B]">[IN-S]</a> <br>
+									[P] - parent element with a property that creates a stacking context (e.g. <code>position:fixed</code>) <br>
+									[B] - element with <code>mix-blend-mode</code> other than normal <br>
+									[IN-S] - sibling of the element [B] <br>
+									The [IN-S] element visually overlaps the [B] element
+								</td>
+								<td>The colors of the parent element [P] and the sibling element [IN-S] mixes with the color of the blended element [B].</td>
+							</tr>
+							<tr>
+								<td>Blending with two levels of ascendants</td>
+								<td>3 elements required: <a href="#test_outline" title="parent element with a property that creates stacking context">[P]</a>, <a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> and <a href="#test_outline" title="child of the element [P]">[IN-P]</a> <br>
+									[P] - parent element with a property that creates a stacking context (e.g. <code>position:fixed</code>) <br>
+									[B] - element with <code>mix-blend-mode</code> other than normal <br>
+									[IN-P] - Intermediate child element between the parent [P] and the child [B]
+								</td>
+								<td>The colors of the parent element [P] and the child element [IN-P] mixes with the color of the blended element [B].</td>
+							</tr>
+						</tbody></table>
+					</section>
+					<section id="an-element-with-mix-blend-mode-doesn-t-blend-with-anything-outside-the-current-stacking-context">
+						<h4 aria-level="3" role="heading" id="h4_an-element-with-mix-blend-mode-doesn-t-blend-with-anything-outside-the-current-stacking-context"><span class="secno">4.1.3 </span>An element with <code>mix-blend-mode</code> doesn't blend with anything outside the current stacking context</h4>
+						<p>Refers to the following assertion in the <a href="https://drafts.fxtf.org/compositing-1/#csscompositingrules_CSS">spec</a>: <q> An element that has blending applied, must blend with all the underlying content of the stacking context [CSS21] that that element belongs to.</q> <br>
+						This section tests if the isolation is performed. </p>
+						<table>
+							<tbody><tr>
+								<th>Test name</th>
+								<th>Elements and styles</th>
+								<th>Expected result</th>
+							</tr>
+							<tr>
+								<td>Blending child overflows the parent</td>
+								<td>2 elements required: <a href="#test_outline" title="parent element with a property that creates stacking context">[P]</a> and <a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> <br>
+									[P] - parent element with a property that creates a stacking context (e.g. <code>position:fixed</code>) <br>
+									[B] - element with <code>mix-blend-mode</code> other than normal <br>
+									The blending element [B] has content that lies outside the parent element. <br>
+									Set the <code>background-color</code> of the <code>body</code> to a value other than default</td>
+								<td>The color of the parent element mixes with the color of the child element. <br>
+									 The area of the child element outside of the parent element doesn't mix with the color of the <code>body</code></td>
+							</tr>
+							<tr>
+								<td>Parent with transparent pixels</td>
+								<td>2 elements required: <a href="#test_outline" title="parent element with a property that creates stacking context">[P]</a> and <a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> <br>
+									[P] - parent element with a property that creates a stacking context (e.g. <code>position:fixed</code>) <br>
+									The element has some text inside and default value for <code>background-color</code> <br>
+									[B] - element with <code>mix-blend-mode</code> other than normal <br>
+									The <code>background-color</code> of the <code>body</code> has a value other than default</td>
+								<td>The color of the text from the parent element [P] mixes with the color of the child element [B]. <br>
+								No blending between the color of the <code>body</code> and the color of the blending element [B].
+								 </td>
+							</tr>
+							<tr>
+								<td>Parent with <code>border-radius</code></td>
+								<td>2 elements required: <a href="#test_outline" title="parent element with a property that creates stacking context">[P]</a> and <a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> <br>
+										[P] - parent element with a property that creates a stacking context (e.g. <code>position:fixed</code>) <br>
+										[P] has <code>border-radius</code> specified (e.g.50%). <br>
+										[B] - element with <code>mix-blend-mode</code> other than normal <br>
+										[B] has content that lies outside the parent element, over a rounded corner. <br>
+										The <code>background-color</code> of the <code>body</code> has a value other than default. </td>
+								<td>The color of the parent element mixes with the color of the child element. <br>
+									 The area of the child element which draws over the rounded corner doesn't mix with the color of the <code>body</code></td>
+							</tr>
+						</tbody></table>
+					</section>
+					<section id="an-element-with-mix-blend-mode-other-than-normal-must-cause-a-group-to-be-isolated">
+						<h4 aria-level="3" role="heading" id="h4_an-element-with-mix-blend-mode-other-than-normal-must-cause-a-group-to-be-isolated"><span class="secno">4.1.4 </span>An element with <code>mix-blend-mode</code> other than normal must cause a group to be isolated</h4>
+						<p>Refers to the following assertion in the <a href="https://drafts.fxtf.org/compositing-1/#isolation">spec</a>: <q>operations that cause the creation of stacking context [CSS21] must cause a group to be isolated.</q> <br>
+						The following section also tests that mix-blend-mode is not inheritable. If you set mix-blend-mode on a parent, the child should not blend with the parent. Instead, the whole group should blend as a whole, using the parent's blending operator.</p>
+						<table>
+							<tbody><tr>
+								<th>Test name</th>
+								<th>Elements and styles</th>
+								<th>Expected result</th>
+							</tr>
+							<tr>
+								<td>Child of the blended element has opacity</td>
+								<td>3 elements required: <a href="#test_outline" title="parent element with a property that creates stacking context">[P]</a>, <a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> and <a href="#test_outline" title="Child of the lement [B]">[CB]</a> <br>
+									[P] - parent element with a property that creates a stacking context (e.g. <code>position:fixed</code>) <br>
+									[B] - element with <code>mix-blend-mode</code> other than normal <br>
+									[CB] - child of the element [B] with <code>opacity</code> less than one. </td>
+								<td>The group created by the two child elements([B] and [CB]) is blended with the parent element [P]. <br>
+								No blending between [B] and [CB]</td>
+							</tr>
+							<tr>
+								<td>Overflowed child of the blended element</td>
+								<td>3 elements required: <a href="#test_outline" title="parent element with a property that creates stacking context">[P]</a>, <a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> and <a href="#test_outline" title="Child of the lement [B]">[CB]</a> <br>
+										[P] - parent element with a property that creates a stacking context (e.g. <code>position:fixed</code>) <br>
+										[B] - element with <code>mix-blend-mode</code> other than normal <br>
+										[CB] - child of the element [B] with content that lies outside the parent element [B].
+								</td>
+								<td>The group created by the two child elements([B] and [CB]) is blended with the parent element [P]. <br>
+								No blending between [B] and [CB]. There is only one color for the entire element [CB] </td>
+							</tr>
+							<tr>
+								<td>Blended element with transparent pixels</td>
+								<td>3 elements required: <a href="#test_outline" title="parent element with a property that creates stacking context">[P]</a>, <a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> and <a href="#test_outline" title="Child of the lement [B]">[CB]</a> <br>
+									[P] - parent element with a property that creates a stacking context (e.g. <code>position:fixed</code>) <br>
+									[B] - element with <code>mix-blend-mode</code> other than normal and transparent <code>background-color</code> <br>
+									[CB] - child of the element [B]
+								</td>
+								<td>The group created by the two child elements([B] and [CB]) is blended with the parent element [P]. <br>
+								No blending between [B] and [CB]. </td>
+							</tr>
+						</tbody></table>
+					</section>
+					<section id="an-element-with-mix-blend-mode-must-work-properly-with-css-transforms">
+						<h4 aria-level="3" role="heading" id="h4_an-element-with-mix-blend-mode-must-work-properly-with-css-transforms"><span class="secno">4.1.5 </span>An element with <code>mix-blend-mode</code> must work properly with css transforms</h4>
+						<table>
+							<tbody><tr>
+								<th>Test name</th>
+								<th>Elements and styles</th>
+								<th>Expected result</th>
+							</tr>
+							<tr>
+								<td>Parent with 3D transform</td>
+								<td>2 elements required: <a href="#test_outline" title="parent element with a property that creates stacking context">[P]</a> and  <a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> <br>
+									[P] - parent element with <code>3D transform</code> <br>
+									[B] - element with <code>mix-blend-mode</code> other than normal
+								</td><td>The color of the parent element [P] mixes with the color of the child element [B] <br>
+									The element (and the content) of the element [P] is properly transformed
+								</td>
+							</tr>
+							<tr>
+								<td>Blended element with 3D transform</td>
+								<td>2 elements required: <a href="#test_outline" title="parent element with a property that creates stacking context">[P]</a>, <a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> and <a href="#test_outline" title="Child of the lement [B]">[CB]</a> <br>
+									[P] - parent element with a property that creates a stacking context (e.g. <code>position:fixed</code>) <br>
+									[B] - element with <code>mix-blend-mode</code> other than normal and <code>3D transform</code> <br>
+									[CB] - child of the element [B] </td>
+								<td> The color of the parent element [P] mixes with the color of the child element [B] <br>
+									The element (and the content) of the element [P] is properly transformed </td>
+							</tr>
+							<tr>
+								<td>Both parent and blended element with 3D transform</td>
+								<td> 2 elements required: <a href="#test_outline" title="parent element with a property that creates stacking context">[P]</a> and  <a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> <br>
+									[P] - parent element with <code>3D transform</code> <br>
+									[B] - element with <code>mix-blend-mode</code> other than normal and <code>3D transform</code>
+								</td>
+								<td>The color of the parent element [P] mixes with the color of the child element [B] <br>
+									The elements (and the content) of the elements [P]  and [B] are properly transformed</td>
+							</tr>
+							<tr>
+								<td>Blended element should force transform-style to flat</td>
+								<td>1 element required: <a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> <br>
+									[B] - element with <code>mix-blend-mode</code> other than normal and <code>transform-style</code>.
+								 </td>
+								<td>For each value of the <code>transform-style</code> (<code>preserve-3d</code> or <code>flat</code>), [B]'s computed value of <code>transform-style</code> is equal to <code>flat</code></td>
+							</tr>
+							<tr>
+								<td>Blended element with transform and preserve-3d</td>
+								<td>3 elements required: <a href="#test_outline" title="parent element with a property that creates stacking context">[P]</a>, <a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> and <a href="#test_outline" title="Child of the lement [B]">[CB]</a> <br>
+										[P] - parent element with a property that creates a stacking context (e.g. <code>position:fixed</code>) <br>
+										[B] - element with <code>mix-blend-mode</code> other than normal and transform with <code>transform-style:preserve-3d</code> <br>
+										[CB] - child of the element [B]. It has 3D transform property</td>
+								<td> The child element [CB] will NOT preserve its 3D position. <br>
+								<code>mix-blend-mode</code> override the behavior of <code>transform-style:preserve-3d</code>:
+								creates a flattened representation of the descendant elements <br>
+								The color of the group created by the child elements([B] and [CB]) will blend with the color of the parent element [P] </td>
+							</tr>
+							<tr>
+								<td>Blended element with transform and perspective</td>
+								<td>2 elements required: <a href="#test_outline" title="parent element with a property that creates stacking context">[P]</a> and <a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> <br>
+										[P] - parent element with a property that creates a stacking context (e.g. <code>position:fixed</code>) <br>
+										[B] - element with <code>mix-blend-mode</code> other than normal and transform with <code>perspective</code> set to positive length </td>
+								<td>The colors of the parent and the child are mixed ([P] and [B]) <br>
+									The element (and the content) of the element [B] is properly transformed
+								</td>
+							</tr>
+							<tr>
+								<td>Sibling with 3D transform between the parent and the blended element</td>
+								<td>3 elements required: <a href="#test_outline" title="parent element with a property that creates stacking context">[P]</a>, <a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> and <a href="#test_outline" title="Sibling of the element [B]">[IN-S]</a> <br>
+									[P] - parent element with a property that creates a stacking context (e.g. <code>position:fixed</code>) <br>
+									[B] - element with <code>mix-blend-mode</code> other than normal <br>
+									[IN-S] - Sibling(of the element [B]) with <code>3D transform</code> between the parent [P] and the child [B]
+									 </td>
+								<td>The colors of the parent element [P] and the transformed sibling element [IN-S] mixes with the color of the blended element [B].<br>
+								The element (and the content) of the element [IN-S] is properly transformed
+								</td>
+							</tr>
+							<tr>
+								<td>Parent with 3D transform and transition</td>
+								<td>2 elements required: <a href="#test_outline" title="parent element with a property that creates stacking context">[P]</a> and  <a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> <br>
+									[P] - parent element with <code>3D transform</code> and transition <br>
+									[B] - element with <code>mix-blend-mode</code> other than normal
+								</td><td>The color of the parent element [P] mixes with the color of the child element [B] <br>
+									The element (and the content) of the element [P] is properly transformed
+								</td>
+							</tr>
+							<tr>
+								<td>Sibling with 3D transform(and transition) between the parent and the blended element</td>
+								<td>3 elements required: <a href="#test_outline" title="parent element with a property that creates stacking context">[P]</a>, <a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> and <a href="#test_outline" title="Sibling of the element [B]">[IN-S]</a> <br>
+									[P] - parent element with a property that creates a stacking context (e.g. <code>position:fixed</code>) <br>
+									[B] - element with <code>mix-blend-mode</code> other than normal <br>
+									[IN-S] - sibling(of the element [B]) with <code>3D transform</code> and transition between the parent [P] and the child [B]
+									 </td>
+								<td>The colors of the parent element [P] and the transformed sibling element [IN-S] mixes with the color of the blended element [B].<br>
+								The element (and the content) of the element [IN-S] is properly transformed
+								</td>
+							</tr>
+						</tbody></table>
+					</section>
+					<section id="an-element-with-mix-blend-mode-must-work-properly-with-elements-with-overflow-property">
+						<h4 aria-level="3" role="heading" id="h4_an-element-with-mix-blend-mode-must-work-properly-with-elements-with-overflow-property"><span class="secno">4.1.6 </span>An element with <code>mix-blend-mode</code> must work properly with elements with <code>overflow</code> property</h4>
+						<table>
+							<tbody><tr>
+								<td>Parent element with <code>overflow:scroll</code> </td>
+								<td>2 elements required: <a href="#test_outline" title="parent element with a property that creates stacking context">[P]</a> and <a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> <br>
+									[P] - parent element with a property that creates a stacking context (e.g. <code>position:fixed</code>) <br>
+									[P] has <code>overflow:scroll</code> <br>
+									[B] - element with <code>mix-blend-mode</code> other than normal tat overflows the parents [P] dimensions so that it creates scrolling for the parent
+								</td><td>The color of the parent element [P] mixes with the color of the child element [B]. <br>
+									The scrolling mechanism is not affected.
+								</td>
+							</tr>
+							<tr>
+								<td>Blended element with <code>overflow:scroll</code></td>
+								<td>2 elements required: <a href="#test_outline" title="parent element with a property that creates stacking context">[P]</a> and <a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> <br>
+									[P] - parent element with a property that creates a stacking context (e.g. <code>position:fixed</code>) <br>
+									[B] - element with <code>mix-blend-mode</code> other than normal, <code>overflow:scroll</code> and a child element that creates overflow for [B]</td>
+								<td>The color of the parent element [P] mixes with the color of the child element [B] <br>
+									The scrolling mechanism is not affected.
+								</td>
+							</tr>
+							<tr>
+								<td>Parent element with <code>overflow:scroll</code> and blended with <code>position:fixed</code> </td>
+								<td>2 elements required: <a href="#test_outline" title="parent element with a property that creates stacking context">[P]</a> and <a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> <br>
+									[P] - parent element with a property that creates a stacking context (e.g. <code>position:fixed</code>) <br>
+									[P] has <code>overflow:scroll</code> <br>
+									[B] - element with <code>mix-blend-mode</code> other than normal, <code>position:fixed</code> and should overflow the parents [P] dimensions so that it creates scrolling for the parent</td>
+								<td>The color of the parent element [P] mixes with the color of the child element [B] <br>
+									The blending happens when scrolling the content of the parent element [P] too. <br>
+									The scrolling mechanism is not affected.
+								</td>
+							</tr>
+
+							<tr>
+								<td>Parent with <code>overflow:hidden</code></td>
+								<td>2 elements required: <a href="#test_outline" title="parent element with a property that creates stacking context">[P]</a> and <a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> <br>
+									[P] - parent element with a property that creates a stacking context (e.g. <code>position:fixed</code>) <br>
+									[P] has <code>overflow:hidden</code><br>
+									[B] - element with <code>mix-blend-mode</code> other than normal with content that lies outside the parent element<br>
+									Set the <code>background-color</code> of the <code>body</code> to a value other than default.</td>
+								<td>The color of the parent element mixes with the color of the child element.</td>
+							</tr>
+							<tr>
+								<td>Blended element with <code>overflow:hidden</code></td>
+								<td>3 elements required: <a href="#test_outline" title="parent element with a property that creates stacking context">[P]</a> and <a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> and <a href="#test_outline" title="Child of the element [B]">[CB]</a> <br>
+									[P] - parent element with a property that creates a stacking context (e.g. <code>position:fixed</code>) <br>
+									[B] - element with <code>mix-blend-mode</code> other than normal and <code>overflow:hidden</code>. <br>
+									[CB] - child of the element [B], with content that lies outside the parent element. <br> </td>
+								<td>The group created by the two child elements([B] and [CB]) is blended with the parent element [P]. <br>
+									No blending between [B] and [CB]. <br>
+									[CB] is properly clipped so no overflow is visible.</td>
+							</tr>
+							<tr>
+								<td>Intermediate child with <code>overflow:hidden</code>between the parent and the blended element</td>
+								<td>3 elements required: <a href="#test_outline" title="parent element with a property that creates stacking context">[P]</a>, <a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> and <a href="#test_outline" title="child of the element [P]">[IN-P]</a> <br>
+									[P] - parent element with a property that creates a stacking context (e.g. <code>position:fixed</code>) <br>
+									[B] - element with <code>mix-blend-mode</code> other than normal that overflows the parents [IN-P] dimensions
+									[IN-P] - child(of the element [P]) with <code>overflow:hidden</code>
+								</td>
+								<td>The colors of the parent element [P] and the child element [IN-P] mixes with the color of the blended element [B]. <br>
+									[B] is is properly clipped so no overflow is visible
+								</td>
+							</tr>
+
+							<tr>
+								<td>Parent with <code>overflow:hidden</code> and <code>border-radius</code></td>
+								<td>2 elements required: <a href="#test_outline" title="parent element with a property that creates stacking context">[P]</a> and <a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> <br>
+									[P] - parent element with a property that creates a stacking context (e.g. <code>position:fixed</code>) <br>
+									[P] has <code>overflow:hidden</code> and <code>border-radius</code> specified (e.g.50%) <br>
+									[B] - element with <code>mix-blend-mode</code> other than normal with content that lies outside the parent element, over a rounded corner <br>
+									Set the <code>background-color</code> of the <code>body</code> to a value other than default.</td>
+								<td>The color of the parent element mixes with the color of the child element. <br>
+									The area of the child element which draws over the rounded corner is properly cut </td>
+							</tr>
+							<tr>
+								<td>Blended element with <code>overflow:hidden</code> and <code>border-radius</code></td>
+								<td>3 elements required: <a href="#test_outline" title="parent element with a property that creates stacking context">[P]</a> and <a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> and <a href="#test_outline" title="Child of the element [B]">[CB]</a> <br>
+									[P] - parent element with a property that creates a stacking context (e.g. <code>position:fixed</code>) <br>
+									[B] - element with <code>mix-blend-mode</code> other than normal, <code>overflow:hidden</code> and <code>border-radius</code> specified (e.g.50%). <br>
+									[CB] - child of the element [B], with content that lies outside the parent element, over a rounded corner. <br> </td>
+								<td>The group created by the two child elements([B] and [CB]) is blended with the parent element [P]. <br>
+									No blending between [B] and [CB]. <br>
+									[CB] is properly clipped so no overflow is visible.</td>
+							</tr>
+							<tr>
+								<td>Intermediate child with <code>overflow:hidden</code> and <code>border-radius</code> between the parent and the blended element</td>
+								<td>3 elements required: <a href="#test_outline" title="parent element with a property that creates stacking context">[P]</a>, <a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> and <a href="#test_outline" title="child of the element [P]">[IN-P]</a> <br>
+									[P] - parent element with a property that creates a stacking context (e.g. <code>position:fixed</code>) <br>
+									[B] - element with <code>mix-blend-mode</code> other than normal that overflows the parents [IN-P] dimensions
+									[IN-P] - child(of the element [P]) with <code>overflow:hidden</code> and <code>border-radius</code> specified (e.g.50%)
+									 </td>
+								<td>The colors of the parent element [P] and the child element [IN-P] mixes with the color of the blended element [B]. <br>
+									[B] is is properly clipped so no overflow is visible
+								</td>
+							</tr>
+						</tbody></table>
+					</section>
+				<section id="other-test-cases">
+					<h4 aria-level="3" role="heading" id="h4_other-test-cases"><span class="secno">4.1.7 </span>Other test cases</h4>
+					<table>
+						<tbody><tr>
+							<th>Test name</th>
+							<th>Elements and styles</th>
+							<th>Expected result</th>
+						</tr>
+						<tr>
+							<td>Blended element with <code>border-image</code> </td>
+							<td>2 elements required: <a href="#test_outline" title="parent element with a property that creates stacking context">[P]</a> and <a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> <br>
+								[P] - parent element with a property that creates a stacking context (e.g. <code>position:fixed</code>) <br>
+								[B] - element with <code>mix-blend-mode</code> other than normal and <code>border-image</code> specified as a png file
+							</td>
+							<td>The color of the parent element [P] mixes with the color of the child element. <br>
+								The color of the <code>border-image</code> mixes with the color of the parent element [P].
+							</td>
+						</tr>
+						<tr>
+							<td>Blending with <code>&lt;canvas&gt;</code> </td>
+							<td>2 elements required: <a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> and <a href="#test_outline" title="Sibling of the element [B]">[IN-S]</a> <br>
+								[B] - <code>&lt;canvas&gt;</code> element with <code>mix-blend-mode</code> other than normal <br>
+								[IN-S] - Sibling of the <code>&lt;canvas&gt;</code> element with some text <br>
+								The [IN-S] element overlaps the <code>&lt;canvas&gt;</code> element
+							</td>
+							<td>The content of the <code>&lt;canvas&gt;</code> element mixes with the color of the sibling element and the text [IN-S].</td>
+						</tr>
+						<tr>
+							<td>Blended <code>&lt;canvas&gt;</code></td>
+							<td>2 elements required: <a href="#test_outline" title="parent element with a property that creates stacking context">[P]</a> and <a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> <br>
+								[P] - parent element with a property that creates a stacking context (e.g. <code>position:fixed</code>) <br>
+								[B] - Child <code>&lt;canvas&gt;</code> element with <code>mix-blend-mode</code> other than normal
+							</td>
+							<td>The color of the <code>&lt;canvas&gt;</code> element [B] mixes with the color of the parent element [P] .</td>
+						</tr>
+						<tr>
+							<td>Blending with <code>&lt;video&gt;</code></td>
+							<td>2 elements required: <a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> and <a href="#test_outline" title="Sibling of the element [B]">[IN-S]</a> <br>
+								[B] - <code>&lt;video&gt;</code> element with <code>mix-blend-mode</code> other than normal <br>
+								[IN-S] - sibling(of the element [B]) visually overlaping the <code>&lt;video&gt;</code> element <br>
+								[IN-S] has some text inside
+						</td>
+							<td>The content of the <code>video</code> element [B] mixes with the colors of the sibling element and the text from [IN-S].</td>
+						</tr>
+						<tr>
+							<td>Blended <code>&lt;video&gt;</code></td>
+							<td>2 elements required: <a href="#test_outline" title="parent element with a property that creates stacking context">[P]</a> and <a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> <br>
+								[P] - parent element with a property that creates a stacking context (e.g. <code>position:fixed</code>) <br>
+								[B] - <code>&lt;video&gt;</code> element with <code>mix-blend-mode</code> other than normal
+							</td>
+							<td>The color of the <code>&lt;video&gt;</code> element mixes with the color of the parent element [P] .</td>
+						</tr>
+						<tr>
+							<td>Blending with <code>&lt;iframe&gt;</code> </td>
+							<td>2 elements required: <a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> and <a href="#test_outline" title="Sibling of the element [B]">[IN-S]</a> <br>
+									[B] - <code>&lt;iframe&gt;</code> element with <code>mix-blend-mode</code> other than normal <br>
+									[IN-S] - sibling(of the element [B]) with some text <br>
+									The [IN-S] element visually overlaps the <code>&lt;iframe&gt;</code> element
+							</td>
+							<td>The color of the <code>&lt;iframe&gt;</code> element mixes with the color of the sibling element and the text [IN-S].</td>
+						</tr>
+						<tr>
+							<td>Blended <code>&lt;iframe&gt;</code></td>
+							<td>2 elements required: <a href="#test_outline" title="parent element with a property that creates stacking context">[P]</a> and <a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> <br>
+								[P] - parent element with a property that creates a stacking context (e.g. <code>position:fixed</code>) <br>
+								[B] - <code>&lt;iframe&gt;</code> element with <code>mix-blend-mode</code> other than normal
+							</td>
+							<td>The color of the <code>&lt;iframe&gt;</code> element [B] mixes with the color of the parent element [P]. </td>
+						</tr>
+						<tr>
+							<td>Blended element with <code>mask</code> property</td>
+							<td>2 elements required: <a href="#test_outline" title="parent element with a property that creates stacking context">[P]</a> and <a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> <br>
+								[P] - parent element with a property that creates a stacking context (e.g. <code>position:fixed</code>) <br>
+								[B] - element with <code>mix-blend-mode</code> other than normal and <code>mask</code> property specified to an SVG image (e.g. circle)</td>
+							<td>The colors of the parent and the masked child are mixed ([P] and [B])</td>
+						</tr>
+						<tr>
+							<td>Blended element with <code>clip-path</code> property </td>
+							<td>2 elements required: <a href="#test_outline" title="parent element with a property that creates stacking context">[P]</a> and <a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> <br>
+								[P] - parent element with a property that creates a stacking context (e.g. <code>position:fixed</code>) <br>
+								[B] - element with <code>mix-blend-mode</code> other than normal and <code>clip-path</code> property specified to a basic shape (e.g. ellipse)</td>
+							<td>The colors of the parent and the clipped child are mixed ([P] and [B])</td>
+						</tr>
+						<tr>
+							<td>Blended element with <code>filter</code> property</td>
+							<td>2 elements required: <a href="#test_outline" title="parent element with a property that creates stacking context">[P]</a> and <a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> <br>
+								[P] - parent element with a property that creates a stacking context (e.g. <code>position:fixed</code>) <br>
+								[B] - element with <code>mix-blend-mode</code> other than normal and <code>filter</code> property value other than none </td>
+							<td>The filter is applied and the result is mixed with the parent element</td>
+						</tr>
+						<tr>
+							<td>Blended element with <code>transition</code></td>
+								<td>2 elements required: <a href="#test_outline" title="parent element with a property that creates stacking context">[P]</a> and <a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> <br>
+									[P] - parent element with a property that creates a stacking context (e.g. <code>position:fixed</code>) <br>
+									[B] - element with <code>mix-blend-mode</code> other than normal and <code>transition-property</code> for <code>opacity</code> </td>
+							<td>The transition is applied and the result is mixed with the parent element</td>
+						</tr>
+							<tr>
+							<td>Blended element with <code>animation</code></td>
+							<td>2 elements required: <a href="#test_outline" title="parent element with a property that creates stacking context">[P]</a> and <a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> <br>
+								[P] - parent element with a property that creates a stacking context (e.g. <code>position:fixed</code>) <br>
+								[B] - element with <code>mix-blend-mode</code> other than normal and <code>animation</code> specified</td>
+							<td>The animation is applied to the child element and the result is mixed with the parent element</td>
+						</tr>
+						<tr>
+							<td>Blending with Image</td>
+							<td>2 elements required: <a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> and <a href="#test_outline" title="Sibling of the element [B]">[IN-S]</a> <br>
+								[B] - <code>&lt;img&gt;</code> element with <code>mix-blend-mode</code> other than normal <br>
+								[IN-S] - Sibling of the <code>&lt;img&gt;</code> element<br>
+								The [IN-S] element overlaps the <code>&lt;img&gt;</code> element
+							</td>
+							<td>The content of the <code>&lt;img&gt;</code> element mixes with the color of the sibling element [IN-S].</td>
+						</tr>
+						<tr>
+							<td>Blended Image</td>
+							<td>2 elements required: <a href="#test_outline" title="parent element with a property that creates stacking context">[P]</a> and <a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> <br>
+								[P] - parent element with a property that creates a stacking context (e.g. <code>position:fixed</code>) <br>
+								[B] - <code>&lt;img&gt;</code> element (.jpeg or .gif image) with <code>mix-blend-mode</code> other than normal</td>
+							<td>The color of the <code>&lt;img&gt;</code> is mixed with the color of the <code>&lt;div&gt;</code>.</td>
+						</tr>
+						<tr>
+							<td>Blending with SVG</td>
+							<td>2 elements required: <a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> and <a href="#test_outline" title="Sibling of the element [B]">[IN-S]</a> <br>
+								[B] - <code>&lt;svg&gt;</code> element with <code>mix-blend-mode</code> other than normal <br>
+								[IN-S] - Sibling of the <code>&lt;svg&gt;</code> element<br>
+								The [IN-S] element overlaps the <code>&lt;svg&gt;</code> element
+							</td>
+							<td>The content of the <code>&lt;svg&gt;</code> element mixes with the color of the sibling element [IN-S].</td>
+						</tr>
+						<tr>
+							<td>Blended SVG</td>
+							<td>2 elements required: <a href="#test_outline" title="parent element with a property that creates stacking context">[P]</a> and <a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> <br>
+								[P] - parent element with a property that creates a stacking context (e.g. <code>position:fixed</code>) <br>
+								[B] - SVG element with <code>mix-blend-mode</code> other than normal</td>
+							<td>The color of the SVG is mixed with the color of the <code>&lt;div&gt;</code>.</td>
+						</tr>
+						<tr>
+							<td>Linking SVG in an image</td>
+							<td>1 element required: <a href="#test_outline" <a href="#test_outline" title="img element">[B]</a> <br>
+								[B] - <code>img</code> linking an <code>svg</code> element that has content with <code>mix-blend-mode</code>. <br>
+								Set the <code>background-color</code> of the <code>body</code> to a value other than default.
+							</td>
+							<td>The contents of the SVG is not mixed with the color of the <code>&lt;body&gt;</code>.</td>
+						</tr>
+						<tr>
+							<td>Paragraph element</td>
+							<td>2 elements required: <a href="#test_outline" title="parent element with a property that creates stacking context">[P]</a> and <a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> <br>
+								[P] - parent element with a property that creates a stacking context (e.g. <code>position:fixed</code>) <br>
+								[B] - paragraph element with <code>mix-blend-mode</code> other than normal</td>
+							<td>The color of the text from the paragraph element is mixed with the color of the <code>&lt;div&gt;</code></td>
+						</tr>
+						<tr>
+							<td>Paragraph element and background-image</td>
+							<td>2 elements required: <a href="#test_outline" title="parent element with a property that creates stacking context">[P]</a> and <a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> <br>
+								[P] - parent element with a property that creates a stacking context (e.g. <code>position:fixed</code>) <br>
+								 and  <code>background-image</code> <br>
+								[B] - Child <code>p</code> element with some text and <code>mix-blend-mode</code> other than normal</td>
+							<td>The color of the text from the <code>p</code> element is mixed with the background image of the <code>&lt;div&gt;</code>.</td>
+						</tr>
+						<tr>
+							<td>Set blending from JavaScript</td>
+							<td>2 elements required: <a href="#test_outline" title="parent element with a property that creates stacking context">[P]</a> and <a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> <br>
+								[P] - parent element with a property that creates a stacking context (e.g. <code>position:fixed</code>) <br>
+								[B] - Child <code>&lt;div&gt;</code> element with no <code>mix-blend-mode</code> specified<br>
+								From JavaScript, set the <code>mix-blend-mode</code> property for the child <code>&lt;div&gt;</code> to a value other than normal</td>
+							<td>The colors of the <code>&lt;div&gt;</code> elements are mixed.</td>
+						</tr>
+					</tbody></table>
+				</section>
+			</section>
+			<section id="test-cases-for-svg-elements-with-mix-blend-mode">
+				<h3 aria-level="2" role="heading" id="h3_test-cases-for-svg-elements-with-mix-blend-mode"><span class="secno">4.2 </span>Test cases for SVG elements with <code>mix-blend-mode</code></h3>
+				<section id="mix-blend-mode-with-simple-svg-graphical-elements">
+					<h4 aria-level="3" role="heading" id="h4_mix-blend-mode-with-simple-svg-graphical-elements"><span class="secno">4.2.1 </span><code>mix-blend-mode</code> with simple SVG graphical elements</h4>
+					<p>Refers to the following assertion in the <a href="https://drafts.fxtf.org/compositing-1/#mix-blend-mode">spec</a> : <q><code>mix-blend-mode</code> applies to svg, g, use, image, path, rect, circle, ellipse, line, polyline, polygon, text, tspan, and marker.</q></p>
+					<table>
+						<tbody><tr>
+							<th>Test name</th>
+							<th>Elements and styles</th>
+							<th>Expected result</th>
+						</tr>
+						<tr>
+							<td>Circle with SVG background</td>
+							<td>Set a background color for the SVG.<br>
+								Create 16 <code>circle</code> elements and fill them with a solid color.
+								<br>Apply each <code>mix-blend-mode</code> on them.</td>
+							<td>The color of the <code>circle</code> is mixed with the color of the background.</td>
+						</tr>
+						<tr>
+							<td>Ellipse with SVG background</td>
+							<td>Set a background color for the SVG.<br>
+								Create an <code>ellipse</code> element and fill it with a solid color.
+								<br>Apply a <code>mix-blend-mode</code> on it other than <code>normal</code>.</td>
+							<td>The color of the <code>ellipse</code> is mixed with the color of the background.</td>
+						</tr>
+						<tr>
+							<td>Image with SVG background</td>
+							<td>Set a background color for the SVG.
+								<br>Create an <code>image</code> element and apply a <code>mix-blend-mode</code> other than <code>normal</code>.</td>
+							<td>The <code>image</code> is mixed with the color of the background.</td>
+						</tr>
+						<tr>
+							<td>Line with SVG background</td>
+							<td>Set a background color for the SVG.
+								<br>Create a <code>line</code> element and fill it with a solid color.
+								<br>Apply a <code>mix-blend-mode</code> on it other than <code>normal</code>.</td>
+							<td>The color of the <code>line</code> is mixed with the color of the background.</td>
+						</tr>
+						<tr>
+							<td>Path with SVG background</td>
+							<td>Set a background color for the SVG.
+								<br>Create a <code>path</code> element and fill it with a solid color.
+								<br>Apply a <code>mix-blend-mode</code> on it other than <code>normal</code>.</td>
+							<td>The color of the <code>path</code> is mixed with the color of the background.</td>
+						</tr>
+						<tr>
+							<td>Polygon with SVG background</td>
+							<td>Set a background color for the SVG.
+								<br>Create a <code>polygon</code> element and fill it with a solid color.
+								<br>Apply a <code>mix-blend-mode</code> on it other than <code>normal</code>.</td>
+							<td>The color of the <code>polygon</code> is mixed with the color of the background.</td>
+						</tr>
+						<tr>
+							<td>Polyline with SVG background</td>
+							<td>Set a background color for the SVG.
+								<br>Create a <code>polyline</code> element and fill it with a solid color.
+								<br>Apply a <code>mix-blend-mode</code> on it other than <code>normal</code>.</td>
+							<td>The color of the <code>polyline</code> is mixed with the color of the background.</td>
+						</tr>
+						<tr>
+							<td>Rect with SVG background</td>
+							<td>Set a background color for the SVG.
+								<br>Create a <code>rect</code> element and fill it with a solid color.
+								<br>Apply a <code>mix-blend-mode</code> on it other than <code>normal</code>.</td>
+							<td>The color of the <code>rect</code> is mixed with the color of the background.</td>
+						</tr>
+						<tr>
+							<td>Text with SVG background</td>
+							<td>Set a background color for the SVG.
+								<br>Create a <code>text</code> element and apply a <code>mix-blend-mode</code> other than <code>normal</code>.</td>
+							<td>The text is mixed with the color of the background.</td>
+						</tr>
+						<tr>
+							<td>Text having tspan with SVG background</td>
+							<td>Set a background color for the SVG.
+								<br>Create a <code>text</code> element and a <code>tspan</code> inside it.
+								<br>Apply a <code>mix-blend-mode</code> other than <code>normal</code> on the <code>tspan</code>.</td>
+							<td>The text is mixed with the color of the background.</td>
+						</tr>
+						<tr>
+							<td>Gradient with SVG background</td>
+							<td>Set a background color for the SVG.
+								<br>Create a <code>rect</code> element and fill it with a <code>gradient</code>.
+								<br>Apply a <code>mix-blend-mode</code> on it other than normal.</td>
+							<td>The gradient is mixed with the color of the background.</td>
+						</tr>
+						<tr>
+							<td>Pattern with SVG background</td>
+							<td>Set a background color for the SVG.
+								<br>Create a <code>rect</code> element and fill it with a <code>pattern</code>.
+								<br>Apply a <code>mix-blend-mode</code> on it other than normal.</td>
+							<td>The pattern is mixed with the color of the background.</td>
+						</tr>
+						<tr>
+							<td>Set blending on an element from JavaScript</td>
+							<td>Set a background color for the SVG.
+								<br>Create a <code>rect</code> element and fill it with a solid color.
+								<br>Apply a <code>mix-blend-mode</code> (other than <code>normal</code>) on it from JavaScript.</td>
+							<td>The color of the <code>rect</code> is mixed with the color of the background.</td>
+						</tr>
+						<tr>
+							<td>Marker with SVG background</td>
+							<td>Set a background color for the SVG.
+								<br>Create a <code>line</code> element containing a marker.
+								<br>Apply a <code>mix-blend-mode</code> other than <code>normal</code> on the marker.</td>
+							<td>The marker color is mixed with the color of the background.</td>
+						</tr>
+						<tr>
+							<td>Metadata with SVG background</td>
+							<td>Set a background color for the SVG.
+								<br>Create a <code>metadata</code> element containing an embedded pdf.
+								<br>Apply a <code>mix-blend-mode</code> other than <code>normal</code> on the marker.</td>
+							<td>The metadata content is not mixed with the color of the background.</td>
+						</tr>
+						<tr>
+							<td>ForeignObject with SVG background</td>
+							<td>Set a background color for the SVG.
+								<br>Create a <code>foreignObject</code> element containing a simple xhtml file.
+								<br>Apply a <code>mix-blend-mode</code> other than <code>normal</code> on the marker.</td>
+							<td>The foreignObject content is not mixed with the color of the background.</td>
+						</tr>
+					</tbody></table>
+				</section>
+				<section id="mix-blend-mode-with-svg-groups">
+					<h4 aria-level="3" role="heading" id="h4_mix-blend-mode-with-svg-groups"><span class="secno">4.2.2 </span><code>mix-blend-mode</code> with SVG groups</h4>
+					<table>
+						<tbody><tr>
+							<th>Test name</th>
+							<th>Elements and styles</th>
+							<th>Expected result</th>
+						</tr>
+						<tr>
+							<td>Group of overlapping elements with SVG background</td>
+							<td>Set a background color for the SVG.
+								<br>Create a <code>group</code> element containing two overlapping <code>rect</code> elements, each filled with a different solid color.
+								<br>Apply a <code>mix-blend-mode</code> other than <code>normal</code> on the group.</td>
+							<td>The <code>group</code> is mixed as a whole with the color of the background.</td>
+						</tr>
+					</tbody></table>
+				</section>
+				<section id="mix-blend-mode-with-isolated-groups">
+					<h4 aria-level="3" role="heading" id="h4_mix-blend-mode-with-isolated-groups"><span class="secno">4.2.3 </span><code>mix-blend-mode</code> with isolated groups</h4>
+					<p>Refers to the following assertion in the <a href="https://drafts.fxtf.org/compositing-1/#mix-blend-mode">spec</a>:
+					<br><q>By default, every element must create a non-isolated group.<br>
+						However, certain operations in SVG will create isolated groups.<br>
+						If one of the following features is used, the group must become isolated:
+						</q></p><ul>
+						    <li>opacity</li>
+						    <li>filters</li>
+						    <li>3D transforms (2D transforms must NOT cause isolation)</li>
+						    <li>blending</li>
+						    <li>masking</li>
+						</ul>
+
+					<p></p>
+					<table>
+						<tbody><tr>
+							<th>Test name</th>
+							<th>Elements and styles</th>
+							<th>Expected result</th>
+						</tr>
+						<tr>
+							<td>Blending two elements in an isolated group</td>
+							<td>Set a background color for the SVG.<br>
+								Create a <code>group</code> element containing two overlapping <code>rect</code> elements, each filled with a different solid color.<br>
+								Apply <code>opacity</code> less than 1 on the group and a <code>mix-blend-mode</code> other than <code>normal</code> on the second rect.</td>
+							<td>Only the intersection of the <code>rect</code> elements should mix.</td>
+						</tr>
+						<tr>
+							<td>Blending in a group with opacity</td>
+							<td>Set a background color for the SVG.<br>
+								Create a <code>group</code> element containing a <code>rect</code> element filled with a different solid color.<br>
+								Apply <code>opacity</code> less than 1 on the group and a <code>mix-blend-mode</code> other than <code>normal</code> on the <code>rect</code>.</td>
+							<td>The <code>rect</code> will not mix with the content behind it.</td>
+						</tr>
+						<tr>
+							<td>Blending in a group with filter</td>
+							<td>Set a background color for the SVG.<br>
+								Create a <code>group</code> element containing a <code>rect</code> element filled with a different solid color.<br>
+								Apply a <code>filter</code> on the group and a <code>mix-blend-mode</code> other than <code>normal</code> on the <code>rect</code>.</td>
+							<td>The <code>rect</code> will not mix with the content behind it.</td>
+						</tr>
+						<tr>
+							<td>Blending in a group with 2D transform</td>
+							<td>Set a background color for the SVG.<br>
+								Create a <code>group</code> element containing a <code>rect</code> element filled with a different solid color.<br>
+								Apply a <code>transform</code> on the group and a <code>mix-blend-mode</code> other than <code>normal</code> on the <code>rect</code>.</td>
+							<td>The <code>rect</code> will mix with the content behind it.</td>
+						</tr>
+						<tr>
+							<td>Blending in a group with 3D transform</td>
+							<td>Set a background color for the SVG.<br>
+								Create a <code>group</code> element containing a <code>rect</code> element filled with a different solid color.<br>
+								Apply a 3d transform on the group and a <code>mix-blend-mode</code> other than <code>normal</code> on the <code>rect</code>.</td>
+							<td>The <code>rect</code> will not mix with the content behind it.</td>
+						</tr>
+						<tr>
+							<td>Blending in a group with a mask</td>
+							<td>Set a background color for the SVG.<br>
+								Create a <code>group</code> element containing a <code>rect</code> element filled with a different solid color.<br>
+								Apply a <code>mask</code> on the group and a <code>mix-blend-mode</code> other than <code>normal</code> on the <code>rect</code>.</td>
+							<td>The <code>rect</code> will not mix with the content behind it.</td>
+						</tr>
+						<tr>
+							<td>Blending in a group with mix-blend-mode</td>
+							<td>Set a background color for the SVG.<br>
+								Create a <code>group</code> element containing a <code>rect</code> element filled with a different solid color.<br>
+								Apply a <code>mix-blend-mode</code> other than <code>normal</code> on the group and a <code>mix-blend-mode</code> other than <code>normal</code> on the <code>rect</code>.</td>
+							<td>The <code>rect</code> will not mix with the content behind it.</td>
+						</tr>
+					</tbody></table>
+				</section>
+				<section id="other-test-cases-for-svg">
+					<h4 aria-level="3" role="heading" id="h4_other-test-cases-for-svg"><span class="secno">4.2.4 </span>Other test cases for SVG</h4>
+					<table>
+						<tbody><tr>
+							<td>Blend with element having opacity</td>
+							<td>Set a background color for the SVG.<br>
+								Create a <code>rect</code> element filled with a different solid color.<br>
+								Apply <code>opacity</code> less than 1 and a <code>mix-blend-mode</code> other than <code>normal</code> on the <code>rect</code>.</td>
+							<td>The <code>rect</code> will mix with the content behind it.</td>
+						</tr>
+						<tr>
+							<td>Blend with element having stroke</td>
+							<td>Set a background color for the SVG.<br>
+								Create a <code>rect</code> element filled with a different solid color.<br>
+								Apply a <code>stroke</code> and a <code>mix-blend-mode</code> other than <code>normal</code> on the <code>rect</code>.</td>
+							<td>The <code>rect</code> will mix with the content behind it.</td>
+						</tr>
+						<tr>
+							<td>Blend with element having stroke-opacity</td>
+							<td>Set a background color for the SVG.<br>
+								Create a <code>rect</code> element filled with a different solid color.<br>
+								Apply a <code>stroke</code>, <code>stroke-opacity</code> less than 1 and a <code>mix-blend-mode</code> other than <code>normal</code> on the <code>rect</code>.</td>
+							<td>The <code>rect</code> will mix with the content behind it.</td>
+						</tr>
+						<tr>
+							<td>Blend with element having stroke-dasharray</td>
+							<td>Set a background color for the SVG.<br>
+								Create a <code>rect</code> element filled with a different solid color.<br>
+								Apply a <code>stroke-dasharray</code> and a <code>mix-blend-mode</code> other than <code>normal</code> on the <code>rect</code>.</td>
+							<td>The <code>rect</code> will mix with the content behind it.</td>
+						</tr>
+						<tr>
+							<td>Blend with element having transform</td>
+							<td>Set a background color for the SVG.<br>
+								Create an <code>image</code> element. Apply a <code>transform</code> (any combination of <code>translate</code>, <code>rotate</code>, <code>scale</code>, <code>skew</code>) and a <code>mix-blend-mode</code> other than <code>normal</code> on the <code>image</code>.</td>
+							<td>The <code>image</code> will mix with the content behind it.</td>
+						</tr>
+						<tr>
+							<td>Blend with SVG having viewbox and preserveAspectRatio set</td>
+							<td>Set a background color for the SVG, as well as <code>viewbox</code> and <code>preserveAspectRatio</code>.<br>
+								Create a <code>rect</code> element filled with a different solid color and apply a <code>mix-blend-mode</code> other than <code>normal</code> on it.</td>
+							<td>The <code>rect</code> will mix with the content behind it.</td>
+						</tr>
+						<tr>
+							<td>Blend with an element having color-profile set</td>
+							<td>Set a background color for the SVG.<br>
+								Create an <code>image</code> element. Apply a <code>color-profile</code> (<code>sRGB</code>, for example) and a <code>mix-blend-mode</code> other than <code>normal</code> on the <code>image</code>.</td>
+							<td>The <code>image</code> will mix with the content behind it.</td>
+						</tr>
+						<tr>
+							<td>Blend with an element having overflow</td>
+							<td>Set a background color for the SVG.<br>
+								Create an <code>image</code> larger than the SVG.<br>
+								Apply <code>overflow</code> (<code>visible</code>, <code>hidden</code>, <code>scroll</code>) and a <code>mix-blend-mode</code> other than <code>normal</code> on the <code>image</code>.</td>
+							<td>The <code>image</code> will mix with the content behind it.</td>
+						</tr>
+						<tr>
+							<td>Blend with an element having clip-path</td>
+							<td>Set a background color for the SVG.<br>
+								Create an <code>image</code> element. Apply a <code>clip-path</code> and a <code>mix-blend-mode</code> other than <code>normal</code> on the <code>image</code>.</td>
+							<td>The <code>image</code> will mix with the content behind it.</td>
+						</tr>
+						<tr>
+							<td>Blend with an element having a mask</td>
+							<td>Set a background color for the SVG.<br>
+								Create an <code>image</code> element.<br>
+								Apply a <code>mask</code> and a <code>mix-blend-mode</code> other than <code>normal</code> on the <code>image</code>.</td>
+							<td>The <code>image</code> will mix with the content behind it.</td>
+						</tr>
+						<tr>
+							<td>Blend with an element having a filter</td>
+							<td>Set a background color for the SVG.<br>
+								Create an <code>image</code> element.<br>
+								Apply a <code>filter</code> and a <code>mix-blend-mode</code> other than <code>normal</code> on the <code>image</code>.</td>
+							<td>The <code>image</code> will mix with the content behind it.</td>
+						</tr>
+						<tr>
+							<td>Blend with an animated element</td>
+							<td>Set a background color for the SVG.<br>
+								Create a <code>rect</code> element filled with a different solid color.<br>
+								Apply an <code>animateTransform</code> and a <code>mix-blend-mode</code> other than <code>normal</code> on the <code>rect</code>.</td>
+							<td>The <code>rect</code> will mix with the content behind it.</td>
+						</tr>
+						<tr>
+							<td>Set blending from an SVG script element</td>
+							<td>Set a background color for the SVG.<br>
+								Create a <code>rect</code> element and fill it with a solid color.<br>
+								Apply a <code>mix-blend-mode</code> (other than <code>normal</code>) on it from an svg <code>script</code> element.</td>
+							<td>The <code>rect</code> will mix with the content behind it.</td>
+						</tr>
+					</tbody></table>
+				</section>
+			</section>
+			<section id="test-cases-for-background-blend-mode">
+				<h3 aria-level="2" role="heading" id="h3_test-cases-for-background-blend-mode"><span class="secno">4.3 </span>Test cases for <code>background-blend-mode</code></h3>
+				<section id="blending-between-the-background-layers-and-the-background-color-for-an-element-with-background-blend-mode">
+					<h4 aria-level="3" role="heading" id="h4_blending-between-the-background-layers-and-the-background-color-for-an-element-with-background-blend-mode"><span class="secno">4.3.1 </span>Blending between the background layers and the background color for an element with <code>background-blend-mode</code> </h4>
+					<p>Refers to the following assertion in the <a href="https://drafts.fxtf.org/compositing-1/#background-blend-mode">spec</a>: <q>Each background layer must blend with the element's background layer that are below it and the element's background color.</q></p>
+					<table>
+						<tbody><tr>
+							<th>Test name</th>
+							<th>Elements and styles</th>
+							<th>Expected result</th>
+						</tr>
+						<tr>
+							<td>Images with different formats</td>
+							<td>Element with
+								<ul>
+									<li><code>background-image</code> set to an <code>&lt;image&gt;</code></li>
+									<li><code>background-color</code> set to a fully opaque color</li>
+									<li><code>background-blend-mode</code> other than normal</li>
+								</ul>
+								Tests should be created for <code>&lt;image&gt;</code> with different formats such as PNG, JPEG or SVG
+							</td>
+							<td>The content of the <code>background-image</code> is mixed with the color of the <code>background-color</code></td>
+						</tr>
+						<tr>
+							<td>Gradient and background color</td>
+							<td>
+								Element with
+								<ul>
+									<li><code>background-image</code> set to an <code>&lt;gradient&gt;</code></li>
+									<li><code>background-color</code> set to a fully opaque color</li>
+									<li><code>background-blend-mode</code> other than normal</li>
+								</ul>
+							</td>
+							<td>The content of the <code>background-image</code> is mixed with the color of the <code>background-color</code></td>
+						</tr>
+						<tr>
+							<td>Image and gradient</td>
+							<td>
+								Element with
+								<ul>
+									<li><code>background-image</code> set to an <code>&lt;image&gt;</code> on top of a <code>&lt;gradient&gt;</code></li>
+									<li><code>background-blend-mode</code> other than normal</li>
+								</ul>
+							</td>
+							<td>The content of the <code>&lt;image&gt;</code> is mixed with the content of the <code>&lt;gradient&gt;</code>
+							</td>
+						</tr>
+						<tr>
+							<td>Gradient and image</td>
+							<td>Element with
+								<ul>
+									<li><code>background-image</code> set to a <code>&lt;gradient&gt;</code> on top of an <code>&lt;image&gt;</code></li>
+									<li><code>background-blend-mode</code> other than normal</li>
+								</ul>
+							</td>
+							<td>The content of the <code>&lt;image&gt;</code> is mixed with the content of the <code>&lt;gradient&gt;</code></td>
+						</tr>
+						<tr>
+							<td>Two gradients</td>
+							<td>Element with
+								<ul>
+									<li><code>background-image</code> set to a <code>&lt;gradient&gt;</code> on top of another <code>&lt;gradient&gt;</code></li>
+									<li><code>background-blend-mode</code> other than normal</li>
+								</ul></td>
+							<td>The content of the two gradients is mixed</td>
+						</tr>
+						<tr>
+							<td>Two images</td>
+							<td>Element with
+								<ul>
+									<li><code>background-image</code> set to an <code>&lt;image&gt;</code> on top of another <code>&lt;image&gt;</code></li>
+									<li><code>background-blend-mode</code> other than normal</li>
+								</ul></td>
+							<td>The content of the two images is mixed</td>
+						</tr>
+						<tr>
+							<td>Image and background color with transparency</td>
+							<td>Element with
+								<ul>
+									<li><code>background-image</code> set to an <code>&lt;image&gt;</code> with transparency(e.g. PNG images)</li>
+									<li><code>background-color</code> set to a transparent color</li>
+									<li><code>background-blend-mode</code> other than normal</li>
+								</ul>
+							</td>
+							<td>The content of the <code>background-image</code> is mixed with the color of the <code>background-color</code></td>
+						</tr>
+						<tr>
+							<td>Cross-fade image and gradient</td>
+							<td>Element with
+								<ul>
+									<li><code>background-image</code> set to a <q>cross-fade()</q> image on top of a <code>&lt;gradient&gt;</code> </li>
+									<li><code>background-blend-mode</code> other than normal</li>
+								</ul>
+							</td>
+							<td>The content of the cross-faded image is mixed with the content of the <code>&lt;gradient&gt;</code></td>
+						</tr>
+						<tr>
+							<td>SVG image and background color</td>
+							<td>Element with
+								<ul>
+									<li><code>background-image</code> set to a data URI for an SVG image </li>
+									<li><code>background-color</code> set to a fully opaque color</li>
+									<li><code>background-blend-mode</code> other than normal</li>
+								</ul>
+							</td>
+							<td>The content of the image is mixed with the color of the background</td>
+						</tr>
+						<tr>
+							<td>Animated gif image and background color</td>
+							<td>Element with
+								<ul>
+									<li><code>background-image</code> set to an animated gif image</li>
+									<li><code>background-color</code> set to a fully opaque color</li>
+									<li><code>background-blend-mode</code> other than normal</li>
+								</ul>
+							</td>
+							<td>The content of the image is mixed with the color of the background</td>
+						</tr>
+						<tr>
+							<td>Set <code>background-blend-mode</code> from JavaScript</td>
+							<td>Element with
+								<ul>
+									<li><code>background-image</code> set to a <code>gradient</code></li>
+									<li><code>background-color</code> set to a fully opaque color</li>
+									<li>no <code>background-blend-mode</code> explicitly specified</li>
+									From JavaScript, set the <code>background-blend-mode</code> property to a value other than normal.
+								</ul>
+							</td>
+							<td>The content of the gradient is mixed with the color of the background</td>
+						</tr>
+						<tr>
+							<td><code>background-blend-mode</code> on element with 3D transform</td>
+							<td>Element with
+								<ul>
+									<li><code>background-image</code> set to an <code>&lt;image&gt;</code></li>
+									<li><code>background-color</code> set to a fully opaque color</li>
+									<li><code>background-blend-mode</code> other than normal</li>
+									<li><code>transform</code> set to a 3D function like rotateX, rotateY or translateZ</li>
+								</ul>
+							</td>
+							<td>The content of the image is mixed with the color of the background</td>
+						</tr>
+					</tbody></table>
+				</section>
+				<section id="background-layers-do-not-blend-with-content-outside-the-background-or-behind-the-element">
+					<h4 aria-level="3" role="heading" id="h4_background-layers-do-not-blend-with-content-outside-the-background-or-behind-the-element"><span class="secno">4.3.2 </span>Background layers do not blend with content outside the background (or behind the element)</h4>
+					<p>Refers to the following assertion in the <a href="https://drafts.fxtf.org/compositing-1/#background-blend-mode">spec</a>: <q>Background layer must not blend with the content that is behind the element instead they must act as if they are rendered into an isolated group.</q>
+					</p>
+					<table>
+						<tbody><tr>
+							<th>Test name</th>
+							<th>Elements and styles</th>
+							<th>Expected result</th>
+						</tr>
+						<tr>
+							<td>One background layer</td>
+							<td>Element with
+								<ul>
+									<li><code>background-image</code> set to an <code>&lt;image&gt;</code></li>
+									<li><code>background-blend-mode</code> other than normal</li>
+								</ul>
+							</td>
+							<td>The <code>background-image</code> is not mixed with anything outside the element</td>
+						</tr>
+						<tr>
+							<td>Two elements</td>
+							<td>2 elements required: a parent element with a child. <br>
+								Each one with the following properties:
+								<ul>
+									<li><code>background-color</code> set to a fully opaque color</li>
+									<li><code>background-blend-mode</code> other than normal</li>
+								</ul>
+							</td><td>No blending between the background colors of the two elements</td>
+						</tr>
+						<tr>
+							<td>Parent and child with <code>background-blend-mode</code></td>
+							<td>2 elements required: a parent element with a child <br>
+								Parent properties: <br>
+								<ul>
+									<li><code>background-color</code> set to a fully opaque color</li>
+									<li><code>background-blend-mode</code> other than normal</li>
+								</ul>
+								Child properties: <br>
+								<ul>
+									<li><code>background-image</code> set to an <code>&lt;image&gt;</code></li>
+									<li><code>background-blend-mode</code> other than normal</li>
+								</ul>
+							</td><td>The content of the image from the child element does not mixes with the background color from the parent element</td>
+						</tr>
+					</tbody></table>
+				</section>
+				<section id="background-blend-mode-list-values-apply-to-the-corresponding-background-layer">
+					<h4 aria-level="3" role="heading" id="h4_background-blend-mode-list-values-apply-to-the-corresponding-background-layer"><span class="secno">4.3.3 </span> <code>background-blend-mode</code> list values apply to the corresponding background layer</h4>
+					<p>Refers to the following assertion in the <a href="https://drafts.fxtf.org/compositing-1/#background-blend-mode">spec</a>: <q>The ‘background-blend-mode’ list must be applied in the same order as ‘background-image’[CSS3BG]. This means that the first element in the list will apply to the layer that is on top.</q>
+					</p>
+					<table>
+						<tbody><tr>
+							<th>Test name</th>
+							<th>Elements and styles</th>
+							<th>Expected result</th>
+						</tr>
+						<tr>
+							<td>Different blend modes applied between layers</td>
+							<td>Element with
+								<ul>
+									<li><code>background-image</code> set to an <code>&lt;image-list&gt;</code> containing three images: (e.g. I1, I2 and I3 ) </li>
+									<li><code>background-blend-mode</code> set to different <code>blendmode</code> for every image: (e.g. multiply, difference, screen) </li>
+								</ul></td>
+							<td>The content of the three images is correctly mixed <br>
+							(multiply for I1, difference for I2 and screen for I3)
+							</td>
+						</tr>
+					</tbody></table>
+				</section>
+				<section id="background-blend-mode-list-values-are-repeated-if-the-list-is-shorter-than-the-background-layer-list">
+					<h4 aria-level="3" role="heading" id="h4_background-blend-mode-list-values-are-repeated-if-the-list-is-shorter-than-the-background-layer-list"><span class="secno">4.3.4 </span><code>background-blend-mode</code> list values are repeated if the list is shorter than the background layer list</h4>
+					<p>Refers to the following assertion in the <a href="https://drafts.fxtf.org/compositing-1/#background-blend-mode">spec</a>: <q>If a property doesn't have enough comma-separated values to match the number of layers, the UA must calculate its used value by repeating the list of values until there are enough.</q>
+					</p>
+					<table>
+						<tbody><tr>
+							<th>Test name</th>
+							<th>Elements and styles</th>
+							<th>Expected result</th>
+						</tr>
+						<tr>
+							<td>Blend mode list repeat</td>
+							<td>Element with
+								<ul>
+									<li><code>background-image</code> set to an <code>&lt;image-list&gt;</code> containing three images</li>
+									<li><code>background-blend-mode</code> set to two different <code>blendmode</code> values</li>
+								</ul></td>
+							<td>The unspecified blend modes should be obtained by repeating the blend mode list from the beginning</td>
+						</tr>
+					</tbody></table>
+				</section>
+				<section id="the-default-background-blend-mode-value-for-the-background-shorthand-is-normal">
+					<h4 aria-level="3" role="heading" id="h4_the-default-background-blend-mode-value-for-the-background-shorthand-is-normal"><span class="secno">4.3.5 </span>The default <code>background-blend-mode</code> value for the <code>background</code> shorthand is 'normal' </h4>
+					<p>Refers to the following assertion in the <a href="https://drafts.fxtf.org/compositing-1/#background-blend-mode">spec</a>: <q>If the ‘background’ [CSS3BG] shorthand is used, the ‘background-blend-mode’ property for that element must be reset to its initial value.</q>
+					</p>
+					<table>
+						<tbody><tr>
+							<th>Test name</th>
+							<th>Elements and styles</th>
+							<th>Expected result</th>
+						</tr>
+						<tr>
+							<td>Default blend mode for 'background' shorthand</td>
+							<td>Element with
+								<ul>
+									<li><code>background</code> property set to an image and a color</li>
+									<li>No value explicitly set for <code>background-blend-mode</code> </li>
+								</ul></td>
+							<td> The computed value of <code>background-blend-mode</code> is 'normal'
+							</td>
+						</tr>
+					</tbody></table>
+				</section>
+				<section id="background-blend-mode-for-an-element-with-background-position">
+					<h4 aria-level="3" role="heading" id="h4_background-blend-mode-for-an-element-with-background-position"><span class="secno">4.3.6 </span><code>background-blend-mode</code> for an element with <code>background-position</code></h4>
+					<table>
+						<tbody><tr>
+							<th>Test name</th>
+							<th>Elements and styles</th>
+							<th>Expected result</th>
+						</tr>
+						<tr>
+							<td><code>background-position</code> percentage</td>
+							<td>Element with
+								<ul>
+									<li><code>background-image</code> set to an <code>&lt;image&gt;</code></li>
+									<li><code>background-color</code> set to a fully opaque color</li>
+									<li><code>background-position</code> specified in percentage, such as 50% 50%</li>
+									<li><code>background-blend-mode</code> other than normal</li>
+								</ul>
+							</td>
+							<td>The content of the <code>background-image</code> is mixed with the color of the <code>background-color</code> <br>
+							The <code>background-image</code> is correctly positioned
+							</td>
+						</tr>
+					</tbody></table>
+				</section>
+				<section id="background-blend-mode-for-an-element-with-background-size">
+					<h4 aria-level="3" role="heading" id="h4_background-blend-mode-for-an-element-with-background-size"><span class="secno">4.3.7 </span><code>background-blend-mode</code> for an element with <code>background-size</code></h4>
+					<table>
+						<tbody><tr>
+							<th>Test name</th>
+							<th>Elements and styles</th>
+							<th>Expected result</th>
+						</tr>
+						<tr>
+							<td>Background size defined in pixels</td>
+							<td>Element with
+								<ul>
+									<li><code>background-image</code> set to an <code>&lt;image&gt;</code></li>
+									<li><code>background-color</code> set to a fully opaque color</li>
+									<li><code>background-size</code> specified in pixels</li>
+									<li><code>background-blend-mode</code> other than normal</li>
+								</ul>
+							</td>
+							<td>The content of the <code>background-image</code> is mixed with the color of the <code>background-color</code> <br>
+							The <code>background-image</code> has the correct size
+							</td>
+						</tr>
+						<tr>
+							<td>Background size defined in percentage (second phase)</td>
+							<td>Element with
+								<ul>
+									<li><code>background-image</code> set to an <code>&lt;image&gt;</code></li>
+									<li><code>background-color</code> set to a fully opaque color</li>
+									<li><code>background-size</code> specified in percentage</li>
+									<li><code>background-blend-mode</code> other than normal</li>
+								</ul>
+							</td>
+							<td>The content of the <code>background-image</code> is mixed with the color of the <code>background-color</code> <br>
+							The <code>background-image</code> has the correct size
+							</td>
+						</tr>
+						<tr>
+							<td>Background size cover</td>
+							<td>Element with
+								<ul>
+									<li><code>background-image</code> set to an <code>&lt;image&gt;</code></li>
+									<li><code>background-color</code> set to a fully opaque color</li>
+									<li><code>background-size</code> set to <code>cover</code></li>
+									<li><code>background-blend-mode</code> other than normal</li>
+								</ul>
+							</td>
+							<td>The content of the <code>background-image</code> is mixed with the color of the <code>background-color</code> <br>
+							The <code>background-image</code> has the correct size
+							</td>
+						</tr>
+						<tr>
+							<td>Background size contain</td>
+							<td>Element with
+								<ul>
+									<li><code>background-image</code> set to an <code>&lt;image&gt;</code></li>
+									<li><code>background-color</code> set to a fully opaque color</li>
+									<li><code>background-size</code> set to <code>contain</code></li>
+									<li><code>background-blend-mode</code> other than normal</li>
+								</ul>
+							</td>
+							<td>The content of the <code>background-image</code> is mixed with the color of the <code>background-color</code> <br>
+							The <code>background-image</code> has the correct size
+							</td>
+						</tr>
+					</tbody></table>
+				</section>
+				<section id="background-blend-mode-for-an-element-with-background-repeat">
+					<h4 aria-level="3" role="heading" id="h4_background-blend-mode-for-an-element-with-background-repeat"><span class="secno">4.3.8 </span><code>background-blend-mode</code> for an element with <code>background-repeat</code></h4>
+					<table>
+						<tbody><tr>
+							<th>Test name</th>
+							<th>Elements and styles</th>
+							<th>Expected result</th>
+						</tr>
+						<tr>
+							<td><code>background-repeat</code> set to no-repeat</td>
+							<td>Element with
+								<ul>
+									<li><code>background-image</code> set to an <code>&lt;image&gt;</code></li>
+									<li><code>background-color</code> set to a fully opaque color</li>
+									<li><code>background-repeat</code> set to <code>no-repeat</code></li>
+									<li><code>background-blend-mode</code> other than normal</li>
+								</ul>
+							</td>
+							<td>The content of the <code>background-image</code> is mixed with the color of the <code>background-color</code> <br>
+							The <code>background-image</code> is not repeated
+							</td>
+						</tr>
+						<tr>
+							<td><code>background-repeat</code> set to space</td>
+							<td>Element with
+								<ul>
+									<li><code>background-image</code> set to an <code>&lt;image&gt;</code></li>
+									<li><code>background-color</code> set to a fully opaque color</li>
+									<li><code>background-repeat</code> set to <code>space</code></li>
+									<li><code>background-blend-mode</code> other than normal</li>
+								</ul>
+							</td>
+							<td>The content of the <code>background-image</code> is mixed with the color of the <code>background-color</code> <br>
+							</td>
+						</tr>
+						<tr>
+							<td><code>background-repeat</code> set to round</td>
+							<td>Element with
+								<ul>
+									<li><code>background-image</code> set to an <code>&lt;image&gt;</code></li>
+									<li><code>background-color</code> set to a fully opaque color</li>
+									<li><code>background-repeat</code> set to <code>round</code></li>
+									<li><code>background-blend-mode</code> other than normal</li>
+								</ul>
+							</td>
+							<td>The content of the <code>background-image</code> is mixed with the color of the <code>background-color</code> <br>
+							</td>
+						</tr>
+					</tbody></table>
+				</section>
+				<section id="background-blend-mode-for-an-element-with-background-clip">
+					<h4 aria-level="3" role="heading" id="h4_background-blend-mode-for-an-element-with-background-clip"><span class="secno">4.3.9 </span><code>background-blend-mode</code> for an element with <code>background-clip</code></h4>
+					<table>
+						<tbody><tr>
+							<th>Test name</th>
+							<th>Elements and styles</th>
+							<th>Expected result</th>
+						</tr>
+						<tr>
+							<td><code>background-clip</code> set to <code>padding-box</code></td>
+							<td>Element with
+								<ul>
+									<li><code>background-image</code> set to an <code>&lt;image&gt;</code></li>
+									<li><code>background-color</code> set to a fully opaque color</li>
+									<li><code>background-clip</code> set to <code>padding-box</code></li>
+									<li><code>background-blend-mode</code> other than normal</li>
+								</ul>
+							</td>
+							<td>The content of the <code>background-image</code> is mixed with the color of the <code>background-color</code> <br>
+							No background is drawn below the border (background extends to the outside edge of the padding)
+							</td>
+						</tr>
+						<tr>
+							<td><code>background-clip</code> set to <code>content-box</code></td>
+							<td>Element with
+								<ul>
+									<li><code>background-image</code> set to an <code>&lt;image&gt;</code></li>
+									<li><code>background-color</code> set to a fully opaque color</li>
+									<li><code>background-clip</code> set to <code>content-box</code></li>
+									<li><code>background-blend-mode</code> other than normal</li>
+								</ul>
+							</td>
+							<td>The content of the <code>background-image</code> is mixed with the color of the <code>background-color</code> <br>
+							The background is painted within (clipped to) the content box
+							</td>
+						</tr>
+					</tbody></table>
+				</section>
+				<section id="background-blend-mode-for-an-element-with-background-origin">
+					<h4 aria-level="3" role="heading" id="h4_background-blend-mode-for-an-element-with-background-origin"><span class="secno">4.3.10 </span><code>background-blend-mode</code> for an element with <code>background-origin</code></h4>
+					<table>
+						<tbody><tr>
+							<th>Test name</th>
+							<th>Elements and styles</th>
+							<th>Expected result</th>
+						</tr>
+						<tr>
+							<td><code>background-origin</code> set to <code>border-box</code></td>
+							<td>Element with
+								<ul>
+									<li><code>background-image</code> set to an <code>&lt;image&gt;</code></li>
+									<li><code>background-color</code> set to a fully opaque color</li>
+									<li><code>background-origin</code> set to <code>border-box</code></li>
+									<li><code>background-blend-mode</code> other than normal</li>
+								</ul>
+							</td>
+							<td>The content of the <code>background-image</code> is mixed with the color of the <code>background-color</code> <br>
+							The background extends to the outside edge of the border (but underneath the border in z-ordering)
+							</td>
+						</tr>
+						<tr>
+							<td><code>background-origin</code> set to <code>content-box</code></td>
+							<td>Element with
+								<ul>
+									<li><code>background-image</code> set to an <code>&lt;image&gt;</code></li>
+									<li><code>background-color</code> set to a fully opaque color</li>
+									<li><code>background-origin</code> set to <code>content-box</code></li>
+									<li><code>background-blend-mode</code> other than normal</li>
+								</ul>
+							</td>
+							<td>The content of the <code>background-image</code> is mixed with the color of the <code>background-color</code> <br>
+							The background is painted within (clipped to) the content box
+							</td>
+						</tr>
+					</tbody></table>
+				</section>
+				<section id="background-blend-mode-for-an-element-with-background-attachement">
+					<h4 aria-level="3" role="heading" id="h4_background-blend-mode-for-an-element-with-background-attachement"><span class="secno">4.3.11 </span><code>background-blend-mode</code> for an element with <code>background-attachement</code></h4>
+					<table>
+						<tbody><tr>
+							<th>Test name</th>
+							<th>Elements and styles</th>
+							<th>Expected result</th>
+						</tr>
+						<tr>
+							<td><code>background-attachment</code> set to <code>fixed</code></td>
+							<td>Element with
+								<ul>
+									<li><code>background-image</code> set to an <code>&lt;image&gt;</code></li>
+									<li><code>background-color</code> set to a fully opaque color</li>
+									<li><code>background-attachment</code> set to <code>fixed</code></li>
+									<li><code>background-blend-mode</code> other than normal</li>
+								</ul>
+							</td>
+							<td>The content of the <code>background-image</code> is mixed with the color of the <code>background-color</code> <br>
+							The background image will not scroll with its containing element, instead remaining stationary within the viewport
+							</td>
+						</tr>
+						<tr>
+							<td>2 background images with <code>background-attachment</code> set to <code>fixed, scroll</code></td>
+							<td>Element with
+								<ul>
+									<li><code>background-image</code> set to 2 <code>&lt;image&gt;</code>(s)</li>
+									<li><code>background-attachment</code> set to <code>fixed, scroll</code></li>
+									<li><code>background-blend-mode</code> other than normal</li>
+								</ul>
+							</td>
+							<td>The background images will be mixed when they overlap while scrolling
+							</td>
+						</tr>
+					</tbody></table>
+				</section>
+		</section>
+			<section id="test-cases-for-isolation">
+				<h3 aria-level="2" role="heading" id="h3_test-cases-for-isolation"><span class="secno">4.4 </span>Test cases for <code>isolation</code></h3>
+				<section id="an-element-with-isolation-isolate-creates-a-stacking-context">
+					<h4 aria-level="3" role="heading" id="h4_an-element-with-isolation-isolate-creates-a-stacking-context"><span class="secno">4.4.1 </span>An element with <code>isolation:isolate</code> creates a stacking context</h4>
+					<p>Refers to the following assertion in the <a href="https://drafts.fxtf.org/compositing-1/#csscompositingrules_CSS">spec</a>: <q>For CSS, setting ‘isolation’ to ‘isolate’ will turn the element into a stacking context [CSS21].</q></p>
+					<table>
+						<tbody><tr>
+							<th>Test name</th>
+							<th>Elements and styles</th>
+							<th>Expected result</th>
+						</tr>
+						<tr>
+							<td>Isolation isolate</td>
+							<td>Have an element with <code>isolation</code> set to <code>isolate</code></td>
+							<td>The element creates a stacking context.</td>
+						</tr>
+					</tbody></table>
+				</section>
+				<section id="an-element-with-isolation-isolate-creates-an-isolated-group-for-blended-children">
+					<h4 aria-level="3" role="heading" id="h4_an-element-with-isolation-isolate-creates-an-isolated-group-for-blended-children"><span class="secno">4.4.2 </span>An element with <code>isolation:isolate</code> creates an isolated group for blended children</h4>
+					<table>
+						<tbody><tr>
+							<th>Test name</th>
+							<th>Elements and styles</th>
+							<th>Expected result</th>
+						</tr>
+						<tr>
+							<td>Isolation of blended child which overflows</td>
+							<td>3 elements required:
+								<a href="#test_outline" title="parent element with a property that creates stacking context">[P]</a>,
+								<a href="#test_outline" title="child of the element [P]">[IN-P]</a> and
+								<a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> <br>
+								[P] - parent element with a property that creates a stacking context (e.g. <code>position:fixed</code>) <br>
+								[IN-P] - Intermediate child element between the parent [P] and the child [B]<br>
+								This element has <code>isolation:isolate</code> set.<br>
+								[B] - element with <code>mix-blend-mode</code> other than <code>normal</code> <br>
+								The blending element [B] has content that lies outside the parent element. <br>
+							</td>
+							<td>
+								The color of the child element [B] mixes with the color of the intermediate element [IN-P], where they overlap.<br>
+								The area of the child element outside of the intermediate parent element does not mix with the color of the parent element [P], or of the <code>body</code>.
+							</td>
+						</tr>
+						<tr>
+							<td>Isolation on intermediate element with transparent pixels</td>
+							<td>3 elements required:
+								<a href="#test_outline" title="parent element with a property that creates stacking context">[P]</a>,
+								<a href="#test_outline" title="child of the element [P]">[IN-P]</a> and
+								<a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> <br>
+								[P] - parent element with a property that creates a stacking context (e.g. <code>position:fixed</code>); the element <code>background-color</code> is other than <code>transparent</code><br>
+								[IN-P] - Intermediate child element between the parent [P] and the child [B]<br>
+								The intermediate element has text content, default value for <code>background-color</code> and <code>isolation:isolate</code> set<br>
+								[B] - element with <code>mix-blend-mode</code> other than <code>normal
+							</code></td><td>
+								The color of the child element [B] mixes with the color of the intermediate element [IN-P], where they overlap.<br>
+								There is no blending between the color of the parent element [P] and the color of the blended element [B].
+							</td>
+						</tr>
+						<tr>
+							<td>Isolate inside a stacking context created by a 3d transform</td>
+							<td>
+								3 elements required:
+								<a href="#test_outline" title="parent element with a property that creates stacking context">[P]</a>,
+								<a href="#test_outline" title="child of the element [P]">[IN-P]</a> and
+								<a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> <br>
+								[P] - parent element with a <code>3D transform</code> applied<br>
+								[IN-P] - Intermediate child element between the parent [P] and the child [B]<br>
+								The intermediate element has <code>isolation:isolate</code> set<br>
+								[B] - element with <code>mix-blend-mode</code> other than <code>normal</code><br>
+							</td>
+							<td>
+								The color of the child element [B] mixes with the color of the intermediate element [IN-P], where they overlap.<br>
+								There is no blending between the color of the parent element [P] and the color of the blended element [B].
+							 </td>
+						</tr>
+					</tbody></table>
+				</section>
+				<section id="an-element-with-isolation-auto-set-does-not-change-the-elements-existing-stacking-context-behavior">
+					<h4 aria-level="3" role="heading" id="h4_an-element-with-isolation-auto-set-does-not-change-the-elements-existing-stacking-context-behavior"><span class="secno">4.4.3 </span>An element with <code>isolation:auto</code> set does not change the elements existing stacking context behavior</h4>
+					<table>
+						<tbody><tr>
+							<th>Test name</th>
+							<th>Elements and styles</th>
+							<th>Expected result</th>
+						</tr>
+						<tr>
+							<td>Isolation auto</td>
+							<td>Have an element with <code>isolation</code> explicitly set to <code>auto</code>, and no other style that would create a stacking context</td>
+							<td>The element does not create a stacking context - the computed value of its <code>z-index</code> is value <code>auto</code></td>
+						</tr>
+						<tr>
+							<td>Stacking context not affected by isolation</td>
+							<td>2 elements required:
+								<a href="#test_outline" title="parent element with a property that creates stacking context">[P]</a> and
+								<a href="#test_outline" title="Element with mix-blend-mode property other than normal">[B]</a> <br>
+								[P] - parent element with a property that creates a stacking context (e.g. <code>position:fixed</code>); This element has <code>isolation</code> explicitly set to <code>auto</code> <br>
+								[B] - element with <code>mix-blend-mode</code> other than <code>normal</code> <br>
+								The blending element [B] has content that lies outside the parent element. <br>
+								Set the <code>background-color</code> of the <code>body</code> to a value other than default
+							</td>
+							<td>The color of the parent element mixes with the color of the child element. <br>
+								The area of the child element outside of the parent element doesn't mix with the color of the <code>body</code>.<br>
+								In other words, setting the <code>isolation</code> to <code>auto</code> does not affect the creation of a stacking context by other properties.
+							</td>
+						</tr>
+					</tbody></table>
+				</section>
+			</section>
+			<section id="test-cases-for-isolation-in-svg">
+				<h3 aria-level="2" role="heading" id="h3_test-cases-for-isolation-in-svg"><span class="secno">4.5 </span>Test cases for <code>isolation</code> in SVG</h3>
+				<section id="in-svg-an-element-with-isolation-isolate-creates-an-isolated-group-for-blended-children">
+					<h4 aria-level="3" role="heading" id="h4_in-svg-an-element-with-isolation-isolate-creates-an-isolated-group-for-blended-children"><span class="secno">4.5.1 </span>In SVG, an element with <code>isolation:isolate</code> creates an isolated group for blended children</h4>
+					<p>Refers to the following assertion in the <a href="https://drafts.fxtf.org/compositing-1/#isolation">spec</a>: <q>In SVG, this defines whether an element is isolated or not.</q></p>
+					<table>
+						<tbody><tr>
+							<th>Test name</th>
+							<th>Elements and styles</th>
+							<th>Expected result</th>
+						</tr>
+						<tr>
+							<td>Blending in an isolated group</td>
+							<td>Set a background color for the SVG.<br>
+								Create a <code>group</code> element containing a <code>rect</code> element filled with a different solid color.<br>
+								Apply <code>isolation:isolate</code> on the group and a <code>mix-blend-mode</code> other than <code>normal</code> on the <code>rect</code>.</td>
+							<td>The <code>rect</code> will not mix with the content behind it.</td>
+						</tr>
+						<tr>
+							<td>Blending two elements in an isolated group</td>
+							<td>Set a background color for the SVG.<br>
+								Create a <code>group</code> element containing two overlapping <code>rect</code> elements, each filled with a different solid color.<br>
+								Apply <code>isolation:isolate</code> on the group and a <code>mix-blend-mode</code> other than <code>normal</code> on the second rect.</td>
+							<td>Only the intersection of the <code>rect</code> elements should mix.</td>
+						</tr>
+						<tr>
+							<td>Blending in an isolated group with 2D transform</td>
+							<td>Set a background color for the SVG.<br>
+								Create a <code>group</code> element containing a <code>rect</code> element filled with a different solid color.<br>
+								Apply <code>isolation:isolate</code> and 2D transform on the group and a <code>mix-blend-mode</code> other than <code>normal</code> on the <code>rect</code>.</td>
+							<td>The <code>rect</code> will not mix with the content behind it.</td>
+						</tr>
+						<tr>
+							<td>Set isolation on an element from JavaScript</td>
+							<td>Set a background color for the SVG.
+								<br>Create a <code>rect</code> element and fill it with a solid color and a <code>mix-blend-mode</code> other than <code>normal</code>.
+								<br>Apply <code>isolation:isolate</code> on it from JavaScript.</td>
+							<td>The <code>rect</code> will not mix with the content behind it.</td>
+						</tr>
+					</tbody></table>
+				</section>
+				<section id="in-svg-an-element-with-isolation-auto-set-does-not-change-the-rendering-behaviour">
+					<h4 aria-level="3" role="heading" id="h4_in-svg-an-element-with-isolation-auto-set-does-not-change-the-rendering-behaviour"><span class="secno">4.5.2 </span>In SVG, an element with <code>isolation:auto</code> set does not change the rendering behaviour</h4>
+					<table>
+						<tbody><tr>
+							<th>Test name</th>
+							<th>Elements and styles</th>
+							<th>Expected result</th>
+						</tr>
+						<tr>
+							<td>Blending a group with <code>isolation:auto</code></td>
+							<td>Set a background color for the SVG.<br>
+								Create a <code>group</code> element containing a <code>rect</code> element filled with a different solid color.<br>
+								Apply <code>isolation:auto</code> on the group and a <code>mix-blend-mode</code> other than <code>normal</code> on the <code>rect</code>.</td>
+							<td>The element will mix with the content behind it.</td>
+						</tr>
+						<tr>
+							<td>Blending in a group with opacity</td>
+							<td>Set a background color for the SVG.<br>
+								Create a <code>group</code> element containing a <code>rect</code> element filled with a different solid color.<br>
+								Apply <code>opacity</code> less than 1 and <code>isolation:auto</code> on the group and a <code>mix-blend-mode</code> other than <code>normal</code> on the <code>rect</code>.</td>
+							<td>The <code>rect</code> will not mix with the content behind it.</td>
+						</tr>
+					</tbody></table>
+				</section>
+			</section>
+
+
+</section><div id="respec-ui" class="removeOnSave" style="position: fixed; top: 20px; right: 20px; width: 202px; text-align: right;"><button style="background-color: rgb(255, 255, 255); font-weight: bold; border: 1px solid rgb(204, 204, 204); border-top-left-radius: 5px; border-top-right-radius: 5px; border-bottom-right-radius: 5px; border-bottom-left-radius: 5px; background-position: initial initial; background-repeat: initial initial;">ReSpec</button><div style="background-color: rgb(255, 255, 255); border: 1px solid rgb(0, 0, 0); width: 200px; display: none; text-align: left; margin-top: 5px; margin-right: 5px; background-position: initial initial; background-repeat: initial initial;"><button style="background-color: rgb(255, 255, 255); border-style: none none solid; border-bottom-width: 1px; border-bottom-color: rgb(204, 204, 204); width: 100%; text-align: left; font-size: inherit; background-position: initial initial; background-repeat: initial initial;">Save Snapshot</button><button style="background-color: rgb(255, 255, 255); border-style: none none solid; border-bottom-width: 1px; border-bottom-color: rgb(204, 204, 204); width: 100%; text-align: left; font-size: inherit; background-position: initial initial; background-repeat: initial initial;">About ReSpec</button></div></div><section id="references" class="appendix" typeof="bibo:Chapter" resource="#ref" rel="bibo:Chapter"><!--OddPage--><h2 aria-level="1" role="heading" id="h2_references"><span class="secno">A. </span>References</h2><section id="normative-references" typeof="bibo:Chapter" resource="#ref" rel="bibo:Chapter"><h3 aria-level="2" role="heading" id="h3_normative-references"><span class="secno">A.1 </span>Normative references</h3><dl class="bibliography" about=""><dt id="bib-compositing-1">[compositing-1]</dt><dd rel="dcterms:requires">Nikos Andronikos; Rik Cabanier. <a href="http://www.w3.org/TR/compositing-1/"><cite>Compositing and Blending Level 1</cite></a>. 10 October 2013. W3C Last Call Working Draft. URL: <a href="http://www.w3.org/TR/compositing-1/">http://www.w3.org/TR/compositing-1/</a>
+</dd><dt id="bib-css3-transforms">[css3-transforms]</dt><dd rel="dcterms:requires">Simon Fraser; Dean Jackson; Edward O'Connor; Dirk Schulze; Aryeh Gregor. <a href="http://www.w3.org/TR/css3-transforms/"><cite>CSS Transforms</cite></a>. 11 September 2012. W3C Working Draft. URL: <a href="http://www.w3.org/TR/css3-transforms/">http://www.w3.org/TR/css3-transforms/</a>
+</dd></dl></section><section id="informative-references" typeof="bibo:Chapter" resource="#ref" rel="bibo:Chapter"><h3 aria-level="2" role="heading" id="h3_informative-references"><span class="secno">A.2 </span>Informative references</h3><dl class="bibliography" about=""><dt id="bib-webdriver">[webdriver]</dt><dd rel="dcterms:references">Simon Stewart; David Burns. <a href="http://www.w3.org/TR/webdriver/"><cite>WebDriver</cite></a>. 12 March 2013. W3C Working Draft. URL: <a href="http://www.w3.org/TR/webdriver/">http://www.w3.org/TR/webdriver/</a>
+</dd></dl></section></section></body></html>

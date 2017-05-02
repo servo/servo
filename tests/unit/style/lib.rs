@@ -13,7 +13,7 @@ extern crate parking_lot;
 extern crate rayon;
 extern crate rustc_serialize;
 extern crate selectors;
-#[macro_use] extern crate servo_atoms;
+extern crate servo_atoms;
 extern crate servo_config;
 extern crate servo_url;
 extern crate style;
@@ -32,7 +32,6 @@ mod size_of;
 mod str;
 mod stylesheets;
 mod stylist;
-mod value;
 mod viewport;
 
 mod writing_modes {

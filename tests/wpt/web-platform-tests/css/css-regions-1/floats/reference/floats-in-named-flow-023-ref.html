@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Reftest Reference</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<style>
+		article {
+			font-family: Ahem;
+			font-size: 20px;
+			line-height: 1em;
+			color: green;
+		}
+		.float {
+			float: left;
+			color: blue;
+		}
+		.region {
+			border: 10px solid black;
+			display: inline-block;
+		}
+		</style>
+	</head>
+	<body>
+		<p>
+			Test passes if you see two squares inside a black rectangular border. The left square
+			should be blue, the right square should be green, and the squares should be flush to one
+			another.<br>
+			You should see no red.
+		</p>
+
+		<div class="region">
+			<article>
+				<span class="float">
+					xxxxx<br>
+					xxxxx<br>
+					xxxxx<br>
+					xxxxx<br>
+					xxxxx
+				</span>
+				xxxxx<br>
+				xxxxx<br>
+				xxxxx<br>
+				xxxxx<br>
+				xxxxx
+			</article>
+		</div>
+	</body>
+</html>

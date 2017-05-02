@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Image Position Syntax - Visual Media</title>
+  <link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#img-fit-img-posn"/>
+  <meta name="assert" content="The 'image-position' property applies to visual media"/>
+  <style type="text/css"><![CDATA[
+  	img {
+		height: 200px;
+		width: 200px;
+		border: 2pt solid black;
+		margin-bottom: 10px;
+		image-fit: contain;
+		background: aqua;
+	}
+	img.defaultPosition {image-position: 50% 50%;}
+	img.offsetPosition {image-position: 100% 100%;}
+  ]]></style>
+ </head>
+ <body>
+ 	<p>For visual media, the first two images below should be centered within their boxes with blue appearing above and below the images. The third image should fit against the bottom edge of its box with blue appearing above it. All three images are the same size.</p>
+	<div><img src="intrinsic-size.png" alt="FAIL: missing image" /></div>
+	<div><img src="intrinsic-size.png" alt="FAIL: missing image" class="defaultPosition" /></div>
+	<div><img src="intrinsic-size.png" alt="FAIL: missing image" class="offsetPosition" /></div>
+ </body>
+ </html>

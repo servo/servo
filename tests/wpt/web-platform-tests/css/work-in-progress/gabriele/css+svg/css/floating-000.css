@@ -1,0 +1,20 @@
+root, document, para {
+	display: block;
+}
+
+root {
+	background: white;
+	color: black;
+}
+
+document {
+	margin: 0.5em;
+}
+
+para {
+	margin: 1em 0;
+}
+
+svg {
+	float: left;
+}

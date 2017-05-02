@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS-Color-4: rgba() syntax accepts non-integer components, comma-less expressions (and comments as separators), percentage alpha and omitting of alpha component - test</title>
+    <link rel="author" title="Jerry Shih" href="mailto:bignose1007@gmail.com" />
+    <link rel="author" title="Mozilla" href="http://www.mozilla.org/" />
+    <link rel="help" href="https://drafts.csswg.org/css-color-4/#rgb-functions" />
+    <meta name="assert" content="rgba() should accept non-integer components, comma-less expressions (and comments as separators), percentage alpha and omitting of alpha." />
+    <link rel="match" href="background-color-rgb-002-ref.html" />
+    <style type="text/css">
+      #p1 { background-color: rgba(10.0, 175.0, 10.0, 0.2); }
+      #p2 { background-color: rgba(10, 175, 10, 40%); }
+      #p3 { background-color: rgba(10% 75% 10% / 0.6); }
+      #p4 { background-color: rgba(10 175 10 / 80%); }
+      #p5 { background-color: rgba(10/* comment */175/* comment */10/100%); }
+      #p6 { background-color: rgba(10,/* comment */150,/* comment */50); }
+      #p7 { background-color: rgba(10.0, 125.0, 75.0); }
+      #p8 { background-color: rgba(10%, 45%, 45%); }
+      #p9 { background-color: rgba(10/* comment */75/* comment */125); }
+      #p10 { background-color: rgba(10.0, 50.0, 150.0); }
+    </style>
+  </head>
+  <body>
+    <p id="p1">color</p>
+    <p id="p2">color</p>
+    <p id="p3">color</p>
+    <p id="p4">color</p>
+    <p id="p5">color</p>
+    <p id="p6">color</p>
+    <p id="p7">color</p>
+    <p id="p8">color</p>
+    <p id="p9">color</p>
+    <p id="p10">color</p>
+  </body>
+</html>

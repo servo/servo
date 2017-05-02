@@ -19,11 +19,9 @@
         });
         client.open("GET", "resources/delay.py?ms=3000", true);
         client.send(null);
-        setTimeout(function(){
-          test.step(function(){
-            assert_equals(abortFired, true);
-            test.done();
-          });
+        test.step_timeout(() => {
+          assert_equals(abortFired, true);
+          test.done();
         }, 200);
         window.stop();
       });

@@ -8,28 +8,29 @@
 
 ${helpers.single_keyword("border-collapse", "separate collapse",
                          gecko_constant_prefix="NS_STYLE_BORDER",
-                         animation_type="none",
+                         animation_value_type="none",
                          spec="https://drafts.csswg.org/css-tables/#propdef-border-collapse")}
 ${helpers.single_keyword("empty-cells", "show hide",
                          gecko_constant_prefix="NS_STYLE_TABLE_EMPTY_CELLS",
-                         animation_type="none",
+                         animation_value_type="none",
                          spec="https://drafts.csswg.org/css-tables/#propdef-empty-cells")}
 ${helpers.single_keyword("caption-side", "top bottom",
                          extra_gecko_values="right left top-outside bottom-outside",
                          needs_conversion="True",
-                         animation_type="none",
+                         animation_value_type="none",
                          spec="https://drafts.csswg.org/css-tables/#propdef-caption-side")}
 
-<%helpers:longhand name="border-spacing" animation_type="none" boxed="True"
+<%helpers:longhand name="border-spacing" animation_value_type="ComputedValue" boxed="True"
                    spec="https://drafts.csswg.org/css-tables/#propdef-border-spacing">
     use app_units::Au;
     use std::fmt;
     use style_traits::ToCss;
     use values::HasViewportPercentage;
+    use values::specified::{AllowQuirks, Length};
 
     pub mod computed_value {
         use app_units::Au;
-        use properties::animated_properties::Interpolate;
+        use properties::animated_properties::{ComputeDistance, Interpolate};
 
         #[derive(Clone, Copy, Debug, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -48,6 +49,19 @@ ${helpers.single_keyword("caption-side", "top bottom",
                 })
             }
         }
+
+        impl ComputeDistance for T {
+            #[inline]
+            fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
+                self.compute_squared_distance(other).map(|sd| sd.sqrt())
+            }
+
+            #[inline]
+            fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
+                Ok(try!(self.horizontal.compute_squared_distance(&other.horizontal)) +
+                   try!(self.vertical.compute_squared_distance(&other.vertical)))
+            }
+        }
     }
 
     impl HasViewportPercentage for SpecifiedValue {
@@ -60,8 +74,8 @@ ${helpers.single_keyword("caption-side", "top bottom",
     #[derive(Clone, Debug, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue {
-        pub horizontal: specified::Length,
-        pub vertical: Option<specified::Length>,
+        pub horizontal: Length,
+        pub vertical: Option<Length>,
     }
 
     #[inline]
@@ -114,14 +128,14 @@ ${helpers.single_keyword("caption-side", "top bottom",
         }
     }
 
-    pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
         let mut first = None;
         let mut second = None;
-        match specified::Length::parse_non_negative(input) {
+        match Length::parse_non_negative_quirky(context, input, AllowQuirks::Yes) {
             Err(()) => (),
             Ok(length) => {
                 first = Some(length);
-                if let Ok(len) = input.try(|input| specified::Length::parse_non_negative(input)) {
+                if let Ok(len) = input.try(|i| Length::parse_non_negative_quirky(context, i, AllowQuirks::Yes)) {
                     second = Some(len);
                 }
             }

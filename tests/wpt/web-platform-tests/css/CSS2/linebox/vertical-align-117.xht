@@ -1,0 +1,44 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Vertical-align with a keyword, 'text-bottom'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#propdef-vertical-align" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#leading" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The 'vertical-align' property sets the keyword 'text-bottom'." />
+        <style type="text/css">
+            #div1
+            {
+                position: relative;
+            }
+            #div2
+            {
+                position: absolute;
+                top: 1in;
+            }
+            #span1
+            {
+                font: 1.5in/1em Ahem;
+            }
+            span span
+            {
+                color: red;
+                vertical-align: text-bottom;
+            }
+            #div2, span span
+            {
+                font: 0.5in/1em Ahem;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a large and small box on the page and there is no red visible on the page.</p>
+        <div id="div1">
+            <div>
+                <span id="span1"><span>X</span>X</span>
+            </div>
+            <div id="div2">X</div>
+        </div>
+    </body>
+</html>

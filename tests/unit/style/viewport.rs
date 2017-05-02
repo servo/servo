@@ -7,10 +7,12 @@ use euclid::size::TypedSize2D;
 use media_queries::CSSErrorReporterTest;
 use servo_config::prefs::{PREFS, PrefValue};
 use servo_url::ServoUrl;
-use style::media_queries::{Device, MediaType};
-use style::parser::{Parse, ParserContext};
+use std::sync::Arc;
+use style::context::QuirksMode;
+use style::media_queries::{Device, MediaList, MediaType};
+use style::parser::{LengthParsingMode, Parse, ParserContext};
 use style::shared_lock::SharedRwLock;
-use style::stylesheets::{Stylesheet, Origin};
+use style::stylesheets::{CssRuleType, Stylesheet, Origin};
 use style::values::specified::LengthOrPercentageOrAuto::{self, Auto};
 use style::values::specified::NoCalcLength::{self, ViewportPercentage};
 use style::values::specified::ViewportPercentageLength::Vw;
@@ -27,10 +29,12 @@ macro_rules! stylesheet {
             $css,
             ServoUrl::parse("http://localhost").unwrap(),
             Origin::$origin,
-            Default::default(),
+            Arc::new($shared_lock.wrap(MediaList::empty())),
             $shared_lock,
             None,
-            &$error_reporter
+            &$error_reporter,
+            QuirksMode::NoQuirks,
+            0u64
         ))
     }
 }
@@ -290,7 +294,9 @@ fn multiple_stylesheets_cascading() {
 fn constrain_viewport() {
     let url = ServoUrl::parse("http://localhost").unwrap();
     let reporter = CSSErrorReporterTest;
-    let context = ParserContext::new(Origin::Author, &url, &reporter);
+    let context = ParserContext::new(Origin::Author, &url, &reporter, Some(CssRuleType::Viewport),
+                                     LengthParsingMode::Default,
+                                     QuirksMode::NoQuirks);
 
     macro_rules! from_css {
         ($css:expr) => {
@@ -300,9 +306,9 @@ fn constrain_viewport() {
 
     let initial_viewport = TypedSize2D::new(800., 600.);
     let device = Device::new(MediaType::Screen, initial_viewport);
-    assert_eq!(ViewportConstraints::maybe_new(&device, from_css!("")), None);
+    assert_eq!(ViewportConstraints::maybe_new(&device, from_css!(""), QuirksMode::NoQuirks), None);
 
-    assert_eq!(ViewportConstraints::maybe_new(&device, from_css!("width: 320px auto")),
+    assert_eq!(ViewportConstraints::maybe_new(&device, from_css!("width: 320px auto"), QuirksMode::NoQuirks),
                Some(ViewportConstraints {
                    size: initial_viewport,
 
@@ -314,7 +320,7 @@ fn constrain_viewport() {
                    orientation: Orientation::Auto
                }));
 
-    assert_eq!(ViewportConstraints::maybe_new(&device, from_css!("width: 320px auto")),
+    assert_eq!(ViewportConstraints::maybe_new(&device, from_css!("width: 320px auto"), QuirksMode::NoQuirks),
                Some(ViewportConstraints {
                    size: initial_viewport,
 
@@ -326,10 +332,12 @@ fn constrain_viewport() {
                    orientation: Orientation::Auto
                }));
 
-    assert_eq!(ViewportConstraints::maybe_new(&device, from_css!("width: 800px; height: 600px;\
-                                                                     zoom: 1;\
-                                                                     user-zoom: zoom;\
-                                                                     orientation: auto;")),
+    assert_eq!(ViewportConstraints::maybe_new(&device,
+                                              from_css!("width: 800px; height: 600px;\
+                                                         zoom: 1;\
+                                                         user-zoom: zoom;\
+                                                         orientation: auto;"),
+                                              QuirksMode::NoQuirks),
                Some(ViewportConstraints {
                    size: initial_viewport,
 
@@ -343,7 +351,7 @@ fn constrain_viewport() {
 
     let initial_viewport = TypedSize2D::new(200., 150.);
     let device = Device::new(MediaType::Screen, initial_viewport);
-    assert_eq!(ViewportConstraints::maybe_new(&device, from_css!("width: 320px auto")),
+    assert_eq!(ViewportConstraints::maybe_new(&device, from_css!("width: 320px auto"), QuirksMode::NoQuirks),
                Some(ViewportConstraints {
                    size: TypedSize2D::new(320., 240.),
 

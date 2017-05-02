@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Transforms Test: SVG presentation attribute and scale 0.5 with only one parameter specified</title>
+    <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#svg-transform">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#two-d-transform-functions">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#funcdef-scale">
+    <link rel="match" href="reference/svg-scale-ref.html">
+    <meta name="flags" content="svg">
+    <meta name="assert" content="If the second parameter of the scale function is not provided, it is takes a value equal to the first. The red rect in this test should be scaled down 0.5 vertically and horizontally to be completely hidden by the green rect.">
+    <style type="text/css">
+        svg {
+            width: 200px;
+            height: 200px;
+            background: green;
+        }
+    </style>
+</head>
+<body>
+    <p>The test passes if you see a green square and no red.</p>
+    <svg>
+        <rect x="1" y="1" width="196" height="196" fill="red" transform="scale(0.5)"/>
+        <rect x="0" y="0" width="100" height="100" fill="green"/>
+    </svg>
+</body>
+</html>

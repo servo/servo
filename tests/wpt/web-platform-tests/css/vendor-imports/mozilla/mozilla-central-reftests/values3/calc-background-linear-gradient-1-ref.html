@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<head>
+  <title>CSS Reference: Support calc() on gradient stop positions</title>
+  <link rel="author" title="Yu-Sian (Thomasy) Liu" href="https://bugzilla.mozilla.org/show_bug.cgi?id=594935">
+  <meta name="flags" content="">
+<style type="text/css">
+div {
+ width:100px;
+ height:100px;
+ background:red;
+ margin:5px 0 0 5px;
+ float:left;
+}
+div#one {
+ background: linear-gradient(lime 0px, lime 90px, blue 90px, blue 100%);
+}
+div#two {
+ background: linear-gradient(blue 0px ,green 30px ,red 40px ,white 60px , lime  80px);
+}
+div#three {
+ background: linear-gradient(blue 0px ,purple 20px ,red 40px ,blue 60px , lime  80px);
+}
+div#four {
+ background: linear-gradient(blue 0px ,green 30px ,red 40px ,blue 60px , yellow  80px);
+}
+div#five {
+ background: linear-gradient(red 0px ,green 30px);
+}
+</style>
+</head>
+<body>
+<div id="one">1</div>
+<div id="two">2</div>
+<div id="three">3</div>
+<div id="four">4</div>
+<div id="five">5</div>
+</body>
+</html>

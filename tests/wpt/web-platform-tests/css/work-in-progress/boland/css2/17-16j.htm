@@ -1,0 +1,58 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Thirteenth Test of Section 17.2 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+TD.blue {border: medium solid blue} TD.thick {border: thick solid red}
+TD.double {border: thick double black} TR {border: medium dotten green}
+
+
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Thirteenth Testable Statement of Sec 17.2 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+13. The style of the borders between the cells is found by comparing the
+border properties of all the boxes that meet at that border.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p >
+If statement #13 above is passed, then
+in the table below, there should be different border styles.
+The rules applied are "TD.blue {border: medium solid blue}, TD.thick
+{border: thick solid red}, TD.double {border: thick double black},
+TR {border: medium dotted green}".
+<table>
+<tr><td>1</td><td class="blue">2</td><td>2</td>
+</tr>
+<tr><td>4</td><td class="thick"><td>5</td><td>6</td>
+</tr>
+<tr><td>7</td><td class="double"></td><td>8</td><td>9</td>
+</tr>
+</table>
+All other properties of this page should be UA-default.
+
+
+</BODY>
+</HTML>
+

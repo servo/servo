@@ -1,0 +1,18 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Bidi box model test 6</title>
+  <link rel="author" title="Boris Zbarsky" href="mailto:bzbarsky@mit.edu"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#bidi-box-model"/>
+  <link rel="match" href="right-rtl-ref.xht"/>
+  <meta name="flags" content="" />
+  <style type="text/css"><![CDATA[
+      .r { direction: rtl; }
+      .l { direction: ltr; }
+      span { border: 2px solid; padding: 0 10px 0 5px; margin: 0 60px 0 30px; }
+  ]]></style>
+  </head>
+  <body>
+    <div class="r"><span>One<div></div>Two</span></div>
+  </body>
+</html>

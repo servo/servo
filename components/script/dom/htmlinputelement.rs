@@ -1117,7 +1117,7 @@ impl VirtualMethods for HTMLInputElement {
                                     translated_y
                                 );
                                 if let Some(i) = index {
-                                    self.textinput.borrow_mut().edit_point.index = i as usize;
+                                    self.textinput.borrow_mut().set_edit_point_index(i as usize);
                                     // trigger redraw
                                     self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
                                     event.PreventDefault();

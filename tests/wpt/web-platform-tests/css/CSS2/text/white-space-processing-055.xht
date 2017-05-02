@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: White space processing model with 'zero width no break space' character</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#white-space-model" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="A 'zero width no break space' character is not collapsed by the white space processing model." />
+        <style type="text/css">
+            div
+            {
+                font: 16px/1em Ahem;
+            }
+            #div1
+            {
+                white-space: normal;
+            }
+            #div2
+            {
+                background: black;
+                display: inline-block;
+                height: 1em;
+                width: 4em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is only one box below.</p>
+        <div id="div1">XX&#65279;&#65279;&#65279;XX</div>
+        <div id="div2"></div>
+    </body>
+</html>

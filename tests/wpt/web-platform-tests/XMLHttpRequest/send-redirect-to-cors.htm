@@ -4,7 +4,6 @@
     <title>XMLHttpRequest: send() - Redirect to CORS-enabled resource</title>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
-    <link rel="help" href="https://xhr.spec.whatwg.org/#infrastructure-for-the-send()-method" data-tested-assertations="following::dl[1]/dt[2] following::dl[1]/dd[2]/ol/li[1] following::dl[1]/dd[2]/ol/li[3]" />
   </head>
   <body>
     <div id="log"></div>
@@ -13,56 +12,76 @@
         if (body === null) {
           return { body: "", type: "NO" };
         }
-
         if (typeof body == "string") {
           return { body: body, type: "text/plain;charset=UTF-8" };
         }
-
         if (body instanceof Uint8Array) {
           var arr = Array.prototype.slice.call(body);
           return { body: String.fromCharCode.apply(null, arr), type: "NO" }
         }
-
-        return { body: "EXTRACT NOT IMPLEMENTED",
-                 type: "EXTRACT NOT IMPLEMENTED" }
+        return { body: "EXTRACT NOT IMPLEMENTED", type: "EXTRACT NOT IMPLEMENTED" }
       }
 
-      function redirect(code, name = code, method = "GET", body = null, setExplicitType = true) {
-        var test = async_test(document.title + " (" + name + ")")
-        test.step(function() {
+      function redirect(code, name = code, method = "GET", body = null, explicitType = null, safelistContentType = false) {
+        async_test(t => {
           var client = new XMLHttpRequest()
-          client.onreadystatechange = function() {
-            test.step(function() {
-              if (client.readyState == 4) {
-                assert_equals(client.status, 200);
-                assert_equals(client.getResponseHeader("x-request-method"),
-                              method);
+          client.onreadystatechange = t.step_func(() => {
+            if (client.readyState == 4) {
+              if (explicitType !== "application/x-pony" || safelistContentType) {
                 var { body: expectedBody, type: expectedType } = extractBody(body);
-                if (setExplicitType) {
-                  expectedType = "application/x-pony";
+                if (explicitType !== null) {
+                  expectedType = explicitType
                 }
-                assert_equals(client.getResponseHeader("x-request-content-type"),
-                              expectedType);
-                assert_equals(client.getResponseHeader("x-request-data"),
-                              expectedBody);
-                test.done();
+                if (((code === "301" || code === "302") && method === "POST") || code === "303") {
+                  method = "GET"
+                  expectedBody = ""
+                }
+                assert_equals(client.status, 200);
+                assert_equals(client.getResponseHeader("x-request-method"), method);
+                assert_equals(client.getResponseHeader("x-request-content-type"), expectedType);
+                assert_equals(client.getResponseHeader("x-request-data"), expectedBody);
+              } else {
+                // "application/x-pony" is not safelisted by corsenabled.py -> network error
+                assert_equals(client.status, 0)
+                assert_equals(client.statusText, "")
+                assert_equals(client.responseText, "")
+                assert_equals(client.responseXML, null)
               }
-            })
+              t.done();
+            }
+          })
+          let safelist = ""
+          if (safelistContentType) {
+            safelist = "?safelist_content_type"
           }
-          client.open(method, "resources/redirect.py?location="+encodeURIComponent("http://www2."+location.host+(location.pathname.replace(/[^\/]+$/, ''))+'resources/corsenabled.py')+"&code=" + code)
-          if (setExplicitType) {
-            client.setRequestHeader("Content-Type", "application/x-pony")
+          client.open(method, "resources/redirect.py?location="+encodeURIComponent("http://www2."+location.host+(location.pathname.replace(/[^\/]+$/, ''))+'resources/corsenabled.py')+safelist+"&code=" + code)
+          if (explicitType !== null) {
+            client.setRequestHeader("Content-Type", explicitType)
           }
           client.send(body)
-        })
+        }, document.title + " (" + name + ")")
       }
       redirect("301")
+      redirect("301", "301 GET with explicit Content-Type", "GET", null, "application/x-pony")
+      redirect("301", "301 GET with explicit Content-Type safelisted", "GET", null, "application/x-pony", true)
       redirect("302")
       redirect("303")
+      redirect("303", "303 LALA with string and explicit Content-Type safelisted", "LALA", "test", "application/x-pony", true)
       redirect("307")
-      redirect("307", "307 post with null", "POST", null, false);
-      redirect("307", "307 post with string", "POST", "hello", false);
-      redirect("307", "307 post with typed array", "POST", new Uint8Array([65, 66, 67]), false);
+      redirect("307", "307 post with null", "POST", null)
+      redirect("307", "307 post with string", "POST", "hello")
+      redirect("307", "307 post with typed array", "POST", new Uint8Array([65, 66, 67]))
+      redirect("301", "301 POST with string and explicit Content-Type", "POST", "yoyo", "application/x-pony")
+      redirect("301", "301 POST with string and explicit Content-Type safelisted", "POST", "yoyo", "application/x-pony", true)
+      redirect("302", "302 POST with string and explicit Content-Type", "POST", "yoyo", "application/x-pony")
+      redirect("307", "307 POST with string and explicit Content-Type", "POST", "yoyo", "application/x-pony")
+      redirect("307", "307 FOO with string and explicit Content-Type", "FOO", "yoyo", "application/x-pony")
+      redirect("308", "308 POST with string and explicit Content-Type", "POST", "yoyo", "application/x-pony")
+      redirect("308", "308 FOO with string and explicit Content-Type", "FOO", "yoyo", "application/x-pony")
+      redirect("308", "308 FOO with string and explicit Content-Type text/plain", "FOO", "yoyo", "text/plain")
+      redirect("308", "308 FOO with string and explicit Content-Type multipart/form-data", "FOO", "yoyo", "multipart/form-data")
+      redirect("308", "308 FOO with string and explicit Content-Type safelisted", "FOO", "yoyo", "application/thunderstorm", true)
+      redirect("307", "307 POST with string and explicit Content-Type safelisted", "POST", "yoyo", "application/thunderstorm", true)
     </script>
   </body>
 </html>

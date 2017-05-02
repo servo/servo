@@ -1,0 +1,33 @@
+<csstest def="NEGATED :first-child pseudo-class" module="W3C Selectors" modulename="css3-modsel" number="77b" rev="1.2" date="3-march-2004" xmlns:a="http://www.example.org/a" xmlns:b="http://www.example.org/b" xmlns:html="http://www.w3.org/1999/xhtml" xmlns="http://www.example.org/css3tests">
+
+<author>Daniel Glazman</author>
+<author>Ian Hickson</author>
+<cssrules>.green { background-color : lime ! important }
+.t1 td:not(:first-child) { background-color : red }
+p &gt; *:not(:first-child) { background-color : red }
+table.t1 td { border : thin black solid }
+</cssrules>
+
+<code>
+ <div xmlns="http://www.w3.org/1999/xhtml">
+  <table class="t1" border="1">
+   <tr>
+    <td>1.1</td>
+    <td class="green">green cell</td>
+    <td class="green">green cell</td>
+   </tr>
+   <tr>
+    <td>2.1</td>
+    <td class="green">green cell</td>
+    <td class="green">green cell</td>
+   </tr>
+   <tr>
+    <td>3.1</td>
+    <td class="green">green cell</td>
+    <td class="green">green cell</td>
+   </tr>
+ </table>
+ </div>
+ <p xmlns="http://www.w3.org/1999/xhtml">This paragraph <span>should be</span> unstyled.</p>
+</code>
+</csstest>

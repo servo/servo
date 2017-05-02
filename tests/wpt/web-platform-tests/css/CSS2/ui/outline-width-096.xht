@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: outline-width - 'outline-style: none' and inherit</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" title="Section 18.4 Dynamic outlines: the 'outline' property" href="http://www.w3.org/TR/CSS21/ui.html#dynamic-outlines" />
+  <link rel="match" href="outline-width-096-ref.xht" />
+
+  <meta content="" name="flags" />
+  <meta content="The computed value of 'outline-width' property is '0' if 'outline-style' is 'none'" name="assert" />
+
+  <style type="text/css"><![CDATA[
+  #parent
+  {
+  margin: 40px 20px;
+  outline: black none 20px;
+  }
+
+  #child
+  {
+  outline-color: red;
+  outline-style: solid;
+  outline-width: inherit;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is <strong>no red</strong>.</p>
+
+  <div id="parent">
+   <div id="child">Filler Text</div>
+  </div>
+
+ </body>
+</html>

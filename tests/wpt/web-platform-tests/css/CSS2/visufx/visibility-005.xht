@@ -1,0 +1,44 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: visibility - descendants of a 'visibility: hidden' element</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visufx.html#visibility" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/changes.html#q250" />
+  <link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+
+  <meta name="flags" content="ahem" />
+  <meta name="assert" content="Descendants of a 'visibility: hidden' element will be visible if they have 'visibility: visible'" />
+
+  <style type="text/css"><![CDATA[
+  div {visibility: hidden;}
+
+  span
+  {
+  color: red;
+  font: 100px/1 Ahem;
+  }
+
+  span#testpassed
+  {
+  color: green;
+  visibility: visible;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a green square and <strong>no red</strong>.</p>
+
+  <div>
+      <span id="testpassed">X</span> <span>X</span>
+  </div>
+
+ </body>
+</html>

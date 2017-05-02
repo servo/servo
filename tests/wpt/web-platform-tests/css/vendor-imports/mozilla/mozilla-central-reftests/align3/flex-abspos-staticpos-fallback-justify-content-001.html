@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+<head>
+  <title>CSS Test: Static position of abspos children in a row flex container, with various "justify-content" values with explicit fallback values</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <link rel="help" href="https://drafts.csswg.org/css-align-3/#justify-abspos-static">
+  <link rel="match" href="flex-abspos-staticpos-fallback-justify-content-001-ref.html">
+  <meta charset="utf-8">
+  <style>
+    .container {
+      display: flex;
+      flex-flow: row;
+      padding: 1px 2px;
+      border: 1px solid black;
+      background: yellow;
+      margin-bottom: 5px;
+      margin-right: 5px;
+      float: left; /* For testing in "rows" of containers */
+    }
+    br { clear: both }
+
+    .big > .container {
+      height: 10px;
+      width: 16px;
+    }
+    .small > .container {
+      height: 2px;
+      width: 4px;
+    }
+
+    .container > * {
+      position: absolute;
+      background: teal;
+      height: 6px;
+      width: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="big">
+    <!-- <content-distribution> with implied fallback -->
+    <div class="container" style="justify-content: space-between"><div></div></div>
+    <div class="container" style="justify-content: space-around"><div></div></div>
+    <div class="container" style="justify-content: space-evenly"><div></div></div>
+    <div class="container" style="justify-content: stretch"><div></div></div>
+    <br>
+    <!-- <content-distribution> with explicit "flex-end" fallback -->
+    <div class="container" style="justify-content: space-between flex-end"><div></div></div>
+    <div class="container" style="justify-content: space-around flex-end"><div></div></div>
+    <div class="container" style="justify-content: space-evenly flex-end"><div></div></div>
+    <div class="container" style="justify-content: stretch flex-end"><div></div></div>
+    <!-- Note: specifically for flex containers, in the justify-content axis,
+         "stretch behaves as flex-start (ignoring the specified fallback
+         alignment, if any." https://drafts.csswg.org/css-align-3/#distribution-flex -->
+    <br>
+  </div>
+  <div class="small">
+    <!-- <content-distribution> with implied fallback -->
+    <div class="container" style="justify-content: space-between"><div></div></div>
+    <div class="container" style="justify-content: space-around"><div></div></div>
+    <div class="container" style="justify-content: space-evenly"><div></div></div>
+    <div class="container" style="justify-content: stretch"><div></div></div>
+    <br>
+    <!-- <content-distribution> with explicit "flex-end" fallback -->
+    <div class="container" style="justify-content: space-between flex-end"><div></div></div>
+    <div class="container" style="justify-content: space-around flex-end"><div></div></div>
+    <div class="container" style="justify-content: space-evenly flex-end"><div></div></div>
+    <div class="container" style="justify-content: stretch flex-end"><div></div></div>
+    <!-- As noted above, the explicit fallback for "stretch" is ignored here. -->
+  </div>
+</body>
+</html>

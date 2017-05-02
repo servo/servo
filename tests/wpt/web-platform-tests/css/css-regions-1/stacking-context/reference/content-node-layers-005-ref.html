@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Reftest Reference</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<style>
+		#content {
+			font-family: Ahem;
+			font-size: 20px;
+			line-height: 1em;
+			position: relative;
+			width: 125px;
+			height: 125px;
+			background-color: lightgreen;
+		}
+		#content-child {
+			position: absolute;
+			color: green;
+			top: 20px;
+			left: 20px;
+		}
+		</style>
+	</head>
+	<body>
+		<ol>
+			<li>You should see no red.</li>
+			<li>Test passes if you see a dark green square in the middle of a light green square.</li>
+		</ol>
+		<div id="content">
+			<div id="content-child">
+				xxxx
+				xxxx
+				xxxx
+				xxxx
+			</div>
+		</div>
+	</body>
+</html>

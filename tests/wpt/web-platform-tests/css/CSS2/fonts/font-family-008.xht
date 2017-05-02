@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: font-family - unquoted font-family names with parentheses or curly braces</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-family-prop" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#rule-sets" />
+  <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-family-prop"/>
+  <link rel="match" href="font-family-008-ref.html" />
+  <meta content="ahem invalid" name="flags" />
+  <meta content="Unquoted font-family names must not contain unescaped parentheses or unescaped curly braces" name="assert" />
+
+  <style type="text/css"><![CDATA[
+  p#first-test {font-family: Ahem, foo(bar), sans-serif;}
+
+  p#second-test {font-family: Ahem, foo(bar)foo, sans-serif;}
+
+  p#third-test {font-family: Ahem, foo{bar}, sans-serif;}
+
+  p#fourth-test {font-family: Ahem, foo{bar}foo, sans-serif;}
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is <strong>no black stripe</strong>.</p>
+
+  <p id="first-test">First test Passed</p>
+
+  <p id="second-test">Second test Passed</p>
+
+  <p id="third-test">Third test Passed</p>
+
+  <p id="fourth-test">Fourth test Passed</p>
+
+ </body>
+</html>

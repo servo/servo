@@ -138,6 +138,22 @@ test(function() {
     assert_equals(input.selectionStart, 0, "element.selectionStart should be 0");
     assert_equals(input.selectionEnd, 1, "element.selectionEnd should be 1");
   },'input setSelectionRange(undefined,1)');
+
+  test(function() {
+    input.setSelectionRange(Math.pow(2,32) - 2, Math.pow(2,32) - 1);
+    assert_equals(input.selectionStart, input.value.length,
+                 "element.selectionStart should be value.length");
+    assert_equals(input.selectionEnd, input.value.length,
+                  "element.selectionEnd should be value.length");
+  }, 'input setSelectionRange(Math.pow(2,32) - 2, Math.pow(2,32) - 1)');
+
+  test(function() {
+    input.setSelectionRange(Math.pow(2,31), Math.pow(2,32) - 1);
+    assert_equals(input.selectionStart, input.value.length,
+                 "element.selectionStart should be value.length");
+    assert_equals(input.selectionEnd, input.value.length,
+                  "element.selectionEnd should be value.length");
+  }, 'input setSelectionRange(Math.pow(2,31), Math.pow(2,32) - 1)');
 },"test of input.setSelectionRange");
 
 async_test(function() {
@@ -257,18 +273,21 @@ test(function() {
     assert_equals(textarea.selectionStart, 0, "element.selectionStart should be 0");
     assert_equals(textarea.selectionEnd, 1, "element.selectionStart should be 1");
   },'textarea setSelectionRange(undefined,1)');
-},"test of textarea.setSelectionRange");
 
-async_test(function() {
-  var q = false;
-  var textarea = document.getElementById("b");
-  textarea.addEventListener("select", this.step_func_done(function(e) {
-    assert_true(q, "event should be queued");
-    assert_true(e.isTrusted, "event is trusted");
-    assert_true(e.bubbles, "event bubbles");
-    assert_false(e.cancelable, "event is not cancelable");
-  }));
-  textarea.setSelectionRange(0, 1);
-  q = true;
-}, "textarea setSelectionRange fires a select event");
+  test(function() {
+    textarea.setSelectionRange(Math.pow(2,32) - 2, Math.pow(2,32) - 1);
+    assert_equals(textarea.selectionStart, textarea.value.length,
+                 "element.selectionStart should be value.length");
+    assert_equals(textarea.selectionEnd, textarea.value.length,
+                  "element.selectionEnd should be value.length");
+  }, 'textarea setSelectionRange(Math.pow(2,32) - 2, Math.pow(2,32) - 1)');
+
+  test(function() {
+    textarea.setSelectionRange(Math.pow(2,31), Math.pow(2,32) - 1);
+    assert_equals(textarea.selectionStart, textarea.value.length,
+                 "element.selectionStart should be value.length");
+    assert_equals(textarea.selectionEnd, textarea.value.length,
+                  "element.selectionEnd should be value.length");
+  }, 'textarea setSelectionRange(Math.pow(2,31), Math.pow(2,32) - 1)');
+},"test of textarea.setSelectionRange");
 </script>

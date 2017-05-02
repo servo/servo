@@ -3,4 +3,4 @@ Cache-Control: no-store, no-cache, must-revalidate
 Cache-Control: post-check=0, pre-check=0, false
 Pragma: no-cache
 Set-Cookie: media-src-redir-bug={{$id:uuid()}}; Path=/content-security-policy/media-src/
-Content-Security-Policy: script-src * 'unsafe-inline'; media-src http://www2.{{host}}:{{ports[http][0]}}/ 'self'; connect-src 'self'; report-uri  ../support/report.py?op=put&reportID={{$id}}
+Content-Security-Policy: script-src * 'unsafe-inline'; media-src http://{{domains[www2]}}:{{ports[http][0]}}/ 'self'; connect-src 'self'; report-uri  ../support/report.py?op=put&reportID={{$id}}

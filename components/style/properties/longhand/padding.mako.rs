@@ -16,8 +16,8 @@
                               "computed::LengthOrPercentage::Length(Au(0))",
                               "parse_non_negative",
                               alias=maybe_moz_logical_alias(product, side, "-moz-padding-%s"),
-                              needs_context=False,
-                              animation_type="normal",
+                              animation_value_type="ComputedValue",
                               logical = side[1],
-                              spec = spec)}
+                              spec = spec,
+                              allow_quirks=not side[1])}
 % endfor

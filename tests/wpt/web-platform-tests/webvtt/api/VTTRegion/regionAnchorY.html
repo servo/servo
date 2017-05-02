@@ -1,0 +1,26 @@
+<!doctype html>
+<title>VTTRegion.regionAnchorY</title>
+<link rel="help" href="https://w3c.github.io/webvtt/#dom-vttregion-regionanchory">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+test(function() {
+    var region = new VTTRegion();
+    assert_true('regionAnchorY' in region, 'regionAnchorY is not supported');
+
+    for (var i = 0; i <= 100; i++) {
+        region.regionAnchorY = i;
+        assert_equals(region.regionAnchorY, i);
+    }
+
+    region.regionAnchorX = 1.5;
+    assert_equals(region.regionAnchorX, 1.5);
+
+    [-1, -100, -150, 101, 200, 250].forEach(function (invalid) {
+        assert_throws('IndexSizeError', function() {
+            region.regionAnchorY = invalid;
+        });
+    });
+}, document.title + ' script-created region');
+</script>

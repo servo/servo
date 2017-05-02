@@ -1,0 +1,44 @@
+<HTML>
+<HEAD>
+<TITLE>Eighth Test of Section 1.0 of CSS1 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+@import url(test1.css);
+#id2 {font-family: sans-serif; 
+      color: red}
+</STYLE>
+</HEAD>
+<BODY>
+<h1 >
+Testing Eighth Testable Statement of Sec 1.0 of CSS1 Specification
+</h1>
+
+<ul>
+<li  >
+8. Combined with other style sheets, a style sheet will determine the
+final presentation of the document.
+</ul>
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+If statement #8 above is passed, then:
+<p ID="id2">
+This paragraph should be red sans-serif .
+All other properties should be UA-default.
+The rule "#id2 {color: red; font-family: sans-serif}" is applied here.
+<p ID="id3">
+This paragraph should be green serif.
+All other properties are UA-default.
+The rules (from imported style sheet) "#id3 {color: green; font-family: serif}" are
+applied here.
+<p>
+All of these style sheets determine the appearance of this page.
+Your browser rendering of this page should look similar to the 
+<a href="a108.gif">reference image</a>, 
+or to this<a href="b108.gif">reference image</a>.
+</BODY>
+</HTML>
+

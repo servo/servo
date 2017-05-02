@@ -1,4 +1,4 @@
-importScripts('get-host-info.sub.js');
+importScripts('/common/get-host-info.sub.js');
 var host_info = get_host_info();
 
 self.addEventListener('install', function(event) {

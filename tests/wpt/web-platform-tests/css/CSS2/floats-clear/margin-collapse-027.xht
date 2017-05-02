@@ -1,0 +1,58 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Margin collapsing - bottom margin not collapse when cleared</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#collapsing-margins" />
+        <link rel="match" href="clearance-006-ref.xht" />
+
+        <meta name="flags" content="ahem image" />
+        <meta name="assert" content="When a last sibling has clearance, its own margins collapse and it collapsed its margins with a subsequent sibling, the last sibling does not collapse its bottom margin with its parent's bottom margin." />
+        <style type="text/css">
+            div
+            {
+                font: 20px/1em Ahem;
+                width: 5em;
+            }
+            #div1
+            {
+                background: url('support/margin-collapse-4em-space.png');
+                height: 6em;
+            }
+            #div2
+            {
+                margin-bottom: 2em;
+            }
+            #div3, #div5
+            {
+                margin-bottom: 1em;
+            }
+            #div3, #div6
+            {
+                background: green;
+                height: 1em;
+            }
+            #div4
+            {
+                float: left;
+                height: 1em;
+            }
+            #div5
+            {
+                clear: both;
+                margin-top: 1.5em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red.</p>
+        <div id="div1">
+            <div id="div2">
+                <div id="div3"></div>
+                <div id="div4"></div>
+                <div id="div5"></div>
+            </div>
+            <div id="div6"></div>
+        </div>
+    </body>
+</html>

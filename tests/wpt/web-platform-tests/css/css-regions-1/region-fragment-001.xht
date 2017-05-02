@@ -1,0 +1,60 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Test: Region overflow</title>
+    <link rel="author" title="Alan Stearns" href="mailto:stearns@adobe.com"/>
+    <link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com"/>
+    <link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property"/>
+    <link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from"/>
+    <link rel="match" href="region-fragment-001-ref.xht"/>
+    <meta name="flags" content=""/>
+    <meta name="assert" content="With the default overflow:visible setting, region-overflow:auto will continue composing lines through the bottom edge of the last region, and region-overflow:break will compose overflow lines after the bottom edge of the last region."/>
+    <style type="text/css">
+      body{
+        line-height: 20px;
+      }
+      .autoContent{
+        flow-into: autoFlow;
+      }
+      .breakContent{
+        line-height: 20px;
+        flow-into: breakFlow;
+      }
+      .region{
+        width: 10em;
+        height: 30px;
+        background-color: silver;
+        float: left;
+      }
+      .auto{
+        margin-right: 5px;
+        region-fragment: auto;
+        flow-from: autoFlow;
+      }
+      .break{
+        region-fragment: break;
+        flow-from: breakFlow;
+      }
+      .error{
+        color: red;
+      }
+    </style>
+  </head>
+  <body>
+    <p>This test passes if "auto 2" runs through the bottom edge of the silver rectangle and only "break 1" is visible in the right rectangle.</p>
+    <div class="autoContent">
+      <div>auto 1</div>
+      <div>auto 2</div>
+    </div>
+    <div class="breakContent">
+      <div>break 1</div>
+      <div>break 2</div>
+    </div>
+    <div class="auto region">
+      <div class="error">FAIL</div>
+    </div>
+    <div class="break region">
+      <div class="error">FAIL</div>
+    </div>
+  </body>
+</html>

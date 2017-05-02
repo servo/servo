@@ -1,0 +1,111 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: content: counter(c, armenian)</title>
+  <link rel="author" title="L. David Baron" href="https://dbaron.org/"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#propdef-content"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#counter"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#counter-styles"/>
+  <link rel="match" href="content-counter-010-ref.xht"/>
+  <meta http-equiv="Content-Style-Type" content="text/css"/>
+  <style type="text/css">
+
+  body { white-space: nowrap; }
+
+
+  #test { counter-reset: c; }
+  #test span { counter-increment: c; }
+  #test span:before { content: counter(c, armenian); }
+
+  </style>
+ </head>
+ <body>
+
+ <p>The following two lines should look the same:</p>
+
+ <div id="test">
+   <span></span>
+   <span></span>
+   <span></span>
+   <span></span>
+   <span></span>
+   <span></span>
+   <span></span>
+   <span></span>
+   <span></span>
+   <span></span>
+   <span></span>
+   <span></span>
+   <span style="counter-reset: c 19"></span>
+   <span style="counter-reset: c 29"></span>
+   <span style="counter-reset: c 39"></span>
+   <span style="counter-reset: c 49"></span>
+   <span style="counter-reset: c 59"></span>
+   <span style="counter-reset: c 69"></span>
+   <span style="counter-reset: c 79"></span>
+   <span style="counter-reset: c 89"></span>
+   <span style="counter-reset: c 99"></span>
+   <span style="counter-reset: c 199"></span>
+   <span style="counter-reset: c 299"></span>
+   <span style="counter-reset: c 399"></span>
+   <span style="counter-reset: c 499"></span>
+   <span style="counter-reset: c 599"></span>
+   <span style="counter-reset: c 699"></span>
+   <span style="counter-reset: c 799"></span>
+   <span style="counter-reset: c 899"></span>
+   <span style="counter-reset: c 999"></span>
+   <span style="counter-reset: c 1999"></span>
+   <span style="counter-reset: c 2999"></span>
+   <span style="counter-reset: c 3999"></span>
+   <span style="counter-reset: c 4999"></span>
+   <span style="counter-reset: c 5999"></span>
+   <span style="counter-reset: c 6999"></span>
+   <span style="counter-reset: c 7999"></span>
+   <span style="counter-reset: c 8999"></span>
+   <span style="counter-reset: c 9998"></span>
+ </div>
+
+ <div>
+   &#x531;
+   &#x532;
+   &#x533;
+   &#x534;
+   &#x535;
+   &#x536;
+   &#x537;
+   &#x538;
+   &#x539;
+   &#x53A;
+   &#x53A;&#x531;
+   &#x53A;&#x532;
+   &#x53B;
+   &#x53C;
+   &#x53D;
+   &#x53E;
+   &#x53F;
+   &#x540;
+   &#x541;
+   &#x542;
+   &#x543;
+   &#x544;
+   &#x545;
+   &#x546;
+   &#x547;
+   &#x548;
+   &#x549;
+   &#x54A;
+   &#x54B;
+   &#x54C;
+   &#x54D;
+   &#x54E;
+   &#x54F;
+   &#x550;
+   &#x551;
+   &#x552;
+   &#x553;
+   &#x554;
+   &#x554;&#x54B;&#x542;&#x539;
+ </div>
+
+ </body>
+</html>

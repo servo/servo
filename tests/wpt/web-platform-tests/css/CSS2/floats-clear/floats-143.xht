@@ -1,0 +1,23 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Nested floats: Basic</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-04-14 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/float/043.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats" />
+  <link rel="match" href="floats-143-ref.xht" />
+
+  <style type="text/css">
+   .float { float: left; background: red; padding: 0; margin: 0; list-style: none; }
+   .text { font: 900 2em/1 sans-serif; background: green; color: white; }
+  </style>
+ </head>
+ <body>
+  <p>There should be a single green block with the word "PASS" below.</p>
+  <ul class="float">
+   <li class="float"> <span class="float text"> PA </span></li>
+   <li class="float"> <span class="float text"> SS </span></li>
+  </ul>
+ </body>
+</html>

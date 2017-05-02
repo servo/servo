@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>CSS Regions OM Test: namedFlow collection</title>
+        <link rel="author" title="Alan Stearns" href="mailto:stearns@adobe.com">
+        <link rel="help" href="http://www.w3.org/TR/css3-regions/#the-namedflow-interface">
+        <meta name="flags" content="dom">
+        <meta name="assert" content="The namedFlows attribute returns a NamedFlowCollection.">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+    </head>
+
+    <style type="text/css">
+        #flow1 {
+            flow-into: flow1;
+            display: none;
+        }
+        #flow2 {
+            flow-into: flow2;
+            display: none;
+        }
+    </style>
+    <body>
+        <div id="log"></div>
+
+        <div id="flow1">foo</div>
+        <div id="flow2">foo</div>
+
+        <script type="text/javascript">
+            function testNamedFlowCollection(expected_length) {
+                var namedFlowCollection = document.namedFlows;
+                assert_equals (typeof (namedFlowCollection), "object",
+                    "returned value is not an object");
+                assert_equals (String (namedFlowCollection), "[object NamedFlowMap]",
+                    "returned value is not a NamedFlowCollection");
+                assert_equals (namedFlowCollection.length, expected_length,
+                    "length of collection different than expected.")
+            }
+
+            function removeNamedFlow(selector_id) {
+                var ele = document.getElementById (selector_id);
+                ele.setAttribute("style", "flow-into:none");
+            }
+
+            test(function() {
+                testNamedFlowCollection(2);
+            }, "Test initial collection of named flows from style block.");
+
+            test(function() {
+                removeNamedFlow ("flow2");
+                testNamedFlowCollection (1);
+            }, "Test collection after removing a flow");
+
+            test(function() {
+                removeNamedFlow ("flow1");
+                removeNamedFlow ("flow2");
+                testNamedFlowCollection (0);
+            }, "Test empty collection.");
+        </script>
+    </body>
+</html>

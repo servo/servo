@@ -72,6 +72,15 @@ test(function(t) {
    + ' whose AnimationEffectTiming object is created in the relevant realm'
    + ' of the target element');
 
+gEmptyKeyframeListTests.forEach(function(subTest) {
+  test(function(t) {
+    var div = createDiv(t);
+    var anim = div.animate(subTest, 2000);
+    assert_not_equals(anim, null);
+  }, 'Element.animate() accepts empty keyframe lists ' +
+     `(input: ${JSON.stringify(subTest)})`);
+});
+
 gPropertyIndexedKeyframesTests.forEach(function(subtest) {
   test(function(t) {
     var div = createDiv(t);

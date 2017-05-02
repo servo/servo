@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <title>CSS Animations - animation-name list and other properties</title>
+   <link rel="author" title="Opera Software ASA" href="http://www.opera.com/">
+   <link rel="help" href="https://drafts.csswg.org/css3-animations/#the-animation-name-property-">
+   <meta name="flags" content="dom">
+   <meta name="assert" content="Each animation listed by name should have a
+   corresponding value for the other animation properties">
+   <script src="/resources/testharness.js"></script>
+   <script src="/resources/testharnessreport.js"></script>
+   <style type="text/css">
+      @keyframes grow-width {
+         from {
+            width: 100px;
+         }
+         to {
+            width: 200px;
+         }
+      }
+      @keyframes grow-height {
+         from {
+            height: 100px;
+         }
+         to {
+            height: 200px;
+         }
+      }
+      div {
+         width: 100px;
+         height: 100px;
+         background: blue;
+      }
+      .test {
+         animation-fill-mode: forwards, forwards;
+         animation-duration: 0.5s, 1s;
+         animation-delay: 0s, 0.5s;
+         animation-name: grow-width, grow-height;
+      }
+   </style>
+   <script type="text/javascript">
+      setup({explicit_done:true});
+      onload = function() {
+         var testName = document.querySelector('title').firstChild.data;
+         var div = document.querySelector('div');
+         var log = document.querySelectorAll('p')[1].firstChild;
+         var widthOK = false;
+         function aboutEqual(observed, actual) {
+            var maxFactor = 0.01;
+            return (Math.abs(observed - actual) < maxFactor * actual);
+         }
+         var timeout = setTimeout(function() {
+            test(function(){assert_true(false);}, testName); done();
+            log.data = 'FAIL';
+         }, 2000);
+         div.addEventListener('animationend', function(evt) {
+            var style = getComputedStyle(div, null);
+            if (evt.animationName == 'grow-width') {
+               widthOK = (style.width == '200px' && style.height != '200px'
+                          && aboutEqual(evt.elapsedTime, 0.5));
+            } else {
+               clearTimeout(timeout);
+               var passed = (evt.animationName == 'grow-height' && widthOK
+                             && style.height == '200px'
+                             && aboutEqual(evt.elapsedTime, 1));
+               test(function(){assert_true(passed);}, testName); done();
+               log.data = (passed ? 'PASS if the animation occurred.' : 'FAIL');
+            }
+         });
+         div.className = 'test';
+      }
+   </script>
+   <style>iframe{display:none}</style>
+</head>
+<body>
+   <p>The block below should grow wider and then afterwards and more slowly grow
+   taller.</p>
+   <p>Testing...</p>
+   <div></div>
+</body>
+</html>

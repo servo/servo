@@ -1,0 +1,58 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Table cells with different 'vertical-align' values</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#height-layout" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="A table can have cells with different 'vertical-align' values." />
+        <style type="text/css">
+            table
+            {
+                border-spacing: 0;
+                height: 10em;
+            }
+            tr
+            {
+                vertical-align: top;
+            }
+            td
+            {
+                border: 1px solid black;
+                font-size: 1em;
+                padding: 0;
+                vertical-align: baseline;
+            }
+            #larger
+            {
+                font-size: 3em;
+            }
+            #middle
+            {
+                vertical-align: middle;
+            }
+            #bottom
+            {
+                vertical-align: bottom;
+            }
+            #inherit
+            {
+                vertical-align: inherit;
+            }
+         </style>
+     </head>
+     <body>
+        <p>Test passes if from left-to-right, the bottoms of the first two letters "X" are aligned, the third letter "X" is at the top of its box, the fourth "X" is in the middle of its box, and the fifth "X" is at the bottom of its box.</p>
+        <table>
+            <tr>
+                <td>X</td>
+                <td>
+                    <div id="larger">X</div>
+                </td>
+                <td id="inherit">X</td>
+                <td id="middle">X</td>
+                <td id="bottom">X</td>
+            </tr>
+        </table>
+    </body>
+</html>

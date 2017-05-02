@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <title>CSS Animations - animation-direction default</title>
+   <link rel="author" title="Opera Software ASA" href="http://www.opera.com/">
+   <link rel="help" href="https://drafts.csswg.org/css3-animations/#the-animation-direction-property-">
+   <meta name="flags" content="dom">
+   <meta name="assert" content="animation-direction does not inherit by
+   default">
+   <script src="/resources/testharness.js"></script>
+   <script src="/resources/testharnessreport.js"></script>
+   <style type="text/css">
+      @keyframes move {
+         from {
+            left: 8px;
+         }
+         to {
+            left: 208px;
+         }
+      }
+      p:first-child {
+         margin-top: 224px;
+      }
+      div {
+         width: 100px;
+         height: 100px;
+         background: black;
+         position: fixed;
+         top: 8px;
+         left: 8px;
+         animation-duration: 0.8s;
+         animation-fill-mode: forwards;
+         animation-iteration-count: 2;
+      }
+      div > div {
+         background: blue;
+         top: 108px;
+      }
+      .test {
+         animation-direction: alternate;
+      }
+      .test, .test > div {
+         animation-name: move;
+      }
+   </style>
+   <script type="text/javascript">
+      setup({explicit_done:true});
+      onload = function() {
+         var testName = document.querySelector('title').firstChild.data;
+         var divs = document.querySelectorAll('div');
+         var log = document.querySelectorAll('p')[1].firstChild;
+         var timeout = setTimeout(function() {
+            test(function(){assert_true(false);}, testName); done();
+            log.data = 'FAIL';
+         }, 2000);
+         divs[1].addEventListener('animationend', function() {
+            clearTimeout(timeout);
+            var innerStyle = getComputedStyle(divs[1], null);
+            var dir = innerStyle.getPropertyValue('animation-direction');
+            var passed = (dir == 'normal' && innerStyle.left == '208px'
+                          && getComputedStyle(divs[0], null).left == '8px');
+            test(function(){assert_true(passed);}, testName); done();
+            log.data = (passed ? 'PASS if the animation occurred.' : 'FAIL');
+         });
+         divs[0].className = 'test';
+      }
+   </script>
+   <style>iframe{display:none}</style>
+</head>
+<body>
+   <p>The squares above should slide from left to right, and then the black
+   square should slide back left while the blue square does the left-to-right
+   slide again.</p>
+   <p>Testing...</p>
+   <div>
+      <div></div>
+   </div>
+</body>
+</html>

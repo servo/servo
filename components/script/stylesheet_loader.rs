@@ -22,7 +22,6 @@ use ipc_channel::router::ROUTER;
 use net_traits::{FetchResponseListener, FetchMetadata, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy};
 use net_traits::request::{CorsSettings, CredentialsMode, Destination, RequestInit, RequestMode, Type as RequestType};
 use network_listener::{NetworkListener, PreInvoke};
-use script_layout_interface::message::Msg;
 use servo_url::ServoUrl;
 use std::mem;
 use std::sync::{Arc, Mutex};
@@ -145,15 +144,14 @@ impl FetchResponseListener for StylesheetContext {
                                                             media.take().unwrap(),
                                                             shared_lock,
                                                             Some(&loader),
-                                                            win.css_error_reporter()));
+                                                            win.css_error_reporter(),
+                                                            document.quirks_mode()));
 
                         if link.is_alternate() {
                             sheet.set_disabled(true);
                         }
 
-                        link.set_stylesheet(sheet.clone());
-
-                        win.layout_chan().send(Msg::AddStylesheet(sheet)).unwrap();
+                        link.set_stylesheet(sheet);
                     }
                 }
                 StylesheetContextSource::Import(ref stylesheet) => {
@@ -271,15 +269,15 @@ impl<'a> StylesheetLoader<'a> {
 impl<'a> StyleStylesheetLoader for StylesheetLoader<'a> {
     fn request_stylesheet(
         &self,
-        media: MediaList,
-        make_import: &mut FnMut(MediaList) -> ImportRule,
+        media: Arc<StyleLocked<MediaList>>,
+        make_import: &mut FnMut(Arc<StyleLocked<MediaList>>) -> ImportRule,
         make_arc: &mut FnMut(ImportRule) -> Arc<StyleLocked<ImportRule>>,
     ) -> Arc<StyleLocked<ImportRule>> {
         let import = make_import(media);
         let url = import.url.url().expect("Invalid urls shouldn't enter the loader").clone();
 
-        //TODO (mrnayak) : Whether we should use the original loader's CORS setting?
-        //Fix this when spec has more details.
+        // TODO (mrnayak) : Whether we should use the original loader's CORS
+        // setting? Fix this when spec has more details.
         let source = StylesheetContextSource::Import(import.stylesheet.clone());
         self.load(source, url, None, "".to_owned());
 

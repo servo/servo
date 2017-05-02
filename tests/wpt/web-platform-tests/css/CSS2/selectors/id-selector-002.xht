@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: ID selector syntax - Begins with hyphen</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#id-selectors" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Identifier selectors starting with a hyphen are valid." />
+        <style type="text/css">
+            div
+            {
+                color: red;
+            }
+            #-div1
+            {
+                color: green;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page.</p>
+        <div id="-div1">Filler Text</div>
+    </body>
+</html>

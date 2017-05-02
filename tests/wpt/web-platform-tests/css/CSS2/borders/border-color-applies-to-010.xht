@@ -1,0 +1,28 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border-color applied to element with display list-item</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-05-26 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#propdef-border-color" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-color-properties" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'border-color' properties applies to elements with a display of list-item." />
+        <style type="text/css">
+            div
+            {
+                border-style: solid;
+                border-color: green;
+                border-width: 4px;
+                display: list-item;
+                height: 1in;
+                margin-left: 50px;
+                width: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a hollow green square with a marker bullet on its left-hand side.</p>
+        <div></div>
+    </body>
+</html>
