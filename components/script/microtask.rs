@@ -33,7 +33,7 @@ pub struct MicrotaskQueue {
 #[derive(JSTraceable, HeapSizeOf)]
 pub enum Microtask {
     Promise(EnqueuedPromiseCallback),
-    Mutation(EnqueuedMutationCallback),
+    NotifyMutationObservers(),
 }
 
 /// A promise callback scheduled to run during the next microtask checkpoint (#4283).
@@ -41,14 +41,6 @@ pub enum Microtask {
 pub struct EnqueuedPromiseCallback {
     #[ignore_heap_size_of = "Rc has unclear ownership"]
     pub callback: Rc<PromiseJobCallback>,
-    pub pipeline: PipelineId,
-}
-
-/// A mutation callback
-#[derive(JSTraceable, HeapSizeOf)]
-pub struct EnqueuedMutationCallback {
-    #[ignore_heap_size_of = "Rc has unclear ownership"]
-    pub callback: Rc<MutationCallback>,
     pub pipeline: PipelineId,
 }
 
@@ -85,15 +77,7 @@ impl MicrotaskQueue {
                             let _ = job.callback.Call_(&*target, ExceptionHandling::Report);
                         }
                     }
-                    Microtask::Mutation(ref job) => {
-                        if let Some(target) = target_provider(job.pipeline) {
-                            let global = Root::downcast::<dom::types::Window>(target_provider(job.pipeline)
-                                .unwrap()).unwrap();
-                            let observer = MutationObserver::Constructor(&global, job.callback);
-                            let _ = job.callback.Call_(&*target, Default::default(),
-                                &observer.unwrap(), ExceptionHandling::Report);
-                        }
-                    }
+                    Microtask::NotifyMutationObservers() => { }
                 }
             }
         }
