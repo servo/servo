@@ -2066,6 +2066,45 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
     }
 }
 
+#[no_mangle]
+pub extern "C" fn Servo_AnimationValue_Compute(declarations: RawServoDeclarationBlockBorrowed,
+                                               style: ServoComputedValuesBorrowed,
+                                               parent_style: ServoComputedValuesBorrowedOrNull,
+                                               raw_data: RawServoStyleSetBorrowed)
+                                               -> RawServoAnimationValueStrong {
+    use style::values::computed::Context;
+
+    let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
+    let style = ComputedValues::as_arc(&style);
+    let parent_style = parent_style.as_ref().map(|r| &**ComputedValues::as_arc(&r));
+    let default_values = data.default_computed_values();
+    let metrics = get_metrics_provider_for_product();
+    let mut context = Context {
+        is_root_element: false,
+        device: &data.stylist.device,
+        inherited_style: parent_style.unwrap_or(default_values),
+        layout_parent_style: parent_style.unwrap_or(default_values),
+        style: StyleBuilder::for_derived_style(&style),
+        font_metrics_provider: &metrics,
+        cached_system_font: None,
+        in_media_query: false,
+        quirks_mode: QuirksMode::NoQuirks,
+    };
+
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
+    let declarations = Locked::<PropertyDeclarationBlock>::as_arc(&declarations);
+    // We only compute the first element in declarations.
+    match declarations.read_with(&guard).declarations().first() {
+        Some(&(ref decl, imp)) if imp == Importance::Normal => {
+            let animation = AnimationValue::from_declaration(decl, &mut context, default_values);
+            animation.map_or(RawServoAnimationValueStrong::null(), |value| {
+                Arc::new(value).into_strong()
+            })
+        },
+        _ => RawServoAnimationValueStrong::null()
+    }
+}
 
 #[no_mangle]
 pub extern "C" fn Servo_AssertTreeIsClean(root: RawGeckoElementBorrowed) {
