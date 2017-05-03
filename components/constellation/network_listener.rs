@@ -8,7 +8,7 @@ use ipc_channel::router::ROUTER;
 use msg::constellation_msg::PipelineId;
 use net_traits::{CoreResourceMsg, FetchMetadata, FetchResponseMsg};
 use net_traits::{IpcSend, NetworkError, ResourceThreads};
-use net_traits::request::RequestInit;
+use net_traits::request::{Referrer, RequestInit};
 use net_traits::response::ResponseInit;
 use std::sync::mpsc::Sender;
 
@@ -42,6 +42,14 @@ impl NetworkListener {
         ROUTER.add_route(ipc_receiver.to_opaque(), box move |message| {
             let msg = message.to();
             match msg {
+                Ok(FetchResponseMsg::ProcessRequestReferrer(referrer, referrer_policy)) => {
+                    listener.req_init.referrer_url = match referrer.clone() {
+                        Referrer::ReferrerUrl(servo_url) => Some(servo_url),
+                        _ => None,
+                    };
+                    listener.req_init.referrer = Some(referrer);
+                    listener.req_init.referrer_policy = referrer_policy;
+                }
                 Ok(FetchResponseMsg::ProcessResponse(res)) => listener.check_redirect(res),
                 Ok(msg_) => listener.send(msg_),
                 _ => {}
@@ -77,8 +85,6 @@ impl NetworkListener {
                         if self.res_init.is_some() {
                             self.req_init.url_list.push(metadata.final_url.clone());
                         }
-                        self.req_init.referrer_url = Some(self.req_init.url.clone());
-                        // metadata.referrer.clone().map(|url| self.req_init.referrer_url = Some(url));
 
                         self.res_init = Some(ResponseInit {
                             url: metadata.final_url.clone(),

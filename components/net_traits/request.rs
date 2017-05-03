@@ -60,7 +60,7 @@ pub enum Origin {
 }
 
 /// A [referer](https://fetch.spec.whatwg.org/#concept-request-referrer)
-#[derive(Clone, PartialEq, HeapSizeOf)]
+#[derive(Clone, PartialEq, Serialize, Deserialize, HeapSizeOf)]
 pub enum Referrer {
     NoReferrer,
     /// Default referrer if nothing is specified
@@ -154,6 +154,7 @@ pub struct RequestInit {
     pub origin: ServoUrl,
     // XXXManishearth these should be part of the client object
     pub referrer_url: Option<ServoUrl>,
+    pub referrer: Option<Referrer>,
     pub referrer_policy: Option<ReferrerPolicy>,
     pub pipeline_id: Option<PipelineId>,
     pub redirect_mode: RedirectMode,
@@ -180,6 +181,7 @@ impl Default for RequestInit {
             use_url_credentials: false,
             origin: ServoUrl::parse("about:blank").unwrap(),
             referrer_url: None,
+            referrer: None,
             referrer_policy: None,
             pipeline_id: None,
             redirect_mode: RedirectMode::Follow,
