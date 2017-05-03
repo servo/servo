@@ -134,6 +134,8 @@ pub enum LayoutControlMsg {
 pub struct LoadData {
     /// The URL.
     pub url: ServoUrl,
+    /// The creator pipeline id if this is an about:blank load.
+    pub creator_pipeline_id: Option<PipelineId>,
     /// The method.
     #[serde(deserialize_with = "::hyper_serde::deserialize",
             serialize_with = "::hyper_serde::serialize")]
@@ -152,9 +154,14 @@ pub struct LoadData {
 
 impl LoadData {
     /// Create a new `LoadData` object.
-    pub fn new(url: ServoUrl, referrer_policy: Option<ReferrerPolicy>, referrer_url: Option<ServoUrl>) -> LoadData {
+    pub fn new(url: ServoUrl,
+               creator_pipeline_id: Option<PipelineId>,
+               referrer_policy: Option<ReferrerPolicy>,
+               referrer_url: Option<ServoUrl>)
+               -> LoadData {
         LoadData {
             url: url,
+            creator_pipeline_id: creator_pipeline_id,
             method: Method::Get,
             headers: Headers::new(),
             data: None,

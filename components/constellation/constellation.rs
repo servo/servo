@@ -599,17 +599,24 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         let (event_loop, host) = match sandbox {
             IFrameSandboxState::IFrameSandboxed => (None, None),
-            IFrameSandboxState::IFrameUnsandboxed => match reg_host(&load_data.url) {
-                None => (None, None),
-                Some(host) => {
-                    let event_loop = self.event_loops.get(&top_level_frame_id)
-                        .and_then(|map| map.get(&host))
-                        .and_then(|weak| weak.upgrade());
-                    match event_loop {
-                        None => (None, Some(host)),
-                        Some(event_loop) => (Some(event_loop.clone()), None),
-                    }
-                },
+            IFrameSandboxState::IFrameUnsandboxed => {
+                match load_data.creator_pipeline_id.and_then(|cpi| self.pipelines.get(&cpi)) {
+                    Some(creator_pipeline) => {
+                        (Some(creator_pipeline.event_loop.clone()), None)
+                    },
+                    None => match reg_host(&load_data.url) {
+                        None => (None, None),
+                        Some(host) => {
+                            let event_loop = self.event_loops.get(&top_level_frame_id)
+                                .and_then(|map| map.get(&host))
+                                .and_then(|weak| weak.upgrade());
+                            match event_loop {
+                                None => (None, Some(host)),
+                                Some(event_loop) => (Some(event_loop.clone()), None),
+                            }
+                        },
+                    },
+                }
             },
         };
 
@@ -1308,7 +1315,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         warn!("creating replacement pipeline for about:failure");
 
         let new_pipeline_id = PipelineId::new();
-        let load_data = LoadData::new(failure_url, None, None);
+        let load_data = LoadData::new(failure_url, None, None, None);
         let sandbox = IFrameSandboxState::IFrameSandboxed;
         self.new_pipeline(new_pipeline_id, top_level_frame_id, parent_info,
                           window_size, load_data.clone(), sandbox, false);
@@ -1353,7 +1360,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         let window_size = self.window_size.initial_viewport;
         let root_pipeline_id = PipelineId::new();
         let root_frame_id = self.root_frame_id;
-        let load_data = LoadData::new(url.clone(), None, None);
+        let load_data = LoadData::new(url.clone(), None, None, None);
         let sandbox = IFrameSandboxState::IFrameUnsandboxed;
         self.new_pipeline(root_pipeline_id, root_frame_id, None, Some(window_size), load_data.clone(), sandbox, false);
         self.handle_load_start_msg(root_pipeline_id);
@@ -1421,7 +1428,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 };
 
                 // TODO - loaddata here should have referrer info (not None, None)
-                LoadData::new(url, None, None)
+                LoadData::new(url, None, None, None)
             });
 
             let is_private = load_info.info.is_private || source_pipeline.is_private;
@@ -1488,7 +1495,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         };
 
         // TODO: Referrer?
-        let load_data = LoadData::new(url, None, None);
+        let load_data = LoadData::new(url, Some(parent_pipeline_id), None, None);
 
         let replace_instant = if replace {
             self.frames.get(&frame_id).map(|frame| frame.instant)
@@ -1956,7 +1963,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             },
             WebDriverCommandMsg::Refresh(pipeline_id, reply) => {
                 let load_data = match self.pipelines.get(&pipeline_id) {
-                    Some(pipeline) => LoadData::new(pipeline.url.clone(), None, None),
+                    Some(pipeline) => LoadData::new(pipeline.url.clone(), None, None, None),
                     None => return warn!("Pipeline {:?} Refresh after closure.", pipeline_id),
                 };
                 self.load_url_for_webdriver(pipeline_id, load_data, reply, true);

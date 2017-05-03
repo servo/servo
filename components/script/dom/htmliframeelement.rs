@@ -200,9 +200,10 @@ impl HTMLIFrameElement {
     fn process_the_iframe_attributes(&self, mode: ProcessingMode) {
         // TODO: srcdoc
 
+        let window = window_from_node(self);
+
         // https://github.com/whatwg/html/issues/490
         if mode == ProcessingMode::FirstTime && !self.upcast::<Element>().has_attribute(&local_name!("src")) {
-            let window = window_from_node(self);
             let event_loop = window.dom_manipulation_task_source();
             let _ = event_loop.queue(box IFrameLoadEventSteps::new(self),
                                      window.upcast());
@@ -213,8 +214,14 @@ impl HTMLIFrameElement {
 
         // TODO: check ancestor browsing contexts for same URL
 
+        let creator_pipeline_id = if url.as_str() == "about:blank" {
+            Some(window.upcast::<GlobalScope>().pipeline_id())
+        } else {
+            None
+        };
+
         let document = document_from_node(self);
-        let load_data = LoadData::new(url, document.get_referrer_policy(), Some(document.url()));
+        let load_data = LoadData::new(url, creator_pipeline_id, document.get_referrer_policy(), Some(document.url()));
         self.navigate_or_reload_child_browsing_context(Some(load_data), DocumentType::Regular, false);
     }
 
@@ -233,7 +240,8 @@ impl HTMLIFrameElement {
         // Synchronously create a new context and navigate it to about:blank.
         let url = ServoUrl::parse("about:blank").unwrap();
         let document = document_from_node(self);
-        let load_data = LoadData::new(url, document.get_referrer_policy(), Some(document.url().clone()));
+        let pipeline_id = Some(window_from_node(self).upcast::<GlobalScope>().pipeline_id());
+        let load_data = LoadData::new(url, pipeline_id, document.get_referrer_policy(), Some(document.url().clone()));
         self.navigate_or_reload_child_browsing_context(Some(load_data), DocumentType::InitialAboutBlank, false);
     }
 

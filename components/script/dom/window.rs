@@ -1539,8 +1539,7 @@ impl Window {
 
         self.main_thread_script_chan().send(
             MainThreadScriptMsg::Navigate(self.upcast::<GlobalScope>().pipeline_id(),
-                LoadData::new(url, referrer_policy, Some(doc.url())),
-                replace)).unwrap();
+                LoadData::new(url, None, referrer_policy, Some(doc.url())), replace)).unwrap();
     }
 
     pub fn handle_fire_timer(&self, timer_id: TimerEventId) {

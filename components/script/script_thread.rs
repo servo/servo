@@ -147,6 +147,8 @@ struct InProgressLoad {
     frame_id: FrameId,
     /// The parent pipeline and frame type associated with this load, if any.
     parent_info: Option<(PipelineId, FrameType)>,
+    /// The creator pipeline if this is an about:blank load.
+    creator_pipeline_id: Option<PipelineId>,
     /// The current window size associated with this pipeline.
     window_size: Option<WindowSizeData>,
     /// Channel to the layout thread associated with this pipeline.
@@ -166,6 +168,7 @@ impl InProgressLoad {
     fn new(id: PipelineId,
            frame_id: FrameId,
            parent_info: Option<(PipelineId, FrameType)>,
+           creator_pipeline_id: Option<PipelineId>,
            layout_chan: Sender<message::Msg>,
            window_size: Option<WindowSizeData>,
            url: ServoUrl,
@@ -174,6 +177,7 @@ impl InProgressLoad {
             pipeline_id: id,
             frame_id: frame_id,
             parent_info: parent_info,
+            creator_pipeline_id: creator_pipeline_id,
             layout_chan: layout_chan,
             window_size: window_size,
             activity: DocumentActivity::FullyActive,
@@ -555,8 +559,8 @@ impl ScriptThreadFactory for ScriptThread {
             let mut failsafe = ScriptMemoryFailsafe::new(&script_thread);
 
             let origin = MutableOrigin::new(load_data.url.origin());
-            let new_load = InProgressLoad::new(id, frame_id, parent_info, layout_chan, window_size,
-                                               load_data.url.clone(), origin);
+            let new_load = InProgressLoad::new(id, frame_id, parent_info, load_data.creator_pipeline_id,
+                                               layout_chan, window_size, load_data.url.clone(), origin);
             script_thread.start_page_load(new_load, load_data);
 
             let reporter_name = format!("script-reporter-{}", id);
@@ -827,16 +831,12 @@ impl ScriptThread {
                 FromConstellation(ConstellationControlMsg::AttachLayout(
                         new_layout_info)) => {
                     self.profile_event(ScriptThreadEventCategory::AttachLayout, || {
-                        // If this is an about:blank load, it must share the parent's origin.
-                        let origin = if new_layout_info.load_data.url.as_str() == "about:blank" {
-                            new_layout_info.parent_info.and_then(|(pipeline_id, _)| {
-                                self.documents.borrow().find_document(pipeline_id).map(|doc| {
-                                    doc.origin().clone()
-                                })
+                        // If this is an about:blank load, it must share the creator's origin.
+                        let origin = new_layout_info.load_data.creator_pipeline_id.and_then(|creator_pipeline_id| {
+                            self.documents.borrow().find_document(creator_pipeline_id).map(|doc| {
+                                doc.origin().clone()
                             })
-                        } else {
-                            None
-                        }.unwrap_or(MutableOrigin::new(new_layout_info.load_data.url.origin()));
+                        }).unwrap_or(MutableOrigin::new(new_layout_info.load_data.url.origin()));
 
                         self.handle_new_layout(new_layout_info, origin);
                     })
@@ -1309,7 +1309,7 @@ impl ScriptThread {
 
         // Kick off the fetch for the new resource.
         let new_load = InProgressLoad::new(new_pipeline_id, frame_id, parent_info,
-                                           layout_chan, window_size,
+                                           load_data.creator_pipeline_id, layout_chan, window_size,
                                            load_data.url.clone(), origin);
         if load_data.url.as_str() == "about:blank" {
             self.start_page_load_about_blank(new_load);
@@ -1758,16 +1758,12 @@ impl ScriptThread {
         ROUTER.route_ipc_receiver_to_mpsc_sender(ipc_timer_event_port,
                                                  self.timer_event_chan.clone());
 
-        // If this is an about:blank load, it must share the parent's origin.
-        let origin = if incomplete.url.as_str() == "about:blank" {
-            incomplete.parent_info.and_then(|(pipeline_id, _)| {
-                self.documents.borrow().find_document(pipeline_id).map(|doc| {
-                    doc.origin().clone()
-                })
+        // If this is an about:blank load, it must share the creator's origin.
+        let origin = incomplete.creator_pipeline_id.and_then(|creator_pipeline_id| {
+            self.documents.borrow().find_document(creator_pipeline_id).map(|doc| {
+                doc.origin().clone()
             })
-        } else {
-            None
-        }.unwrap_or(incomplete.origin);
+        }).unwrap_or(incomplete.origin);
 
         // Create the window and document objects.
         let window = Window::new(self.js_runtime.clone(),
