@@ -117,7 +117,7 @@ pub struct Stylist {
     /// on state that is not otherwise visible to the cache, like attributes or
     /// tree-structural state like child index and pseudos).
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
-    selectors_for_cache_revalidation: Vec<SelectorInner<SelectorImpl>>,
+    selectors_for_cache_revalidation: SelectorMap<SelectorInner<SelectorImpl>>,
 
     /// The total number of selectors.
     num_selectors: usize,
@@ -177,7 +177,7 @@ impl Stylist {
             rules_source_order: 0,
             rule_tree: RuleTree::new(),
             dependencies: DependencySet::new(),
-            selectors_for_cache_revalidation: vec![],
+            selectors_for_cache_revalidation: SelectorMap::new(),
             num_selectors: 0,
             num_declarations: 0,
             num_rebuilds: 0,
@@ -260,7 +260,7 @@ impl Stylist {
         self.rules_source_order = 0;
         self.dependencies.clear();
         self.animations.clear();
-        self.selectors_for_cache_revalidation.clear();
+        self.selectors_for_cache_revalidation = SelectorMap::new();
         self.num_selectors = 0;
         self.num_declarations = 0;
 
@@ -376,7 +376,7 @@ impl Stylist {
     #[inline]
     fn note_for_revalidation(&mut self, selector: &Selector<SelectorImpl>) {
         if needs_revalidation(selector) {
-            self.selectors_for_cache_revalidation.push(selector.inner.clone());
+            self.selectors_for_cache_revalidation.insert(selector.inner.clone());
         }
     }
 
@@ -847,17 +847,20 @@ impl Stylist {
         use selectors::matching::StyleRelations;
         use selectors::matching::matches_selector;
 
-        let len = self.selectors_for_cache_revalidation.len();
-        let mut results = BitVec::from_elem(len, false);
-
-        for (i, ref selector) in self.selectors_for_cache_revalidation
-                                     .iter().enumerate() {
-            results.set(i, matches_selector(selector,
-                                            element,
-                                            Some(bloom),
-                                            &mut StyleRelations::empty(),
-                                            flags_setter));
-        }
+        // Note that, by the time we're revalidating, we're guaranteed that the
+        // candidate and the entry have the same id, classes, and local name.
+        // This means we're guaranteed to get the same rulehash buckets for all
+        // the lookups, which means that the bitvecs are comparable. We verify
+        // this in the caller by asserting that the bitvecs are same-length.
+        let mut results = BitVec::new();
+        self.selectors_for_cache_revalidation.lookup(*element, &mut |selector| {
+            results.push(matches_selector(selector,
+                                          element,
+                                          Some(bloom),
+                                          &mut StyleRelations::empty(),
+                                          flags_setter));
+            true
+        });
 
         results
     }
