@@ -449,7 +449,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                               stacking_context.filters.to_filter_ops());
             }
             DisplayItem::PopStackingContext(_) => builder.pop_stacking_context(),
-            DisplayItem::PushScrollRoot(ref item) => {
+            DisplayItem::DefineClip(ref item) => {
                 builder.push_clip_id(item.scroll_root.parent_id);
 
                 let our_id = item.scroll_root.id;
@@ -460,7 +460,6 @@ impl WebRenderDisplayItemConverter for DisplayItem {
 
                 builder.pop_clip_id();
             }
-            DisplayItem::PopScrollRoot(_) => {} //builder.pop_scroll_layer(),
         }
     }
 }
