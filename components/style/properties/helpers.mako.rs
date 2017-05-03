@@ -9,7 +9,7 @@
 
 <%def name="predefined_type(name, type, initial_value, parse_method='parse',
             needs_context=True, vector=False, computed_type=None, initial_specified_value=None,
-            allow_quirks=False, **kwargs)">
+            allow_quirks=False, has_uncacheable_values=False, **kwargs)">
     <%def name="predefined_type_inner(name, type, initial_value, parse_method)">
         #[allow(unused_imports)]
         use app_units::Au;
