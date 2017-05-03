@@ -13,6 +13,7 @@
 
 #![deny(unsafe_code)]
 
+use StyleArc;
 use app_units::Au;
 use block::BlockFlow;
 use context::{LayoutContext, with_thread_local_font_context};
@@ -107,7 +108,7 @@ pub enum ConstructionItem {
     /// Inline fragments and associated {ib} splits that have not yet found flows.
     InlineFragments(InlineFragmentsConstructionResult),
     /// Potentially ignorable whitespace.
-    Whitespace(OpaqueNode, PseudoElementType<()>, Arc<ServoComputedValues>, RestyleDamage),
+    Whitespace(OpaqueNode, PseudoElementType<()>, StyleArc<ServoComputedValues>, RestyleDamage),
     /// TableColumn Fragment
     TableColumnFragment(Fragment),
 }
@@ -675,7 +676,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
     fn create_fragments_for_node_text_content(&self,
                                               fragments: &mut IntermediateInlineFragments,
                                               node: &ConcreteThreadSafeLayoutNode,
-                                              style: &Arc<ServoComputedValues>) {
+                                              style: &StyleArc<ServoComputedValues>) {
         // Fast path: If there is no text content, return immediately.
         let text_content = node.text_content();
         if text_content.is_empty() {
@@ -1804,7 +1805,7 @@ pub fn strip_ignorable_whitespace_from_end(this: &mut LinkedList<Fragment>) {
 
 /// If the 'unicode-bidi' property has a value other than 'normal', return the bidi control codes
 /// to inject before and after the text content of the element.
-fn bidi_control_chars(style: &Arc<ServoComputedValues>) -> Option<(&'static str, &'static str)> {
+fn bidi_control_chars(style: &StyleArc<ServoComputedValues>) -> Option<(&'static str, &'static str)> {
     use style::computed_values::direction::T::*;
     use style::computed_values::unicode_bidi::T::*;
 

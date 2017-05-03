@@ -976,8 +976,10 @@ impl WindowMethods for Window {
     fn MatchMedia(&self, query: DOMString) -> Root<MediaQueryList> {
         let mut parser = Parser::new(&query);
         let url = self.get_url();
+        let quirks_mode = self.Document().quirks_mode();
         let context = CssParserContext::new_for_cssom(&url, self.css_error_reporter(), Some(CssRuleType::Media),
-                                                      LengthParsingMode::Default);
+                                                      LengthParsingMode::Default,
+                                                      quirks_mode);
         let media_query_list = media_queries::parse_media_query_list(&context, &mut parser);
         let document = self.Document();
         let mql = MediaQueryList::new(&document, media_query_list);

@@ -184,7 +184,8 @@ ${helpers.predefined_type("text-indent",
                           "LengthOrPercentage",
                           "computed::LengthOrPercentage::Length(Au(0))",
                           animation_value_type="ComputedValue",
-                          spec="https://drafts.csswg.org/css-text/#propdef-text-indent")}
+                          spec="https://drafts.csswg.org/css-text/#propdef-text-indent",
+                          allow_quirks=True)}
 
 // Also known as "word-wrap" (which is more popular because of IE), but this is the preferred
 // name per CSS-TEXT 6.2.
@@ -411,6 +412,7 @@ ${helpers.single_keyword("text-align-last",
     use std::fmt;
     use style_traits::ToCss;
     use values::HasViewportPercentage;
+    use values::specified::AllowQuirks;
 
     impl HasViewportPercentage for SpecifiedValue {
         fn has_viewport_percentage(&self) -> bool {
@@ -487,7 +489,7 @@ ${helpers.single_keyword("text-align-last",
         if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
             Ok(SpecifiedValue::Normal)
         } else {
-            specified::Length::parse(context, input).map(SpecifiedValue::Specified)
+            specified::Length::parse_quirky(context, input, AllowQuirks::Yes).map(SpecifiedValue::Specified)
         }
     }
 </%helpers:longhand>
@@ -497,6 +499,7 @@ ${helpers.single_keyword("text-align-last",
     use std::fmt;
     use style_traits::ToCss;
     use values::HasViewportPercentage;
+    use values::specified::AllowQuirks;
 
     impl HasViewportPercentage for SpecifiedValue {
         fn has_viewport_percentage(&self) -> bool {
@@ -572,7 +575,7 @@ ${helpers.single_keyword("text-align-last",
         if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
             Ok(SpecifiedValue::Normal)
         } else {
-            specified::LengthOrPercentage::parse(context, input)
+            specified::LengthOrPercentage::parse_quirky(context, input, AllowQuirks::Yes)
                                           .map(SpecifiedValue::Specified)
         }
     }
@@ -750,10 +753,11 @@ ${helpers.single_keyword("text-align-last",
     pub mod computed_value {
         use app_units::Au;
         use cssparser::Color;
+        use smallvec::SmallVec;
 
         #[derive(Clone, PartialEq, Debug)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct T(pub Vec<TextShadow>);
+        pub struct T(pub SmallVec<[TextShadow; 1]>);
 
         #[derive(Clone, PartialEq, Debug)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -830,7 +834,8 @@ ${helpers.single_keyword("text-align-last",
 
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
-        computed_value::T(Vec::new())
+        use smallvec::SmallVec;
+        computed_value::T(SmallVec::new())
     }
 
     pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {

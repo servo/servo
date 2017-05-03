@@ -370,15 +370,40 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 let start_point = item.gradient.start_point.to_pointf();
                 let end_point = item.gradient.end_point.to_pointf();
                 let clip = item.base.clip.to_clip_region(builder);
+                let extend_mode = if item.gradient.repeating {
+                    ExtendMode::Repeat
+                } else {
+                    ExtendMode::Clamp
+                };
                 let gradient = builder.create_gradient(start_point,
                                                        end_point,
                                                        item.gradient.stops.clone(),
-                                                       ExtendMode::Clamp);
+                                                       extend_mode);
                 builder.push_gradient(rect,
                                       clip,
                                       gradient,
                                       rect.size,
                                       webrender_traits::LayoutSize::zero());
+            }
+            DisplayItem::RadialGradient(ref item) => {
+                let rect = item.base.bounds.to_rectf();
+                let center = item.gradient.center.to_pointf();
+                let radius = item.gradient.radius.to_sizef();
+                let clip = item.base.clip.to_clip_region(builder);
+                let extend_mode = if item.gradient.repeating {
+                    ExtendMode::Repeat
+                } else {
+                    ExtendMode::Clamp
+                };
+                let gradient = builder.create_radial_gradient(center,
+                                                              radius,
+                                                              item.gradient.stops.clone(),
+                                                              extend_mode);
+                builder.push_radial_gradient(rect,
+                                             clip,
+                                             gradient,
+                                             rect.size,
+                                             webrender_traits::LayoutSize::zero());
             }
             DisplayItem::Line(..) => {
                 println!("TODO DisplayItem::Line");

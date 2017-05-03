@@ -11,7 +11,7 @@ use computed_values::display;
 use heapsize::HeapSizeOf;
 use properties::ServoComputedValues;
 use std::fmt;
-use std::sync::Arc;
+use stylearc::Arc;
 
 bitflags! {
     #[doc = "Individual layout actions that may be necessary after restyling."]

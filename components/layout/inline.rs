@@ -4,6 +4,7 @@
 
 #![deny(unsafe_code)]
 
+use StyleArc;
 use app_units::Au;
 use block::AbsoluteAssignBSizesTraversal;
 use context::LayoutContext;
@@ -29,7 +30,6 @@ use std::{fmt, i32, isize, mem};
 use std::cmp::max;
 use std::collections::VecDeque;
 use std::sync::Arc;
-use style::arc_ptr_eq;
 use style::computed_values::{display, overflow_x, position, text_align, text_justify};
 use style::computed_values::{vertical_align, white_space};
 use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
@@ -398,7 +398,7 @@ impl LineBreaker {
                     result.border_padding.inline_end == Au(0) &&
                     candidate.border_padding.inline_start == Au(0) &&
                     result_info.selected() == candidate_info.selected() &&
-                    arc_ptr_eq(&result_info.run, &candidate_info.run) &&
+                    ::arc_ptr_eq(&result_info.run, &candidate_info.run) &&
                         inline_contexts_are_equal(&result.inline_context,
                                                   &candidate.inline_context)
                 }
@@ -1657,7 +1657,7 @@ impl Flow for InlineFlow {
         self.build_display_list_for_inline(state);
     }
 
-    fn repair_style(&mut self, _: &Arc<ServoComputedValues>) {}
+    fn repair_style(&mut self, _: &StyleArc<ServoComputedValues>) {}
 
     fn compute_overflow(&self) -> Overflow {
         let mut overflow = Overflow::new();
@@ -1746,8 +1746,8 @@ impl fmt::Debug for InlineFlow {
 #[derive(Clone)]
 pub struct InlineFragmentNodeInfo {
     pub address: OpaqueNode,
-    pub style: Arc<ServoComputedValues>,
-    pub selected_style: Arc<ServoComputedValues>,
+    pub style: StyleArc<ServoComputedValues>,
+    pub selected_style: StyleArc<ServoComputedValues>,
     pub pseudo: PseudoElementType<()>,
     pub flags: InlineFragmentNodeFlags,
 }

@@ -15,6 +15,7 @@
     ${helpers.predefined_type("margin-%s" % side[0], "LengthOrPercentageOrAuto",
                               "computed::LengthOrPercentageOrAuto::Length(Au(0))",
                               alias=maybe_moz_logical_alias(product, side, "-moz-margin-%s"),
+                              allow_quirks=not side[1],
                               animation_value_type="ComputedValue", logical = side[1], spec = spec,
                               allowed_in_page_rule=True)}
 % endfor

@@ -16,10 +16,10 @@ use servo_url::ServoUrl;
 use shared_lock::Locked;
 use std::ascii::AsciiExt;
 use std::str::FromStr;
-use std::sync::Arc;
 use str::{HTML_SPACE_CHARACTERS, read_exponent, read_fraction};
 use str::{read_numbers, split_commas, split_html_space_chars};
 use str::str_join;
+use stylearc::Arc;
 use values::specified::Length;
 
 // Duplicated from script::dom::values.

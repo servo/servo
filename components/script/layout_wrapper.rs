@@ -58,7 +58,6 @@ use std::fmt::Debug;
 use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 use std::mem::transmute;
-use std::sync::Arc;
 use std::sync::atomic::Ordering;
 use style;
 use style::attr::AttrValue;
@@ -74,6 +73,7 @@ use style::selector_parser::{NonTSPseudoClass, PseudoElement, SelectorImpl};
 use style::shared_lock::{SharedRwLock as StyleSharedRwLock, Locked as StyleLocked};
 use style::sink::Push;
 use style::str::is_whitespace;
+use style::stylearc::Arc;
 use style::stylist::ApplicableDeclarationBlock;
 
 #[derive(Copy, Clone)]

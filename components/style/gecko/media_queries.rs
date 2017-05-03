@@ -5,6 +5,7 @@
 //! Gecko's media-query device and expression representation.
 
 use app_units::Au;
+use context::QuirksMode;
 use cssparser::{CssStringWriter, Parser, Token};
 use euclid::Size2D;
 use font_metrics::get_metrics_provider_for_product;
@@ -15,13 +16,13 @@ use gecko_bindings::structs::{nsMediaFeature_ValueType, nsMediaFeature_RangeType
 use gecko_bindings::structs::RawGeckoPresContextOwned;
 use media_queries::MediaType;
 use parser::ParserContext;
-use properties::ComputedValues;
+use properties::{ComputedValues, StyleBuilder};
 use std::fmt::{self, Write};
-use std::sync::Arc;
 use str::starts_with_ignore_ascii_case;
 use string_cache::Atom;
 use style_traits::ToCss;
 use style_traits::viewport::ViewportConstraints;
+use stylearc::Arc;
 use values::{CSSFloat, specified};
 use values::computed::{self, ToComputedValue};
 
@@ -521,7 +522,7 @@ impl Expression {
     }
 
     /// Returns whether this media query evaluates to true for the given device.
-    pub fn matches(&self, device: &Device) -> bool {
+    pub fn matches(&self, device: &Device, quirks_mode: QuirksMode) -> bool {
         let mut css_value = nsCSSValue::null();
         unsafe {
             (self.feature.mGetter.unwrap())(device.pres_context,
@@ -534,12 +535,13 @@ impl Expression {
             None => return false,
         };
 
-        self.evaluate_against(device, &value)
+        self.evaluate_against(device, &value, quirks_mode)
     }
 
     fn evaluate_against(&self,
                         device: &Device,
-                        actual_value: &MediaExpressionValue)
+                        actual_value: &MediaExpressionValue,
+                        quirks_mode: QuirksMode)
                         -> bool {
         use self::MediaExpressionValue::*;
         use std::cmp::Ordering;
@@ -550,6 +552,7 @@ impl Expression {
 
         let default_values = device.default_computed_values();
 
+
         let provider = get_metrics_provider_for_product();
 
         // http://dev.w3.org/csswg/mediaqueries3/#units
@@ -559,11 +562,12 @@ impl Expression {
             device: device,
             inherited_style: default_values,
             layout_parent_style: default_values,
-            // This cloning business is kind of dumb.... It's because Context
-            // insists on having an actual ComputedValues inside itself.
-            style: default_values.clone(),
+            style: StyleBuilder::for_derived_style(default_values),
             font_metrics_provider: &provider,
+            cached_system_font: None,
             in_media_query: true,
+            // TODO: pass the correct value here.
+            quirks_mode: quirks_mode,
         };
 
         let required_value = match self.value {

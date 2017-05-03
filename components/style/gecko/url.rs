@@ -10,8 +10,8 @@ use gecko_bindings::sugar::refptr::RefPtr;
 use parser::ParserContext;
 use std::borrow::Cow;
 use std::fmt::{self, Write};
-use std::sync::Arc;
 use style_traits::ToCss;
+use stylearc::Arc;
 
 /// A specified url() value for gecko. Gecko does not eagerly resolve SpecifiedUrls.
 #[derive(Clone, Debug, PartialEq)]

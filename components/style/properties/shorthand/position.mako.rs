@@ -266,13 +266,12 @@
 
     impl<'a> ToCss for LonghandsToSerialize<'a> {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            if self.align_content == self.justify_content {
-                self.align_content.to_css(dest)
-            } else {
-                self.justify_content.to_css(dest)?;
+            self.align_content.to_css(dest)?;
+            if self.align_content != self.justify_content {
                 dest.write_str(" ")?;
-                self.justify_content.to_css(dest)
+                self.justify_content.to_css(dest)?;
             }
+            Ok(())
         }
     }
 </%helpers:shorthand>

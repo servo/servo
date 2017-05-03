@@ -17,7 +17,7 @@ use script_traits::{LayoutMsg as ConstellationMsg, StackingContextScrollState, W
 use servo_url::ServoUrl;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender};
-use style::context::ReflowGoal;
+use style::context::{QuirksMode, ReflowGoal};
 use style::properties::PropertyId;
 use style::selector_parser::PseudoElement;
 use style::stylesheets::Stylesheet;
@@ -25,10 +25,10 @@ use style::stylesheets::Stylesheet;
 /// Asynchronous messages that script can send to layout.
 pub enum Msg {
     /// Adds the given stylesheet to the document.
-    AddStylesheet(Arc<Stylesheet>),
+    AddStylesheet(::style::stylearc::Arc<Stylesheet>),
 
-    /// Puts a document into quirks mode, causing the quirks mode stylesheet to be loaded.
-    SetQuirksMode,
+    /// Change the quirks mode.
+    SetQuirksMode(QuirksMode),
 
     /// Requests a reflow.
     Reflow(ScriptReflow),
@@ -116,7 +116,7 @@ pub struct ScriptReflow {
     /// The document node.
     pub document: TrustedNodeAddress,
     /// The document's list of stylesheets.
-    pub document_stylesheets: Vec<Arc<Stylesheet>>,
+    pub document_stylesheets: Vec<::style::stylearc::Arc<Stylesheet>>,
     /// Whether the document's stylesheets have changed since the last script reflow.
     pub stylesheets_changed: bool,
     /// The current window size.

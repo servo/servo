@@ -27,7 +27,6 @@ use model::MaybeAuto;
 use std::cmp::{max, min};
 use std::fmt;
 use std::ops::Add;
-use std::sync::Arc;
 use style::computed_values::{border_collapse, position, table_layout};
 use style::context::SharedStyleContext;
 use style::logical_geometry::{LogicalRect, LogicalSize};
@@ -467,7 +466,7 @@ impl Flow for TableWrapperFlow {
         self.block_flow.collect_stacking_contexts(state);
     }
 
-    fn repair_style(&mut self, new_style: &Arc<ServoComputedValues>) {
+    fn repair_style(&mut self, new_style: &::StyleArc<ServoComputedValues>) {
         self.block_flow.repair_style(new_style)
     }
 

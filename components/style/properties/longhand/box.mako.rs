@@ -264,6 +264,7 @@ ${helpers.single_keyword("position", "static absolute relative fixed",
     use std::fmt;
     use style_traits::ToCss;
     use values::HasViewportPercentage;
+    use values::specified::AllowQuirks;
 
     <% vertical_align = data.longhands_by_name["vertical-align"] %>
     <% vertical_align.keyword = Keyword("vertical-align",
@@ -306,7 +307,7 @@ ${helpers.single_keyword("position", "static absolute relative fixed",
     /// baseline | sub | super | top | text-top | middle | bottom | text-bottom
     /// | <percentage> | <length>
     pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        input.try(|i| specified::LengthOrPercentage::parse(context, i))
+        input.try(|i| specified::LengthOrPercentage::parse_quirky(context, i, AllowQuirks::Yes))
         .map(SpecifiedValue::LengthOrPercentage)
         .or_else(|_| {
             match_ignore_ascii_case! { &try!(input.expect_ident()),
@@ -406,7 +407,6 @@ ${helpers.single_keyword("overflow-clip-box", "padding-box content-box",
 // FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
 ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                          need_clone=True, animation_value_type="none",
-                         extra_gecko_aliases="-moz-scrollbars-none=hidden",
                          extra_gecko_values="-moz-hidden-unscrollable",
                          custom_consts=overflow_custom_consts,
                          gecko_constant_prefix="NS_STYLE_OVERFLOW",
@@ -502,6 +502,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         use parser::{Parse, ParserContext};
         use std::fmt;
         use style_traits::ToCss;
+        use super::FunctionKeyword;
         use values::specified;
 
         pub use super::parse;
@@ -512,6 +513,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
             CubicBezier(Point2D<f32>, Point2D<f32>),
             Steps(u32, StartEnd),
             Frames(u32),
+            Keyword(FunctionKeyword),
         }
 
         impl ToCss for T {
@@ -538,6 +540,9 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                         try!(frames.to_css(dest));
                         dest.write_str(")")
                     },
+                    T::Keyword(keyword) => {
+                        super::serialize_keyword(dest, keyword)
+                    }
                 }
             }
         }
@@ -651,6 +656,22 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         dest.write_str(")")
     }
 
+    fn serialize_keyword<W>(dest: &mut W, keyword: FunctionKeyword) -> fmt::Result
+        where W: fmt::Write,
+    {
+        match keyword {
+            FunctionKeyword::StepStart => {
+                serialize_steps(dest, specified::Integer::new(1), StartEnd::Start)
+            },
+            FunctionKeyword::StepEnd => {
+                serialize_steps(dest, specified::Integer::new(1), StartEnd::End)
+            },
+            _ => {
+                keyword.to_css(dest)
+            },
+        }
+    }
+
     // https://drafts.csswg.org/css-transitions/#serializing-a-timing-function
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
@@ -675,17 +696,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                     dest.write_str(")")
                 },
                 SpecifiedValue::Keyword(keyword) => {
-                    match keyword {
-                        FunctionKeyword::StepStart => {
-                            serialize_steps(dest, specified::Integer::new(1), StartEnd::Start)
-                        },
-                        FunctionKeyword::StepEnd => {
-                            serialize_steps(dest, specified::Integer::new(1), StartEnd::End)
-                        },
-                        _ => {
-                            keyword.to_css(dest)
-                        },
-                    }
+                    serialize_keyword(dest, keyword)
                 },
             }
         }
@@ -708,7 +719,9 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                 SpecifiedValue::Frames(frames) => {
                     computed_value::T::Frames(frames.to_computed_value(context) as u32)
                 },
-                SpecifiedValue::Keyword(keyword) => keyword.to_computed_value(),
+                SpecifiedValue::Keyword(keyword) => {
+                    computed_value::T::Keyword(keyword)
+                },
             }
         }
         #[inline]
@@ -729,13 +742,16 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                     let frames = frames as i32;
                     SpecifiedValue::Frames(specified::Integer::from_computed_value(&frames))
                 },
+                computed_value::T::Keyword(keyword) => {
+                    SpecifiedValue::Keyword(keyword)
+                },
             }
         }
     }
 
     impl FunctionKeyword {
         #[inline]
-        pub fn to_computed_value(&self) -> computed_value::T {
+        pub fn to_non_keyword_value(&self) -> computed_value::T {
             match *self {
                 FunctionKeyword::Ease => ease(),
                 FunctionKeyword::Linear => linear(),
@@ -753,7 +769,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
-        ease()
+        computed_value::T::Keyword(FunctionKeyword::Ease)
     }
 
     #[inline]
@@ -1992,8 +2008,8 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                                 m32: Number::from_computed_value(&computed.m32),
                                 m33: Number::from_computed_value(&computed.m33),
                                 m34: Number::from_computed_value(&computed.m34),
-                                m41: Either::First(LengthOrPercentage::from_computed_value(&computed.m41)),
-                                m42: Either::First(LengthOrPercentage::from_computed_value(&computed.m42)),
+                                m41: Either::Second(LengthOrPercentage::from_computed_value(&computed.m41)),
+                                m42: Either::Second(LengthOrPercentage::from_computed_value(&computed.m42)),
                                 m43: LengthOrNumber::from_computed_value(&Either::First(computed.m43)),
                                 m44: Number::from_computed_value(&computed.m44),
                             });
@@ -2040,8 +2056,8 @@ ${helpers.predefined_type("scroll-snap-coordinate",
     // LengthOrPercentage. Number maps into Length
     fn lopon_to_lop(value: &ComputedLoPoNumber) -> ComputedLoP {
         match *value {
-            Either::First(length_or_percentage) => length_or_percentage,
-            Either::Second(number) => ComputedLoP::Length(Au::from_f32_px(number)),
+            Either::First(number) => ComputedLoP::Length(Au::from_f32_px(number)),
+            Either::Second(length_or_percentage) => length_or_percentage,
         }
     }
 
@@ -2498,3 +2514,82 @@ ${helpers.predefined_type("shape-outside", "basic_shape::ShapeWithShapeBox",
                           products="gecko", boxed="True",
                           animation_value_type="none",
                           spec="https://drafts.csswg.org/css-shapes/#shape-outside-property")}
+
+<%helpers:longhand name="touch-action"
+                   products="gecko"
+                   animation_value_type="none"
+                   disable_when_testing="True"
+                   spec="https://compat.spec.whatwg.org/#touch-action">
+    use gecko_bindings::structs;
+    use std::fmt;
+    use style_traits::ToCss;
+    use values::HasViewportPercentage;
+    use values::computed::ComputedValueAsSpecified;
+
+    impl ComputedValueAsSpecified for SpecifiedValue {}
+    no_viewport_percentage!(SpecifiedValue);
+
+    pub mod computed_value {
+        pub use super::SpecifiedValue as T;
+    }
+
+    bitflags! {
+        /// These constants match Gecko's `NS_STYLE_TOUCH_ACTION_*` constants.
+        pub flags SpecifiedValue: u8 {
+            const TOUCH_ACTION_NONE = structs::NS_STYLE_TOUCH_ACTION_NONE as u8,
+            const TOUCH_ACTION_AUTO = structs::NS_STYLE_TOUCH_ACTION_AUTO as u8,
+            const TOUCH_ACTION_PAN_X = structs::NS_STYLE_TOUCH_ACTION_PAN_X as u8,
+            const TOUCH_ACTION_PAN_Y = structs::NS_STYLE_TOUCH_ACTION_PAN_Y as u8,
+            const TOUCH_ACTION_MANIPULATION = structs::NS_STYLE_TOUCH_ACTION_MANIPULATION as u8,
+        }
+    }
+
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match *self {
+                TOUCH_ACTION_NONE => dest.write_str("none"),
+                TOUCH_ACTION_AUTO => dest.write_str("auto"),
+                TOUCH_ACTION_MANIPULATION => dest.write_str("manipulation"),
+                _ if self.contains(TOUCH_ACTION_PAN_X | TOUCH_ACTION_PAN_Y) => {
+                    dest.write_str("pan-x pan-y")
+                },
+                _ if self.contains(TOUCH_ACTION_PAN_X) => {
+                    dest.write_str("pan-x")
+                },
+                _ if self.contains(TOUCH_ACTION_PAN_Y) => {
+                    dest.write_str("pan-y")
+                },
+                _ => panic!("invalid touch-action value"),
+            }
+        }
+    }
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        TOUCH_ACTION_AUTO
+    }
+
+    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        let ident = input.expect_ident()?;
+        match_ignore_ascii_case! { &ident,
+            "auto" => Ok(TOUCH_ACTION_AUTO),
+            "none" => Ok(TOUCH_ACTION_NONE),
+            "manipulation" => Ok(TOUCH_ACTION_MANIPULATION),
+            "pan-x" => {
+                if input.try(|i| i.expect_ident_matching("pan-y")).is_ok() {
+                    Ok(TOUCH_ACTION_PAN_X | TOUCH_ACTION_PAN_Y)
+                } else {
+                    Ok(TOUCH_ACTION_PAN_X)
+                }
+            },
+            "pan-y" => {
+                if input.try(|i| i.expect_ident_matching("pan-x")).is_ok() {
+                    Ok(TOUCH_ACTION_PAN_X | TOUCH_ACTION_PAN_Y)
+                } else {
+                    Ok(TOUCH_ACTION_PAN_Y)
+                }
+            },
+            _ => Err(()),
+        }
+    }
+</%helpers:longhand>

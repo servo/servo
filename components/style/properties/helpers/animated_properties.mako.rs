@@ -9,7 +9,9 @@
 use app_units::Au;
 use cssparser::{Color as CSSParserColor, Parser, RGBA, serialize_identifier};
 use euclid::{Point2D, Size2D};
+#[cfg(feature = "gecko")] use gecko_bindings::bindings::RawServoAnimationValueMap;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::nsCSSPropertyID;
+#[cfg(feature = "gecko")] use gecko_bindings::sugar::ownership::{HasFFI, HasSimpleFFI};
 #[cfg(feature = "gecko")] use gecko_string_cache::Atom;
 use properties::{CSSWideKeyword, PropertyDeclaration};
 use properties::longhands;
@@ -27,15 +29,16 @@ use properties::longhands::vertical_align::computed_value::T as VerticalAlign;
 use properties::longhands::visibility::computed_value::T as Visibility;
 #[cfg(feature = "gecko")] use properties::{PropertyDeclarationId, LonghandId};
 #[cfg(feature = "servo")] use servo_atoms::Atom;
+use smallvec::SmallVec;
 use std::cmp;
 #[cfg(feature = "gecko")] use std::collections::HashMap;
 use std::fmt;
 use style_traits::ToCss;
 use super::ComputedValues;
 use values::CSSFloat;
-use values::{Auto, Either, Normal, generics};
+use values::{Auto, Either, generics};
 use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
-use values::computed::{BorderRadiusSize, ClipRect, LengthOrNone};
+use values::computed::{BorderRadiusSize, ClipRect};
 use values::computed::{CalcLengthOrPercentage, Context, LengthOrPercentage};
 use values::computed::{MaxLength, MinLength};
 use values::computed::position::{HorizontalPosition, VerticalPosition};
@@ -387,6 +390,12 @@ impl AnimatedProperty {
 /// composed for each TransitionProperty.
 #[cfg(feature = "gecko")]
 pub type AnimationValueMap = HashMap<TransitionProperty, AnimationValue>;
+#[cfg(feature = "gecko")]
+unsafe impl HasFFI for AnimationValueMap {
+    type FFIType = RawServoAnimationValueMap;
+}
+#[cfg(feature = "gecko")]
+unsafe impl HasSimpleFFI for AnimationValueMap {}
 
 /// An enum to represent a single computed value belonging to an animated
 /// property in order to be interpolated with another one. When interpolating,
@@ -515,6 +524,7 @@ impl AnimationValue {
                     % if prop.animatable:
                     LonghandId::${prop.camel_case} => {
                         let mut result = None;
+                        let quirks_mode = context.quirks_mode;
                         ::properties::substitute_variables_${prop.ident}_slow(
                             &variables.css,
                             variables.first_token_type,
@@ -533,7 +543,8 @@ impl AnimationValue {
                                 };
                                 result = AnimationValue::from_declaration(&declaration, context, initial);
                             },
-                            &reporter);
+                            &reporter,
+                            quirks_mode);
                         result
                     },
                     % else:
@@ -610,7 +621,7 @@ pub trait Interpolate: Sized {
 /// https://drafts.csswg.org/css-transitions/#animtype-repeatable-list
 pub trait RepeatableListInterpolate: Interpolate {}
 
-impl<T: RepeatableListInterpolate> Interpolate for Vec<T> {
+impl<T: RepeatableListInterpolate> Interpolate for SmallVec<[T; 1]> {
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         use num_integer::lcm;
         let len = lcm(self.len(), other.len());
@@ -625,20 +636,6 @@ impl Interpolate for Au {
     #[inline]
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         Ok(Au((self.0 as f64 + (other.0 as f64 - self.0 as f64) * progress).round() as i32))
-    }
-}
-
-impl Interpolate for Auto {
-    #[inline]
-    fn interpolate(&self, _other: &Self, _progress: f64) -> Result<Self, ()> {
-        Ok(Auto)
-    }
-}
-
-impl Interpolate for Normal {
-    #[inline]
-    fn interpolate(&self, _other: &Self, _progress: f64) -> Result<Self, ()> {
-        Ok(Normal)
     }
 }
 
@@ -1077,7 +1074,12 @@ impl Interpolate for ClipRect {
             };
 
             let max_len = cmp::max(self.0.len(), other.0.len());
-            let mut result = Vec::with_capacity(max_len);
+
+            let mut result = if max_len > 1 {
+                SmallVec::from_vec(Vec::with_capacity(max_len))
+            } else {
+                SmallVec::new()
+            };
 
             for i in 0..max_len {
                 let shadow = match (self.0.get(i), other.0.get(i)) {
@@ -1107,16 +1109,6 @@ impl Interpolate for ClipRect {
 
 ${impl_interpolate_for_shadow('BoxShadow', 'CSSParserColor::RGBA(RGBA::transparent())',)}
 ${impl_interpolate_for_shadow('TextShadow', 'CSSParserColor::RGBA(RGBA::transparent())',)}
-
-impl Interpolate for LengthOrNone {
-    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-        match (*self, *other) {
-            (Either::First(ref length), Either::First(ref other)) =>
-                length.interpolate(&other, progress).map(Either::First),
-            _ => Err(()),
-        }
-    }
-}
 
 /// Check if it's possible to do a direct numerical interpolation
 /// between these two transform lists.
@@ -2214,7 +2206,7 @@ pub trait ComputeDistance: Sized {
     }
 }
 
-impl<T: ComputeDistance> ComputeDistance for Vec<T> {
+impl<T: ComputeDistance> ComputeDistance for SmallVec<[T; 1]> {
     #[inline]
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
         self.compute_squared_distance(other).map(|sd| sd.sqrt())
@@ -2239,20 +2231,6 @@ impl ComputeDistance for Au {
     #[inline]
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
         self.0.compute_distance(&other.0)
-    }
-}
-
-impl ComputeDistance for Auto {
-    #[inline]
-    fn compute_distance(&self, _other: &Self) -> Result<f64, ()> {
-        Err(())
-    }
-}
-
-impl ComputeDistance for Normal {
-    #[inline]
-    fn compute_distance(&self, _other: &Self) -> Result<f64, ()> {
-        Err(())
     }
 }
 
@@ -2523,18 +2501,6 @@ impl ComputeDistance for LengthOrPercentageOrNone {
                 this.compute_distance(other)
             },
             _ => Err(())
-        }
-    }
-}
-
-impl ComputeDistance for LengthOrNone {
-    #[inline]
-    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
-        match (*self, *other) {
-            (Either::First(ref length), Either::First(ref other)) => {
-                length.compute_distance(other)
-            },
-            _ => Err(()),
         }
     }
 }
@@ -2896,7 +2862,7 @@ impl <'a> From<<&'a IntermediateColor> for CSSParserColor {
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     #[allow(missing_docs)]
     /// Intermediate type for box-shadow list and text-shadow list.
-    pub struct Intermediate${type}ShadowList(pub Vec<Intermediate${type}Shadow>);
+    pub struct Intermediate${type}ShadowList(pub SmallVec<[Intermediate${type}Shadow; 1]>);
 
     impl <'a> From<<&'a Intermediate${type}ShadowList> for ${type}ShadowList {
         fn from(shadow_list: &Intermediate${type}ShadowList) -> ${type}ShadowList {

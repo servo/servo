@@ -4,10 +4,15 @@
 
 //! Computed values.
 
+use context::QuirksMode;
 use euclid::size::Size2D;
 use font_metrics::FontMetricsProvider;
 use media_queries::Device;
-use properties::ComputedValues;
+#[cfg(feature = "gecko")]
+use properties;
+use properties::{ComputedValues, StyleBuilder};
+use std::f32;
+use std::f32::consts::PI;
 use std::fmt;
 use style_traits::ToCss;
 use super::{CSSFloat, CSSInteger, RGBA};
@@ -52,10 +57,23 @@ pub struct Context<'a> {
     /// isn't `contents`.
     pub layout_parent_style: &'a ComputedValues,
 
-    /// Values access through this need to be in the properties "computed
+    /// Values accessed through this need to be in the properties "computed
     /// early": color, text-decoration, font-size, display, position, float,
     /// border-*-style, outline-style, font-family, writing-mode...
-    pub style: ComputedValues,
+    pub style: StyleBuilder<'a>,
+
+    /// A cached computed system font value, for use by gecko.
+    ///
+    /// See properties/longhands/font.mako.rs
+    #[cfg(feature = "gecko")]
+    pub cached_system_font: Option<properties::longhands::system_font::ComputedSystemFont>,
+
+    /// A dummy option for servo so initializing a computed::Context isn't
+    /// painful.
+    ///
+    /// TODO(emilio): Make constructors for Context, and drop this.
+    #[cfg(feature = "servo")]
+    pub cached_system_font: Option<()>,
 
     /// A font metrics provider, used to access font metrics to implement
     /// font-relative units.
@@ -63,6 +81,9 @@ pub struct Context<'a> {
 
     /// Whether or not we are computing the media list in a media query
     pub in_media_query: bool,
+
+    /// The quirks mode of this context.
+    pub quirks_mode: QuirksMode,
 }
 
 impl<'a> Context<'a> {
@@ -74,9 +95,9 @@ impl<'a> Context<'a> {
     pub fn inherited_style(&self) -> &ComputedValues { &self.inherited_style }
     /// The current style. Note that only "eager" properties should be accessed
     /// from here, see the comment in the member.
-    pub fn style(&self) -> &ComputedValues { &self.style }
+    pub fn style(&self) -> &StyleBuilder { &self.style }
     /// A mutable reference to the current style.
-    pub fn mutate_style(&mut self) -> &mut ComputedValues { &mut self.style }
+    pub fn mutate_style(&mut self) -> &mut StyleBuilder<'a> { &mut self.style }
 }
 
 /// A trait to represent the conversion between computed and specified values.
@@ -120,27 +141,42 @@ impl<T> ToComputedValue for T
 /// A computed `<angle>` value.
 #[derive(Clone, PartialEq, PartialOrd, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
-pub struct Angle {
-    radians: CSSFloat,
+pub enum Angle {
+    /// An angle with degree unit
+    Degree(CSSFloat),
+    /// An angle with gradian unit
+    Gradian(CSSFloat),
+    /// An angle with radian unit
+    Radian(CSSFloat),
+    /// An angle with turn unit
+    Turn(CSSFloat),
 }
 
 impl Angle {
     /// Construct a computed `Angle` value from a radian amount.
     pub fn from_radians(radians: CSSFloat) -> Self {
-        Angle {
-            radians: radians,
-        }
+        Angle::Radian(radians)
     }
 
     /// Return the amount of radians this angle represents.
     #[inline]
     pub fn radians(&self) -> CSSFloat {
-        self.radians
+        const RAD_PER_DEG: CSSFloat = PI / 180.0;
+        const RAD_PER_GRAD: CSSFloat = PI / 200.0;
+        const RAD_PER_TURN: CSSFloat = PI * 2.0;
+
+        let radians = match *self {
+            Angle::Degree(val) => val * RAD_PER_DEG,
+            Angle::Gradian(val) => val * RAD_PER_GRAD,
+            Angle::Turn(val) => val * RAD_PER_TURN,
+            Angle::Radian(val) => val,
+        };
+        radians.min(f32::MAX).max(f32::MIN)
     }
 
     /// Returns an angle that represents a rotation of zero radians.
     pub fn zero() -> Self {
-        Self::from_radians(0.0)
+        Angle::Radian(0.0)
     }
 }
 
@@ -148,7 +184,12 @@ impl ToCss for Angle {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result
         where W: fmt::Write,
     {
-        write!(dest, "{}rad", self.radians())
+        match *self {
+            Angle::Degree(val) => write!(dest, "{}deg", val),
+            Angle::Gradian(val) => write!(dest, "{}grad", val),
+            Angle::Radian(val) => write!(dest, "{}rad", val),
+            Angle::Turn(val) => write!(dest, "{}turn", val),
+        }
     }
 }
 
@@ -328,7 +369,7 @@ pub struct Shadow {
 /// A `<number>` value.
 pub type Number = CSSFloat;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
 pub enum NumberOrPercentage {
@@ -464,7 +505,7 @@ impl ToCss for SVGPaint {
 }
 
 /// <length> | <percentage> | <number>
-pub type LengthOrPercentageOrNumber = Either<LengthOrPercentage, Number>;
+pub type LengthOrPercentageOrNumber = Either<Number, LengthOrPercentage>;
 
 #[derive(Clone, PartialEq, Eq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
