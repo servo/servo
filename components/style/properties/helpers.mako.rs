@@ -309,7 +309,7 @@
                                                                                       computed,
                                                                                       inherited_style.get_font());
                                 % else:
-                                    % if property.has_uncacheable_values:
+                                    % if property.has_uncacheable_values == "True":
                                     context.mutate_style().mutate_${data.current_style_struct.name_lower}()
                                                           .set_${property.ident}(computed, cacheable ${maybe_wm});
                                     % else:
