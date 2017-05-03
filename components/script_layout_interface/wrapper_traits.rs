@@ -10,7 +10,7 @@ use OpaqueStyleAndLayoutData;
 use SVGSVGData;
 use atomic_refcell::AtomicRefCell;
 use gfx_traits::{ByteIndex, FragmentType, combine_id_with_fragment_type};
-use html5ever_atoms::{Namespace, LocalName};
+use html5ever::{Namespace, LocalName};
 use msg::constellation_msg::PipelineId;
 use range::Range;
 use servo_url::ServoUrl;

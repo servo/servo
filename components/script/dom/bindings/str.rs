@@ -4,7 +4,7 @@
 
 //! The `ByteString` struct.
 
-use html5ever_atoms::{LocalName, Namespace};
+use html5ever::{LocalName, Namespace};
 use servo_atoms::Atom;
 use std::ascii::AsciiExt;
 use std::borrow::{Borrow, Cow, ToOwned};

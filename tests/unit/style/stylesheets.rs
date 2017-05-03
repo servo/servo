@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::{self, Parser as CssParser, SourcePosition};
-use html5ever_atoms::{Namespace as NsAtom};
+use html5ever::{Namespace as NsAtom};
 use media_queries::CSSErrorReporterTest;
 use parking_lot::RwLock;
 use selectors::parser::*;

@@ -6,27 +6,35 @@ use document_loader::{DocumentLoader, LoadType};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementMethods;
+use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::ServoParserBinding;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, Root, RootedReference};
+use dom::bindings::js::{JS, MutNullableJS, Root, RootedReference};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::characterdata::CharacterData;
+use dom::comment::Comment;
 use dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
-use dom::element::Element;
+use dom::documenttype::DocumentType;
+use dom::element::{Element, ElementCreator};
 use dom::globalscope::GlobalScope;
-use dom::htmlformelement::HTMLFormElement;
+use dom::htmlformelement::{FormControlElementHelpers, HTMLFormElement};
 use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlscriptelement::{HTMLScriptElement, ScriptResult};
+use dom::htmltemplateelement::HTMLTemplateElement;
 use dom::node::{Node, NodeSiblingIterator};
+use dom::processinginstruction::ProcessingInstruction;
 use dom::text::Text;
+use dom::virtualmethods::vtable_for;
 use dom_struct::dom_struct;
 use encoding::all::UTF_8;
 use encoding::types::{DecoderTrap, Encoding};
-use html5ever::tokenizer::buffer_queue::BufferQueue;
-use html5ever::tree_builder::NodeOrText;
+use html5ever::{Attribute, QualName, ExpandedName};
+use html5ever::buffer_queue::BufferQueue;
+use html5ever::tendril::StrTendril;
+use html5ever::tree_builder::{NodeOrText, TreeSink, NextParserState, QuirksMode, ElementFlags};
 use hyper::header::ContentType;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper_serde::Serde;
@@ -40,8 +48,10 @@ use script_traits::DocumentActivity;
 use servo_config::resource_files::read_resource_file;
 use servo_url::ServoUrl;
 use std::ascii::AsciiExt;
+use std::borrow::Cow;
 use std::cell::Cell;
 use std::mem;
+use style::context::QuirksMode as ServoQuirksMode;
 
 mod html;
 mod xml;
@@ -669,5 +679,185 @@ fn insert(parent: &Node, reference_child: Option<&Node>, child: NodeOrText<JS<No
                 parent.InsertBefore(text.upcast(), reference_child).unwrap();
             }
         },
+    }
+}
+
+#[derive(JSTraceable, HeapSizeOf)]
+#[must_root]
+pub struct Sink {
+    base_url: ServoUrl,
+    document: JS<Document>,
+    current_line: u64,
+    script: MutNullableJS<HTMLScriptElement>,
+}
+
+#[allow(unrooted_must_root)]  // FIXME: really?
+impl TreeSink for Sink {
+    type Output = Self;
+    fn finish(self) -> Self { self }
+
+    type Handle = JS<Node>;
+
+    fn get_document(&mut self) -> JS<Node> {
+        JS::from_ref(self.document.upcast())
+    }
+
+    fn get_template_contents(&mut self, target: &JS<Node>) -> JS<Node> {
+        let template = target.downcast::<HTMLTemplateElement>()
+            .expect("tried to get template contents of non-HTMLTemplateElement in HTML parsing");
+        JS::from_ref(template.Content().upcast())
+    }
+
+    fn same_node(&self, x: &JS<Node>, y: &JS<Node>) -> bool {
+        x == y
+    }
+
+    fn elem_name<'a>(&self, target: &'a JS<Node>) -> ExpandedName<'a> {
+        let elem = target.downcast::<Element>()
+            .expect("tried to get name of non-Element in HTML parsing");
+        ExpandedName {
+            ns: elem.namespace(),
+            local: elem.local_name(),
+        }
+    }
+
+    fn same_tree(&self, x: &JS<Node>, y: &JS<Node>) -> bool {
+        let x = x.downcast::<Element>().expect("Element node expected");
+        let y = y.downcast::<Element>().expect("Element node expected");
+
+        x.is_in_same_home_subtree(y)
+    }
+
+    fn create_element(&mut self, name: QualName, attrs: Vec<Attribute>, _flags: ElementFlags)
+            -> JS<Node> {
+        let elem = Element::create(name, &*self.document,
+                                   ElementCreator::ParserCreated(self.current_line));
+
+        for attr in attrs {
+            elem.set_attribute_from_parser(attr.name, DOMString::from(String::from(attr.value)), None);
+        }
+
+        JS::from_ref(elem.upcast())
+    }
+
+    fn create_comment(&mut self, text: StrTendril) -> JS<Node> {
+        let comment = Comment::new(DOMString::from(String::from(text)), &*self.document);
+        JS::from_ref(comment.upcast())
+    }
+
+    fn create_pi(&mut self, target: StrTendril, data: StrTendril) -> JS<Node> {
+        let doc = &*self.document;
+        let pi = ProcessingInstruction::new(
+            DOMString::from(String::from(target)), DOMString::from(String::from(data)),
+            doc);
+        JS::from_ref(pi.upcast())
+    }
+
+    fn has_parent_node(&self, node: &JS<Node>) -> bool {
+         node.GetParentNode().is_some()
+    }
+
+    fn associate_with_form(&mut self, target: &JS<Node>, form: &JS<Node>) {
+        let node = target;
+        let form = Root::downcast::<HTMLFormElement>(Root::from_ref(&**form))
+            .expect("Owner must be a form element");
+
+        let elem = node.downcast::<Element>();
+        let control = elem.and_then(|e| e.as_maybe_form_control());
+
+        if let Some(control) = control {
+            control.set_form_owner_from_parser(&form);
+        } else {
+            // TODO remove this code when keygen is implemented.
+            assert!(node.NodeName() == "KEYGEN", "Unknown form-associatable element");
+        }
+    }
+
+    fn append_before_sibling(&mut self,
+            sibling: &JS<Node>,
+            new_node: NodeOrText<JS<Node>>) {
+        let parent = sibling.GetParentNode()
+            .expect("append_before_sibling called on node without parent");
+
+        insert(&parent, Some(&*sibling), new_node);
+    }
+
+    fn parse_error(&mut self, msg: Cow<'static, str>) {
+        debug!("Parse error: {}", msg);
+    }
+
+    fn set_quirks_mode(&mut self, mode: QuirksMode) {
+        let mode = match mode {
+            QuirksMode::Quirks => ServoQuirksMode::Quirks,
+            QuirksMode::LimitedQuirks => ServoQuirksMode::LimitedQuirks,
+            QuirksMode::NoQuirks => ServoQuirksMode::NoQuirks,
+        };
+        self.document.set_quirks_mode(mode);
+    }
+
+    fn append(&mut self, parent: &JS<Node>, child: NodeOrText<JS<Node>>) {
+        insert(&parent, None, child);
+    }
+
+    fn append_doctype_to_document(&mut self, name: StrTendril, public_id: StrTendril,
+                                  system_id: StrTendril) {
+        let doc = &*self.document;
+        let doctype = DocumentType::new(
+            DOMString::from(String::from(name)), Some(DOMString::from(String::from(public_id))),
+            Some(DOMString::from(String::from(system_id))), doc);
+        doc.upcast::<Node>().AppendChild(doctype.upcast()).expect("Appending failed");
+    }
+
+    fn add_attrs_if_missing(&mut self, target: &JS<Node>, attrs: Vec<Attribute>) {
+        let elem = target.downcast::<Element>()
+            .expect("tried to set attrs on non-Element in HTML parsing");
+        for attr in attrs {
+            elem.set_attribute_from_parser(attr.name, DOMString::from(String::from(attr.value)), None);
+        }
+    }
+
+    fn remove_from_parent(&mut self, target: &JS<Node>) {
+        if let Some(ref parent) = target.GetParentNode() {
+            parent.RemoveChild(&*target).unwrap();
+        }
+    }
+
+    fn mark_script_already_started(&mut self, node: &JS<Node>) {
+        let script = node.downcast::<HTMLScriptElement>();
+        script.map(|script| script.set_already_started(true));
+    }
+
+    fn complete_script(&mut self, node: &JS<Node>) -> NextParserState {
+        if let Some(script) = node.downcast() {
+            self.script.set(Some(script));
+            NextParserState::Suspend
+        } else {
+            NextParserState::Continue
+        }
+    }
+
+    fn reparent_children(&mut self, node: &JS<Node>, new_parent: &JS<Node>) {
+        while let Some(ref child) = node.GetFirstChild() {
+            new_parent.AppendChild(&child).unwrap();
+        }
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#html-integration-point
+    /// Specifically, the <annotation-xml> cases.
+    fn is_mathml_annotation_xml_integration_point(&self, handle: &JS<Node>) -> bool {
+        let elem = handle.downcast::<Element>().unwrap();
+        elem.get_attribute(&ns!(), &local_name!("encoding")).map_or(false, |attr| {
+            attr.value().eq_ignore_ascii_case("text/html")
+                || attr.value().eq_ignore_ascii_case("application/xhtml+xml")
+        })
+    }
+
+    fn set_current_line(&mut self, line_number: u64) {
+        self.current_line = line_number;
+    }
+
+    fn pop(&mut self, node: &JS<Node>) {
+        let node = Root::from_ref(&**node);
+        vtable_for(&node).pop();
     }
 }

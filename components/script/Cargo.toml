@@ -46,8 +46,7 @@ fnv = "1.0"
 gfx_traits = {path = "../gfx_traits"}
 heapsize = "0.3.6"
 heapsize_derive = "0.1"
-html5ever = {version = "0.15", features = ["heap_size", "unstable"]}
-html5ever-atoms = {version = "0.3", features = ["heap_size"]}
+html5ever = {version = "0.16", features = ["heap_size", "unstable"]}
 hyper = "0.10"
 hyper_serde = "0.6"
 image = "0.12"
@@ -88,7 +87,7 @@ time = "0.1.12"
 unicode-segmentation = "1.1.0"
 url = {version = "1.2", features = ["heap_size", "query_encoding"]}
 uuid = {version = "0.4", features = ["v4"]}
-xml5ever = {version = "0.5", features = ["unstable"]}
+xml5ever = {version = "0.6", features = ["unstable"]}
 webrender_traits = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 webvr = {path = "../webvr"}
 webvr_traits = {path = "../webvr_traits"}

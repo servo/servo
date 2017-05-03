@@ -27,7 +27,7 @@ use dom::virtualmethods::VirtualMethods;
 use dom::webglrenderingcontext::{LayoutCanvasWebGLRenderingContextHelpers, WebGLRenderingContext};
 use dom_struct::dom_struct;
 use euclid::size::Size2D;
-use html5ever_atoms::LocalName;
+use html5ever::LocalName;
 use image::ColorType;
 use image::png::PNGEncoder;
 use ipc_channel::ipc::{self, IpcSender};

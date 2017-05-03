@@ -37,7 +37,7 @@ use dom::validation::Validatable;
 use dom::validitystate::ValidationFlags;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever_atoms::LocalName;
+use html5ever::LocalName;
 use ipc_channel::ipc::{self, IpcSender};
 use mime_guess;
 use net_traits::{CoreResourceMsg, IpcSend};

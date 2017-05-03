@@ -23,7 +23,7 @@ use dom::node::{Node, UnbindContext};
 use dom::text::Text;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever_atoms::LocalName;
+use html5ever::LocalName;
 use std::cell::Cell;
 use style::element_state::*;
 use style::str::{split_html_space_chars, str_join};

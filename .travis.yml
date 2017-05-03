@@ -22,7 +22,7 @@ matrix:
          - bash etc/ci/lockfile_changed.sh
          - bash etc/ci/manifest_changed.sh
          - ./mach cargo test -p selectors
-         - ./mach cargo test -p style
+         - ./mach test-unit -p style
       cache:
         directories:
           - .cargo

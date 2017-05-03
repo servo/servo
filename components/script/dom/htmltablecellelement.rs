@@ -15,7 +15,7 @@ use dom::htmltablerowelement::HTMLTableRowElement;
 use dom::node::Node;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever_atoms::LocalName;
+use html5ever::LocalName;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 
 const DEFAULT_COLSPAN: u32 = 1;

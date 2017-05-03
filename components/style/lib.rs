@@ -50,7 +50,7 @@ extern crate fnv;
 #[cfg(feature = "gecko")] #[macro_use] pub mod gecko_string_cache;
 #[cfg(feature = "servo")] extern crate heapsize;
 #[cfg(feature = "servo")] #[macro_use] extern crate heapsize_derive;
-#[cfg(feature = "servo")] #[macro_use] extern crate html5ever_atoms;
+#[cfg(feature = "servo")] #[macro_use] extern crate html5ever;
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
@@ -141,9 +141,9 @@ use style_traits::ToCss;
 #[cfg(feature = "gecko")] pub use gecko_string_cache::Atom as LocalName;
 
 #[cfg(feature = "servo")] pub use servo_atoms::Atom;
-#[cfg(feature = "servo")] pub use html5ever_atoms::Prefix;
-#[cfg(feature = "servo")] pub use html5ever_atoms::LocalName;
-#[cfg(feature = "servo")] pub use html5ever_atoms::Namespace;
+#[cfg(feature = "servo")] pub use html5ever::Prefix;
+#[cfg(feature = "servo")] pub use html5ever::LocalName;
+#[cfg(feature = "servo")] pub use html5ever::Namespace;
 
 /// The CSS properties supported by the style system.
 /// Generated from the properties.mako.rs template by build.rs

@@ -20,7 +20,7 @@ use dom::node::{Node, document_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use euclid::point::Point2D;
-use html5ever_atoms::LocalName;
+use html5ever::LocalName;
 use net_traits::ReferrerPolicy;
 use std::default::Default;
 use std::f32;
