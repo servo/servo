@@ -1509,12 +1509,26 @@ pub mod style_structs {
                 % if longhand.logical:
                     ${helpers.logical_setter(name=longhand.name)}
                 % else:
-                    /// Set ${longhand.name}.
-                    #[allow(non_snake_case)]
-                    #[inline]
-                    pub fn set_${longhand.ident}(&mut self, v: longhands::${longhand.ident}::computed_value::T) {
-                        self.${longhand.ident} = v;
-                    }
+                    % if longhand.is_vector:
+                        /// Set ${longhand.name}.
+                        #[allow(non_snake_case)]
+                        #[inline]
+                        pub fn set_${longhand.ident}<I>(&mut self, v: I)
+                            where I: IntoIterator<Item = longhands::${longhand.ident}
+                                                                  ::computed_value::single_value::T>,
+                                  I::IntoIter: ExactSizeIterator
+                        {
+                            self.${longhand.ident} = longhands::${longhand.ident}::computed_value
+                                                              ::T(v.into_iter().collect());
+                        }
+                    % else:
+                        /// Set ${longhand.name}.
+                        #[allow(non_snake_case)]
+                        #[inline]
+                        pub fn set_${longhand.ident}(&mut self, v: longhands::${longhand.ident}::computed_value::T) {
+                            self.${longhand.ident} = v;
+                        }
+                    % endif
                     /// Set ${longhand.name} from other struct.
                     #[allow(non_snake_case)]
                     #[inline]

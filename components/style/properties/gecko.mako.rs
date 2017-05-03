@@ -1697,14 +1697,18 @@ fn static_assert() {
 
 <%def name="impl_animation_or_transition_time_value(type, ident, gecko_ffi_name)">
     #[allow(non_snake_case)]
-    pub fn set_${type}_${ident}(&mut self, v: longhands::${type}_${ident}::computed_value::T) {
-        debug_assert!(!v.0.is_empty());
-        let input_len = v.0.len();
+    pub fn set_${type}_${ident}<I>(&mut self, v: I)
+        where I: IntoIterator<Item = longhands::${type}_${ident}::computed_value::single_value::T>,
+              I::IntoIter: ExactSizeIterator + Clone
+    {
+        let v = v.into_iter();
+        debug_assert!(v.len() != 0);
+        let input_len = v.len();
         unsafe { self.gecko.m${type.capitalize()}s.ensure_len(input_len) };
 
         self.gecko.m${type.capitalize()}${gecko_ffi_name}Count = input_len as u32;
-        for (i, gecko) in self.gecko.m${type.capitalize()}s.iter_mut().enumerate() {
-            gecko.m${gecko_ffi_name} = v.0[i % input_len].seconds() * 1000.;
+        for (gecko, servo) in self.gecko.m${type.capitalize()}s.iter_mut().zip(v.cycle()) {
+            gecko.m${gecko_ffi_name} = servo.seconds() * 1000.;
         }
     }
     #[allow(non_snake_case)]
@@ -1718,14 +1722,18 @@ fn static_assert() {
 </%def>
 
 <%def name="impl_animation_or_transition_timing_function(type)">
-    pub fn set_${type}_timing_function(&mut self, v: longhands::${type}_timing_function::computed_value::T) {
-        debug_assert!(!v.0.is_empty());
-        let input_len = v.0.len();
+    pub fn set_${type}_timing_function<I>(&mut self, v: I)
+        where I: IntoIterator<Item = longhands::${type}_timing_function::computed_value::single_value::T>,
+              I::IntoIter: ExactSizeIterator + Clone
+    {
+        let v = v.into_iter();
+        debug_assert!(v.len() != 0);
+        let input_len = v.len();
         unsafe { self.gecko.m${type.capitalize()}s.ensure_len(input_len) };
 
         self.gecko.m${type.capitalize()}TimingFunctionCount = input_len as u32;
-        for (i, gecko) in self.gecko.m${type.capitalize()}s.iter_mut().enumerate() {
-            gecko.mTimingFunction = v.0[i % input_len].into();
+        for (gecko, servo) in self.gecko.m${type.capitalize()}s.iter_mut().zip(v.cycle()) {
+            gecko.mTimingFunction = servo.into();
         }
     }
     ${impl_animation_or_transition_count(type, 'timing_function', 'TimingFunction')}
@@ -1766,18 +1774,23 @@ fn static_assert() {
 
 <%def name="impl_animation_keyword(ident, gecko_ffi_name, keyword, cast_type='u8')">
     #[allow(non_snake_case)]
-    pub fn set_animation_${ident}(&mut self, v: longhands::animation_${ident}::computed_value::T) {
+    pub fn set_animation_${ident}<I>(&mut self, v: I)
+        where I: IntoIterator<Item = longhands::animation_${ident}::computed_value::single_value::T>,
+              I::IntoIter: ExactSizeIterator + Clone
+    {
         use properties::longhands::animation_${ident}::single_value::computed_value::T as Keyword;
         use gecko_bindings::structs;
 
-        debug_assert!(!v.0.is_empty());
-        let input_len = v.0.len();
+        let v = v.into_iter();
+
+        debug_assert!(v.len() != 0);
+        let input_len = v.len();
         unsafe { self.gecko.mAnimations.ensure_len(input_len) };
 
         self.gecko.mAnimation${gecko_ffi_name}Count = input_len as u32;
 
-        for (i, gecko) in self.gecko.mAnimations.iter_mut().enumerate() {
-            let result = match v.0[i % input_len] {
+        for (gecko, servo) in self.gecko.mAnimations.iter_mut().zip(v.cycle()) {
+            let result = match servo {
                 % for value in keyword.gecko_values():
                     Keyword::${to_rust_ident(value)} =>
                         structs::${keyword.gecko_constant(value)} ${keyword.maybe_cast(cast_type)},
@@ -1970,11 +1983,16 @@ fn static_assert() {
 
     ${impl_coord_copy('scroll_snap_points_y', 'mScrollSnapPointsY')}
 
-    pub fn set_scroll_snap_coordinate(&mut self, v: longhands::scroll_snap_coordinate::computed_value::T) {
-        unsafe { self.gecko.mScrollSnapCoordinate.set_len_pod(v.0.len() as u32); }
+    pub fn set_scroll_snap_coordinate<I>(&mut self, v: I)
+        where I: IntoIterator<Item = longhands::scroll_snap_coordinate::computed_value::single_value::T>,
+              I::IntoIter: ExactSizeIterator
+    {
+        let v = v.into_iter();
+
+        unsafe { self.gecko.mScrollSnapCoordinate.set_len_pod(v.len() as u32); }
         for (gecko, servo) in self.gecko.mScrollSnapCoordinate
                                .iter_mut()
-                               .zip(v.0.iter()) {
+                               .zip(v) {
             gecko.mXPosition = servo.horizontal.0.into();
             gecko.mYPosition = servo.vertical.0.into();
         }
@@ -2165,13 +2183,18 @@ fn static_assert() {
         self.gecko.mTransitions[index].mDuration.max(0.0) + self.gecko.mTransitions[index].mDelay
     }
 
-    pub fn set_transition_property(&mut self, v: longhands::transition_property::computed_value::T) {
+    pub fn set_transition_property<I>(&mut self, v: I)
+        where I: IntoIterator<Item = longhands::transition_property::computed_value::single_value::T>,
+              I::IntoIter: ExactSizeIterator
+    {
         use gecko_bindings::structs::nsCSSPropertyID::eCSSPropertyExtra_no_properties;
 
-        if !v.0.is_empty() {
-            unsafe { self.gecko.mTransitions.ensure_len(v.0.len()) };
-            self.gecko.mTransitionPropertyCount = v.0.len() as u32;
-            for (servo, gecko) in v.0.into_iter().zip(self.gecko.mTransitions.iter_mut()) {
+        let v = v.into_iter();
+
+        if v.len() != 0 {
+            unsafe { self.gecko.mTransitions.ensure_len(v.len()) };
+            self.gecko.mTransitionPropertyCount = v.len() as u32;
+            for (servo, gecko) in v.zip(self.gecko.mTransitions.iter_mut()) {
                 match servo {
                     TransitionProperty::Unsupported(ref atom) => unsafe {
                         Gecko_StyleTransition_SetUnsupportedProperty(gecko, atom.as_ptr())
@@ -2246,12 +2269,17 @@ fn static_assert() {
         unsafe { bindings::Gecko_StyleAnimationsEquals(&self.gecko.mAnimations, &other.gecko.mAnimations) }
     }
 
-    pub fn set_animation_name(&mut self, v: longhands::animation_name::computed_value::T) {
-        debug_assert!(!v.0.is_empty());
-        unsafe { self.gecko.mAnimations.ensure_len(v.0.len()) };
+    pub fn set_animation_name<I>(&mut self, v: I)
+        where I: IntoIterator<Item = longhands::animation_name::computed_value::single_value::T>,
+              I::IntoIter: ExactSizeIterator
+    {
 
-        self.gecko.mAnimationNameCount = v.0.len() as u32;
-        for (servo, gecko) in v.0.into_iter().zip(self.gecko.mAnimations.iter_mut()) {
+        let v = v.into_iter();
+        debug_assert!(v.len() != 0);
+        unsafe { self.gecko.mAnimations.ensure_len(v.len()) };
+
+        self.gecko.mAnimationNameCount = v.len() as u32;
+        for (servo, gecko) in v.zip(self.gecko.mAnimations.iter_mut()) {
             // TODO This is inefficient. We should fix this in bug 1329169.
             gecko.mName.assign(match servo.0 {
                 Some(ref name) => name.as_atom().as_slice(),
@@ -2294,17 +2322,22 @@ fn static_assert() {
     ${impl_animation_keyword('play_state', 'PlayState',
                              data.longhands_by_name["animation-play-state"].keyword)}
 
-    pub fn set_animation_iteration_count(&mut self, v: longhands::animation_iteration_count::computed_value::T) {
+    pub fn set_animation_iteration_count<I>(&mut self, v: I)
+        where I: IntoIterator<Item = longhands::animation_iteration_count::computed_value::single_value::T>,
+              I::IntoIter: ExactSizeIterator + Clone
+    {
         use std::f32;
         use properties::longhands::animation_iteration_count::single_value::SpecifiedValue as AnimationIterationCount;
 
-        debug_assert!(!v.0.is_empty());
-        let input_len = v.0.len();
+        let v = v.into_iter();
+
+        debug_assert!(v.len() != 0);
+        let input_len = v.len();
         unsafe { self.gecko.mAnimations.ensure_len(input_len) };
 
         self.gecko.mAnimationIterationCountCount = input_len as u32;
-        for (i, gecko) in self.gecko.mAnimations.iter_mut().enumerate() {
-            match v.0[i % input_len] {
+        for (gecko, servo) in self.gecko.mAnimations.iter_mut().zip(v.cycle()) {
+            match servo {
                 AnimationIterationCount::Number(n) => gecko.mIterationCount = n,
                 AnimationIterationCount::Infinite => gecko.mIterationCount = f32::INFINITY,
             }
@@ -2558,18 +2591,21 @@ fn static_assert() {
             other.gecko.${image_layers_field}.${field_name}Count;
     }
 
-    pub fn set_${shorthand}_${name}(&mut self,
-                                    v: longhands::${shorthand}_${name}::computed_value::T) {
+
+    pub fn set_${shorthand}_${name}<I>(&mut self, v: I)
+        where I: IntoIterator<Item=longhands::${shorthand}_${name}::computed_value::single_value::T>,
+              I::IntoIter: ExactSizeIterator
+    {
         use gecko_bindings::structs::nsStyleImageLayers_LayerType as LayerType;
+        let v = v.into_iter();
 
         unsafe {
-          Gecko_EnsureImageLayersLength(&mut self.gecko.${image_layers_field}, v.0.len(),
+          Gecko_EnsureImageLayersLength(&mut self.gecko.${image_layers_field}, v.len(),
                                         LayerType::${shorthand.title()});
         }
 
-        self.gecko.${image_layers_field}.${field_name}Count = v.0.len() as u32;
-        for (servo, geckolayer) in v.0.into_iter()
-                                    .zip(self.gecko.${image_layers_field}.mLayers.iter_mut()) {
+        self.gecko.${image_layers_field}.${field_name}Count = v.len() as u32;
+        for (servo, geckolayer) in v.zip(self.gecko.${image_layers_field}.mLayers.iter_mut()) {
             geckolayer.${field_name} = {
                 ${caller.body()}
             };
@@ -2675,17 +2711,23 @@ fn static_assert() {
         )
     }
 
-    pub fn set_${shorthand}_position_${orientation[0]}(&mut self,
-                                     v: longhands::${shorthand}_position_${orientation[0]}::computed_value::T) {
+    pub fn set_${shorthand}_position_${orientation[0]}<I>(&mut self,
+                                     v: I)
+        where I: IntoIterator<Item = longhands::${shorthand}_position_${orientation[0]}
+                                              ::computed_value::single_value::T>,
+              I::IntoIter: ExactSizeIterator
+    {
         use gecko_bindings::structs::nsStyleImageLayers_LayerType as LayerType;
 
+        let v = v.into_iter();
+
         unsafe {
-            Gecko_EnsureImageLayersLength(&mut self.gecko.${image_layers_field}, v.0.len(),
+            Gecko_EnsureImageLayersLength(&mut self.gecko.${image_layers_field}, v.len(),
                                         LayerType::${shorthand.capitalize()});
         }
 
-        self.gecko.${image_layers_field}.mPosition${orientation[0].upper()}Count = v.0.len() as u32;
-        for (servo, geckolayer) in v.0.into_iter().zip(self.gecko.${image_layers_field}
+        self.gecko.${image_layers_field}.mPosition${orientation[0].upper()}Count = v.len() as u32;
+        for (servo, geckolayer) in v.zip(self.gecko.${image_layers_field}
                                                            .mLayers.iter_mut()) {
             geckolayer.mPosition.m${orientation[0].upper()}Position = servo.0.into();
         }
@@ -2772,10 +2814,13 @@ fn static_assert() {
     }
 
     #[allow(unused_variables)]
-    pub fn set_${shorthand}_image(&mut self,
-                                  images: longhands::${shorthand}_image::computed_value::T,
-                                  cacheable: &mut bool) {
+    pub fn set_${shorthand}_image<I>(&mut self, images: I, cacheable: &mut bool)
+        where I: IntoIterator<Item = longhands::${shorthand}_image::computed_value::single_value::T>,
+              I::IntoIter: ExactSizeIterator
+    {
         use gecko_bindings::structs::nsStyleImageLayers_LayerType as LayerType;
+
+        let images = images.into_iter();
 
         unsafe {
             // Prevent leaking of the last elements we did set
@@ -2783,14 +2828,14 @@ fn static_assert() {
                 Gecko_SetNullImageValue(&mut image.mImage)
             }
             // XXXManishearth clear mSourceURI for masks
-            Gecko_EnsureImageLayersLength(&mut self.gecko.${image_layers_field}, images.0.len(),
+            Gecko_EnsureImageLayersLength(&mut self.gecko.${image_layers_field}, images.len(),
                                           LayerType::${shorthand.title()});
         }
 
-        self.gecko.${image_layers_field}.mImageCount = images.0.len() as u32;
+        self.gecko.${image_layers_field}.mImageCount = images.len() as u32;
 
-        for (image, geckoimage) in images.0.into_iter().zip(self.gecko.${image_layers_field}
-                                                                .mLayers.iter_mut()) {
+        for (image, geckoimage) in images.zip(self.gecko.${image_layers_field}
+                                                  .mLayers.iter_mut()) {
             if let Some(image) = image.0 {
                 geckoimage.mImage.set(image, cacheable)
             }
@@ -2986,12 +3031,15 @@ fn static_assert() {
 
 <%self:impl_trait style_struct_name="Effects"
                   skip_longhands="box-shadow clip filter">
-    pub fn set_box_shadow(&mut self, v: longhands::box_shadow::computed_value::T) {
+    pub fn set_box_shadow<I>(&mut self, v: I)
+        where I: IntoIterator<Item = longhands::box_shadow::computed_value::single_value::T>,
+              I::IntoIter: ExactSizeIterator
+    {
+        let v = v.into_iter();
 
-        self.gecko.mBoxShadow.replace_with_new(v.0.len() as u32);
+        self.gecko.mBoxShadow.replace_with_new(v.len() as u32);
 
-        for (servo, gecko_shadow) in v.0.into_iter()
-                                      .zip(self.gecko.mBoxShadow.iter_mut()) {
+        for (servo, gecko_shadow) in v.zip(self.gecko.mBoxShadow.iter_mut()) {
 
             gecko_shadow.mXOffset = servo.offset_x.0;
             gecko_shadow.mYOffset = servo.offset_y.0;
@@ -3790,12 +3838,16 @@ clip-path
 
     ${impl_simple_copy('paint_order', 'mPaintOrder')}
 
-    pub fn set_stroke_dasharray(&mut self, v: longhands::stroke_dasharray::computed_value::T) {
+    pub fn set_stroke_dasharray<I>(&mut self, v: I)
+        where I: IntoIterator<Item = longhands::stroke_dasharray::computed_value::single_value::T>,
+              I::IntoIter: ExactSizeIterator
+    {
+        let v = v.into_iter();
         unsafe {
-            bindings::Gecko_nsStyleSVG_SetDashArrayLength(&mut self.gecko, v.0.len() as u32);
+            bindings::Gecko_nsStyleSVG_SetDashArrayLength(&mut self.gecko, v.len() as u32);
         }
 
-        for (mut gecko, servo) in self.gecko.mStrokeDasharray.iter_mut().zip(v.0.into_iter()) {
+        for (mut gecko, servo) in self.gecko.mStrokeDasharray.iter_mut().zip(v) {
             match servo {
                 Either::First(number) => gecko.set_value(CoordDataValue::Factor(number)),
                 Either::Second(lop) => gecko.set(lop),
