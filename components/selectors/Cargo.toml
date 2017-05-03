@@ -14,6 +14,8 @@ license = "MPL-2.0"
 [lib]
 name = "selectors"
 path = "lib.rs"
+# https://github.com/servo/servo/issues/16710
+doctest = false
 
 [dependencies]
 bitflags = "0.7"

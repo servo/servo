@@ -27,6 +27,7 @@ mod logical_geometry;
 mod media_queries;
 mod parsing;
 mod properties;
+mod restyle_hints;
 mod rule_tree;
 mod size_of;
 mod str;
