@@ -351,11 +351,25 @@ impl HTMLImageElement {
         request.metadata = None;
     }
 
-    fn dispatch_progress_event(&self, type_: Atom, loaded: u64, total: Option<u64>) {
-        let progressevent = ProgressEvent::new(&self.global(),
-            type_, EventBubbles::DoesNotBubble, EventCancelable::NotCancelable,
-            total.is_some(), loaded, total.unwrap_or(0));
-        progressevent.upcast::<Event>().fire(self.upcast());
+    fn dispatch_loadstart_progress_event(&self) {
+        struct FireprogressEventTask {
+            img: Trusted<HTMLImageElement>,
+        }
+        impl Runnable for FireprogressEventTask {
+            fn handler(self: Box<Self>) {
+                let progressevent = ProgressEvent::new(&self.img.root().global(),
+                    atom!("loadstart"), EventBubbles::DoesNotBubble, EventCancelable::NotCancelable,
+                    false, 0, 0);
+                progressevent.upcast::<Event>().fire(self.img.root().upcast());
+            }
+        }
+        let runnable = box FireprogressEventTask {
+            img: Trusted::new(self),
+        };
+        let document = document_from_node(self);
+        let window = document.window();
+        let task = window.dom_manipulation_task_source();
+        let _ = task.queue(runnable, window.upcast());
     }
 
     fn dispatch_event(&self, type_: Atom) {
@@ -504,7 +518,7 @@ impl HTMLImageElement {
         match self.select_image_source() {
             Some(src) => {
                 // Step 10
-                self.dispatch_progress_event(atom!("loadstart"), 0, None);
+                self.dispatch_loadstart_progress_event();
                 // Step 11
                 let base_url = document.base_url();
                 let parsed_url = base_url.join(&src);
