@@ -37,7 +37,7 @@ impl MutationRecord {
     pub fn new(record_type: DOMString, target: &Node) -> Root<MutationRecord> {
         let boxed_record = box MutationRecord::new_inherited(record_type, target);
         return reflect_dom_object(boxed_record, window_from_node(target).deref(),
-	            MutationRecordBinding::Wrap);
+            MutationRecordBinding::Wrap);
     }
 
     fn new_inherited(record_type: DOMString, target: &Node) -> MutationRecord {

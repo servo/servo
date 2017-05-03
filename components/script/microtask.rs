@@ -6,16 +6,11 @@
 //! microtask queues. It is up to implementations of event loops to store a queue and
 //! perform checkpoints at appropriate times, as well as enqueue microtasks as required.
 
-use dom;
 use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DOMRefCell;
-use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationCallback;
 use dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
 use dom::bindings::js::Root;
 use dom::globalscope::GlobalScope;
-use dom::mutationobserver::MutationObserver;
-use dom::mutationrecord::MutationRecord;
-use dom::types::Window;
 use msg::constellation_msg::PipelineId;
 use std::cell::Cell;
 use std::mem;
