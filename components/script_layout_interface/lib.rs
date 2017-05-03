@@ -105,11 +105,13 @@ pub enum LayoutNodeType {
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum LayoutElementType {
     Element,
+    HTMLBRElement,
     HTMLCanvasElement,
     HTMLIFrameElement,
     HTMLImageElement,
     HTMLInputElement,
     HTMLObjectElement,
+    HTMLParagraphElement,
     HTMLTableCellElement,
     HTMLTableColElement,
     HTMLTableElement,

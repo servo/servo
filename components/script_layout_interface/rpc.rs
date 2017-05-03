@@ -44,6 +44,8 @@ pub trait LayoutRPC {
     fn nodes_from_point_response(&self) -> Vec<UntrustedNodeAddress>;
 
     fn text_index(&self) -> TextIndexResponse;
+    /// Query layout to get the inner text for a given element.
+    fn element_inner_text(&self) -> ElementInnerTextResponse;
 }
 
 pub struct ContentBoxResponse(pub Option<Rect<Au>>);
@@ -100,3 +102,5 @@ impl MarginStyleResponse {
 
 #[derive(Clone)]
 pub struct TextIndexResponse(pub Option<usize>);
+
+pub struct ElementInnerTextResponse(pub String);
