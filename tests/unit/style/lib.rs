@@ -8,7 +8,7 @@
 extern crate app_units;
 extern crate cssparser;
 extern crate euclid;
-#[macro_use] extern crate html5ever_atoms;
+#[macro_use] extern crate html5ever;
 extern crate parking_lot;
 extern crate rayon;
 extern crate rustc_serialize;
@@ -27,6 +27,7 @@ mod logical_geometry;
 mod media_queries;
 mod parsing;
 mod properties;
+mod restyle_hints;
 mod rule_tree;
 mod size_of;
 mod str;

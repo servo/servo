@@ -7,7 +7,7 @@ use dom::document::Document;
 use dom::svgelement::SVGElement;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever_atoms::{LocalName, Prefix};
+use html5ever::{LocalName, Prefix};
 use style::element_state::ElementState;
 
 #[dom_struct]

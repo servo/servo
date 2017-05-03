@@ -231,8 +231,10 @@ class MachCommands(CommandBase):
             else:
                 test_patterns.append(test)
 
+        in_crate_packages = []
         if not packages:
             packages = set(os.listdir(path.join(self.context.topdir, "tests", "unit"))) - set(['.DS_Store'])
+            in_crate_packages += ["selectors"]
 
         packages.discard('stylo')
 
@@ -255,6 +257,8 @@ class MachCommands(CommandBase):
             args = ["cargo", "bench" if bench else "test"]
             for crate in packages:
                 args += ["-p", "%s_tests" % crate]
+            for crate in in_crate_packages:
+                args += ["-p", crate]
             args += test_patterns
 
             if features:

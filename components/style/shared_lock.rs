@@ -10,7 +10,7 @@ use atomic_refcell::{AtomicRefCell, AtomicRef, AtomicRefMut};
 use parking_lot::RwLock;
 use std::cell::UnsafeCell;
 use std::fmt;
-use std::sync::Arc;
+use stylearc::Arc;
 
 /// A shared read/write lock that can protect multiple objects.
 ///
@@ -149,7 +149,7 @@ impl<T: fmt::Debug> fmt::Debug for Locked<T> {
 impl<T> Locked<T> {
     #[cfg(feature = "servo")]
     fn same_lock_as(&self, lock: &SharedRwLock) -> bool {
-        ::arc_ptr_eq(&self.shared_lock.arc, &lock.arc)
+        Arc::ptr_eq(&self.shared_lock.arc, &lock.arc)
     }
 
     #[cfg(feature = "gecko")]

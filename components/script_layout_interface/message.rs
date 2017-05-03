@@ -25,7 +25,7 @@ use style::stylesheets::Stylesheet;
 /// Asynchronous messages that script can send to layout.
 pub enum Msg {
     /// Adds the given stylesheet to the document.
-    AddStylesheet(Arc<Stylesheet>),
+    AddStylesheet(::style::stylearc::Arc<Stylesheet>),
 
     /// Change the quirks mode.
     SetQuirksMode(QuirksMode),
@@ -116,7 +116,7 @@ pub struct ScriptReflow {
     /// The document node.
     pub document: TrustedNodeAddress,
     /// The document's list of stylesheets.
-    pub document_stylesheets: Vec<Arc<Stylesheet>>,
+    pub document_stylesheets: Vec<::style::stylearc::Arc<Stylesheet>>,
     /// Whether the document's stylesheets have changed since the last script reflow.
     pub stylesheets_changed: bool,
     /// The current window size.

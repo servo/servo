@@ -58,7 +58,7 @@ use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
 use heapsize::{HeapSizeOf, heap_size_of};
-use html5ever_atoms::{Prefix, Namespace, QualName};
+use html5ever::{Prefix, Namespace, QualName};
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 use libc::{self, c_void, uintptr_t};
 use msg::constellation_msg::PipelineId;
@@ -78,10 +78,10 @@ use std::default::Default;
 use std::iter;
 use std::mem;
 use std::ops::Range;
-use std::sync::Arc;
 use style::context::QuirksMode;
 use style::dom::OpaqueNode;
 use style::selector_parser::{SelectorImpl, SelectorParser};
+use style::stylearc::Arc;
 use style::stylesheets::Stylesheet;
 use style::thread_state;
 use uuid::Uuid;
@@ -1749,11 +1749,11 @@ impl Node {
             NodeTypeId::Element(..) => {
                 let element = node.downcast::<Element>().unwrap();
                 let name = QualName {
+                    prefix: element.prefix().map(|p| Prefix::from(&**p)),
                     ns: element.namespace().clone(),
                     local: element.local_name().clone()
                 };
                 let element = Element::create(name,
-                    element.prefix().map(|p| Prefix::from(&**p)),
                     &document, ElementCreator::ScriptCreated);
                 Root::upcast::<Node>(element)
             },

@@ -27,7 +27,7 @@ use selectors::bloom::BloomFilter;
 use selectors::matching::{ElementSelectorFlags, StyleRelations};
 use selectors::matching::AFFECTED_BY_PSEUDO_ELEMENTS;
 use sink::ForgetfulSink;
-use std::sync::Arc;
+use stylearc::Arc;
 use stylist::ApplicableDeclarationBlock;
 
 /// The way a style should be inherited.
@@ -120,8 +120,8 @@ fn same_computed_values<E: TElement>(first: Option<E>, second: Option<E>) -> boo
         _ => return false,
     };
 
-    let eq = ::arc_ptr_eq(a.borrow_data().unwrap().styles().primary.values(),
-                          b.borrow_data().unwrap().styles().primary.values());
+    let eq = Arc::ptr_eq(a.borrow_data().unwrap().styles().primary.values(),
+                         b.borrow_data().unwrap().styles().primary.values());
     eq
 }
 

@@ -24,9 +24,10 @@ use net_traits::request::{CorsSettings, CredentialsMode, Destination, RequestIni
 use network_listener::{NetworkListener, PreInvoke};
 use servo_url::ServoUrl;
 use std::mem;
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 use style::media_queries::MediaList;
 use style::shared_lock::Locked as StyleLocked;
+use style::stylearc::Arc;
 use style::stylesheets::{ImportRule, Stylesheet, Origin};
 use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
 
@@ -207,7 +208,7 @@ impl<'a> StylesheetLoader<'a> {
         let document = document_from_node(self.elem);
         let gen = self.elem.downcast::<HTMLLinkElement>()
                            .map(HTMLLinkElement::get_request_generation_id);
-        let context = Arc::new(Mutex::new(StylesheetContext {
+        let context = ::std::sync::Arc::new(Mutex::new(StylesheetContext {
             elem: Trusted::new(&*self.elem),
             source: source,
             url: url.clone(),

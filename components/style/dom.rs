@@ -26,7 +26,7 @@ use std::fmt;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::ops::Deref;
-use std::sync::Arc;
+use stylearc::Arc;
 use stylist::ApplicableDeclarationBlock;
 use thread_state;
 

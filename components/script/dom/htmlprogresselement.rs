@@ -10,7 +10,7 @@ use dom::htmlelement::HTMLElement;
 use dom::node::Node;
 use dom::nodelist::NodeList;
 use dom_struct::dom_struct;
-use html5ever_atoms::{LocalName, Prefix};
+use html5ever::{LocalName, Prefix};
 
 #[dom_struct]
 pub struct HTMLProgressElement {

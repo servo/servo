@@ -14,7 +14,7 @@ use dom::element::Element;
 use dom::node::Node;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use html5ever_atoms::{LocalName, QualName};
+use html5ever::{LocalName, QualName};
 use servo_atoms::Atom;
 use std::cell::Cell;
 use style::str::split_html_space_chars;
@@ -164,7 +164,7 @@ impl HTMLCollection {
                           maybe_ns: Option<DOMString>) -> Root<HTMLCollection> {
         let local = LocalName::from(tag);
         let ns = namespace_from_domstring(maybe_ns);
-        let qname = QualName::new(ns, local);
+        let qname = QualName::new(None, ns, local);
         HTMLCollection::by_qual_tag_name(window, root, qname)
     }
 

@@ -51,7 +51,7 @@ use dom::htmltextareaelement::HTMLTextAreaElement;
 use dom::htmltitleelement::HTMLTitleElement;
 use dom::node::{ChildrenMutation, CloneChildrenFlag, Node, UnbindContext};
 use dom::svgsvgelement::SVGSVGElement;
-use html5ever_atoms::LocalName;
+use html5ever::LocalName;
 use style::attr::AttrValue;
 
 /// Trait to allow DOM nodes to opt-in to overriding (or adding to) common

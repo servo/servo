@@ -18,14 +18,14 @@ use dom::htmlheadelement::HTMLHeadElement;
 use dom::node::{Node, UnbindContext, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever_atoms::{LocalName, Prefix};
+use html5ever::{LocalName, Prefix};
 use servo_config::prefs::PREFS;
 use std::ascii::AsciiExt;
-use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use style::attr::AttrValue;
 use style::media_queries::MediaList;
 use style::str::HTML_SPACE_CHARACTERS;
+use style::stylearc::Arc;
 use style::stylesheets::{Stylesheet, CssRule, CssRules, Origin};
 use style::viewport::ViewportRule;
 

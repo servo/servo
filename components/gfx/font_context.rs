@@ -21,6 +21,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
 use style::computed_values::{font_style, font_variant_caps};
 use style::properties::style_structs;
+use style::stylearc::Arc as StyleArc;
 use webrender_traits;
 
 static SMALL_CAPS_SCALE_FACTOR: f32 = 0.8;      // Matches FireFox (see gfxFont.h)
@@ -109,7 +110,7 @@ impl FontContext {
     /// Create a group of fonts for use in layout calculations. May return
     /// a cached font if this font instance has already been used by
     /// this context.
-    pub fn layout_font_group_for_style(&mut self, style: Arc<style_structs::Font>)
+    pub fn layout_font_group_for_style(&mut self, style: StyleArc<style_structs::Font>)
                                        -> Rc<FontGroup> {
         self.expire_font_caches_if_necessary();
 
@@ -239,7 +240,7 @@ impl HeapSizeOf for FontContext {
 
 #[derive(Debug)]
 struct LayoutFontGroupCacheKey {
-    pointer: Arc<style_structs::Font>,
+    pointer: StyleArc<style_structs::Font>,
     size: Au,
 }
 

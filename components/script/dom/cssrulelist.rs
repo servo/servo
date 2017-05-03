@@ -13,8 +13,8 @@ use dom::cssrule::CSSRule;
 use dom::cssstylesheet::CSSStyleSheet;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use std::sync::Arc;
 use style::shared_lock::Locked;
+use style::stylearc::Arc;
 use style::stylesheets::{CssRules, CssRulesHelpers, KeyframesRule, RulesMutateError};
 
 #[allow(unsafe_code)]

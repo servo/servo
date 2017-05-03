@@ -15,7 +15,7 @@ use dom::htmlformelement::{HTMLFormElement, FormControl};
 use dom::node::{Node, UnbindContext};
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever_atoms::{LocalName, Prefix};
+use html5ever::{LocalName, Prefix};
 
 #[dom_struct]
 pub struct HTMLLegendElement {

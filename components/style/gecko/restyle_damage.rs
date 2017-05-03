@@ -10,7 +10,7 @@ use gecko_bindings::structs::{nsChangeHint, nsStyleContext};
 use gecko_bindings::sugar::ownership::FFIArcHelpers;
 use properties::ComputedValues;
 use std::ops::{BitAnd, BitOr, BitOrAssign, Not};
-use std::sync::Arc;
+use stylearc::Arc;
 
 /// The representation of Gecko's restyle damage is just a wrapper over
 /// `nsChangeHint`.

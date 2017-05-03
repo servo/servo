@@ -47,8 +47,8 @@ use euclid::{Matrix2D, Matrix4D, Point2D};
 use euclid::length::Length as EuclidLength;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
-use html5ever::tokenizer::buffer_queue::BufferQueue;
-use html5ever_atoms::{Prefix, LocalName, Namespace, QualName};
+use html5ever::{Prefix, LocalName, Namespace, QualName};
+use html5ever::buffer_queue::BufferQueue;
 use hyper::header::Headers;
 use hyper::method::Method;
 use hyper::mime::Mime;
@@ -99,6 +99,7 @@ use style::media_queries::MediaList;
 use style::properties::PropertyDeclarationBlock;
 use style::selector_parser::{PseudoElement, Snapshot};
 use style::shared_lock::{SharedRwLock as StyleSharedRwLock, Locked as StyleLocked};
+use style::stylearc::Arc as StyleArc;
 use style::stylesheets::{CssRules, FontFaceRule, KeyframesRule, MediaRule};
 use style::stylesheets::{NamespaceRule, StyleRule, ImportRule, SupportsRule};
 use style::values::specified::Length;
@@ -161,6 +162,12 @@ unsafe impl<T: JSTraceable> JSTraceable for Rc<T> {
 }
 
 unsafe impl<T: JSTraceable> JSTraceable for Arc<T> {
+    unsafe fn trace(&self, trc: *mut JSTracer) {
+        (**self).trace(trc)
+    }
+}
+
+unsafe impl<T: JSTraceable> JSTraceable for StyleArc<T> {
     unsafe fn trace(&self, trc: *mut JSTracer) {
         (**self).trace(trc)
     }

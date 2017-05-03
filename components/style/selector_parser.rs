@@ -37,7 +37,7 @@ pub use gecko::restyle_damage::GeckoRestyleDamage as RestyleDamage;
 /// A type that represents the previous computed values needed for restyle
 /// damage calculation.
 #[cfg(feature = "servo")]
-pub type PreExistingComputedValues = ::std::sync::Arc<::properties::ServoComputedValues>;
+pub type PreExistingComputedValues = ::stylearc::Arc<::properties::ServoComputedValues>;
 
 /// A type that represents the previous computed values needed for restyle
 /// damage calculation.

@@ -42,7 +42,7 @@ use dom::node::{CAN_BE_FRAGMENTED, DIRTY_ON_VIEWPORT_SIZE_CHANGE, HAS_DIRTY_DESC
 use dom::node::{LayoutNodeHelpers, Node};
 use dom::text::Text;
 use gfx_traits::ByteIndex;
-use html5ever_atoms::{LocalName, Namespace};
+use html5ever::{LocalName, Namespace};
 use msg::constellation_msg::PipelineId;
 use range::Range;
 use script_layout_interface::{HTMLCanvasData, LayoutNodeType, SVGSVGData, TrustedNodeAddress};
@@ -58,7 +58,6 @@ use std::fmt::Debug;
 use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 use std::mem::transmute;
-use std::sync::Arc;
 use std::sync::atomic::Ordering;
 use style;
 use style::attr::AttrValue;
@@ -74,6 +73,7 @@ use style::selector_parser::{NonTSPseudoClass, PseudoElement, SelectorImpl};
 use style::shared_lock::{SharedRwLock as StyleSharedRwLock, Locked as StyleLocked};
 use style::sink::Push;
 use style::str::is_whitespace;
+use style::stylearc::Arc;
 use style::stylist::ApplicableDeclarationBlock;
 
 #[derive(Copy, Clone)]

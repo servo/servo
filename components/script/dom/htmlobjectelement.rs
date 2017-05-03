@@ -18,10 +18,10 @@ use dom::validation::Validatable;
 use dom::validitystate::{ValidityState, ValidationFlags};
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever_atoms::{LocalName, Prefix};
+use html5ever::{LocalName, Prefix};
 use net_traits::image::base::Image;
 use std::default::Default;
-use std::sync::Arc;
+use style::stylearc::Arc;
 
 #[dom_struct]
 pub struct HTMLObjectElement {

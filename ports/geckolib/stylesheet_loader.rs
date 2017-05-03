@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::sync::Arc;
 use style::gecko_bindings::bindings::Gecko_LoadStyleSheet;
 use style::gecko_bindings::structs::{Loader, ServoStyleSheet};
 use style::gecko_bindings::sugar::ownership::{HasArcFFI, FFIArcHelpers};
 use style::media_queries::MediaList;
 use style::shared_lock::Locked;
+use style::stylearc::Arc;
 use style::stylesheets::{ImportRule, Stylesheet, StylesheetLoader as StyleStylesheetLoader};
 
 pub struct StylesheetLoader(*mut Loader, *mut ServoStyleSheet);

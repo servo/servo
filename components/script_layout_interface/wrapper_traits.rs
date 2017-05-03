@@ -10,12 +10,11 @@ use OpaqueStyleAndLayoutData;
 use SVGSVGData;
 use atomic_refcell::AtomicRefCell;
 use gfx_traits::{ByteIndex, FragmentType, combine_id_with_fragment_type};
-use html5ever_atoms::{Namespace, LocalName};
+use html5ever::{Namespace, LocalName};
 use msg::constellation_msg::PipelineId;
 use range::Range;
 use servo_url::ServoUrl;
 use std::fmt::Debug;
-use std::sync::Arc;
 use style::computed_values::display;
 use style::context::SharedStyleContext;
 use style::data::ElementData;
@@ -24,6 +23,7 @@ use style::dom::OpaqueNode;
 use style::font_metrics::ServoMetricsProvider;
 use style::properties::{CascadeFlags, ServoComputedValues};
 use style::selector_parser::{PseudoElement, PseudoElementCascadeType, SelectorImpl};
+use style::stylearc::Arc;
 use webrender_traits::ClipId;
 
 #[derive(Copy, PartialEq, Clone, Debug)]

@@ -21,7 +21,6 @@ use model::{IntrinsicISizes, MaybeAuto, SizeConstraint};
 use model::{specified, specified_or_none};
 use std::cmp::{max, min};
 use std::ops::Range;
-use std::sync::Arc;
 use style::computed_values::{align_content, align_self, flex_direction, flex_wrap, justify_content};
 use style::computed_values::border_collapse;
 use style::logical_geometry::{Direction, LogicalSize};
@@ -970,7 +969,7 @@ impl Flow for FlexFlow {
         self.block_flow.collect_stacking_contexts(state);
     }
 
-    fn repair_style(&mut self, new_style: &Arc<ServoComputedValues>) {
+    fn repair_style(&mut self, new_style: &::StyleArc<ServoComputedValues>) {
         self.block_flow.repair_style(new_style)
     }
 

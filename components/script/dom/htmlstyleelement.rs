@@ -18,13 +18,13 @@ use dom::node::{ChildrenMutation, Node, UnbindContext, document_from_node, windo
 use dom::stylesheet::StyleSheet as DOMStyleSheet;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever_atoms::{LocalName, Prefix};
+use html5ever::{LocalName, Prefix};
 use net_traits::ReferrerPolicy;
 use script_layout_interface::message::Msg;
 use std::cell::Cell;
-use std::sync::Arc;
 use style::media_queries::parse_media_query_list;
 use style::parser::{LengthParsingMode, ParserContext as CssParserContext};
+use style::stylearc::Arc;
 use style::stylesheets::{CssRuleType, Stylesheet, Origin};
 use stylesheet_loader::{StylesheetLoader, StylesheetOwner};
 
