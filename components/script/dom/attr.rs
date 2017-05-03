@@ -181,12 +181,12 @@ impl Attr {
         let oldValue = DOMString::from(self.value().to_string());
         let newValue = DOMString::from(value.to_string());
         let attributeSpec = Mutation::Attribute { name, namespace, oldValue, newValue };
-        let callback: Rc<MutationCallback>;
-        let mo = MutationObserver::Constructor(window_from_node(owner.upcast::<Node>()).deref(), callback);
-        let moRef = mo.unwrap();
-        let observer: &MutationObserver = moRef.deref();
+//        let callback: Rc<MutationCallback>;
+//        let mo = MutationObserver::Constructor(window_from_node(owner.upcast::<Node>()).deref(), callback);
+//        let moRef = mo.unwrap();
+//        let observer: &MutationObserver = moRef.deref();
 
-        MutationObserver::queue_a_mutation_record(observer, owner.upcast::<Node>(), attributeSpec);
+        MutationObserver::queue_a_mutation_record(owner.upcast::<Node>(), attributeSpec);
 
         assert!(Some(owner) == self.owner().r());
         owner.will_mutate_attr(self);

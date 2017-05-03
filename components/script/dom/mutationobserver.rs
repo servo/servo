@@ -17,7 +17,7 @@ use dom::window::Window;
 use dom_struct::dom_struct;
 use html5ever_atoms::Namespace;
 use js::jsapi::{JSContext, JSObject};
-use microtask::EnqueuedMutationCallback;
+//use microtask::NotifyMutationObservers;
 use microtask::Microtask;
 use script_thread::ScriptThread;
 use servo_atoms::Atom;
@@ -75,7 +75,7 @@ impl MutationObserver {
 
     /// https://dom.spec.whatwg.org/#queue-a-mutation-observer-compound-microtask
     /// Queue a Mutation Observer compound Microtask.
-    pub fn queueMutationObserverCompoundMicrotask(compoundMicrotask: Microtask) {
+    pub fn queueMutationObserverCompoundMicrotask() {
         // Step 1
         if ScriptThread::is_mutation_observer_compound_microtask_queued() {
             return;
@@ -83,6 +83,9 @@ impl MutationObserver {
         // Step 2
         ScriptThread::set_mutation_observer_compound_microtask_queued(true);
         // Step 3
+//        let notifyMutationObservers = EnqueuedPromiseCallback { callback: self.callback,
+//            pipeline: target.global().pipeline_id() };
+        let compoundMicrotask = Microtask::NotifyMutationObservers();
         ScriptThread::enqueue_microtask(compoundMicrotask);
     }
 
@@ -100,12 +103,12 @@ impl MutationObserver {
 
     //https://dom.spec.whatwg.org/#queueing-a-mutation-record
     //Queuing a mutation record
-    pub fn queue_a_mutation_record(&self, target: &Node, attr_type: Mutation) {
+    pub fn queue_a_mutation_record(target: &Node, attr_type: Mutation) {
         let mut given_name = "";
         let mut given_namespace = "";
         let mut old_value = "";
         // Step 1
-        let mut interestedObservers: Vec<JS<MutationObserver>> = vec![];
+        let mut interestedObservers: Vec<Root<MutationObserver>> = vec![];
         let mut pairedStrings: Vec<DOMString> = vec![];
         // Step 2
         let mut nodes: Vec<Root<Node>> = vec![];
@@ -135,8 +138,8 @@ impl MutationObserver {
                     !registered_observer.child_list.get();
                 if !condition1 && !condition2 && !condition3 && !condition4 && !condition5 {
                     // Step 3.1
-                    if !interestedObservers.contains(&registered_observer) {
-                        interestedObservers.push(JS::from_ref(registered_observer));
+                    if !interestedObservers.contains(registered_observer) {
+                        interestedObservers.push(Root::from_ref(registered_observer));
                     }
                     // Step 3.2
                     let condition: bool = (given_name == "attribute" &&
@@ -167,10 +170,8 @@ impl MutationObserver {
             i = i + 1;
         }
         // Step 5
-        let enqueuedMutationCallback = EnqueuedMutationCallback { callback: self.callback,
-            pipeline: target.global().pipeline_id() };
-        let compoundMicrotask = Microtask::Mutation(enqueuedMutationCallback);
-        MutationObserver::queueMutationObserverCompoundMicrotask(compoundMicrotask);
+        
+        MutationObserver::queueMutationObserverCompoundMicrotask();
     }
 
 }
@@ -182,40 +183,48 @@ impl MutationObserverMethods for MutationObserver {
         // Step 1: If either options’ attributeOldValue or attributeFilter is present and
         // options’ attributes is omitted, set options’ attributes to true.
         if (options.attributeOldValue.is_some() || options.attributeFilter.is_some()) && options.attributes.is_none() {
-//            options.attributes = Some(true);
+//            options.attributes.set(Some(true));
         }
         // Step2: If options’ characterDataOldValue is present and options’ characterData is omitted,
         // set options’ characterData to true.
         if options.characterDataOldValue.is_some() && options.characterData.is_some() {
-//            options.characterData = Some(true);
+//            options.characterData.set(Some(true));
         }
         // Step3: If none of options’ childList, attributes, and characterData is true, throw a TypeError.
-        if !options.childList && !options.attributes.unwrap() && !options.characterData.unwrap() {
+        if !options.childList && !options.attributes.unwrap_or(false) && !options.characterData.unwrap_or(false) {
             return Err(Error::Type("childList, attributes, and characterData not true".to_owned()));
         }
         // Step4: If options’ attributeOldValue is true and options’ attributes is false, throw a TypeError.
-        if options.attributeOldValue.unwrap() && !options.attributes.unwrap() {
+        if options.attributeOldValue.unwrap_or(false) && !options.attributes.unwrap_or(false) {
             return Err(Error::Type("attributeOldValue is true but attributes is false".to_owned()));
         }
         // Step5: If options’ attributeFilter is present and options’ attributes is false, throw a TypeError.
-        if options.attributeFilter.is_some() && !options.attributes.unwrap() {
+        if options.attributeFilter.is_some() && !options.attributes.unwrap_or(false) {
             return Err(Error::Type("attributeFilter is present but attributes is false".to_owned()));
         }
         // Step6: If options’ characterDataOldValue is true and options’ characterData is false, throw a TypeError.
-        if options.characterDataOldValue.unwrap() && !options.characterData.unwrap() {
+        if options.characterDataOldValue.unwrap_or(false) && !options.characterData.unwrap_or(false) {
             return Err(Error::Type("characterDataOldValue is true but characterData is false".to_owned()));
         }
         // TODO: Step 7
         for registered in target.registered_mutation_observers().borrow().iter() {
-//            if &*registered as *const JS<MutationObserver> == self as *const MutationObserver {
+//            if &*registered as *const Root<MutationObserver> == self as *const MutationObserver {
                 // TODO: remove matching transient registered observers
-                registered.attribute_old_value.set(options.attributeOldValue.unwrap());
-                registered.attributes.set(options.attributes.unwrap());
-                registered.character_data.set(options.characterData.unwrap());
-                registered.character_data_old_value.set(options.characterDataOldValue.unwrap());
+                if let Some(value) = options.attributeOldValue {
+                    registered.attribute_old_value.set(value);
+                }
+                if let Some(value) = options.attributes {
+                    registered.attributes.set(value);
+                }
+                if let Some(value) = options.characterData {
+                    registered.character_data.set(value);
+                }
+                if let Some(value) = options.characterDataOldValue {
+                    registered.character_data_old_value.set(value);
+                }
                 registered.child_list.set(options.childList);
                 registered.subtree.set(options.subtree);
-                registered.attribute_filter == DOMRefCell::new(options.attributeFilter.clone().unwrap());
+                *registered.attribute_filter.borrow_mut() = options.attributeFilter.clone().unwrap();
 //            }
             // TODO: Step 8
             target.add_registered_mutation_observer(&self);
