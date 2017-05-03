@@ -843,6 +843,10 @@ impl CalcLengthOrPercentage {
                 input.parse_nested_block(|i| CalcLengthOrPercentage::parse_sum(context, i, expected_unit))
                      .map(|result| CalcValueNode::Sum(Box::new(result)))
             },
+            (Token::Function(ref name), _) if name.eq_ignore_ascii_case("calc") => {
+                input.parse_nested_block(|i| CalcLengthOrPercentage::parse_sum(context, i, expected_unit))
+                     .map(|result| CalcValueNode::Sum(Box::new(result)))
+            }
             _ => Err(())
         }
     }
