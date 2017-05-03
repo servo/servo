@@ -17,8 +17,8 @@ use properties::animated_properties::TransitionProperty;
 use properties::longhands::transition_timing_function::single_value::SpecifiedValue as SpecifiedTimingFunction;
 use shared_lock::{SharedRwLock, SharedRwLockReadGuard, Locked, ToCssWithGuard};
 use std::fmt;
-use std::sync::Arc;
 use style_traits::ToCss;
+use stylearc::Arc;
 use stylesheets::{CssRuleType, Stylesheet, VendorPrefix};
 
 /// A number from 0 to 1, indicating the percentage of the animation when this
@@ -131,7 +131,8 @@ impl Keyframe {
                                          &parent_stylesheet.url_data,
                                          &error_reporter,
                                          Some(CssRuleType::Keyframe),
-                                         LengthParsingMode::Default);
+                                         LengthParsingMode::Default,
+                                         parent_stylesheet.quirks_mode);
         let mut input = Parser::new(css);
 
         let mut rule_parser = KeyframeListParser {

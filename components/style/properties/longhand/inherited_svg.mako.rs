@@ -92,7 +92,7 @@ ${helpers.predefined_type("stroke-opacity", "Opacity", "1.0",
 
 ${helpers.predefined_type("stroke-dasharray",
                           "LengthOrPercentageOrNumber",
-                          "Either::Second(0.0)",
+                          "Either::First(0.0)",
                           "parse_non_negative",
                           vector="True",
                           allow_empty="True",

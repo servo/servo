@@ -249,15 +249,16 @@ impl<T: GeckoStyleCoordConvertible> GeckoStyleCoordConvertible for Option<T> {
 
 impl GeckoStyleCoordConvertible for Angle {
     fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
-        coord.set_value(CoordDataValue::Radian(self.radians()))
+        coord.set_value(CoordDataValue::from(*self));
     }
 
     fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
-        if let CoordDataValue::Radian(r) = coord.as_value() {
-            Some(Angle::from_radians(r))
-            // XXXManishearth should this handle Degree too?
-        } else {
-            None
+        match coord.as_value() {
+            CoordDataValue::Degree(val) => Some(Angle::Degree(val)),
+            CoordDataValue::Grad(val) => Some(Angle::Gradian(val)),
+            CoordDataValue::Radian(val) => Some(Angle::Radian(val)),
+            CoordDataValue::Turn(val) => Some(Angle::Turn(val)),
+            _ => None,
         }
     }
 }

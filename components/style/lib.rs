@@ -70,6 +70,7 @@ extern crate pdqsort;
 #[cfg(feature = "gecko")] extern crate precomputed_hash;
 extern crate rayon;
 extern crate selectors;
+#[cfg(feature = "servo")] extern crate serde;
 #[cfg(feature = "servo")] #[macro_use] extern crate serde_derive;
 #[cfg(feature = "servo")] #[macro_use] extern crate servo_atoms;
 #[cfg(feature = "servo")] extern crate servo_config;
@@ -118,6 +119,7 @@ pub mod sequential;
 pub mod sink;
 pub mod str;
 pub mod style_adjuster;
+pub mod stylearc;
 pub mod stylesheet_set;
 pub mod stylesheets;
 pub mod supports;
@@ -130,7 +132,6 @@ pub mod values;
 pub mod viewport;
 
 use std::fmt;
-use std::sync::Arc;
 use style_traits::ToCss;
 
 #[cfg(feature = "gecko")] pub use gecko_string_cache as string_cache;
@@ -174,14 +175,6 @@ macro_rules! reexport_computed_values {
     }
 }
 longhand_properties_idents!(reexport_computed_values);
-
-/// Returns whether the two arguments point to the same value.
-///
-/// FIXME: Remove this and use Arc::ptr_eq once we require Rust 1.17
-#[inline]
-pub fn arc_ptr_eq<T: 'static>(a: &Arc<T>, b: &Arc<T>) -> bool {
-    ptr_eq::<T>(&**a, &**b)
-}
 
 /// Pointer equality
 ///

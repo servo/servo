@@ -19,8 +19,8 @@ use properties::longhands::animation_iteration_count::single_value::computed_val
 use properties::longhands::animation_play_state::computed_value::single_value::T as AnimationPlayState;
 use properties::longhands::transition_timing_function::single_value::computed_value::StartEnd;
 use properties::longhands::transition_timing_function::single_value::computed_value::T as TransitionTimingFunction;
-use std::sync::Arc;
 use std::sync::mpsc::Sender;
+use stylearc::Arc;
 use timer::Timer;
 use values::computed::Time;
 
@@ -339,19 +339,24 @@ impl PropertyAnimation {
 
     /// Update the given animation at a given point of progress.
     pub fn update(&self, style: &mut ComputedValues, time: f64) {
-        let progress = match self.timing_function {
+        let timing_function = match self.timing_function {
+            TransitionTimingFunction::Keyword(keyword) =>
+                keyword.to_non_keyword_value(),
+            other => other,
+        };
+        let progress = match timing_function {
             TransitionTimingFunction::CubicBezier(p1, p2) => {
                 // See `WebCore::AnimationBase::solveEpsilon(double)` in WebKit.
                 let epsilon = 1.0 / (200.0 * (self.duration.seconds() as f64));
                 Bezier::new(Point2D::new(p1.x as f64, p1.y as f64),
                             Point2D::new(p2.x as f64, p2.y as f64)).solve(time, epsilon)
-            }
+            },
             TransitionTimingFunction::Steps(steps, StartEnd::Start) => {
                 (time * (steps as f64)).ceil() / (steps as f64)
-            }
+            },
             TransitionTimingFunction::Steps(steps, StartEnd::End) => {
                 (time * (steps as f64)).floor() / (steps as f64)
-            }
+            },
             TransitionTimingFunction::Frames(frames) => {
                 // https://drafts.csswg.org/css-timing/#frames-timing-functions
                 let mut out = (time * (frames as f64)).floor() / ((frames - 1) as f64);
@@ -367,7 +372,10 @@ impl PropertyAnimation {
                     out = 1.0;
                 }
                 out
-            }
+            },
+            TransitionTimingFunction::Keyword(_) => {
+                panic!("Keyword function should not appear")
+            },
         };
 
         self.property.update(style, progress);
@@ -461,14 +469,14 @@ fn compute_style_for_animation_step(context: &SharedStyleContext,
             let computed =
                 properties::apply_declarations(&context.stylist.device,
                                                /* is_root = */ false,
-                                               /* pseudo = */ None,
                                                iter,
                                                previous_style,
                                                previous_style,
                                                /* cascade_info = */ None,
                                                &*context.error_reporter,
                                                font_metrics_provider,
-                                               CascadeFlags::empty());
+                                               CascadeFlags::empty(),
+                                               context.quirks_mode);
             computed
         }
     }

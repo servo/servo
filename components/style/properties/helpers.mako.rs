@@ -8,11 +8,14 @@
 %>
 
 <%def name="predefined_type(name, type, initial_value, parse_method='parse',
-            needs_context=True, vector=False, computed_type=None, initial_specified_value=None, **kwargs)">
+            needs_context=True, vector=False, computed_type=None, initial_specified_value=None,
+            allow_quirks=False, **kwargs)">
     <%def name="predefined_type_inner(name, type, initial_value, parse_method)">
         #[allow(unused_imports)]
         use app_units::Au;
         use cssparser::{Color as CSSParserColor, RGBA};
+        use values::specified::AllowQuirks;
+        use smallvec::SmallVec;
         pub use values::specified::${type} as SpecifiedValue;
         pub mod computed_value {
             % if computed_type:
@@ -30,7 +33,9 @@
         pub fn parse(context: &ParserContext,
                      input: &mut Parser)
                      -> Result<SpecifiedValue, ()> {
-            % if needs_context:
+            % if allow_quirks:
+            specified::${type}::${parse_method}_quirky(context, input, AllowQuirks::Yes)
+            % elif needs_context:
             specified::${type}::${parse_method}(context, input)
             % else:
             specified::${type}::${parse_method}(input)
@@ -71,6 +76,7 @@
             delegate_animate=False, space_separated_allowed=False, **kwargs)">
     <%call expr="longhand(name, **kwargs)">
         % if not gecko_only:
+            use smallvec::SmallVec;
             use std::fmt;
             use values::HasViewportPercentage;
             use style_traits::ToCss;
@@ -96,10 +102,11 @@
             pub mod computed_value {
                 pub use super::single_value::computed_value as single_value;
                 pub use self::single_value::T as SingleComputedValue;
+                use smallvec::SmallVec;
                 /// The computed value, effectively a list of single values.
                 #[derive(Debug, Clone, PartialEq)]
                 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-                pub struct T(pub Vec<single_value::T>);
+                pub struct T(pub SmallVec<[single_value::T; 1]>);
 
                 % if delegate_animate:
                     use properties::animated_properties::Interpolate;
@@ -175,9 +182,11 @@
 
             pub fn get_initial_value() -> computed_value::T {
                 % if allow_empty:
-                    computed_value::T(vec![])
+                    computed_value::T(SmallVec::new())
                 % else:
-                    computed_value::T(vec![single_value::get_initial_value()])
+                    let mut v = SmallVec::new();
+                    v.push(single_value::get_initial_value());
+                    computed_value::T(v)
                 % endif
             }
 
@@ -189,19 +198,16 @@
                     if space_separated_allowed:
                         parse_func = "parse_space_or_comma_separated"
                 %>
+
                 % if allow_empty:
                     if input.try(|input| input.expect_ident_matching("none")).is_ok() {
-                        Ok(SpecifiedValue(Vec::new()))
-                    } else {
-                        ${parse_func}(input, |parser| {
-                            single_value::parse(context, parser)
-                        }).map(SpecifiedValue)
+                        return Ok(SpecifiedValue(Vec::new()))
                     }
-                % else:
-                    ${parse_func}(input, |parser| {
-                        single_value::parse(context, parser)
-                    }).map(SpecifiedValue)
                 % endif
+
+                ${parse_func}(input, |parser| {
+                    single_value::parse(context, parser)
+                }).map(SpecifiedValue)
             }
 
             pub use self::single_value::SpecifiedValue as SingleSpecifiedValue;
@@ -216,7 +222,7 @@
                 #[inline]
                 fn from_computed_value(computed: &computed_value::T) -> Self {
                     SpecifiedValue(computed.0.iter()
-                                       .map(|x| ToComputedValue::from_computed_value(x))
+                                       .map(ToComputedValue::from_computed_value)
                                        .collect())
                 }
             }
@@ -246,7 +252,7 @@
         use properties::{DeclaredValue, LonghandId, LonghandIdSet};
         use properties::{CSSWideKeyword, ComputedValues, PropertyDeclaration};
         use properties::style_structs;
-        use std::sync::Arc;
+        use stylearc::Arc;
         use values::computed::{Context, ToComputedValue};
         use values::{computed, generics, specified};
         use Atom;
@@ -277,6 +283,7 @@
             % if not property.derived_from:
                 {
                     let custom_props = context.style().custom_properties();
+                    let quirks_mode = context.quirks_mode;
                     ::properties::substitute_variables_${property.ident}(
                         &declared_value, &custom_props,
                     |value| {
@@ -349,7 +356,7 @@
                                 }
                             }
                         }
-                    }, error_reporter);
+                    }, error_reporter, quirks_mode);
                 }
 
                 % if property.custom_cascade:
@@ -370,7 +377,11 @@
                     parse(context, input).map(|result| Box::new(result))
                 % else:
                                    -> Result<SpecifiedValue, ()> {
-                    parse(context, input)
+                    % if property.allow_quirks:
+                        parse_quirky(context, input, specified::AllowQuirks::Yes)
+                    % else:
+                        parse(context, input)
+                    % endif
                 % endif
             }
             pub fn parse_declared(context: &ParserContext, input: &mut Parser)
@@ -467,7 +478,7 @@
                     SpecifiedValue::Keyword(v) => v,
                     SpecifiedValue::System(_) => {
                         % if product == "gecko":
-                            _cx.style.cached_system_font.as_ref().unwrap().${to_rust_ident(name)}
+                            _cx.cached_system_font.as_ref().unwrap().${to_rust_ident(name)}
                         % else:
                             unreachable!()
                         % endif
@@ -705,7 +716,7 @@
         use properties::{PropertyDeclaration, ParsedDeclaration};
         use properties::{ShorthandId, UnparsedValue, longhands};
         use std::fmt;
-        use std::sync::Arc;
+        use stylearc::Arc;
         use style_traits::ToCss;
 
         pub struct Longhands {
@@ -800,7 +811,8 @@
     % endif
 </%def>
 
-<%def name="four_sides_shorthand(name, sub_property_pattern, parser_function, needs_context=True, **kwargs)">
+<%def name="four_sides_shorthand(name, sub_property_pattern, parser_function,
+                                 needs_context=True, allow_quirks=False, **kwargs)">
     <% sub_properties=' '.join(sub_property_pattern % side for side in ['top', 'right', 'bottom', 'left']) %>
     <%call expr="self.shorthand(name, sub_properties=sub_properties, **kwargs)">
         #[allow(unused_imports)]
@@ -810,7 +822,9 @@
 
         pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
             let (top, right, bottom, left) =
-            % if needs_context:
+            % if allow_quirks:
+                try!(parse_four_sides(input, |i| ${parser_function}_quirky(context, i, specified::AllowQuirks::Yes)));
+            % elif needs_context:
                 try!(parse_four_sides(input, |i| ${parser_function}(context, i)));
             % else:
                 try!(parse_four_sides(input, ${parser_function}));

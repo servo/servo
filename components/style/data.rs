@@ -16,7 +16,7 @@ use selector_parser::{EAGER_PSEUDO_COUNT, PseudoElement, RestyleDamage, Snapshot
 use std::fmt;
 #[cfg(feature = "servo")] use std::hash::BuildHasherDefault;
 use std::ops::Deref;
-use std::sync::Arc;
+use stylearc::Arc;
 use stylist::Stylist;
 use thread_state;
 use traversal::TraversalFlags;

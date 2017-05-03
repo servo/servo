@@ -528,6 +528,7 @@ pub enum DisplayItem {
     WebGL(Box<WebGLDisplayItem>),
     Border(Box<BorderDisplayItem>),
     Gradient(Box<GradientDisplayItem>),
+    RadialGradient(Box<RadialGradientDisplayItem>),
     Line(Box<LineDisplayItem>),
     BoxShadow(Box<BoxShadowDisplayItem>),
     Iframe(Box<IframeDisplayItem>),
@@ -889,6 +890,9 @@ pub struct Gradient {
 
     /// A list of color stops.
     pub stops: Vec<GradientStop>,
+
+    /// True if gradient repeats infinitly.
+    pub repeating: bool,
 }
 
 #[derive(Clone, Deserialize, HeapSizeOf, Serialize)]
@@ -898,6 +902,31 @@ pub struct GradientDisplayItem {
 
     /// Contains all gradient data. Included start, end point and color stops.
     pub gradient: Gradient,
+}
+
+/// Paints a radial gradient.
+#[derive(Clone, Deserialize, HeapSizeOf, Serialize)]
+pub struct RadialGradient {
+    /// The center point of the gradient.
+    pub center: Point2D<Au>,
+
+    /// The radius of the gradient with an x and an y component.
+    pub radius: Size2D<Au>,
+
+    /// A list of color stops.
+    pub stops: Vec<GradientStop>,
+
+    /// True if gradient repeats infinitly.
+    pub repeating: bool,
+}
+
+#[derive(Clone, Deserialize, HeapSizeOf, Serialize)]
+pub struct RadialGradientDisplayItem {
+    /// Fields common to all display item.
+    pub base: BaseDisplayItem,
+
+    /// Contains all gradient data.
+    pub gradient: RadialGradient,
 }
 
 /// A normal border, supporting CSS border styles.
@@ -1124,6 +1153,7 @@ impl DisplayItem {
             DisplayItem::WebGL(ref webgl_item) => &webgl_item.base,
             DisplayItem::Border(ref border) => &border.base,
             DisplayItem::Gradient(ref gradient) => &gradient.base,
+            DisplayItem::RadialGradient(ref gradient) => &gradient.base,
             DisplayItem::Line(ref line) => &line.base,
             DisplayItem::BoxShadow(ref box_shadow) => &box_shadow.base,
             DisplayItem::Iframe(ref iframe) => &iframe.base,
@@ -1241,6 +1271,7 @@ impl fmt::Debug for DisplayItem {
                 DisplayItem::WebGL(_) => "WebGL".to_owned(),
                 DisplayItem::Border(_) => "Border".to_owned(),
                 DisplayItem::Gradient(_) => "Gradient".to_owned(),
+                DisplayItem::RadialGradient(_) => "RadialGradient".to_owned(),
                 DisplayItem::Line(_) => "Line".to_owned(),
                 DisplayItem::BoxShadow(_) => "BoxShadow".to_owned(),
                 DisplayItem::Iframe(_) => "Iframe".to_owned(),

@@ -9,6 +9,7 @@ use dom::bindings::reflector::Reflector;
 use dom::bindings::str::DOMString;
 use dom::window::Window;
 use dom_struct::dom_struct;
+use style::context::QuirksMode;
 use style::parser::{LengthParsingMode, ParserContext};
 use style::stylesheets::CssRuleType;
 use style::supports::{Declaration, parse_condition_or_declaration};
@@ -31,7 +32,8 @@ impl CSS {
         let decl = Declaration { prop: property.into(), val: value.into() };
         let url = win.Document().url();
         let context = ParserContext::new_for_cssom(&url, win.css_error_reporter(), Some(CssRuleType::Supports),
-                                                   LengthParsingMode::Default);
+                                                   LengthParsingMode::Default,
+                                                   QuirksMode::NoQuirks);
         decl.eval(&context)
     }
 
@@ -42,7 +44,8 @@ impl CSS {
         if let Ok(cond) = cond {
             let url = win.Document().url();
             let context = ParserContext::new_for_cssom(&url, win.css_error_reporter(), Some(CssRuleType::Supports),
-                                                       LengthParsingMode::Default);
+                                                       LengthParsingMode::Default,
+                                                       QuirksMode::NoQuirks);
             cond.eval(&context)
         } else {
             false

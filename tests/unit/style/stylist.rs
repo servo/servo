@@ -6,12 +6,12 @@ use html5ever_atoms::LocalName;
 use selectors::parser::LocalName as LocalNameSelector;
 use selectors::parser::Selector;
 use servo_atoms::Atom;
-use std::sync::Arc;
 use style::properties::{PropertyDeclarationBlock, PropertyDeclaration};
 use style::properties::{longhands, Importance};
 use style::rule_tree::CascadeLevel;
 use style::selector_parser::{SelectorImpl, SelectorParser};
 use style::shared_lock::SharedRwLock;
+use style::stylearc::Arc;
 use style::stylesheets::StyleRule;
 use style::stylist::{Rule, SelectorMap};
 use style::stylist::needs_revalidation;
@@ -109,13 +109,11 @@ fn test_revalidation_selectors() {
         "span + div",
         "span ~ div",
 
-        // Revalidation selectors that will get sliced.
-        "td > h1[dir]",
-        "td > span + h1[dir]",
-        "table td > span + div ~ h1[dir]",
+        // Selectors in the ancestor chain (needed for cousin sharing).
+        "p:first-child span",
     ]).into_iter()
       .filter(|s| needs_revalidation(&s))
-      .map(|s| s.inner.slice_to_first_ancestor_combinator().complex)
+      .map(|s| s.inner.complex)
       .collect::<Vec<_>>();
 
     let reference = parse_selectors(&[
@@ -147,10 +145,8 @@ fn test_revalidation_selectors() {
         "span + div",
         "span ~ div",
 
-        // Revalidation selectors that got sliced.
-        "h1[dir]",
-        "span + h1[dir]",
-        "span + div ~ h1[dir]",
+        // Selectors in the ancestor chain (needed for cousin sharing).
+        "p:first-child span",
     ]).into_iter()
       .map(|s| s.inner.complex)
       .collect::<Vec<_>>();

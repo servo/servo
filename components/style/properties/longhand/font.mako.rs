@@ -50,7 +50,7 @@
                 SpecifiedValue::Value(v) => v,
                 SpecifiedValue::System(_) => {
                     <%self:nongecko_unreachable>
-                        _context.style.cached_system_font.as_ref().unwrap().${name}
+                        _context.cached_system_font.as_ref().unwrap().${name}
                     </%self:nongecko_unreachable>
                 }
             }
@@ -270,7 +270,7 @@
                 SpecifiedValue::Values(ref v) => computed_value::T(v.clone()),
                 SpecifiedValue::System(_) => {
                     <%self:nongecko_unreachable>
-                        _cx.style.cached_system_font.as_ref().unwrap().font_family.clone()
+                        _cx.cached_system_font.as_ref().unwrap().font_family.clone()
                     </%self:nongecko_unreachable>
                 }
             }
@@ -532,7 +532,7 @@ ${helpers.single_keyword_system("font-variant-caps",
                 },
                 SpecifiedValue::System(_) => {
                     <%self:nongecko_unreachable>
-                        context.style.cached_system_font.as_ref().unwrap().font_weight.clone()
+                        context.cached_system_font.as_ref().unwrap().font_weight.clone()
                     </%self:nongecko_unreachable>
                 }
             }
@@ -550,14 +550,14 @@ ${helpers.single_keyword_system("font-variant-caps",
 </%helpers:longhand>
 
 <%helpers:longhand name="font-size" need_clone="True" animation_value_type="ComputedValue"
-                   spec="https://drafts.csswg.org/css-fonts/#propdef-font-size">
+                   allow_quirks="True" spec="https://drafts.csswg.org/css-fonts/#propdef-font-size">
     use app_units::Au;
     use properties::longhands::system_font::SystemFont;
     use properties::style_structs::Font;
     use std::fmt;
     use style_traits::ToCss;
     use values::{FONT_MEDIUM_PX, HasViewportPercentage};
-    use values::specified::{FontRelativeLength, LengthOrPercentage, Length};
+    use values::specified::{AllowQuirks, FontRelativeLength, LengthOrPercentage, Length};
     use values::specified::{NoCalcLength, Percentage};
     use values::specified::length::FontBaseSize;
 
@@ -809,7 +809,7 @@ ${helpers.single_keyword_system("font-variant-caps",
 
                 SpecifiedValue::System(_) => {
                     <%self:nongecko_unreachable>
-                        context.style.cached_system_font.as_ref().unwrap().font_size
+                        context.cached_system_font.as_ref().unwrap().font_size
                     </%self:nongecko_unreachable>
                 }
             }
@@ -843,9 +843,19 @@ ${helpers.single_keyword_system("font-variant-caps",
                 ))
         }
     }
+
     /// <length> | <percentage> | <absolute-size> | <relative-size>
     pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        if let Ok(lop) = input.try(|i| specified::LengthOrPercentage::parse_non_negative(context, i)) {
+        parse_quirky(context, input, AllowQuirks::No)
+    }
+
+    /// Parses a font-size, with quirks.
+    pub fn parse_quirky(context: &ParserContext,
+                        input: &mut Parser,
+                        allow_quirks: AllowQuirks)
+                        -> Result<SpecifiedValue, ()> {
+        use self::specified::LengthOrPercentage;
+        if let Ok(lop) = input.try(|i| LengthOrPercentage::parse_non_negative_quirky(context, i, allow_quirks)) {
             return Ok(SpecifiedValue::Length(lop))
         }
 
@@ -917,10 +927,14 @@ ${helpers.single_keyword_system("font-variant-caps",
         let kw_inherited_size = context.style().font_size_keyword.map(|(kw, ratio)| {
             SpecifiedValue::Keyword(kw, ratio).to_computed_value(context)
         });
-        context.mutate_style().mutate_font()
+        let used_kw = context.mutate_style().mutate_font()
                .inherit_font_size_from(parent, kw_inherited_size);
-        context.mutate_style().font_size_keyword =
-            context.inherited_style.font_size_keyword;
+        if used_kw {
+            context.mutate_style().font_size_keyword =
+                context.inherited_style.font_size_keyword;
+        } else {
+            context.mutate_style().font_size_keyword = None;
+        }
     }
 
     pub fn cascade_initial_font_size(context: &mut Context) {
@@ -972,7 +986,7 @@ ${helpers.single_keyword_system("font-variant-caps",
                 SpecifiedValue::Number(ref n) => computed_value::T::Number(n.to_computed_value(context)),
                 SpecifiedValue::System(_) => {
                     <%self:nongecko_unreachable>
-                        context.style.cached_system_font.as_ref().unwrap().font_size_adjust
+                        context.cached_system_font.as_ref().unwrap().font_size_adjust
                     </%self:nongecko_unreachable>
                 }
             }
@@ -1956,7 +1970,7 @@ ${helpers.single_keyword_system("font-variant-position",
                 }
                 SpecifiedValue::System(_) => {
                     <%self:nongecko_unreachable>
-                        _context.style.cached_system_font.as_ref().unwrap().font_language_override
+                        _context.cached_system_font.as_ref().unwrap().font_language_override
                     </%self:nongecko_unreachable>
                 }
             }
@@ -2355,11 +2369,11 @@ ${helpers.single_keyword("-moz-math-variant",
         /// Must be called before attempting to compute a system font
         /// specified value
         pub fn resolve_system_font(system: SystemFont, context: &mut Context) {
-            if context.style.cached_system_font.is_none() {
+            if context.cached_system_font.is_none() {
                 let computed = system.to_computed_value(context);
-                context.style.cached_system_font = Some(computed);
+                context.cached_system_font = Some(computed);
             }
-            debug_assert!(system == context.style.cached_system_font.as_ref().unwrap().system_font)
+            debug_assert!(system == context.cached_system_font.as_ref().unwrap().system_font)
         }
 
         #[derive(Clone, Debug)]

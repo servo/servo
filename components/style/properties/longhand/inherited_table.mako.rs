@@ -26,6 +26,7 @@ ${helpers.single_keyword("caption-side", "top bottom",
     use std::fmt;
     use style_traits::ToCss;
     use values::HasViewportPercentage;
+    use values::specified::{AllowQuirks, Length};
 
     pub mod computed_value {
         use app_units::Au;
@@ -73,8 +74,8 @@ ${helpers.single_keyword("caption-side", "top bottom",
     #[derive(Clone, Debug, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue {
-        pub horizontal: specified::Length,
-        pub vertical: Option<specified::Length>,
+        pub horizontal: Length,
+        pub vertical: Option<Length>,
     }
 
     #[inline]
@@ -130,11 +131,11 @@ ${helpers.single_keyword("caption-side", "top bottom",
     pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
         let mut first = None;
         let mut second = None;
-        match specified::Length::parse_non_negative(context, input) {
+        match Length::parse_non_negative_quirky(context, input, AllowQuirks::Yes) {
             Err(()) => (),
             Ok(length) => {
                 first = Some(length);
-                if let Ok(len) = input.try(|input| specified::Length::parse_non_negative(context, input)) {
+                if let Ok(len) = input.try(|i| Length::parse_non_negative_quirky(context, i, AllowQuirks::Yes)) {
                     second = Some(len);
                 }
             }

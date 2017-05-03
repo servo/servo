@@ -1211,6 +1211,18 @@
      {}
     ]
    ],
+   "css/bug-1361013-cousin-sharing.html": [
+    [
+     "/_mozilla/css/bug-1361013-cousin-sharing.html",
+     [
+      [
+       "/_mozilla/css/bug-1361013-cousin-sharing-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "css/button_css_width.html": [
     [
      "/_mozilla/css/button_css_width.html",
@@ -7262,6 +7274,11 @@
      {}
     ]
    ],
+   "css/bug-1361013-cousin-sharing-ref.html": [
+    [
+     {}
+    ]
+   ],
    "css/button_css_width_ref.html": [
     [
      {}
@@ -11349,6 +11366,12 @@
    "mozilla/activation.html": [
     [
      "/_mozilla/mozilla/activation.html",
+     {}
+    ]
+   ],
+   "mozilla/adopted_node_is_same_origin_domain.html": [
+    [
+     "/_mozilla/mozilla/adopted_node_is_same_origin_domain.html",
      {}
     ]
    ],
@@ -19874,6 +19897,12 @@
      {}
     ]
    ],
+   "mozilla/unitless-length.html": [
+    [
+     "/_mozilla/mozilla/unitless-length.html",
+     {}
+    ]
+   ],
    "mozilla/variadic-interface.html": [
     [
      "/_mozilla/mozilla/variadic-interface.html",
@@ -20828,6 +20857,14 @@
   "css/bubbles.png": [
    "2ebf9c8f963a2f3971a3c1b64b6b01825eacdedc",
    "support"
+  ],
+  "css/bug-1361013-cousin-sharing-ref.html": [
+   "3451cb4533d650f6f624b89548ce7117bcc8bef3",
+   "support"
+  ],
+  "css/bug-1361013-cousin-sharing.html": [
+   "95c8c8d33cca3d6e969338a98c60ec9804256ef5",
+   "reftest"
   ],
   "css/bug_1345483.html": [
    "41b55af9d5c95910b1af74c0fbffb24e20bbe869",
@@ -24460,6 +24497,10 @@
   "mozilla/adopt-panic.css": [
    "170d51460da58c16f5cf94ecda18f18a1c18c116",
    "support"
+  ],
+  "mozilla/adopted_node_is_same_origin_domain.html": [
+   "3f2e6af92f9391aa1892e485c61c9e92c7661194",
+   "testharness"
   ],
   "mozilla/binding_keyword.html": [
    "c79aa6d506fbabbed0f6f31d1b8600ea6ba8ff41",
@@ -31495,6 +31536,10 @@
   ],
   "mozilla/union.html": [
    "47ee847e660eb907a7bd916cf37cf3ceba68ea7d",
+   "testharness"
+  ],
+  "mozilla/unitless-length.html": [
+   "dfb31d3f9c4f24913055924c375f08b990b63e49",
    "testharness"
   ],
   "mozilla/variadic-interface.html": [

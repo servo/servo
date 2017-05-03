@@ -6,4 +6,5 @@
 
 ${helpers.four_sides_shorthand("margin", "margin-%s", "specified::LengthOrPercentageOrAuto::parse",
                                spec="https://drafts.csswg.org/css-box/#propdef-margin",
-                               allowed_in_page_rule=True)}
+                               allowed_in_page_rule=True,
+                               allow_quirks=True)}

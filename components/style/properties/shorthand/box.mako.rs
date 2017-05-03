@@ -27,6 +27,12 @@
                         overflow_y: SpecifiedValue::scroll,
                     })
                 }
+                "-moz-scrollbars-none" => {
+                    Ok(Longhands {
+                        overflow_x: SpecifiedValue::hidden,
+                        overflow_y: SpecifiedValue::hidden,
+                    })
+                }
                 _ => Err(())
             });
             if moz_kw_found.is_ok() {

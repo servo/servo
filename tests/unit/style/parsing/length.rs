@@ -5,8 +5,11 @@
 use cssparser::Parser;
 use media_queries::CSSErrorReporterTest;
 use parsing::parse;
+use style::context::QuirksMode;
 use style::parser::{LengthParsingMode, Parse, ParserContext};
 use style::stylesheets::{CssRuleType, Origin};
+use style::values::Either;
+use style::values::specified::{LengthOrPercentageOrNumber, Number};
 use style::values::specified::length::{AbsoluteLength, Length, NoCalcLength};
 use style_traits::ToCss;
 
@@ -38,9 +41,15 @@ fn test_length_parsing_modes() {
     let url = ::servo_url::ServoUrl::parse("http://localhost").unwrap();
     let reporter = CSSErrorReporterTest;
     let context = ParserContext::new(Origin::Author, &url, &reporter,
-                                     Some(CssRuleType::Style), LengthParsingMode::SVG);
+                                     Some(CssRuleType::Style), LengthParsingMode::SVG,
+                                     QuirksMode::NoQuirks);
     let mut parser = Parser::new("1");
     let result = Length::parse(&context, &mut parser);
     assert!(result.is_ok());
     assert_eq!(result.unwrap(), Length::NoCalc(NoCalcLength::Absolute(AbsoluteLength::Px(1.))));
+}
+
+#[test]
+fn test_zero_percentage_length_or_number() {
+    assert_eq!(parse(LengthOrPercentageOrNumber::parse, "0"), Ok(Either::First(Number::new(0.))));
 }

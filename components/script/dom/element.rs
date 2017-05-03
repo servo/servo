@@ -100,9 +100,7 @@ use std::default::Default;
 use std::fmt;
 use std::rc::Rc;
 use std::sync::Arc;
-//use style::Atom;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
-//use style::attr::AttrValue::Atom;
 use style::context::{QuirksMode, ReflowGoal};
 use style::element_state::*;
 use style::properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock, parse_style_attribute};
@@ -112,6 +110,7 @@ use style::rule_tree::CascadeLevel;
 use style::selector_parser::{NonTSPseudoClass, RestyleDamage, SelectorImpl, SelectorParser};
 use style::shared_lock::{SharedRwLock, Locked};
 use style::sink::Push;
+use style::stylearc::Arc;
 use style::stylist::ApplicableDeclarationBlock;
 use style::thread_state;
 use style::values::CSSFloat;
@@ -2219,7 +2218,8 @@ impl VirtualMethods for Element {
                             Arc::new(doc.style_shared_lock().wrap(parse_style_attribute(
                                 &attr.value(),
                                 &doc.base_url(),
-                                win.css_error_reporter())))
+                                win.css_error_reporter(),
+                                doc.quirks_mode())))
                         };
 
                         Some(block)

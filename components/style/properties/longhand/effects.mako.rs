@@ -139,7 +139,7 @@ ${helpers.predefined_type("clip",
         use app_units::Au;
         use values::CSSFloat;
         use values::computed::{CSSColor, Shadow};
-        use values::specified::Angle;
+        use values::computed::Angle;
         use values::specified::url::SpecifiedUrl;
 
         #[derive(Clone, PartialEq, Debug)]
@@ -382,7 +382,9 @@ ${helpers.predefined_type("clip",
                     SpecifiedFilter::Brightness(factor) => computed_value::Filter::Brightness(factor),
                     SpecifiedFilter::Contrast(factor) => computed_value::Filter::Contrast(factor),
                     SpecifiedFilter::Grayscale(factor) => computed_value::Filter::Grayscale(factor),
-                    SpecifiedFilter::HueRotate(factor) => computed_value::Filter::HueRotate(factor),
+                    SpecifiedFilter::HueRotate(ref factor) => {
+                        computed_value::Filter::HueRotate(factor.to_computed_value(context))
+                    },
                     SpecifiedFilter::Invert(factor) => computed_value::Filter::Invert(factor),
                     SpecifiedFilter::Opacity(factor) => computed_value::Filter::Opacity(factor),
                     SpecifiedFilter::Saturate(factor) => computed_value::Filter::Saturate(factor),
@@ -407,7 +409,9 @@ ${helpers.predefined_type("clip",
                     computed_value::Filter::Brightness(factor) => SpecifiedFilter::Brightness(factor),
                     computed_value::Filter::Contrast(factor) => SpecifiedFilter::Contrast(factor),
                     computed_value::Filter::Grayscale(factor) => SpecifiedFilter::Grayscale(factor),
-                    computed_value::Filter::HueRotate(factor) => SpecifiedFilter::HueRotate(factor),
+                    computed_value::Filter::HueRotate(ref factor) => {
+                        SpecifiedFilter::HueRotate(ToComputedValue::from_computed_value(factor))
+                    },
                     computed_value::Filter::Invert(factor) => SpecifiedFilter::Invert(factor),
                     computed_value::Filter::Opacity(factor) => SpecifiedFilter::Opacity(factor),
                     computed_value::Filter::Saturate(factor) => SpecifiedFilter::Saturate(factor),

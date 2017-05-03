@@ -18,7 +18,7 @@ use selectors::{Element, MatchAttr};
 use selectors::matching::{ElementSelectorFlags, StyleRelations};
 use selectors::matching::matches_selector;
 use selectors::parser::{AttrSelector, Combinator, Component, Selector};
-use selectors::parser::{SelectorInner, SelectorIter, SelectorMethods};
+use selectors::parser::{SelectorInner, SelectorMethods};
 use selectors::visitor::SelectorVisitor;
 use std::clone::Clone;
 
@@ -482,27 +482,13 @@ struct Dependency {
 /// of them is sensitive to attribute or state changes.
 struct SensitivitiesVisitor {
     sensitivities: Sensitivities,
-    hint: RestyleHint,
 }
 
 impl SelectorVisitor for SensitivitiesVisitor {
     type Impl = SelectorImpl;
-
-    fn visit_complex_selector(&mut self,
-                              _: SelectorIter<SelectorImpl>,
-                              combinator: Option<Combinator>) -> bool {
-        self.hint |= combinator_to_restyle_hint(combinator);
-
-        true
-    }
-
     fn visit_simple_selector(&mut self, s: &Component<SelectorImpl>) -> bool {
         self.sensitivities.states.insert(selector_to_state(s));
-
-        if !self.sensitivities.attrs {
-            self.sensitivities.attrs = is_attr_selector(s);
-        }
-
+        self.sensitivities.attrs |= is_attr_selector(s);
         true
     }
 }
@@ -539,56 +525,63 @@ impl DependencySet {
 
     /// Adds a selector to this `DependencySet`.
     pub fn note_selector(&mut self, selector: &Selector<SelectorImpl>) {
-        let mut is_pseudo_element = selector.pseudo_element.is_some();
-
-        let mut next = Some(selector.inner.complex.clone());
         let mut combinator = None;
+        let mut iter = selector.inner.complex.iter();
+        let mut index = 0;
 
-        while let Some(current) = next.take() {
-            // Set up our visitor.
+        loop {
+            let sequence_start = index;
             let mut visitor = SensitivitiesVisitor {
-                sensitivities: Sensitivities::new(),
-                hint: combinator_to_restyle_hint(combinator),
+                sensitivities: Sensitivities::new()
             };
 
-            if is_pseudo_element {
-                // TODO(emilio): use more fancy restyle hints to avoid restyling
-                // the whole subtree when pseudos change.
-                //
-                // We currently need is_pseudo_element to handle eager pseudos
-                // (so the style the parent stores doesn't become stale), and
-                // restyle_descendants to handle all of them (::before and
-                // ::after, because we find them in the subtree, and other lazy
-                // pseudos for the same reason).
-                visitor.hint |= RESTYLE_SELF | RESTYLE_DESCENDANTS;
-                is_pseudo_element = false;
+            // Visit all the simple selectors in this sequence.
+            //
+            // Note that this works because we can't have combinators nested
+            // inside simple selectors (i.e. in :not() or :-moz-any()). If we
+            // ever support that we'll need to visit complex selectors as well.
+            for ss in &mut iter {
+                ss.visit(&mut visitor);
+                index += 1; // Account for the simple selector.
             }
 
-            {
-                // Visit all the simple selectors.
-                let mut iter = current.iter();
-                let mut index = 0usize;
-                for ss in &mut iter {
-                    ss.visit(&mut visitor);
-                    index += 1;
-                }
-
-                // Prepare the next sequence of simple selectors.
-                if let Some(next_combinator) = iter.next_sequence() {
-                    next = Some(current.slice_from(index + 1));
-                    combinator = Some(next_combinator);
-                }
-            }
-
-            // Note what we found.
+            // If we found a sensitivity, add an entry in the dependency set.
             if !visitor.sensitivities.is_empty() {
+                let mut hint = combinator_to_restyle_hint(combinator);
+                let dep_selector;
+                if sequence_start == 0 {
+                    if selector.pseudo_element.is_some() {
+                        // TODO(emilio): use more fancy restyle hints to avoid
+                        // restyling the whole subtree when pseudos change.
+                        //
+                        // We currently need is_pseudo_element to handle eager
+                        // pseudos (so the style the parent stores doesn't
+                        // become stale), and restyle_descendants to handle all
+                        // of them (::before and ::after, because we find them
+                        // in the subtree, and other lazy pseudos for the same
+                        // reason).
+                        hint |= RESTYLE_SELF | RESTYLE_DESCENDANTS;
+                    }
+
+                    // Reuse the bloom hashes if this is the base selector.
+                    dep_selector = selector.inner.clone();
+                } else {
+                    dep_selector = SelectorInner::new(selector.inner.complex.slice_from(sequence_start));
+                }
+
                 self.add_dependency(Dependency {
                     sensitivities: visitor.sensitivities,
-                    hint: visitor.hint,
-                    selector: SelectorInner::new(current),
-                })
+                    hint: hint,
+                    selector: dep_selector,
+                });
             }
 
+            combinator = iter.next_sequence();
+            if combinator.is_none() {
+                break;
+            }
+
+            index += 1; // Account for the combinator.
         }
     }
 

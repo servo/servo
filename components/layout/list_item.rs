@@ -18,7 +18,6 @@ use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, GeneratedC
 use fragment::Overflow;
 use generated_content;
 use inline::InlineFlow;
-use std::sync::Arc;
 use style::computed_values::{list_style_type, position};
 use style::logical_geometry::LogicalSize;
 use style::properties::ServoComputedValues;
@@ -148,7 +147,7 @@ impl Flow for ListItemFlow {
         self.block_flow.collect_stacking_contexts(state);
     }
 
-    fn repair_style(&mut self, new_style: &Arc<ServoComputedValues>) {
+    fn repair_style(&mut self, new_style: &::StyleArc<ServoComputedValues>) {
         self.block_flow.repair_style(new_style)
     }
 
