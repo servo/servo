@@ -26,7 +26,7 @@ use dom::nodelist::NodeList;
 use dom::validation::Validatable;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever::LocalName;
+use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc::IpcSender;
 use script_traits::ScriptMsg as ConstellationMsg;
 use std::cell::Cell;
@@ -107,7 +107,7 @@ static DEFAULT_ROWS: u32 = 2;
 
 impl HTMLTextAreaElement {
     fn new_inherited(local_name: LocalName,
-                     prefix: Option<DOMString>,
+                     prefix: Option<Prefix>,
                      document: &Document) -> HTMLTextAreaElement {
         let chan = document.window().upcast::<GlobalScope>().constellation_chan().clone();
         HTMLTextAreaElement {
@@ -124,7 +124,7 @@ impl HTMLTextAreaElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document) -> Root<HTMLTextAreaElement> {
         Node::reflect_node(box HTMLTextAreaElement::new_inherited(local_name, prefix, document),
                            document,

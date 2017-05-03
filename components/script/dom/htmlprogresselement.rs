@@ -5,13 +5,12 @@
 use dom::bindings::codegen::Bindings::HTMLProgressElementBinding::{self, HTMLProgressElementMethods};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
-use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::htmlelement::HTMLElement;
 use dom::node::Node;
 use dom::nodelist::NodeList;
 use dom_struct::dom_struct;
-use html5ever::LocalName;
+use html5ever::{LocalName, Prefix};
 
 #[dom_struct]
 pub struct HTMLProgressElement {
@@ -20,7 +19,7 @@ pub struct HTMLProgressElement {
 
 impl HTMLProgressElement {
     fn new_inherited(local_name: LocalName,
-                     prefix: Option<DOMString>,
+                     prefix: Option<Prefix>,
                      document: &Document) -> HTMLProgressElement {
         HTMLProgressElement {
             htmlelement:
@@ -30,7 +29,7 @@ impl HTMLProgressElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document) -> Root<HTMLProgressElement> {
         Node::reflect_node(box HTMLProgressElement::new_inherited(local_name, prefix, document),
                            document,

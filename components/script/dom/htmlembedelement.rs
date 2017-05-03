@@ -4,12 +4,11 @@
 
 use dom::bindings::codegen::Bindings::HTMLEmbedElementBinding;
 use dom::bindings::js::Root;
-use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::htmlelement::HTMLElement;
 use dom::node::Node;
 use dom_struct::dom_struct;
-use html5ever::LocalName;
+use html5ever::{LocalName, Prefix};
 
 #[dom_struct]
 pub struct HTMLEmbedElement {
@@ -17,7 +16,7 @@ pub struct HTMLEmbedElement {
 }
 
 impl HTMLEmbedElement {
-    fn new_inherited(local_name: LocalName, prefix: Option<DOMString>, document: &Document) -> HTMLEmbedElement {
+    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document) -> HTMLEmbedElement {
         HTMLEmbedElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document)
         }
@@ -25,7 +24,7 @@ impl HTMLEmbedElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document) -> Root<HTMLEmbedElement> {
         Node::reflect_node(box HTMLEmbedElement::new_inherited(local_name, prefix, document),
                            document,

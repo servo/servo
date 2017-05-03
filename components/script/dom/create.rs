@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::js::Root;
-use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::Element;
 use dom::element::ElementCreator;
@@ -77,11 +76,11 @@ use dom::htmlulistelement::HTMLUListElement;
 use dom::htmlunknownelement::HTMLUnknownElement;
 use dom::htmlvideoelement::HTMLVideoElement;
 use dom::svgsvgelement::SVGSVGElement;
-use html5ever::QualName;
+use html5ever::{QualName, Prefix};
 use servo_config::prefs::PREFS;
 
 fn create_svg_element(name: QualName,
-                      prefix: Option<DOMString>,
+                      prefix: Option<Prefix>,
                       document: &Document)
                       -> Root<Element> {
     assert!(name.ns == ns!(svg));
@@ -108,7 +107,7 @@ fn create_svg_element(name: QualName,
 }
 
 fn create_html_element(name: QualName,
-                      prefix: Option<DOMString>,
+                      prefix: Option<Prefix>,
                       document: &Document,
                       creator: ElementCreator)
                       -> Root<Element> {
@@ -277,10 +276,7 @@ pub fn create_element(name: QualName,
                       document: &Document,
                       creator: ElementCreator)
                       -> Root<Element> {
-    // FIXME(ajeffrey): Convert directly from Prefix to DOMString.
-
-    let prefix = name.prefix.as_ref().map(|p| DOMString::from(&**p));
-
+    let prefix = name.prefix.clone();
     match name.ns {
         ns!(html)   => create_html_element(name, prefix, document, creator),
         ns!(svg)    => create_svg_element(name, prefix, document),

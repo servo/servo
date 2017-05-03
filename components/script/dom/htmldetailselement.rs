@@ -8,7 +8,6 @@ use dom::bindings::codegen::Bindings::HTMLDetailsElementBinding::HTMLDetailsElem
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::refcounted::Trusted;
-use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::AttributeMutation;
 use dom::eventtarget::EventTarget;
@@ -16,7 +15,7 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{Node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever::LocalName;
+use html5ever::{LocalName, Prefix};
 use script_thread::Runnable;
 use std::cell::Cell;
 use task_source::TaskSource;
@@ -29,7 +28,7 @@ pub struct HTMLDetailsElement {
 
 impl HTMLDetailsElement {
     fn new_inherited(local_name: LocalName,
-                     prefix: Option<DOMString>,
+                     prefix: Option<Prefix>,
                      document: &Document) -> HTMLDetailsElement {
         HTMLDetailsElement {
             htmlelement:
@@ -40,7 +39,7 @@ impl HTMLDetailsElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document) -> Root<HTMLDetailsElement> {
         Node::reflect_node(box HTMLDetailsElement::new_inherited(local_name, prefix, document),
                            document,

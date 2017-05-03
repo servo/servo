@@ -4,12 +4,11 @@
 
 use dom::bindings::codegen::Bindings::HTMLOListElementBinding;
 use dom::bindings::js::Root;
-use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::htmlelement::HTMLElement;
 use dom::node::Node;
 use dom_struct::dom_struct;
-use html5ever::LocalName;
+use html5ever::{LocalName, Prefix};
 
 #[dom_struct]
 pub struct HTMLOListElement {
@@ -18,7 +17,7 @@ pub struct HTMLOListElement {
 
 impl HTMLOListElement {
     fn new_inherited(local_name: LocalName,
-                     prefix: Option<DOMString>,
+                     prefix: Option<Prefix>,
                      document: &Document) -> HTMLOListElement {
         HTMLOListElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document)
@@ -27,7 +26,7 @@ impl HTMLOListElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document) -> Root<HTMLOListElement> {
         Node::reflect_node(box HTMLOListElement::new_inherited(local_name, prefix, document),
                            document,

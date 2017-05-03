@@ -9,7 +9,6 @@ use dom::bindings::codegen::Bindings::HTMLStyleElementBinding::HTMLStyleElementM
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{MutNullableJS, Root};
-use dom::bindings::str::DOMString;
 use dom::cssstylesheet::CSSStyleSheet;
 use dom::document::Document;
 use dom::element::{Element, ElementCreator};
@@ -19,7 +18,7 @@ use dom::node::{ChildrenMutation, Node, UnbindContext, document_from_node, windo
 use dom::stylesheet::StyleSheet as DOMStyleSheet;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever::LocalName;
+use html5ever::{LocalName, Prefix};
 use net_traits::ReferrerPolicy;
 use script_layout_interface::message::Msg;
 use std::cell::Cell;
@@ -45,7 +44,7 @@ pub struct HTMLStyleElement {
 
 impl HTMLStyleElement {
     fn new_inherited(local_name: LocalName,
-                     prefix: Option<DOMString>,
+                     prefix: Option<Prefix>,
                      document: &Document,
                      creator: ElementCreator) -> HTMLStyleElement {
         HTMLStyleElement {
@@ -62,7 +61,7 @@ impl HTMLStyleElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document,
                creator: ElementCreator) -> Root<HTMLStyleElement> {
         Node::reflect_node(box HTMLStyleElement::new_inherited(local_name, prefix, document, creator),

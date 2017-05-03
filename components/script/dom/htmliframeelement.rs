@@ -36,7 +36,7 @@ use dom::node::{Node, NodeDamage, UnbindContext, document_from_node, window_from
 use dom::virtualmethods::VirtualMethods;
 use dom::window::{ReflowReason, Window};
 use dom_struct::dom_struct;
-use html5ever::LocalName;
+use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use js::jsapi::{JSAutoCompartment, JSContext, MutableHandleValue};
 use js::jsval::{NullValue, UndefinedValue};
@@ -241,7 +241,7 @@ impl HTMLIFrameElement {
     }
 
     fn new_inherited(local_name: LocalName,
-                     prefix: Option<DOMString>,
+                     prefix: Option<Prefix>,
                      document: &Document) -> HTMLIFrameElement {
         HTMLIFrameElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
@@ -256,7 +256,7 @@ impl HTMLIFrameElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document) -> Root<HTMLIFrameElement> {
         Node::reflect_node(box HTMLIFrameElement::new_inherited(local_name, prefix, document),
                            document,

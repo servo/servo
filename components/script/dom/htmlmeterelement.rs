@@ -5,13 +5,12 @@
 use dom::bindings::codegen::Bindings::HTMLMeterElementBinding::{self, HTMLMeterElementMethods};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
-use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::htmlelement::HTMLElement;
 use dom::node::Node;
 use dom::nodelist::NodeList;
 use dom_struct::dom_struct;
-use html5ever::LocalName;
+use html5ever::{LocalName, Prefix};
 
 #[dom_struct]
 pub struct HTMLMeterElement {
@@ -20,7 +19,7 @@ pub struct HTMLMeterElement {
 
 impl HTMLMeterElement {
     fn new_inherited(local_name: LocalName,
-                     prefix: Option<DOMString>,
+                     prefix: Option<Prefix>,
                      document: &Document) -> HTMLMeterElement {
         HTMLMeterElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document)
@@ -29,7 +28,7 @@ impl HTMLMeterElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document) -> Root<HTMLMeterElement> {
         Node::reflect_node(box HTMLMeterElement::new_inherited(local_name, prefix, document),
                            document,

@@ -14,7 +14,7 @@ use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, window_from_node};
 use dom_struct::dom_struct;
-use html5ever::LocalName;
+use html5ever::{LocalName, Prefix};
 
 #[dom_struct]
 pub struct HTMLDialogElement {
@@ -24,7 +24,7 @@ pub struct HTMLDialogElement {
 
 impl HTMLDialogElement {
     fn new_inherited(local_name: LocalName,
-                     prefix: Option<DOMString>,
+                     prefix: Option<Prefix>,
                      document: &Document) -> HTMLDialogElement {
         HTMLDialogElement {
             htmlelement:
@@ -35,7 +35,7 @@ impl HTMLDialogElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document) -> Root<HTMLDialogElement> {
         Node::reflect_node(box HTMLDialogElement::new_inherited(local_name, prefix, document),
                            document,

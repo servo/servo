@@ -18,7 +18,7 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{Node, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever::LocalName;
+use html5ever::{LocalName, Prefix};
 use script_traits::ScriptMsg as ConstellationMsg;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
@@ -34,7 +34,7 @@ pub struct HTMLBodyElement {
 }
 
 impl HTMLBodyElement {
-    fn new_inherited(local_name: LocalName, prefix: Option<DOMString>, document: &Document)
+    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document)
                      -> HTMLBodyElement {
         HTMLBodyElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
@@ -42,7 +42,7 @@ impl HTMLBodyElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName, prefix: Option<DOMString>, document: &Document)
+    pub fn new(local_name: LocalName, prefix: Option<Prefix>, document: &Document)
                -> Root<HTMLBodyElement> {
         Node::reflect_node(box HTMLBodyElement::new_inherited(local_name, prefix, document),
                            document,

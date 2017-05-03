@@ -4,12 +4,11 @@
 
 use dom::bindings::codegen::Bindings::HTMLDListElementBinding;
 use dom::bindings::js::Root;
-use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::htmlelement::HTMLElement;
 use dom::node::Node;
 use dom_struct::dom_struct;
-use html5ever::LocalName;
+use html5ever::{LocalName, Prefix};
 
 #[dom_struct]
 pub struct HTMLDListElement {
@@ -17,7 +16,7 @@ pub struct HTMLDListElement {
 }
 
 impl HTMLDListElement {
-    fn new_inherited(local_name: LocalName, prefix: Option<DOMString>, document: &Document) -> HTMLDListElement {
+    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document) -> HTMLDListElement {
         HTMLDListElement {
             htmlelement:
                 HTMLElement::new_inherited(local_name, prefix, document)
@@ -26,7 +25,7 @@ impl HTMLDListElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document) -> Root<HTMLDListElement> {
         Node::reflect_node(box HTMLDListElement::new_inherited(local_name, prefix, document),
                            document,

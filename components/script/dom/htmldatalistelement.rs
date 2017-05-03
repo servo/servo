@@ -6,7 +6,6 @@ use dom::bindings::codegen::Bindings::HTMLDataListElementBinding;
 use dom::bindings::codegen::Bindings::HTMLDataListElementBinding::HTMLDataListElementMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
-use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::Element;
 use dom::htmlcollection::{CollectionFilter, HTMLCollection};
@@ -14,7 +13,7 @@ use dom::htmlelement::HTMLElement;
 use dom::htmloptionelement::HTMLOptionElement;
 use dom::node::{Node, window_from_node};
 use dom_struct::dom_struct;
-use html5ever::LocalName;
+use html5ever::{LocalName, Prefix};
 
 #[dom_struct]
 pub struct HTMLDataListElement {
@@ -23,7 +22,7 @@ pub struct HTMLDataListElement {
 
 impl HTMLDataListElement {
     fn new_inherited(local_name: LocalName,
-                     prefix: Option<DOMString>,
+                     prefix: Option<Prefix>,
                      document: &Document) -> HTMLDataListElement {
         HTMLDataListElement {
             htmlelement:
@@ -33,7 +32,7 @@ impl HTMLDataListElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document) -> Root<HTMLDataListElement> {
         Node::reflect_node(box HTMLDataListElement::new_inherited(local_name, prefix, document),
                            document,

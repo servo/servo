@@ -7,7 +7,6 @@ use dom::bindings::codegen::Bindings::HTMLOutputElementBinding;
 use dom::bindings::codegen::Bindings::HTMLOutputElementBinding::HTMLOutputElementMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{MutNullableJS, Root};
-use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
 use dom::htmlelement::HTMLElement;
@@ -17,7 +16,7 @@ use dom::nodelist::NodeList;
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever::LocalName;
+use html5ever::{LocalName, Prefix};
 
 #[dom_struct]
 pub struct HTMLOutputElement {
@@ -27,7 +26,7 @@ pub struct HTMLOutputElement {
 
 impl HTMLOutputElement {
     fn new_inherited(local_name: LocalName,
-                     prefix: Option<DOMString>,
+                     prefix: Option<Prefix>,
                      document: &Document) -> HTMLOutputElement {
         HTMLOutputElement {
             htmlelement:
@@ -38,7 +37,7 @@ impl HTMLOutputElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document) -> Root<HTMLOutputElement> {
         Node::reflect_node(box HTMLOutputElement::new_inherited(local_name, prefix, document),
                            document,

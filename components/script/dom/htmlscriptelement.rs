@@ -26,7 +26,7 @@ use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use encoding::label::encoding_from_whatwg_label;
 use encoding::types::{DecoderTrap, EncodingRef};
-use html5ever::LocalName;
+use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsval::UndefinedValue;
@@ -69,7 +69,7 @@ pub struct HTMLScriptElement {
 }
 
 impl HTMLScriptElement {
-    fn new_inherited(local_name: LocalName, prefix: Option<DOMString>, document: &Document,
+    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document,
                      creator: ElementCreator) -> HTMLScriptElement {
         HTMLScriptElement {
             htmlelement:
@@ -83,7 +83,7 @@ impl HTMLScriptElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName, prefix: Option<DOMString>, document: &Document,
+    pub fn new(local_name: LocalName, prefix: Option<Prefix>, document: &Document,
                creator: ElementCreator) -> Root<HTMLScriptElement> {
         Node::reflect_node(box HTMLScriptElement::new_inherited(local_name, prefix, document, creator),
                            document,

@@ -20,7 +20,7 @@ use dom::node::{Node, document_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use euclid::point::Point2D;
-use html5ever::LocalName;
+use html5ever::{LocalName, Prefix};
 use net_traits::ReferrerPolicy;
 use std::default::Default;
 use std::f32;
@@ -221,7 +221,7 @@ pub struct HTMLAreaElement {
 }
 
 impl HTMLAreaElement {
-    fn new_inherited(local_name: LocalName, prefix: Option<DOMString>, document: &Document) -> HTMLAreaElement {
+    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document) -> HTMLAreaElement {
         HTMLAreaElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             rel_list: Default::default(),
@@ -230,7 +230,7 @@ impl HTMLAreaElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document) -> Root<HTMLAreaElement> {
         Node::reflect_node(box HTMLAreaElement::new_inherited(local_name, prefix, document),
                            document,

@@ -14,7 +14,7 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{Node, UnbindContext, document_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever::LocalName;
+use html5ever::{LocalName, Prefix};
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
 
@@ -24,7 +24,7 @@ pub struct HTMLBaseElement {
 }
 
 impl HTMLBaseElement {
-    fn new_inherited(local_name: LocalName, prefix: Option<DOMString>, document: &Document) -> HTMLBaseElement {
+    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document) -> HTMLBaseElement {
         HTMLBaseElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document)
         }
@@ -32,7 +32,7 @@ impl HTMLBaseElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document) -> Root<HTMLBaseElement> {
         Node::reflect_node(box HTMLBaseElement::new_inherited(local_name, prefix, document),
                            document,

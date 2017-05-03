@@ -30,7 +30,7 @@ use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever::LocalName;
+use html5ever::{LocalName, Prefix};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::default::Default;
@@ -46,13 +46,13 @@ pub struct HTMLElement {
 }
 
 impl HTMLElement {
-    pub fn new_inherited(tag_name: LocalName, prefix: Option<DOMString>,
+    pub fn new_inherited(tag_name: LocalName, prefix: Option<Prefix>,
                          document: &Document) -> HTMLElement {
         HTMLElement::new_inherited_with_state(ElementState::empty(), tag_name, prefix, document)
     }
 
     pub fn new_inherited_with_state(state: ElementState, tag_name: LocalName,
-                                    prefix: Option<DOMString>, document: &Document)
+                                    prefix: Option<Prefix>, document: &Document)
                                     -> HTMLElement {
         HTMLElement {
             element:
@@ -63,7 +63,7 @@ impl HTMLElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName, prefix: Option<DOMString>, document: &Document) -> Root<HTMLElement> {
+    pub fn new(local_name: LocalName, prefix: Option<Prefix>, document: &Document) -> Root<HTMLElement> {
         Node::reflect_node(box HTMLElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLElementBinding::Wrap)

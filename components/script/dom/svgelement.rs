@@ -3,12 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::inheritance::Castable;
-use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::Element;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever::LocalName;
+use html5ever::{LocalName, Prefix};
 use style::element_state::ElementState;
 
 #[dom_struct]
@@ -18,7 +17,7 @@ pub struct SVGElement {
 
 impl SVGElement {
     pub fn new_inherited_with_state(state: ElementState, tag_name: LocalName,
-                                    prefix: Option<DOMString>, document: &Document)
+                                    prefix: Option<Prefix>, document: &Document)
                                     -> SVGElement {
         SVGElement {
             element:
