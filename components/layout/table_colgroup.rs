@@ -15,7 +15,6 @@ use fragment::{Fragment, FragmentBorderBoxIterator, Overflow, SpecificFragmentIn
 use layout_debug;
 use std::cmp::max;
 use std::fmt;
-use std::sync::Arc;
 use style::logical_geometry::LogicalSize;
 use style::properties::ServoComputedValues;
 use style::values::computed::LengthOrPercentageOrAuto;
@@ -95,7 +94,7 @@ impl Flow for TableColGroupFlow {
 
     fn collect_stacking_contexts(&mut self, _: &mut DisplayListBuildState) {}
 
-    fn repair_style(&mut self, _: &Arc<ServoComputedValues>) {}
+    fn repair_style(&mut self, _: &::StyleArc<ServoComputedValues>) {}
 
     fn compute_overflow(&self) -> Overflow {
         Overflow::new()

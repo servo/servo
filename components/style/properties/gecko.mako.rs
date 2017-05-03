@@ -61,7 +61,7 @@ use properties::{PropertyDeclaration, PropertyDeclarationBlock, PropertyDeclarat
 use std::fmt::{self, Debug};
 use std::mem::{forget, transmute, zeroed};
 use std::ptr;
-use std::sync::Arc;
+use stylearc::Arc;
 use std::cmp;
 use values::computed::ToComputedValue;
 use values::{Either, Auto, KeyframesName};

@@ -18,11 +18,11 @@ use media_queries::MediaType;
 use parser::ParserContext;
 use properties::{ComputedValues, StyleBuilder};
 use std::fmt::{self, Write};
-use std::sync::Arc;
 use str::starts_with_ignore_ascii_case;
 use string_cache::Atom;
 use style_traits::ToCss;
 use style_traits::viewport::ViewportConstraints;
+use stylearc::Arc;
 use values::{CSSFloat, specified};
 use values::computed::{self, ToComputedValue};
 

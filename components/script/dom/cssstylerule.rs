@@ -12,8 +12,8 @@ use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSSt
 use dom::cssstylesheet::CSSStyleSheet;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use std::sync::Arc;
 use style::shared_lock::{Locked, ToCssWithGuard};
+use style::stylearc::Arc;
 use style::stylesheets::StyleRule;
 
 #[dom_struct]

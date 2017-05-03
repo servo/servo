@@ -23,9 +23,9 @@ use html5ever_atoms::LocalName;
 use net_traits::ReferrerPolicy;
 use script_layout_interface::message::Msg;
 use std::cell::Cell;
-use std::sync::Arc;
 use style::media_queries::parse_media_query_list;
 use style::parser::{LengthParsingMode, ParserContext as CssParserContext};
+use style::stylearc::Arc;
 use style::stylesheets::{CssRuleType, Stylesheet, Origin};
 use stylesheet_loader::{StylesheetLoader, StylesheetOwner};
 

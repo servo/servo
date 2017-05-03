@@ -16,7 +16,6 @@ use gfx::display_list::OpaqueNode;
 use script_layout_interface::wrapper_traits::PseudoElementType;
 use smallvec::SmallVec;
 use std::collections::{HashMap, LinkedList};
-use std::sync::Arc;
 use style::computed_values::{display, list_style_type};
 use style::computed_values::content::ContentItem;
 use style::properties::ServoComputedValues;
@@ -369,7 +368,7 @@ impl Counter {
               layout_context: &LayoutContext,
               node: OpaqueNode,
               pseudo: PseudoElementType<()>,
-              style: Arc<ServoComputedValues>,
+              style: ::StyleArc<ServoComputedValues>,
               list_style_type: list_style_type::T,
               mode: RenderingMode)
               -> Option<SpecificFragmentInfo> {
@@ -432,7 +431,7 @@ struct CounterValue {
 fn render_text(layout_context: &LayoutContext,
                node: OpaqueNode,
                pseudo: PseudoElementType<()>,
-               style: Arc<ServoComputedValues>,
+               style: ::StyleArc<ServoComputedValues>,
                string: String)
                -> Option<SpecificFragmentInfo> {
     let mut fragments = LinkedList::new();

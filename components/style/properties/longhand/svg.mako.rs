@@ -197,7 +197,7 @@ ${helpers.single_keyword("mask-composite",
                           spec="https://drafts.fxtf.org/css-masking/#propdef-mask-image">
     use std::fmt;
     use style_traits::ToCss;
-    use std::sync::Arc;
+    use stylearc::Arc;
     use values::specified::Image;
     use values::specified::url::SpecifiedUrl;
     use values::HasViewportPercentage;

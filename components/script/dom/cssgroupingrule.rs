@@ -12,8 +12,8 @@ use dom::cssrule::CSSRule;
 use dom::cssrulelist::{CSSRuleList, RulesSource};
 use dom::cssstylesheet::CSSStyleSheet;
 use dom_struct::dom_struct;
-use std::sync::Arc;
 use style::shared_lock::{SharedRwLock, Locked};
+use style::stylearc::Arc;
 use style::stylesheets::CssRules as StyleCssRules;
 
 #[dom_struct]

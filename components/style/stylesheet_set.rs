@@ -4,7 +4,7 @@
 
 //! A centralized set of stylesheets for a document.
 
-use std::sync::Arc;
+use stylearc::Arc;
 use stylesheets::Stylesheet;
 
 /// Entry for a StylesheetSet. We don't bother creating a constructor, because

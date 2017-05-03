@@ -252,7 +252,7 @@
         use properties::{DeclaredValue, LonghandId, LonghandIdSet};
         use properties::{CSSWideKeyword, ComputedValues, PropertyDeclaration};
         use properties::style_structs;
-        use std::sync::Arc;
+        use stylearc::Arc;
         use values::computed::{Context, ToComputedValue};
         use values::{computed, generics, specified};
         use Atom;
@@ -716,7 +716,7 @@
         use properties::{PropertyDeclaration, ParsedDeclaration};
         use properties::{ShorthandId, UnparsedValue, longhands};
         use std::fmt;
-        use std::sync::Arc;
+        use stylearc::Arc;
         use style_traits::ToCss;
 
         pub struct Longhands {

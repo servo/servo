@@ -30,11 +30,11 @@ use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::default::Default;
-use std::sync::Arc;
 use style::attr::AttrValue;
 use style::media_queries::parse_media_query_list;
 use style::parser::{LengthParsingMode, ParserContext as CssParserContext};
 use style::str::HTML_SPACE_CHARACTERS;
+use style::stylearc::Arc;
 use style::stylesheets::{CssRuleType, Stylesheet};
 use stylesheet_loader::{StylesheetLoader, StylesheetContextSource, StylesheetOwner};
 

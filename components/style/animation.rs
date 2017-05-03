@@ -19,8 +19,8 @@ use properties::longhands::animation_iteration_count::single_value::computed_val
 use properties::longhands::animation_play_state::computed_value::single_value::T as AnimationPlayState;
 use properties::longhands::transition_timing_function::single_value::computed_value::StartEnd;
 use properties::longhands::transition_timing_function::single_value::computed_value::T as TransitionTimingFunction;
-use std::sync::Arc;
 use std::sync::mpsc::Sender;
+use stylearc::Arc;
 use timer::Timer;
 use values::computed::Time;
 

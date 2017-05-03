@@ -6,15 +6,14 @@
 
 //! The rule tree.
 
-use arc_ptr_eq;
 #[cfg(feature = "servo")]
 use heapsize::HeapSizeOf;
 use properties::{Importance, PropertyDeclarationBlock};
 use shared_lock::{Locked, StylesheetGuards, SharedRwLockReadGuard};
 use std::io::{self, Write};
 use std::ptr;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicPtr, AtomicUsize, Ordering};
+use stylearc::Arc;
 use stylesheets::StyleRule;
 use thread_state;
 
@@ -65,8 +64,8 @@ impl StyleSource {
     fn ptr_equals(&self, other: &Self) -> bool {
         use self::StyleSource::*;
         match (self, other) {
-            (&Style(ref one), &Style(ref other)) => arc_ptr_eq(one, other),
-            (&Declarations(ref one), &Declarations(ref other)) => arc_ptr_eq(one, other),
+            (&Style(ref one), &Style(ref other)) => Arc::ptr_eq(one, other),
+            (&Declarations(ref one), &Declarations(ref other)) => Arc::ptr_eq(one, other),
             _ => false,
         }
     }
@@ -203,7 +202,7 @@ impl RuleTree {
                 // so let's skip it for now.
                 let is_here_already = match current.get().source.as_ref() {
                     Some(&StyleSource::Declarations(ref already_here)) => {
-                        arc_ptr_eq(pdb, already_here)
+                        Arc::ptr_eq(pdb, already_here)
                     },
                     _ => unreachable!("Replacing non-declarations style?"),
                 };
