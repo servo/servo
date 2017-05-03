@@ -827,8 +827,8 @@ mod shorthand_serialization {
             let mut properties = Vec::new();
 
             let image = single_vec_value_typedef!(image,
-                image::single_value::SpecifiedValue::Image(
-                    Image::Url(SpecifiedUrl::new_for_testing("http://servo/test.png"))));
+                image::single_value::SpecifiedValue(
+                    Some(Image::Url(SpecifiedUrl::new_for_testing("http://servo/test.png")))));
 
             let mode = single_vec_keyword_value!(mode, luminance);
 
@@ -882,8 +882,8 @@ mod shorthand_serialization {
             let mut properties = Vec::new();
 
             let image = single_vec_value_typedef!(image,
-                image::single_value::SpecifiedValue::Image(
-                    Image::Url(SpecifiedUrl::new_for_testing("http://servo/test.png"))));
+                image::single_value::SpecifiedValue(
+                    Some(Image::Url(SpecifiedUrl::new_for_testing("http://servo/test.png")))));
 
             let mode = single_vec_keyword_value!(mode, luminance);
 
