@@ -43,8 +43,7 @@ use js::jsval::{NullValue, UndefinedValue};
 use msg::constellation_msg::{DocumentType, FrameType, FrameId, PipelineId, TraversalDirection};
 use net_traits::response::HttpsState;
 use script_layout_interface::message::ReflowQueryType;
-use script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
-use script_thread::{MainThreadScriptMsg, ScriptThread, Runnable};
+use script_thread::{ScriptThread, Runnable};
 use script_traits::{IFrameLoadInfo, IFrameLoadInfoWithData, LoadData, UpdatePipelineIdReason};
 use script_traits::{MozBrowserEvent, NewLayoutInfo, ScriptMsg as ConstellationMsg};
 use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
@@ -154,51 +153,41 @@ impl HTMLIFrameElement {
             replace: replace,
         };
 
-        if load_data.as_ref().map_or(false, |d| d.url.as_str() == "about:blank") {
-            let (pipeline_sender, pipeline_receiver) = ipc::channel().unwrap();
+        match doc_type {
+            DocumentType::InitialAboutBlank => {
+                let (pipeline_sender, pipeline_receiver) = ipc::channel().unwrap();
 
-            global_scope
-                  .constellation_chan()
-                  .send(ConstellationMsg::ScriptLoadedAboutBlankInIFrame(load_info, pipeline_sender, doc_type))
-                  .unwrap();
+                global_scope
+                    .constellation_chan()
+                    .send(ConstellationMsg::ScriptNewIFrame(load_info, pipeline_sender))
+                    .unwrap();
 
-            let new_layout_info = NewLayoutInfo {
-                parent_info: Some((global_scope.pipeline_id(), frame_type)),
-                new_pipeline_id: new_pipeline_id,
-                frame_id: self.frame_id,
-                load_data: load_data.unwrap(),
-                pipeline_port: pipeline_receiver,
-                content_process_shutdown_chan: None,
-                window_size: None,
-                layout_threads: PREFS.get("layout.threads").as_u64().expect("count") as usize,
-            };
+                let new_layout_info = NewLayoutInfo {
+                    parent_info: Some((global_scope.pipeline_id(), frame_type)),
+                    new_pipeline_id: new_pipeline_id,
+                    frame_id: self.frame_id,
+                    load_data: load_data.unwrap(),
+                    pipeline_port: pipeline_receiver,
+                    content_process_shutdown_chan: None,
+                    window_size: None,
+                    layout_threads: PREFS.get("layout.threads").as_u64().expect("count") as usize,
+                };
 
-            match doc_type {
-                DocumentType::InitialAboutBlank => {
-                    self.pipeline_id.set(Some(new_pipeline_id));
-                    ScriptThread::process_attach_layout(new_layout_info, document.origin().clone());
-                },
-                DocumentType::Regular => {
-                    let runnable = AttachLayoutRunnable::new(self, new_layout_info);
-                    let msg = MainThreadScriptMsg::Common(CommonScriptMsg::RunnableMsg(
-                        ScriptThreadEventCategory::AttachLayout, box runnable));
-                    let window = window_from_node(self);
-                    if let Err(e) = window.main_thread_script_chan().send(msg) {
-                        warn!("Failed to send attach layout runnable. {}", e);
-                    }
-                }
-            }
-        } else {
-            let load_info = IFrameLoadInfoWithData {
-                info: load_info,
-                load_data: load_data,
-                old_pipeline_id: old_pipeline_id,
-                sandbox: sandboxed,
-            };
-            global_scope
+                self.pipeline_id.set(Some(new_pipeline_id));
+                ScriptThread::process_attach_layout(new_layout_info, document.origin().clone());
+            },
+            DocumentType::Regular => {
+                let load_info = IFrameLoadInfoWithData {
+                    info: load_info,
+                    load_data: load_data,
+                    old_pipeline_id: old_pipeline_id,
+                    sandbox: sandboxed,
+                };
+                global_scope
                   .constellation_chan()
                   .send(ConstellationMsg::ScriptLoadedURLInIFrame(load_info))
                   .unwrap();
+            }
         }
 
         if PREFS.is_mozbrowser_enabled() {
@@ -801,28 +790,5 @@ impl Runnable for IFrameLoadEventSteps {
     fn handler(self: Box<IFrameLoadEventSteps>) {
         let this = self.frame_element.root();
         this.iframe_load_event_steps(self.pipeline_id);
-    }
-}
-
-struct AttachLayoutRunnable {
-    frame_element: Trusted<HTMLIFrameElement>,
-    layout_info: NewLayoutInfo,
-}
-
-impl AttachLayoutRunnable {
-    fn new(frame_element: &HTMLIFrameElement, layout_info: NewLayoutInfo) -> AttachLayoutRunnable {
-        AttachLayoutRunnable {
-            frame_element: Trusted::new(frame_element),
-            layout_info: layout_info,
-        }
-    }
-}
-
-impl Runnable for AttachLayoutRunnable {
-    fn name(&self) -> &'static str { "AttachLayoutRunnable" }
-
-    fn handler(self: Box<AttachLayoutRunnable>) {
-        let doc = document_from_node(&*self.frame_element.root());
-        ScriptThread::process_attach_layout(self.layout_info, doc.origin().clone());
     }
 }

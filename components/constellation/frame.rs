@@ -69,18 +69,17 @@ impl Frame {
             frame_id: self.id,
             pipeline_id: Some(self.pipeline_id),
             load_data: self.load_data.clone(),
-            doc_type: self.doc_type,
         }
     }
 
     /// Set the current frame entry, and push the current frame entry into the past.
-    pub fn load(&mut self, pipeline_id: PipelineId, load_data: LoadData, doc_type: DocumentType) {
+    pub fn load(&mut self, pipeline_id: PipelineId, load_data: LoadData) {
         let current = self.current();
         self.prev.push(current);
         self.instant = Instant::now();
         self.pipeline_id = pipeline_id;
         self.load_data = load_data;
-        self.doc_type = doc_type;
+        self.doc_type = DocumentType::Regular;
     }
 
     /// Set the future to be empty.
@@ -93,7 +92,7 @@ impl Frame {
         self.pipeline_id = pipeline_id;
         self.instant = entry.instant;
         self.load_data = entry.load_data;
-        self.doc_type = entry.doc_type;
+        self.doc_type = DocumentType::Regular;
     }
 }
 
@@ -114,9 +113,6 @@ pub struct FrameState {
     /// The load data for this entry, used to reload the pipeline if it has been discarded
     pub load_data: LoadData,
 
-    /// The type of document this entry represents
-    pub doc_type: DocumentType,
-
     /// The frame that this session history entry is part of
     pub frame_id: FrameId,
 }
@@ -132,9 +128,6 @@ pub struct FrameChange {
 
     /// The data for the document being loaded.
     pub load_data: LoadData,
-
-    /// The type of document this entry represents
-    pub doc_type: DocumentType,
 
     /// Is the new document replacing the current document (e.g. a reload)
     /// or pushing it into the session history (e.g. a navigation)?
