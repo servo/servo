@@ -24,8 +24,7 @@ fn smoke_restyle_hints() {
     let selector = (selectors.0).first().unwrap();
     dependencies.note_selector(selector);
     assert_eq!(dependencies.len(), 1);
-    let state_deps = dependencies.get_state_deps();
-    assert_eq!(state_deps.len(), 1);
-    assert!(!state_deps[0].sensitivities.states.is_empty());
-    assert!(state_deps[0].hint.contains(RESTYLE_LATER_SIBLINGS));
+    let dep = &dependencies.0.other[0];
+    assert!(!dep.sensitivities.states.is_empty());
+    assert!(dep.hint.contains(RESTYLE_LATER_SIBLINGS));
 }
