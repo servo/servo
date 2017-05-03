@@ -4,12 +4,11 @@
 
 use dom::bindings::codegen::Bindings::HTMLDirectoryElementBinding;
 use dom::bindings::js::Root;
-use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::htmlelement::HTMLElement;
 use dom::node::Node;
 use dom_struct::dom_struct;
-use html5ever::LocalName;
+use html5ever::{LocalName, Prefix};
 
 #[dom_struct]
 pub struct HTMLDirectoryElement {
@@ -18,7 +17,7 @@ pub struct HTMLDirectoryElement {
 
 impl HTMLDirectoryElement {
     fn new_inherited(local_name: LocalName,
-                     prefix: Option<DOMString>,
+                     prefix: Option<Prefix>,
                      document: &Document) -> HTMLDirectoryElement {
         HTMLDirectoryElement {
             htmlelement:
@@ -28,7 +27,7 @@ impl HTMLDirectoryElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document) -> Root<HTMLDirectoryElement> {
         Node::reflect_node(box HTMLDirectoryElement::new_inherited(local_name, prefix, document),
                            document,

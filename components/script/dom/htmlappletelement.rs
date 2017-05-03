@@ -12,7 +12,7 @@ use dom::htmlelement::HTMLElement;
 use dom::node::Node;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever::LocalName;
+use html5ever::{LocalName, Prefix};
 use style::attr::AttrValue;
 
 #[dom_struct]
@@ -22,7 +22,7 @@ pub struct HTMLAppletElement {
 
 impl HTMLAppletElement {
     fn new_inherited(local_name: LocalName,
-                     prefix: Option<DOMString>,
+                     prefix: Option<Prefix>,
                      document: &Document) -> HTMLAppletElement {
         HTMLAppletElement {
             htmlelement:
@@ -32,7 +32,7 @@ impl HTMLAppletElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document) -> Root<HTMLAppletElement> {
         Node::reflect_node(box HTMLAppletElement::new_inherited(local_name, prefix, document),
                            document,

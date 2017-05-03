@@ -1,0 +1,22 @@
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+test(function() {
+var last = document.body;
+for (var i = 0; i < 3000; i++) {
+  console.log(i);
+  var e = document.createElement('div');
+  last.appendChild(e);
+  last = e;
+}
+var elem = document.body.children[1];
+console.log(elem.tagName);
+elem.outerHTML;
+elem.remove();
+console.log("done");
+});
+</script>
+</html>

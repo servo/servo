@@ -27,7 +27,7 @@ use dom::virtualmethods::VirtualMethods;
 use dom::webglrenderingcontext::{LayoutCanvasWebGLRenderingContextHelpers, WebGLRenderingContext};
 use dom_struct::dom_struct;
 use euclid::size::Size2D;
-use html5ever::LocalName;
+use html5ever::{LocalName, Prefix};
 use image::ColorType;
 use image::png::PNGEncoder;
 use ipc_channel::ipc::{self, IpcSender};
@@ -56,7 +56,7 @@ pub struct HTMLCanvasElement {
 
 impl HTMLCanvasElement {
     fn new_inherited(local_name: LocalName,
-                     prefix: Option<DOMString>,
+                     prefix: Option<Prefix>,
                      document: &Document) -> HTMLCanvasElement {
         HTMLCanvasElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
@@ -66,7 +66,7 @@ impl HTMLCanvasElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document) -> Root<HTMLCanvasElement> {
         Node::reflect_node(box HTMLCanvasElement::new_inherited(local_name, prefix, document),
                            document,

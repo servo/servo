@@ -6,7 +6,6 @@ use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::HTMLHeadElementBinding;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, RootedReference};
-use dom::bindings::str::DOMString;
 use dom::document::{Document, determine_policy_for_token};
 use dom::element::Element;
 use dom::htmlelement::HTMLElement;
@@ -15,7 +14,7 @@ use dom::node::{Node, document_from_node};
 use dom::userscripts::load_script;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever::LocalName;
+use html5ever::{LocalName, Prefix};
 
 #[dom_struct]
 pub struct HTMLHeadElement {
@@ -24,7 +23,7 @@ pub struct HTMLHeadElement {
 
 impl HTMLHeadElement {
     fn new_inherited(local_name: LocalName,
-                     prefix: Option<DOMString>,
+                     prefix: Option<Prefix>,
                      document: &Document) -> HTMLHeadElement {
         HTMLHeadElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document)
@@ -33,7 +32,7 @@ impl HTMLHeadElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document) -> Root<HTMLHeadElement> {
         Node::reflect_node(box HTMLHeadElement::new_inherited(local_name, prefix, document),
                            document,

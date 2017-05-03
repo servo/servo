@@ -12671,6 +12671,12 @@
      {}
     ]
    ],
+   "mozilla/can_serialize_deep_tree.html": [
+    [
+     "/_mozilla/mozilla/can_serialize_deep_tree.html",
+     {}
+    ]
+   ],
    "mozilla/canvas.initial.reset.2dstate.html": [
     [
      "/_mozilla/mozilla/canvas.initial.reset.2dstate.html",
@@ -25372,6 +25378,10 @@
   ],
   "mozilla/calc.html": [
    "028fc71bdc9a99d552ba552036d38fb4eef11bc1",
+   "testharness"
+  ],
+  "mozilla/can_serialize_deep_tree.html": [
+   "a5e9326245e22650e52fa7ae0ed2b4e707e75e0f",
    "testharness"
   ],
   "mozilla/canvas.initial.reset.2dstate.html": [

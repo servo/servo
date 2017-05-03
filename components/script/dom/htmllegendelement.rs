@@ -7,7 +7,6 @@ use dom::bindings::codegen::Bindings::HTMLLegendElementBinding::HTMLLegendElemen
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{MutNullableJS, Root};
-use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::Element;
 use dom::htmlelement::HTMLElement;
@@ -16,7 +15,7 @@ use dom::htmlformelement::{HTMLFormElement, FormControl};
 use dom::node::{Node, UnbindContext};
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever::LocalName;
+use html5ever::{LocalName, Prefix};
 
 #[dom_struct]
 pub struct HTMLLegendElement {
@@ -26,7 +25,7 @@ pub struct HTMLLegendElement {
 
 impl HTMLLegendElement {
     fn new_inherited(local_name: LocalName,
-                     prefix: Option<DOMString>,
+                     prefix: Option<Prefix>,
                      document: &Document)
                      -> HTMLLegendElement {
         HTMLLegendElement {
@@ -37,7 +36,7 @@ impl HTMLLegendElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document)
                -> Root<HTMLLegendElement> {
         Node::reflect_node(box HTMLLegendElement::new_inherited(local_name, prefix, document),

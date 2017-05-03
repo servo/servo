@@ -7,7 +7,6 @@ use dom::bindings::codegen::Bindings::HTMLOptGroupElementBinding;
 use dom::bindings::codegen::Bindings::HTMLOptGroupElementBinding::HTMLOptGroupElementMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
-use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
 use dom::htmlelement::HTMLElement;
@@ -15,7 +14,7 @@ use dom::htmloptionelement::HTMLOptionElement;
 use dom::node::Node;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever::LocalName;
+use html5ever::{LocalName, Prefix};
 use style::element_state::*;
 
 #[dom_struct]
@@ -25,7 +24,7 @@ pub struct HTMLOptGroupElement {
 
 impl HTMLOptGroupElement {
     fn new_inherited(local_name: LocalName,
-                     prefix: Option<DOMString>,
+                     prefix: Option<Prefix>,
                      document: &Document) -> HTMLOptGroupElement {
         HTMLOptGroupElement {
             htmlelement:
@@ -36,7 +35,7 @@ impl HTMLOptGroupElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document) -> Root<HTMLOptGroupElement> {
         Node::reflect_node(box HTMLOptGroupElement::new_inherited(local_name, prefix, document),
                            document,

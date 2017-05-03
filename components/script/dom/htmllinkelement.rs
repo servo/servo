@@ -22,7 +22,7 @@ use dom::node::{Node, UnbindContext, document_from_node, window_from_node};
 use dom::stylesheet::StyleSheet as DOMStyleSheet;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever::LocalName;
+use html5ever::{LocalName, Prefix};
 use net_traits::ReferrerPolicy;
 use script_layout_interface::message::Msg;
 use script_traits::{MozBrowserEvent, ScriptMsg as ConstellationMsg};
@@ -69,7 +69,7 @@ pub struct HTMLLinkElement {
 }
 
 impl HTMLLinkElement {
-    fn new_inherited(local_name: LocalName, prefix: Option<DOMString>, document: &Document,
+    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document,
                      creator: ElementCreator) -> HTMLLinkElement {
         HTMLLinkElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
@@ -85,7 +85,7 @@ impl HTMLLinkElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document,
                creator: ElementCreator) -> Root<HTMLLinkElement> {
         Node::reflect_node(box HTMLLinkElement::new_inherited(local_name, prefix, document, creator),

@@ -18,7 +18,7 @@ use dom::htmlformelement::{FormControl, FormControlElementHelpers, HTMLFormEleme
 use dom::node::{document_from_node, Node};
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever::LocalName;
+use html5ever::{LocalName, Prefix};
 use style::attr::AttrValue;
 
 #[dom_struct]
@@ -28,7 +28,7 @@ pub struct HTMLLabelElement {
 
 impl HTMLLabelElement {
     fn new_inherited(local_name: LocalName,
-                     prefix: Option<DOMString>,
+                     prefix: Option<Prefix>,
                      document: &Document) -> HTMLLabelElement {
         HTMLLabelElement {
             htmlelement:
@@ -38,7 +38,7 @@ impl HTMLLabelElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document) -> Root<HTMLLabelElement> {
         Node::reflect_node(box HTMLLabelElement::new_inherited(local_name, prefix, document),
                            document,

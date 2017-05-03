@@ -6,7 +6,7 @@
 
 use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use dom::bindings::inheritance::{Castable, CharacterDataTypeId, NodeTypeId};
-use dom::bindings::js::{JS, Root};
+use dom::bindings::js::{JS, Root, RootedReference};
 use dom::bindings::trace::JSTraceable;
 use dom::characterdata::CharacterData;
 use dom::document::Document;
@@ -118,13 +118,18 @@ unsafe impl JSTraceable for HtmlTokenizer<TreeBuilder<JS<Node>, Sink>> {
 impl<'a> Serialize for &'a Node {
     fn serialize<S: Serializer>(&self, serializer: &mut S,
                                 traversal_scope: TraversalScope) -> io::Result<()> {
-        let node = *self;
-        match (traversal_scope, node.type_id()) {
-            (_, NodeTypeId::Element(..)) => {
-                let elem = node.downcast::<Element>().unwrap();
-                let name = QualName::new(None, elem.namespace().clone(),
-                                         elem.local_name().clone());
-                if traversal_scope == IncludeNode {
+        let mut roots = self.traverse_preorder();
+        let mut stack = Vec::new();
+        if traversal_scope == ChildrenOnly {
+            roots.next().unwrap();
+        }
+        'traversal: for root in roots {
+            let node = root.r();
+            match  node.type_id() {
+                NodeTypeId::Element(..) => {
+                    let elem = node.downcast::<Element>().unwrap();
+                    let name = QualName::new(None, elem.namespace().clone(),
+                                             elem.local_name().clone());
                     let attrs = elem.attrs().iter().map(|attr| {
                         let qname = QualName::new(None, attr.namespace().clone(),
                                                   attr.local_name().clone());
@@ -136,58 +141,57 @@ impl<'a> Serialize for &'a Node {
                         ar
                     });
                     try!(serializer.start_elem(name.clone(), attr_refs));
+                    stack.push((name.clone(), node.children_count()));
+                },
+                NodeTypeId::DocumentType => {
+                    let doctype = node.downcast::<DocumentType>().unwrap();
+                    try!(serializer.write_doctype(&doctype.name()));
+                    if let Some(head) = stack.last_mut() {
+                        head.1 -= 1;
+                    }
+                },
+                NodeTypeId::CharacterData(CharacterDataTypeId::Text) => {
+                    let cdata = node.downcast::<CharacterData>().unwrap();
+                    try!(serializer.write_text(&cdata.data()));
+                    if let Some(head) = stack.last_mut() {
+                        head.1 -= 1;
+                    }
+                },
+                NodeTypeId::CharacterData(CharacterDataTypeId::Comment) => {
+                    let cdata = node.downcast::<CharacterData>().unwrap();
+                    try!(serializer.write_comment(&cdata.data()));
+                    if let Some(head) = stack.last_mut() {
+                        head.1 -= 1;
+                    }
+                },
+                NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) => {
+                    let pi = node.downcast::<ProcessingInstruction>().unwrap();
+                    let data = pi.upcast::<CharacterData>().data();
+                    try!(serializer.write_processing_instruction(&pi.target(), &data));
+                    if let Some(head) = stack.last_mut() {
+                        head.1 -= 1;
+                    }
+                },
+                NodeTypeId::DocumentFragment => {},
+                NodeTypeId::Document(_) => panic!("Can't serialize Document node itself"),
+            };
+            while {
+                let mut n_children = 1;
+                if let Some(head) = stack.last() {
+                    n_children = head.1;
                 }
-
-                let children = if let Some(tpl) = node.downcast::<HTMLTemplateElement>() {
-                    // https://github.com/w3c/DOM-Parsing/issues/1
-                    tpl.Content().upcast::<Node>().children()
-                } else {
-                    node.children()
-                };
-
-                for handle in children {
-                    try!((&*handle).serialize(serializer, IncludeNode));
+                n_children == 0
+            } {
+                try!(serializer.end_elem(stack.pop().unwrap().0));
+                if let Some(mut head) = stack.last_mut() {
+                    head.1 -= 1;
                 }
-
-                if traversal_scope == IncludeNode {
-                    try!(serializer.end_elem(name.clone()));
-                }
-                Ok(())
-            },
-
-            (ChildrenOnly, NodeTypeId::Document(_)) => {
-                for handle in node.children() {
-                    try!((&*handle).serialize(serializer, IncludeNode));
-                }
-                Ok(())
-            },
-
-            (ChildrenOnly, _) => Ok(()),
-
-            (IncludeNode, NodeTypeId::DocumentType) => {
-                let doctype = node.downcast::<DocumentType>().unwrap();
-                serializer.write_doctype(&doctype.name())
-            },
-
-            (IncludeNode, NodeTypeId::CharacterData(CharacterDataTypeId::Text)) => {
-                let cdata = node.downcast::<CharacterData>().unwrap();
-                serializer.write_text(&cdata.data())
-            },
-
-            (IncludeNode, NodeTypeId::CharacterData(CharacterDataTypeId::Comment)) => {
-                let cdata = node.downcast::<CharacterData>().unwrap();
-                serializer.write_comment(&cdata.data())
-            },
-
-            (IncludeNode, NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction)) => {
-                let pi = node.downcast::<ProcessingInstruction>().unwrap();
-                let data = pi.upcast::<CharacterData>().data();
-                serializer.write_processing_instruction(&pi.target(), &data)
-            },
-
-            (IncludeNode, NodeTypeId::DocumentFragment) => Ok(()),
-
-            (IncludeNode, NodeTypeId::Document(_)) => panic!("Can't serialize Document node itself"),
+            }
+        }
+        if stack.is_empty() {
+            Ok(())
+        } else {
+            Err(io::Error::new(io::ErrorKind::Other, "Stack is not empty!!!!"))
         }
     }
 }

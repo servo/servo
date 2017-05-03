@@ -24,7 +24,7 @@ use dom::validation::Validatable;
 use dom::validitystate::{ValidityState, ValidationFlags};
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever::LocalName;
+use html5ever::{LocalName, Prefix};
 use std::cell::Cell;
 use std::default::Default;
 use style::element_state::*;
@@ -47,7 +47,7 @@ pub struct HTMLButtonElement {
 
 impl HTMLButtonElement {
     fn new_inherited(local_name: LocalName,
-                     prefix: Option<DOMString>,
+                     prefix: Option<Prefix>,
                      document: &Document) -> HTMLButtonElement {
         HTMLButtonElement {
             htmlelement:
@@ -60,7 +60,7 @@ impl HTMLButtonElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document) -> Root<HTMLButtonElement> {
         Node::reflect_node(box HTMLButtonElement::new_inherited(local_name, prefix, document),
                            document,

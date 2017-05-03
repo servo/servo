@@ -13,7 +13,7 @@ use dom::htmlelement::HTMLElement;
 use dom::node::Node;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever::LocalName;
+use html5ever::{LocalName, Prefix};
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 
 #[dom_struct]
@@ -22,7 +22,7 @@ pub struct HTMLHRElement {
 }
 
 impl HTMLHRElement {
-    fn new_inherited(local_name: LocalName, prefix: Option<DOMString>, document: &Document) -> HTMLHRElement {
+    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document) -> HTMLHRElement {
         HTMLHRElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document)
         }
@@ -30,7 +30,7 @@ impl HTMLHRElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document) -> Root<HTMLHRElement> {
         Node::reflect_node(box HTMLHRElement::new_inherited(local_name, prefix, document),
                            document,

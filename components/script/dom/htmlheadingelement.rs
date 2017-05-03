@@ -4,12 +4,11 @@
 
 use dom::bindings::codegen::Bindings::HTMLHeadingElementBinding;
 use dom::bindings::js::Root;
-use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::htmlelement::HTMLElement;
 use dom::node::Node;
 use dom_struct::dom_struct;
-use html5ever::LocalName;
+use html5ever::{LocalName, Prefix};
 
 #[derive(JSTraceable, HeapSizeOf)]
 pub enum HeadingLevel {
@@ -29,7 +28,7 @@ pub struct HTMLHeadingElement {
 
 impl HTMLHeadingElement {
     fn new_inherited(local_name: LocalName,
-                     prefix: Option<DOMString>,
+                     prefix: Option<Prefix>,
                      document: &Document,
                      level: HeadingLevel) -> HTMLHeadingElement {
         HTMLHeadingElement {
@@ -41,7 +40,7 @@ impl HTMLHeadingElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document,
                level: HeadingLevel) -> Root<HTMLHeadingElement> {
         Node::reflect_node(box HTMLHeadingElement::new_inherited(local_name, prefix, document, level),

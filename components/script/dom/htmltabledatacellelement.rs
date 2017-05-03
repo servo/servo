@@ -4,12 +4,11 @@
 
 use dom::bindings::codegen::Bindings::HTMLTableDataCellElementBinding;
 use dom::bindings::js::Root;
-use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::htmltablecellelement::HTMLTableCellElement;
 use dom::node::Node;
 use dom_struct::dom_struct;
-use html5ever::LocalName;
+use html5ever::{LocalName, Prefix};
 
 #[dom_struct]
 pub struct HTMLTableDataCellElement {
@@ -18,7 +17,7 @@ pub struct HTMLTableDataCellElement {
 
 impl HTMLTableDataCellElement {
     fn new_inherited(local_name: LocalName,
-                     prefix: Option<DOMString>,
+                     prefix: Option<Prefix>,
                      document: &Document) -> HTMLTableDataCellElement {
         HTMLTableDataCellElement {
             htmltablecellelement:
@@ -27,7 +26,7 @@ impl HTMLTableDataCellElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName, prefix: Option<DOMString>, document: &Document)
+    pub fn new(local_name: LocalName, prefix: Option<Prefix>, document: &Document)
                -> Root<HTMLTableDataCellElement> {
         Node::reflect_node(box HTMLTableDataCellElement::new_inherited(local_name,
                                                                        prefix,

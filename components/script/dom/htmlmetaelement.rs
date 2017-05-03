@@ -18,7 +18,7 @@ use dom::htmlheadelement::HTMLHeadElement;
 use dom::node::{Node, UnbindContext, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever::LocalName;
+use html5ever::{LocalName, Prefix};
 use servo_config::prefs::PREFS;
 use std::ascii::AsciiExt;
 use std::sync::atomic::AtomicBool;
@@ -39,7 +39,7 @@ pub struct HTMLMetaElement {
 
 impl HTMLMetaElement {
     fn new_inherited(local_name: LocalName,
-                     prefix: Option<DOMString>,
+                     prefix: Option<Prefix>,
                      document: &Document) -> HTMLMetaElement {
         HTMLMetaElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
@@ -50,7 +50,7 @@ impl HTMLMetaElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document) -> Root<HTMLMetaElement> {
         Node::reflect_node(box HTMLMetaElement::new_inherited(local_name, prefix, document),
                            document,

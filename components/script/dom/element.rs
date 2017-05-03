@@ -123,7 +123,7 @@ pub struct Element {
     local_name: LocalName,
     tag_name: TagName,
     namespace: Namespace,
-    prefix: Option<DOMString>,
+    prefix: Option<Prefix>,
     attrs: DOMRefCell<Vec<JS<Attr>>>,
     id_attribute: DOMRefCell<Option<Atom>>,
     #[ignore_heap_size_of = "Arc"]
@@ -202,14 +202,14 @@ impl Element {
     }
 
     pub fn new_inherited(local_name: LocalName,
-                         namespace: Namespace, prefix: Option<DOMString>,
+                         namespace: Namespace, prefix: Option<Prefix>,
                          document: &Document) -> Element {
         Element::new_inherited_with_state(ElementState::empty(), local_name,
                                           namespace, prefix, document)
     }
 
     pub fn new_inherited_with_state(state: ElementState, local_name: LocalName,
-                                    namespace: Namespace, prefix: Option<DOMString>,
+                                    namespace: Namespace, prefix: Option<Prefix>,
                                     document: &Document)
                                     -> Element {
         Element {
@@ -230,7 +230,7 @@ impl Element {
 
     pub fn new(local_name: LocalName,
                namespace: Namespace,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document) -> Root<Element> {
         Node::reflect_node(
             box Element::new_inherited(local_name, namespace, prefix, document),
@@ -815,7 +815,7 @@ impl Element {
         &self.namespace
     }
 
-    pub fn prefix(&self) -> Option<&DOMString> {
+    pub fn prefix(&self) -> Option<&Prefix> {
         self.prefix.as_ref()
     }
 
@@ -1408,7 +1408,7 @@ impl ElementMethods for Element {
 
     // https://dom.spec.whatwg.org/#dom-element-prefix
     fn GetPrefix(&self) -> Option<DOMString> {
-        self.prefix.clone()
+        self.prefix.as_ref().map(|p| DOMString::from(&**p))
     }
 
     // https://dom.spec.whatwg.org/#dom-element-tagname

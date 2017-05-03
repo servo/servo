@@ -45,7 +45,7 @@ use dom_struct::dom_struct;
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
-use html5ever::LocalName;
+use html5ever::{LocalName, Prefix};
 use hyper::header::{Charset, ContentDisposition, ContentType, DispositionParam, DispositionType};
 use hyper::method::Method;
 use msg::constellation_msg::PipelineId;
@@ -73,7 +73,7 @@ pub struct HTMLFormElement {
 
 impl HTMLFormElement {
     fn new_inherited(local_name: LocalName,
-                     prefix: Option<DOMString>,
+                     prefix: Option<Prefix>,
                      document: &Document) -> HTMLFormElement {
         HTMLFormElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
@@ -86,7 +86,7 @@ impl HTMLFormElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document) -> Root<HTMLFormElement> {
         Node::reflect_node(box HTMLFormElement::new_inherited(local_name, prefix, document),
                            document,
