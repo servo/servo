@@ -4,7 +4,6 @@
 
 use core::default::Default;
 use core::ops::Deref;
-use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::MutationRecordBinding::MutationRecordBinding;
 use dom::bindings::codegen::Bindings::MutationRecordBinding::MutationRecordBinding::MutationRecordMethods;
 use dom::bindings::js::{JS, Root};
@@ -24,21 +23,19 @@ pub struct MutationRecord {
     target: JS<Node>,
 
     //property for attribute name
-    attribute_name: DOMRefCell<Option<DOMString>>,
+    attribute_name: Option<DOMString>,
 
     //property for attribute namespace
-    attribute_namespace: DOMRefCell<Option<DOMString>>,
+    attribute_namespace: Option<DOMString>,
 
     //property for old value
-    old_value: DOMRefCell<Option<DOMString>>,
+    old_value: Option<DOMString>,
 }
 
 impl MutationRecord {
     pub fn new(record_type: DOMString, target: &Node) -> Root<MutationRecord> {
         let boxed_record = box MutationRecord::new_inherited(record_type, target);
-        return reflect_dom_object(boxed_record,
-                                  window_from_node(target).deref(),
-                                  MutationRecordBinding::Wrap);
+        return reflect_dom_object(boxed_record, window_from_node(target).deref(), MutationRecordBinding::Wrap);
     }
 
     fn new_inherited(record_type: DOMString, target: &Node) -> MutationRecord {
@@ -53,16 +50,16 @@ impl MutationRecord {
     }
 
     // setter for attr_name
-    pub fn SetAttributeName(&self, attr_name: DOMString) {
-        *self.attribute_name.borrow_mut() = Some(attr_name);
+    pub fn SetAttributeName(&mut self, attr_name: DOMString) {
+        self.attribute_name = Some(attr_name);
     }
     // setter for attr_namespace
-    pub fn SetAttributeNamespace(&self, attr_namespace: DOMString) {
-        *self.attribute_name.borrow_mut() = Some(attr_namespace);
+    pub fn SetAttributeNamespace(&mut self, attr_namespace: DOMString) {
+        self.attribute_namespace = Some(attr_namespace);
     }
     // setter for attr_oldvalue
-    pub fn SetoldValue(&self, attr_oldvalue: DOMString) {
-        *self.attribute_name.borrow_mut() = Some(attr_oldvalue);
+    pub fn SetoldValue(&mut self, attr_oldvalue: DOMString) {
+        self.old_value = Some(attr_oldvalue);
     }
 }
 
@@ -79,16 +76,16 @@ impl MutationRecordMethods for MutationRecord {
 
     // https://dom.spec.whatwg.org/#dom-mutationrecord-attributename
     fn GetAttributeName(&self) -> Option<DOMString> {
-        self.attribute_name.borrow().clone()
+        self.attribute_name.clone()
     }
 
     // https://dom.spec.whatwg.org/#dom-mutationrecord-attributenamespace
     fn GetAttributeNamespace(&self) -> Option<DOMString> {
-        self.attribute_namespace.borrow().clone()
+        self.attribute_namespace.clone()
     }
 
     // https://dom.spec.whatwg.org/#dom-mutationrecord-oldvalue
     fn GetOldValue(&self) -> Option<DOMString> {
-        self.old_value.borrow().clone()
+        self.old_value.clone()
     }
 }

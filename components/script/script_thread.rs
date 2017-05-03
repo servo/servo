@@ -485,7 +485,7 @@ pub struct ScriptThread {
     mutation_observer_compound_microtask_queued: Cell<bool>,
 
     /// The unit of related similar-origin browsing contexts' list of MutationObserver objects
-    mutation_observers: DOMRefCell<Vec<Root<MutationObserver>>>,
+    mutation_observers: DOMRefCell<Vec<JS<MutationObserver>>>,
 
     /// A handle to the webvr thread, if available
     webvr_thread: Option<IpcSender<WebVRMsg>>,
@@ -596,26 +596,17 @@ impl ScriptThread {
             let script_thread = unsafe { &*root.get().unwrap() };
             script_thread.mutation_observers
                 .borrow_mut()
-                .push(Root::from_ref(observer));
+                .push(JS::from_ref(observer));
         })
     }
 
-    pub fn get_mutation_observer() -> &'static DOMRefCell<Vec<Root<MutationObserver>>> {
+    pub fn get_mutation_observer() -> &'static DOMRefCell<Vec<JS<MutationObserver>>> {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
-            let observers: &'static DOMRefCell<Vec<Root<MutationObserver>>> = &script_thread.mutation_observers;
+            let observers: &'static DOMRefCell<Vec<JS<MutationObserver>>> = &script_thread.mutation_observers;
             return observers;
         })
     }
-
-//    pub fn get_mutation_observer() -> DOMRefCell<Vec<Root<MutationObserver>>> {
-//        SCRIPT_THREAD_ROOT.with(|root| {
-//            let script_thread = unsafe { &*root.get().unwrap() };
-//            let observers = script_thread.mutation_observers.borrow_mut().iter()
-//                .map(|o| Root::from_ref(&*o)).collect();
-//            return observers;
-//        })
-//    }
 
     pub fn mark_document_with_no_blocked_loads(doc: &Document) {
         SCRIPT_THREAD_ROOT.with(|root| {
