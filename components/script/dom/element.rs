@@ -97,7 +97,7 @@ use std::convert::TryFrom;
 use std::default::Default;
 use std::fmt;
 use std::rc::Rc;
-use std::sync::Arc;
+//use std::sync::Arc;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::context::{QuirksMode, ReflowGoal};
 use style::element_state::*;

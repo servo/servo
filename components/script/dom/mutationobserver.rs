@@ -15,14 +15,14 @@ use dom::mutationrecord::MutationRecord;
 use dom::node::Node;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use html5ever_atoms::Namespace;
+//use html5ever_atoms::Namespace;
 use js::jsapi::{JSContext, JSObject};
 use microtask::Microtask;
-use microtask::NotifyMutationObservers;
 use script_thread::ScriptThread;
 use servo_atoms::Atom;
 use std::cell::Cell;
 use std::rc::Rc;
+use style::Namespace;
 
 #[dom_struct]
 pub struct MutationObserver {
