@@ -919,11 +919,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                        load_info.info.new_pipeline_id);
                 self.handle_script_loaded_url_in_iframe_msg(load_info);
             }
-            FromScriptMsg::ScriptLoadedAboutBlankInIFrame(load_info, layout_sender, doc_type) => {
+            FromScriptMsg::ScriptLoadedInitialAboutBlankInIFrame(load_info, layout_sender) => {
                 debug!("constellation got loaded `about:blank` in iframe message {:?} {:?}",
                        load_info.parent_pipeline_id,
                        load_info.new_pipeline_id);
-                self.handle_script_loaded_about_blank_in_iframe_msg(load_info, layout_sender, doc_type);
+                self.handle_script_loaded_initial_about_blank_in_iframe_msg(load_info, layout_sender);
             }
             FromScriptMsg::ChangeRunningAnimationsState(pipeline_id, animation_state) => {
                 self.handle_change_running_animations_state(pipeline_id, animation_state)
@@ -1316,7 +1316,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             frame_id: top_level_frame_id,
             new_pipeline_id: new_pipeline_id,
             load_data: load_data,
-            doc_type: DocumentType::Regular,
             replace_instant: None,
         });
     }
@@ -1362,7 +1361,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             frame_id: self.root_frame_id,
             new_pipeline_id: root_pipeline_id,
             load_data: load_data,
-            doc_type: DocumentType::Regular,
             replace_instant: None,
         });
     }
@@ -1444,7 +1442,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             frame_id: load_info.info.frame_id,
             new_pipeline_id: load_info.info.new_pipeline_id,
             load_data: load_data.clone(),
-            doc_type: DocumentType::Regular,
             replace_instant: replace_instant,
         });
 
@@ -1457,10 +1454,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                           is_private);
     }
 
-    fn handle_script_loaded_about_blank_in_iframe_msg(&mut self,
-                                                      load_info: IFrameLoadInfo,
-                                                      layout_sender: IpcSender<LayoutControlMsg>,
-                                                      doc_type: DocumentType) {
+    fn handle_script_loaded_initial_about_blank_in_iframe_msg(&mut self,
+                                                              load_info: IFrameLoadInfo,
+                                                              layout_sender: IpcSender<LayoutControlMsg>) {
         let IFrameLoadInfo {
             parent_pipeline_id,
             new_pipeline_id,
@@ -1507,7 +1503,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             frame_id: frame_id,
             new_pipeline_id: new_pipeline_id,
             load_data: load_data,
-            doc_type: doc_type,
             replace_instant: replace_instant,
         });
     }
@@ -1655,7 +1650,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     frame_id: root_frame_id,
                     new_pipeline_id: new_pipeline_id,
                     load_data: load_data.clone(),
-                    doc_type: DocumentType::Regular,
                     replace_instant: replace_instant,
                 });
                 self.new_pipeline(new_pipeline_id, root_frame_id, None, window_size, load_data, sandbox, false);
@@ -2033,7 +2027,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     frame_id: frame_id,
                     new_pipeline_id: new_pipeline_id,
                     load_data: load_data,
-                    doc_type: entry.doc_type,
                     replace_instant: Some(entry.instant),
                 });
                 return;
@@ -2221,13 +2214,21 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             self.focus_pipeline_id = Some(frame_change.new_pipeline_id);
         }
 
-        let (evicted_id, new_frame, navigated, location_changed) = if let Some(instant) = frame_change.replace_instant {
+        let replace_instant = frame_change.replace_instant.or_else(|| {
+            self.frames.get(&frame_change.frame_id)
+                .and_then(|frame| if frame.doc_type == DocumentType::InitialAboutBlank {
+                    Some(frame.instant)
+                } else {
+                    None
+                })
+        });
+
+        let (evicted_id, new_frame, navigated, location_changed) = if let Some(instant) = replace_instant {
             debug!("Replacing pipeline in existing frame with timestamp {:?}.", instant);
             let entry = FrameState {
                 frame_id: frame_change.frame_id,
                 pipeline_id: Some(frame_change.new_pipeline_id),
                 load_data: frame_change.load_data.clone(),
-                doc_type: frame_change.doc_type,
                 instant: instant,
             };
             self.traverse_to_entry(entry);
@@ -2235,7 +2236,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         } else if let Some(frame) = self.frames.get_mut(&frame_change.frame_id) {
             debug!("Adding pipeline to existing frame.");
             let old_pipeline_id = frame.pipeline_id;
-            frame.load(frame_change.new_pipeline_id, frame_change.load_data.clone(), frame_change.doc_type);
+            frame.load(frame_change.new_pipeline_id, frame_change.load_data.clone());
             // TODO: Find a way to discard `about:blank` entries. Currently we have no way to ensure
             // that a restored `about:blank` entry will use the proper script thread.
             let evicted_id = frame.prev.len()
@@ -2257,10 +2258,15 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
 
         if new_frame {
+            let doc_type = if frame_change.load_data.url.as_str() == "about:blank" {
+                DocumentType::InitialAboutBlank
+            } else {
+                DocumentType::Regular
+            };
             self.new_frame(frame_change.frame_id,
                            frame_change.new_pipeline_id,
                            frame_change.load_data,
-                           frame_change.doc_type);
+                           doc_type);
             self.update_activity(frame_change.new_pipeline_id);
             self.notify_history_changed(frame_change.new_pipeline_id);
         };

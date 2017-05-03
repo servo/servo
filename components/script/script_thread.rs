@@ -827,7 +827,17 @@ impl ScriptThread {
                 FromConstellation(ConstellationControlMsg::AttachLayout(
                         new_layout_info)) => {
                     self.profile_event(ScriptThreadEventCategory::AttachLayout, || {
-                        let origin = MutableOrigin::new(new_layout_info.load_data.url.origin());
+                        // If this is an about:blank load, it must share the parent's origin.
+                        let origin = if new_layout_info.load_data.url.as_str() == "about:blank" {
+                            new_layout_info.parent_info.and_then(|(pipeline_id, _)| {
+                                self.documents.borrow().find_document(pipeline_id).map(|doc| {
+                                    doc.origin().clone()
+                                })
+                            })
+                        } else {
+                            None
+                        }.unwrap_or(MutableOrigin::new(new_layout_info.load_data.url.origin()));
+
                         self.handle_new_layout(new_layout_info, origin);
                     })
                 }
@@ -1748,6 +1758,17 @@ impl ScriptThread {
         ROUTER.route_ipc_receiver_to_mpsc_sender(ipc_timer_event_port,
                                                  self.timer_event_chan.clone());
 
+        // If this is an about:blank load, it must share the parent's origin.
+        let origin = if incomplete.url.as_str() == "about:blank" {
+            incomplete.parent_info.and_then(|(pipeline_id, _)| {
+                self.documents.borrow().find_document(pipeline_id).map(|doc| {
+                    doc.origin().clone()
+                })
+            })
+        } else {
+            None
+        }.unwrap_or(incomplete.origin);
+
         // Create the window and document objects.
         let window = Window::new(self.js_runtime.clone(),
                                  MainThreadScriptChan(sender.clone()),
@@ -1771,7 +1792,7 @@ impl ScriptThread {
                                  incomplete.pipeline_id,
                                  incomplete.parent_info,
                                  incomplete.window_size,
-                                 incomplete.origin.clone(),
+                                 origin.clone(),
                                  self.webvr_thread.clone());
 
         // Initialize the browsing context for the window.
@@ -1813,7 +1834,7 @@ impl ScriptThread {
         let document = Document::new(&window,
                                      HasBrowsingContext::Yes,
                                      Some(final_url.clone()),
-                                     incomplete.origin,
+                                     origin,
                                      is_html_document,
                                      content_type,
                                      last_modified,

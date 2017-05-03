@@ -275,7 +275,7 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Debug + GetLayoutData + NodeInfo 
     /// not an iframe element, fails.
     fn iframe_frame_id(&self) -> FrameId;
 
-    /// If this node is an iframe element, returns its frame ID. If this node is
+    /// If this node is an iframe element, returns its pipeline ID. If this node is
     /// not an iframe element, fails.
     fn iframe_pipeline_id(&self) -> PipelineId;
 
