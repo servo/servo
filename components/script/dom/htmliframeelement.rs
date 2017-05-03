@@ -252,7 +252,7 @@ impl HTMLIFrameElement {
     }
 
     pub fn update_pipeline_id(&self, new_pipeline_id: PipelineId, reason: UpdatePipelineIdReason) {
-        if self.pending_pipeline_id.get() != Some(new_pipeline_id) {
+        if self.pending_pipeline_id.get() != Some(new_pipeline_id) && reason == UpdatePipelineIdReason::Navigation {
             return;
         }
 
