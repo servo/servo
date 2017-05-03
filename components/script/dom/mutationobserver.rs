@@ -15,8 +15,6 @@ use dom::mutationrecord::MutationRecord;
 use dom::node::Node;
 use dom::window::Window;
 use dom_struct::dom_struct;
-//use html5ever_atoms::Namespace;
-use js::jsapi::{JSContext, JSObject};
 use microtask::Microtask;
 use script_thread::ScriptThread;
 use servo_atoms::Atom;
