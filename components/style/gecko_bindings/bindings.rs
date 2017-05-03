@@ -1075,10 +1075,6 @@ extern "C" {
      -> nscoord;
 }
 extern "C" {
-    pub fn Gecko_GetAppUnitsPerPhysicalInch(pres_context: RawGeckoPresContextBorrowed)
-     -> i32;
-}
-extern "C" {
     pub fn Gecko_CSSValue_GetKeyword(aCSSValue: nsCSSValueBorrowed)
      -> nsCSSKeyword;
 }
@@ -1171,6 +1167,11 @@ extern "C" {
                                 is_vertical: bool, font: *const nsStyleFont,
                                 font_size: nscoord, use_user_font_set: bool)
      -> GeckoFontMetrics;
+}
+extern "C" {
+    pub fn Gecko_GetAppUnitsPerPhysicalInch(pres_context:
+                                                RawGeckoPresContextBorrowed)
+     -> i32;
 }
 extern "C" {
     pub fn Gecko_GetMediaFeatures() -> *const nsMediaFeature;
@@ -1854,6 +1855,15 @@ extern "C" {
     pub fn Servo_AnimationValue_Uncompute(value:
                                               RawServoAnimationValueBorrowed)
      -> RawServoDeclarationBlockStrong;
+}
+extern "C" {
+    pub fn Servo_AnimationValue_Compute(declarations:
+                                            RawServoDeclarationBlockBorrowed,
+                                        style: ServoComputedValuesBorrowed,
+                                        parent_style:
+                                            ServoComputedValuesBorrowedOrNull,
+                                        raw_data: RawServoStyleSetBorrowed)
+     -> RawServoAnimationValueStrong;
 }
 extern "C" {
     pub fn Servo_ParseStyleAttribute(data: *const nsACString,
