@@ -48,7 +48,6 @@ use net_traits::request::{RequestInit, Type as RequestType};
 use network_listener::{NetworkListener, PreInvoke};
 use num_traits::ToPrimitive;
 use script_thread::{Runnable, ScriptThread};
-use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::cell::{Cell, RefMut};
 use std::default::Default;
@@ -372,26 +371,6 @@ impl HTMLImageElement {
         let _ = task.queue(runnable, window.upcast());
     }
 
-    fn dispatch_event(&self, type_: Atom) {
-        struct FireEventTask {
-            img: Trusted<HTMLImageElement>,
-            type_: Atom
-        }
-        impl Runnable for FireEventTask {
-            fn handler(self: Box<Self>) {
-                self.img.root().upcast::<EventTarget>().fire_event(self.type_);
-            }
-        }
-        let runnable = box FireEventTask {
-            img: Trusted::new(self),
-            type_: type_
-        };
-        let document = document_from_node(self);
-        let window = document.window();
-        let task = window.dom_manipulation_task_source();
-        let _ = task.queue(runnable, window.upcast());
-    }
-
     /// https://html.spec.whatwg.org/multipage/#update-the-source-set
     fn update_source_set(&self) -> Vec<DOMString> {
         let elem = self.upcast::<Element>();
@@ -406,7 +385,7 @@ impl HTMLImageElement {
     }
 
     /// Step 9.2 of https://html.spec.whatwg.org/multipage/#update-the-image-data
-    fn set_current_request_url_to_none(&self) {
+    fn set_current_request_url_to_none_fire_error(&self) {
         struct SetUrlToNoneTask {
             img: Trusted<HTMLImageElement>,
         }
@@ -416,6 +395,10 @@ impl HTMLImageElement {
                 let img = self.img.root();
                 img.current_request.borrow_mut().source_url = None;
                 img.current_request.borrow_mut().parsed_url = None;
+                let elem = img.upcast::<Element>();
+                if elem.has_attribute(&local_name!("src")) {
+                    img.upcast::<EventTarget>().fire_event(atom!("error"));
+                }
             }
         }
 
@@ -428,23 +411,55 @@ impl HTMLImageElement {
         let _ = task_source.queue(task, window.upcast());
     }
 
-    fn set_current_request_url_to_selected(&self, src: DOMString) {
-        struct SetUrlToSelectedTask {
+    /// Step 11.4 of https://html.spec.whatwg.org/multipage/#update-the-image-data
+    fn set_current_request_url_to_selected_fire_error_and_loadend(&self, src: DOMString) {
+        struct Task {
             img: Trusted<HTMLImageElement>,
             src: String,
         }
-        impl Runnable for SetUrlToSelectedTask {
+        impl Runnable for Task {
             fn handler(self: Box<Self>) {
-                // https://html.spec.whatwg.org/multipage/#update-the-image-data
-                // Step 11, substep 5
+                // Step 9.2
                 let img = self.img.root();
                 let mut current_request = img.current_request.borrow_mut();
-                current_request.source_url = Some(self.src.into());
+                current_request.source_url = Some(DOMString::from_string(self.src));
+                img.upcast::<EventTarget>().fire_event(atom!("error"));
+                img.upcast::<EventTarget>().fire_event(atom!("loadend"));
             }
         }
-        let runnable = box SetUrlToSelectedTask {
+
+        let task = box Task {
+            img: Trusted::new(self),
+            src: src.into()
+        };
+        let document = document_from_node(self);
+        let window = document.window();
+        let task_source = window.dom_manipulation_task_source();
+        let _ = task_source.queue(task, window.upcast());
+    }
+
+    fn set_current_request_url_to_string_and_fire_load(&self, src: DOMString, url: ServoUrl) {
+        struct SetUrlToStringTask {
+            img: Trusted<HTMLImageElement>,
+            src: String,
+            url: ServoUrl
+        }
+        impl Runnable for SetUrlToStringTask {
+            fn handler(self: Box<Self>) {
+                // https://html.spec.whatwg.org/multipage/#update-the-image-data
+                // Step 5.3.7
+                let img = self.img.root();
+                let mut current_request = img.current_request.borrow_mut();
+                current_request.parsed_url = Some(self.url.clone());
+                current_request.source_url = Some(self.src.into());
+                // TODO: restart animation, if set
+                img.upcast::<EventTarget>().fire_event(atom!("load"));
+            }
+        }
+        let runnable = box SetUrlToStringTask {
             img: Trusted::new(self),
             src: src.into(),
+            url: url
         };
         let document = document_from_node(self);
         let window = document.window();
@@ -531,9 +546,7 @@ impl HTMLImageElement {
                         // Step 11.1-11.5
                         self.abort_request(State::Broken, ImageRequestPhase::Current);
                         self.abort_request(State::Broken, ImageRequestPhase::Pending);
-                        self.set_current_request_url_to_selected(src);
-                        self.dispatch_event(atom!("error"));
-                        self.dispatch_event(atom!("loadend"));
+                        self.set_current_request_url_to_selected_fire_error_and_loadend(src);
                     }
                 }
             },
@@ -541,12 +554,7 @@ impl HTMLImageElement {
                 // Step 9
                 self.abort_request(State::Broken, ImageRequestPhase::Current);
                 self.abort_request(State::Broken, ImageRequestPhase::Pending);
-                self.set_current_request_url_to_none();
-                let elem = self.upcast::<Element>();
-                if elem.has_attribute(&local_name!("src")) {
-                    self.dispatch_event(atom!("error"));
-                }
-                return
+                self.set_current_request_url_to_none_fire_error();
             },
         }
     }
@@ -585,10 +593,7 @@ impl HTMLImageElement {
                     let mut current_request = self.current_request.borrow_mut();
                     current_request.image = Some(image.clone());
                     current_request.metadata = Some(metadata);
-                    current_request.parsed_url = Some(img_url);
-                    current_request.source_url = Some(src);
-                    // TODO: queue a task to restart animation, if set
-                    self.dispatch_event(atom!("load"));
+                    self.set_current_request_url_to_string_and_fire_load(src, img_url);
                     return
                 }
             }
