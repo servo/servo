@@ -1575,19 +1575,16 @@ extern "C" {
 extern "C" {
     pub fn Servo_StyleSet_AppendStyleSheet(set: RawServoStyleSetBorrowed,
                                            sheet: RawServoStyleSheetBorrowed,
-                                           unique_id: u32,
-                                           flush: bool);
+                                           unique_id: u32, flush: bool);
 }
 extern "C" {
     pub fn Servo_StyleSet_PrependStyleSheet(set: RawServoStyleSetBorrowed,
                                             sheet: RawServoStyleSheetBorrowed,
-                                            unique_id: u32,
-                                            flush: bool);
+                                            unique_id: u32, flush: bool);
 }
 extern "C" {
     pub fn Servo_StyleSet_RemoveStyleSheet(set: RawServoStyleSetBorrowed,
-                                           unique_id: u32,
-                                           flush: bool);
+                                           unique_id: u32, flush: bool);
 }
 extern "C" {
     pub fn Servo_StyleSet_InsertStyleSheetBefore(set:

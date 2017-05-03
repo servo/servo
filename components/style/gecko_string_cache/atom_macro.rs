@@ -168,8 +168,6 @@ cfg_if! {
             pub static nsGkAtoms_applyImports: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms14applyTemplatesE"]
             pub static nsGkAtoms_applyTemplates: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms10mozapptypeE"]
-            pub static nsGkAtoms_mozapptype: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms7archiveE"]
             pub static nsGkAtoms_archive: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms4areaE"]
@@ -212,8 +210,6 @@ cfg_if! {
             pub static nsGkAtoms_axis: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms1bE"]
             pub static nsGkAtoms_b: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms13backdropFrameE"]
-            pub static nsGkAtoms_backdropFrame: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms10backgroundE"]
             pub static nsGkAtoms_background: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms4baseE"]
@@ -1214,8 +1210,6 @@ cfg_if! {
             pub static nsGkAtoms_mousethrough: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms7mouseupE"]
             pub static nsGkAtoms_mouseup: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms15mozaudiochannelE"]
-            pub static nsGkAtoms_mozaudiochannel: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms19mozfullscreenchangeE"]
             pub static nsGkAtoms_mozfullscreenchange: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms18mozfullscreenerrorE"]
@@ -1264,6 +1258,8 @@ cfg_if! {
             pub static nsGkAtoms_newline: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms8nextBidiE"]
             pub static nsGkAtoms_nextBidi: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms15nextTabParentIdE"]
+            pub static nsGkAtoms_nextTabParentId: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms2noE"]
             pub static nsGkAtoms_no: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms11noautofocusE"]
@@ -3848,10 +3844,6 @@ cfg_if! {
             pub static nsGkAtoms_onuserproximity: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms13ondevicelightE"]
             pub static nsGkAtoms_ondevicelight: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms19onmozinterruptbeginE"]
-            pub static nsGkAtoms_onmozinterruptbegin: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms17onmozinterruptendE"]
-            pub static nsGkAtoms_onmozinterruptend: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms14ondevicechangeE"]
             pub static nsGkAtoms_ondevicechange: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms33mozinputrangeignorepreventdefaultE"]
@@ -3870,192 +3862,8 @@ cfg_if! {
             pub static nsGkAtoms_processingInstructionTagName: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms11textTagNameE"]
             pub static nsGkAtoms_textTagName: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms16bcTableCellFrameE"]
-            pub static nsGkAtoms_bcTableCellFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms10blockFrameE"]
-            pub static nsGkAtoms_blockFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms8boxFrameE"]
-            pub static nsGkAtoms_boxFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms7brFrameE"]
-            pub static nsGkAtoms_brFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms11bulletFrameE"]
-            pub static nsGkAtoms_bulletFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms17colorControlFrameE"]
-            pub static nsGkAtoms_colorControlFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms14columnSetFrameE"]
-            pub static nsGkAtoms_columnSetFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms20comboboxControlFrameE"]
-            pub static nsGkAtoms_comboboxControlFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms20comboboxDisplayFrameE"]
-            pub static nsGkAtoms_comboboxDisplayFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms20dateTimeControlFrameE"]
-            pub static nsGkAtoms_dateTimeControlFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms9deckFrameE"]
-            pub static nsGkAtoms_deckFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms12detailsFrameE"]
-            pub static nsGkAtoms_detailsFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms13fieldSetFrameE"]
-            pub static nsGkAtoms_fieldSetFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms18flexContainerFrameE"]
-            pub static nsGkAtoms_flexContainerFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms16formControlFrameE"]
-            pub static nsGkAtoms_formControlFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms13frameSetFrameE"]
-            pub static nsGkAtoms_frameSetFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms21gfxButtonControlFrameE"]
-            pub static nsGkAtoms_gfxButtonControlFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms18gridContainerFrameE"]
-            pub static nsGkAtoms_gridContainerFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms22HTMLButtonControlFrameE"]
-            pub static nsGkAtoms_HTMLButtonControlFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms15HTMLCanvasFrameE"]
-            pub static nsGkAtoms_HTMLCanvasFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms16subDocumentFrameE"]
-            pub static nsGkAtoms_subDocumentFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms13imageBoxFrameE"]
-            pub static nsGkAtoms_imageBoxFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms10imageFrameE"]
-            pub static nsGkAtoms_imageFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms17imageControlFrameE"]
-            pub static nsGkAtoms_imageControlFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms11inlineFrameE"]
-            pub static nsGkAtoms_inlineFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms12leafBoxFrameE"]
-            pub static nsGkAtoms_leafBoxFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms11legendFrameE"]
-            pub static nsGkAtoms_legendFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms11letterFrameE"]
-            pub static nsGkAtoms_letterFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms9lineFrameE"]
-            pub static nsGkAtoms_lineFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms16listControlFrameE"]
-            pub static nsGkAtoms_listControlFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms9menuFrameE"]
-            pub static nsGkAtoms_menuFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms10meterFrameE"]
-            pub static nsGkAtoms_meterFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms14menuPopupFrameE"]
-            pub static nsGkAtoms_menuPopupFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms18numberControlFrameE"]
-            pub static nsGkAtoms_numberControlFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms11objectFrameE"]
-            pub static nsGkAtoms_objectFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms9pageFrameE"]
-            pub static nsGkAtoms_pageFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms14pageBreakFrameE"]
-            pub static nsGkAtoms_pageBreakFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms16pageContentFrameE"]
-            pub static nsGkAtoms_pageContentFrame: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms16placeholderFrameE"]
             pub static nsGkAtoms_placeholderFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms13popupSetFrameE"]
-            pub static nsGkAtoms_popupSetFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms13progressFrameE"]
-            pub static nsGkAtoms_progressFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms11canvasFrameE"]
-            pub static nsGkAtoms_canvasFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms10rangeFrameE"]
-            pub static nsGkAtoms_rangeFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms9rootFrameE"]
-            pub static nsGkAtoms_rootFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms22rubyBaseContainerFrameE"]
-            pub static nsGkAtoms_rubyBaseContainerFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms13rubyBaseFrameE"]
-            pub static nsGkAtoms_rubyBaseFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms9rubyFrameE"]
-            pub static nsGkAtoms_rubyFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms22rubyTextContainerFrameE"]
-            pub static nsGkAtoms_rubyTextContainerFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms13rubyTextFrameE"]
-            pub static nsGkAtoms_rubyTextFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms11scrollFrameE"]
-            pub static nsGkAtoms_scrollFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms14scrollbarFrameE"]
-            pub static nsGkAtoms_scrollbarFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms13sequenceFrameE"]
-            pub static nsGkAtoms_sequenceFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms11sliderFrameE"]
-            pub static nsGkAtoms_sliderFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms14tableCellFrameE"]
-            pub static nsGkAtoms_tableCellFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms13tableColFrameE"]
-            pub static nsGkAtoms_tableColFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms18tableColGroupFrameE"]
-            pub static nsGkAtoms_tableColGroupFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms10tableFrameE"]
-            pub static nsGkAtoms_tableFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms17tableWrapperFrameE"]
-            pub static nsGkAtoms_tableWrapperFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms18tableRowGroupFrameE"]
-            pub static nsGkAtoms_tableRowGroupFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms13tableRowFrameE"]
-            pub static nsGkAtoms_tableRowFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms14textInputFrameE"]
-            pub static nsGkAtoms_textInputFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms9textFrameE"]
-            pub static nsGkAtoms_textFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms13viewportFrameE"]
-            pub static nsGkAtoms_viewportFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms13XULLabelFrameE"]
-            pub static nsGkAtoms_XULLabelFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms9svgAFrameE"]
-            pub static nsGkAtoms_svgAFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms16svgClipPathFrameE"]
-            pub static nsGkAtoms_svgClipPathFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms12svgDefsFrameE"]
-            pub static nsGkAtoms_svgDefsFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms19svgFEContainerFrameE"]
-            pub static nsGkAtoms_svgFEContainerFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms15svgFEImageFrameE"]
-            pub static nsGkAtoms_svgFEImageFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms14svgFELeafFrameE"]
-            pub static nsGkAtoms_svgFELeafFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms22svgFEUnstyledLeafFrameE"]
-            pub static nsGkAtoms_svgFEUnstyledLeafFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms14svgFilterFrameE"]
-            pub static nsGkAtoms_svgFilterFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms21svgForeignObjectFrameE"]
-            pub static nsGkAtoms_svgForeignObjectFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms24svgGenericContainerFrameE"]
-            pub static nsGkAtoms_svgGenericContainerFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms16svgGeometryFrameE"]
-            pub static nsGkAtoms_svgGeometryFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms9svgGFrameE"]
-            pub static nsGkAtoms_svgGFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms16svgGradientFrameE"]
-            pub static nsGkAtoms_svgGradientFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms13svgImageFrameE"]
-            pub static nsGkAtoms_svgImageFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms16svgInnerSVGFrameE"]
-            pub static nsGkAtoms_svgInnerSVGFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms22svgLinearGradientFrameE"]
-            pub static nsGkAtoms_svgLinearGradientFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms14svgMarkerFrameE"]
-            pub static nsGkAtoms_svgMarkerFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms23svgMarkerAnonChildFrameE"]
-            pub static nsGkAtoms_svgMarkerAnonChildFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms12svgMaskFrameE"]
-            pub static nsGkAtoms_svgMaskFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms16svgOuterSVGFrameE"]
-            pub static nsGkAtoms_svgOuterSVGFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms25svgOuterSVGAnonChildFrameE"]
-            pub static nsGkAtoms_svgOuterSVGAnonChildFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms15svgPatternFrameE"]
-            pub static nsGkAtoms_svgPatternFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms22svgRadialGradientFrameE"]
-            pub static nsGkAtoms_svgRadialGradientFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms12svgStopFrameE"]
-            pub static nsGkAtoms_svgStopFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms14svgSwitchFrameE"]
-            pub static nsGkAtoms_svgSwitchFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms12svgTextFrameE"]
-            pub static nsGkAtoms_svgTextFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms11svgUseFrameE"]
-            pub static nsGkAtoms_svgUseFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms12svgViewFrameE"]
-            pub static nsGkAtoms_svgViewFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms14HTMLVideoFrameE"]
-            pub static nsGkAtoms_HTMLVideoFrame: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms9onloadendE"]
             pub static nsGkAtoms_onloadend: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms11onloadstartE"]
@@ -4180,6 +3988,8 @@ cfg_if! {
             pub static nsGkAtoms_ongamepadconnected: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms21ongamepaddisconnectedE"]
             pub static nsGkAtoms_ongamepaddisconnected: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms19afterPseudoPropertyE"]
+            pub static nsGkAtoms_afterPseudoProperty: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms18animationsPropertyE"]
             pub static nsGkAtoms_animationsProperty: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms26animationsOfBeforePropertyE"]
@@ -4192,6 +4002,8 @@ cfg_if! {
             pub static nsGkAtoms_animationEffectsForBeforeProperty: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms32animationEffectsForAfterPropertyE"]
             pub static nsGkAtoms_animationEffectsForAfterProperty: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms20beforePseudoPropertyE"]
+            pub static nsGkAtoms_beforePseudoProperty: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms30cssPseudoElementBeforePropertyE"]
             pub static nsGkAtoms_cssPseudoElementBeforeProperty: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms29cssPseudoElementAfterPropertyE"]
@@ -4570,8 +4382,6 @@ cfg_if! {
             pub static nsGkAtoms_aria_valuemax: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms14aria_valuetextE"]
             pub static nsGkAtoms_aria_valuetext: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms9AreaFrameE"]
-            pub static nsGkAtoms_AreaFrame: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms14auto_generatedE"]
             pub static nsGkAtoms_auto_generated: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms6bannerE"]
@@ -4612,8 +4422,6 @@ cfg_if! {
             pub static nsGkAtoms_heading: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms9hitregionE"]
             pub static nsGkAtoms_hitregion: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms16InlineBlockFrameE"]
-            pub static nsGkAtoms_InlineBlockFrame: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms11inlinevalueE"]
             pub static nsGkAtoms_inlinevalue: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms7invalidE"]
@@ -4834,122 +4642,16 @@ cfg_if! {
             pub static nsCSSPseudoElements_placeholder: *mut nsICSSPseudoElement;
             #[link_name = "_ZN19nsCSSPseudoElements14mozColorSwatchE"]
             pub static nsCSSPseudoElements_mozColorSwatch: *mut nsICSSPseudoElement;
-            #[link_name = "_ZN14nsCSSAnonBoxes7mozTextE"]
-            pub static nsCSSAnonBoxes_mozText: *mut nsICSSAnonBoxPseudo;
             #[link_name = "_ZN14nsCSSAnonBoxes14oofPlaceholderE"]
             pub static nsCSSAnonBoxes_oofPlaceholder: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes23firstLetterContinuationE"]
-            pub static nsCSSAnonBoxes_firstLetterContinuation: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes27mozBlockInsideInlineWrapperE"]
-            pub static nsCSSAnonBoxes_mozBlockInsideInlineWrapper: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes23mozMathMLAnonymousBlockE"]
-            pub static nsCSSAnonBoxes_mozMathMLAnonymousBlock: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes20mozXULAnonymousBlockE"]
-            pub static nsCSSAnonBoxes_mozXULAnonymousBlock: *mut nsICSSAnonBoxPseudo;
             #[link_name = "_ZN14nsCSSAnonBoxes24horizontalFramesetBorderE"]
             pub static nsCSSAnonBoxes_horizontalFramesetBorder: *mut nsICSSAnonBoxPseudo;
             #[link_name = "_ZN14nsCSSAnonBoxes22verticalFramesetBorderE"]
             pub static nsCSSAnonBoxes_verticalFramesetBorder: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes12mozLineFrameE"]
-            pub static nsCSSAnonBoxes_mozLineFrame: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes13buttonContentE"]
-            pub static nsCSSAnonBoxes_buttonContent: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes11cellContentE"]
-            pub static nsCSSAnonBoxes_cellContent: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes12dropDownListE"]
-            pub static nsCSSAnonBoxes_dropDownList: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes15fieldsetContentE"]
-            pub static nsCSSAnonBoxes_fieldsetContent: *mut nsICSSAnonBoxPseudo;
             #[link_name = "_ZN14nsCSSAnonBoxes13framesetBlankE"]
             pub static nsCSSAnonBoxes_framesetBlank: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes30mozDisplayComboboxControlFrameE"]
-            pub static nsCSSAnonBoxes_mozDisplayComboboxControlFrame: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes17htmlCanvasContentE"]
-            pub static nsCSSAnonBoxes_htmlCanvasContent: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes11inlineTableE"]
-            pub static nsCSSAnonBoxes_inlineTable: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes5tableE"]
-            pub static nsCSSAnonBoxes_table: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes9tableCellE"]
-            pub static nsCSSAnonBoxes_tableCell: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes13tableColGroupE"]
-            pub static nsCSSAnonBoxes_tableColGroup: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes8tableColE"]
-            pub static nsCSSAnonBoxes_tableCol: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes12tableWrapperE"]
-            pub static nsCSSAnonBoxes_tableWrapper: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes13tableRowGroupE"]
-            pub static nsCSSAnonBoxes_tableRowGroup: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes8tableRowE"]
-            pub static nsCSSAnonBoxes_tableRow: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes6canvasE"]
-            pub static nsCSSAnonBoxes_canvas: *mut nsICSSAnonBoxPseudo;
             #[link_name = "_ZN14nsCSSAnonBoxes9pageBreakE"]
             pub static nsCSSAnonBoxes_pageBreak: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes4pageE"]
-            pub static nsCSSAnonBoxes_page: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes11pageContentE"]
-            pub static nsCSSAnonBoxes_pageContent: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes12pageSequenceE"]
-            pub static nsCSSAnonBoxes_pageSequence: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes15scrolledContentE"]
-            pub static nsCSSAnonBoxes_scrolledContent: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes14scrolledCanvasE"]
-            pub static nsCSSAnonBoxes_scrolledCanvas: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes20scrolledPageSequenceE"]
-            pub static nsCSSAnonBoxes_scrolledPageSequence: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes13columnContentE"]
-            pub static nsCSSAnonBoxes_columnContent: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes8viewportE"]
-            pub static nsCSSAnonBoxes_viewport: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes14viewportScrollE"]
-            pub static nsCSSAnonBoxes_viewportScroll: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes17anonymousFlexItemE"]
-            pub static nsCSSAnonBoxes_anonymousFlexItem: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes17anonymousGridItemE"]
-            pub static nsCSSAnonBoxes_anonymousGridItem: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes4rubyE"]
-            pub static nsCSSAnonBoxes_ruby: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes8rubyBaseE"]
-            pub static nsCSSAnonBoxes_rubyBase: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes17rubyBaseContainerE"]
-            pub static nsCSSAnonBoxes_rubyBaseContainer: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes8rubyTextE"]
-            pub static nsCSSAnonBoxes_rubyText: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes17rubyTextContainerE"]
-            pub static nsCSSAnonBoxes_rubyTextContainer: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes13moztreecolumnE"]
-            pub static nsCSSAnonBoxes_moztreecolumn: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes10moztreerowE"]
-            pub static nsCSSAnonBoxes_moztreerow: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes16moztreeseparatorE"]
-            pub static nsCSSAnonBoxes_moztreeseparator: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes11moztreecellE"]
-            pub static nsCSSAnonBoxes_moztreecell: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes18moztreeindentationE"]
-            pub static nsCSSAnonBoxes_moztreeindentation: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes11moztreelineE"]
-            pub static nsCSSAnonBoxes_moztreeline: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes13moztreetwistyE"]
-            pub static nsCSSAnonBoxes_moztreetwisty: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes12moztreeimageE"]
-            pub static nsCSSAnonBoxes_moztreeimage: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes15moztreecelltextE"]
-            pub static nsCSSAnonBoxes_moztreecelltext: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes15moztreecheckboxE"]
-            pub static nsCSSAnonBoxes_moztreecheckbox: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes20moztreeprogressmeterE"]
-            pub static nsCSSAnonBoxes_moztreeprogressmeter: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes19moztreedropfeedbackE"]
-            pub static nsCSSAnonBoxes_moztreedropfeedback: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes21mozSVGMarkerAnonChildE"]
-            pub static nsCSSAnonBoxes_mozSVGMarkerAnonChild: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes23mozSVGOuterSVGAnonChildE"]
-            pub static nsCSSAnonBoxes_mozSVGOuterSVGAnonChild: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes20mozSVGForeignContentE"]
-            pub static nsCSSAnonBoxes_mozSVGForeignContent: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes10mozSVGTextE"]
-            pub static nsCSSAnonBoxes_mozSVGText: *mut nsICSSAnonBoxPseudo;
         }
     } else if #[cfg(target_pointer_width = "64")] {
         extern {
@@ -5101,8 +4803,6 @@ cfg_if! {
             pub static nsGkAtoms_applyImports: *mut nsIAtom;
             #[link_name = "?applyTemplates@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_applyTemplates: *mut nsIAtom;
-            #[link_name = "?mozapptype@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_mozapptype: *mut nsIAtom;
             #[link_name = "?archive@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_archive: *mut nsIAtom;
             #[link_name = "?area@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -5145,8 +4845,6 @@ cfg_if! {
             pub static nsGkAtoms_axis: *mut nsIAtom;
             #[link_name = "?b@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_b: *mut nsIAtom;
-            #[link_name = "?backdropFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_backdropFrame: *mut nsIAtom;
             #[link_name = "?background@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_background: *mut nsIAtom;
             #[link_name = "?base@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -6147,8 +5845,6 @@ cfg_if! {
             pub static nsGkAtoms_mousethrough: *mut nsIAtom;
             #[link_name = "?mouseup@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_mouseup: *mut nsIAtom;
-            #[link_name = "?mozaudiochannel@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_mozaudiochannel: *mut nsIAtom;
             #[link_name = "?mozfullscreenchange@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_mozfullscreenchange: *mut nsIAtom;
             #[link_name = "?mozfullscreenerror@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -6197,6 +5893,8 @@ cfg_if! {
             pub static nsGkAtoms_newline: *mut nsIAtom;
             #[link_name = "?nextBidi@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_nextBidi: *mut nsIAtom;
+            #[link_name = "?nextTabParentId@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_nextTabParentId: *mut nsIAtom;
             #[link_name = "?no@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_no: *mut nsIAtom;
             #[link_name = "?noautofocus@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -8781,10 +8479,6 @@ cfg_if! {
             pub static nsGkAtoms_onuserproximity: *mut nsIAtom;
             #[link_name = "?ondevicelight@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_ondevicelight: *mut nsIAtom;
-            #[link_name = "?onmozinterruptbegin@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_onmozinterruptbegin: *mut nsIAtom;
-            #[link_name = "?onmozinterruptend@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_onmozinterruptend: *mut nsIAtom;
             #[link_name = "?ondevicechange@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_ondevicechange: *mut nsIAtom;
             #[link_name = "?mozinputrangeignorepreventdefault@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -8803,192 +8497,8 @@ cfg_if! {
             pub static nsGkAtoms_processingInstructionTagName: *mut nsIAtom;
             #[link_name = "?textTagName@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_textTagName: *mut nsIAtom;
-            #[link_name = "?bcTableCellFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_bcTableCellFrame: *mut nsIAtom;
-            #[link_name = "?blockFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_blockFrame: *mut nsIAtom;
-            #[link_name = "?boxFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_boxFrame: *mut nsIAtom;
-            #[link_name = "?brFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_brFrame: *mut nsIAtom;
-            #[link_name = "?bulletFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_bulletFrame: *mut nsIAtom;
-            #[link_name = "?colorControlFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_colorControlFrame: *mut nsIAtom;
-            #[link_name = "?columnSetFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_columnSetFrame: *mut nsIAtom;
-            #[link_name = "?comboboxControlFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_comboboxControlFrame: *mut nsIAtom;
-            #[link_name = "?comboboxDisplayFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_comboboxDisplayFrame: *mut nsIAtom;
-            #[link_name = "?dateTimeControlFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_dateTimeControlFrame: *mut nsIAtom;
-            #[link_name = "?deckFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_deckFrame: *mut nsIAtom;
-            #[link_name = "?detailsFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_detailsFrame: *mut nsIAtom;
-            #[link_name = "?fieldSetFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_fieldSetFrame: *mut nsIAtom;
-            #[link_name = "?flexContainerFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_flexContainerFrame: *mut nsIAtom;
-            #[link_name = "?formControlFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_formControlFrame: *mut nsIAtom;
-            #[link_name = "?frameSetFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_frameSetFrame: *mut nsIAtom;
-            #[link_name = "?gfxButtonControlFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_gfxButtonControlFrame: *mut nsIAtom;
-            #[link_name = "?gridContainerFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_gridContainerFrame: *mut nsIAtom;
-            #[link_name = "?HTMLButtonControlFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_HTMLButtonControlFrame: *mut nsIAtom;
-            #[link_name = "?HTMLCanvasFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_HTMLCanvasFrame: *mut nsIAtom;
-            #[link_name = "?subDocumentFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_subDocumentFrame: *mut nsIAtom;
-            #[link_name = "?imageBoxFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_imageBoxFrame: *mut nsIAtom;
-            #[link_name = "?imageFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_imageFrame: *mut nsIAtom;
-            #[link_name = "?imageControlFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_imageControlFrame: *mut nsIAtom;
-            #[link_name = "?inlineFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_inlineFrame: *mut nsIAtom;
-            #[link_name = "?leafBoxFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_leafBoxFrame: *mut nsIAtom;
-            #[link_name = "?legendFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_legendFrame: *mut nsIAtom;
-            #[link_name = "?letterFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_letterFrame: *mut nsIAtom;
-            #[link_name = "?lineFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_lineFrame: *mut nsIAtom;
-            #[link_name = "?listControlFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_listControlFrame: *mut nsIAtom;
-            #[link_name = "?menuFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_menuFrame: *mut nsIAtom;
-            #[link_name = "?meterFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_meterFrame: *mut nsIAtom;
-            #[link_name = "?menuPopupFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_menuPopupFrame: *mut nsIAtom;
-            #[link_name = "?numberControlFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_numberControlFrame: *mut nsIAtom;
-            #[link_name = "?objectFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_objectFrame: *mut nsIAtom;
-            #[link_name = "?pageFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_pageFrame: *mut nsIAtom;
-            #[link_name = "?pageBreakFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_pageBreakFrame: *mut nsIAtom;
-            #[link_name = "?pageContentFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_pageContentFrame: *mut nsIAtom;
             #[link_name = "?placeholderFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_placeholderFrame: *mut nsIAtom;
-            #[link_name = "?popupSetFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_popupSetFrame: *mut nsIAtom;
-            #[link_name = "?progressFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_progressFrame: *mut nsIAtom;
-            #[link_name = "?canvasFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_canvasFrame: *mut nsIAtom;
-            #[link_name = "?rangeFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_rangeFrame: *mut nsIAtom;
-            #[link_name = "?rootFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_rootFrame: *mut nsIAtom;
-            #[link_name = "?rubyBaseContainerFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_rubyBaseContainerFrame: *mut nsIAtom;
-            #[link_name = "?rubyBaseFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_rubyBaseFrame: *mut nsIAtom;
-            #[link_name = "?rubyFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_rubyFrame: *mut nsIAtom;
-            #[link_name = "?rubyTextContainerFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_rubyTextContainerFrame: *mut nsIAtom;
-            #[link_name = "?rubyTextFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_rubyTextFrame: *mut nsIAtom;
-            #[link_name = "?scrollFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_scrollFrame: *mut nsIAtom;
-            #[link_name = "?scrollbarFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_scrollbarFrame: *mut nsIAtom;
-            #[link_name = "?sequenceFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_sequenceFrame: *mut nsIAtom;
-            #[link_name = "?sliderFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_sliderFrame: *mut nsIAtom;
-            #[link_name = "?tableCellFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_tableCellFrame: *mut nsIAtom;
-            #[link_name = "?tableColFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_tableColFrame: *mut nsIAtom;
-            #[link_name = "?tableColGroupFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_tableColGroupFrame: *mut nsIAtom;
-            #[link_name = "?tableFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_tableFrame: *mut nsIAtom;
-            #[link_name = "?tableWrapperFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_tableWrapperFrame: *mut nsIAtom;
-            #[link_name = "?tableRowGroupFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_tableRowGroupFrame: *mut nsIAtom;
-            #[link_name = "?tableRowFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_tableRowFrame: *mut nsIAtom;
-            #[link_name = "?textInputFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_textInputFrame: *mut nsIAtom;
-            #[link_name = "?textFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_textFrame: *mut nsIAtom;
-            #[link_name = "?viewportFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_viewportFrame: *mut nsIAtom;
-            #[link_name = "?XULLabelFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_XULLabelFrame: *mut nsIAtom;
-            #[link_name = "?svgAFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_svgAFrame: *mut nsIAtom;
-            #[link_name = "?svgClipPathFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_svgClipPathFrame: *mut nsIAtom;
-            #[link_name = "?svgDefsFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_svgDefsFrame: *mut nsIAtom;
-            #[link_name = "?svgFEContainerFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_svgFEContainerFrame: *mut nsIAtom;
-            #[link_name = "?svgFEImageFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_svgFEImageFrame: *mut nsIAtom;
-            #[link_name = "?svgFELeafFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_svgFELeafFrame: *mut nsIAtom;
-            #[link_name = "?svgFEUnstyledLeafFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_svgFEUnstyledLeafFrame: *mut nsIAtom;
-            #[link_name = "?svgFilterFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_svgFilterFrame: *mut nsIAtom;
-            #[link_name = "?svgForeignObjectFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_svgForeignObjectFrame: *mut nsIAtom;
-            #[link_name = "?svgGenericContainerFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_svgGenericContainerFrame: *mut nsIAtom;
-            #[link_name = "?svgGeometryFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_svgGeometryFrame: *mut nsIAtom;
-            #[link_name = "?svgGFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_svgGFrame: *mut nsIAtom;
-            #[link_name = "?svgGradientFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_svgGradientFrame: *mut nsIAtom;
-            #[link_name = "?svgImageFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_svgImageFrame: *mut nsIAtom;
-            #[link_name = "?svgInnerSVGFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_svgInnerSVGFrame: *mut nsIAtom;
-            #[link_name = "?svgLinearGradientFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_svgLinearGradientFrame: *mut nsIAtom;
-            #[link_name = "?svgMarkerFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_svgMarkerFrame: *mut nsIAtom;
-            #[link_name = "?svgMarkerAnonChildFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_svgMarkerAnonChildFrame: *mut nsIAtom;
-            #[link_name = "?svgMaskFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_svgMaskFrame: *mut nsIAtom;
-            #[link_name = "?svgOuterSVGFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_svgOuterSVGFrame: *mut nsIAtom;
-            #[link_name = "?svgOuterSVGAnonChildFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_svgOuterSVGAnonChildFrame: *mut nsIAtom;
-            #[link_name = "?svgPatternFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_svgPatternFrame: *mut nsIAtom;
-            #[link_name = "?svgRadialGradientFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_svgRadialGradientFrame: *mut nsIAtom;
-            #[link_name = "?svgStopFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_svgStopFrame: *mut nsIAtom;
-            #[link_name = "?svgSwitchFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_svgSwitchFrame: *mut nsIAtom;
-            #[link_name = "?svgTextFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_svgTextFrame: *mut nsIAtom;
-            #[link_name = "?svgUseFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_svgUseFrame: *mut nsIAtom;
-            #[link_name = "?svgViewFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_svgViewFrame: *mut nsIAtom;
-            #[link_name = "?HTMLVideoFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_HTMLVideoFrame: *mut nsIAtom;
             #[link_name = "?onloadend@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_onloadend: *mut nsIAtom;
             #[link_name = "?onloadstart@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -9113,6 +8623,8 @@ cfg_if! {
             pub static nsGkAtoms_ongamepadconnected: *mut nsIAtom;
             #[link_name = "?ongamepaddisconnected@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_ongamepaddisconnected: *mut nsIAtom;
+            #[link_name = "?afterPseudoProperty@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_afterPseudoProperty: *mut nsIAtom;
             #[link_name = "?animationsProperty@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_animationsProperty: *mut nsIAtom;
             #[link_name = "?animationsOfBeforeProperty@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -9125,6 +8637,8 @@ cfg_if! {
             pub static nsGkAtoms_animationEffectsForBeforeProperty: *mut nsIAtom;
             #[link_name = "?animationEffectsForAfterProperty@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_animationEffectsForAfterProperty: *mut nsIAtom;
+            #[link_name = "?beforePseudoProperty@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_beforePseudoProperty: *mut nsIAtom;
             #[link_name = "?cssPseudoElementBeforeProperty@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_cssPseudoElementBeforeProperty: *mut nsIAtom;
             #[link_name = "?cssPseudoElementAfterProperty@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -9503,8 +9017,6 @@ cfg_if! {
             pub static nsGkAtoms_aria_valuemax: *mut nsIAtom;
             #[link_name = "?aria_valuetext@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_aria_valuetext: *mut nsIAtom;
-            #[link_name = "?AreaFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_AreaFrame: *mut nsIAtom;
             #[link_name = "?auto_generated@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_auto_generated: *mut nsIAtom;
             #[link_name = "?banner@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -9545,8 +9057,6 @@ cfg_if! {
             pub static nsGkAtoms_heading: *mut nsIAtom;
             #[link_name = "?hitregion@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_hitregion: *mut nsIAtom;
-            #[link_name = "?InlineBlockFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_InlineBlockFrame: *mut nsIAtom;
             #[link_name = "?inlinevalue@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_inlinevalue: *mut nsIAtom;
             #[link_name = "?invalid@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -9767,122 +9277,16 @@ cfg_if! {
             pub static nsCSSPseudoElements_placeholder: *mut nsICSSPseudoElement;
             #[link_name = "?mozColorSwatch@nsCSSPseudoElements@@2PEAVnsICSSPseudoElement@@EA"]
             pub static nsCSSPseudoElements_mozColorSwatch: *mut nsICSSPseudoElement;
-            #[link_name = "?mozText@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_mozText: *mut nsICSSAnonBoxPseudo;
             #[link_name = "?oofPlaceholder@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
             pub static nsCSSAnonBoxes_oofPlaceholder: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?firstLetterContinuation@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_firstLetterContinuation: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?mozBlockInsideInlineWrapper@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_mozBlockInsideInlineWrapper: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?mozMathMLAnonymousBlock@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_mozMathMLAnonymousBlock: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?mozXULAnonymousBlock@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_mozXULAnonymousBlock: *mut nsICSSAnonBoxPseudo;
             #[link_name = "?horizontalFramesetBorder@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
             pub static nsCSSAnonBoxes_horizontalFramesetBorder: *mut nsICSSAnonBoxPseudo;
             #[link_name = "?verticalFramesetBorder@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
             pub static nsCSSAnonBoxes_verticalFramesetBorder: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?mozLineFrame@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_mozLineFrame: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?buttonContent@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_buttonContent: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?cellContent@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_cellContent: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?dropDownList@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_dropDownList: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?fieldsetContent@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_fieldsetContent: *mut nsICSSAnonBoxPseudo;
             #[link_name = "?framesetBlank@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
             pub static nsCSSAnonBoxes_framesetBlank: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?mozDisplayComboboxControlFrame@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_mozDisplayComboboxControlFrame: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?htmlCanvasContent@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_htmlCanvasContent: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?inlineTable@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_inlineTable: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?table@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_table: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?tableCell@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_tableCell: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?tableColGroup@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_tableColGroup: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?tableCol@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_tableCol: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?tableWrapper@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_tableWrapper: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?tableRowGroup@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_tableRowGroup: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?tableRow@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_tableRow: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?canvas@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_canvas: *mut nsICSSAnonBoxPseudo;
             #[link_name = "?pageBreak@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
             pub static nsCSSAnonBoxes_pageBreak: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?page@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_page: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?pageContent@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_pageContent: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?pageSequence@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_pageSequence: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?scrolledContent@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_scrolledContent: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?scrolledCanvas@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_scrolledCanvas: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?scrolledPageSequence@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_scrolledPageSequence: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?columnContent@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_columnContent: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?viewport@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_viewport: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?viewportScroll@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_viewportScroll: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?anonymousFlexItem@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_anonymousFlexItem: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?anonymousGridItem@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_anonymousGridItem: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?ruby@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_ruby: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?rubyBase@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_rubyBase: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?rubyBaseContainer@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_rubyBaseContainer: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?rubyText@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_rubyText: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?rubyTextContainer@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_rubyTextContainer: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?moztreecolumn@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_moztreecolumn: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?moztreerow@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_moztreerow: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?moztreeseparator@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_moztreeseparator: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?moztreecell@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_moztreecell: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?moztreeindentation@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_moztreeindentation: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?moztreeline@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_moztreeline: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?moztreetwisty@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_moztreetwisty: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?moztreeimage@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_moztreeimage: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?moztreecelltext@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_moztreecelltext: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?moztreecheckbox@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_moztreecheckbox: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?moztreeprogressmeter@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_moztreeprogressmeter: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?moztreedropfeedback@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_moztreedropfeedback: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?mozSVGMarkerAnonChild@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_mozSVGMarkerAnonChild: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?mozSVGOuterSVGAnonChild@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_mozSVGOuterSVGAnonChild: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?mozSVGForeignContent@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_mozSVGForeignContent: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?mozSVGText@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_mozSVGText: *mut nsICSSAnonBoxPseudo;
         }
     } else {
         extern {
@@ -10034,8 +9438,6 @@ cfg_if! {
             pub static nsGkAtoms_applyImports: *mut nsIAtom;
             #[link_name = "\x01?applyTemplates@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_applyTemplates: *mut nsIAtom;
-            #[link_name = "\x01?mozapptype@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_mozapptype: *mut nsIAtom;
             #[link_name = "\x01?archive@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_archive: *mut nsIAtom;
             #[link_name = "\x01?area@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -10078,8 +9480,6 @@ cfg_if! {
             pub static nsGkAtoms_axis: *mut nsIAtom;
             #[link_name = "\x01?b@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_b: *mut nsIAtom;
-            #[link_name = "\x01?backdropFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_backdropFrame: *mut nsIAtom;
             #[link_name = "\x01?background@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_background: *mut nsIAtom;
             #[link_name = "\x01?base@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -11080,8 +10480,6 @@ cfg_if! {
             pub static nsGkAtoms_mousethrough: *mut nsIAtom;
             #[link_name = "\x01?mouseup@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_mouseup: *mut nsIAtom;
-            #[link_name = "\x01?mozaudiochannel@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_mozaudiochannel: *mut nsIAtom;
             #[link_name = "\x01?mozfullscreenchange@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_mozfullscreenchange: *mut nsIAtom;
             #[link_name = "\x01?mozfullscreenerror@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -11130,6 +10528,8 @@ cfg_if! {
             pub static nsGkAtoms_newline: *mut nsIAtom;
             #[link_name = "\x01?nextBidi@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_nextBidi: *mut nsIAtom;
+            #[link_name = "\x01?nextTabParentId@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_nextTabParentId: *mut nsIAtom;
             #[link_name = "\x01?no@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_no: *mut nsIAtom;
             #[link_name = "\x01?noautofocus@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -13714,10 +13114,6 @@ cfg_if! {
             pub static nsGkAtoms_onuserproximity: *mut nsIAtom;
             #[link_name = "\x01?ondevicelight@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_ondevicelight: *mut nsIAtom;
-            #[link_name = "\x01?onmozinterruptbegin@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_onmozinterruptbegin: *mut nsIAtom;
-            #[link_name = "\x01?onmozinterruptend@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_onmozinterruptend: *mut nsIAtom;
             #[link_name = "\x01?ondevicechange@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_ondevicechange: *mut nsIAtom;
             #[link_name = "\x01?mozinputrangeignorepreventdefault@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -13736,192 +13132,8 @@ cfg_if! {
             pub static nsGkAtoms_processingInstructionTagName: *mut nsIAtom;
             #[link_name = "\x01?textTagName@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_textTagName: *mut nsIAtom;
-            #[link_name = "\x01?bcTableCellFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_bcTableCellFrame: *mut nsIAtom;
-            #[link_name = "\x01?blockFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_blockFrame: *mut nsIAtom;
-            #[link_name = "\x01?boxFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_boxFrame: *mut nsIAtom;
-            #[link_name = "\x01?brFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_brFrame: *mut nsIAtom;
-            #[link_name = "\x01?bulletFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_bulletFrame: *mut nsIAtom;
-            #[link_name = "\x01?colorControlFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_colorControlFrame: *mut nsIAtom;
-            #[link_name = "\x01?columnSetFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_columnSetFrame: *mut nsIAtom;
-            #[link_name = "\x01?comboboxControlFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_comboboxControlFrame: *mut nsIAtom;
-            #[link_name = "\x01?comboboxDisplayFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_comboboxDisplayFrame: *mut nsIAtom;
-            #[link_name = "\x01?dateTimeControlFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_dateTimeControlFrame: *mut nsIAtom;
-            #[link_name = "\x01?deckFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_deckFrame: *mut nsIAtom;
-            #[link_name = "\x01?detailsFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_detailsFrame: *mut nsIAtom;
-            #[link_name = "\x01?fieldSetFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_fieldSetFrame: *mut nsIAtom;
-            #[link_name = "\x01?flexContainerFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_flexContainerFrame: *mut nsIAtom;
-            #[link_name = "\x01?formControlFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_formControlFrame: *mut nsIAtom;
-            #[link_name = "\x01?frameSetFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_frameSetFrame: *mut nsIAtom;
-            #[link_name = "\x01?gfxButtonControlFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_gfxButtonControlFrame: *mut nsIAtom;
-            #[link_name = "\x01?gridContainerFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_gridContainerFrame: *mut nsIAtom;
-            #[link_name = "\x01?HTMLButtonControlFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_HTMLButtonControlFrame: *mut nsIAtom;
-            #[link_name = "\x01?HTMLCanvasFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_HTMLCanvasFrame: *mut nsIAtom;
-            #[link_name = "\x01?subDocumentFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_subDocumentFrame: *mut nsIAtom;
-            #[link_name = "\x01?imageBoxFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_imageBoxFrame: *mut nsIAtom;
-            #[link_name = "\x01?imageFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_imageFrame: *mut nsIAtom;
-            #[link_name = "\x01?imageControlFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_imageControlFrame: *mut nsIAtom;
-            #[link_name = "\x01?inlineFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_inlineFrame: *mut nsIAtom;
-            #[link_name = "\x01?leafBoxFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_leafBoxFrame: *mut nsIAtom;
-            #[link_name = "\x01?legendFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_legendFrame: *mut nsIAtom;
-            #[link_name = "\x01?letterFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_letterFrame: *mut nsIAtom;
-            #[link_name = "\x01?lineFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_lineFrame: *mut nsIAtom;
-            #[link_name = "\x01?listControlFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_listControlFrame: *mut nsIAtom;
-            #[link_name = "\x01?menuFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_menuFrame: *mut nsIAtom;
-            #[link_name = "\x01?meterFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_meterFrame: *mut nsIAtom;
-            #[link_name = "\x01?menuPopupFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_menuPopupFrame: *mut nsIAtom;
-            #[link_name = "\x01?numberControlFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_numberControlFrame: *mut nsIAtom;
-            #[link_name = "\x01?objectFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_objectFrame: *mut nsIAtom;
-            #[link_name = "\x01?pageFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_pageFrame: *mut nsIAtom;
-            #[link_name = "\x01?pageBreakFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_pageBreakFrame: *mut nsIAtom;
-            #[link_name = "\x01?pageContentFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_pageContentFrame: *mut nsIAtom;
             #[link_name = "\x01?placeholderFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_placeholderFrame: *mut nsIAtom;
-            #[link_name = "\x01?popupSetFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_popupSetFrame: *mut nsIAtom;
-            #[link_name = "\x01?progressFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_progressFrame: *mut nsIAtom;
-            #[link_name = "\x01?canvasFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_canvasFrame: *mut nsIAtom;
-            #[link_name = "\x01?rangeFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_rangeFrame: *mut nsIAtom;
-            #[link_name = "\x01?rootFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_rootFrame: *mut nsIAtom;
-            #[link_name = "\x01?rubyBaseContainerFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_rubyBaseContainerFrame: *mut nsIAtom;
-            #[link_name = "\x01?rubyBaseFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_rubyBaseFrame: *mut nsIAtom;
-            #[link_name = "\x01?rubyFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_rubyFrame: *mut nsIAtom;
-            #[link_name = "\x01?rubyTextContainerFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_rubyTextContainerFrame: *mut nsIAtom;
-            #[link_name = "\x01?rubyTextFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_rubyTextFrame: *mut nsIAtom;
-            #[link_name = "\x01?scrollFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_scrollFrame: *mut nsIAtom;
-            #[link_name = "\x01?scrollbarFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_scrollbarFrame: *mut nsIAtom;
-            #[link_name = "\x01?sequenceFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_sequenceFrame: *mut nsIAtom;
-            #[link_name = "\x01?sliderFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_sliderFrame: *mut nsIAtom;
-            #[link_name = "\x01?tableCellFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_tableCellFrame: *mut nsIAtom;
-            #[link_name = "\x01?tableColFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_tableColFrame: *mut nsIAtom;
-            #[link_name = "\x01?tableColGroupFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_tableColGroupFrame: *mut nsIAtom;
-            #[link_name = "\x01?tableFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_tableFrame: *mut nsIAtom;
-            #[link_name = "\x01?tableWrapperFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_tableWrapperFrame: *mut nsIAtom;
-            #[link_name = "\x01?tableRowGroupFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_tableRowGroupFrame: *mut nsIAtom;
-            #[link_name = "\x01?tableRowFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_tableRowFrame: *mut nsIAtom;
-            #[link_name = "\x01?textInputFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_textInputFrame: *mut nsIAtom;
-            #[link_name = "\x01?textFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_textFrame: *mut nsIAtom;
-            #[link_name = "\x01?viewportFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_viewportFrame: *mut nsIAtom;
-            #[link_name = "\x01?XULLabelFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_XULLabelFrame: *mut nsIAtom;
-            #[link_name = "\x01?svgAFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_svgAFrame: *mut nsIAtom;
-            #[link_name = "\x01?svgClipPathFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_svgClipPathFrame: *mut nsIAtom;
-            #[link_name = "\x01?svgDefsFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_svgDefsFrame: *mut nsIAtom;
-            #[link_name = "\x01?svgFEContainerFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_svgFEContainerFrame: *mut nsIAtom;
-            #[link_name = "\x01?svgFEImageFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_svgFEImageFrame: *mut nsIAtom;
-            #[link_name = "\x01?svgFELeafFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_svgFELeafFrame: *mut nsIAtom;
-            #[link_name = "\x01?svgFEUnstyledLeafFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_svgFEUnstyledLeafFrame: *mut nsIAtom;
-            #[link_name = "\x01?svgFilterFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_svgFilterFrame: *mut nsIAtom;
-            #[link_name = "\x01?svgForeignObjectFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_svgForeignObjectFrame: *mut nsIAtom;
-            #[link_name = "\x01?svgGenericContainerFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_svgGenericContainerFrame: *mut nsIAtom;
-            #[link_name = "\x01?svgGeometryFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_svgGeometryFrame: *mut nsIAtom;
-            #[link_name = "\x01?svgGFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_svgGFrame: *mut nsIAtom;
-            #[link_name = "\x01?svgGradientFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_svgGradientFrame: *mut nsIAtom;
-            #[link_name = "\x01?svgImageFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_svgImageFrame: *mut nsIAtom;
-            #[link_name = "\x01?svgInnerSVGFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_svgInnerSVGFrame: *mut nsIAtom;
-            #[link_name = "\x01?svgLinearGradientFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_svgLinearGradientFrame: *mut nsIAtom;
-            #[link_name = "\x01?svgMarkerFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_svgMarkerFrame: *mut nsIAtom;
-            #[link_name = "\x01?svgMarkerAnonChildFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_svgMarkerAnonChildFrame: *mut nsIAtom;
-            #[link_name = "\x01?svgMaskFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_svgMaskFrame: *mut nsIAtom;
-            #[link_name = "\x01?svgOuterSVGFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_svgOuterSVGFrame: *mut nsIAtom;
-            #[link_name = "\x01?svgOuterSVGAnonChildFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_svgOuterSVGAnonChildFrame: *mut nsIAtom;
-            #[link_name = "\x01?svgPatternFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_svgPatternFrame: *mut nsIAtom;
-            #[link_name = "\x01?svgRadialGradientFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_svgRadialGradientFrame: *mut nsIAtom;
-            #[link_name = "\x01?svgStopFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_svgStopFrame: *mut nsIAtom;
-            #[link_name = "\x01?svgSwitchFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_svgSwitchFrame: *mut nsIAtom;
-            #[link_name = "\x01?svgTextFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_svgTextFrame: *mut nsIAtom;
-            #[link_name = "\x01?svgUseFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_svgUseFrame: *mut nsIAtom;
-            #[link_name = "\x01?svgViewFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_svgViewFrame: *mut nsIAtom;
-            #[link_name = "\x01?HTMLVideoFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_HTMLVideoFrame: *mut nsIAtom;
             #[link_name = "\x01?onloadend@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_onloadend: *mut nsIAtom;
             #[link_name = "\x01?onloadstart@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -14046,6 +13258,8 @@ cfg_if! {
             pub static nsGkAtoms_ongamepadconnected: *mut nsIAtom;
             #[link_name = "\x01?ongamepaddisconnected@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_ongamepaddisconnected: *mut nsIAtom;
+            #[link_name = "\x01?afterPseudoProperty@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_afterPseudoProperty: *mut nsIAtom;
             #[link_name = "\x01?animationsProperty@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_animationsProperty: *mut nsIAtom;
             #[link_name = "\x01?animationsOfBeforeProperty@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -14058,6 +13272,8 @@ cfg_if! {
             pub static nsGkAtoms_animationEffectsForBeforeProperty: *mut nsIAtom;
             #[link_name = "\x01?animationEffectsForAfterProperty@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_animationEffectsForAfterProperty: *mut nsIAtom;
+            #[link_name = "\x01?beforePseudoProperty@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_beforePseudoProperty: *mut nsIAtom;
             #[link_name = "\x01?cssPseudoElementBeforeProperty@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_cssPseudoElementBeforeProperty: *mut nsIAtom;
             #[link_name = "\x01?cssPseudoElementAfterProperty@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -14436,8 +13652,6 @@ cfg_if! {
             pub static nsGkAtoms_aria_valuemax: *mut nsIAtom;
             #[link_name = "\x01?aria_valuetext@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_aria_valuetext: *mut nsIAtom;
-            #[link_name = "\x01?AreaFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_AreaFrame: *mut nsIAtom;
             #[link_name = "\x01?auto_generated@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_auto_generated: *mut nsIAtom;
             #[link_name = "\x01?banner@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -14478,8 +13692,6 @@ cfg_if! {
             pub static nsGkAtoms_heading: *mut nsIAtom;
             #[link_name = "\x01?hitregion@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_hitregion: *mut nsIAtom;
-            #[link_name = "\x01?InlineBlockFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_InlineBlockFrame: *mut nsIAtom;
             #[link_name = "\x01?inlinevalue@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_inlinevalue: *mut nsIAtom;
             #[link_name = "\x01?invalid@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -14700,122 +13912,16 @@ cfg_if! {
             pub static nsCSSPseudoElements_placeholder: *mut nsICSSPseudoElement;
             #[link_name = "\x01?mozColorSwatch@nsCSSPseudoElements@@2PAVnsICSSPseudoElement@@A"]
             pub static nsCSSPseudoElements_mozColorSwatch: *mut nsICSSPseudoElement;
-            #[link_name = "\x01?mozText@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_mozText: *mut nsICSSAnonBoxPseudo;
             #[link_name = "\x01?oofPlaceholder@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
             pub static nsCSSAnonBoxes_oofPlaceholder: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?firstLetterContinuation@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_firstLetterContinuation: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?mozBlockInsideInlineWrapper@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_mozBlockInsideInlineWrapper: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?mozMathMLAnonymousBlock@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_mozMathMLAnonymousBlock: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?mozXULAnonymousBlock@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_mozXULAnonymousBlock: *mut nsICSSAnonBoxPseudo;
             #[link_name = "\x01?horizontalFramesetBorder@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
             pub static nsCSSAnonBoxes_horizontalFramesetBorder: *mut nsICSSAnonBoxPseudo;
             #[link_name = "\x01?verticalFramesetBorder@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
             pub static nsCSSAnonBoxes_verticalFramesetBorder: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?mozLineFrame@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_mozLineFrame: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?buttonContent@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_buttonContent: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?cellContent@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_cellContent: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?dropDownList@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_dropDownList: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?fieldsetContent@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_fieldsetContent: *mut nsICSSAnonBoxPseudo;
             #[link_name = "\x01?framesetBlank@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
             pub static nsCSSAnonBoxes_framesetBlank: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?mozDisplayComboboxControlFrame@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_mozDisplayComboboxControlFrame: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?htmlCanvasContent@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_htmlCanvasContent: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?inlineTable@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_inlineTable: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?table@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_table: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?tableCell@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_tableCell: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?tableColGroup@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_tableColGroup: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?tableCol@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_tableCol: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?tableWrapper@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_tableWrapper: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?tableRowGroup@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_tableRowGroup: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?tableRow@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_tableRow: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?canvas@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_canvas: *mut nsICSSAnonBoxPseudo;
             #[link_name = "\x01?pageBreak@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
             pub static nsCSSAnonBoxes_pageBreak: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?page@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_page: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?pageContent@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_pageContent: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?pageSequence@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_pageSequence: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?scrolledContent@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_scrolledContent: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?scrolledCanvas@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_scrolledCanvas: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?scrolledPageSequence@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_scrolledPageSequence: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?columnContent@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_columnContent: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?viewport@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_viewport: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?viewportScroll@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_viewportScroll: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?anonymousFlexItem@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_anonymousFlexItem: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?anonymousGridItem@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_anonymousGridItem: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?ruby@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_ruby: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?rubyBase@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_rubyBase: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?rubyBaseContainer@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_rubyBaseContainer: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?rubyText@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_rubyText: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?rubyTextContainer@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_rubyTextContainer: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?moztreecolumn@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_moztreecolumn: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?moztreerow@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_moztreerow: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?moztreeseparator@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_moztreeseparator: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?moztreecell@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_moztreecell: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?moztreeindentation@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_moztreeindentation: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?moztreeline@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_moztreeline: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?moztreetwisty@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_moztreetwisty: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?moztreeimage@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_moztreeimage: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?moztreecelltext@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_moztreecelltext: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?moztreecheckbox@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_moztreecheckbox: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?moztreeprogressmeter@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_moztreeprogressmeter: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?moztreedropfeedback@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_moztreedropfeedback: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?mozSVGMarkerAnonChild@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_mozSVGMarkerAnonChild: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?mozSVGOuterSVGAnonChild@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_mozSVGOuterSVGAnonChild: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?mozSVGForeignContent@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_mozSVGForeignContent: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?mozSVGText@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_mozSVGText: *mut nsICSSAnonBoxPseudo;
         }
     }
 }
@@ -14970,8 +14076,6 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_applyImports as *mut _) } };
 ("apply-templates") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_applyTemplates as *mut _) } };
-("mozapptype") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozapptype as *mut _) } };
 ("archive") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_archive as *mut _) } };
 ("area") =>
@@ -15014,8 +14118,6 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_axis as *mut _) } };
 ("b") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_b as *mut _) } };
-("BackdropFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_backdropFrame as *mut _) } };
 ("background") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_background as *mut _) } };
 ("base") =>
@@ -16016,8 +15118,6 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mousethrough as *mut _) } };
 ("mouseup") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mouseup as *mut _) } };
-("mozaudiochannel") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozaudiochannel as *mut _) } };
 ("mozfullscreenchange") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozfullscreenchange as *mut _) } };
 ("mozfullscreenerror") =>
@@ -16066,6 +15166,8 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_newline as *mut _) } };
 ("NextBidi") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_nextBidi as *mut _) } };
+("nextTabParentId") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_nextTabParentId as *mut _) } };
 ("no") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_no as *mut _) } };
 ("noautofocus") =>
@@ -18650,10 +17752,6 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onuserproximity as *mut _) } };
 ("ondevicelight") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondevicelight as *mut _) } };
-("onmozinterruptbegin") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmozinterruptbegin as *mut _) } };
-("onmozinterruptend") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmozinterruptend as *mut _) } };
 ("ondevicechange") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondevicechange as *mut _) } };
 ("mozinputrangeignorepreventdefault") =>
@@ -18672,192 +17770,8 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_processingInstructionTagName as *mut _) } };
 ("#text") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_textTagName as *mut _) } };
-("BCTableCellFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_bcTableCellFrame as *mut _) } };
-("BlockFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_blockFrame as *mut _) } };
-("BoxFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_boxFrame as *mut _) } };
-("BRFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_brFrame as *mut _) } };
-("BulletFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_bulletFrame as *mut _) } };
-("colorControlFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_colorControlFrame as *mut _) } };
-("ColumnSetFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_columnSetFrame as *mut _) } };
-("ComboboxControlFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_comboboxControlFrame as *mut _) } };
-("ComboboxDisplayFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_comboboxDisplayFrame as *mut _) } };
-("DateTimeControlFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dateTimeControlFrame as *mut _) } };
-("DeckFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_deckFrame as *mut _) } };
-("DetailsFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_detailsFrame as *mut _) } };
-("FieldSetFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fieldSetFrame as *mut _) } };
-("FlexContainerFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_flexContainerFrame as *mut _) } };
-("FormControlFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_formControlFrame as *mut _) } };
-("FrameSetFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_frameSetFrame as *mut _) } };
-("gfxButtonControlFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_gfxButtonControlFrame as *mut _) } };
-("GridContainerFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_gridContainerFrame as *mut _) } };
-("HTMLButtonControlFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_HTMLButtonControlFrame as *mut _) } };
-("HTMLCanvasFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_HTMLCanvasFrame as *mut _) } };
-("subDocumentFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_subDocumentFrame as *mut _) } };
-("ImageBoxFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_imageBoxFrame as *mut _) } };
-("ImageFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_imageFrame as *mut _) } };
-("ImageControlFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_imageControlFrame as *mut _) } };
-("InlineFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_inlineFrame as *mut _) } };
-("LeafBoxFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_leafBoxFrame as *mut _) } };
-("LegendFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_legendFrame as *mut _) } };
-("LetterFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_letterFrame as *mut _) } };
-("LineFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_lineFrame as *mut _) } };
-("ListControlFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_listControlFrame as *mut _) } };
-("MenuFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_menuFrame as *mut _) } };
-("MeterFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_meterFrame as *mut _) } };
-("MenuPopupFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_menuPopupFrame as *mut _) } };
-("NumberControlFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_numberControlFrame as *mut _) } };
-("ObjectFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_objectFrame as *mut _) } };
-("PageFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pageFrame as *mut _) } };
-("PageBreakFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pageBreakFrame as *mut _) } };
-("PageContentFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pageContentFrame as *mut _) } };
 ("PlaceholderFrame") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_placeholderFrame as *mut _) } };
-("PopupSetFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_popupSetFrame as *mut _) } };
-("ProgressFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_progressFrame as *mut _) } };
-("CanvasFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_canvasFrame as *mut _) } };
-("RangeFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rangeFrame as *mut _) } };
-("RootFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rootFrame as *mut _) } };
-("RubyBaseContainerFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rubyBaseContainerFrame as *mut _) } };
-("RubyBaseFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rubyBaseFrame as *mut _) } };
-("RubyFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rubyFrame as *mut _) } };
-("RubyTextContainerFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rubyTextContainerFrame as *mut _) } };
-("RubyTextFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rubyTextFrame as *mut _) } };
-("ScrollFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scrollFrame as *mut _) } };
-("ScrollbarFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scrollbarFrame as *mut _) } };
-("SequenceFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sequenceFrame as *mut _) } };
-("sliderFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sliderFrame as *mut _) } };
-("TableCellFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tableCellFrame as *mut _) } };
-("TableColFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tableColFrame as *mut _) } };
-("TableColGroupFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tableColGroupFrame as *mut _) } };
-("TableFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tableFrame as *mut _) } };
-("TableWrapperFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tableWrapperFrame as *mut _) } };
-("TableRowGroupFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tableRowGroupFrame as *mut _) } };
-("TableRowFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tableRowFrame as *mut _) } };
-("TextInputFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_textInputFrame as *mut _) } };
-("TextFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_textFrame as *mut _) } };
-("ViewportFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_viewportFrame as *mut _) } };
-("XULLabelFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_XULLabelFrame as *mut _) } };
-("SVGAFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgAFrame as *mut _) } };
-("SVGClipPathFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgClipPathFrame as *mut _) } };
-("SVGDefsFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgDefsFrame as *mut _) } };
-("SVGFEContainerFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgFEContainerFrame as *mut _) } };
-("SVGFEImageFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgFEImageFrame as *mut _) } };
-("SVGFELeafFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgFELeafFrame as *mut _) } };
-("SVGFEUnstyledLeafFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgFEUnstyledLeafFrame as *mut _) } };
-("SVGFilterFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgFilterFrame as *mut _) } };
-("SVGForeignObjectFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgForeignObjectFrame as *mut _) } };
-("SVGGenericContainerFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgGenericContainerFrame as *mut _) } };
-("SVGGeometryFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgGeometryFrame as *mut _) } };
-("SVGGFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgGFrame as *mut _) } };
-("SVGGradientFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgGradientFrame as *mut _) } };
-("SVGImageFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgImageFrame as *mut _) } };
-("SVGInnerSVGFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgInnerSVGFrame as *mut _) } };
-("SVGLinearGradientFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgLinearGradientFrame as *mut _) } };
-("SVGMarkerFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgMarkerFrame as *mut _) } };
-("SVGMarkerAnonChildFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgMarkerAnonChildFrame as *mut _) } };
-("SVGMaskFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgMaskFrame as *mut _) } };
-("SVGOuterSVGFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgOuterSVGFrame as *mut _) } };
-("SVGOuterSVGAnonChildFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgOuterSVGAnonChildFrame as *mut _) } };
-("SVGPatternFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgPatternFrame as *mut _) } };
-("SVGRadialGradientFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgRadialGradientFrame as *mut _) } };
-("SVGStopFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgStopFrame as *mut _) } };
-("SVGSwitchFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgSwitchFrame as *mut _) } };
-("SVGTextFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgTextFrame as *mut _) } };
-("SVGUseFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgUseFrame as *mut _) } };
-("SVGViewFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgViewFrame as *mut _) } };
-("VideoFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_HTMLVideoFrame as *mut _) } };
 ("onloadend") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onloadend as *mut _) } };
 ("onloadstart") =>
@@ -18982,6 +17896,8 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ongamepadconnected as *mut _) } };
 ("ongamepaddisconnected") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ongamepaddisconnected as *mut _) } };
+("afterPseudoProperty") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_afterPseudoProperty as *mut _) } };
 ("AnimationsProperty") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_animationsProperty as *mut _) } };
 ("AnimationsOfBeforeProperty") =>
@@ -18994,6 +17910,8 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_animationEffectsForBeforeProperty as *mut _) } };
 ("AnimationsEffectsForAfterProperty") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_animationEffectsForAfterProperty as *mut _) } };
+("beforePseudoProperty") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_beforePseudoProperty as *mut _) } };
 ("CSSPseudoElementBeforeProperty") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cssPseudoElementBeforeProperty as *mut _) } };
 ("CSSPseudoElementAfterProperty") =>
@@ -19372,8 +18290,6 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_valuemax as *mut _) } };
 ("aria-valuetext") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_valuetext as *mut _) } };
-("AreaFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_AreaFrame as *mut _) } };
 ("auto-generated") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_auto_generated as *mut _) } };
 ("banner") =>
@@ -19414,8 +18330,6 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_heading as *mut _) } };
 ("hitregion") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_hitregion as *mut _) } };
-("InlineBlockFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_InlineBlockFrame as *mut _) } };
 ("inline") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_inlinevalue as *mut _) } };
 ("invalid") =>
@@ -19636,120 +18550,14 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_placeholder as *mut _) } };
 (":-moz-color-swatch") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_mozColorSwatch as *mut _) } };
-(":-moz-text") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozText as *mut _) } };
 (":-moz-oof-placeholder") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_oofPlaceholder as *mut _) } };
-(":-moz-first-letter-continuation") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_firstLetterContinuation as *mut _) } };
-(":-moz-block-inside-inline-wrapper") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozBlockInsideInlineWrapper as *mut _) } };
-(":-moz-mathml-anonymous-block") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozMathMLAnonymousBlock as *mut _) } };
-(":-moz-xul-anonymous-block") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozXULAnonymousBlock as *mut _) } };
 (":-moz-hframeset-border") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_horizontalFramesetBorder as *mut _) } };
 (":-moz-vframeset-border") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_verticalFramesetBorder as *mut _) } };
-(":-moz-line-frame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozLineFrame as *mut _) } };
-(":-moz-button-content") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_buttonContent as *mut _) } };
-(":-moz-cell-content") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_cellContent as *mut _) } };
-(":-moz-dropdown-list") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_dropDownList as *mut _) } };
-(":-moz-fieldset-content") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_fieldsetContent as *mut _) } };
 (":-moz-frameset-blank") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_framesetBlank as *mut _) } };
-(":-moz-display-comboboxcontrol-frame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozDisplayComboboxControlFrame as *mut _) } };
-(":-moz-html-canvas-content") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_htmlCanvasContent as *mut _) } };
-(":-moz-inline-table") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_inlineTable as *mut _) } };
-(":-moz-table") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_table as *mut _) } };
-(":-moz-table-cell") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_tableCell as *mut _) } };
-(":-moz-table-column-group") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_tableColGroup as *mut _) } };
-(":-moz-table-column") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_tableCol as *mut _) } };
-(":-moz-table-wrapper") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_tableWrapper as *mut _) } };
-(":-moz-table-row-group") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_tableRowGroup as *mut _) } };
-(":-moz-table-row") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_tableRow as *mut _) } };
-(":-moz-canvas") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_canvas as *mut _) } };
 (":-moz-pagebreak") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_pageBreak as *mut _) } };
-(":-moz-page") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_page as *mut _) } };
-(":-moz-pagecontent") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_pageContent as *mut _) } };
-(":-moz-page-sequence") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_pageSequence as *mut _) } };
-(":-moz-scrolled-content") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_scrolledContent as *mut _) } };
-(":-moz-scrolled-canvas") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_scrolledCanvas as *mut _) } };
-(":-moz-scrolled-page-sequence") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_scrolledPageSequence as *mut _) } };
-(":-moz-column-content") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_columnContent as *mut _) } };
-(":-moz-viewport") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_viewport as *mut _) } };
-(":-moz-viewport-scroll") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_viewportScroll as *mut _) } };
-(":-moz-anonymous-flex-item") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_anonymousFlexItem as *mut _) } };
-(":-moz-anonymous-grid-item") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_anonymousGridItem as *mut _) } };
-(":-moz-ruby") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_ruby as *mut _) } };
-(":-moz-ruby-base") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_rubyBase as *mut _) } };
-(":-moz-ruby-base-container") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_rubyBaseContainer as *mut _) } };
-(":-moz-ruby-text") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_rubyText as *mut _) } };
-(":-moz-ruby-text-container") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_rubyTextContainer as *mut _) } };
-(":-moz-tree-column") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_moztreecolumn as *mut _) } };
-(":-moz-tree-row") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_moztreerow as *mut _) } };
-(":-moz-tree-separator") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_moztreeseparator as *mut _) } };
-(":-moz-tree-cell") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_moztreecell as *mut _) } };
-(":-moz-tree-indentation") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_moztreeindentation as *mut _) } };
-(":-moz-tree-line") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_moztreeline as *mut _) } };
-(":-moz-tree-twisty") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_moztreetwisty as *mut _) } };
-(":-moz-tree-image") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_moztreeimage as *mut _) } };
-(":-moz-tree-cell-text") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_moztreecelltext as *mut _) } };
-(":-moz-tree-checkbox") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_moztreecheckbox as *mut _) } };
-(":-moz-tree-progressmeter") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_moztreeprogressmeter as *mut _) } };
-(":-moz-tree-drop-feedback") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_moztreedropfeedback as *mut _) } };
-(":-moz-svg-marker-anon-child") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozSVGMarkerAnonChild as *mut _) } };
-(":-moz-svg-outer-svg-anon-child") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozSVGOuterSVGAnonChild as *mut _) } };
-(":-moz-svg-foreign-content") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozSVGForeignContent as *mut _) } };
-(":-moz-svg-text") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozSVGText as *mut _) } };
 }
