@@ -1569,8 +1569,9 @@ pub mod style_structs {
 
                 /// (Servo does not handle MathML, so this just calls copy_font_size_from)
                 pub fn inherit_font_size_from(&mut self, parent: &Self,
-                                              _: Option<Au>) {
+                                              _: Option<Au>) -> bool {
                     self.copy_font_size_from(parent);
+                    false
                 }
                 /// (Servo does not handle MathML, so this just calls set_font_size)
                 pub fn apply_font_size(&mut self,
