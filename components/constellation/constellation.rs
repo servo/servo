@@ -84,7 +84,7 @@ use ipc_channel::router::ROUTER;
 use itertools::Itertools;
 use layout_traits::LayoutThreadFactory;
 use log::{Log, LogLevel, LogLevelFilter, LogMetadata, LogRecord};
-use msg::constellation_msg::{DocumentType, FrameId, FrameType, PipelineId};
+use msg::constellation_msg::{FrameId, FrameType, PipelineId};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, TraversalDirection};
 use net_traits::{self, IpcSend, ResourceThreads};
@@ -745,9 +745,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     fn new_frame(&mut self,
                  frame_id: FrameId,
                  pipeline_id: PipelineId,
-                 load_data: LoadData,
-                 doc_type: DocumentType) {
-        let frame = Frame::new(frame_id, pipeline_id, load_data, doc_type);
+                 load_data: LoadData) {
+        let frame = Frame::new(frame_id, pipeline_id, load_data);
         self.frames.insert(frame_id, frame);
 
         // If a child frame, add it to the parent pipeline.
@@ -2221,16 +2220,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             self.focus_pipeline_id = Some(frame_change.new_pipeline_id);
         }
 
-        let replace_instant = frame_change.replace_instant.or_else(|| {
-            self.frames.get(&frame_change.frame_id)
-                .and_then(|frame| if frame.doc_type == DocumentType::InitialAboutBlank {
-                    Some(frame.instant)
-                } else {
-                    None
-                })
-        });
-
-        let (evicted_id, new_frame, navigated, location_changed) = if let Some(instant) = replace_instant {
+        let (evicted_id, new_frame, navigated, location_changed) = if let Some(instant) = frame_change.replace_instant {
             debug!("Replacing pipeline in existing frame with timestamp {:?}.", instant);
             let entry = FrameState {
                 frame_id: frame_change.frame_id,
@@ -2265,15 +2255,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
 
         if new_frame {
-            let doc_type = if frame_change.load_data.url.as_str() == "about:blank" {
-                DocumentType::InitialAboutBlank
-            } else {
-                DocumentType::Regular
-            };
             self.new_frame(frame_change.frame_id,
                            frame_change.new_pipeline_id,
-                           frame_change.load_data,
-                           doc_type);
+                           frame_change.load_data);
             self.update_activity(frame_change.new_pipeline_id);
             self.notify_history_changed(frame_change.new_pipeline_id);
         };

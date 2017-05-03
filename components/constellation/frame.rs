@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use euclid::size::TypedSize2D;
-use msg::constellation_msg::{DocumentType, FrameId, PipelineId};
+use msg::constellation_msg::{FrameId, PipelineId};
 use pipeline::Pipeline;
 use script_traits::LoadData;
 use std::collections::HashMap;
@@ -36,9 +36,6 @@ pub struct Frame {
     /// The load data for the current session history entry.
     pub load_data: LoadData,
 
-    /// The type of document for the current session history entry.
-    pub doc_type: DocumentType,
-
     /// The past session history, ordered chronologically.
     pub prev: Vec<FrameState>,
 
@@ -49,14 +46,13 @@ pub struct Frame {
 impl Frame {
     /// Create a new frame.
     /// Note this just creates the frame, it doesn't add it to the frame tree.
-    pub fn new(id: FrameId, pipeline_id: PipelineId, load_data: LoadData, doc_type: DocumentType) -> Frame {
+    pub fn new(id: FrameId, pipeline_id: PipelineId, load_data: LoadData) -> Frame {
         Frame {
             id: id,
             size: None,
             pipeline_id: pipeline_id,
             instant: Instant::now(),
             load_data: load_data,
-            doc_type: doc_type,
             prev: vec!(),
             next: vec!(),
         }
@@ -79,7 +75,6 @@ impl Frame {
         self.instant = Instant::now();
         self.pipeline_id = pipeline_id;
         self.load_data = load_data;
-        self.doc_type = DocumentType::Regular;
     }
 
     /// Set the future to be empty.
@@ -92,7 +87,6 @@ impl Frame {
         self.pipeline_id = pipeline_id;
         self.instant = entry.instant;
         self.load_data = entry.load_data;
-        self.doc_type = DocumentType::Regular;
     }
 }
 

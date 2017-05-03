@@ -46,7 +46,7 @@ use dom::element::Element;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::globalscope::GlobalScope;
 use dom::htmlanchorelement::HTMLAnchorElement;
-use dom::htmliframeelement::HTMLIFrameElement;
+use dom::htmliframeelement::{HTMLIFrameElement, NavigationType};
 use dom::mutationobserver::MutationObserver;
 use dom::node::{Node, NodeDamage, window_from_node};
 use dom::serviceworker::TrustedServiceWorkerAddress;
@@ -72,7 +72,7 @@ use js::rust::Runtime;
 use layout_wrapper::ServoLayoutNode;
 use mem::heap_size_of_self_and_children;
 use microtask::{MicrotaskQueue, Microtask};
-use msg::constellation_msg::{DocumentType, FrameId, FrameType, PipelineId, PipelineNamespace};
+use msg::constellation_msg::{FrameId, FrameType, PipelineId, PipelineNamespace};
 use net_traits::{CoreResourceMsg, FetchMetadata, FetchResponseListener};
 use net_traits::{IpcSend, Metadata, ReferrerPolicy, ResourceThreads};
 use net_traits::image_cache::{ImageCache, PendingImageResponse};
@@ -2069,7 +2069,7 @@ impl ScriptThread {
             Some(frame_id) => {
                 let iframe = self.documents.borrow().find_iframe(parent_pipeline_id, frame_id);
                 if let Some(iframe) = iframe {
-                    iframe.navigate_or_reload_child_browsing_context(Some(load_data), DocumentType::Regular, replace);
+                    iframe.navigate_or_reload_child_browsing_context(Some(load_data), NavigationType::Regular, replace);
                 }
             }
             None => {

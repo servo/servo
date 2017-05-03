@@ -311,8 +311,3 @@ pub enum FrameType {
     MozBrowserIFrame,
 }
 
-#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
-pub enum DocumentType {
-    InitialAboutBlank,
-    Regular,
-}
