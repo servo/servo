@@ -101,6 +101,7 @@ impl<'a> Context<'a> {
 }
 
 /// An iterator over a slice of computed values
+#[derive(Clone)]
 pub struct ComputedVecIter<'a, 'cx, 'cx_a: 'cx, S: ToComputedValue + 'a> {
     cx: &'cx Context<'cx_a>,
     values: &'a [S],
@@ -113,6 +114,12 @@ impl<'a, 'cx, 'cx_a: 'cx, S: ToComputedValue + 'a> ComputedVecIter<'a, 'cx, 'cx_
             cx: cx,
             values: values,
         }
+    }
+}
+
+impl<'a, 'cx, 'cx_a: 'cx, S: ToComputedValue + 'a> ExactSizeIterator for ComputedVecIter<'a, 'cx, 'cx_a, S> {
+    fn len(&self) -> usize {
+        self.values.len()
     }
 }
 
