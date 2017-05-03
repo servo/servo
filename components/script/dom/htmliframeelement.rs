@@ -36,7 +36,7 @@ use dom::node::{Node, NodeDamage, UnbindContext, document_from_node, window_from
 use dom::virtualmethods::VirtualMethods;
 use dom::window::{ReflowReason, Window};
 use dom_struct::dom_struct;
-use html5ever_atoms::LocalName;
+use html5ever::LocalName;
 use ipc_channel::ipc;
 use js::jsapi::{JSAutoCompartment, JSContext, MutableHandleValue};
 use js::jsval::{NullValue, UndefinedValue};

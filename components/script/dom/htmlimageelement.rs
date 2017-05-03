@@ -35,7 +35,7 @@ use dom::virtualmethods::VirtualMethods;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use euclid::point::Point2D;
-use html5ever_atoms::LocalName;
+use html5ever::LocalName;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use net_traits::{FetchResponseListener, FetchMetadata, NetworkError, FetchResponseMsg};

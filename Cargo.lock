@@ -1150,31 +1150,15 @@ dependencies = [
 
 [[package]]
 name = "html5ever"
-version = "0.15.0"
+version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "heapsize 0.3.9 (registry+https://github.com/rust-lang/crates.io-index)",
- "heapsize_derive 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "html5ever-atoms 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "mac 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "phf 0.7.21 (registry+https://github.com/rust-lang/crates.io-index)",
- "phf_codegen 0.7.21 (registry+https://github.com/rust-lang/crates.io-index)",
+ "markup5ever 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "quote 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
- "rustc-serialize 0.3.24 (registry+https://github.com/rust-lang/crates.io-index)",
  "syn 0.11.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "tendril 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "html5ever-atoms"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "heapsize 0.3.9 (registry+https://github.com/rust-lang/crates.io-index)",
- "heapsize_derive 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "string_cache 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "string_cache_codegen 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1378,7 +1362,7 @@ dependencies = [
  "gfx 0.0.1",
  "gfx_traits 0.0.1",
  "heapsize 0.3.9 (registry+https://github.com/rust-lang/crates.io-index)",
- "html5ever-atoms 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "html5ever 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.22 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1571,6 +1555,21 @@ version = "0.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "libc 0.2.22 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "markup5ever"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "heapsize 0.3.9 (registry+https://github.com/rust-lang/crates.io-index)",
+ "heapsize_derive 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "phf 0.7.21 (registry+https://github.com/rust-lang/crates.io-index)",
+ "phf_codegen 0.7.21 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rustc-serialize 0.3.24 (registry+https://github.com/rust-lang/crates.io-index)",
+ "string_cache 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "string_cache_codegen 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tendril 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -2279,8 +2278,7 @@ dependencies = [
  "gfx_traits 0.0.1",
  "heapsize 0.3.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_derive 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "html5ever 0.15.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "html5ever-atoms 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "html5ever 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.10.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper_serde 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "image 0.12.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2328,7 +2326,7 @@ dependencies = [
  "webrender_traits 0.36.0 (git+https://github.com/servo/webrender)",
  "webvr 0.0.1",
  "webvr_traits 0.0.1",
- "xml5ever 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "xml5ever 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -2343,7 +2341,7 @@ dependencies = [
  "gfx_traits 0.0.1",
  "heapsize 0.3.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_derive 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "html5ever-atoms 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "html5ever 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.22 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2768,7 +2766,7 @@ dependencies = [
  "fnv 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize 0.3.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_derive 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "html5ever-atoms 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "html5ever 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "kernel32-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2803,7 +2801,7 @@ dependencies = [
  "app_units 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cssparser 0.13.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.11.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "html5ever-atoms 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "html5ever 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "parking_lot 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "rayon 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.24 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3327,15 +3325,12 @@ dependencies = [
 
 [[package]]
 name = "xml5ever"
-version = "0.5.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "html5ever-atoms 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "mac 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "phf 0.7.21 (registry+https://github.com/rust-lang/crates.io-index)",
- "phf_codegen 0.7.21 (registry+https://github.com/rust-lang/crates.io-index)",
- "rustc-serialize 0.3.24 (registry+https://github.com/rust-lang/crates.io-index)",
+ "markup5ever 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "tendril 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -3439,8 +3434,7 @@ dependencies = [
 "checksum heapsize_derive 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)" = "46f96d52fb1564059fc97b85ef6165728cc30198ab60073bf114c66c4c89bb5d"
 "checksum heartbeats-simple 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "9ad003ce233955e9d95f2c69cde84e68302ba9ba4a673d351c9bff93c738aadc"
 "checksum heartbeats-simple-sys 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)" = "e1a408c0011427cc0e0049f7861c70377819aedfc006e8c901b1c70fd98fb1a4"
-"checksum html5ever 0.15.0 (registry+https://github.com/rust-lang/crates.io-index)" = "89a83ad398346d1f25b21979dd79ed7b5c345796194665b34321b5551726347e"
-"checksum html5ever-atoms 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "8e4a291981feff7291514f8219d5cd2c740d0c042d75cff248a7c00a025f9d40"
+"checksum html5ever 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)" = "83d2f9d3abeac56d8b4de9fd033473f6183b89ea91e635326b2807b6a14e98b9"
 "checksum httparse 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "a6e7a63e511f9edffbab707141fbb8707d1a3098615fb2adbd5769cdfcc9b17d"
 "checksum hyper 0.10.9 (registry+https://github.com/rust-lang/crates.io-index)" = "94da93321c171e26481afeebe8288757b0501901b7c5492648163d8ec4942ec5"
 "checksum hyper-openssl 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)" = "85a372eb692590b3fe014c196c30f9f52d4c42f58cd49dd94caeee1593c9cc37"
@@ -3470,6 +3464,7 @@ dependencies = [
 "checksum lzw 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)" = "7d947cbb889ed21c2a84be6ffbaebf5b4e0f4340638cba0444907e38b56be084"
 "checksum mac 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "c41e0c4fef86961ac6d6f8a82609f55f31b05e4fce149ac5710e439df7619ba4"
 "checksum malloc_buf 0.0.6 (registry+https://github.com/rust-lang/crates.io-index)" = "62bb907fe88d54d8d9ce32a3cceab4218ed2f6b7d35617cafe9adf84e43919cb"
+"checksum markup5ever 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "a614f301a2d5583894d1915a8c6bd2c473e80fba69263a60cf2677dbc49936f8"
 "checksum matches 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)" = "efd7622e3022e1a6eaa602c4cea8912254e5582c9c692e9167714182244801b1"
 "checksum memchr 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)" = "1dbccc0e46f1ea47b9f17e6d67c5a96bd27030519c519c9c91327e31275a47b4"
 "checksum metadeps 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "829fffe7ea1d747e23f64be972991bc516b2f1ac2ae4a3b33d8bea150c410151"
@@ -3606,4 +3601,4 @@ dependencies = [
 "checksum xdg 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "a66b7c2281ebde13cf4391d70d4c7e5946c3c25e72a7b859ca8f677dcd0b0c61"
 "checksum xi-unicode 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "12ea8eda4b1eb72f02d148402e23832d56a33f55d8c1b2d5bcdde91d79d47cb1"
 "checksum xml-rs 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)" = "f2b15eed12692bd59d15e98ee7f8dc8408465b992d8ddb4d1672c24865132ec7"
-"checksum xml5ever 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "a1aae5379a4a7ffb580300bb725696ce238bec993a7bad872ec09ea00ec1c4a5"
+"checksum xml5ever 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)" = "b5bbbde15cfe438463d4e48dc0c752e427a29766d144e3304594ad0c5813cbf9"

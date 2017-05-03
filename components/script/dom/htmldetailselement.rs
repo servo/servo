@@ -16,7 +16,7 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{Node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever_atoms::LocalName;
+use html5ever::LocalName;
 use script_thread::Runnable;
 use std::cell::Cell;
 use task_source::TaskSource;

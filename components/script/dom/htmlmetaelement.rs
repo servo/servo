@@ -18,7 +18,7 @@ use dom::htmlheadelement::HTMLHeadElement;
 use dom::node::{Node, UnbindContext, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever_atoms::LocalName;
+use html5ever::LocalName;
 use servo_config::prefs::PREFS;
 use std::ascii::AsciiExt;
 use std::sync::atomic::AtomicBool;

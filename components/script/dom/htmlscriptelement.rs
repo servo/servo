@@ -26,7 +26,7 @@ use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use encoding::label::encoding_from_whatwg_label;
 use encoding::types::{DecoderTrap, EncodingRef};
-use html5ever_atoms::LocalName;
+use html5ever::LocalName;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsval::UndefinedValue;

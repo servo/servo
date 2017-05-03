@@ -17,7 +17,7 @@ use dom::htmltablerowelement::HTMLTableRowElement;
 use dom::node::{Node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever_atoms::LocalName;
+use html5ever::LocalName;
 use style::attr::AttrValue;
 
 #[dom_struct]

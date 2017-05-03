@@ -31,7 +31,7 @@ use dom::validation::Validatable;
 use dom::validitystate::{ValidityState, ValidationFlags};
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever_atoms::LocalName;
+use html5ever::LocalName;
 use std::default::Default;
 use std::iter;
 use style::attr::AttrValue;

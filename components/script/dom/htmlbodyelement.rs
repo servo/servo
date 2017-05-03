@@ -18,7 +18,7 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{Node, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever_atoms::LocalName;
+use html5ever::LocalName;
 use script_traits::ScriptMsg as ConstellationMsg;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
