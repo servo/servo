@@ -31,7 +31,7 @@ num = []
 
 [ignore]
 # Ignored packages with duplicated versions
-packages = []
+packages = ["bitflags"]
 # Files that are ignored for all tidy and lint checks.
 files = [
   # Helper macro where actually a pseudo-element per line makes sense.
