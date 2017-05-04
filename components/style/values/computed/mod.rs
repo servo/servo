@@ -100,6 +100,42 @@ impl<'a> Context<'a> {
     pub fn mutate_style(&mut self) -> &mut StyleBuilder<'a> { &mut self.style }
 }
 
+/// An iterator over a slice of computed values
+#[derive(Clone)]
+pub struct ComputedVecIter<'a, 'cx, 'cx_a: 'cx, S: ToComputedValue + 'a> {
+    cx: &'cx Context<'cx_a>,
+    values: &'a [S],
+}
+
+impl<'a, 'cx, 'cx_a: 'cx, S: ToComputedValue + 'a> ComputedVecIter<'a, 'cx, 'cx_a, S> {
+    /// Construct an iterator from a slice of specified values and a context
+    pub fn new(cx: &'cx Context<'cx_a>, values: &'a [S]) -> Self {
+        ComputedVecIter {
+            cx: cx,
+            values: values,
+        }
+    }
+}
+
+impl<'a, 'cx, 'cx_a: 'cx, S: ToComputedValue + 'a> ExactSizeIterator for ComputedVecIter<'a, 'cx, 'cx_a, S> {
+    fn len(&self) -> usize {
+        self.values.len()
+    }
+}
+
+impl<'a, 'cx, 'cx_a: 'cx, S: ToComputedValue + 'a> Iterator for ComputedVecIter<'a, 'cx, 'cx_a, S> {
+    type Item = S::ComputedValue;
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some((next, rest)) = self.values.split_first() {
+            let ret = next.to_computed_value(self.cx);
+            self.values = rest;
+            Some(ret)
+        } else {
+            None
+        }
+    }
+}
+
 /// A trait to represent the conversion between computed and specified values.
 pub trait ToComputedValue {
     /// The computed value type we're going to be converted to.

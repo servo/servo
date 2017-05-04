@@ -74,7 +74,7 @@
 </%doc>
 <%def name="vector_longhand(name, gecko_only=False, allow_empty=False,
             delegate_animate=False, space_separated_allowed=False, **kwargs)">
-    <%call expr="longhand(name, **kwargs)">
+    <%call expr="longhand(name, vector=True, **kwargs)">
         % if not gecko_only:
             use smallvec::SmallVec;
             use std::fmt;
@@ -102,7 +102,9 @@
             pub mod computed_value {
                 pub use super::single_value::computed_value as single_value;
                 pub use self::single_value::T as SingleComputedValue;
-                use smallvec::SmallVec;
+                use smallvec::{IntoIter, SmallVec};
+                use values::computed::ComputedVecIter;
+
                 /// The computed value, effectively a list of single values.
                 #[derive(Debug, Clone, PartialEq)]
                 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -129,6 +131,16 @@
                         }
                     }
                 % endif
+
+                pub type Iter<'a, 'cx, 'cx_a> = ComputedVecIter<'a, 'cx, 'cx_a, super::single_value::SpecifiedValue>;
+
+                impl IntoIterator for T {
+                    type Item = single_value::T;
+                    type IntoIter = IntoIter<[single_value::T; 1]>;
+                    fn into_iter(self) -> Self::IntoIter {
+                        self.0.into_iter()
+                    }
+                }
             }
 
             impl ToCss for computed_value::T {
@@ -212,12 +224,19 @@
 
             pub use self::single_value::SpecifiedValue as SingleSpecifiedValue;
 
+            impl SpecifiedValue {
+                pub fn compute_iter<'a, 'cx, 'cx_a>(&'a self, context: &'cx Context<'cx_a>)
+                    -> computed_value::Iter<'a, 'cx, 'cx_a> {
+                    computed_value::Iter::new(context, &self.0)
+                }
+            }
+
             impl ToComputedValue for SpecifiedValue {
                 type ComputedValue = computed_value::T;
 
                 #[inline]
                 fn to_computed_value(&self, context: &Context) -> computed_value::T {
-                    computed_value::T(self.0.iter().map(|x| x.to_computed_value(context)).collect())
+                    computed_value::T(self.compute_iter(context).collect())
                 }
                 #[inline]
                 fn from_computed_value(computed: &computed_value::T) -> Self {
@@ -294,7 +313,10 @@
                         % if property.logical:
                             let wm = context.style.writing_mode;
                         % endif
-                        <% maybe_wm = ", wm" if property.logical else "" %>
+                        <%
+                            maybe_wm = ", wm" if property.logical else ""
+                            maybe_cacheable = ", cacheable" if property.has_uncacheable_values == "True" else ""
+                        %>
                         match *value {
                             DeclaredValue::Value(ref specified_value) => {
                                 % if property.ident in SYSTEM_FONT_LONGHANDS and product == "gecko":
@@ -302,19 +324,30 @@
                                         longhands::system_font::resolve_system_font(sf, context);
                                     }
                                 % endif
-                                let computed = specified_value.to_computed_value(context);
-                                % if property.ident == "font_size":
-                                    longhands::font_size::cascade_specified_font_size(context,
-                                                                                      specified_value,
-                                                                                      computed,
-                                                                                      inherited_style.get_font());
+                                % if property.is_vector:
+                                    // In the case of a vector property we want to pass down
+                                    // an iterator so that this can be computed without allocation
+                                    //
+                                    // However, computing requires a context, but the style struct
+                                    // being mutated is on the context. We temporarily remove it,
+                                    // mutate it, and then put it back. Vector longhands cannot
+                                    // touch their own style struct whilst computing, else this will panic.
+                                    let mut s = context.mutate_style().take_${data.current_style_struct.name_lower}();
+                                    {
+                                        let iter = specified_value.compute_iter(context);
+                                        s.set_${property.ident}(iter ${maybe_cacheable});
+                                    }
+                                    context.mutate_style().put_${data.current_style_struct.name_lower}(s);
                                 % else:
-                                    % if property.has_uncacheable_values == "True":
-                                    context.mutate_style().mutate_${data.current_style_struct.name_lower}()
-                                                          .set_${property.ident}(computed, cacheable ${maybe_wm});
+                                    let computed = specified_value.to_computed_value(context);
+                                     % if property.ident == "font_size":
+                                         longhands::font_size::cascade_specified_font_size(context,
+                                                                                           specified_value,
+                                                                                           computed,
+                                                                                           inherited_style.get_font());
                                     % else:
-                                    context.mutate_style().mutate_${data.current_style_struct.name_lower}()
-                                                          .set_${property.ident}(computed ${maybe_wm});
+                                        context.mutate_style().mutate_${data.current_style_struct.name_lower}()
+                                               .set_${property.ident}(computed ${maybe_cacheable} ${maybe_wm});
                                     % endif
                                 % endif
                             }
