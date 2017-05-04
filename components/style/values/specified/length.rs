@@ -17,11 +17,13 @@ use std::ops::Mul;
 use style_traits::ToCss;
 use style_traits::values::specified::AllowedLengthType;
 use stylesheets::CssRuleType;
-use super::{AllowQuirks, Angle, Number, SimplifiedValueNode, SimplifiedSumNode, Time, ToComputedValue};
+use super::{AllowQuirks, Number, ToComputedValue};
 use values::{Auto, CSSFloat, Either, FONT_MEDIUM_PX, HasViewportPercentage, None_, Normal};
 use values::ExtremumLength;
 use values::computed::{ComputedValueAsSpecified, Context};
+use values::specified::calc::CalcNode;
 
+pub use values::specified::calc::CalcLengthOrPercentage;
 pub use super::image::{AngleOrCorner, ColorStop, EndingShape as GradientEndingShape, Gradient};
 pub use super::image::{GradientKind, HorizontalDirection, Image, LengthOrKeyword, LengthOrPercentageOrKeyword};
 pub use super::image::{SizeKeyword, VerticalDirection};
@@ -637,7 +639,10 @@ impl Length {
             },
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") =>
                 input.parse_nested_block(|input| {
-                    CalcLengthOrPercentage::parse_length(context, input, num_context)
+                    CalcNode::parse_length(context, input)
+                        .map(|calc| {
+                            Length::Calc(num_context, Box::new(calc))
+                        })
                 }),
             _ => Err(())
         }
@@ -700,432 +705,6 @@ impl<T: Parse> Either<Length, T> {
     }
 }
 
-/// A calc sum expression node.
-#[derive(Clone, Debug)]
-pub struct CalcSumNode {
-    /// The products of this node.
-    pub products: Vec<CalcProductNode>,
-}
-
-/// A calc product expression node.
-#[derive(Clone, Debug)]
-pub struct CalcProductNode {
-    /// The values inside this product node.
-    values: Vec<CalcValueNode>
-}
-
-/// A value inside a `Calc` expression.
-#[derive(Clone, Debug)]
-#[allow(missing_docs)]
-pub enum CalcValueNode {
-    Length(NoCalcLength),
-    Angle(CSSFloat),
-    Time(CSSFloat),
-    Percentage(CSSFloat),
-    Number(CSSFloat),
-    Sum(Box<CalcSumNode>),
-}
-
-#[derive(Clone, Copy, PartialEq)]
-#[allow(missing_docs)]
-pub enum CalcUnit {
-    Number,
-    Integer,
-    Length,
-    LengthOrPercentage,
-    Angle,
-    Time,
-}
-
-#[derive(Clone, PartialEq, Copy, Debug, Default)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-pub struct CalcLengthOrPercentage {
-    pub absolute: Option<Au>,
-    pub vw: Option<CSSFloat>,
-    pub vh: Option<CSSFloat>,
-    pub vmin: Option<CSSFloat>,
-    pub vmax: Option<CSSFloat>,
-    pub em: Option<CSSFloat>,
-    pub ex: Option<CSSFloat>,
-    pub ch: Option<CSSFloat>,
-    pub rem: Option<CSSFloat>,
-    pub percentage: Option<CSSFloat>,
-}
-
-impl CalcLengthOrPercentage {
-    /// Parse a calc sum node.
-    pub fn parse_sum(context: &ParserContext, input: &mut Parser, expected_unit: CalcUnit) -> Result<CalcSumNode, ()> {
-        let mut products = Vec::new();
-        products.push(try!(CalcLengthOrPercentage::parse_product(context, input, expected_unit)));
-
-        loop {
-            let position = input.position();
-            match input.next_including_whitespace() {
-                Ok(Token::WhiteSpace(_)) => {
-                    if input.is_exhausted() {
-                        break; // allow trailing whitespace
-                    }
-                    match input.next() {
-                        Ok(Token::Delim('+')) => {
-                            products.push(try!(CalcLengthOrPercentage::parse_product(context, input, expected_unit)));
-                        }
-                        Ok(Token::Delim('-')) => {
-                            let mut right = try!(CalcLengthOrPercentage::parse_product(context, input, expected_unit));
-                            right.values.push(CalcValueNode::Number(-1.));
-                            products.push(right);
-                        }
-                        _ => {
-                            return Err(());
-                        }
-                    }
-                }
-                _ => {
-                    input.reset(position);
-                    break
-                }
-            }
-        }
-        Ok(CalcSumNode { products: products })
-    }
-
-    fn parse_product(context: &ParserContext, input: &mut Parser, expected_unit: CalcUnit)
-                     -> Result<CalcProductNode, ()> {
-        let mut values = Vec::new();
-        values.push(try!(CalcLengthOrPercentage::parse_value(context, input, expected_unit)));
-
-        loop {
-            let position = input.position();
-            match input.next() {
-                Ok(Token::Delim('*')) => {
-                    values.push(try!(CalcLengthOrPercentage::parse_value(context, input, expected_unit)));
-                }
-                Ok(Token::Delim('/')) if expected_unit != CalcUnit::Integer => {
-                    if let Ok(Token::Number(ref value)) = input.next() {
-                        if value.value == 0. {
-                            return Err(());
-                        }
-                        values.push(CalcValueNode::Number(1. / value.value));
-                    } else {
-                        return Err(());
-                    }
-                }
-                _ => {
-                    input.reset(position);
-                    break
-                }
-            }
-        }
-
-        Ok(CalcProductNode { values: values })
-    }
-
-    fn parse_value(context: &ParserContext, input: &mut Parser, expected_unit: CalcUnit) -> Result<CalcValueNode, ()> {
-        match (try!(input.next()), expected_unit) {
-            (Token::Number(ref value), _) => Ok(CalcValueNode::Number(value.value)),
-            (Token::Dimension(ref value, ref unit), CalcUnit::Length) |
-            (Token::Dimension(ref value, ref unit), CalcUnit::LengthOrPercentage) => {
-                NoCalcLength::parse_dimension(context, value.value, unit).map(CalcValueNode::Length)
-            }
-            (Token::Dimension(ref value, ref unit), CalcUnit::Angle) => {
-                Angle::parse_dimension(value.value, unit).map(|angle| {
-                    CalcValueNode::Angle(angle.radians())
-                })
-            }
-            (Token::Dimension(ref value, ref unit), CalcUnit::Time) => {
-                Time::parse_dimension(value.value, unit).map(|time| {
-                    CalcValueNode::Time(time.seconds())
-                })
-            }
-            (Token::Percentage(ref value), CalcUnit::LengthOrPercentage) =>
-                Ok(CalcValueNode::Percentage(value.unit_value)),
-            (Token::ParenthesisBlock, _) => {
-                input.parse_nested_block(|i| CalcLengthOrPercentage::parse_sum(context, i, expected_unit))
-                     .map(|result| CalcValueNode::Sum(Box::new(result)))
-            },
-            (Token::Function(ref name), _) if name.eq_ignore_ascii_case("calc") => {
-                input.parse_nested_block(|i| CalcLengthOrPercentage::parse_sum(context, i, expected_unit))
-                     .map(|result| CalcValueNode::Sum(Box::new(result)))
-            }
-            _ => Err(())
-        }
-    }
-
-    fn simplify_value_to_number(node: &CalcValueNode) -> Option<CSSFloat> {
-        match *node {
-            CalcValueNode::Number(number) => Some(number),
-            CalcValueNode::Sum(ref sum) => CalcLengthOrPercentage::simplify_sum_to_number(sum),
-            _ => None
-        }
-    }
-
-    fn simplify_sum_to_number(node: &CalcSumNode) -> Option<CSSFloat> {
-        let mut sum = 0.;
-        for ref product in &node.products {
-            match CalcLengthOrPercentage::simplify_product_to_number(product) {
-                Some(number) => sum += number,
-                _ => return None
-            }
-        }
-        Some(sum)
-    }
-
-    fn simplify_product_to_number(node: &CalcProductNode) -> Option<CSSFloat> {
-        let mut product = 1.;
-        for ref value in &node.values {
-            match CalcLengthOrPercentage::simplify_value_to_number(value) {
-                Some(number) => product *= number,
-                _ => return None
-            }
-        }
-        Some(product)
-    }
-
-    fn simplify_products_in_sum(node: &CalcSumNode) -> Result<SimplifiedValueNode, ()> {
-        let mut simplified = Vec::new();
-        for product in &node.products {
-            match try!(CalcLengthOrPercentage::simplify_product(product)) {
-                SimplifiedValueNode::Sum(ref sum) => simplified.extend_from_slice(&sum.values),
-                val => simplified.push(val),
-            }
-        }
-
-        if simplified.len() == 1 {
-            Ok(simplified[0].clone())
-        } else {
-            Ok(SimplifiedValueNode::Sum(Box::new(SimplifiedSumNode { values: simplified })))
-        }
-    }
-
-    #[allow(missing_docs)]
-    pub fn simplify_product(node: &CalcProductNode) -> Result<SimplifiedValueNode, ()> {
-        let mut multiplier = 1.;
-        let mut node_with_unit = None;
-        for node in &node.values {
-            match CalcLengthOrPercentage::simplify_value_to_number(&node) {
-                Some(number) => multiplier *= number,
-                _ if node_with_unit.is_none() => {
-                    node_with_unit = Some(match *node {
-                        CalcValueNode::Sum(ref sum) =>
-                            try!(CalcLengthOrPercentage::simplify_products_in_sum(sum)),
-                        CalcValueNode::Length(ref l) => SimplifiedValueNode::Length(l.clone()),
-                        CalcValueNode::Angle(a) => SimplifiedValueNode::Angle(a),
-                        CalcValueNode::Time(t) => SimplifiedValueNode::Time(t),
-                        CalcValueNode::Percentage(p) => SimplifiedValueNode::Percentage(p),
-                        _ => unreachable!("Numbers should have been handled by simplify_value_to_nubmer")
-                    })
-                },
-                _ => return Err(()),
-            }
-        }
-
-        match node_with_unit {
-            None => Ok(SimplifiedValueNode::Number(multiplier)),
-            Some(ref value) => Ok(value * multiplier)
-        }
-    }
-
-    fn parse_length(context: &ParserContext,
-                    input: &mut Parser,
-                    num_context: AllowedLengthType) -> Result<Length, ()> {
-        CalcLengthOrPercentage::parse(context, input, CalcUnit::Length).map(|calc| {
-            Length::Calc(num_context, Box::new(calc))
-        })
-    }
-
-    fn parse_length_or_percentage(context: &ParserContext, input: &mut Parser) -> Result<CalcLengthOrPercentage, ()> {
-        CalcLengthOrPercentage::parse(context, input, CalcUnit::LengthOrPercentage)
-    }
-
-    #[allow(missing_docs)]
-    pub fn parse(context: &ParserContext,
-                 input: &mut Parser,
-                 expected_unit: CalcUnit) -> Result<CalcLengthOrPercentage, ()> {
-        let ast = try!(CalcLengthOrPercentage::parse_sum(context, input, expected_unit));
-
-        let mut simplified = Vec::new();
-        for ref node in ast.products {
-            match try!(CalcLengthOrPercentage::simplify_product(node)) {
-                SimplifiedValueNode::Sum(sum) => simplified.extend_from_slice(&sum.values),
-                value => simplified.push(value),
-            }
-        }
-
-        let mut absolute = None;
-        let mut vw = None;
-        let mut vh = None;
-        let mut vmax = None;
-        let mut vmin = None;
-        let mut em = None;
-        let mut ex = None;
-        let mut ch = None;
-        let mut rem = None;
-        let mut percentage = None;
-
-        for value in simplified {
-            match value {
-                SimplifiedValueNode::Percentage(p) =>
-                    percentage = Some(percentage.unwrap_or(0.) + p),
-                SimplifiedValueNode::Length(NoCalcLength::Absolute(length)) =>
-                    absolute = Some(absolute.unwrap_or(0.) + Au::from(length).to_f32_px()),
-                SimplifiedValueNode::Length(NoCalcLength::ViewportPercentage(v)) =>
-                    match v {
-                        ViewportPercentageLength::Vw(val) =>
-                            vw = Some(vw.unwrap_or(0.) + val),
-                        ViewportPercentageLength::Vh(val) =>
-                            vh = Some(vh.unwrap_or(0.) + val),
-                        ViewportPercentageLength::Vmin(val) =>
-                            vmin = Some(vmin.unwrap_or(0.) + val),
-                        ViewportPercentageLength::Vmax(val) =>
-                            vmax = Some(vmax.unwrap_or(0.) + val),
-                    },
-                SimplifiedValueNode::Length(NoCalcLength::FontRelative(f)) =>
-                    match f {
-                        FontRelativeLength::Em(val) =>
-                            em = Some(em.unwrap_or(0.) + val),
-                        FontRelativeLength::Ex(val) =>
-                            ex = Some(ex.unwrap_or(0.) + val),
-                        FontRelativeLength::Ch(val) =>
-                            ch = Some(ch.unwrap_or(0.) + val),
-                        FontRelativeLength::Rem(val) =>
-                            rem = Some(rem.unwrap_or(0.) + val),
-                    },
-                // TODO Add support for top level number in calc(). See servo/servo#14421.
-                _ => return Err(()),
-            }
-        }
-
-        Ok(CalcLengthOrPercentage {
-            absolute: absolute.map(Au::from_f32_px),
-            vw: vw,
-            vh: vh,
-            vmax: vmax,
-            vmin: vmin,
-            em: em,
-            ex: ex,
-            ch: ch,
-            rem: rem,
-            percentage: percentage,
-        })
-    }
-
-    #[allow(missing_docs)]
-    pub fn parse_time(context: &ParserContext, input: &mut Parser) -> Result<Time, ()> {
-        let ast = try!(CalcLengthOrPercentage::parse_sum(context, input, CalcUnit::Time));
-
-        let mut simplified = Vec::new();
-        for ref node in ast.products {
-            match try!(CalcLengthOrPercentage::simplify_product(node)) {
-                SimplifiedValueNode::Sum(sum) => simplified.extend_from_slice(&sum.values),
-                value => simplified.push(value),
-            }
-        }
-
-        let mut time = None;
-
-        for value in simplified {
-            match value {
-                SimplifiedValueNode::Time(val) =>
-                    time = Some(time.unwrap_or(0.) + val),
-                _ => return Err(()),
-            }
-        }
-
-        match time {
-            Some(time) => Ok(Time::from_calc(time)),
-            _ => Err(())
-        }
-    }
-
-    #[allow(missing_docs)]
-    pub fn parse_angle(context: &ParserContext, input: &mut Parser) -> Result<Angle, ()> {
-        let ast = try!(CalcLengthOrPercentage::parse_sum(context, input, CalcUnit::Angle));
-
-        let mut simplified = Vec::new();
-        for ref node in ast.products {
-            match try!(CalcLengthOrPercentage::simplify_product(node)) {
-                SimplifiedValueNode::Sum(sum) => simplified.extend_from_slice(&sum.values),
-                value => simplified.push(value),
-            }
-        }
-
-        let mut angle = None;
-        let mut number = None;
-
-        for value in simplified {
-            match value {
-                SimplifiedValueNode::Angle(val) => {
-                    angle = Some(angle.unwrap_or(0.) + val)
-                }
-                // TODO(emilio): This `Number` logic looks fishy.
-                //
-                // In particular, this allows calc(2 - 2) to parse as an
-                // `Angle`, which doesn't seem desired to me.
-                SimplifiedValueNode::Number(val) => {
-                    number = Some(number.unwrap_or(0.) + val)
-                }
-                _ => unreachable!()
-            }
-        }
-
-        match (angle, number) {
-            (Some(angle), None) => Ok(Angle::from_calc(angle)),
-            (None, Some(value)) if value == 0. => Ok(Angle::from_calc(0.)),
-            _ => Err(())
-        }
-    }
-}
-
-impl HasViewportPercentage for CalcLengthOrPercentage {
-    fn has_viewport_percentage(&self) -> bool {
-        self.vw.is_some() || self.vh.is_some() ||
-            self.vmin.is_some() || self.vmax.is_some()
-    }
-}
-
-impl ToCss for CalcLengthOrPercentage {
-    #[allow(unused_assignments)]
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        let mut first_value = true;
-        macro_rules! first_value_check {
-            () => {
-                if !first_value {
-                    try!(dest.write_str(" + "));
-                } else {
-                    first_value = false;
-                }
-            };
-        }
-
-        macro_rules! serialize {
-            ( $( $val:ident ),* ) => {
-                $(
-                    if let Some(val) = self.$val {
-                        first_value_check!();
-                        try!(val.to_css(dest));
-                        try!(dest.write_str(stringify!($val)));
-                    }
-                )*
-            };
-        }
-
-        try!(write!(dest, "calc("));
-
-        serialize!(ch, em, ex, rem, vh, vmax, vmin, vw);
-        if let Some(val) = self.absolute {
-            first_value_check!();
-            try!(val.to_css(dest));
-        }
-
-        if let Some(val) = self.percentage {
-            first_value_check!();
-            try!(write!(dest, "{}%", val * 100.));
-        }
-
-        write!(dest, ")")
-    }
-}
-
 /// A percentage value.
 ///
 /// [0 .. 100%] maps to [0.0 .. 1.0]
@@ -1177,8 +756,6 @@ impl Parse for Percentage {
 impl ComputedValueAsSpecified for Percentage {}
 
 /// A length or a percentage value.
-///
-/// TODO(emilio): Does this make any sense vs. CalcLengthOrPercentage?
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
@@ -1254,7 +831,7 @@ impl LengthOrPercentage {
                 Ok(LengthOrPercentage::Length(NoCalcLength::from_px(value.value))),
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
                 let calc = try!(input.parse_nested_block(|i| {
-                    CalcLengthOrPercentage::parse_length_or_percentage(context, i)
+                    CalcNode::parse_length_or_percentage(context, i)
                 }));
                 Ok(LengthOrPercentage::Calc(Box::new(calc)))
             },
@@ -1338,8 +915,7 @@ impl LengthOrPercentage {
     }
 }
 
-/// TODO(emilio): Do the Length and Percentage variants make any sense with
-/// CalcLengthOrPercentage?
+/// Either a `<length>`, a `<percentage>`, or the `auto` keyword.
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
@@ -1349,7 +925,6 @@ pub enum LengthOrPercentageOrAuto {
     Auto,
     Calc(Box<CalcLengthOrPercentage>),
 }
-
 
 impl From<NoCalcLength> for LengthOrPercentageOrAuto {
     #[inline]
@@ -1410,7 +985,7 @@ impl LengthOrPercentageOrAuto {
                 Ok(LengthOrPercentageOrAuto::Auto),
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
                 let calc = try!(input.parse_nested_block(|i| {
-                    CalcLengthOrPercentage::parse_length_or_percentage(context, i)
+                    CalcNode::parse_length_or_percentage(context, i)
                 }));
                 Ok(LengthOrPercentageOrAuto::Calc(Box::new(calc)))
             },
@@ -1462,8 +1037,7 @@ impl LengthOrPercentageOrAuto {
     }
 }
 
-/// TODO(emilio): Do the Length and Percentage variants make any sense with
-/// CalcLengthOrPercentage?
+/// Either a `<length>`, a `<percentage>`, or the `none` keyword.
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
@@ -1517,7 +1091,7 @@ impl LengthOrPercentageOrNone {
             }
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
                 let calc = try!(input.parse_nested_block(|i| {
-                    CalcLengthOrPercentage::parse_length_or_percentage(context, i)
+                    CalcNode::parse_length_or_percentage(context, i)
                 }));
                 Ok(LengthOrPercentageOrNone::Calc(Box::new(calc)))
             },
@@ -1561,8 +1135,6 @@ pub type LengthOrAuto = Either<Length, Auto>;
 
 /// Either a `<length>` or a `<percentage>` or the `auto` keyword or the
 /// `content` keyword.
-///
-/// TODO(emilio): Do the Length and Percentage variants make any sense with
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum LengthOrPercentageOrAutoOrContent {
@@ -1596,7 +1168,7 @@ impl LengthOrPercentageOrAutoOrContent {
                 Ok(LengthOrPercentageOrAutoOrContent::Content),
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
                 let calc = try!(input.parse_nested_block(|i| {
-                    CalcLengthOrPercentage::parse_length_or_percentage(context, i)
+                    CalcNode::parse_length_or_percentage(context, i)
                 }));
                 Ok(LengthOrPercentageOrAutoOrContent::Calc(Box::new(calc)))
             },

@@ -20,6 +20,7 @@ fn test_calc() {
     assert!(parse(Length::parse, "calc( 1px + 2px )").is_ok());
     assert!(parse(Length::parse, "calc(1px + 2px )").is_ok());
     assert!(parse(Length::parse, "calc( 1px + 2px)").is_ok());
+    assert!(parse(Length::parse, "calc( 1px + 2px / ( 1 + 2 - 1))").is_ok());
 }
 
 #[test]
