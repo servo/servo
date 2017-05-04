@@ -1754,7 +1754,7 @@ ${helpers.single_keyword_system("font-variant-position",
                                 spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-position",
                                 animation_value_type="none")}
 
-<%helpers:longhand name="font-feature-settings" products="none" animation_value_type="none" extra_prefixes="moz"
+<%helpers:longhand name="font-feature-settings" products="gecko" animation_value_type="none" extra_prefixes="moz"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-feature-settings">
     use std::fmt;
     use style_traits::ToCss;
@@ -1781,8 +1781,8 @@ ${helpers.single_keyword_system("font-variant-position",
         #[derive(Debug, Clone, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct FeatureTagValue {
-            pub tag: String,
-            pub value: i32
+            pub tag: u32,
+            pub value: u32
         }
 
         impl ToCss for T {
@@ -1806,10 +1806,17 @@ ${helpers.single_keyword_system("font-variant-position",
 
         impl ToCss for FeatureTagValue {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                use std::str;
+                use byteorder::{WriteBytesExt, NativeEndian};
+
+                let mut raw: Vec<u8> = vec!();
+                raw.write_u32::<NativeEndian>(self.tag).unwrap();
+                let str_print = str::from_utf8(&raw).unwrap_or_default();
+
                 match self.value {
-                    1 => write!(dest, "\"{}\"", self.tag),
-                    0 => write!(dest, "\"{}\" off", self.tag),
-                    x => write!(dest, "\"{}\" {}", self.tag, x)
+                    1 => write!(dest, "\"{}\"", str_print),
+                    0 => write!(dest, "\"{}\" off",str_print),
+                    x => write!(dest, "\"{}\" {}", str_print, x)
                 }
             }
         }
@@ -1818,6 +1825,11 @@ ${helpers.single_keyword_system("font-variant-position",
             /// https://www.w3.org/TR/css-fonts-3/#propdef-font-feature-settings
             /// <string> [ on | off | <integer> ]
             fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+                use std::io::Cursor;
+                use std::str;
+                use std::ops::Deref;
+                use byteorder::{ReadBytesExt, NativeEndian};
+
                 let tag = try!(input.expect_string());
 
                 // allowed strings of length 4 containing chars: <U+20, U+7E>
@@ -1827,22 +1839,25 @@ ${helpers.single_keyword_system("font-variant-position",
                     return Err(())
                 }
 
+                let mut raw = Cursor::new(tag.as_bytes());
+                let u_tag = raw.read_u32::<NativeEndian>().unwrap();
+
                 if let Ok(value) = input.try(|input| input.expect_integer()) {
                     // handle integer, throw if it is negative
                     if value >= 0 {
-                        Ok(FeatureTagValue { tag: tag.into_owned(), value: value })
+                        Ok(FeatureTagValue { tag: u_tag, value: value as u32 })
                     } else {
                         Err(())
                     }
                 } else if let Ok(_) = input.try(|input| input.expect_ident_matching("on")) {
                     // on is an alias for '1'
-                    Ok(FeatureTagValue { tag: tag.into_owned(), value: 1 })
+                    Ok(FeatureTagValue { tag: u_tag, value: 1 })
                 } else if let Ok(_) = input.try(|input| input.expect_ident_matching("off")) {
                     // off is an alias for '0'
-                    Ok(FeatureTagValue { tag: tag.into_owned(), value: 0 })
+                    Ok(FeatureTagValue { tag: u_tag, value: 0 })
                 } else {
                     // empty value is an alias for '1'
-                    Ok(FeatureTagValue { tag:tag.into_owned(), value: 1 })
+                    Ok(FeatureTagValue { tag: u_tag, value: 1 })
                 }
             }
         }
