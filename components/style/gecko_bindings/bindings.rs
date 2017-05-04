@@ -3,6 +3,7 @@
 pub use nsstring::{nsACString, nsAString, nsString};
 type nsACString_internal = nsACString;
 type nsAString_internal = nsAString;
+use gecko_bindings::structs::mozilla::css::GridTemplateAreasValue;
 use gecko_bindings::structs::mozilla::css::URLValue;
 use gecko_bindings::structs::mozilla::Side;
 use gecko_bindings::structs::RawGeckoAnimationPropertySegment;
@@ -892,6 +893,19 @@ extern "C" {
                                                  *mut nsStyleGridTemplate,
                                              other:
                                                  *const nsStyleGridTemplate);
+}
+extern "C" {
+    pub fn Gecko_NewGridTemplateAreasValue(areas: u32, templates: u32,
+                                           columns: u32)
+     -> *mut GridTemplateAreasValue;
+}
+extern "C" {
+    pub fn Gecko_AddRefGridTemplateAreasValueArbitraryThread(aPtr:
+                                                                 *mut GridTemplateAreasValue);
+}
+extern "C" {
+    pub fn Gecko_ReleaseGridTemplateAreasValueArbitraryThread(aPtr:
+                                                                  *mut GridTemplateAreasValue);
 }
 extern "C" {
     pub fn Gecko_ClearAndResizeStyleContents(content: *mut nsStyleContent,
