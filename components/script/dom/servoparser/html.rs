@@ -118,50 +118,101 @@ unsafe impl JSTraceable for HtmlTokenizer<TreeBuilder<JS<Node>, Sink>> {
 impl<'a> Serialize for &'a Node {
     fn serialize<S: Serializer>(&self, serializer: &mut S,
                                 traversal_scope: TraversalScope) -> io::Result<()> {
-
-        let mut stack = Vec::new();
         let mut roots = self.traverse_preorder();
-
+        // This stores the nodes that the serializer started and needs to end
+        // as well as the number of children of each node that need to be ended
+        let mut stack = Vec::new();
+        // If we only want to serialize the children of the node, we skip the
+        // first element
         if traversal_scope == ChildrenOnly {
             roots.next().unwrap();
         }
-
-        'outer: for root in roots {
+        // For each Root<Node> element
+        'traversal: for root in roots {
             let node = root.r();
-
-            // Assuming that node has type_id NodeTypeId::Element(..)
-            let elem = node.downcast::<Element>().unwrap();
-            let name = QualName::new(None, elem.namespace().clone(),
-                                     elem.local_name().clone());
-            let attrs = elem.attrs().iter().map(|attr| {
-                let qname = QualName::new(None, attr.namespace().clone(),
-                                          attr.local_name().clone());
-                let value = attr.value().clone();
-                (qname, value)
-            }).collect::<Vec<_>>();
-            let attr_refs = attrs.iter().map(|&(ref qname, ref value)| {
-                let ar: AttrRef = (&qname, &**value);
-                ar
-            });
-
-            let mut head = (name.clone(), node.children_count());
-
-            try!(serializer.start_elem(name.clone(), attr_refs));
-
-            while head.1 == 0 {
-                try!(serializer.end_elem(head.0));
-                match stack.pop() {
-                    Some(new_head) => {
-                        head = new_head;
+            match  node.type_id() {
+                NodeTypeId::Element(..) => {
+                    let elem = node.downcast::<Element>().unwrap();
+                    let name = QualName::new(None, elem.namespace().clone(),
+                                             elem.local_name().clone());
+                    let attrs = elem.attrs().iter().map(|attr| {
+                        let qname = QualName::new(None, attr.namespace().clone(),
+                                                  attr.local_name().clone());
+                        let value = attr.value().clone();
+                        (qname, value)
+                    }).collect::<Vec<_>>();
+                    let attr_refs = attrs.iter().map(|&(ref qname, ref value)| {
+                        let ar: AttrRef = (&qname, &**value);
+                        ar
+                    });
+                    // Starts an element in the serializer
+                    try!(serializer.start_elem(name.clone(), attr_refs));
+                    // Adds the name of the node and the number of chidlren to
+                    // the stack
+                    stack.push((name.clone(), node.children_count()));
+                },
+                NodeTypeId::DocumentType => {
+                    let doctype = node.downcast::<DocumentType>().unwrap();
+                    try!(serializer.write_doctype(&doctype.name()));
+                    if let Some(head) = stack.last_mut() {
                         head.1 -= 1;
-                    },
-                    None => {
-                        break 'outer;
                     }
-                }
+                },
+                NodeTypeId::CharacterData(CharacterDataTypeId::Text) => {
+                    let cdata = node.downcast::<CharacterData>().unwrap();
+                    try!(serializer.write_text(&cdata.data()));
+                    if let Some(head) = stack.last_mut() {
+                        head.1 -= 1;
+                    }
+                },
+                NodeTypeId::CharacterData(CharacterDataTypeId::Comment) => {
+                    let cdata = node.downcast::<CharacterData>().unwrap();
+                    try!(serializer.write_comment(&cdata.data()));
+                    if let Some(head) = stack.last_mut() {
+                        head.1 -= 1;
+                    }
+                },
+                NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) => {
+                    let pi = node.downcast::<ProcessingInstruction>().unwrap();
+                    let data = pi.upcast::<CharacterData>().data();
+                    try!(serializer.write_processing_instruction(&pi.target(), &data));
+                    if let Some(head) = stack.last_mut() {
+                        head.1 -= 1;
+                    }
+                },
+                NodeTypeId::DocumentFragment => {},
+                NodeTypeId::Document(_) => panic!("Can't serialize Document node itself"),
+            };
+
+            match stack.pop() {
+                // Gets the head of the stack
+                Some(mut head) => {
+                    //  While the head of the stack has zero children to be ended
+                    while head.1 == 0 {
+                        // Ends the head of the stack
+                        try!(serializer.end_elem(head.0));
+                        match stack.pop() {
+                            // Gets the new head of the stack and reduces the number
+                            // of children to be ended
+                            Some(new_head) => {
+                                head = new_head;
+                                head.1 -= 1;
+                            },
+                            // If the stack is empty, it breaks the traversal
+                            None => break 'traversal
+                        }
+                    }
+                    stack.push(head);
+                },
+                None => ()
             }
-            stack.push(head);
         }
-        Ok(())
+        if stack.is_empty() {
+            Ok(())
+        }
+        else {
+            Err(io::Error::new(io::ErrorKind::Other, "Stack is not empty!!!!"))
+        }
+
     }
 }
