@@ -16,13 +16,13 @@ use self::url::SpecifiedUrl;
 use std::ascii::AsciiExt;
 use std::f32;
 use std::fmt;
-use std::ops::Mul;
 use style_traits::ToCss;
 use style_traits::values::specified::AllowedNumericType;
 use super::{Auto, CSSFloat, CSSInteger, HasViewportPercentage, Either, None_};
 use super::computed::{self, Context};
 use super::computed::{Shadow as ComputedShadow, ToComputedValue};
 use super::generics::BorderRadiusSize as GenericBorderRadiusSize;
+use values::specified::calc::CalcNode;
 
 #[cfg(feature = "gecko")]
 pub use self::align::{AlignItems, AlignJustifyContent, AlignJustifySelf, JustifyItems};
@@ -34,13 +34,14 @@ pub use self::image::{LengthOrKeyword, LengthOrPercentageOrKeyword, SizeKeyword,
 pub use self::length::AbsoluteLength;
 pub use self::length::{FontRelativeLength, ViewportPercentageLength, CharacterWidth, Length, CalcLengthOrPercentage};
 pub use self::length::{Percentage, LengthOrNone, LengthOrNumber, LengthOrPercentage, LengthOrPercentageOrAuto};
-pub use self::length::{LengthOrPercentageOrNone, LengthOrPercentageOrAutoOrContent, NoCalcLength, CalcUnit};
+pub use self::length::{LengthOrPercentageOrNone, LengthOrPercentageOrAutoOrContent, NoCalcLength};
 pub use self::length::{MaxLength, MinLength};
 pub use self::position::{HorizontalPosition, Position, VerticalPosition};
 
 #[cfg(feature = "gecko")]
 pub mod align;
 pub mod basic_shape;
+pub mod calc;
 pub mod color;
 pub mod grid;
 pub mod image;
@@ -153,96 +154,28 @@ impl ToCss for CSSRGBA {
     }
 }
 
-#[derive(Clone, Debug)]
-#[allow(missing_docs)]
-pub struct SimplifiedSumNode {
-    values: Vec<SimplifiedValueNode>,
-}
-impl<'a> Mul<CSSFloat> for &'a SimplifiedSumNode {
-    type Output = SimplifiedSumNode;
-
-    #[inline]
-    fn mul(self, scalar: CSSFloat) -> SimplifiedSumNode {
-        SimplifiedSumNode {
-            values: self.values.iter().map(|p| p * scalar).collect()
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-#[allow(missing_docs)]
-pub enum SimplifiedValueNode {
-    Length(NoCalcLength),
-    Angle(CSSFloat),
-    Time(CSSFloat),
-    Percentage(CSSFloat),
-    Number(CSSFloat),
-    Sum(Box<SimplifiedSumNode>),
-}
-
-impl<'a> Mul<CSSFloat> for &'a SimplifiedValueNode {
-    type Output = SimplifiedValueNode;
-
-    #[inline]
-    fn mul(self, scalar: CSSFloat) -> SimplifiedValueNode {
-        match *self {
-            SimplifiedValueNode::Length(ref l) => {
-                SimplifiedValueNode::Length(l.clone() * scalar)
-            },
-            SimplifiedValueNode::Percentage(p) => {
-                SimplifiedValueNode::Percentage(p * scalar)
-            },
-            SimplifiedValueNode::Angle(a) => {
-                SimplifiedValueNode::Angle(a * scalar)
-            },
-            SimplifiedValueNode::Time(t) => {
-                SimplifiedValueNode::Time(t * scalar)
-            },
-            SimplifiedValueNode::Number(n) => {
-                SimplifiedValueNode::Number(n * scalar)
-            },
-            SimplifiedValueNode::Sum(ref s) => {
-                let sum = &**s * scalar;
-                SimplifiedValueNode::Sum(Box::new(sum))
-            },
-        }
-    }
-}
-
-#[allow(missing_docs)]
+/// Parse an `<integer>` value, handling `calc()` correctly.
 pub fn parse_integer(context: &ParserContext, input: &mut Parser) -> Result<Integer, ()> {
     match try!(input.next()) {
         Token::Number(ref value) => value.int_value.ok_or(()).map(Integer::new),
         Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-            let ast = try!(input.parse_nested_block(|i| {
-                CalcLengthOrPercentage::parse_sum(context, i, CalcUnit::Integer)
+            let result = try!(input.parse_nested_block(|i| {
+                CalcNode::parse_integer(context, i)
             }));
 
-            let mut result = None;
-
-            for ref node in ast.products {
-                match try!(CalcLengthOrPercentage::simplify_product(node)) {
-                    SimplifiedValueNode::Number(val) =>
-                        result = Some(result.unwrap_or(0) + val as CSSInteger),
-                    _ => unreachable!()
-                }
-            }
-
-            match result {
-                Some(result) => Ok(Integer::from_calc(result)),
-                _ => Err(())
-            }
+            Ok(Integer::from_calc(result))
         }
         _ => Err(())
     }
 }
 
-#[allow(missing_docs)]
+/// Parse a `<number>` value, handling `calc()` correctly, and without length
+/// limitations.
 pub fn parse_number(context: &ParserContext, input: &mut Parser) -> Result<Number, ()> {
     parse_number_with_clamping_mode(context, input, AllowedNumericType::All)
 }
 
-#[allow(missing_docs)]
+/// Parse a `<number>` value, with a given clamping mode.
 pub fn parse_number_with_clamping_mode(context: &ParserContext,
                                        input: &mut Parser,
                                        clamping_mode: AllowedNumericType)
@@ -255,29 +188,14 @@ pub fn parse_number_with_clamping_mode(context: &ParserContext,
             })
         },
         Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-            let ast = try!(input.parse_nested_block(|i| {
-                CalcLengthOrPercentage::parse_sum(context, i, CalcUnit::Number)
+            let result = try!(input.parse_nested_block(|i| {
+                CalcNode::parse_number(context, i)
             }));
 
-            let mut result = None;
-
-            for ref node in ast.products {
-                match try!(CalcLengthOrPercentage::simplify_product(node)) {
-                    SimplifiedValueNode::Number(val) =>
-                        result = Some(result.unwrap_or(0.) + val),
-                    _ => unreachable!()
-                }
-            }
-
-            match result {
-                Some(result) => {
-                    Ok(Number {
-                        value: result.min(f32::MAX).max(f32::MIN),
-                        calc_clamping_mode: Some(clamping_mode),
-                    })
-                },
-                _ => Err(())
-            }
+            Ok(Number {
+                value: result.min(f32::MAX).max(f32::MIN),
+                calc_clamping_mode: Some(clamping_mode),
+            })
         }
         _ => Err(())
     }
@@ -338,20 +256,23 @@ impl ToComputedValue for Angle {
 
 impl Angle {
     /// Returns an angle with the given value in degrees.
-    pub fn from_degrees(value: CSSFloat) -> Self {
-        Angle { value: computed::Angle::Degree(value), was_calc: false }
+    pub fn from_degrees(value: CSSFloat, was_calc: bool) -> Self {
+        Angle { value: computed::Angle::Degree(value), was_calc: was_calc }
     }
+
     /// Returns an angle with the given value in gradians.
-    pub fn from_gradians(value: CSSFloat) -> Self {
-        Angle { value: computed::Angle::Gradian(value), was_calc: false }
+    pub fn from_gradians(value: CSSFloat, was_calc: bool) -> Self {
+        Angle { value: computed::Angle::Gradian(value), was_calc: was_calc }
     }
+
     /// Returns an angle with the given value in turns.
-    pub fn from_turns(value: CSSFloat) -> Self {
-        Angle { value: computed::Angle::Turn(value), was_calc: false }
+    pub fn from_turns(value: CSSFloat, was_calc: bool) -> Self {
+        Angle { value: computed::Angle::Turn(value), was_calc: was_calc }
     }
+
     /// Returns an angle with the given value in radians.
-    pub fn from_radians(value: CSSFloat) -> Self {
-        Angle { value: computed::Angle::Radian(value), was_calc: false }
+    pub fn from_radians(value: CSSFloat, was_calc: bool) -> Self {
+        Angle { value: computed::Angle::Radian(value), was_calc: was_calc }
     }
 
     #[inline]
@@ -362,7 +283,7 @@ impl Angle {
 
     /// Returns an angle value that represents zero.
     pub fn zero() -> Self {
-        Self::from_degrees(0.0)
+        Self::from_degrees(0.0, false)
     }
 
     /// Returns an `Angle` parsed from a `calc()` expression.
@@ -378,40 +299,55 @@ impl Parse for Angle {
     /// Parses an angle according to CSS-VALUES § 6.1.
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         match try!(input.next()) {
-            Token::Dimension(ref value, ref unit) => Angle::parse_dimension(value.value, unit),
+            Token::Dimension(ref value, ref unit) => {
+                Angle::parse_dimension(value.value,
+                                       unit,
+                                       /* from_calc = */ false)
+            }
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-                input.parse_nested_block(|i| CalcLengthOrPercentage::parse_angle(context, i))
-            },
+                input.parse_nested_block(|i| CalcNode::parse_angle(context, i))
+            }
             _ => Err(())
         }
     }
 }
 
 impl Angle {
-    #[allow(missing_docs)]
-    pub fn parse_dimension(value: CSSFloat, unit: &str) -> Result<Angle, ()> {
+    /// Parse an `<angle>` value given a value and an unit.
+    pub fn parse_dimension(
+        value: CSSFloat,
+        unit: &str,
+        from_calc: bool)
+        -> Result<Angle, ()>
+    {
         let angle = match_ignore_ascii_case! { unit,
-            "deg" => Angle::from_degrees(value),
-            "grad" => Angle::from_gradians(value),
-            "turn" => Angle::from_turns(value),
-            "rad" => Angle::from_radians(value),
+            "deg" => Angle::from_degrees(value, from_calc),
+            "grad" => Angle::from_gradians(value, from_calc),
+            "turn" => Angle::from_turns(value, from_calc),
+            "rad" => Angle::from_radians(value, from_calc),
              _ => return Err(())
         };
         Ok(angle)
     }
     /// Parse an angle, including unitless 0 degree.
-    /// Note that numbers without any AngleUnit, including unitless 0
-    /// angle, should be invalid. However, some properties still accept
-    /// unitless 0 angle and stores it as '0deg'. We can remove this and
-    /// get back to the unified version Angle::parse once
+    ///
+    /// Note that numbers without any AngleUnit, including unitless 0 angle,
+    /// should be invalid. However, some properties still accept unitless 0
+    /// angle and stores it as '0deg'.
+    ///
+    /// We can remove this and get back to the unified version Angle::parse once
     /// https://github.com/w3c/csswg-drafts/issues/1162 is resolved.
     pub fn parse_with_unitless(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         match try!(input.next()) {
-            Token::Dimension(ref value, ref unit) => Angle::parse_dimension(value.value, unit),
+            Token::Dimension(ref value, ref unit) => {
+                Angle::parse_dimension(value.value,
+                                       unit,
+                                       /* from_calc = */ false)
+            }
             Token::Number(ref value) if value.value == 0. => Ok(Angle::zero()),
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-                input.parse_nested_block(|i| CalcLengthOrPercentage::parse_angle(context, i))
-            },
+                input.parse_nested_block(|i| CalcNode::parse_angle(context, i))
+            }
             _ => Err(())
         }
     }
@@ -579,7 +515,12 @@ impl Time {
     }
 
     /// Parses a time according to CSS-VALUES § 6.2.
-    fn parse_dimension(value: CSSFloat, unit: &str) -> Result<Time, ()> {
+    pub fn parse_dimension(
+        value: CSSFloat,
+        unit: &str,
+        from_calc: bool)
+        -> Result<Time, ()>
+    {
         let seconds = match_ignore_ascii_case! { unit,
             "s" => value,
             "ms" => value / 1000.0,
@@ -588,7 +529,7 @@ impl Time {
 
         Ok(Time {
             seconds: seconds,
-            was_calc: false,
+            was_calc: from_calc,
         })
     }
 
@@ -620,10 +561,10 @@ impl Parse for Time {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         match input.next() {
             Ok(Token::Dimension(ref value, ref unit)) => {
-                Time::parse_dimension(value.value, &unit)
+                Time::parse_dimension(value.value, &unit, /* from_calc = */ false)
             }
             Ok(Token::Function(ref name)) if name.eq_ignore_ascii_case("calc") => {
-                input.parse_nested_block(|i| CalcLengthOrPercentage::parse_time(context, i))
+                input.parse_nested_block(|i| CalcNode::parse_time(context, i))
             }
             _ => Err(())
         }
@@ -804,7 +745,7 @@ impl Integer {
     }
 
     /// Trivially constructs a new integer value from a `calc()` expression.
-    pub fn from_calc(val: CSSInteger) -> Self {
+    fn from_calc(val: CSSInteger) -> Self {
         Integer {
             value: val,
             was_calc: true,
