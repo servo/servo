@@ -600,11 +600,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         let (event_loop, host) = match sandbox {
             IFrameSandboxState::IFrameSandboxed => (None, None),
             IFrameSandboxState::IFrameUnsandboxed => {
-                match load_data.creator_pipeline_id.and_then(|cpi| self.pipelines.get(&cpi)) {
-                    Some(creator_pipeline) => {
-                        (Some(creator_pipeline.event_loop.clone()), None)
-                    },
-                    None => match reg_host(&load_data.url) {
+                if load_data.url.as_str() != "about:blank" {
+                    match reg_host(&load_data.url) {
                         None => (None, None),
                         Some(host) => {
                             let event_loop = self.event_loops.get(&top_level_frame_id)
@@ -615,7 +612,15 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                                 Some(event_loop) => (Some(event_loop.clone()), None),
                             }
                         },
-                    },
+                    }
+                } else if let Some(parent) = parent_info
+                        .and_then(|(pipeline_id, _)| self.pipelines.get(&pipeline_id)) {
+                    (Some(parent.event_loop.clone()), None)
+                } else if let Some(creator) = load_data.creator_pipeline_id
+                        .and_then(|pipeline_id| self.pipelines.get(&pipeline_id)) {
+                    (Some(creator.event_loop.clone()), None)
+                } else {
+                    (None, None)
                 }
             },
         };
@@ -1427,7 +1432,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 };
 
                 // TODO - loaddata here should have referrer info (not None, None)
-                LoadData::new(url, None, None, None)
+                LoadData::new(url, Some(source_pipeline.id), None, None)
             });
 
             let is_private = load_info.info.is_private || source_pipeline.is_private;
@@ -2234,16 +2239,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             debug!("Adding pipeline to existing frame.");
             let old_pipeline_id = frame.pipeline_id;
             frame.load(frame_change.new_pipeline_id, frame_change.load_data.clone());
-            // TODO: Find a way to discard `about:blank` entries. Currently we have no way to ensure
-            // that a restored `about:blank` entry will use the proper script thread.
             let evicted_id = frame.prev.len()
                 .checked_sub(PREFS.get("session-history.max-length").as_u64().unwrap_or(20) as usize)
                 .and_then(|index| frame.prev.get_mut(index))
-                .and_then(|entry| if entry.load_data.url.as_str() != "about:blank" {
-                    entry.pipeline_id.take()
-                } else {
-                    None
-                });
+                .and_then(|entry| entry.pipeline_id.take());
             (evicted_id, false, Some(old_pipeline_id), true)
         } else {
             debug!("Adding pipeline to new frame.");

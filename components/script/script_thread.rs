@@ -147,8 +147,6 @@ struct InProgressLoad {
     frame_id: FrameId,
     /// The parent pipeline and frame type associated with this load, if any.
     parent_info: Option<(PipelineId, FrameType)>,
-    /// The creator pipeline if this is an about:blank load.
-    creator_pipeline_id: Option<PipelineId>,
     /// The current window size associated with this pipeline.
     window_size: Option<WindowSizeData>,
     /// Channel to the layout thread associated with this pipeline.
@@ -168,7 +166,6 @@ impl InProgressLoad {
     fn new(id: PipelineId,
            frame_id: FrameId,
            parent_info: Option<(PipelineId, FrameType)>,
-           creator_pipeline_id: Option<PipelineId>,
            layout_chan: Sender<message::Msg>,
            window_size: Option<WindowSizeData>,
            url: ServoUrl,
@@ -177,7 +174,6 @@ impl InProgressLoad {
             pipeline_id: id,
             frame_id: frame_id,
             parent_info: parent_info,
-            creator_pipeline_id: creator_pipeline_id,
             layout_chan: layout_chan,
             window_size: window_size,
             activity: DocumentActivity::FullyActive,
@@ -559,7 +555,7 @@ impl ScriptThreadFactory for ScriptThread {
             let mut failsafe = ScriptMemoryFailsafe::new(&script_thread);
 
             let origin = MutableOrigin::new(load_data.url.origin());
-            let new_load = InProgressLoad::new(id, frame_id, parent_info, load_data.creator_pipeline_id,
+            let new_load = InProgressLoad::new(id, frame_id, parent_info,
                                                layout_chan, window_size, load_data.url.clone(), origin);
             script_thread.start_page_load(new_load, load_data);
 
@@ -832,11 +828,19 @@ impl ScriptThread {
                         new_layout_info)) => {
                     self.profile_event(ScriptThreadEventCategory::AttachLayout, || {
                         // If this is an about:blank load, it must share the creator's origin.
-                        let origin = new_layout_info.load_data.creator_pipeline_id.and_then(|creator_pipeline_id| {
-                            self.documents.borrow().find_document(creator_pipeline_id).map(|doc| {
-                                doc.origin().clone()
-                            })
-                        }).unwrap_or(MutableOrigin::new(new_layout_info.load_data.url.origin()));
+                        let origin = if new_layout_info.load_data.url.as_str() != "about:blank" {
+                            MutableOrigin::new(new_layout_info.load_data.url.origin())
+                        } else if let Some(parent) = new_layout_info.parent_info
+                                .and_then(|(pipeline_id, _)| self.documents.borrow()
+                                .find_document(pipeline_id)) {
+                            parent.origin().clone()
+                        } else if let Some(creator) = new_layout_info.load_data.creator_pipeline_id
+                                .and_then(|pipeline_id| self.documents.borrow()
+                                .find_document(pipeline_id)) {
+                            creator.origin().clone()
+                        } else {
+                            MutableOrigin::new(ImmutableOrigin::new_opaque())
+                        };
 
                         self.handle_new_layout(new_layout_info, origin);
                     })
@@ -1309,7 +1313,7 @@ impl ScriptThread {
 
         // Kick off the fetch for the new resource.
         let new_load = InProgressLoad::new(new_pipeline_id, frame_id, parent_info,
-                                           load_data.creator_pipeline_id, layout_chan, window_size,
+                                           layout_chan, window_size,
                                            load_data.url.clone(), origin);
         if load_data.url.as_str() == "about:blank" {
             self.start_page_load_about_blank(new_load);
@@ -1758,13 +1762,6 @@ impl ScriptThread {
         ROUTER.route_ipc_receiver_to_mpsc_sender(ipc_timer_event_port,
                                                  self.timer_event_chan.clone());
 
-        // If this is an about:blank load, it must share the creator's origin.
-        let origin = incomplete.creator_pipeline_id.and_then(|creator_pipeline_id| {
-            self.documents.borrow().find_document(creator_pipeline_id).map(|doc| {
-                doc.origin().clone()
-            })
-        }).unwrap_or(incomplete.origin);
-
         // Create the window and document objects.
         let window = Window::new(self.js_runtime.clone(),
                                  MainThreadScriptChan(sender.clone()),
@@ -1788,7 +1785,7 @@ impl ScriptThread {
                                  incomplete.pipeline_id,
                                  incomplete.parent_info,
                                  incomplete.window_size,
-                                 origin.clone(),
+                                 incomplete.origin.clone(),
                                  self.webvr_thread.clone());
 
         // Initialize the browsing context for the window.
@@ -1830,7 +1827,7 @@ impl ScriptThread {
         let document = Document::new(&window,
                                      HasBrowsingContext::Yes,
                                      Some(final_url.clone()),
-                                     origin,
+                                     incomplete.origin,
                                      is_html_document,
                                      content_type,
                                      last_modified,
