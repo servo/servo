@@ -8,8 +8,8 @@ use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationCallback;
 use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationObserverBinding::MutationObserverMethods;
 use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationObserverInit;
 use dom::bindings::error::{Error, Fallible};
-use dom::bindings::js::{JS, Root};
-use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::js::Root;
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::mutationrecord::MutationRecord;
 use dom::node::Node;
@@ -27,9 +27,7 @@ pub struct MutationObserver {
     reflector_: Reflector,
     #[ignore_heap_size_of = "can't measure Rc values"]
     callback: Rc<MutationCallback>,
-    record_queue: Vec<Root<MutationRecord>>,
-//    #[ignore_heap_size_of = "can't measure DomRefCell values"]
-//    options: Cell<MutationObserverInit>,
+    record_queue: DOMRefCell<Vec<Root<MutationRecord>>>,
     attribute_old_value: Cell<bool>,
     attributes: Cell<bool>,
     character_data: Cell<bool>,
@@ -54,7 +52,7 @@ impl MutationObserver {
         MutationObserver {
             reflector_: Reflector::new(),
             callback: callback,
-            record_queue: vec![],
+            record_queue: DOMRefCell::new(vec![]),
             attribute_filter: DOMRefCell::new(vec![]),
             attribute_old_value: Cell::from(false),
             attributes: Cell::from(false),
@@ -87,22 +85,31 @@ impl MutationObserver {
 
     /// https://dom.spec.whatwg.org/#notify-mutation-observers
     /// Notify Mutation Observers.
-    pub fn notifyMutationObservers() {
+    pub fn notifyMutationObservers() -> Fallible<()> {
         // Step 1
         ScriptThread::set_mutation_observer_compound_microtask_queued(false);
         // Step 2
         let notifyList = ScriptThread::get_mutation_observer();
         // Step 3, Step 4 not needed as Servo doesn't implement anything related to slots yet.
         // Step 5: Ignore the specific text about execute a compound microtask.
+        for (i, mo) in notifyList.iter().enumerate() {
+            let queue = mo.record_queue.clone();
+            *mo.record_queue.borrow_mut() = Vec::new();
+            // TODO: Step 5.3 Remove all transient registered observers whose observer is mo.
+            if !queue.borrow().is_empty() {
+                //mo.callback;
+            }
+        }
         // Step 6 not needed as Servo doesn't implement anything related to slots yet.
+        Ok(())
     }
 
     //https://dom.spec.whatwg.org/#queueing-a-mutation-record
     //Queuing a mutation record
     pub fn queue_a_mutation_record(target: &Node, attr_type: Mutation) {
-        let mut given_name = "";
-        let mut given_namespace = "";
-        let mut old_value = "";
+        let given_name = "";
+        let given_namespace = "";
+        let old_value = "";
         // Step 1
         let mut interestedObservers: Vec<Root<MutationObserver>> = vec![];
         let mut pairedStrings: Vec<DOMString> = vec![];
@@ -152,7 +159,7 @@ impl MutationObserver {
         let mut i = 0;
         for observer in &interestedObservers {
             //Step 4.1
-            let mut record = &MutationRecord::new(DOMString::from(&*given_name), target);
+            let record = &MutationRecord::new(DOMString::from(&*given_name), target);
             //Step 4.2
             if given_name != "" && given_namespace != "" {
                 record.SetAttributeName(DOMString::from(&*given_name));
@@ -201,7 +208,7 @@ impl MutationObserverMethods for MutationObserver {
         if options.characterDataOldValue.unwrap_or(false) && !options.characterData.unwrap_or(false) {
             return Err(Error::Type("characterDataOldValue is true but characterData is false".to_owned()));
         }
-        // TODO: Step 7
+        // Step 7
         for registered in target.registered_mutation_observers().borrow().iter() {
 //            if &*registered as *const Root<MutationObserver> == self as *const MutationObserver {
                 // TODO: remove matching transient registered observers
@@ -221,7 +228,7 @@ impl MutationObserverMethods for MutationObserver {
                 registered.subtree.set(options.subtree);
                 *registered.attribute_filter.borrow_mut() = options.attributeFilter.clone().unwrap();
 //            }
-            // TODO: Step 8
+            // Step 8
             target.add_registered_mutation_observer(&self);
         }
         Ok(())

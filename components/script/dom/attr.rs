@@ -12,7 +12,7 @@ use dom::bindings::str::DOMString;
 use dom::element::{AttributeMutation, Element};
 use dom::mutationobserver::Mutation;
 use dom::mutationobserver::MutationObserver;
-use dom::node::{Node, window_from_node};
+use dom::node::Node;
 use dom::virtualmethods::vtable_for;
 use dom::window::Window;
 use dom_struct::dom_struct;
@@ -21,7 +21,6 @@ use servo_atoms::Atom;
 use std::borrow::ToOwned;
 use std::cell::Ref;
 use std::mem;
-use std::rc::Rc;
 use style::attr::{AttrIdentifier, AttrValue};
 
 // https://dom.spec.whatwg.org/#interface-attr
